@@ -372,6 +372,99 @@ def test_interior_hole_fails_at_any_cap():
 
 
 # ---------------------------------------------------------------------------
+# compare.py: flicker also needs a sub-pixel coverage check
+# ---------------------------------------------------------------------------
+
+_FLAT_VIEW = (0.0, 0.0, -1.0)  # head-on at the z = 0 plane, so `right` is +x and `up` is +y
+_FRAME = np.array([[-100.0, -100.0, 0.0], [100.0, -100.0, 0.0],
+                    [100.0, 100.0, 0.0], [-100.0, 100.0, 0.0]])
+_COVER_SIZE = (64, 64)
+_QUAD = np.array([[0, 1, 2], [0, 2, 3]], np.int64)
+
+
+def _camera():
+    """The camera `_FRAME` gives at `_COVER_SIZE`, with no geometry at all: `xs` and `ys` are the
+    x and y of every pixel centre, so a test can place geometry ON a pixel centre."""
+    return ortho_first_hit(_FRAME, np.zeros((0, 3), np.int64), np.zeros(0, np.int64),
+                            _FLAT_VIEW, _FRAME, _COVER_SIZE)
+
+
+def test_a_thousandth_of_an_inch_of_boundary_shift_is_edge_flicker():
+    """A real silhouette: the plate's right boundary moves 0.001 in and flips the one pixel whose
+    centre it passes through. 1 of 25 sub-rays changes -- 0.04 <= 2/25 -- so it is flicker."""
+    cam = _camera()
+    c, r = 40, 26
+    x0, y0 = float(cam.xs[c]), float(cam.ys[r])
+    k = 0.037  # tilt the boundary off the pixel lattice, so it crosses ONE sub-ray, not a column
+
+    def plate(offset):
+        return np.array([[-60.0, -60.0, 0.0],
+                          [x0 + k * (-60.0 - y0) + offset, -60.0, 0.0],
+                          [x0 + k * (60.0 - y0) + offset, 60.0, 0.0],
+                          [-60.0, 60.0, 0.0]])
+
+    P_before, P_after = plate(+0.0005), plate(-0.0005)
+    ids = np.arange(2)
+    before = ortho_first_hit(P_before, _QUAD, ids, _FLAT_VIEW, _FRAME, _COVER_SIZE)
+    after = ortho_first_hit(P_after, _QUAD, ids, _FLAT_VIEW, _FRAME, _COVER_SIZE)
+
+    flipped = (before.tri >= 0) & (after.tri < 0)
+    assert int(flipped.sum()) == 1 and flipped[r, c]
+
+    mat = np.zeros(2, np.int64)
+    report = compare_views([(_FLAT_VIEW, before)], [(_FLAT_VIEW, after)], mat, mat, frozenset({0}),
+                            0.15, strict=True, plane_before=face_planes(P_before, _QUAD),
+                            plane_after=face_planes(P_after, _QUAD),
+                            geometry_before=(P_before, _QUAD), geometry_after=(P_after, _QUAD))
+
+    assert report.totals["edge_flicker"] == 1 and report.totals["holes"] == 0
+    assert report.passed is False  # still fails at the default cap of 0.0
+
+
+def _gap_scene():
+    """A wall at x in [-60, -10] and a 2-pixel-wide strip at x in [10, 16.5], both z = 0, with a
+    20 in PRE-EXISTING gap between them. AFTER drops the strip entirely: every one of its pixels
+    has a miss in its 3x3 BEFORE neighbourhood (the gap on one side, background on the other), so
+    the 3x3 test alone calls all of them flicker."""
+    P = np.array([[-60.0, -60.0, 0.0], [-10.0, -60.0, 0.0], [-10.0, 60.0, 0.0], [-60.0, 60.0, 0.0],
+                   [10.0, -60.0, 0.0], [16.5, -60.0, 0.0], [16.5, 60.0, 0.0], [10.0, 60.0, 0.0]])
+    faces_before = np.vstack([_QUAD, _QUAD + 4])
+    faces_after = faces_before[:2]
+    before = ortho_first_hit(P, faces_before, np.arange(4), _FLAT_VIEW, _FRAME, _COVER_SIZE)
+    after = ortho_first_hit(P, faces_after, np.arange(2), _FLAT_VIEW, _FRAME, _COVER_SIZE)
+    return P, faces_before, faces_after, before, after
+
+
+def test_a_removed_face_beside_a_pre_existing_gap_is_a_hole_at_any_cap():
+    P, faces_before, faces_after, before, after = _gap_scene()
+    cam = _camera()
+    cols = np.nonzero((cam.xs > 10.0) & (cam.xs < 16.5))[0]
+    strip_px = np.zeros(before.tri.shape, bool)
+    strip_px[:, cols] = before.tri[:, cols] >= 0
+    removed = int(strip_px.sum())
+    assert removed > 0 and int(((before.tri >= 0) & (after.tri < 0)).sum()) == removed
+
+    mat = np.zeros(4, np.int64)
+    planes = face_planes(P, faces_before)
+    kw = dict(strict=True, plane_before=planes, plane_after=face_planes(P, faces_after))
+
+    # the 3x3 test ALONE cannot tell this from a silhouette: every pixel is tolerated at a cap
+    blind = compare_views([(_FLAT_VIEW, before)], [(_FLAT_VIEW, after)], mat, mat, frozenset({0}),
+                           0.15, edge_flicker_cap=1.0, **kw)
+    assert blind.totals["edge_flicker"] == removed and blind.totals["holes"] == 0
+    assert blind.passed is True
+
+    # with the sub-pixel coverage check, 25 of 25 sub-rays are lost: a hole at every cap
+    for cap in (0.0, 1e-4, 1.0):
+        report = compare_views([(_FLAT_VIEW, before)], [(_FLAT_VIEW, after)], mat, mat,
+                                frozenset({0}), 0.15, edge_flicker_cap=cap,
+                                geometry_before=(P, faces_before), geometry_after=(P, faces_after),
+                                **kw)
+        assert report.totals["holes"] == removed and report.totals["edge_flicker"] == 0
+        assert report.passed is False
+
+
+# ---------------------------------------------------------------------------
 # compare.py: guard_feedback
 # ---------------------------------------------------------------------------
 

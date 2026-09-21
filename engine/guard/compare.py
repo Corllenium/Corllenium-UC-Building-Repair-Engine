@@ -27,6 +27,13 @@ PX_EDGE_FLICKER = 5
 #: `(view, HitBuffers)` for one `ortho_first_hit` render.
 RenderedView = tuple[Sequence[float], HitBuffers]
 
+#: Side of the sub-ray lattice a would-be hole is supersampled with (25 rays per pixel).
+_FLICKER_GRID = 5
+#: A would-be hole stays `PX_EDGE_FLICKER` only while its sub-pixel coverage changed by at most
+#: this much. A boundary that moved a thousandth of an inch cannot shift more than a sub-ray or
+#: two of a 2 in pixel; a removed face takes every sub-ray with it.
+_FLICKER_COVERAGE_TOL = 2 / 25
+
 
 def face_planes(positions: np.ndarray, faces: np.ndarray) -> np.ndarray:
     """`(F, 4)` float64 supporting plane of every triangle: `[nx, ny, nz, d]` with `n` a unit
@@ -97,21 +104,54 @@ def _neighbour_miss(hit_before: np.ndarray) -> np.ndarray:
     return mask
 
 
+def _coverage_probe(buffers: HitBuffers, caster_before, caster_after, grid: int = _FLICKER_GRID):
+    """A `mask -> (coverage_before, coverage_after)` callable for `classify_pixels`: the fraction
+    of a `grid x grid` lattice of sub-rays through each masked pixel that hits BEFORE, and that
+    hits AFTER, ordered like `np.nonzero(mask)`.
+
+    Both sides are cast from the SAME camera frame (`buffers`, whose `direction` they share and
+    whose pixel footprint they subdivide), which is what makes the two fractions comparable --
+    `compare_views` has already rejected a pair of renders whose frames differ. `mask` must be
+    2-D, like an `ortho_first_hit` buffer."""
+
+    def probe(mask: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+        rows, cols = np.nonzero(mask)
+        origins = buffers.subpixel_origins(rows, cols, grid)
+        directions = np.tile(np.asarray(buffers.direction, dtype=np.float64), (len(origins), 1))
+        shape = (len(rows), grid * grid)
+        return (np.asarray(caster_before.any_hit(origins, directions)).reshape(shape).mean(axis=1),
+                np.asarray(caster_after.any_hit(origins, directions)).reshape(shape).mean(axis=1))
+
+    return probe
+
+
 def classify_pixels(before_depth: np.ndarray, before_tri: np.ndarray,
                      after_depth: np.ndarray, after_tri: np.ndarray,
                      material_before: np.ndarray, material_after: np.ndarray,
                      flat_materials: Iterable[int], depth_tol: float, *,
                      origins: np.ndarray | None = None, direction: np.ndarray | None = None,
                      plane_before: np.ndarray | None = None,
-                     plane_after: np.ndarray | None = None) -> np.ndarray:
+                     plane_after: np.ndarray | None = None,
+                     coverage=None) -> np.ndarray:
     """Per-pixel verdict code, same shape as the inputs (uint8, one of the `PX_*` constants), in
     this priority order: `PX_HOLE` (hit before, miss after) or `PX_EDGE_FLICKER` (a would-be hole
-    whose 3x3 BEFORE neighbourhood contains a miss, i.e. one on the silhouette, where a boundary
-    moving 1e-3 in against a 2.1 in pixel flips one sample); `PX_MATERIAL_CHANGED` (both hit,
+    that passes BOTH silhouette tests below); `PX_MATERIAL_CHANGED` (both hit,
     `material_before[before_tri] != material_after[after_tri]`); `PX_MOVED_SAME_FLAT` /
     `PX_MOVED_OTHER` (both hit, same material, the visible surface moved further than `depth_tol`
     -- `_SAME_FLAT` when that material index is in `flat_materials`, `_OTHER` otherwise); `PX_OK`
     otherwise (includes both-miss background pixels and pixels that matched within `depth_tol`).
+
+    A would-be hole is `PX_EDGE_FLICKER` only if (1) its 3x3 BEFORE neighbourhood contains a miss,
+    AND (2) its sub-pixel COVERAGE barely changed. On its own, (1) cannot tell the outer silhouette
+    from a gap inside the model, so a genuine hole beside a pre-existing opening would be tolerated
+    at a non-zero `edge_flicker_cap`. `coverage` adds (2): a callable taking the boolean mask of
+    candidate pixels and returning `(coverage_before, coverage_after)` -- the fraction of a 5x5
+    lattice of sub-rays through each candidate that hits in each geometry, ordered like
+    `np.nonzero(mask)` (build one with `_coverage_probe`; `compare_views` does). A candidate stays
+    flicker while `abs(after - before) <= 2/25`, and becomes `PX_HOLE` otherwise: a boundary that
+    moved a thousandth of an inch cannot take more than a sub-ray or two of a 2 in pixel with it,
+    a removed face takes all 25. Passing no `coverage` leaves test (1) deciding alone, which is
+    correct only where flicker and hole are treated alike (`guard_feedback`, cap 0.0).
 
     "Moved" is SURFACE DISPLACEMENT, not depth along the ray: `_displacement` above. Depth along
     the ray divides the real offset by the sine of the grazing angle, so a 0.005 in plane offset
@@ -134,7 +174,15 @@ def classify_pixels(before_depth: np.ndarray, before_tri: np.ndarray,
     codes = np.full(before_tri.shape, PX_OK, dtype=np.uint8)
     would_be_hole = hit_before & ~hit_after
     codes[would_be_hole] = PX_HOLE
-    codes[would_be_hole & _neighbour_miss(hit_before)] = PX_EDGE_FLICKER
+    flicker = would_be_hole & _neighbour_miss(hit_before)
+    if coverage is not None and flicker.any():
+        before_fraction, after_fraction = coverage(flicker)
+        steady = (np.abs(np.asarray(after_fraction, dtype=np.float64)
+                         - np.asarray(before_fraction, dtype=np.float64)) <= _FLICKER_COVERAGE_TOL)
+        candidates = np.nonzero(flicker)
+        flicker = np.zeros_like(flicker)
+        flicker[tuple(axis[steady] for axis in candidates)] = True
+    codes[flicker] = PX_EDGE_FLICKER
 
     both = hit_before & hit_after
     mat_before = np.full(before_tri.shape, -1, dtype=np.int64)
@@ -193,7 +241,10 @@ def compare_views(before: Sequence[RenderedView], after: Sequence[RenderedView],
                    flat_materials: Iterable[int], depth_tol: float,
                    strict: bool = False, plane_before: np.ndarray | None = None,
                    plane_after: np.ndarray | None = None,
-                   edge_flicker_cap: float = 0.0) -> GuardReport:
+                   edge_flicker_cap: float = 0.0,
+                   geometry_before: tuple[np.ndarray, np.ndarray] | None = None,
+                   geometry_after: tuple[np.ndarray, np.ndarray] | None = None,
+                   caster_factory=EmbreeCaster) -> GuardReport:
     """Compare a BEFORE/AFTER pair of `ortho_first_hit` renders, one `(view, HitBuffers)` pair per
     view, paired by position (`before[i]` and `after[i]` must be the same view, and both sequences
     the same length).
@@ -205,6 +256,14 @@ def compare_views(before: Sequence[RenderedView], after: Sequence[RenderedView],
     `strict=True` (use for automatic removal of exposure-0 faces -- a depth change there means
     sampling missed real visibility) counts `moved_same_flat` pixels as failures too;
     `strict=False` (use for a change a person already accepted) reports them but tolerates them.
+
+    `geometry_before` / `geometry_after` are `(positions, faces)` -- the two geometries the renders
+    were cast against, `faces` indexed like the corresponding `face_material`. Given both, every
+    would-be hole on the silhouette is additionally checked for a sub-pixel COVERAGE change (see
+    `classify_pixels`), which is the only thing that separates the outer silhouette from a gap
+    inside the model; a few dozen pixels per view are supersampled with 25 rays each, so the cost
+    is two casters and a handful of rays, not a third render. Omit them and the 3x3 neighbourhood
+    test decides alone -- safe only at `edge_flicker_cap = 0.0`, where flicker fails like a hole.
 
     `edge_flicker_cap` is judged PER VIEW: that view's `edge_flicker` pixels are tolerated only
     while `edge_flicker <= edge_flicker_cap * model_px`, otherwise all of them count as failures.
@@ -218,6 +277,9 @@ def compare_views(before: Sequence[RenderedView], after: Sequence[RenderedView],
     if len(before) != len(after):
         raise ValueError(f"before/after must have the same number of views, got {len(before)} vs {len(after)}")
 
+    caster_before = caster_factory(*geometry_before) if geometry_before is not None else None
+    caster_after = caster_factory(*geometry_after) if geometry_after is not None else None
+
     view_verdicts = []
     totals = _zero_totals()
     fail_total = 0
@@ -225,10 +287,13 @@ def compare_views(before: Sequence[RenderedView], after: Sequence[RenderedView],
         if not np.allclose(b.direction, a.direction):
             raise ValueError(f"before/after renders of view {tuple(view)} used different view "
                              f"directions: {b.direction.tolist()} vs {a.direction.tolist()}")
+        coverage = (_coverage_probe(b, caster_before, caster_after)
+                    if caster_before is not None and caster_after is not None else None)
         codes = classify_pixels(b.depth, b.tri, a.depth, a.tri,
                                  face_material_before, face_material_after, flat_materials, depth_tol,
                                  origins=b.origins, direction=b.direction,
-                                 plane_before=plane_before, plane_after=plane_after)
+                                 plane_before=plane_before, plane_after=plane_after,
+                                 coverage=coverage)
         counts = {
             "model_px": int((b.tri >= 0).sum()),
             "holes": int((codes == PX_HOLE).sum()),
