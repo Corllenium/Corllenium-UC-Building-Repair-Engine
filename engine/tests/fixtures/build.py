@@ -71,3 +71,58 @@ def t_junction_shared_strip(drop_zero_area=False):
         fv = [f for f in fv if f != [3, 4, 2]]
     uvs = (np.asarray(P, float)[:, :2] * 0.05).tolist()
     return _mesh("t_shared_strip", P, uvs, fv, fv)
+
+
+def box_with_partition(size=10.0):
+    """`cube()` (12 tris, indices 0-11) plus one inner quad (2 tris, indices 12-13) spanning
+    the full interior at z = size/2. The partition is completely sealed inside the cube on both
+    sides, so no ray escapes it from either side: EXP_HIDDEN. The 12 outer cube tris see open
+    space on their outward side: EXP_OUTSIDE."""
+    m = cube(size)
+    s = size
+    z = s / 2.0
+    corners = [[0, 0, z], [s, 0, z], [s, s, z], [0, s, z]]
+    pts = np.array(corners, float)
+    base = len(m.positions)
+    ubase = len(m.uvs)
+    P = np.vstack([m.positions, pts])
+    uvs = np.vstack([m.uvs, pts[:, :2] * 0.1])
+    fv = np.vstack([m.face_v, [[base, base + 1, base + 2], [base, base + 2, base + 3]]])
+    fvt = np.vstack([m.face_vt, [[ubase, ubase + 1, ubase + 2], [ubase, ubase + 2, ubase + 3]]])
+    return _mesh("box_with_partition", P, uvs, fv, fvt)
+
+
+def open_box_with_cells(size=10.0, gap=0.2):
+    """A box with the y=0 side missing (the opening); the other 5 sides are solid (10 tris,
+    indices 0-9). Two square inner partitions perpendicular to y, centred in the x/z
+    cross-section, each leaving a `gap` fraction of the box open all around its edges so rays
+    can thread past it: `near` (indices 10-11) sits close to the opening at y = 0.3*size,
+    `deep` (indices 12-13) sits close to the solid back wall at y = 0.7*size (the back wall
+    itself is at y = size). A ray escaping from `deep` must also thread past `near`'s gap, so
+    `deep` is less exposed than `near`, though both see the opening through some directions."""
+    s = size
+    lo, hi = gap * s, (1 - gap) * s
+    P, uvs, fv, fvt = [], [], [], []
+
+    def add_quad(corners):
+        pts = np.array(corners, float)
+        keep = [a for a in range(3) if np.ptp(pts[:, a]) > 0]
+        base = len(P)
+        P.extend(corners)
+        ub = len(uvs)
+        uvs.extend((pts[:, keep] * 0.1).tolist())
+        fv.append([base, base + 1, base + 2])
+        fv.append([base, base + 2, base + 3])
+        fvt.append([ub, ub + 1, ub + 2])
+        fvt.append([ub, ub + 2, ub + 3])
+
+    add_quad([[0, 0, 0], [s, 0, 0], [s, s, 0], [0, s, 0]])  # bottom z=0
+    add_quad([[0, 0, s], [0, s, s], [s, s, s], [s, 0, s]])  # top z=s
+    add_quad([[0, s, 0], [s, s, 0], [s, s, s], [0, s, s]])  # back y=s (solid; y=0 is the opening)
+    add_quad([[0, 0, 0], [0, s, 0], [0, s, s], [0, 0, s]])  # side x=0
+    add_quad([[s, 0, 0], [s, 0, s], [s, s, s], [s, s, 0]])  # side x=s
+
+    add_quad([[lo, 0.3 * s, lo], [hi, 0.3 * s, lo], [hi, 0.3 * s, hi], [lo, 0.3 * s, hi]])  # near partition
+    add_quad([[lo, 0.7 * s, lo], [hi, 0.7 * s, lo], [hi, 0.7 * s, hi], [lo, 0.7 * s, hi]])  # deep partition
+
+    return _mesh("open_box_with_cells", P, uvs, fv, fvt)
