@@ -104,6 +104,40 @@ coplanar edges, which the region merge then dissolves. Order is fixed: interior 
 Earlier culled-occlusion figures (224 / 287 interior, 448 / 583 reversed) stay valid for a
 single-sided profile, and are a strict subset of the double-sided hidden set.
 
+## Compartments visible at the open rim (user screenshot, 2026-09-21)
+
+User showed box-like compartments along the slab edge and asked how to remove them while the outside
+stays one smooth surface. They are not "hidden": the slab side is open there, so they can be seen.
+
+Exposure = share of (direction x sample) rays that escape, double-sided, 128 directions x 4 samples
+(`spike\13_rim_exposure.py`):
+
+| | hidden (0) | slit, under 1 % | slit, 1-5 % | real outside, 5 %+ |
+|---|---|---|---|---|
+| file A | 1,853 tris | 105 | 59 | 2,458 (84.3 % of area) |
+| file B | 2,411 tris | 110 | 83 | 4,544 (84.7 % of area) |
+
+Deleting hidden **and** slit faces with no cap added, depth-aware over 26 views:
+
+| | removed | see-through holes | same material, just deeper | different material shows |
+|---|---|---|---|---|
+| file A | 2,017 tris | 4 px of 2,059,414 | 1,254 px (0.061 %) | 0 |
+| file B | 2,604 tris | 0 px of 2,425,186 | 865 px (0.036 %) | 260 px |
+
+Reading: behind a removed compartment the viewer sees the inside of the same grey skin, slightly deeper.
+With flat textures that is visually the same surface. Only file B's 260 px (yellow vs grey) is a real
+visible change and must stay under review.
+
+Design consequences:
+- New candidate class `slit_visible` (exposure above 0, below a tunable threshold, default 5 %). Never
+  auto-deleted: always reviewed, because they are genuinely visible.
+- Guard gains a **colour-aware** verdict beside the depth verdict: "deeper but same flat material" is
+  reported separately from "hole" and "different material". Depth-only would reject all of these,
+  coverage-only would accept everything.
+- **Rim cap** (adding one flat face to close an open slab side) is optional polish, not a prerequisite:
+  holes were 4 px and 0 px. It adds geometry, so it is per-cap, planar only, always reviewed. It is not
+  the blocked blanket "Fill Holes". Untested so far, only its need was measured.
+
 ## Corrections to the design spec
 
 1. **Wrong fact, corrected**: spec says "Unity is single-sided". Project sets every campus material
