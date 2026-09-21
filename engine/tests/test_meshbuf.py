@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import numpy as np
 
 from engine.pipeline import analyse_topology
@@ -19,3 +21,24 @@ def test_round_trip_and_alignment():
     assert blocks["edge_positions"].shape == (36, 3) and blocks["edge_class"].shape == (18,)
     n = blocks["normals"].reshape(12, 3, 3)[:, 0]
     assert np.allclose(np.linalg.norm(n, axis=1), 1.0)
+
+
+def test_header_serializes_path_texture_value():
+    m = cube(10.0)
+    buf = pack_meshbuf(m, analyse_topology(m), {"m0": Path("tex/stone.png")})
+    header, _ = unpack_meshbuf(buf)
+    assert header["materials"] == [{"name": "m0", "texture": "tex/stone.png"}]
+
+
+def test_header_serializes_backslash_string_texture_value():
+    m = cube(10.0)
+    buf = pack_meshbuf(m, analyse_topology(m), {"m0": "tex\\stone.png"})
+    header, _ = unpack_meshbuf(buf)
+    assert header["materials"] == [{"name": "m0", "texture": "tex/stone.png"}]
+
+
+def test_header_keeps_missing_texture_as_null():
+    m = cube(10.0)
+    buf = pack_meshbuf(m, analyse_topology(m), {})
+    header, _ = unpack_meshbuf(buf)
+    assert header["materials"] == [{"name": "m0", "texture": None}]

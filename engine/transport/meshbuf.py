@@ -1,5 +1,6 @@
 import json
 import struct
+from pathlib import Path
 
 import numpy as np
 
@@ -9,6 +10,10 @@ _DT = {"f32": np.float32, "u16": np.uint16, "u32": np.uint32, "i32": np.int32, "
 
 def _pad4(b: bytes, fill: bytes = b"\0") -> bytes:
     return b + fill * (-len(b) % 4)
+
+
+def _texture_value(v: "str | Path | None") -> str | None:
+    return None if v is None else Path(v).as_posix()
 
 
 def pack_meshbuf(mesh, topo, textures) -> bytes:
@@ -44,7 +49,7 @@ def pack_meshbuf(mesh, topo, textures) -> bytes:
     header = {
         "version": VERSION, "name": mesh.name, "units": mesh.units, "unit_scale_m": 0.0254,
         "origin_offset": origin.tolist(), "bbox": {"min": lo.tolist(), "max": hi.tolist()},
-        "materials": [{"name": n, "texture": textures.get(n)} for n in mesh.materials],
+        "materials": [{"name": n, "texture": _texture_value(textures.get(n))} for n in mesh.materials],
         "counts": {"faces": mesh.n_faces, "edges": int(len(topo.table.edges))}, "blocks": blocks,
     }
     hjson = _pad4(json.dumps(header, separators=(",", ":")).encode("utf-8"), b" ")
