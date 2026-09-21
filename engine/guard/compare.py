@@ -22,6 +22,7 @@ PX_HOLE = 1
 PX_MATERIAL_CHANGED = 2
 PX_MOVED_SAME_FLAT = 3
 PX_MOVED_OTHER = 4
+PX_EDGE_FLICKER = 5
 
 #: `(view, HitBuffers)` for one `ortho_first_hit` render.
 RenderedView = tuple[Sequence[float], HitBuffers]
@@ -76,6 +77,26 @@ def _displacement(before_depth: np.ndarray, before_tri: np.ndarray, after_depth:
     return out
 
 
+def _neighbour_miss(hit_before: np.ndarray) -> np.ndarray:
+    """True where a pixel's 3x3 neighbourhood in BEFORE contains a miss, i.e. the pixel sits on
+    the model's silhouette. Separable dilation of the miss mask over the last two axes (a 1-D
+    buffer dilates over its one axis).
+
+    A neighbour OUTSIDE the image does not count as a miss: a hole is only downgraded to flicker
+    on evidence of real background, and `ortho_first_hit` frames the model with a margin anyway,
+    so the silhouette never reaches the image border."""
+    mask = ~np.asarray(hit_before, dtype=bool)
+    for axis in range(max(0, mask.ndim - 2), mask.ndim):
+        n = mask.shape[axis]
+        pad = [(0, 0)] * mask.ndim
+        pad[axis] = (1, 1)
+        padded = np.pad(mask, pad, constant_values=False)
+        head = (slice(None),) * axis
+        mask = (padded[head + (slice(0, n),)] | padded[head + (slice(1, n + 1),)]
+                | padded[head + (slice(2, n + 2),)])
+    return mask
+
+
 def classify_pixels(before_depth: np.ndarray, before_tri: np.ndarray,
                      after_depth: np.ndarray, after_tri: np.ndarray,
                      material_before: np.ndarray, material_after: np.ndarray,
@@ -84,7 +105,9 @@ def classify_pixels(before_depth: np.ndarray, before_tri: np.ndarray,
                      plane_before: np.ndarray | None = None,
                      plane_after: np.ndarray | None = None) -> np.ndarray:
     """Per-pixel verdict code, same shape as the inputs (uint8, one of the `PX_*` constants), in
-    this priority order: `PX_HOLE` (hit before, miss after); `PX_MATERIAL_CHANGED` (both hit,
+    this priority order: `PX_HOLE` (hit before, miss after) or `PX_EDGE_FLICKER` (a would-be hole
+    whose 3x3 BEFORE neighbourhood contains a miss, i.e. one on the silhouette, where a boundary
+    moving 1e-3 in against a 2.1 in pixel flips one sample); `PX_MATERIAL_CHANGED` (both hit,
     `material_before[before_tri] != material_after[after_tri]`); `PX_MOVED_SAME_FLAT` /
     `PX_MOVED_OTHER` (both hit, same material, the visible surface moved further than `depth_tol`
     -- `_SAME_FLAT` when that material index is in `flat_materials`, `_OTHER` otherwise); `PX_OK`
@@ -109,7 +132,9 @@ def classify_pixels(before_depth: np.ndarray, before_tri: np.ndarray,
     hit_before = before_tri >= 0
     hit_after = after_tri >= 0
     codes = np.full(before_tri.shape, PX_OK, dtype=np.uint8)
-    codes[hit_before & ~hit_after] = PX_HOLE
+    would_be_hole = hit_before & ~hit_after
+    codes[would_be_hole] = PX_HOLE
+    codes[would_be_hole & _neighbour_miss(hit_before)] = PX_EDGE_FLICKER
 
     both = hit_before & hit_after
     mat_before = np.full(before_tri.shape, -1, dtype=np.int64)
@@ -137,6 +162,7 @@ class ViewVerdict:
     moved_same_flat: int
     moved_other: int
     material_changed: int
+    edge_flicker: int
 
 
 @dataclass
@@ -147,11 +173,16 @@ class GuardReport:
 
 
 def _zero_totals() -> dict:
-    return {"model_px": 0, "holes": 0, "material_changed": 0, "moved_same_flat": 0, "moved_other": 0}
+    return {"model_px": 0, "holes": 0, "material_changed": 0, "moved_same_flat": 0, "moved_other": 0,
+            "edge_flicker": 0}
 
 
-def _fail_mask(codes: np.ndarray, strict: bool) -> np.ndarray:
+def _fail_mask(codes: np.ndarray, strict: bool, flicker_fails: bool = True) -> np.ndarray:
+    """Which pixels count as damage. `flicker_fails` is the per-view outcome of the
+    `edge_flicker_cap` test; at the default cap of 0.0 a flicker pixel fails exactly like a hole."""
     fail = (codes == PX_HOLE) | (codes == PX_MATERIAL_CHANGED) | (codes == PX_MOVED_OTHER)
+    if flicker_fails:
+        fail = fail | (codes == PX_EDGE_FLICKER)
     if strict:
         fail = fail | (codes == PX_MOVED_SAME_FLAT)
     return fail
@@ -161,7 +192,8 @@ def compare_views(before: Sequence[RenderedView], after: Sequence[RenderedView],
                    face_material_before: np.ndarray, face_material_after: np.ndarray,
                    flat_materials: Iterable[int], depth_tol: float,
                    strict: bool = False, plane_before: np.ndarray | None = None,
-                   plane_after: np.ndarray | None = None) -> GuardReport:
+                   plane_after: np.ndarray | None = None,
+                   edge_flicker_cap: float = 0.0) -> GuardReport:
     """Compare a BEFORE/AFTER pair of `ortho_first_hit` renders, one `(view, HitBuffers)` pair per
     view, paired by position (`before[i]` and `after[i]` must be the same view, and both sequences
     the same length).
@@ -173,14 +205,22 @@ def compare_views(before: Sequence[RenderedView], after: Sequence[RenderedView],
     `strict=True` (use for automatic removal of exposure-0 faces -- a depth change there means
     sampling missed real visibility) counts `moved_same_flat` pixels as failures too;
     `strict=False` (use for a change a person already accepted) reports them but tolerates them.
+
+    `edge_flicker_cap` is judged PER VIEW: that view's `edge_flicker` pixels are tolerated only
+    while `edge_flicker <= edge_flicker_cap * model_px`, otherwise all of them count as failures.
+    At the default 0.0 every flicker pixel fails exactly like a hole, so hidden-face removal keeps
+    its zero-tolerance behaviour; an INTERIOR hole is never a flicker pixel and always fails.
+
     `passed` is `holes + material_changed + moved_other == 0`, plus `moved_same_flat` when
-    `strict`. `moved_same_flat` is always reported in `totals` and every `ViewVerdict`, never
+    `strict`, plus the flicker pixels of any view over the cap. Every count -- `moved_same_flat`
+    and `edge_flicker` included -- is always reported in `totals` and every `ViewVerdict`, never
     silently dropped."""
     if len(before) != len(after):
         raise ValueError(f"before/after must have the same number of views, got {len(before)} vs {len(after)}")
 
     view_verdicts = []
     totals = _zero_totals()
+    fail_total = 0
     for (view, b), (_, a) in zip(before, after):
         if not np.allclose(b.direction, a.direction):
             raise ValueError(f"before/after renders of view {tuple(view)} used different view "
@@ -195,14 +235,17 @@ def compare_views(before: Sequence[RenderedView], after: Sequence[RenderedView],
             "material_changed": int((codes == PX_MATERIAL_CHANGED).sum()),
             "moved_same_flat": int((codes == PX_MOVED_SAME_FLAT).sum()),
             "moved_other": int((codes == PX_MOVED_OTHER).sum()),
+            "edge_flicker": int((codes == PX_EDGE_FLICKER).sum()),
         }
         view_verdicts.append(ViewVerdict(view=tuple(view), **counts))
         for k, v in counts.items():
             totals[k] += v
+        fail_total += counts["holes"] + counts["material_changed"] + counts["moved_other"]
+        if strict:
+            fail_total += counts["moved_same_flat"]
+        if counts["edge_flicker"] > edge_flicker_cap * counts["model_px"]:
+            fail_total += counts["edge_flicker"]
 
-    fail_total = totals["holes"] + totals["material_changed"] + totals["moved_other"]
-    if strict:
-        fail_total += totals["moved_same_flat"]
     return GuardReport(views=view_verdicts, passed=fail_total == 0, totals=totals)
 
 
@@ -223,7 +266,8 @@ def guard_feedback(candidates: np.ndarray, positions_c: np.ndarray, faces: np.nd
     after, keeping pixels aligned across rounds. `face_material` is the single per-face material
     array (materials don't change here, only face presence). `strict` is forwarded to the same
     pixel test `compare_views` uses: `True` for automatic removal of exposure-0 faces, `False`
-    for a person-accepted change.
+    for a person-accepted change. The edge-flicker cap is ALWAYS 0.0 here -- removing a face is
+    not a change a person accepted, so a silhouette pixel that flips counts as damage.
 
     Round 0 renders BEFORE once, against every face in `faces`, and tentatively removes every
     candidate. Each round renders AFTER with the current kept faces; every candidate that is the

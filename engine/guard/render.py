@@ -12,7 +12,8 @@ from pathlib import Path
 import numpy as np
 from PIL import Image
 
-from engine.guard.compare import PX_HOLE, PX_MATERIAL_CHANGED, PX_MOVED_OTHER, PX_MOVED_SAME_FLAT
+from engine.guard.compare import (PX_EDGE_FLICKER, PX_HOLE, PX_MATERIAL_CHANGED, PX_MOVED_OTHER,
+                                   PX_MOVED_SAME_FLAT)
 
 _BG = (255, 255, 255)
 _MODEL = (222, 222, 226)
@@ -31,9 +32,13 @@ def save_triptych(path, before: tuple[np.ndarray, np.ndarray], after: tuple[np.n
                    verdict_mask: np.ndarray) -> None:
     """Write `path` as one PNG: three `(H, W)` panels side by side -- BEFORE model silhouette,
     AFTER model silhouette, and DIFF (the BEFORE silhouette with `verdict_mask` overlaid:
-    `PX_HOLE` / `PX_MATERIAL_CHANGED` / `PX_MOVED_OTHER` in red, `PX_MOVED_SAME_FLAT` in amber).
+    `PX_HOLE` / `PX_MATERIAL_CHANGED` / `PX_MOVED_OTHER` in red, `PX_MOVED_SAME_FLAT` and
+    `PX_EDGE_FLICKER` in amber -- amber is "reported, tolerated by some caller", and whether a
+    flicker pixel actually failed depends on that view's `edge_flicker_cap`, which this module is
+    not given).
 
-    `before`/`after` are `(depth, tri)` pairs for ONE view, as returned by `ortho_first_hit`.
+    `before`/`after` are `(depth, tri)` pairs for ONE view, as returned by `ortho_first_hit`
+    (a `HitBuffers` unpacks as that pair).
     `verdict_mask` is the `classify_pixels` code array for that same view (same `(H, W)` shape)."""
     before_depth, _ = before
     after_depth, _ = after
@@ -42,7 +47,7 @@ def save_triptych(path, before: tuple[np.ndarray, np.ndarray], after: tuple[np.n
     panel_before = _panel(before_depth)
     panel_after = _panel(after_depth)
     panel_diff = _panel(before_depth)
-    panel_diff[verdict_mask == PX_MOVED_SAME_FLAT] = _AMBER
+    panel_diff[np.isin(verdict_mask, (PX_MOVED_SAME_FLAT, PX_EDGE_FLICKER))] = _AMBER
     fail = np.isin(verdict_mask, (PX_HOLE, PX_MATERIAL_CHANGED, PX_MOVED_OTHER))
     panel_diff[fail] = _FAIL
 

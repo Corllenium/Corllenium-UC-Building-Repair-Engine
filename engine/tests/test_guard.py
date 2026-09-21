@@ -2,10 +2,11 @@ import itertools
 
 import numpy as np
 
-from engine.guard.compare import (PX_HOLE, PX_MATERIAL_CHANGED, PX_MOVED_OTHER, PX_MOVED_SAME_FLAT, PX_OK,
-                                   classify_pixels, compare_views, face_planes, guard_feedback)
+from engine.guard.compare import (PX_EDGE_FLICKER, PX_HOLE, PX_MATERIAL_CHANGED, PX_MOVED_OTHER,
+                                   PX_MOVED_SAME_FLAT, PX_OK, classify_pixels, compare_views, face_planes,
+                                   guard_feedback)
 from engine.guard.render import save_triptych
-from engine.guard.views import VIEWS_26, ortho_first_hit
+from engine.guard.views import VIEWS_26, HitBuffers, ortho_first_hit
 from engine.pipeline import analyse_topology
 from engine.tests.fixtures.build import box_with_partition, cube, open_box_with_cells
 
@@ -121,7 +122,7 @@ def test_identity_all_counts_zero_and_passed():
 
     assert report.passed
     assert report.totals == {"model_px": report.totals["model_px"], "holes": 0, "material_changed": 0,
-                              "moved_same_flat": 0, "moved_other": 0}
+                              "moved_same_flat": 0, "moved_other": 0, "edge_flicker": 0}
     assert report.totals["model_px"] > 0
     assert len(report.views) == 26
 
@@ -292,6 +293,82 @@ def test_undefined_plane_falls_back_to_depth_along_the_ray():
                              plane_before=planes, plane_after=planes)
 
     assert codes.tolist() == [PX_OK, PX_MOVED_SAME_FLAT]
+
+
+# ---------------------------------------------------------------------------
+# compare.py: silhouette flicker is its own class
+# ---------------------------------------------------------------------------
+
+_FLICKER_VIEW = (0.0, 0.0, 1.0)
+
+
+def _buffers(tri):
+    """A synthetic `HitBuffers` over a `tri` image: every hit one unit away, every miss `inf`.
+    Only `tri`/`depth` matter here -- the camera frame is a placeholder, and the single face is
+    given no plane, so the moved test falls back to depth along the ray."""
+    tri = np.asarray(tri, np.int64)
+    h, w = tri.shape
+    return HitBuffers(depth=np.where(tri >= 0, 1.0, np.inf), tri=tri,
+                       direction=np.array([0.0, 0.0, 1.0]), right=np.array([1.0, 0.0, 0.0]),
+                       up=np.array([0.0, 1.0, 0.0]), xs=np.arange(w, dtype=float),
+                       ys=np.arange(h, dtype=float), standoff=np.zeros(3))
+
+
+def _block(drop=()):
+    """A 150x150 block of model (22,500 pixels) inside a 200x200 frame, minus `drop` pixels."""
+    tri = np.full((200, 200), -1, np.int64)
+    tri[25:175, 25:175] = 0
+    for r, c in drop:
+        tri[r, c] = -1
+    return tri
+
+
+def _flicker_report(drop, cap, strict=True):
+    before, after = _buffers(_block()), _buffers(_block(drop))
+    mat = np.zeros(1, np.int64)
+    return compare_views([(_FLICKER_VIEW, before)], [(_FLICKER_VIEW, after)], mat, mat,
+                          frozenset({0}), 0.15, strict=strict, edge_flicker_cap=cap)
+
+
+def test_silhouette_pixel_is_classed_edge_flicker_and_fails_at_cap_zero():
+    before, after = _buffers(_block()), _buffers(_block(drop=[(25, 25)]))
+    mat = np.zeros(1, np.int64)
+
+    codes = classify_pixels(before.depth, before.tri, after.depth, after.tri, mat, mat,
+                             frozenset({0}), 0.15)
+    assert int((codes == PX_EDGE_FLICKER).sum()) == 1
+    assert int((codes == PX_HOLE).sum()) == 0
+
+    report = _flicker_report([(25, 25)], cap=0.0)
+    assert report.totals["edge_flicker"] == 1 and report.totals["holes"] == 0
+    assert report.views[0].edge_flicker == 1
+    assert not report.passed  # the default cap fails a flicker pixel exactly like a hole
+
+
+def test_edge_flicker_within_the_cap_passes():
+    report = _flicker_report([(25, 25)], cap=1e-4)  # 1 <= 1e-4 * 22,500 = 2.25
+    assert report.totals["edge_flicker"] == 1
+    assert report.passed
+
+
+def test_edge_flicker_above_the_cap_fails():
+    drop = [(25, 25), (25, 174), (174, 25), (174, 174)]
+    report = _flicker_report(drop, cap=1e-4)  # 4 > 2.25
+    assert report.totals["edge_flicker"] == 4
+    assert not report.passed
+
+
+def test_interior_hole_fails_at_any_cap():
+    before, after = _buffers(_block()), _buffers(_block(drop=[(100, 100)]))
+    mat = np.zeros(1, np.int64)
+    codes = classify_pixels(before.depth, before.tri, after.depth, after.tri, mat, mat,
+                             frozenset({0}), 0.15)
+    assert int((codes == PX_HOLE).sum()) == 1 and int((codes == PX_EDGE_FLICKER).sum()) == 0
+
+    for cap in (0.0, 1e-4, 1.0):
+        report = _flicker_report([(100, 100)], cap=cap)
+        assert report.totals["holes"] == 1 and report.totals["edge_flicker"] == 0
+        assert not report.passed
 
 
 # ---------------------------------------------------------------------------
