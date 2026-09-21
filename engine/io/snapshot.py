@@ -68,9 +68,12 @@ def read_manifest_stable(path: Path, interval_s: float = 1.0, sleep=time.sleep) 
     sleep(interval_s)
     try:
         data = path.read_bytes()
-    except FileNotFoundError as exc:
-        raise SourceUnstable(f"{path.name}: missing, source rebuilding") from exc
-    if not path.exists() or _key(path) != key or len(data) == 0:
+        changed = not path.exists() or _key(path) != key or len(data) == 0
+    except OSError as exc:
+        # Includes PermissionError from a Windows file lock and FileNotFoundError when the
+        # file vanishes mid-read: either way the live source is not in a readable, stable state.
+        raise SourceUnstable(f"{path.name}: {exc}") from exc
+    if changed:
         raise SourceUnstable(f"{path.name}: changed during read, source rebuilding")
     return _parse_manifest(data.decode("utf-8", errors="replace"))
 
@@ -104,8 +107,14 @@ def _copy_verified(src: Path, dst: Path, interval_s: float, sleep) -> tuple[int,
     is stable, copy it, then re-stat the source to make sure it did not change
     out from under the copy. Used for the OBJ, the MTL and every texture."""
     key = wait_stable(src, interval_s, sleep)
-    shutil.copyfile(src, dst)
-    if not src.exists() or _key(src) != key:
+    try:
+        shutil.copyfile(src, dst)
+        stable = src.exists() and _key(src) == key
+    except OSError as exc:
+        # Includes PermissionError from a Windows file lock and FileNotFoundError when the
+        # file vanishes mid-copy: either way the live source is not in a stable, copyable state.
+        raise SourceUnstable(f"{src.name}: {exc}") from exc
+    if not stable:
         raise SourceUnstable(f"{src.name}: changed during copy")
     return key
 

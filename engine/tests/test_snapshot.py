@@ -1,3 +1,6 @@
+import shutil
+from pathlib import Path
+
 import numpy as np
 import pytest
 from PIL import Image
@@ -150,3 +153,26 @@ def test_two_sequential_calls_succeed_and_stale_incoming_dir_survives_untouched(
     assert first.dir == second.dir and second.mesh.n_faces == 1
     assert stale.exists() and (stale / "leftover.txt").read_text() == "crashed run debris"
     assert [p for p in dst_root.glob(".incoming-*") if p != stale] == []
+
+
+def test_snapshot_wraps_permission_error_during_copy_as_source_unstable(tmp_path, monkeypatch):
+    src = make_source(tmp_path / "src")
+
+    def boom(*_a, **_k):
+        raise PermissionError("locked by another process")
+
+    monkeypatch.setattr(shutil, "copyfile", boom)
+    with pytest.raises(SourceUnstable, match="locked by another process"):
+        snapshot_object(src, tmp_path / "snap", expected_tris=1, interval_s=0, sleep=lambda s: None)
+
+
+def test_read_manifest_stable_wraps_os_error_as_source_unstable(tmp_path, monkeypatch):
+    p = tmp_path / "_MANIFEST.txt"
+    p.write_text(MANIFEST)
+
+    def boom(self, *_a, **_k):
+        raise PermissionError("locked by another process")
+
+    monkeypatch.setattr(Path, "read_bytes", boom)
+    with pytest.raises(SourceUnstable, match="locked by another process"):
+        read_manifest_stable(p, interval_s=0, sleep=lambda s: None)
