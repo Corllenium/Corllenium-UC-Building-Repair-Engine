@@ -34,7 +34,8 @@ side, and every method and decision is saved so the next export fixes itself.
 | Build where | New project in `D:\PROJECTS\UC MODEL FIXER`. Reuse knowledge from `D:\PROJECTS\UC`, `06-DASHBOARD` untouched |
 | Stack | Vue 3 + three.js, FastAPI, PostgreSQL 16 (Docker), Python engine |
 | Flat textures | When a texture's colour std is below a tunable threshold, UV seams do not delimit regions and the guard compares sampled texel colour instead of UV. Patterned textures still respect seams |
-| Render semantics | Engine supports single-sided and double-sided occlusion as a profile switch. Default deletes only faces hidden under single-sided occlusion (fewest blockers), which is safe under both. Reversed faces are flipped, harmless under double-sided |
+| Render semantics | **Default double-sided**, matching SketchUp and the Unity project (`_Cull = 0`): every face renders and blocks from both sides. Single-sided is a profile switch and a canvas diagnostic toggle, never the default (a one-sided view made intact geometry look destroyed during the spike) |
+| Interior removal | Candidate only when no ray from either side escapes. Depth-aware guard over 26 views, and guard feedback puts back any face whose removal changes a pixel. Measured: 1,819 and 2,381 tris removable with 0 damaged pixels |
 
 Spike evidence for the last two rows: `docs\spike\2026-09-21-phase0-results.md`.
 

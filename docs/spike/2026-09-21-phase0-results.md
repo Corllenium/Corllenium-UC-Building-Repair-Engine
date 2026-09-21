@@ -70,6 +70,40 @@ Full pipeline (drop zero-area, flip reversed, delete interior, merge ignoring UV
 **A 4,692 -> 3,111 (33.7 %), B 7,227 -> 3,003 (58.45 %)**. G2's "at least one file >= 40 %" is met by B.
 File A is genuinely made of many small planar pieces (681 rings after merge).
 
+## Removing the inside while keeping the facade (the user's core question)
+
+User's experience: removing mesh inside the sidewalk also removed facade panels. Spike reproduces
+why and shows the method that avoids it.
+
+**Why naive removal eats facade.** Testing only a face's front side marks 672 / 870 tris as
+"inside". 448 / 583 of those are facade sheets whose front points inward. Their back is what you see.
+
+**Method that works, measured** (`spike\10_ds_visibility.py` + guard feedback run):
+1. Occlusion must match the renderer. SketchUp and this Unity project draw both sides, so every
+   face blocks and every face is visible from both sides.
+2. A face is a removal candidate only when no ray from **either** side escapes: 4 sample points x
+   128 directions, all faces as blockers.
+3. **Depth-aware guard**, 26 outside views, 900x600: pixel is damaged when it becomes background or
+   its first-hit depth moves more than 0.15 in. (My first guard only checked model-vs-background
+   and reported 0 damage even for the naive rule. Too weak, replaced.)
+4. **Guard feedback**: any removed face that is the first hit at a damaged pixel is put back. Repeat.
+
+| | candidates by sampling | put back by guard | **final removable** | damaged px after |
+|---|---|---|---|---|
+| file A | 1,853 | 34 | **1,819 tris (40.65 % of tris, 13.75 % of area)** | 0 of 26 views |
+| file B | 2,411 | 30 | **2,381 tris (33.31 %, 13.79 %)** | 0 of 26 views |
+
+Converged in one round on both files. Sampling alone left 223 / 436 damaged pixels, so sampling
+without the guard is not safe to ship.
+
+**The gridlines are these interior walls.** X-ray `data\spike\A__xray_final_hidden_red.png` shows
+the hidden faces forming a grid inside the slab. Each SketchUp gridline on the top surface is the
+edge where an interior wall meets the facade. Remove the walls and those edges become plain
+coplanar edges, which the region merge then dissolves. Order is fixed: interior first, merge second.
+
+Earlier culled-occlusion figures (224 / 287 interior, 448 / 583 reversed) stay valid for a
+single-sided profile, and are a strict subset of the double-sided hidden set.
+
 ## Corrections to the design spec
 
 1. **Wrong fact, corrected**: spec says "Unity is single-sided". Project sets every campus material
