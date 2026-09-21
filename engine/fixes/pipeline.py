@@ -87,6 +87,10 @@ class FixResult:
     guard_after_removal: GuardReport
     guard_final: GuardReport
     merge_report: dict
+    #: `engine.fixes.merge.MergeResult.rings`, valid against `mesh` (this result's own final
+    #: mesh) exactly as documented there -- empty when the merge candidate was rolled back, since
+    #: there is then no merged mesh for it to index into.
+    rings: dict
     invariants: dict
     passed: bool
 
@@ -203,10 +207,12 @@ def fix_object(mesh: MeshData, flatness: dict[str, float], profile: FixProfile =
         merge_report["rolled_back_reason"] = rolled_back_reason
         final_mesh = mesh_flipped
         final_source_faces = [np.array([int(f)], dtype=np.int64) for f in source_from_removal]
+        final_rings: dict = {}
         guard_final = _guard_against_original(final_mesh, profile.edge_flicker_cap_final)
     else:
         final_mesh = merge_result.mesh
         final_source_faces = [source_from_removal[s].astype(np.int64) for s in merge_result.source_faces]
+        final_rings = merge_result.rings
 
     one_sided_holes_after = one_sided_holes(
         positions_c, remap[final_mesh.face_v], np.arange(final_mesh.n_faces, dtype=np.int64),
@@ -232,4 +238,4 @@ def fix_object(mesh: MeshData, flatness: dict[str, float], profile: FixProfile =
         one_sided_holes_before=one_sided_holes_before, one_sided_holes_after=one_sided_holes_after,
         feedback_history={"hidden": history_hidden, "slit": history_slit},
         guard_after_removal=guard_after_removal, guard_final=guard_final,
-        merge_report=merge_report, invariants=invariants, passed=passed)
+        merge_report=merge_report, rings=final_rings, invariants=invariants, passed=passed)

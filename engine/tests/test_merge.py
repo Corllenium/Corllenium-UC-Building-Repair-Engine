@@ -283,6 +283,52 @@ def test_patterned_material_keeps_the_fit_offset_flat_material_is_rebased():
     assert flat.mesh.n_faces == 2
 
 
+# ---------------------------------------------------------------------------------------------
+# Task 9: MergeResult.rings -- per hole-free merged region's kept outer ring, for the polygon
+# (ngon) export. Keyed by OUTPUT face row index in r.mesh.face_v; every row of the SAME region
+# shares the identical ring array object, so a writer can dedup by identity.
+# ---------------------------------------------------------------------------------------------
+
+def test_grid_slab_rings_is_one_shared_four_vertex_ring_for_both_output_triangles():
+    m = grid_slab(10, 10)
+    r = merged(m)
+    assert r.mesh.n_faces == 2
+    assert set(r.rings.keys()) == {0, 1}
+    ring0, ring1 = r.rings[0], r.rings[1]
+    assert ring0 is ring1  # same region -> same ring object, for a writer to dedup by identity
+    assert len(ring0) == 4
+    assert set(int(v) for v in ring0) == used(r.mesh)  # the 4 surviving corners
+
+
+def test_slab_with_hole_rings_is_empty():
+    m = slab_with_hole()
+    r = merged(m)
+    assert r.mesh.n_faces == 8
+    assert r.rings == {}
+
+
+def test_two_slabs_sharing_border_rings_are_two_distinct_four_vertex_rings():
+    m = two_slabs_sharing_border()
+    r = merged(m)
+    assert r.mesh.n_faces == 4
+    assert set(r.rings.keys()) == {0, 1, 2, 3}
+    left_ring, right_ring = r.rings[0], r.rings[2]
+    assert left_ring is r.rings[1] and right_ring is r.rings[3]
+    assert left_ring is not right_ring
+    assert len(left_ring) == 4 and len(right_ring) == 4
+    assert set(int(v) for v in left_ring) != set(int(v) for v in right_ring)
+
+
+def test_ring_vertex_ids_index_into_mesh_positions_like_face_v_does():
+    """Rings hold ORIGINAL-mesh vertex ids (via welded_to_original), exactly like face_v -- not
+    welded ids -- so a writer can use them directly against mesh.positions."""
+    m = grid_slab(10, 10)
+    r = merged(m)
+    ring = r.rings[0]
+    assert ring.dtype == np.int64
+    assert int(ring.max()) < len(m.positions)
+
+
 def test_merged_mesh_round_trips_through_write_and_read(tmp_path):
     m = slab_with_wall()
     r = merged(m)

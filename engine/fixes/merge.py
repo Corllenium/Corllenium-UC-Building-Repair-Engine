@@ -13,7 +13,7 @@ so the triangle count is decided by how many ring vertices survive the global co
 """
 from __future__ import annotations
 
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from typing import Iterable
 
 import numpy as np
@@ -48,10 +48,20 @@ _SKIP_REASONS = ("overlap", "new_vertex", "invalid_polygon", "area_grew")
 class MergeResult:
     """`mesh` with every mergeable region re-triangulated; `source_faces[i]` is the array of
     ORIGINAL face indices new face `i` came from (its whole region when merged, a single face when
-    copied through); `report` is the counts described in `merge_regions`."""
+    copied through); `report` is the counts described in `merge_regions`.
+
+    `rings[i]`, when present, is the ordered outer ring of vertex ids (int64, indexing
+    `mesh.positions` exactly like `mesh.face_v` does, CCW as seen from the region's own outward
+    side) of the HOLE-FREE merged region output row `i` belongs to. Every row of the SAME region
+    maps to the IDENTICAL ring array object (not just equal content), so a writer that wants one
+    polygon face per region can dedup by `id()` -- see `engine.io.obj_writer.write_obj_polygons`.
+    A region with a hole, more than one disjoint piece, or fewer than 3 kept ring vertices has NO
+    entry here (every one of its rows is written as an ordinary triangle instead); rows that were
+    copied through unmerged never have an entry either."""
     mesh: MeshData
     source_faces: list[np.ndarray]
     report: dict
+    rings: dict[int, np.ndarray] = field(default_factory=dict)
 
 
 @dataclass
@@ -132,7 +142,14 @@ def merge_regions(mesh: MeshData, topo: Topology, flat_materials: Iterable[int] 
             skipped[late[plan.region]] += 1
             copied.extend(int(f) for f in plan.members)
 
-    out = _assemble(mesh, topo, welded_to_original, builds, copied, flat)
+    keep_all_set = frozenset(kept_whole | set(keep_all))
+    region_rings: dict[int, np.ndarray] = {}
+    for plan, _tris in builds:
+        ring = _region_ring(plan, needed, keep_all_set, welded_to_original)
+        if ring is not None:
+            region_rings[plan.region] = ring
+
+    out = _assemble(mesh, topo, welded_to_original, builds, copied, flat, region_rings)
     used_before = np.zeros(len(topo.positions_w), bool)
     used_before[topo.face_w.reshape(-1)] = True
     used_after = np.zeros(len(topo.positions_w), bool)
@@ -355,6 +372,37 @@ def _corner_mask(xy: np.ndarray, tol: float) -> np.ndarray:
 # ----------------------------------------------------------- pass 2: rebuild and re-triangulate
 
 
+def _ring_ccw(plan: _Plan, ring: np.ndarray) -> np.ndarray:
+    """`ring` (welded ids), reversed if needed so its signed area in the region's own `(e1, e2)`
+    frame is positive -- CCW as seen from the side the region normal points to, matching `_wound`'s
+    per-triangle convention (`plane_basis` returns a right-handed frame, `cross(e1, e2) == n`)."""
+    rows = np.searchsorted(plan.vertex_ids, ring)
+    xy = plan.vertex_xy[rows]
+    area = 0.5 * float(np.sum(xy[:, 0] * np.roll(xy[:, 1], -1) - np.roll(xy[:, 0], -1) * xy[:, 1]))
+    return ring if area >= 0.0 else ring[::-1]
+
+
+def _region_ring(plan: _Plan, needed: np.ndarray, keep_all_set: frozenset,
+                 welded_to_original: np.ndarray):
+    """The single simplified (kept-corners-only) outer ring of `plan`, mapped to ORIGINAL vertex
+    ids -- or `None` when the region has a hole, more than one disjoint piece, or fewer than 3
+    surviving ring vertices. Mirrors `_triangulate`'s own ring-simplification exactly (without
+    changing that function's arity, which callers monkeypatch against): the FULL ring when
+    `plan.region` took the `keep_all` fallback in the round that produced `builds`, the
+    corner-pass-simplified ring otherwise."""
+    if len(plan.pieces) != 1:
+        return None
+    piece = plan.pieces[0]
+    if len(piece.rings) != 1:
+        return None
+    ring = piece.rings[0]
+    if plan.region not in keep_all_set:
+        ring = ring[needed[ring]]
+    if len(ring) < 3:
+        return None
+    return welded_to_original[_ring_ccw(plan, ring)]
+
+
 def _late_faces(plans: list[_Plan], fed_back: dict[int, str]) -> list[int]:
     """The faces of every region fed back into the corner pass, in ascending region id. They are
     handed to `_needed_vertices` as if already copied through, which is exactly what marks all of
@@ -469,9 +517,11 @@ def _signed_area_sum(vertex_xy: np.ndarray, vertex_ids: np.ndarray, triangles: l
 
 
 def _assemble(mesh: MeshData, topo: Topology, welded_to_original: np.ndarray,
-              builds: list, copied: list[int], flat: frozenset) -> MergeResult:
+              builds: list, copied: list[int], flat: frozenset,
+              region_rings: dict[int, np.ndarray] | None = None) -> MergeResult:
     """Emit faces ordered by the lowest original face index of their group, so a merged region
     lands where its first member was and untouched faces keep their relative order."""
+    region_rings = region_rings or {}
     uvs = [mesh.uvs] if len(mesh.uvs) else []
     normals = [mesh.normals] if len(mesh.normals) else []
     next_uv = len(mesh.uvs)
@@ -481,7 +531,7 @@ def _assemble(mesh: MeshData, topo: Topology, welded_to_original: np.ndarray,
     for face in sorted(set(copied)):
         emitted.append((int(face), mesh.face_v[face], mesh.face_vt[face], mesh.face_vn[face],
                         int(mesh.face_material[face]), int(mesh.face_line[face]),
-                        np.array([face], np.int64)))
+                        np.array([face], np.int64), -1))
 
     for plan, triangles in builds:
         kept = np.unique(np.asarray(triangles, np.int64))
@@ -503,9 +553,10 @@ def _assemble(mesh: MeshData, topo: Topology, welded_to_original: np.ndarray,
             face_vt = (np.array([uv_index[v] for v in triangle], np.int64)
                        if uv_rows is not None else np.full(3, -1, np.int64))
             emitted.append((key, face_v, face_vt, np.full(3, normal_index, np.int64),
-                            material, line, source))
+                            material, line, source, plan.region))
 
     emitted.sort(key=lambda row: row[0])
+    rings = {i: region_rings[row[7]] for i, row in enumerate(emitted) if row[7] in region_rings}
     n = len(emitted)
     out = replace(
         mesh,
@@ -518,7 +569,7 @@ def _assemble(mesh: MeshData, topo: Topology, welded_to_original: np.ndarray,
         face_line=np.array([r[5] for r in emitted], np.int64),
     )
     return MergeResult(mesh=out, source_faces=[r[6] for r in emitted],
-                       report={"faces_copied": len(set(copied))})
+                       report={"faces_copied": len(set(copied))}, rings=rings)
 
 
 def _wound(plan: _Plan, triangles: list) -> list:

@@ -99,6 +99,10 @@ def test_box_with_partition_removes_only_the_sealed_partition():
     assert sorted(len(s) for s in r.source_faces) == [2] * 12
     assert sorted(set(int(f) for s in r.source_faces for f in s)) == list(range(12))
 
+    # task 9: each of the 6 cube faces is a hole-free single-piece region -> a ring for every row.
+    assert set(r.rings.keys()) == set(range(12))
+    assert all(len(ring) == 4 for ring in r.rings.values())
+
 
 def test_gridded_closed_box_has_nothing_hidden_and_merges_to_twelve_triangles():
     m = gridded_box(4, 2.5)
@@ -188,6 +192,7 @@ def test_rolled_back_when_merge_does_not_converge(monkeypatch):
     assert [s.tolist() for s in r.source_faces] == [[i] for i in range(192)]
     assert r.passed is True  # the fallback's own guard: identical geometry, so it still passes
     assert r.invariants["guard_passed"] is True
+    assert r.rings == {}  # rolled back to the unmerged mesh: no merge rings apply to it
 
 
 # ---------------------------------------------------------------------------------------------
