@@ -9,6 +9,7 @@ explicit image size and a `RayCaster` factory instead of hard-coding
 from __future__ import annotations
 
 import itertools
+from dataclasses import dataclass
 from typing import Sequence
 
 import numpy as np
@@ -26,10 +27,48 @@ VIEWS_26: tuple[tuple[float, float, float], ...] = tuple(
 )
 
 
+@dataclass(frozen=True)
+class HitBuffers:
+    """One `ortho_first_hit` render, with enough of the camera kept to recover each pixel's hit
+    POINT (`origins[i, j] + depth[i, j] * direction`), which is what the guard's displacement
+    metric needs.
+
+    It behaves like the `(depth, tri)` pair `ortho_first_hit` used to return -- `depth, tri = buf`,
+    `buf[0]`, `len(buf) == 2` -- so callers that only want the two buffers need no change.
+
+    `origins` is a PROPERTY, not a stored array: a 900x600 render's origins are 13 MB, and the
+    guard holds 26 of them at once, so they are rebuilt from the camera frame on access
+    (`origins[i, j] == xs[j] * right + ys[i] * up + standoff`).
+    """
+    depth: np.ndarray       #: `(H, W)` float64 distance along `direction`, `inf` where the ray missed
+    tri: np.ndarray         #: `(H, W)` int64 drawn from `face_ids`, `-1` where the ray missed
+    direction: np.ndarray   #: `(3,)` unit view direction, the same for every pixel
+    right: np.ndarray       #: `(3,)` unit image x axis
+    up: np.ndarray          #: `(3,)` unit image y axis
+    xs: np.ndarray          #: `(W,)` offset along `right` of each pixel column
+    ys: np.ndarray          #: `(H,)` offset along `up` of each pixel row
+    standoff: np.ndarray    #: `(3,)` constant every ray origin is pushed back by
+
+    @property
+    def origins(self) -> np.ndarray:
+        """`(H, W, 3)` float64 ray origin of every pixel."""
+        return (self.xs[None, :, None] * self.right + self.ys[:, None, None] * self.up
+                + self.standoff)
+
+    def __iter__(self):
+        return iter((self.depth, self.tri))
+
+    def __getitem__(self, i):
+        return (self.depth, self.tri)[i]
+
+    def __len__(self) -> int:
+        return 2
+
+
 def ortho_first_hit(positions_c: np.ndarray, faces: np.ndarray, face_ids: np.ndarray,
                      view: Sequence[float], frame_points: np.ndarray,
                      size: tuple[int, int] = (900, 600),
-                     caster_factory=EmbreeCaster) -> tuple[np.ndarray, np.ndarray]:
+                     caster_factory=EmbreeCaster) -> HitBuffers:
     """Orthographic depth / face-id render of `faces` by ray casting, one ray per pixel.
 
     `positions_c` must already be recentred by the caller (see `engine.rays.caster`). `faces`
@@ -42,8 +81,11 @@ def ortho_first_hit(positions_c: np.ndarray, faces: np.ndarray, face_ids: np.nda
     between the two calls. Since vertices are never moved, one static `frame_points` (e.g. the
     recentred original model's positions) is always correct for both renders.
 
-    `size` is `(width, height)`. Returns `(depth, tri)`, each `(H, W)`: `depth` float64, `inf`
-    where no ray hit that pixel; `tri` int64, values drawn from `face_ids`, `-1` where no ray hit.
+    `size` is `(width, height)`. Returns a `HitBuffers`: `depth` and `tri`, each `(H, W)` (`depth`
+    float64, `inf` where no ray hit that pixel; `tri` int64, values drawn from `face_ids`, `-1`
+    where no ray hit), plus the camera frame, so a caller can recover the hit POINT of any pixel
+    as `origins[i, j] + depth[i, j] * direction`. A `HitBuffers` unpacks as the `(depth, tri)`
+    pair this used to return.
     """
     W, H = size
     positions_c = np.asarray(positions_c, dtype=np.float64)
@@ -62,18 +104,22 @@ def ortho_first_hit(positions_c: np.ndarray, faces: np.ndarray, face_ids: np.nda
     half = max((er.max() - er.min()) / W, (eu.max() - eu.min()) / H) * 0.52
     xs = (er.max() + er.min()) / 2 + (np.arange(W) - W / 2 + 0.5) * half * 2
     ys = (eu.max() + eu.min()) / 2 - (np.arange(H) - H / 2 + 0.5) * half * 2
-    gx, gy = np.meshgrid(xs, ys)
     diag = np.linalg.norm(frame_points.max(axis=0) - frame_points.min(axis=0))
-    origins = (gx[..., None] * right + gy[..., None] * up - d * diag * 2).reshape(-1, 3)
-    directions = np.tile(d, (len(origins), 1))
+    standoff = -d * diag * 2
+    frame = dict(direction=d, right=right, up=up, xs=xs, ys=ys, standoff=standoff)
 
     n = W * H
     if len(faces) == 0:
-        return np.full((H, W), np.inf, dtype=np.float64), np.full((H, W), -1, dtype=np.int64)
+        return HitBuffers(depth=np.full((H, W), np.inf, dtype=np.float64),
+                          tri=np.full((H, W), -1, dtype=np.int64), **frame)
+
+    gx, gy = np.meshgrid(xs, ys)
+    origins = (gx[..., None] * right + gy[..., None] * up + standoff).reshape(-1, 3)
+    directions = np.tile(d, (len(origins), 1))
 
     caster = caster_factory(positions_c, faces)
     tri_local, t = caster.first_hit(origins, directions)
     tri = np.full(n, -1, dtype=np.int64)
     hit = tri_local >= 0
     tri[hit] = face_ids[tri_local[hit]]
-    return t.reshape(H, W), tri.reshape(H, W)
+    return HitBuffers(depth=t.reshape(H, W), tri=tri.reshape(H, W), **frame)

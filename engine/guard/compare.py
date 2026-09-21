@@ -13,7 +13,7 @@ from typing import Iterable, Sequence
 
 import numpy as np
 
-from engine.guard.views import VIEWS_26, ortho_first_hit
+from engine.guard.views import VIEWS_26, HitBuffers, ortho_first_hit
 from engine.rays.caster import EmbreeCaster
 
 # Per-pixel verdict codes, in priority order -- see `classify_pixels`.
@@ -23,20 +23,82 @@ PX_MATERIAL_CHANGED = 2
 PX_MOVED_SAME_FLAT = 3
 PX_MOVED_OTHER = 4
 
-#: `(view, depth, tri)` for one `ortho_first_hit` render.
-RenderedView = tuple[Sequence[float], np.ndarray, np.ndarray]
+#: `(view, HitBuffers)` for one `ortho_first_hit` render.
+RenderedView = tuple[Sequence[float], HitBuffers]
+
+
+def face_planes(positions: np.ndarray, faces: np.ndarray) -> np.ndarray:
+    """`(F, 4)` float64 supporting plane of every triangle: `[nx, ny, nz, d]` with `n` a unit
+    normal and `n . x + d == 0` on the plane, so `|n . p + d|` is the distance from any point `p`.
+
+    A zero-area triangle has no plane and gets an ALL-ZERO row; `classify_pixels` detects that
+    (`n` is not a unit vector) and falls back to depth along the ray for those pixels."""
+    positions = np.asarray(positions, dtype=np.float64)
+    faces = np.asarray(faces, dtype=np.int64)
+    out = np.zeros((len(faces), 4), dtype=np.float64)
+    if not len(faces):
+        return out
+    tri = positions[faces]
+    normal = np.cross(tri[:, 1] - tri[:, 0], tri[:, 2] - tri[:, 0])
+    length = np.linalg.norm(normal, axis=1)
+    good = length > 0.0
+    out[good, :3] = normal[good] / length[good, None]
+    out[good, 3] = -np.einsum("ij,ij->i", out[good, :3], tri[good, 0])
+    return out
+
+
+def _displacement(before_depth: np.ndarray, before_tri: np.ndarray, after_depth: np.ndarray,
+                   after_tri: np.ndarray, both: np.ndarray, origins, direction,
+                   plane_before, plane_after) -> np.ndarray:
+    """How far the visible SURFACE moved at each both-hit pixel:
+    `max(dist(P_before, plane(face_after)), dist(P_after, plane(face_before)))`, where
+    `P = origins[px] + depth[px] * direction` is the hit point.
+
+    Falls back to `|t_before - t_after|` (depth along the ray) wherever the metric cannot be
+    evaluated: no geometry supplied, or either face's plane undefined (zero area)."""
+    with np.errstate(invalid="ignore"):
+        out = np.abs(after_depth - before_depth)
+    if origins is None or plane_before is None or plane_after is None or not both.any():
+        return out
+
+    origins = np.asarray(origins, dtype=np.float64)[both]
+    direction = np.asarray(direction, dtype=np.float64)
+    point_before = origins + before_depth[both][:, None] * direction
+    point_after = origins + after_depth[both][:, None] * direction
+    n_before = np.asarray(plane_before, dtype=np.float64)[before_tri[both]]
+    n_after = np.asarray(plane_after, dtype=np.float64)[after_tri[both]]
+
+    to_after = np.abs(np.einsum("ij,ij->i", point_before, n_after[:, :3]) + n_after[:, 3])
+    to_before = np.abs(np.einsum("ij,ij->i", point_after, n_before[:, :3]) + n_before[:, 3])
+    defined = (np.linalg.norm(n_before[:, :3], axis=1) > 0.0) & (np.linalg.norm(n_after[:, :3], axis=1) > 0.0)
+
+    out[both] = np.where(defined, np.maximum(to_after, to_before), out[both])
+    return out
 
 
 def classify_pixels(before_depth: np.ndarray, before_tri: np.ndarray,
                      after_depth: np.ndarray, after_tri: np.ndarray,
                      material_before: np.ndarray, material_after: np.ndarray,
-                     flat_materials: Iterable[int], depth_tol: float) -> np.ndarray:
+                     flat_materials: Iterable[int], depth_tol: float, *,
+                     origins: np.ndarray | None = None, direction: np.ndarray | None = None,
+                     plane_before: np.ndarray | None = None,
+                     plane_after: np.ndarray | None = None) -> np.ndarray:
     """Per-pixel verdict code, same shape as the inputs (uint8, one of the `PX_*` constants), in
     this priority order: `PX_HOLE` (hit before, miss after); `PX_MATERIAL_CHANGED` (both hit,
     `material_before[before_tri] != material_after[after_tri]`); `PX_MOVED_SAME_FLAT` /
-    `PX_MOVED_OTHER` (both hit, same material, `|after_depth - before_depth| > depth_tol` --
-    `_SAME_FLAT` when that material index is in `flat_materials`, `_OTHER` otherwise); `PX_OK`
-    otherwise (includes both-miss background pixels and pixels that matched within `depth_tol`)."""
+    `PX_MOVED_OTHER` (both hit, same material, the visible surface moved further than `depth_tol`
+    -- `_SAME_FLAT` when that material index is in `flat_materials`, `_OTHER` otherwise); `PX_OK`
+    otherwise (includes both-miss background pixels and pixels that matched within `depth_tol`).
+
+    "Moved" is SURFACE DISPLACEMENT, not depth along the ray: `_displacement` above. Depth along
+    the ray divides the real offset by the sine of the grazing angle, so a 0.005 in plane offset
+    seen 0.5 degrees off the surface reads as 0.5 in and a correct re-triangulation is reported as
+    moved (measured: 676 px on file A). The displacement metric needs the hit points and both
+    planes: pass `origins` (`(..., 3)`, from `HitBuffers.origins`), `direction` (the unit view
+    direction, shared by before and after), and `plane_before` / `plane_after` (`face_planes` of
+    the two geometries, indexed like `material_before` / `material_after`). Omit them and every
+    pixel falls back to `|t_before - t_after|`, as does any pixel whose before- or after-face has
+    no plane (zero area)."""
     before_tri = np.asarray(before_tri)
     after_tri = np.asarray(after_tri)
     before_depth = np.asarray(before_depth, dtype=np.float64)
@@ -58,9 +120,8 @@ def classify_pixels(before_depth: np.ndarray, before_tri: np.ndarray,
     codes[material_changed] = PX_MATERIAL_CHANGED
 
     same_material = both & ~material_changed
-    with np.errstate(invalid="ignore"):
-        dt = np.abs(after_depth - before_depth)
-    moved = same_material & (dt > depth_tol)
+    moved = same_material & (_displacement(before_depth, before_tri, after_depth, after_tri, both,
+                                            origins, direction, plane_before, plane_after) > depth_tol)
     flat_ids = np.array(sorted(flat_materials), dtype=np.int64)
     is_flat = np.isin(mat_before, flat_ids)
     codes[moved & is_flat] = PX_MOVED_SAME_FLAT
@@ -99,10 +160,15 @@ def _fail_mask(codes: np.ndarray, strict: bool) -> np.ndarray:
 def compare_views(before: Sequence[RenderedView], after: Sequence[RenderedView],
                    face_material_before: np.ndarray, face_material_after: np.ndarray,
                    flat_materials: Iterable[int], depth_tol: float,
-                   strict: bool = False) -> GuardReport:
-    """Compare a BEFORE/AFTER pair of `ortho_first_hit` renders, one `(view, depth, tri)` triple
-    per view, paired by position (`before[i]` and `after[i]` must be the same view, and both
-    sequences the same length).
+                   strict: bool = False, plane_before: np.ndarray | None = None,
+                   plane_after: np.ndarray | None = None) -> GuardReport:
+    """Compare a BEFORE/AFTER pair of `ortho_first_hit` renders, one `(view, HitBuffers)` pair per
+    view, paired by position (`before[i]` and `after[i]` must be the same view, and both sequences
+    the same length).
+
+    `plane_before` / `plane_after` are `face_planes` of the two geometries, indexed like
+    `face_material_before` / `face_material_after`; pass them to get the surface-displacement
+    moved test (see `classify_pixels`). Omitted, every pixel falls back to depth along the ray.
 
     `strict=True` (use for automatic removal of exposure-0 faces -- a depth change there means
     sampling missed real visibility) counts `moved_same_flat` pixels as failures too;
@@ -115,11 +181,16 @@ def compare_views(before: Sequence[RenderedView], after: Sequence[RenderedView],
 
     view_verdicts = []
     totals = _zero_totals()
-    for (view, before_depth, before_tri), (_, after_depth, after_tri) in zip(before, after):
-        codes = classify_pixels(before_depth, before_tri, after_depth, after_tri,
-                                 face_material_before, face_material_after, flat_materials, depth_tol)
+    for (view, b), (_, a) in zip(before, after):
+        if not np.allclose(b.direction, a.direction):
+            raise ValueError(f"before/after renders of view {tuple(view)} used different view "
+                             f"directions: {b.direction.tolist()} vs {a.direction.tolist()}")
+        codes = classify_pixels(b.depth, b.tri, a.depth, a.tri,
+                                 face_material_before, face_material_after, flat_materials, depth_tol,
+                                 origins=b.origins, direction=b.direction,
+                                 plane_before=plane_before, plane_after=plane_after)
         counts = {
-            "model_px": int((np.asarray(before_tri) >= 0).sum()),
+            "model_px": int((b.tri >= 0).sum()),
             "holes": int((codes == PX_HOLE).sum()),
             "material_changed": int((codes == PX_MATERIAL_CHANGED).sum()),
             "moved_same_flat": int((codes == PX_MOVED_SAME_FLAT).sum()),
@@ -141,7 +212,9 @@ def guard_feedback(candidates: np.ndarray, positions_c: np.ndarray, faces: np.nd
                     size: tuple[int, int] = (900, 600), caster_factory=EmbreeCaster,
                     max_rounds: int = 8) -> tuple[np.ndarray, list[dict]]:
     """Iteratively confirm which `candidates` (bool mask over ALL of `faces`) can be removed
-    without changing the outside, by the same depth/colour-aware pixel test as `compare_views`.
+    without changing the outside, by the same displacement/colour-aware pixel test as
+    `compare_views` (the planes both sides need are built here from `positions_c`/`faces`, which
+    is correct for both renders because only face PRESENCE changes between them).
 
     `positions_c`/`faces` are the ORIGINAL geometry -- every face the guard should consider,
     already whatever subset the caller wants treated as renderable (e.g. non-degenerate only);
@@ -167,8 +240,9 @@ def guard_feedback(candidates: np.ndarray, positions_c: np.ndarray, faces: np.nd
     faces = np.asarray(faces, dtype=np.int64)
     face_ids = np.arange(len(faces), dtype=np.int64)
 
-    before = [(view,) + ortho_first_hit(positions_c, faces, face_ids, view, positions_c, size, caster_factory)
+    before = [(view, ortho_first_hit(positions_c, faces, face_ids, view, positions_c, size, caster_factory))
               for view in views]
+    planes = face_planes(positions_c, faces)  # geometry never changes here, only face presence
 
     removed = candidates.copy()
     history = []
@@ -179,14 +253,16 @@ def guard_feedback(candidates: np.ndarray, positions_c: np.ndarray, faces: np.nd
 
         restore = set()
         failing_pixels = 0
-        for view, before_depth, before_tri in before:
-            after_depth, after_tri = ortho_first_hit(positions_c, keep_faces, keep_ids, view, positions_c,
-                                                      size, caster_factory)
-            codes = classify_pixels(before_depth, before_tri, after_depth, after_tri,
-                                     face_material, face_material, flat_materials, depth_tol)
+        for view, b in before:
+            a = ortho_first_hit(positions_c, keep_faces, keep_ids, view, positions_c,
+                                 size, caster_factory)
+            codes = classify_pixels(b.depth, b.tri, a.depth, a.tri,
+                                     face_material, face_material, flat_materials, depth_tol,
+                                     origins=b.origins, direction=b.direction,
+                                     plane_before=planes, plane_after=planes)
             fail = _fail_mask(codes, strict)
             failing_pixels += int(fail.sum())
-            offenders = before_tri[fail]
+            offenders = b.tri[fail]
             restore.update(offenders[removed[offenders]].tolist())
 
         history.append({"round": rnd, "candidates_remaining": int(removed.sum()),
