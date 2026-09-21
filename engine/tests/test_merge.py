@@ -139,6 +139,41 @@ def test_late_skipped_region_feeds_its_vertices_back_into_the_corner_pass(monkey
     assert vertices_inside_an_edge(r.mesh, right, set(int(v) for v in left.reshape(-1))) == set()
 
 
+def test_keep_all_fallback_feeds_its_ring_vertices_back_into_the_corner_pass(monkeypatch):
+    """A `keep_all` success keeps EVERY ring vertex of its region, so it is a feedback event
+    exactly like a late skip: its neighbours must keep the border vertices they share with it, or
+    those vertices land strictly inside a neighbour's edge -- a T-junction."""
+    m = two_slabs_sharing_border()
+    topo = analyse_topology(m)
+    bad = int(topo.face_region[0])  # face 0 is cell (0, 0): the LEFT slab, material 0
+    real = merge_module._polygon
+
+    def invalid_when_simplified(plan, rings):
+        """The LEFT region's SIMPLIFIED polygon is always invalid, as rule 6 sees it; its FULL
+        ring still builds, so the region lands on the `keep_all` fallback and is accepted."""
+        full = sum(len(r) for piece in plan.pieces for r in piece.rings)
+        if plan.region == bad and sum(len(r) for r in rings) < full:
+            return None
+        return real(plan, rings)
+
+    monkeypatch.setattr(merge_module, "_polygon", invalid_when_simplified)
+    r = merge_regions(m, topo)
+
+    assert r.report["keep_all_regions"] == 1
+    assert r.report["regions_merged"] == 2 and r.report["regions_skipped"] == {}
+    assert r.report["merge_rounds"] == 2  # round 1 finds the keep_all, round 2 confirms nothing new
+
+    left = r.mesh.face_v[r.mesh.face_material == 0]
+    right = r.mesh.face_v[r.mesh.face_material == 1]
+    # the left slab kept all 2*(5+10) = 30 ring vertices -> 30 + 0 - 2 = 28 triangles
+    assert len(left) == 28
+    border = [j * 11 + 5 for j in range(1, 10)]  # the 9 collinear shared-border vertices
+    assert set(border) <= set(int(v) for v in right.reshape(-1))
+    assert len(right) == 11  # 4 corners + 9 border vertices -> 13 + 0 - 2 = 11
+    assert vertices_inside_an_edge(r.mesh, right, set(int(v) for v in left.reshape(-1))) == set()
+    assert vertices_inside_an_edge(r.mesh, left, set(int(v) for v in right.reshape(-1))) == set()
+
+
 def test_overlapping_triangle_and_the_cells_it_overlaps_are_copied_through():
     m = overlapping_pair()
     r = merged(m)
