@@ -89,7 +89,8 @@ def test_classify_pixels_priority_order():
     flat_materials = frozenset({0})
 
     codes = classify_pixels(before_depth, before_tri, after_depth, after_tri,
-                             material_before, material_after, flat_materials, depth_tol=0.1)
+                             material_before, material_after, flat_materials, depth_tol=0.1,
+                             allow_depth_fallback=True)  # a pure classification test: no geometry
 
     assert codes.tolist() == [PX_HOLE, PX_MATERIAL_CHANGED, PX_MOVED_SAME_FLAT, PX_MOVED_OTHER, PX_OK, PX_OK]
 
@@ -101,7 +102,7 @@ def test_classify_pixels_empty_flat_materials_treats_everything_as_patterned():
     after_depth = np.array([2.0])
     material = np.array([0])
     codes = classify_pixels(before_depth, before_tri, after_depth, after_tri, material, material,
-                             frozenset(), depth_tol=0.1)
+                             frozenset(), depth_tol=0.1, allow_depth_fallback=True)
     assert codes.tolist() == [PX_MOVED_OTHER]
 
 
@@ -277,6 +278,41 @@ def test_grazing_view_still_catches_a_face_removed_over_a_surface_behind_it():
     assert not report.passed
 
 
+def test_depth_along_the_ray_fallback_must_be_asked_for_explicitly():
+    """Forgetting the geometry used to hand the caller the metric that reported 676 false `moved`
+    pixels on file A. It is now an error unless the caller asks for it by name."""
+    args = (np.array([1.0]), np.array([0]), np.array([2.0]), np.array([0]),
+            np.zeros(1, np.int64), np.zeros(1, np.int64), frozenset({0}))
+
+    with pytest.raises(ValueError) as excinfo:
+        classify_pixels(*args, depth_tol=0.15)
+    assert "allow_depth_fallback" in str(excinfo.value)
+
+    # half the geometry is not geometry: planes alone cannot place the hit points
+    with pytest.raises(ValueError):
+        classify_pixels(*args, depth_tol=0.15, plane_before=np.zeros((1, 4)),
+                         plane_after=np.zeros((1, 4)))
+
+    codes = classify_pixels(*args, depth_tol=0.15, allow_depth_fallback=True)
+    assert codes.tolist() == [PX_MOVED_SAME_FLAT]
+
+
+def test_compare_views_without_planes_needs_the_same_flag():
+    m = cube(10.0)
+    Pc = m.positions - 5.0
+    faces, ids = m.face_v, np.arange(len(m.face_v))
+    view = VIEWS_26[0]
+    rendered = [(view, ortho_first_hit(Pc, faces, ids, view, Pc, _SIZE))]
+    mat = m.face_material
+
+    with pytest.raises(ValueError) as excinfo:
+        compare_views(rendered, rendered, mat, mat, frozenset(), 0.15)
+    assert "allow_depth_fallback" in str(excinfo.value)
+
+    assert compare_views(rendered, rendered, mat, mat, frozenset(), 0.15,
+                          allow_depth_fallback=True).passed
+
+
 def test_undefined_plane_falls_back_to_depth_along_the_ray():
     """A zero-area face has no plane; those pixels keep the old |t_before - t_after| test."""
     before_tri = np.array([0, 1])
@@ -328,7 +364,8 @@ def _flicker_report(drop, cap, strict=True):
     before, after = _buffers(_block()), _buffers(_block(drop))
     mat = np.zeros(1, np.int64)
     return compare_views([(_FLICKER_VIEW, before)], [(_FLICKER_VIEW, after)], mat, mat,
-                          frozenset({0}), 0.15, strict=strict, edge_flicker_cap=cap)
+                          frozenset({0}), 0.15, strict=strict, edge_flicker_cap=cap,
+                          allow_depth_fallback=True)  # synthetic buffers: there is no geometry
 
 
 def test_silhouette_pixel_is_classed_edge_flicker_and_fails_at_cap_zero():
@@ -336,7 +373,7 @@ def test_silhouette_pixel_is_classed_edge_flicker_and_fails_at_cap_zero():
     mat = np.zeros(1, np.int64)
 
     codes = classify_pixels(before.depth, before.tri, after.depth, after.tri, mat, mat,
-                             frozenset({0}), 0.15)
+                             frozenset({0}), 0.15, allow_depth_fallback=True)
     assert int((codes == PX_EDGE_FLICKER).sum()) == 1
     assert int((codes == PX_HOLE).sum()) == 0
 
@@ -363,7 +400,7 @@ def test_interior_hole_fails_at_any_cap():
     before, after = _buffers(_block()), _buffers(_block(drop=[(100, 100)]))
     mat = np.zeros(1, np.int64)
     codes = classify_pixels(before.depth, before.tri, after.depth, after.tri, mat, mat,
-                             frozenset({0}), 0.15)
+                             frozenset({0}), 0.15, allow_depth_fallback=True)
     assert int((codes == PX_HOLE).sum()) == 1 and int((codes == PX_EDGE_FLICKER).sum()) == 0
 
     for cap in (0.0, 1e-4, 1.0):
@@ -541,7 +578,7 @@ def test_save_triptych_writes_three_panel_png(tmp_path):
     keep[0] = False
     after = ortho_first_hit(Pc, faces[keep], ids[keep], view, Pc, size=size)
     codes = classify_pixels(before[0], before[1], after[0], after[1], m.face_material, m.face_material,
-                             frozenset(), _depth_tol(topo))
+                             frozenset(), _depth_tol(topo), allow_depth_fallback=True)
 
     out = tmp_path / "diff.png"
     save_triptych(out, before, after, codes)

@@ -151,7 +151,7 @@ def classify_pixels(before_depth: np.ndarray, before_tri: np.ndarray,
                      origins: np.ndarray | None = None, direction: np.ndarray | None = None,
                      plane_before: np.ndarray | None = None,
                      plane_after: np.ndarray | None = None,
-                     coverage=None) -> np.ndarray:
+                     coverage=None, allow_depth_fallback: bool = False) -> np.ndarray:
     """Per-pixel verdict code, same shape as the inputs (uint8, one of the `PX_*` constants), in
     this priority order: `PX_HOLE` (hit before, miss after) or `PX_EDGE_FLICKER` (a would-be hole
     that passes BOTH silhouette tests below); `PX_MATERIAL_CHANGED` (both hit,
@@ -178,9 +178,22 @@ def classify_pixels(before_depth: np.ndarray, before_tri: np.ndarray,
     moved (measured: 676 px on file A). The displacement metric needs the hit points and both
     planes: pass `origins` (`(..., 3)`, from `HitBuffers.origins`), `direction` (the unit view
     direction, shared by before and after), and `plane_before` / `plane_after` (`face_planes` of
-    the two geometries, indexed like `material_before` / `material_after`). Omit them and every
-    pixel falls back to `|t_before - t_after|`, as does any pixel whose before- or after-face has
-    no plane (zero area)."""
+    the two geometries, indexed like `material_before` / `material_after`).
+
+    Omitting any of those four is an ERROR unless `allow_depth_fallback=True`: the whole-image
+    fallback to `|t_before - t_after|` is the metric that produced those 676 false positives, so a
+    caller has to ask for it by name rather than get it for forgetting an argument. A pixel whose
+    before- or after-face has no plane (zero area) still falls back on its own -- that is per
+    pixel, not a caller mistake."""
+    if not allow_depth_fallback and (origins is None or direction is None
+                                      or plane_before is None or plane_after is None):
+        raise ValueError(
+            "classify_pixels needs the geometry of BOTH renders to measure surface displacement: "
+            "origins, direction, plane_before and plane_after (see face_planes). Without all four "
+            "the moved test falls back to depth along the ray, which divides the real offset by "
+            "the sine of the grazing angle and reported 676 false `moved` pixels on file A. Pass "
+            "allow_depth_fallback=True to ask for that metric deliberately.")
+
     before_tri = np.asarray(before_tri)
     after_tri = np.asarray(after_tri)
     before_depth = np.asarray(before_depth, dtype=np.float64)
@@ -263,7 +276,8 @@ def compare_views(before: Sequence[RenderedView], after: Sequence[RenderedView],
                    edge_flicker_cap: float = 0.0,
                    geometry_before: tuple[np.ndarray, np.ndarray] | None = None,
                    geometry_after: tuple[np.ndarray, np.ndarray] | None = None,
-                   caster_factory=EmbreeCaster) -> GuardReport:
+                   caster_factory=EmbreeCaster,
+                   allow_depth_fallback: bool = False) -> GuardReport:
     """Compare a BEFORE/AFTER pair of `ortho_first_hit` renders, one `(view, HitBuffers)` pair per
     view, paired by position (`before[i]` and `after[i]` must be the same view, and both sequences
     the same length). Each pair must share the whole CAMERA FRAME -- direction, image size and the
@@ -271,8 +285,9 @@ def compare_views(before: Sequence[RenderedView], after: Sequence[RenderedView],
     framed on different bounding boxes would silently measure displacement from the wrong points.
 
     `plane_before` / `plane_after` are `face_planes` of the two geometries, indexed like
-    `face_material_before` / `face_material_after`; pass them to get the surface-displacement
-    moved test (see `classify_pixels`). Omitted, every pixel falls back to depth along the ray.
+    `face_material_before` / `face_material_after`; they are what the surface-displacement moved
+    test needs (see `classify_pixels`), and leaving them out raises unless the caller asks for the
+    old depth-along-the-ray metric with `allow_depth_fallback=True`.
 
     `strict=True` (use for automatic removal of exposure-0 faces -- a depth change there means
     sampling missed real visibility) counts `moved_same_flat` pixels as failures too;
@@ -318,7 +333,8 @@ def compare_views(before: Sequence[RenderedView], after: Sequence[RenderedView],
                                  face_material_before, face_material_after, flat_materials, depth_tol,
                                  origins=b.origins, direction=b.direction,
                                  plane_before=plane_before, plane_after=plane_after,
-                                 coverage=coverage)
+                                 coverage=coverage,
+                                 allow_depth_fallback=allow_depth_fallback)
         counts = {
             "model_px": int((b.tri >= 0).sum()),
             "holes": int((codes == PX_HOLE).sum()),
