@@ -131,3 +131,22 @@ def test_failed_snapshot_leaves_no_incoming_dir(tmp_path):
     with pytest.raises(ManifestMismatch):
         snapshot_object(src, dst_root, expected_tris=99, interval_s=0, sleep=lambda s: None)
     assert list(dst_root.glob(".incoming-*")) == []
+
+
+def test_two_sequential_calls_succeed_and_stale_incoming_dir_survives_untouched(tmp_path):
+    src = make_source(tmp_path / "src")
+    dst_root = tmp_path / "snap"
+    dst_root.mkdir(parents=True)
+    # A ".incoming-<stem>" directory left behind by a crashed run under the old, deterministic
+    # naming scheme. A per-call tempfile.mkdtemp() name must never collide with, or trigger
+    # cleanup logic against, this unrelated leftover directory.
+    stale = dst_root / ".incoming-walk"
+    stale.mkdir()
+    (stale / "leftover.txt").write_text("crashed run debris")
+
+    first = snapshot_object(src, dst_root, expected_tris=1, interval_s=0, sleep=lambda s: None)
+    second = snapshot_object(src, dst_root, expected_tris=1, interval_s=0, sleep=lambda s: None)
+
+    assert first.dir == second.dir and second.mesh.n_faces == 1
+    assert stale.exists() and (stale / "leftover.txt").read_text() == "crashed run debris"
+    assert [p for p in dst_root.glob(".incoming-*") if p != stale] == []

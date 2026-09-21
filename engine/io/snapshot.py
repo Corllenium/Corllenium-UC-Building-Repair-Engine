@@ -4,6 +4,7 @@ import hashlib
 import os
 import re
 import shutil
+import tempfile
 import time
 from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
@@ -112,9 +113,11 @@ def _copy_verified(src: Path, dst: Path, interval_s: float, sleep) -> tuple[int,
 def snapshot_object(src_obj, dst_root, expected_tris=None, interval_s=1.0, sleep=time.sleep) -> SnapshotResult:
     src_obj, dst_root = Path(src_obj), Path(dst_root)
     dst_root.mkdir(parents=True, exist_ok=True)
-    tmp = dst_root / f".incoming-{src_obj.stem}"
-    shutil.rmtree(tmp, ignore_errors=True)
-    tmp.mkdir()
+    # A unique per-call directory: two concurrent snapshots of the same object must never share
+    # (and so never race on creating, or delete out from under each other) an incoming dir. Any
+    # stale ".incoming-*" left by a crashed run under the old deterministic name is a different
+    # path and is never touched here.
+    tmp = Path(tempfile.mkdtemp(prefix=".incoming-", dir=dst_root))
     try:
         obj_copy = tmp / src_obj.name
         _copy_verified(src_obj, obj_copy, interval_s, sleep)
@@ -128,7 +131,13 @@ def snapshot_object(src_obj, dst_root, expected_tris=None, interval_s=1.0, sleep
         final = dst_root / digest[:12]
         if not final.exists():
             _copy_assets(src_obj, mesh, tmp, interval_s, sleep)
-            tmp.rename(final)
+            try:
+                tmp.rename(final)
+            except OSError:
+                # Another call finished first and already created `final`: discard our copy
+                # (the `finally` below removes tmp) and load the winner's result instead.
+                if not final.exists():
+                    raise
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
     return _load(final, src_obj.name, digest)
