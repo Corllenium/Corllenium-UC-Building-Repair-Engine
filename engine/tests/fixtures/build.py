@@ -165,11 +165,13 @@ def box_with_partition(size=10.0):
 
 def gridded_box(n=4, cell=2.5, uv_per_unit=0.05):
     """A closed cube (side `s = n * cell`) with each of its 6 faces built from an `n x n` grid of
-    small coplanar triangles (`2 * n * n` per face, all consistently wound within a face), the way
-    a SketchUp export cuts a flat panel into gridlines. No face is ever hidden (every face's
-    outward hemisphere sees open space -- exposure is double-sided, so an ordinary closed box's
-    own faces are never sealed on BOTH sides the way an interior partition is); `merge_regions`
-    should collapse each of the 6 planar regions back to its minimal 2 triangles (12 total)."""
+    small coplanar triangles (`2 * n * n` per face, all consistently wound within a face AND
+    correctly wound OUTWARD -- `du`/`dv` are chosen per face so `cross(du, dv)` points away from
+    the box), the way a SketchUp export cuts a flat panel into gridlines. No face is ever hidden
+    (every face's outward hemisphere sees open space -- exposure is double-sided, so an ordinary
+    closed box's own faces are never sealed on BOTH sides the way an interior partition is);
+    `merge_regions` should collapse each of the 6 planar regions back to its minimal 2 triangles
+    (12 total), and `engine.fixes.orient.classify_orientation` should find nothing to flip."""
     s = n * cell
     P, uvs, fv, fvt = [], [], [], []
 
@@ -191,12 +193,13 @@ def gridded_box(n=4, cell=2.5, uv_per_unit=0.05):
                 fvt.append([base_uv, base_uv + 1, base_uv + 2])
                 fvt.append([base_uv, base_uv + 2, base_uv + 3])
 
-    add_face((0, 0, 0), (s, 0, 0), (0, s, 0))  # z = 0
-    add_face((0, 0, s), (s, 0, 0), (0, s, 0))  # z = s
-    add_face((0, 0, 0), (s, 0, 0), (0, 0, s))  # y = 0
-    add_face((0, s, 0), (s, 0, 0), (0, 0, s))  # y = s
-    add_face((0, 0, 0), (0, s, 0), (0, 0, s))  # x = 0
-    add_face((s, 0, 0), (0, s, 0), (0, 0, s))  # x = s
+    # du, dv chosen per face so cross(du, dv) points OUTWARD (away from the box).
+    add_face((0, 0, 0), (0, s, 0), (s, 0, 0))  # z = 0, outward -z
+    add_face((0, 0, s), (s, 0, 0), (0, s, 0))  # z = s, outward +z
+    add_face((0, 0, 0), (s, 0, 0), (0, 0, s))  # y = 0, outward -y
+    add_face((0, s, 0), (0, 0, s), (s, 0, 0))  # y = s, outward +y
+    add_face((0, 0, 0), (0, 0, s), (0, s, 0))  # x = 0, outward -x
+    add_face((s, 0, 0), (0, s, 0), (0, 0, s))  # x = s, outward +x
 
     return _mesh("gridded_box", P, uvs, fv, fvt)
 

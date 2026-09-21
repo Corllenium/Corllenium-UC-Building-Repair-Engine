@@ -39,20 +39,30 @@ def fib_dirs(n: int) -> np.ndarray:
     return np.stack([np.cos(th) * np.sin(phi), np.sin(th) * np.sin(phi), np.cos(phi)], axis=1)
 
 
-def compute_exposure(positions_c: np.ndarray, face_w: np.ndarray, ok: np.ndarray,
-                      caster_factory=EmbreeCaster, n_dirs: int = 128) -> np.ndarray:
-    """Fraction of sampled rays that escape each face, double-sided: escaping rays /
-    (n_dirs * len(BARY)). 0.0 for degenerate (`not ok`) faces.
+def compute_side_exposure(positions_c: np.ndarray, face_w: np.ndarray, ok: np.ndarray,
+                           caster_factory=EmbreeCaster,
+                           n_dirs: int = 128) -> tuple[np.ndarray, np.ndarray]:
+    """Fraction of sampled rays that escape each face, SPLIT by which side of the face they were
+    cast from: `front` is escaping rays cast from `sample point + EPS_IN * normal` (the side the
+    winding-derived normal points to) divided by `n_dirs * len(BARY)`; `back` is the same for
+    `sample point - EPS_IN * normal`. Both denominators are the FULL sample budget (not half), so
+    `front + back` is exactly `compute_exposure`'s return value -- see there, now a thin wrapper
+    over this. 0.0 (both sides) for degenerate (`not ok`) faces.
 
     Precondition: `positions_c` is already recentred by the caller (see module docstring).
     Face normals come from `positions_c[face_w]` (the welded mesh geometry), not from the
     source file's `vn`.
 
-    For each of `n_dirs` Fibonacci-lattice directions `w`: faces with `normal . w > 1e-6` cast
-    from `sample point + EPS_IN * normal` (the front side); faces with `normal . w < -1e-6`
-    cast from `sample point - EPS_IN * normal` (the back side); both cast along `w`, against
-    ONE caster built from `caster_factory(positions_c, face_w[ok])` -- all ok faces, built once
-    and reused across every direction and side.
+    For each of `n_dirs` Fibonacci-lattice directions `w`: faces with `normal . w > 1e-6`
+    contribute to `front`, cast from `sample point + EPS_IN * normal`; faces with
+    `normal . w < -1e-6` contribute to `back`, cast from `sample point - EPS_IN * normal`; both
+    cast along `w`, against ONE caster built from `caster_factory(positions_c, face_w[ok])` --
+    all ok faces, built once and reused across every direction and side.
+
+    A face correctly wound to point outward has its true exterior on the `front` side (open space
+    escapes there) and its own interior on `back` (blocked); a face whose winding was reversed by
+    the exporter has that flipped, which is what `engine.fixes.orient.classify_orientation` uses
+    `front`/`back` to detect.
     """
     positions_c = np.asarray(positions_c, dtype=np.float64)
     face_w = np.asarray(face_w, dtype=np.int64)
@@ -66,12 +76,13 @@ def compute_exposure(positions_c: np.ndarray, face_w: np.ndarray, ok: np.ndarray
     safe = ok & (lengths > 0)
     normals[safe] = cross[safe] / lengths[safe, None]
 
-    escapes = np.zeros(n_faces, dtype=np.int64)
+    escapes_front = np.zeros(n_faces, dtype=np.int64)
+    escapes_back = np.zeros(n_faces, dtype=np.int64)
     caster = caster_factory(positions_c, face_w[ok])
     for w in fib_dirs(n_dirs):
         dot = normals @ w
-        for ids, sign in ((np.nonzero(ok & (dot > 1e-6))[0], 1.0),
-                          (np.nonzero(ok & (dot < -1e-6))[0], -1.0)):
+        for ids, sign, escapes in ((np.nonzero(ok & (dot > 1e-6))[0], 1.0, escapes_front),
+                                    (np.nonzero(ok & (dot < -1e-6))[0], -1.0, escapes_back)):
             if len(ids) == 0:
                 continue
             pts = np.einsum("sb,fbk->fsk", BARY, tri[ids]) + sign * EPS_IN * normals[ids][:, None, :]
@@ -80,9 +91,23 @@ def compute_exposure(positions_c: np.ndarray, face_w: np.ndarray, ok: np.ndarray
             hit = caster.any_hit(origins, directions)
             escapes[ids] += (~hit).reshape(len(ids), len(BARY)).sum(axis=1)
 
-    exposure = np.zeros(n_faces, dtype=np.float64)
-    exposure[ok] = escapes[ok] / (n_dirs * len(BARY))
-    return exposure
+    denom = n_dirs * len(BARY)
+    front = np.zeros(n_faces, dtype=np.float64)
+    back = np.zeros(n_faces, dtype=np.float64)
+    front[ok] = escapes_front[ok] / denom
+    back[ok] = escapes_back[ok] / denom
+    return front, back
+
+
+def compute_exposure(positions_c: np.ndarray, face_w: np.ndarray, ok: np.ndarray,
+                      caster_factory=EmbreeCaster, n_dirs: int = 128) -> np.ndarray:
+    """Fraction of sampled rays that escape each face, double-sided: escaping rays /
+    (n_dirs * len(BARY)). 0.0 for degenerate (`not ok`) faces.
+
+    `front + back` of `compute_side_exposure` (see there for the per-side split this is built
+    from); this function's own return value is exactly what it always was."""
+    front, back = compute_side_exposure(positions_c, face_w, ok, caster_factory, n_dirs)
+    return front + back
 
 
 def classify_exposure(exposure: np.ndarray, ok: np.ndarray, slit_threshold: float = 0.05) -> np.ndarray:

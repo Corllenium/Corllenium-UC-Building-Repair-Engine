@@ -1,20 +1,24 @@
 """End-to-end automatic fix: remove what is truly hidden (and, opted in, what is only a sliver of
-a slit), then re-triangulate what is left, with a facade guard at every removal step and a final
-guard of the WHOLE result against the pristine original -- so a cumulative drift that no single
-step would have caught on its own still gets caught here.
+a slit), correct any face wound backwards, then re-triangulate what is left, with a facade guard
+at every removal step and a final guard of the WHOLE result against the pristine original -- so a
+cumulative drift that no single step would have caught on its own still gets caught here.
 
-Order: `analyse_topology` -> `compute_exposure`/`classify_exposure` -> candidates = hidden faces
-(plus slit faces, only when `profile.accept_slit`) -> `guard_feedback` against the original,
+Order: `analyse_topology` -> `compute_side_exposure`/`classify_exposure` -> candidates = hidden
+faces (plus slit faces, only when `profile.accept_slit`) -> `guard_feedback` against the original,
 STRICT for hidden (the only automatic deletion, so it gets the strictest guard) and, when slit
 faces are accepted, a SECOND colour-tolerant pass over the state the hidden pass leaves behind ->
-`remove_faces` (which also drops every zero-area face) -> `analyse_topology` on the result ->
-`merge_regions` -> a final guard of the merged mesh against the ORIGINAL. If the merge did not
-converge, or the final guard fails, the result falls back to the un-merged (removal-only) mesh and
-`passed` reflects the fallback's own guard instead.
+`remove_faces` (which also drops every zero-area face) -> `classify_orientation` +
+`flip_faces` on the survivors, so a face whose only real exposure was on its BACK re-joins its
+neighbours' region instead of being copied through alone -> `analyse_topology` on the flipped
+result -> `merge_regions` -> a final guard of the merged mesh against the ORIGINAL. If the merge
+did not converge, or the final guard fails, the result falls back to the flipped-but-unmerged
+(removal-only) mesh and `passed` reflects the fallback's own guard instead. Flipping never changes
+a double-sided render (see `engine.fixes.orient`), so it never changes which guard passes.
 
 Vertices are never moved or invented anywhere in this module -- every mesh handed to a guard
 render is welded through the SAME `weld_exact(mesh.positions, mesh.coord_decimals)` remap, because
-`remove_faces` and `merge_regions` both leave `positions` untouched (see their own modules).
+`remove_faces`, `flip_faces` and `merge_regions` all leave `positions` untouched (see their own
+modules).
 """
 from __future__ import annotations
 
@@ -23,13 +27,14 @@ from dataclasses import dataclass
 import numpy as np
 
 from engine.fixes.merge import merge_regions
+from engine.fixes.orient import ORIENT_FLIP, ORIENT_THIN_SHEET, classify_orientation, flip_faces, one_sided_holes
 from engine.fixes.remove import remove_faces
 from engine.guard.compare import GuardReport, compare_views, face_planes, guard_feedback
 from engine.guard.views import VIEWS_26, ortho_first_hit
 from engine.model import MeshData
 from engine.pipeline import analyse_topology, flat_material_indices
 from engine.topo.weld import weld_exact
-from engine.vis.exposure import EXP_HIDDEN, EXP_SLIT, classify_exposure, compute_exposure
+from engine.vis.exposure import EXP_HIDDEN, EXP_SLIT, classify_exposure, compute_side_exposure
 
 #: Relative slack on the whole-mesh area check, matching `engine.fixes.merge`'s own per-region
 #: tolerance -- merging can shift area by float noise, never grow it on purpose.
@@ -66,6 +71,16 @@ class FixResult:
     n_removed_hidden: int
     n_removed_slit: int
     n_zero_area_dropped: int
+    #: Bool, over ORIGINAL faces: survived removal and had its winding reversed (its only real
+    #: exposure was on the BACK -- see `engine.fixes.orient.classify_orientation`).
+    flipped: np.ndarray
+    #: Bool, over ORIGINAL faces: both sides exposed, roughly equally -- reported, never touched.
+    thin_sheets: np.ndarray
+    #: `engine.fixes.orient.one_sided_holes` over the ORIGINAL mesh's non-degenerate faces, and
+    #: again over the mesh actually shipped (`mesh`) -- pixels a one-sided renderer would still
+    #: drop as a hole. `_after` is expected to be lower than `_before`.
+    one_sided_holes_before: int
+    one_sided_holes_after: int
     #: `{"hidden": history, "slit": history | None}` -- `guard_feedback`'s own per-round history
     #: from each pass; `"slit"` is `None` when no slit pass ran.
     feedback_history: dict
@@ -97,8 +112,15 @@ def fix_object(mesh: MeshData, flatness: dict[str, float], profile: FixProfile =
     _, remap = weld_exact(mesh.positions, mesh.coord_decimals)  # same weld space as topo, reusable
     # for any mesh whose `positions` is the SAME array (remove_faces/merge_regions never touch it).
 
-    exposure = compute_exposure(positions_c, topo.face_w, topo.ok, n_dirs=profile.n_dirs)
+    front, back = compute_side_exposure(positions_c, topo.face_w, topo.ok, n_dirs=profile.n_dirs)
+    exposure = front + back
     exposure_class = classify_exposure(exposure, topo.ok, profile.slit_threshold)
+    orientation = classify_orientation(front, back, topo.ok)
+    flip_candidates_full = orientation == ORIENT_FLIP
+    thin_sheets_full = orientation == ORIENT_THIN_SHEET
+
+    one_sided_holes_before = one_sided_holes(
+        positions_c, topo.face_w, np.arange(mesh.n_faces, dtype=np.int64), VIEWS_26, profile.guard_size)
 
     ok_ids = np.nonzero(topo.ok)[0]
     render_faces = topo.face_w[topo.ok]
@@ -137,8 +159,14 @@ def fix_object(mesh: MeshData, flatness: dict[str, float], profile: FixProfile =
     drop = removed_hidden_full | removed_slit_full | zero_area_full
     mesh_removed, source_from_removal = remove_faces(mesh, drop)
 
-    topo2 = analyse_topology(mesh_removed, flat_materials)
-    merge_result = merge_regions(mesh_removed, topo2, flat_materials)
+    # ---- orientation: correct any survivor whose only real exposure was on its BACK ----------
+    flip_removed = flip_candidates_full[source_from_removal]
+    mesh_flipped = flip_faces(mesh_removed, flip_removed)
+    flipped_full = np.zeros(mesh.n_faces, dtype=bool)
+    flipped_full[source_from_removal[flip_removed]] = True
+
+    topo2 = analyse_topology(mesh_flipped, flat_materials)
+    merge_result = merge_regions(mesh_flipped, topo2, flat_materials)
 
     # A slit-tolerant removal is a person-accepted, colour-tolerant change: both guard checks
     # below use the same strictness the removal itself used.
@@ -158,7 +186,7 @@ def fix_object(mesh: MeshData, flatness: dict[str, float], profile: FixProfile =
             plane_after=face_planes(positions_c, face_w_final), edge_flicker_cap=edge_flicker_cap,
             geometry_before=(positions_c, face_w_original), geometry_after=(positions_c, face_w_final))
 
-    guard_after_removal = _guard_against_original(mesh_removed, edge_flicker_cap=0.0)
+    guard_after_removal = _guard_against_original(mesh_flipped, edge_flicker_cap=0.0)
 
     merge_report = dict(merge_result.report)
     rolled_back_reason = None
@@ -173,12 +201,16 @@ def fix_object(mesh: MeshData, flatness: dict[str, float], profile: FixProfile =
     if rolled_back_reason is not None:
         merge_report["rolled_back"] = True
         merge_report["rolled_back_reason"] = rolled_back_reason
-        final_mesh = mesh_removed
+        final_mesh = mesh_flipped
         final_source_faces = [np.array([int(f)], dtype=np.int64) for f in source_from_removal]
         guard_final = _guard_against_original(final_mesh, profile.edge_flicker_cap_final)
     else:
         final_mesh = merge_result.mesh
         final_source_faces = [source_from_removal[s].astype(np.int64) for s in merge_result.source_faces]
+
+    one_sided_holes_after = one_sided_holes(
+        positions_c, remap[final_mesh.face_v], np.arange(final_mesh.n_faces, dtype=np.int64),
+        VIEWS_26, profile.guard_size)
 
     invariants = {
         "material_count_same": len(final_mesh.materials) == len(mesh.materials),
@@ -196,6 +228,8 @@ def fix_object(mesh: MeshData, flatness: dict[str, float], profile: FixProfile =
         n_hidden_candidates=n_hidden_candidates, n_restored_by_guard=n_restored_by_guard,
         n_removed_hidden=n_removed_hidden, n_removed_slit=n_removed_slit,
         n_zero_area_dropped=n_zero_area_dropped,
+        flipped=flipped_full, thin_sheets=thin_sheets_full,
+        one_sided_holes_before=one_sided_holes_before, one_sided_holes_after=one_sided_holes_after,
         feedback_history={"hidden": history_hidden, "slit": history_slit},
         guard_after_removal=guard_after_removal, guard_final=guard_final,
         merge_report=merge_report, invariants=invariants, passed=passed)

@@ -44,8 +44,9 @@ import numpy as np
 
 import engine.fixes.pipeline as fix_pipeline
 from engine.fixes.merge import MergeResult
+from engine.fixes.orient import ORIENT_FLIP
 from engine.fixes.pipeline import FixProfile, fix_object
-from engine.tests.fixtures.build import box_with_partition, gridded_box, open_box_with_cells
+from engine.tests.fixtures.build import _mesh, box_with_partition, gridded_box, open_box_with_cells
 from engine.vis.exposure import EXP_HIDDEN, EXP_OUTSIDE, EXP_SLIT
 
 #: Small render settings: only correctness is under test here, not image fidelity (matches the
@@ -83,6 +84,13 @@ def test_box_with_partition_removes_only_the_sealed_partition():
     assert r.guard_final.totals["moved_other"] == 0
     assert r.feedback_history["hidden"][0]["candidates_remaining"] == 2
     assert r.feedback_history["slit"] is None  # no slit pass ran: no slit candidates exist here
+
+    # task 8: a correctly-wound cube needs no flips, has no thin sheets, and is already complete
+    # one-sided (a closed convex box's outward faces are never back-facing to any outside camera).
+    assert not r.flipped.any()
+    assert not r.thin_sheets.any()
+    assert r.one_sided_holes_before == 0
+    assert r.one_sided_holes_after == 0
 
     # source_faces: each output face's provenance is its whole (unchanged, 2-member) region --
     # merge_regions never split a region across output triangles, so both triangles of a cube
@@ -180,3 +188,64 @@ def test_rolled_back_when_merge_does_not_converge(monkeypatch):
     assert [s.tolist() for s in r.source_faces] == [[i] for i in range(192)]
     assert r.passed is True  # the fallback's own guard: identical geometry, so it still passes
     assert r.invariants["guard_passed"] is True
+
+
+# ---------------------------------------------------------------------------------------------
+# Task 8: outward orientation wired into fix_object.
+# ---------------------------------------------------------------------------------------------
+
+def test_fix_object_flips_a_reversed_interior_triangle_and_still_fully_merges():
+    """gridded_box's cell-(1,1) triangle on the z=0 face (global index 10, an interior cell of
+    that face -- not on any face boundary) is deliberately reversed, as a SketchUp export might
+    export one mis-wound triangle inside an otherwise-consistent panel. Before the flip step, a
+    reversed triangle fails cluster_planes' facing_dot test against its neighbours (normals point
+    opposite ways) and so cannot join their region; after the flip it rejoins them, and the panel
+    still merges down to its minimal 2 triangles."""
+    m = gridded_box(4, 2.5)
+    reversed_face = 10
+    m.face_v[reversed_face] = m.face_v[reversed_face][::-1]
+
+    r = fix_object(m, {}, _FAST)
+
+    assert r.flipped.tolist() == [i == reversed_face for i in range(m.n_faces)]
+    assert not r.thin_sheets.any()
+    assert r.one_sided_holes_before > 0
+    assert r.one_sided_holes_after == 0
+
+    assert r.mesh.n_faces == 12
+    assert r.merge_report["regions_merged"] == 6
+    assert "rolled_back" not in r.merge_report
+    assert r.passed is True
+    assert r.invariants["guard_passed"] is True
+
+
+def test_flip_step_never_introduces_guard_damage():
+    """A model with one legitimately reversed triangle still ends with a spotless (all-zero)
+    guard report, exactly like the unmodified fixture -- flipping never changes a double-sided
+    render (test_orient.py pins that at the primitive level), so it can never be what causes a
+    guard failure."""
+    baseline = fix_object(gridded_box(4, 2.5), {}, _FAST)
+    m = gridded_box(4, 2.5)
+    m.face_v[10] = m.face_v[10][::-1]
+    reversed_input = fix_object(m, {}, _FAST)
+
+    assert baseline.passed and reversed_input.passed
+    assert baseline.guard_after_removal.totals == reversed_input.guard_after_removal.totals
+    assert baseline.guard_final.totals == reversed_input.guard_final.totals
+
+
+def test_fix_object_reports_a_thin_sheet_without_touching_it():
+    """A free-standing quad, alone in space: both sides see the same open sky, so it classes
+    THIN_SHEET (never FLIP, never removed as hidden/slit, never changed by the merge)."""
+    P = [[0, 0, 0], [10, 0, 0], [10, 10, 0], [0, 10, 0]]
+    uvs = [[0, 0], [1, 0], [1, 1], [0, 1]]
+    fv = [[0, 1, 2], [0, 2, 3]]
+    fvt = [[0, 1, 2], [0, 2, 3]]
+    m = _mesh("free_quad", P, uvs, fv, fvt)
+
+    r = fix_object(m, {}, _FAST)
+
+    assert r.thin_sheets.tolist() == [True, True]
+    assert not r.flipped.any()
+    assert r.mesh.n_faces == m.n_faces  # untouched: not removed, not merged differently
+    assert r.passed is True

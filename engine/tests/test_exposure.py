@@ -1,9 +1,9 @@
 import numpy as np
 
 from engine.pipeline import analyse_topology
-from engine.tests.fixtures.build import box_with_partition, open_box_with_cells
+from engine.tests.fixtures.build import box_with_partition, cube, open_box_with_cells
 from engine.vis.exposure import (BARY, EPS_IN, EXP_DEGENERATE, EXP_HIDDEN, EXP_OUTSIDE, EXP_SLIT,
-                                  classify_exposure, compute_exposure, fib_dirs)
+                                  classify_exposure, compute_exposure, compute_side_exposure, fib_dirs)
 
 
 def _centered(mesh):
@@ -80,3 +80,61 @@ def test_classify_exposure_slit_band():
     ok = np.ones(4, dtype=bool)
     cls = classify_exposure(exposure, ok, slit_threshold=0.05)
     assert cls.tolist() == [EXP_HIDDEN, EXP_SLIT, EXP_OUTSIDE, EXP_OUTSIDE]
+
+
+# ---------------------------------------------------------------------------------------------
+# Task 8: compute_side_exposure -- front/back split; compute_exposure must keep returning EXACTLY
+# what it returned before this task (pinned below against both fixtures' own hardcoded numbers,
+# which are unchanged from before this task, and against compute_side_exposure's own sum).
+# ---------------------------------------------------------------------------------------------
+
+def test_compute_side_exposure_sums_to_exactly_compute_exposure():
+    for n_dirs in (16, 32, 64):
+        topo, Pc = _centered(box_with_partition())
+        front, back = compute_side_exposure(Pc, topo.face_w, topo.ok, n_dirs=n_dirs)
+        exposure = compute_exposure(Pc, topo.face_w, topo.ok, n_dirs=n_dirs)
+        assert front.shape == exposure.shape and back.shape == exposure.shape
+        assert np.array_equal(front + back, exposure)
+
+
+def test_compute_exposure_pinned_unchanged_on_box_with_partition():
+    """compute_exposure's own numbers on this fixture, exactly as pinned by
+    test_box_with_partition_inner_faces_hidden_outer_faces_outside above, must still hold after
+    compute_exposure became a thin wrapper over compute_side_exposure."""
+    topo, Pc = _centered(box_with_partition())
+    exposure = compute_exposure(Pc, topo.face_w, topo.ok, n_dirs=32)
+    assert exposure[12] == 0.0 and exposure[13] == 0.0
+    assert (exposure[:12] > 0.05).all()
+
+
+def test_compute_side_exposure_zero_for_degenerate_faces():
+    topo, Pc = _centered(box_with_partition())
+    ok = topo.ok.copy()
+    ok[0] = False  # pretend face 0 is degenerate
+    front, back = compute_side_exposure(Pc, topo.face_w, ok, n_dirs=16)
+    assert front[0] == 0.0 and back[0] == 0.0
+
+
+def test_compute_side_exposure_outer_cube_faces_are_front_only_hidden_faces_are_neither():
+    """A correctly-wound outer cube face's exterior is its FRONT side (open space escapes there);
+    its interior (BACK) is always blocked by the opposite wall of the solid box. The fully-sealed
+    interior partition escapes on neither side."""
+    m = box_with_partition()
+    topo, Pc = _centered(m)
+    front, back = compute_side_exposure(Pc, topo.face_w, topo.ok, n_dirs=32)
+    assert (front[:12] > 0.0).all()
+    assert (back[:12] == 0.0).all()
+    assert front[12] == 0.0 and back[12] == 0.0
+    assert front[13] == 0.0 and back[13] == 0.0
+
+
+def test_compute_side_exposure_reversed_face_is_back_only():
+    """Reversing a face's winding swaps which side is 'front': the geometric normal now points
+    into the solid, so the side that used to be BACK (blocked) becomes FRONT (still blocked, since
+    it now points inward) and the side that used to be FRONT (open space) becomes BACK."""
+    m = cube(10.0)
+    m.face_v[0] = m.face_v[0][::-1]  # reverse one outer face's winding
+    topo, Pc = _centered(m)
+    front, back = compute_side_exposure(Pc, topo.face_w, topo.ok, n_dirs=32)
+    assert front[0] == 0.0
+    assert back[0] > 0.0
