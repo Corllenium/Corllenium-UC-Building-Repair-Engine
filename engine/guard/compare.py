@@ -84,6 +84,25 @@ def _displacement(before_depth: np.ndarray, before_tri: np.ndarray, after_depth:
     return out
 
 
+def _frame_mismatch(b: HitBuffers, a: HitBuffers) -> str | None:
+    """The name of the first camera-frame field a BEFORE/AFTER pair of renders disagrees on, or
+    `None` when they share the whole frame.
+
+    The whole frame, not just the view direction: `classify_pixels` takes the ray origins of BOTH
+    hit points from the BEFORE buffer, so a pair framed on different bounding boxes (or rendered
+    at different image sizes) does not even compare the same pixels, and every displacement it
+    reports is measured from the wrong point. `direction`, `right`, `up`, `xs`, `ys` and
+    `standoff` together ARE the origins grid (`origins[i, j] == xs[j]*right + ys[i]*up +
+    standoff`), so comparing them compares the grid without materialising 13 MB of it."""
+    if b.tri.shape != a.tri.shape:
+        return "image size"
+    for name in ("direction", "right", "up", "xs", "ys", "standoff"):
+        mine, theirs = np.asarray(getattr(b, name)), np.asarray(getattr(a, name))
+        if mine.shape != theirs.shape or not np.allclose(mine, theirs):
+            return name
+    return None
+
+
 def _neighbour_miss(hit_before: np.ndarray) -> np.ndarray:
     """True where a pixel's 3x3 neighbourhood in BEFORE contains a miss, i.e. the pixel sits on
     the model's silhouette. Separable dilation of the miss mask over the last two axes (a 1-D
@@ -247,7 +266,9 @@ def compare_views(before: Sequence[RenderedView], after: Sequence[RenderedView],
                    caster_factory=EmbreeCaster) -> GuardReport:
     """Compare a BEFORE/AFTER pair of `ortho_first_hit` renders, one `(view, HitBuffers)` pair per
     view, paired by position (`before[i]` and `after[i]` must be the same view, and both sequences
-    the same length).
+    the same length). Each pair must share the whole CAMERA FRAME -- direction, image size and the
+    origins grid -- or `ValueError` names the view and the field that differs; comparing renders
+    framed on different bounding boxes would silently measure displacement from the wrong points.
 
     `plane_before` / `plane_after` are `face_planes` of the two geometries, indexed like
     `face_material_before` / `face_material_after`; pass them to get the surface-displacement
@@ -284,9 +305,13 @@ def compare_views(before: Sequence[RenderedView], after: Sequence[RenderedView],
     totals = _zero_totals()
     fail_total = 0
     for (view, b), (_, a) in zip(before, after):
-        if not np.allclose(b.direction, a.direction):
-            raise ValueError(f"before/after renders of view {tuple(view)} used different view "
-                             f"directions: {b.direction.tolist()} vs {a.direction.tolist()}")
+        mismatch = _frame_mismatch(b, a)
+        if mismatch is not None:
+            raise ValueError(
+                f"before/after renders of view {tuple(view)} used different camera frames: "
+                f"{mismatch} differs. Render both sides with the same `view`, `size` and "
+                f"`frame_points` -- vertices are never moved, so one static `frame_points` (the "
+                f"recentred original positions) is correct for both.")
         coverage = (_coverage_probe(b, caster_before, caster_after)
                     if caster_before is not None and caster_after is not None else None)
         codes = classify_pixels(b.depth, b.tri, a.depth, a.tri,

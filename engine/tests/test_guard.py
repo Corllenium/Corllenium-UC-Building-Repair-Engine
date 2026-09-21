@@ -1,6 +1,7 @@
 import itertools
 
 import numpy as np
+import pytest
 
 from engine.guard.compare import (PX_EDGE_FLICKER, PX_HOLE, PX_MATERIAL_CHANGED, PX_MOVED_OTHER,
                                    PX_MOVED_SAME_FLAT, PX_OK, classify_pixels, compare_views, face_planes,
@@ -419,6 +420,32 @@ def test_a_thousandth_of_an_inch_of_boundary_shift_is_edge_flicker():
 
     assert report.totals["edge_flicker"] == 1 and report.totals["holes"] == 0
     assert report.passed is False  # still fails at the default cap of 0.0
+
+
+def test_compare_views_refuses_renders_from_a_different_camera_frame():
+    """Every displacement is measured from the BEFORE buffer's ray origins, for BOTH hit points.
+    A caller who framed AFTER on a different bounding box (or at a different image size) gets
+    silently wrong numbers, so the whole camera frame has to match, not just the direction."""
+    m = cube(10.0)
+    Pc = m.positions - 5.0
+    faces, ids = m.face_v, np.arange(len(m.face_v))
+    view = VIEWS_26[0]
+    mat = m.face_material
+    planes = face_planes(Pc, faces)
+    before = ortho_first_hit(Pc, faces, ids, view, Pc, _SIZE)
+
+    def compare(after):
+        return compare_views([(view, before)], [(view, after)], mat, mat, frozenset(), 0.15,
+                              plane_before=planes, plane_after=planes)
+
+    for after in (ortho_first_hit(Pc, faces, ids, view, Pc * 2.0, _SIZE),   # other bounding box
+                   ortho_first_hit(Pc, faces, ids, view, Pc, (60, 40))):    # other image size
+        with pytest.raises(ValueError) as excinfo:
+            compare(after)
+        assert "camera frame" in str(excinfo.value)
+        assert str(tuple(view)) in str(excinfo.value)  # which view, by name
+
+    assert compare(ortho_first_hit(Pc, faces, ids, view, Pc, _SIZE)).passed  # same frame: fine
 
 
 def _gap_scene():
