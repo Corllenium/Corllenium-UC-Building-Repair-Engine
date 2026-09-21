@@ -166,6 +166,31 @@ def test_snapshot_wraps_permission_error_during_copy_as_source_unstable(tmp_path
         snapshot_object(src, tmp_path / "snap", expected_tris=1, interval_s=0, sleep=lambda s: None)
 
 
+def test_texture_basename_collision_between_different_source_paths_is_refused(tmp_path):
+    src_dir = tmp_path / "src"
+    (src_dir / "split").mkdir(parents=True)
+    (src_dir / "a").mkdir(parents=True)
+    (src_dir / "b").mkdir(parents=True)
+    obj = src_dir / "split" / "walk.obj"
+    obj.write_text(
+        "mtllib ../lib.mtl\no walk\n"
+        "v 0 0 0\nv 1 0 0\nv 0 1 0\nv 1 1 0\n"
+        "vt 0 0\nvt 1 0\nvt 0 1\n"
+        "usemtl mat_a\nf 1/1 2/2 3/3\n"
+        "usemtl mat_b\nf 1/1 2/2 4/3\n"
+    )
+    (src_dir / "lib.mtl").write_text("newmtl mat_a\nmap_Kd a/stone.png\n\nnewmtl mat_b\nmap_Kd b/stone.png\n")
+    Image.fromarray(np.full((4, 4, 3), 200, np.uint8)).save(src_dir / "a" / "stone.png")
+    Image.fromarray(np.full((4, 4, 3), 50, np.uint8)).save(src_dir / "b" / "stone.png")
+    dst_root = tmp_path / "snap"
+
+    with pytest.raises(ValueError) as exc_info:
+        snapshot_object(obj, dst_root, expected_tris=2, interval_s=0, sleep=lambda s: None)
+    msg = str(exc_info.value)
+    assert "a/stone.png" in msg and "b/stone.png" in msg
+    assert list(dst_root.glob(".incoming-*")) == []  # refused before any copying
+
+
 def test_read_manifest_stable_wraps_os_error_as_source_unstable(tmp_path, monkeypatch):
     p = tmp_path / "_MANIFEST.txt"
     p.write_text(MANIFEST)

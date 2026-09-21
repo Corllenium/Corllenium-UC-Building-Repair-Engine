@@ -160,9 +160,18 @@ def _copy_assets(src_obj, mesh, tmp, interval_s, sleep):
     _copy_verified(mtl_src, source_mtl_copy, interval_s, sleep)
     # parse_mtl runs on our own copy from here on — never on the live source path.
     wanted = write_mtl_subset(parse_mtl(source_mtl_copy), mesh.materials, tmp / "materials.mtl")
+    rels = sorted(set(wanted.values()))
+    by_basename: dict[str, str] = {}
+    for rel in rels:
+        base = PurePosixPath(rel.replace("\\", "/")).name
+        if base in by_basename and by_basename[base] != rel:
+            raise ValueError(
+                f"texture basename collision under tex/: {by_basename[base]!r} and {rel!r} "
+                f"both flatten to {base!r}")
+        by_basename[base] = rel
     (tmp / "tex").mkdir()
     missing = []
-    for rel in sorted(set(wanted.values())):
+    for rel in rels:
         tex_src = mtl_src.parent / rel
         tex_dst = tmp / "tex" / PurePosixPath(rel.replace("\\", "/")).name
         if tex_src.exists():
