@@ -12,7 +12,10 @@ SketchUp campus model (CHECKPOINT-17) is exported to OBJ, split per SketchUp gro
   shading seams.
 - **Interior geometry**: partition faces inside a slab, never visible from outside.
 - **Texture hits texture**: coplanar faces, same plane, fighting for the same pixels (flicker).
-- **Reversed faces**: Unity is single-sided, they vanish.
+- **Reversed faces**: 4-5 % of sidewalk area faces the wrong way (spike: 448 and 583 tris). The
+  Unity project currently hides this by setting every campus material to `_Cull = 0`
+  (`CampusDoubleSided.cs`), so today they are a lighting defect, and become holes the moment culling
+  is switched back on. *Corrected 2026-09-21: an earlier draft said "Unity is single-sided".*
 
 Goal: an engine that **removes** (not hides) what does not contribute to the outside, keeps the
 facade exactly, plus a dashboard where every deletion is reviewed, BEFORE/AFTER is visible side by
@@ -30,6 +33,10 @@ side, and every method and decision is saved so the next export fixes itself.
 | Preferences | All four: remembered accept/reject rules, overlap winner, detector profiles, hand tagging |
 | Build where | New project in `D:\PROJECTS\UC MODEL FIXER`. Reuse knowledge from `D:\PROJECTS\UC`, `06-DASHBOARD` untouched |
 | Stack | Vue 3 + three.js, FastAPI, PostgreSQL 16 (Docker), Python engine |
+| Flat textures | When a texture's colour std is below a tunable threshold, UV seams do not delimit regions and the guard compares sampled texel colour instead of UV. Patterned textures still respect seams |
+| Render semantics | Engine supports single-sided and double-sided occlusion as a profile switch. Default deletes only faces hidden under single-sided occlusion (fewest blockers), which is safe under both. Reversed faces are flipped, harmless under double-sided |
+
+Spike evidence for the last two rows: `docs\spike\2026-09-21-phase0-results.md`.
 
 ## Measured facts (2026-09-21)
 
@@ -57,8 +64,13 @@ export and get re-measured in Phase 0.
 | oblique (not axis-aligned) faces | 2,188 | 1,836 |
 | adjacent coplanar same-material pairs: UV continuous / shifted whole tiles / discontinuous | 68.0 % / 16.5 % / 13.9 % | 50.1 % / 36.2 % / 12.7 % |
 
-All faces triangulated, no `s` groups, units **inches** (scale contract 0.0254), coordinates printed
-to 0.1 in at magnitude ~22,000 in, shared `../CKPT17-CLEAN.mtl`, tile-atlas textures in `SRC-TEX\`.
+All faces triangulated, no `s` groups, units **inches** (scale contract 0.0254), shared
+`../CKPT17-CLEAN.mtl`, textures in `SRC-TEX\` are 16x16 noise (colour std 3.04 / 255).
+Exporter prints **6 significant digits**, so the coordinate step is **per axis**: 0.1 in on Y
+(values near 22,000), 0.01 in on X and Z. Plane tolerance = `1.5 * sum(|n_i| * q_i)`.
+
+Spike classification (culled occlusion): file A 448 reversed / 224 interior tris, file B 583 / 287.
+Most visible faces have their back exposed too: the sidewalk is largely zero-thickness sheets.
 
 What the numbers say: this is **one open non-manifold blob, not closed shells**. ~1,900 edges with
 3+ faces are the interior partitions from the user's screenshots. Duplicates are all
@@ -116,8 +128,21 @@ Grow regions by **vertex distance to fitted plane** (normal-angle clustering fai
 faces), same material, and **same UV Jacobian with offsets equal modulo 1** (tolerance from the 0.01
 tile UV step). This merges the 16-36 % whole-tile-shifted pairs Blender's UV delimit would block,
 and keeps the ~13 % real texture seams as borders. Then: project -> shapely union ->
-`constrained_delaunay_triangles` keeping every border vertex an outside face uses (no new
-T-junctions) -> UV = `J*p + o` re-based near 0. Same kernel later clips partial overlaps.
+`constrained_delaunay_triangles` -> UV = `J*p + o` re-based near 0. Same kernel later clips partial
+overlaps.
+
+Spike-validated rules for this kernel:
+- **UV delimits only patterned textures.** For flat textures (decision above) regions are plane +
+  material, and UVs are re-projected from the largest member's fit.
+- **UV fit needs iterative least-squares refit.** One triangle's Jacobian is too imprecise to
+  extrapolate across a 40 m slab. Seed on the largest triangle, accept, refit on all accepted, repeat.
+- **Border vertices**: a ring vertex survives only when some region needs it as a corner, decided
+  globally, so both sides of a shared border drop the same vertices. No new T-junctions. A polygon
+  with n ring vertices and h holes always costs n + 2h - 2 triangles, so this is where reduction lives.
+- **Overlap handled per triangle, never per plane.** Overlapping faces are excluded from a region
+  before union, because crossing edges make the union invent vertices (94 in from any input seen).
+- Vertices are never moved. Regions are re-triangulated over existing vertices only.
+- Measured full pipeline: file A 4,692 -> 3,111 (33.7 %), file B 7,227 -> 3,003 (58.45 %).
 
 ### Detectors, by phase
 | Key | Finds | Phase |
@@ -208,8 +233,13 @@ Blender, `.skp` write-back, inside-view clipping, camera bookmarks, `pathway_bas
 
 ## Open unknowns (labelled, not assumed)
 
-- `embreex` import under numpy 2.5.1: unverified, Phase 0 gate.
-- How many regions pass the UV Jacobian test, final tri reduction: unmeasured, Phase 0 gate.
+- Resolved by spike: `embreex` 4.4.0 works under numpy 2.5.3 at 4.9 M rays/s. Culling trick matches
+  brute force on 32,000 rays with 0 disagreements.
+- Resolved by spike: tri reduction 33.7 % and 58.45 % with the flat-texture rule. With UV always
+  respected it would be ~8 % and ~39 %.
+- Guard depth tolerance (0.02 in) is tighter than the Y-axis coordinate step (0.1 in). Dropping a
+  border vertex that is collinear within 1.5 quanta can move a boundary by up to 0.15 in. Guard
+  tolerance must follow the per-axis quantum, set in Phase 2.
 - Unity vertex compression on UVs near 1,000 (half-float step ~1): unchecked. UV re-basing near 0
   in the region kernel should remove the risk, verify in Phase 3 Unity diff.
 - All model numbers above are from the previous export.
