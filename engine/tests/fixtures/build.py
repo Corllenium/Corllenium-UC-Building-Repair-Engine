@@ -57,3 +57,17 @@ def t_junction_strip():
     fv = [[0, 1, 2], [0, 2, 3], [3, 4, 6], [3, 6, 5], [4, 2, 7], [4, 7, 6], [3, 4, 2]]
     uvs = (np.asarray(P, float)[:, :2] * 0.05).tolist()
     return _mesh("t_strip", P, uvs, fv, fv)
+
+
+def t_junction_shared_strip(drop_zero_area=False):
+    """t_junction_strip() plus one vertical wall triangle (0,10,0)-(20,10,0)-(10,10,-10) that also
+    uses the big quad's long top edge, so that edge's count becomes 2 (shared) instead of 1 (open).
+    drop_zero_area removes the (3,4,2) stitching triangle, to prove the T-vertex at (10,10,0) is
+    still found by the widened geometric search alone, without the hint."""
+    P = [[0, 0, 0], [20, 0, 0], [20, 10, 0], [0, 10, 0], [10, 10, 0], [0, 20, 0], [10, 20, 0], [20, 20, 0],
+         [10, 10, -10]]
+    fv = [[0, 1, 2], [0, 2, 3], [3, 4, 6], [3, 6, 5], [4, 2, 7], [4, 7, 6], [3, 4, 2], [3, 2, 8]]
+    if drop_zero_area:
+        fv = [f for f in fv if f != [3, 4, 2]]
+    uvs = (np.asarray(P, float)[:, :2] * 0.05).tolist()
+    return _mesh("t_shared_strip", P, uvs, fv, fv)

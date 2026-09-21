@@ -47,7 +47,7 @@ def analyse_topology(mesh: MeshData, flat_materials=frozenset()) -> Topology:
     ok = ~degenerate_mask(positions_w, face_w)
     quanta = axis_quanta(positions_w, mesh.sig_digits)
     table = build_edge_table(face_w, ok)
-    t_vertices = find_t_vertices(positions_w, table, tol=1.5 * float(quanta.max()))
+    t_vertices = find_t_vertices(positions_w, table, tol=1.5 * float(quanta.max()), face_w=face_w, degenerate=~ok)
     face_region = build_regions(mesh, positions_w, face_w, ok, table, t_vertices, quanta, set(flat_materials))
     return Topology(positions_w, face_w, ok, quanta, table, t_vertices, face_region,
                     classify_edges(table, face_region, t_vertices))

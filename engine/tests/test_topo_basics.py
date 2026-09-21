@@ -1,6 +1,6 @@
 import numpy as np
 
-from engine.tests.fixtures.build import cube, grid_slab, t_junction_strip
+from engine.tests.fixtures.build import cube, grid_slab, t_junction_shared_strip, t_junction_strip
 from engine.topo.adjacency import (build_edge_table, degenerate_mask, edge_face_lists, find_t_vertices,
                                     t_junction_sub_edges)
 from engine.topo.weld import axis_quanta, weld_exact
@@ -84,3 +84,49 @@ def test_t_junction_sub_edges_yields_none_for_missing_sub_edge():
     fake_tv = {e: np.array([far_vertex])}
     subs = t_junction_sub_edges(t, fake_tv)
     assert subs[e][0] is not None and subs[e][1] is None
+
+
+def _find_long_top_edge(P, t):
+    """The long edge (0,10,0)-(20,10,0) shared by the big quad and (in the shared fixture) the wall."""
+    for e, (a, b) in enumerate(t.edges):
+        pair = P[[a, b]]
+        if sorted(pair[:, 0].tolist()) == [0.0, 20.0] and (pair[:, 1] == 10.0).all() and (pair[:, 2] == 0.0).all():
+            return e
+    raise AssertionError("long top edge not found in table")
+
+
+def test_shared_edge_t_vertex_found_via_hint_when_zero_area_face_present():
+    m = t_junction_shared_strip()
+    P, remap = weld_exact(m.positions, 2)
+    fw = remap[m.face_v]
+    deg = degenerate_mask(P, fw)
+    t = build_edge_table(fw, ~deg)
+    e = _find_long_top_edge(P, t)
+    assert t.counts[e] == 2  # shared by the quad top and the new wall triangle, not open
+    tv = find_t_vertices(P, t, tol=0.015, face_w=fw, degenerate=deg)
+    assert e in tv and len(tv[e]) == 1 and P[tv[e][0]].tolist() == [10.0, 10.0, 0.0]
+
+
+def test_shared_edge_t_vertex_found_via_geometry_alone_when_zero_area_face_absent():
+    m = t_junction_shared_strip(drop_zero_area=True)
+    P, remap = weld_exact(m.positions, 2)
+    fw = remap[m.face_v]
+    deg = degenerate_mask(P, fw)
+    assert not deg.any()  # no zero-area face left, so no hint is even possible
+    t = build_edge_table(fw, ~deg)
+    e = _find_long_top_edge(P, t)
+    assert t.counts[e] == 2
+    tv = find_t_vertices(P, t, tol=0.015)  # face_w/degenerate omitted: geometry only, no hints
+    assert e in tv and len(tv[e]) == 1 and P[tv[e][0]].tolist() == [10.0, 10.0, 0.0]
+
+
+def test_degenerate_face_with_repeated_vertex_id_yields_no_hint_and_no_crash():
+    m = t_junction_strip()
+    P, remap = weld_exact(m.positions, 2)
+    fw = remap[m.face_v].copy()
+    fw[6] = [fw[6][0], fw[6][0], fw[6][0]]  # corrupt the zero-area stitching face
+    deg = degenerate_mask(P, fw)
+    assert deg[6]  # still degenerate: collapsed to a single point
+    t = build_edge_table(fw, ~deg)
+    tv = find_t_vertices(P, t, tol=0.015, face_w=fw, degenerate=deg)  # must not raise
+    assert len(tv) == 1  # the real T-vertex is still found geometrically; no spurious hint added
