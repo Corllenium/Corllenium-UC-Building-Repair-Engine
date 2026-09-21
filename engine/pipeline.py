@@ -9,6 +9,20 @@ from engine.topo.edges import (EDGE_NONMANIFOLD, EDGE_OPEN, EDGE_REAL, EDGE_REMO
 from engine.topo.planes import build_regions
 from engine.topo.weld import axis_quanta, weld_exact
 
+FLAT_TEXTURE_STD = 8.0
+
+
+def flat_material_indices(mesh: MeshData, flatness: dict[str, float],
+                          threshold: float = FLAT_TEXTURE_STD) -> frozenset[int]:
+    """Indices into mesh.materials whose texture flatness is below threshold. A material
+    absent from `flatness` (no texture, plain colour) counts as flat regardless of threshold."""
+    out = []
+    for i, name in enumerate(mesh.materials):
+        std = flatness.get(name)
+        if std is None or std < threshold:
+            out.append(i)
+    return frozenset(out)
+
 
 @dataclass
 class Topology:
@@ -23,6 +37,11 @@ class Topology:
 
 
 def analyse_topology(mesh: MeshData, flat_materials=frozenset()) -> Topology:
+    for m in flat_materials:
+        if not isinstance(m, (int, np.integer)) or isinstance(m, bool):
+            raise TypeError(
+                f"flat_materials must contain int indices into mesh.materials, got {m!r} "
+                f"({type(m).__name__}); use flat_material_indices() to convert names first")
     positions_w, remap = weld_exact(mesh.positions, mesh.coord_decimals)
     face_w = remap[mesh.face_v]
     ok = ~degenerate_mask(positions_w, face_w)
