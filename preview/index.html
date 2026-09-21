@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>UC Model Fixer · throwaway preview</title>
+<style>
+  :root { --bg:#f3f3f5; --panel:#fff; --ink:#1c1d21; --muted:#676b75; --line:#dcdde2; --blue:#1f5bff; --red:#d8282f; --warn:#fff4d6; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:14px/1.45 system-ui,Segoe UI,sans-serif; color:var(--ink); background:var(--bg); }
+  header { padding:10px 16px; background:var(--warn); border-bottom:1px solid #ecd9a0; font-size:13px; }
+  header b { letter-spacing:.04em; }
+  .bar { display:flex; flex-wrap:wrap; gap:14px; align-items:center; padding:10px 16px; background:var(--panel); border-bottom:1px solid var(--line); }
+  .bar label { display:flex; gap:6px; align-items:center; cursor:pointer; white-space:nowrap; }
+  .sw { width:14px; height:3px; display:inline-block; border-radius:2px; }
+  select { font:inherit; padding:4px 6px; }
+  main { display:grid; grid-template-columns:1fr 1fr; gap:1px; background:var(--line); height:calc(100vh - 170px); min-height:340px; }
+  section { background:var(--panel); display:flex; flex-direction:column; min-width:0; }
+  h2 { margin:0; padding:8px 14px; font-size:12px; letter-spacing:.12em; color:var(--muted); border-bottom:1px solid var(--line); }
+  .view { flex:1; min-height:0; position:relative; overflow:hidden; }
+  .view canvas { display:block; position:absolute; inset:0; }
+  html, body { overflow-x:hidden; }
+  .stats { margin:0; padding:8px 14px; border-top:1px solid var(--line); font-variant-numeric:tabular-nums; min-height:58px; }
+  .stats b { font-size:18px; }
+  .note { color:var(--muted); font-size:12px; }
+  @media (max-width:760px) { main { grid-template-columns:1fr; height:auto; } .view { height:46vh; } }
+</style>
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+               "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/" } }
+</script>
+</head>
+<body>
+<header><b>THROWAWAY PREVIEW</b> · built from Phase 0 spike data, not the real dashboard. No database, no engine package behind it.
+  <span id="honest"></span></header>
+
+<div class="bar">
+  <select id="file"></select>
+  <label><input type="checkbox" id="grid" checked><span class="sw" style="background:var(--blue)"></span>gridlines (hidden wall meets surface)</label>
+  <label><input type="checkbox" id="outline" checked><span class="sw" style="background:#222"></span>region outlines</label>
+  <label><input type="checkbox" id="tri"><span class="sw" style="background:#9aa0a8"></span>all triangle edges</label>
+  <label><input type="checkbox" id="xray"><span class="sw" style="background:var(--red)"></span>x-ray: hidden inside faces</label>
+  <label title="Diagnostic only. SketchUp and your Unity project draw both sides."><input type="checkbox" id="onesided">one-sided (diagnostic)</label>
+  <label><input type="checkbox" id="sync" checked>sync cameras</label>
+</div>
+
+<main>
+  <section><h2>BEFORE · as exported</h2><div class="view" id="va"></div><p class="stats" id="sa"></p></section>
+  <section><h2>AFTER · inside removed, flat regions rebuilt</h2><div class="view" id="vb"></div><p class="stats" id="sb"></p></section>
+</main>
+
+<script type="module">
+import * as THREE from 'three'
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
+
+const $ = id => document.getElementById(id)
+const COLORS = { grid: 0x1f5bff, outline: 0x222222, tri: 0x9aa0a8 }
+
+class View {
+  constructor(el) {
+    this.el = el
+    this.scene = new THREE.Scene()
+    this.scene.background = new THREE.Color(0xf6f6f8)
+    this.camera = new THREE.PerspectiveCamera(42, 1, 1, 1e6)
+    this.camera.up.set(0, 0, 1)                       // SketchUp export is Z-up
+    this.renderer = new THREE.WebGLRenderer({ antialias: true })
+    el.appendChild(this.renderer.domElement)
+    this.controls = new OrbitControls(this.camera, this.renderer.domElement)
+    const hemi = new THREE.HemisphereLight(0xffffff, 0x9a9aa2, 1.25)
+    hemi.position.set(0, 0, 1)
+    const sun = new THREE.DirectionalLight(0xffffff, 1.3)
+    sun.position.set(0.4, -0.5, 0.9)
+    this.scene.add(hemi, sun)
+    this.group = new THREE.Group()
+    this.scene.add(this.group)
+    this.parts = {}
+    new ResizeObserver(() => this.resize()).observe(el)
+    this.resize()
+    const loop = () => { this.renderer.render(this.scene, this.camera); requestAnimationFrame(loop) }
+    loop()
+  }
+  resize() {
+    const w = Math.max(1, this.el.clientWidth), h = Math.max(1, this.el.clientHeight)
+    this.renderer.setPixelRatio(Math.min(devicePixelRatio, 2))
+    this.renderer.setSize(w, h)
+    this.camera.aspect = w / h
+    this.camera.updateProjectionMatrix()
+  }
+  clear() {
+    for (const o of [...this.group.children]) { o.geometry.dispose(); o.material.dispose(); this.group.remove(o) }
+    this.parts = {}
+  }
+  addMesh(key, pos, colours, opts = {}) {
+    const g = new THREE.BufferGeometry()
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3))
+    g.setAttribute('color', new THREE.Float32BufferAttribute(colours, 3))
+    const m = new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide, flatShading: true,
+      polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1, ...opts })
+    this.parts[key] = new THREE.Mesh(g, m)
+    this.group.add(this.parts[key])
+  }
+  addLines(key, pos) {
+    const g = new THREE.BufferGeometry()
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3))
+    this.parts[key] = new THREE.LineSegments(g, new THREE.LineBasicMaterial({ color: COLORS[key] }))
+    this.group.add(this.parts[key])
+  }
+  fit(pos) {
+    const box = new THREE.Box3().setFromArray(pos)
+    const c = box.getCenter(new THREE.Vector3()), size = box.getSize(new THREE.Vector3()).length()
+    this.controls.target.copy(c)
+    this.camera.position.copy(c).add(new THREE.Vector3(-0.45, -0.55, 0.70).normalize().multiplyScalar(size * 1.45))
+    this.camera.near = size / 2000; this.camera.far = size * 20
+    this.camera.updateProjectionMatrix(); this.controls.update()
+  }
+}
+
+const A = new View($('va')), B = new View($('vb'))
+
+let busy = false
+const link = (src, dst) => src.controls.addEventListener('change', () => {
+  if (busy || !$('sync').checked) return
+  busy = true
+  dst.camera.position.copy(src.camera.position); dst.camera.quaternion.copy(src.camera.quaternion)
+  dst.controls.target.copy(src.controls.target); dst.controls.update()
+  busy = false
+})
+link(A, B); link(B, A)
+
+function colourArray(mats, faceMat, pick) {
+  const out = new Float32Array(faceMat.length * 9)
+  faceMat.forEach((mi, f) => {
+    const c = pick ? pick(f) : (mats[mi] ? mats[mi].color : [0.8, 0.8, 0.8])
+    for (let k = 0; k < 3; k++) out.set(c, f * 9 + k * 3)
+  })
+  return out
+}
+function split(pos, flags, want) {
+  const out = []
+  flags.forEach((h, f) => { if (!!h === want) for (let i = 0; i < 9; i++) out.push(pos[f * 9 + i]) })
+  return out
+}
+
+function applyToggles() {
+  const on = id => $(id).checked
+  for (const v of [A, B]) {
+    if (v.parts.grid) v.parts.grid.visible = on('grid')
+    if (v.parts.outline) v.parts.outline.visible = on('outline')
+    if (v.parts.tri) v.parts.tri.visible = on('tri')
+    const side = on('onesided') ? THREE.FrontSide : THREE.DoubleSide
+    for (const k of ['facade', 'hidden']) if (v.parts[k]) { v.parts[k].material.side = side; v.parts[k].material.needsUpdate = true }
+  }
+  const x = on('xray')
+  for (const v of [A, B]) {
+    const m = v.parts.facade.material
+    m.transparent = x; m.opacity = x ? 0.16 : 1; m.depthWrite = !x; m.needsUpdate = true
+  }
+  if (A.parts.hidden) A.parts.hidden.visible = x
+}
+
+async function load(file) {
+  const d = await (await fetch('data/' + file)).json()
+  const s = d.stats
+  A.clear(); B.clear()
+
+  const vis = split(d.before.pos, d.before.hidden, false), hid = split(d.before.pos, d.before.hidden, true)
+  const visMat = d.before.mat.filter((_, f) => !d.before.hidden[f])
+  A.addMesh('facade', vis, colourArray(d.materials, visMat))
+  A.addMesh('hidden', hid, colourArray(d.materials, new Array(hid.length / 9).fill(0), () => [0.85, 0.16, 0.18]))
+  A.addLines('outline', d.edges.outline_before); A.addLines('tri', d.edges.tri_before); A.addLines('grid', d.edges.grid)
+
+  B.addMesh('facade', d.after.pos, colourArray(d.materials, d.after.mat))
+  B.addLines('outline', d.edges.outline_after); B.addLines('tri', d.edges.tri_after)
+
+  A.fit(d.before.pos); B.camera.position.copy(A.camera.position); B.controls.target.copy(A.controls.target)
+  B.camera.near = A.camera.near; B.camera.far = A.camera.far; B.camera.updateProjectionMatrix(); B.controls.update()
+  applyToggles()
+
+  const pct = (a, b) => (100 * (1 - a / b)).toFixed(1)
+  $('sa').innerHTML = `<b>${s.tris_total.toLocaleString()}</b> triangles &nbsp;·&nbsp; ${s.zero_area} zero-area &nbsp;·&nbsp; ` +
+    `<span style="color:var(--red)">${s.hidden.toLocaleString()} hidden inside</span> &nbsp;·&nbsp; ` +
+    `<span style="color:var(--blue)">${s.gridline_edges} gridline edges</span>`
+  $('sb').innerHTML = `<b>${s.after_merged.toLocaleString()}</b> triangles &nbsp;·&nbsp; ${pct(s.after_merged, s.tris_total)} % fewer &nbsp;·&nbsp; ` +
+    `${s.regions} flat regions<br><span class="note">after inside removal only: ${s.after_hidden_removed.toLocaleString()} triangles, ` +
+    `guard 0 damaged px over ${s.guard_views} views</span>`
+  $('honest').innerHTML = ` Inside removal is guard-verified (0 changed pixels, ${s.guard_views} outside views). ` +
+    `Region rebuild here is a rough preview: <b>${s.guard_damaged_px.toLocaleString()}</b> of ${s.guard_model_px.toLocaleString()} ` +
+    `pixels differ (${(100 * s.guard_damaged_px / s.guard_model_px).toFixed(2)} %), because it flattens vertices. The real kernel keeps vertices in place.`
+}
+
+const files = await (await fetch('data/index.json')).json()
+$('file').innerHTML = files.map(f => `<option value="${f.file}">${f.name}</option>`).join('')
+$('file').onchange = e => load(e.target.value)
+for (const id of ['grid', 'outline', 'tri', 'xray', 'onesided']) $(id).onchange = applyToggles
+await load(files[0].file)
+</script>
+</body>
+</html>

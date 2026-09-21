@@ -17,3 +17,6 @@ dist/
 
 # local env
 .env
+
+# generated preview data (re-create with spike/12_export_preview.py)
+preview/data/

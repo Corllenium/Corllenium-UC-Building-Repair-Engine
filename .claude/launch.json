@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "preview",
+      "runtimeExecutable": ".venv/Scripts/python.exe",
+      "runtimeArgs": ["-m", "http.server", "5180", "--bind", "127.0.0.1", "--directory", "preview"],
+      "port": 5180
+    }
+  ]
+}
