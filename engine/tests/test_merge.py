@@ -1,5 +1,6 @@
 import numpy as np
 
+from engine.fixes import merge as merge_module
 from engine.fixes.merge import merge_regions
 from engine.io.obj_reader import read_obj
 from engine.io.obj_writer import write_obj
@@ -85,6 +86,57 @@ def test_wall_foot_on_the_slab_border_survives_and_the_interior_foot_does_not():
     assert foot in used(r.mesh)  # still used -- by the wall face, not by the slab
     assert "interior_vertices_pinned" not in r.report
     assert abs(area(r.mesh) - area(m)) <= 1e-9 * area(m)
+
+
+def vertices_inside_an_edge(mesh, faces, candidates, tol=1e-9):
+    """Every vertex of `candidates` that lies STRICTLY inside an edge of `faces` without being one
+    of that edge's endpoints -- i.e. every T-junction `faces` would open against `candidates`."""
+    out = set()
+    p = mesh.positions
+    for triangle in faces:
+        for a, b in ((0, 1), (1, 2), (2, 0)):
+            start, end = p[triangle[a]], p[triangle[b]]
+            seg = end - start
+            length2 = float(seg @ seg)
+            for v in candidates:
+                if v in (int(triangle[a]), int(triangle[b])):
+                    continue
+                along = float((p[v] - start) @ seg) / length2
+                if 0.0 < along < 1.0 and np.linalg.norm(p[v] - start - along * seg) <= tol:
+                    out.add(int(v))
+    return out
+
+
+def test_merge_rounds_is_one_when_no_region_skips_late():
+    assert merged(grid_slab(10, 10)).report["merge_rounds"] == 1
+
+
+def test_late_skipped_region_feeds_its_vertices_back_into_the_corner_pass(monkeypatch):
+    m = two_slabs_sharing_border()
+    topo = analyse_topology(m)
+    bad = int(topo.face_region[0])  # face 0 is cell (0, 0): the LEFT slab, material 0
+    real = merge_module._triangulate
+
+    def fails_late(plan, needed, collinear_tol):
+        """The left slab always fails AFTER the global corner pass, as rules 6/7/9 do."""
+        if plan.region == bad:
+            return None, "invalid_polygon"
+        return real(plan, needed, collinear_tol)
+
+    monkeypatch.setattr(merge_module, "_triangulate", fails_late)
+    r = merge_regions(m, topo)
+
+    assert r.report["regions_skipped"] == {"invalid_polygon": 1}
+    assert r.report["merge_rounds"] == 2  # round 1 finds the skip, round 2 confirms nothing new
+    border = [j * 11 + 5 for j in range(1, 10)]  # the 9 collinear shared-border vertices
+    right = r.mesh.face_v[r.mesh.face_material == 1]
+    left = r.mesh.face_v[r.mesh.face_material == 0]
+    assert len(left) == 100  # the whole left slab copied through, untouched
+    # the left slab kept all its vertices, so the right slab must keep every one it shares:
+    # 4 corners + 9 border vertices -> 13 + 0 - 2 = 11 triangles
+    assert set(border) <= set(int(v) for v in right.reshape(-1))
+    assert len(right) == 11
+    assert vertices_inside_an_edge(r.mesh, right, set(int(v) for v in left.reshape(-1))) == set()
 
 
 def test_overlapping_triangle_and_the_cells_it_overlaps_are_copied_through():

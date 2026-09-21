@@ -30,6 +30,8 @@ GRID_SIZE = 1e-4
 SNAP_TOL = 1e-3
 #: A ring vertex further than this from the chord of its ring neighbours is a corner (inches).
 COLLINEAR_TOL = 1e-3
+#: Most times pass 2 reruns after a late skip feeds its vertices back (see `merge_regions`).
+MAX_ROUNDS = 10
 #: A triangle overlapping another of its own region by more than `_OVERLAP_ABS + _OVERLAP_REL *
 #: its own area` is excluded from the merge and copied through.
 _OVERLAP_ABS = 1e-9
@@ -81,34 +83,40 @@ def merge_regions(mesh: MeshData, topo: Topology, flat_materials: Iterable[int] 
     Regions are visited in ascending region id and every ordering inside the kernel is by index or
     sorted, so two runs on the same input produce bit-identical arrays.
 
+    A region can only fail rules 6, 7 and 9 AFTER the global corner pass has already run, and it
+    is then copied through with ALL of its vertices while its neighbours have already dropped the
+    border vertices they shared with it -- exactly the T-junction the corner pass exists to
+    prevent. So pass 2 is a FIXED-POINT loop: every late-skipped region's vertices join the
+    `needed` set and ring simplification + triangulation rerun for EVERY region, until a round
+    turns up no late skip that earlier rounds had not already fed back (at most `MAX_ROUNDS`
+    rounds; `report["merge_rounds"]` says how many ran). `needed` only ever grows, so the loop
+    terminates; a region that fed back and then succeeded keeps its vertices needed, which costs
+    triangles but can never open a T-junction.
+
     `report` keys: `regions_merged`, `regions_skipped` (reason -> count, only non-zero reasons,
     from `overlap` / `new_vertex` / `invalid_polygon` / `area_grew`), `tris_before`, `tris_after`,
     `vertices_dropped` (welded vertices used by an input face and by no output face),
-    `max_area_rel_error` and `faces_copied`.
+    `max_area_rel_error`, `faces_copied` and `merge_rounds`.
     """
     flat = _validated_materials(flat_materials)
     welded_to_original = _welded_to_original(mesh, topo)
 
     plans, copied, skipped = _plan_regions(topo, grid_size, snap_tol)
-    needed = _needed_vertices(topo, copied, plans, collinear_tol)
 
-    builds = []
-    max_area_rel_error = 0.0
+    fed_back: dict[int, str] = {}
+    rounds = 0
+    while True:
+        rounds += 1
+        needed = _needed_vertices(topo, copied + _late_faces(plans, fed_back), plans, collinear_tol)
+        builds, late, max_area_rel_error = _build_regions(plans, needed, collinear_tol)
+        if set(late) <= set(fed_back) or rounds >= MAX_ROUNDS:
+            break
+        fed_back.update(late)
+
     for plan in plans:
-        tris, reason = _triangulate(plan, needed, collinear_tol)
-        if tris is not None:
-            merged_area = _signed_area_sum(plan.vertex_xy, plan.vertex_ids, tris)
-            if merged_area > plan.original_area * (1.0 + _AREA_REL_TOL):
-                tris, reason = None, "area_grew"
-            else:
-                max_area_rel_error = max(
-                    max_area_rel_error,
-                    abs(merged_area - plan.original_area) / max(plan.original_area, 1e-300))
-        if tris is None:
-            skipped[reason] += 1
+        if plan.region in late:
+            skipped[late[plan.region]] += 1
             copied.extend(int(f) for f in plan.members)
-            continue
-        builds.append((plan, tris))
 
     out = _assemble(mesh, topo, welded_to_original, builds, copied, flat)
     used_before = np.zeros(len(topo.positions_w), bool)
@@ -122,6 +130,7 @@ def merge_regions(mesh: MeshData, topo: Topology, flat_materials: Iterable[int] 
         "tris_after": int(out.mesh.n_faces),
         "vertices_dropped": int((used_before & ~used_after).sum()),
         "max_area_rel_error": float(max_area_rel_error),
+        "merge_rounds": int(rounds),
     })
     return out
 
@@ -324,6 +333,37 @@ def _corner_mask(xy: np.ndarray, tol: float) -> np.ndarray:
 
 
 # ----------------------------------------------------------- pass 2: rebuild and re-triangulate
+
+
+def _late_faces(plans: list[_Plan], fed_back: dict[int, str]) -> list[int]:
+    """The faces of every region fed back into the corner pass, in ascending region id. They are
+    handed to `_needed_vertices` as if already copied through, which is exactly what marks all of
+    their vertices needed -- a late-skipped region IS copied through with all of its vertices."""
+    return [int(f) for plan in plans if plan.region in fed_back for f in plan.members]
+
+
+def _build_regions(plans: list[_Plan], needed: np.ndarray, collinear_tol: float):
+    """One whole pass 2 over every region. Returns `(builds, late, max_area_rel_error)`, where
+    `late` maps the region id of each region that failed AFTER the corner pass (rule 6 invalid
+    polygon, rule 7 unmappable vertex at CDT time, rule 9 area grew) to its reason."""
+    builds: list[tuple[_Plan, list]] = []
+    late: dict[int, str] = {}
+    max_area_rel_error = 0.0
+    for plan in plans:
+        tris, reason = _triangulate(plan, needed, collinear_tol)
+        if tris is not None:
+            merged_area = _signed_area_sum(plan.vertex_xy, plan.vertex_ids, tris)
+            if merged_area > plan.original_area * (1.0 + _AREA_REL_TOL):
+                tris, reason = None, "area_grew"
+            else:
+                max_area_rel_error = max(
+                    max_area_rel_error,
+                    abs(merged_area - plan.original_area) / max(plan.original_area, 1e-300))
+        if tris is None:
+            late[plan.region] = reason
+            continue
+        builds.append((plan, tris))
+    return builds, late, max_area_rel_error
 
 
 def _triangulate(plan: _Plan, needed: np.ndarray, collinear_tol: float):
