@@ -50,6 +50,77 @@ def grid_slab(nx=10, ny=10, cell=10.0, uv_per_unit=0.05, shift_cols=(), break_co
     return _mesh("grid_slab", P, uvs, fv, fvt)
 
 
+def _grid(nx, ny, cell, uv_per_unit, keep=None, material_of=None):
+    """Positions/uvs/faces of a flat z=0 grid. `keep(i, j)` selects which cells exist (all by
+    default); `material_of(i, j)` gives each cell's material index (0 by default). The full
+    `(nx+1) x (ny+1)` position lattice is always emitted, so removed cells leave their corner
+    positions in place, unused."""
+    P = [[i * cell, j * cell, 0.0] for j in range(ny + 1) for i in range(nx + 1)]
+    uvs, fv, fvt, fm = [], [], [], []
+    for j in range(ny):
+        for i in range(nx):
+            if keep is not None and not keep(i, j):
+                continue
+            corners = [(i, j), (i + 1, j), (i + 1, j + 1), (i, j + 1)]
+            base = len(uvs)
+            uvs.extend([[a * cell * uv_per_unit, b * cell * uv_per_unit] for a, b in corners])
+            v = [b * (nx + 1) + a for a, b in corners]
+            fv += [[v[0], v[1], v[2]], [v[0], v[2], v[3]]]
+            fvt += [[base, base + 1, base + 2], [base, base + 2, base + 3]]
+            m = 0 if material_of is None else material_of(i, j)
+            fm += [m, m]
+    return P, uvs, fv, fvt, fm
+
+
+def l_shaped_slab(nx=10, ny=10, cell=10.0, cut=5, uv_per_unit=0.05):
+    """`grid_slab` with the top-right `cut x cut` block of cells removed: an L with 6 corners."""
+    P, uvs, fv, fvt, fm = _grid(nx, ny, cell, uv_per_unit, keep=lambda i, j: not (i >= cut and j >= cut))
+    return _mesh("l_shaped_slab", P, uvs, fv, fvt, face_material=fm)
+
+
+def slab_with_hole(nx=10, ny=10, cell=10.0, lo=4, hi=6, uv_per_unit=0.05):
+    """`grid_slab` with the `(lo..hi) x (lo..hi)` block of cells removed: a square with one
+    square hole, 4 outer corners and 4 hole corners."""
+    P, uvs, fv, fvt, fm = _grid(nx, ny, cell, uv_per_unit,
+                                keep=lambda i, j: not (lo <= i < hi and lo <= j < hi))
+    return _mesh("slab_with_hole", P, uvs, fv, fvt, face_material=fm)
+
+
+def two_slabs_sharing_border(nx=10, ny=10, cell=10.0, split=5, uv_per_unit=0.05):
+    """One coplanar grid cut into two materials at column `split`: two 5x10 slabs sharing a
+    border whose `ny - 1` interior vertices are exactly collinear in both slabs' rings."""
+    P, uvs, fv, fvt, fm = _grid(nx, ny, cell, uv_per_unit, material_of=lambda i, j: 0 if i < split else 1)
+    return _mesh("two_slabs_sharing_border", P, uvs, fv, fvt, materials=("m0", "m1"), face_material=fm)
+
+
+def slab_with_wall(nx=10, ny=10, cell=10.0, uv_per_unit=0.05, foot_i=3, foot_j=5, height=25.0):
+    """`grid_slab` plus one vertical wall triangle standing on the slab: one foot on an interior
+    grid vertex `(foot_i, foot_j)`, the other on the border vertex `(0, foot_j)`."""
+    P, uvs, fv, fvt, fm = _grid(nx, ny, cell, uv_per_unit)
+    border, foot = foot_j * (nx + 1), foot_j * (nx + 1) + foot_i
+    apex = len(P)
+    P = P + [[foot_i * cell, foot_j * cell, height]]
+    base = len(uvs)
+    uvs = uvs + [[0.0, 0.0], [foot_i * cell * uv_per_unit, 0.0], [foot_i * cell * uv_per_unit, height * uv_per_unit]]
+    fv = fv + [[border, foot, apex]]
+    fvt = fvt + [[base, base + 1, base + 2]]
+    fm = fm + [0]
+    return _mesh("slab_with_wall", P, uvs, fv, fvt, face_material=fm)
+
+
+def overlapping_pair(nx=10, ny=10, cell=10.0, uv_per_unit=0.05):
+    """`grid_slab` plus one extra coplanar triangle over existing grid vertices `(2,2)-(4,2)-(4,3)`,
+    overlapping cells (2,2) and (3,2)."""
+    P, uvs, fv, fvt, fm = _grid(nx, ny, cell, uv_per_unit)
+    corners = [(2, 2), (4, 2), (4, 3)]
+    base = len(uvs)
+    uvs = uvs + [[a * cell * uv_per_unit, b * cell * uv_per_unit] for a, b in corners]
+    fv = fv + [[b * (nx + 1) + a for a, b in corners]]
+    fvt = fvt + [[base, base + 1, base + 2]]
+    fm = fm + [0]
+    return _mesh("overlapping_pair", P, uvs, fv, fvt, face_material=fm)
+
+
 def t_junction_strip():
     """Big quad 20x10 below, two 10x10 quads above. Vertex (10,10) sits mid-edge of the big quad's top edge.
     One zero-area stitching triangle (0,10)-(10,10)-(20,10), as SketchUp exports them."""
