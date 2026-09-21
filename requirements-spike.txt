@@ -1,0 +1,4 @@
+numpy
+shapely>=2.1
+trimesh
+embreex
