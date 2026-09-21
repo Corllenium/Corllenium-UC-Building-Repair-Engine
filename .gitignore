@@ -1,0 +1,19 @@
+# source model, 142 MB each, never committed
+*.skp
+*.skb
+
+# snapshots, versions, guard images, spike results, db backups
+data/
+
+# python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+
+# node
+node_modules/
+dist/
+
+# local env
+.env
