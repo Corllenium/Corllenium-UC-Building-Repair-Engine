@@ -1,6 +1,6 @@
 import numpy as np
 
-from engine.topo.adjacency import EdgeTable, edge_face_lists
+from engine.topo.adjacency import EdgeTable, edge_face_lists, t_junction_sub_edges
 
 EDGE_REAL, EDGE_REMOVABLE, EDGE_OPEN, EDGE_NONMANIFOLD, EDGE_TJUNCTION = 0, 1, 2, 3, 4
 
@@ -14,11 +14,8 @@ def classify_edges(table: EdgeTable, face_region: np.ndarray, t_vertices: dict) 
         f0, f1 = ef[e]
         if face_region[f0] >= 0 and face_region[f0] == face_region[f1]:
             cls[e] = EDGE_REMOVABLE
-    lookup = {(int(a), int(b)): i for i, (a, b) in enumerate(table.edges)}
-    for e, verts in t_vertices.items():
-        a, b = table.edges[e]
-        chain = [int(a), *[int(v) for v in verts], int(b)]
-        subs = [lookup.get((min(p, q), max(p, q))) for p, q in zip(chain, chain[1:])]
+    sub_edges = t_junction_sub_edges(table, t_vertices)
+    for e, subs in sub_edges.items():
         faces = list(ef[e]) + [f for s in subs if s is not None for f in ef[s]]
         regions = {int(face_region[f]) for f in faces}
         whole = all(s is not None for s in subs) and len(regions) == 1 and -1 not in regions

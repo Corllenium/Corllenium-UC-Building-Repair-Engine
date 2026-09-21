@@ -1,7 +1,8 @@
 import numpy as np
 
 from engine.tests.fixtures.build import cube, grid_slab, t_junction_strip
-from engine.topo.adjacency import build_edge_table, degenerate_mask, edge_face_lists, find_t_vertices
+from engine.topo.adjacency import (build_edge_table, degenerate_mask, edge_face_lists, find_t_vertices,
+                                    t_junction_sub_edges)
 from engine.topo.weld import axis_quanta, weld_exact
 
 
@@ -45,3 +46,41 @@ def test_t_junction_found():
     assert len(tv) == 1
     (e, verts), = tv.items()
     assert sorted(P[t.edges[e]][:, 0].tolist()) == [0.0, 20.0] and P[verts[0]].tolist() == [10.0, 10.0, 0.0]
+
+
+def test_t_junction_sub_edges_walks_chain_to_real_sub_edge_indices():
+    m = t_junction_strip()
+    P, remap = weld_exact(m.positions, 2)
+    fw = remap[m.face_v]
+    ok = ~degenerate_mask(P, fw)
+    t = build_edge_table(fw, ok)
+    tv = find_t_vertices(P, t, tol=0.015)
+    subs = t_junction_sub_edges(t, tv)
+    assert len(subs) == 1
+    (e, sub_idx), = subs.items()
+    assert len(sub_idx) == 2 and all(s is not None for s in sub_idx)
+    a, b = t.edges[e]
+    chain = [int(a), *[int(v) for v in tv[e]], int(b)]
+    expected_pairs = [sorted(P[[p, q]][:, 0].tolist()) for p, q in zip(chain, chain[1:])]
+    assert expected_pairs == [[0.0, 10.0], [10.0, 20.0]]  # chain order starting from edges[e][0]
+    for s, pair in zip(sub_idx, expected_pairs):
+        assert sorted(P[t.edges[s]][:, 0].tolist()) == pair
+        assert P[t.edges[s]][:, 1].tolist() == [10.0, 10.0]
+
+
+def test_t_junction_sub_edges_yields_none_for_missing_sub_edge():
+    m = t_junction_strip()
+    P, remap = weld_exact(m.positions, 2)
+    fw = remap[m.face_v]
+    ok = ~degenerate_mask(P, fw)
+    t = build_edge_table(fw, ok)
+    tv = find_t_vertices(P, t, tol=0.015)
+    (e, _verts), = tv.items()
+    # Hand-made t_vertices: name the welded vertex at (0, 20, 0) as the chain's mid-vertex.
+    # It IS connected to edges[e][0] == (0, 10, 0) by a real diagonal edge, so the first
+    # sub-edge resolves -- but nothing in the table connects it to edges[e][1] == (20, 10, 0),
+    # so the second leg of the chain has no matching row in table.edges and must be None.
+    far_vertex = int(np.nonzero((P[:, 0] == 0.0) & (P[:, 1] == 20.0))[0][0])
+    fake_tv = {e: np.array([far_vertex])}
+    subs = t_junction_sub_edges(t, fake_tv)
+    assert subs[e][0] is not None and subs[e][1] is None

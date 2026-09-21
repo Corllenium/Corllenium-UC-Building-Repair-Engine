@@ -1,5 +1,7 @@
 import numpy as np
 
+from engine.topo.adjacency import edge_face_lists, t_junction_sub_edges
+
 
 def plane_basis(n):
     a = np.array([1.0, 0.0, 0.0]) if abs(n[0]) < 0.9 else np.array([0.0, 1.0, 0.0])
@@ -93,9 +95,8 @@ def build_regions(mesh, positions_w, face_w, ok, table, t_vertices, quanta, flat
             a = parent[a]
         return a
 
-    from engine.topo.adjacency import edge_face_lists
     ef = edge_face_lists(table)
-    lookup = {(int(a), int(b)): i for i, (a, b) in enumerate(table.edges)}
+    sub_edges = t_junction_sub_edges(table, t_vertices)
 
     def join(faces):
         faces = [f for f in faces if group[f] >= 0]
@@ -105,12 +106,9 @@ def build_regions(mesh, positions_w, face_w, ok, table, t_vertices, quanta, flat
 
     for faces in ef:
         join(list(faces))
-    for e, verts in t_vertices.items():
-        a, b = table.edges[e]
-        chain = [int(a), *[int(v) for v in verts], int(b)]
+    for e, subs in sub_edges.items():
         faces = list(ef[e])
-        for p, q in zip(chain, chain[1:]):
-            s = lookup.get((min(p, q), max(p, q)))
+        for s in subs:
             if s is not None:
                 faces += list(ef[s])
         join(faces)

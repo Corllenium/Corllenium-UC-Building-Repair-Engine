@@ -51,3 +51,17 @@ def find_t_vertices(positions_w: np.ndarray, table: EdgeTable, tol: float) -> di
         if hit.any():
             out[int(e)] = cand[hit][np.argsort(t[hit])]
     return out
+
+
+def t_junction_sub_edges(table: EdgeTable, t_vertices: dict[int, np.ndarray]) -> dict[int, list[int | None]]:
+    """For each open edge `e` in `t_vertices`, resolve the chain
+    `edges[e][0] -> t-vertices in order -> edges[e][1]` to the edge-table indices of its
+    consecutive sub-edges, with None where a vertex pair along the chain is not an edge
+    in `table`."""
+    lookup = {(int(a), int(b)): i for i, (a, b) in enumerate(table.edges)}
+    out: dict[int, list[int | None]] = {}
+    for e, verts in t_vertices.items():
+        a, b = table.edges[e]
+        chain = [int(a), *[int(v) for v in verts], int(b)]
+        out[e] = [lookup.get((min(p, q), max(p, q))) for p, q in zip(chain, chain[1:])]
+    return out
