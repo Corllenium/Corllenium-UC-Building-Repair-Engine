@@ -2,7 +2,14 @@ import numpy as np
 import pytest
 from PIL import Image
 
-from engine.io.snapshot import ManifestMismatch, SourceUnstable, read_manifest, snapshot_object, wait_stable
+from engine.io.snapshot import (
+    ManifestMismatch,
+    SourceUnstable,
+    read_manifest,
+    read_manifest_stable,
+    snapshot_object,
+    wait_stable,
+)
 
 MANIFEST = """file                                                              tris   sketchup group
 Main_Infrustructure_Building.obj                               142,248   Main_Infrustructure_Building
@@ -54,3 +61,73 @@ def test_manifest_mismatch(tmp_path):
     src = make_source(tmp_path / "src")
     with pytest.raises(ManifestMismatch):
         snapshot_object(src, tmp_path / "snap", expected_tris=99, interval_s=0, sleep=lambda s: None)
+
+
+def test_mtl_changing_during_copy_raises_source_unstable(tmp_path):
+    src = make_source(tmp_path / "src")
+    mtl_path = tmp_path / "src" / "lib.mtl"
+    dst_root = tmp_path / "snap"
+    calls = {"n": 0}
+
+    def sleep(_s):
+        calls["n"] += 1
+        if calls["n"] == 2:  # 1st call verifies the OBJ, 2nd call verifies the MTL
+            mtl_path.write_text(mtl_path.read_text() + "\n# mutated during copy\n")
+
+    with pytest.raises(SourceUnstable):
+        snapshot_object(src, dst_root, expected_tris=1, interval_s=0, sleep=sleep)
+    assert calls["n"] == 2
+    assert list(dst_root.glob(".incoming-*")) == []
+
+
+def test_texture_changing_during_copy_raises_source_unstable(tmp_path):
+    src = make_source(tmp_path / "src")
+    tex_path = tmp_path / "src" / "SRC-TEX" / "stone.png"
+    dst_root = tmp_path / "snap"
+    calls = {"n": 0}
+
+    def sleep(_s):
+        calls["n"] += 1
+        if calls["n"] == 3:  # 1st = OBJ, 2nd = MTL, 3rd = the "stone" texture
+            tex_path.write_bytes(tex_path.read_bytes() + b"\x00")
+
+    with pytest.raises(SourceUnstable):
+        snapshot_object(src, dst_root, expected_tris=1, interval_s=0, sleep=sleep)
+    assert calls["n"] == 3
+    assert list(dst_root.glob(".incoming-*")) == []
+
+
+def test_source_mtl_kept_and_materials_subset_correct(tmp_path):
+    src = make_source(tmp_path / "src")
+    mtl_src_path = tmp_path / "src" / "lib.mtl"
+    res = snapshot_object(src, tmp_path / "snap", expected_tris=1, interval_s=0, sleep=lambda s: None)
+    assert res.source_mtl_path is not None
+    assert res.source_mtl_path.name == "source.mtl"
+    assert res.source_mtl_path.read_bytes() == mtl_src_path.read_bytes()
+    subset_text = res.mtl_path.read_text()
+    assert "stone" in subset_text and "other" not in subset_text
+
+
+def test_read_manifest_stable_matches_read_manifest_when_unchanged(tmp_path):
+    p = tmp_path / "_MANIFEST.txt"
+    p.write_text(MANIFEST)
+    assert read_manifest_stable(p, interval_s=0, sleep=lambda s: None) == read_manifest(p)
+
+
+def test_read_manifest_stable_rejects_change_during_read(tmp_path):
+    p = tmp_path / "_MANIFEST.txt"
+    p.write_text(MANIFEST)
+
+    def sleep(_s):
+        p.write_text(MANIFEST + "extra line changes the byte count\n")
+
+    with pytest.raises(SourceUnstable):
+        read_manifest_stable(p, interval_s=0, sleep=sleep)
+
+
+def test_failed_snapshot_leaves_no_incoming_dir(tmp_path):
+    src = make_source(tmp_path / "src")
+    dst_root = tmp_path / "snap"
+    with pytest.raises(ManifestMismatch):
+        snapshot_object(src, dst_root, expected_tris=99, interval_s=0, sleep=lambda s: None)
+    assert list(dst_root.glob(".incoming-*")) == []

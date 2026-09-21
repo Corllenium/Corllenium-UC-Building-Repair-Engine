@@ -39,15 +39,39 @@ class SnapshotResult:
     textures: dict[str, Path] = field(default_factory=dict)
     flatness: dict[str, float] = field(default_factory=dict)
     missing_textures: list[str] = field(default_factory=list)
+    source_mtl_path: Path | None = None
 
 
-def read_manifest(path: Path) -> dict[str, ManifestRow]:
+def _parse_manifest(text: str) -> dict[str, ManifestRow]:
     rows = {}
-    for line in Path(path).read_text(encoding="utf-8", errors="replace").splitlines()[1:]:
+    for line in text.splitlines()[1:]:
         parts = re.split(r"\s{2,}", line.strip())
         if len(parts) >= 2 and parts[1].replace(",", "").isdigit():
             rows[parts[0]] = ManifestRow(parts[0], int(parts[1].replace(",", "")), parts[2] if len(parts) > 2 else "")
     return rows
+
+
+def read_manifest(path: Path) -> dict[str, ManifestRow]:
+    text = Path(path).read_text(encoding="utf-8", errors="replace")
+    return _parse_manifest(text)
+
+
+def read_manifest_stable(path: Path, interval_s: float = 1.0, sleep=time.sleep) -> dict[str, ManifestRow]:
+    """Read and parse a manifest that may be rewritten live, verifying it did not
+    change between the stability check and the read. Only this function and
+    `wait_stable`/`_copy_verified` may touch the live source tree."""
+    path = Path(path)
+    if not path.exists():
+        raise SourceUnstable(f"{path.name}: missing, source rebuilding")
+    key = _key(path)
+    sleep(interval_s)
+    try:
+        data = path.read_bytes()
+    except FileNotFoundError as exc:
+        raise SourceUnstable(f"{path.name}: missing, source rebuilding") from exc
+    if not path.exists() or _key(path) != key or len(data) == 0:
+        raise SourceUnstable(f"{path.name}: changed during read, source rebuilding")
+    return _parse_manifest(data.decode("utf-8", errors="replace"))
 
 
 def sha256_file(path: Path) -> str:
@@ -74,18 +98,26 @@ def wait_stable(path: Path, interval_s: float = 1.0, sleep=time.sleep) -> tuple[
     return a
 
 
+def _copy_verified(src: Path, dst: Path, interval_s: float, sleep) -> tuple[int, int]:
+    """The only way any file under the live source tree is ever opened: verify it
+    is stable, copy it, then re-stat the source to make sure it did not change
+    out from under the copy. Used for the OBJ, the MTL and every texture."""
+    key = wait_stable(src, interval_s, sleep)
+    shutil.copyfile(src, dst)
+    if not src.exists() or _key(src) != key:
+        raise SourceUnstable(f"{src.name}: changed during copy")
+    return key
+
+
 def snapshot_object(src_obj, dst_root, expected_tris=None, interval_s=1.0, sleep=time.sleep) -> SnapshotResult:
     src_obj, dst_root = Path(src_obj), Path(dst_root)
-    key = wait_stable(src_obj, interval_s, sleep)
     dst_root.mkdir(parents=True, exist_ok=True)
     tmp = dst_root / f".incoming-{src_obj.stem}"
     shutil.rmtree(tmp, ignore_errors=True)
     tmp.mkdir()
     try:
         obj_copy = tmp / src_obj.name
-        shutil.copyfile(src_obj, obj_copy)
-        if not src_obj.exists() or _key(src_obj) != key:
-            raise SourceUnstable(f"{src_obj.name}: changed during copy")
+        _copy_verified(src_obj, obj_copy, interval_s, sleep)
         digest = sha256_file(obj_copy)
         try:
             mesh = read_obj(obj_copy)
@@ -106,14 +138,17 @@ def _copy_assets(src_obj, mesh, tmp, interval_s, sleep):
     if not mesh.mtllib:
         return
     mtl_src = (src_obj.parent / mesh.mtllib).resolve()
-    wait_stable(mtl_src, interval_s, sleep)
-    wanted = write_mtl_subset(parse_mtl(mtl_src), mesh.materials, tmp / "materials.mtl")
+    source_mtl_copy = tmp / "source.mtl"
+    _copy_verified(mtl_src, source_mtl_copy, interval_s, sleep)
+    # parse_mtl runs on our own copy from here on — never on the live source path.
+    wanted = write_mtl_subset(parse_mtl(source_mtl_copy), mesh.materials, tmp / "materials.mtl")
     (tmp / "tex").mkdir()
     missing = []
     for rel in sorted(set(wanted.values())):
         tex_src = mtl_src.parent / rel
+        tex_dst = tmp / "tex" / PurePosixPath(rel.replace("\\", "/")).name
         if tex_src.exists():
-            shutil.copyfile(tex_src, tmp / "tex" / PurePosixPath(rel.replace("\\", "/")).name)
+            _copy_verified(tex_src, tex_dst, interval_s, sleep)
         else:
             missing.append(rel)
     (tmp / "missing_textures.txt").write_text("\n".join(missing), encoding="utf-8")
@@ -122,8 +157,10 @@ def _copy_assets(src_obj, mesh, tmp, interval_s, sleep):
 def _load(final: Path, obj_name: str, digest: str) -> SnapshotResult:
     obj_path = final / obj_name
     mtl_path = final / "materials.mtl"
+    source_mtl_path = final / "source.mtl"
     res = SnapshotResult(final, obj_path, digest, obj_path.stat().st_size, read_obj(obj_path),
-                         mtl_path if mtl_path.exists() else None)
+                         mtl_path if mtl_path.exists() else None,
+                         source_mtl_path=source_mtl_path if source_mtl_path.exists() else None)
     if res.mtl_path:
         for name, mat in parse_mtl(mtl_path).items():
             if mat.map_kd and (final / mat.map_kd).exists():
