@@ -19,6 +19,13 @@ Engine API: `docs\superpowers\plans\2026-09-21-phase1a-engine-foundations.md` pl
 
 ## Global Constraints
 
+- **This dashboard has its own links, chosen so it never collides with anything else on the machine**
+  (user instruction 2026-09-21; measured that day: old `uc-dashboard` container on `127.0.0.1:8200`,
+  `ui-tars-model` on `8090`, throwaway preview on `5180`):
+  dashboard **http://localhost:5190**, API **http://127.0.0.1:8190**, PostgreSQL **127.0.0.1:5490**
+  (container-internal 5432). Never fall back to the framework defaults 5173 / 8000 / 5432: another project is
+  likely to claim them. Vite must run with `strictPort: true` so a taken port is an error, not a silent move.
+
 - **Canvas renders double-sided by default.** One-sided is a diagnostic toggle, never the default. A one-sided view
   made intact geometry look destroyed during the spike.
 - `web\` calls only `/api/*`. `api\` calls `engine\`. `engine\` imports nothing from `api\`.
@@ -30,7 +37,7 @@ Engine API: `docs\superpowers\plans\2026-09-21-phase1a-engine-foundations.md` pl
   lookup, never by joining a client string onto a path.
 - Originals are immutable: a `snapshot` version row and its directory are never modified after creation.
 - Phase 1 shows **no fixed geometry**. The AFTER canvas is labelled `PREVIEW: removable edges hidden, geometry unchanged`.
-- PostgreSQL: `postgres:16`, bound to `127.0.0.1:5432`, named volume. Dev credentials `fixer / fixer / fixer`
+- PostgreSQL: `postgres:16`, bound to `127.0.0.1:5490`, named volume. Dev credentials `fixer / fixer / fixer`
   live in `.env` (git-ignored), with `.env.example` committed.
 - Python commands: `.venv\Scripts\python.exe`. Web commands: `pnpm --dir web ...`. Dev servers start through
   `.claude\launch.json` + the preview tool, not raw shell.
@@ -133,7 +140,7 @@ services:
       POSTGRES_PASSWORD: ${FIXER_DB_PASSWORD:-fixer}
       POSTGRES_DB: ${FIXER_DB_NAME:-fixer}
     ports:
-      - "127.0.0.1:5432:5432"
+      - "127.0.0.1:5490:5432"
     volumes:
       - fixer_pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -148,7 +155,7 @@ volumes:
 `.env.example`:
 
 ```
-FIXER_DATABASE_URL=postgresql+psycopg://fixer:fixer@127.0.0.1:5432/fixer
+FIXER_DATABASE_URL=postgresql+psycopg://fixer:fixer@127.0.0.1:5490/fixer
 FIXER_SOURCE_DIR=D:\PROJECTS\UC ENVIRONMENT BUILDING\REQUIREMENTS\01-MODEL-EXPORT\CKPT17
 FIXER_DATA_DIR=data
 ```
@@ -179,8 +186,8 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import text
 
-ADMIN = "postgresql://fixer:fixer@127.0.0.1:5432/postgres"
-TEST_URL = "postgresql+psycopg://fixer:fixer@127.0.0.1:5432/fixer_test"
+ADMIN = "postgresql://fixer:fixer@127.0.0.1:5490/postgres"
+TEST_URL = "postgresql+psycopg://fixer:fixer@127.0.0.1:5490/fixer_test"
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -228,7 +235,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="FIXER_", env_file=".env", extra="ignore")
-    database_url: str = "postgresql+psycopg://fixer:fixer@127.0.0.1:5432/fixer"
+    database_url: str = "postgresql+psycopg://fixer:fixer@127.0.0.1:5490/fixer"
     source_dir: Path = Path(r"D:\PROJECTS\UC ENVIRONMENT BUILDING\REQUIREMENTS\01-MODEL-EXPORT\CKPT17")
     data_dir: Path = Path("data")
     stable_interval_s: float = 1.0
@@ -678,8 +685,8 @@ Run. Expected: FAIL (404 on every route).
   - `faces`: read the OBJ once per request, 404 when `face_id` out of range; `region` from `analyse_topology`.
 - [ ] **Step 3:** Run `api/tests -q`. Expected: all pass. Then the whole suite.
 - [ ] **Step 4: real import.** Start the API through `.claude\launch.json` (Task 8 adds the config; for this step run
-  `.venv\Scripts\python.exe -m uvicorn api.main:app --port 8000` in the background) and:
-  `curl -s -X POST localhost:8000/api/models/import -H "content-type: application/json" -d "{\"file\":\"CHTM_SIDE_WALK_2nd_floor.obj\"}"`.
+  `.venv\Scripts\python.exe -m uvicorn api.main:app --port 8190` in the background) and:
+  `curl -s -X POST localhost:8190/api/models/import -H "content-type: application/json" -d "{\"file\":\"CHTM_SIDE_WALK_2nd_floor.obj\"}"`.
   Expected: 201, `tri_count 4692`, `sha256` starting `ce26e039` (unless re-exported since). Then
   `certutil -hashfile data\snapshots\<dir>\CHTM_SIDE_WALK_2nd_floor.obj SHA256` must print the same hash as the
   database row: `docker compose exec db psql -U fixer -d fixer -c "select sha256, tri_count from model_versions"`.
@@ -718,7 +725,7 @@ import { defineConfig } from 'vitest/config'
 
 export default defineConfig({
   plugins: [vue()],
-  server: { port: 5173, proxy: { '/api': 'http://127.0.0.1:8000' } },
+  server: { port: 5190, strictPort: true, proxy: { '/api': 'http://127.0.0.1:8190' } },
   test: { environment: 'node' },
 })
 ```
@@ -874,8 +881,8 @@ auto-retry in a loop. Below: imported models, each linking to `/models/:id`.
 
 ```json
 { "name": "api", "runtimeExecutable": ".venv/Scripts/python.exe",
-  "runtimeArgs": ["-m", "uvicorn", "api.main:app", "--port", "8000"], "port": 8000 },
-{ "name": "web", "runtimeExecutable": "pnpm", "runtimeArgs": ["--dir", "web", "dev"], "port": 5173 }
+  "runtimeArgs": ["-m", "uvicorn", "api.main:app", "--port", "8190"], "port": 8190 },
+{ "name": "web", "runtimeExecutable": "pnpm", "runtimeArgs": ["--dir", "web", "dev"], "port": 5190 }
 ```
 
 - [ ] **Step 1:** Write both views. `pnpm --dir web build` exits 0.
