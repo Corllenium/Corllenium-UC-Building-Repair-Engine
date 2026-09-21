@@ -108,7 +108,41 @@ def vertices_inside_an_edge(mesh, faces, candidates, tol=1e-9):
 
 
 def test_merge_rounds_is_one_when_no_region_skips_late():
-    assert merged(grid_slab(10, 10)).report["merge_rounds"] == 1
+    r = merged(grid_slab(10, 10))
+    assert r.report["merge_rounds"] == 1
+    assert r.report["converged"] is True
+
+
+def _left_slab_fails_late(monkeypatch, mesh, topo):
+    """Force the LEFT region of `two_slabs_sharing_border()` to fail AFTER the corner pass, as
+    rules 6/7/9 do -- a feedback event that takes a second round to settle."""
+    bad = int(topo.face_region[0])  # face 0 is cell (0, 0): the LEFT slab, material 0
+    real = merge_module._triangulate
+
+    def fails_late(plan, needed, collinear_tol):
+        if plan.region == bad:
+            return None, "invalid_polygon"
+        return real(plan, needed, collinear_tol)
+
+    monkeypatch.setattr(merge_module, "_triangulate", fails_late)
+
+
+def test_converged_is_false_when_max_rounds_cuts_the_loop_short(monkeypatch):
+    """Hitting `MAX_ROUNDS` must not look like agreement: the last round's feedback was never
+    fed back, so a neighbour may still be holding a T-junction open."""
+    m = two_slabs_sharing_border()
+    topo = analyse_topology(m)
+    _left_slab_fails_late(monkeypatch, m, topo)
+
+    monkeypatch.setattr(merge_module, "MAX_ROUNDS", 1)
+    cut_short = merge_regions(m, topo)
+    assert cut_short.report["merge_rounds"] == 1
+    assert cut_short.report["converged"] is False
+
+    monkeypatch.setattr(merge_module, "MAX_ROUNDS", 10)
+    settled = merge_regions(m, topo)  # the same case needs 2 rounds and does converge
+    assert settled.report["merge_rounds"] == 2
+    assert settled.report["converged"] is True
 
 
 def test_late_skipped_region_feeds_its_vertices_back_into_the_corner_pass(monkeypatch):

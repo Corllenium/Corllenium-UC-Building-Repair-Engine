@@ -93,16 +93,20 @@ def merge_regions(mesh: MeshData, topo: Topology, flat_materials: Iterable[int] 
     So pass 2 is a FIXED-POINT loop over both kinds of feedback event: a late-skipped region's
     vertices and a `keep_all` region's RING vertices join the `needed` set, and ring simplification
     + triangulation rerun for EVERY region, until a round turns up no event that earlier rounds had
-    not already fed back (at most `MAX_ROUNDS` rounds; `report["merge_rounds"]` says how many ran
-    and `report["converged"]` whether the loop ended by agreement rather than by hitting the cap).
-    `needed` only ever grows, so the loop terminates; a region that fed back and then succeeded
-    keeps its vertices needed, which costs triangles but can never open a T-junction.
+    not already fed back. `needed` only ever grows, so the loop terminates; a region that fed back
+    and then succeeded keeps its vertices needed, which costs triangles but can never open a
+    T-junction.
+
+    `report["converged"]` is True only when a round turned up nothing new -- the loop ended by
+    agreement. `MAX_ROUNDS` is a backstop, not the mechanism: ending on it leaves the last round's
+    feedback unfed, so a neighbour may still be holding a T-junction open, and `converged` is
+    False. `report["merge_rounds"]` says how many rounds ran either way.
 
     `report` keys: `regions_merged`, `regions_skipped` (reason -> count, only non-zero reasons,
     from `overlap` / `new_vertex` / `invalid_polygon` / `area_grew`), `tris_before`, `tris_after`,
     `vertices_dropped` (welded vertices used by an input face and by no output face),
-    `max_area_rel_error`, `faces_copied`, `merge_rounds` and `keep_all_regions` (how many regions
-    took the `keep_all` fallback in any round of the loop).
+    `max_area_rel_error`, `faces_copied`, `merge_rounds`, `keep_all_regions` (how many regions took
+    the `keep_all` fallback in any round of the loop) and `converged`.
     """
     flat = _validated_materials(flat_materials)
     welded_to_original = _welded_to_original(mesh, topo)
@@ -117,7 +121,8 @@ def merge_regions(mesh: MeshData, topo: Topology, flat_materials: Iterable[int] 
         needed = _needed_vertices(topo, copied + _late_faces(plans, fed_back), plans, collinear_tol,
                                   kept_whole)
         builds, late, keep_all, max_area_rel_error = _build_regions(plans, needed, collinear_tol)
-        if (set(late) <= set(fed_back) and set(keep_all) <= kept_whole) or rounds >= MAX_ROUNDS:
+        converged = set(late) <= set(fed_back) and set(keep_all) <= kept_whole
+        if converged or rounds >= MAX_ROUNDS:
             break
         fed_back.update(late)
         kept_whole.update(keep_all)
@@ -141,6 +146,7 @@ def merge_regions(mesh: MeshData, topo: Topology, flat_materials: Iterable[int] 
         "max_area_rel_error": float(max_area_rel_error),
         "merge_rounds": int(rounds),
         "keep_all_regions": len(kept_whole | set(keep_all)),
+        "converged": bool(converged),
     })
     return out
 
