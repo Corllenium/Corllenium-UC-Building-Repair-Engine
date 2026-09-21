@@ -84,25 +84,23 @@ def merge_regions(mesh: MeshData, topo: Topology, flat_materials: Iterable[int] 
     `report` keys: `regions_merged`, `regions_skipped` (reason -> count, only non-zero reasons,
     from `overlap` / `new_vertex` / `invalid_polygon` / `area_grew`), `tris_before`, `tris_after`,
     `vertices_dropped` (welded vertices used by an input face and by no output face),
-    `max_area_rel_error`, plus `faces_copied` and `interior_vertices_pinned`.
+    `max_area_rel_error` and `faces_copied`.
     """
     flat = _validated_materials(flat_materials)
     welded_to_original = _welded_to_original(mesh, topo)
 
     plans, copied, skipped = _plan_regions(topo, grid_size, snap_tol)
-    needed, attached = _needed_vertices(topo, copied, plans, collinear_tol)
+    needed = _needed_vertices(topo, copied, plans, collinear_tol)
 
-    builds, pinned = [], 0
+    builds = []
     max_area_rel_error = 0.0
     for plan in plans:
         tris, reason = _triangulate(plan, needed, collinear_tol)
         if tris is not None:
-            tris, added = _insert_pins(plan, attached, tris)
             merged_area = _signed_area_sum(plan.vertex_xy, plan.vertex_ids, tris)
             if merged_area > plan.original_area * (1.0 + _AREA_REL_TOL):
                 tris, reason = None, "area_grew"
             else:
-                pinned += added
                 max_area_rel_error = max(
                     max_area_rel_error,
                     abs(merged_area - plan.original_area) / max(plan.original_area, 1e-300))
@@ -124,7 +122,6 @@ def merge_regions(mesh: MeshData, topo: Topology, flat_materials: Iterable[int] 
         "tris_after": int(out.mesh.n_faces),
         "vertices_dropped": int((used_before & ~used_after).sum()),
         "max_area_rel_error": float(max_area_rel_error),
-        "interior_vertices_pinned": int(pinned),
     })
     return out
 
@@ -280,29 +277,24 @@ def _dedup_cycle(ids: np.ndarray) -> np.ndarray:
 
 
 def _needed_vertices(topo: Topology, copied: list[int], plans: list[_Plan],
-                     collinear_tol: float) -> tuple[np.ndarray, np.ndarray]:
-    """Returns `(needed, attached)`.
-
-    `needed` decides ring membership: a welded vertex is needed when it is a corner in ANY ring, or
-    is used by any non-degenerate face copied through, or lies ON (strictly between the endpoints
-    of) an edge classed OPEN, NONMANIFOLD or TJUNCTION. Deciding it globally is what keeps both
-    sides of a shared border identical, so no new T-junction can appear.
+                     collinear_tol: float) -> np.ndarray:
+    """`needed` decides RING membership: a welded vertex is needed when it is a corner in ANY ring,
+    or is used by any non-degenerate face copied through, or lies ON (strictly between the
+    endpoints of) an edge classed OPEN, NONMANIFOLD or TJUNCTION. Deciding it globally is what
+    keeps both sides of a shared border identical, so no new T-junction can appear.
 
     "Lies on" is the interior of the edge, not its endpoints: a 10x10 `grid_slab` has 40 boundary
     vertices that are endpoints of OPEN edges, and pinning those would give 38 triangles instead of
     the 2 the spec requires.
 
-    `attached` is the strict subset that another FACE still uses -- a wall foot, the corner of an
-    excluded overlapping triangle. Only those are worth re-inserting when they land in a merged
-    polygon's interior (`_insert_pins`), because that is where real geometry meets the surface. An
-    interior T-vertex pins nothing: the merged polygon is continuous across it, so keeping it only
-    costs triangles (measured: +242 of 2,293 on file A)."""
+    Nothing is ever pinned in a region's INTERIOR. A wall standing on the interior of a slab needs
+    no shared vertex: the slab surface is continuous beneath it, perpendicular contact cannot open
+    a crack, and an interior vertex would make the region impossible to export as one polygon
+    later. A vertex a merged region needs is a vertex on its border."""
     needed = np.zeros(len(topo.positions_w), bool)
-    attached = np.zeros(len(topo.positions_w), bool)
     for face in copied:
         if topo.ok[face]:
-            attached[topo.face_w[face]] = True
-    needed |= attached
+            needed[topo.face_w[face]] = True
     pinning = (EDGE_OPEN, EDGE_NONMANIFOLD, EDGE_TJUNCTION)
     for edge, on_edge in topo.t_vertices.items():
         if topo.edge_class[edge] in pinning:
@@ -315,7 +307,7 @@ def _needed_vertices(topo: Topology, copied: list[int], plans: list[_Plan],
                     continue
                 xy = plan.vertex_xy[np.searchsorted(plan.vertex_ids, ring)]
                 needed[ring[_corner_mask(xy, collinear_tol)]] = True
-    return needed, attached
+    return needed
 
 
 def _corner_mask(xy: np.ndarray, tol: float) -> np.ndarray:
@@ -391,50 +383,6 @@ def _cdt_triangles(polygon, plan: _Plan, rings: list[np.ndarray]):
             triangle.append(vertex)
         out.append(tuple(triangle))
     return out
-
-
-def _insert_pins(plan: _Plan, attached: np.ndarray, triangles: list) -> tuple[list, int]:
-    """An `attached` vertex of the region that no ring carries lies strictly inside the merged
-    polygon -- a wall foot, the corner of an excluded overlapping triangle. Split the triangle that
-    contains it so the vertex stays part of this region's triangulation. Because EVERY triangle
-    containing the point is split, both sides of a shared edge stay consistent. Splitting uses only
-    existing vertices and preserves area exactly."""
-    carried = {v for triangle in triangles for v in triangle}
-    pins = [int(v) for v in plan.vertex_ids if attached[v] and v not in carried]
-    added = 0
-    for pin in pins:
-        point = plan.vertex_xy[np.searchsorted(plan.vertex_ids, pin)]
-        split, hit = [], False
-        for triangle in triangles:
-            parts = _split_at(plan, triangle, pin, point)
-            if parts is None:
-                split.append(triangle)
-            else:
-                split.extend(parts)
-                hit = True
-        if hit:
-            triangles = split
-            added += 1
-    return triangles, added
-
-
-def _split_at(plan: _Plan, triangle: tuple, pin: int, point: np.ndarray):
-    """`None` when `point` is outside `triangle`; otherwise the 3 (interior) or 2 (on an edge)
-    sub-triangles that replace it."""
-    rows = np.searchsorted(plan.vertex_ids, np.asarray(triangle, np.int64))
-    a, b, c = plan.vertex_xy[rows]
-    total = _cross(a, b, c)
-    sign = 1.0 if total >= 0 else -1.0
-    total *= sign
-    if total <= 0.0:
-        return None
-    parts = np.array([_cross(point, b, c), _cross(a, point, c), _cross(a, b, point)]) * sign
-    tol = 1e-9 * total
-    if (parts < -tol).any():
-        return None
-    corners = [(pin, triangle[1], triangle[2]), (triangle[0], pin, triangle[2]),
-               (triangle[0], triangle[1], pin)]
-    return [t for t, part in zip(corners, parts) if part > tol]
 
 
 def _cross(a: np.ndarray, b: np.ndarray, c: np.ndarray) -> float:

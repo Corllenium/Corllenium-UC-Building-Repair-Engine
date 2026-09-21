@@ -67,14 +67,23 @@ def test_two_slabs_sharing_border_drop_all_nine_shared_vertices():
     assert abs(area(r.mesh) - area(m)) <= 1e-9 * area(m)
 
 
-def test_wall_foot_vertices_survive_in_the_slab_triangulation():
+def test_wall_foot_on_the_slab_border_survives_and_the_interior_foot_does_not():
     m = slab_with_wall()
     r = merged(m)
     border, foot = 5 * 11, 5 * 11 + 3
     slab = r.mesh.face_v[np.abs(r.mesh.positions[r.mesh.face_v][:, :, 2]).max(axis=1) == 0.0]
-    # the 4 slab corners plus BOTH feet: the border foot on the ring, the interior foot re-inserted
-    assert set(int(v) for v in slab.reshape(-1)) == {0, 10, 110, 120, border, foot}
-    assert r.report["interior_vertices_pinned"] == 1 and len(slab) == 5
+    # Hand count, 3 triangles. The slab is one 100x100 square region with no holes, so it
+    # triangulates into `n + 2h - 2 = n - 2` triangles over its n surviving RING vertices. The
+    # corner pass keeps the 4 square corners, plus (0, 50) -- the wall foot that lies ON the
+    # slab's border, which the copied-through wall face still uses. n = 5 -> 3 triangles: the
+    # 2 the bare slab would give, plus 1 for that surviving border vertex.
+    # The other foot, (30, 50), is INTERIOR to the slab. It is not on any ring, and it needs no
+    # shared vertex: the slab surface is continuous beneath it and a perpendicular wall standing
+    # on it cannot open a crack. Pinning it would also make the region unexportable as one polygon.
+    assert len(slab) == 3
+    assert set(int(v) for v in slab.reshape(-1)) == {0, 10, 110, 120, border}
+    assert foot in used(r.mesh)  # still used -- by the wall face, not by the slab
+    assert "interior_vertices_pinned" not in r.report
     assert abs(area(r.mesh) - area(m)) <= 1e-9 * area(m)
 
 
@@ -159,7 +168,7 @@ def test_merged_mesh_round_trips_through_write_and_read(tmp_path):
     path = tmp_path / "merged.obj"
     write_obj(r.mesh, path)
     back = read_obj(path)
-    assert back.n_faces == r.mesh.n_faces == 6
+    assert back.n_faces == r.mesh.n_faces == 4  # 3 slab triangles + the copied-through wall face
     assert np.array_equal(back.face_v, r.mesh.face_v)
     assert np.allclose(area(back), area(m))
     # one new vn for the merged region; the copied-through wall face keeps its original -1
