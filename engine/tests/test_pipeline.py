@@ -58,6 +58,14 @@ def _fast(**overrides):
     return FixProfile(guard_size=(120, 80), n_dirs=32, **overrides)
 
 
+def _centered(mesh):
+    """analyse_topology + recentre positions_w to the bbox centre, as compute_exposure/
+    ortho_first_hit require."""
+    topo = analyse_topology(mesh)
+    centre = (topo.positions_w.min(axis=0) + topo.positions_w.max(axis=0)) / 2
+    return topo, topo.positions_w - centre
+
+
 def test_box_with_partition_removes_only_the_sealed_partition():
     m = box_with_partition()
     r = fix_object(m, {}, _FAST)
@@ -237,6 +245,26 @@ def test_flip_step_never_introduces_guard_damage():
     assert baseline.passed and reversed_input.passed
     assert baseline.guard_after_removal.totals == reversed_input.guard_after_removal.totals
     assert baseline.guard_final.totals == reversed_input.guard_final.totals
+
+
+def test_render_reuses_one_caster_across_all_26_views(monkeypatch):
+    """Task 7 perf fix: fix_object's internal `_render` (used for the before/after facade-guard
+    renders) builds ONE caster for its geometry and reuses it across all 26 views."""
+    from engine.rays.caster import EmbreeCaster
+
+    builds = []
+    real_init = EmbreeCaster.__init__
+
+    def counting_init(self, positions, faces):
+        builds.append(1)
+        real_init(self, positions, faces)
+
+    monkeypatch.setattr(EmbreeCaster, "__init__", counting_init)
+
+    m = box_with_partition()
+    topo, Pc = _centered(m)
+    fix_pipeline._render(Pc, topo.face_w, (60, 40))
+    assert len(builds) == 1
 
 
 def test_fix_object_reports_a_thin_sheet_without_touching_it():

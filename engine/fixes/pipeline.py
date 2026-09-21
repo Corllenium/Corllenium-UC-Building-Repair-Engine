@@ -33,6 +33,7 @@ from engine.guard.compare import GuardReport, compare_views, face_planes, guard_
 from engine.guard.views import VIEWS_26, ortho_first_hit
 from engine.model import MeshData
 from engine.pipeline import analyse_topology, flat_material_indices
+from engine.rays.caster import ReusableCaster
 from engine.topo.weld import weld_exact
 from engine.vis.exposure import EXP_HIDDEN, EXP_SLIT, classify_exposure, compute_side_exposure
 
@@ -102,7 +103,10 @@ def _total_area(positions: np.ndarray, face_v: np.ndarray) -> float:
 
 def _render(positions_c: np.ndarray, faces: np.ndarray, size: tuple[int, int]):
     ids = np.arange(len(faces), dtype=np.int64)
-    return [(v, ortho_first_hit(positions_c, faces, ids, v, positions_c, size)) for v in VIEWS_26]
+    # ReusableCaster: one embree BVH build for this geometry, reused across all 26 views.
+    caster_factory = ReusableCaster()
+    return [(v, ortho_first_hit(positions_c, faces, ids, v, positions_c, size, caster_factory))
+            for v in VIEWS_26]
 
 
 def fix_object(mesh: MeshData, flatness: dict[str, float], profile: FixProfile = FixProfile()) -> FixResult:

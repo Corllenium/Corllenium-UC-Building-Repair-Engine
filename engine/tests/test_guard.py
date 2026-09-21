@@ -586,6 +586,36 @@ def test_guard_feedback_no_candidates_is_a_noop():
     assert len(history) == 1  # stops immediately: 0 failures
 
 
+def test_guard_feedback_reuses_one_caster_per_geometry_not_per_view():
+    """Task 7 perf fix: a caster is built once for the BEFORE render (26 views, one `faces`
+    array) and once per round's AFTER render (26 views, one `keep_faces` array each) -- not once
+    per view. Results (the mask) must stay exactly what they were before this optimisation."""
+    from engine.rays.caster import EmbreeCaster
+
+    m = box_with_partition()
+    topo, Pc = _centered_topo(m)
+    faces = topo.face_w
+    depth_tol = _depth_tol(topo)
+    candidates = np.zeros(len(faces), dtype=bool)
+    candidates[[12, 13]] = True
+    candidates[0] = True  # forces at least 2 rounds (round 0 restores face 0)
+
+    builds = []
+
+    class CountingCaster(EmbreeCaster):
+        def __init__(self, positions, faces_):
+            builds.append(1)
+            super().__init__(positions, faces_)
+
+    mask, history = guard_feedback(candidates, Pc, faces, m.face_material, frozenset(), depth_tol,
+                                    strict=True, views=VIEWS_26, size=_SIZE,
+                                    caster_factory=CountingCaster)
+
+    assert len(history) >= 2
+    assert len(builds) == 1 + len(history)  # 1 for BEFORE, 1 per round's AFTER -- never 26x that
+    assert mask.tolist() == [i in (12, 13) for i in range(len(faces))]
+
+
 # ---------------------------------------------------------------------------
 # render.py: save_triptych
 # ---------------------------------------------------------------------------
@@ -610,3 +640,74 @@ def test_save_triptych_writes_three_panel_png(tmp_path):
     from PIL import Image
     img = np.array(Image.open(out))
     assert img.shape == (30, 40 * 3, 3)
+
+
+def _face_normals(positions, faces):
+    tri = positions[faces]
+    n = np.cross(tri[:, 1] - tri[:, 0], tri[:, 2] - tri[:, 0])
+    length = np.linalg.norm(n, axis=1)
+    out = np.zeros_like(n)
+    safe = length > 0
+    out[safe] = n[safe] / length[safe, None]
+    return out
+
+
+def test_save_triptych_shades_before_and_after_panels_by_face_normal(tmp_path):
+    """Task 7 fix: with normals given, BEFORE/AFTER panels are Lambert-shaded (not flat grey), so
+    two differently-oriented but equally-hit faces render as different pixel colours."""
+    m = box_with_partition()
+    topo, Pc = _centered_topo(m)
+    faces, ids = topo.face_w, np.arange(len(topo.face_w))
+    view = VIEWS_26[0]
+    size = (60, 40)
+    before = ortho_first_hit(Pc, faces, ids, view, Pc, size=size)
+    after = ortho_first_hit(Pc, faces, ids, view, Pc, size=size)
+    codes = classify_pixels(before[0], before[1], after[0], after[1], m.face_material, m.face_material,
+                             frozenset(), _depth_tol(topo), allow_depth_fallback=True)
+    normals = _face_normals(Pc, faces)
+
+    flat_out = tmp_path / "flat.png"
+    shaded_out = tmp_path / "shaded.png"
+    save_triptych(flat_out, before, after, codes)
+    save_triptych(shaded_out, before, after, codes, normals_before=normals, normals_after=normals)
+
+    from PIL import Image
+    flat_img = np.array(Image.open(flat_out))
+    shaded_img = np.array(Image.open(shaded_out))
+    assert flat_img.shape == shaded_img.shape
+    w = size[0]
+    # BEFORE panel (first third) differs once shading is applied -- it is no longer flat grey.
+    assert not np.array_equal(flat_img[:, :w], shaded_img[:, :w])
+    # the AFTER panel (second third) is identical to BEFORE here (before == after geometry), and
+    # both got the SAME per-face shading, so panel 1 and panel 2 of the shaded image also match.
+    assert np.array_equal(shaded_img[:, :w], shaded_img[:, w:2 * w])
+    hit = np.isfinite(before[0])
+    if hit.any():
+        # a shaded model pixel is not simply the flat grey model colour.
+        assert not np.array_equal(shaded_img[:, :w][hit], flat_img[:, :w][hit])
+
+
+def test_save_triptych_diff_panel_is_unaffected_by_shading():
+    """The DIFF panel stays a flat, light-grey model with red/amber overlays regardless of
+    whether normals are supplied -- shading only applies to BEFORE/AFTER."""
+    m = box_with_partition()
+    topo, Pc = _centered_topo(m)
+    faces, ids = topo.face_w, np.arange(len(topo.face_w))
+    view = VIEWS_26[0]
+    size = (60, 40)
+    before = ortho_first_hit(Pc, faces, ids, view, Pc, size=size)
+    after = ortho_first_hit(Pc, faces, ids, view, Pc, size=size)
+    codes = classify_pixels(before[0], before[1], after[0], after[1], m.face_material, m.face_material,
+                             frozenset(), _depth_tol(topo), allow_depth_fallback=True)
+    normals = _face_normals(Pc, faces)
+
+    import tempfile
+    from pathlib import Path
+    from PIL import Image
+    with tempfile.TemporaryDirectory() as tmp:
+        p1, p2 = Path(tmp) / "a.png", Path(tmp) / "b.png"
+        save_triptych(p1, before, after, codes)
+        save_triptych(p2, before, after, codes, normals_before=normals, normals_after=normals)
+        img1, img2 = np.array(Image.open(p1)), np.array(Image.open(p2))
+        w = size[0]
+        assert np.array_equal(img1[:, 2 * w:], img2[:, 2 * w:])

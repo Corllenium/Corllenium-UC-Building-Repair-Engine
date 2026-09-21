@@ -54,6 +54,30 @@ class EmbreeCaster:
         return tri, t
 
 
+class ReusableCaster:
+    """Wraps a `caster_factory` to build at most one underlying caster per distinct `(positions,
+    faces)` array-object PAIR (identity, `is` -- not equality), returning the cached instance for
+    repeat calls with the SAME objects. A caller that renders many views of the SAME geometry (a
+    26-view guard pass, `guard_feedback`'s per-round `after` render, `one_sided_holes`) was
+    building a fresh `EmbreeCaster` -- and its embree BVH -- once per view; that construction, not
+    the ray casts themselves, was the dominant cost of the ~30s-per-object pipeline. A new pair of
+    objects (a different round's kept faces, a different mesh) still builds fresh: this is a
+    size-1 cache, not a general memoiser. Results are bit-identical to building fresh every call
+    -- only construction is skipped, never a ray-cast."""
+
+    def __init__(self, factory=EmbreeCaster):
+        self._factory = factory
+        self._positions = None
+        self._faces = None
+        self._caster = None
+
+    def __call__(self, positions: np.ndarray, faces: np.ndarray):
+        if positions is not self._positions or faces is not self._faces:
+            self._positions, self._faces = positions, faces
+            self._caster = self._factory(positions, faces)
+        return self._caster
+
+
 class BruteCaster:
     """Moller-Trumbore ray/triangle intersection, ported from `spike/04_front_hit_oracle.py`
     (`brute`) and generalised to a per-ray direction. float64, chunked by 256 rays, hit when

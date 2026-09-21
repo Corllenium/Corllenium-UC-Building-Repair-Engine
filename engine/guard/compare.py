@@ -14,7 +14,7 @@ from typing import Iterable, Sequence
 import numpy as np
 
 from engine.guard.views import VIEWS_26, HitBuffers, ortho_first_hit
-from engine.rays.caster import EmbreeCaster
+from engine.rays.caster import EmbreeCaster, ReusableCaster
 
 # Per-pixel verdict codes, in priority order -- see `classify_pixels`.
 PX_OK = 0
@@ -394,13 +394,19 @@ def guard_feedback(candidates: np.ndarray, positions_c: np.ndarray, faces: np.nd
     confirmed removable -- subset of `candidates`. `history` is one dict per round:
     `{"round", "candidates_remaining", "failing_pixels", "restored"}`, where
     `candidates_remaining` is the still-marked-for-removal count going INTO that round (before
-    that round's restores are applied)."""
+    that round's restores are applied).
+
+    `caster_factory` is wrapped in a `ReusableCaster` internally, so the SAME geometry (the
+    `faces` array for the BEFORE render, one `keep_faces` array per round for its AFTER render) is
+    built into a caster ONCE and reused across all of `views`, instead of once per view -- results
+    are bit-identical either way, only construction is skipped."""
     candidates = np.asarray(candidates, dtype=bool)
     positions_c = np.asarray(positions_c, dtype=np.float64)
     faces = np.asarray(faces, dtype=np.int64)
     face_ids = np.arange(len(faces), dtype=np.int64)
 
-    before = [(view, ortho_first_hit(positions_c, faces, face_ids, view, positions_c, size, caster_factory))
+    before_caster = ReusableCaster(caster_factory)
+    before = [(view, ortho_first_hit(positions_c, faces, face_ids, view, positions_c, size, before_caster))
               for view in views]
     planes = face_planes(positions_c, faces)  # geometry never changes here, only face presence
 
@@ -413,9 +419,10 @@ def guard_feedback(candidates: np.ndarray, positions_c: np.ndarray, faces: np.nd
 
         restore = set()
         failing_pixels = 0
+        after_caster = ReusableCaster(caster_factory)
         for view, b in before:
             a = ortho_first_hit(positions_c, keep_faces, keep_ids, view, positions_c,
-                                 size, caster_factory)
+                                 size, after_caster)
             codes = classify_pixels(b.depth, b.tri, a.depth, a.tri,
                                      face_material, face_material, flat_materials, depth_tol,
                                      origins=b.origins, direction=b.direction,

@@ -16,7 +16,7 @@ import numpy as np
 
 from engine.guard.views import ortho_first_hit
 from engine.model import MeshData
-from engine.rays.caster import EmbreeCaster
+from engine.rays.caster import EmbreeCaster, ReusableCaster
 
 ORIENT_OK = 0
 ORIENT_FLIP = 1
@@ -98,11 +98,13 @@ def one_sided_holes(positions_c: np.ndarray, faces: np.ndarray, face_ids: np.nda
     if len(face_ids):
         id_to_local[face_ids] = np.arange(len(face_ids), dtype=np.int64)
 
+    # ReusableCaster: one embree BVH build for this geometry, reused across every view.
+    reused_caster = ReusableCaster(caster_factory)
     total = 0
     for view in views:
         d = np.asarray(view, dtype=np.float64)
         d = d / np.linalg.norm(d)
-        buf = ortho_first_hit(positions_c, faces, face_ids, view, positions_c, size, caster_factory)
+        buf = ortho_first_hit(positions_c, faces, face_ids, view, positions_c, size, reused_caster)
         hit = buf.tri >= 0
         if not hit.any():
             continue

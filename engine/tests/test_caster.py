@@ -1,6 +1,6 @@
 import numpy as np
 
-from engine.rays.caster import BruteCaster, EmbreeCaster
+from engine.rays.caster import BruteCaster, EmbreeCaster, ReusableCaster
 from engine.tests.fixtures.build import cube, grid_slab
 
 
@@ -68,3 +68,51 @@ def test_embree_and_brute_oracle_agree_on_random_rays():
     both = hit_e & hit_b
     assert both.any()
     assert np.abs(t_e[both] - t_b[both]).max() <= 1e-3
+
+
+# ---------------------------------------------------------------------------------------------
+# Task 7: ReusableCaster -- build one caster per distinct geometry, reuse it across many calls
+# with the SAME (positions, faces) objects, so a 26-view render loop doesn't rebuild the BVH once
+# per view. Results must stay bit-identical to building fresh every call.
+# ---------------------------------------------------------------------------------------------
+
+def test_reusable_caster_returns_the_identical_instance_for_the_same_geometry_objects():
+    m = cube(10.0)
+    factory = ReusableCaster(EmbreeCaster)
+    c1 = factory(m.positions, m.face_v)
+    c2 = factory(m.positions, m.face_v)
+    assert c1 is c2
+    assert isinstance(c1, EmbreeCaster)
+
+
+def test_reusable_caster_rebuilds_for_a_different_geometry_object():
+    m1, m2 = cube(10.0), cube(20.0)
+    factory = ReusableCaster(EmbreeCaster)
+    c1 = factory(m1.positions, m1.face_v)
+    c2 = factory(m2.positions, m2.face_v)
+    c3 = factory(m1.positions, m1.face_v)  # switching back rebuilds again -- a size-1 cache
+    assert c1 is not c2
+    assert c3 is not c1
+
+
+def test_reusable_caster_wraps_any_factory_and_only_skips_construction_not_ray_casts():
+    m = cube(10.0)
+    builds = []
+
+    class CountingBrute(BruteCaster):
+        def __init__(self, positions, faces):
+            builds.append(1)
+            super().__init__(positions, faces)
+
+    factory = ReusableCaster(CountingBrute)
+    origins = np.array([[5.0, 5.0, 20.0], [100.0, 100.0, 100.0]])
+    directions = np.tile([0.0, 0.0, -1.0], (2, 1))
+
+    tri_a, t_a = factory(m.positions, m.face_v).first_hit(origins, directions)
+    tri_b, t_b = factory(m.positions, m.face_v).first_hit(origins, directions)
+
+    assert len(builds) == 1  # one construction serves both calls
+    assert np.array_equal(tri_a, tri_b) and np.array_equal(t_a, t_b)
+    # bit-identical to a fresh caster built directly, not just internally consistent
+    fresh_tri, fresh_t = BruteCaster(m.positions, m.face_v).first_hit(origins, directions)
+    assert np.array_equal(tri_a, fresh_tri) and np.array_equal(t_a, fresh_t)
