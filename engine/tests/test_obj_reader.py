@@ -47,3 +47,17 @@ def test_name_falls_back_to_stem(tmp_path):
     p = tmp_path / "thing.obj"
     p.write_text("v 0 0 0\nv 1 0 0\nv 0 1 0\nf 1 2 3\n")
     assert read_obj(p).name == "thing"
+
+
+def test_rejects_exponent_form_coordinates(tmp_path):
+    p = tmp_path / "e.obj"
+    p.write_text("v 0 0 0\nv 1e-05 0 0\nv 1 0 0\nf 1 2 3\n")
+    with pytest.raises(ObjFormatError, match="line 2"):
+        read_obj(p)
+
+
+def test_rejects_uppercase_exponent_form_coordinates(tmp_path):
+    p = tmp_path / "e2.obj"
+    p.write_text("v 0 0 0\nv 1 0 0\nv 2.5E+02 0 0\nf 1 2 3\n")
+    with pytest.raises(ObjFormatError, match="line 3"):
+        read_obj(p)

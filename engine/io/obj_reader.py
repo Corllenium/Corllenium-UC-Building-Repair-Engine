@@ -35,6 +35,11 @@ def read_obj(path: Path) -> MeshData:
             rest = rest.strip()
             if head == "v":
                 toks = rest.split()[:3]
+                for t in toks:
+                    if "e" in t or "E" in t:
+                        raise ObjFormatError(
+                            f"line {line_no}: exponent-form coordinate {t!r} is not supported "
+                            "(breaks printed-decimal and significant-digit detection, and therefore the exact weld)")
                 v.append([float(t) for t in toks])
                 for t in toks:
                     if "." in t:
