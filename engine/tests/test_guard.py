@@ -360,12 +360,19 @@ def _block(drop=()):
     return tri
 
 
-def _flicker_report(drop, cap, strict=True):
+#: A trivial, always-constructible (positions, faces) pair for tests that must supply SOME
+#: geometry to satisfy `edge_flicker_cap > 0`'s requirement but never actually exercise the
+#: coverage probe (no flicker candidate exists in that scenario, so it is never ray-cast).
+_DUMMY_GEOMETRY = (np.array([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, 1.0, 0.0]]), np.array([[0, 1, 2]], np.int64))
+
+
+def _flicker_report(drop, cap, strict=True, geometry=None):
     before, after = _buffers(_block()), _buffers(_block(drop))
     mat = np.zeros(1, np.int64)
+    kw = {} if geometry is None else {"geometry_before": geometry, "geometry_after": geometry}
     return compare_views([(_FLICKER_VIEW, before)], [(_FLICKER_VIEW, after)], mat, mat,
                           frozenset({0}), 0.15, strict=strict, edge_flicker_cap=cap,
-                          allow_depth_fallback=True)  # synthetic buffers: there is no geometry
+                          allow_depth_fallback=True, **kw)  # synthetic buffers: there is no real geometry
 
 
 def test_silhouette_pixel_is_classed_edge_flicker_and_fails_at_cap_zero():
@@ -377,23 +384,26 @@ def test_silhouette_pixel_is_classed_edge_flicker_and_fails_at_cap_zero():
     assert int((codes == PX_EDGE_FLICKER).sum()) == 1
     assert int((codes == PX_HOLE).sum()) == 0
 
-    report = _flicker_report([(25, 25)], cap=0.0)
+    report = _flicker_report([(25, 25)], cap=0.0)  # cap 0.0 needs no geometry
     assert report.totals["edge_flicker"] == 1 and report.totals["holes"] == 0
     assert report.views[0].edge_flicker == 1
     assert not report.passed  # the default cap fails a flicker pixel exactly like a hole
 
 
-def test_edge_flicker_within_the_cap_passes():
-    report = _flicker_report([(25, 25)], cap=1e-4)  # 1 <= 1e-4 * 22,500 = 2.25
-    assert report.totals["edge_flicker"] == 1
-    assert report.passed
+def test_edge_flicker_cap_above_zero_without_geometry_is_an_error():
+    """A would-be hole is only ever classed flicker by the 3x3 neighbourhood test when no
+    geometry is given, and that test alone cannot tell a real hole from the silhouette -- safe
+    only when every flicker pixel fails anyway, i.e. cap 0.0. A caller asking for tolerance
+    without supplying the geometry the coverage check needs gets an error, not a silent guess."""
+    with pytest.raises(ValueError) as excinfo:
+        _flicker_report([(25, 25)], cap=1e-4)
+    assert "geometry" in str(excinfo.value)
+    assert "edge_flicker_cap" in str(excinfo.value)
 
-
-def test_edge_flicker_above_the_cap_fails():
-    drop = [(25, 25), (25, 174), (174, 25), (174, 174)]
-    report = _flicker_report(drop, cap=1e-4)  # 4 > 2.25
-    assert report.totals["edge_flicker"] == 4
-    assert not report.passed
+    # cap 0.0 is unaffected -- still no geometry required
+    _flicker_report([(25, 25)], cap=0.0)
+    # geometry supplied (even a placeholder never actually ray-cast here) lifts the error
+    _flicker_report([(25, 25)], cap=1e-4, geometry=_DUMMY_GEOMETRY)
 
 
 def test_interior_hole_fails_at_any_cap():
@@ -404,7 +414,9 @@ def test_interior_hole_fails_at_any_cap():
     assert int((codes == PX_HOLE).sum()) == 1 and int((codes == PX_EDGE_FLICKER).sum()) == 0
 
     for cap in (0.0, 1e-4, 1.0):
-        report = _flicker_report([(100, 100)], cap=cap)
+        # not on the 3x3 silhouette, so never a flicker candidate -- the coverage probe geometry
+        # (required for cap > 0) is never actually ray-cast in this scenario.
+        report = _flicker_report([(100, 100)], cap=cap, geometry=_DUMMY_GEOMETRY if cap > 0 else None)
         assert report.totals["holes"] == 1 and report.totals["edge_flicker"] == 0
         assert not report.passed
 
@@ -450,13 +462,23 @@ def test_a_thousandth_of_an_inch_of_boundary_shift_is_edge_flicker():
     assert int(flipped.sum()) == 1 and flipped[r, c]
 
     mat = np.zeros(2, np.int64)
-    report = compare_views([(_FLAT_VIEW, before)], [(_FLAT_VIEW, after)], mat, mat, frozenset({0}),
-                            0.15, strict=True, plane_before=face_planes(P_before, _QUAD),
-                            plane_after=face_planes(P_after, _QUAD),
-                            geometry_before=(P_before, _QUAD), geometry_after=(P_after, _QUAD))
+    kw = dict(strict=True, plane_before=face_planes(P_before, _QUAD), plane_after=face_planes(P_after, _QUAD),
+              geometry_before=(P_before, _QUAD), geometry_after=(P_after, _QUAD))
+    report = compare_views([(_FLAT_VIEW, before)], [(_FLAT_VIEW, after)], mat, mat, frozenset({0}), 0.15, **kw)
 
     assert report.totals["edge_flicker"] == 1 and report.totals["holes"] == 0
     assert report.passed is False  # still fails at the default cap of 0.0
+
+    # cap tolerance, with the real geometry `edge_flicker_cap > 0` now requires: 1 flicker pixel
+    # of 949 model pixels -- a cap just above 1/949 tolerates it, one just below does not.
+    model_px = int((before.tri >= 0).sum())
+    assert model_px == 949
+    above = compare_views([(_FLAT_VIEW, before)], [(_FLAT_VIEW, after)], mat, mat, frozenset({0}),
+                           0.15, edge_flicker_cap=2e-3, **kw)
+    assert above.totals["edge_flicker"] == 1 and above.passed is True
+    below = compare_views([(_FLAT_VIEW, before)], [(_FLAT_VIEW, after)], mat, mat, frozenset({0}),
+                           0.15, edge_flicker_cap=5e-4, **kw)
+    assert below.totals["edge_flicker"] == 1 and below.passed is False
 
 
 def test_compare_views_refuses_renders_from_a_different_camera_frame():
@@ -512,11 +534,12 @@ def test_a_removed_face_beside_a_pre_existing_gap_is_a_hole_at_any_cap():
     planes = face_planes(P, faces_before)
     kw = dict(strict=True, plane_before=planes, plane_after=face_planes(P, faces_after))
 
-    # the 3x3 test ALONE cannot tell this from a silhouette: every pixel is tolerated at a cap
-    blind = compare_views([(_FLAT_VIEW, before)], [(_FLAT_VIEW, after)], mat, mat, frozenset({0}),
-                           0.15, edge_flicker_cap=1.0, **kw)
-    assert blind.totals["edge_flicker"] == removed and blind.totals["holes"] == 0
-    assert blind.passed is True
+    # the 3x3 test ALONE cannot tell this from a silhouette (every pixel would be tolerated at a
+    # cap), which is exactly why a nonzero cap without geometry is now a hard error rather than a
+    # silent wrong answer.
+    with pytest.raises(ValueError, match="geometry"):
+        compare_views([(_FLAT_VIEW, before)], [(_FLAT_VIEW, after)], mat, mat, frozenset({0}),
+                       0.15, edge_flicker_cap=1.0, **kw)
 
     # with the sub-pixel coverage check, 25 of 25 sub-rays are lost: a hole at every cap
     for cap in (0.0, 1e-4, 1.0):

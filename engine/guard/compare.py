@@ -305,6 +305,9 @@ def compare_views(before: Sequence[RenderedView], after: Sequence[RenderedView],
     while `edge_flicker <= edge_flicker_cap * model_px`, otherwise all of them count as failures.
     At the default 0.0 every flicker pixel fails exactly like a hole, so hidden-face removal keeps
     its zero-tolerance behaviour; an INTERIOR hole is never a flicker pixel and always fails.
+    `edge_flicker_cap > 0.0` REQUIRES both `geometry_before` and `geometry_after`, and raises
+    `ValueError` otherwise: without them the flicker decision rests on the 3x3 neighbourhood test
+    alone, which cannot tell a real hole from the outer silhouette and is only safe at cap 0.0.
 
     `passed` is `holes + material_changed + moved_other == 0`, plus `moved_same_flat` when
     `strict`, plus the flicker pixels of any view over the cap. Every count -- `moved_same_flat`
@@ -312,6 +315,13 @@ def compare_views(before: Sequence[RenderedView], after: Sequence[RenderedView],
     silently dropped."""
     if len(before) != len(after):
         raise ValueError(f"before/after must have the same number of views, got {len(before)} vs {len(after)}")
+    if edge_flicker_cap > 0.0 and (geometry_before is None or geometry_after is None):
+        raise ValueError(
+            f"compare_views was given edge_flicker_cap={edge_flicker_cap} but no geometry_before/"
+            "geometry_after: without them the flicker decision rests on the 3x3 neighbourhood test "
+            "alone, which cannot tell a real hole from the outer silhouette and is only safe at cap "
+            "0.0. Pass geometry_before and geometry_after (positions, faces) so flicker candidates "
+            "get the sub-pixel coverage check, or use edge_flicker_cap=0.0.")
 
     caster_before = caster_factory(*geometry_before) if geometry_before is not None else None
     caster_after = caster_factory(*geometry_after) if geometry_after is not None else None
