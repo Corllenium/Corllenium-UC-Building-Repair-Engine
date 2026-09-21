@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "uc-model-fixer"
 version = "0.1.0"
 requires-python = ">=3.12,<3.13"
-dependencies = ["numpy>=2.0", "shapely>=2.1", "pillow>=10"]
+dependencies = ["numpy>=2.0", "shapely>=2.1", "pillow>=10", "trimesh>=4.5", "embreex>=4.4"]
 
 [project.optional-dependencies]
 dev = ["pytest>=8"]
