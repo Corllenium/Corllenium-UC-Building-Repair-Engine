@@ -51,8 +51,20 @@ the top surface under culling. Testing the **back** side separated two classes:
   orders it that way, spike confirms it is mandatory.
 - Most visible faces have their back exposed: the sidewalk is largely **zero-thickness sheets**,
   not closed slabs.
-- Remaining white cut-outs after flipping have no face of either orientation: real openings or
-  geometry owned by a neighbour object. Not a defect of this object.
+- **Corrected same day.** I first wrote that the white cut-outs left after flipping "have no face of
+  either orientation". Wrong. A double-sided render (`data\spike\holes__oblique_A_alone_double_sided.png`,
+  `holes__down_A_alone_double_sided.png`) shows a complete, solid sidewalk matching SketchUp. The
+  cut-outs were faces that exist but point away from the camera, hidden by my one-sided renderer.
+  The OBJ is intact. Nothing was lost in export or split.
+- What that means: those spots are covered by a **single sheet facing one way** while being seen from
+  both sides. SketchUp draws both sides. The Unity project does too (`_Cull = 0`). Under culling
+  they would be holes. 2,843 of 3,803 visible faces in file A are such sheets.
+- True holes (closed open-boundary loops, planar within 0.15 in): file A 4 loops, 9.6 in2 total.
+  File B 12 loops, 1,694 in2 total: two slab-end caps (1,212 and 339 in2) and five 28.7 in2 rectangles.
+  Demand for hole patching on these files is small.
+- **Consequence for the canvas**: default render must be double-sided, matching SketchUp and the
+  Unity project. One-sided is a diagnostic toggle, never the default, or the tool misreports
+  healthy geometry as destroyed.
 
 Full pipeline (drop zero-area, flip reversed, delete interior, merge ignoring UV, corners only):
 **A 4,692 -> 3,111 (33.7 %), B 7,227 -> 3,003 (58.45 %)**. G2's "at least one file >= 40 %" is met by B.
