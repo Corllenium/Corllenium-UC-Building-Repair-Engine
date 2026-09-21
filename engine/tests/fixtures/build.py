@@ -163,6 +163,44 @@ def box_with_partition(size=10.0):
     return _mesh("box_with_partition", P, uvs, fv, fvt)
 
 
+def gridded_box(n=4, cell=2.5, uv_per_unit=0.05):
+    """A closed cube (side `s = n * cell`) with each of its 6 faces built from an `n x n` grid of
+    small coplanar triangles (`2 * n * n` per face, all consistently wound within a face), the way
+    a SketchUp export cuts a flat panel into gridlines. No face is ever hidden (every face's
+    outward hemisphere sees open space -- exposure is double-sided, so an ordinary closed box's
+    own faces are never sealed on BOTH sides the way an interior partition is); `merge_regions`
+    should collapse each of the 6 planar regions back to its minimal 2 triangles (12 total)."""
+    s = n * cell
+    P, uvs, fv, fvt = [], [], [], []
+
+    def add_face(origin, du, dv):
+        origin, du, dv = np.array(origin, float), np.array(du, float), np.array(dv, float)
+        base_p = len(P)
+        for j in range(n + 1):
+            for i in range(n + 1):
+                P.append((origin + (i / n) * du + (j / n) * dv).tolist())
+        vid = lambda i, j: base_p + j * (n + 1) + i
+        for j in range(n):
+            for i in range(n):
+                corners = [(i, j), (i + 1, j), (i + 1, j + 1), (i, j + 1)]
+                base_uv = len(uvs)
+                uvs.extend([[a * cell * uv_per_unit, b * cell * uv_per_unit] for a, b in corners])
+                v = [vid(a, b) for a, b in corners]
+                fv.append([v[0], v[1], v[2]])
+                fv.append([v[0], v[2], v[3]])
+                fvt.append([base_uv, base_uv + 1, base_uv + 2])
+                fvt.append([base_uv, base_uv + 2, base_uv + 3])
+
+    add_face((0, 0, 0), (s, 0, 0), (0, s, 0))  # z = 0
+    add_face((0, 0, s), (s, 0, 0), (0, s, 0))  # z = s
+    add_face((0, 0, 0), (s, 0, 0), (0, 0, s))  # y = 0
+    add_face((0, s, 0), (s, 0, 0), (0, 0, s))  # y = s
+    add_face((0, 0, 0), (0, s, 0), (0, 0, s))  # x = 0
+    add_face((s, 0, 0), (0, s, 0), (0, 0, s))  # x = s
+
+    return _mesh("gridded_box", P, uvs, fv, fvt)
+
+
 def open_box_with_cells(size=10.0, gap=0.2):
     """A box with the y=0 side missing (the opening); the other 5 sides are solid (10 tris,
     indices 0-9). Two square inner partitions perpendicular to y, centred in the x/z
