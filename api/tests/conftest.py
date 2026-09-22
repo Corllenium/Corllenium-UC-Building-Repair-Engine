@@ -24,6 +24,13 @@ def _database(tmp_path_factory):
     get_settings.cache_clear()
     from api.db import get_engine
     get_engine.cache_clear()
+
+    # Run alembic migrations on test database
+    from alembic import command
+    from alembic.config import Config
+    alembic_cfg = Config("alembic.ini")
+    command.upgrade(alembic_cfg, "head")
+
     yield root
 
 
