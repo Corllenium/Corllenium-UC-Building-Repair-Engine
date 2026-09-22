@@ -4,6 +4,8 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from api.db import get_db
+from api.routers.models import router as models_router
+from api.routers.source import router as source_router
 
 
 def create_app() -> FastAPI:
@@ -16,6 +18,9 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+    app.include_router(source_router)
+    app.include_router(models_router)
 
     @app.get("/api/health")
     def health(db: Session = Depends(get_db)):
