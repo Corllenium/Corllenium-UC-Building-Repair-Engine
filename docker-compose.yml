@@ -1,0 +1,19 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: fixer-db
+    environment:
+      POSTGRES_USER: ${FIXER_DB_USER:-fixer}
+      POSTGRES_PASSWORD: ${FIXER_DB_PASSWORD:-fixer}
+      POSTGRES_DB: ${FIXER_DB_NAME:-fixer}
+    ports:
+      - "127.0.0.1:5490:5432"
+    volumes:
+      - fixer_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${FIXER_DB_USER:-fixer} -d ${FIXER_DB_NAME:-fixer}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+volumes:
+  fixer_pgdata:
