@@ -444,3 +444,52 @@ def creased_pair_with_fine_band(angle_deg=3.0, band=12.0, cell=1.2, flat_len=120
     add_side((-1.0, 0.0), flat_len, -1.0, True)                          # the flat half, normal -y
     add_side((float(np.cos(a)), float(np.sin(a))), tilt_len, 1.0, False)  # the tilted half
     return _mesh("creased_pair_with_fine_band", P, uvs, fv, fvt, coord_decimals=4)
+
+
+def stacked_duplicate_slab(nx=6, ny=6, cell=10.0, uv_per_unit=0.05, top_material=0):
+    """`grid_slab` carrying a second copy of its OWN surface: every face repeated, over the SAME
+    positions, with its own `vt` rows. This is what the real walkway does -- a surface drawn
+    twice -- and `weld_exact` folds the two copies onto one set of welded vertices whatever the
+    file's own vertex ids were, so at `top_material=0` the duplicate lands in the SAME region as
+    the original and every face of it is covered by the union of the others.
+
+    `top_material=1` makes the copies a different material instead: two regions in one plane,
+    which is the z-fight this engine reports and never resolves on its own.
+
+    Faces `0 .. 2*nx*ny-1` are the original slab, the rest its copy."""
+    P, uvs, fv, fvt, fm = _grid(nx, ny, cell, uv_per_unit)
+    n = len(fv)
+    base = len(uvs)
+    uvs = uvs + list(uvs)
+    fv = fv + [list(f) for f in fv]
+    fvt = fvt + [[i + base for i in f] for f in fvt]
+    fm = fm + [top_material] * n
+    materials = ("m0",) if top_material == 0 else ("m0", "m1")
+    return _mesh("stacked_duplicate_slab", P, uvs, fv, fvt, materials=materials,
+                 face_material=fm)
+
+
+def partially_overlapping_fins(nx=10, ny=10, cell=15.0, length=50.0, uv_per_unit=0.05):
+    """`grid_slab` plus TWO coplanar triangles hinged on the slab's boundary edge from
+    `(nx*cell, 0)` to `(nx*cell, cell)` and reaching `length` beyond it, one sloping down to
+    `(nx*cell + length, 0)` and one up to `(nx*cell + length, cell)`.
+
+    They overlap each other over a diamond that is exactly HALF of each (measured: 187.5 of
+    375 sq in at the defaults) and they overlap no slab face at all, since both lie entirely
+    outside `x = nx*cell`. So they are a real same-material overlap pair in which NEITHER face is
+    covered -- the case a coverage rule must not touch. Faces `2*nx*ny` and `+1` are the fins."""
+    P, uvs, fv, fvt, fm = _grid(nx, ny, cell, uv_per_unit)
+    x0, x1 = nx * cell, nx * cell + length
+    lo, hi = nx, (nx + 1) + nx          # grid ids of (nx, 0) and (nx, 1)
+    tip_lo, tip_hi = len(P), len(P) + 1
+    P = P + [[x1, 0.0, 0.0], [x1, cell, 0.0]]
+    base = len(uvs)
+    uvs = uvs + [[x0 * uv_per_unit, 0.0], [x0 * uv_per_unit, cell * uv_per_unit],
+                 [x1 * uv_per_unit, 0.0], [x1 * uv_per_unit, cell * uv_per_unit]]
+    # wound CCW seen from +z, like every slab face: `cluster_planes` only considers a candidate
+    # whose normal is within `facing_dot` of the region's, so a fin wound the other way would
+    # land in its own plane and the fixture would prove nothing.
+    fv = fv + [[lo, tip_lo, hi], [lo, tip_hi, hi]]
+    fvt = fvt + [[base, base + 2, base + 1], [base, base + 3, base + 1]]
+    fm = fm + [0, 0]
+    return _mesh("partially_overlapping_fins", P, uvs, fv, fvt, face_material=fm)

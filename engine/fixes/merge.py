@@ -19,6 +19,7 @@ from typing import Iterable
 import numpy as np
 import shapely
 
+from engine.fixes.overlap import overlap_excluded as _overlap_excluded, region_frame as _region_frame
 from engine.model import MeshData
 from engine.pipeline import Topology
 from engine.topo.edges import EDGE_NONMANIFOLD, EDGE_OPEN, EDGE_TJUNCTION
@@ -36,10 +37,9 @@ SNAP_TOL = 1e-3
 RING_TOL_QUANTA = 1.5
 #: Most times pass 2 reruns after a feedback event (see `merge_regions`).
 MAX_ROUNDS = 10
-#: A triangle overlapping another of its own region by more than `_OVERLAP_ABS + _OVERLAP_REL *
-#: its own area` is excluded from the merge and copied through.
-_OVERLAP_ABS = 1e-9
-_OVERLAP_REL = 1e-6
+#: Rule 3, the overlap exclusion, is `engine.fixes.overlap.overlap_excluded` -- one
+#: implementation, so "these two faces overlap" means the same thing to the merge and to the
+#: duplicate-layer removal that runs before it.
 #: Relative slack on the per-region area checks (rules 6 and 9).
 _AREA_REL_TOL = 1e-6
 #: Nearest-vertex search block size, in coordinate x vertex pairs.
@@ -242,37 +242,6 @@ def _plan_regions(topo: Topology, grid_size: float,
                            vertex_xy=vertex_xy, normal=normal, pieces=pieces,
                            original_area=float(areas[keep].sum())))
     return plans, copied, skipped
-
-
-def _region_frame(positions_w: np.ndarray, face_w: np.ndarray, members: np.ndarray):
-    """Area-weighted region normal, a local origin on the region, and the `(3, 2)` projection
-    basis. Local, because the real model sits near 24,000 inches and the union runs on a 1e-4 grid."""
-    tri = positions_w[face_w[members]]
-    cross = np.cross(tri[:, 1] - tri[:, 0], tri[:, 2] - tri[:, 0]).sum(axis=0)
-    length = float(np.linalg.norm(cross))
-    if length == 0.0:
-        return None
-    normal = cross / length
-    e1, e2 = plane_basis(normal)
-    return normal, positions_w[face_w[members[0], 0]], np.stack([e1, e2], axis=1)
-
-
-def _overlap_excluded(polys: np.ndarray, areas: np.ndarray) -> np.ndarray:
-    """Per TRIANGLE, never per plane: a triangle overlapping another of its own region by more than
-    `_OVERLAP_ABS + _OVERLAP_REL * its own area` is excluded. Flagging a whole plane because of one
-    0.5 sq-inch overlap froze a 682-triangle plane in the spike."""
-    excluded = np.zeros(len(polys), bool)
-    if len(polys) < 2:
-        return excluded
-    left, right = shapely.STRtree(polys).query(polys, predicate="intersects")
-    pair = left < right
-    left, right = left[pair], right[pair]
-    if not len(left):
-        return excluded
-    shared = shapely.area(shapely.intersection(polys[left], polys[right]))
-    excluded[left[shared > _OVERLAP_ABS + _OVERLAP_REL * areas[left]]] = True
-    excluded[right[shared > _OVERLAP_ABS + _OVERLAP_REL * areas[right]]] = True
-    return excluded
 
 
 def _union(polys: np.ndarray, grid_size: float):

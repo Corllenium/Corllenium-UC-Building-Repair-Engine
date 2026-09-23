@@ -538,3 +538,47 @@ def test_fix_object_clamps_the_depth_tolerance_of_a_survey_coordinate_model(monk
     seen.clear()
     fix_object(near, {}, _fast())
     assert seen and max(seen) < 0.5                    # a small model is nowhere near the ceiling
+
+
+# ---------------------------------------------------------------------------------------------
+# O1: the duplicate-layer removal, seen from `fix_object` -- in the pipeline, before the merge,
+# with every face id reported against the ORIGINAL mesh.
+# ---------------------------------------------------------------------------------------------
+
+def test_fix_object_removes_a_duplicate_layer_and_then_merges_the_slab():
+    from engine.tests.fixtures.build import stacked_duplicate_slab
+    m = stacked_duplicate_slab(nx=3, ny=3)
+    n = m.n_faces // 2
+    r = fix_object(m, {}, _fast())
+
+    assert r.n_overlap_pairs_same == n and r.n_overlap_pairs_diff == 0
+    assert r.n_removed_overlap == n and r.n_restored_overlap == 0
+    assert r.removed_overlap.tolist() == [False] * n + [True] * n
+    assert not r.restored_overlap.any()
+    # the duplicate is what stopped the merge: with it gone the slab is one region again
+    assert r.merge_report["regions_merged"] == 1
+    assert r.merge_report["regions_skipped"] == {}
+    assert r.mesh.n_faces == 2
+    assert r.passed is True
+
+
+def test_fix_object_reports_a_different_material_overlap_with_original_face_ids():
+    from engine.tests.fixtures.build import stacked_duplicate_slab
+    m = stacked_duplicate_slab(nx=3, ny=3, top_material=1)
+    n = m.n_faces // 2
+    r = fix_object(m, {}, _fast())
+
+    assert r.n_overlap_pairs_same == 0 and r.n_overlap_pairs_diff == n
+    assert r.n_removed_overlap == 0 and not r.removed_overlap.any()
+    pairs = r.overlap_pairs_diff_material
+    assert len(pairs) == n
+    assert sorted(tuple(e["faces"]) for e in pairs) == [(f, f + n) for f in range(n)]
+    assert all(sorted(e["materials"]) == [0, 1] for e in pairs)
+
+
+def test_a_mesh_with_no_overlap_reports_zeroes_and_is_otherwise_unchanged():
+    r = fix_object(box_with_partition(), {}, _fast())
+    assert (r.n_overlap_pairs_same, r.n_overlap_pairs_diff) == (0, 0)
+    assert (r.n_removed_overlap, r.n_restored_overlap) == (0, 0)
+    assert r.overlap_pairs_diff_material == []
+    assert r.mesh.n_faces == 12 and r.passed is True

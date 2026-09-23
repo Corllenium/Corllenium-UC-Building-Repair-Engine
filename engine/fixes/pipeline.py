@@ -10,7 +10,11 @@ the strictest guard) and, when slit faces are accepted, a SECOND colour-tolerant
 state pass 1 leaves behind -> `remove_faces` -> `classify_orientation` +
 `flip_faces` on the survivors, so a face whose only real exposure was on its BACK re-joins its
 neighbours' region instead of being copied through alone -> `analyse_topology` on the flipped
-result -> `merge_regions` -> a final guard of the merged mesh against the ORIGINAL. If the merge
+result -> `engine.fixes.overlap.remove_overlaps`, which drops a duplicate layer the rest of its
+own region already covers, under the SAME strict guard (the merge can do nothing with a region
+that overlaps itself: rule 3 excludes the triangles and a region whose union still overlaps is
+skipped outright) -> `analyse_topology` again -> `merge_regions` -> a final guard of the merged
+mesh against the ORIGINAL. If the merge
 did not converge, or the final guard fails, the result falls back to the flipped-but-unmerged
 (removal-only) mesh and `passed` reflects the fallback's own guard instead -- while
 `FixResult.guard_merge_attempt` keeps the merged mesh's own report, so the failure that caused
@@ -37,6 +41,7 @@ import numpy as np
 
 from engine.fixes.merge import merge_regions
 from engine.fixes.orient import ORIENT_FLIP, ORIENT_THIN_SHEET, classify_orientation, flip_faces, one_sided_holes
+from engine.fixes.overlap import remove_overlaps
 from engine.fixes.remove import remove_faces
 from engine.guard.compare import GuardReport, compare_views, face_planes, guard_feedback
 from engine.guard.views import VIEWS_26, ortho_first_hit
@@ -108,6 +113,21 @@ class FixResult:
     #: Bool, over ORIGINAL faces: both sides exposed, roughly equally -- reported, never touched,
     #: and never flipped either (see `engine.fixes.orient.classify_orientation`).
     thin_sheets: np.ndarray
+    #: Bool, over ORIGINAL faces: a duplicate layer the rest of its own region already covered,
+    #: confirmed removable by the strict guard (see `engine.fixes.overlap`).
+    removed_overlap: np.ndarray
+    #: Bool, over ORIGINAL faces: proposed as a covered duplicate and put back by the guard, so
+    #: still in the mesh.
+    restored_overlap: np.ndarray
+    n_overlap_pairs_same: int
+    n_overlap_pairs_diff: int
+    n_removed_overlap: int
+    n_restored_overlap: int
+    #: Every DIFFERENT-material overlapping pair, as
+    #: `{"faces": [i, j], "materials": [m_i, m_j], "area": sq in}` with ORIGINAL face ids. Never
+    #: removed -- which of two colours a person wants is not a question geometry can answer --
+    #: only reported, as the input to a later preference-driven resolution.
+    overlap_pairs_diff_material: list
     #: `engine.fixes.orient.one_sided_holes` over the ORIGINAL mesh's non-degenerate faces, and
     #: again over the mesh actually shipped (`mesh`) -- pixels a one-sided renderer would still
     #: drop as a hole. `_after` is expected to be lower than `_before`.
@@ -240,8 +260,29 @@ def fix_object(mesh: MeshData, flatness: dict[str, float], profile: FixProfile =
     flipped_full = np.zeros(mesh.n_faces, dtype=bool)
     flipped_full[source_from_removal[flip_removed]] = True
 
+    # ---- covered same-material duplicate layers, under the same strict guard -----------------
+    # Before the merge and after the flip: the merge cannot do anything with a region that
+    # overlaps itself (rule 3 excludes the triangles, and a region whose union still overlaps is
+    # skipped outright), and flipping first means a face is judged in the winding it will ship in.
     topo2 = analyse_topology(mesh_flipped, flat_materials, **angles)
-    merge_result = merge_regions(mesh_flipped, topo2, flat_materials)
+    overlap_result = remove_overlaps(
+        mesh_flipped, topo2, positions_c, flat_materials, depth_tol,
+        guard_size=profile.guard_size, crack_closed_cap=profile.crack_closed_cap)
+    mesh_overlapped = overlap_result.mesh
+    source_from_overlap = source_from_removal[overlap_result.source_faces]
+
+    removed_overlap_full = np.zeros(mesh.n_faces, dtype=bool)
+    removed_overlap_full[source_from_removal[overlap_result.removed]] = True
+    restored_overlap_full = np.zeros(mesh.n_faces, dtype=bool)
+    restored_overlap_full[source_from_removal[overlap_result.restored]] = True
+    # every face id leaving this function is an ORIGINAL one
+    overlap_pairs_diff_material = [
+        {"faces": [int(source_from_removal[e["faces"][0]]), int(source_from_removal[e["faces"][1]])],
+         "materials": e["materials"], "area": e["area"]}
+        for e in overlap_result.report["overlap_pairs_diff_material"]]
+
+    topo3 = analyse_topology(mesh_overlapped, flat_materials, **angles)
+    merge_result = merge_regions(mesh_overlapped, topo3, flat_materials)
 
     # A slit-tolerant removal is a person-accepted, colour-tolerant change: both guard checks
     # below use the same strictness the removal itself used.
@@ -262,7 +303,8 @@ def fix_object(mesh: MeshData, flatness: dict[str, float], profile: FixProfile =
             crack_closed_cap=profile.crack_closed_cap,
             geometry_before=(positions_c, face_w_original), geometry_after=(positions_c, face_w_final))
 
-    guard_after_removal = _guard_against_original(mesh_flipped, edge_flicker_cap=0.0)
+    # the mesh the merge was attempted on, which is also what ships if it is rolled back
+    guard_after_removal = _guard_against_original(mesh_overlapped, edge_flicker_cap=0.0)
 
     merge_report = dict(merge_result.report)
     rolled_back_reason = None
@@ -278,16 +320,16 @@ def fix_object(mesh: MeshData, flatness: dict[str, float], profile: FixProfile =
     if rolled_back_reason is not None:
         merge_report["rolled_back"] = True
         merge_report["rolled_back_reason"] = rolled_back_reason
-        final_mesh = mesh_flipped
-        final_source_faces = [np.array([int(f)], dtype=np.int64) for f in source_from_removal]
+        final_mesh = mesh_overlapped
+        final_source_faces = [np.array([int(f)], dtype=np.int64) for f in source_from_overlap]
         final_rings: dict = {}
-        final_face_region = np.full(mesh_flipped.n_faces, -1, np.int64)
+        final_face_region = np.full(mesh_overlapped.n_faces, -1, np.int64)
         # `guard_final` describes what SHIPPED; `guard_merge_attempt` keeps the report that
         # caused the rollback, which is the only record of why the merge was thrown away.
         guard_final = _guard_against_original(final_mesh, profile.edge_flicker_cap_final)
     else:
         final_mesh = merge_result.mesh
-        final_source_faces = [source_from_removal[s].astype(np.int64) for s in merge_result.source_faces]
+        final_source_faces = [source_from_overlap[s].astype(np.int64) for s in merge_result.source_faces]
         final_rings = merge_result.rings
         final_face_region = merge_result.face_region
         guard_final = guard_merge_attempt   # the merged mesh IS the shipped mesh
@@ -314,8 +356,15 @@ def fix_object(mesh: MeshData, flatness: dict[str, float], profile: FixProfile =
         n_zero_area_dropped=n_zero_area_dropped, n_degenerate_restored=n_degenerate_restored,
         restored_degenerate=restored_degenerate_full,
         flipped=flipped_full, thin_sheets=thin_sheets_full,
+        removed_overlap=removed_overlap_full, restored_overlap=restored_overlap_full,
+        n_overlap_pairs_same=overlap_result.report["n_overlap_pairs_same"],
+        n_overlap_pairs_diff=overlap_result.report["n_overlap_pairs_diff"],
+        n_removed_overlap=overlap_result.report["n_removed_overlap"],
+        n_restored_overlap=overlap_result.report["n_restored_overlap"],
+        overlap_pairs_diff_material=overlap_pairs_diff_material,
         one_sided_holes_before=one_sided_holes_before, one_sided_holes_after=one_sided_holes_after,
-        feedback_history={"hidden": history_hidden, "slit": history_slit},
+        feedback_history={"hidden": history_hidden, "slit": history_slit,
+                          "overlap": overlap_result.history},
         guard_after_removal=guard_after_removal, guard_merge_attempt=guard_merge_attempt,
         guard_final=guard_final, strict_final=strict_final,
         face_region_final=final_face_region,
