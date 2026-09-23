@@ -153,6 +153,10 @@ def _build_report(name: str, obj_path: Path, mesh: MeshData, result: FixResult,
         "one_sided_holes_after": result.one_sided_holes_after,
         "feedback_history": result.feedback_history,
         "guard_after_removal": _guard_report_dict(result.guard_after_removal),
+        # the MERGED mesh's guard, kept even when the merge was rolled back and something else
+        # shipped -- `null` only when the merge never converged. See `FixResult`.
+        "guard_merge_attempt": (None if result.guard_merge_attempt is None
+                                 else _guard_report_dict(result.guard_merge_attempt)),
         "guard_final": _guard_report_dict(result.guard_final),
         "merge_report": dict(result.merge_report),
         "invariants": result.invariants,
@@ -163,15 +167,44 @@ def _build_report(name: str, obj_path: Path, mesh: MeshData, result: FixResult,
 # --------------------------------------------------------------------------------- guard images
 
 
+def _failing_view_indices(result: FixResult) -> list[int]:
+    """Indices into `VIEWS_26` of every view that ANY of the run's three guards -- the merge
+    attempt, the post-removal guard, the final one -- counted a failure or a flicker pixel in.
+
+    "Failure or flicker" is `holes`, `material_changed`, `moved_other`, `moved_same_flat` or
+    `edge_flicker`: `moved_same_flat` because whether it fails depends on the run's strictness,
+    and `edge_flicker` because whether it fails depends on that view's cap. `zfight_tie` and
+    `crack_closed` are never failures under any setting, so a view that only has those is not
+    listed. The guards report their views in `VIEWS_26` order, which is the order `_render`
+    built them in."""
+    bad: set[int] = set()
+    for guard in (result.guard_merge_attempt, result.guard_after_removal, result.guard_final):
+        if guard is None:
+            continue
+        for index, v in enumerate(guard.views):
+            if v.holes or v.material_changed or v.moved_other or v.moved_same_flat or v.edge_flicker:
+                bad.add(index)
+    return sorted(bad)
+
+
 def _write_guard_images(mesh: MeshData, result: FixResult, profile: FixProfile,
                         flat_materials: frozenset, topo: Topology, positions_c: np.ndarray,
                         out_dir: Path) -> None:
-    """One `guard_<view>.png` triptych per axis view: BEFORE (original mesh, shaded), AFTER
-    (final shipped mesh, shaded), DIFF (failures red, tolerated moves amber). A diagnostic image,
-    not the authoritative numbers -- it classifies each pixel on its own, with no ring re-check
-    (see `engine.guard.compare.classify_pixels`), so a handful of borderline boundary pixels the
-    real `guard_final` tolerated as `edge_flicker` still show red here; report.json's own numbers
-    are always the real `guard_final`/`guard_after_removal`, not re-derived from these images."""
+    """One `guard_<view>.png` triptych per axis view, plus one `guard_fail_<index>.png` for every
+    view any guard reported a failure or flicker in (`_failing_view_indices`) -- the six axis
+    views are rarely the ones that catch a defect, and a failing oblique view had no picture at
+    all before. An axis view that also fails gets both names.
+
+    Each triptych is BEFORE (original mesh, shaded), AFTER (final shipped mesh, shaded), DIFF
+    (failures red, tolerated moves amber). A diagnostic image, not the authoritative numbers --
+    it classifies each pixel on its own, with no ring, tie or crack re-check (see
+    `engine.guard.compare.classify_pixels`), so a handful of borderline boundary pixels the real
+    `guard_final` tolerated still show red here; report.json's own numbers are always the real
+    guard reports, not re-derived from these images.
+
+    AFTER is always the mesh that SHIPPED. A view listed because `guard_merge_attempt` failed
+    therefore shows the rolled-back result, not the discarded merge candidate -- it says which
+    view to look at, and report.json's `guard_merge_attempt` says what that view counted."""
     _, remap = weld_exact(mesh.positions, mesh.coord_decimals)
     face_w_before = topo.face_w
     ids_before = np.arange(len(face_w_before), dtype=np.int64)
@@ -187,7 +220,8 @@ def _write_guard_images(mesh: MeshData, result: FixResult, profile: FixProfile,
 
     caster_before = ReusableCaster()
     caster_after = ReusableCaster()
-    for view in _AXIS_VIEWS:
+
+    def write(view, path: Path) -> None:
         before = ortho_first_hit(positions_c, face_w_before, ids_before, view, positions_c,
                                  profile.guard_size, caster_before)
         after = ortho_first_hit(positions_c, face_w_after, ids_after, view, positions_c,
@@ -196,9 +230,13 @@ def _write_guard_images(mesh: MeshData, result: FixResult, profile: FixProfile,
             before.depth, before.tri, after.depth, after.tri, mesh.face_material,
             result.mesh.face_material, flat_materials, depth_tol, origins=before.origins,
             direction=before.direction, plane_before=planes_before, plane_after=planes_after)
-        path = out_dir / f"guard_{_axis_name(view)}.png"
         save_triptych(path, before, after, codes, normals_before=normals_before,
                      normals_after=normals_after)
+
+    for view in _AXIS_VIEWS:
+        write(view, out_dir / f"guard_{_axis_name(view)}.png")
+    for index in _failing_view_indices(result):
+        write(VIEWS_26[index], out_dir / f"guard_fail_{index}.png")
 
 
 # --------------------------------------------------------------------------------- fix command

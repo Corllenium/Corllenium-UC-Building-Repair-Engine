@@ -202,6 +202,8 @@ def test_rolled_back_when_merge_does_not_converge(monkeypatch):
     assert r.passed is True  # the fallback's own guard: identical geometry, so it still passes
     assert r.invariants["guard_passed"] is True
     assert r.rings == {}  # rolled back to the unmerged mesh: no merge rings apply to it
+    # a merge that never converged produced no mesh to guard, so there is no report to keep
+    assert r.guard_merge_attempt is None
 
 
 # ---------------------------------------------------------------------------------------------
@@ -423,6 +425,29 @@ def test_rolled_back_when_the_final_guard_fails_and_guard_final_is_the_shipped_m
     assert r.guard_final.totals["model_px"] > 0
     assert r.invariants["guard_passed"] is True
     assert r.passed is True
+
+    # M0: the report that CAUSED the rollback is kept, or the failure is invisible. It describes
+    # the discarded candidate, so it fails and says exactly which views and pixels did it.
+    assert r.guard_merge_attempt is not None
+    assert r.guard_merge_attempt.passed is False
+    # the fixture is a CLOSED box, so a lost outer face shows the far inner wall rather than sky:
+    # the damage is `moved_same_flat`, which fails because this run's final guard is strict.
+    assert r.guard_merge_attempt.totals["moved_same_flat"] > 0
+    assert r.guard_merge_attempt.totals["holes"] == 0
+    assert len(r.guard_merge_attempt.views) == 26
+    assert sum(v.moved_same_flat > 0 for v in r.guard_merge_attempt.views) > 1
+    assert r.guard_merge_attempt is not r.guard_final
+
+
+def test_guard_merge_attempt_is_the_final_guard_when_the_merge_is_kept():
+    """No rollback: the merged mesh IS the shipped mesh, so its guard is both the merge attempt's
+    report and the final one."""
+    r = fix_object(box_with_partition(), {}, _FAST)
+
+    assert "rolled_back" not in r.merge_report
+    assert r.guard_merge_attempt is not None
+    assert r.guard_merge_attempt.passed is True
+    assert r.guard_merge_attempt.totals == r.guard_final.totals
 
 
 def test_guard_after_removal_is_spotless_on_box_with_partition():

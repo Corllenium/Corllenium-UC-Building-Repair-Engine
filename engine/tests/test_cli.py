@@ -104,9 +104,44 @@ def test_cmd_fix_exits_two_when_a_visible_face_is_wrongly_removed(tmp_path, monk
     code = cli.cmd_fix(snap_dir, out_root, accept_slit=False, profile=_FAST)
 
     assert code == 2
-    report = json.loads((out_root / m.name / "report.json").read_text(encoding="utf-8"))
+    out_dir = out_root / m.name
+    report = json.loads((out_dir / "report.json").read_text(encoding="utf-8"))
     assert report["passed"] is False
     assert report["invariants"]["guard_passed"] is False
+
+    # M0: a failing run says WHICH views failed, in pictures as well as numbers -- the six axis
+    # views are rarely the ones that catch it.
+    fail_pngs = sorted(out_dir.glob("guard_fail_*.png"))
+    assert fail_pngs, "a failing run wrote no guard_fail_<index>.png"
+    indices = {int(p.stem.split("_")[-1]) for p in fail_pngs}
+    assert all(0 <= i < len(cli.VIEWS_26) for i in indices)
+
+    # exactly the views report.json itself calls bad, from any of the three guards
+    expected = set()
+    for key in ("guard_merge_attempt", "guard_after_removal", "guard_final"):
+        guard = report[key]
+        if guard is None:
+            continue
+        for i, v in enumerate(guard["views"]):
+            if any(v[k] for k in ("holes", "material_changed", "moved_other", "moved_same_flat",
+                                   "edge_flicker")):
+                expected.add(i)
+    assert indices == expected and expected
+
+
+def test_cmd_fix_writes_no_failing_view_images_when_the_run_is_clean(tmp_path):
+    m = box_with_partition()
+    snap_dir = _write_snapshot(tmp_path, m)
+    out_root = tmp_path / "out"
+
+    assert cli.cmd_fix(snap_dir, out_root, accept_slit=False, profile=_FAST) == 0
+
+    out_dir = out_root / m.name
+    assert list(out_dir.glob("guard_fail_*.png")) == []
+    report = json.loads((out_dir / "report.json").read_text(encoding="utf-8"))
+    assert report["guard_merge_attempt"] is not None
+    assert report["guard_merge_attempt"]["passed"] is True
+    assert len(report["guard_merge_attempt"]["views"]) == 26
 
 
 def test_cmd_preview_data_writes_expected_shape(tmp_path):

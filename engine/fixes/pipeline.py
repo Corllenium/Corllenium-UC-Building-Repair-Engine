@@ -12,8 +12,10 @@ state pass 1 leaves behind -> `remove_faces` -> `classify_orientation` +
 neighbours' region instead of being copied through alone -> `analyse_topology` on the flipped
 result -> `merge_regions` -> a final guard of the merged mesh against the ORIGINAL. If the merge
 did not converge, or the final guard fails, the result falls back to the flipped-but-unmerged
-(removal-only) mesh and `passed` reflects the fallback's own guard instead. Flipping never changes
-a double-sided render (see `engine.fixes.orient`), so it never changes which guard passes.
+(removal-only) mesh and `passed` reflects the fallback's own guard instead -- while
+`FixResult.guard_merge_attempt` keeps the merged mesh's own report, so the failure that caused
+the rollback stays visible. Flipping never changes a double-sided render (see
+`engine.fixes.orient`), so it never changes which guard passes.
 
 A degenerate face is only RELATIVELY degenerate (`engine.topo.adjacency.degenerate_mask` allows
 `area <= 1e-7 * longest**2`), so a 1,000 in sliver up to 0.0002 in wide is "zero-area" and yet a
@@ -99,6 +101,12 @@ class FixResult:
     #: from each pass; `"slit"` is `None` when no slit pass ran.
     feedback_history: dict
     guard_after_removal: GuardReport
+    #: The MERGED mesh's guard against the reference -- the report that decided whether the merge
+    #: was kept. `None` only when the merge did not converge, so there was no merged mesh to
+    #: guard. It is kept even when the merge is ROLLED BACK, where `guard_final` describes the
+    #: fallback that shipped instead: without it, the failure that caused the rollback leaves no
+    #: trace at all. When nothing was rolled back it is the same report as `guard_final`.
+    guard_merge_attempt: GuardReport | None
     guard_final: GuardReport
     merge_report: dict
     #: `engine.fixes.merge.MergeResult.rings`, valid against `mesh` (this result's own final
@@ -215,12 +223,13 @@ def fix_object(mesh: MeshData, flatness: dict[str, float], profile: FixProfile =
 
     merge_report = dict(merge_result.report)
     rolled_back_reason = None
+    guard_merge_attempt = None
 
     if not merge_report.get("converged", True):
-        rolled_back_reason = "not_converged"
+        rolled_back_reason = "not_converged"   # no merged mesh exists, so there is none to guard
     else:
-        guard_final = _guard_against_original(merge_result.mesh, profile.edge_flicker_cap_final)
-        if not guard_final.passed:
+        guard_merge_attempt = _guard_against_original(merge_result.mesh, profile.edge_flicker_cap_final)
+        if not guard_merge_attempt.passed:
             rolled_back_reason = "guard_failed"
 
     if rolled_back_reason is not None:
@@ -229,11 +238,14 @@ def fix_object(mesh: MeshData, flatness: dict[str, float], profile: FixProfile =
         final_mesh = mesh_flipped
         final_source_faces = [np.array([int(f)], dtype=np.int64) for f in source_from_removal]
         final_rings: dict = {}
+        # `guard_final` describes what SHIPPED; `guard_merge_attempt` keeps the report that
+        # caused the rollback, which is the only record of why the merge was thrown away.
         guard_final = _guard_against_original(final_mesh, profile.edge_flicker_cap_final)
     else:
         final_mesh = merge_result.mesh
         final_source_faces = [source_from_removal[s].astype(np.int64) for s in merge_result.source_faces]
         final_rings = merge_result.rings
+        guard_final = guard_merge_attempt   # the merged mesh IS the shipped mesh
 
     one_sided_holes_after = one_sided_holes(
         positions_c, remap[final_mesh.face_v], np.arange(final_mesh.n_faces, dtype=np.int64),
@@ -259,5 +271,6 @@ def fix_object(mesh: MeshData, flatness: dict[str, float], profile: FixProfile =
         flipped=flipped_full, thin_sheets=thin_sheets_full,
         one_sided_holes_before=one_sided_holes_before, one_sided_holes_after=one_sided_holes_after,
         feedback_history={"hidden": history_hidden, "slit": history_slit},
-        guard_after_removal=guard_after_removal, guard_final=guard_final,
+        guard_after_removal=guard_after_removal, guard_merge_attempt=guard_merge_attempt,
+        guard_final=guard_final,
         merge_report=merge_report, rings=final_rings, invariants=invariants, passed=passed)
