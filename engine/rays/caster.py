@@ -13,6 +13,8 @@ import trimesh
 from trimesh.ray.ray_pyembree import RayMeshIntersector
 
 _CHUNK = 256
+#: Prefilter block size for the coincident-hit recovery, in hit x face pairs.
+_SEARCH_BLOCK = 4_000_000
 
 #: Relative slack for the "is this hit point also inside THAT triangle" test that recovers hits
 #: embree's multi-hit walk skips (see `EmbreeCaster.all_hits`), as a fraction of the mesh's
@@ -55,7 +57,7 @@ class EmbreeCaster:
         self._rmi = RayMeshIntersector(mesh)
         extent = positions.max(axis=0) - positions.min(axis=0) if len(positions) else np.zeros(3)
         self._coincident_tol = max(1e-8, float(np.linalg.norm(extent)) * _COINCIDENT_REL_TOL)
-        self._vertex_faces = None   # built on first all_hits, never for a plain render
+        self._face_box = None   # built on first all_hits, never for a plain render
 
     def any_hit(self, origins: np.ndarray, directions: np.ndarray) -> np.ndarray:
         origins = np.asarray(origins, dtype=np.float64)
@@ -81,17 +83,25 @@ class EmbreeCaster:
         2. A recovery pass for the hits that walk SKIPS. It advances the ray past each hit by
            `max(1e-8, mesh.scale * 1e-6)`, so two triangles at the SAME depth can never both be
            reported -- it returns one of them and moves on. That is exactly the z-fight overlap
-           the guard's tie test exists to recognise (measured on file B: faces 2654 and 73 share
-           an edge, lie in one plane, overlap, and carry different materials), so the second one
-           is recovered analytically: each reported hit POINT is re-tested against the other
-           triangles that SHARE A VERTEX with the triangle it hit, and any that contains it
-           (within `_coincident_tol` of its plane and of its edges) is reported at the same `t`.
+           the guard's tie test exists to recognise (measured on file B: faces 2654 and 73 lie in
+           one plane, overlap, and carry different materials), so the rest are recovered
+           ANALYTICALLY: each reported hit POINT is re-tested against every triangle of the mesh
+           whose own plane contains it within `coincident_tol` and whose outline contains it
+           (within the same tolerance), and each one is reported at the same `t`.
 
-        LIMIT: a coincident triangle sharing NO vertex with the one embree returned is still
-        missed. Overlapping faces in a SketchUp export come from one face loop and do share
-        vertices, but a pair welded from two independently drawn loops need not; the tie test
-        then sees a one-member tie set and reports the pixel under its real class, which is the
-        safe direction (a missed tie is a reported failure, never a tolerated change)."""
+        The search is over ALL faces, with a bounding-box prefilter, not over the faces sharing a
+        vertex with the one embree returned: a coincident pair welded from two independently
+        drawn SketchUp loops shares no vertex at all, and a vertex-sharing lookup reported it as
+        damage. Only pixels a guard is about to fail ever reach this code, so the prefilter's
+        `hits x faces` mask is small; it is blocked anyway.
+
+        MEASURED, and the reason the tolerance is NOT the guard's `depth_tol`: the walk reports
+        both faces of this pair, at their own true depths, for every separation down to 0.001 in
+        (its step on that mesh is 4e-5 in). Only an EXACT coincidence is stepped over. Widening
+        the recovery would therefore find nothing new -- it would re-report a face embree had
+        already returned, at the hit face's depth instead of its own, which is a depth it does
+        not have. `_coincident_tol` is the width of the band the walk actually skips, and that
+        is the only band this pass is for."""
         origins = np.asarray(origins, dtype=np.float64)
         directions = np.asarray(directions, dtype=np.float64)
         if not len(origins) or not len(self.faces):
@@ -105,58 +115,51 @@ class EmbreeCaster:
         loc = np.asarray(loc, dtype=np.float64)
         t = np.einsum("ij,ij->i", loc - origins[iray], directions[iray])
 
-        extra_hit, extra_tri = self._coincident_with(itri, loc)
+        extra_hit, extra_tri = self._coincident_with(itri, loc, self._coincident_tol)
         if len(extra_hit):
             iray = np.concatenate([iray, iray[extra_hit]])
             itri = np.concatenate([itri, extra_tri])
             t = np.concatenate([t, t[extra_hit]])
         return iray, itri, t
 
-    def _vertex_face_table(self) -> tuple[np.ndarray, np.ndarray]:
-        """`(starts, faces_by_vertex)`: `faces_by_vertex[starts[v]:starts[v + 1]]` are the faces
-        using vertex `v`. Built once, on the first `all_hits` call -- a plain render never pays
-        for it."""
-        if self._vertex_faces is None:
-            n_vertices = len(self._positions)
-            v = self.faces.reshape(-1)
-            f = np.repeat(np.arange(len(self.faces), dtype=np.int64), 3)
-            order = np.argsort(v, kind="stable")
-            counts = np.bincount(v, minlength=n_vertices)
-            starts = np.concatenate([[0], np.cumsum(counts)]).astype(np.int64)
-            self._vertex_faces = (starts, f[order])
-        return self._vertex_faces
+    def _face_bounds(self) -> tuple[np.ndarray, np.ndarray]:
+        """`(lo, hi)`, the per-face axis-aligned bounding box. Built once, on the first `all_hits`
+        call -- a plain render never pays for it."""
+        if self._face_box is None:
+            tri = self._positions[self.faces]
+            self._face_box = (tri.min(axis=1), tri.max(axis=1))
+        return self._face_box
 
-    def _coincident_with(self, itri: np.ndarray, points: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-        """`(hit_index, tri)` pairs: for each reported hit, the OTHER triangles sharing one of its
-        vertices that also contain its hit point. `hit_index` indexes into `itri`/`points`."""
-        starts, faces_by_vertex = self._vertex_face_table()
-        corner_v = self.faces[itri]                                  # (H, 3)
-        lo, hi = starts[corner_v], starts[corner_v + 1]              # (H, 3)
-        counts = (hi - lo).reshape(-1)                               # (3H,)
-        total = int(counts.sum())
-        if not total:
+    def _coincident_with(self, itri: np.ndarray, points: np.ndarray, tol: float
+                         ) -> tuple[np.ndarray, np.ndarray]:
+        """`(hit_index, tri)` pairs: for each reported hit, every OTHER triangle of the mesh that
+        contains its hit point within `tol`. `hit_index` indexes into `itri`/`points`.
+
+        A bounding-box prefilter (per block of hits, so the mask stays bounded) narrows the
+        candidates before the exact point-in-triangle test."""
+        lo, hi = self._face_bounds()
+        block = max(1, _SEARCH_BLOCK // max(len(self.faces), 1))
+        out_hit: list[np.ndarray] = []
+        out_tri: list[np.ndarray] = []
+        for start in range(0, len(points), block):
+            p = points[start:start + block]
+            near = ((p[:, None, :] >= lo[None, :, :] - tol)
+                    & (p[:, None, :] <= hi[None, :, :] + tol)).all(axis=2)
+            near[np.arange(len(p)), itri[start:start + len(p)]] = False   # not itself
+            hit_index, cand_tri = np.nonzero(near)
+            if not len(hit_index):
+                continue
+            inside = self._contains(cand_tri, p[hit_index], tol)
+            out_hit.append(hit_index[inside] + start)
+            out_tri.append(cand_tri[inside])
+        if not out_hit:
             return np.zeros(0, np.int64), np.zeros(0, np.int64)
+        return (np.concatenate(out_hit).astype(np.int64),
+                np.concatenate(out_tri).astype(np.int64))
 
-        # ragged gather: one flat run of faces_by_vertex per (hit, corner)
-        offsets = np.concatenate([[0], np.cumsum(counts)])[:-1]
-        pos = np.arange(total, dtype=np.int64) - np.repeat(offsets, counts)
-        cand_tri = faces_by_vertex[np.repeat(lo.reshape(-1), counts) + pos]
-        cand_hit = np.repeat(np.repeat(np.arange(len(itri), dtype=np.int64), 3), counts)
-
-        keep = cand_tri != itri[cand_hit]
-        cand_hit, cand_tri = cand_hit[keep], cand_tri[keep]
-        if not len(cand_hit):
-            return cand_hit, cand_tri
-        pair = np.unique(np.stack([cand_hit, cand_tri], axis=1), axis=0)
-        cand_hit, cand_tri = pair[:, 0], pair[:, 1]
-
-        inside = self._contains(cand_tri, points[cand_hit])
-        return cand_hit[inside], cand_tri[inside]
-
-    def _contains(self, tri_index: np.ndarray, points: np.ndarray) -> np.ndarray:
-        """Is each point inside its triangle -- within `_coincident_tol` of the triangle's plane
-        AND no further than `_coincident_tol` outside any of its three edges?"""
-        tol = self._coincident_tol
+    def _contains(self, tri_index: np.ndarray, points: np.ndarray, tol: float) -> np.ndarray:
+        """Is each point inside its triangle -- within `tol` of the triangle's plane AND no
+        further than `tol` outside any of its three edges?"""
         T = self._positions[self.faces[tri_index]]                   # (C, 3, 3)
         a, b, c = T[:, 0], T[:, 1], T[:, 2]
         normal = np.cross(b - a, c - a)
@@ -217,7 +220,8 @@ class BruteCaster:
 
     def all_hits(self, origins: np.ndarray, directions: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         """See `RayCaster.all_hits`. The analytic test needs no walk along the ray and so no
-        recovery pass: two triangles overlapping in one plane both satisfy it, at the same `t`."""
+        recovery pass at all: two triangles overlapping in one plane both satisfy it, at the same
+        `t`, whether or not they share a vertex."""
         origins = np.asarray(origins, dtype=np.float64)
         directions = np.asarray(directions, dtype=np.float64)
         rays, tris, ts = [], [], []

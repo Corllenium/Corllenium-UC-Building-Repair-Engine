@@ -1211,3 +1211,45 @@ def test_save_triptych_diff_panel_is_unaffected_by_shading():
         img1, img2 = np.array(Image.open(p1)), np.array(Image.open(p2))
         w = size[0]
         assert np.array_equal(img1[:, 2 * w:], img2[:, 2 * w:])
+
+
+# ---------------------------------------------------------------------------------------------
+# M4b: the tie set is found by GEOMETRY, not by vertex sharing. `_TWIN` puts both quads on the
+# same four frame vertices, so the old recovery found the second one by looking at the faces
+# sharing a vertex with the first. Two loops drawn separately and never welded share nothing.
+# ---------------------------------------------------------------------------------------------
+
+#: The same two coincident quads as `_TWIN`, on DISJOINT vertex ids: faces 0-1 use frame
+#: vertices 0-3, faces 2-3 their own identical copies 4-7.
+_SPLIT_FRAME = np.vstack([_TWIN_FRAME, _TWIN_FRAME])
+_SPLIT_TWIN = np.vstack([_QUAD, _QUAD + len(_TWIN_FRAME)])
+
+
+def _split_render(faces, ids):
+    return ortho_first_hit(_SPLIT_FRAME, faces, ids, _FLAT_VIEW, _FRAME, _COVER_SIZE)
+
+
+def test_a_zfight_tie_is_found_between_faces_that_share_no_vertex():
+    """Identical to `test_overlapping_coplanar_faces_of_different_materials_are_a_zfight_tie`
+    except that the two coincident quads have disjoint vertex ids. Embree's multi-hit walk steps
+    over the second one, and no vertex-sharing lookup can recover it."""
+    assert not (set(_SPLIT_TWIN[:2].reshape(-1).tolist())
+                & set(_SPLIT_TWIN[2:].reshape(-1).tolist()))
+    mat_before = np.array([0, 0, 1, 1], np.int64)
+    faces_after, mat_after = _SPLIT_TWIN[::-1].copy(), mat_before[::-1].copy()
+    before = _split_render(_SPLIT_TWIN, np.arange(4))
+    after = _split_render(faces_after, np.arange(4))
+
+    model = before.tri >= 0
+    assert model.sum() > 100
+    assert (mat_before[before.tri[model]] != mat_after[after.tri[model]]).all()
+
+    report = compare_views(
+        [(_FLAT_VIEW, before)], [(_FLAT_VIEW, after)], mat_before, mat_after, frozenset({0, 1}),
+        0.15, strict=True, edge_flicker_cap=0.0,
+        plane_before=face_planes(_SPLIT_FRAME, _SPLIT_TWIN),
+        plane_after=face_planes(_SPLIT_FRAME, faces_after),
+        geometry_before=(_SPLIT_FRAME, _SPLIT_TWIN), geometry_after=(_SPLIT_FRAME, faces_after))
+    assert report.totals["zfight_tie"] == int(model.sum())
+    assert report.totals["material_changed"] == 0
+    assert report.passed is True

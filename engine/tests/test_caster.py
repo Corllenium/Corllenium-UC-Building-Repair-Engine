@@ -196,3 +196,45 @@ def test_reusable_caster_wraps_any_factory_and_only_skips_construction_not_ray_c
     # bit-identical to a fresh caster built directly, not just internally consistent
     fresh_tri, fresh_t = BruteCaster(m.positions, m.face_v).first_hit(origins, directions)
     assert np.array_equal(tri_a, fresh_tri) and np.array_equal(t_a, fresh_t)
+
+
+# ---------------------------------------------------------------------------------------------
+# M4b: the coincident-hit recovery is GEOMETRIC. Recovering coincident faces by looking only at
+# the triangles that share a vertex with the one embree returned misses a coincident face welded
+# from an independently drawn loop -- which shares no vertex at all.
+# ---------------------------------------------------------------------------------------------
+
+def _coincident_pair_sharing_no_vertex():
+    """The same plane and the same outline as `_coincident_pair`, but the second triangle is
+    built on its OWN copies of the positions, so the two faces have disjoint vertex ids -- two
+    loops drawn separately and never welded, which a SketchUp export really does produce."""
+    P, F, origins, directions = _coincident_pair()
+    doubled = np.vstack([P, P])
+    faces = np.array([F[0], F[1] + len(P)], np.int64)
+    assert not (set(faces[0].tolist()) & set(faces[1].tolist()))
+    return doubled, faces, origins, directions
+
+
+def test_all_hits_reports_a_coincident_face_that_shares_no_vertex():
+    P, F, origins, directions = _coincident_pair_sharing_no_vertex()
+    for Caster in (EmbreeCaster, BruteCaster):
+        ray, tri, t = _sorted_hits(Caster(P, F), origins, directions)
+        assert ray.tolist() == [0, 0], f"{Caster.__name__} reported {len(ray)} hit(s), not 2"
+        assert sorted(tri.tolist()) == [0, 1]
+        assert abs(t[0] - t[1]) < 1e-3
+
+
+def test_all_hits_leaves_a_separated_face_to_embrees_own_walk():
+    """Why the recovery tolerance is the width of the band embree SKIPS and not the guard's
+    `depth_tol`: measured on this pair, the multi-hit walk reports both faces itself, at their
+    own true depths, for every separation down to 0.001 in -- its step on this mesh is 4e-5 in.
+    Only an exact coincidence is stepped over. A `depth_tol`-wide recovery would find nothing
+    new; it would re-report a face embree had already returned, at the hit face's depth instead
+    of its own, which is a depth that face does not have."""
+    for nudge in (0.001, 0.01, 0.05):
+        P, F, origins, directions = _coincident_pair_sharing_no_vertex()
+        P = P.copy()
+        P[len(P) // 2:, 1] += nudge     # along the plane normal, so the ray meets them apart
+        ray, tri, t = _sorted_hits(EmbreeCaster(P, F), origins, directions)
+        assert sorted(tri.tolist()) == [0, 1], f"nudge {nudge}: {tri.tolist()}"
+        assert 0.0 < abs(t[0] - t[1]) < 0.15   # two depths, both inside the guard's tolerance
