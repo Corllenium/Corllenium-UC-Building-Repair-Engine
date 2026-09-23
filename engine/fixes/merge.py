@@ -54,18 +54,25 @@ class MergeResult:
     ORIGINAL face indices new face `i` came from (its whole region when merged, a single face when
     copied through); `report` is the counts described in `merge_regions`.
 
-    `rings[i]`, when present, is the ordered outer ring of vertex ids (int64, indexing
-    `mesh.positions` exactly like `mesh.face_v` does, CCW as seen from the region's own outward
-    side) of the HOLE-FREE merged region output row `i` belongs to. Every row of the SAME region
-    maps to the IDENTICAL ring array object (not just equal content), so a writer that wants one
-    polygon face per region can dedup by `id()` -- see `engine.io.obj_writer.write_obj_polygons`.
-    A region with a hole, more than one disjoint piece, or fewer than 3 kept ring vertices has NO
-    entry here (every one of its rows is written as an ordinary triangle instead); rows that were
-    copied through unmerged never have an entry either."""
+    `rings[i]`, when present, is the merged region output row `i` belongs to, as its kept LOOPS:
+    `{"outer": ids, "inners": [ids, ...]}`. Every id array is int64 and indexes `mesh.positions`
+    exactly like `mesh.face_v` does. `outer` runs CCW as seen from the region's own outward side;
+    every loop in `inners` runs CW, the convention a polygon consumer reads as a hole. `inners`
+    is `[]` for a hole-free region.
+
+    Every row of the SAME region maps to the IDENTICAL dict object (not just equal content), so a
+    writer that wants one polygon face per region can dedup by `id()` -- see
+    `engine.io.obj_writer.write_obj_polygons`, which writes the `outer` loop as one `f` line for
+    hole-free regions and keeps ordinary triangles for the rest, since an OBJ `f` line cannot
+    carry a hole.
+
+    A region made of more than one disjoint piece, or whose outer loop keeps fewer than 3
+    vertices, has NO entry (its rows are ordinary triangles); rows copied through unmerged never
+    have an entry either."""
     mesh: MeshData
     source_faces: list[np.ndarray]
     report: dict
-    rings: dict[int, np.ndarray] = field(default_factory=dict)
+    rings: dict[int, dict] = field(default_factory=dict)
 
 
 @dataclass
@@ -152,11 +159,11 @@ def merge_regions(mesh: MeshData, topo: Topology, flat_materials: Iterable[int] 
             copied.extend(int(f) for f in plan.members)
 
     keep_all_set = frozenset(kept_whole | set(keep_all))
-    region_rings: dict[int, np.ndarray] = {}
+    region_rings: dict[int, dict] = {}
     for plan, _tris in builds:
-        ring = _region_ring(plan, needed, keep_all_set, welded_to_original)
-        if ring is not None:
-            region_rings[plan.region] = ring
+        loops = _region_loops(plan, needed, keep_all_set, welded_to_original)
+        if loops is not None:
+            region_rings[plan.region] = loops
 
     out = _assemble(mesh, topo, welded_to_original, builds, copied, flat, region_rings)
     used_before = np.zeros(len(topo.positions_w), bool)
@@ -478,25 +485,30 @@ def _ring_ccw(plan: _Plan, ring: np.ndarray) -> np.ndarray:
     return ring if area >= 0.0 else ring[::-1]
 
 
-def _region_ring(plan: _Plan, needed: np.ndarray, keep_all_set: frozenset,
-                 welded_to_original: np.ndarray):
-    """The single simplified (kept-corners-only) outer ring of `plan`, mapped to ORIGINAL vertex
-    ids -- or `None` when the region has a hole, more than one disjoint piece, or fewer than 3
-    surviving ring vertices. Mirrors `_triangulate`'s own ring-simplification exactly (without
-    changing that function's arity, which callers monkeypatch against): the FULL ring when
-    `plan.region` took the `keep_all` fallback in the round that produced `builds`, the
-    corner-pass-simplified ring otherwise."""
+def _region_loops(plan: _Plan, needed: np.ndarray, keep_all_set: frozenset,
+                  welded_to_original: np.ndarray):
+    """The kept loops of `plan` as ORIGINAL vertex ids -- `{"outer": ids, "inners": [ids, ...]}`
+    -- or `None` when the region is more than one disjoint piece (there is then no single outer
+    loop to name) or its outer loop keeps fewer than 3 vertices.
+
+    Mirrors `_triangulate`'s own ring simplification exactly, without changing that function's
+    arity (callers monkeypatch against it): the FULL rings when `plan.region` took the `keep_all`
+    fallback in the round that produced `builds`, the simplified ones otherwise. A region that
+    reaches `builds` always has at least 3 kept vertices in EVERY ring -- `_polygon` rejects
+    anything less and the region falls back to `keep_all` or is skipped -- so no inner loop can
+    arrive here degenerate.
+
+    `_ring_ccw` orients a loop CCW in the region's own frame; hole loops are then reversed, so
+    the result is the outer-CCW / holes-CW convention a polygon consumer expects."""
     if len(plan.pieces) != 1:
         return None
     piece = plan.pieces[0]
-    if len(piece.rings) != 1:
+    simplify = plan.region not in keep_all_set
+    rings = [r[needed[r]] if simplify else r for r in piece.rings]
+    if len(rings[0]) < 3:
         return None
-    ring = piece.rings[0]
-    if plan.region not in keep_all_set:
-        ring = ring[needed[ring]]
-    if len(ring) < 3:
-        return None
-    return welded_to_original[_ring_ccw(plan, ring)]
+    return {"outer": welded_to_original[_ring_ccw(plan, rings[0])],
+            "inners": [welded_to_original[_ring_ccw(plan, r)[::-1]] for r in rings[1:]]}
 
 
 def _late_faces(plans: list[_Plan], fed_back: dict[int, str]) -> list[int]:

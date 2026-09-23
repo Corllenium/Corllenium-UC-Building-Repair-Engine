@@ -60,7 +60,9 @@ def test_slab_with_hole_ngon_file_stays_eight_triangles(tmp_path):
     m = slab_with_hole()
     r = merge_regions(m, analyse_topology(m))
     assert r.mesh.n_faces == 8
-    assert r.rings == {}  # the region has a hole: no polygon entry
+    # M2: the region DOES get loops now (outer + one inner), but a holed region cannot be
+    # written as one OBJ `f` line, so the writer keeps its triangles.
+    assert len(r.rings[0]["inners"]) == 1
 
     path = tmp_path / "slab_with_hole.ngon.obj"
     write_obj_polygons(r.mesh, r.rings, path)
@@ -81,7 +83,7 @@ def test_ngon_polygon_face_uses_the_ring_vertex_ids_in_order(tmp_path):
     lines = [ln for ln in path.read_text(encoding="utf-8").splitlines() if ln.startswith("f ")]
     assert len(lines) == 1
     obj_indices = [int(tok) for tok in lines[0].split()[1:]]
-    assert sorted(v - 1 for v in obj_indices) == sorted(int(v) for v in r.rings[0])
+    assert sorted(v - 1 for v in obj_indices) == sorted(int(v) for v in r.rings[0]["outer"])
 
 
 def test_write_obj_polygons_is_deterministic(tmp_path):

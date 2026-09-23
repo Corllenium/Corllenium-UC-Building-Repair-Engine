@@ -42,9 +42,11 @@ from engine.io.obj_reader import read_obj
 from engine.io.obj_writer import write_obj, write_obj_polygons
 from engine.io.snapshot import sha256_file
 from engine.model import MeshData
-from engine.pipeline import Topology, analyse_topology, flat_material_indices
+from engine.pipeline import (Topology, analyse_topology, coplanar_region_borders,
+                             flat_material_indices)
 from engine.rays.caster import ReusableCaster
 from engine.topo.adjacency import build_edge_table, edge_face_lists
+from engine.topo.edges import EDGE_SOFT
 from engine.topo.weld import weld_exact
 
 #: The 6 axis-aligned views (of the 26 the guard itself uses) reported as before/after/diff PNGs.
@@ -126,6 +128,7 @@ def _guard_report_dict(g: GuardReport) -> dict:
 def _profile_dict(p: FixProfile) -> dict:
     return {"n_dirs": p.n_dirs, "slit_threshold": p.slit_threshold, "accept_slit": p.accept_slit,
             "flat_texture_std": p.flat_texture_std, "guard_size": list(p.guard_size),
+            "coplanar_angle": p.coplanar_angle, "soft_angle": p.soft_angle,
             "edge_flicker_cap_final": p.edge_flicker_cap_final}
 
 
@@ -328,6 +331,15 @@ def _after_edges(result: FixResult, positions_o: np.ndarray):
     return outline, diagonal
 
 
+def _soft_edges(topo: Topology, positions_c: np.ndarray):
+    """Every EDGE_SOFT edge of `topo` as a segment: a same-material crease between two regions
+    too shallow to be a real shape edge and too steep to merge without moving a vertex. The
+    preview draws these in their own colour so a person can see what the merge left behind and
+    why -- see `engine.topo.edges.classify_edges`."""
+    return [[positions_c[int(a)].tolist(), positions_c[int(b)].tolist()]
+            for (a, b), cls in zip(topo.table.edges, topo.edge_class) if cls == EDGE_SOFT]
+
+
 def _material_colors(snapshot_dir: Path, materials: list[str], mtl_materials: dict[str, MtlMaterial]) -> list[dict]:
     out = []
     for name in materials:
@@ -366,6 +378,13 @@ def cmd_preview_data(snapshot_dir: Path, out_dir: Path, profile: FixProfile | No
     grid, tri_before, outline_before = _before_edges(topo, positions_c_w, removed)
     outline_after, tri_after = _after_edges(result, positions_c_o)
 
+    # The SHIPPED mesh's own topology: `result.mesh.positions` IS `mesh.positions` (nothing in
+    # the pipeline ever touches it), so it welds to the same frame `positions_c_w` is in.
+    topo_after = analyse_topology(result.mesh, flat_materials,
+                                  coplanar_angle=profile.coplanar_angle,
+                                  soft_angle=profile.soft_angle)
+    soft_after = _soft_edges(topo_after, positions_c_w)
+
     guard_final = result.guard_final.totals
     guard_damaged_px = (guard_final["holes"] + guard_final["material_changed"]
                         + guard_final["moved_other"] + guard_final["moved_same_flat"]
@@ -392,6 +411,8 @@ def cmd_preview_data(snapshot_dir: Path, out_dir: Path, profile: FixProfile | No
             "one_sided_holes_after": result.one_sided_holes_after,
             "outline_edges_after": len(outline_after),
             "unavoidable_diagonals_after": len(tri_after),
+            "soft_edges": len(soft_after),
+            "coplanar_region_borders": coplanar_region_borders(topo_after),
             "guard_passed": bool(result.guard_final.passed),
         },
         "materials": _material_colors(snapshot_dir, mesh.materials, mtl_materials),
@@ -399,7 +420,7 @@ def cmd_preview_data(snapshot_dir: Path, out_dir: Path, profile: FixProfile | No
         "after": {"pos": _round_flat(after_tri), "mat": after_mat.tolist()},
         "edges": {"grid": _round_flat(grid), "tri_before": _round_flat(tri_before),
                   "outline_before": _round_flat(outline_before), "outline_after": _round_flat(outline_after),
-                  "tri_after": _round_flat(tri_after)},
+                  "tri_after": _round_flat(tri_after), "soft_after": _round_flat(soft_after)},
     }
 
     out_dir = Path(out_dir)

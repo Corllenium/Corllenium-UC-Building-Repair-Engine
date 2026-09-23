@@ -42,6 +42,7 @@ from engine.guard.compare import GuardReport, compare_views, face_planes, guard_
 from engine.guard.views import VIEWS_26, ortho_first_hit
 from engine.model import MeshData
 from engine.pipeline import analyse_topology, flat_material_indices
+from engine.topo.edges import COPLANAR_ANGLE, SOFT_ANGLE
 from engine.rays.caster import ReusableCaster
 from engine.topo.weld import weld_exact
 from engine.vis.exposure import EXP_HIDDEN, EXP_SLIT, classify_exposure, compute_side_exposure
@@ -58,6 +59,11 @@ class FixProfile:
     accept_slit: bool = False
     flat_texture_std: float = 8.0
     guard_size: tuple[int, int] = (900, 600)
+    #: Dihedral thresholds, in degrees, for `engine.topo.edges.classify_edges`: at or below
+    #: `coplanar_angle` two faces are flat to within what the export could print, and above it
+    #: up to `soft_angle` a same-material border between two regions is an EDGE_SOFT crease.
+    coplanar_angle: float = COPLANAR_ANGLE
+    soft_angle: float = SOFT_ANGLE
     #: `edge_flicker_cap` for the FINAL guard only (merged vs original): merging never deletes a
     #: face, so a silhouette pixel may flicker by less than a pixel of sub-pixel coverage without
     #: that being real damage. The removal guards (inside `guard_feedback`) always use 0.0.
@@ -110,9 +116,9 @@ class FixResult:
     guard_merge_attempt: GuardReport | None
     guard_final: GuardReport
     merge_report: dict
-    #: `engine.fixes.merge.MergeResult.rings`, valid against `mesh` (this result's own final
-    #: mesh) exactly as documented there -- empty when the merge candidate was rolled back, since
-    #: there is then no merged mesh for it to index into.
+    #: `engine.fixes.merge.MergeResult.rings` -- `{output face: {"outer": ids, "inners": [...]}}`
+    #: -- valid against `mesh` (this result's own final mesh) exactly as documented there. Empty
+    #: when the merge candidate was rolled back, since there is then no merged mesh to index into.
     rings: dict
     invariants: dict
     passed: bool
@@ -133,7 +139,8 @@ def _render(positions_c: np.ndarray, faces: np.ndarray, size: tuple[int, int]):
 
 def fix_object(mesh: MeshData, flatness: dict[str, float], profile: FixProfile = FixProfile()) -> FixResult:
     flat_materials = flat_material_indices(mesh, flatness, profile.flat_texture_std)
-    topo = analyse_topology(mesh, flat_materials)
+    angles = {"coplanar_angle": profile.coplanar_angle, "soft_angle": profile.soft_angle}
+    topo = analyse_topology(mesh, flat_materials, **angles)
     depth_tol = 1.5 * float(topo.quanta.max())
     # Recentre once, to the ORIGINAL mesh's bbox centre; the same recentred frame renders every
     # side, before and after, at every stage -- vertices never move, so one frame is always correct.
@@ -199,7 +206,7 @@ def fix_object(mesh: MeshData, flatness: dict[str, float], profile: FixProfile =
     flipped_full = np.zeros(mesh.n_faces, dtype=bool)
     flipped_full[source_from_removal[flip_removed]] = True
 
-    topo2 = analyse_topology(mesh_flipped, flat_materials)
+    topo2 = analyse_topology(mesh_flipped, flat_materials, **angles)
     merge_result = merge_regions(mesh_flipped, topo2, flat_materials)
 
     # A slit-tolerant removal is a person-accepted, colour-tolerant change: both guard checks

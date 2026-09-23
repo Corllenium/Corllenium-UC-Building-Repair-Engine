@@ -108,9 +108,10 @@ def test_box_with_partition_removes_only_the_sealed_partition():
     assert sorted(len(s) for s in r.source_faces) == [2] * 12
     assert sorted(set(int(f) for s in r.source_faces for f in s)) == list(range(12))
 
-    # task 9: each of the 6 cube faces is a hole-free single-piece region -> a ring for every row.
+    # task 9 / M2: each of the 6 cube faces is a hole-free single-piece region -> loops for every
+    # row, a 4-vertex outer loop and no inner one.
     assert set(r.rings.keys()) == set(range(12))
-    assert all(len(ring) == 4 for ring in r.rings.values())
+    assert all(len(loops["outer"]) == 4 and loops["inners"] == [] for loops in r.rings.values())
 
 
 def test_gridded_closed_box_has_nothing_hidden_and_merges_to_twelve_triangles():

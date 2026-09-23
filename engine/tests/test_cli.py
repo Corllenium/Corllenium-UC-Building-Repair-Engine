@@ -158,7 +158,8 @@ def test_cmd_preview_data_writes_expected_shape(tmp_path):
     for key in ("flipped", "thin_sheets", "one_sided_holes_before", "one_sided_holes_after",
                 "outline_edges_after", "unavoidable_diagonals_after", "guard_passed",
                 "tris_total", "hidden", "after_merged", "regions", "guard_views",
-                "guard_model_px", "guard_damaged_px", "gridline_edges"):
+                "guard_model_px", "guard_damaged_px", "gridline_edges",
+                "soft_edges", "coplanar_region_borders"):
         assert key in data["stats"]
 
     assert data["stats"]["hidden"] == 2
@@ -167,11 +168,26 @@ def test_cmd_preview_data_writes_expected_shape(tmp_path):
     assert len(data["before"]["hidden"]) == len(data["before"]["mat"])
     assert len(data["after"]["pos"]) == len(data["after"]["mat"]) * 9
     assert data["stats"]["outline_edges_after"] > 0
-    for edge_key in ("grid", "tri_before", "outline_before", "outline_after", "tri_after"):
+    for edge_key in ("grid", "tri_before", "outline_before", "outline_after", "tri_after",
+                     "soft_after"):
         assert edge_key in data["edges"]
 
     index = json.loads((out_dir / "index.json").read_text(encoding="utf-8"))
     assert {"file": f"{m.name}.json", "name": m.name} in index
+
+
+def test_cmd_preview_data_writes_soft_creases_of_the_shipped_mesh(tmp_path):
+    """M2: `edges.soft_after` is the EDGE_SOFT list of the mesh that actually ships, and
+    `stats.soft_edges` counts exactly those segments -- 6 floats each (two xyz endpoints)."""
+    m = box_with_partition()
+    snap_dir = _write_snapshot(tmp_path, m)
+    out_dir = tmp_path / "preview_out"
+
+    cli.cmd_preview_data(snap_dir, out_dir, profile=_FAST)
+
+    data = json.loads((out_dir / f"{m.name}.json").read_text(encoding="utf-8"))
+    assert len(data["edges"]["soft_after"]) == data["stats"]["soft_edges"] * 6
+    assert data["stats"]["coplanar_region_borders"] >= 0
 
 
 def test_cmd_preview_data_index_replaces_stale_entry_for_the_same_name(tmp_path):

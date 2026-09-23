@@ -3,7 +3,7 @@ import numpy as np
 from engine.pipeline import analyse_topology, topology_stats
 from engine.tests.fixtures.build import (creased_pair, cube, grid_slab, rounded_long_slab,
                                          t_junction_shared_strip, t_junction_strip)
-from engine.topo.edges import EDGE_OPEN, EDGE_REAL, EDGE_REMOVABLE
+from engine.topo.edges import EDGE_OPEN, EDGE_REAL, EDGE_REMOVABLE, EDGE_SOFT
 
 
 def regions(topo):
@@ -101,3 +101,57 @@ def test_region_growing_is_deterministic():
     c = analyse_topology(creased_pair()).face_region
     d = analyse_topology(creased_pair()).face_region
     assert np.array_equal(c, d)
+
+
+# ---------------------------------------------------------------------------------------------
+# M2: EDGE_SOFT -- a crease between two regions of the same material that is too shallow to be a
+# real shape edge and too steep to merge without moving vertices. Below it, `coplanar_region_
+# borders` counts the region borders that are flat to within `coplanar_angle`: a diagnostic for
+# the splits M1 was supposed to end, which should read ~0.
+# ---------------------------------------------------------------------------------------------
+
+def hinge_edge(t):
+    """The `creased_pair` hinge: the only edge whose two endpoints both sit at x == 0."""
+    P = t.positions_w
+    return next(i for i, (a, b) in enumerate(t.table.edges) if P[a][0] == 0.0 and P[b][0] == 0.0)
+
+
+def test_three_degree_crease_edge_is_soft():
+    t = analyse_topology(creased_pair(angle_deg=3.0))
+    e = hinge_edge(t)
+    assert t.table.counts[e] == 2
+    assert t.edge_class[e] == EDGE_SOFT
+    s = topology_stats(t)
+    assert s["soft_edges"] == 1 and s["coplanar_region_borders"] == 0
+
+
+def test_a_half_degree_crease_is_a_coplanar_region_border_not_a_soft_edge():
+    """Below `coplanar_angle` the two faces are flat to within the export's own precision, so the
+    split is a defect to be counted, not a crease to be drawn."""
+    t = analyse_topology(creased_pair(angle_deg=0.5))
+    e = hinge_edge(t)
+    assert t.edge_class[e] != EDGE_SOFT
+    s = topology_stats(t)
+    assert s["soft_edges"] == 0 and s["coplanar_region_borders"] == 1
+
+
+def test_a_ten_degree_crease_stays_a_real_edge():
+    t = analyse_topology(creased_pair(angle_deg=10.0))
+    e = hinge_edge(t)
+    assert t.edge_class[e] == EDGE_REAL
+    s = topology_stats(t)
+    assert s["soft_edges"] == 0 and s["coplanar_region_borders"] == 0
+
+
+def test_soft_and_coplanar_thresholds_are_settable():
+    """Both are keyword arguments all the way down from `FixProfile`."""
+    t = analyse_topology(creased_pair(angle_deg=3.0), soft_angle=2.0)
+    assert t.edge_class[hinge_edge(t)] == EDGE_REAL
+    t = analyse_topology(creased_pair(angle_deg=3.0), coplanar_angle=4.0, soft_angle=5.0)
+    assert t.edge_class[hinge_edge(t)] != EDGE_SOFT
+    assert topology_stats(t)["coplanar_region_borders"] == 1
+
+
+def test_a_cube_has_no_soft_edges_and_no_coplanar_region_borders():
+    s = topology_stats(analyse_topology(cube()))
+    assert s["soft_edges"] == 0 and s["coplanar_region_borders"] == 0

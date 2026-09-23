@@ -3,6 +3,16 @@ import numpy as np
 from engine.topo.adjacency import edge_face_lists, t_junction_sub_edges
 
 
+def face_normals(positions_w, face_w, ok):
+    """Unit normal per face, all-zero where `ok` is False (a zero-area face has no normal)."""
+    tri = positions_w[face_w]
+    cross = np.cross(tri[:, 1] - tri[:, 0], tri[:, 2] - tri[:, 0])
+    length = np.linalg.norm(cross, axis=1)
+    out = np.zeros_like(cross)
+    out[ok] = cross[ok] / length[ok, None]
+    return out
+
+
 def plane_basis(n):
     a = np.array([1.0, 0.0, 0.0]) if abs(n[0]) < 0.9 else np.array([0.0, 1.0, 0.0])
     e1 = np.cross(n, a)
@@ -110,10 +120,8 @@ def cluster_uv(xy, uv, area, uv_tol=0.02, max_refit=6):
 def build_regions(mesh, positions_w, face_w, ok, table, t_vertices, quanta, flat_materials, uv_tol=0.02):
     tri = positions_w[face_w]
     cr = np.cross(tri[:, 1] - tri[:, 0], tri[:, 2] - tri[:, 0])
-    norm = np.linalg.norm(cr, axis=1)
-    area = 0.5 * norm
-    normals = np.zeros_like(cr)
-    normals[ok] = cr[ok] / norm[ok, None]
+    area = 0.5 * np.linalg.norm(cr, axis=1)
+    normals = face_normals(positions_w, face_w, ok)
     uv_all = np.zeros((mesh.n_faces, 3, 2))
     has_uv = (mesh.face_vt >= 0).all(axis=1)
     if len(mesh.uvs):

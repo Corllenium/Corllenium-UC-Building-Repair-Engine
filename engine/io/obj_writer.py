@@ -39,18 +39,21 @@ def write_obj(mesh: MeshData, path: Path) -> None:
     Path(path).write_text("\n".join(out) + "\n", encoding="utf-8", newline="\n")
 
 
-def write_obj_polygons(mesh: MeshData, rings: dict[int, np.ndarray], path: Path) -> None:
+def write_obj_polygons(mesh: MeshData, rings: dict[int, dict], path: Path) -> None:
     """Write `mesh` as a polygon (ngon) OBJ: a viewer/documentation artifact showing only real
     shape edges, never the file Unity imports (that stays `write_obj`'s triangulated output, and
     `read_obj` refuses this file's n-gon lines on purpose -- OBJ triangles only, by design).
 
     `rings` is `engine.fixes.merge.MergeResult.rings` (or an equivalent mapping): for every output
-    face index present, ALL rows sharing that array OBJECT (`is`, not just equal content) collapse
-    into ONE `f` line of that ring's vertices, in order, position-only (no vt/vn -- an arbitrary
-    n-gon has no single triangle's per-corner attribute set); the first such row decides where the
-    line lands and which `usemtl` block it falls in. Rows absent from `rings` (holed or
-    multi-piece regions, and faces copied through unmerged) are written as ordinary triangles,
-    identical to `write_obj`."""
+    face index whose entry is HOLE-FREE (`inners` empty), ALL rows sharing that entry OBJECT
+    (`is`, not just equal content) collapse into ONE `f` line of `outer`'s vertices, in order,
+    position-only (no vt/vn -- an arbitrary n-gon has no single triangle's per-corner attribute
+    set); the first such row decides where the line lands and which `usemtl` block it falls in.
+
+    A region WITH holes keeps its triangles: an OBJ `f` line is a single loop and cannot carry an
+    inner one, so its `inners` are for the SketchUp export, not for this file. Rows absent from
+    `rings` (multi-piece regions, faces copied through unmerged) are triangles too, identical to
+    `write_obj`."""
     d = max(mesh.coord_decimals, 1)
     out = [f"# {mesh.name} (polygon export: real shape edges only -- not the Unity file)"]
     if mesh.mtllib:
@@ -62,16 +65,18 @@ def write_obj_polygons(mesh: MeshData, rings: dict[int, np.ndarray], path: Path)
     current = None
     emitted_rings: set[int] = set()
     for f in range(mesh.n_faces):
-        ring = rings.get(f)
-        if ring is not None and id(ring) in emitted_rings:
+        loops = rings.get(f)
+        if loops is not None and len(loops["inners"]):
+            loops = None                      # a hole cannot be written as one `f` line
+        if loops is not None and id(loops) in emitted_rings:
             continue
         mat = int(mesh.face_material[f])
         if mat != current and mat >= 0:
             out.append(f"usemtl {mesh.materials[mat]}")
         current = mat
-        if ring is not None:
-            emitted_rings.add(id(ring))
-            out.append("f " + " ".join(str(int(v) + 1) for v in ring))
+        if loops is not None:
+            emitted_rings.add(id(loops))
+            out.append("f " + " ".join(str(int(v) + 1) for v in loops["outer"]))
             continue
         toks = []
         for v, t, n in zip(mesh.face_v[f], mesh.face_vt[f], mesh.face_vn[f]):

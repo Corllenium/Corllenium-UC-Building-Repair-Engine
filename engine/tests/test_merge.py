@@ -286,9 +286,11 @@ def test_patterned_material_keeps_the_fit_offset_flat_material_is_rebased():
 
 
 # ---------------------------------------------------------------------------------------------
-# Task 9: MergeResult.rings -- per hole-free merged region's kept outer ring, for the polygon
-# (ngon) export. Keyed by OUTPUT face row index in r.mesh.face_v; every row of the SAME region
-# shares the identical ring array object, so a writer can dedup by identity.
+# Task 9 / M2: MergeResult.rings -- every merged single-piece region's kept loops, for the
+# polygon (ngon) and SketchUp exports. Keyed by OUTPUT face row index in r.mesh.face_v; every row
+# of the SAME region shares the identical {"outer": ..., "inners": [...]} dict object, so a
+# writer can dedup by identity. A region WITH holes has an entry too (M2) -- the ngon writer just
+# keeps triangles for it.
 # ---------------------------------------------------------------------------------------------
 
 def test_grid_slab_rings_is_one_shared_four_vertex_ring_for_both_output_triangles():
@@ -298,15 +300,34 @@ def test_grid_slab_rings_is_one_shared_four_vertex_ring_for_both_output_triangle
     assert set(r.rings.keys()) == {0, 1}
     ring0, ring1 = r.rings[0], r.rings[1]
     assert ring0 is ring1  # same region -> same ring object, for a writer to dedup by identity
-    assert len(ring0) == 4
-    assert set(int(v) for v in ring0) == used(r.mesh)  # the 4 surviving corners
+    assert len(ring0["outer"]) == 4
+    assert ring0["inners"] == []
+    assert set(int(v) for v in ring0["outer"]) == used(r.mesh)  # the 4 surviving corners
 
 
-def test_slab_with_hole_rings_is_empty():
+def test_slab_with_hole_rings_has_an_outer_loop_and_one_inner_loop_of_four():
+    """M2: a holed region is no longer left out. It gets its loops like any other single-piece
+    region -- the OBJ export just keeps triangles for it (see test_obj_writer)."""
     m = slab_with_hole()
     r = merged(m)
     assert r.mesh.n_faces == 8
-    assert r.rings == {}
+    assert set(r.rings.keys()) == set(range(8))
+    ring = r.rings[0]
+    assert all(r.rings[i] is ring for i in range(8))
+    assert len(ring["outer"]) == 4
+    assert len(ring["inners"]) == 1 and len(ring["inners"][0]) == 4
+    assert set(int(v) for v in ring["outer"]).isdisjoint(set(int(v) for v in ring["inners"][0]))
+
+
+def test_inner_loops_are_wound_opposite_to_the_outer_loop():
+    """Outer CCW as seen from the region's outward side, holes CW -- the convention every
+    polygon consumer (SketchUp included) expects, so a hole reads as a hole."""
+    m = slab_with_hole()
+    ring = merged(m).rings[0]
+    xy = lambda ids: m.positions[np.asarray(ids)][:, :2]
+    signed = lambda p: float(np.sum(p[:, 0] * np.roll(p[:, 1], -1) - np.roll(p[:, 0], -1) * p[:, 1]))
+    assert signed(xy(ring["outer"])) > 0.0
+    assert signed(xy(ring["inners"][0])) < 0.0
 
 
 def test_two_slabs_sharing_border_rings_are_two_distinct_four_vertex_rings():
@@ -317,8 +338,9 @@ def test_two_slabs_sharing_border_rings_are_two_distinct_four_vertex_rings():
     left_ring, right_ring = r.rings[0], r.rings[2]
     assert left_ring is r.rings[1] and right_ring is r.rings[3]
     assert left_ring is not right_ring
-    assert len(left_ring) == 4 and len(right_ring) == 4
-    assert set(int(v) for v in left_ring) != set(int(v) for v in right_ring)
+    assert len(left_ring["outer"]) == 4 and len(right_ring["outer"]) == 4
+    assert left_ring["inners"] == [] and right_ring["inners"] == []
+    assert set(int(v) for v in left_ring["outer"]) != set(int(v) for v in right_ring["outer"])
 
 
 def test_ring_vertex_ids_index_into_mesh_positions_like_face_v_does():
@@ -326,7 +348,7 @@ def test_ring_vertex_ids_index_into_mesh_positions_like_face_v_does():
     welded ids -- so a writer can use them directly against mesh.positions."""
     m = grid_slab(10, 10)
     r = merged(m)
-    ring = r.rings[0]
+    ring = r.rings[0]["outer"]
     assert ring.dtype == np.int64
     assert int(ring.max()) < len(m.positions)
 
@@ -393,7 +415,7 @@ def test_arc_ring_stays_within_the_bound_instead_of_drifting_off_it():
     # off the original, which loses 118 sq in of area, more than `_triangulate` allows, so the
     # region falls back to keeping ALL 24 ring vertices and simplifies nothing at all.
     r = merge_regions(m, topo, collinear_tol=tol)
-    ring = r.rings[0]
+    ring = r.rings[0]["outer"]
     assert 4 < len(ring) < 24      # simplified, but NOT collapsed onto the four sharp corners
     ring_xy = m.positions[ring][:, [0, 2]]
     original = m.positions[np.unique(m.face_v)][:, [0, 2]]
@@ -407,5 +429,5 @@ def test_ring_bound_defaults_to_one_and_a_half_axis_quanta():
     topo = analyse_topology(m)
     explicit = merge_regions(m, topo, collinear_tol=1.5 * float(topo.quanta.max()))
     default = merge_regions(m, topo)
-    assert np.array_equal(default.rings[0], explicit.rings[0])
+    assert np.array_equal(default.rings[0]["outer"], explicit.rings[0]["outer"])
     assert default.mesh.n_faces == explicit.mesh.n_faces
