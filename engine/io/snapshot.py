@@ -147,6 +147,10 @@ def snapshot_object(src_obj, dst_root, expected_tris=None, interval_s=1.0, sleep
                 # (the `finally` below removes tmp) and load the winner's result instead.
                 if not final.exists():
                     raise
+        else:
+            alias_obj = final / src_obj.name
+            if not alias_obj.exists():
+                _copy_verified(src_obj, alias_obj, interval_s, sleep)
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
     return _load(final, src_obj.name, digest)
