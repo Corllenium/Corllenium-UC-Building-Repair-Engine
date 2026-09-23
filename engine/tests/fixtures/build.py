@@ -736,3 +736,30 @@ def union_sliver_region():
     remove any of these 202 without losing the sliver it was following or splitting the region,
     and a fan or a two-ring neighbourhood around a sliver reproduces nothing."""
     return read_obj(Path(__file__).with_name("union_sliver_region.obj"))
+
+
+def slab_with_lifted_corner(nx=3, nz=2, cell=100.0, y=24000.0, step=0.1, uv_per_unit=0.05):
+    """A flat slab in the x-z plane at `y = 24,000` in, `nx x nz` cells of `cell` inches, with
+    ONE corner -- `(0, y, 0)`, vertex 0 -- printed one Y quantum (`step`, 0.1 in at this
+    magnitude) off the plane: the rounding a 6-significant-digit export leaves on a surface that
+    is not axis-aligned in the source model's own coordinates.
+
+    Every vertex is within one quantum of the plane, so `analyse_topology` keeps the slab ONE
+    region and `merge_regions` rebuilds it as ONE polygon (measured: a 5-vertex ring, 3
+    triangles) -- whose ring is not coplanar: the lifted corner is `step` off the plane of the
+    others, 0.042 in off their best fit. SketchUp's own validity check (`SUModelFixErrors`)
+    splits a polygon face whose vertices are more than about 1.2e-3 in off its plane, so this
+    is the region the SketchUp writer must not ship as one face."""
+    cols = nx + 1
+    P = [[i * cell, y + (step if (i, k) == (0, 0) else 0.0), k * cell]
+         for k in range(nz + 1) for i in range(nx + 1)]
+    uvs, fv, fvt = [], [], []
+    for k in range(nz):
+        for i in range(nx):
+            corners = [(i, k), (i + 1, k), (i + 1, k + 1), (i, k + 1)]
+            base = len(uvs)
+            uvs.extend([[a * cell * uv_per_unit, b * cell * uv_per_unit] for a, b in corners])
+            v = [b * cols + a for a, b in corners]
+            fv += [[v[0], v[1], v[2]], [v[0], v[2], v[3]]]
+            fvt += [[base, base + 1, base + 2], [base, base + 2, base + 3]]
+    return _mesh("slab_with_lifted_corner", P, uvs, fv, fvt)
