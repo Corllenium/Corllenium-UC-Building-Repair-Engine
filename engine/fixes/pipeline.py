@@ -116,6 +116,10 @@ class FixProfile:
     #: a wall seen through a small hole: the far wall of `compartment_with_deep_wall` measures
     #: a fraction of a percent through a 10 x 10 in opening 45 in away.
     cover_max_exposure: float = 0.10
+    #: Rounds the cap guard may spend removing invented faces before it gives up. It always
+    #: verifies the state it hands back, so giving up is VISIBLE: `cap_guard_passed` goes False
+    #: and with it the whole run's `passed`.
+    cap_guard_max_rounds: int = 8
 
 
 @dataclass
@@ -414,6 +418,12 @@ def fix_object(mesh: MeshData, flatness: dict[str, float], profile: FixProfile =
                           and np.array_equal(final_mesh.positions.max(axis=0), mesh.positions.max(axis=0))),
         "area_not_grown": bool(_total_area(final_mesh.positions, final_mesh.face_v)
                                <= _total_area(mesh.positions, mesh.face_v) * (1.0 + _AREA_REL_TOL)),
+        # The CAP GUARD's own verdict, re-verified against the mesh solidify handed back (see
+        # `engine.guard.compare.solidify_feedback`). It is an invariant and not merely a report,
+        # because every other guard in this run compares against the solidified mesh: if the cap
+        # guard never converged, the reference itself is covering something a person can see, and
+        # no later guard would ever notice. True vacuously when solidify did not run.
+        "cap_guard_passed": bool(solidify_report.get("cap_guard_passed", True)),
         "guard_passed": guard_final.passed,
     }
     passed = all(invariants.values())

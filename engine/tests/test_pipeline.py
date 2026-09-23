@@ -86,7 +86,8 @@ def test_box_with_partition_removes_only_the_sealed_partition():
     assert "rolled_back" not in r.merge_report
 
     assert r.invariants == {"material_count_same": True, "bbox_same": True,
-                            "area_not_grown": True, "guard_passed": True}
+                            "area_not_grown": True, "cap_guard_passed": True,
+                            "guard_passed": True}
     assert r.passed is True
     assert r.guard_final.totals["holes"] == 0
     assert r.guard_final.totals["moved_same_flat"] == 0

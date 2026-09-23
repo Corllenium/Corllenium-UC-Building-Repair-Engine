@@ -464,3 +464,43 @@ def test_a_bottom_whose_triangulation_raises_is_counted_and_refused(monkeypatch)
     assert r.report["bottoms_added"] == 0
     assert r.report["bottoms_partial_refused"] == 1
     assert r.report["bottom_skips"]["cdt_failed"] == 1
+
+
+# --------------------------------------------------- S-I2: the cap guard is an INVARIANT
+
+
+def test_a_converged_cap_guard_is_reported_as_passed():
+    r = fix_object(slab_with_three_skirts(), {}, _FAST)
+    assert r.solidify_report["cap_guard_passed"] is True
+    assert r.invariants["cap_guard_passed"] is True
+    assert r.passed is True
+    assert r.solidify_report["cap_guard"][-1]["failing_pixels"] == 0
+
+
+def test_a_run_with_nothing_to_solidify_passes_the_cap_guard_vacuously():
+    on = fix_object(box_with_partition(), {}, _FAST)
+    assert on.solidify_report["cap_guard"] == [] and on.solidify_report["cap_guard_passed"] is True
+    off = fix_object(box_with_partition(), {}, _fast(solidify=False))
+    assert off.invariants["cap_guard_passed"] is True
+
+
+def test_a_cap_guard_that_never_converged_fails_the_whole_run():
+    """The rounds are capped, and a round's `failing_pixels` is measured BEFORE that round's own
+    removals -- so a loop cut off at the cap reported the state before its last deletion and
+    `cap_guard_removed` was the only trace that anything was still wrong. The loop now always
+    ends with a render-only verification of the mesh it is actually handing back.
+
+    Forced here by giving the guard NO rounds at all, which is the cleanest way to leave a
+    solidified mesh that has never been corrected: `slab_with_partial_underside`'s bottom boxes
+    in its real underside, 8,498 pixels' worth. The point of the test is that the verdict comes
+    from a real final render of the mesh that would have shipped, not from the loop's own
+    bookkeeping."""
+    r = fix_object(slab_with_partial_underside(), {}, _fast(cap_guard_max_rounds=0))
+
+    history = r.solidify_report["cap_guard"]
+    assert len(history) == 1
+    assert history[-1]["removed"] == 0 and history[-1]["failing_pixels"] > 0
+    assert r.solidify_report["cap_guard_removed"] == 0     # nothing was corrected
+    assert r.solidify_report["cap_guard_passed"] is False
+    assert r.invariants["cap_guard_passed"] is False
+    assert r.passed is False

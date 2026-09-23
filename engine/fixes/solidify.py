@@ -385,7 +385,8 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
     if new_faces.any():
         solid, new_faces, cap_history, cap_removed = _cap_guard(
             mesh, solid, new_faces, guard_size, getattr(profile, "n_dirs", 128),
-            getattr(profile, "cover_max_exposure", 0.10))
+            getattr(profile, "cover_max_exposure", 0.10),
+            getattr(profile, "cap_guard_max_rounds", 8))
 
     hidden_before, hidden_after = _newly_hidden(mesh, solid, topo, profile)
     report = {
@@ -411,6 +412,11 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
         "invented_vertices": int(len(solid.positions) - len(mesh.positions)),
         "cap_guard_rounds": len(cap_history),
         "cap_guard_removed": cap_removed,
+        #: THE CAP GUARD AS AN INVARIANT, not as a count of what it happened to delete. True
+        #: only when the LAST entry of `cap_guard` -- which `solidify_feedback` guarantees is a
+        #: verification of the mesh being handed back, even when the round limit cut the loop
+        #: off -- shows 0 failing pixels. Vacuously True when nothing was invented at all.
+        "cap_guard_passed": bool(not cap_history or cap_history[-1]["failing_pixels"] == 0),
         #: `engine.guard.compare.solidify_feedback`'s own per-round history, which is what
         #: `FixResult.guard_solidify` carries: the cap guard's verdict against the PRISTINE
         #: input, the only comparison in the run that still uses it as the reference.
@@ -529,7 +535,7 @@ def _add_bottom(builder: _Builder, topo: Topology, plan: dict, down, material: i
 
 def _cap_guard(original: MeshData, solid: MeshData, new_faces: np.ndarray,
                 guard_size: tuple[int, int], n_dirs: int = 128,
-                cover_max_exposure: float = 0.10):
+                cover_max_exposure: float = 0.10, max_rounds: int = 8):
     """Render the original and the solidified mesh over `VIEWS_26` and drop every new face the
     cap rule refuses (see `engine.guard.compare.solidify_feedback`). Returns
     `(mesh, new_faces, history, removed)`.
@@ -558,7 +564,7 @@ def _cap_guard(original: MeshData, solid: MeshData, new_faces: np.ndarray,
 
     keep, history = solidify_feedback(positions_c, faces_before, faces_after, new_faces, front,
                                        cover_max_exposure=cover_max_exposure,
-                                       views=VIEWS_26, size=guard_size)
+                                       views=VIEWS_26, size=guard_size, max_rounds=max_rounds)
     removed = int((~keep).sum())
     if not removed:
         return solid, new_faces, history, 0

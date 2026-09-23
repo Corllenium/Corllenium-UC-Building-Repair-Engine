@@ -792,6 +792,13 @@ def solidify_feedback(positions_c: np.ndarray, faces_before: np.ndarray, faces_a
     thing runs again, because removing one new face can expose what another was covering, until
     a round marks nothing or `max_rounds` rounds have run.
 
+    THE LAST STATE IS ALWAYS VERIFIED. A round's `failing_pixels` is measured BEFORE that round's
+    own removals, so a loop cut off at `max_rounds` would leave a history describing a mesh that
+    is not the one handed back. When the loop ends that way one extra render-only round is
+    appended (`"removed": 0`), so `history[-1]["failing_pixels"] == 0` is always a statement about
+    the returned `keep`. `engine.fixes.solidify` publishes exactly that as `cap_guard_passed` and
+    `engine.fixes.pipeline` makes it an invariant of the whole run.
+
     `faces_before` / `faces_after` are welded triangles into the SAME `positions_c` (solidify
     only appends positions, so an original face still indexes the same rows) and `positions_c`
     frames both renders, so the two line up pixel for pixel. `is_new` is a bool mask over
@@ -820,8 +827,9 @@ def solidify_feedback(positions_c: np.ndarray, faces_before: np.ndarray, faces_a
               for view in views]
 
     keep = np.ones(len(faces_after), dtype=bool)
-    history: list[dict] = []
-    for rnd in range(max_rounds):
+
+    def measure() -> tuple[int, set[int]]:
+        """`(failing pixels, the new faces at them)` for the CURRENT `keep`."""
         ids = np.nonzero(keep)[0]
         after_caster = ReusableCaster(caster_factory)
         marked: set[int] = set()
@@ -844,10 +852,22 @@ def solidify_feedback(positions_c: np.ndarray, faces_before: np.ndarray, faces_a
             bad = covered & ~back_side & ~only_through_an_opening
             failing += int(bad.sum())
             marked.update(a.tri[changed][bad].tolist())
+        return failing, marked
 
+    history: list[dict] = []
+    for rnd in range(max_rounds):
+        failing, marked = measure()
         history.append({"round": rnd, "new_remaining": int((keep & is_new).sum()),
                          "failing_pixels": failing, "removed": len(marked)})
         if not marked:
-            break
+            return keep, history
         keep[sorted(marked)] = False
+
+    # Cut off at the cap with its last round's removals never checked. A round's `failing_pixels`
+    # is measured BEFORE its own removals, so without this the history would describe a mesh that
+    # is not the one being handed back, and `history[-1]["failing_pixels"] == 0` -- which the
+    # caller publishes as `cap_guard_passed` -- would be a claim about a superseded state.
+    failing, _marked = measure()
+    history.append({"round": max_rounds, "new_remaining": int((keep & is_new).sum()),
+                     "failing_pixels": failing, "removed": 0})
     return keep, history
