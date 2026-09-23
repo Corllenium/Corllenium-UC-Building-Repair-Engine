@@ -40,7 +40,7 @@ MAX_ROUNDS = 10
 #: Rule 3, the overlap exclusion, is `engine.fixes.overlap.overlap_excluded` -- one
 #: implementation, so "these two faces overlap" means the same thing to the merge and to the
 #: duplicate-layer removal that runs before it.
-#: Relative slack on the per-region area checks (rules 6 and 9).
+#: Relative slack on the area checks: rule 6 per piece, rule 9 per region and per pass.
 _AREA_REL_TOL = 1e-6
 #: Nearest-vertex search block size, in coordinate x vertex pairs.
 _SEARCH_BLOCK = 4_000_000
@@ -525,27 +525,47 @@ def _build_regions(plans: list[_Plan], needed: np.ndarray, collinear_tol: float)
     where `late` maps the region id of each region that failed AFTER the corner pass (rule 6
     invalid polygon, rule 7 unmappable vertex at CDT time, rule 9 area grew) to its reason, and
     `keep_all` lists the region ids that succeeded only on the full-ring fallback -- the other
-    feedback event `merge_regions` reruns for."""
+    feedback event `merge_regions` reruns for.
+
+    Rule 9 has two parts. PER REGION, the rebuilt triangles may exceed the original faces by at
+    most the boundary movement rule 6 has already accepted for the same ring, `collinear_tol *
+    perimeter` plus the relative slack -- the same bound because it is the same movement, only
+    measured against the original faces instead of their union. OVER THE PASS, the regions that
+    build may not add up to more than they started with, beyond the relative slack. Simplifying
+    a border two regions SHARE moves area from one to the other and nowhere else, so the pair
+    nets to zero and both keep the simplification; a region that grows along an OPEN border has
+    no neighbour paying for it, the pass as a whole grows, and every region that grew is then
+    fed back as `area_grew`, exactly as the old per-region rule did unconditionally. Either way
+    the regions that ship never total more than the faces they replace, which is what
+    `engine.fixes.pipeline`'s `area_not_grown` invariant relies on: the check that used to be
+    per region is now per pass, and it is still made before anything is emitted."""
     builds: list[tuple[_Plan, list]] = []
+    growth: list[float] = []
     late: dict[int, str] = {}
     keep_all: list[int] = []
-    max_area_rel_error = 0.0
     for plan in plans:
         tris, note = _triangulate(plan, needed, collinear_tol)
-        if tris is not None:
-            merged_area = _signed_area_sum(plan.vertex_xy, plan.vertex_ids, tris)
-            if merged_area > plan.original_area * (1.0 + _AREA_REL_TOL):
-                tris, note = None, "area_grew"
-            else:
-                max_area_rel_error = max(
-                    max_area_rel_error,
-                    abs(merged_area - plan.original_area) / max(plan.original_area, 1e-300))
         if tris is None:
             late[plan.region] = note
+            continue
+        grown = _signed_area_sum(plan.vertex_xy, plan.vertex_ids, tris) - plan.original_area
+        perimeter = sum(piece.union_perimeter for piece in plan.pieces)
+        if grown > _AREA_REL_TOL * plan.original_area + collinear_tol * perimeter:
+            late[plan.region] = "area_grew"
             continue
         if note == "keep_all":
             keep_all.append(plan.region)
         builds.append((plan, tris))
+        growth.append(grown)
+
+    if sum(growth) > _AREA_REL_TOL * sum(plan.original_area for plan, _tris in builds):
+        grew = [g > _AREA_REL_TOL * plan.original_area for (plan, _tris), g in zip(builds, growth)]
+        late.update((plan.region, "area_grew") for (plan, _tris), g in zip(builds, grew) if g)
+        builds = [build for build, g in zip(builds, grew) if not g]
+        growth = [g for g, did in zip(growth, grew) if not did]
+        keep_all = [region for region in keep_all if region not in late]
+    max_area_rel_error = max((abs(g) / max(plan.original_area, 1e-300)
+                              for (plan, _tris), g in zip(builds, growth)), default=0.0)
     return builds, late, keep_all, max_area_rel_error
 
 

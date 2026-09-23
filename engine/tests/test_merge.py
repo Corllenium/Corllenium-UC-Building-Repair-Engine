@@ -481,11 +481,13 @@ def test_a_shared_curved_border_opens_no_t_junction_in_the_shipped_mesh():
     """End to end: whatever the feedback loop does with these two regions, no vertex of the
     shipped mesh may end up inside another triangle's edge.
 
-    On this fixture the shipped mesh keeps the WHOLE border, because simplifying a shared curved
-    border necessarily grows one of the two regions (here by 5.3 sq in of 26,460) and rule 9
-    rejects any growth beyond `1e-6 * original_area` -- so the right-hand region is fed back and
-    its ring is pinned, which pins the border for its neighbour too. The invariant below holds
-    either way, which is the point: it does not depend on that rule staying as it is."""
+    Simplifying a shared curved border necessarily grows one of the two regions (here by 5.3 sq
+    in of 26,460). Rule 9 used to reject any growth beyond `1e-6 * original_area` per region, so
+    the right-hand region was fed back and its ring pinned, which pinned the border for its
+    neighbour too and shipped the WHOLE border; now it only refuses growth the pass as a whole
+    cannot pay for, and the pair keeps the simplification (see
+    `test_a_shared_curved_border_is_simplified_on_both_sides`). The invariant below holds either
+    way, which is the point: it does not depend on that rule staying as it is."""
     n = 12
     m = two_slabs_sharing_curved_border(n=n)
     topo = analyse_topology(m)
@@ -495,3 +497,60 @@ def test_a_shared_curved_border_opens_no_t_junction_in_the_shipped_mesh():
     assert r.mesh.n_faces < m.n_faces          # something really was merged
     assert vertices_inside_an_edge(r.mesh, r.mesh.face_v, sorted(used(r.mesh)),
                                     tol=1.5 * float(topo.quanta.max())) == set()
+
+
+def test_a_shared_curved_border_is_simplified_on_both_sides():
+    """Simplifying a shared border moves area from one region to the other and nowhere else --
+    here 5.3 sq in, out of the left slab and into the right -- so the pair's total is unchanged
+    and the merge as a whole has not grown. Refusing the right slab on its own for growing (rule
+    9 at `1e-6 * original_area`, 4,000x tighter than the boundary movement rule 6 had already
+    accepted) fed it back, pinned its whole ring, and so pinned the border for the left slab
+    too: 34 triangles shipped where 12 will do."""
+    n = 12
+    m = two_slabs_sharing_curved_border(n=n)
+    topo = analyse_topology(m)
+    original_border, _welded = _border_ids(m, topo, n)
+    r = merge_regions(m, topo)
+
+    assert r.report["regions_skipped"] == {} and r.report["converged"] is True
+    assert r.report["merge_rounds"] == 1            # nothing was fed back
+    outers = list({id(v): v["outer"] for v in r.rings.values()}.values())
+    assert len(outers) == 2
+    kept = [set(int(v) for v in outer) & original_border for outer in outers]
+    assert 2 < len(kept[0]) < n, (sorted(kept[0]), n)   # simplified, not flattened to a chord
+    assert kept[0] == kept[1], sorted(kept[0] ^ kept[1])
+    assert r.mesh.n_faces == sum(len(outer) - 2 for outer in outers) == 12
+    assert abs(area(r.mesh) - area(m)) <= 1e-6 * area(m)   # the transfer nets to zero
+
+
+def test_a_concave_open_border_never_grows_the_mesh():
+    """`arc_topped_strip` mirrored: the top edge DIPS, so every chord that replaces a run of arc
+    vertices lies outside the original boundary and simplifying can only GROW the region -- by
+    6.9 sq in at the ring bound, which rule 6 accepts as boundary movement (far under
+    `collinear_tol * perimeter`). It is an OPEN border: no neighbour shrinks to pay for it, so
+    the merge as a whole would grow, and `fix_object`'s `area_not_grown` invariant has no guard
+    but this one. Whatever a single region is allowed, the shipped mesh may not grow."""
+    m = arc_topped_strip(sag=-0.8)
+    topo = analyse_topology(m)
+    r = merge_regions(m, topo)
+    assert r.report["converged"] is True
+    assert area(r.mesh) <= area(m) * (1.0 + 1e-6)
+
+
+def test_an_uncompensated_grower_is_fed_back_and_pins_the_border_for_its_neighbour():
+    """The shared-border pair with the right slab's OUTER edge dipping inward as well. The right
+    slab now grows twice over: 5.3 sq in across the shared border, which the left slab pays for,
+    and 6.9 sq in along its own OPEN edge, which nobody does. The pass as a whole grows, so the
+    right slab is fed back and keeps its whole ring -- the shared border with it, so the left
+    slab keeps every border vertex too -- and the shipped mesh has not grown. The left slab is
+    not fed back: it shrank."""
+    n = 12
+    m = two_slabs_sharing_curved_border(n=n, outer_sag=0.8)
+    topo = analyse_topology(m)
+    r = merge_regions(m, topo)
+
+    assert r.report["regions_skipped"] == {} and r.report["converged"] is True
+    assert r.report["merge_rounds"] == 2            # one feedback event, then agreement
+    outers = list({id(v): v["outer"] for v in r.rings.values()}.values())
+    assert sorted(len(outer) for outer in outers) == [2 + n, 2 * n]   # left: border + 2; right: all
+    assert area(r.mesh) <= area(m) * (1.0 + 1e-6)
