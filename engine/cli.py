@@ -161,6 +161,9 @@ def _build_report(name: str, obj_path: Path, mesh: MeshData, result: FixResult,
         "guard_merge_attempt": (None if result.guard_merge_attempt is None
                                  else _guard_report_dict(result.guard_merge_attempt)),
         "guard_final": _guard_report_dict(result.guard_final),
+        # which of those counts are failures depends on this: `moved_same_flat` is tolerated by
+        # construction when a colour-tolerant slit removal actually removed something.
+        "strict_final": result.strict_final,
         "merge_report": dict(result.merge_report),
         "invariants": result.invariants,
         "passed": result.passed,
@@ -170,22 +173,37 @@ def _build_report(name: str, obj_path: Path, mesh: MeshData, result: FixResult,
 # --------------------------------------------------------------------------------- guard images
 
 
-def _failing_view_indices(result: FixResult) -> list[int]:
+def _failing_view_indices(result: FixResult, profile: FixProfile) -> list[int]:
     """Indices into `VIEWS_26` of every view that ANY of the run's three guards -- the merge
-    attempt, the post-removal guard, the final one -- counted a failure or a flicker pixel in.
+    attempt, the post-removal guard, the final one -- counted a REAL failure in.
 
-    "Failure or flicker" is `holes`, `material_changed`, `moved_other`, `moved_same_flat` or
-    `edge_flicker`: `moved_same_flat` because whether it fails depends on the run's strictness,
-    and `edge_flicker` because whether it fails depends on that view's cap. `zfight_tie` and
-    `crack_closed` are never failures under any setting, so a view that only has those is not
-    listed. The guards report their views in `VIEWS_26` order, which is the order `_render`
-    built them in."""
+    "Real failure" is exactly `engine.guard.compare.compare_views`' own per-view arithmetic, at
+    the same strictness (`result.strict_final`) and the same cap that guard ran under: `holes`,
+    `material_changed` and `moved_other` always; `moved_same_flat` only when the run is strict;
+    `edge_flicker` only when it exceeds that view's `edge_flicker_cap * model_px`. The removal
+    guard always runs at cap 0.0, where a single flicker pixel is a failure; the merge attempt
+    and the final guard run at `profile.edge_flicker_cap_final`.
+
+    Listing a view on `moved_same_flat` or `edge_flicker` ALONE, as this used to, meant a
+    non-strict (`--accept-slit`) run wrote 13-18 triptychs of pixels the guard itself had already
+    tolerated, burying the ones worth looking at. `zfight_tie` and `crack_closed` are never
+    failures under any setting and were never listed.
+
+    The guards report their views in `VIEWS_26` order, which is the order `_render` built them in."""
     bad: set[int] = set()
-    for guard in (result.guard_merge_attempt, result.guard_after_removal, result.guard_final):
+    final_cap = profile.edge_flicker_cap_final
+    for guard, cap in ((result.guard_merge_attempt, final_cap),
+                       (result.guard_after_removal, 0.0),
+                       (result.guard_final, final_cap)):
         if guard is None:
             continue
         for index, v in enumerate(guard.views):
-            if v.holes or v.material_changed or v.moved_other or v.moved_same_flat or v.edge_flicker:
+            failures = v.holes + v.material_changed + v.moved_other
+            if result.strict_final:
+                failures += v.moved_same_flat
+            if v.edge_flicker > cap * v.model_px:
+                failures += v.edge_flicker
+            if failures:
                 bad.add(index)
     return sorted(bad)
 
@@ -194,9 +212,10 @@ def _write_guard_images(mesh: MeshData, result: FixResult, profile: FixProfile,
                         flat_materials: frozenset, topo: Topology, positions_c: np.ndarray,
                         out_dir: Path) -> None:
     """One `guard_<view>.png` triptych per axis view, plus one `guard_fail_<index>.png` for every
-    view any guard reported a failure or flicker in (`_failing_view_indices`) -- the six axis
-    views are rarely the ones that catch a defect, and a failing oblique view had no picture at
-    all before. An axis view that also fails gets both names.
+    view any guard counted a REAL failure in (`_failing_view_indices`, which applies the run's own
+    strictness and each guard's own flicker cap) -- the six axis views are rarely the ones that
+    catch a defect, and a failing oblique view had no picture at all before. An axis view that
+    also fails gets both names.
 
     Each triptych is BEFORE (original mesh, shaded), AFTER (final shipped mesh, shaded), DIFF
     (failures red, tolerated moves amber). A diagnostic image, not the authoritative numbers --
@@ -238,7 +257,7 @@ def _write_guard_images(mesh: MeshData, result: FixResult, profile: FixProfile,
 
     for view in _AXIS_VIEWS:
         write(view, out_dir / f"guard_{_axis_name(view)}.png")
-    for index in _failing_view_indices(result):
+    for index in _failing_view_indices(result, profile):
         write(VIEWS_26[index], out_dir / f"guard_fail_{index}.png")
 
 

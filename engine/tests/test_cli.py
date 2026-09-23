@@ -1,9 +1,11 @@
 import json
+from dataclasses import replace
 from pathlib import Path
 
 import engine.cli as cli
 import engine.fixes.pipeline as fix_pipeline
 from engine.fixes.pipeline import FixProfile
+from engine.guard.compare import GuardReport
 from engine.io.obj_reader import read_obj
 from engine.io.obj_writer import write_obj
 from engine.tests.fixtures.build import box_with_partition
@@ -274,3 +276,88 @@ def test_main_dispatches_to_cmd_preview_data(monkeypatch):
 def test_main_returns_the_command_exit_code(monkeypatch):
     monkeypatch.setattr(cli, "cmd_fix", lambda *a, **k: 2)
     assert cli.main(["fix", "snapdir"]) == 2
+
+
+# ---------------------------------------------------------------------------------------------
+# M0b: `guard_fail_<index>.png` is for views that actually FAIL. A non-strict run tolerates
+# `moved_same_flat` by construction, and writing a triptych for each such view buried the real
+# failures under 13-18 pictures of pixels nobody was going to act on.
+# ---------------------------------------------------------------------------------------------
+
+def _run_with_tolerated_moves(tmp_path, monkeypatch, *, strict, per_view=7):
+    """Run `cmd_fix` on a clean fixture whose guards report `moved_same_flat` pixels and nothing
+    else, at the given final strictness."""
+    m = box_with_partition()
+    snap_dir = _write_snapshot(tmp_path, m)
+    out_root = tmp_path / "out"
+    real = fix_pipeline.fix_object
+
+    def with_tolerated_moves(mesh, flatness, profile):
+        result = real(mesh, flatness, profile)
+        views = [replace(v, moved_same_flat=per_view, edge_flicker=0, holes=0,
+                         material_changed=0, moved_other=0) for v in result.guard_final.views]
+        totals = dict(result.guard_final.totals)
+        totals.update(moved_same_flat=per_view * len(views), edge_flicker=0, holes=0,
+                      material_changed=0, moved_other=0)
+        report = GuardReport(views=views, passed=not strict, totals=totals)
+        return replace(result, strict_final=strict, guard_final=report,
+                       guard_merge_attempt=report, guard_after_removal=report)
+
+    monkeypatch.setattr(cli, "fix_object", with_tolerated_moves)
+    cli.cmd_fix(snap_dir, out_root, accept_slit=True, profile=_FAST)
+    return out_root / m.name
+
+
+def test_tolerated_moved_same_flat_pixels_write_no_failing_view_image(tmp_path, monkeypatch):
+    out_dir = _run_with_tolerated_moves(tmp_path, monkeypatch, strict=False)
+    assert list(out_dir.glob("guard_fail_*.png")) == []
+    assert len(list(out_dir.glob("guard_*.png"))) == 6      # the six axis views, as always
+
+
+def test_the_same_pixels_do_write_failing_view_images_when_the_run_is_strict(tmp_path, monkeypatch):
+    """The counterpart: `moved_same_flat` is a failure under a strict run, so every view that has
+    one gets its picture. Only the strictness differs between the two tests."""
+    out_dir = _run_with_tolerated_moves(tmp_path, monkeypatch, strict=True)
+    assert len(list(out_dir.glob("guard_fail_*.png"))) == len(cli.VIEWS_26)
+
+
+def _run_with_flicker(tmp_path, monkeypatch, *, per_view, model_px, cap):
+    """`cmd_fix` where the two FINAL guards report `per_view` flicker pixels in a `model_px` view
+    and the post-removal guard is clean, so only the final cap decides."""
+    m = box_with_partition()
+    snap_dir = _write_snapshot(tmp_path, m)
+    out_root = tmp_path / "out"
+    real = fix_pipeline.fix_object
+    profile = replace(_FAST, edge_flicker_cap_final=cap)
+    zeroed = dict(holes=0, material_changed=0, moved_other=0, moved_same_flat=0)
+
+    def with_flicker(mesh, flatness, profile_in):
+        result = real(mesh, flatness, profile_in)
+        clean = GuardReport(
+            views=[replace(v, edge_flicker=0, **zeroed) for v in result.guard_after_removal.views],
+            passed=True, totals=dict(result.guard_after_removal.totals))
+        flickering = GuardReport(
+            views=[replace(v, edge_flicker=per_view, model_px=model_px, **zeroed)
+                   for v in result.guard_final.views],
+            passed=True, totals=dict(result.guard_final.totals))
+        return replace(result, strict_final=True, guard_after_removal=clean,
+                       guard_merge_attempt=flickering, guard_final=flickering)
+
+    monkeypatch.setattr(cli, "fix_object", with_flicker)
+    cli.cmd_fix(snap_dir, out_root, accept_slit=False, profile=profile)
+    return out_root / m.name
+
+
+def test_flicker_under_the_final_cap_writes_no_failing_view_image(tmp_path, monkeypatch):
+    """Flicker fails only when it is counted against that view's cap, and each guard has its own:
+    the post-removal guard always runs at 0.0, the merge attempt and the final guard at
+    `edge_flicker_cap_final`. 1 pixel in 10,000 is under a 1e-2 cap (100 px)."""
+    out_dir = _run_with_flicker(tmp_path, monkeypatch, per_view=1, model_px=10_000, cap=1e-2)
+    assert list(out_dir.glob("guard_fail_*.png")) == []
+
+
+def test_flicker_over_the_final_cap_does_write_failing_view_images(tmp_path, monkeypatch):
+    """The counterpart, differing only in how much flicker there is: 500 pixels in 10,000 is over
+    the same 1e-2 cap, so every view is worth a look."""
+    out_dir = _run_with_flicker(tmp_path, monkeypatch, per_view=500, model_px=10_000, cap=1e-2)
+    assert len(list(out_dir.glob("guard_fail_*.png"))) == len(cli.VIEWS_26)

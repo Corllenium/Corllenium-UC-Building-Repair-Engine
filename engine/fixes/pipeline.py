@@ -115,6 +115,11 @@ class FixResult:
     #: trace at all. When nothing was rolled back it is the same report as `guard_final`.
     guard_merge_attempt: GuardReport | None
     guard_final: GuardReport
+    #: The strictness all three of those guards were run at: False when a person opted into a
+    #: colour-tolerant slit removal AND slit faces were actually removed, so `moved_same_flat`
+    #: pixels are tolerated by construction. A reader of the reports needs it to know which of
+    #: their counts are failures -- see `engine.guard.compare._fail_mask`.
+    strict_final: bool
     #: Per FINAL face, the merged region it belongs to, or -1 when it was copied through (and
     #: -1 everywhere when the merge was rolled back). Two final faces sharing a region id >= 0
     #: are two triangles of ONE rebuilt polygon, so the edge between them is a triangulation
@@ -288,5 +293,6 @@ def fix_object(mesh: MeshData, flatness: dict[str, float], profile: FixProfile =
         one_sided_holes_before=one_sided_holes_before, one_sided_holes_after=one_sided_holes_after,
         feedback_history={"hidden": history_hidden, "slit": history_slit},
         guard_after_removal=guard_after_removal, guard_merge_attempt=guard_merge_attempt,
-        guard_final=guard_final, face_region_final=final_face_region,
+        guard_final=guard_final, strict_final=strict_final,
+        face_region_final=final_face_region,
         merge_report=merge_report, rings=final_rings, invariants=invariants, passed=passed)

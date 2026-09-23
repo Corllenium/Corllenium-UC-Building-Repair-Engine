@@ -14,13 +14,19 @@ from pathlib import Path
 import numpy as np
 from PIL import Image
 
-from engine.guard.compare import (PX_EDGE_FLICKER, PX_HOLE, PX_MATERIAL_CHANGED, PX_MOVED_OTHER,
-                                   PX_MOVED_SAME_FLAT)
+from engine.guard.compare import (PX_CRACK_CLOSED, PX_EDGE_FLICKER, PX_HOLE, PX_MATERIAL_CHANGED,
+                                   PX_MOVED_OTHER, PX_MOVED_SAME_FLAT, PX_ZFIGHT_TIE)
 
 _BG = (255, 255, 255)
 _MODEL = (222, 222, 226)
 _FAIL = (220, 40, 40)
 _AMBER = (235, 165, 35)
+#: `PX_ZFIGHT_TIE`: violet. A pre-existing overlap that swapped winners -- never damage, but
+#: worth seeing, because it marks where the overlap detector still has work.
+_TIE = (140, 90, 205)
+#: `PX_CRACK_CLOSED`: green. An improvement -- a sub-tolerance crack BEFORE leaked through and
+#: AFTER does not.
+_CRACK = (60, 160, 90)
 
 #: One fixed directional light (arbitrary but stable), matching the preview page's own sun.
 _LIGHT = np.array([0.4, -0.5, 0.9])
@@ -59,9 +65,16 @@ def save_triptych(path, before: tuple[np.ndarray, np.ndarray], after: tuple[np.n
     """Write `path` as one PNG: three `(H, W)` panels side by side -- BEFORE model (shaded when
     `normals_before` is given), AFTER model (shaded when `normals_after` is given), and DIFF (the
     flat, unshaded BEFORE silhouette with `verdict_mask` overlaid: `PX_HOLE` / `PX_MATERIAL_CHANGED`
-    / `PX_MOVED_OTHER` in red, `PX_MOVED_SAME_FLAT` and `PX_EDGE_FLICKER` in amber -- amber is
-    "reported, tolerated by some caller", and whether a flicker pixel actually failed depends on
-    that view's `edge_flicker_cap`, which this module is not given).
+    overlaid). The legend, darkest meaning first:
+
+    | colour | classes | meaning |
+    |---|---|---|
+    | red `_FAIL` | `PX_HOLE`, `PX_MATERIAL_CHANGED`, `PX_MOVED_OTHER` | damage under any setting |
+    | amber `_AMBER` | `PX_MOVED_SAME_FLAT`, `PX_EDGE_FLICKER` | reported, tolerated by SOME caller -- whether either actually failed depends on the run's strictness and that view's `edge_flicker_cap`, neither of which this module is given |
+    | violet `_TIE` | `PX_ZFIGHT_TIE` | a pre-existing coplanar overlap swapped winners: never damage, but it marks a real defect for the overlap detector |
+    | green `_CRACK` | `PX_CRACK_CLOSED` | an improvement: a sub-tolerance crack BEFORE leaked through and AFTER does not |
+
+    Red is painted last, so it always wins where masks could ever overlap.
 
     `before`/`after` are `(depth, tri)` pairs for ONE view, as returned by `ortho_first_hit`
     (a `HitBuffers` unpacks as that pair); `tri` values index `normals_before`/`normals_after`
@@ -75,8 +88,9 @@ def save_triptych(path, before: tuple[np.ndarray, np.ndarray], after: tuple[np.n
     panel_after = _panel(after_depth, after_tri, normals_after)
     panel_diff = _panel(before_depth)
     panel_diff[np.isin(verdict_mask, (PX_MOVED_SAME_FLAT, PX_EDGE_FLICKER))] = _AMBER
-    fail = np.isin(verdict_mask, (PX_HOLE, PX_MATERIAL_CHANGED, PX_MOVED_OTHER))
-    panel_diff[fail] = _FAIL
+    panel_diff[verdict_mask == PX_ZFIGHT_TIE] = _TIE
+    panel_diff[verdict_mask == PX_CRACK_CLOSED] = _CRACK
+    panel_diff[np.isin(verdict_mask, (PX_HOLE, PX_MATERIAL_CHANGED, PX_MOVED_OTHER))] = _FAIL
 
     combo = np.concatenate([panel_before, panel_after, panel_diff], axis=1)
     path = Path(path)

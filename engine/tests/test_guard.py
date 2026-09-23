@@ -3,9 +3,9 @@ import itertools
 import numpy as np
 import pytest
 
-from engine.guard.compare import (PX_EDGE_FLICKER, PX_HOLE, PX_MATERIAL_CHANGED, PX_MOVED_OTHER,
-                                   PX_MOVED_SAME_FLAT, PX_OK, classify_pixels, compare_views, face_planes,
-                                   guard_feedback)
+from engine.guard.compare import (PX_CRACK_CLOSED, PX_EDGE_FLICKER, PX_HOLE, PX_MATERIAL_CHANGED,
+                                   PX_MOVED_OTHER, PX_MOVED_SAME_FLAT, PX_OK, PX_ZFIGHT_TIE,
+                                   classify_pixels, compare_views, face_planes, guard_feedback)
 from engine.guard.render import save_triptych
 from engine.guard.views import VIEWS_26, HitBuffers, ortho_first_hit
 from engine.pipeline import analyse_topology
@@ -1253,3 +1253,33 @@ def test_a_zfight_tie_is_found_between_faces_that_share_no_vertex():
     assert report.totals["zfight_tie"] == int(model.sum())
     assert report.totals["material_changed"] == 0
     assert report.passed is True
+
+
+# ---------------------------------------------------------------------------------------------
+# M0b: the DIFF panel gives the two tolerated-by-construction classes their own colours, so a
+# person reading a triptych can tell "a z-fight swapped winners" and "a crack closed" from the
+# amber "reported, tolerated by some caller" and from real red damage.
+# ---------------------------------------------------------------------------------------------
+
+def test_save_triptych_gives_ties_and_closed_cracks_their_own_diff_colours(tmp_path):
+    from PIL import Image
+
+    from engine.guard import render as render_module
+
+    depth = np.full((1, 6), 5.0)
+    tri = np.zeros((1, 6), np.int64)
+    codes = np.array([[PX_OK, PX_MOVED_SAME_FLAT, PX_EDGE_FLICKER, PX_ZFIGHT_TIE,
+                       PX_CRACK_CLOSED, PX_HOLE]], np.int64)
+
+    out = tmp_path / "legend.png"
+    save_triptych(out, (depth, tri), (depth, tri), codes)
+    diff = np.array(Image.open(out))[:, 12:, :]      # the third panel
+
+    assert tuple(diff[0, 0]) == render_module._MODEL          # untouched model grey
+    assert tuple(diff[0, 1]) == render_module._AMBER
+    assert tuple(diff[0, 2]) == render_module._AMBER
+    assert tuple(diff[0, 3]) == render_module._TIE
+    assert tuple(diff[0, 4]) == render_module._CRACK
+    assert tuple(diff[0, 5]) == render_module._FAIL
+    assert len({render_module._MODEL, render_module._AMBER, render_module._TIE,
+                render_module._CRACK, render_module._FAIL}) == 5
