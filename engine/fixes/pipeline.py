@@ -3,7 +3,9 @@ a slit), correct any face wound backwards, then re-triangulate what is left, wit
 at every removal step and a final guard of the WHOLE result against the pristine original -- so a
 cumulative drift that no single step would have caught on its own still gets caught here.
 
-Order: `analyse_topology` -> `compute_side_exposure`/`classify_exposure` -> candidates = hidden
+Order: `analyse_topology` -> `engine.fixes.solidify` (which APPENDS faces, so from here on the
+reference mesh is longer than the input and every per-face array in `FixResult` is sized over the
+reference, not the input) -> `compute_side_exposure`/`classify_exposure` -> candidates = hidden
 faces AND degenerate ("zero-area") faces (plus slit faces, only when `profile.accept_slit`) ->
 `guard_feedback` against the original, STRICT for pass 1 (the only automatic deletion, so it gets
 the strictest guard) and, when slit faces are accepted, a SECOND colour-tolerant pass over the
@@ -125,13 +127,18 @@ class FixProfile:
 @dataclass
 class FixResult:
     mesh: MeshData
-    #: One int64 array per face of `mesh`, listing which faces of the ORIGINAL input mesh (to
-    #: `fix_object`, not any intermediate) it came from -- a whole region when merged, a single
-    #: face otherwise.
+    #: One int64 array per face of `mesh`, listing which faces of the REFERENCE mesh it came
+    #: from -- a whole region when merged, a single face otherwise. The reference, not the input:
+    #: when solidify runs it appends faces, and a face of `mesh` may have come from one of those.
+    #: The input's own faces are rows `0 .. input.n_faces - 1` of the reference, so an id below
+    #: that bound does mean the input face with the same id.
     source_faces: list[np.ndarray]
-    #: Per ORIGINAL face, one of `engine.vis.exposure`'s `EXP_*` codes.
+    #: Per REFERENCE-mesh face, one of `engine.vis.exposure`'s `EXP_*` codes. See
+    #: `reference_mesh`: every per-face array in this dataclass is sized over that mesh, because
+    #: that is the mesh the rest of the pipeline was handed.
     exposure_class: np.ndarray
-    #: Bool, over ORIGINAL faces: the hidden/slit faces `guard_feedback` confirmed removable.
+    #: Bool, over REFERENCE-mesh faces: the hidden/slit faces `guard_feedback` confirmed
+    #: removable.
     removed_hidden: np.ndarray
     removed_slit: np.ndarray
     n_hidden_candidates: int
@@ -143,26 +150,27 @@ class FixResult:
     #: still being visible, and those are kept (see `n_degenerate_restored`).
     n_zero_area_dropped: int
     n_degenerate_restored: int
-    #: Bool, over ORIGINAL faces: degenerate faces the guard put back, which stay in the mesh.
+    #: Bool, over REFERENCE-mesh faces: degenerate faces the guard put back, which stay in the
+    #: mesh.
     restored_degenerate: np.ndarray
-    #: Bool, over ORIGINAL faces: survived removal and had its winding reversed (its only real
-    #: exposure was on the BACK -- see `engine.fixes.orient.classify_orientation`).
+    #: Bool, over REFERENCE-mesh faces: survived removal and had its winding reversed (its only
+    #: real exposure was on the BACK -- see `engine.fixes.orient.classify_orientation`).
     flipped: np.ndarray
-    #: Bool, over ORIGINAL faces: both sides exposed, roughly equally -- reported, never touched,
-    #: and never flipped either (see `engine.fixes.orient.classify_orientation`).
+    #: Bool, over REFERENCE-mesh faces: both sides exposed, roughly equally -- reported, never
+    #: touched, and never flipped either (see `engine.fixes.orient.classify_orientation`).
     thin_sheets: np.ndarray
-    #: Bool, over ORIGINAL faces: a duplicate layer the rest of its own region already covered,
-    #: confirmed removable by the strict guard (see `engine.fixes.overlap`).
+    #: Bool, over REFERENCE-mesh faces: a duplicate layer the rest of its own region already
+    #: covered, confirmed removable by the strict guard (see `engine.fixes.overlap`).
     removed_overlap: np.ndarray
-    #: Bool, over ORIGINAL faces: proposed as a covered duplicate and put back by the guard, so
-    #: still in the mesh.
+    #: Bool, over REFERENCE-mesh faces: proposed as a covered duplicate and put back by the
+    #: guard, so still in the mesh.
     restored_overlap: np.ndarray
     n_overlap_pairs_same: int
     n_overlap_pairs_diff: int
     n_removed_overlap: int
     n_restored_overlap: int
     #: Every DIFFERENT-material overlapping pair, as
-    #: `{"faces": [i, j], "materials": [m_i, m_j], "area": sq in}` with ORIGINAL face ids. Never
+    #: `{"faces": [i, j], "materials": [m_i, m_j], "area": sq in}` with REFERENCE face ids. Never
     #: removed -- which of two colours a person wants is not a question geometry can answer --
     #: only reported, as the input to a later preference-driven resolution.
     overlap_pairs_diff_material: list
@@ -203,9 +211,12 @@ class FixResult:
     #: `profile.solidify` is False.
     guard_solidify: list | None
     #: The mesh every guard in this run compares AGAINST: the solidified mesh, or the input when
-    #: `profile.solidify` is False. `exposure_class`, `removed_hidden`, `flipped`,
-    #: `removed_overlap` and `source_faces` are all indexed against THIS mesh's faces, not the
-    #: input's, because that is the mesh the rest of the pipeline was given.
+    #: `profile.solidify` is False. EVERY per-face array above -- `exposure_class`,
+    #: `removed_hidden`, `removed_slit`, `restored_degenerate`, `flipped`, `thin_sheets`,
+    #: `removed_overlap`, `restored_overlap`, `source_faces` and the face
+    #: ids in `overlap_pairs_diff_material` -- is indexed against THIS mesh's faces, not the
+    #: input's, because that is the mesh the rest of the pipeline was given. The input's faces
+    #: are its first `input.n_faces` rows, so the two agree below that bound and only there.
     reference_mesh: MeshData
     #: `engine.fixes.merge.MergeResult.rings` -- `{output face: {"outer": ids, "inners": [...]}}`
     #: -- valid against `mesh` (this result's own final mesh) exactly as documented there. Empty

@@ -496,3 +496,53 @@ def test_preview_data_reports_what_closing_the_slab_added(tmp_path, monkeypatch)
     assert stats["skirts_added"] == 1 and stats["bottoms_added"] == 1
     assert stats["invented_vertices"] == 0
     assert stats["n_removed_overlap"] == 0 and stats["n_overlap_pairs_same"] == 0
+
+
+# ---------------------------------------------------------------------------------------------
+# S-M: the BEFORE pane is the ORIGINAL EXPORT again. It was switched to the reference mesh when
+# solidify landed, which made a pane labelled "as exported" show geometry the export never had.
+# ---------------------------------------------------------------------------------------------
+
+def test_preview_data_before_pane_is_the_original_export_not_the_reference(tmp_path):
+    from engine.tests.fixtures.build import slab_with_three_skirts
+    m = slab_with_three_skirts()
+    snap_dir = _write_snapshot(tmp_path, m)
+    out_dir = tmp_path / "preview_out"
+    cli.cmd_preview_data(snap_dir, out_dir, profile=_FAST)
+    data = json.loads((out_dir / f"{m.name}.json").read_text(encoding="utf-8"))
+
+    assert data["stats"]["tris_input"] == 8
+    assert data["stats"]["tris_total"] == 12
+    # the export as it arrived: 8 triangles, not the 12 the guards compared against
+    assert len(data["before"]["mat"]) == 8
+    assert len(data["before"]["pos"]) == 8 * 9
+    assert len(data["before"]["hidden"]) == 8
+    # ...and what solidify added is its own block, so the page can draw it AS added
+    assert len(data["reference"]["mat"]) == 4
+    assert len(data["reference"]["pos"]) == 4 * 9
+
+
+def test_preview_data_before_edges_belong_to_the_original_export(tmp_path):
+    """Drawn from the INPUT mesh's own topology: an outline edge of a skirt the export never had
+    would otherwise float in the BEFORE pane with no surface under it."""
+    from engine.tests.fixtures.build import slab_with_three_skirts
+    m = slab_with_three_skirts()
+    snap_dir = _write_snapshot(tmp_path, m)
+    out_dir = tmp_path / "preview_out"
+    cli.cmd_preview_data(snap_dir, out_dir, profile=_FAST)
+    edges = json.loads((out_dir / f"{m.name}.json").read_text(encoding="utf-8"))["edges"]
+
+    from engine.pipeline import analyse_topology
+    # one segment per edge of the INPUT mesh (15), not of the reference (18): `_before_edges`
+    # emits every edge that still has a visible face, and nothing here is removed
+    drawn = sum(len(edges[name]) // 6 for name in ("grid", "tri_before", "outline_before"))
+    assert drawn == len(analyse_topology(m).table.edges) == 15
+
+
+def test_preview_page_says_its_before_pane_is_the_original_export():
+    if not _PREVIEW_PAGE.exists():
+        pytest.skip("preview/index.html is not shipped with the engine package")
+    source = _PREVIEW_PAGE.read_text(encoding="utf-8")
+    assert "BEFORE &middot; the original export" in source or "BEFORE · the original export" in source
+    # and it draws what solidify added as its own, separately labelled thing
+    assert "d.reference.pos" in source

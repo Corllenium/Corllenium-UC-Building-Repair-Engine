@@ -504,3 +504,19 @@ def test_a_cap_guard_that_never_converged_fails_the_whole_run():
     assert r.solidify_report["cap_guard_passed"] is False
     assert r.invariants["cap_guard_passed"] is False
     assert r.passed is False
+
+
+# ------------------------------------------------- S-M: an invented face has no line number
+
+
+def test_an_invented_face_carries_no_line_number():
+    """`face_line` is the line of the OBJ the face was read from. A face this module invents was
+    never in any file, and the builder used to give it `n + 1, n + 2, ...` -- line numbers that
+    exist, belong to other faces, and would send anyone chasing a defect to the wrong row."""
+    m = slab_with_three_skirts()
+    r = _solidified(m)
+    new = np.nonzero(r.new_faces)[0]
+    assert len(new) == 4
+    assert (r.mesh.face_line[new] == -1).all()
+    # every face that DID come from the file keeps its own line
+    assert np.array_equal(r.mesh.face_line[: m.n_faces], m.face_line)

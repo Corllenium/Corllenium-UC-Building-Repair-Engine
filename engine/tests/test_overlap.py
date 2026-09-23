@@ -11,7 +11,7 @@ import numpy as np
 from engine.fixes import merge as merge_module
 from engine.fixes import overlap as overlap_module
 from engine.fixes.merge import merge_regions
-from engine.fixes.overlap import (COVERED_FRACTION, covered_fractions, find_overlaps,
+from engine.fixes.overlap import (COVERED_FRACTION, _patch_of, covered_fractions, find_overlaps,
                                   plan_overlap_removal, remove_overlaps)
 from engine.pipeline import analyse_topology
 from engine.tests.fixtures.build import (grid_slab, partially_overlapping_fins,
@@ -200,3 +200,24 @@ def test_the_covered_threshold_is_a_parameter():
     loose = plan_overlap_removal(m, topo, covered_fraction=0.4)
     assert loose.candidates.sum() == 2
     assert loose.remove.sum() == 1        # twins: one of the two is protected, never both
+
+
+def test_two_exactly_stacked_layers_are_one_patch_not_two():
+    """`plan_overlap_removal`'s tie-break sorts by patch size first, and its docstring used to
+    claim "a whole stacked layer is one patch, so the smaller LAYER loses". That is false for the
+    case the rule exists for: two EXACTLY coincident layers weld to the same vertices, so they
+    share the same welded edges and `_patch_of` unions them into ONE patch.
+
+    What actually decides a stacked pair is the second key -- the higher face id goes first --
+    and the docstring now says so."""
+    m = stacked_duplicate_slab()
+    topo = analyse_topology(m)
+    plan = plan_overlap_removal(m, topo)
+
+    patch = _patch_of(topo, plan.candidates)
+    assert int(plan.candidates.sum()) == m.n_faces
+    assert len(np.unique(patch[patch >= 0])) == 1          # one patch, not two layers
+    # the upper half of the face ids -- the second copy -- is what goes
+    assert int(plan.remove.sum()) == m.n_faces // 2
+    assert plan.remove[m.n_faces // 2:].all()
+    assert not plan.remove[: m.n_faces // 2].any()

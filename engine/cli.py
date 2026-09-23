@@ -416,26 +416,44 @@ def cmd_preview_data(snapshot_dir: Path, out_dir: Path, profile: FixProfile | No
     profile = replace(profile or FixProfile(), solidify=solidify)
     result = fix_object(mesh, flatness, profile)
 
-    # BEFORE is the run's own reference -- the solidified mesh when solidify is on. Every
-    # per-face array in `FixResult` (`removed_hidden`, `flipped`, ...) is indexed against it, and
-    # the x-ray of "hidden inside" only lines up with the picture if the picture is that mesh.
+    # BEFORE IS THE ORIGINAL EXPORT, which is what a pane labelled "as exported" has to show.
+    # It was switched to the run's REFERENCE mesh when solidify landed -- defensible, since every
+    # per-face array in `FixResult` is indexed against that mesh -- but it put skirts and bottoms
+    # the export never had into the "before" picture, which is the one thing that pane is for.
+    # What solidify added is written separately, as `reference`, and the page draws it as added.
+    #
+    # The reference's first `input_mesh.n_faces` rows ARE the input's faces (solidify only
+    # appends), so `removed[:n]`, `topo.ok[:n]` and the rest line up without any remapping, and
+    # both meshes are framed on the SAME centre so the two panes stay registered.
     input_mesh, mesh = mesh, result.reference_mesh
     flat_materials = flat_material_indices(mesh, flatness, profile.flat_texture_std)
     topo = analyse_topology(mesh, flat_materials)
     centre = (topo.positions_w.min(axis=0) + topo.positions_w.max(axis=0)) / 2.0
-    positions_c_w = topo.positions_w - centre       # welded frame: BEFORE (topo.face_w indexes it)
+    positions_c_w = topo.positions_w - centre       # welded frame (topo.face_w indexes it)
     positions_c_o = mesh.positions - centre          # original frame: AFTER (result.mesh.face_v indexes it)
 
+    n_input = input_mesh.n_faces
     ok_ids = np.nonzero(topo.ok)[0]
     removed = result.removed_hidden | result.removed_slit
-    before_tri = positions_c_w[topo.face_w[ok_ids]]
-    before_mat = mesh.face_material[ok_ids]
-    before_hidden = removed[ok_ids].astype(int)
+    before_ids = ok_ids[ok_ids < n_input]            # the export's own faces, and only those
+    before_tri = positions_c_w[topo.face_w[before_ids]]
+    before_mat = mesh.face_material[before_ids]
+    before_hidden = removed[before_ids].astype(int)
+
+    added_ids = ok_ids[ok_ids >= n_input]            # everything solidify invented and kept
+    added_tri = positions_c_w[topo.face_w[added_ids]]
+    added_mat = mesh.face_material[added_ids]
 
     after_tri = positions_c_o[result.mesh.face_v]
     after_mat = result.mesh.face_material
 
-    grid, tri_before, outline_before = _before_edges(topo, positions_c_w, removed)
+    # ...and the BEFORE pane's edges come from the INPUT mesh's own topology, or an outline edge
+    # of a skirt the export never had would float there with no surface under it. Welded ids
+    # differ between the two topologies, but `_before_edges` emits COORDINATES, and both are
+    # recentred on the same `centre`, so the segments land in the same frame as everything else.
+    topo_input = analyse_topology(input_mesh, flat_materials)
+    grid, tri_before, outline_before = _before_edges(
+        topo_input, topo_input.positions_w - centre, removed[:n_input])
     outline_after, tri_after = _after_edges(result, positions_c_o)
 
     # The SHIPPED mesh's own topology: `result.mesh.positions` IS `mesh.positions` (nothing in
@@ -457,8 +475,11 @@ def cmd_preview_data(snapshot_dir: Path, out_dir: Path, profile: FixProfile | No
     data = {
         "name": mesh.name,
         "stats": {
+            # the REFERENCE mesh's count -- the export plus whatever solidify added and the cap
+            # guard kept. `tris_input` is the BEFORE pane's own count.
             "tris_total": int(mesh.n_faces),
             "tris_input": int(input_mesh.n_faces),
+            "tris_added_by_solidify": int(len(added_ids)),
             "skirts_added": int(result.solidify_report.get("skirts_added", 0)),
             "bottoms_added": int(result.solidify_report.get("bottoms_added", 0)),
             "invented_vertices": int(result.solidify_report.get("invented_vertices", 0)),
@@ -491,6 +512,10 @@ def cmd_preview_data(snapshot_dir: Path, out_dir: Path, profile: FixProfile | No
             "soft_edges": len(soft_after),
             "coplanar_region_borders": coplanar_region_borders(topo_after),
             "guard_passed": bool(result.guard_final.passed),
+            # the CAP GUARD's own verdict, re-verified against the mesh solidify handed back.
+            # It is an invariant of the run (see `engine.fixes.pipeline`), so the pane that shows
+            # what solidify added has to say whether that step was accepted.
+            "cap_guard_passed": bool(result.invariants.get("cap_guard_passed", True)),
             # Never failures under any setting, and the page says so: a tie is an overlap that
             # was already in the export, a closed crack is an improvement. See `classify_pixels`.
             "zfight_tie": int(guard_final["zfight_tie"]),
@@ -501,7 +526,12 @@ def cmd_preview_data(snapshot_dir: Path, out_dir: Path, profile: FixProfile | No
             "merge_rolled_back": bool(result.merge_report.get("rolled_back", False)),
         },
         "materials": _material_colors(snapshot_dir, mesh.materials, mtl_materials),
-        "before": {"pos": _round_flat(before_tri), "mat": before_mat.tolist(), "hidden": before_hidden.tolist()},
+        # the export exactly as it arrived
+        "before": {"pos": _round_flat(before_tri), "mat": before_mat.tolist(),
+                   "hidden": before_hidden.tolist()},
+        # ...and, separately, only what `solidify` added to it and the cap guard kept, so the
+        # page can draw it in its own colour and call it what it is. Empty under --no-solidify.
+        "reference": {"pos": _round_flat(added_tri), "mat": added_mat.tolist()},
         "after": {"pos": _round_flat(after_tri), "mat": after_mat.tolist()},
         "edges": {"grid": _round_flat(grid), "tri_before": _round_flat(tri_before),
                   "outline_before": _round_flat(outline_before), "outline_after": _round_flat(outline_after),

@@ -21,7 +21,10 @@ THIS IS THE ONLY STEP IN THE ENGINE THAT INVENTS A VERTEX, and even here it inve
 can: a shifted vertex that rounds onto an existing position reuses that row. Nothing is ever
 MOVED. Every face invented here is then put through the cap guard
 (`engine.guard.compare.solidify_feedback`), which allows a new face to cover only background, a
-back side, or a face whose exposure has gone to zero -- and removes the rest.
+back side, or a face whose FRONT exposure ON THE ORIGINAL MESH was already below
+`cover_max_exposure` -- and removes the rest. That last rule reads the original mesh and not the
+solidified one on purpose: any covering face drives the covered face's exposure in the solidified
+mesh to zero, so a rule that read it would authorise itself.
 
 WHAT COUNTS AS A TOP SURFACE, and a deliberate deviation. The brief says `n_z > top_min_nz`. That
 reads the winding, and the winding is exactly what these exports get wrong: 809 of file A's faces
@@ -228,8 +231,13 @@ class _Builder:
                                 np.full((len(self.faces), 3), -1, np.int64)]).astype(np.int64),
             face_material=np.append(self.mesh.face_material,
                                      [f[2] for f in self.faces]).astype(np.int64),
+            # -1, not a line number. `face_line` is the row of the OBJ a face was read from,
+            # and a face invented here was never in any file: `n + 1, n + 2, ...` are real rows
+            # that belong to OTHER faces, and would send anyone chasing a defect to the wrong
+            # one. `engine.fixes.merge` takes the MINIMUM line of a region it rebuilds, so a
+            # region mixing invented and read faces reports -1 -- which is true of it.
             face_line=np.append(self.mesh.face_line,
-                                 np.arange(n + 1, n + 1 + len(self.faces))).astype(np.int64),
+                                 np.full(len(self.faces), -1, np.int64)).astype(np.int64),
         )
         new = np.zeros(out.n_faces, bool)
         new[n:] = True
@@ -576,7 +584,13 @@ def _cap_guard(original: MeshData, solid: MeshData, new_faces: np.ndarray,
 
 def _newly_hidden(original: MeshData, solid: MeshData, topo: Topology, profile) -> tuple[int, int]:
     """How many of the ORIGINAL faces have exposure 0 before and after -- the number this whole
-    step exists to move."""
+    step exists to move.
+
+    Both counts are over the ORIGINAL mesh's faces, and that is the only thing they have in
+    common: `before` is measured against the original geometry ALONE (`faces_before` cast against
+    itself) and `after` against the whole SOLIDIFIED mesh. The difference is exactly what the
+    invented faces did to visibility, which is the question. Do not read either as a property of
+    the reference mesh's face array, which is longer."""
     from engine.topo.weld import weld_exact
 
     n_dirs = getattr(profile, "n_dirs", 128)

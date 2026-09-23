@@ -41,12 +41,13 @@
   <label><input type="checkbox" id="tri"><span class="sw" style="background:#9aa0a8"></span>all triangle edges</label>
   <label id="softlabel" title="Same material, two regions, folded by a real angle that is still too shallow for the merge to dissolve without moving a vertex."><input type="checkbox" id="soft"><span class="sw" style="background:var(--soft)"></span><span id="softtext">soft creases</span></label>
   <label><input type="checkbox" id="xray"><span class="sw" style="background:var(--red)"></span>x-ray: hidden inside faces</label>
+  <label title="Skirts and bottoms engine.fixes.solidify invented to close each slab, and the cap guard kept. They are NOT in the export; every guard in the run compared against the export plus these."><input type="checkbox" id="added"><span class="sw" style="background:#1f8b4c"></span>added by solidify</label>
   <label title="Diagnostic only. SketchUp and your Unity project draw both sides."><input type="checkbox" id="onesided">one-sided (diagnostic)</label>
   <label><input type="checkbox" id="sync" checked>sync cameras</label>
 </div>
 
 <main>
-  <section><h2>BEFORE · as exported</h2><div class="view" id="va"></div><p class="stats" id="sa"></p></section>
+  <section><h2>BEFORE · the original export</h2><div class="view" id="va"></div><p class="stats" id="sa"></p></section>
   <section><h2 id="hb">AFTER</h2><div class="view" id="vb"></div><p class="stats" id="sb"></p></section>
 </main>
 
@@ -150,7 +151,7 @@ function applyToggles() {
     if (v.parts.tri) v.parts.tri.visible = on('tri')
     if (v.parts.soft) v.parts.soft.visible = on('soft')
     const side = on('onesided') ? THREE.FrontSide : THREE.DoubleSide
-    for (const k of ['facade', 'hidden']) if (v.parts[k]) { v.parts[k].material.side = side; v.parts[k].material.needsUpdate = true }
+    for (const k of ['facade', 'hidden', 'added']) if (v.parts[k]) { v.parts[k].material.side = side; v.parts[k].material.needsUpdate = true }
   }
   const x = on('xray')
   for (const v of [A, B]) {
@@ -158,6 +159,7 @@ function applyToggles() {
     m.transparent = x; m.opacity = x ? 0.16 : 1; m.depthWrite = !x; m.needsUpdate = true
   }
   if (A.parts.hidden) A.parts.hidden.visible = x
+  if (A.parts.added) A.parts.added.visible = on('added')
 }
 
 async function load(file) {
@@ -169,6 +171,8 @@ async function load(file) {
   const visMat = d.before.mat.filter((_, f) => !d.before.hidden[f])
   A.addMesh('facade', vis, colourArray(d.materials, visMat))
   A.addMesh('hidden', hid, colourArray(d.materials, new Array(hid.length / 9).fill(0), () => [0.85, 0.16, 0.18]))
+  // NOT part of the export: what `solidify` invented, in its own colour, off by default.
+  A.addMesh('added', d.reference.pos, colourArray(d.materials, d.reference.mat, () => [0.12, 0.55, 0.30]))
   A.addLines('outline', d.edges.outline_before); A.addLines('tri', d.edges.tri_before); A.addLines('grid', d.edges.grid)
 
   B.addMesh('facade', d.after.pos, colourArray(d.materials, d.after.mat))
@@ -183,19 +187,22 @@ async function load(file) {
   // REAL guard reports. Nothing here is a constant standing in for a measurement.
   const pct = (a, b) => (100 * (1 - a / b)).toFixed(1)
 
-  // The BEFORE view is the REFERENCE mesh every guard compared against: the export plus whatever
-  // `solidify` added to close it. Naming the two counts apart is the only honest way to show a
-  // step that deliberately ADDS geometry.
+  // The BEFORE view is the ORIGINAL EXPORT. What `solidify` added to close each slab is a
+  // separate, separately coloured layer behind the "added by solidify" toggle, because the
+  // REFERENCE mesh -- export plus those faces -- is what every guard in the run compared
+  // against, and the two counts have to be nameable apart.
   $('softtext').innerHTML = `soft creases (${s.coplanar_angle}-${s.soft_angle}&deg;)`
   $('hb').innerHTML = s.merge_rolled_back
     ? `AFTER · inside removed, <span style="color:var(--red)">merge rolled back</span>`
     : `AFTER · inside removed, flat regions rebuilt`
-  $('sa').innerHTML = `<b>${s.tris_total.toLocaleString()}</b> triangles &nbsp;·&nbsp; ${s.zero_area} zero-area &nbsp;·&nbsp; ` +
+  $('sa').innerHTML = `<b>${s.tris_input.toLocaleString()}</b> triangles as exported &nbsp;·&nbsp; ${s.zero_area} zero-area &nbsp;·&nbsp; ` +
     `<span style="color:var(--red)">${s.hidden.toLocaleString()} hidden inside</span> &nbsp;·&nbsp; ` +
     `<span style="color:var(--blue)">${s.gridline_edges} gridline edges</span>` +
-    `<br><span class="note">as exported: ${s.tris_input.toLocaleString()} triangles &nbsp;·&nbsp; ` +
-    `closed with ${s.skirts_added} skirts and ${s.bottoms_added} bottoms ` +
-    `(${s.invented_vertices} vertices invented, ${s.faces_newly_hidden} faces newly hidden)</span>`
+    `<br><span class="note">guarded against ${s.tris_total.toLocaleString()} triangles: this export plus ` +
+    `<span style="color:#1f8b4c">${s.tris_added_by_solidify} added by solidify</span> &nbsp;·&nbsp; ` +
+    `${s.skirts_added} skirts and ${s.bottoms_added} bottoms ` +
+    `(${s.invented_vertices} vertices invented, ${s.faces_newly_hidden} faces newly hidden, ` +
+    `cap guard ${s.cap_guard_passed ? `passed` : `<b style="color:var(--red)">FAILED</b>`})</span>`
   $('sb').innerHTML = `<b>${s.after_merged.toLocaleString()}</b> triangles &nbsp;·&nbsp; ${pct(s.after_merged, s.tris_total)} % fewer &nbsp;·&nbsp; ` +
     `${s.regions} flat regions${s.merge_rolled_back ? ` <b style="color:var(--red)">· merge rolled back</b>` : ``}` +
     `<br><span class="note">after inside removal only: ${s.after_hidden_removed.toLocaleString()} triangles &nbsp;·&nbsp; ` +
@@ -216,7 +223,7 @@ async function load(file) {
 const files = await (await fetch('data/index.json')).json()
 $('file').innerHTML = files.map(f => `<option value="${f.file}">${f.name}</option>`).join('')
 $('file').onchange = e => load(e.target.value)
-for (const id of ['grid', 'outline', 'tri', 'soft', 'xray', 'onesided']) $(id).onchange = applyToggles
+for (const id of ['grid', 'outline', 'tri', 'soft', 'xray', 'onesided', 'added']) $(id).onchange = applyToggles
 await load(files[0].file)
 </script>
 </body>

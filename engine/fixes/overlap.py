@@ -301,9 +301,23 @@ def plan_overlap_removal(mesh: MeshData, topo: Topology, pairs: list | None = No
     not manage. It also frees a covered face whose overlap PARTNER is not covered -- measured on
     file A, 88 faces are covered where only 63 pairs have both members covered.
 
-    THE ORDER is the tie-break the brief asks for, expressed as a sort rather than a special
-    case: smaller connected patch of candidates first (edge adjacency -- a whole stacked layer is
-    one patch, so the smaller LAYER loses), and within a patch the higher face id first.
+    THE ORDER, stated as what it actually does. The candidates are sorted by
+    `(size of their connected patch, -face id)` ascending, and a face EARLIER in that order is
+    the one tried -- and therefore dropped -- first. So the smaller patch loses, and within one
+    patch the HIGHER face id loses.
+
+    "Patch" is a connected component of the candidates under EDGE adjacency (`_patch_of`), and
+    the first key only decides anything when the candidates really do fall into separate
+    components. IT USUALLY DOES NOT. Two EXACTLY coincident layers -- the case this rule exists
+    for -- weld to the same vertices, so they share the same welded edges and `_patch_of` unions
+    both layers into ONE patch. Measured on `stacked_duplicate_slab`: 144 candidates, one patch
+    of 144, and what decides which 72 go is entirely the second key. The patch size matters for
+    layers that are merely overlapping rather than coincident, where each is its own component.
+
+    (This docstring used to claim "a whole stacked layer is one patch, so the smaller LAYER
+    loses". The first half is true of a layer in isolation; the conclusion is not, because two
+    coincident layers are one patch between them.)
+
     Everything here is decided from face ids, patch sizes and sorted lists, so two runs on the
     same input produce the same plan."""
     if pairs is None:
