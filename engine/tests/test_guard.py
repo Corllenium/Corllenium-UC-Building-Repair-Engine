@@ -124,8 +124,8 @@ def test_identity_all_counts_zero_and_passed():
 
     assert report.passed
     assert report.totals == {"model_px": report.totals["model_px"], "holes": 0, "material_changed": 0,
-                              "moved_same_flat": 0, "moved_other": 0, "edge_flicker": 0,
-                              "edge_flicker_hole": 0, "edge_flicker_moved": 0,
+                              "moved_same_flat": 0, "moved_other": 0, "zfight_tie": 0,
+                              "edge_flicker": 0, "edge_flicker_hole": 0, "edge_flicker_moved": 0,
                               "edge_flicker_material": 0}
     assert report.totals["model_px"] > 0
     assert len(report.views) == 26
@@ -661,6 +661,98 @@ def test_a_failing_base_class_is_still_promoted_when_not_strict():
                               flat=frozenset({0, 1}))
     assert report.totals["edge_flicker"] == 1 and report.totals["edge_flicker_material"] == 1
     assert report.totals["material_changed"] == 0
+    assert report.passed is True
+
+
+# ---------------------------------------------------------------------------
+# M4: a z-fight tie is not damage.
+#
+# Measured on file B, view (1.013, 1.007, 0.011): 12 `material_changed` pixels where BEFORE hits
+# face 2654 (material 1) and AFTER hits face 73 (material 0) at the SAME depth, 5867.73 in, and
+# NEITHER face was removed. They are overlapping faces in one plane with different materials -- a
+# real defect, but not one this run caused; rebuilding the ray structure over a different face set
+# just changed which of the two wins the tie.
+# ---------------------------------------------------------------------------
+
+#: Two exactly coincident quads at z = 0, faces 0-1 and 2-3, so every ray through them meets both
+#: at the same depth and a first-hit cast picks one arbitrarily.
+_TWIN = np.vstack([_QUAD, _QUAD])
+_TWIN_FRAME = np.array([[-60.0, -60.0, 0.0], [60.0, -60.0, 0.0],
+                         [60.0, 60.0, 0.0], [-60.0, 60.0, 0.0]])
+
+
+def _twin_render(faces, ids):
+    return ortho_first_hit(_TWIN_FRAME, faces, ids, _FLAT_VIEW, _FRAME, _COVER_SIZE)
+
+
+def _twin_report(before, after, mat_before, mat_after, faces_before, faces_after, cap=0.0,
+                  strict=True, flat=frozenset({0, 1})):
+    return compare_views(
+        [(_FLAT_VIEW, before)], [(_FLAT_VIEW, after)], mat_before, mat_after, flat, 0.15,
+        strict=strict, edge_flicker_cap=cap,
+        plane_before=face_planes(_TWIN_FRAME, faces_before),
+        plane_after=face_planes(_TWIN_FRAME, faces_after),
+        geometry_before=(_TWIN_FRAME, faces_before), geometry_after=(_TWIN_FRAME, faces_after))
+
+
+def test_overlapping_coplanar_faces_of_different_materials_are_a_zfight_tie():
+    """AFTER is the SAME geometry with the face order reversed, which is enough to flip which of
+    the two coincident quads embree returns first. Every model pixel changes material and not one
+    of them is damage: both faces are still there, at the same depth, in both meshes."""
+    mat_before = np.array([0, 0, 1, 1], np.int64)
+    faces_after, mat_after = _TWIN[::-1].copy(), mat_before[::-1].copy()
+    before = _twin_render(_TWIN, np.arange(4))
+    after = _twin_render(faces_after, np.arange(4))
+
+    model = before.tri >= 0
+    assert model.sum() > 100
+    # the fixture only means something if the winner really flipped
+    assert (mat_before[before.tri[model]] != mat_after[after.tri[model]]).all()
+
+    report = _twin_report(before, after, mat_before, mat_after, _TWIN, faces_after)
+    assert report.totals["zfight_tie"] == int(model.sum())
+    assert report.totals["material_changed"] == 0 and report.totals["edge_flicker"] == 0
+    assert report.views[0].zfight_tie == int(model.sum())
+    assert report.passed is True
+    for cap in (0.0, 1e-4, 1.0):     # never a failure at any cap
+        assert _twin_report(before, after, mat_before, mat_after, _TWIN, faces_after,
+                             cap=cap).passed is True
+
+
+def test_a_zfight_member_that_was_removed_is_still_a_material_change():
+    """Drop whichever quad won in BEFORE. AFTER's first hit is still a member of BEFORE's tie
+    set, but BEFORE's first hit is NOT a member of AFTER's -- it is gone. The rule is tested in
+    both directions precisely so a removed member stays a failure."""
+    mat_before = np.array([0, 0, 1, 1], np.int64)
+    before = _twin_render(_TWIN, np.arange(4))
+    model = before.tri >= 0
+    winner = int(np.bincount(before.tri[model]).argmax())
+    keep = np.array([f for f in range(4) if mat_before[f] != mat_before[winner]], np.int64)
+    faces_after, mat_after = _TWIN[keep], mat_before[keep]
+    after = _twin_render(faces_after, np.arange(len(keep)))
+
+    assert (after.tri[model] >= 0).all()
+    assert (mat_after[after.tri[model]] != mat_before[before.tri[model]]).all()
+
+    report = _twin_report(before, after, mat_before, mat_after, _TWIN, faces_after)
+    assert report.totals["zfight_tie"] == 0
+    assert report.totals["material_changed"] == int(model.sum())
+    assert report.passed is False
+
+
+def test_a_coincident_same_material_pair_losing_one_member_is_no_change_at_all():
+    """The same overlap in ONE material: losing a member changes nothing a ray can see, so the
+    tie machinery is not even needed -- every pixel is plain `PX_OK`."""
+    mat_before = np.zeros(4, np.int64)
+    faces_after, mat_after = _TWIN[:2], mat_before[:2]
+    before = _twin_render(_TWIN, np.arange(4))
+    after = _twin_render(faces_after, np.arange(2))
+
+    report = _twin_report(before, after, mat_before, mat_after, _TWIN, faces_after,
+                           flat=frozenset({0}))
+    assert {k: v for k, v in report.totals.items() if k != "model_px"} \
+        == {k: 0 for k in report.totals if k != "model_px"}
+    assert report.totals["model_px"] > 100
     assert report.passed is True
 
 

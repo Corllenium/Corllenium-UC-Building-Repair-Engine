@@ -113,7 +113,8 @@ def _copy_assets(snapshot_dir: Path, out_dir: Path) -> None:
 def _view_verdict_dict(v: ViewVerdict) -> dict:
     return {"view": list(v.view), "model_px": v.model_px, "holes": v.holes,
             "moved_same_flat": v.moved_same_flat, "moved_other": v.moved_other,
-            "material_changed": v.material_changed, "edge_flicker": v.edge_flicker,
+            "material_changed": v.material_changed, "zfight_tie": v.zfight_tie,
+            "edge_flicker": v.edge_flicker,
             "edge_flicker_hole": v.edge_flicker_hole, "edge_flicker_moved": v.edge_flicker_moved,
             "edge_flicker_material": v.edge_flicker_material}
 

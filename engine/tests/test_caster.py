@@ -71,6 +71,86 @@ def test_embree_and_brute_oracle_agree_on_random_rays():
 
 
 # ---------------------------------------------------------------------------------------------
+# M4: all_hits -- every surface along the ray, not just the nearest one. The guard's z-fight tie
+# test needs the whole tie set (every hit within `depth_tol` of the first) to tell "the same two
+# overlapping faces, a different winner" from "one of them is gone".
+# ---------------------------------------------------------------------------------------------
+
+def _sorted_hits(caster, origins, directions):
+    ray, tri, t = caster.all_hits(origins, directions)
+    order = np.lexsort((tri, t, ray))
+    return ray[order], tri[order], t[order]
+
+
+def test_all_hits_reports_the_far_side_of_a_cube_as_well_as_the_near_one():
+    m = cube(10.0)
+    # off the quad's own diagonal: straight down the middle the ray grazes the shared edge of the
+    # top face's two triangles and legitimately meets four surfaces, not two.
+    origins = np.array([[3.0, 4.0, 20.0]])
+    directions = np.array([[0.0, 0.0, -1.0]])
+    for Caster in (EmbreeCaster, BruteCaster):
+        ray, tri, t = _sorted_hits(Caster(m.positions, m.face_v), origins, directions)
+        assert ray.tolist() == [0, 0]
+        assert np.allclose(np.sort(t), [10.0, 20.0], atol=1e-4)   # top face, then the floor
+        assert len(set(tri.tolist())) == 2
+
+
+def test_all_hits_reports_nothing_for_a_ray_that_misses():
+    m = cube(10.0)
+    origins = np.array([[100.0, 100.0, 100.0]])
+    directions = np.array([[0.0, 0.0, -1.0]])
+    for Caster in (EmbreeCaster, BruteCaster):
+        ray, tri, t = Caster(m.positions, m.face_v).all_hits(origins, directions)
+        assert len(ray) == len(tri) == len(t) == 0
+
+
+def _coincident_pair():
+    """File B's real z-fight, in its own coordinates: two triangles in the SAME plane
+    (y = 767.05) sharing an edge and overlapping, wound opposite ways -- a SketchUp double face.
+    Which one a first-hit cast returns is arbitrary; both are really there."""
+    P = np.array([[-408.58, 767.05, 156.96], [-369.21, 767.05, 147.64],
+                   [-408.58, 767.05, 147.64], [-369.21, 767.05, 151.78]])
+    F = np.array([[0, 1, 2], [2, 3, 0]], np.int64)
+    d = np.array([1.013, 1.007, 0.011])
+    d = d / np.linalg.norm(d)
+    origins = (np.array([-400.0, 767.05, 150.0]) - d * 500.0)[None, :]
+    return P, F, origins, d[None, :]
+
+
+def test_all_hits_reports_both_faces_of_an_exactly_coincident_overlap():
+    """Embree's own multi-hit walk advances the ray past each hit by `max(1e-8, scale * 1e-6)`,
+    so it can never report two hits at the SAME depth -- on this pair it returns one triangle and
+    stops. `all_hits` has to report both, or the guard's tie test can never fire on the very
+    defect it was written for."""
+    P, F, origins, directions = _coincident_pair()
+    for Caster in (EmbreeCaster, BruteCaster):
+        ray, tri, t = _sorted_hits(Caster(P, F), origins, directions)
+        assert ray.tolist() == [0, 0], f"{Caster.__name__} reported {len(ray)} hit(s), not 2"
+        assert sorted(tri.tolist()) == [0, 1]
+        assert abs(t[0] - t[1]) < 1e-3          # the same depth: that is what makes it a tie
+
+
+def test_all_hits_agrees_with_the_brute_oracle_on_random_rays():
+    positions, faces = _stack(grid_slab(10, 10), cube())
+    rng = np.random.default_rng(11)  # test code only, no randomness in production code
+    lo, hi = positions.min(axis=0), positions.max(axis=0)
+    diag = float(np.linalg.norm(hi - lo))
+    directions = rng.normal(size=(500, 3))
+    directions /= np.linalg.norm(directions, axis=1, keepdims=True)
+    origins = rng.uniform(lo, hi, size=(500, 3)) - directions * diag * 2
+
+    ray_e, tri_e, t_e = _sorted_hits(EmbreeCaster(positions, faces), origins, directions)
+    ray_b, tri_b, t_b = _sorted_hits(BruteCaster(positions, faces), origins, directions)
+
+    # count of hits per ray agrees for the overwhelming majority (embree's float32 vertices put a
+    # few grazing rays on the other side of an edge)
+    n_e = np.bincount(ray_e, minlength=500)
+    n_b = np.bincount(ray_b, minlength=500)
+    assert (n_e == n_b).mean() >= 0.98
+    assert (n_b >= 2).sum() >= 10   # the fixture really does stack surfaces along some rays
+
+
+# ---------------------------------------------------------------------------------------------
 # Task 7: ReusableCaster -- build one caster per distinct geometry, reuse it across many calls
 # with the SAME (positions, faces) objects, so a 26-view render loop doesn't rebuild the BVH once
 # per view. Results must stay bit-identical to building fresh every call.

@@ -23,6 +23,7 @@ PX_MATERIAL_CHANGED = 2
 PX_MOVED_SAME_FLAT = 3
 PX_MOVED_OTHER = 4
 PX_EDGE_FLICKER = 5
+PX_ZFIGHT_TIE = 6
 
 #: `(view, HitBuffers)` for one `ortho_first_hit` render.
 RenderedView = tuple[Sequence[float], HitBuffers]
@@ -132,6 +133,54 @@ def _ring_probe(buffers: HitBuffers, caster_before, caster_after, depth_tol: flo
     return probe
 
 
+def _tie_probe(buffers: HitBuffers, caster_before, caster_after):
+    """A `mask -> ((ray, tri, t) before, (ray, tri, t) after)` callable for `classify_pixels`: for
+    each masked pixel, its OWN centre ray is cast with `RayCaster.all_hits` against BOTH
+    geometries, so every surface along it is listed, not just the nearest. `ray` indexes the
+    masked pixels in `np.nonzero(mask)` order; `tri` indexes the corresponding geometry's `faces`.
+
+    Building the origins from the camera frame (like `HitBuffers.ring_origins`) rather than
+    slicing `buffers.origins` keeps this off the 13 MB full-image grid."""
+    direction = np.asarray(buffers.direction, dtype=np.float64)
+
+    def probe(mask: np.ndarray):
+        rows, cols = np.nonzero(mask)
+        origins = (buffers.xs[cols][:, None] * buffers.right
+                   + buffers.ys[rows][:, None] * buffers.up + buffers.standoff)
+        directions = np.tile(direction, (len(origins), 1))
+        return (caster_before.all_hits(origins, directions),
+                caster_after.all_hits(origins, directions))
+
+    return probe
+
+
+def _matches_tie_set(hit_ray: np.ndarray, hit_tri: np.ndarray, hit_t: np.ndarray,
+                      t_first: np.ndarray, member_material: np.ndarray, member_plane: np.ndarray,
+                      other_point: np.ndarray, other_material: np.ndarray, other_hit: np.ndarray,
+                      depth_tol: float, n_pixels: int) -> np.ndarray:
+    """Per candidate pixel `(P,)`: does the OTHER render's centre hit match some member of THIS
+    render's tie set -- the surfaces this ray meets within `depth_tol` of its own first hit?
+
+    "Matches" is the same test the ring uses: the same material, and a hit point within
+    `depth_tol` of that member's supporting plane. A member with no plane (zero area) never
+    matches, and a pixel whose other side MISSED matches nothing (a hole is not a tie)."""
+    out = np.zeros(n_pixels, dtype=bool)
+    if not len(hit_ray):
+        return out
+    in_set = np.abs(hit_t - t_first[hit_ray]) <= depth_tol
+    ray, tri = hit_ray[in_set], hit_tri[in_set]
+    if not len(ray):
+        return out
+
+    plane = member_plane[tri]
+    normal, offset = plane[:, :3], plane[:, 3]
+    distance = np.abs(np.einsum("ij,ij->i", other_point[ray], normal) + offset)
+    match = (other_hit[ray] & (member_material[tri] == other_material[ray])
+             & (distance <= depth_tol) & (np.linalg.norm(normal, axis=1) > 0.0))
+    out[ray[match]] = True
+    return out
+
+
 def _ring_reproduces(centre_tri: np.ndarray, centre_material: np.ndarray, centre_plane: np.ndarray,
                       ring_tri: np.ndarray, ring_point: np.ndarray, ring_material: np.ndarray,
                       depth_tol: float) -> np.ndarray:
@@ -159,7 +208,7 @@ def classify_pixels(before_depth: np.ndarray, before_tri: np.ndarray,
                      origins: np.ndarray | None = None, direction: np.ndarray | None = None,
                      plane_before: np.ndarray | None = None,
                      plane_after: np.ndarray | None = None,
-                     ring=None, allow_depth_fallback: bool = False,
+                     ring=None, tie=None, allow_depth_fallback: bool = False,
                      strict: bool = False) -> np.ndarray:
     """Per-pixel verdict code, same shape as the inputs (uint8, one of the `PX_*` constants), in
     this priority order: `PX_HOLE` (hit before, miss after); `PX_MATERIAL_CHANGED` (both hit,
@@ -168,13 +217,27 @@ def classify_pixels(before_depth: np.ndarray, before_tri: np.ndarray,
     -- `_SAME_FLAT` when that material index is in `flat_materials`, `_OTHER` otherwise); `PX_OK`
     otherwise (includes both-miss background pixels and pixels that matched within `depth_tol`).
 
-    A pixel whose base class FAILS under the current strictness is then re-checked by the ring
-    test below and becomes `PX_EDGE_FLICKER` if it passes. "Fails under the current strictness"
-    means `PX_HOLE`, `PX_MATERIAL_CHANGED` or `PX_MOVED_OTHER` always, and `PX_MOVED_SAME_FLAT`
-    only when `strict` -- see `_failing_base`. A base class the caller already TOLERATES keeps its
-    class: promoting it would move a tolerated pixel into `edge_flicker`, which IS capped, so a
-    non-strict run could fail on pixels it had decided not to mind (measured: 15 of 991 tolerated
-    `moved_same_flat` pixels re-classed as flicker, over a 1e-4 cap in a 9,291 px view).
+    A pixel whose base class FAILS under the current strictness is then re-checked, in this order,
+    by the TIE test and the RING test, and promoted to `PX_ZFIGHT_TIE` or `PX_EDGE_FLICKER` if one
+    of them passes. "Fails under the current strictness" means `PX_HOLE`, `PX_MATERIAL_CHANGED` or
+    `PX_MOVED_OTHER` always, and `PX_MOVED_SAME_FLAT` only when `strict` -- see `_failing_base`. A
+    base class the caller already TOLERATES keeps its class: promoting it would move a tolerated
+    pixel into `edge_flicker`, which IS capped, so a non-strict run could fail on pixels it had
+    decided not to mind (measured: 15 of 991 tolerated `moved_same_flat` pixels re-classed as
+    flicker, over a 1e-4 cap in a 9,291 px view).
+
+    THE TIE TEST. Given `tie` (build one with `_tie_probe`; `compare_views` does), a failing pixel
+    gets its own centre ray re-cast with `RayCaster.all_hits` in both geometries. Its BEFORE TIE
+    SET is every surface that ray meets within `depth_tol` of BEFORE's first hit, and likewise
+    AFTER's. The pixel is `PX_ZFIGHT_TIE` iff AFTER's first hit matches a member of BEFORE's tie
+    set AND BEFORE's first hit matches a member of AFTER's -- "matches" meaning the same material
+    and a hit point within `depth_tol` of that member's supporting plane. BOTH directions are
+    required, so a pixel where one member of an overlapping pair was REMOVED still fails; only a
+    pixel where both surfaces are still there, at the same depth, and merely swapped places, is a
+    tie. Measured on file B: 12 pixels where BEFORE hits face 2654 (material 1) and AFTER hits
+    face 73 (material 0) at the same 5867.73 in, neither removed. Ties are never failures at any
+    cap -- the overlap is a defect this run neither caused nor can fix here -- and are counted as
+    `zfight_tie` so the overlap detector has the evidence.
 
     THE RING TEST. Given `ring`, each failing-base pixel gets 16 extra rays cast parallel to
     its own, from a ring of image-plane offsets around it: 8 at radius `depth_tol` and 8 at
@@ -215,7 +278,8 @@ def classify_pixels(before_depth: np.ndarray, before_tri: np.ndarray,
     return _classify(before_depth, before_tri, after_depth, after_tri, material_before,
                       material_after, flat_materials, depth_tol, origins=origins,
                       direction=direction, plane_before=plane_before, plane_after=plane_after,
-                      ring=ring, allow_depth_fallback=allow_depth_fallback, strict=strict)[0]
+                      ring=ring, tie=tie, allow_depth_fallback=allow_depth_fallback,
+                      strict=strict)[0]
 
 
 def _failing_base(codes: np.ndarray, strict: bool) -> np.ndarray:
@@ -233,7 +297,7 @@ def _classify(before_depth: np.ndarray, before_tri: np.ndarray,
                material_before: np.ndarray, material_after: np.ndarray,
                flat_materials: Iterable[int], depth_tol: float, *,
                origins=None, direction=None, plane_before=None, plane_after=None,
-               ring=None, allow_depth_fallback: bool = False,
+               ring=None, tie=None, allow_depth_fallback: bool = False,
                strict: bool = False) -> tuple[np.ndarray, np.ndarray]:
     """`classify_pixels`, plus the BASE codes -- what every pixel was classed before the ring test
     rescued any of it -- so `compare_views` can report which class each flicker pixel came from
@@ -278,23 +342,53 @@ def _classify(before_depth: np.ndarray, before_tri: np.ndarray,
     codes[moved & ~is_flat] = PX_MOVED_OTHER
 
     base = codes.copy()
-    would_fail = _failing_base(codes, strict)
-    if ring is not None and plane_before is not None and plane_after is not None and would_fail.any():
-        tri_b, point_b, tri_a, point_a = ring(would_fail)
-        # One padded row per lookup table, so a miss (`-1`) reads a material of -1 and an all-zero
-        # (undefined) plane instead of wrapping around -- and so an empty geometry is still safe.
-        planes_b = np.vstack([np.asarray(plane_before, dtype=np.float64).reshape(-1, 4), np.zeros((1, 4))])
-        planes_a = np.vstack([np.asarray(plane_after, dtype=np.float64).reshape(-1, 4), np.zeros((1, 4))])
-        mats_b = np.append(material_before.astype(np.int64).reshape(-1), -1)
-        mats_a = np.append(material_after.astype(np.int64).reshape(-1), -1)
-        centre_b, centre_a = before_tri[would_fail], after_tri[would_fail]
+    promotable = _failing_base(codes, strict)
+    have_planes = plane_before is not None and plane_after is not None
+    if not have_planes or not promotable.any():
+        return codes, base
+
+    # One padded row per lookup table, so a miss (`-1`) reads a material of -1 and an all-zero
+    # (undefined) plane instead of wrapping around -- and so an empty geometry is still safe.
+    planes_b = np.vstack([np.asarray(plane_before, dtype=np.float64).reshape(-1, 4), np.zeros((1, 4))])
+    planes_a = np.vstack([np.asarray(plane_after, dtype=np.float64).reshape(-1, 4), np.zeros((1, 4))])
+    mats_b = np.append(material_before.astype(np.int64).reshape(-1), -1)
+    mats_a = np.append(material_after.astype(np.int64).reshape(-1), -1)
+
+    def _promote(mask: np.ndarray, chosen: np.ndarray, code: int) -> np.ndarray:
+        """Set `code` on the `chosen` subset of `mask`'s pixels and drop them from `mask`."""
+        where = np.nonzero(mask)
+        codes[tuple(axis[chosen] for axis in where)] = code
+        still = mask.copy()
+        still[tuple(axis[chosen] for axis in where)] = False
+        return still
+
+    # ---- z-fight ties: the same two overlapping surfaces, a different winner ------------------
+    if tie is not None and origins is not None and direction is not None:
+        (ray_b, hit_tri_b, t_b), (ray_a, hit_tri_a, t_a) = tie(promotable)
+        origin_c = np.asarray(origins, dtype=np.float64)[promotable]
+        direction = np.asarray(direction, dtype=np.float64)
+        t_first_b, t_first_a = before_depth[promotable], after_depth[promotable]
+        hit_b_c, hit_a_c = hit_before[promotable], hit_after[promotable]
+        point_c_b = origin_c + np.where(hit_b_c, t_first_b, 0.0)[:, None] * direction
+        point_c_a = origin_c + np.where(hit_a_c, t_first_a, 0.0)[:, None] * direction
+        n_px = len(t_first_b)
+        is_tie = (
+            _matches_tie_set(ray_b, hit_tri_b, t_b, t_first_b, mats_b, planes_b,
+                             point_c_a, mat_after[promotable], hit_a_c, depth_tol, n_px)
+            & _matches_tie_set(ray_a, hit_tri_a, t_a, t_first_a, mats_a, planes_a,
+                               point_c_b, mat_before[promotable], hit_b_c, depth_tol, n_px))
+        promotable = _promote(promotable, is_tie, PX_ZFIGHT_TIE)
+
+    # ---- the ring: a boundary that moved by less than the tolerance --------------------------
+    if ring is not None and promotable.any():
+        tri_b, point_b, tri_a, point_a = ring(promotable)
+        centre_b, centre_a = before_tri[promotable], after_tri[promotable]
         steady = (
-            _ring_reproduces(centre_b, mat_before[would_fail], planes_b[centre_b],
+            _ring_reproduces(centre_b, mat_before[promotable], planes_b[centre_b],
                              tri_a, point_a, mats_a[tri_a], depth_tol)
-            & _ring_reproduces(centre_a, mat_after[would_fail], planes_a[centre_a],
+            & _ring_reproduces(centre_a, mat_after[promotable], planes_a[centre_a],
                                tri_b, point_b, mats_b[tri_b], depth_tol))
-        candidates = np.nonzero(would_fail)
-        codes[tuple(axis[steady] for axis in candidates)] = PX_EDGE_FLICKER
+        promotable = _promote(promotable, steady, PX_EDGE_FLICKER)
     return codes, base
 
 
@@ -306,6 +400,10 @@ class ViewVerdict:
     moved_same_flat: int
     moved_other: int
     material_changed: int
+    #: Pixels where BEFORE and AFTER met two overlapping surfaces at the same depth and merely
+    #: swapped which one won -- both still present in both meshes. Never a failure; evidence of a
+    #: pre-existing z-fight overlap, not of damage. See `classify_pixels`.
+    zfight_tie: int
     edge_flicker: int
     #: `edge_flicker` split by the class each of those pixels was rescued FROM; the three always
     #: sum to `edge_flicker`, so a report says whether a tolerated pixel was a would-be hole, a
@@ -324,7 +422,7 @@ class GuardReport:
 
 def _zero_totals() -> dict:
     return {"model_px": 0, "holes": 0, "material_changed": 0, "moved_same_flat": 0, "moved_other": 0,
-            "edge_flicker": 0, "edge_flicker_hole": 0, "edge_flicker_moved": 0,
+            "zfight_tie": 0, "edge_flicker": 0, "edge_flicker_hole": 0, "edge_flicker_moved": 0,
             "edge_flicker_material": 0}
 
 
@@ -411,13 +509,14 @@ def compare_views(before: Sequence[RenderedView], after: Sequence[RenderedView],
                 f"{mismatch} differs. Render both sides with the same `view`, `size` and "
                 f"`frame_points` -- vertices are never moved, so one static `frame_points` (the "
                 f"recentred original positions) is correct for both.")
-        ring = (_ring_probe(b, caster_before, caster_after, depth_tol)
-                if caster_before is not None and caster_after is not None else None)
+        both_casters = caster_before is not None and caster_after is not None
+        ring = _ring_probe(b, caster_before, caster_after, depth_tol) if both_casters else None
+        tie = _tie_probe(b, caster_before, caster_after) if both_casters else None
         codes, base = _classify(b.depth, b.tri, a.depth, a.tri,
                                  face_material_before, face_material_after, flat_materials, depth_tol,
                                  origins=b.origins, direction=b.direction,
                                  plane_before=plane_before, plane_after=plane_after,
-                                 ring=ring, allow_depth_fallback=allow_depth_fallback,
+                                 ring=ring, tie=tie, allow_depth_fallback=allow_depth_fallback,
                                  strict=strict)
         flicker = codes == PX_EDGE_FLICKER
         counts = {
@@ -426,6 +525,7 @@ def compare_views(before: Sequence[RenderedView], after: Sequence[RenderedView],
             "material_changed": int((codes == PX_MATERIAL_CHANGED).sum()),
             "moved_same_flat": int((codes == PX_MOVED_SAME_FLAT).sum()),
             "moved_other": int((codes == PX_MOVED_OTHER).sum()),
+            "zfight_tie": int((codes == PX_ZFIGHT_TIE).sum()),
             "edge_flicker": int(flicker.sum()),
             "edge_flicker_hole": int((flicker & (base == PX_HOLE)).sum()),
             "edge_flicker_moved": int((flicker & ((base == PX_MOVED_SAME_FLAT)
