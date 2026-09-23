@@ -414,6 +414,54 @@ def test_edge_flicker_cap_above_zero_without_geometry_is_an_error():
     _flicker_report([(25, 25)], cap=1e-4, geometry=_DUMMY_GEOMETRY)
 
 
+def test_a_cap_above_zero_builds_the_planes_the_ring_needs_from_the_geometry():
+    """R2b: the ring test needs BOTH the geometry (to cast against) and the planes (to judge what
+    it hit), and `compare_views` used to require a nonzero cap to come with geometry while
+    silently skipping the ring when the planes were left out -- a cap that looked as though it
+    tolerated something and tolerated nothing. The planes are a pure function of the geometry, so
+    they are derived from it: with or without them the report is identical."""
+    cam = _camera()
+    c, r = 40, 26
+    x0, y0 = float(cam.xs[c]), float(cam.ys[r])
+    k = 0.037
+
+    def plate(offset):
+        return np.array([[-60.0, -60.0, 0.0],
+                          [x0 + k * (-60.0 - y0) + offset, -60.0, 0.0],
+                          [x0 + k * (60.0 - y0) + offset, 60.0, 0.0],
+                          [-60.0, 60.0, 0.0]])
+
+    P_before, P_after = plate(+0.0005), plate(-0.0005)
+    ids = np.arange(2)
+    before = ortho_first_hit(P_before, _QUAD, ids, _FLAT_VIEW, _FRAME, _COVER_SIZE)
+    after = ortho_first_hit(P_after, _QUAD, ids, _FLAT_VIEW, _FRAME, _COVER_SIZE)
+    mat = np.zeros(2, np.int64)
+    geometry = dict(geometry_before=(P_before, _QUAD), geometry_after=(P_after, _QUAD))
+
+    derived = compare_views([(_FLAT_VIEW, before)], [(_FLAT_VIEW, after)], mat, mat, frozenset({0}),
+                             0.15, strict=True, edge_flicker_cap=2e-3, **geometry)
+    supplied = compare_views([(_FLAT_VIEW, before)], [(_FLAT_VIEW, after)], mat, mat, frozenset({0}),
+                              0.15, strict=True, edge_flicker_cap=2e-3,
+                              plane_before=face_planes(P_before, _QUAD),
+                              plane_after=face_planes(P_after, _QUAD), **geometry)
+
+    assert derived.totals["edge_flicker"] == 1      # the ring really was cast
+    assert derived.totals == supplied.totals
+    assert derived.passed is supplied.passed is True
+
+
+def test_a_cap_above_zero_with_planes_but_no_geometry_is_still_an_error():
+    """Planes alone are not enough: there is nothing to cast the ring AT, so the cap would again
+    tolerate nothing while looking as though it tolerated something."""
+    before, after = _buffers(_block()), _buffers(_block(drop=[(25, 25)]))
+    mat = np.zeros(1, np.int64)
+    with pytest.raises(ValueError) as excinfo:
+        compare_views([(_FLICKER_VIEW, before)], [(_FLICKER_VIEW, after)], mat, mat, frozenset({0}),
+                       0.15, strict=True, edge_flicker_cap=1e-4, allow_depth_fallback=True,
+                       plane_before=np.zeros((1, 4)), plane_after=np.zeros((1, 4)))
+    assert "geometry" in str(excinfo.value) and "edge_flicker_cap" in str(excinfo.value)
+
+
 def test_interior_hole_fails_at_any_cap():
     before, after = _buffers(_block()), _buffers(_block(drop=[(100, 100)]))
     mat = np.zeros(1, np.int64)
@@ -421,12 +469,14 @@ def test_interior_hole_fails_at_any_cap():
                              frozenset({0}), 0.15, allow_depth_fallback=True)
     assert int((codes == PX_HOLE).sum()) == 1 and int((codes == PX_EDGE_FLICKER).sum()) == 0
 
-    for cap in (0.0, 1e-4, 1.0):
-        # not on the 3x3 silhouette, so never a flicker candidate -- the coverage probe geometry
-        # (required for cap > 0) is never actually ray-cast in this scenario.
-        report = _flicker_report([(100, 100)], cap=cap, geometry=_DUMMY_GEOMETRY if cap > 0 else None)
-        assert report.totals["holes"] == 1 and report.totals["edge_flicker"] == 0
-        assert not report.passed
+    # At cap 0.0 no geometry is needed, so the synthetic buffers can answer for themselves. A cap
+    # above zero really does cast the ring now (R2b), and a ring cast against a placeholder
+    # geometry that has nothing to do with these buffers would only measure the placeholder --
+    # `test_an_interior_hole_flanked_by_coplanar_survivors_fails_at_any_cap` asks the same
+    # question of a real scene.
+    report = _flicker_report([(100, 100)], cap=0.0)
+    assert report.totals["holes"] == 1 and report.totals["edge_flicker"] == 0
+    assert not report.passed
 
 
 # ---------------------------------------------------------------------------
@@ -879,6 +929,64 @@ def test_compare_views_refuses_renders_from_a_different_camera_frame():
         assert str(tuple(view)) in str(excinfo.value)  # which view, by name
 
     assert compare(ortho_first_hit(Pc, faces, ids, view, Pc, _SIZE)).passed  # same frame: fine
+
+
+def _hole_scene(c0=30, c1=36, r0=26, r1=32, rim_inset=0.05):
+    """A flat slab at `z = 0` with a real rectangular HOLE punched through it. BEFORE fills the
+    hole (faces 0-1); AFTER is the same slab with those two triangles gone and nothing else
+    changed, so the hole's whole rim is flanked by coplanar, same-material survivors.
+
+    The hole's left edge is placed `rim_inset` (under the inner ring radius, `depth_tol / 2`) to
+    the left of column `c0`'s pixel centre, so that pixel's own AFTER ring rays reach back onto
+    the surviving slab: ring condition 1 -- "an AFTER ring ray reproduces BEFORE's centre verdict"
+    -- genuinely holds there. Condition 2 must not: BEFORE has no miss anywhere near it.
+
+    Returns `(positions, faces_before, faces_after, before, after, hole_px)`."""
+    cam = _camera()
+    hx0, hx1 = float(cam.xs[c0]) - rim_inset, float(cam.xs[c1]) + 1.0
+    hy1, hy0 = float(cam.ys[r0]) + 1.0, float(cam.ys[r1]) - 1.0
+    P = np.array([
+        [-95.0, -95.0, 0.0], [95.0, -95.0, 0.0], [95.0, hy0, 0.0], [-95.0, hy0, 0.0],
+        [-95.0, hy1, 0.0], [95.0, hy1, 0.0], [95.0, 95.0, 0.0], [-95.0, 95.0, 0.0],
+        [hx0, hy0, 0.0], [hx1, hy0, 0.0], [hx1, hy1, 0.0], [hx0, hy1, 0.0],
+    ])
+    hole = np.array([[8, 9, 10], [8, 10, 11]], np.int64)
+    rest = np.array([[0, 1, 2], [0, 2, 3],        # below the hole
+                      [4, 5, 6], [4, 6, 7],        # above it
+                      [3, 8, 11], [3, 11, 4],      # left of it
+                      [9, 2, 5], [9, 5, 10]], np.int64)   # right of it
+    faces_before = np.vstack([hole, rest])
+    before = ortho_first_hit(P, faces_before, np.arange(10), _FLAT_VIEW, _FRAME, _COVER_SIZE)
+    after = ortho_first_hit(P, rest, np.arange(8), _FLAT_VIEW, _FRAME, _COVER_SIZE)
+    return P, faces_before, rest, before, after, (before.tri >= 0) & (before.tri < 2)
+
+
+def test_an_interior_hole_flanked_by_coplanar_survivors_fails_at_any_cap():
+    """The ring test needs BOTH of its halves, and this is the scene that proves it. Every rim
+    pixel satisfies condition 1 -- the slab beside the hole is the same material in the same plane,
+    so an AFTER ring ray reproduces BEFORE's centre verdict exactly. Condition 2 cannot hold:
+    BEFORE has no miss within the ring, so nothing reproduces AFTER's. The hole stays a hole at
+    every cap, and it is not a crack the fix closed either -- BEFORE's ring rays all HIT, so none
+    of them reproduces AFTER's missing centre."""
+    P, faces_before, faces_after, before, after, hole_px = _hole_scene()
+    cam = _camera()
+    assert 0.0 < float(cam.xs[30]) - float(P[8, 0]) < 0.075   # rim within the inner ring radius
+    assert int(hole_px.sum()) == 49
+    assert (after.tri[hole_px] < 0).all()                      # the hole really is a hole
+    rows = np.unique(np.nonzero(hole_px)[0])
+    assert (after.tri[rows, 29] >= 0).all()                    # flanked by surviving slab
+    assert (after.tri[rows, 37] >= 0).all()
+
+    mat_b, mat_a = np.zeros(10, np.int64), np.zeros(8, np.int64)
+    for cap in (0.0, 1e-4, 1.0):
+        report = compare_views(
+            [(_FLAT_VIEW, before)], [(_FLAT_VIEW, after)], mat_b, mat_a, frozenset({0}), 0.15,
+            strict=True, edge_flicker_cap=cap,
+            geometry_before=(P, faces_before), geometry_after=(P, faces_after))
+        assert report.totals["holes"] == 49
+        assert report.totals["edge_flicker"] == 0
+        assert report.totals["crack_closed"] == 0 and report.totals["zfight_tie"] == 0
+        assert report.passed is False
 
 
 def _gap_scene():

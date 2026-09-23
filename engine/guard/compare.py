@@ -497,7 +497,10 @@ def compare_views(before: Sequence[RenderedView], after: Sequence[RenderedView],
     `plane_before` / `plane_after` are `face_planes` of the two geometries, indexed like
     `face_material_before` / `face_material_after`; they are what the surface-displacement moved
     test needs (see `classify_pixels`), and leaving them out raises unless the caller asks for the
-    old depth-along-the-ray metric with `allow_depth_fallback=True`.
+    old depth-along-the-ray metric with `allow_depth_fallback=True`. Given `geometry_before` /
+    `geometry_after`, though, they are DERIVED from it rather than demanded, since they are a pure
+    function of it -- so supplying the geometry alone never silently skips the tests that need
+    planes.
 
     `strict=True` (use for automatic removal of exposure-0 faces -- a depth change there means
     sampling missed real visibility) counts `moved_same_flat` pixels as failures too;
@@ -534,7 +537,19 @@ def compare_views(before: Sequence[RenderedView], after: Sequence[RenderedView],
             "geometry_after: without them there is no ring to cast around a failing pixel, so "
             "nothing is ever classed edge_flicker and the cap would tolerate nothing while looking "
             "as though it tolerated something. Pass geometry_before and geometry_after (positions, "
-            "faces) so failing pixels get the ring test, or use edge_flicker_cap=0.0.")
+            "faces) so failing pixels get the ring test, or use edge_flicker_cap=0.0. Planes alone "
+            "are not enough -- they say what a ring ray hit, not where to cast it.")
+
+    # The ring, tie and crack tests ALSO need the planes, and a caller who supplied the geometry
+    # has already said everything needed to build them: deriving them here is what stops a cap
+    # above zero from silently skipping every one of those tests (the ValueError above only ever
+    # checked the geometry, so `geometry` without `planes` tolerated nothing while looking as
+    # though it tolerated something -- R2b). They are a pure function of the geometry, so a caller
+    # who passes both gets exactly the same numbers.
+    if plane_before is None and geometry_before is not None:
+        plane_before = face_planes(*geometry_before)
+    if plane_after is None and geometry_after is not None:
+        plane_after = face_planes(*geometry_after)
 
     caster_before = caster_factory(*geometry_before) if geometry_before is not None else None
     caster_after = caster_factory(*geometry_after) if geometry_after is not None else None
