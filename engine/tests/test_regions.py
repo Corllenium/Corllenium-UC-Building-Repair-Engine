@@ -155,3 +155,28 @@ def test_soft_and_coplanar_thresholds_are_settable():
 def test_a_cube_has_no_soft_edges_and_no_coplanar_region_borders():
     s = topology_stats(analyse_topology(cube()))
     assert s["soft_edges"] == 0 and s["coplanar_region_borders"] == 0
+
+
+# ---------------------------------------------------------------------------------------------
+# MQ1: EDGE_SOFT is a border between two REAL regions. Two faces that are both copied through
+# (`face_region == -1`) share no region border at all, so a shallow fold between them is not a
+# soft crease -- the same rule `region_border_angles` already applies.
+# ---------------------------------------------------------------------------------------------
+
+def test_two_copied_through_faces_never_make_a_soft_edge():
+    """`classify_edges` with a `face_region` of all -1: the hinge of `creased_pair` is a 3 degree
+    fold between two same-material faces that belong to NO region. `region_border_angles` does not
+    call that a region border; neither may `classify_edges`."""
+    from engine.topo.edges import classify_edges, region_border_angles
+    from engine.topo.planes import face_normals
+
+    t = analyse_topology(creased_pair(angle_deg=3.0))
+    e = hinge_edge(t)
+    assert t.edge_class[e] == EDGE_SOFT      # with real regions it IS a soft crease
+
+    normals = face_normals(t.positions_w, t.face_w, t.ok)
+    nowhere = np.full(len(t.face_w), -1, np.int64)
+    cls = classify_edges(t.table, nowhere, t.t_vertices, normals,
+                         creased_pair(angle_deg=3.0).face_material)
+    assert cls[e] != EDGE_SOFT
+    assert region_border_angles(t.table, nowhere, normals) == {}

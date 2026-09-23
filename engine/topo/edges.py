@@ -51,11 +51,18 @@ def classify_edges(table: EdgeTable, face_region: np.ndarray, t_vertices: dict,
         f0, f1 = ef[e]
         if face_region[f0] >= 0 and face_region[f0] == face_region[f1]:
             cls[e] = EDGE_REMOVABLE
-        elif soft_ready and material[f0] == material[f1]:
-            # Two regions, one material: a shallow fold between them is a SOFT crease -- the
+        elif (soft_ready and material[f0] == material[f1]
+                and face_region[f0] >= 0 and face_region[f1] >= 0):
+            # Two REAL regions, one material: a shallow fold between them is a SOFT crease -- the
             # viewer draws it faintly, the merge cannot dissolve it without moving vertices.
             # At or below `coplanar_angle` it is not a fold at all but a split that should not
             # exist (`region_border_angles` counts those); it stays EDGE_REAL either way.
+            #
+            # BOTH regions must be `>= 0`, exactly as in `region_border_angles`: a face in no
+            # region (-1: copied through, degenerate) is not one side of a border BETWEEN
+            # regions, so an edge with such a face on it is never a region crease. Without this
+            # the branch also fired for two faces that BOTH sit outside every region, calling a
+            # fold that no merge will ever look at a "crease the merge could not dissolve".
             if coplanar_angle < dihedral_degrees(normals[f0], normals[f1]) <= soft_angle:
                 cls[e] = EDGE_SOFT
     sub_edges = t_junction_sub_edges(table, t_vertices)
