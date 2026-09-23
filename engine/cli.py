@@ -113,7 +113,9 @@ def _copy_assets(snapshot_dir: Path, out_dir: Path) -> None:
 def _view_verdict_dict(v: ViewVerdict) -> dict:
     return {"view": list(v.view), "model_px": v.model_px, "holes": v.holes,
             "moved_same_flat": v.moved_same_flat, "moved_other": v.moved_other,
-            "material_changed": v.material_changed, "edge_flicker": v.edge_flicker}
+            "material_changed": v.material_changed, "edge_flicker": v.edge_flicker,
+            "edge_flicker_hole": v.edge_flicker_hole, "edge_flicker_moved": v.edge_flicker_moved,
+            "edge_flicker_material": v.edge_flicker_material}
 
 
 def _guard_report_dict(g: GuardReport) -> dict:
@@ -165,9 +167,9 @@ def _write_guard_images(mesh: MeshData, result: FixResult, profile: FixProfile,
                         out_dir: Path) -> None:
     """One `guard_<view>.png` triptych per axis view: BEFORE (original mesh, shaded), AFTER
     (final shipped mesh, shaded), DIFF (failures red, tolerated moves amber). A diagnostic image,
-    not the authoritative numbers -- it uses the plain 3x3-neighbourhood flicker test (no
-    sub-pixel coverage probe), so a handful of borderline silhouette pixels the real
-    (coverage-checked) `guard_final` tolerated may still show red here; report.json's own numbers
+    not the authoritative numbers -- it classifies each pixel on its own, with no ring re-check
+    (see `engine.guard.compare.classify_pixels`), so a handful of borderline boundary pixels the
+    real `guard_final` tolerated as `edge_flicker` still show red here; report.json's own numbers
     are always the real `guard_final`/`guard_after_removal`, not re-derived from these images."""
     _, remap = weld_exact(mesh.positions, mesh.coord_decimals)
     face_w_before = topo.face_w

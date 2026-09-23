@@ -124,7 +124,9 @@ def test_identity_all_counts_zero_and_passed():
 
     assert report.passed
     assert report.totals == {"model_px": report.totals["model_px"], "holes": 0, "material_changed": 0,
-                              "moved_same_flat": 0, "moved_other": 0, "edge_flicker": 0}
+                              "moved_same_flat": 0, "moved_other": 0, "edge_flicker": 0,
+                              "edge_flicker_hole": 0, "edge_flicker_moved": 0,
+                              "edge_flicker_material": 0}
     assert report.totals["model_px"] > 0
     assert len(report.views) == 26
 
@@ -375,26 +377,32 @@ def _flicker_report(drop, cap, strict=True, geometry=None):
                           allow_depth_fallback=True, **kw)  # synthetic buffers: there is no real geometry
 
 
-def test_silhouette_pixel_is_classed_edge_flicker_and_fails_at_cap_zero():
+def test_a_would_be_hole_is_never_flicker_without_the_geometry_to_ring_test_it():
+    """Flicker is decided by casting a RING of rays around the pixel in both geometries, so with
+    no geometry to cast against there is no evidence and a would-be hole stays a hole -- even on
+    the silhouette, where the old 3x3-neighbourhood precondition alone used to call it flicker.
+
+    `guard_feedback` depends on this: it casts no ring (a removal is not a change a person
+    accepted), and every failing pixel there must keep failing."""
     before, after = _buffers(_block()), _buffers(_block(drop=[(25, 25)]))
     mat = np.zeros(1, np.int64)
 
     codes = classify_pixels(before.depth, before.tri, after.depth, after.tri, mat, mat,
                              frozenset({0}), 0.15, allow_depth_fallback=True)
-    assert int((codes == PX_EDGE_FLICKER).sum()) == 1
-    assert int((codes == PX_HOLE).sum()) == 0
+    assert int((codes == PX_HOLE).sum()) == 1
+    assert int((codes == PX_EDGE_FLICKER).sum()) == 0
 
     report = _flicker_report([(25, 25)], cap=0.0)  # cap 0.0 needs no geometry
-    assert report.totals["edge_flicker"] == 1 and report.totals["holes"] == 0
-    assert report.views[0].edge_flicker == 1
-    assert not report.passed  # the default cap fails a flicker pixel exactly like a hole
+    assert report.totals["holes"] == 1 and report.totals["edge_flicker"] == 0
+    assert report.views[0].holes == 1
+    assert not report.passed
 
 
 def test_edge_flicker_cap_above_zero_without_geometry_is_an_error():
-    """A would-be hole is only ever classed flicker by the 3x3 neighbourhood test when no
-    geometry is given, and that test alone cannot tell a real hole from the silhouette -- safe
-    only when every flicker pixel fails anyway, i.e. cap 0.0. A caller asking for tolerance
-    without supplying the geometry the coverage check needs gets an error, not a silent guess."""
+    """Without both geometries there is no ring to cast, so nothing is ever classed flicker and
+    a nonzero cap would silently tolerate nothing while looking as though it tolerated something.
+    A caller asking for tolerance without supplying the geometry the ring test needs gets an
+    error, not a silent guess."""
     with pytest.raises(ValueError) as excinfo:
         _flicker_report([(25, 25)], cap=1e-4)
     assert "geometry" in str(excinfo.value)
@@ -422,7 +430,15 @@ def test_interior_hole_fails_at_any_cap():
 
 
 # ---------------------------------------------------------------------------
-# compare.py: flicker also needs a sub-pixel coverage check
+# compare.py: flicker is a RING test at the merge's own bound
+#
+# Every would-be failure pixel (hole, moved_same_flat, moved_other, material_changed) is
+# re-checked by casting 16 rays around it in the image plane -- 8 at `depth_tol`, 8 at
+# `depth_tol / 2` -- in BOTH geometries. It is flicker only when an AFTER ring ray reproduces
+# BEFORE's centre verdict AND a BEFORE ring ray reproduces AFTER's. That is exactly the bound
+# the merge works to (dropping a nearly-collinear ring vertex moves a boundary by at most the
+# collinearity tolerance), and unlike the old 3x3 + 5x5-coverage rule it works at an INTERNAL
+# silhouette, where a boundary shift swaps one real surface for another rather than for sky.
 # ---------------------------------------------------------------------------
 
 _FLAT_VIEW = (0.0, 0.0, -1.0)  # head-on at the z = 0 plane, so `right` is +x and `up` is +y
@@ -440,8 +456,11 @@ def _camera():
 
 
 def test_a_thousandth_of_an_inch_of_boundary_shift_is_edge_flicker():
-    """A real silhouette: the plate's right boundary moves 0.001 in and flips the one pixel whose
-    centre it passes through. 1 of 25 sub-rays changes -- 0.04 <= 2/25 -- so it is flicker."""
+    """An EXTERNAL silhouette: the plate's right boundary moves 0.001 in (far under the 0.15
+    `depth_tol`) and flips the one pixel whose centre it passes through. An AFTER ring ray just
+    inside the boundary still hits the plate (BEFORE's centre verdict) and a BEFORE ring ray just
+    outside it still misses (AFTER's centre verdict), so it is flicker -- an `edge_flicker_hole`,
+    since the base class it was rescued from was a hole."""
     cam = _camera()
     c, r = 40, 26
     x0, y0 = float(cam.xs[c]), float(cam.ys[r])
@@ -467,6 +486,9 @@ def test_a_thousandth_of_an_inch_of_boundary_shift_is_edge_flicker():
     report = compare_views([(_FLAT_VIEW, before)], [(_FLAT_VIEW, after)], mat, mat, frozenset({0}), 0.15, **kw)
 
     assert report.totals["edge_flicker"] == 1 and report.totals["holes"] == 0
+    assert report.totals["edge_flicker_hole"] == 1          # rescued from PX_HOLE, not from a move
+    assert report.totals["edge_flicker_moved"] == 0 and report.totals["edge_flicker_material"] == 0
+    assert report.views[0].edge_flicker == 1 and report.views[0].edge_flicker_hole == 1
     assert report.passed is False  # still fails at the default cap of 0.0
 
     # cap tolerance, with the real geometry `edge_flicker_cap > 0` now requires: 1 flicker pixel
@@ -479,6 +501,123 @@ def test_a_thousandth_of_an_inch_of_boundary_shift_is_edge_flicker():
     below = compare_views([(_FLAT_VIEW, before)], [(_FLAT_VIEW, after)], mat, mat, frozenset({0}),
                            0.15, edge_flicker_cap=5e-4, **kw)
     assert below.totals["edge_flicker"] == 1 and below.passed is False
+
+
+# --- an INTERNAL silhouette: one real surface in front of another, no sky anywhere ----------
+
+_BIG_SIZE = (128, 128)   #: ~13,700 model px, so `edge_flicker_cap = 1e-4` tolerates one of them
+_SLAB = 95.0             #: the slabs nearly fill `_FRAME`: the cap is a FRACTION of model_px
+_STACK_GAP = 10.0        #: how far the upper slab floats over the lower one (>> any depth_tol here)
+
+
+def _big_camera():
+    """The camera `_FRAME` gives at `_BIG_SIZE`, with no geometry: `xs`/`ys` are the x and y of
+    every pixel centre, so a test can straddle a chosen pixel with a moving boundary."""
+    return ortho_first_hit(_FRAME, np.zeros((0, 3), np.int64), np.zeros(0, np.int64),
+                            _FLAT_VIEW, _FRAME, _BIG_SIZE)
+
+
+def _stacked(edge_x, y_lo, y_hi, upper_material):
+    """A lower slab at `z = 0` (material 0, faces 0-1) with an upper slab at `z = _STACK_GAP`
+    (faces 2-3) laid over it, covering `x <= edge_x` between `y_lo` and `y_hi`.
+
+    Seen from straight above, `x = edge_x` is an INTERNAL silhouette: on one side the ray meets
+    the upper slab, on the other the lower one `_STACK_GAP` further away. No pixel anywhere in
+    the image is background, which is precisely the case the old rule's 3x3-neighbourhood
+    precondition could not recognise. Returns `(positions, faces, face_material, rendered)`."""
+    z = _STACK_GAP
+    P = np.array([[-_SLAB, -_SLAB, 0.0], [_SLAB, -_SLAB, 0.0], [_SLAB, _SLAB, 0.0], [-_SLAB, _SLAB, 0.0],
+                   [-_SLAB, y_lo, z], [edge_x, y_lo, z], [edge_x, y_hi, z], [-_SLAB, y_hi, z]])
+    faces = np.vstack([_QUAD, _QUAD + 4])
+    mat = np.array([0, 0, upper_material, upper_material], np.int64)
+    return P, faces, mat, ortho_first_hit(P, faces, np.arange(4), _FLAT_VIEW, _FRAME, _BIG_SIZE)
+
+
+def _stacked_pair(shift, upper_material=0, one_row=True):
+    """A BEFORE/AFTER pair of `_stacked` scenes whose edge moves by `shift`, straddling the centre
+    of one chosen pixel, plus everything `compare_views` needs for them.
+
+    With `one_row` the upper slab is only 0.8 of a pixel tall, so the moving edge can flip exactly
+    ONE pixel and no other -- neighbouring rows have no upper slab at all and neighbouring columns
+    are a whole pixel pitch away from the band. Without it the slab spans the full height, so a
+    band `shift` wide flips a whole column's worth of pixels."""
+    cam = _big_camera()
+    row, col = 64, 90
+    x0, y0 = float(cam.xs[col]), float(cam.ys[row])
+    pitch = abs(float(cam.ys[1] - cam.ys[0]))
+    y_lo, y_hi = (y0 - 0.4 * pitch, y0 + 0.4 * pitch) if one_row else (-_SLAB, _SLAB)
+    Pb, faces, mat, before = _stacked(x0 + shift / 2.0, y_lo, y_hi, upper_material)
+    Pa, _, _, after = _stacked(x0 - shift / 2.0, y_lo, y_hi, upper_material)
+    kw = dict(strict=True, plane_before=face_planes(Pb, faces), plane_after=face_planes(Pa, faces),
+               geometry_before=(Pb, faces), geometry_after=(Pa, faces))
+    return (row, col), mat, before, after, kw
+
+
+def _stacked_report(mat, before, after, kw, cap, flat=frozenset({0})):
+    return compare_views([(_FLAT_VIEW, before)], [(_FLAT_VIEW, after)], mat, mat, flat, 0.15,
+                          edge_flicker_cap=cap, **kw)
+
+
+def _swapped(before, after):
+    """Pixels that met the upper slab (faces 2-3) in BEFORE and the lower one in AFTER."""
+    return (before.tri >= 2) & (after.tri >= 0) & (after.tri < 2)
+
+
+def test_boundary_shift_under_tolerance_at_an_internal_silhouette_is_edge_flicker():
+    """The upper slab's boundary moves 0.1 in -- under the 0.15 `depth_tol` a merge works to --
+    and the one pixel whose centre it straddles swaps a surface for another 10 in behind it. No
+    pixel in the image is background, so the OLD rule (a miss in the 3x3 neighbourhood, then a
+    5x5 sub-ray coverage vote) could never call this flicker. The ring test can: an AFTER ring ray
+    0.075 in to the left still lands on the upper slab, and a BEFORE ring ray 0.075 in to the
+    right already lands on the lower one."""
+    (row, col), mat, before, after, kw = _stacked_pair(0.1)
+
+    swapped = _swapped(before, after)
+    assert int(swapped.sum()) == 1 and swapped[row, col]      # exactly the pixel we aimed at
+
+    report = _stacked_report(mat, before, after, kw, cap=0.0)
+    assert report.totals["edge_flicker"] == 1
+    assert report.totals["edge_flicker_moved"] == 1
+    assert report.totals["edge_flicker_hole"] == 0 and report.totals["edge_flicker_material"] == 0
+    assert report.totals["moved_same_flat"] == 0 and report.totals["holes"] == 0
+    assert report.passed is False                              # cap 0.0 fails it like a hole
+
+    # the final merge guard's own cap: 1 flicker pixel of ~13,700 model pixels is under 1e-4
+    tolerant = _stacked_report(mat, before, after, kw, cap=1e-4)
+    assert tolerant.totals["model_px"] * 1e-4 >= 1.0
+    assert tolerant.totals["edge_flicker"] == 1 and tolerant.passed is True
+
+
+def test_a_material_boundary_shift_under_tolerance_is_edge_flicker_material():
+    """The same 0.1 in shift with the upper slab in a DIFFERENT material: the pixel's base class
+    is `material_changed`, not a move, and the breakdown says which it was rescued from."""
+    (row, col), mat, before, after, kw = _stacked_pair(0.1, upper_material=1)
+
+    strict = _stacked_report(mat, before, after, kw, cap=0.0, flat=frozenset({0, 1}))
+    assert strict.totals["edge_flicker"] == 1
+    assert strict.totals["edge_flicker_material"] == 1
+    assert strict.totals["edge_flicker_moved"] == 0 and strict.totals["edge_flicker_hole"] == 0
+    assert strict.totals["material_changed"] == 0
+    assert strict.passed is False
+
+    tolerant = _stacked_report(mat, before, after, kw, cap=1e-4, flat=frozenset({0, 1}))
+    assert tolerant.totals["edge_flicker_material"] == 1 and tolerant.passed is True
+
+
+def test_a_boundary_shift_far_beyond_tolerance_stays_a_failure_at_any_cap():
+    """2 in is more than `2 * depth_tol`, so no ring ray of either geometry reaches across it:
+    every swapped pixel keeps its real class and fails at every cap. The ring rule tolerates a
+    boundary that barely moved, never a boundary that actually moved."""
+    (row, col), mat, before, after, kw = _stacked_pair(2.0, one_row=False)
+
+    swapped = int(_swapped(before, after).sum())
+    assert swapped > 100          # a 2 in band down the whole slab, not one pixel
+
+    for cap in (0.0, 1e-4, 1.0):
+        report = _stacked_report(mat, before, after, kw, cap=cap)
+        assert report.totals["edge_flicker"] == 0
+        assert report.totals["moved_same_flat"] == swapped
+        assert report.passed is False
 
 
 def test_compare_views_refuses_renders_from_a_different_camera_frame():

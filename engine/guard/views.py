@@ -27,12 +27,6 @@ VIEWS_26: tuple[tuple[float, float, float], ...] = tuple(
 )
 
 
-def _pitch(axis: np.ndarray) -> float:
-    """Spacing of one pixel along an image axis (negative for `ys`, which runs downwards); 0.0
-    when that axis is a single pixel wide."""
-    return float(axis[1] - axis[0]) if len(axis) > 1 else 0.0
-
-
 @dataclass(frozen=True)
 class HitBuffers:
     """One `ortho_first_hit` render, with enough of the camera kept to recover each pixel's hit
@@ -61,21 +55,25 @@ class HitBuffers:
         return (self.xs[None, :, None] * self.right + self.ys[:, None, None] * self.up
                 + self.standoff)
 
-    def subpixel_origins(self, rows: np.ndarray, cols: np.ndarray, grid: int = 5) -> np.ndarray:
-        """`(len(rows) * grid * grid, 3)` ray origins supersampling the given pixels: the centres
-        of a `grid x grid` lattice of sub-cells inside each pixel's own footprint, row-major within
-        each pixel and in the order `rows`/`cols` are given (which is `np.nonzero`'s order when
-        they come from a mask). Cast along `direction` to measure a pixel's sub-pixel COVERAGE.
+    def ring_origins(self, rows: np.ndarray, cols: np.ndarray, radii, n_angles: int = 8) -> np.ndarray:
+        """`(len(rows) * len(radii) * n_angles, 3)` ray origins on concentric rings around the
+        given pixels' own rays: each radius in `radii` at `n_angles` evenly spaced angles from 0,
+        offset in the IMAGE PLANE (`right`/`up`). Ordered pixel-major, then radius, then angle,
+        with the pixels in the order `rows`/`cols` are given (which is `np.nonzero`'s order when
+        they come from a mask). Cast along `direction` to ask what the geometry looks like just
+        beside a pixel.
 
-        The footprint is one `xs` step by one `ys` step -- the pixel pitch `ortho_first_hit` built
-        the grid with -- so sub-offsets run over `(-0.4 .. 0.4) * pitch` for `grid == 5` and the
-        centre sub-ray is the pixel's own ray. A 1-pixel axis has no pitch and contributes none."""
+        The radii are in WORLD units, not pixels, because the question they answer is geometric:
+        could a boundary that moved by at most `depth_tol` explain this pixel? A ring is therefore
+        independent of image resolution, and may well sit inside the pixel's own footprint."""
         rows = np.asarray(rows, dtype=np.int64).reshape(-1)
         cols = np.asarray(cols, dtype=np.int64).reshape(-1)
-        step = (np.arange(grid, dtype=np.float64) + 0.5) / grid - 0.5
-        dx, dy = step * _pitch(self.xs), step * _pitch(self.ys)
-        x = self.xs[cols][:, None, None] + dx[None, None, :]    # (P, 1, grid)
-        y = self.ys[rows][:, None, None] + dy[None, :, None]    # (P, grid, 1)
+        theta = np.arange(n_angles, dtype=np.float64) * (2.0 * np.pi / n_angles)
+        radii = np.asarray(radii, dtype=np.float64).reshape(-1)
+        dx = (radii[:, None] * np.cos(theta)[None, :]).reshape(-1)          # (R * n_angles,)
+        dy = (radii[:, None] * np.sin(theta)[None, :]).reshape(-1)
+        x = self.xs[cols][:, None] + dx[None, :]                            # (P, R * n_angles)
+        y = self.ys[rows][:, None] + dy[None, :]
         return (x[..., None] * self.right + y[..., None] * self.up
                 + self.standoff).reshape(-1, 3)
 
