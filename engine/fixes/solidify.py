@@ -414,6 +414,8 @@ def _add_bottom(builder: _Builder, topo: Topology, plan: dict, down, material: i
         except shapely.errors.GEOSException:
             continue
         for part in getattr(cdt, "geoms", []):
+            if part.geom_type != "Polygon" or part.is_empty:
+                continue
             corners = [lookup.get((float(x), float(y)))
                        for x, y in np.asarray(part.exterior.coords)[:3]]
             if any(c is None for c in corners):
