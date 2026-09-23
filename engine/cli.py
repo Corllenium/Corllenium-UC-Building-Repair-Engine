@@ -443,9 +443,13 @@ def cmd_preview_data(snapshot_dir: Path, out_dir: Path, profile: FixProfile | No
     soft_after = _soft_edges(topo_after, positions_c_w)
 
     guard_final = result.guard_final.totals
+    # `edge_flicker` is NOT damage: it is the class `compare_views` promotes a pixel INTO when
+    # the two pictures differ only by a boundary that moved less than the tolerance, and the
+    # final guard tolerates it up to `edge_flicker_cap_final`. Adding it to a number the page
+    # then labelled "damaged px" made the page report the opposite of what the guard decided.
     guard_damaged_px = (guard_final["holes"] + guard_final["material_changed"]
-                        + guard_final["moved_other"] + guard_final["moved_same_flat"]
-                        + guard_final["edge_flicker"])
+                        + guard_final["moved_other"] + guard_final["moved_same_flat"])
+    guard_flicker_px = guard_final["edge_flicker"]
 
     data = {
         "name": mesh.name,
@@ -465,6 +469,10 @@ def cmd_preview_data(snapshot_dir: Path, out_dir: Path, profile: FixProfile | No
             "guard_views": len(VIEWS_26),
             "guard_model_px": int(guard_final["model_px"]),
             "guard_damaged_px": int(guard_damaged_px),
+            "guard_flicker_px": int(guard_flicker_px),
+            # the page names its own thresholds from these rather than hard-coding "1-5 deg"
+            "coplanar_angle": float(profile.coplanar_angle),
+            "soft_angle": float(profile.soft_angle),
             "guard_tol_in": guard_depth_tol(topo.quanta, profile),
             "gridline_edges": len(grid),
             "flipped": int(result.flipped.sum()),

@@ -418,3 +418,81 @@ def test_preview_page_shows_no_hardcoded_guard_number(tmp_path):
     assert "guard 0 damaged px" not in source
     assert "flattens vertices" not in source
     assert "rough preview" not in source
+
+
+# ---------------------------------------------------------------------------------------------
+# MQ4: the page says what the data says. Three sentences it used to say on its own authority --
+# what the AFTER pane contains, what the soft-crease thresholds are, and that every reported
+# pixel is damage -- are now read from `stats`.
+# ---------------------------------------------------------------------------------------------
+
+def test_preview_page_names_its_soft_crease_thresholds_from_the_data():
+    if not _PREVIEW_PAGE.exists():
+        pytest.skip("preview/index.html is not shipped with the engine package")
+    source = _PREVIEW_PAGE.read_text(encoding="utf-8")
+    assert "1-5" not in source                      # the old hard-coded label
+    assert "${s.coplanar_angle}" in source and "${s.soft_angle}" in source
+
+
+def test_preview_page_heading_is_written_from_the_rollback_flag():
+    """The static heading used to promise "flat regions rebuilt" even on a run whose merge was
+    thrown away and whose AFTER pane is the removal-only fallback."""
+    if not _PREVIEW_PAGE.exists():
+        pytest.skip("preview/index.html is not shipped with the engine package")
+    source = _PREVIEW_PAGE.read_text(encoding="utf-8")
+    assert "<h2>AFTER" not in source
+    heading = source.split("$('hb').innerHTML")[1].split("$('sa')")[0]
+    assert "s.merge_rolled_back" in heading and "merge rolled back" in heading
+
+
+def test_preview_page_calls_tolerated_flicker_what_it_is():
+    if not _PREVIEW_PAGE.exists():
+        pytest.skip("preview/index.html is not shipped with the engine package")
+    source = _PREVIEW_PAGE.read_text(encoding="utf-8")
+    assert "flicker px tolerated" in source
+    assert "${s.guard_flicker_px" in source
+
+
+def test_preview_data_keeps_tolerated_flicker_out_of_the_damaged_count(tmp_path, monkeypatch):
+    """`edge_flicker` is what `compare_views` promotes a pixel INTO when the two pictures differ
+    only by a boundary that moved less than the tolerance, and the final guard tolerates it up to
+    its cap -- so counting it as damage made the page report the opposite of the guard's own
+    verdict. 7 flicker pixels per view, nothing else: damaged 0, flicker 7 * 26."""
+    m = box_with_partition()
+    snap_dir = _write_snapshot(tmp_path, m)
+    real = fix_pipeline.fix_object
+    zeroed = dict(holes=0, material_changed=0, moved_other=0, moved_same_flat=0)
+
+    def with_flicker(mesh, flatness, profile_in):
+        result = real(mesh, flatness, profile_in)
+        views = [replace(v, edge_flicker=7, **zeroed) for v in result.guard_final.views]
+        totals = dict(result.guard_final.totals)
+        totals.update(zeroed, edge_flicker=7 * len(views))
+        flickering = GuardReport(views=views, passed=True, totals=totals)
+        return replace(result, guard_final=flickering)
+
+    monkeypatch.setattr(cli, "fix_object", with_flicker)
+    out_dir = tmp_path / "preview_out"
+    cli.cmd_preview_data(snap_dir, out_dir, profile=_FAST)
+    stats = json.loads((out_dir / f"{m.name}.json").read_text(encoding="utf-8"))["stats"]
+
+    assert stats["guard_flicker_px"] == 7 * len(cli.VIEWS_26)
+    assert stats["guard_damaged_px"] == 0
+    assert stats["guard_passed"] is True
+
+
+def test_preview_data_reports_what_closing_the_slab_added(tmp_path, monkeypatch):
+    """The BEFORE pane is the REFERENCE mesh -- the export plus whatever `solidify` added -- so
+    the page has to be able to name both counts and what the difference cost."""
+    from engine.tests.fixtures.build import slab_with_three_skirts
+    m = slab_with_three_skirts()
+    snap_dir = _write_snapshot(tmp_path, m)
+    out_dir = tmp_path / "preview_out"
+    cli.cmd_preview_data(snap_dir, out_dir, profile=_FAST)
+    stats = json.loads((out_dir / f"{m.name}.json").read_text(encoding="utf-8"))["stats"]
+
+    assert stats["tris_input"] == m.n_faces
+    assert stats["tris_total"] == m.n_faces + 4        # one skirt quad and one bottom quad
+    assert stats["skirts_added"] == 1 and stats["bottoms_added"] == 1
+    assert stats["invented_vertices"] == 0
+    assert stats["n_removed_overlap"] == 0 and stats["n_overlap_pairs_same"] == 0

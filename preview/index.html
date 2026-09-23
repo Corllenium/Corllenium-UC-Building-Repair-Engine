@@ -39,7 +39,7 @@
   <label><input type="checkbox" id="grid" checked><span class="sw" style="background:var(--blue)"></span>gridlines (hidden wall meets surface)</label>
   <label><input type="checkbox" id="outline" checked><span class="sw" style="background:#222"></span>region outlines</label>
   <label><input type="checkbox" id="tri"><span class="sw" style="background:#9aa0a8"></span>all triangle edges</label>
-  <label title="Same material, two regions, folded by more than 1 and at most 5 degrees: a real crease the merge cannot dissolve without moving a vertex."><input type="checkbox" id="soft"><span class="sw" style="background:var(--soft)"></span>soft creases (1-5&deg;)</label>
+  <label id="softlabel" title="Same material, two regions, folded by a real angle that is still too shallow for the merge to dissolve without moving a vertex."><input type="checkbox" id="soft"><span class="sw" style="background:var(--soft)"></span><span id="softtext">soft creases</span></label>
   <label><input type="checkbox" id="xray"><span class="sw" style="background:var(--red)"></span>x-ray: hidden inside faces</label>
   <label title="Diagnostic only. SketchUp and your Unity project draw both sides."><input type="checkbox" id="onesided">one-sided (diagnostic)</label>
   <label><input type="checkbox" id="sync" checked>sync cameras</label>
@@ -47,7 +47,7 @@
 
 <main>
   <section><h2>BEFORE · as exported</h2><div class="view" id="va"></div><p class="stats" id="sa"></p></section>
-  <section><h2>AFTER · inside removed, flat regions rebuilt</h2><div class="view" id="vb"></div><p class="stats" id="sb"></p></section>
+  <section><h2 id="hb">AFTER</h2><div class="view" id="vb"></div><p class="stats" id="sb"></p></section>
 </main>
 
 <script type="module">
@@ -182,21 +182,35 @@ async function load(file) {
   // Every number below comes from `stats`, which engine/cli.py preview-data writes from the
   // REAL guard reports. Nothing here is a constant standing in for a measurement.
   const pct = (a, b) => (100 * (1 - a / b)).toFixed(1)
+
+  // The BEFORE view is the REFERENCE mesh every guard compared against: the export plus whatever
+  // `solidify` added to close it. Naming the two counts apart is the only honest way to show a
+  // step that deliberately ADDS geometry.
+  $('softtext').innerHTML = `soft creases (${s.coplanar_angle}-${s.soft_angle}&deg;)`
+  $('hb').innerHTML = s.merge_rolled_back
+    ? `AFTER · inside removed, <span style="color:var(--red)">merge rolled back</span>`
+    : `AFTER · inside removed, flat regions rebuilt`
   $('sa').innerHTML = `<b>${s.tris_total.toLocaleString()}</b> triangles &nbsp;·&nbsp; ${s.zero_area} zero-area &nbsp;·&nbsp; ` +
     `<span style="color:var(--red)">${s.hidden.toLocaleString()} hidden inside</span> &nbsp;·&nbsp; ` +
-    `<span style="color:var(--blue)">${s.gridline_edges} gridline edges</span>`
+    `<span style="color:var(--blue)">${s.gridline_edges} gridline edges</span>` +
+    `<br><span class="note">as exported: ${s.tris_input.toLocaleString()} triangles &nbsp;·&nbsp; ` +
+    `closed with ${s.skirts_added} skirts and ${s.bottoms_added} bottoms ` +
+    `(${s.invented_vertices} vertices invented, ${s.faces_newly_hidden} faces newly hidden)</span>`
   $('sb').innerHTML = `<b>${s.after_merged.toLocaleString()}</b> triangles &nbsp;·&nbsp; ${pct(s.after_merged, s.tris_total)} % fewer &nbsp;·&nbsp; ` +
     `${s.regions} flat regions${s.merge_rolled_back ? ` <b style="color:var(--red)">· merge rolled back</b>` : ``}` +
     `<br><span class="note">after inside removal only: ${s.after_hidden_removed.toLocaleString()} triangles &nbsp;·&nbsp; ` +
+    `${s.n_removed_overlap} duplicate-layer faces removed of ${s.n_overlap_pairs_same} overlapping pairs ` +
+    `(${s.n_overlap_pairs_diff} different-material, never removed) &nbsp;·&nbsp; ` +
     `${s.outline_edges_after.toLocaleString()} real edges, ${s.unavoidable_diagonals_after.toLocaleString()} unavoidable diagonals &nbsp;·&nbsp; ` +
     `<span style="color:var(--soft)">${s.soft_edges} soft creases</span>, ${s.coplanar_region_borders} coplanar region borders</span>`
   $('honest').innerHTML =
     ` Guard over ${s.guard_views} views at ${s.guard_tol_in.toFixed(2)} in tolerance: <b>${s.guard_passed ? `passed` : `FAILED`}</b>, ` +
     `<b>${s.guard_damaged_px.toLocaleString()}</b> damaged px of ${s.guard_model_px.toLocaleString()} ` +
     `(${(100 * s.guard_damaged_px / s.guard_model_px).toFixed(3)} %). ` +
+    `${s.guard_flicker_px.toLocaleString()} flicker px tolerated (a boundary that moved less than the tolerance) · ` +
     `${s.zfight_tie.toLocaleString()} z-fight ties (overlaps that were already there, not damage) · ` +
     `${s.crack_closed.toLocaleString()} cracks closed (an improvement) · ` +
-    `merge ${s.merge_rolled_back ? `<b style="color:var(--red)">rolled back</b>` : `kept`}. Vertices are never moved.`
+    `merge ${s.merge_rolled_back ? `<b style="color:var(--red)">rolled back</b>` : `kept`}. No vertex is ever moved; closing the slab is the one step that adds any.`
 }
 
 const files = await (await fetch('data/index.json')).json()
