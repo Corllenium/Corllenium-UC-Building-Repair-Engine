@@ -136,6 +136,7 @@ def _profile_dict(p: FixProfile) -> dict:
             "skirt_search_radius": p.skirt_search_radius,
             "min_thickness": p.min_thickness, "max_thickness": p.max_thickness,
             "bottom_exists_fraction": p.bottom_exists_fraction,
+            "bottom_search_extra": p.bottom_search_extra,
             "cover_max_exposure": p.cover_max_exposure}
 
 

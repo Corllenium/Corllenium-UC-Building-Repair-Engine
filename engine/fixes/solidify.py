@@ -255,6 +255,7 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
     min_h = getattr(profile, "min_thickness", 2.0)
     max_h = getattr(profile, "max_thickness", 36.0)
     bottom_fraction = getattr(profile, "bottom_exists_fraction", 0.9)
+    bottom_extra = getattr(profile, "bottom_search_extra", 24.0)
     guard_size = getattr(profile, "guard_size", (900, 600))
 
     ok_faces = topo.face_w[topo.ok]
@@ -295,6 +296,7 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
     builder = _Builder(mesh)
     welded_to_original = _welded_to_original(mesh, topo)
     report_thickness: dict[str, float] = {}
+    report_bottom_depth: dict[str, float] = {}
     skirts = 0
     skirt_length = 0.0
     skirt_fallback = 0
@@ -307,12 +309,18 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
 
     for plan in plans:
         members = plan["members"]
-        own = [t for t in plan["thicknesses"] if t is not None]
+        own = [clamp(t) for t in plan["thicknesses"] if t is not None]
         resolved = bool(own) or bool(file_wide)
         # The region's FALLBACK height, for the edges that could not be measured at all. Every
         # edge that could be uses its own; see the module docstring.
         h = clamp(float(np.median(own)) if own else file_median)
+        # ...and the BOTTOM goes at the shallowest height any of its skirts actually reached, so
+        # it meets one of them instead of crossing the others. At the median it hangs below the
+        # shallow skirts -- leaving the steps between them open from underneath, which is the
+        # one direction a bottom exists to close -- and cuts the deep ones in half.
+        bottom_h = min(own) if own else h
         report_thickness[str(plan["region"])] = h
+        report_bottom_depth[str(plan["region"])] = bottom_h
         material = int(mesh.face_material[members[0]])
         uv_scale = _uv_scale(mesh, topo, members, plan["origin"], plan["basis"])
         centroid = topo.positions_w[topo.face_w[members]].reshape(-1, 3).mean(axis=0)
@@ -354,10 +362,10 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
         if not resolved:
             unresolved_thickness += 1
             continue
-        if _has_bottom(topo, members, caster, h, tol, bottom_fraction):
+        if _has_bottom(topo, members, caster, bottom_h, tol, bottom_fraction, bottom_extra):
             bottom_exists += 1
             continue
-        if _add_bottom(builder, topo, plan, lambda c: down(c, h), material, uv_scale,
+        if _add_bottom(builder, topo, plan, lambda c: down(c, bottom_h), material, uv_scale,
                         welded_to_original):
             bottoms += 1
 
@@ -382,6 +390,9 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
         "bottom_thickness_unresolved": unresolved_thickness,
         "outline_unmappable": unmappable,
         "thickness_per_region": report_thickness,
+        #: Per region, the depth its bottom was placed (or would have been): the SHALLOWEST
+        #: height any of its skirts reached, not the median `thickness_per_region` holds.
+        "bottom_depth_per_region": report_bottom_depth,
         "invented_vertices": int(len(solid.positions) - len(mesh.positions)),
         "cap_guard_rounds": len(cap_history),
         "cap_guard_removed": cap_removed,
@@ -406,14 +417,25 @@ def _welded_to_original(mesh: MeshData, topo: Topology) -> np.ndarray:
 
 
 def _has_bottom(topo: Topology, members: np.ndarray, caster, h: float, tol: float,
-                 fraction: float) -> bool:
+                 fraction: float, search_extra: float = 24.0) -> bool:
     """A ray straight down from just below each of the region's face centroids: the region
-    already has a bottom when at least `fraction` of them meet something within `h + tol`."""
+    already has a bottom when at least `fraction` of them meet something within
+    `h + search_extra + tol`.
+
+    THE SEARCH REACHES PAST `h` DELIBERATELY. `h` is the SHALLOWEST height this region's own
+    skirts measured, and an underside deeper than that is still this slab's underside -- it is
+    what a slab that is thicker in the middle than at its rim looks like. Stopping at `h + tol`
+    declares such a region bottomless and invents a second bottom ABOVE the real one, boxing it
+    in; that is the same defect S-C1's cap-guard rule catches after the fact, and this is the
+    half of it that never creates the face in the first place.
+
+    Bounded rather than unbounded, because "anything at all below me" is not a bottom: a slab
+    100 in above a floor does not have that floor for an underside."""
     centroid = topo.positions_w[topo.face_w[members]].mean(axis=1)
     origins = centroid - np.array([0.0, 0.0, EPS_IN])
     directions = np.tile(np.array([0.0, 0.0, -1.0]), (len(origins), 1))
     tri, t = caster.first_hit(origins, directions)
-    return bool(((tri >= 0) & (t <= h + tol)).mean() >= fraction)
+    return bool(((tri >= 0) & (t <= h + search_extra + tol)).mean() >= fraction)
 
 
 def _add_bottom(builder: _Builder, topo: Topology, plan: dict, down, material: int,

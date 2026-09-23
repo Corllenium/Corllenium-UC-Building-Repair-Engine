@@ -369,3 +369,49 @@ def test_an_edge_whose_height_cannot_be_measured_is_counted_as_a_fallback():
     assert r.report["skirt_edges_fallback"] == 4
     assert r.report["bottom_thickness_unresolved"] == 1      # and so no bottom is invented
     assert r.report["bottoms_added"] == 0
+
+
+# ------------------------------------ S-I5: the bottom goes at the SHALLOWEST measured depth
+
+
+def _bottom_faces(result):
+    normals = _face_normals(result.mesh)
+    return [f for f in np.nonzero(result.new_faces)[0] if normals[f][2] < -0.5]
+
+
+def test_the_bottom_goes_at_the_shallowest_resolved_skirt_height():
+    """`slab_with_two_depths` measures 1.3 in on two edges and 9.8 in on the other two. A bottom
+    at the MEDIAN (5.55 in) sits below the shallow skirts -- so the steps between them stay open
+    from underneath -- and above the deep ones, cutting them in half. The shallowest is the only
+    depth at which the bottom meets a skirt rather than crossing one."""
+    r = _solidified(slab_with_two_depths(), _fast(min_thickness=1.0))
+
+    assert r.report["bottoms_added"] == 1
+    bottom = _bottom_faces(r)
+    assert bottom
+    z = r.mesh.positions[r.mesh.face_v[bottom]][:, :, 2]
+    assert z.min() == pytest.approx(-1.3) and z.max() == pytest.approx(-1.3)
+
+
+def test_an_existing_underside_deeper_than_the_shallowest_skirt_counts_as_a_bottom():
+    """The same slab with a real plate 11.8 in down. The shallowest skirt is 1.3 in, so a search
+    that stopped at `h + tol` would not see the plate and would invent a second bottom 10.5 in
+    ABOVE it -- boxing the real one in. `bottom_search_extra` reaches past `h` for exactly that
+    reason."""
+    m = slab_with_two_depths(with_bottom=True)
+    r = _solidified(m, _fast(min_thickness=1.0))
+
+    assert r.report["bottom_exists"] == 1
+    assert r.report["bottoms_added"] == 0
+    assert _bottom_faces(r) == []
+    # the real plate is untouched and still the lowest thing in the mesh
+    assert float(r.mesh.positions[:, 2].min()) == pytest.approx(-11.8)
+
+
+def test_a_bottom_is_not_found_beyond_the_extra_search_depth():
+    """The search is bounded, not unbounded: a plate further down than `h + bottom_search_extra`
+    is not this region's bottom, and one is invented."""
+    m = slab_with_two_depths(with_bottom=True)
+    r = _solidified(m, _fast(min_thickness=1.0, bottom_search_extra=2.0))
+    assert r.report["bottom_exists"] == 0
+    assert r.report["bottoms_added"] == 1

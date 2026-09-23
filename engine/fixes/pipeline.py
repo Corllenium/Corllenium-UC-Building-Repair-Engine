@@ -100,9 +100,15 @@ class FixProfile:
     #: skirt varies from 1.3 to 49 in, so one uniform thickness leaks; these only bound it.
     min_thickness: float = 2.0
     max_thickness: float = 36.0
-    #: Fraction of a region's faces that must find something within `h + tol` straight down for
-    #: it to count as already having a bottom.
+    #: Fraction of a region's faces that must find something within `h + bottom_search_extra`
+    #: straight down for it to count as already having a bottom.
     bottom_exists_fraction: float = 0.9
+    #: How far PAST the region's bottom depth that downward search reaches, in inches. The
+    #: bottom depth is the region's SHALLOWEST measured skirt height, and a slab thicker in the
+    #: middle than at its rim already has an underside deeper than that: without this slack a
+    #: second bottom is invented ABOVE the real one, boxing it in. Bounded, because "anything
+    #: at all below me" is not a bottom.
+    bottom_search_extra: float = 24.0
     #: The CAP GUARD's cover threshold (`engine.guard.compare.solidify_feedback`, rule 3): an
     #: invented face may cover a pixel whose BEFORE hit is the FRONT side of an original face
     #: only while that face's front exposure ON THE ORIGINAL MESH is below this -- a surface
