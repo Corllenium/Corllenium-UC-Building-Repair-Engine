@@ -238,3 +238,58 @@ def test_all_hits_leaves_a_separated_face_to_embrees_own_walk():
         ray, tri, t = _sorted_hits(EmbreeCaster(P, F), origins, directions)
         assert sorted(tri.tolist()) == [0, 1], f"nudge {nudge}: {tri.tolist()}"
         assert 0.0 < abs(t[0] - t[1]) < 0.15   # two depths, both inside the guard's tolerance
+
+
+# ---------------------------------------------------------------------------------------------
+# G3: the recovery pass searches ALL faces with only a bounding-box prefilter, so the exact
+# point-in-triangle test (`_contains`) is the only thing standing between "this face is really
+# coincident here" and "this face merely lives in the same plane". A tie invented out of a face
+# the ray never touched would tell the guard two surfaces swapped places where one of them is
+# nowhere near the pixel.
+# ---------------------------------------------------------------------------------------------
+
+def _coplanar_bystander():
+    """`_coincident_pair_sharing_no_vertex` plus a THIRD triangle in the same plane
+    (y = 767.05) whose bounding box contains the hit point while its outline does not: a right
+    triangle whose hypotenuse passes 13.9 in from the point, on the far side.
+
+    Returns `(positions, faces, origins, directions, hit_point)`; faces 0 and 1 are the real
+    coincident pair, face 2 the bystander."""
+    P, F, origins, directions = _coincident_pair_sharing_no_vertex()
+    y = 767.05
+    extra = np.array([[-500.0, y, 100.0], [-350.0, y, 100.0], [-500.0, y, 200.0]])
+    P = np.vstack([P, extra])
+    F = np.vstack([F, [[len(P) - 3, len(P) - 2, len(P) - 1]]])
+    return P, F, origins, directions, np.array([-400.0, y, 150.0])
+
+
+def test_all_hits_rejects_a_coplanar_triangle_that_does_not_contain_the_hit_point():
+    P, F, origins, directions, point = _coplanar_bystander()
+
+    # the bystander really does reach the prefilter: its bounding box contains the hit point, so
+    # only the exact containment test can reject it, which is what this pins.
+    tri = P[F[2]]
+    assert (tri.min(axis=0) <= point).all() and (point <= tri.max(axis=0)).all()
+    # ... and it really is coplanar with the pair, to the last printed digit
+    assert tri[:, 1].tolist() == [767.05, 767.05, 767.05]
+
+    for Caster in (EmbreeCaster, BruteCaster):
+        ray, hit_tri, t = _sorted_hits(Caster(P, F), origins, directions)
+        assert sorted(hit_tri.tolist()) == [0, 1], f"{Caster.__name__} reported {hit_tri.tolist()}"
+        assert ray.tolist() == [0, 0]
+        assert abs(t[0] - t[1]) < 1e-3
+
+
+def test_the_bystander_is_reported_once_it_does_contain_the_hit_point():
+    """The same scene with the bystander's hypotenuse moved past the point, so it now covers it:
+    three coincident surfaces, all three reported. Without this the test above would pass just as
+    well against a recovery pass that had been switched off."""
+    P, F, origins, directions, point = _coplanar_bystander()
+    P = P.copy()
+    P[F[2][2], 2] = 400.0        # lift the third corner so the triangle swallows the hit point
+
+    for Caster in (EmbreeCaster, BruteCaster):
+        ray, hit_tri, t = _sorted_hits(Caster(P, F), origins, directions)
+        assert sorted(hit_tri.tolist()) == [0, 1, 2], f"{Caster.__name__} reported {hit_tri.tolist()}"
+        assert ray.tolist() == [0, 0, 0]
+        assert max(t) - min(t) < 1e-3
