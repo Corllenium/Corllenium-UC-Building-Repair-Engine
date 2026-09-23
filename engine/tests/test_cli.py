@@ -16,7 +16,7 @@ from engine.tests.fixtures.build import box_with_partition
 #: Small render settings: only correctness is under test here, not image fidelity (matches the
 #: convention in test_pipeline.py / test_guard.py / test_exposure.py). The default FixProfile's
 #: 900x600 x 26-view renders are real-file settings, not something a unit test should pay for.
-_FAST = FixProfile(guard_size=(120, 80), n_dirs=32)
+_FAST = FixProfile(guard_size=(120, 80), n_dirs=32, qa_size=(160, 100))
 
 
 def _write_snapshot(tmp_path, mesh):
@@ -550,3 +550,22 @@ def test_preview_page_says_its_before_pane_is_the_original_export():
     assert "BEFORE &middot; the original export" in source or "BEFORE · the original export" in source
     # and it draws what solidify added as its own, separately labelled thing
     assert "d.reference.pos" in source
+
+
+# ---------------------------------------------------------------------------------------------
+# F2: every `fix` run writes the visual QA sheet under `<run dir>/qa/`.
+# ---------------------------------------------------------------------------------------------
+
+def test_cmd_fix_writes_the_21_file_qa_sheet(tmp_path):
+    from engine.guard.qa_render import qa_file_names
+    m = box_with_partition()
+    snap_dir = _write_snapshot(tmp_path, m)
+    out_root = tmp_path / "out"
+
+    assert cli.cmd_fix(snap_dir, out_root, accept_slit=False, profile=_FAST) == 0
+
+    qa = out_root / m.name / "qa"
+    assert sorted(p.name for p in qa.iterdir()) == sorted(qa_file_names())
+    assert len(qa_file_names()) == 21
+    for p in qa.iterdir():
+        assert p.stat().st_size > 0

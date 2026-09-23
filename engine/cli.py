@@ -5,8 +5,9 @@
     `<name>.fixed.obj` (triangles -- the file for Unity), `<name>.fixed.ngon.obj` (polygons, a
     viewer/documentation artifact), a copy of `materials.mtl` and `tex/`, `report.json` (every
     number in `FixResult`, both guard reports per view, the profile, the input sha256), and
-    `guard_<view>.png` before/after/difference triptychs for 6 axis views. Exit code 0 when
-    `passed`, 2 otherwise.
+    `guard_<view>.png` before/after/difference triptychs for 6 axis views, and the 21-image
+    visual QA sheet under `qa/` (`engine.guard.qa_render`). Exit code 0 when `passed`, 2
+    otherwise.
 
 `python -m engine.cli preview-data <snapshot_dir> --out preview/data`
     Writes the JSON `preview/index.html` reads (see `spike/12_export_preview.py` for the shape
@@ -35,6 +36,7 @@ from PIL import Image
 
 from engine.fixes.pipeline import FixProfile, FixResult, fix_object, guard_depth_tol
 from engine.guard.compare import GuardReport, ViewVerdict, classify_pixels, face_planes
+from engine.guard.qa_render import polygon_edges, write_qa_sheet
 from engine.guard.render import save_triptych
 from engine.guard.views import VIEWS_26, ortho_first_hit
 from engine.io.mtl import MtlMaterial, parse_mtl, texture_flatness
@@ -142,7 +144,8 @@ def _profile_dict(p: FixProfile) -> dict:
             "cap_guard_max_rounds": p.cap_guard_max_rounds,
             "accept_fragments": p.accept_fragments,
             "fragment_max_area": p.fragment_max_area,
-            "fragment_max_extent": p.fragment_max_extent, "sliver_q": p.sliver_q}
+            "fragment_max_extent": p.fragment_max_extent, "sliver_q": p.sliver_q,
+            "qa_size": list(p.qa_size)}
 
 
 def _build_report(name: str, obj_path: Path, mesh: MeshData, result: FixResult,
@@ -332,6 +335,12 @@ def cmd_fix(snapshot_dir: Path, out_root: Path, accept_slit: bool,
     positions_c = topo.positions_w - centre
     _write_guard_images(reference, result, profile, flat_materials, topo, positions_c, out_dir)
 
+    # The picture a person checks before trusting the run: the SHIPPED mesh, with the edges the
+    # SketchUp export will draw (the merge's rings, or every triangle edge when the merge was
+    # rolled back and there are none), hidden lines removed. See `engine.guard.qa_render`.
+    qa = write_qa_sheet(result.mesh, polygon_edges(result.mesh, result.rings), out_dir / "qa",
+                        size=profile.qa_size)
+
     report = _build_report(name, obj_path, mesh, result, profile)
     (out_dir / "report.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
 
@@ -342,7 +351,7 @@ def cmd_fix(snapshot_dir: Path, out_root: Path, accept_slit: bool,
               f"{sr['cap_guard_removed']} faces refused by the cap guard, "
               f"{sr['faces_newly_hidden']} faces newly hidden, {sr['runtime_s']}s")
     print(f"{name}: {mesh.n_faces} -> {result.mesh.n_faces} tris, passed={result.passed}")
-    print(f"  wrote {out_dir}")
+    print(f"  wrote {out_dir} (and {len(qa)} QA images under qa/)")
     return 0 if result.passed else 2
 
 

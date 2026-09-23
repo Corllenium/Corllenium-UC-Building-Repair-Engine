@@ -140,6 +140,9 @@ class FixProfile:
     #: Polygon quality `4*pi*area/perimeter**2` below which a face ATTACHED to something real is
     #: a sliver: 1 is a circle, ~0.6 an equilateral triangle, 0.02 a needle about 1:150.
     sliver_q: float = 0.02
+    #: Pixel size of every image in the visual QA sheet the CLI writes under `<run dir>/qa/`
+    #: (`engine.guard.qa_render.write_qa_sheet`). Not used by `fix_object` itself.
+    qa_size: tuple[int, int] = (1600, 1000)
 
 
 @dataclass
