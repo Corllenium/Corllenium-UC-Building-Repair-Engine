@@ -339,7 +339,8 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
     cap_removed = 0
     if new_faces.any():
         solid, new_faces, cap_history, cap_removed = _cap_guard(
-            mesh, solid, new_faces, guard_size, getattr(profile, "n_dirs", 128))
+            mesh, solid, new_faces, guard_size, getattr(profile, "n_dirs", 128),
+            getattr(profile, "cover_max_exposure", 0.10))
 
     hidden_before, hidden_after = _newly_hidden(mesh, solid, topo, profile)
     report = {
@@ -431,10 +432,23 @@ def _add_bottom(builder: _Builder, topo: Topology, plan: dict, down, material: i
 
 
 def _cap_guard(original: MeshData, solid: MeshData, new_faces: np.ndarray,
-                guard_size: tuple[int, int], n_dirs: int = 128):
+                guard_size: tuple[int, int], n_dirs: int = 128,
+                cover_max_exposure: float = 0.10):
     """Render the original and the solidified mesh over `VIEWS_26` and drop every new face the
     cap rule refuses (see `engine.guard.compare.solidify_feedback`). Returns
-    `(mesh, new_faces, history, removed)`."""
+    `(mesh, new_faces, history, removed)`.
+
+    The exposure the cap rule reads is measured on the ORIGINAL geometry -- `faces_before`
+    alone, cast against itself -- because a face that some invented face is covering has, by
+    construction, exposure 0 in the solidified mesh, and a rule that read that would authorise
+    itself. It costs strictly less than the solidified-mesh measurement it replaces (fewer
+    faces, one caster) and is taken once, before any round removes anything.
+
+    `ok` is deliberately all-True here, like the array it replaces: a RELATIVELY degenerate
+    face (`engine.topo.adjacency.degenerate_mask` allows `area <= 1e-7 * longest**2`) is real,
+    hittable surface and is rendered as one, so it needs a real exposure rather than the 0.0
+    `compute_side_exposure` gives a `not ok` face -- which would have made every sliver in the
+    file free to cover."""
     from engine.guard.views import VIEWS_26
     from engine.topo.weld import weld_exact
 
@@ -443,10 +457,11 @@ def _cap_guard(original: MeshData, solid: MeshData, new_faces: np.ndarray,
     positions_c = positions_w - centre
     faces_after = remap[solid.face_v]
     faces_before = faces_after[: original.n_faces]
-    front, _back = compute_side_exposure(positions_c, faces_after,
-                                         np.ones(len(faces_after), bool), n_dirs=n_dirs)
+    front, _back = compute_side_exposure(positions_c, faces_before,
+                                         np.ones(len(faces_before), bool), n_dirs=n_dirs)
 
     keep, history = solidify_feedback(positions_c, faces_before, faces_after, new_faces, front,
+                                       cover_max_exposure=cover_max_exposure,
                                        views=VIEWS_26, size=guard_size)
     removed = int((~keep).sum())
     if not removed:

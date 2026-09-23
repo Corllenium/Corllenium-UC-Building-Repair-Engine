@@ -742,7 +742,8 @@ def guard_feedback(candidates: np.ndarray, positions_c: np.ndarray, faces: np.nd
 
 
 def solidify_feedback(positions_c: np.ndarray, faces_before: np.ndarray, faces_after: np.ndarray,
-                       is_new: np.ndarray, front_exposure_after: np.ndarray,
+                       is_new: np.ndarray, front_exposure_before: np.ndarray,
+                       cover_max_exposure: float = 0.10,
                        views: Sequence[Sequence[float]] = VIEWS_26,
                        size: tuple[int, int] = (900, 600), caster_factory=EmbreeCaster,
                        max_rounds: int = 8) -> tuple[np.ndarray, list[dict]]:
@@ -760,18 +761,32 @@ def solidify_feedback(positions_c: np.ndarray, faces_before: np.ndarray, faces_a
     1. background -- BEFORE's ray missed everything;
     2. a face seen on its BACK side (`n . view_dir > 0`) -- a one-sided renderer was dropping
        that pixel anyway, which is the hole this whole step exists to close;
-    3. a face whose exposure ON THE SIDE THE RAY MET IT is 0 in the SOLIDIFIED mesh -- it is
-       interior from there now, which is the point: an interior rib wall is meant to disappear
-       behind the skirt that closed its cell.
+    3. a face met on its FRONT side whose FRONT exposure ON THE ORIGINAL MESH is below
+       `cover_max_exposure` -- a surface that was only ever seen through an opening, which is
+       the interior rib wall this step exists to hide behind the skirt that closes its cell.
 
-    Rule 3 is PER SIDE, and that is a deliberate departure from "a face whose exposure is 0".
-    Exposure is double-sided, so a face that is part of the outer shell always has some -- and
-    the face you see through an opening is very often exactly that: the INSIDE of the far wall,
-    or the underside of the top sheet whose other side sees sky. Measured on
-    `open_box_with_cells`, whose lid, walls and floor are all wound inward: with a whole-face
-    test the only skirt that closes the box is refused, because it covers the inside of the far
-    wall, and the step can never do its job at all. The side a ray met a face on is decided by
-    `n . view_dir`, the same quantity rule 2 uses, so the two rules read one number.
+    RULE 3 READS THE ORIGINAL MESH, NOT THE SOLIDIFIED ONE, and that is the whole point of the
+    rule. It used to ask whether the covered face's exposure was 0 in the SOLIDIFIED mesh --
+    but any covering face drives that exposure to 0, so the rule authorised itself: a bottom
+    invented 9.8 in down under a slab whose real underside is 4 in down boxed that underside in,
+    its solidified exposure went to 0, the cap guard allowed the cover, and the hidden pass then
+    deleted the real underside with every guard still passing (`slab_with_partial_underside`).
+    Measured on the original mesh the underside is plainly visible from below, so the covering
+    face is refused instead.
+
+    RULE 3 IS ALSO PER SIDE, a deliberate departure from "a face whose exposure is 0". Exposure
+    is double-sided, so a face that is part of the outer shell always has some -- and the face
+    you see through an opening is very often exactly that: the INSIDE of the far wall, or the
+    underside of a top sheet whose other side sees sky. Measured on `open_box_with_cells`, whose
+    lid, walls and floor are all wound inward: with a whole-face test the only skirt that closes
+    the box is refused, because it covers the inside of the far wall, and the step can never do
+    its job at all. The side a ray met a face on is decided by `n . view_dir`, the same quantity
+    rule 2 uses, so the two rules read one number.
+
+    `cover_max_exposure` is a THRESHOLD, not `== 0`, because a face seen only through a small
+    opening never measures exactly 0 by ray sampling: the far wall of `compartment_with_deep_wall`
+    is seen through a 10 x 10 in hole 45 in away and measures a fraction of a percent. The
+    default 0.10 is `engine.fixes.pipeline.FixProfile.cover_max_exposure`.
 
     Any other change MARKS the new face at that pixel. Marked faces are dropped and the whole
     thing runs again, because removing one new face can expose what another was covering, until
@@ -780,10 +795,9 @@ def solidify_feedback(positions_c: np.ndarray, faces_before: np.ndarray, faces_a
     `faces_before` / `faces_after` are welded triangles into the SAME `positions_c` (solidify
     only appends positions, so an original face still indexes the same rows) and `positions_c`
     frames both renders, so the two line up pixel for pixel. `is_new` is a bool mask over
-    `faces_after`. `front_exposure_after` is the FRONT half of
-    `engine.vis.exposure.compute_side_exposure` per face of `faces_after`, measured ONCE on the
-    fully solidified mesh -- a face removed in a later round does not change what "interior"
-    meant.
+    `faces_after`. `front_exposure_before` is the FRONT half of
+    `engine.vis.exposure.compute_side_exposure` per face of `faces_BEFORE`, measured on the
+    ORIGINAL mesh -- the geometry as it arrived, before a single face was invented.
 
     Returns `(keep, history)`: `keep` is a bool mask over `faces_after` (always True for a face
     that is not new), and `history` is one dict per round,
@@ -792,13 +806,12 @@ def solidify_feedback(positions_c: np.ndarray, faces_before: np.ndarray, faces_a
     faces_before = np.asarray(faces_before, dtype=np.int64)
     faces_after = np.asarray(faces_after, dtype=np.int64)
     is_new = np.asarray(is_new, dtype=bool)
-    front_exposure_after = np.asarray(front_exposure_after, dtype=np.float64)
+    # measured on the ORIGINAL mesh, so it is already indexed like `faces_before`
+    front_exposure = np.asarray(front_exposure_before, dtype=np.float64)[:len(faces_before)]
 
     tri = positions_c[faces_before]
     normal = np.cross(tri[:, 1] - tri[:, 0], tri[:, 2] - tri[:, 0])
     normal = normal / np.maximum(np.linalg.norm(normal, axis=1), 1e-300)[:, None]
-    # indexed like `faces_after`, whose first rows ARE `faces_before`
-    front_exposure = front_exposure_after[:len(faces_before)]
 
     before_caster = ReusableCaster(caster_factory)
     before = [(view, ortho_first_hit(positions_c, faces_before,
@@ -825,9 +838,10 @@ def solidify_feedback(positions_c: np.ndarray, faces_before: np.ndarray, faces_a
             safe_index = np.where(covered, hit_before, 0)
             back_side = covered & (normal[safe_index] @ direction > 1e-9)
             # the ray met the FRONT side wherever it is not a back-side hit, so this is the
-            # exposure of the side it met
-            interior = covered & (front_exposure[safe_index] <= 0.0)
-            bad = covered & ~back_side & ~interior
+            # exposure of the side it met -- ON THE ORIGINAL MESH, which is the one thing the
+            # face being covered cannot have changed.
+            only_through_an_opening = covered & (front_exposure[safe_index] < cover_max_exposure)
+            bad = covered & ~back_side & ~only_through_an_opening
             failing += int(bad.sum())
             marked.update(a.tri[changed][bad].tolist())
 

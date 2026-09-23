@@ -103,6 +103,13 @@ class FixProfile:
     #: Fraction of a region's faces that must find something within `h + tol` straight down for
     #: it to count as already having a bottom.
     bottom_exists_fraction: float = 0.9
+    #: The CAP GUARD's cover threshold (`engine.guard.compare.solidify_feedback`, rule 3): an
+    #: invented face may cover a pixel whose BEFORE hit is the FRONT side of an original face
+    #: only while that face's front exposure ON THE ORIGINAL MESH is below this -- a surface
+    #: seen only through an opening. Not `== 0`, because ray sampling never gives exactly 0 for
+    #: a wall seen through a small hole: the far wall of `compartment_with_deep_wall` measures
+    #: a fraction of a percent through a 10 x 10 in opening 45 in away.
+    cover_max_exposure: float = 0.10
 
 
 @dataclass

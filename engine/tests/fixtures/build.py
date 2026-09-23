@@ -561,3 +561,54 @@ def two_level_slab(size=40.0, height=8.0, deep=200.0, panel_x=10.0, panel_z=(-12
     fm.append(0)
     _quads(P, uvs, fv, fvt, fm, [(base_v + 2, base_v + 3, base_v + 4, base_v + 5)])
     return _mesh("two_level_slab", P, uvs, fv, fvt, face_material=fm)
+
+
+def slab_with_partial_underside(size=40.0, deep=9.8, shallow=4.0):
+    """The reviewer's scenario: a slab whose MEASURED skirt height (9.8 in) is much deeper than
+    the real underside it already has (4 in down), and whose underside covers only PART of the
+    footprint -- so `_has_bottom`'s 90 % test says "no bottom" and a new one is invented at
+    `-deep`, BOXING IN the real underside.
+
+    Faces 0-1 the top (z = 0, wound +z), 2-7 the three skirts down to `-deep` (`x = 0` left
+    open), 8-9 the real underside at `-shallow` over the `x >= size/2, y <= size/2` quarter,
+    wound DOWN and open on its two free sides, so it is plainly visible from below -- its FRONT
+    exposure on this mesh is about half, nowhere near `cover_max_exposure`.
+
+    The top's two triangles have centroids at `(2s/3, s/3)` and `(s/3, 2s/3)`: the underside sits
+    under the first and not the second, so exactly 50 % of the region finds something below it."""
+    s, d, h = size, deep, shallow
+    P = [[0.0, 0.0, 0.0], [s, 0.0, 0.0], [s, s, 0.0], [0.0, s, 0.0],
+         [0.0, 0.0, -d], [s, 0.0, -d], [s, s, -d], [0.0, s, -d],
+         [s / 2, 0.0, -h], [s, 0.0, -h], [s, s / 2, -h], [s / 2, s / 2, -h]]
+    uvs, fv, fvt, fm = [], [], [], []
+    _quads(P, uvs, fv, fvt, fm, [(0, 1, 2, 3),          # top, +z
+                                  (0, 4, 5, 1),          # y = 0 skirt, -y
+                                  (1, 5, 6, 2),          # x = s skirt, +x
+                                  (2, 6, 7, 3),          # y = s skirt, +y
+                                  (11, 10, 9, 8)])       # the real underside, -z
+    return _mesh("slab_with_partial_underside", P, uvs, fv, fvt, face_material=fm)
+
+
+def compartment_with_deep_wall(length=60.0, width=10.0, height=10.0, wall_x=45.0, gap=1.0):
+    """A long shallow compartment open at `x = 0`, with an interior WALL right at the far end --
+    the shape a sidewalk's rib cells really have, and the case the cap guard's third rule exists
+    for.
+
+    Faces 0-1 the top (z = 0), 2-3 the bottom (z = -height), 4-9 the three side walls, all wound
+    OUTWARD, so every one of them is met on its BACK side from inside. Faces 10-11 are the wall
+    at `x = wall_x`, inset by `gap` all round and wound so its normal points at the OPENING
+    (-x) -- the one face a ray through the opening meets on its FRONT side. It is `wall_x` in
+    from a `width x height` hole, so its front exposure is a fraction of a percent: well under
+    `FixProfile.cover_max_exposure`. Closing the opening seals it on both sides."""
+    L, W, H, g = length, width, height, gap
+    P = [[0.0, 0.0, 0.0], [L, 0.0, 0.0], [L, W, 0.0], [0.0, W, 0.0],
+         [0.0, 0.0, -H], [L, 0.0, -H], [L, W, -H], [0.0, W, -H],
+         [wall_x, g, -g], [wall_x, W - g, -g], [wall_x, W - g, -H + g], [wall_x, g, -H + g]]
+    uvs, fv, fvt, fm = [], [], [], []
+    _quads(P, uvs, fv, fvt, fm, [(0, 1, 2, 3),          # top, +z
+                                  (4, 7, 6, 5),          # bottom, -z
+                                  (0, 4, 5, 1),          # y = 0 wall, -y
+                                  (2, 6, 7, 3),          # y = W wall, +y
+                                  (1, 5, 6, 2),          # x = L wall, +x
+                                  (8, 9, 10, 11)])       # the deep wall, -x (INWARD)
+    return _mesh("compartment_with_deep_wall", P, uvs, fv, fvt, face_material=fm)

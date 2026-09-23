@@ -14,10 +14,14 @@ import numpy as np
 import pytest
 
 from engine.fixes.pipeline import FixProfile, fix_object
-from engine.fixes.solidify import solidify
+from engine.fixes.solidify import solidify, top_regions
+from engine.rays.caster import EmbreeCaster
 from engine.pipeline import analyse_topology
-from engine.tests.fixtures.build import (box_with_partition, open_box_with_cells,
+from engine.tests.fixtures.build import (box_with_partition, compartment_with_deep_wall,
+                                         open_box_with_cells, slab_with_partial_underside,
                                          slab_with_three_skirts, two_level_slab)
+from engine.topo.weld import weld_exact
+from engine.vis.exposure import compute_side_exposure
 
 _FAST = FixProfile(guard_size=(120, 80), n_dirs=32)
 
@@ -100,51 +104,75 @@ def test_a_region_that_already_has_a_bottom_gets_no_new_one():
 # -------------------------------------------------------------------- (a) the open box
 
 
-def test_the_open_box_gets_its_missing_side_and_becomes_closed():
+def test_the_open_box_is_skirted_but_the_cap_guard_will_not_hide_its_partitions():
+    """The skirt this fixture needs IS planned and built -- one open outline edge, measured at
+    the box's own 10 in -- and then refused, because of what it would cover.
+
+    THIS TEST USED TO ASSERT THE OPPOSITE, and S-C1 is why. `open_box_with_cells` is a
+    10 x 10 x 10 box with an ENTIRE side missing, and its near partition sits 3 in inside that
+    hole: 25 % of the sample budget escapes from its front face. Under the old rule the skirt
+    covered it, which drove its exposure in the solidified mesh to 0, which is what the old rule
+    then consulted to decide the cover was allowed -- and the hidden pass deleted a partition a
+    person could plainly see. The rule now reads the ORIGINAL mesh, where 25 % is nowhere near
+    `cover_max_exposure`, so the cover is refused.
+
+    A skirt over a face that really is seen only through the opening is still kept: see
+    `test_a_wall_seen_only_through_a_side_opening_may_be_covered_and_is_then_removed`, where the
+    covered wall measures 0.39 %."""
     m = open_box_with_cells()
     r = _solidified(m)
 
     assert r.report["skirts_added"] == 1 and r.report["bottoms_added"] == 0
     assert r.report["bottom_exists"] == 1         # the box floor is already there
     assert list(r.report["thickness_per_region"].values()) == [10.0]
-    assert r.report["cap_guard_removed"] == 0
 
-    # the BOX is closed: every edge still open belongs to one of the two floating partitions,
-    # which is what makes them hidden -- 4 faces that had escape routes before and have none now
-    topo = analyse_topology(r.mesh)
-    partition_z = {2.0, 8.0}
-    for edge in np.nonzero(topo.table.counts == 1)[0]:
-        corners = topo.positions_w[topo.table.edges[edge]]
-        assert set(np.round(corners[:, 1], 6).tolist()) <= {3.0, 7.0}, corners
-        assert set(np.round(corners[:, 2], 6).tolist()) <= partition_z, corners
-    assert r.report["faces_newly_hidden"] == 4
+    assert r.report["cap_guard_removed"] == 2     # both triangles of the one skirt quad
+    assert not r.new_faces.any()
+    assert r.report["faces_newly_hidden"] == 0
+
+    front = _front_exposure(m, n_dirs=512)
+    assert front[10] > FixProfile().cover_max_exposure     # the near partition, 25 % exposed
+    assert front[11] > FixProfile().cover_max_exposure
 
 
 def test_a_top_sheet_wound_downwards_is_still_a_top_sheet():
     """`open_box_with_cells` is wound INWARD throughout: its z = 10 lid has `n_z = -1` and its
     z = 0 floor `n_z = +1`. A signed `n_z > 0.7` test would take the floor for the top surface
     and hang a skirt below the box. The sky test is what tells them apart -- and it matters on
-    the real file, where 809 faces are wound backwards."""
+    the real file, where 809 faces are wound backwards.
+
+    Asserted on the PLAN rather than on the surviving faces, because the cap guard then refuses
+    this fixture's skirt for an unrelated reason (see
+    `test_the_open_box_is_skirted_but_the_cap_guard_will_not_hide_its_partitions`); which region
+    was chosen, and how far down its skirt was measured, is what this test is about."""
     m = open_box_with_cells()
     normals = _face_normals(m)
     assert normals[2][2] == pytest.approx(-1.0)   # the lid, pointing down
     assert normals[0][2] == pytest.approx(1.0)    # the floor, pointing up
 
+    topo = analyse_topology(m)
+    caster = EmbreeCaster(topo.positions_w, topo.face_w[topo.ok])
+    regions = top_regions(topo, _FAST, caster)
+    assert regions == [int(topo.face_region[2])]              # the LID, not the floor
+    assert int(topo.face_region[0]) not in regions
+
     r = _solidified(m)
-    new = np.nonzero(r.new_faces)[0]
-    z = r.mesh.positions[r.mesh.face_v[new]][:, :, 2]
-    assert z.min() == 0.0 and z.max() == 10.0     # the skirt closes the SIDE, nothing hangs below
+    # measured at the box's own side, so the skirt reaches z = 0 and nothing hangs below it
+    assert list(r.report["thickness_per_region"].values()) == [10.0]
 
 
-def test_fix_object_closes_the_open_box_and_then_removes_both_partitions():
+def test_fix_object_leaves_the_open_box_open_when_its_partitions_are_plainly_visible():
+    """The end-to-end consequence of the same refusal: no skirt survives, so nothing becomes
+    hidden, so nothing is removed -- and the run still passes, because refusing to invent a face
+    is not damage. `test_fix_object_closes_the_compartment_and_removes_its_deep_wall` is the
+    same journey on a fixture whose interior really is seen only through the opening."""
     m = open_box_with_cells()
     r = fix_object(m, {}, _FAST)
 
     assert r.solidify_report["skirts_added"] == 1
-    assert r.n_hidden_candidates >= 4 and r.n_removed_hidden >= 4
-    assert r.n_restored_by_guard == 0
-    topo = analyse_topology(r.mesh)
-    assert set(topo.table.counts.tolist()) == {2}     # a closed box
+    assert r.solidify_report["cap_guard_removed"] == 2
+    assert r.reference_mesh.n_faces == m.n_faces      # nothing survived to be added
+    assert r.n_removed_hidden == 0
     assert r.passed is True
 
 
@@ -219,3 +247,68 @@ def test_a_closed_box_has_nothing_to_solidify():
     assert on.solidify_report["bottoms_added"] == 0
     assert on.solidify_report["invented_vertices"] == 0
     assert np.array_equal(on.mesh.face_v, off.mesh.face_v)
+
+
+# ------------------------------------------------- S-C1: the cover rule reads the ORIGINAL mesh
+
+
+def _front_exposure(mesh, n_dirs=32):
+    """Front-side exposure of every face of `mesh`, measured against `mesh` itself."""
+    positions_w, remap = weld_exact(mesh.positions, mesh.coord_decimals)
+    centre = (positions_w.min(axis=0) + positions_w.max(axis=0)) / 2.0
+    face_w = remap[mesh.face_v]
+    front, _back = compute_side_exposure(positions_w - centre, face_w,
+                                         np.ones(len(face_w), bool), n_dirs=n_dirs)
+    return front
+
+
+def test_a_bottom_that_would_box_in_the_real_underside_is_refused_by_the_cap_guard():
+    """The reviewer's scenario. The region's skirts measure 9.8 in, so a bottom is invented at
+    -9.8; the slab's REAL underside is only 4 in down and covers half the footprint, so
+    `_has_bottom` does not see it. Rule 3 used to read the covered face's exposure in the
+    SOLIDIFIED mesh -- which the covering face itself had just driven to zero -- so the bottom
+    authorised itself, and the hidden pass then deleted the real underside.
+
+    The rule now reads the face's exposure on the ORIGINAL mesh: the underside is plainly
+    visible from below there, so the part of the bottom that covers it is refused."""
+    m = slab_with_partial_underside()
+    r = _solidified(m)
+
+    assert r.report["bottoms_added"] == 1              # invented at the measured 9.8 in
+    assert r.report["cap_guard_removed"] >= 1          # and partly refused
+
+    front = _front_exposure(r.mesh)
+    assert front[8] > 0.0 and front[9] > 0.0           # the real underside is still seen
+
+    result = fix_object(m, {}, _FAST)
+    assert not result.removed_hidden[8] and not result.removed_hidden[9]
+
+
+def test_a_wall_seen_only_through_a_side_opening_may_be_covered_and_is_then_removed():
+    """The case rule 3 exists for, and which the new rule must not break: a compartment whose
+    far wall is visible ONLY through the side opening the skirt closes. Its exposure on the
+    ORIGINAL mesh is a fraction of a percent -- well under `cover_max_exposure` -- so the skirt
+    is allowed to cover it, and the hidden pass then removes it."""
+    m = compartment_with_deep_wall()
+    # Genuinely seen, and barely: 0.39 % of the sample budget at 512 directions, against a
+    # 10 % threshold. (At the 32 directions this test's fast profile uses it rounds to 0.0 --
+    # which is also below the threshold, but says less.)
+    original_front = _front_exposure(m, n_dirs=512)
+    assert 0.0 < original_front[10] < 0.01 < FixProfile().cover_max_exposure
+    assert 0.0 < original_front[11] < 0.01
+
+    # At the shipped 128 directions, not this file's fast 32: at 32 the wall's own exposure
+    # already rounds to 0, so "newly hidden" would have nothing left to show.
+    r = _solidified(m, FixProfile(guard_size=(120, 80), n_dirs=128))
+    assert r.report["skirts_added"] == 1
+    assert r.report["cap_guard_removed"] == 0
+    assert r.report["faces_newly_hidden"] == 2
+
+
+def test_fix_object_closes_the_compartment_and_removes_its_deep_wall():
+    """End to end: the skirt survives the cap guard, the wall it covers becomes hidden, and the
+    strict removal guard then deletes it."""
+    result = fix_object(compartment_with_deep_wall(), {}, _FAST)
+    assert result.solidify_report["cap_guard_removed"] == 0
+    assert result.removed_hidden[10] and result.removed_hidden[11]
+    assert result.passed is True

@@ -135,7 +135,8 @@ def _profile_dict(p: FixProfile) -> dict:
             "top_sky_fraction": p.top_sky_fraction,
             "skirt_search_radius": p.skirt_search_radius,
             "min_thickness": p.min_thickness, "max_thickness": p.max_thickness,
-            "bottom_exists_fraction": p.bottom_exists_fraction}
+            "bottom_exists_fraction": p.bottom_exists_fraction,
+            "cover_max_exposure": p.cover_max_exposure}
 
 
 def _build_report(name: str, obj_path: Path, mesh: MeshData, result: FixResult,
