@@ -354,7 +354,7 @@ def arc_topped_strip(n=12, half_span=110.0, sag=0.8, top_z=100.0, y=24000.0, uv_
 
 
 def two_slabs_sharing_curved_border(n=12, half_span=110.0, sag=0.8, half_width=120.0,
-                                    y=24000.0, uv_per_unit=0.05):
+                                    y=24000.0, uv_per_unit=0.05, outer_sag=0.0):
     """Two coplanar slabs of DIFFERENT materials (so they stay two regions) meeting along a
     gently CURVED border of `n` vertices -- the shared-border counterpart of `arc_topped_strip`.
 
@@ -366,17 +366,24 @@ def two_slabs_sharing_curved_border(n=12, half_span=110.0, sag=0.8, half_width=1
     the whole polyline does not, which is exactly the case where the two regions must agree on
     WHICH border vertices survive or a T-junction opens between them.
 
+    `outer_sag` (default 0, a straight edge) dips the right slab's OUTER edge inward by that much
+    at its middle, on the same parabola: an OPEN border the right slab can only GROW by
+    simplifying, with no neighbour on the other side to shrink by the same amount.
+
     Faces 0..2*(n-1)-1 are the left slab (material 0, x from `-half_width` to the border), the
     rest the right slab (material 1, border to `+half_width`). Both slabs are wound CCW seen from
     +z, so they share the same region normal."""
     u = np.linspace(-half_span, half_span, n)
-    c = sag / (half_span ** 2 - float(u[np.argmin(np.abs(u))]) ** 2)
-    xb = -c * u ** 2                       # the border's bulge, 0 at the ends, -sag at the middle
+    u_mid = float(u[np.argmin(np.abs(u))])
+    c = sag / (half_span ** 2 - u_mid ** 2)
+    xb = -c * u ** 2                       # the border's bulge, -sag at the ends, 0 at the middle
+    co = outer_sag / (half_span ** 2 - u_mid ** 2)
+    xo = half_width - co * (half_span ** 2 - u ** 2)   # the outer edge: half_width at the ends
     ys = y + u
 
     P = ([[-half_width, float(t), 0.0] for t in ys]          # 0..n-1   left edge
          + [[float(b), float(t), 0.0] for b, t in zip(xb, ys)]   # n..2n-1  the curved border
-         + [[half_width, float(t), 0.0] for t in ys])        # 2n..3n-1 right edge
+         + [[float(o), float(t), 0.0] for o, t in zip(xo, ys)])  # 2n..3n-1 right (outer) edge
     left, mid, right = 0, n, 2 * n
 
     uvs, fv, fvt, fm = [], [], [], []

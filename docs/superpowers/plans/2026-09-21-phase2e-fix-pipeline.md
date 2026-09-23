@@ -180,7 +180,13 @@ Algorithm (each numbered rule is a test):
 8. UVs: flat material -> new `vt` entries from the region's least-squares UV fit (largest member seeds, iterative
    refit), re-based so the region's minimum UV lies in [0,1). Patterned material -> same fit (the region is one UV
    class by construction). One new `vn` per region.
-9. Area check per region: merged area <= original area * (1 + 1e-6), else skip with reason `area_grew`.
+9. Area check, per region AND per pass: a region's merged area may exceed its original area by at most `1e-6`
+   relative plus `tol * perimeter` (the boundary movement rule 6 already accepted), and the regions that build may
+   not add up to more than they started with (`1e-6` relative). Simplifying a shared border moves area from one
+   region to its neighbour and nets to zero, so both keep it; growth along an OPEN border has no neighbour paying
+   for it, and then every region that grew is skipped with reason `area_grew` and fed back. This is what keeps
+   `fix_object`'s `area_not_grown` invariant true. (Amended 2026-09-23: the check used to be per region only, at
+   `1e-6` relative, and refused one side of every simplified shared curved border.)
 
 New fixtures and exact expectations:
 | Fixture | Expect |
