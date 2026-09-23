@@ -277,6 +277,13 @@ Edge classes gain `EDGE_SOFT` (crease between `coplanar_angle` 1 degree and `sof
 geometry, softened in SketchUp, not drawn as an outline). Merged regions keep their rings with inner loops;
 hole-free regions are exported as single polygons in a second OBJ.
 
+**Merge area rule (amended 2026-09-23, peer task d505241).** Per region, the merged area may exceed the
+original by at most `1e-6 * area + collinear_tol * perimeter` (the boundary-movement bound the ring
+simplification and the guard already accept); per merge pass, if the merged regions net more than `1e-6`
+relative growth, every grower is fed back and copied through (the old rule), so the mesh never grows and no
+opening wider than `2 * collinear_tol` can be bridged. Measured: file A 1,600 -> 1,490 triangles, file B
+1,113 -> 956, guards unchanged.
+
 **Solidify (new fix step, reviewed).** The only step allowed to invent vertices: for each top-surface region,
 skirts along open outline edges down to the local skirt height, and a bottom at that depth where none exists,
 under a cap guard (only pixels whose AFTER first hit is a new face may change, and only where BEFORE showed
