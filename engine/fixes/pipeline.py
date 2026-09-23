@@ -68,6 +68,15 @@ class FixProfile:
     #: face, so a silhouette pixel may flicker by less than a pixel of sub-pixel coverage without
     #: that being real damage. The removal guards (inside `guard_feedback`) always use 0.0.
     edge_flicker_cap_final: float = 1e-4
+    #: Ceiling, in inches, on the guard's depth tolerance (see `guard_depth_tol`). The tolerance
+    #: is derived from the mesh's own print precision, which is right near 24,000 in (0.15 in)
+    #: and wrong for a model exported in survey coordinates near 240,000 in, where the same
+    #: formula gives 1.5 in -- and the crack test's ring radius IS that tolerance, so anything
+    #: thinner than it would read as a crack the fix closed.
+    depth_tol_max: float = 0.5
+    #: Per-view cap on `PX_CRACK_CLOSED` pixels, as a fraction of that view's model pixels; over
+    #: it they fall back to their base class and fail (see `engine.guard.compare.compare_views`).
+    crack_closed_cap: float = 1e-3
 
 
 @dataclass
@@ -135,6 +144,19 @@ class FixResult:
     passed: bool
 
 
+def guard_depth_tol(quanta: np.ndarray, profile: FixProfile) -> float:
+    """The depth tolerance every guard in this run works to: `1.5 * max(axis quanta)`, the mesh's
+    own print precision, CLAMPED to `profile.depth_tol_max`.
+
+    Unclamped the formula tracks the export: a model near 24,000 in prints Y to 0.1 in and gets
+    0.15 in. A model exported in survey coordinates near 240,000 in prints to 1.0 in and would get
+    1.5 in -- and `depth_tol` is not only the "did the surface move" bound, it is also the RADIUS
+    of the crack and flicker rings, so at 1.5 in any genuinely lost sliver thinner than that reads
+    as a crack the fix closed (`engine.guard.compare.classify_pixels` states that limit). The
+    ceiling keeps the tolerance a property of what a person can see, not of where the model sits."""
+    return min(1.5 * float(np.asarray(quanta).max()), profile.depth_tol_max)
+
+
 def _total_area(positions: np.ndarray, face_v: np.ndarray) -> float:
     p = positions[face_v]
     return float(0.5 * np.linalg.norm(np.cross(p[:, 1] - p[:, 0], p[:, 2] - p[:, 0]), axis=1).sum())
@@ -152,7 +174,7 @@ def fix_object(mesh: MeshData, flatness: dict[str, float], profile: FixProfile =
     flat_materials = flat_material_indices(mesh, flatness, profile.flat_texture_std)
     angles = {"coplanar_angle": profile.coplanar_angle, "soft_angle": profile.soft_angle}
     topo = analyse_topology(mesh, flat_materials, **angles)
-    depth_tol = 1.5 * float(topo.quanta.max())
+    depth_tol = guard_depth_tol(topo.quanta, profile)
     # Recentre once, to the ORIGINAL mesh's bbox centre; the same recentred frame renders every
     # side, before and after, at every stage -- vertices never move, so one frame is always correct.
     centre = (topo.positions_w.min(axis=0) + topo.positions_w.max(axis=0)) / 2.0
@@ -236,6 +258,7 @@ def fix_object(mesh: MeshData, flatness: dict[str, float], profile: FixProfile =
             before_original, after, material_original, final_mesh.face_material, flat_materials,
             depth_tol, strict=strict_final, plane_before=planes_original,
             plane_after=face_planes(positions_c, face_w_final), edge_flicker_cap=edge_flicker_cap,
+            crack_closed_cap=profile.crack_closed_cap,
             geometry_before=(positions_c, face_w_original), geometry_after=(positions_c, face_w_final))
 
     guard_after_removal = _guard_against_original(mesh_flipped, edge_flicker_cap=0.0)

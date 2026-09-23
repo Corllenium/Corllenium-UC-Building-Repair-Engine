@@ -33,7 +33,7 @@ from pathlib import Path
 import numpy as np
 from PIL import Image
 
-from engine.fixes.pipeline import FixProfile, FixResult, fix_object
+from engine.fixes.pipeline import FixProfile, FixResult, fix_object, guard_depth_tol
 from engine.guard.compare import GuardReport, ViewVerdict, classify_pixels, face_planes
 from engine.guard.render import save_triptych
 from engine.guard.views import VIEWS_26, ortho_first_hit
@@ -129,7 +129,8 @@ def _profile_dict(p: FixProfile) -> dict:
     return {"n_dirs": p.n_dirs, "slit_threshold": p.slit_threshold, "accept_slit": p.accept_slit,
             "flat_texture_std": p.flat_texture_std, "guard_size": list(p.guard_size),
             "coplanar_angle": p.coplanar_angle, "soft_angle": p.soft_angle,
-            "edge_flicker_cap_final": p.edge_flicker_cap_final}
+            "edge_flicker_cap_final": p.edge_flicker_cap_final,
+            "depth_tol_max": p.depth_tol_max, "crack_closed_cap": p.crack_closed_cap}
 
 
 def _build_report(name: str, obj_path: Path, mesh: MeshData, result: FixResult,
@@ -238,7 +239,7 @@ def _write_guard_images(mesh: MeshData, result: FixResult, profile: FixProfile,
 
     planes_before = face_planes(positions_c, face_w_before)
     planes_after = face_planes(positions_c, face_w_after)
-    depth_tol = 1.5 * float(topo.quanta.max())
+    depth_tol = guard_depth_tol(topo.quanta, profile)   # the SAME tolerance the guards used
 
     caster_before = ReusableCaster()
     caster_after = ReusableCaster()
@@ -426,7 +427,7 @@ def cmd_preview_data(snapshot_dir: Path, out_dir: Path, profile: FixProfile | No
             "guard_views": len(VIEWS_26),
             "guard_model_px": int(guard_final["model_px"]),
             "guard_damaged_px": int(guard_damaged_px),
-            "guard_tol_in": 1.5 * float(topo.quanta.max()),
+            "guard_tol_in": guard_depth_tol(topo.quanta, profile),
             "gridline_edges": len(grid),
             "flipped": int(result.flipped.sum()),
             "thin_sheets": int(result.thin_sheets.sum()),

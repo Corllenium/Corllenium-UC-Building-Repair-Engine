@@ -484,6 +484,7 @@ def compare_views(before: Sequence[RenderedView], after: Sequence[RenderedView],
                    strict: bool = False, plane_before: np.ndarray | None = None,
                    plane_after: np.ndarray | None = None,
                    edge_flicker_cap: float = 0.0,
+                   crack_closed_cap: float = float("inf"),
                    geometry_before: tuple[np.ndarray, np.ndarray] | None = None,
                    geometry_after: tuple[np.ndarray, np.ndarray] | None = None,
                    caster_factory=EmbreeCaster,
@@ -524,6 +525,21 @@ def compare_views(before: Sequence[RenderedView], after: Sequence[RenderedView],
     its zero-tolerance behaviour. `edge_flicker_cap > 0.0` REQUIRES both `geometry_before` and
     `geometry_after`, and raises `ValueError` otherwise: without them there is no ring to cast, so
     a nonzero cap would tolerate nothing while looking as though it tolerated something.
+
+    `crack_closed_cap` is the same per-view test for `PX_CRACK_CLOSED`, and exists because the
+    crack test's own documented limit is that damage NARROWER than the ring radius is
+    indistinguishable from a crack the fix closed. A handful of such pixels is the improvement it
+    claims to be; a FIELD of them is a picture that changed for a reason this test cannot see.
+    Over the cap that view's crack pixels FALL BACK to the base class they were promoted from
+    (hole / material change / move -- always a class that fails under this report's strictness,
+    since only failing base classes are promotable at all), so the counts say what actually
+    happened instead of showing a tolerated improvement beside `passed: False`. That is the one
+    place this differs from flicker, which keeps its class and is merely counted as failing.
+    The default `inf` never caps, which is what this has always done; `engine.fixes.pipeline`
+    passes `FixProfile.crack_closed_cap`.
+
+    `zfight_tie` is deliberately NOT capped, at any number: an overlap this run neither caused
+    nor can fix here is not evidence about this run, however much of the picture it covers.
 
     `passed` is `holes + material_changed + moved_other == 0`, plus `moved_same_flat` when
     `strict`, plus the flicker pixels of any view over the cap. Every count -- `moved_same_flat`,
@@ -574,6 +590,11 @@ def compare_views(before: Sequence[RenderedView], after: Sequence[RenderedView],
                                  plane_before=plane_before, plane_after=plane_after,
                                  ring=ring, tie=tie, allow_depth_fallback=allow_depth_fallback,
                                  strict=strict)
+        # The crack cap is applied BEFORE the counts are taken, because over it a crack pixel is
+        # not a crack at all -- it goes back to being whatever it was, and is reported as that.
+        crack = codes == PX_CRACK_CLOSED
+        if crack.any() and int(crack.sum()) > crack_closed_cap * int((b.tri >= 0).sum()):
+            codes = np.where(crack, base, codes)
         flicker = codes == PX_EDGE_FLICKER
         counts = {
             "model_px": int((b.tri >= 0).sum()),

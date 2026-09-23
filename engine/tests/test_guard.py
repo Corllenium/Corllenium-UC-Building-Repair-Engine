@@ -754,10 +754,10 @@ def _twin_render(faces, ids):
 
 
 def _twin_report(before, after, mat_before, mat_after, faces_before, faces_after, cap=0.0,
-                  strict=True, flat=frozenset({0, 1})):
+                  strict=True, flat=frozenset({0, 1}), crack_closed_cap=float("inf")):
     return compare_views(
         [(_FLAT_VIEW, before)], [(_FLAT_VIEW, after)], mat_before, mat_after, flat, 0.15,
-        strict=strict, edge_flicker_cap=cap,
+        strict=strict, edge_flicker_cap=cap, crack_closed_cap=crack_closed_cap,
         plane_before=face_planes(_TWIN_FRAME, faces_before),
         plane_after=face_planes(_TWIN_FRAME, faces_after),
         geometry_before=(_TWIN_FRAME, faces_before), geometry_after=(_TWIN_FRAME, faces_after))
@@ -1283,3 +1283,59 @@ def test_save_triptych_gives_ties_and_closed_cracks_their_own_diff_colours(tmp_p
     assert tuple(diff[0, 5]) == render_module._FAIL
     assert len({render_module._MODEL, render_module._AMBER, render_module._TIE,
                 render_module._CRACK, render_module._FAIL}) == 5
+
+
+# ---------------------------------------------------------------------------
+# G1: `crack_closed` is capped per view, like flicker. Its own docstring names the limit --
+# damage NARROWER than the ring radius is indistinguishable from a crack the fix closed -- so a
+# handful of such pixels is the improvement it claims to be and a FIELD of them is a picture that
+# changed for a reason this test cannot see. Over the cap they fall back to their base class,
+# which is what makes the report say what actually happened.
+# ---------------------------------------------------------------------------
+
+def _crack_cap_report(cap, flicker_cap=0.0):
+    P, faces_before, faces_closed, _ = _crack_scene()
+    before = ortho_first_hit(P, faces_before, np.arange(4), _FLAT_VIEW, _FRAME, _BIG_SIZE)
+    after = ortho_first_hit(P, faces_closed, np.arange(4), _FLAT_VIEW, _FRAME, _BIG_SIZE)
+    return compare_views(
+        [(_FLAT_VIEW, before)], [(_FLAT_VIEW, after)], np.zeros(4, np.int64), np.zeros(4, np.int64),
+        frozenset(), 0.15, strict=True, edge_flicker_cap=flicker_cap, crack_closed_cap=cap,
+        plane_before=face_planes(P, faces_before), plane_after=face_planes(P, faces_closed),
+        geometry_before=(P, faces_before), geometry_after=(P, faces_closed))
+
+
+def test_closed_cracks_under_the_cap_are_still_tolerated_and_reported():
+    report = _crack_cap_report(1e-2)              # 1e-2 * ~14,000 model px, far above 25
+    assert report.totals["crack_closed"] == 25
+    assert report.totals["moved_other"] == 0 and report.passed is True
+
+
+def test_closed_cracks_over_the_cap_fall_back_to_their_base_class_and_fail():
+    """25 crack pixels in a view of about 14,000 model px is 1.8e-3, over the 1e-3 default. The
+    report must then show them as what they really were -- `moved_other` -- not as a tolerated
+    improvement next to `passed: False` with nothing to explain it."""
+    report = _crack_cap_report(1e-3)
+    assert report.views[0].model_px < 25 / 1e-3    # the cap really is exceeded here
+    assert report.totals["crack_closed"] == 0
+    assert report.totals["moved_other"] == 25
+    assert report.passed is False
+
+
+def test_the_crack_cap_defaults_to_uncapped_so_existing_callers_are_unchanged():
+    report = _crack_cap_report(float("inf"))
+    assert report.totals["crack_closed"] == 25 and report.passed is True
+
+
+def test_a_zfight_tie_is_never_capped():
+    """Ties are a defect this run neither caused nor can fix, so no cap applies to them -- only
+    cracks and flicker are capped. Every model pixel of the twin scene is a tie, which is far
+    over any cap a fraction of `model_px` could express."""
+    mat_before = np.array([0, 0, 1, 1], np.int64)
+    faces_after, mat_after = _TWIN[::-1].copy(), mat_before[::-1].copy()
+    before = _twin_render(_TWIN, np.arange(4))
+    after = _twin_render(faces_after, np.arange(4))
+    for crack_cap in (0.0, 1e-3, float("inf")):
+        report = _twin_report(before, after, mat_before, mat_after, _TWIN, faces_after,
+                              crack_closed_cap=crack_cap)
+        assert report.totals["zfight_tie"] == int((before.tri >= 0).sum())
+        assert report.passed is True

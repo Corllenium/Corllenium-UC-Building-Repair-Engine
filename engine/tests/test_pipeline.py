@@ -492,3 +492,49 @@ def test_guard_after_removal_is_spotless_on_box_with_partition():
     assert len(r.guard_after_removal.views) == 26
     assert all(v.holes == 0 and v.material_changed == 0 and v.moved_same_flat == 0
                and v.moved_other == 0 and v.edge_flicker == 0 for v in r.guard_after_removal.views)
+
+
+# ---------------------------------------------------------------------------------------------
+# G1: the guard's depth tolerance has a CEILING. It is derived from the mesh's own print
+# precision (`1.5 * max(axis quanta)`), which is right for a model near 24,000 in (0.15 in) and
+# wrong for one exported in survey coordinates near 240,000 in, where the same formula gives
+# 1.5 in -- and the crack test's ring radius IS that tolerance, so anything thinner than it reads
+# as a closed crack. `FixProfile.depth_tol_max` bounds it.
+# ---------------------------------------------------------------------------------------------
+
+def _far_from_origin(mesh, offset=240_000.0):
+    """The same mesh, shifted so `axis_quanta` gives it a 1.0 in print step on x."""
+    from dataclasses import replace
+    return replace(mesh, positions=mesh.positions + np.array([offset, 0.0, 0.0]))
+
+
+def test_guard_depth_tol_is_one_and_a_half_quanta_until_it_hits_the_ceiling():
+    profile = FixProfile()
+    assert profile.depth_tol_max == 0.5
+    assert fix_pipeline.guard_depth_tol(np.array([0.001, 0.1, 0.001]), profile) == 1.5 * 0.1
+    assert fix_pipeline.guard_depth_tol(np.array([1.0, 0.1, 0.001]), profile) == 0.5
+    assert fix_pipeline.guard_depth_tol(np.array([1.0, 0.1, 0.001]),
+                                        _fast(depth_tol_max=10.0)) == 1.5
+
+
+def test_fix_object_clamps_the_depth_tolerance_of_a_survey_coordinate_model(monkeypatch):
+    """End to end: the number `guard_feedback` and both `compare_views` calls are handed."""
+    seen = []
+    real = fix_pipeline.guard_feedback
+
+    def spy(candidates, positions_c, faces, material, flat, depth_tol, *args, **kwargs):
+        seen.append(depth_tol)
+        return real(candidates, positions_c, faces, material, flat, depth_tol, *args, **kwargs)
+
+    monkeypatch.setattr(fix_pipeline, "guard_feedback", spy)
+
+    near = box_with_partition(10.0)
+    topo = analyse_topology(_far_from_origin(near))
+    assert 1.5 * float(topo.quanta.max()) == 1.5      # unclamped, this model would get 1.5 in
+
+    fix_object(_far_from_origin(near), {}, _fast())
+    assert seen and set(seen) == {0.5}
+
+    seen.clear()
+    fix_object(near, {}, _fast())
+    assert seen and max(seen) < 0.5                    # a small model is nowhere near the ceiling
