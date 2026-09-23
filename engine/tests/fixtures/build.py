@@ -351,3 +351,42 @@ def arc_topped_strip(n=12, half_span=110.0, sag=0.8, top_z=100.0, y=24000.0, uv_
         fv += [[corners[0], corners[1], corners[2]], [corners[0], corners[2], corners[3]]]
         fvt += [[base, base + 1, base + 2], [base, base + 2, base + 3]]
     return _mesh("arc_topped_strip", P, uvs, fv, fvt, coord_decimals=4)
+
+
+def two_slabs_sharing_curved_border(n=12, half_span=110.0, sag=0.8, half_width=120.0,
+                                    y=24000.0, uv_per_unit=0.05):
+    """Two coplanar slabs of DIFFERENT materials (so they stay two regions) meeting along a
+    gently CURVED border of `n` vertices -- the shared-border counterpart of `arc_topped_strip`.
+
+    The border runs along y and bulges in x by a parabola scaled exactly like `arc_topped_strip`'s
+    arc: the farthest border vertex is `sag` (0.8 in) from the chord between the two END border
+    vertices, while each one is only `sag * (2 / (n - 1))**2` (0.027 in) from the chord of its own
+    two neighbours. At y = 24,000 in `axis_quanta` gives Y a 0.1 in quantum, so the merge's ring
+    bound is `1.5 * 0.1 = 0.15` in: every border vertex passes a per-vertex collinearity test and
+    the whole polyline does not, which is exactly the case where the two regions must agree on
+    WHICH border vertices survive or a T-junction opens between them.
+
+    Faces 0..2*(n-1)-1 are the left slab (material 0, x from `-half_width` to the border), the
+    rest the right slab (material 1, border to `+half_width`). Both slabs are wound CCW seen from
+    +z, so they share the same region normal."""
+    u = np.linspace(-half_span, half_span, n)
+    c = sag / (half_span ** 2 - float(u[np.argmin(np.abs(u))]) ** 2)
+    xb = -c * u ** 2                       # the border's bulge, 0 at the ends, -sag at the middle
+    ys = y + u
+
+    P = ([[-half_width, float(t), 0.0] for t in ys]          # 0..n-1   left edge
+         + [[float(b), float(t), 0.0] for b, t in zip(xb, ys)]   # n..2n-1  the curved border
+         + [[half_width, float(t), 0.0] for t in ys])        # 2n..3n-1 right edge
+    left, mid, right = 0, n, 2 * n
+
+    uvs, fv, fvt, fm = [], [], [], []
+    for a, b, material in ((left, mid, 0), (mid, right, 1)):
+        for j in range(n - 1):
+            corners = [a + j, b + j, b + j + 1, a + j + 1]
+            base = len(uvs)
+            uvs.extend([[P[v][0] * uv_per_unit, P[v][1] * uv_per_unit] for v in corners])
+            fv += [[corners[0], corners[1], corners[2]], [corners[0], corners[2], corners[3]]]
+            fvt += [[base, base + 1, base + 2], [base, base + 2, base + 3]]
+            fm += [material, material]
+    return _mesh("two_slabs_sharing_curved_border", P, uvs, fv, fvt,
+                 materials=("m0", "m1"), face_material=fm, coord_decimals=4)

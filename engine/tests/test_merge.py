@@ -8,7 +8,8 @@ from engine.io.obj_writer import write_obj
 from engine.pipeline import analyse_topology
 from engine.tests.fixtures.build import (arc_topped_strip, cube, grid_slab, l_shaped_slab,
                                          overlapping_pair, slab_with_hole, slab_with_wall,
-                                         two_slabs_sharing_border)
+                                         two_slabs_sharing_border,
+                                         two_slabs_sharing_curved_border)
 
 
 def area(mesh):
@@ -431,3 +432,66 @@ def test_ring_bound_defaults_to_one_and_a_half_axis_quanta():
     default = merge_regions(m, topo)
     assert np.array_equal(default.rings[0]["outer"], explicit.rings[0]["outer"])
     assert default.mesh.n_faces == explicit.mesh.n_faces
+
+
+# ---------------------------------------------------------------------------------------------
+# MQ2: two regions sharing a CURVED border. Ramer-Douglas-Peucker is not local -- what it keeps
+# along a stretch depends on that stretch's endpoints -- so two regions only stay in step if they
+# simplify a shared stretch between the SAME anchors. `_divergent_vertices` is what guarantees
+# that; this is its regression test on a border where RDP actually has a choice to make.
+#
+# The check runs at the simplification bound, not at 1e-9: a vertex dropped from a CURVED border
+# is not on the chord that replaces it, so a T-junction here is a crack up to `collinear_tol`
+# wide, which an exact on-the-segment test would miss entirely.
+# ---------------------------------------------------------------------------------------------
+
+def _border_ids(mesh, topo, n):
+    """The shared border's vertices as `(original ids, welded ids)`. The fixture emits them as
+    original rows `n .. 2n-1`; `weld_exact` reorders, so the welded ids are looked up, not
+    assumed."""
+    from engine.topo.weld import weld_exact
+    _, remap = weld_exact(mesh.positions, mesh.coord_decimals)
+    return set(range(n, 2 * n)), set(int(w) for w in remap[n:2 * n])
+
+
+def test_two_regions_keep_the_same_vertices_of_a_shared_curved_border():
+    """The global corner pass decides ring membership for every region at once. Both rings must
+    come out of it holding the SAME subset of the shared border -- a proper subset, or the fixture
+    would prove nothing."""
+    n = 12
+    m = two_slabs_sharing_curved_border(n=n)
+    topo = analyse_topology(m)
+    collinear_tol = 1.5 * float(topo.quanta.max())
+    _original, welded = _border_ids(m, topo, n)
+
+    plans, copied, _skipped = merge_module._plan_regions(topo, merge_module.GRID_SIZE,
+                                                        merge_module.SNAP_TOL)
+    assert len(plans) == 2
+    needed = merge_module._needed_vertices(topo, copied, plans, collinear_tol, set())
+
+    kept = []
+    for plan in plans:
+        ring = plan.pieces[0].rings[0]
+        kept.append({int(v) for v in ring[needed[ring]]} & welded)
+    assert 2 < len(kept[0]) < n, (sorted(kept[0]), n)   # simplified, and not flattened to a chord
+    assert kept[0] == kept[1], sorted(kept[0] ^ kept[1])
+
+
+def test_a_shared_curved_border_opens_no_t_junction_in_the_shipped_mesh():
+    """End to end: whatever the feedback loop does with these two regions, no vertex of the
+    shipped mesh may end up inside another triangle's edge.
+
+    On this fixture the shipped mesh keeps the WHOLE border, because simplifying a shared curved
+    border necessarily grows one of the two regions (here by 5.3 sq in of 26,460) and rule 9
+    rejects any growth beyond `1e-6 * original_area` -- so the right-hand region is fed back and
+    its ring is pinned, which pins the border for its neighbour too. The invariant below holds
+    either way, which is the point: it does not depend on that rule staying as it is."""
+    n = 12
+    m = two_slabs_sharing_curved_border(n=n)
+    topo = analyse_topology(m)
+    r = merge_regions(m, topo)
+
+    assert r.report["regions_skipped"] == {} and r.report["converged"] is True
+    assert r.mesh.n_faces < m.n_faces          # something really was merged
+    assert vertices_inside_an_edge(r.mesh, r.mesh.face_v, sorted(used(r.mesh)),
+                                    tol=1.5 * float(topo.quanta.max())) == set()
