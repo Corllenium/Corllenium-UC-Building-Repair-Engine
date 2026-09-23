@@ -1,5 +1,10 @@
+from dataclasses import replace
 from pathlib import Path
+
+import numpy as np
 import pytest
+from PIL import Image
+
 from engine.io.obj_writer import write_obj
 from engine.tests.fixtures.build import cube
 
@@ -60,3 +65,37 @@ def test_import_model(client, sample_source_dir):
 def test_import_nonexistent_fails(client, sample_source_dir):
     r = client.post("/api/models/import", json={"file": "nonexistent.obj"})
     assert r.status_code == 404
+
+
+@pytest.fixture
+def textured_source_dir(_database):
+    from api.settings import get_settings
+    src = get_settings().source_dir
+    (src / "tex").mkdir(parents=True, exist_ok=True)
+    m = replace(cube(10.0), name="textured_cube", mtllib="textured_cube.mtl", materials=["stone"])
+    write_obj(m, src / "textured_cube.obj")
+    (src / "textured_cube.mtl").write_text("newmtl stone\nmap_Kd tex/stone.png\n", encoding="utf-8")
+    Image.fromarray(np.full((4, 4, 3), 220, np.uint8)).save(src / "tex" / "stone.png")
+    return src
+
+
+def test_texture_only_reexport_imports_a_new_version(client, textured_source_dir):
+    # A texture-only re-export leaves the OBJ bytes alone. Deduplicating versions on them alone
+    # returns the old version, whose assets still serve the old texture.
+    tex = textured_source_dir / "tex" / "stone.png"
+    [old] = client.post("/api/models/import", json={"file": "textured_cube.obj"}).json()["versions"]
+    assert old["asset_sha256"] is not None and len(old["asset_sha256"]) == 64
+    unchanged = client.post("/api/models/import", json={"file": "textured_cube.obj"}).json()["versions"]
+    assert [v["id"] for v in unchanged] == [old["id"]]
+
+    checker = (np.indices((4, 4)).sum(axis=0) % 2 * 255).astype(np.uint8)
+    Image.fromarray(np.dstack([checker] * 3)).save(tex)
+    r = client.post("/api/models/import", json={"file": "textured_cube.obj"})
+    assert r.status_code == 201
+    versions = r.json()["versions"]
+    assert [v["id"] for v in versions][0] == old["id"] and len(versions) == 2
+    new = versions[1]
+    assert new["kind"] == "snapshot" and new["sha256"] == old["sha256"]
+    assert new["asset_sha256"] != old["asset_sha256"]
+    assert client.get(f"/api/versions/{new['id']}/textures/stone.png").content == tex.read_bytes()
+    assert client.get(f"/api/versions/{old['id']}/textures/stone.png").content != tex.read_bytes()

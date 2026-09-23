@@ -107,10 +107,13 @@ def import_model(db: Session, file_name: str, settings: Settings) -> Model:
         db.commit()
         db.refresh(model)
 
-    # Check if version with this sha256 already exists
+    # Check if a version with this OBJ and these assets already exists. A texture-only or MTL-only
+    # re-export keeps the OBJ sha256 but lands in a new snapshot directory, so it needs its own
+    # version: the old one's assets still point at the old textures.
     ver_stmt = select(ModelVersion).where(
         ModelVersion.model_id == model.id,
         ModelVersion.sha256 == snap.sha256,
+        ModelVersion.asset_sha256 == snap.asset_sha256,
         ModelVersion.kind == "snapshot",
     )
     existing_ver = db.scalar(ver_stmt)
@@ -128,7 +131,7 @@ def import_model(db: Session, file_name: str, settings: Settings) -> Model:
         model_id=model.id,
         kind="snapshot",
         sha256=snap.sha256,
-        asset_sha256=getattr(snap, "asset_sha256", None),
+        asset_sha256=snap.asset_sha256,
         tri_count=snap.mesh.n_faces,
         coord_quantum=quanta,
         origin_offset=offset,

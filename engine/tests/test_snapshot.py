@@ -42,7 +42,7 @@ def test_snapshot_copies_hashes_and_subsets(tmp_path):
     src = make_source(tmp_path / "src")
     res = snapshot_object(src, tmp_path / "snap", expected_tris=1, interval_s=0, sleep=lambda s: None)
     assert res.obj_path.read_bytes() == src.read_bytes() and len(res.sha256) == 64
-    assert res.dir.name == res.sha256[:12] and res.mesh.n_faces == 1
+    assert res.dir.name.startswith(res.sha256[:12]) and res.mesh.n_faces == 1
     assert "other" not in res.mtl_path.read_text() and res.textures["stone"].exists()
     assert res.flatness["stone"] == 0.0 and res.missing_textures == []
     again = snapshot_object(src, tmp_path / "snap", expected_tris=1, interval_s=0, sleep=lambda s: None)
@@ -155,6 +155,24 @@ def test_two_sequential_calls_succeed_and_stale_incoming_dir_survives_untouched(
     assert [p for p in dst_root.glob(".incoming-*") if p != stale] == []
 
 
+def test_identical_bytes_under_another_name_reuse_the_existing_snapshot(tmp_path):
+    # The snapshot directory is keyed on the OBJ bytes alone, so a second source file with the same
+    # bytes but a different name lands on the directory the first one created -- and must load the
+    # OBJ that directory actually holds, not look for its own file name there.
+    src = make_source(tmp_path / "src")
+    twin = src.with_name("twin.obj")
+    twin.write_bytes(src.read_bytes())
+    dst_root = tmp_path / "snap"
+
+    first = snapshot_object(src, dst_root, expected_tris=1, interval_s=0, sleep=lambda s: None)
+    second = snapshot_object(twin, dst_root, expected_tris=1, interval_s=0, sleep=lambda s: None)
+
+    assert second.dir == first.dir and second.sha256 == first.sha256
+    assert second.obj_path.name == "walk.obj" and second.mesh.n_faces == 1
+    assert second.textures["stone"].exists() and second.flatness["stone"] == 0.0
+    assert sorted(p.name for p in first.dir.glob("*.obj")) == ["walk.obj"]  # still one OBJ per snapshot
+
+
 def test_snapshot_wraps_permission_error_during_copy_as_source_unstable(tmp_path, monkeypatch):
     src = make_source(tmp_path / "src")
 
@@ -201,3 +219,49 @@ def test_read_manifest_stable_wraps_os_error_as_source_unstable(tmp_path, monkey
     monkeypatch.setattr(Path, "read_bytes", boom)
     with pytest.raises(SourceUnstable, match="locked by another process"):
         read_manifest_stable(p, interval_s=0, sleep=lambda s: None)
+
+
+def test_texture_only_change_creates_new_snapshot(tmp_path):
+    # The OBJ bytes do not change, so a snapshot keyed on them alone hands back the first import's
+    # texture -- and its flatness, which decides whether the material is treated as flat.
+    src = make_source(tmp_path / "src")
+    tex = tmp_path / "src" / "SRC-TEX" / "stone.png"
+    a = snapshot_object(src, tmp_path / "snap", expected_tris=1, interval_s=0, sleep=lambda s: None)
+    checker = (np.indices((4, 4)).sum(axis=0) % 2 * 255).astype(np.uint8)
+    Image.fromarray(np.dstack([checker] * 3)).save(tex)
+    b = snapshot_object(src, tmp_path / "snap", expected_tris=1, interval_s=0, sleep=lambda s: None)
+    assert a.sha256 == b.sha256 and a.asset_sha256 != b.asset_sha256 and a.dir != b.dir
+    assert b.textures["stone"].read_bytes() == tex.read_bytes()
+    assert a.textures["stone"].read_bytes() != b.textures["stone"].read_bytes()  # the first snapshot is untouched
+    assert a.flatness["stone"] == 0.0 and b.flatness["stone"] == 127.5
+
+
+def test_dir_name_carries_both_hashes(tmp_path):
+    src = make_source(tmp_path / "src")
+    r = snapshot_object(src, tmp_path / "snap", expected_tris=1, interval_s=0, sleep=lambda s: None)
+    assert r.dir.name == f"{r.sha256[:12]}-{r.asset_sha256[:8]}" and len(r.asset_sha256) == 64
+
+
+def test_mtl_only_change_creates_new_snapshot(tmp_path):
+    # Same OBJ bytes, same texture bytes; only the MTL changes (a colour).
+    src = make_source(tmp_path / "src")
+    mtl = tmp_path / "src" / "lib.mtl"
+    a = snapshot_object(src, tmp_path / "snap", expected_tris=1, interval_s=0, sleep=lambda s: None)
+    old_mtl = mtl.read_bytes()
+    mtl.write_text("newmtl stone\nKd 0.2 0.4 0.6\nmap_Kd SRC-TEX/stone.png\n\nnewmtl other\nmap_Kd SRC-TEX/gone.png\n")
+    b = snapshot_object(src, tmp_path / "snap", expected_tris=1, interval_s=0, sleep=lambda s: None)
+    assert a.sha256 == b.sha256 and a.asset_sha256 != b.asset_sha256 and a.dir != b.dir
+    assert b.source_mtl_path.read_bytes() == mtl.read_bytes() and "Kd 0.2 0.4 0.6" in b.mtl_path.read_text()
+    assert a.source_mtl_path.read_bytes() == old_mtl
+
+
+def test_object_without_mtllib_gets_the_empty_asset_hash(tmp_path):
+    # No mtllib means no assets, but the identity is still defined -- the sha256 of nothing -- so
+    # every object has an asset_sha256 and a two-part directory name.
+    (tmp_path / "src").mkdir()
+    src = tmp_path / "src" / "bare.obj"
+    src.write_text("o bare\nv 0 0 0\nv 1 0 0\nv 0 1 0\nf 1 2 3\n")
+    r = snapshot_object(src, tmp_path / "snap", expected_tris=1, interval_s=0, sleep=lambda s: None)
+    empty = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    assert r.asset_sha256 == empty and r.dir.name == f"{r.sha256[:12]}-{empty[:8]}"
+    assert r.mtl_path is None and r.textures == {}

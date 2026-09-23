@@ -34,6 +34,7 @@ class SnapshotResult:
     dir: Path
     obj_path: Path
     sha256: str
+    asset_sha256: str
     size_bytes: int
     mesh: MeshData
     mtl_path: Path | None
@@ -137,9 +138,12 @@ def snapshot_object(src_obj, dst_root, expected_tris=None, interval_s=1.0, sleep
             raise SourceUnstable(f"{src_obj.name}: copy does not parse ({exc})") from exc
         if expected_tris is not None and mesh.n_faces != expected_tris:
             raise ManifestMismatch(f"{src_obj.name}: {mesh.n_faces} tris, manifest says {expected_tris}")
-        final = dst_root / digest[:12]
+        # The directory is named by the assets as well as the OBJ bytes, so a texture-only or
+        # MTL-only re-export gets a snapshot of its own. That name is only known once the assets
+        # are copied, so they are copied on every call, even when the snapshot already exists.
+        _copy_assets(src_obj, mesh, tmp, interval_s, sleep)
+        final = dst_root / f"{digest[:12]}-{_asset_digest(tmp)[:8]}"
         if not final.exists():
-            _copy_assets(src_obj, mesh, tmp, interval_s, sleep)
             try:
                 tmp.rename(final)
             except OSError:
@@ -149,7 +153,7 @@ def snapshot_object(src_obj, dst_root, expected_tris=None, interval_s=1.0, sleep
                     raise
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
-    return _load(final, src_obj.name, digest)
+    return _load(final, digest)
 
 
 def _copy_assets(src_obj, mesh, tmp, interval_s, sleep):
@@ -181,11 +185,30 @@ def _copy_assets(src_obj, mesh, tmp, interval_s, sleep):
     (tmp / "missing_textures.txt").write_text("\n".join(missing), encoding="utf-8")
 
 
-def _load(final: Path, obj_name: str, digest: str) -> SnapshotResult:
-    obj_path = final / obj_name
+def _asset_digest(folder: Path) -> str:
+    """Identity of a snapshot's assets: the sha256 of `source.mtl` and of each copied texture under
+    `tex/`, in file-name order. An object with no `mtllib` has neither and gets the sha256 of
+    nothing. `materials.mtl` and `missing_textures.txt` follow from the OBJ and these files."""
+    h = hashlib.sha256()
+    tex = folder / "tex"
+    textures = sorted(tex.iterdir(), key=lambda p: p.name) if tex.is_dir() else []
+    for f in [folder / "source.mtl", *textures]:
+        if f.is_file():
+            h.update(f"{f.relative_to(folder).as_posix()}\0{sha256_file(f)}\n".encode("utf-8"))
+    return h.hexdigest()
+
+
+def _load(final: Path, digest: str) -> SnapshotResult:
+    # `final` is named by content (the OBJ bytes and the assets), not by file name, so its one OBJ
+    # carries the name of whichever source first produced that content -- not necessarily the
+    # caller's (two exports can be identical).
+    obj_paths = sorted(final.glob("*.obj"))
+    if len(obj_paths) != 1:
+        raise ValueError(f"{final}: expected exactly one .obj file, found {len(obj_paths)}")
+    obj_path = obj_paths[0]
     mtl_path = final / "materials.mtl"
     source_mtl_path = final / "source.mtl"
-    res = SnapshotResult(final, obj_path, digest, obj_path.stat().st_size, read_obj(obj_path),
+    res = SnapshotResult(final, obj_path, digest, _asset_digest(final), obj_path.stat().st_size, read_obj(obj_path),
                          mtl_path if mtl_path.exists() else None,
                          source_mtl_path=source_mtl_path if source_mtl_path.exists() else None)
     if res.mtl_path:
