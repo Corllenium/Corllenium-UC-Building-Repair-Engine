@@ -1,12 +1,14 @@
 import numpy as np
+import pytest
 
 from engine.fixes import merge as merge_module
 from engine.fixes.merge import merge_regions
 from engine.io.obj_reader import read_obj
 from engine.io.obj_writer import write_obj
 from engine.pipeline import analyse_topology
-from engine.tests.fixtures.build import (cube, grid_slab, l_shaped_slab, overlapping_pair, slab_with_hole,
-                                         slab_with_wall, two_slabs_sharing_border)
+from engine.tests.fixtures.build import (arc_topped_strip, cube, grid_slab, l_shaped_slab,
+                                         overlapping_pair, slab_with_hole, slab_with_wall,
+                                         two_slabs_sharing_border)
 
 
 def area(mesh):
@@ -342,3 +344,68 @@ def test_merged_mesh_round_trips_through_write_and_read(tmp_path):
     assert len(back.normals) == 1 and np.array_equal(back.face_vn, r.mesh.face_vn)
     assert sorted(set(back.face_vn.reshape(-1).tolist())) == [-1, 0]
     assert np.array_equal(back.face_vt, r.mesh.face_vt)
+
+
+# ---------------------------------------------------------------------------------------------
+# M3: ring simplification with a GLOBAL deviation bound. The corner pass used to test each ring
+# vertex against the chord of its own two neighbours, so a run of nearly-collinear vertices could
+# be dropped one after another and the surviving chord end up far outside the bound the guard's
+# ring test assumes. Ramer-Douglas-Peucker drops a vertex only when the WHOLE original polyline
+# between its surviving neighbours stays inside the bound.
+# ---------------------------------------------------------------------------------------------
+
+def _neighbour_deviation(xy: np.ndarray) -> np.ndarray:
+    """Distance of each interior point of an open polyline from the chord of its own neighbours."""
+    return np.array([_point_to_segment(xy[k], xy[k - 1], xy[k + 1]) for k in range(1, len(xy) - 1)])
+
+
+def _point_to_segment(p, a, b) -> float:
+    ab = np.asarray(b, float) - np.asarray(a, float)
+    denom = float(ab @ ab)
+    if denom == 0.0:
+        return float(np.linalg.norm(np.asarray(p, float) - a))
+    t = float(np.clip((np.asarray(p, float) - a) @ ab / denom, 0.0, 1.0))
+    return float(np.linalg.norm(np.asarray(p, float) - (a + t * ab)))
+
+
+def _deviation_from_ring(points: np.ndarray, ring_xy: np.ndarray) -> float:
+    """The worst distance from any of `points` to the CLOSED polyline `ring_xy`."""
+    return max(min(_point_to_segment(p, ring_xy[k - 1], ring_xy[k]) for k in range(len(ring_xy)))
+               for p in points)
+
+
+def test_arc_ring_stays_within_the_bound_instead_of_drifting_off_it():
+    m = arc_topped_strip()
+    topo = analyse_topology(m)
+    tol = 1.5 * float(topo.quanta.max())
+    assert tol == pytest.approx(0.15)
+
+    top = m.positions[12:][:, [0, 2]]          # the 12 arc vertices, in the region's own plane
+    # Every arc vertex is well inside the bound of its OWN neighbours' chord ...
+    assert _neighbour_deviation(top).max() == pytest.approx(0.0267, abs=5e-4)
+    assert _neighbour_deviation(top).max() < tol
+    # ... and yet the arc as a whole is 0.8 off the chord between its two ends, 5x the bound.
+    ends = np.array([_point_to_segment(p, top[0], top[-1]) for p in top])
+    assert ends.max() == pytest.approx(0.8, abs=1e-3) and ends.max() > tol
+
+    # At THAT bound the per-vertex rule calls every arc vertex collinear (each is 0.027 < 0.15
+    # from its own neighbours' chord) and proposes the four sharp corners -- a boundary 0.8 in
+    # off the original, which loses 118 sq in of area, more than `_triangulate` allows, so the
+    # region falls back to keeping ALL 24 ring vertices and simplifies nothing at all.
+    r = merge_regions(m, topo, collinear_tol=tol)
+    ring = r.rings[0]
+    assert 4 < len(ring) < 24      # simplified, but NOT collapsed onto the four sharp corners
+    ring_xy = m.positions[ring][:, [0, 2]]
+    original = m.positions[np.unique(m.face_v)][:, [0, 2]]
+    assert _deviation_from_ring(original, ring_xy) <= tol
+
+
+def test_ring_bound_defaults_to_one_and_a_half_axis_quanta():
+    """The bound is the mesh's own print precision, not a fixed 1e-3 in: asking for
+    `1.5 * max(q)` explicitly must give exactly what the default gives."""
+    m = arc_topped_strip()
+    topo = analyse_topology(m)
+    explicit = merge_regions(m, topo, collinear_tol=1.5 * float(topo.quanta.max()))
+    default = merge_regions(m, topo)
+    assert np.array_equal(default.rings[0], explicit.rings[0])
+    assert default.mesh.n_faces == explicit.mesh.n_faces

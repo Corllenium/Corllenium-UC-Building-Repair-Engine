@@ -326,3 +326,28 @@ def creased_pair(angle_deg=3.0, length=120.0, width=120.0, y=24000.0, uv_per_uni
     fv = [[0, 1, 4], [0, 4, 3], [1, 2, 5], [1, 5, 4]]
     fvt = [[0, 1, 2], [0, 2, 3], [4, 5, 6], [4, 6, 7]]
     return _mesh("creased_pair", P, uvs, fv, fvt)
+
+
+def arc_topped_strip(n=12, half_span=110.0, sag=0.8, top_z=100.0, y=24000.0, uv_per_unit=0.05):
+    """A strip of `n - 1` quads whose BOTTOM edge is straight and whose TOP edge is a gentle
+    parabolic arc through `n` vertices, at y ≈ 24,000 in so `axis_quanta` gives the ring
+    simplification the real file's 0.15 in bound (`1.5 * max(q)`, q_y = 0.1).
+
+    The arc is scaled so that the farthest top vertex is exactly `sag` (0.8 in) from the chord
+    between the two END top vertices, while each top vertex is only `sag * (2 / (n - 1))**2`
+    (0.027 in) from the chord of its OWN two neighbours. Every vertex therefore passes a
+    per-vertex collinearity test at that bound -- drop them one after another and the boundary
+    ends up `sag` away from where it started, five times the bound the guard's ring test assumes.
+    Keeping the whole polyline inside the bound is what Ramer-Douglas-Peucker is for."""
+    xs = np.linspace(-half_span, half_span, n)
+    c = sag / (half_span ** 2 - float(xs[np.argmin(np.abs(xs))]) ** 2)
+    zs = top_z - c * xs ** 2
+    P = [[float(x), y, 0.0] for x in xs] + [[float(x), y, float(z)] for x, z in zip(xs, zs)]
+    uvs, fv, fvt = [], [], []
+    for k in range(n - 1):
+        corners = [k, k + 1, n + k + 1, n + k]
+        base = len(uvs)
+        uvs.extend([[P[v][0] * uv_per_unit, P[v][2] * uv_per_unit] for v in corners])
+        fv += [[corners[0], corners[1], corners[2]], [corners[0], corners[2], corners[3]]]
+        fvt += [[base, base + 1, base + 2], [base, base + 2, base + 3]]
+    return _mesh("arc_topped_strip", P, uvs, fv, fvt, coord_decimals=4)

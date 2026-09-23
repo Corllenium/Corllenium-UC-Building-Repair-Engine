@@ -28,8 +28,12 @@ from engine.topo.planes import cluster_uv, plane_basis
 GRID_SIZE = 1e-4
 #: A union ring coordinate must land this close to an existing vertex to be accepted (inches).
 SNAP_TOL = 1e-3
-#: A ring vertex further than this from the chord of its ring neighbours is a corner (inches).
-COLLINEAR_TOL = 1e-3
+#: The ring-simplification bound, in axis quanta: a ring vertex may only be dropped while the
+#: WHOLE original polyline between its surviving neighbours stays this close to the chord that
+#: replaces it. `1.5 * max(q)` is one and a half of the mesh's own print steps -- the same bound
+#: the guard uses for depth -- so a simplified boundary can never move by more than the export
+#: could resolve in the first place.
+RING_TOL_QUANTA = 1.5
 #: Most times pass 2 reruns after a feedback event (see `merge_regions`).
 MAX_ROUNDS = 10
 #: A triangle overlapping another of its own region by more than `_OVERLAP_ABS + _OVERLAP_REL *
@@ -87,7 +91,7 @@ class _Plan:
 
 def merge_regions(mesh: MeshData, topo: Topology, flat_materials: Iterable[int] = frozenset(),
                   grid_size: float = GRID_SIZE, snap_tol: float = SNAP_TOL,
-                  collinear_tol: float = COLLINEAR_TOL) -> MergeResult:
+                  collinear_tol: float | None = None) -> MergeResult:
     """Re-triangulate every region of `topo.face_region` over its existing vertices.
 
     Regions are visited in ascending region id and every ordering inside the kernel is by index or
@@ -117,8 +121,13 @@ def merge_regions(mesh: MeshData, topo: Topology, flat_materials: Iterable[int] 
     `vertices_dropped` (welded vertices used by an input face and by no output face),
     `max_area_rel_error`, `faces_copied`, `merge_rounds`, `keep_all_regions` (how many regions took
     the `keep_all` fallback in any round of the loop) and `converged`.
+
+    `collinear_tol` is the ring-simplification bound (see `_ring_keep`); `None`, the default,
+    derives it from the mesh's OWN print precision as `RING_TOL_QUANTA * max(topo.quanta)`.
     """
     flat = _validated_materials(flat_materials)
+    if collinear_tol is None:
+        collinear_tol = RING_TOL_QUANTA * float(topo.quanta.max())
     welded_to_original = _welded_to_original(mesh, topo)
 
     plans, copied, skipped = _plan_regions(topo, grid_size, snap_tol)
@@ -344,29 +353,116 @@ def _needed_vertices(topo: Topology, copied: list[int], plans: list[_Plan],
         if topo.edge_class[edge] in pinning:
             needed[on_edge] = True
     kept_whole = frozenset(int(r) for r in kept_whole)
+    rings: list[tuple[_Plan, np.ndarray]] = []
     for plan in plans:
         whole = plan.region in kept_whole
         for piece in plan.pieces:
             for ring in piece.rings:
                 if whole or len(ring) < 3:
                     needed[ring] = True
-                    continue
-                xy = plan.vertex_xy[np.searchsorted(plan.vertex_ids, ring)]
-                needed[ring[_corner_mask(xy, collinear_tol)]] = True
+                else:
+                    rings.append((plan, ring))
+
+    # `forced` is frozen BEFORE any ring is simplified, so no ring's own result can move another
+    # ring's anchors: the decision stays global, and independent of the order plans arrive in.
+    forced = needed.copy()
+    forced[_divergent_vertices(rings)] = True
+    for plan, ring in rings:
+        xy = plan.vertex_xy[np.searchsorted(plan.vertex_ids, ring)]
+        needed[ring[_ring_keep(xy, ring, forced[ring], collinear_tol)]] = True
     return needed
 
 
-def _corner_mask(xy: np.ndarray, tol: float) -> np.ndarray:
-    """True where a ring vertex sits further than `tol` from the chord of its two ring
-    neighbours, or where the path doubles back (the vertex projects outside that chord)."""
-    before, here, after = np.roll(xy, 1, axis=0), xy, np.roll(xy, -1, axis=0)
-    chord = after - before
-    leg = here - before
-    length = np.linalg.norm(chord, axis=1)
-    cross = np.abs(chord[:, 0] * leg[:, 1] - chord[:, 1] * leg[:, 0])
-    distance = np.where(length > 1e-12, cross / np.maximum(length, 1e-12), np.linalg.norm(leg, axis=1))
-    along = np.einsum("ij,ij->i", leg, chord) / np.maximum(length ** 2, 1e-24)
-    return (distance > tol) | (along < 0.0) | (along > 1.0)
+def _divergent_vertices(rings: list[tuple[_Plan, np.ndarray]]) -> np.ndarray:
+    """Every vertex whose two ring NEIGHBOURS are not the same in every ring that contains it --
+    the points where two regions' borders part company, plus any vertex a single ring visits
+    twice (a pinch).
+
+    The per-vertex corner test this replaced was symmetric by accident: a vertex's verdict
+    depended only on itself and its two ring neighbours, which are the same pair (reversed) in
+    both rings sharing a border, so both sides always agreed. Ramer-Douglas-Peucker is NOT local
+    -- what it keeps along a stretch depends on that stretch's endpoints -- so two regions only
+    stay in step if they simplify a shared stretch between the SAME endpoints. Anchoring both
+    sides on the vertices where their rings diverge restores that guarantee, and no new
+    T-junction can appear."""
+    seen: dict[int, frozenset] = {}
+    out: set[int] = set()
+    for _plan, ring in rings:
+        for v, a, b in zip(ring, np.roll(ring, 1), np.roll(ring, -1)):
+            pair = frozenset((int(a), int(b)))
+            if seen.setdefault(int(v), pair) != pair:
+                out.add(int(v))
+    return np.array(sorted(out), np.int64)
+
+
+def _ring_keep(xy: np.ndarray, ids: np.ndarray, forced: np.ndarray, tol: float) -> np.ndarray:
+    """Which rows of one CLOSED ring survive Ramer-Douglas-Peucker at `tol` (a bool mask).
+
+    A vertex is dropped only if the WHOLE original polyline between the neighbours that SURVIVE
+    stays within `tol` of the chord replacing it -- which is what the guard's ring test assumes
+    and what testing each vertex against its own two neighbours could not promise: a run of
+    nearly-collinear vertices was dropped one at a time, each step legal on its own, and the
+    final chord could end up arbitrarily far from the original boundary.
+
+    `forced` vertices always survive and cut the ring into runs that are simplified
+    independently. With fewer than two of them the ring is anchored on its own lowest vertex id
+    and the vertex farthest from it, so the result never depends on where the union happened to
+    start the ring. Every tie -- equal distances at a split -- is broken on the lowest vertex id,
+    which is also what makes a shared stretch simplify identically from either direction."""
+    n = len(xy)
+    keep = np.asarray(forced, bool).copy()
+    anchors = np.flatnonzero(keep).tolist()
+    if len(anchors) < 2:
+        start = anchors[0] if anchors else int(np.argmin(ids))
+        anchors = sorted({start, _farthest(xy, ids, start)})
+        if len(anchors) < 2:
+            keep[start] = True
+            return keep
+        keep[anchors] = True
+    for i, a in enumerate(anchors):
+        b = anchors[(i + 1) % len(anchors)]
+        run = (a + np.arange(((b - a) % n) + 1)) % n
+        _rdp(xy, ids, run, tol, keep)
+    return keep
+
+
+def _farthest(xy: np.ndarray, ids: np.ndarray, start: int) -> int:
+    d = np.linalg.norm(xy - xy[start], axis=1)
+    cand = np.flatnonzero(d == d.max())
+    return int(cand[np.argmin(ids[cand])])
+
+
+def _rdp(xy: np.ndarray, ids: np.ndarray, run: np.ndarray, tol: float, keep: np.ndarray) -> None:
+    """Mark in `keep` the rows of one OPEN run (`run`, row indices into `xy`) that survive
+    Ramer-Douglas-Peucker at `tol`. Iterative, so a ring of any length is safe."""
+    keep[run[0]] = keep[run[-1]] = True
+    stack = [(0, len(run) - 1)]
+    while stack:
+        lo, hi = stack.pop()
+        if hi - lo < 2:
+            continue
+        inner = run[lo + 1:hi]
+        d = _segment_distance(xy[inner], xy[run[lo]], xy[run[hi]])
+        worst = d.max()
+        if worst <= tol:
+            continue
+        cand = np.flatnonzero(d == worst)
+        split = lo + 1 + int(cand[np.argmin(ids[inner][cand])])
+        keep[run[split]] = True
+        stack.append((lo, split))
+        stack.append((split, hi))
+
+
+def _segment_distance(points: np.ndarray, a: np.ndarray, b: np.ndarray) -> np.ndarray:
+    """Distance from each point to the SEGMENT `a`-`b`, not to its infinite line -- so a vertex
+    the boundary doubles back past is far from the chord, exactly as the old corner test's
+    `along < 0 or > 1` check treated it."""
+    ab = b - a
+    denom = float(ab @ ab)
+    if denom == 0.0:
+        return np.linalg.norm(points - a, axis=1)
+    t = np.clip((points - a) @ ab / denom, 0.0, 1.0)
+    return np.linalg.norm(points - (a + t[:, None] * ab), axis=1)
 
 
 # ----------------------------------------------------------- pass 2: rebuild and re-triangulate
