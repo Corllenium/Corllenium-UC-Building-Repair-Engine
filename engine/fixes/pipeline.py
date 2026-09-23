@@ -4,16 +4,23 @@ at every removal step and a final guard of the WHOLE result against the pristine
 cumulative drift that no single step would have caught on its own still gets caught here.
 
 Order: `analyse_topology` -> `compute_side_exposure`/`classify_exposure` -> candidates = hidden
-faces (plus slit faces, only when `profile.accept_slit`) -> `guard_feedback` against the original,
-STRICT for hidden (the only automatic deletion, so it gets the strictest guard) and, when slit
-faces are accepted, a SECOND colour-tolerant pass over the state the hidden pass leaves behind ->
-`remove_faces` (which also drops every zero-area face) -> `classify_orientation` +
+faces AND degenerate ("zero-area") faces (plus slit faces, only when `profile.accept_slit`) ->
+`guard_feedback` against the original, STRICT for pass 1 (the only automatic deletion, so it gets
+the strictest guard) and, when slit faces are accepted, a SECOND colour-tolerant pass over the
+state pass 1 leaves behind -> `remove_faces` -> `classify_orientation` +
 `flip_faces` on the survivors, so a face whose only real exposure was on its BACK re-joins its
 neighbours' region instead of being copied through alone -> `analyse_topology` on the flipped
 result -> `merge_regions` -> a final guard of the merged mesh against the ORIGINAL. If the merge
 did not converge, or the final guard fails, the result falls back to the flipped-but-unmerged
 (removal-only) mesh and `passed` reflects the fallback's own guard instead. Flipping never changes
 a double-sided render (see `engine.fixes.orient`), so it never changes which guard passes.
+
+A degenerate face is only RELATIVELY degenerate (`engine.topo.adjacency.degenerate_mask` allows
+`area <= 1e-7 * longest**2`), so a 1,000 in sliver up to 0.0002 in wide is "zero-area" and yet a
+real, hittable surface. Those are therefore ordinary pass-1 candidates, not an unconditional
+delete: every BEFORE render casts against ALL faces, and a degenerate face the guard restores
+stays in the mesh (`n_degenerate_restored` / `restored_degenerate`), so `n_zero_area_dropped` is
+what was actually removed, not what was merely degenerate.
 
 Vertices are never moved or invented anywhere in this module -- every mesh handed to a guard
 render is welded through the SAME `weld_exact(mesh.positions, mesh.coord_decimals)` remap, because
@@ -71,7 +78,13 @@ class FixResult:
     n_restored_by_guard: int
     n_removed_hidden: int
     n_removed_slit: int
+    #: How many `not ok` ("zero-area") faces the strict guard confirmed removable -- NOT how many
+    #: there were: `degenerate_mask` is relative, so a long sliver counts as zero-area while
+    #: still being visible, and those are kept (see `n_degenerate_restored`).
     n_zero_area_dropped: int
+    n_degenerate_restored: int
+    #: Bool, over ORIGINAL faces: degenerate faces the guard put back, which stay in the mesh.
+    restored_degenerate: np.ndarray
     #: Bool, over ORIGINAL faces: survived removal and had its winding reversed (its only real
     #: exposure was on the BACK -- see `engine.fixes.orient.classify_orientation`).
     flipped: np.ndarray
@@ -130,41 +143,45 @@ def fix_object(mesh: MeshData, flatness: dict[str, float], profile: FixProfile =
     one_sided_holes_before = one_sided_holes(
         positions_c, topo.face_w, np.arange(mesh.n_faces, dtype=np.int64), VIEWS_26, profile.guard_size)
 
-    ok_ids = np.nonzero(topo.ok)[0]
-    render_faces = topo.face_w[topo.ok]
-    render_material = mesh.face_material[topo.ok]
+    # Every render below -- the hidden pass's own BEFORE, the slit pass's, and both guards
+    # against the original -- casts against the SAME face set: ALL of them. A "degenerate" face
+    # is only relatively degenerate (`engine.topo.adjacency.degenerate_mask` allows an area of
+    # `1e-7 * longest**2`), so a long sliver is real, hittable surface; rendering BEFORE without
+    # it while deleting it in AFTER is what let 12 pixels of file B change material unchecked.
+    # A truly zero-area triangle is never a first hit, so including it costs nothing.
+    render_faces = topo.face_w
+    render_material = mesh.face_material
 
-    # ---- pass 1: hidden faces, strict guard (the only automatic deletion) -------------------
-    hidden_ok = exposure_class[topo.ok] == EXP_HIDDEN
-    n_hidden_candidates = int(hidden_ok.sum())
-    removed_hidden_ok, history_hidden = guard_feedback(
-        hidden_ok, positions_c, render_faces, render_material, flat_materials, depth_tol,
-        strict=True, size=profile.guard_size)
-    n_removed_hidden = int(removed_hidden_ok.sum())
+    # ---- pass 1: hidden AND degenerate faces, one strict guard over the whole face set ------
+    hidden_full = exposure_class == EXP_HIDDEN       # classify_exposure gives every `not ok` face
+    degenerate_full = ~topo.ok                        # EXP_DEGENERATE, so these two are disjoint
+    n_hidden_candidates = int(hidden_full.sum())
+    removed_pass1, history_hidden = guard_feedback(
+        hidden_full | degenerate_full, positions_c, render_faces, render_material, flat_materials,
+        depth_tol, strict=True, size=profile.guard_size)
+    removed_hidden_full = removed_pass1 & ~degenerate_full
+    removed_degenerate_full = removed_pass1 & degenerate_full
+    restored_degenerate_full = degenerate_full & ~removed_pass1
+    n_removed_hidden = int(removed_hidden_full.sum())
     n_restored_by_guard = n_hidden_candidates - n_removed_hidden
+    n_zero_area_dropped = int(removed_degenerate_full.sum())
+    n_degenerate_restored = int(restored_degenerate_full.sum())
 
     # ---- pass 2: slit faces, colour-tolerant guard, over the state pass 1 leaves behind -----
-    slit_ok = exposure_class[topo.ok] == EXP_SLIT
-    removed_slit_ok = np.zeros(len(render_faces), dtype=bool)
-    history_slit = None
-    if profile.accept_slit and slit_ok.any():
-        kept_after_hidden = ~removed_hidden_ok
-        remaining_ids = np.nonzero(kept_after_hidden)[0]
-        mask2, history_slit = guard_feedback(
-            slit_ok[kept_after_hidden], positions_c, render_faces[kept_after_hidden],
-            render_material[kept_after_hidden], flat_materials, depth_tol, strict=False,
-            size=profile.guard_size)
-        removed_slit_ok[remaining_ids[mask2]] = True
-    n_removed_slit = int(removed_slit_ok.sum())
-
-    removed_hidden_full = np.zeros(mesh.n_faces, dtype=bool)
-    removed_hidden_full[ok_ids[removed_hidden_ok]] = True
+    slit_full = exposure_class == EXP_SLIT
     removed_slit_full = np.zeros(mesh.n_faces, dtype=bool)
-    removed_slit_full[ok_ids[removed_slit_ok]] = True
-    zero_area_full = ~topo.ok
-    n_zero_area_dropped = int(zero_area_full.sum())
+    history_slit = None
+    if profile.accept_slit and slit_full.any():
+        kept_after_pass1 = ~removed_pass1
+        remaining_ids = np.nonzero(kept_after_pass1)[0]
+        mask2, history_slit = guard_feedback(
+            slit_full[kept_after_pass1], positions_c, render_faces[kept_after_pass1],
+            render_material[kept_after_pass1], flat_materials, depth_tol, strict=False,
+            size=profile.guard_size)
+        removed_slit_full[remaining_ids[mask2]] = True
+    n_removed_slit = int(removed_slit_full.sum())
 
-    drop = removed_hidden_full | removed_slit_full | zero_area_full
+    drop = removed_hidden_full | removed_slit_full | removed_degenerate_full
     mesh_removed, source_from_removal = remove_faces(mesh, drop)
 
     # ---- orientation: correct any survivor whose only real exposure was on its BACK ----------
@@ -237,7 +254,8 @@ def fix_object(mesh: MeshData, flatness: dict[str, float], profile: FixProfile =
         removed_hidden=removed_hidden_full, removed_slit=removed_slit_full,
         n_hidden_candidates=n_hidden_candidates, n_restored_by_guard=n_restored_by_guard,
         n_removed_hidden=n_removed_hidden, n_removed_slit=n_removed_slit,
-        n_zero_area_dropped=n_zero_area_dropped,
+        n_zero_area_dropped=n_zero_area_dropped, n_degenerate_restored=n_degenerate_restored,
+        restored_degenerate=restored_degenerate_full,
         flipped=flipped_full, thin_sheets=thin_sheets_full,
         one_sided_holes_before=one_sided_holes_before, one_sided_holes_after=one_sided_holes_after,
         feedback_history={"hidden": history_hidden, "slit": history_slit},

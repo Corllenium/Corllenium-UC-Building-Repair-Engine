@@ -282,3 +282,101 @@ def test_fix_object_reports_a_thin_sheet_without_touching_it():
     assert not r.flipped.any()
     assert r.mesh.n_faces == m.n_faces  # untouched: not removed, not merged differently
     assert r.passed is True
+
+
+# ---------------------------------------------------------------------------------------------
+# E1: degenerate faces are removed only through the strict guard.
+#
+# `degenerate_mask` is RELATIVE (`area <= 1e-7 * longest**2`), so a 1,000 in sliver up to 0.0002 in
+# wide counts as "zero area" although it is a real, hittable surface. Dropping those unconditionally
+# (as the pipeline did) changed the picture with no guard check at all -- 12 `material_changed`
+# pixels on file B. They are now ordinary pass-1 candidates, judged by the same strict guard.
+# ---------------------------------------------------------------------------------------------
+
+from engine.guard.views import VIEWS_26, ortho_first_hit
+from engine.tests.fixtures.build import box_with_partition_and_stitch, floor_with_sliver, t_junction_strip
+
+
+def _empty_camera(positions_c, view, size):
+    """The camera `ortho_first_hit` builds for `positions_c` at `size`, with no geometry at all:
+    `xs`/`ys` are the image-plane offsets of every pixel centre, so a test can aim a chosen
+    pixel's ray at a chosen point."""
+    return ortho_first_hit(positions_c, np.zeros((0, 3), np.int64), np.zeros(0, np.int64),
+                            view, positions_c, size)
+
+
+def test_a_genuinely_collinear_zero_area_face_is_still_removed():
+    """The T-junction stitching triangle `(0,10,0)-(10,10,0)-(20,10,0)` has exactly zero area: no
+    ray can ever hit it, so the strict guard sees not one changed pixel and confirms the drop."""
+    m = t_junction_strip()
+    r = fix_object(m, {}, _FAST)
+
+    assert m.n_faces == 7
+    assert r.n_zero_area_dropped == 1
+    assert r.n_degenerate_restored == 0
+    assert not r.restored_degenerate.any()
+    assert r.guard_after_removal.passed is True
+    assert r.passed is True
+
+
+def test_hidden_numbers_are_unchanged_by_a_zero_area_face_sharing_the_mesh():
+    """The hidden pass now runs over ALL faces (degenerate ones included) and splits the guard's
+    verdict afterwards, so a stitching triangle in the same mesh must not move a single hidden
+    number: same candidates, same removals, same restores as the stitch-free fixture."""
+    plain = fix_object(box_with_partition(), {}, _FAST)
+    stitched = fix_object(box_with_partition_and_stitch(), {}, _FAST)
+
+    assert (stitched.n_hidden_candidates, stitched.n_removed_hidden, stitched.n_restored_by_guard) \
+        == (plain.n_hidden_candidates, plain.n_removed_hidden, plain.n_restored_by_guard) == (2, 2, 0)
+    assert stitched.removed_hidden.tolist()[:14] == plain.removed_hidden.tolist()
+    assert stitched.removed_hidden[14] == False  # the stitch is degenerate, never "hidden"
+    assert stitched.n_zero_area_dropped == 1 and stitched.n_degenerate_restored == 0
+    assert stitched.mesh.n_faces == plain.mesh.n_faces == 12
+    assert stitched.passed is True
+
+
+def test_a_sliver_that_only_the_relative_test_calls_zero_area_is_kept_by_the_guard():
+    """A 1,000 in x 0.0001 in sliver of material 1, floating over a floor of material 0: real,
+    hittable geometry that `degenerate_mask`'s relative test calls zero-area. A pixel ray is aimed
+    straight through it (framing computed from `ortho_first_hit`'s own camera), so dropping it
+    swaps that pixel's material -- which the strict guard must refuse.
+
+    The view has to be the STRAIGHT-DOWN one, not merely one that looks downwards: embree takes
+    ray origins as float32 and `ortho_first_hit` stands the camera off by `2 * diag` (~3,400
+    here), so on a corner-diagonal view all three origin components are ~2,000 and lateral
+    position quantises to ~1.2e-4 -- wider than the sliver itself. Straight down, only the z
+    component is large (and z error slides along the ray, not across it) while x/y are ~40,
+    quantised to ~4e-6, which resolves a 1e-4 sliver comfortably."""
+    view = min(VIEWS_26, key=lambda v: float(np.linalg.norm(np.asarray(v) - np.array([0.0, 0.0, -1.0]))))
+    size = _FAST.guard_size
+
+    # The framing depends on the floor corners and the sliver's x/z extent, never on where along
+    # y its centre line sits -- so a placeholder build gives the same camera as the final one.
+    topo_p, pc_p = _centered(floor_with_sliver())
+    cam = _empty_camera(pc_p, view, size)
+    centre = (topo_p.positions_w.min(axis=0) + topo_p.positions_w.max(axis=0)) / 2.0
+
+    row, col = size[1] // 2, size[0] // 2
+    origin = float(cam.xs[col]) * cam.right + float(cam.ys[row]) * cam.up + cam.standoff
+    z_plane = 5.0 - centre[2]                   # the sliver's own plane, in the recentred frame
+    aim = origin + (z_plane - origin[2]) / cam.direction[2] * cam.direction
+
+    m = floor_with_sliver(apex_x=round(float(aim[0] + centre[0]), 6),
+                          centre_y=round(float(aim[1] + centre[1]), 6))
+    topo, pc = _centered(m)
+    cam2 = _empty_camera(pc, view, size)
+    assert np.array_equal(cam.xs, cam2.xs) and np.array_equal(cam.ys, cam2.ys)
+    assert np.array_equal(cam.standoff, cam2.standoff)
+
+    # the sliver really is "degenerate", and that pixel's ray really does hit it in BEFORE
+    assert topo.ok.tolist() == [True, True, False]
+    before = ortho_first_hit(pc, topo.face_w, np.arange(m.n_faces), view, pc, size)
+    assert before.tri[row, col] == 2
+
+    r = fix_object(m, {}, _FAST)
+
+    assert r.n_degenerate_restored >= 1
+    assert r.restored_degenerate.tolist() == [False, False, True]
+    assert r.n_zero_area_dropped == 0
+    assert r.guard_after_removal.passed is True
+    assert int((r.mesh.face_material == 1).sum()) == 1   # the sliver survives into the result

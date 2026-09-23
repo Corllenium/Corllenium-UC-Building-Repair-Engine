@@ -3,7 +3,8 @@ import numpy as np
 from engine.model import MeshData
 
 
-def _mesh(name, positions, uvs, face_v, face_vt, materials=("m0",), face_material=None):
+def _mesh(name, positions, uvs, face_v, face_vt, materials=("m0",), face_material=None,
+          coord_decimals=2, sig_digits=6):
     f = len(face_v)
     return MeshData(
         name=name, positions=np.asarray(positions, float), uvs=np.asarray(uvs, float).reshape(-1, 2),
@@ -11,7 +12,7 @@ def _mesh(name, positions, uvs, face_v, face_vt, materials=("m0",), face_materia
         face_vn=np.full((f, 3), -1, np.int64),
         face_material=np.zeros(f, np.int64) if face_material is None else np.asarray(face_material, np.int64),
         face_line=np.arange(1, f + 1, dtype=np.int64), materials=list(materials), mtllib=None,
-        coord_decimals=2, sig_digits=6)
+        coord_decimals=coord_decimals, sig_digits=sig_digits)
 
 
 def cube(size=10.0):
@@ -238,3 +239,42 @@ def open_box_with_cells(size=10.0, gap=0.2):
     add_quad([[lo, 0.7 * s, lo], [hi, 0.7 * s, lo], [hi, 0.7 * s, hi], [lo, 0.7 * s, hi]])  # deep partition
 
     return _mesh("open_box_with_cells", P, uvs, fv, fvt)
+
+
+def box_with_partition_and_stitch(size=10.0):
+    """`box_with_partition()` plus ONE genuinely collinear zero-area triangle: a new midpoint
+    vertex at `(size/2, 0, 0)` on the cube's own `(0,0,0)-(size,0,0)` edge, stitched as the
+    triangle `(0,0,0)-(size/2,0,0)-(size,0,0)` -- the kind of T-junction stitching a SketchUp
+    export leaves behind. Face 14 is that stitch; faces 12-13 are still the sealed partition."""
+    m = box_with_partition(size)
+    mid_v, mid_uv, n = len(m.positions), len(m.uvs), m.n_faces
+    m.positions = np.vstack([m.positions, [[size / 2.0, 0.0, 0.0]]])
+    m.uvs = np.vstack([m.uvs, [[size / 2.0 * 0.1, 0.0]]])
+    m.face_v = np.vstack([m.face_v, [[0, mid_v, 1]]])
+    m.face_vt = np.vstack([m.face_vt, [[0, mid_uv, 1]]])
+    m.face_vn = np.vstack([m.face_vn, [[-1, -1, -1]]])
+    m.face_material = np.append(m.face_material, 0)
+    m.face_line = np.append(m.face_line, n + 1)
+    m.name = "box_with_partition_and_stitch"
+    return m
+
+
+def floor_with_sliver(apex_x=0.0, centre_y=0.0, half_width=5e-5, half_len=500.0,
+                      half_floor=600.0, height=5.0):
+    """A big floor quad (material 0, faces 0-1) at `z = 0`, plus ONE long thin triangle
+    (material 1, face 2) floating `height` above it: `2 * half_len` long and `2 * half_width`
+    wide, so its area (`half_len * 2 * half_width`) is under `1e-7 * longest_edge**2` and
+    `engine.topo.adjacency.degenerate_mask`'s RELATIVE test calls it zero-area -- even though it
+    is a real surface with real area that a ray can really hit, on a differently coloured
+    background. Its apex is at `x = apex_x` and its centre line runs along `y = centre_y`, so a
+    caller can put a chosen pixel ray straight through it. `coord_decimals=6` keeps the width
+    from being welded away (at the default 2 it would round to a genuinely collapsed triangle)."""
+    P = [[-half_floor, -half_floor, 0.0], [half_floor, -half_floor, 0.0],
+         [half_floor, half_floor, 0.0], [-half_floor, half_floor, 0.0],
+         [apex_x - half_len, centre_y - half_width, height],
+         [apex_x + half_len, centre_y - half_width, height],
+         [apex_x, centre_y + half_width, height]]
+    uvs = [[p[0] * 0.01, p[1] * 0.01] for p in P]
+    fv = [[0, 1, 2], [0, 2, 3], [4, 5, 6]]
+    return _mesh("floor_with_sliver", P, uvs, fv, fv, materials=("floor", "sliver"),
+                 face_material=[0, 0, 1], coord_decimals=6)
