@@ -12,6 +12,7 @@ guarded.
 """
 import numpy as np
 import pytest
+import shapely
 
 from engine.fixes.pipeline import FixProfile, fix_object
 from engine.fixes.solidify import solidify, top_regions
@@ -415,3 +416,51 @@ def test_a_bottom_is_not_found_beyond_the_extra_search_depth():
     r = _solidified(m, _fast(min_thickness=1.0, bottom_search_extra=2.0))
     assert r.report["bottom_exists"] == 0
     assert r.report["bottoms_added"] == 1
+
+
+# ------------------------------------- S-I3: skips are counted and a partial bottom is refused
+
+
+def test_a_clean_bottom_reports_no_skips_at_all():
+    r = _solidified(slab_with_three_skirts())
+    assert r.report["bottoms_added"] == 1
+    assert r.report["bottoms_partial_refused"] == 0
+    assert set(r.report["bottom_skips"].values()) == {0}
+
+
+def test_a_bottom_with_a_skipped_part_is_refused_whole(monkeypatch):
+    """`shapely.constrained_delaunay_triangles` returns a GeometryCollection whose members are
+    normally all Polygons; a degenerate one comes back as a LineString instead, which `_add_bottom`
+    skips. No fixture in this repo produces one -- `b2134e9`, which added that guard, says the
+    same -- so the branch is driven here by replacing ONE part of the real CDT's output.
+
+    What is under test is what solidify then does: a bottom missing one of its triangles is a
+    hole in the underside, which is worse than no bottom at all, so the WHOLE bottom is dropped,
+    counted as `bottoms_partial_refused`, and not reported as added."""
+    real = shapely.constrained_delaunay_triangles
+
+    def one_part_degenerate(polygon):
+        parts = list(getattr(real(polygon), "geoms", []))
+        return shapely.GeometryCollection(
+            [shapely.LineString(list(parts[0].exterior.coords)[:2])] + parts[1:])
+
+    monkeypatch.setattr(shapely, "constrained_delaunay_triangles", one_part_degenerate)
+    m = slab_with_three_skirts()
+    r = _solidified(m)
+
+    assert r.report["bottoms_added"] == 0
+    assert r.report["bottoms_partial_refused"] == 1
+    assert r.report["bottom_skips"]["non_polygon_part"] == 1
+    assert int(r.new_faces.sum()) == 2                # the skirt only, no half a bottom
+    assert r.report["invented_vertices"] == 0         # and a refused bottom invents nothing
+
+
+def test_a_bottom_whose_triangulation_raises_is_counted_and_refused(monkeypatch):
+    """A second skip reason, reaching the same verdict through its own counter: GEOS refuses to
+    triangulate the outline at all."""
+    monkeypatch.setattr(shapely, "constrained_delaunay_triangles",
+                        lambda polygon: (_ for _ in ()).throw(shapely.errors.GEOSException("no")))
+    r = _solidified(slab_with_three_skirts())
+    assert r.report["bottoms_added"] == 0
+    assert r.report["bottoms_partial_refused"] == 1
+    assert r.report["bottom_skips"]["cdt_failed"] == 1

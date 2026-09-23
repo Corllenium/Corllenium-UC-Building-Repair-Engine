@@ -53,6 +53,11 @@ from engine.vis.exposure import EPS_IN, compute_exposure, compute_side_exposure
 #: surface. Half, so a slab partly under something else still counts.
 TOP_SKY_FRACTION = 0.5
 
+#: Every way one part of a region's bottom can fail to be triangulated. All of them are counted
+#: and all of them refuse the whole bottom -- see `_add_bottom`.
+_BOTTOM_SKIPS = ("empty_outline", "polygon_failed", "invalid_polygon", "cdt_failed",
+                 "non_polygon_part", "corners_unmapped")
+
 #: `1.5 * max(axis quanta)`, clamped -- the same tolerance every guard works to. Kept as a local
 #: default so this module does not import `engine.fixes.pipeline`, which imports it.
 _DEPTH_TOL_QUANTA = 1.5
@@ -301,6 +306,8 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
     skirt_length = 0.0
     skirt_fallback = 0
     bottoms = 0
+    bottoms_refused = 0
+    bottom_skips = {reason: 0 for reason in _BOTTOM_SKIPS}
     bottom_exists = 0
     unresolved_thickness = 0
 
@@ -365,9 +372,12 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
         if _has_bottom(topo, members, caster, bottom_h, tol, bottom_fraction, bottom_extra):
             bottom_exists += 1
             continue
-        if _add_bottom(builder, topo, plan, lambda c: down(c, bottom_h), material, uv_scale,
-                        welded_to_original):
+        added, part_skipped = _add_bottom(builder, topo, plan, lambda c: down(c, bottom_h),
+                                           material, uv_scale, welded_to_original, bottom_skips)
+        if added:
             bottoms += 1
+        elif part_skipped:
+            bottoms_refused += 1
 
     solid, new_faces = builder.build()
     cap_history: list = []
@@ -386,6 +396,11 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
         #: their region's median (or, with nothing in the file resolved, `min_thickness`).
         "skirt_edges_fallback": skirt_fallback,
         "bottoms_added": bottoms,
+        #: Regions whose bottom WAS built and then thrown away whole, because at least one of
+        #: its parts could not be triangulated. Never reported as added.
+        "bottoms_partial_refused": bottoms_refused,
+        #: Why, per reason -- see `_BOTTOM_SKIPS` and `_add_bottom`.
+        "bottom_skips": bottom_skips,
         "bottom_exists": bottom_exists,
         "bottom_thickness_unresolved": unresolved_thickness,
         "outline_unmappable": unmappable,
@@ -439,15 +454,30 @@ def _has_bottom(topo: Topology, members: np.ndarray, caster, h: float, tol: floa
 
 
 def _add_bottom(builder: _Builder, topo: Topology, plan: dict, down, material: int,
-                 uv_scale: float, welded_to_original: np.ndarray) -> bool:
-    """The region's outline (outer plus inners), shifted down by the region's thickness and
+                 uv_scale: float, welded_to_original: np.ndarray, skips: dict) -> tuple[bool, bool]:
+    """The region's outline (outer plus inners), shifted down by the region's bottom depth and
     triangulated over the SHIFTED vertices with `shapely.constrained_delaunay_triangles`, which
     adds no Steiner points -- so every bottom corner is a vertex this function already made.
-    Wound so the bottom faces DOWN."""
-    added = False
+    Wound so the bottom faces DOWN.
+
+    ALL OR NOTHING. Every triangle is worked out FIRST, and nothing is emitted unless all of them
+    were. A bottom missing one of its parts is a HOLE in the underside, which is worse than no
+    bottom at all: the rest of it still hides whatever is above, so the hidden pass deletes the
+    real geometry and the hole is what ships. Each of the five ways a part can be skipped is
+    counted into `skips` (which the caller reports as `bottom_skips`), because a silent `continue`
+    is how a half-built underside would leave no trace at all.
+
+    Returns `(added, skipped)`: `added` is True only for a COMPLETE bottom; `skipped` says at
+    least one part was refused, which the caller counts as `bottoms_partial_refused`. Building the
+    triangle list before touching the builder is also what keeps a refused bottom from inventing
+    vertices -- `down()` is only called for parts that are actually emitted."""
+    triangles: list[list[int]] = []
+    skipped = False
     for piece in plan["pieces"]:
         rings = [r for r in piece.rings if len(r) >= 3]
         if not rings:
+            skips["empty_outline"] += 1
+            skipped = True
             continue
         xy = {}
         for ring in rings:
@@ -458,29 +488,43 @@ def _add_bottom(builder: _Builder, topo: Topology, plan: dict, down, material: i
             polygon = shapely.Polygon([xy[int(v)] for v in rings[0]],
                                        [[xy[int(v)] for v in r] for r in rings[1:]])
         except (ValueError, shapely.errors.GEOSException):
+            skips["polygon_failed"] += 1
+            skipped = True
             continue
         if not polygon.is_valid:
+            skips["invalid_polygon"] += 1
+            skipped = True
             continue
         lookup = {xy[int(v)]: int(v) for ring in rings for v in ring}
         try:
             cdt = shapely.constrained_delaunay_triangles(polygon)
         except shapely.errors.GEOSException:
+            skips["cdt_failed"] += 1
+            skipped = True
             continue
         for part in getattr(cdt, "geoms", []):
             if part.geom_type != "Polygon" or part.is_empty:
+                skips["non_polygon_part"] += 1
+                skipped = True
                 continue
             corners = [lookup.get((float(x), float(y)))
                        for x, y in np.asarray(part.exterior.coords)[:3]]
             if any(c is None for c in corners):
+                skips["corners_unmapped"] += 1
+                skipped = True
                 continue
-            ids = [down(c) for c in corners]
-            points = np.array([builder.positions[i] for i in ids], dtype=np.float64)
-            normal = np.cross(points[1] - points[0], points[2] - points[0])
-            if float(normal[2]) > 0.0:
-                ids = [ids[0], ids[2], ids[1]]
-            builder.face(ids, material, uv_scale)
-            added = True
-    return added
+            triangles.append([int(c) for c in corners])
+
+    if skipped or not triangles:
+        return False, skipped
+    for corners in triangles:
+        ids = [down(c) for c in corners]
+        points = np.array([builder.positions[i] for i in ids], dtype=np.float64)
+        normal = np.cross(points[1] - points[0], points[2] - points[0])
+        if float(normal[2]) > 0.0:
+            ids = [ids[0], ids[2], ids[1]]
+        builder.face(ids, material, uv_scale)
+    return True, False
 
 
 def _cap_guard(original: MeshData, solid: MeshData, new_faces: np.ndarray,
