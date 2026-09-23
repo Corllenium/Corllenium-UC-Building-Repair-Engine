@@ -115,6 +115,12 @@ class FixResult:
     #: trace at all. When nothing was rolled back it is the same report as `guard_final`.
     guard_merge_attempt: GuardReport | None
     guard_final: GuardReport
+    #: Per FINAL face, the merged region it belongs to, or -1 when it was copied through (and
+    #: -1 everywhere when the merge was rolled back). Two final faces sharing a region id >= 0
+    #: are two triangles of ONE rebuilt polygon, so the edge between them is a triangulation
+    #: diagonal, not a shape edge. `source_faces` cannot answer that: `fix_object` rebuilds it
+    #: with `.astype`, so the array IDENTITY `engine.fixes.merge` sets up does not survive here.
+    face_region_final: np.ndarray
     merge_report: dict
     #: `engine.fixes.merge.MergeResult.rings` -- `{output face: {"outer": ids, "inners": [...]}}`
     #: -- valid against `mesh` (this result's own final mesh) exactly as documented there. Empty
@@ -246,6 +252,7 @@ def fix_object(mesh: MeshData, flatness: dict[str, float], profile: FixProfile =
         final_mesh = mesh_flipped
         final_source_faces = [np.array([int(f)], dtype=np.int64) for f in source_from_removal]
         final_rings: dict = {}
+        final_face_region = np.full(mesh_flipped.n_faces, -1, np.int64)
         # `guard_final` describes what SHIPPED; `guard_merge_attempt` keeps the report that
         # caused the rollback, which is the only record of why the merge was thrown away.
         guard_final = _guard_against_original(final_mesh, profile.edge_flicker_cap_final)
@@ -253,6 +260,7 @@ def fix_object(mesh: MeshData, flatness: dict[str, float], profile: FixProfile =
         final_mesh = merge_result.mesh
         final_source_faces = [source_from_removal[s].astype(np.int64) for s in merge_result.source_faces]
         final_rings = merge_result.rings
+        final_face_region = merge_result.face_region
         guard_final = guard_merge_attempt   # the merged mesh IS the shipped mesh
 
     one_sided_holes_after = one_sided_holes(
@@ -280,5 +288,5 @@ def fix_object(mesh: MeshData, flatness: dict[str, float], profile: FixProfile =
         one_sided_holes_before=one_sided_holes_before, one_sided_holes_after=one_sided_holes_after,
         feedback_history={"hidden": history_hidden, "slit": history_slit},
         guard_after_removal=guard_after_removal, guard_merge_attempt=guard_merge_attempt,
-        guard_final=guard_final,
+        guard_final=guard_final, face_region_final=final_face_region,
         merge_report=merge_report, rings=final_rings, invariants=invariants, passed=passed)

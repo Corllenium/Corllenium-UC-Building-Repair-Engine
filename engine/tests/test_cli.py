@@ -190,6 +190,32 @@ def test_cmd_preview_data_writes_soft_creases_of_the_shipped_mesh(tmp_path):
     assert data["stats"]["coplanar_region_borders"] >= 0
 
 
+def test_cmd_preview_data_classifies_triangulation_diagonals_by_region(tmp_path):
+    """R1b: `fix_object` rebuilds `source_faces` with `.astype`, so `_after_edges`' old
+    `src[a] is src[b]` identity test could never hold and EVERY triangulation diagonal was drawn
+    as a real shape edge. Classified by region id instead, the real edges of the merged cube are
+    exactly the edges of its regions' rings, and the 6 quad diagonals are diagonals."""
+    m = box_with_partition()
+    snap_dir = _write_snapshot(tmp_path, m)
+    out_dir = tmp_path / "preview_out"
+
+    cli.cmd_preview_data(snap_dir, out_dir, profile=_FAST)
+
+    data = json.loads((out_dir / f"{m.name}.json").read_text(encoding="utf-8"))
+    assert len(data["edges"]["tri_after"]) > 0
+    assert data["stats"]["unavoidable_diagonals_after"] > 0
+
+    _obj, mesh, flatness, _mtl = cli._load_snapshot(snap_dir)
+    result = fix_pipeline.fix_object(mesh, flatness, _FAST)
+    assert (result.face_region_final >= 0).any()
+    ring_edges = set()
+    for loops in {id(v): v for v in result.rings.values()}.values():
+        outer = [int(v) for v in loops["outer"]]
+        for a, b in zip(outer, outer[1:] + outer[:1]):
+            ring_edges.add((min(a, b), max(a, b)))
+    assert data["stats"]["outline_edges_after"] == len(ring_edges)
+
+
 def test_cmd_preview_data_index_replaces_stale_entry_for_the_same_name(tmp_path):
     m = box_with_partition()
     snap_dir = _write_snapshot(tmp_path, m)

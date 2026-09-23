@@ -68,11 +68,16 @@ class MergeResult:
 
     A region made of more than one disjoint piece, or whose outer loop keeps fewer than 3
     vertices, has NO entry (its rows are ordinary triangles); rows copied through unmerged never
-    have an entry either."""
+    have an entry either.
+
+    `face_region[i]` is the region output row `i` belongs to, or -1 when the row was copied
+    through unmerged. Two rows sharing a region id `>= 0` are two triangles of ONE rebuilt
+    polygon, so the edge between them exists only because OBJ needs triangles."""
     mesh: MeshData
     source_faces: list[np.ndarray]
     report: dict
     rings: dict[int, dict] = field(default_factory=dict)
+    face_region: np.ndarray = field(default_factory=lambda: np.zeros(0, np.int64))
 
 
 @dataclass
@@ -677,7 +682,8 @@ def _assemble(mesh: MeshData, topo: Topology, welded_to_original: np.ndarray,
         face_line=np.array([r[5] for r in emitted], np.int64),
     )
     return MergeResult(mesh=out, source_faces=[r[6] for r in emitted],
-                       report={"faces_copied": len(set(copied))}, rings=rings)
+                       report={"faces_copied": len(set(copied))}, rings=rings,
+                       face_region=np.array([r[7] for r in emitted], np.int64))
 
 
 def _wound(plan: _Plan, triangles: list) -> list:

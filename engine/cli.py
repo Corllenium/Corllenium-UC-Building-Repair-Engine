@@ -311,23 +311,27 @@ def _before_edges(topo: Topology, positions_c: np.ndarray, removed: np.ndarray):
 
 def _after_edges(result: FixResult, positions_o: np.ndarray):
     """`(outline_after, tri_after)` segment lists for the FIXED mesh: an edge shared by exactly
-    two triangles that came from the SAME merge (`source_faces[i] is source_faces[j]`, the
-    identity `engine.fixes.merge` sets up for every triangle of one merged region) is an
-    UNAVOIDABLE DIAGONAL -- it exists only because OBJ needs triangles, not because it is a real
-    shape edge; everything else (a mesh boundary, a border between two different regions, or a
-    border with a copied-through face) is a real OUTLINE edge."""
+    two triangles of the SAME merged region (`face_region_final[a] == face_region_final[b] >= 0`)
+    is an UNAVOIDABLE DIAGONAL -- it exists only because OBJ needs triangles, not because it is a
+    real shape edge; everything else (a mesh boundary, a border between two different regions, or
+    a border with a copied-through face) is a real OUTLINE edge.
+
+    This used to test `source_faces[a] is source_faces[b]`, the array identity
+    `engine.fixes.merge` sets up for every triangle of one region. `fix_object` rebuilds
+    `source_faces` with `.astype`, which copies, so that identity never survived into a
+    `FixResult` and `tri_after` was ALWAYS empty: every diagonal was drawn as a real edge.
+    A region id is data, not an object address, so it survives being rebuilt."""
     n = result.mesh.n_faces
     table = build_edge_table(result.mesh.face_v, np.ones(n, dtype=bool))
     groups = edge_face_lists(table)
-    src = result.source_faces
+    region = result.face_region_final
 
     outline, diagonal = [], []
     for edge, faces in zip(table.edges, groups):
         seg = [positions_o[int(edge[0])].tolist(), positions_o[int(edge[1])].tolist()]
-        if len(faces) == 2 and src[int(faces[0])] is src[int(faces[1])]:
-            diagonal.append(seg)
-        else:
-            outline.append(seg)
+        same_region = (len(faces) == 2 and region[int(faces[0])] >= 0
+                       and region[int(faces[0])] == region[int(faces[1])])
+        (diagonal if same_region else outline).append(seg)
     return outline, diagonal
 
 
