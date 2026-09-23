@@ -196,14 +196,14 @@ async function load(file) {
     ? `AFTER · inside removed, <span style="color:var(--red)">merge rolled back</span>`
     : `AFTER · inside removed, flat regions rebuilt`
   $('sa').innerHTML = `<b>${s.tris_input.toLocaleString()}</b> triangles as exported &nbsp;·&nbsp; ${s.zero_area} zero-area &nbsp;·&nbsp; ` +
-    `<span style="color:var(--red)">${s.hidden.toLocaleString()} hidden inside</span> &nbsp;·&nbsp; ` +
+    `<span style="color:var(--red)">${s.hidden_in_export.toLocaleString()} hidden inside</span> &nbsp;·&nbsp; ` +
     `<span style="color:var(--blue)">${s.gridline_edges} gridline edges</span>` +
     `<br><span class="note">guarded against ${s.tris_total.toLocaleString()} triangles: this export plus ` +
     `<span style="color:#1f8b4c">${s.tris_added_by_solidify} added by solidify</span> &nbsp;·&nbsp; ` +
     `${s.skirts_added} skirts and ${s.bottoms_added} bottoms ` +
     `(${s.invented_vertices} vertices invented, ${s.faces_newly_hidden} faces newly hidden, ` +
     `cap guard ${s.cap_guard_passed ? `passed` : `<b style="color:var(--red)">FAILED</b>`})</span>`
-  $('sb').innerHTML = `<b>${s.after_merged.toLocaleString()}</b> triangles &nbsp;·&nbsp; ${pct(s.after_merged, s.tris_total)} % fewer &nbsp;·&nbsp; ` +
+  $('sb').innerHTML = `<b>${s.after_merged.toLocaleString()}</b> triangles &nbsp;·&nbsp; ${pct(s.after_merged, s.tris_input)} % fewer than exported &nbsp;·&nbsp; ` +
     `${s.regions} flat regions${s.merge_rolled_back ? ` <b style="color:var(--red)">· merge rolled back</b>` : ``}` +
     `<br><span class="note">after inside removal only: ${s.after_hidden_removed.toLocaleString()} triangles &nbsp;·&nbsp; ` +
     `${s.n_removed_overlap} duplicate-layer faces removed of ${s.n_overlap_pairs_same} overlapping pairs ` +

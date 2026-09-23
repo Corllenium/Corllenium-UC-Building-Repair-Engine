@@ -513,6 +513,10 @@ def cmd_preview_data(snapshot_dir: Path, out_dir: Path, profile: FixProfile | No
             "zero_area": int(result.n_zero_area_dropped),
             "before_tris": int(topo.ok.sum()),
             "hidden": int(removed.sum()),
+            # ...and the part of it the BEFORE pane can show: faces of the EXPORT only. `hidden`
+            # also counts faces solidify invented and the hidden pass then removed again (96 on
+            # file A), which the original-export pane never draws.
+            "hidden_in_export": int(before_hidden.sum()),
             "after_hidden_removed": int(topo.ok.sum() - removed.sum()),
             "after_merged": int(result.mesh.n_faces),
             "regions": int(result.merge_report.get("regions_merged", 0)),

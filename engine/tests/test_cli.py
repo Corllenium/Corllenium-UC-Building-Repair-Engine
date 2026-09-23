@@ -524,6 +524,19 @@ def test_preview_data_before_pane_is_the_original_export_not_the_reference(tmp_p
     # ...and what solidify added is its own block, so the page can draw it AS added
     assert len(data["reference"]["mat"]) == 4
     assert len(data["reference"]["pos"]) == 4 * 9
+    # the BEFORE pane's own hidden count is the one it draws: over the export's faces only.
+    # (`hidden` stays the reference-wide count; on file A the two differ by 96 invented faces.)
+    assert data["stats"]["hidden_in_export"] == sum(data["before"]["hidden"])
+
+
+def test_preview_page_measures_its_reduction_from_the_export_it_shows():
+    """The BEFORE pane leads with `tris_input`, so "N % fewer" beside the AFTER count must be
+    measured from that number, not from the larger reference the pane no longer draws."""
+    if not _PREVIEW_PAGE.exists():
+        pytest.skip("preview/index.html is not shipped with the engine package")
+    source = _PREVIEW_PAGE.read_text(encoding="utf-8")
+    assert "pct(s.after_merged, s.tris_input)" in source
+    assert "${s.hidden_in_export" in source
 
 
 def test_preview_data_before_edges_belong_to_the_original_export(tmp_path):
