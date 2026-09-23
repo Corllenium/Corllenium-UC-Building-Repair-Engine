@@ -125,8 +125,8 @@ def test_identity_all_counts_zero_and_passed():
     assert report.passed
     assert report.totals == {"model_px": report.totals["model_px"], "holes": 0, "material_changed": 0,
                               "moved_same_flat": 0, "moved_other": 0, "zfight_tie": 0,
-                              "edge_flicker": 0, "edge_flicker_hole": 0, "edge_flicker_moved": 0,
-                              "edge_flicker_material": 0}
+                              "crack_closed": 0, "edge_flicker": 0, "edge_flicker_hole": 0,
+                              "edge_flicker_moved": 0, "edge_flicker_material": 0}
     assert report.totals["model_px"] > 0
     assert len(report.views) == 26
 
@@ -754,6 +754,105 @@ def test_a_coincident_same_material_pair_losing_one_member_is_no_change_at_all()
         == {k: 0 for k in report.totals if k != "model_px"}
     assert report.totals["model_px"] > 100
     assert report.passed is True
+
+
+# ---------------------------------------------------------------------------
+# M5: a closed crack is an improvement, not damage.
+#
+# Measured on file A, view (-0.987, 0.007, -0.989), pixel (530, 338) -- the ONLY pixel that rolled
+# the merge back. BEFORE's centre ray slipped through a T-junction crack about 0.02 in wide (2 of
+# 201 rays at 0.02 in steps reached the ramp face 2540 at t = 3318.66) while 14 of its 16 ring rays
+# already met the region surface 16.3 in nearer. The merge closed the crack. That is the fix this
+# project exists for, so the guard must not call it damage.
+# ---------------------------------------------------------------------------
+
+_CRACK_GAP = 0.02        #: crack width, measured along x -- the width measured on file A
+_CRACK_SLOPE = 0.4       #: the crack runs along x = x0 + 0.4 * (y - y0), so it is not parallel to
+                         #: any of the ring's 8 angles: every ring ray clears a 0.02 in gap.
+
+
+def _crack_scene(row=64, col=70):
+    """A lower surface `_STACK_GAP` behind an upper slab of two big triangles split by a
+    `_CRACK_GAP`-wide crack, aimed so the crack passes exactly through pixel `(row, col)`'s own
+    ray. `(positions, faces_before, faces_after_closed, faces_after_torn)` -- `faces` are
+    `[upper, upper, lower, lower]`, so `tri >= 2` means the ray fell through to the lower surface.
+
+    AFTER-closed re-triangulates the upper slab as ONE quad with no crack at all (what a merge
+    does); AFTER-torn drops the whole first upper triangle (real damage, same scene)."""
+    cam = _big_camera()
+    x0, y0 = float(cam.xs[col]), float(cam.ys[row])
+    h = _CRACK_GAP / 2.0
+
+    def edge(y, side):
+        return x0 + _CRACK_SLOPE * (y - y0) + side * h
+
+    z = -_STACK_GAP
+    P = np.array([
+        [edge(-500.0, +1), -500.0, 0.0], [edge(500.0, +1), 500.0, 0.0], [x0 + 3000.0, -500.0, 0.0],
+        [edge(-500.0, -1), -500.0, 0.0], [edge(500.0, -1), 500.0, 0.0], [x0 - 3000.0, 500.0, 0.0],
+        [-500.0, -500.0, z], [500.0, -500.0, z], [500.0, 500.0, z], [-500.0, 500.0, z],
+        [-500.0, -500.0, 0.0], [500.0, -500.0, 0.0], [500.0, 500.0, 0.0], [-500.0, 500.0, 0.0],
+    ])
+    lower = np.array([[6, 7, 8], [6, 8, 9]], np.int64)
+    merged = np.array([[10, 11, 12], [10, 12, 13]], np.int64)
+    before = np.vstack([[[0, 1, 2], [3, 4, 5]], lower])
+    closed = np.vstack([merged, lower])
+    torn = np.vstack([[[3, 4, 5]], lower])   # the first upper triangle is gone: tri >= 1 is lower
+    return P, before, closed, torn
+
+
+def _crack_report(P, faces_before, faces_after, before, after, cap=0.0, strict=True):
+    mat_b = np.zeros(len(faces_before), np.int64)
+    mat_a = np.zeros(len(faces_after), np.int64)
+    return compare_views(
+        [(_FLAT_VIEW, before)], [(_FLAT_VIEW, after)], mat_b, mat_a, frozenset(), 0.15,
+        strict=strict, edge_flicker_cap=cap,
+        plane_before=face_planes(P, faces_before), plane_after=face_planes(P, faces_after),
+        geometry_before=(P, faces_before), geometry_after=(P, faces_after))
+
+
+def test_a_crack_the_merge_closed_is_reported_as_crack_closed_and_passes():
+    """BEFORE's centre ray falls through the crack to the surface 10 in behind; AFTER's meets the
+    re-triangulated slab. Its base class is a real `moved_other`, and its own 16 BEFORE ring rays
+    -- every one of which clears a 0.02 in crack at this slope -- already saw AFTER's surface.
+    That is a crack the merge closed, not a surface it lost."""
+    P, faces_before, faces_closed, _ = _crack_scene()
+    before = ortho_first_hit(P, faces_before, np.arange(4), _FLAT_VIEW, _FRAME, _BIG_SIZE)
+    after = ortho_first_hit(P, faces_closed, np.arange(4), _FLAT_VIEW, _FRAME, _BIG_SIZE)
+
+    # the crack runs at 2/5, and the pixel pitch is the same in x and y, so it passes exactly
+    # through a pixel centre every 5th row: 25 of the 128 rows fall through it, not just the one
+    # the fixture aimed at.
+    fell_through = (before.tri >= 2) & (after.tri >= 0) & (after.tri < 2)
+    assert int(fell_through.sum()) == 25
+
+    report = _crack_report(P, faces_before, faces_closed, before, after)
+    assert report.totals["crack_closed"] == 25
+    assert report.views[0].crack_closed == 25
+    assert report.totals["moved_other"] == 0 and report.totals["holes"] == 0
+    assert report.totals["edge_flicker"] == 0 and report.totals["zfight_tie"] == 0
+    assert report.passed is True
+    for cap in (0.0, 1e-4, 1.0):               # never a failure at any cap
+        assert _crack_report(P, faces_before, faces_closed, before, after, cap=cap).passed is True
+
+
+def test_a_whole_triangle_lost_from_the_same_scene_is_still_a_failure():
+    """The same slab, same crack, same lower surface -- but AFTER loses one upper triangle
+    outright. Not one BEFORE ring ray reproduces AFTER's centre verdict there (they all still meet
+    the slab 10 in in front of it), so nothing is rescued and every lost pixel fails at any cap."""
+    P, faces_before, _, faces_torn = _crack_scene()
+    before = ortho_first_hit(P, faces_before, np.arange(4), _FLAT_VIEW, _FRAME, _BIG_SIZE)
+    after = ortho_first_hit(P, faces_torn, np.arange(3), _FLAT_VIEW, _FRAME, _BIG_SIZE)
+
+    lost = (before.tri == 0) & (after.tri >= 1)   # AFTER's tri 0 is the surviving upper triangle
+    assert int(lost.sum()) > 1000              # half the image, not a boundary pixel
+
+    for cap in (0.0, 1e-4, 1.0):
+        report = _crack_report(P, faces_before, faces_torn, before, after, cap=cap)
+        assert report.totals["crack_closed"] == 0
+        assert report.totals["moved_other"] == int(lost.sum())
+        assert report.totals["edge_flicker"] == 0 and report.totals["zfight_tie"] == 0
+        assert report.passed is False
 
 
 def test_compare_views_refuses_renders_from_a_different_camera_frame():

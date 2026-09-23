@@ -24,6 +24,7 @@ PX_MOVED_SAME_FLAT = 3
 PX_MOVED_OTHER = 4
 PX_EDGE_FLICKER = 5
 PX_ZFIGHT_TIE = 6
+PX_CRACK_CLOSED = 7
 
 #: `(view, HitBuffers)` for one `ortho_first_hit` render.
 RenderedView = tuple[Sequence[float], HitBuffers]
@@ -31,6 +32,11 @@ RenderedView = tuple[Sequence[float], HitBuffers]
 #: Angles per ring in the `PX_EDGE_FLICKER` test; two rings (at `depth_tol` and `depth_tol / 2`)
 #: make 16 rays per candidate pixel.
 _RING_ANGLES = 8
+
+#: How many of those 16 BEFORE ring rays must already reproduce AFTER's centre verdict for the
+#: pixel to be `PX_CRACK_CLOSED`. 12 of 16 is a clear majority of the neighbourhood while still
+#: allowing the crack itself to swallow a few rays -- on file A's own pixel 14 of 16 reproduced.
+_CRACK_RING_MIN = 12
 
 
 def face_planes(positions: np.ndarray, faces: np.ndarray) -> np.ndarray:
@@ -181,24 +187,35 @@ def _matches_tie_set(hit_ray: np.ndarray, hit_tri: np.ndarray, hit_t: np.ndarray
     return out
 
 
-def _ring_reproduces(centre_tri: np.ndarray, centre_material: np.ndarray, centre_plane: np.ndarray,
-                      ring_tri: np.ndarray, ring_point: np.ndarray, ring_material: np.ndarray,
-                      depth_tol: float) -> np.ndarray:
-    """Per candidate pixel `(P,)`: does ANY of its ring rays, cast against the OTHER geometry,
-    reproduce this geometry's CENTRE verdict?
+def _ring_matches(centre_tri: np.ndarray, centre_material: np.ndarray, centre_plane: np.ndarray,
+                   ring_tri: np.ndarray, ring_point: np.ndarray, ring_material: np.ndarray,
+                   depth_tol: float) -> np.ndarray:
+    """Per candidate pixel and ring ray `(P, R)`: does that ONE ring ray, cast against the other
+    geometry, reproduce this geometry's CENTRE verdict?
 
     A centre MISS is reproduced by a ring ray that also misses. A centre HIT is reproduced by a
     ring ray that hits the same material at a point within `depth_tol` of the centre face's own
     supporting plane -- i.e. the other geometry still has that same surface, just beside the
     pixel rather than under it, which is exactly what a boundary that moved by less than the
-    tolerance looks like. A centre face with no plane (zero area) is never reproduced."""
+    tolerance looks like. A centre face with no plane (zero area) is never reproduced.
+
+    The flicker test asks whether ANY ray reproduces (`_ring_reproduces`); the crack test asks
+    HOW MANY do, which is why this returns the whole matrix."""
     hit = ring_tri >= 0
     normal, offset = centre_plane[:, :3], centre_plane[:, 3]
     distance = np.abs(np.einsum("prk,pk->pr", ring_point, normal) + offset[:, None])
     defined = np.linalg.norm(normal, axis=1) > 0.0
     hit_matches = (hit & (ring_material == centre_material[:, None]) & (distance <= depth_tol)
-                   & defined[:, None]).any(axis=1)
-    return np.where(centre_tri >= 0, hit_matches, (~hit).any(axis=1))
+                   & defined[:, None])
+    return np.where((centre_tri >= 0)[:, None], hit_matches, ~hit)
+
+
+def _ring_reproduces(centre_tri: np.ndarray, centre_material: np.ndarray, centre_plane: np.ndarray,
+                      ring_tri: np.ndarray, ring_point: np.ndarray, ring_material: np.ndarray,
+                      depth_tol: float) -> np.ndarray:
+    """Per candidate pixel `(P,)`: does ANY of its ring rays reproduce the centre verdict?"""
+    return _ring_matches(centre_tri, centre_material, centre_plane, ring_tri, ring_point,
+                          ring_material, depth_tol).any(axis=1)
 
 
 def classify_pixels(before_depth: np.ndarray, before_tri: np.ndarray,
@@ -218,8 +235,9 @@ def classify_pixels(before_depth: np.ndarray, before_tri: np.ndarray,
     otherwise (includes both-miss background pixels and pixels that matched within `depth_tol`).
 
     A pixel whose base class FAILS under the current strictness is then re-checked, in this order,
-    by the TIE test and the RING test, and promoted to `PX_ZFIGHT_TIE` or `PX_EDGE_FLICKER` if one
-    of them passes. "Fails under the current strictness" means `PX_HOLE`, `PX_MATERIAL_CHANGED` or
+    by the TIE test, the CRACK test and the RING test, and promoted to `PX_ZFIGHT_TIE`,
+    `PX_CRACK_CLOSED` or `PX_EDGE_FLICKER` if one of them passes. "Fails under the current
+    strictness" means `PX_HOLE`, `PX_MATERIAL_CHANGED` or
     `PX_MOVED_OTHER` always, and `PX_MOVED_SAME_FLAT` only when `strict` -- see `_failing_base`. A
     base class the caller already TOLERATES keeps its class: promoting it would move a tolerated
     pixel into `edge_flicker`, which IS capped, so a non-strict run could fail on pixels it had
@@ -238,6 +256,22 @@ def classify_pixels(before_depth: np.ndarray, before_tri: np.ndarray,
     face 73 (material 0) at the same 5867.73 in, neither removed. Ties are never failures at any
     cap -- the overlap is a defect this run neither caused nor can fix here -- and are counted as
     `zfight_tie` so the overlap detector has the evidence.
+
+    THE CRACK TEST, evaluated after the tie test and before the ring test, on the same 16 ring
+    rays. A pixel is `PX_CRACK_CLOSED` when at least `_CRACK_RING_MIN` (12 of 16) of its BEFORE
+    ring rays already reproduce AFTER's CENTRE verdict -- the same material and a hit point within
+    `depth_tol` of AFTER's centre-hit face's plane, or a miss where AFTER's centre missed. Then
+    BEFORE's centre ray, and only it, went somewhere its whole neighbourhood did not: it slipped
+    through a sub-tolerance crack or caught a sliver, and AFTER closed it. Measured on file A:
+    pixel (530, 338) of view (-0.987, 0.007, -0.989), where BEFORE's ray found a 0.02 in T-junction
+    gap (2 of 201 rays at 0.02 in steps reached through it) while 14 of its 16 ring rays already
+    met the surface the merge then presented. Never a failure at any cap; counted as
+    `crack_closed`, which is a POSITIVE metric -- sparkle pixels the fix removed.
+
+    ITS LIMIT, deliberately: damage NARROWER than the ring radius (`depth_tol`) is
+    indistinguishable from a closed crack. A genuinely lost sliver thinner than that, with intact
+    surface on both sides of it, reads as a crack the fix closed. The ring radius is the merge's
+    own working tolerance, so this is the same bound everything else here is judged at.
 
     THE RING TEST. Given `ring`, each failing-base pixel gets 16 extra rays cast parallel to
     its own, from a ring of image-plane offsets around it: 8 at radius `depth_tol` and 8 at
@@ -379,16 +413,20 @@ def _classify(before_depth: np.ndarray, before_tri: np.ndarray,
                                point_c_b, mat_before[promotable], hit_b_c, depth_tol, n_px))
         promotable = _promote(promotable, is_tie, PX_ZFIGHT_TIE)
 
-    # ---- the ring: a boundary that moved by less than the tolerance --------------------------
+    # ---- one ring cast, two questions: was the crack closed, or did a boundary flicker? -------
     if ring is not None and promotable.any():
         tri_b, point_b, tri_a, point_a = ring(promotable)
         centre_b, centre_a = before_tri[promotable], after_tri[promotable]
-        steady = (
-            _ring_reproduces(centre_b, mat_before[promotable], planes_b[centre_b],
-                             tri_a, point_a, mats_a[tri_a], depth_tol)
-            & _ring_reproduces(centre_a, mat_after[promotable], planes_a[centre_a],
-                               tri_b, point_b, mats_b[tri_b], depth_tol))
-        promotable = _promote(promotable, steady, PX_EDGE_FLICKER)
+        # BEFORE's own ring rays against AFTER's centre verdict -- the crack test counts them,
+        # the flicker test only asks whether any of them reproduced.
+        before_ring = _ring_matches(centre_a, mat_after[promotable], planes_a[centre_a],
+                                     tri_b, point_b, mats_b[tri_b], depth_tol)
+        after_ring = _ring_matches(centre_b, mat_before[promotable], planes_b[centre_b],
+                                    tri_a, point_a, mats_a[tri_a], depth_tol)
+        crack = before_ring.sum(axis=1) >= _CRACK_RING_MIN
+        steady = ~crack & after_ring.any(axis=1) & before_ring.any(axis=1)
+        promotable = _promote(promotable, crack, PX_CRACK_CLOSED)
+        _promote(promotable, steady[~crack], PX_EDGE_FLICKER)
     return codes, base
 
 
@@ -404,6 +442,9 @@ class ViewVerdict:
     #: swapped which one won -- both still present in both meshes. Never a failure; evidence of a
     #: pre-existing z-fight overlap, not of damage. See `classify_pixels`.
     zfight_tie: int
+    #: Pixels where BEFORE's centre ray alone slipped through a sub-tolerance crack that AFTER
+    #: closed -- an improvement, not damage, and never a failure. See `classify_pixels`.
+    crack_closed: int
     edge_flicker: int
     #: `edge_flicker` split by the class each of those pixels was rescued FROM; the three always
     #: sum to `edge_flicker`, so a report says whether a tolerated pixel was a would-be hole, a
@@ -422,7 +463,7 @@ class GuardReport:
 
 def _zero_totals() -> dict:
     return {"model_px": 0, "holes": 0, "material_changed": 0, "moved_same_flat": 0, "moved_other": 0,
-            "zfight_tie": 0, "edge_flicker": 0, "edge_flicker_hole": 0, "edge_flicker_moved": 0,
+            "zfight_tie": 0, "crack_closed": 0, "edge_flicker": 0, "edge_flicker_hole": 0, "edge_flicker_moved": 0,
             "edge_flicker_material": 0}
 
 
@@ -526,6 +567,7 @@ def compare_views(before: Sequence[RenderedView], after: Sequence[RenderedView],
             "moved_same_flat": int((codes == PX_MOVED_SAME_FLAT).sum()),
             "moved_other": int((codes == PX_MOVED_OTHER).sum()),
             "zfight_tie": int((codes == PX_ZFIGHT_TIE).sum()),
+            "crack_closed": int((codes == PX_CRACK_CLOSED).sum()),
             "edge_flicker": int(flicker.sum()),
             "edge_flicker_hole": int((flicker & (base == PX_HOLE)).sum()),
             "edge_flicker_moved": int((flicker & ((base == PX_MOVED_SAME_FLAT)
