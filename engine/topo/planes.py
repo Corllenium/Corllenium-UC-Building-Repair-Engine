@@ -10,17 +10,65 @@ def plane_basis(n):
     return e1, np.cross(n, e1)
 
 
-def cluster_planes(tri, normals, area, material, ok, quanta, facing_dot=0.9, tol_quanta=1.5):
+def fit_plane(points, orient_like):
+    """Total-least-squares plane through `points` (`(..., 3)`, flattened): `(normal, centroid)`.
+
+    The normal is the right singular vector of the CENTRED points with the smallest singular
+    value -- the direction of least spread, i.e. the plane's own normal. SVD fixes that vector
+    only up to sign, so it is flipped to agree with `orient_like` (the seed triangle's normal),
+    which makes the result independent of LAPACK's sign convention."""
+    p = np.asarray(points, dtype=np.float64).reshape(-1, 3)
+    centroid = p.mean(axis=0)
+    _u, _s, vt = np.linalg.svd(p - centroid, full_matrices=False)
+    n = vt[2]
+    return (-n if float(n @ orient_like) < 0.0 else n), centroid
+
+
+def cluster_planes(tri, normals, area, material, ok, quanta, facing_dot=0.9, tol_quanta=1.5,
+                   max_refit=8):
+    """Label every face with the planar region it belongs to, growing each region from its
+    largest unassigned triangle by ITERATIVE REFIT.
+
+    Each round accepts every still-unassigned candidate of the same material whose normal is
+    within `facing_dot` of the region normal and whose three vertices all lie within `tol` of the
+    region's CURRENT plane, then refits that plane by least squares (`fit_plane`) over the
+    accepted vertices and tests ALL unassigned candidates again -- so a face rejected by an
+    earlier, worse plane can still join, and one accepted by it can still leave. The member set
+    only stops changing when the plane agrees with what it has collected; `max_refit` is a
+    backstop, not the mechanism.
+
+    This exists because a seed triangle's own plane carries the export's rounding noise. On the
+    real file, Y is printed to 0.1 in; over a 40 m slab the tilt that one print step puts on a
+    seed normal exceeds `tol` at the far end, so one flat SketchUp face arrived as several
+    regions and the viewer drew their borders as lines inside the slab.
+
+    `tol = tol_quanta * sum(|n_i| * q_i)` is evaluated with the CURRENT normal, so it tracks the
+    plane as it turns. The returned `planes[i]` is `(n, p0, tol)` of the FINAL fit -- the plane
+    everything downstream (`plane_basis`, the UV projection, `merge_regions`) then works in.
+
+    Deterministic: seeds are taken by descending area with a STABLE sort, so equal areas are
+    seeded in ascending face id, and every test is a whole-array comparison."""
     label = np.full(len(tri), -1)
     planes = []
-    for s in np.argsort(-area):
+    for s in np.argsort(-area, kind="stable"):
         if not ok[s] or label[s] != -1:
             continue
-        n, p0 = normals[s], tri[s, 0]
+        seed_n = normals[s]
+        n, p0 = seed_n, tri[s, 0]
+        free = ok & (label == -1) & (material == material[s])
+        member = np.zeros(len(tri), bool)
+        member[s] = True
         tol = tol_quanta * float(np.abs(n) @ quanta)
-        cand = ok & (label == -1) & (material == material[s]) & (normals @ n > facing_dot)
-        cand &= np.abs((tri - p0) @ n).max(axis=1) <= tol
-        label[cand] = len(planes)
+        for _ in range(max_refit):
+            tol = tol_quanta * float(np.abs(n) @ quanta)
+            cand = free & (normals @ n > facing_dot)
+            cand &= np.abs((tri - p0) @ n).max(axis=1) <= tol
+            cand[s] = True          # the seed defines the region; it can never reject itself
+            if np.array_equal(cand, member):
+                break
+            member = cand
+            n, p0 = fit_plane(tri[member], seed_n)
+        label[member] = len(planes)
         planes.append((n, p0, tol))
     return label, planes
 

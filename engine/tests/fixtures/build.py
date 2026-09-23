@@ -278,3 +278,51 @@ def floor_with_sliver(apex_x=0.0, centre_y=0.0, half_width=5e-5, half_len=500.0,
     fv = [[0, 1, 2], [0, 2, 3], [4, 5, 6]]
     return _mesh("floor_with_sliver", P, uvs, fv, fv, materials=("floor", "sliver"),
                  face_material=[0, 0, 1], coord_decimals=6)
+
+
+def rounded_long_slab(n_small=28, big=300.0, small=50.0, width=120.0, y=24000.0, step=0.1,
+                      uv_per_unit=0.05):
+    """A 60-vertex, 58-triangle strip carrying the real export's ROUNDING NOISE.
+
+    It sits near 24,000 in, so `engine.topo.weld.axis_quanta` gives Y a 0.1 in quantum -- one
+    printed step -- and the two vertices at `x = 0` are printed exactly one quantum high, the
+    noise a 0.1 in print leaves on a nominally flat surface. Every vertex is therefore within one
+    quantum of the strip's own best-fit plane: this IS one flat face.
+
+    The LARGEST triangle (the seed `cluster_planes` starts from) is in the wide first cell at that
+    end, so the SEED's own plane is tilted by `step / big`; over the strip's full length that tilt
+    puts the far end far outside `1.5 * sum(|n_i| * q_i)`. Seeded from one triangle, one SketchUp
+    face splits into several regions -- until the plane is refit to what it has collected."""
+    xs = [0.0, big] + [big + k * small for k in range(1, n_small + 1)]
+    cols = len(xs)
+    P = [[x, y + (step if i == 0 else 0.0), j * width] for j in (0, 1) for i, x in enumerate(xs)]
+    uvs, fv, fvt = [], [], []
+    for i in range(cols - 1):
+        corners = [(i, 0), (i + 1, 0), (i + 1, 1), (i, 1)]
+        base = len(uvs)
+        uvs.extend([[xs[a] * uv_per_unit, b * width * uv_per_unit] for a, b in corners])
+        v = [b * cols + a for a, b in corners]
+        fv += [[v[0], v[1], v[2]], [v[0], v[2], v[3]]]
+        fvt += [[base, base + 1, base + 2], [base, base + 2, base + 3]]
+    return _mesh("rounded_long_slab", P, uvs, fv, fvt)
+
+
+def creased_pair(angle_deg=3.0, length=120.0, width=120.0, y=24000.0, uv_per_unit=0.05):
+    """Two same-material quads hinged along `x = 0`, the second tilted by `angle_deg` about that
+    hinge: faces 0-1 are the flat one, faces 2-3 the tilted one.
+
+    At 3 degrees the two normals are well inside `facing_dot` (cos 3 deg = 0.9986 > 0.9), so only
+    the plane-distance test can tell them apart -- a genuinely different plane that no amount of
+    refitting may swallow. It is also above the 1 degree coplanar threshold and at or below the 5
+    degree soft ceiling, which makes its shared hinge edge the EDGE_SOFT fixture."""
+    a = np.radians(angle_deg)
+    tip_x, tip_y = length * np.cos(a), y + length * np.sin(a)
+    P = [[-length, y, 0.0], [0.0, y, 0.0], [tip_x, tip_y, 0.0],
+         [-length, y, width], [0.0, y, width], [tip_x, tip_y, width]]
+    uvs = [[-length * uv_per_unit, 0.0], [0.0, 0.0], [0.0, width * uv_per_unit],
+           [-length * uv_per_unit, width * uv_per_unit],
+           [0.0, 0.0], [length * uv_per_unit, 0.0], [length * uv_per_unit, width * uv_per_unit],
+           [0.0, width * uv_per_unit]]
+    fv = [[0, 1, 4], [0, 4, 3], [1, 2, 5], [1, 5, 4]]
+    fvt = [[0, 1, 2], [0, 2, 3], [4, 5, 6], [4, 6, 7]]
+    return _mesh("creased_pair", P, uvs, fv, fvt)

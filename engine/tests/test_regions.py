@@ -1,7 +1,8 @@
 import numpy as np
 
 from engine.pipeline import analyse_topology, topology_stats
-from engine.tests.fixtures.build import cube, grid_slab, t_junction_shared_strip, t_junction_strip
+from engine.tests.fixtures.build import (creased_pair, cube, grid_slab, rounded_long_slab,
+                                         t_junction_shared_strip, t_junction_strip)
 from engine.topo.edges import EDGE_OPEN, EDGE_REAL, EDGE_REMOVABLE
 
 
@@ -59,3 +60,44 @@ def test_shared_tjunction_edge_keeps_its_count_class_when_chain_regions_differ()
     assert t.table.counts[e] == 2
     assert e in t.t_vertices
     assert t.edge_class[e] == EDGE_REAL
+
+
+# ---------------------------------------------------------------------------------------------
+# M1: plane regions grow with an iterative least-squares refit -- a region's plane is fitted to
+# the faces it has COLLECTED, not to the one triangle it was seeded from, so exporter rounding
+# noise on the seed no longer splits one flat face into several regions.
+# ---------------------------------------------------------------------------------------------
+
+def test_rounded_long_slab_is_one_region_despite_seed_plane_rounding_noise():
+    """Seeded from its largest triangle alone (tilted by one 0.1 in print step over 300 in), the
+    far end of this 1,700 in strip sits 0.47 in off the seed plane against a 0.15 in tolerance,
+    so seed-only clustering splits it. Every vertex is within ONE quantum of the strip's own
+    best-fit plane, so a refit plane holds all 58 faces."""
+    m = rounded_long_slab()
+    t = analyse_topology(m)
+    assert m.n_faces == 58 and len(m.positions) == 60
+    assert bool(t.ok.all())
+    assert regions(t) == 1
+    assert (t.face_region == 0).all()
+
+
+def test_three_degree_crease_stays_two_regions():
+    """cos(3 deg) = 0.9986 passes `facing_dot`, so only the plane-distance test separates these:
+    refitting must not swallow a genuinely different plane."""
+    m = creased_pair()
+    t = analyse_topology(m)
+    assert regions(t) == 2
+    assert t.face_region[0] == t.face_region[1]
+    assert t.face_region[2] == t.face_region[3]
+    assert t.face_region[0] != t.face_region[2]
+
+
+def test_region_growing_is_deterministic():
+    """Two independently built copies of the same mesh give the identical labelling -- no
+    iteration order, dict order or accumulated state leaks into the result."""
+    a = analyse_topology(rounded_long_slab()).face_region
+    b = analyse_topology(rounded_long_slab()).face_region
+    assert np.array_equal(a, b)
+    c = analyse_topology(creased_pair()).face_region
+    d = analyse_topology(creased_pair()).face_region
+    assert np.array_equal(c, d)
