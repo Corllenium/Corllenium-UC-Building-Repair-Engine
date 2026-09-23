@@ -5,9 +5,17 @@ WHY. Measured on file A (spikes 14-16): the sidewalk is a top sheet with partial
 almost no bottom -- 657 open edges, and only 21 of its 182 open TOP edges have any bottom outline
 below them. The interior rib walls are therefore visible through the side openings and from
 underneath, so the strict hidden-face removal keeps every one of them. Closing the sides alone
-hides 105 more faces; sides plus bottom hide 182. One uniform thickness leaks, because a real
-skirt on that file varies from 1.3 to 49 in -- so the thickness is measured per region from the
-side faces that are already there.
+hides 105 more faces; sides plus bottom hide 182.
+
+THICKNESS IS MEASURED PER EDGE, not per region. A real skirt on file A varies from 1.3 to 49 in,
+so one height for a whole region hangs the shallow side of it far below the slab, and the cap
+guard then refuses those faces -- 157 of 418 on file A, which is most of the gap between the 96
+faces this step hid and the 182 the spikes predicted. Each open outline edge is therefore
+extruded to ITS OWN resolved height (the side faces sharing an endpoint, else any within
+`skirt_search_radius`); the region's median is the fallback for an edge that resolves to nothing,
+and those are counted as `skirt_edges_fallback`. Two adjacent skirts of different heights leave a
+vertical STEP between them at the corner they share. That is correct: the slab really is that
+thickness on one side and that thickness on the other, and a step is what a person would draw.
 
 THIS IS THE ONLY STEP IN THE ENGINE THAT INVENTS A VERTEX, and even here it invents as few as it
 can: a shifted vertex that rounds onto an existing position reuses that row. Nothing is ever
@@ -122,12 +130,17 @@ def _side_faces(topo: Topology, profile) -> np.ndarray:
 
 
 def _edge_thickness(topo: Topology, edges, sides: np.ndarray, side_low: np.ndarray,
-                     side_centroid: np.ndarray, vertex_sides: dict, radius: float) -> list[float]:
-    """Per open edge, `top z - lowest z of the side faces that reach it`, or nothing when no side
-    face does. Endpoint-sharing first, because a skirt that is already there is attached to the
-    very vertex the new one hangs from; the radius search is the fallback for an edge whose own
-    corner has nothing on it."""
-    out = []
+                     side_centroid: np.ndarray, vertex_sides: dict, radius: float
+                     ) -> list[float | None]:
+    """Per open edge, IN `edges` ORDER, `top z - lowest z of the side faces that reach it`, or
+    `None` when no side face does. Endpoint-sharing first, because a skirt that is already there
+    is attached to the very vertex the new one hangs from; the radius search is the fallback for
+    an edge whose own corner has nothing on it.
+
+    One entry per edge, `None` included: the caller extrudes each edge to ITS OWN height and
+    needs to know which ones it could not measure. It used to return only the resolved numbers,
+    which is why they could only ever be used as a single per-region statistic."""
+    out: list[float | None] = []
     for a, b in edges:
         top_z = float(max(topo.positions_w[a][2], topo.positions_w[b][2]))
         rows = sorted(vertex_sides.get(a, set()) | vertex_sides.get(b, set()))
@@ -136,10 +149,10 @@ def _edge_thickness(topo: Topology, edges, sides: np.ndarray, side_low: np.ndarr
             near = np.linalg.norm(side_centroid - midpoint, axis=1) <= radius
             rows = np.nonzero(near)[0].tolist()
         if not rows:
+            out.append(None)
             continue
         thickness = top_z - float(side_low[rows].min())
-        if thickness > 0.0:
-            out.append(thickness)
+        out.append(thickness if thickness > 0.0 else None)
     return out
 
 
@@ -276,7 +289,7 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
                       "origin": origin, "basis": basis, "edges": edges,
                       "thicknesses": thicknesses})
 
-    file_wide = [t for plan in plans for t in plan["thicknesses"]]
+    file_wide = [t for plan in plans for t in plan["thicknesses"] if t is not None]
     file_median = float(np.median(file_wide)) if file_wide else min_h
 
     builder = _Builder(mesh)
@@ -284,31 +297,44 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
     report_thickness: dict[str, float] = {}
     skirts = 0
     skirt_length = 0.0
+    skirt_fallback = 0
     bottoms = 0
     bottom_exists = 0
     unresolved_thickness = 0
 
+    def clamp(height: float) -> float:
+        return float(min(max(height, min_h), max_h))
+
     for plan in plans:
         members = plan["members"]
-        own = plan["thicknesses"]
+        own = [t for t in plan["thicknesses"] if t is not None]
         resolved = bool(own) or bool(file_wide)
-        h = float(np.median(own)) if own else file_median
-        h = float(min(max(h, min_h), max_h))
+        # The region's FALLBACK height, for the edges that could not be measured at all. Every
+        # edge that could be uses its own; see the module docstring.
+        h = clamp(float(np.median(own)) if own else file_median)
         report_thickness[str(plan["region"])] = h
         material = int(mesh.face_material[members[0]])
         uv_scale = _uv_scale(mesh, topo, members, plan["origin"], plan["basis"])
         centroid = topo.positions_w[topo.face_w[members]].reshape(-1, 3).mean(axis=0)
 
-        shifted: dict[int, int] = {}
+        # keyed by (welded id, height): two edges of one region that measured different depths
+        # need two different shifted vertices at the corner they share, and the vertical step
+        # between their skirts is the honest picture of a slab whose thickness really varies.
+        shifted: dict[tuple[int, float], int] = {}
 
-        def down(welded: int) -> int:
-            if welded not in shifted:
-                p = topo.positions_w[welded] - np.array([0.0, 0.0, h])
-                shifted[welded] = builder.vertex(p)
-            return shifted[welded]
+        def down(welded: int, height: float) -> int:
+            key = (int(welded), float(height))
+            if key not in shifted:
+                p = topo.positions_w[welded] - np.array([0.0, 0.0, height])
+                shifted[key] = builder.vertex(p)
+            return shifted[key]
 
-        for a, b in plan["edges"]:
-            quad = [int(welded_to_original[a]), int(welded_to_original[b]), down(b), down(a)]
+        for (a, b), measured in zip(plan["edges"], plan["thicknesses"]):
+            edge_h = clamp(measured) if measured is not None else h
+            if measured is None:
+                skirt_fallback += 1
+            quad = [int(welded_to_original[a]), int(welded_to_original[b]),
+                    down(b, edge_h), down(a, edge_h)]
             midpoint = (topo.positions_w[a] + topo.positions_w[b]) / 2.0
             outward = midpoint - centroid
             outward[2] = 0.0
@@ -331,7 +357,8 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
         if _has_bottom(topo, members, caster, h, tol, bottom_fraction):
             bottom_exists += 1
             continue
-        if _add_bottom(builder, topo, plan, down, material, uv_scale, welded_to_original):
+        if _add_bottom(builder, topo, plan, lambda c: down(c, h), material, uv_scale,
+                        welded_to_original):
             bottoms += 1
 
     solid, new_faces = builder.build()
@@ -347,6 +374,9 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
         "regions_processed": len(plans),
         "skirts_added": skirts,
         "skirt_length_total": round(skirt_length, 4),
+        #: Open edges whose own height could not be measured, and which therefore fell back to
+        #: their region's median (or, with nothing in the file resolved, `min_thickness`).
+        "skirt_edges_fallback": skirt_fallback,
         "bottoms_added": bottoms,
         "bottom_exists": bottom_exists,
         "bottom_thickness_unresolved": unresolved_thickness,

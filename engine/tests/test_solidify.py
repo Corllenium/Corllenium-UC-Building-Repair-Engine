@@ -17,9 +17,10 @@ from engine.fixes.pipeline import FixProfile, fix_object
 from engine.fixes.solidify import solidify, top_regions
 from engine.rays.caster import EmbreeCaster
 from engine.pipeline import analyse_topology
-from engine.tests.fixtures.build import (box_with_partition, compartment_with_deep_wall,
-                                         open_box_with_cells, slab_with_partial_underside,
-                                         slab_with_three_skirts, two_level_slab)
+from engine.tests.fixtures.build import (bare_top_quad, box_with_partition,
+                                         compartment_with_deep_wall, open_box_with_cells,
+                                         slab_with_partial_underside, slab_with_three_skirts,
+                                         slab_with_two_depths, two_level_slab)
 from engine.topo.weld import weld_exact
 from engine.vis.exposure import compute_side_exposure
 
@@ -312,3 +313,59 @@ def test_fix_object_closes_the_compartment_and_removes_its_deep_wall():
     assert result.solidify_report["cap_guard_removed"] == 0
     assert result.removed_hidden[10] and result.removed_hidden[11]
     assert result.passed is True
+
+
+# ---------------------------------------------- S-I4: each open edge gets its OWN measured height
+
+
+def _skirt_faces(result):
+    """New faces that are vertical -- the skirts, as opposed to the bottom."""
+    normals = _face_normals(result.mesh)
+    return [f for f in np.nonzero(result.new_faces)[0] if abs(normals[f][2]) < 0.5]
+
+
+def _skirt_lows(result):
+    return sorted(round(float(result.mesh.positions[result.mesh.face_v[f]][:, 2].min()), 6)
+                  for f in _skirt_faces(result))
+
+
+def test_each_open_edge_is_extruded_to_its_own_measured_height():
+    """`slab_with_two_depths` measures 1.3 in at the two open edges touching its shallow end and
+    9.8 in at the two touching its deep end. The region's single statistic (its median, 5.55 in
+    here) used to be applied to all four, which hangs half of them 4 in too low and half of them
+    4 in too high -- and the cap guard then refuses the overhang."""
+    m = slab_with_two_depths()
+    r = _solidified(m, _fast(min_thickness=1.0))
+
+    assert r.report["skirts_added"] == 4
+    assert r.report["skirt_edges_fallback"] == 0
+    assert r.report["cap_guard_removed"] == 0
+    assert r.report["thickness_per_region"] == {"0": pytest.approx(5.55)}   # the FALLBACK only
+
+    skirt = _skirt_faces(r)
+    assert len(skirt) == 8                           # four quads
+    assert _skirt_lows(r) == [-9.8] * 4 + [-1.3] * 4
+
+    # the shallow pair hangs off the shallow (x = 0) end, the deep pair off the deep one
+    for f in skirt:
+        x = r.mesh.positions[r.mesh.face_v[f]][:, 0]
+        low = round(float(r.mesh.positions[r.mesh.face_v[f]][:, 2].min()), 6)
+        assert (float(x.min()) == 0.0) if low == -1.3 else (float(x.max()) == 60.0)
+
+
+def test_a_measured_edge_height_is_still_clamped_into_the_profile_bounds():
+    """Per edge now, where it used to be per region: the same 1.3 in measurement comes back as
+    the default `min_thickness` of 2.0, and `two_level_slab`'s 200 in edge still clamps to
+    `max_thickness`."""
+    assert _skirt_lows(_solidified(slab_with_two_depths())) == [-9.8] * 4 + [-2.0] * 4
+
+
+def test_an_edge_whose_height_cannot_be_measured_is_counted_as_a_fallback():
+    """`bare_top_quad` has no side face anywhere in the file, so not one of its four open edges
+    resolves. Each still gets a skirt -- it closes a hole a person can see, and the cap guard
+    judges it -- at `min_thickness`, and all four are reported as fallbacks."""
+    r = _solidified(bare_top_quad())
+    assert r.report["skirts_added"] == 4
+    assert r.report["skirt_edges_fallback"] == 4
+    assert r.report["bottom_thickness_unresolved"] == 1      # and so no bottom is invented
+    assert r.report["bottoms_added"] == 0

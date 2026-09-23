@@ -612,3 +612,51 @@ def compartment_with_deep_wall(length=60.0, width=10.0, height=10.0, wall_x=45.0
                                   (1, 5, 6, 2),          # x = L wall, +x
                                   (8, 9, 10, 11)])       # the deep wall, -x (INWARD)
     return _mesh("compartment_with_deep_wall", P, uvs, fv, fvt, face_material=fm)
+
+
+def slab_with_two_depths(size=30.0, width=20.0, kink=3.0, deep=9.8, shallow=1.3,
+                         with_bottom=False):
+    """ONE top region, a flat hexagon at `z = 0`, whose two ends are already skirted to DIFFERENT
+    depths: `shallow` at `x = 0` and `deep` at `x = 2 * size`. Its four remaining outline edges
+    are open, and each takes its depth from the end it touches -- `shallow`, `deep`, `deep`,
+    `shallow`, going round.
+
+    The outline is a hexagon rather than a rectangle for a reason: the two open edges of each
+    long side must not share a corner with the deep end, or the deepest side face reaching either
+    endpoint wins and both measure `deep`. The kink at `x = size` is a genuine corner, so the
+    union cannot simplify it away the way it would a collinear midpoint.
+
+    Every existing side face is an outward-wound skirt of this same slab, so a new skirt covering
+    one covers its BACK -- which the cap guard allows under rule 2 -- and the fixture measures
+    S-I4 without also testing rule 3.
+
+    `with_bottom` adds a plate at `-(deep + 2)`, DEEPER than the shallowest skirt: the case S-I5's
+    extended downward search has to find, so that no second bottom is placed above it.
+
+    Faces: 0-3 the top (quads `(0,1,4,5)` and `(1,2,3,4)`), 4-5 the shallow end skirt, 6-7 the
+    deep end skirt, then optionally 8-9 the plate."""
+    u, w, k, D, h = size, width, kink, deep, shallow
+    P = [[0.0, 0.0, 0.0], [u, -k, 0.0], [2 * u, 0.0, 0.0],
+         [2 * u, w, 0.0], [u, w + k, 0.0], [0.0, w, 0.0],
+         [0.0, 0.0, -h], [0.0, w, -h],                    # 6, 7: the shallow end
+         [2 * u, 0.0, -D], [2 * u, w, -D]]                # 8, 9: the deep end
+    uvs, fv, fvt, fm = [], [], [], []
+    _quads(P, uvs, fv, fvt, fm, [(0, 1, 4, 5), (1, 2, 3, 4),   # the top, +z
+                                  (0, 5, 7, 6),                 # x = 0 end skirt, -x, shallow
+                                  (2, 8, 9, 3)])                # x = 2u end skirt, +x, deep
+    if with_bottom:
+        base = len(P)
+        P += [[0.0, -k, -(D + 2)], [2 * u, -k, -(D + 2)],
+              [2 * u, w + k, -(D + 2)], [0.0, w + k, -(D + 2)]]
+        _quads(P, uvs, fv, fvt, fm, [(base, base + 3, base + 2, base + 1)])   # the plate, -z
+    return _mesh("slab_with_two_depths", P, uvs, fv, fvt, face_material=fm)
+
+
+def bare_top_quad(size=40.0):
+    """A single flat quad at `z = 0` and nothing else: four open outline edges and not one side
+    face anywhere in the file, so no edge's height can be measured at all."""
+    s = size
+    P = [[0.0, 0.0, 0.0], [s, 0.0, 0.0], [s, s, 0.0], [0.0, s, 0.0]]
+    uvs, fv, fvt, fm = [], [], [], []
+    _quads(P, uvs, fv, fvt, fm, [(0, 1, 2, 3)])
+    return _mesh("bare_top_quad", P, uvs, fv, fvt, face_material=fm)
