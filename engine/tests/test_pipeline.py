@@ -46,6 +46,7 @@ import engine.fixes.pipeline as fix_pipeline
 from engine.fixes.merge import MergeResult
 from engine.fixes.orient import ORIENT_FLIP
 from engine.fixes.pipeline import FixProfile, fix_object
+from engine.fixes.remove import remove_faces
 from engine.tests.fixtures.build import _mesh, box_with_partition, gridded_box, open_box_with_cells
 from engine.vis.exposure import EXP_HIDDEN, EXP_OUTSIDE, EXP_SLIT
 
@@ -380,3 +381,62 @@ def test_a_sliver_that_only_the_relative_test_calls_zero_area_is_kept_by_the_gua
     assert r.n_zero_area_dropped == 0
     assert r.guard_after_removal.passed is True
     assert int((r.mesh.face_material == 1).sum()) == 1   # the sliver survives into the result
+
+
+# ---------------------------------------------------------------------------------------------
+# E3: what the pipeline does when the FINAL guard fails, and what the post-removal guard says.
+# ---------------------------------------------------------------------------------------------
+
+def test_rolled_back_when_the_final_guard_fails_and_guard_final_is_the_shipped_mesh(monkeypatch):
+    """A merge that converges but loses a visible face must be discarded, and `guard_final` must
+    then describe the mesh actually SHIPPED -- not the candidate that was thrown away. If it
+    described the candidate it would be full of holes and `passed` would be False; it is spotless,
+    because the shipped mesh is the flipped-but-unmerged one, which is this fixture unchanged."""
+    m = gridded_box(4, 2.5)       # 192 tris, nothing hidden, nothing degenerate, merges to 12
+    real_merge_regions = fix_pipeline.merge_regions
+
+    def loses_a_visible_face(mesh, topo, flat_materials=frozenset(), **kw):
+        real = real_merge_regions(mesh, topo, flat_materials, **kw)
+        drop = np.zeros(real.mesh.n_faces, dtype=bool)
+        drop[0] = True            # half of one outer cube side: a hole nobody can miss
+        broken, kept = remove_faces(real.mesh, drop)
+        return MergeResult(mesh=broken, source_faces=[real.source_faces[i] for i in kept],
+                           report=dict(real.report))
+
+    monkeypatch.setattr(fix_pipeline, "merge_regions", loses_a_visible_face)
+    r = fix_object(m, {}, _FAST)
+
+    assert r.merge_report["converged"] is True          # the merge itself was fine; its RESULT was not
+    assert r.merge_report["rolled_back"] is True
+    assert r.merge_report["rolled_back_reason"] == "guard_failed"
+
+    # the flipped-but-unmerged mesh: this fixture needs no flips and loses no faces, so 192
+    assert r.mesh.n_faces == m.n_faces == 192
+    assert np.array_equal(r.mesh.face_v, m.face_v)
+    assert [s.tolist() for s in r.source_faces] == [[i] for i in range(192)]
+    assert r.rings == {}
+
+    # guard_final is THAT mesh's guard, and it passes
+    assert r.guard_final.passed is True
+    assert {k: v for k, v in r.guard_final.totals.items() if k != "model_px"} \
+        == {k: 0 for k in r.guard_final.totals if k != "model_px"}
+    assert r.guard_final.totals["model_px"] > 0
+    assert r.invariants["guard_passed"] is True
+    assert r.passed is True
+
+
+def test_guard_after_removal_is_spotless_on_box_with_partition():
+    """The post-removal (pre-merge) guard compares the flipped, hidden-face-free mesh against the
+    pristine original over all 26 views. Removing a partition sealed inside a closed box cannot
+    change one pixel of it, so every total -- holes, material changes, moves, and every flicker
+    class -- has to be exactly zero."""
+    r = fix_object(box_with_partition(), {}, _FAST)
+
+    assert r.n_removed_hidden == 2
+    assert r.guard_after_removal.passed is True
+    assert {k: v for k, v in r.guard_after_removal.totals.items() if k != "model_px"} \
+        == {k: 0 for k in r.guard_after_removal.totals if k != "model_px"}
+    assert r.guard_after_removal.totals["model_px"] > 0
+    assert len(r.guard_after_removal.views) == 26
+    assert all(v.holes == 0 and v.material_changed == 0 and v.moved_same_flat == 0
+               and v.moved_other == 0 and v.edge_flicker == 0 for v in r.guard_after_removal.views)
