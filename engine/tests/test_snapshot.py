@@ -155,6 +155,24 @@ def test_two_sequential_calls_succeed_and_stale_incoming_dir_survives_untouched(
     assert [p for p in dst_root.glob(".incoming-*") if p != stale] == []
 
 
+def test_identical_bytes_under_another_name_reuse_the_existing_snapshot(tmp_path):
+    # The snapshot directory is keyed on the OBJ bytes alone, so a second source file with the same
+    # bytes but a different name lands on the directory the first one created -- and must load the
+    # OBJ that directory actually holds, not look for its own file name there.
+    src = make_source(tmp_path / "src")
+    twin = src.with_name("twin.obj")
+    twin.write_bytes(src.read_bytes())
+    dst_root = tmp_path / "snap"
+
+    first = snapshot_object(src, dst_root, expected_tris=1, interval_s=0, sleep=lambda s: None)
+    second = snapshot_object(twin, dst_root, expected_tris=1, interval_s=0, sleep=lambda s: None)
+
+    assert second.dir == first.dir and second.sha256 == first.sha256
+    assert second.obj_path.name == "walk.obj" and second.mesh.n_faces == 1
+    assert second.textures["stone"].exists() and second.flatness["stone"] == 0.0
+    assert sorted(p.name for p in first.dir.glob("*.obj")) == ["walk.obj"]  # still one OBJ per snapshot
+
+
 def test_snapshot_wraps_permission_error_during_copy_as_source_unstable(tmp_path, monkeypatch):
     src = make_source(tmp_path / "src")
 

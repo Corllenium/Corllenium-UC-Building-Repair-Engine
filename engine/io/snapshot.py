@@ -149,7 +149,7 @@ def snapshot_object(src_obj, dst_root, expected_tris=None, interval_s=1.0, sleep
                     raise
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
-    return _load(final, src_obj.name, digest)
+    return _load(final, digest)
 
 
 def _copy_assets(src_obj, mesh, tmp, interval_s, sleep):
@@ -181,8 +181,13 @@ def _copy_assets(src_obj, mesh, tmp, interval_s, sleep):
     (tmp / "missing_textures.txt").write_text("\n".join(missing), encoding="utf-8")
 
 
-def _load(final: Path, obj_name: str, digest: str) -> SnapshotResult:
-    obj_path = final / obj_name
+def _load(final: Path, digest: str) -> SnapshotResult:
+    # `final` is named by the OBJ bytes alone, so its one OBJ carries the name of whichever source
+    # first produced those bytes -- not necessarily the caller's (two exports can be identical).
+    obj_paths = sorted(final.glob("*.obj"))
+    if len(obj_paths) != 1:
+        raise ValueError(f"{final}: expected exactly one .obj file, found {len(obj_paths)}")
+    obj_path = obj_paths[0]
     mtl_path = final / "materials.mtl"
     source_mtl_path = final / "source.mtl"
     res = SnapshotResult(final, obj_path, digest, obj_path.stat().st_size, read_obj(obj_path),
