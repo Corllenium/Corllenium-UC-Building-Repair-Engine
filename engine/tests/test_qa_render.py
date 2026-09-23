@@ -86,3 +86,40 @@ def test_the_sheet_is_deterministic(tmp_path):
     b = write_qa_sheet(box_with_partition(), None, tmp_path / "b", size=(160, 100))
     for pa, pb in zip(a, b):
         assert pa.read_bytes() == pb.read_bytes(), pa.name
+
+
+def test_an_edge_just_under_a_flat_surface_is_not_drawn():
+    """The same scene with the small quad only 2 in under the plate. A flat depth tolerance of
+    three pixels (2.65 in at this size) let it bleed through the plate as if it were drawn ON
+    it -- measured on file A's top view, about 6,000 edge samples 0.5 to 3.3 in behind the
+    surface they were drawn over. The tolerance is now the depth change the HIT surface's own
+    slope makes across a pixel, which for a plate facing the camera is almost nothing."""
+    P = [[0, 0, 2], [100, 0, 2], [100, 100, 2], [0, 100, 2],
+         [40, 40, 0], [60, 40, 0], [60, 60, 0], [40, 60, 0]]
+    fv = [[0, 1, 2], [0, 2, 3], [4, 5, 6], [4, 6, 7]]
+    m = _mesh("plate_just_over_quad", P, [[0, 0]] * 8, fv, fv)
+    small = np.array([[4, 5], [5, 6], [6, 7], [4, 7]])
+
+    import tempfile
+    with tempfile.TemporaryDirectory() as tmp:
+        paths = {p.stem: p for p in write_qa_sheet(m, small, tmp, size=(200, 120))}
+        assert _edge_pixels(paths["top"]) == 0
+        assert 80 <= _edge_pixels(paths["bottom"]) <= 100
+
+
+def test_an_edge_on_a_steep_visible_surface_is_still_drawn():
+    """The other side of the same rule: an edge lying ON a surface seen at a steep angle must
+    survive, although its pixel's ray meets that surface up to half a pixel away and so, on a
+    steep surface, at a noticeably different depth. A 60 degree roof's ridge-to-eave edges from
+    straight above: every one of them is in view."""
+    P = [[0, 0, 0], [100, 0, 0], [100, 50, 86.6], [0, 50, 86.6],
+         [0, 100, 0], [100, 100, 0]]
+    fv = [[0, 1, 2], [0, 2, 3], [3, 2, 5], [3, 5, 4]]
+    m = _mesh("steep_roof", P, [[0, 0]] * 6, fv, fv)
+    ridge_and_eaves = np.array([[0, 1], [3, 2], [4, 5], [0, 3], [1, 2], [3, 4], [2, 5]])
+
+    import tempfile
+    with tempfile.TemporaryDirectory() as tmp:
+        paths = {p.stem: p for p in write_qa_sheet(m, ridge_and_eaves, tmp, size=(200, 120))}
+        # 3 edges of 100 in across and 4 of 50 in in plan, at ~0.88 in per pixel: ~565 px
+        assert _edge_pixels(paths["top"]) > 450

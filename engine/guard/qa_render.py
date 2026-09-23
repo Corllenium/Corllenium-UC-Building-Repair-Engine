@@ -16,7 +16,8 @@ contain, not the triangles Unity will.
 
 Ported from `spike/17_visual_qa.py` with two changes: the edge pass is vectorised (every sample of
 every edge is projected and depth-tested at once, and an edge is drawn by marking the pixel of
-each visible sample, sampled finely enough that consecutive samples are under a pixel apart), and
+each visible sample, sampled finely enough that consecutive samples are under a pixel apart, with
+a per-pixel depth tolerance taken from the visible surface's own slope -- see `_render`), and
 a close-up whose slice of the model holds fewer than 3 vertices falls back to the whole-model
 frame instead of being skipped -- so a run always writes exactly 21 files, which a test can
 count. Deterministic: fixed views, no randomness, PNG written from the same array every time.
@@ -59,6 +60,9 @@ _EDGE_RGB = np.array([40, 40, 46], dtype=np.uint8)
 _LIGHT = np.array([0.35, -0.45, 0.82]) / np.linalg.norm([0.35, -0.45, 0.82])
 #: Frame margin: the view is 6 % wider than the model's projected extent.
 _MARGIN = 1.06
+#: Cap on the per-pixel depth slope the edge test allows for (about 87 degrees off the view):
+#: a surface seen almost edge-on would otherwise excuse anything behind it.
+_MAX_SLOPE = 20.0
 
 
 def qa_file_names() -> list[str]:
@@ -114,10 +118,16 @@ def _camera(view, frame: np.ndarray, size: tuple[int, int]):
 def _render(caster, positions_c: np.ndarray, normals: np.ndarray, edges: np.ndarray, view,
             frame: np.ndarray, size: tuple[int, int], diag: float) -> Image.Image:
     """One shaded image with hidden-line-removed edges. Faces are shaded double-sided
-    (`|n . light|`), the way SketchUp and the project's Unity materials draw them; an edge sample
-    is drawn when it is no further along the view ray than the surface its pixel shows, within a
-    tolerance of three pixels (and never less than 0.5 in), so an edge lying ON a visible surface
-    is drawn and one behind it is not."""
+    (`|n . light|`), the way SketchUp and the project's Unity materials draw them.
+
+    An edge sample is drawn when it is no further along the view ray than the surface its pixel
+    shows, plus a tolerance PER PIXEL: the depth change that surface's own slope makes over
+    three quarters of a pixel (a sample is at most half a pixel diagonal from its pixel's ray),
+    capped at a slope of `_MAX_SLOPE`, plus `max(diag * 2e-4, 0.05 in)` of numeric slack. An edge
+    lying ON the visible surface meets that bound -- at a crease it lies on both faces' planes --
+    and one behind it does not, however close. A single flat tolerance cannot do both: three
+    pixels drew about 6,000 hidden edge samples through file A's top view (0.5 to 3.3 in under
+    the surface they were drawn over), and the spike's 0.5 in drops edges on steep faces."""
     width, height = size
     d, right, up, cx, cy, pixel = _camera(view, frame, size)
     standoff = -d * diag * 2.0
@@ -129,12 +139,18 @@ def _render(caster, positions_c: np.ndarray, normals: np.ndarray, edges: np.ndar
 
     img = np.full((height * width, 3), _BACKGROUND, dtype=np.uint8)
     hit = tri >= 0
-    shade = 0.55 + 0.45 * np.abs(normals[tri[hit]] @ _LIGHT)
+    hit_normal = normals[tri[hit]]
+    shade = 0.55 + 0.45 * np.abs(hit_normal @ _LIGHT)
     img[hit] = np.clip(_FACE_RGB * shade[:, None], 0, 255).astype(np.uint8)
     depth = np.full(height * width, np.inf)
     depth[hit] = t[hit]
+    # depth change per unit of image-plane offset, on the surface each pixel shows
+    slope = np.zeros(height * width)
+    slope[hit] = np.minimum(np.hypot(hit_normal @ right, hit_normal @ up)
+                            / np.maximum(np.abs(hit_normal @ d), 1e-6), _MAX_SLOPE)
     img = img.reshape(height, width, 3)
     depth = depth.reshape(height, width)
+    slope = slope.reshape(height, width)
 
     if len(edges):
         pa, pb = positions_c[edges[:, 0]], positions_c[edges[:, 1]]
@@ -148,9 +164,10 @@ def _render(caster, positions_c: np.ndarray, normals: np.ndarray, edges: np.ndar
         py = np.floor(height / 2.0 - (pts @ up - cy) / pixel).astype(np.int64)
         along = (pts - standoff) @ d
         inside = (px >= 0) & (px < width) & (py >= 0) & (py < height)
-        tol = max(diag * 2e-4, 0.5, 3.0 * pixel)
+        slack = max(diag * 2e-4, 0.05)
+        iy, ix = py[inside], px[inside]
         visible = np.zeros(len(pts), dtype=bool)
-        visible[inside] = along[inside] <= depth[py[inside], px[inside]] + tol
+        visible[inside] = along[inside] <= depth[iy, ix] + 0.75 * pixel * slope[iy, ix] + slack
         img[py[visible], px[visible]] = _EDGE_RGB
     return Image.fromarray(img)
 
