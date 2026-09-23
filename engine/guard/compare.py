@@ -289,8 +289,8 @@ def classify_pixels(before_depth: np.ndarray, before_tri: np.ndarray,
     really vanished as long as something similar sat nearby, (2) alone would tolerate a surface
     that really appeared. Together they say the two pictures differ only by a boundary that moved
     less than the tolerance -- which is as true at an INTERNAL silhouette (one real surface in
-    front of another) as at the model's outer edge, where the old 3x3-neighbourhood-plus-5x5-
-    coverage rule only worked because it looked for background.
+    front of another), where there is no background pixel anywhere in the image, as at the model's
+    outer edge.
 
     Passing no `ring` means no pixel is ever flicker, which is correct exactly where flicker and
     the real class are treated alike (`guard_feedback`, cap 0.0). `plane_before`/`plane_after` are

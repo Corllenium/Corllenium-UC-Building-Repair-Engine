@@ -362,25 +362,36 @@ def _block(drop=()):
     return tri
 
 
-#: A trivial, always-constructible (positions, faces) pair for tests that must supply SOME
-#: geometry to satisfy `edge_flicker_cap > 0`'s requirement but never actually exercise the
-#: coverage probe (no flicker candidate exists in that scenario, so it is never ray-cast).
-_DUMMY_GEOMETRY = (np.array([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, 1.0, 0.0]]), np.array([[0, 1, 2]], np.int64))
+#: The REAL geometry the `_block()` picture comes from: `_buffers` puts every hit one unit along
+#: +z from an origin at `(col, row, 0)`, so its hit points all lie on the plane `z = 1`, and the
+#: quad below is that plane over the block's own extent (its corner pixels are 25 and 174, so its
+#: boundary runs half a pixel outside them). Passing it gives the ring something true to cast
+#: against, instead of a placeholder whose verdict would measure the placeholder.
+#:
+#: What it deliberately does NOT contain is `drop`: an individually deleted pixel is a synthetic
+#: edit no real surface can express, which is exactly why no ring ray ever reproduces it and a
+#: dropped pixel is never rescued here.
+_BLOCK_GEOMETRY = (np.array([[24.5, 24.5, 1.0], [174.5, 24.5, 1.0],
+                              [174.5, 174.5, 1.0], [24.5, 174.5, 1.0]]),
+                    np.array([[0, 1, 2], [0, 2, 3]], np.int64))
 
 
 def _flicker_report(drop, cap, strict=True, geometry=None):
+    """`geometry` given, `compare_views` derives the planes from it and the ring, tie and crack
+    tests all really run; `geometry=None` is the deliberate no-evidence case, which then needs
+    `allow_depth_fallback` because there are no planes to measure displacement against."""
     before, after = _buffers(_block()), _buffers(_block(drop))
-    mat = np.zeros(1, np.int64)
-    kw = {} if geometry is None else {"geometry_before": geometry, "geometry_after": geometry}
+    mat = np.zeros(2, np.int64)
+    kw = ({"allow_depth_fallback": True} if geometry is None
+          else {"geometry_before": geometry, "geometry_after": geometry})
     return compare_views([(_FLICKER_VIEW, before)], [(_FLICKER_VIEW, after)], mat, mat,
-                          frozenset({0}), 0.15, strict=strict, edge_flicker_cap=cap,
-                          allow_depth_fallback=True, **kw)  # synthetic buffers: there is no real geometry
+                          frozenset({0}), 0.15, strict=strict, edge_flicker_cap=cap, **kw)
 
 
 def test_a_would_be_hole_is_never_flicker_without_the_geometry_to_ring_test_it():
     """Flicker is decided by casting a RING of rays around the pixel in both geometries, so with
-    no geometry to cast against there is no evidence and a would-be hole stays a hole -- even on
-    the silhouette, where the old 3x3-neighbourhood precondition alone used to call it flicker.
+    no geometry to cast against there is no evidence and a would-be hole stays a hole -- on the
+    silhouette as much as anywhere else.
 
     `guard_feedback` depends on this: it casts no ring (a removal is not a change a person
     accepted), and every failing pixel there must keep failing."""
@@ -411,7 +422,12 @@ def test_edge_flicker_cap_above_zero_without_geometry_is_an_error():
     # cap 0.0 is unaffected -- still no geometry required
     _flicker_report([(25, 25)], cap=0.0)
     # geometry supplied (even a placeholder never actually ray-cast here) lifts the error
-    _flicker_report([(25, 25)], cap=1e-4, geometry=_DUMMY_GEOMETRY)
+    # real geometry lifts the error, and the ring it now casts finds no evidence for the pixel:
+    # the block's own surface has no boundary within a ring radius of it, so a synthetically
+    # dropped pixel is still a hole.
+    with_geometry = _flicker_report([(25, 25)], cap=1e-4, geometry=_BLOCK_GEOMETRY)
+    assert with_geometry.totals["holes"] == 1 and with_geometry.totals["edge_flicker"] == 0
+    assert with_geometry.totals["crack_closed"] == 0 and with_geometry.passed is False
 
 
 def test_a_cap_above_zero_builds_the_planes_the_ring_needs_from_the_geometry():
@@ -469,14 +485,15 @@ def test_interior_hole_fails_at_any_cap():
                              frozenset({0}), 0.15, allow_depth_fallback=True)
     assert int((codes == PX_HOLE).sum()) == 1 and int((codes == PX_EDGE_FLICKER).sum()) == 0
 
-    # At cap 0.0 no geometry is needed, so the synthetic buffers can answer for themselves. A cap
-    # above zero really does cast the ring now (R2b), and a ring cast against a placeholder
-    # geometry that has nothing to do with these buffers would only measure the placeholder --
-    # `test_an_interior_hole_flanked_by_coplanar_survivors_fails_at_any_cap` asks the same
-    # question of a real scene.
-    report = _flicker_report([(100, 100)], cap=0.0)
-    assert report.totals["holes"] == 1 and report.totals["edge_flicker"] == 0
-    assert not report.passed
+    # The same answer at every cap, with the ring really cast against the block's own surface:
+    # a pixel in the middle of a slab has no boundary anywhere near it, so nothing reproduces
+    # AFTER's missing centre and it is neither flicker nor a crack the fix closed.
+    for cap in (0.0, 1e-4, 1.0):
+        report = _flicker_report([(100, 100)], cap=cap,
+                                  geometry=_BLOCK_GEOMETRY if cap > 0 else None)
+        assert report.totals["holes"] == 1 and report.totals["edge_flicker"] == 0
+        assert report.totals["crack_closed"] == 0 and report.totals["zfight_tie"] == 0
+        assert not report.passed
 
 
 # ---------------------------------------------------------------------------
@@ -487,8 +504,9 @@ def test_interior_hole_fails_at_any_cap():
 # `depth_tol / 2` -- in BOTH geometries. It is flicker only when an AFTER ring ray reproduces
 # BEFORE's centre verdict AND a BEFORE ring ray reproduces AFTER's. That is exactly the bound
 # the merge works to (dropping a nearly-collinear ring vertex moves a boundary by at most the
-# collinearity tolerance), and unlike the old 3x3 + 5x5-coverage rule it works at an INTERNAL
-# silhouette, where a boundary shift swaps one real surface for another rather than for sky.
+# collinearity tolerance), and it works at an INTERNAL silhouette, where a boundary shift swaps
+# one real surface for another rather than for sky -- with no background pixel anywhere in the
+# image to key off.
 # ---------------------------------------------------------------------------
 
 _FLAT_VIEW = (0.0, 0.0, -1.0)  # head-on at the z = 0 plane, so `right` is +x and `up` is +y
@@ -514,7 +532,7 @@ def test_a_thousandth_of_an_inch_of_boundary_shift_is_edge_flicker():
     cam = _camera()
     c, r = 40, 26
     x0, y0 = float(cam.xs[c]), float(cam.ys[r])
-    k = 0.037  # tilt the boundary off the pixel lattice, so it crosses ONE sub-ray, not a column
+    k = 0.037  # tilt the boundary off the pixel lattice, so it crosses ONE pixel, not a column
 
     def plate(offset):
         return np.array([[-60.0, -60.0, 0.0],
@@ -573,8 +591,8 @@ def _stacked(edge_x, y_lo, y_hi, upper_material):
 
     Seen from straight above, `x = edge_x` is an INTERNAL silhouette: on one side the ray meets
     the upper slab, on the other the lower one `_STACK_GAP` further away. No pixel anywhere in
-    the image is background, which is precisely the case the old rule's 3x3-neighbourhood
-    precondition could not recognise. Returns `(positions, faces, face_material, rendered)`."""
+    the image is background, so nothing here can be judged by looking for sky.
+    Returns `(positions, faces, face_material, rendered)`."""
     z = _STACK_GAP
     P = np.array([[-_SLAB, -_SLAB, 0.0], [_SLAB, -_SLAB, 0.0], [_SLAB, _SLAB, 0.0], [-_SLAB, _SLAB, 0.0],
                    [-_SLAB, y_lo, z], [edge_x, y_lo, z], [edge_x, y_hi, z], [-_SLAB, y_hi, z]])
@@ -616,10 +634,10 @@ def _swapped(before, after):
 def test_boundary_shift_under_tolerance_at_an_internal_silhouette_is_edge_flicker():
     """The upper slab's boundary moves 0.1 in -- under the 0.15 `depth_tol` a merge works to --
     and the one pixel whose centre it straddles swaps a surface for another 10 in behind it. No
-    pixel in the image is background, so the OLD rule (a miss in the 3x3 neighbourhood, then a
-    5x5 sub-ray coverage vote) could never call this flicker. The ring test can: an AFTER ring ray
-    0.075 in to the left still lands on the upper slab, and a BEFORE ring ray 0.075 in to the
-    right already lands on the lower one."""
+    pixel in the image is background, so there is no sky to key off: the verdict has to come from
+    what the two geometries actually hold beside the pixel. An AFTER ring ray 0.075 in to the left
+    still lands on the upper slab, and a BEFORE ring ray 0.075 in to the right already lands on
+    the lower one -- both halves of the ring rule, so it is flicker."""
     (row, col), mat, before, after, kw = _stacked_pair(0.1)
 
     swapped = _swapped(before, after)
@@ -992,8 +1010,9 @@ def test_an_interior_hole_flanked_by_coplanar_survivors_fails_at_any_cap():
 def _gap_scene():
     """A wall at x in [-60, -10] and a 2-pixel-wide strip at x in [10, 16.5], both z = 0, with a
     20 in PRE-EXISTING gap between them. AFTER drops the strip entirely: every one of its pixels
-    has a miss in its 3x3 BEFORE neighbourhood (the gap on one side, background on the other), so
-    the 3x3 test alone calls all of them flicker."""
+    has a BEFORE miss right beside it (the gap on one side, background on the other), so every one
+    of them satisfies HALF the ring rule -- a BEFORE ring ray does reproduce AFTER's missing
+    centre. The other half is what must save it: nothing in AFTER reproduces the strip."""
     P = np.array([[-60.0, -60.0, 0.0], [-10.0, -60.0, 0.0], [-10.0, 60.0, 0.0], [-60.0, 60.0, 0.0],
                    [10.0, -60.0, 0.0], [16.5, -60.0, 0.0], [16.5, 60.0, 0.0], [10.0, 60.0, 0.0]])
     faces_before = np.vstack([_QUAD, _QUAD + 4])
@@ -1016,14 +1035,13 @@ def test_a_removed_face_beside_a_pre_existing_gap_is_a_hole_at_any_cap():
     planes = face_planes(P, faces_before)
     kw = dict(strict=True, plane_before=planes, plane_after=face_planes(P, faces_after))
 
-    # the 3x3 test ALONE cannot tell this from a silhouette (every pixel would be tolerated at a
-    # cap), which is exactly why a nonzero cap without geometry is now a hard error rather than a
-    # silent wrong answer.
+    # planes alone cannot answer this -- there is nothing to cast a ring AT -- which is why a
+    # nonzero cap without geometry is a hard error rather than a silent wrong answer.
     with pytest.raises(ValueError, match="geometry"):
         compare_views([(_FLAT_VIEW, before)], [(_FLAT_VIEW, after)], mat, mat, frozenset({0}),
                        0.15, edge_flicker_cap=1.0, **kw)
 
-    # with the sub-pixel coverage check, 25 of 25 sub-rays are lost: a hole at every cap
+    # with the ring cast in both geometries, no AFTER ray reproduces the strip: a hole at every cap
     for cap in (0.0, 1e-4, 1.0):
         report = compare_views([(_FLAT_VIEW, before)], [(_FLAT_VIEW, after)], mat, mat,
                                 frozenset({0}), 0.15, edge_flicker_cap=cap,
