@@ -26,29 +26,34 @@ ORIENT_THIN_SHEET = 2
 def classify_orientation(front: np.ndarray, back: np.ndarray, ok: np.ndarray,
                           sheet_ratio: float = 0.5) -> np.ndarray:
     """Per-face orientation verdict (uint8), from `compute_side_exposure`'s `front`/`back`
-    fractions: `ORIENT_FLIP` when `back > front` (the face's only real exposure is on the side its
-    winding calls "back" -- it was wound into the model); else `ORIENT_THIN_SHEET` when both sides
-    are exposed (`front > 0` and `back > 0`) and roughly equally so
-    (`min(front, back) / max(front, back) >= sheet_ratio`); else `ORIENT_OK`.
+    fractions: `ORIENT_THIN_SHEET` when both sides are exposed (`front > 0` and `back > 0`) and
+    roughly equally so (`min(front, back) / max(front, back) >= sheet_ratio`); else `ORIENT_FLIP`
+    when `back > front` (the face's only real exposure is on the side its winding calls "back" --
+    it was wound into the model); else `ORIENT_OK`.
 
     A hidden face (`front == back == 0`) or a degenerate (`not ok`) face is always `ORIENT_OK`:
     hidden faces get removed anyway (see `engine.fixes.pipeline.fix_object`), and a degenerate
-    face has no orientation to speak of. Priority is FLIP first, THIN_SHEET second -- a face whose
-    back genuinely dominates is reported as needing a flip even if the ratio would also read as a
-    thin sheet.
+    face has no orientation to speak of.
+
+    THIN_SHEET WINS. A sheet that really is seen from both sides has no outward side to be wound
+    towards, so "which side sees more sky" is not evidence about its winding -- anything standing
+    near one of its faces tips `back > front` by a few per cent. Flipping one of those does not
+    correct anything; it just moves the one-sided hole to the other side, which is strictly worse
+    because that side was equally visible. The review found about 35 genuine thin sheets flipped
+    on file A this way (47 reported where 82 were measured), each opening a hole. FLIP is reserved
+    for the lopsided case the check was written for: a face whose front is blind (a panel wound
+    into the model), where the ratio is nowhere near `sheet_ratio`.
     """
     front = np.asarray(front, dtype=np.float64)
     back = np.asarray(back, dtype=np.float64)
     ok = np.asarray(ok, dtype=bool)
     out = np.full(len(front), ORIENT_OK, dtype=np.uint8)
 
-    flip = ok & (back > front)
-    out[flip] = ORIENT_FLIP
-
-    both_exposed = ok & ~flip & (front > 0.0) & (back > 0.0)
     with np.errstate(invalid="ignore", divide="ignore"):
         ratio = np.minimum(front, back) / np.maximum(front, back)
-    out[both_exposed & (ratio >= sheet_ratio)] = ORIENT_THIN_SHEET
+    sheet = ok & (front > 0.0) & (back > 0.0) & (ratio >= sheet_ratio)
+    out[sheet] = ORIENT_THIN_SHEET
+    out[ok & ~sheet & (back > front)] = ORIENT_FLIP
     return out
 
 

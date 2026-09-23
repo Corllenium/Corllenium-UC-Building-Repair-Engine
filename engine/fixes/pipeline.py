@@ -90,7 +90,8 @@ class FixResult:
     #: Bool, over ORIGINAL faces: survived removal and had its winding reversed (its only real
     #: exposure was on the BACK -- see `engine.fixes.orient.classify_orientation`).
     flipped: np.ndarray
-    #: Bool, over ORIGINAL faces: both sides exposed, roughly equally -- reported, never touched.
+    #: Bool, over ORIGINAL faces: both sides exposed, roughly equally -- reported, never touched,
+    #: and never flipped either (see `engine.fixes.orient.classify_orientation`).
     thin_sheets: np.ndarray
     #: `engine.fixes.orient.one_sided_holes` over the ORIGINAL mesh's non-degenerate faces, and
     #: again over the mesh actually shipped (`mesh`) -- pixels a one-sided renderer would still

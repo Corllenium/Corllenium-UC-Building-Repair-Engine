@@ -49,6 +49,21 @@ def test_classify_orientation_not_ok_faces_are_ok_even_if_back_exceeds_front():
     assert cls.tolist() == [ORIENT_OK]
 
 
+def test_a_thin_sheet_is_never_flipped_even_when_its_back_sees_more():
+    """R1a: THIN_SHEET takes precedence over FLIP. A free-standing sheet with anything at all on
+    one side sees a little less sky there, so `back > front` alone reads a perfectly correct sheet
+    as reversed -- and flipping one opens a hole in a one-sided renderer on whichever side is now
+    the back. It is only a FLIP when the two sides are lopsided enough NOT to be a sheet.
+
+    First pair: a sheet's own measured numbers (a 10x10 quad under a 6x6 awning, below). Second:
+    a genuinely reversed face, whose front is nearly blind."""
+    front = np.array([0.3906, 0.3887, 0.10, 0.0])
+    back = np.array([0.5, 0.5, 0.90, 0.5])
+    ok = np.array([True, True, True, True])
+    cls = classify_orientation(front, back, ok, sheet_ratio=0.5)
+    assert cls.tolist() == [ORIENT_THIN_SHEET, ORIENT_THIN_SHEET, ORIENT_FLIP, ORIENT_FLIP]
+
+
 def test_classify_orientation_thin_sheet_ratio_threshold():
     # min/max exactly at the default 0.5 threshold -> THIN_SHEET; just below -> OK.
     front = np.array([0.4, 0.41])

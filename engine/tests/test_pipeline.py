@@ -48,7 +48,7 @@ from engine.fixes.orient import ORIENT_FLIP
 from engine.fixes.pipeline import FixProfile, fix_object
 from engine.fixes.remove import remove_faces
 from engine.tests.fixtures.build import _mesh, box_with_partition, gridded_box, open_box_with_cells
-from engine.vis.exposure import EXP_HIDDEN, EXP_OUTSIDE, EXP_SLIT
+from engine.vis.exposure import EXP_HIDDEN, EXP_OUTSIDE, EXP_SLIT, compute_side_exposure
 
 #: Small render settings: only correctness is under test here, not image fidelity (matches the
 #: convention in test_guard.py / test_exposure.py).
@@ -284,6 +284,32 @@ def test_fix_object_reports_a_thin_sheet_without_touching_it():
     assert r.thin_sheets.tolist() == [True, True]
     assert not r.flipped.any()
     assert r.mesh.n_faces == m.n_faces  # untouched: not removed, not merged differently
+    assert r.passed is True
+
+
+def test_a_free_standing_quad_seen_from_both_sides_is_a_sheet_not_a_flip():
+    """R1a, end to end. A 10x10 quad with a 6x6 awning floating 3 in over it: the awning takes a
+    bite out of the quad's FRONT hemisphere, so its back sees more sky (measured front 0.391 /
+    back 0.500) and the old `back > front` rule flipped it. Both sides are plainly exposed, so it
+    is a sheet -- reported, never touched. The review found about 35 such faces flipped on file A,
+    each opening a one-sided hole."""
+    P = [[0, 0, 0], [10, 0, 0], [10, 10, 0], [0, 10, 0],
+         [2, 2, 3], [8, 2, 3], [8, 8, 3], [2, 8, 3]]
+    uvs = [[0, 0], [1, 0], [1, 1], [0, 1]]
+    fv = [[0, 1, 2], [0, 2, 3], [4, 5, 6], [4, 6, 7]]
+    fvt = [[0, 1, 2], [0, 2, 3], [0, 1, 2], [0, 2, 3]]
+    m = _mesh("sheet_under_awning", P, uvs, fv, fvt)
+
+    topo, Pc = _centered(m)
+    front, back = compute_side_exposure(Pc, topo.face_w, topo.ok, n_dirs=_FAST.n_dirs)
+    assert (back[:2] > front[:2]).all()                       # the old rule's whole test
+    assert (np.minimum(front, back)[:2] / np.maximum(front, back)[:2] >= 0.5).all()
+
+    r = fix_object(m, {}, _FAST)
+
+    assert not r.flipped.any()                                # nothing here was wound backwards
+    assert r.thin_sheets[0] and r.thin_sheets[1]
+    assert r.one_sided_holes_after <= r.one_sided_holes_before
     assert r.passed is True
 
 
