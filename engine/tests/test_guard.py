@@ -620,6 +620,50 @@ def test_a_boundary_shift_far_beyond_tolerance_stays_a_failure_at_any_cap():
         assert report.passed is False
 
 
+# ---------------------------------------------------------------------------
+# R2d: only a base class that FAILS under the current strictness is ever promoted.
+#
+# Measured regression: a `--accept-slit` run is judged with `strict=False`, where
+# `moved_same_flat` is reported but tolerated. 991 such pixels were nevertheless fed to the ring
+# test, 15 of them came back `edge_flicker`, and `edge_flicker` IS capped -- 15 pixels in a 9,291
+# px view against a 1e-4 cap (0.93 px allowed) failed a run that passed before. A tolerated base
+# class must keep its class and never be counted against `edge_flicker_cap`.
+# ---------------------------------------------------------------------------
+
+def test_a_tolerated_moved_same_flat_pixel_is_never_promoted_to_flicker():
+    """The same sub-tolerance boundary shift at an internal silhouette, judged both ways. With
+    `strict=True` the pixel's base class (`moved_same_flat`) fails, so it is a flicker candidate
+    and the ring rescues it. With `strict=False` that class is already tolerated: it stays
+    `moved_same_flat`, is never promoted, and cannot be capped -- so the view passes even at the
+    zero cap, where a flicker pixel would fail like a hole."""
+    (row, col), mat, before, after, kw = _stacked_pair(0.1)
+    assert kw["strict"] is True
+
+    strict = _stacked_report(mat, before, after, kw, cap=0.0)
+    assert strict.totals["edge_flicker"] == 1 and strict.totals["moved_same_flat"] == 0
+    assert strict.passed is False
+
+    tolerant = _stacked_report(mat, before, after, {**kw, "strict": False}, cap=0.0)
+    assert tolerant.totals["edge_flicker"] == 0
+    assert tolerant.totals["edge_flicker_moved"] == 0
+    assert tolerant.totals["moved_same_flat"] == 1
+    assert tolerant.views[0].moved_same_flat == 1 and tolerant.views[0].edge_flicker == 0
+    assert tolerant.passed is True
+
+
+def test_a_failing_base_class_is_still_promoted_when_not_strict():
+    """The gate is the base class's own verdict under the current strictness, not strictness
+    itself: `material_changed` fails whether or not `strict`, so a material boundary that moved
+    under tolerance is still rescued by the ring in a non-strict report."""
+    (row, col), mat, before, after, kw = _stacked_pair(0.1, upper_material=1)
+
+    report = _stacked_report(mat, before, after, {**kw, "strict": False}, cap=1e-4,
+                              flat=frozenset({0, 1}))
+    assert report.totals["edge_flicker"] == 1 and report.totals["edge_flicker_material"] == 1
+    assert report.totals["material_changed"] == 0
+    assert report.passed is True
+
+
 def test_compare_views_refuses_renders_from_a_different_camera_frame():
     """Every displacement is measured from the BEFORE buffer's ray origins, for BOTH hit points.
     A caller who framed AFTER on a different bounding box (or at a different image size) gets

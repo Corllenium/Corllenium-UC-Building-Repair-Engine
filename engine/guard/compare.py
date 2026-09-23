@@ -159,17 +159,24 @@ def classify_pixels(before_depth: np.ndarray, before_tri: np.ndarray,
                      origins: np.ndarray | None = None, direction: np.ndarray | None = None,
                      plane_before: np.ndarray | None = None,
                      plane_after: np.ndarray | None = None,
-                     ring=None, allow_depth_fallback: bool = False) -> np.ndarray:
+                     ring=None, allow_depth_fallback: bool = False,
+                     strict: bool = False) -> np.ndarray:
     """Per-pixel verdict code, same shape as the inputs (uint8, one of the `PX_*` constants), in
     this priority order: `PX_HOLE` (hit before, miss after); `PX_MATERIAL_CHANGED` (both hit,
     `material_before[before_tri] != material_after[after_tri]`); `PX_MOVED_SAME_FLAT` /
     `PX_MOVED_OTHER` (both hit, same material, the visible surface moved further than `depth_tol`
     -- `_SAME_FLAT` when that material index is in `flat_materials`, `_OTHER` otherwise); `PX_OK`
     otherwise (includes both-miss background pixels and pixels that matched within `depth_tol`).
-    EVERY one of those four failure classes -- not just holes -- is then re-checked by the ring
-    test below and becomes `PX_EDGE_FLICKER` if it passes.
 
-    THE RING TEST. Given `ring`, each would-be failure pixel gets 16 extra rays cast parallel to
+    A pixel whose base class FAILS under the current strictness is then re-checked by the ring
+    test below and becomes `PX_EDGE_FLICKER` if it passes. "Fails under the current strictness"
+    means `PX_HOLE`, `PX_MATERIAL_CHANGED` or `PX_MOVED_OTHER` always, and `PX_MOVED_SAME_FLAT`
+    only when `strict` -- see `_failing_base`. A base class the caller already TOLERATES keeps its
+    class: promoting it would move a tolerated pixel into `edge_flicker`, which IS capped, so a
+    non-strict run could fail on pixels it had decided not to mind (measured: 15 of 991 tolerated
+    `moved_same_flat` pixels re-classed as flicker, over a 1e-4 cap in a 9,291 px view).
+
+    THE RING TEST. Given `ring`, each failing-base pixel gets 16 extra rays cast parallel to
     its own, from a ring of image-plane offsets around it: 8 at radius `depth_tol` and 8 at
     `depth_tol / 2`, at 45-degree steps, in BOTH geometries (build one with `_ring_probe`;
     `compare_views` does). The pixel is `PX_EDGE_FLICKER` iff (1) at least one AFTER ring ray
@@ -208,7 +215,17 @@ def classify_pixels(before_depth: np.ndarray, before_tri: np.ndarray,
     return _classify(before_depth, before_tri, after_depth, after_tri, material_before,
                       material_after, flat_materials, depth_tol, origins=origins,
                       direction=direction, plane_before=plane_before, plane_after=plane_after,
-                      ring=ring, allow_depth_fallback=allow_depth_fallback)[0]
+                      ring=ring, allow_depth_fallback=allow_depth_fallback, strict=strict)[0]
+
+
+def _failing_base(codes: np.ndarray, strict: bool) -> np.ndarray:
+    """Which BASE classes fail under the current strictness, and so may be promoted to one of the
+    tolerated classes (`PX_ZFIGHT_TIE`, `PX_CRACK_CLOSED`, `PX_EDGE_FLICKER`). Deliberately the
+    same rule `_fail_mask` applies to the FINAL codes, minus the promoted classes themselves."""
+    fail = (codes == PX_HOLE) | (codes == PX_MATERIAL_CHANGED) | (codes == PX_MOVED_OTHER)
+    if strict:
+        fail = fail | (codes == PX_MOVED_SAME_FLAT)
+    return fail
 
 
 def _classify(before_depth: np.ndarray, before_tri: np.ndarray,
@@ -216,7 +233,8 @@ def _classify(before_depth: np.ndarray, before_tri: np.ndarray,
                material_before: np.ndarray, material_after: np.ndarray,
                flat_materials: Iterable[int], depth_tol: float, *,
                origins=None, direction=None, plane_before=None, plane_after=None,
-               ring=None, allow_depth_fallback: bool = False) -> tuple[np.ndarray, np.ndarray]:
+               ring=None, allow_depth_fallback: bool = False,
+               strict: bool = False) -> tuple[np.ndarray, np.ndarray]:
     """`classify_pixels`, plus the BASE codes -- what every pixel was classed before the ring test
     rescued any of it -- so `compare_views` can report which class each flicker pixel came from
     (`edge_flicker_hole` / `_moved` / `_material`) without measuring displacement twice."""
@@ -260,8 +278,7 @@ def _classify(before_depth: np.ndarray, before_tri: np.ndarray,
     codes[moved & ~is_flat] = PX_MOVED_OTHER
 
     base = codes.copy()
-    would_fail = (codes == PX_HOLE) | (codes == PX_MATERIAL_CHANGED) | \
-                 (codes == PX_MOVED_SAME_FLAT) | (codes == PX_MOVED_OTHER)
+    would_fail = _failing_base(codes, strict)
     if ring is not None and plane_before is not None and plane_after is not None and would_fail.any():
         tri_b, point_b, tri_a, point_a = ring(would_fail)
         # One padded row per lookup table, so a miss (`-1`) reads a material of -1 and an all-zero
@@ -346,6 +363,9 @@ def compare_views(before: Sequence[RenderedView], after: Sequence[RenderedView],
     `strict=True` (use for automatic removal of exposure-0 faces -- a depth change there means
     sampling missed real visibility) counts `moved_same_flat` pixels as failures too;
     `strict=False` (use for a change a person already accepted) reports them but tolerates them.
+    `strict` also decides which base classes are eligible for the ring test at all: a class this
+    report TOLERATES is never promoted to `edge_flicker` (which is capped) -- see
+    `classify_pixels`.
 
     `geometry_before` / `geometry_after` are `(positions, faces)` -- the two geometries the renders
     were cast against, `faces` indexed like the corresponding `face_material`. Given both, every
@@ -397,7 +417,8 @@ def compare_views(before: Sequence[RenderedView], after: Sequence[RenderedView],
                                  face_material_before, face_material_after, flat_materials, depth_tol,
                                  origins=b.origins, direction=b.direction,
                                  plane_before=plane_before, plane_after=plane_after,
-                                 ring=ring, allow_depth_fallback=allow_depth_fallback)
+                                 ring=ring, allow_depth_fallback=allow_depth_fallback,
+                                 strict=strict)
         flicker = codes == PX_EDGE_FLICKER
         counts = {
             "model_px": int((b.tri >= 0).sum()),
