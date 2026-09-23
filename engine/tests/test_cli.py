@@ -263,15 +263,19 @@ def test_build_parser_preview_data_defaults():
 def test_main_dispatches_to_cmd_fix(monkeypatch):
     calls = []
     monkeypatch.setattr(cli, "cmd_fix",
-                        lambda snap, out, accept_slit, solidify=True:
-                        calls.append((snap, out, accept_slit, solidify)) or 0)
+                        lambda snap, out, accept_slit, solidify=True, fragments=True:
+                        calls.append((snap, out, accept_slit, solidify, fragments)) or 0)
     code = cli.main(["fix", "snapdir", "--out", "outdir", "--accept-slit"])
     assert code == 0
-    assert calls == [(Path("snapdir"), Path("outdir"), True, True)]
+    assert calls == [(Path("snapdir"), Path("outdir"), True, True, True)]
 
     calls.clear()
     assert cli.main(["fix", "snapdir", "--no-solidify"]) == 0
-    assert calls == [(Path("snapdir"), Path("data/output"), False, False)]
+    assert calls == [(Path("snapdir"), Path("data/output"), False, False, True)]
+
+    calls.clear()
+    assert cli.main(["fix", "snapdir", "--keep-fragments"]) == 0
+    assert calls == [(Path("snapdir"), Path("data/output"), False, True, False)]
 
 
 def test_main_dispatches_to_cmd_preview_data(monkeypatch):

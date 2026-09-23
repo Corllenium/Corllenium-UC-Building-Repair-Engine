@@ -25,6 +25,7 @@ PX_MOVED_OTHER = 4
 PX_EDGE_FLICKER = 5
 PX_ZFIGHT_TIE = 6
 PX_CRACK_CLOSED = 7
+PX_FRAGMENT_REMOVED = 8
 
 #: `(view, HitBuffers)` for one `ortho_first_hit` render.
 RenderedView = tuple[Sequence[float], HitBuffers]
@@ -226,9 +227,11 @@ def classify_pixels(before_depth: np.ndarray, before_tri: np.ndarray,
                      plane_before: np.ndarray | None = None,
                      plane_after: np.ndarray | None = None,
                      ring=None, tie=None, allow_depth_fallback: bool = False,
-                     strict: bool = False) -> np.ndarray:
+                     strict: bool = False,
+                     removed_before: np.ndarray | None = None) -> np.ndarray:
     """Per-pixel verdict code, same shape as the inputs (uint8, one of the `PX_*` constants), in
-    this priority order: `PX_HOLE` (hit before, miss after); `PX_MATERIAL_CHANGED` (both hit,
+    this priority order: `PX_FRAGMENT_REMOVED` (BEFORE's first hit is a face `removed_before`
+    marks, see below); `PX_HOLE` (hit before, miss after); `PX_MATERIAL_CHANGED` (both hit,
     `material_before[before_tri] != material_after[after_tri]`); `PX_MOVED_SAME_FLAT` /
     `PX_MOVED_OTHER` (both hit, same material, the visible surface moved further than `depth_tol`
     -- `_SAME_FLAT` when that material index is in `flat_materials`, `_OTHER` otherwise); `PX_OK`
@@ -243,6 +246,20 @@ def classify_pixels(before_depth: np.ndarray, before_tri: np.ndarray,
     pixel into `edge_flicker`, which IS capped, so a non-strict run could fail on pixels it had
     decided not to mind (measured: 15 of 991 tolerated `moved_same_flat` pixels re-classed as
     flicker, over a 1e-4 cap in a 9,291 px view).
+
+    `removed_before` is a bool mask over `material_before`'s faces, and every pixel whose BEFORE
+    first hit is one of them is `PX_FRAGMENT_REMOVED` before any other test runs -- never a
+    failure, never promotable, and counted on its own. It exists for
+    `engine.detectors.fragments`, the one removal in the engine that deliberately changes the
+    picture: those faces were debris a person could see, so the pixels they occupied MUST differ
+    and every other pixel must not.
+
+    Stated as a pixel rule rather than by leaving the faces out of the BEFORE geometry, which is
+    not the same thing and is wrong. Measured on file A: a sliver hides a face the hidden pass
+    had already deleted -- correctly, because the sliver covered it -- and a BEFORE render
+    without that sliver puts the deleted face back on screen and reports 749 moved pixels of
+    damage that never existed. The pixel rule excuses exactly the pixels the debris occupied,
+    including whatever was behind it.
 
     THE TIE TEST. Given `tie` (build one with `_tie_probe`; `compare_views` does), a failing pixel
     gets its own centre ray re-cast with `RayCaster.all_hits` in both geometries. Its BEFORE TIE
@@ -313,7 +330,7 @@ def classify_pixels(before_depth: np.ndarray, before_tri: np.ndarray,
                       material_after, flat_materials, depth_tol, origins=origins,
                       direction=direction, plane_before=plane_before, plane_after=plane_after,
                       ring=ring, tie=tie, allow_depth_fallback=allow_depth_fallback,
-                      strict=strict)[0]
+                      strict=strict, removed_before=removed_before)[0]
 
 
 def _failing_base(codes: np.ndarray, strict: bool) -> np.ndarray:
@@ -332,7 +349,8 @@ def _classify(before_depth: np.ndarray, before_tri: np.ndarray,
                flat_materials: Iterable[int], depth_tol: float, *,
                origins=None, direction=None, plane_before=None, plane_after=None,
                ring=None, tie=None, allow_depth_fallback: bool = False,
-               strict: bool = False) -> tuple[np.ndarray, np.ndarray]:
+               strict: bool = False,
+               removed_before: np.ndarray | None = None) -> tuple[np.ndarray, np.ndarray]:
     """`classify_pixels`, plus the BASE codes -- what every pixel was classed before the ring test
     rescued any of it -- so `compare_views` can report which class each flicker pixel came from
     (`edge_flicker_hole` / `_moved` / `_material`) without measuring displacement twice."""
@@ -374,6 +392,13 @@ def _classify(before_depth: np.ndarray, before_tri: np.ndarray,
     is_flat = np.isin(mat_before, flat_ids)
     codes[moved & is_flat] = PX_MOVED_SAME_FLAT
     codes[moved & ~is_flat] = PX_MOVED_OTHER
+
+    # ...and then, over everything: a pixel whose BEFORE first hit was DELIBERATELY deleted
+    # debris. Stamped last so it wins over every other class, and before `base` is taken so it
+    # is never promotable either.
+    if removed_before is not None:
+        gone = np.asarray(removed_before, dtype=bool)
+        codes[hit_before & gone[np.where(hit_before, before_tri, 0)]] = PX_FRAGMENT_REMOVED
 
     base = codes.copy()
     promotable = _failing_base(codes, strict)
@@ -446,6 +471,10 @@ class ViewVerdict:
     #: closed -- an improvement, not damage, and never a failure. See `classify_pixels`.
     crack_closed: int
     edge_flicker: int
+    #: Pixels whose BEFORE first hit was debris `engine.detectors.fragments` deleted on purpose.
+    #: Never a failure -- the whole point of that pass is that these pixels change. See
+    #: `classify_pixels`.
+    fragment_removed: int
     #: `edge_flicker` split by the class each of those pixels was rescued FROM; the three always
     #: sum to `edge_flicker`, so a report says whether a tolerated pixel was a would-be hole, a
     #: would-be move (`moved_same_flat` or `moved_other`), or a would-be material swap.
@@ -463,7 +492,8 @@ class GuardReport:
 
 def _zero_totals() -> dict:
     return {"model_px": 0, "holes": 0, "material_changed": 0, "moved_same_flat": 0, "moved_other": 0,
-            "zfight_tie": 0, "crack_closed": 0, "edge_flicker": 0, "edge_flicker_hole": 0, "edge_flicker_moved": 0,
+            "zfight_tie": 0, "crack_closed": 0, "edge_flicker": 0, "fragment_removed": 0,
+            "edge_flicker_hole": 0, "edge_flicker_moved": 0,
             "edge_flicker_material": 0}
 
 
@@ -488,7 +518,8 @@ def compare_views(before: Sequence[RenderedView], after: Sequence[RenderedView],
                    geometry_before: tuple[np.ndarray, np.ndarray] | None = None,
                    geometry_after: tuple[np.ndarray, np.ndarray] | None = None,
                    caster_factory=EmbreeCaster,
-                   allow_depth_fallback: bool = False) -> GuardReport:
+                   allow_depth_fallback: bool = False,
+                   removed_before: np.ndarray | None = None) -> GuardReport:
     """Compare a BEFORE/AFTER pair of `ortho_first_hit` renders, one `(view, HitBuffers)` pair per
     view, paired by position (`before[i]` and `after[i]` must be the same view, and both sequences
     the same length). Each pair must share the whole CAMERA FRAME -- direction, image size and the
@@ -540,6 +571,10 @@ def compare_views(before: Sequence[RenderedView], after: Sequence[RenderedView],
 
     `zfight_tie` is deliberately NOT capped, at any number: an overlap this run neither caused
     nor can fix here is not evidence about this run, however much of the picture it covers.
+    `fragment_removed` is not capped either, and for the same shape of reason: `removed_before`
+    names faces this run deleted ON PURPOSE under their own guard
+    (`engine.guard.compare.fragment_feedback`), so the pixels they occupied changing is the
+    outcome, not evidence against it.
 
     `passed` is `holes + material_changed + moved_other == 0`, plus `moved_same_flat` when
     `strict`, plus the flicker pixels of any view over the cap. Every count -- `moved_same_flat`,
@@ -589,7 +624,7 @@ def compare_views(before: Sequence[RenderedView], after: Sequence[RenderedView],
                                  origins=b.origins, direction=b.direction,
                                  plane_before=plane_before, plane_after=plane_after,
                                  ring=ring, tie=tie, allow_depth_fallback=allow_depth_fallback,
-                                 strict=strict)
+                                 strict=strict, removed_before=removed_before)
         # The crack cap is applied BEFORE the counts are taken, because over it a crack pixel is
         # not a crack at all -- it goes back to being whatever it was, and is reported as that.
         crack = codes == PX_CRACK_CLOSED
@@ -605,6 +640,7 @@ def compare_views(before: Sequence[RenderedView], after: Sequence[RenderedView],
             "zfight_tie": int((codes == PX_ZFIGHT_TIE).sum()),
             "crack_closed": int((codes == PX_CRACK_CLOSED).sum()),
             "edge_flicker": int(flicker.sum()),
+            "fragment_removed": int((codes == PX_FRAGMENT_REMOVED).sum()),
             "edge_flicker_hole": int((flicker & (base == PX_HOLE)).sum()),
             "edge_flicker_moved": int((flicker & ((base == PX_MOVED_SAME_FLAT)
                                                   | (base == PX_MOVED_OTHER))).sum()),
@@ -734,6 +770,136 @@ def guard_feedback(candidates: np.ndarray, positions_c: np.ndarray, faces: np.nd
 
         history.append({"round": rnd, "candidates_remaining": int(removed.sum()),
                          "failing_pixels": failing_pixels, "restored": len(restore)})
+        if failing_pixels == 0 or not restore:
+            break
+        removed[list(restore)] = False
+
+    return removed, history
+
+
+def fragment_feedback(candidates: np.ndarray, positions_c: np.ndarray, faces: np.ndarray,
+                       face_material: np.ndarray, flat_materials: Iterable[int], depth_tol: float,
+                       already_removed: np.ndarray | None = None,
+                       views: Sequence[Sequence[float]] = VIEWS_26,
+                       size: tuple[int, int] = (900, 600), caster_factory=EmbreeCaster,
+                       max_rounds: int = 8,
+                       crack_closed_cap: float = float("inf")) -> tuple[np.ndarray, list[dict]]:
+    """FRAGMENT MODE: which `candidates` (bool over `faces`) may be deleted, when deleting them
+    is MEANT to change the picture.
+
+    Every other removal guard here asks "is the picture unchanged" and restores anything that
+    changed a pixel. That is the wrong question for `engine.detectors.fragments`, whose whole
+    subject is debris a person CAN see: a stray triangle left by a delete is visible, and a guard
+    that refused every visible deletion would refuse all of them. So the question here is
+    narrower and sharper: DID ANYTHING ELSE CHANGE?
+
+    A pixel is permitted when its BEFORE first hit is one of the candidates currently marked for
+    removal -- that is the fragment disappearing, which is what was asked for. Every other pixel
+    is judged by exactly the same rule the strict removal guard uses (`_fail_mask(strict=True)`,
+    with the ring, tie and crack probes cast, so the three tolerated classes mean the same thing
+    they mean everywhere else).
+
+    BEFORE IS THE WHOLE MESH, including `already_removed` -- the faces earlier passes took out,
+    which are dropped from AFTER only. It has to be: this guard's verdict is checked later by the
+    final guard, whose BEFORE is that same whole mesh, and two guards rendering different BEFOREs
+    disagree about which face a pixel even shows. Measured on file A: three faces coincide at one
+    pixel, the hidden pass removed the one the render happened to pick, a 0.1 sq in sliver was
+    the only surface still holding that pixel, and a guard rendering the POST-HIDDEN mesh saw the
+    pixel as the sliver's own and let it go -- one pixel of damage that then failed the final
+    guard and rolled back the whole merge.
+
+    WHICH CANDIDATE IS BLAMED. Every marked candidate the BEFORE ray meets IN FRONT OF AFTER's
+    first hit (anywhere along the ray, when AFTER missed). Faces are only ever removed, so the
+    surfaces in front of AFTER's first hit are exactly the ones no longer there at that pixel,
+    and the candidates among them are this pass's share of the change. Not just BEFORE's first
+    hit -- at a coincident pixel the face actually holding it may be second in the list -- and
+    not only those within `depth_tol` of it either: at the near-horizontal views
+    (`VIEWS_26` carries z components of about 0.01) a 0.01 in gap between two surfaces is an
+    inch ALONG THE RAY, and a tie-set rule misses the very candidate that went.
+
+    A failing pixel with NO candidate in front of AFTER's first hit is not this pass's doing:
+    restoring every candidate would leave it exactly as it is. It was made by an earlier pass,
+    under that pass's own guard -- the colour-tolerant slit pass, say, whose tolerated
+    `moved_same_flat` pixels fail the strict rule used here -- and the FINAL guard still judges
+    it. It is counted as `not_ours_pixels` and otherwise left alone, so another pass's verdict
+    can never make this one throw its work away.
+
+    `positions_c` / `faces` / `face_material` / `depth_tol` / `flat_materials` mean exactly what
+    they mean in `guard_feedback`, and `crack_closed_cap` is forwarded the same way. Returns
+    `(mask, history)` with `mask` the confirmed-removable subset of `candidates`, and one history
+    dict per round: `{"round", "candidates_remaining", "failing_pixels", "not_ours_pixels",
+    "restored"}` -- `failing_pixels` counting only the ones a candidate was involved in."""
+    candidates = np.asarray(candidates, dtype=bool)
+    positions_c = np.asarray(positions_c, dtype=np.float64)
+    faces = np.asarray(faces, dtype=np.int64)
+    gone = (np.zeros(len(faces), dtype=bool) if already_removed is None
+            else np.asarray(already_removed, dtype=bool))
+    face_ids = np.arange(len(faces), dtype=np.int64)
+
+    before_caster = ReusableCaster(caster_factory)
+    before = [(view, ortho_first_hit(positions_c, faces, face_ids, view, positions_c, size,
+                                      before_caster))
+              for view in views]
+    planes = face_planes(positions_c, faces)   # geometry never changes here, only face presence
+
+    removed = candidates.copy()
+    history: list[dict] = []
+    for rnd in range(max_rounds):
+        keep = ~(removed | gone)
+        keep_faces = faces[keep]
+        keep_local = np.arange(len(keep_faces), dtype=np.int64)
+        keep_material = face_material[keep]
+        keep_planes = planes[keep]
+
+        restore: set[int] = set()
+        failing_pixels = 0
+        not_ours = 0
+        after_caster = ReusableCaster(caster_factory)
+        caster_b = before_caster(positions_c, faces)
+        caster_a = after_caster(positions_c, keep_faces)
+        for view, b in before:
+            a = ortho_first_hit(positions_c, keep_faces, keep_local, view, positions_c, size,
+                                 after_caster)
+            codes, base = _classify(b.depth, b.tri, a.depth, a.tri,
+                                     face_material, keep_material, flat_materials, depth_tol,
+                                     origins=b.origins, direction=b.direction,
+                                     plane_before=planes, plane_after=keep_planes,
+                                     ring=_ring_probe(b, caster_b, caster_a, depth_tol),
+                                     tie=_tie_probe(b, caster_b, caster_a), strict=True)
+            # Same rule as `guard_feedback`: a crack promotion is only available when AFTER still
+            # HAS the surface, which it does not where this run deleted BEFORE's first hit.
+            crack = codes == PX_CRACK_CLOSED
+            if crack.any():
+                dropped = removed | gone
+                own_crack = crack & (b.tri >= 0) & dropped[np.where(b.tri >= 0, b.tri, 0)]
+                over_cap = int(crack.sum()) > crack_closed_cap * int((b.tri >= 0).sum())
+                codes = np.where(own_crack | (crack if over_cap else False), base, codes)
+
+            fail = _fail_mask(codes, strict=True)
+            # ...and THIS is the whole difference: a pixel showing a fragment that is on its way
+            # out is not damage, it is the point.
+            mine = (b.tri >= 0) & removed[np.where(b.tri >= 0, b.tri, 0)]
+            fail = fail & ~mine
+            if not fail.any():
+                continue
+
+            rows, cols = np.nonzero(fail)
+            origins = (b.xs[cols][:, None] * b.right + b.ys[rows][:, None] * b.up + b.standoff)
+            direction = np.asarray(b.direction, dtype=np.float64)
+            ray, tri, t = caster_b.all_hits(origins, np.tile(direction, (len(origins), 1)))
+            # AFTER's first hit is the first SURVIVING surface on this ray; a candidate in front of
+            # it (or anywhere, when AFTER missed) is one this pass took away from this pixel.
+            t_after = np.where(a.tri[rows, cols] >= 0, a.depth[rows, cols], np.inf)
+            involved = removed[tri] & (t <= t_after[ray])
+            restore.update(tri[involved].tolist())
+            ours = np.zeros(len(rows), dtype=bool)
+            ours[ray[involved]] = True
+            failing_pixels += int(ours.sum())
+            not_ours += int((~ours).sum())
+
+        history.append({"round": rnd, "candidates_remaining": int(removed.sum()),
+                         "failing_pixels": failing_pixels, "not_ours_pixels": not_ours,
+                         "restored": len(restore)})
         if failing_pixels == 0 or not restore:
             break
         removed[list(restore)] = False

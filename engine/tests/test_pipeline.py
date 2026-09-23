@@ -409,9 +409,12 @@ def test_a_sliver_that_only_the_relative_test_calls_zero_area_is_kept_by_the_gua
     assert before.tri[row, col] == 2
 
     # `solidify=False`: the floor is a top surface with four open edges, so the default profile
-    # skirts it -- which changes the scene this test aimed a pixel at. The subject here is the
-    # degenerate-sliver guard, unchanged by S1.
-    r = fix_object(m, {}, _fast(solidify=False))
+    # skirts it -- which changes the scene this test aimed a pixel at. `accept_fragments=False`
+    # for the same reason: this sliver is a DETACHED single face of 0.05 sq in, so F1's fragment
+    # detector calls it debris and its own guard -- which tolerates a candidate's own pixels by
+    # design -- deletes it. That is F1 working, and `test_an_attached_needle_is_a_sliver_candidate`
+    # covers it. The subject HERE is the strict degenerate-face guard, unchanged by either.
+    r = fix_object(m, {}, _fast(solidify=False, accept_fragments=False))
 
     assert r.n_degenerate_restored >= 1
     assert r.restored_degenerate.tolist() == [False, False, True]

@@ -660,3 +660,49 @@ def bare_top_quad(size=40.0):
     uvs, fv, fvt, fm = [], [], [], []
     _quads(P, uvs, fv, fvt, fm, [(0, 1, 2, 3)])
     return _mesh("bare_top_quad", P, uvs, fv, fvt, face_material=fm)
+
+
+def slab_with_strays(nx=4, ny=4, cell=10.0, uv_per_unit=0.05, needle_width=0.02,
+                     stray=True, needle=True):
+    """A 40 x 40 in slab at `z = 0` plus three things a stray-fragment detector has to tell
+    apart:
+
+    * a DETACHED 2 in^2 triangle floating at `z = 20` -- one face, well under
+      `FixProfile.fragment_max_area`, the thing the detector exists to remove;
+    * a DETACHED 5 x 4 in quad at `z = 25`, 20 in^2 in two 10 in^2 triangles. Its longest extent
+      (5 in) is UNDER `fragment_max_extent`, so the extent rule alone would take it -- and the
+      "never a component holding a face bigger than `fragment_max_area` on its own" rule is what
+      saves it. It is there to prove that rule does something;
+    * an ATTACHED needle, a `needle_width` deep triangle hanging off the slab's first `y = 0`
+      cell edge and SHARING that edge, so it is part of the main component and can only be
+      caught as a SLIVER (`4*pi*area/perimeter^2` is about 0.0008, against a 0.02 threshold).
+
+    `stray=False` drops the two detached pieces, `needle=False` the sliver.
+
+    Faces: 0 .. 2*nx*ny-1 the slab, then the needle, then the stray triangle, then the stray
+    quad's two -- each only if it is switched on."""
+    P, uvs, fv, fvt, fm = _grid(nx, ny, cell, uv_per_unit)
+    w = nx * cell
+    if needle:
+        base = len(P)
+        P.append([cell / 2, -needle_width, 0.0])
+        ub = len(uvs)
+        uvs.extend([[0.0, 0.0], [cell * uv_per_unit, 0.0], [cell / 2 * uv_per_unit, -needle_width]])
+        # vertices 0 and 1 are the (0,0) and (1,0) lattice corners, and (0,1) is a real EDGE of
+        # the slab's first cell -- sharing it is what puts the needle in the main component,
+        # where only the sliver rule can reach it.
+        fv.append([0, 1, base])
+        fvt.append([ub, ub + 1, ub + 2])
+        fm.append(0)
+    if stray:
+        base = len(P)
+        P += [[0.0, 0.0, 20.0], [2.0, 0.0, 20.0], [0.0, 2.0, 20.0]]          # 2 in^2, detached
+        ub = len(uvs)
+        uvs.extend([[0.0, 0.0], [2.0 * uv_per_unit, 0.0], [0.0, 2.0 * uv_per_unit]])
+        fv.append([base, base + 1, base + 2])
+        fvt.append([ub, ub + 1, ub + 2])
+        fm.append(0)
+        base = len(P)
+        P += [[10.0, 0.0, 25.0], [15.0, 0.0, 25.0], [15.0, 4.0, 25.0], [10.0, 4.0, 25.0]]
+        _quads(P, uvs, fv, fvt, fm, [(base, base + 1, base + 2, base + 3)], uv_per_unit=uv_per_unit)
+    return _mesh("slab_with_strays", P, uvs, fv, fvt, face_material=fm)

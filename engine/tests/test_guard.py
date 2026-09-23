@@ -125,7 +125,8 @@ def test_identity_all_counts_zero_and_passed():
     assert report.passed
     assert report.totals == {"model_px": report.totals["model_px"], "holes": 0, "material_changed": 0,
                               "moved_same_flat": 0, "moved_other": 0, "zfight_tie": 0,
-                              "crack_closed": 0, "edge_flicker": 0, "edge_flicker_hole": 0,
+                              "crack_closed": 0, "edge_flicker": 0, "fragment_removed": 0,
+                              "edge_flicker_hole": 0,
                               "edge_flicker_moved": 0, "edge_flicker_material": 0}
     assert report.totals["model_px"] > 0
     assert len(report.views) == 26

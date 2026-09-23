@@ -117,6 +117,7 @@ def _view_verdict_dict(v: ViewVerdict) -> dict:
             "moved_same_flat": v.moved_same_flat, "moved_other": v.moved_other,
             "material_changed": v.material_changed, "zfight_tie": v.zfight_tie,
             "crack_closed": v.crack_closed, "edge_flicker": v.edge_flicker,
+            "fragment_removed": v.fragment_removed,
             "edge_flicker_hole": v.edge_flicker_hole, "edge_flicker_moved": v.edge_flicker_moved,
             "edge_flicker_material": v.edge_flicker_material}
 
@@ -138,7 +139,10 @@ def _profile_dict(p: FixProfile) -> dict:
             "bottom_exists_fraction": p.bottom_exists_fraction,
             "bottom_search_extra": p.bottom_search_extra,
             "cover_max_exposure": p.cover_max_exposure,
-            "cap_guard_max_rounds": p.cap_guard_max_rounds}
+            "cap_guard_max_rounds": p.cap_guard_max_rounds,
+            "accept_fragments": p.accept_fragments,
+            "fragment_max_area": p.fragment_max_area,
+            "fragment_max_extent": p.fragment_max_extent, "sliver_q": p.sliver_q}
 
 
 def _build_report(name: str, obj_path: Path, mesh: MeshData, result: FixResult,
@@ -169,6 +173,13 @@ def _build_report(name: str, obj_path: Path, mesh: MeshData, result: FixResult,
         "n_degenerate_restored": result.n_degenerate_restored,
         "n_flipped": int(result.flipped.sum()),
         "n_thin_sheets": int(result.thin_sheets.sum()),
+        "n_fragment_components": result.n_fragment_components,
+        "n_removed_fragments": result.n_removed_fragments,
+        "n_removed_slivers": result.n_removed_slivers,
+        "n_restored_fragments": result.n_restored_fragments,
+        # component counts and the smallest components the size rules did NOT catch -- the
+        # evidence for where the thresholds sit against this model. See `engine.detectors`.
+        "fragment_report": result.fragment_report,
         "n_overlap_pairs_same": result.n_overlap_pairs_same,
         "n_overlap_pairs_diff": result.n_overlap_pairs_diff,
         "n_removed_overlap": result.n_removed_overlap,
@@ -272,10 +283,13 @@ def _write_guard_images(mesh: MeshData, result: FixResult, profile: FixProfile,
                                  profile.guard_size, caster_before)
         after = ortho_first_hit(positions_c, face_w_after, ids_after, view, positions_c,
                                 profile.guard_size, caster_after)
+        # `removed_before`: the pixels the fragment pass removed ON PURPOSE are excused here
+        # exactly as the real guard excuses them, or every stray it deleted would paint red.
         codes = classify_pixels(
             before.depth, before.tri, after.depth, after.tri, mesh.face_material,
             result.mesh.face_material, flat_materials, depth_tol, origins=before.origins,
-            direction=before.direction, plane_before=planes_before, plane_after=planes_after)
+            direction=before.direction, plane_before=planes_before, plane_after=planes_after,
+            removed_before=result.removed_fragments)
         save_triptych(path, before, after, codes, normals_before=normals_before,
                      normals_after=normals_after)
 
@@ -289,12 +303,15 @@ def _write_guard_images(mesh: MeshData, result: FixResult, profile: FixProfile,
 
 
 def cmd_fix(snapshot_dir: Path, out_root: Path, accept_slit: bool,
-            profile: FixProfile | None = None, solidify: bool = True) -> int:
+            profile: FixProfile | None = None, solidify: bool = True,
+            fragments: bool = True) -> int:
     obj_path, mesh, flatness, _mtl_materials = _load_snapshot(snapshot_dir)
     if profile is None:
-        profile = FixProfile(accept_slit=accept_slit, solidify=solidify)
+        profile = FixProfile(accept_slit=accept_slit, solidify=solidify,
+                             accept_fragments=fragments)
     else:
-        profile = replace(profile, accept_slit=accept_slit, solidify=solidify)
+        profile = replace(profile, accept_slit=accept_slit, solidify=solidify,
+                          accept_fragments=fragments)
 
     result = fix_object(mesh, flatness, profile)
 
@@ -501,6 +518,10 @@ def cmd_preview_data(snapshot_dir: Path, out_dir: Path, profile: FixProfile | No
             "gridline_edges": len(grid),
             "flipped": int(result.flipped.sum()),
             "thin_sheets": int(result.thin_sheets.sum()),
+            "n_fragment_components": int(result.n_fragment_components),
+            "n_removed_fragments": int(result.n_removed_fragments),
+            "n_removed_slivers": int(result.n_removed_slivers),
+            "n_restored_fragments": int(result.n_restored_fragments),
             "n_overlap_pairs_same": int(result.n_overlap_pairs_same),
             "n_overlap_pairs_diff": int(result.n_overlap_pairs_diff),
             "n_removed_overlap": int(result.n_removed_overlap),
@@ -520,6 +541,8 @@ def cmd_preview_data(snapshot_dir: Path, out_dir: Path, profile: FixProfile | No
             # was already in the export, a closed crack is an improvement. See `classify_pixels`.
             "zfight_tie": int(guard_final["zfight_tie"]),
             "crack_closed": int(guard_final["crack_closed"]),
+            # pixels the fragment pass was authorised to change, excused by name. Never damage.
+            "fragment_removed_px": int(guard_final["fragment_removed"]),
             # True when the merged mesh failed its guard (or never converged) and the shipped
             # mesh is the removal-only fallback -- without which "N flat regions" would be read
             # as a description of what was delivered when it is not.
@@ -566,6 +589,8 @@ def build_parser() -> argparse.ArgumentParser:
     fix_p.add_argument("--accept-slit", action="store_true")
     fix_p.add_argument("--no-solidify", dest="solidify", action="store_false",
                        help="do not close slabs with skirts and bottoms before fixing")
+    fix_p.add_argument("--keep-fragments", dest="fragments", action="store_false",
+                       help="do not remove stray fragments and attached slivers")
     fix_p.add_argument("--out", default="data/output")
 
     preview_p = sub.add_parser("preview-data", help="write the JSON preview/index.html reads")
@@ -581,7 +606,7 @@ def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     if args.command == "fix":
         return cmd_fix(Path(args.snapshot_dir), Path(args.out), args.accept_slit,
-                       solidify=args.solidify)
+                       solidify=args.solidify, fragments=args.fragments)
     if args.command == "preview-data":
         return cmd_preview_data(Path(args.snapshot_dir), Path(args.out),
                                 solidify=args.solidify)

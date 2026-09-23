@@ -208,6 +208,8 @@ async function load(file) {
     `<br><span class="note">after inside removal only: ${s.after_hidden_removed.toLocaleString()} triangles &nbsp;·&nbsp; ` +
     `${s.n_removed_overlap} duplicate-layer faces removed of ${s.n_overlap_pairs_same} overlapping pairs ` +
     `(${s.n_overlap_pairs_diff} different-material, never removed) &nbsp;·&nbsp; ` +
+    `${s.n_removed_fragments} stray fragments and ${s.n_removed_slivers} slivers removed of ` +
+    `${s.n_fragment_components} components (${s.n_restored_fragments} put back by their guard) &nbsp;·&nbsp; ` +
     `${s.outline_edges_after.toLocaleString()} real edges, ${s.unavoidable_diagonals_after.toLocaleString()} unavoidable diagonals &nbsp;·&nbsp; ` +
     `<span style="color:var(--soft)">${s.soft_edges} soft creases</span>, ${s.coplanar_region_borders} coplanar region borders</span>`
   $('honest').innerHTML =
@@ -217,6 +219,7 @@ async function load(file) {
     `${s.guard_flicker_px.toLocaleString()} flicker px tolerated (a boundary that moved less than the tolerance) · ` +
     `${s.zfight_tie.toLocaleString()} z-fight ties (overlaps that were already there, not damage) · ` +
     `${s.crack_closed.toLocaleString()} cracks closed (an improvement) · ` +
+    `${s.fragment_removed_px.toLocaleString()} px of removed debris (excused by name, never elsewhere) · ` +
     `merge ${s.merge_rolled_back ? `<b style="color:var(--red)">rolled back</b>` : `kept`}. No vertex is ever moved; closing the slab is the one step that adds any.`
 }
 
