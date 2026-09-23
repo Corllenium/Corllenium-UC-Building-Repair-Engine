@@ -593,3 +593,84 @@ def test_a_mesh_with_no_overlap_reports_zeroes_and_is_otherwise_unchanged():
     assert (r.n_removed_overlap, r.n_restored_overlap) == (0, 0)
     assert r.overlap_pairs_diff_material == []
     assert r.mesh.n_faces == 12 and r.passed is True
+
+
+# ---------------------------------------------------------------------------------------------
+# B1: the merge guards MEASURE a border shift up to the merge's own tolerance; the removal guard
+# does not. The merge may move a border by up to its `collinear_tol` (see `engine.fixes.merge`),
+# so the guards that judge a merged mesh excuse exactly that much measured movement -- clamped to
+# `depth_tol_max`, so a coarse-precision export cannot excuse a wide shift. A removal changes no
+# border at all, so its guard excuses none.
+# ---------------------------------------------------------------------------------------------
+
+from engine.fixes.merge import RING_TOL_QUANTA
+
+
+def _spy_on_the_final_guards(monkeypatch):
+    """Record `(edge_flicker_cap, border_shift_tol)` for every `compare_views` call `fix_object`
+    makes, in call order: the removal guard, the merge attempt and -- on a rollback -- the guard of
+    the mesh that shipped instead."""
+    calls = []
+    real = fix_pipeline.compare_views
+
+    def spy(*args, **kwargs):
+        calls.append((kwargs.get("edge_flicker_cap", 0.0), kwargs.get("border_shift_tol", 0.0)))
+        return real(*args, **kwargs)
+
+    monkeypatch.setattr(fix_pipeline, "compare_views", spy)
+    return calls
+
+
+def _merge_tolerance(result, profile):
+    """`min(collinear_tol, depth_tol_max)`, with `collinear_tol` derived exactly as
+    `merge_regions` derives its default -- from the print precision of the mesh it merged, whose
+    positions are the reference mesh's own."""
+    quanta = analyse_topology(result.reference_mesh).quanta
+    return min(RING_TOL_QUANTA * float(quanta.max()), profile.depth_tol_max)
+
+
+def test_the_merge_guard_measures_border_shifts_at_the_merges_own_tolerance(monkeypatch):
+    calls = _spy_on_the_final_guards(monkeypatch)
+    r = fix_object(box_with_partition(), {}, _FAST)
+
+    tol = _merge_tolerance(r, _FAST)
+    assert tol > 0.0
+    assert "rolled_back" not in r.merge_report
+    assert calls == [(0.0, 0.0),                                  # guard_after_removal
+                     (_FAST.edge_flicker_cap_final, tol)]         # guard_merge_attempt = final
+
+
+def test_the_guard_of_a_rolled_back_run_measures_border_shifts_too(monkeypatch):
+    """The final guard gets the same tolerance as the merge attempt even when the merge is thrown
+    away; only the removal guard stays at 0.0."""
+    calls = _spy_on_the_final_guards(monkeypatch)
+    real_merge_regions = fix_pipeline.merge_regions
+
+    def loses_a_visible_face(mesh, topo, flat_materials=frozenset(), **kw):
+        real = real_merge_regions(mesh, topo, flat_materials, **kw)
+        drop = np.zeros(real.mesh.n_faces, dtype=bool)
+        drop[0] = True
+        broken, kept = remove_faces(real.mesh, drop)
+        return MergeResult(mesh=broken, source_faces=[real.source_faces[i] for i in kept],
+                           report=dict(real.report))
+
+    monkeypatch.setattr(fix_pipeline, "merge_regions", loses_a_visible_face)
+    r = fix_object(gridded_box(4, 2.5), {}, _FAST)
+
+    tol = _merge_tolerance(r, _FAST)
+    assert r.merge_report["rolled_back_reason"] == "guard_failed"
+    assert calls == [(0.0, 0.0),                                  # guard_after_removal
+                     (_FAST.edge_flicker_cap_final, tol),         # guard_merge_attempt
+                     (_FAST.edge_flicker_cap_final, tol)]         # guard_final, the fallback
+
+
+def test_a_coarse_precision_export_cannot_excuse_a_border_shift_wider_than_depth_tol_max(monkeypatch):
+    """Survey coordinates near 240,000 in print x to 1.0 in, so the merge's own `collinear_tol`
+    there is 1.5 in. The guards measure border shifts only up to `depth_tol_max` (0.5 in)."""
+    calls = _spy_on_the_final_guards(monkeypatch)
+    far = _far_from_origin(box_with_partition(10.0))
+    assert RING_TOL_QUANTA * float(analyse_topology(far).quanta.max()) == 1.5
+
+    fix_object(far, {}, _fast())
+    assert calls[0] == (0.0, 0.0)
+    assert calls[1] == (FixProfile().edge_flicker_cap_final, 0.5)

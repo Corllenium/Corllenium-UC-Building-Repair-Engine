@@ -26,9 +26,14 @@ PX_EDGE_FLICKER = 5
 PX_ZFIGHT_TIE = 6
 PX_CRACK_CLOSED = 7
 PX_FRAGMENT_REMOVED = 8
+PX_BORDER_SHIFT = 9
 
 #: `(view, HitBuffers)` for one `ortho_first_hit` render.
 RenderedView = tuple[Sequence[float], HitBuffers]
+
+#: Block size of the border-shift distance search, in point x triangle pairs, so the bounding-box
+#: prefilter's mask stays bounded whatever the size of the mesh.
+_DISTANCE_BLOCK = 4_000_000
 
 #: Angles per ring in the `PX_EDGE_FLICKER` test; two rings (at `depth_tol` and `depth_tol / 2`)
 #: make 16 rays per candidate pixel.
@@ -219,6 +224,81 @@ def _ring_reproduces(centre_tri: np.ndarray, centre_material: np.ndarray, centre
                           ring_material, depth_tol).any(axis=1)
 
 
+def _point_triangle_distance(points: np.ndarray, triangles: np.ndarray) -> np.ndarray:
+    """`(N,)` exact Euclidean distance from `points[i]` `(N, 3)` to the closed triangle
+    `triangles[i]` `(N, 3, 3)`: the perpendicular to its plane where the foot of it lands inside
+    the triangle, otherwise the distance to the nearest point of its three edges. A zero-area
+    (collinear) triangle has no inside, and is exactly its edges."""
+    points = np.asarray(points, dtype=np.float64).reshape(-1, 3)
+    triangles = np.asarray(triangles, dtype=np.float64).reshape(-1, 3, 3)
+    a, b, c = triangles[:, 0], triangles[:, 1], triangles[:, 2]
+
+    edge_distance = np.full(len(points), np.inf)
+    for p0, p1 in ((a, b), (b, c), (c, a)):
+        edge = p1 - p0
+        length2 = np.einsum("ij,ij->i", edge, edge)
+        along = np.einsum("ij,ij->i", points - p0, edge) / np.where(length2 > 0.0, length2, 1.0)
+        nearest = p0 + np.clip(np.where(length2 > 0.0, along, 0.0), 0.0, 1.0)[:, None] * edge
+        edge_distance = np.minimum(edge_distance, np.linalg.norm(points - nearest, axis=1))
+
+    normal = np.cross(b - a, c - a)
+    normal2 = np.einsum("ij,ij->i", normal, normal)
+    inside = normal2 > 0.0
+    for p0, p1 in ((a, b), (b, c), (c, a)):
+        inside &= np.einsum("ij,ij->i", np.cross(p1 - p0, points - p0), normal) >= 0.0
+    plane_distance = (np.abs(np.einsum("ij,ij->i", points - a, normal))
+                      / np.sqrt(np.where(inside, normal2, 1.0)))
+    return np.where(inside, np.minimum(edge_distance, plane_distance), edge_distance)
+
+
+def _nearest_triangle_distance(points: np.ndarray, triangles: np.ndarray, reach: float) -> np.ndarray:
+    """`(P,)` distance from each of `points` `(P, 3)` to the nearest of `triangles` `(F, 3, 3)` --
+    EVERY triangle, whatever plane it lies in. Exact wherever that distance is within `reach`;
+    a point with nothing within `reach` gets a number above it (`inf` when no triangle's bounding
+    box comes that close).
+
+    Brute force behind an axis-aligned bounding-box prefilter expanded by `reach`: a triangle
+    whose expanded box does not contain the point is further than `reach` from it, so it is never
+    measured. The `points x triangles` mask is built a block of points at a time
+    (`_DISTANCE_BLOCK` pairs), so it stays bounded however big the mesh is."""
+    points = np.asarray(points, dtype=np.float64).reshape(-1, 3)
+    triangles = np.asarray(triangles, dtype=np.float64).reshape(-1, 3, 3)
+    out = np.full(len(points), np.inf)
+    if not len(points) or not len(triangles):
+        return out
+    lo = triangles.min(axis=1) - reach
+    hi = triangles.max(axis=1) + reach
+    block = max(1, _DISTANCE_BLOCK // len(triangles))
+    for start in range(0, len(points), block):
+        chunk = points[start:start + block]
+        near = ((chunk[:, None, :] >= lo[None]) & (chunk[:, None, :] <= hi[None])).all(axis=2)
+        point, tri = np.nonzero(near)
+        if len(point):
+            np.minimum.at(out, start + point, _point_triangle_distance(chunk[point], triangles[tri]))
+    return out
+
+
+def _border_probe(geometry_before, geometry_after, tol: float):
+    """A `(points, gone) -> within` callable for `classify_pixels`: is each of `points` `(P, 3)`
+    within `tol` of the OTHER geometry? `gone[i]` True measures a BEFORE hit point against every
+    AFTER triangle -- something disappeared there; False measures an AFTER hit point against every
+    BEFORE triangle -- something appeared. `geometry_*` are `(positions, faces)`, exactly as
+    `compare_views` takes them, and are turned into triangles once, not once per view."""
+    before, after = (np.asarray(positions, dtype=np.float64)[np.asarray(faces, dtype=np.int64).reshape(-1, 3)]
+                     for positions, faces in (geometry_before, geometry_after))
+
+    def probe(points: np.ndarray, gone: np.ndarray) -> np.ndarray:
+        points = np.asarray(points, dtype=np.float64).reshape(-1, 3)
+        gone = np.asarray(gone, dtype=bool).reshape(-1)
+        distance = np.full(len(points), np.inf)
+        for side, triangles in ((gone, after), (~gone, before)):
+            if side.any():
+                distance[side] = _nearest_triangle_distance(points[side], triangles, tol)
+        return distance <= tol
+
+    return probe
+
+
 def classify_pixels(before_depth: np.ndarray, before_tri: np.ndarray,
                      after_depth: np.ndarray, after_tri: np.ndarray,
                      material_before: np.ndarray, material_after: np.ndarray,
@@ -228,7 +308,7 @@ def classify_pixels(before_depth: np.ndarray, before_tri: np.ndarray,
                      plane_after: np.ndarray | None = None,
                      ring=None, tie=None, allow_depth_fallback: bool = False,
                      strict: bool = False,
-                     removed_before: np.ndarray | None = None) -> np.ndarray:
+                     removed_before: np.ndarray | None = None, border=None) -> np.ndarray:
     """Per-pixel verdict code, same shape as the inputs (uint8, one of the `PX_*` constants), in
     this priority order: `PX_FRAGMENT_REMOVED` (BEFORE's first hit is a face `removed_before`
     marks, see below); `PX_HOLE` (hit before, miss after); `PX_MATERIAL_CHANGED` (both hit,
@@ -313,6 +393,31 @@ def classify_pixels(before_depth: np.ndarray, before_tri: np.ndarray,
     the real class are treated alike (`guard_feedback`, cap 0.0). `plane_before`/`plane_after` are
     required for the ring test as well, so a `ring` given without them is ignored.
 
+    THE BORDER-SHIFT MEASUREMENT, the last step. Given `border` (build one with `_border_probe`;
+    `compare_views` does, at its `border_shift_tol`), every `PX_EDGE_FLICKER` pixel whose BASE
+    class is a hole or a move is MEASURED, and becomes `PX_BORDER_SHIFT` when the surface under
+    it really moved no further than that tolerance. Where something DISAPPEARED -- AFTER's ray
+    missed, or met the scene further away than BEFORE's -- the displacement is the distance from
+    BEFORE's hit point to the nearest AFTER triangle; where something APPEARED -- AFTER's ray met
+    the scene nearer, or BEFORE's missed -- it is the distance from AFTER's hit point to the
+    nearest BEFORE triangle. Exact point-to-triangle distances, over EVERY triangle of the other
+    mesh whatever plane it lies in: quantised sloped faces are not coplanar within 0.05 in, so a
+    same-plane filter finds nothing to measure against. A flicker pixel rescued from a MATERIAL
+    change is never measured -- a surface that changed colour did not move -- and one measured
+    further than the tolerance stays `PX_EDGE_FLICKER`, capped exactly as before. A border-shift
+    pixel is never a failure, never capped, and counted on its own (`border_shift`).
+
+    WHY A MEASUREMENT AND NOT A COUNT. The ring says a boundary within its radius COULD explain a
+    pixel -- in the IMAGE plane, so seen at grazing incidence it spans inches of surface -- and
+    says nothing about how far anything moved. `compare_views` answered that with a per-view
+    pixel count (`edge_flicker_cap`), and a count measures how many pixel centres a moved edge
+    happens to cross, not how far it moved: an edge lying almost on a row of pixel centres flips
+    the whole run for a 0.013 in shift. Measured on file A: its merge was rolled back on flicker
+    alone -- view 0 had 14 flicker pixels against a cap of 11.4, 9 of them one run along pixel
+    row 133 where merged region 2 reaches 0.0002 to 0.013 in past its original border -- while
+    every failing pixel lay within 0.062 in of the other mesh, far inside the 0.15 in the merge
+    may move a border.
+
     "Moved" is SURFACE DISPLACEMENT, not depth along the ray: `_displacement` above. Depth along
     the ray divides the real offset by the sine of the grazing angle, so a 0.005 in plane offset
     seen 0.5 degrees off the surface reads as 0.5 in and a correct re-triangulation is reported as
@@ -330,7 +435,7 @@ def classify_pixels(before_depth: np.ndarray, before_tri: np.ndarray,
                       material_after, flat_materials, depth_tol, origins=origins,
                       direction=direction, plane_before=plane_before, plane_after=plane_after,
                       ring=ring, tie=tie, allow_depth_fallback=allow_depth_fallback,
-                      strict=strict, removed_before=removed_before)[0]
+                      strict=strict, removed_before=removed_before, border=border)[0]
 
 
 def _failing_base(codes: np.ndarray, strict: bool) -> np.ndarray:
@@ -350,7 +455,8 @@ def _classify(before_depth: np.ndarray, before_tri: np.ndarray,
                origins=None, direction=None, plane_before=None, plane_after=None,
                ring=None, tie=None, allow_depth_fallback: bool = False,
                strict: bool = False,
-               removed_before: np.ndarray | None = None) -> tuple[np.ndarray, np.ndarray]:
+               removed_before: np.ndarray | None = None,
+               border=None) -> tuple[np.ndarray, np.ndarray]:
     """`classify_pixels`, plus the BASE codes -- what every pixel was classed before the ring test
     rescued any of it -- so `compare_views` can report which class each flicker pixel came from
     (`edge_flicker_hole` / `_moved` / `_material`) without measuring displacement twice."""
@@ -452,6 +558,22 @@ def _classify(before_depth: np.ndarray, before_tri: np.ndarray,
         steady = ~crack & after_ring.any(axis=1) & before_ring.any(axis=1)
         promotable = _promote(promotable, crack, PX_CRACK_CLOSED)
         _promote(promotable, steady[~crack], PX_EDGE_FLICKER)
+
+    # ---- border shift: how far did the surface under a flicker pixel REALLY move? ------------
+    if border is not None and origins is not None and direction is not None:
+        shift = (codes == PX_EDGE_FLICKER) & ((base == PX_HOLE) | (base == PX_MOVED_SAME_FLAT)
+                                               | (base == PX_MOVED_OTHER))
+        if shift.any():
+            t_b, t_a = before_depth[shift], after_depth[shift]
+            # something DISAPPEARED where AFTER missed or met the scene further away, and BEFORE's
+            # hit point is measured against AFTER; anywhere else something APPEARED, and AFTER's
+            # hit point is measured against BEFORE
+            gone = ~hit_after[shift] | (t_a > t_b)
+            t = np.where(gone, t_b, t_a)
+            point = (np.asarray(origins, dtype=np.float64)[shift]
+                     + np.where(np.isfinite(t), t, 0.0)[:, None] * np.asarray(direction, dtype=np.float64))
+            within = border(point, gone) & np.isfinite(t)
+            codes[shift] = np.where(within, PX_BORDER_SHIFT, PX_EDGE_FLICKER)
     return codes, base
 
 
@@ -481,6 +603,11 @@ class ViewVerdict:
     edge_flicker_hole: int
     edge_flicker_moved: int
     edge_flicker_material: int
+    #: Flicker pixels MEASURED as a border that moved no further than `compare_views`'
+    #: `border_shift_tol` -- never a failure and never capped, and no longer counted in
+    #: `edge_flicker` or its breakdown. Always 0 at the default tolerance of 0.0. See
+    #: `classify_pixels`.
+    border_shift: int
 
 
 @dataclass
@@ -494,7 +621,7 @@ def _zero_totals() -> dict:
     return {"model_px": 0, "holes": 0, "material_changed": 0, "moved_same_flat": 0, "moved_other": 0,
             "zfight_tie": 0, "crack_closed": 0, "edge_flicker": 0, "fragment_removed": 0,
             "edge_flicker_hole": 0, "edge_flicker_moved": 0,
-            "edge_flicker_material": 0}
+            "edge_flicker_material": 0, "border_shift": 0}
 
 
 def _fail_mask(codes: np.ndarray, strict: bool, flicker_fails: bool = True) -> np.ndarray:
@@ -519,7 +646,8 @@ def compare_views(before: Sequence[RenderedView], after: Sequence[RenderedView],
                    geometry_after: tuple[np.ndarray, np.ndarray] | None = None,
                    caster_factory=EmbreeCaster,
                    allow_depth_fallback: bool = False,
-                   removed_before: np.ndarray | None = None) -> GuardReport:
+                   removed_before: np.ndarray | None = None,
+                   border_shift_tol: float = 0.0) -> GuardReport:
     """Compare a BEFORE/AFTER pair of `ortho_first_hit` renders, one `(view, HitBuffers)` pair per
     view, paired by position (`before[i]` and `after[i]` must be the same view, and both sequences
     the same length). Each pair must share the whole CAMERA FRAME -- direction, image size and the
@@ -576,10 +704,25 @@ def compare_views(before: Sequence[RenderedView], after: Sequence[RenderedView],
     (`engine.guard.compare.fragment_feedback`), so the pixels they occupied changing is the
     outcome, not evidence against it.
 
+    `border_shift_tol` MEASURES what the flicker cap can only count. Above 0.0, every flicker
+    pixel rescued from a hole or a move gets the real displacement of the surface under it -- the
+    exact distance from the hit point to the nearest triangle of the OTHER geometry, see
+    `classify_pixels` -- and is `PX_BORDER_SHIFT` when that is within the tolerance: counted as
+    `border_shift`, never a failure, never capped, and no longer part of `edge_flicker` or its
+    breakdown. Flicker measured further than the tolerance, and every material-change flicker
+    pixel, stay `PX_EDGE_FLICKER` and are capped exactly as before. The default 0.0 measures
+    nothing, which is what this has always done; `engine.fixes.pipeline` passes the merge's own
+    border tolerance to the guards that judge a merged mesh and 0.0 to the removal guard. Above
+    0.0 it REQUIRES both `geometry_before` and `geometry_after`, and raises `ValueError`
+    otherwise: the measurement is a distance to the other mesh's triangles, and the flicker it
+    re-classes needs both meshes for its ring, so without them a tolerance would excuse nothing
+    while looking as though it excused something.
+
     `passed` is `holes + material_changed + moved_other == 0`, plus `moved_same_flat` when
-    `strict`, plus the flicker pixels of any view over the cap. Every count -- `moved_same_flat`,
-    `edge_flicker` and its `edge_flicker_hole` / `_moved` / `_material` breakdown included -- is
-    always reported in `totals` and every `ViewVerdict`, never silently dropped."""
+    `strict`, plus the flicker pixels of any view over the cap; `border_shift` never counts.
+    Every count -- `moved_same_flat`, `edge_flicker` and its `edge_flicker_hole` / `_moved` /
+    `_material` breakdown, `border_shift` included -- is always reported in `totals` and every
+    `ViewVerdict`, never silently dropped."""
     if len(before) != len(after):
         raise ValueError(f"before/after must have the same number of views, got {len(before)} vs {len(after)}")
     if edge_flicker_cap > 0.0 and (geometry_before is None or geometry_after is None):
@@ -590,6 +733,14 @@ def compare_views(before: Sequence[RenderedView], after: Sequence[RenderedView],
             "as though it tolerated something. Pass geometry_before and geometry_after (positions, "
             "faces) so failing pixels get the ring test, or use edge_flicker_cap=0.0. Planes alone "
             "are not enough -- they say what a ring ray hit, not where to cast it.")
+    if border_shift_tol > 0.0 and (geometry_before is None or geometry_after is None):
+        raise ValueError(
+            f"compare_views was given border_shift_tol={border_shift_tol} but not both "
+            "geometry_before and geometry_after: the border-shift measurement is a distance to the "
+            "OTHER mesh's triangles, and the flicker pixels it re-classes need both meshes for "
+            "their ring, so a nonzero tolerance would excuse nothing while looking as though it "
+            "excused something. Pass geometry_before and geometry_after (positions, faces), or use "
+            "border_shift_tol=0.0.")
 
     # The ring, tie and crack tests ALSO need the planes, and a caller who supplied the geometry
     # has already said everything needed to build them: deriving them here is what stops a cap
@@ -604,6 +755,8 @@ def compare_views(before: Sequence[RenderedView], after: Sequence[RenderedView],
 
     caster_before = caster_factory(*geometry_before) if geometry_before is not None else None
     caster_after = caster_factory(*geometry_after) if geometry_after is not None else None
+    border = (_border_probe(geometry_before, geometry_after, border_shift_tol)
+              if border_shift_tol > 0.0 else None)
 
     view_verdicts = []
     totals = _zero_totals()
@@ -624,7 +777,7 @@ def compare_views(before: Sequence[RenderedView], after: Sequence[RenderedView],
                                  origins=b.origins, direction=b.direction,
                                  plane_before=plane_before, plane_after=plane_after,
                                  ring=ring, tie=tie, allow_depth_fallback=allow_depth_fallback,
-                                 strict=strict, removed_before=removed_before)
+                                 strict=strict, removed_before=removed_before, border=border)
         # The crack cap is applied BEFORE the counts are taken, because over it a crack pixel is
         # not a crack at all -- it goes back to being whatever it was, and is reported as that.
         crack = codes == PX_CRACK_CLOSED
@@ -645,6 +798,7 @@ def compare_views(before: Sequence[RenderedView], after: Sequence[RenderedView],
             "edge_flicker_moved": int((flicker & ((base == PX_MOVED_SAME_FLAT)
                                                   | (base == PX_MOVED_OTHER))).sum()),
             "edge_flicker_material": int((flicker & (base == PX_MATERIAL_CHANGED)).sum()),
+            "border_shift": int((codes == PX_BORDER_SHIFT).sum()),
         }
         view_verdicts.append(ViewVerdict(view=tuple(view), **counts))
         for k, v in counts.items():

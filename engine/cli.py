@@ -350,7 +350,8 @@ def cmd_fix(snapshot_dir: Path, out_root: Path, accept_slit: bool,
               f"{sr['invented_vertices']} vertices invented, "
               f"{sr['cap_guard_removed']} faces refused by the cap guard, "
               f"{sr['faces_newly_hidden']} faces newly hidden, {sr['runtime_s']}s")
-    print(f"{name}: {mesh.n_faces} -> {result.mesh.n_faces} tris, passed={result.passed}")
+    print(f"{name}: {mesh.n_faces} -> {result.mesh.n_faces} tris, passed={result.passed}, "
+          f"border_shift={result.guard_final.totals['border_shift']}")
     print(f"  wrote {out_dir} (and {len(qa)} QA images under qa/)")
     return 0 if result.passed else 2
 
@@ -524,6 +525,7 @@ def cmd_preview_data(snapshot_dir: Path, out_dir: Path, profile: FixProfile | No
             "guard_model_px": int(guard_final["model_px"]),
             "guard_damaged_px": int(guard_damaged_px),
             "guard_flicker_px": int(guard_flicker_px),
+            "guard_border_shift_px": int(guard_final["border_shift"]),
             # the page names its own thresholds from these rather than hard-coding "1-5 deg"
             "coplanar_angle": float(profile.coplanar_angle),
             "soft_angle": float(profile.soft_angle),

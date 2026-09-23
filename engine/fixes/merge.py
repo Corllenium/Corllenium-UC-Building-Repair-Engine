@@ -48,6 +48,14 @@ _SEARCH_BLOCK = 4_000_000
 _SKIP_REASONS = ("overlap", "new_vertex", "invalid_polygon", "area_grew")
 
 
+def default_collinear_tol(quanta: np.ndarray) -> float:
+    """The ring-simplification bound `merge_regions` uses when it is given none:
+    `RING_TOL_QUANTA * max(quanta)`, from the mesh's OWN axis print steps (`Topology.quanta`).
+    It is also how far a merged border may move, which is why the guards that judge a merged mesh
+    read it from here rather than restating it (`engine.fixes.pipeline`)."""
+    return RING_TOL_QUANTA * float(np.asarray(quanta).max())
+
+
 @dataclass
 class MergeResult:
     """`mesh` with every mergeable region re-triangulated; `source_faces[i]` is the array of
@@ -135,11 +143,12 @@ def merge_regions(mesh: MeshData, topo: Topology, flat_materials: Iterable[int] 
     the `keep_all` fallback in any round of the loop) and `converged`.
 
     `collinear_tol` is the ring-simplification bound (see `_ring_keep`); `None`, the default,
-    derives it from the mesh's OWN print precision as `RING_TOL_QUANTA * max(topo.quanta)`.
+    derives it from the mesh's OWN print precision as `RING_TOL_QUANTA * max(topo.quanta)`
+    (`default_collinear_tol`).
     """
     flat = _validated_materials(flat_materials)
     if collinear_tol is None:
-        collinear_tol = RING_TOL_QUANTA * float(topo.quanta.max())
+        collinear_tol = default_collinear_tol(topo.quanta)
     welded_to_original = _welded_to_original(mesh, topo)
 
     plans, copied, skipped = _plan_regions(topo, grid_size, snap_tol)

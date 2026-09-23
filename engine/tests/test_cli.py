@@ -485,6 +485,56 @@ def test_preview_data_keeps_tolerated_flicker_out_of_the_damaged_count(tmp_path,
     assert stats["guard_passed"] is True
 
 
+def _with_border_shift(monkeypatch, count):
+    """Make `fix_object` hand the CLI a final guard that measured `count` border-shift pixels."""
+    real = fix_pipeline.fix_object
+
+    def patched(mesh, flatness, profile_in):
+        result = real(mesh, flatness, profile_in)
+        totals = dict(result.guard_final.totals, border_shift=count)
+        return replace(result, guard_final=GuardReport(views=result.guard_final.views,
+                                                       passed=result.guard_final.passed,
+                                                       totals=totals))
+
+    monkeypatch.setattr(cli, "fix_object", patched)
+
+
+def test_cmd_fix_prints_the_final_guards_border_shift_count(tmp_path, monkeypatch, capsys):
+    m = box_with_partition()
+    snap_dir = _write_snapshot(tmp_path, m)
+    _with_border_shift(monkeypatch, 17)
+
+    cli.cmd_fix(snap_dir, tmp_path / "out", accept_slit=False, profile=_FAST)
+
+    guard_line = [line for line in capsys.readouterr().out.splitlines() if "passed=" in line]
+    assert len(guard_line) == 1 and "border_shift=17" in guard_line[0]
+    report = json.loads((tmp_path / "out" / m.name / "report.json").read_text(encoding="utf-8"))
+    assert report["guard_final"]["totals"]["border_shift"] == 17
+
+
+def test_preview_data_reports_the_final_guards_border_shift(tmp_path, monkeypatch):
+    m = box_with_partition()
+    snap_dir = _write_snapshot(tmp_path, m)
+    _with_border_shift(monkeypatch, 17)
+    out_dir = tmp_path / "preview_out"
+
+    cli.cmd_preview_data(snap_dir, out_dir, profile=_FAST)
+
+    stats = json.loads((out_dir / f"{m.name}.json").read_text(encoding="utf-8"))["stats"]
+    assert stats["guard_border_shift_px"] == 17
+    assert stats["guard_damaged_px"] == 0 and stats["guard_flicker_px"] == 0
+
+
+def test_preview_page_shows_tolerated_border_shift_next_to_the_flicker_count():
+    if not _PREVIEW_PAGE.exists():
+        pytest.skip("preview/index.html is not shipped with the engine package")
+    honest = _PREVIEW_PAGE.read_text(encoding="utf-8").split("$('honest').innerHTML")[1]
+    flicker = honest.index("${s.guard_flicker_px")
+    shift = honest.index("${s.guard_border_shift_px")
+    assert flicker < shift < honest.index("${s.zfight_tie")      # right after the flicker count
+    assert "tolerated sub-tolerance border movement" in honest[shift:shift + 200]
+
+
 def test_preview_data_reports_what_closing_the_slab_added(tmp_path, monkeypatch):
     """The BEFORE pane is the REFERENCE mesh -- the export plus whatever `solidify` added -- so
     the page has to be able to name both counts and what the difference cost."""

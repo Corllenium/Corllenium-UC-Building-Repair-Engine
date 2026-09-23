@@ -127,7 +127,8 @@ def test_identity_all_counts_zero_and_passed():
                               "moved_same_flat": 0, "moved_other": 0, "zfight_tie": 0,
                               "crack_closed": 0, "edge_flicker": 0, "fragment_removed": 0,
                               "edge_flicker_hole": 0,
-                              "edge_flicker_moved": 0, "edge_flicker_material": 0}
+                              "edge_flicker_moved": 0, "edge_flicker_material": 0,
+                              "border_shift": 0}
     assert report.totals["model_px"] > 0
     assert len(report.views) == 26
 
@@ -1454,3 +1455,305 @@ def test_a_removed_face_narrower_than_the_ring_is_never_excused_as_a_closed_crac
                                    strict=True, views=[_FLAT_VIEW], size=_BIG_SIZE)
     assert history[0]["failing_pixels"] >= 100
     assert not mask.any()                            # restored: the strip stays in the mesh
+
+
+# ---------------------------------------------------------------------------------------------
+# B1: a border the merge moved by less than its own tolerance is MEASURED, not counted.
+#
+# Measured on file A at e57462d: the merge (2,579 -> 1,117 triangles) was rolled back on edge
+# flicker alone -- 59 pixels over 18 views, with 0 holes, 0 material changes and 0 moved pixels.
+# View 0 failed with 14 flicker pixels against a cap of 11.4, and 9 of them were ONE run along
+# pixel row 133, where merged region 2 reaches 0.0002 to 0.013 in past its original border. Every
+# failing pixel was at most 0.062 in from the other mesh -- far inside the 0.15 in the merge may
+# move a border -- but a per-view pixel COUNT cannot tell that from damage: an edge lying almost
+# on a row of pixel centres flips the whole run for a 0.013 in shift. `border_shift_tol` measures
+# how far the surface under each flicker pixel really moved instead.
+# ---------------------------------------------------------------------------------------------
+
+import engine.guard.compare as guard_compare
+
+#: `border_shift_tol` on file A: `min(collinear_tol, depth_tol_max)` = min(1.5 * 0.1, 0.5) in.
+_BORDER_TOL = 0.15
+
+
+def _row_scene(shift, upper=False, row=64):
+    """A BEFORE/AFTER pair whose ONLY difference is one straight border that moved `shift` in,
+    laid exactly along pixel row `row` of `_big_camera()`: BEFORE's edge is `shift / 2` above that
+    row's pixel centres and AFTER's is `shift / 2` below them, so every centre of the row lies
+    between the old edge and the new one and the whole run flips at once.
+
+    `upper=False`: a lone 120 x ~60 in plate at z = 0, its top edge at `y = ys[row] +/- shift/2`.
+    A positive `shift` RETREATS the border, so each pixel of the run turns from plate to sky.
+    `upper=True`: the same plate floated `_STACK_GAP` above a floor covering the whole frame, so the
+    border is an INTERNAL silhouette and a flipped pixel swaps plate for floor (a move, never a
+    hole). A positive `shift` retreats the plate (something disappeared), a negative one advances
+    it (something appeared). Returns `(mat, before, after, compare_views keywords)`."""
+    y_row = float(_big_camera().ys[row])
+    z = _STACK_GAP if upper else 0.0
+
+    def scene(y_edge):
+        plate = np.array([[-60.0, -60.0, z], [60.0, -60.0, z], [60.0, y_edge, z], [-60.0, y_edge, z]])
+        if not upper:
+            return plate, _QUAD.copy()
+        floor = np.array([[-_SLAB, -_SLAB, 0.0], [_SLAB, -_SLAB, 0.0], [_SLAB, _SLAB, 0.0],
+                          [-_SLAB, _SLAB, 0.0]])
+        return np.vstack([floor, plate]), np.vstack([_QUAD, _QUAD + 4])
+
+    P_before, faces = scene(y_row + shift / 2.0)
+    P_after, _ = scene(y_row - shift / 2.0)
+    ids = np.arange(len(faces))
+    before = ortho_first_hit(P_before, faces, ids, _FLAT_VIEW, _FRAME, _BIG_SIZE)
+    after = ortho_first_hit(P_after, faces, ids, _FLAT_VIEW, _FRAME, _BIG_SIZE)
+    kw = dict(strict=True, geometry_before=(P_before, faces), geometry_after=(P_after, faces))
+    return np.zeros(len(faces), np.int64), before, after, kw
+
+
+def _one_view_report(view, mat, before, after, kw, **extra):
+    return compare_views([(view, before)], [(view, after)], mat, mat, frozenset({0}), 0.15,
+                          **kw, **extra)
+
+
+def test_a_border_moved_a_hundredth_of_an_inch_along_a_pixel_row_is_a_border_shift():
+    """File A's own failure, built on purpose. The plate's top edge runs exactly along pixel row
+    64 and the merge moved it 0.01 in, so every centre of that row lies between the old edge and
+    the new one: the whole run of 74 pixels turns from plate to sky at once.
+
+    Every one of them really does reach the ring and come out as flicker -- that is checked first,
+    so this test cannot pass on pixels the ring never saw -- and no count cap the merge guard uses
+    can tolerate a run that long. Measured instead, each BEFORE hit point is 0.005 in from the
+    plate AFTER still has: a border shift, never a failure. At `border_shift_tol = 0.0` the same
+    pair fails exactly as it did before the measurement existed."""
+    mat, before, after, kw = _row_scene(0.01)
+    lost = (before.tri >= 0) & (after.tri < 0)
+    n = int(lost.sum())
+    assert n == 74 and int(lost[64].sum()) == n          # one whole run, all on the aimed row
+    assert int(((before.tri >= 0) != (after.tri >= 0)).sum()) == n     # and nothing else changed
+
+    today = _one_view_report(_FLAT_VIEW, mat, before, after, kw, edge_flicker_cap=0.0)
+    assert today.totals["edge_flicker"] == n and today.totals["edge_flicker_hole"] == n
+    assert today.totals["holes"] == 0 and today.totals["crack_closed"] == 0
+    assert today.passed is False
+    counted = _one_view_report(_FLAT_VIEW, mat, before, after, kw, edge_flicker_cap=1e-4)
+    assert counted.views[0].model_px * 1e-4 < n and counted.passed is False
+
+    measured = _one_view_report(_FLAT_VIEW, mat, before, after, kw, edge_flicker_cap=0.0,
+                                border_shift_tol=_BORDER_TOL)
+    assert measured.totals["border_shift"] == n and measured.views[0].border_shift == n
+    assert measured.totals["edge_flicker"] == 0 and measured.views[0].edge_flicker == 0
+    assert measured.totals["edge_flicker_hole"] == 0 and measured.totals["holes"] == 0
+    assert measured.passed is True
+
+    off = _one_view_report(_FLAT_VIEW, mat, before, after, kw, edge_flicker_cap=0.0,
+                           border_shift_tol=0.0)
+    assert off.totals == today.totals and off.totals["border_shift"] == 0
+    assert off.passed is False
+
+
+@pytest.mark.parametrize("shift", [0.01, -0.01], ids=["retreats", "advances"])
+def test_an_internal_border_moved_a_hundredth_of_an_inch_along_a_pixel_row_is_a_border_shift(shift):
+    """The same 0.01 in along a pixel row, at an INTERNAL silhouette: each pixel of the run swaps
+    the plate for the floor 10 in behind it (the border retreated -- something disappeared, and
+    BEFORE's hit point is measured against AFTER's triangles) or the floor for the plate (it
+    advanced -- something appeared, and AFTER's hit point is measured against BEFORE's). Either
+    way the base class is a move, the ring promotes it to flicker, and the measurement finds
+    0.005 in."""
+    mat, before, after, kw = _row_scene(shift, upper=True)
+    swapped = (before.tri >= 2) != (after.tri >= 2)
+    n = int(swapped.sum())
+    assert n == 74 and int(swapped[64].sum()) == n
+    appeared = shift < 0
+    assert bool((after.tri[swapped] >= 2).all()) is appeared   # AFTER shows the plate iff it grew
+
+    today = _one_view_report(_FLAT_VIEW, mat, before, after, kw, edge_flicker_cap=0.0)
+    assert today.totals["edge_flicker"] == n and today.totals["edge_flicker_moved"] == n
+    assert today.totals["moved_same_flat"] == 0 and today.passed is False
+
+    measured = _one_view_report(_FLAT_VIEW, mat, before, after, kw, edge_flicker_cap=0.0,
+                                border_shift_tol=_BORDER_TOL)
+    assert measured.totals["border_shift"] == n
+    assert measured.totals["edge_flicker"] == 0 and measured.totals["edge_flicker_moved"] == 0
+    assert measured.totals["moved_same_flat"] == 0 and measured.passed is True
+
+
+def _grazing_camera():
+    """The camera `_grazing_view()` gives with `_FRAME` at `_BIG_SIZE`, with no geometry at all."""
+    return ortho_first_hit(_FRAME, np.zeros((0, 3), np.int64), np.zeros(0, np.int64),
+                           _grazing_view(), _FRAME, _BIG_SIZE)
+
+
+def _grazing_hit_x(row, z):
+    """Where the centre rays of pixel row `row` of `_grazing_camera()` cross the plane `z`. The view
+    looks along +x (1 degree down), so `right` is -y and a column only picks y: every column of
+    one row crosses the plane at the same x."""
+    cam = _grazing_camera()
+    origin = float(cam.ys[row]) * cam.up + cam.standoff
+    t = (origin[2] - z) / -float(cam.direction[2])
+    return float(origin[0] + t * cam.direction[0])
+
+
+def test_a_two_inch_strip_lost_at_a_border_still_fails_where_the_ring_calls_it_flicker():
+    """The measurement is what stops the tolerance excusing real damage. Seen 1 degree off the
+    plate, the ring's 0.15 in radius -- in the IMAGE plane -- spans 8.6 in ALONG the plate, so a
+    2 in strip lost at its far border does come out of the ring as flicker. Measured, BEFORE's hit
+    point is 1.9 in from anything AFTER still has, so it stays flicker and fails at the zero cap
+    whatever `border_shift_tol` is."""
+    view, row = _grazing_view(), 64
+    x_hit = _grazing_hit_x(row, 0.0)
+    x_old = x_hit + 0.1                       # row 64 lands 0.1 in inside BEFORE's border...
+    x_new = x_old - 2.0                       # ...and 1.9 in beyond AFTER's
+
+    def plate(x_edge):
+        return np.array([[x_hit - 150.0, -60.0, 0.0], [x_edge, -60.0, 0.0],
+                         [x_edge, 60.0, 0.0], [x_hit - 150.0, 60.0, 0.0]])
+
+    P_before, P_after = plate(x_old), plate(x_new)
+    before = ortho_first_hit(P_before, _QUAD, np.arange(2), view, _FRAME, _BIG_SIZE)
+    after = ortho_first_hit(P_after, _QUAD, np.arange(2), view, _FRAME, _BIG_SIZE)
+    lost = (before.tri >= 0) & (after.tri < 0)
+    n = int(lost.sum())
+    assert n == 74 and int(lost[row].sum()) == n
+
+    mat = np.zeros(2, np.int64)
+    kw = dict(strict=True, geometry_before=(P_before, _QUAD), geometry_after=(P_after, _QUAD))
+    for tol in (0.0, _BORDER_TOL):
+        report = _one_view_report(view, mat, before, after, kw, edge_flicker_cap=0.0,
+                                  border_shift_tol=tol)
+        assert report.totals["edge_flicker"] == n and report.totals["edge_flicker_hole"] == n
+        assert report.totals["border_shift"] == 0
+        assert report.passed is False
+
+
+def test_a_two_inch_strip_lost_at_a_border_is_a_hole_even_beside_the_new_edge():
+    """Head-on, the same 2 in loss is 2 in wide in the image too -- far wider than the ring -- so
+    its pixels are holes, not flicker, and the measurement never sees them. That includes row 64,
+    whose centres sit 0.05 in from the new edge: a rule that measured EVERY failing pixel would
+    have excused that whole run. Only a pixel the ring already calls flicker is ever measured."""
+    y_row = float(_big_camera().ys[64])
+    y_new = y_row - 0.05                      # row 64's centres are 0.05 in outside AFTER's plate
+    y_old = y_new + 2.0
+
+    def plate(y_edge):
+        return np.array([[-60.0, -60.0, 0.0], [60.0, -60.0, 0.0], [60.0, y_edge, 0.0],
+                         [-60.0, y_edge, 0.0]])
+
+    P_before, P_after = plate(y_old), plate(y_new)
+    before = ortho_first_hit(P_before, _QUAD, np.arange(2), _FLAT_VIEW, _FRAME, _BIG_SIZE)
+    after = ortho_first_hit(P_after, _QUAD, np.arange(2), _FLAT_VIEW, _FRAME, _BIG_SIZE)
+    lost = (before.tri >= 0) & (after.tri < 0)
+    n = int(lost.sum())
+    assert int(lost[64].sum()) == 74 and n == 2 * 74       # rows 63 and 64
+
+    mat = np.zeros(2, np.int64)
+    kw = dict(strict=True, geometry_before=(P_before, _QUAD), geometry_after=(P_after, _QUAD))
+    for tol in (0.0, _BORDER_TOL):
+        report = _one_view_report(_FLAT_VIEW, mat, before, after, kw, edge_flicker_cap=0.0,
+                                  border_shift_tol=tol)
+        assert report.totals["holes"] == n
+        assert report.totals["edge_flicker"] == 0 and report.totals["border_shift"] == 0
+        assert report.passed is False
+
+
+def test_a_surface_appearing_an_inch_beyond_its_border_still_fails_where_the_ring_calls_it_flicker():
+    """The other direction. A plate 1 in above a floor grows 1 in past its old border; seen 1
+    degree off the plate, the ring calls the run of pixels that now meet it instead of the floor
+    flicker. Measured, AFTER's hit point is 0.9 in from anything BEFORE had -- the old border -- so
+    it stays flicker and fails at the zero cap whatever `border_shift_tol` is."""
+    view, row, height = _grazing_view(), 64, 1.0
+    x_top = _grazing_hit_x(row, height)       # where row 64 crosses the plate's plane
+    x_old = x_top - 0.9                       # BEFORE's border: row 64 passes 0.9 in beyond it
+    x_new = x_old + 1.0                       # AFTER's plate reaches 1 in further, past row 64
+
+    def scene(x_edge):
+        floor = np.array([[x_top - 300.0, -60.0, 0.0], [x_top + 300.0, -60.0, 0.0],
+                          [x_top + 300.0, 60.0, 0.0], [x_top - 300.0, 60.0, 0.0]])
+        plate = np.array([[x_top - 150.0, -60.0, height], [x_edge, -60.0, height],
+                          [x_edge, 60.0, height], [x_top - 150.0, 60.0, height]])
+        return np.vstack([floor, plate])
+
+    faces = np.vstack([_QUAD, _QUAD + 4])
+    P_before, P_after = scene(x_old), scene(x_new)
+    before = ortho_first_hit(P_before, faces, np.arange(4), view, _FRAME, _BIG_SIZE)
+    after = ortho_first_hit(P_after, faces, np.arange(4), view, _FRAME, _BIG_SIZE)
+    appeared = (before.tri >= 0) & (before.tri < 2) & (after.tri >= 2)
+    n = int(appeared.sum())
+    assert n == 74 and int(appeared[row].sum()) == n
+    assert int((before.tri != after.tri).sum()) >= n
+
+    mat = np.zeros(4, np.int64)
+    kw = dict(strict=True, geometry_before=(P_before, faces), geometry_after=(P_after, faces))
+    for tol in (0.0, _BORDER_TOL):
+        report = _one_view_report(view, mat, before, after, kw, edge_flicker_cap=0.0,
+                                  border_shift_tol=tol)
+        assert report.totals["edge_flicker"] == n and report.totals["edge_flicker_moved"] == n
+        assert report.totals["border_shift"] == 0
+        assert report.passed is False
+
+
+def test_a_material_change_is_never_measured_away_as_a_border_shift():
+    """The measurement is for a surface that MOVED, never for one that changed colour.
+    `_stacked_pair`'s 0.1 in shift with the upper slab in another material is flicker rescued from
+    `material_changed`, and it stays exactly that at any tolerance -- while the very same shift in
+    one material measures 0.05 in and is a border shift."""
+    _, mat, before, after, kw = _stacked_pair(0.1, upper_material=1)
+    kw = {**kw, "border_shift_tol": _BORDER_TOL}
+    material = _stacked_report(mat, before, after, kw, cap=0.0, flat=frozenset({0, 1}))
+    assert material.totals["edge_flicker"] == 1 and material.totals["edge_flicker_material"] == 1
+    assert material.totals["border_shift"] == 0 and material.passed is False
+
+    _, mat, before, after, kw = _stacked_pair(0.1)
+    same = _stacked_report(mat, before, after, {**kw, "border_shift_tol": _BORDER_TOL}, cap=0.0)
+    assert same.totals["border_shift"] == 1 and same.totals["edge_flicker"] == 0
+    assert same.passed is True
+
+
+def test_border_shift_tol_above_zero_without_both_geometries_is_an_error():
+    """The measurement needs both meshes, and the flicker it re-classes needs them for its ring.
+    Without them a nonzero tolerance would excuse nothing while looking as though it excused
+    something -- the same trap the flicker cap refuses."""
+    before, after = _buffers(_block()), _buffers(_block(drop=[(25, 25)]))
+    mat = np.zeros(2, np.int64)
+    args = ([(_FLICKER_VIEW, before)], [(_FLICKER_VIEW, after)], mat, mat, frozenset({0}), 0.15)
+
+    with pytest.raises(ValueError) as excinfo:
+        compare_views(*args, border_shift_tol=0.15, allow_depth_fallback=True)
+    assert "border_shift_tol" in str(excinfo.value) and "geometry" in str(excinfo.value)
+    with pytest.raises(ValueError, match="border_shift_tol"):
+        compare_views(*args, border_shift_tol=0.15, allow_depth_fallback=True,
+                      geometry_before=_BLOCK_GEOMETRY)
+
+    # 0.0, the default, measures nothing and needs nothing
+    report = compare_views(*args, border_shift_tol=0.0, allow_depth_fallback=True)
+    assert report.totals["holes"] == 1 and report.totals["border_shift"] == 0
+
+
+def test_the_border_shift_distance_is_exact_and_blind_to_which_plane_a_triangle_lies_in():
+    """`_nearest_triangle_distance` is a true point-to-triangle distance -- the perpendicular over
+    the interior, the nearest edge or corner outside it, never the distance to the triangle's
+    PLANE alone -- taken over every triangle within reach whatever plane it lies in (quantised
+    sloped faces are not coplanar within 0.05 in, so a same-plane filter finds nothing), and `inf`
+    where nothing is within reach."""
+    floor = [[0.0, 0.0, 0.0], [10.0, 0.0, 0.0], [0.0, 10.0, 0.0]]
+    points = np.array([[2.0, 2.0, 3.0],       # over the interior: the perpendicular, 3
+                       [5.0, -4.0, 0.0],      # beside edge (0,0)-(10,0): 4 (its plane says 0)
+                       [-3.0, -4.0, 0.0],     # past corner (0,0,0): 5
+                       [6.0, 6.0, 0.0],       # past the hypotenuse x + y = 10: sqrt(2)
+                       [13.0, 0.0, 4.0]])     # past corner (10,0,0): 5
+    one = guard_compare._nearest_triangle_distance(points, np.array([floor]), 10.0)
+    assert one == pytest.approx([3.0, 4.0, 5.0, np.sqrt(2.0), 5.0], abs=1e-12)
+
+    # a zero-area (collinear) triangle is still a segment you can be near
+    needle = np.array([[[0.0, 0.0, 0.0], [10.0, 0.0, 0.0], [20.0, 0.0, 0.0]]])
+    assert guard_compare._nearest_triangle_distance(np.array([[5.0, 3.0, 0.0]]), needle,
+                                                    10.0) == pytest.approx([3.0], abs=1e-12)
+
+    # the nearest triangle wins whatever its plane: a WALL standing at x = 11 is 1 in from
+    # (12, 5, 0), the floor triangle 7 / sqrt(2) = 4.9 in away
+    wall = [[11.0, 0.0, 0.0], [11.0, 10.0, 0.0], [11.0, 0.0, 10.0]]
+    both = guard_compare._nearest_triangle_distance(np.array([[12.0, 5.0, 0.0]]),
+                                                    np.array([floor, wall]), 2.0)
+    assert both == pytest.approx([1.0], abs=1e-12)
+
+    # nothing within reach is `inf`, not a guess
+    far = guard_compare._nearest_triangle_distance(np.array([[2.0, 2.0, 3.0]]),
+                                                   np.array([floor]), 1.0)
+    assert np.isinf(far).all()

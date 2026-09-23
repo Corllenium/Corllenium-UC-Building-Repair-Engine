@@ -216,7 +216,8 @@ async function load(file) {
     ` Guard over ${s.guard_views} views at ${s.guard_tol_in.toFixed(2)} in tolerance: <b>${s.guard_passed ? `passed` : `FAILED`}</b>, ` +
     `<b>${s.guard_damaged_px.toLocaleString()}</b> damaged px of ${s.guard_model_px.toLocaleString()} ` +
     `(${(100 * s.guard_damaged_px / s.guard_model_px).toFixed(3)} %). ` +
-    `${s.guard_flicker_px.toLocaleString()} flicker px tolerated (a boundary that moved less than the tolerance) · ` +
+    `${s.guard_flicker_px.toLocaleString()} flicker px tolerated (a boundary the ring could not rule out, capped per view) · ` +
+    `${s.guard_border_shift_px.toLocaleString()} border-shift px: tolerated sub-tolerance border movement (each one measured within the merge's own border tolerance, never capped) · ` +
     `${s.zfight_tie.toLocaleString()} z-fight ties (overlaps that were already there, not damage) · ` +
     `${s.crack_closed.toLocaleString()} cracks closed (an improvement) · ` +
     `${s.fragment_removed_px.toLocaleString()} px of removed debris (excused by name, never elsewhere) · ` +

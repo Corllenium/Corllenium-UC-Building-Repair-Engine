@@ -45,7 +45,7 @@ from dataclasses import dataclass
 import numpy as np
 
 from engine.detectors.fragments import detect_fragments
-from engine.fixes.merge import merge_regions
+from engine.fixes.merge import default_collinear_tol, merge_regions
 from engine.fixes.orient import ORIENT_FLIP, ORIENT_THIN_SHEET, classify_orientation, flip_faces, one_sided_holes
 from engine.fixes.overlap import remove_overlaps
 from engine.fixes.remove import remove_faces
@@ -435,6 +435,13 @@ def fix_object(mesh: MeshData, flatness: dict[str, float], profile: FixProfile =
 
     topo3 = analyse_topology(mesh_overlapped, flat_materials, **angles)
     merge_result = merge_regions(mesh_overlapped, topo3, flat_materials)
+    # How far the merge may move a border: its corner pass drops a border vertex while the whole
+    # original polyline stays within `collinear_tol` of the chord that replaces it, so a merged
+    # border can sit up to that far from the original. The guards that judge a merged mesh MEASURE
+    # each flicker pixel's real displacement and excuse up to exactly that (`border_shift_tol`,
+    # see `engine.guard.compare.classify_pixels`) -- clamped to `depth_tol_max`, so a coarse-
+    # precision export cannot excuse a wide shift. The same derivation `merge_regions` just used.
+    border_shift_tol = min(default_collinear_tol(topo3.quanta), profile.depth_tol_max)
 
     # A slit-tolerant removal is a person-accepted, colour-tolerant change: both guard checks
     # below use the same strictness the removal itself used.
@@ -456,7 +463,8 @@ def fix_object(mesh: MeshData, flatness: dict[str, float], profile: FixProfile =
     planes_original = face_planes(positions_c, face_w_original)
     before_original = _render(positions_c, face_w_original, profile.guard_size)
 
-    def _guard_against_original(final_mesh: MeshData, edge_flicker_cap: float) -> GuardReport:
+    def _guard_against_original(final_mesh: MeshData, edge_flicker_cap: float,
+                                border_shift_tol: float) -> GuardReport:
         face_w_final = remap[final_mesh.face_v]
         after = _render(positions_c, face_w_final, profile.guard_size)
         return compare_views(
@@ -466,10 +474,12 @@ def fix_object(mesh: MeshData, flatness: dict[str, float], profile: FixProfile =
             crack_closed_cap=profile.crack_closed_cap,
             geometry_before=(positions_c, face_w_original),
             geometry_after=(positions_c, face_w_final),
-            removed_before=removed_fragments_full)
+            removed_before=removed_fragments_full, border_shift_tol=border_shift_tol)
 
-    # the mesh the merge was attempted on, which is also what ships if it is rolled back
-    guard_after_removal = _guard_against_original(mesh_overlapped, edge_flicker_cap=0.0)
+    # the mesh the merge was attempted on, which is also what ships if it is rolled back. Nothing
+    # here moved a border -- faces were only removed -- so this guard excuses no border shift.
+    guard_after_removal = _guard_against_original(mesh_overlapped, edge_flicker_cap=0.0,
+                                                  border_shift_tol=0.0)
 
     merge_report = dict(merge_result.report)
     rolled_back_reason = None
@@ -478,7 +488,8 @@ def fix_object(mesh: MeshData, flatness: dict[str, float], profile: FixProfile =
     if not merge_report.get("converged", True):
         rolled_back_reason = "not_converged"   # no merged mesh exists, so there is none to guard
     else:
-        guard_merge_attempt = _guard_against_original(merge_result.mesh, profile.edge_flicker_cap_final)
+        guard_merge_attempt = _guard_against_original(
+            merge_result.mesh, profile.edge_flicker_cap_final, border_shift_tol)
         if not guard_merge_attempt.passed:
             rolled_back_reason = "guard_failed"
 
@@ -491,7 +502,8 @@ def fix_object(mesh: MeshData, flatness: dict[str, float], profile: FixProfile =
         final_face_region = np.full(mesh_overlapped.n_faces, -1, np.int64)
         # `guard_final` describes what SHIPPED; `guard_merge_attempt` keeps the report that
         # caused the rollback, which is the only record of why the merge was thrown away.
-        guard_final = _guard_against_original(final_mesh, profile.edge_flicker_cap_final)
+        guard_final = _guard_against_original(final_mesh, profile.edge_flicker_cap_final,
+                                              border_shift_tol)
     else:
         final_mesh = merge_result.mesh
         final_source_faces = [source_from_overlap[s].astype(np.int64) for s in merge_result.source_faces]
