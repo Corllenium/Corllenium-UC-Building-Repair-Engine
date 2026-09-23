@@ -1,5 +1,6 @@
 import numpy as np
 import pytest
+import shapely
 
 from engine.fixes import merge as merge_module
 from engine.fixes.merge import merge_regions
@@ -9,7 +10,7 @@ from engine.pipeline import analyse_topology
 from engine.tests.fixtures.build import (arc_topped_strip, cube, grid_slab, l_shaped_slab,
                                          overlapping_pair, slab_with_hole, slab_with_wall,
                                          two_slabs_sharing_border,
-                                         two_slabs_sharing_curved_border)
+                                         two_slabs_sharing_curved_border, union_sliver_region)
 
 
 def area(mesh):
@@ -554,3 +555,111 @@ def test_an_uncompensated_grower_is_fed_back_and_pins_the_border_for_its_neighbo
     outers = list({id(v): v["outer"] for v in r.rings.values()}.values())
     assert sorted(len(outer) for outer in outers) == [2 + n, 2 * n]   # left: border + 2; right: all
     assert area(r.mesh) <= area(m) * (1.0 + 1e-6)
+
+
+# ------------------------------------------ union rings narrower than any existing vertex pair
+
+
+def _raw_union_ring_sizes(mesh):
+    """Distinct existing vertices each interior ring of the region's grid-snapped union snaps
+    to -- the rings exactly as `_union` hands them over, before `_pieces` reads them."""
+    topo = analyse_topology(mesh, frozenset())
+    members = np.flatnonzero(topo.face_region == 0)
+    _normal, origin, basis = merge_module._region_frame(topo.positions_w, topo.face_w, members)
+    ids = np.unique(topo.face_w[members])
+    xy = (topo.positions_w[ids] - origin) @ basis
+    tri = xy[np.searchsorted(ids, topo.face_w[members])]
+    union = merge_module._union(shapely.polygons(np.concatenate([tri, tri[:, :1]], axis=1)),
+                                merge_module.GRID_SIZE)
+    return [len(set(merge_module._nearest_ids(np.asarray(ring.coords)[:-1], xy, ids,
+                                               merge_module.SNAP_TOL).tolist()))
+            for ring in union.interiors]
+
+
+def test_union_slivers_narrower_than_snap_tol_close_instead_of_skipping_the_region():
+    m = union_sliver_region()
+    # precondition: the fixture still reproduces -- its union carries a ring no three existing
+    # vertices can bound (if a shapely/GEOS upgrade stops making them, this is what fails)
+    assert min(_raw_union_ring_sizes(m)) < 3
+    r = merged(m)
+    assert r.report["regions_skipped"] == {}
+    assert r.report["regions_merged"] == 1 and r.report["faces_copied"] == 0
+    loops = r.rings[0]
+    assert loops["inners"] == []                       # the slivers closed; they are not holes
+    assert r.mesh.n_faces == len(loops["outer"]) - 2   # one hole-free polygon
+
+
+# A 100 x 100 square region: its 4 corners, a fan centre `p`, the two ends `a`/`b` of an interior
+# edge, and a vertex `q` with two lobes `c`/`e` and `d`/`f` beside it. Every "union" below is the
+# square minus what a cascaded grid-snapped union can invent: rings one grid cell (1e-4) across.
+_SQUARE = np.array([[0.0, 0.0], [100.0, 0.0], [100.0, 100.0], [0.0, 100.0],    # 0-3 corners
+                    [50.0, 50.0],                                              # 4 p
+                    [30.0, 50.0], [70.0, 50.0],                                # 5 a, 6 b
+                    [50.0, 80.0], [60.0, 85.0], [60.0, 95.0],                  # 7 q, 8 c, 9 e
+                    [40.0, 85.0], [40.0, 95.0]])                               # 10 d, 11 f
+_IDS = np.arange(len(_SQUARE))
+
+
+def _pieces_of(union):
+    return merge_module._pieces(union, _SQUARE, _IDS, merge_module.SNAP_TOL)
+
+
+def _rings(pieces):
+    return [[r.tolist() for r in piece.rings] for piece in pieces]
+
+
+def test_pieces_closes_a_union_hole_that_snaps_to_one_vertex():
+    p = _SQUARE[4]
+    one_cell_at_the_fan_centre = [p + (1e-4, 0.0), p + (0.0, 1e-4), p + (-1e-4, 0.0)]
+    pieces = _pieces_of(shapely.Polygon(_SQUARE[:4], [one_cell_at_the_fan_centre]))
+    assert _rings(pieces) == [[[0, 1, 2, 3]]]
+    assert pieces[0].union_area == pytest.approx(10000.0, abs=1e-9)
+    assert pieces[0].union_perimeter == pytest.approx(400.0, abs=1e-9)
+
+
+def test_pieces_closes_a_union_sliver_that_snaps_to_two_vertices():
+    a, b = _SQUARE[5], _SQUARE[6]
+    one_cell_wide_along_the_edge = [a + (1e-4, 0.0), b + (-1e-4, 1e-4), b + (-1e-4, -1e-4)]
+    pieces = _pieces_of(shapely.Polygon(_SQUARE[:4], [one_cell_wide_along_the_edge]))
+    assert _rings(pieces) == [[[0, 1, 2, 3]]]
+    assert pieces[0].union_area == pytest.approx(10000.0, abs=1e-9)
+
+
+def test_pieces_splits_a_union_hole_that_revisits_a_vertex_into_its_simple_cycles():
+    q, c, e, d, f = _SQUARE[7], _SQUARE[8], _SQUARE[9], _SQUARE[10], _SQUARE[11]
+    figure_eight = [q + (1e-4, 0.0), c, e, q + (-1e-4, 0.0), f, d]
+    pieces = _pieces_of(shapely.Polygon(_SQUARE[:4], [figure_eight]))
+    assert _rings(pieces) == [[[0, 1, 2, 3], [7, 8, 9], [7, 11, 10]]]
+    lobes = shapely.Polygon([q, c, e]).area + shapely.Polygon([q, f, d]).area
+    # measured on the union's own coordinates, which sit a grid cell off `q`
+    assert pieces[0].union_area == pytest.approx(10000.0 - lobes, abs=1e-2)
+
+
+def test_pieces_drops_the_cycles_of_a_pinched_hole_that_are_too_short_to_be_holes():
+    q, c, d = _SQUARE[7], _SQUARE[8], _SQUARE[10]
+    bow_tie = [q + (1e-4, 0.0), c, q + (-1e-4, 0.0), d]
+    pieces = _pieces_of(shapely.Polygon(_SQUARE[:4], [bow_tie]))
+    assert _rings(pieces) == [[[0, 1, 2, 3]]]
+    assert pieces[0].union_area == pytest.approx(10000.0, abs=1e-9)
+
+
+def test_pieces_drops_a_union_island_narrower_than_snap_tol():
+    corner = _SQUARE[2]
+    one_cell = [corner + (1e-4, 1e-4), corner + (2e-4, 1e-4), corner + (1e-4, 2e-4)]
+    union = shapely.MultiPolygon([shapely.Polygon(_SQUARE[:4]), shapely.Polygon(one_cell)])
+    assert _rings(_pieces_of(union)) == [[[0, 1, 2, 3]]]
+
+
+def test_pieces_removes_a_spike_the_outer_ring_makes_to_a_vertex_and_back():
+    corner, p = _SQUARE[1], _SQUARE[4]
+    spiked = [_SQUARE[0], corner + (-1e-4, 0.0), p + (0.0, 1e-4), corner + (0.0, 1e-4),
+              _SQUARE[2], _SQUARE[3]]
+    pieces = _pieces_of(shapely.Polygon(spiked))
+    assert _rings(pieces) == [[[0, 1, 2, 3]]]
+    assert pieces[0].union_area == pytest.approx(10000.0, abs=1e-2)   # the corner sits a cell off
+
+
+def test_pieces_rejects_an_outer_ring_pinched_into_two_lobes():
+    p = _SQUARE[4]
+    bow_tie = [_SQUARE[0], _SQUARE[1], p + (1e-4, 0.0), _SQUARE[2], _SQUARE[3], p + (-1e-4, 0.0)]
+    assert _pieces_of(shapely.Polygon(bow_tie)) == []

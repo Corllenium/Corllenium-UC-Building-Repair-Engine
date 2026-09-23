@@ -1,5 +1,8 @@
+from pathlib import Path
+
 import numpy as np
 
+from engine.io.obj_reader import read_obj
 from engine.model import MeshData
 
 
@@ -713,3 +716,23 @@ def slab_with_strays(nx=4, ny=4, cell=10.0, uv_per_unit=0.05, needle_width=0.02,
         P += [[10.0, 0.0, 25.0], [15.0, 0.0, 25.0], [15.0, 4.0, 25.0], [10.0, 4.0, 25.0]]
         _quads(P, uvs, fv, fvt, fm, [(base, base + 1, base + 2, base + 3)], uv_per_unit=uv_per_unit)
     return _mesh("slab_with_strays", P, uvs, fv, fvt, face_material=fm)
+
+
+def union_sliver_region():
+    """ONE flat sidewalk region straight out of the real export (`union_sliver_region.obj`: 202 of
+    the 203 triangles of region 29 of the CHTM_SIDE_WALK_2nd_floor snapshot `ce26e0392ab0`, as the
+    merge receives them after hidden-face removal, flipping and duplicate-layer removal; 136
+    welded vertices), read through `read_obj` so the printed precision (2 decimals, 6 significant
+    digits, a 0.1 in Y quantum) is inferred exactly as it is for the snapshot.
+
+    Its grid-snapped union (`engine.fixes.merge._union` at `GRID_SIZE`) is one polygon whose
+    interior rings are all SLIVERS: each runs along an edge two triangles SHARE, at most a grid
+    cell wide, so every one of its coordinates snaps to one of that edge's two end vertices and
+    no three existing vertices can bound it. They are the union's, not the surface's: with the
+    same triangles their number changes with the order the union combines them (4 in file order,
+    4 or 6 over 8 shuffles, shapely 2.1.2 / GEOS 3.13.1), and a full-precision union leaves 10.
+
+    Kept this size on purpose: a greedy search that dropped one triangle at a time could not
+    remove any of these 202 without losing the sliver it was following or splitting the region,
+    and a fan or a two-ring neighbourhood around a sliver reproduces nothing."""
+    return read_obj(Path(__file__).with_name("union_sliver_region.obj"))

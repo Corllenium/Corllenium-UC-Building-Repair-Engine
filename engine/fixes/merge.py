@@ -195,11 +195,13 @@ def region_outline(topo: Topology, members: np.ndarray, grid_size: float = GRID_
     computes for the merge, exposed so `engine.fixes.solidify` hangs its skirt on the SAME
     outline the merge will later rebuild the region from.
 
-    `pieces` are `_Piece`s: each polygon of the union with its rings as WELDED vertex ids.
-    `None` when the region has no frame (no area), when every one of its triangles is excluded
-    by the overlap rule, when the union invented a vertex that no existing one is within
-    `snap_tol` of, or when the union is empty -- all of which a caller reports as one thing,
-    "the outline could not be mapped back onto vertices this mesh has"."""
+    `pieces` are `_Piece`s: each polygon of the union with its rings as WELDED vertex ids, every
+    ring a simple cycle of at least 3 and every sliver no three vertices can bound closed (see
+    `_pieces`). `None` when the region has no frame (no area), when every one of its triangles
+    is excluded by the overlap rule, when the union invented a vertex that no existing one is
+    within `snap_tol` of, when the union is empty, or when an outer ring pinches into lobes no
+    single polygon over existing vertices describes -- all of which a caller reports as one
+    thing, "the outline could not be mapped back onto vertices this mesh has"."""
     frame = _region_frame(topo.positions_w, topo.face_w, members)
     if frame is None:
         return None
@@ -285,17 +287,52 @@ def _union(polys: np.ndarray, grid_size: float):
 def _pieces(union, vertex_xy: np.ndarray, vertex_ids: np.ndarray, snap_tol: float):
     """Rings of every polygon of `union`, as welded vertex ids. `None` when any ring coordinate
     fails to land within `snap_tol` of an existing vertex -- the union invented a vertex, which
-    in the spike happened up to 94 inches away where slightly overlapping triangles crossed."""
+    in the spike happened up to 94 inches away where slightly overlapping triangles crossed.
+
+    A ring is kept as the SIMPLE cycles its snapped ids form (`_simple_cycles`); a cycle of fewer
+    than 3 ids is dropped, because no three existing vertices can bound it. The union leaves such
+    rings inside a region that has no gap: slivers at most a grid cell wide, around a vertex a
+    whole fan of triangles shares or along an edge two triangles share. They belong to the union,
+    not to the surface -- on the real region `union_sliver_region` their number changes with the
+    order the union combines the same triangles. Every coordinate of one lies within `snap_tol`
+    of one or two vertices, so its ids collapse to `[p]`, `[a, b]`, or a ring that revisits a
+    vertex where two slivers meet, and the polygon over those ids is invalid however many ring
+    vertices are kept: three whole regions of the CHTM_SIDE_WALK_2nd_floor export were copied
+    through unmerged for this. Closing the sliver is the only reading existing vertices can
+    express. A hole that
+    splits into several simple cycles becomes that many holes, touching at the shared vertex. An
+    outer ring that keeps no cycle is a sliver island and its polygon is dropped; one that keeps
+    more than one is two lobes joined by a neck narrower than `snap_tol`, which no single polygon
+    over existing vertices describes, so the region is given up (`[]`, the `invalid_polygon`
+    skip, at plan time).
+
+    `union_area` / `union_perimeter` are measured on the union's OWN coordinates of the kept
+    cycles: the polygon the rebuilt region is checked against (rule 6), every dropped ring
+    closed."""
     out: list[_Piece] = []
     for poly in _polygons(union):
-        rings = []
+        loops: list[tuple[np.ndarray, np.ndarray]] = []  # (ids, coords), outer ring first
         for ring in [poly.exterior, *poly.interiors]:
-            ids = _nearest_ids(np.asarray(ring.coords)[:-1], vertex_xy, vertex_ids, snap_tol)
+            coords = np.asarray(ring.coords)[:-1]
+            ids = _nearest_ids(coords, vertex_xy, vertex_ids, snap_tol)
             if ids is None:
                 return None
-            rings.append(_dedup_cycle(ids))
-        out.append(_Piece(rings=rings, union_area=float(poly.area),
-                          union_perimeter=float(poly.length)))
+            cycles = _simple_cycles(ids)
+            if not loops:
+                if not cycles:
+                    break
+                if len(cycles) > 1:
+                    return []
+            loops.extend((ids[rows], coords[rows]) for rows in cycles)
+        if not loops:
+            continue
+        area = perimeter = 0.0
+        for k, (_ids, xy) in enumerate(loops):
+            loop = shapely.Polygon(xy)
+            area += loop.area if k == 0 else -loop.area
+            perimeter += loop.length
+        out.append(_Piece(rings=[ids for ids, _xy in loops], union_area=float(area),
+                          union_perimeter=float(perimeter)))
     return out
 
 
@@ -323,14 +360,44 @@ def _nearest_ids(coords: np.ndarray, vertex_xy: np.ndarray, vertex_ids: np.ndarr
     return vertex_ids[picked]
 
 
-def _dedup_cycle(ids: np.ndarray) -> np.ndarray:
-    keep = [int(ids[0])]
-    for v in ids[1:]:
-        if int(v) != keep[-1]:
-            keep.append(int(v))
-    if len(keep) > 1 and keep[0] == keep[-1]:
+def _dedup_rows(ids: np.ndarray) -> np.ndarray:
+    """The rows of `ids` (one closed ring) that start a run of equal ids, the closing run folded
+    into the opening one: `[p, p, a, b, p]` keeps rows `[0, 2, 3]`."""
+    keep = [0]
+    for row in range(1, len(ids)):
+        if ids[row] != ids[keep[-1]]:
+            keep.append(row)
+    if len(keep) > 1 and ids[keep[-1]] == ids[keep[0]]:
         keep.pop()
     return np.array(keep, np.int64)
+
+
+def _simple_cycles(ids: np.ndarray) -> list[np.ndarray]:
+    """The simple cycles one closed ring of snapped ids is made of, each as the ROWS of `ids` it
+    visits in ring order, leaving out every cycle of fewer than 3 ids. Consecutive repeats of an
+    id are one visit. The ring is walked with a stack: a second visit to an id closes the cycle
+    walked since its first visit, and the walk resumes from that first visit. So `[p, a, p, b]`
+    is the two-id cycles `[p, a]` and `[p, b]`, both left out; `[p, a, b, p, c, d]` is
+    `[p, a, b]` and `[p, c, d]`; and a ring that visits every id once is itself."""
+    rows = _dedup_rows(ids)
+    stack: list[int] = []   # indices into `rows`, the walk so far
+    at: dict[int, int] = {}  # id -> its index in `stack`
+    out: list[np.ndarray] = []
+    for i, v in enumerate(ids[rows].tolist()):
+        k = at.get(v)
+        if k is None:
+            at[v] = len(stack)
+            stack.append(i)
+            continue
+        cycle = stack[k:]
+        del stack[k + 1:]
+        for j in cycle[1:]:
+            del at[int(ids[rows[j]])]
+        if len(cycle) >= 3:
+            out.append(rows[cycle])
+    if len(stack) >= 3:
+        out.append(rows[stack])
+    return out
 
 
 # ------------------------------------------------------------------- the global corner pass (5)
