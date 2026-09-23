@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>UC Model Fixer · throwaway preview</title>
 <style>
-  :root { --bg:#f3f3f5; --panel:#fff; --ink:#1c1d21; --muted:#676b75; --line:#dcdde2; --blue:#1f5bff; --red:#d8282f; --warn:#fff4d6; }
+  :root { --bg:#f3f3f5; --panel:#fff; --ink:#1c1d21; --muted:#676b75; --line:#dcdde2; --blue:#1f5bff; --red:#d8282f; --warn:#fff4d6; --soft:#a83ad0; }
   * { box-sizing:border-box; }
   body { margin:0; font:14px/1.45 system-ui,Segoe UI,sans-serif; color:var(--ink); background:var(--bg); }
   header { padding:10px 16px; background:var(--warn); border-bottom:1px solid #ecd9a0; font-size:13px; }
@@ -39,6 +39,7 @@
   <label><input type="checkbox" id="grid" checked><span class="sw" style="background:var(--blue)"></span>gridlines (hidden wall meets surface)</label>
   <label><input type="checkbox" id="outline" checked><span class="sw" style="background:#222"></span>region outlines</label>
   <label><input type="checkbox" id="tri"><span class="sw" style="background:#9aa0a8"></span>all triangle edges</label>
+  <label title="Same material, two regions, folded by more than 1 and at most 5 degrees: a real crease the merge cannot dissolve without moving a vertex."><input type="checkbox" id="soft"><span class="sw" style="background:var(--soft)"></span>soft creases (1-5&deg;)</label>
   <label><input type="checkbox" id="xray"><span class="sw" style="background:var(--red)"></span>x-ray: hidden inside faces</label>
   <label title="Diagnostic only. SketchUp and your Unity project draw both sides."><input type="checkbox" id="onesided">one-sided (diagnostic)</label>
   <label><input type="checkbox" id="sync" checked>sync cameras</label>
@@ -54,7 +55,7 @@ import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 
 const $ = id => document.getElementById(id)
-const COLORS = { grid: 0x1f5bff, outline: 0x222222, tri: 0x9aa0a8 }
+const COLORS = { grid: 0x1f5bff, outline: 0x222222, tri: 0x9aa0a8, soft: 0xa83ad0 }
 
 class View {
   constructor(el) {
@@ -147,6 +148,7 @@ function applyToggles() {
     if (v.parts.grid) v.parts.grid.visible = on('grid')
     if (v.parts.outline) v.parts.outline.visible = on('outline')
     if (v.parts.tri) v.parts.tri.visible = on('tri')
+    if (v.parts.soft) v.parts.soft.visible = on('soft')
     const side = on('onesided') ? THREE.FrontSide : THREE.DoubleSide
     for (const k of ['facade', 'hidden']) if (v.parts[k]) { v.parts[k].material.side = side; v.parts[k].material.needsUpdate = true }
   }
@@ -171,27 +173,36 @@ async function load(file) {
 
   B.addMesh('facade', d.after.pos, colourArray(d.materials, d.after.mat))
   B.addLines('outline', d.edges.outline_after); B.addLines('tri', d.edges.tri_after)
+  B.addLines('soft', d.edges.soft_after)
 
   A.fit(d.before.pos); B.camera.position.copy(A.camera.position); B.controls.target.copy(A.controls.target)
   B.camera.near = A.camera.near; B.camera.far = A.camera.far; B.camera.updateProjectionMatrix(); B.controls.update()
   applyToggles()
 
+  // Every number below comes from `stats`, which engine/cli.py preview-data writes from the
+  // REAL guard reports. Nothing here is a constant standing in for a measurement.
   const pct = (a, b) => (100 * (1 - a / b)).toFixed(1)
   $('sa').innerHTML = `<b>${s.tris_total.toLocaleString()}</b> triangles &nbsp;·&nbsp; ${s.zero_area} zero-area &nbsp;·&nbsp; ` +
     `<span style="color:var(--red)">${s.hidden.toLocaleString()} hidden inside</span> &nbsp;·&nbsp; ` +
     `<span style="color:var(--blue)">${s.gridline_edges} gridline edges</span>`
   $('sb').innerHTML = `<b>${s.after_merged.toLocaleString()}</b> triangles &nbsp;·&nbsp; ${pct(s.after_merged, s.tris_total)} % fewer &nbsp;·&nbsp; ` +
-    `${s.regions} flat regions<br><span class="note">after inside removal only: ${s.after_hidden_removed.toLocaleString()} triangles, ` +
-    `guard 0 damaged px over ${s.guard_views} views</span>`
-  $('honest').innerHTML = ` Inside removal is guard-verified (0 changed pixels, ${s.guard_views} outside views). ` +
-    `Region rebuild here is a rough preview: <b>${s.guard_damaged_px.toLocaleString()}</b> of ${s.guard_model_px.toLocaleString()} ` +
-    `pixels differ (${(100 * s.guard_damaged_px / s.guard_model_px).toFixed(2)} %), because it flattens vertices. The real kernel keeps vertices in place.`
+    `${s.regions} flat regions${s.merge_rolled_back ? ` <b style="color:var(--red)">· merge rolled back</b>` : ``}` +
+    `<br><span class="note">after inside removal only: ${s.after_hidden_removed.toLocaleString()} triangles &nbsp;·&nbsp; ` +
+    `${s.outline_edges_after.toLocaleString()} real edges, ${s.unavoidable_diagonals_after.toLocaleString()} unavoidable diagonals &nbsp;·&nbsp; ` +
+    `<span style="color:var(--soft)">${s.soft_edges} soft creases</span>, ${s.coplanar_region_borders} coplanar region borders</span>`
+  $('honest').innerHTML =
+    ` Guard over ${s.guard_views} views at ${s.guard_tol_in.toFixed(2)} in tolerance: <b>${s.guard_passed ? `passed` : `FAILED`}</b>, ` +
+    `<b>${s.guard_damaged_px.toLocaleString()}</b> damaged px of ${s.guard_model_px.toLocaleString()} ` +
+    `(${(100 * s.guard_damaged_px / s.guard_model_px).toFixed(3)} %). ` +
+    `${s.zfight_tie.toLocaleString()} z-fight ties (overlaps that were already there, not damage) · ` +
+    `${s.crack_closed.toLocaleString()} cracks closed (an improvement) · ` +
+    `merge ${s.merge_rolled_back ? `<b style="color:var(--red)">rolled back</b>` : `kept`}. Vertices are never moved.`
 }
 
 const files = await (await fetch('data/index.json')).json()
 $('file').innerHTML = files.map(f => `<option value="${f.file}">${f.name}</option>`).join('')
 $('file').onchange = e => load(e.target.value)
-for (const id of ['grid', 'outline', 'tri', 'xray', 'onesided']) $(id).onchange = applyToggles
+for (const id of ['grid', 'outline', 'tri', 'soft', 'xray', 'onesided']) $(id).onchange = applyToggles
 await load(files[0].file)
 </script>
 </body>

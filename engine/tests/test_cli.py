@@ -1,6 +1,9 @@
 import json
+import re
 from dataclasses import replace
 from pathlib import Path
+
+import pytest
 
 import engine.cli as cli
 import engine.fixes.pipeline as fix_pipeline
@@ -361,3 +364,46 @@ def test_flicker_over_the_final_cap_does_write_failing_view_images(tmp_path, mon
     the same 1e-2 cap, so every view is worth a look."""
     out_dir = _run_with_flicker(tmp_path, monkeypatch, per_view=500, model_px=10_000, cap=1e-2)
     assert len(list(out_dir.glob("guard_fail_*.png"))) == len(cli.VIEWS_26)
+
+
+# ---------------------------------------------------------------------------------------------
+# R1c: the preview page reads `stats` and `edges` BY NAME. A key preview-data does not write
+# renders as `undefined` -- which is how the page came to carry a hardcoded "guard 0 damaged px"
+# instead of the number the guard actually produced. This test reads the page and checks.
+# ---------------------------------------------------------------------------------------------
+
+_PREVIEW_PAGE = Path(__file__).resolve().parents[2] / "preview" / "index.html"
+
+
+def test_preview_data_writes_every_stat_and_edge_list_the_page_reads(tmp_path):
+    if not _PREVIEW_PAGE.exists():
+        pytest.skip("preview/index.html is not shipped with the engine package")
+    source = _PREVIEW_PAGE.read_text(encoding="utf-8")
+    # every stat the page shows is interpolated as ${s.<name>}; every edge list it draws is
+    # read as d.edges.<name>. A key preview-data does not write renders as `undefined`.
+    wanted_stats = set(re.findall(r"\$\{s\.([A-Za-z_][A-Za-z0-9_]*)", source))
+    wanted_edges = set(re.findall(r"\bd\.edges\.([A-Za-z_][A-Za-z0-9_]*)", source))
+    assert wanted_stats, "the page stopped interpolating stats -- update this test"
+    assert wanted_edges, "the page stopped reading d.edges -- update this test"
+
+    m = box_with_partition()
+    snap_dir = _write_snapshot(tmp_path, m)
+    out_dir = tmp_path / "preview_out"
+    cli.cmd_preview_data(snap_dir, out_dir, profile=_FAST)
+    data = json.loads((out_dir / f"{m.name}.json").read_text(encoding="utf-8"))
+
+    assert wanted_stats <= set(data["stats"]), sorted(wanted_stats - set(data["stats"]))
+    assert wanted_edges <= set(data["edges"]), sorted(wanted_edges - set(data["edges"]))
+
+
+def test_preview_page_shows_no_hardcoded_guard_number(tmp_path):
+    """The two sentences R1c removes: a literal "guard 0 damaged px", and the claim that the
+    region rebuild is a rough preview that flattens vertices. Neither was ever true of the real
+    kernel -- `engine.fixes.merge` never moves a vertex -- and the first was not even read from
+    the data."""
+    if not _PREVIEW_PAGE.exists():
+        pytest.skip("preview/index.html is not shipped with the engine package")
+    source = _PREVIEW_PAGE.read_text(encoding="utf-8")
+    assert "guard 0 damaged px" not in source
+    assert "flattens vertices" not in source
+    assert "rough preview" not in source

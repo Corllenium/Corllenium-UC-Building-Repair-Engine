@@ -437,6 +437,14 @@ def cmd_preview_data(snapshot_dir: Path, out_dir: Path, profile: FixProfile | No
             "soft_edges": len(soft_after),
             "coplanar_region_borders": coplanar_region_borders(topo_after),
             "guard_passed": bool(result.guard_final.passed),
+            # Never failures under any setting, and the page says so: a tie is an overlap that
+            # was already in the export, a closed crack is an improvement. See `classify_pixels`.
+            "zfight_tie": int(guard_final["zfight_tie"]),
+            "crack_closed": int(guard_final["crack_closed"]),
+            # True when the merged mesh failed its guard (or never converged) and the shipped
+            # mesh is the removal-only fallback -- without which "N flat regions" would be read
+            # as a description of what was delivered when it is not.
+            "merge_rolled_back": bool(result.merge_report.get("rolled_back", False)),
         },
         "materials": _material_colors(snapshot_dir, mesh.materials, mtl_materials),
         "before": {"pos": _round_flat(before_tri), "mat": before_mat.tolist(), "hidden": before_hidden.tolist()},
