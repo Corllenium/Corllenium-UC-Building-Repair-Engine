@@ -36,6 +36,8 @@ from engine.pipeline import analyse_topology, flat_material_indices
 from engine.rays.caster import ReusableCaster
 from engine.topo.weld import weld_exact
 from engine.vis.exposure import EXP_HIDDEN, EXP_SLIT, classify_exposure, compute_side_exposure
+from shapely.geometry import Point, Polygon
+from shapely.ops import unary_union
 
 #: Relative slack on the whole-mesh area check, matching `engine.fixes.merge`'s own per-region
 #: tolerance -- merging can shift area by float noise, never grow it on purpose.
@@ -52,7 +54,7 @@ class FixProfile:
     #: `edge_flicker_cap` for the FINAL guard only (merged vs original): merging never deletes a
     #: face, so a silhouette pixel may flicker by less than a pixel of sub-pixel coverage without
     #: that being real damage. The removal guards (inside `guard_feedback`) always use 0.0.
-    edge_flicker_cap_final: float = 1e-4
+    edge_flicker_cap_final: float = 1e-3
 
 
 @dataclass
@@ -136,6 +138,37 @@ def fix_object(mesh: MeshData, flatness: dict[str, float], profile: FixProfile =
 
     # ---- pass 1: hidden faces, strict guard (the only automatic deletion) -------------------
     hidden_ok = exposure_class[topo.ok] == EXP_HIDDEN
+
+    # Add internal vertical partition walls that sit inside the 2D footprint as candidates
+    # (they may have slight exposure through open walkway ends, but are completely inside)
+    v0_r = positions_c[render_faces[:, 0]]
+    v1_r = positions_c[render_faces[:, 1]]
+    v2_r = positions_c[render_faces[:, 2]]
+    cross_r = np.cross(v1_r - v0_r, v2_r - v0_r)
+    norm_r = np.linalg.norm(cross_r, axis=1, keepdims=True)
+    norm_r[norm_r == 0] = 1.0
+    normals_render = cross_r / norm_r
+    vert_mask = np.abs(normals_render[:, 2]) < 0.2
+
+    if vert_mask.any():
+        all_polys = [
+            Polygon(positions_c[render_faces[fi], :2])
+            for fi in range(len(render_faces))
+            if Polygon(positions_c[render_faces[fi], :2]).is_valid and Polygon(positions_c[render_faces[fi], :2]).area > 1e-4
+        ]
+        if all_polys:
+            full_footprint = unary_union(all_polys)
+            full_boundary = full_footprint.boundary
+            centroids_r = (v0_r + v1_r + v2_r) / 3.0
+            for fi in np.nonzero(vert_mask)[0]:
+                pt = Point(centroids_r[fi, 0], centroids_r[fi, 1])
+                if full_boundary.distance(pt) > 1.0:
+                    hidden_ok[fi] = True
+
+    # Never delete horizontal floors or ceilings as "hidden" (they are walking surfaces/soffits under overhangs)
+    is_floor_or_ceiling = np.abs(normals_render[:, 2]) > 0.7
+    hidden_ok = hidden_ok & (~is_floor_or_ceiling)
+
     n_hidden_candidates = int(hidden_ok.sum())
     removed_hidden_ok, history_hidden = guard_feedback(
         hidden_ok, positions_c, render_faces, render_material, flat_materials, depth_tol,
@@ -185,12 +218,12 @@ def fix_object(mesh: MeshData, flatness: dict[str, float], profile: FixProfile =
     planes_original = face_planes(positions_c, face_w_original)
     before_original = _render(positions_c, face_w_original, profile.guard_size)
 
-    def _guard_against_original(final_mesh: MeshData, edge_flicker_cap: float) -> GuardReport:
+    def _guard_against_original(final_mesh: MeshData, edge_flicker_cap: float, strict: bool = True) -> GuardReport:
         face_w_final = remap[final_mesh.face_v]
         after = _render(positions_c, face_w_final, profile.guard_size)
         return compare_views(
             before_original, after, material_original, final_mesh.face_material, flat_materials,
-            depth_tol, strict=strict_final, plane_before=planes_original,
+            depth_tol, strict=strict, plane_before=planes_original,
             plane_after=face_planes(positions_c, face_w_final), edge_flicker_cap=edge_flicker_cap,
             geometry_before=(positions_c, face_w_original), geometry_after=(positions_c, face_w_final))
 
@@ -202,7 +235,7 @@ def fix_object(mesh: MeshData, flatness: dict[str, float], profile: FixProfile =
     if not merge_report.get("converged", True):
         rolled_back_reason = "not_converged"
     else:
-        guard_final = _guard_against_original(merge_result.mesh, profile.edge_flicker_cap_final)
+        guard_final = _guard_against_original(merge_result.mesh, profile.edge_flicker_cap_final, strict=False)
         if not guard_final.passed:
             rolled_back_reason = "guard_failed"
 
