@@ -1339,3 +1339,117 @@ def test_a_zfight_tie_is_never_capped():
                               crack_closed_cap=crack_cap)
         assert report.totals["zfight_tie"] == int((before.tri >= 0).sum())
         assert report.passed is True
+
+
+# ---------------------------------------------------------------------------
+# G2: the removal guard classifies ties and closed cracks like the merge guard.
+#
+# `guard_feedback` cast no ring and no tie at all, while its docstring claimed "the same
+# displacement/colour-aware pixel test as `compare_views`". At the flicker cap of 0.0 that is
+# true of FLICKER -- a flicker pixel fails there exactly like the class it came from -- and false
+# of the other two: `PX_ZFIGHT_TIE` and `PX_CRACK_CLOSED` are never failures at any cap, and the
+# removal guard was counting both as damage.
+# ---------------------------------------------------------------------------
+
+_STACK_QUAD = np.array([[-50.0, -50.0, 0.0], [50.0, -50.0, 0.0],
+                        [50.0, 50.0, 0.0], [-50.0, 50.0, 0.0]])
+
+
+def _coincident_stack():
+    """Three exactly coincident copies of one quad, materials `[0, 0, 1]` per copy (6 faces).
+    Embree's first hit over all six is copy 2 (material 1); drop copy 1 and it becomes copy 0
+    (material 0) -- both copies present in both meshes, so every model pixel changes material
+    while nothing was lost. That is a z-fight tie, reached the way the real one is: by rebuilding
+    the ray structure over a different face set."""
+    faces = np.vstack([np.array([[0, 1, 2], [0, 2, 3]], np.int64)] * 3)
+    material = np.array([0, 0, 0, 0, 1, 1], np.int64)
+    candidates = np.zeros(6, bool)
+    candidates[2:4] = True                       # copy 1, the one being removed
+    return faces, material, candidates
+
+
+def test_the_removal_guard_tolerates_a_zfight_tie_it_caused():
+    faces, material, candidates = _coincident_stack()
+    mask, history = guard_feedback(candidates, _STACK_QUAD, faces, material, frozenset({0, 1}),
+                                   0.15, strict=True, views=[_FLAT_VIEW], size=_COVER_SIZE)
+
+    # the fixture only means anything if the winner really flipped, on material
+    before = ortho_first_hit(_STACK_QUAD, faces, np.arange(6), _FLAT_VIEW, _FRAME, _COVER_SIZE)
+    keep = ~candidates
+    after = ortho_first_hit(_STACK_QUAD, faces[keep], np.nonzero(keep)[0], _FLAT_VIEW, _FRAME,
+                            _COVER_SIZE)
+    model = before.tri >= 0
+    assert model.sum() > 100
+    assert (material[before.tri[model]] != material[after.tri[model]]).all()
+
+    assert history[0]["failing_pixels"] == 0      # a tie is not damage, here as anywhere else
+    assert history[0]["restored"] == 0
+    assert np.array_equal(mask, candidates)
+
+
+def test_the_removal_guard_still_fails_when_a_tie_member_was_the_one_removed():
+    """The counterpart, so tolerance does not become blindness: remove the copy embree picks
+    FIRST and BEFORE's own winner is gone from AFTER's tie set. Not a tie -- a material change --
+    and the faces come back."""
+    faces, material, _ = _coincident_stack()
+    before = ortho_first_hit(_STACK_QUAD, faces, np.arange(6), _FLAT_VIEW, _FRAME, _COVER_SIZE)
+    winner = int(np.bincount(before.tri[before.tri >= 0]).argmax())
+    candidates = np.zeros(6, bool)
+    candidates[[f for f in range(6) if material[f] == material[winner]]] = True
+
+    mask, history = guard_feedback(candidates, _STACK_QUAD, faces, material, frozenset({0, 1}),
+                                   0.15, strict=True, views=[_FLAT_VIEW], size=_COVER_SIZE)
+    assert history[0]["failing_pixels"] > 100
+    assert history[0]["restored"] > 0
+    assert not mask[winner]
+
+
+def test_the_removal_guard_still_fails_a_flicker_pixel():
+    """Flicker is the one of the three that stays a failure here: `guard_feedback` runs at a cap
+    of 0.0, where a flicker pixel fails exactly like the class it came from."""
+    P, faces_before, _faces_closed, faces_torn = _crack_scene()
+    # `faces_torn` is `faces_before` minus its first upper triangle: express that as a removal.
+    candidates = np.zeros(len(faces_before), bool)
+    candidates[0] = True
+    mask, history = guard_feedback(candidates, P, faces_before, np.zeros(4, np.int64),
+                                   frozenset(), 0.15, strict=True, views=[_FLAT_VIEW],
+                                   size=_BIG_SIZE)
+    # 656 px here, not the 1,000+ of `_crack_report`: `guard_feedback` frames every render on
+    # `positions_c` (all 14 points of the scene) rather than on the 4-point `_FRAME`.
+    assert history[0]["failing_pixels"] > 500
+    assert mask[0] == False                       # half the image went missing: put it back
+
+
+def test_a_removed_face_narrower_than_the_ring_is_never_excused_as_a_closed_crack():
+    """The crack test's own documented limit, turned into a rule the removal guard cannot trip
+    over: damage NARROWER than the ring radius looks exactly like a crack the fix closed. When
+    the surface BEFORE hit is one this pass is DELETING, that reading is not available -- AFTER
+    did not close anything, it lost it -- so the pixel goes back to its base class.
+
+    The strip here is 0.02 in wide against a 0.15 in ring radius, differently coloured, laid over
+    a floor and aimed straight through a column of pixel centres. Every one of its 16 ring rays
+    misses it, so without the rule every pixel along it promotes to `PX_CRACK_CLOSED` and the
+    guard deletes a real surface it can see."""
+    # `guard_feedback` frames every render on `positions_c` itself, so the pixel centres have to
+    # be taken from a camera framed the same way -- the strip sits inside the floor's own extent,
+    # so adding it does not move them.
+    floor = np.array([[-_SLAB, -_SLAB, 0.0], [_SLAB, -_SLAB, 0.0], [_SLAB, _SLAB, 0.0],
+                       [-_SLAB, _SLAB, 0.0]])
+    cam = ortho_first_hit(floor, np.zeros((0, 3), np.int64), np.zeros(0, np.int64),
+                           _FLAT_VIEW, floor, _BIG_SIZE)
+    x0 = float(cam.xs[70])
+    half = 0.01                     # a 0.02 in strip: under depth_tol, over nothing
+    P = np.vstack([floor,
+                   [[x0 - half, -_SLAB, _STACK_GAP], [x0 + half, -_SLAB, _STACK_GAP],
+                    [x0 + half, _SLAB, _STACK_GAP], [x0 - half, _SLAB, _STACK_GAP]]])
+    faces = np.vstack([_QUAD, _QUAD + 4])
+    material = np.array([0, 0, 1, 1], np.int64)
+    candidates = np.array([False, False, True, True])
+
+    before = ortho_first_hit(P, faces, np.arange(4), _FLAT_VIEW, P, _BIG_SIZE)
+    assert int((before.tri >= 2).sum()) >= 100      # the strip really is on a column of pixels
+
+    mask, history = guard_feedback(candidates, P, faces, material, frozenset({0, 1}), 0.15,
+                                   strict=True, views=[_FLAT_VIEW], size=_BIG_SIZE)
+    assert history[0]["failing_pixels"] >= 100
+    assert not mask.any()                            # restored: the strip stays in the mesh

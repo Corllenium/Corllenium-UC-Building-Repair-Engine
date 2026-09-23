@@ -207,7 +207,8 @@ def fix_object(mesh: MeshData, flatness: dict[str, float], profile: FixProfile =
     n_hidden_candidates = int(hidden_full.sum())
     removed_pass1, history_hidden = guard_feedback(
         hidden_full | degenerate_full, positions_c, render_faces, render_material, flat_materials,
-        depth_tol, strict=True, size=profile.guard_size)
+        depth_tol, strict=True, size=profile.guard_size,
+        crack_closed_cap=profile.crack_closed_cap)
     removed_hidden_full = removed_pass1 & ~degenerate_full
     removed_degenerate_full = removed_pass1 & degenerate_full
     restored_degenerate_full = degenerate_full & ~removed_pass1
@@ -226,7 +227,7 @@ def fix_object(mesh: MeshData, flatness: dict[str, float], profile: FixProfile =
         mask2, history_slit = guard_feedback(
             slit_full[kept_after_pass1], positions_c, render_faces[kept_after_pass1],
             render_material[kept_after_pass1], flat_materials, depth_tol, strict=False,
-            size=profile.guard_size)
+            size=profile.guard_size, crack_closed_cap=profile.crack_closed_cap)
         removed_slit_full[remaining_ids[mask2]] = True
     n_removed_slit = int(removed_slit_full.sum())
 

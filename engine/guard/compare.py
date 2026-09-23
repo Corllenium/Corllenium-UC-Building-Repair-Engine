@@ -626,7 +626,8 @@ def guard_feedback(candidates: np.ndarray, positions_c: np.ndarray, faces: np.nd
                     face_material: np.ndarray, flat_materials: Iterable[int], depth_tol: float,
                     strict: bool, views: Sequence[Sequence[float]] = VIEWS_26,
                     size: tuple[int, int] = (900, 600), caster_factory=EmbreeCaster,
-                    max_rounds: int = 8) -> tuple[np.ndarray, list[dict]]:
+                    max_rounds: int = 8,
+                    crack_closed_cap: float = float("inf")) -> tuple[np.ndarray, list[dict]]:
     """Iteratively confirm which `candidates` (bool mask over ALL of `faces`) can be removed
     without changing the outside, by the same displacement/colour-aware pixel test as
     `compare_views` (the planes both sides need are built here from `positions_c`/`faces`, which
@@ -639,10 +640,26 @@ def guard_feedback(candidates: np.ndarray, positions_c: np.ndarray, faces: np.nd
     after, keeping pixels aligned across rounds. `face_material` is the single per-face material
     array (materials don't change here, only face presence). `strict` is forwarded to the same
     pixel test `compare_views` uses: `True` for automatic removal of exposure-0 faces, `False`
-    for a person-accepted change. The edge-flicker cap is ALWAYS 0.0 here -- removing a face is
-    not a change a person accepted, so a silhouette pixel that flips counts as damage. No ring is
-    cast either (nothing is ever classed `PX_EDGE_FLICKER`), which is the same outcome at cap 0.0
-    and saves 16 rays per failing pixel per round.
+    for a person-accepted change.
+
+    THE THREE TOLERATED CLASSES, and where this really does agree with `compare_views`. The
+    edge-flicker cap is ALWAYS 0.0 here -- removing a face is not a change a person accepted, so a
+    silhouette pixel that flips counts as damage, exactly as it would in a `compare_views` call at
+    that cap. The other two are NOT a matter of the cap: `PX_ZFIGHT_TIE` and `PX_CRACK_CLOSED` are
+    never failures at any cap, because a tie is an overlap this run neither caused nor can fix and
+    a closed crack is an improvement. So the ring and tie probes ARE cast here, and this function's
+    verdicts now match `compare_views(..., edge_flicker_cap=0.0)` pixel for pixel. It used to cast
+    neither and claim, in this docstring, that the two already agreed; they did not, and the
+    removal guard counted both classes as damage.
+
+    `crack_closed_cap` is the same per-view cap `compare_views` takes (see there); `inf`, the
+    default, never caps, and `engine.fixes.pipeline` passes `FixProfile.crack_closed_cap` so the
+    removal guard is never more tolerant of cracks than the final guard is.
+
+    CONSEQUENCE, stated plainly: a removed face whose disappearance is narrower than the ring
+    radius (`depth_tol`) on all 16 ring rays now reads as a closed crack rather than a hole, and
+    is therefore removed instead of restored. That is the documented limit of the crack test
+    (`classify_pixels`), and it now applies to removal as well as to merging.
 
     Round 0 renders BEFORE once, against every face in `faces`, and tentatively removes every
     candidate. Each round renders AFTER with the current kept faces; every candidate that is the
@@ -674,18 +691,42 @@ def guard_feedback(candidates: np.ndarray, positions_c: np.ndarray, faces: np.nd
     for rnd in range(max_rounds):
         keep = ~removed
         keep_faces = faces[keep]
-        keep_ids = face_ids[keep]
+        # The AFTER render is labelled with LOCAL ids into `keep_faces`, not with the original
+        # ones, because the ring and tie probes report `tri` as indices into the caster's own
+        # `faces` array and `classify_pixels` reads `material_after` / `plane_after` with both.
+        # `b.tri` is still original-indexed, which is what the restore below needs.
+        keep_local = np.arange(len(keep_faces), dtype=np.int64)
+        keep_material = face_material[keep]
+        keep_planes = planes[keep]
 
         restore = set()
         failing_pixels = 0
         after_caster = ReusableCaster(caster_factory)
+        caster_b = before_caster(positions_c, faces)
+        caster_a = after_caster(positions_c, keep_faces)
         for view, b in before:
-            a = ortho_first_hit(positions_c, keep_faces, keep_ids, view, positions_c,
+            a = ortho_first_hit(positions_c, keep_faces, keep_local, view, positions_c,
                                  size, after_caster)
-            codes = classify_pixels(b.depth, b.tri, a.depth, a.tri,
-                                     face_material, face_material, flat_materials, depth_tol,
+            codes, base = _classify(b.depth, b.tri, a.depth, a.tri,
+                                     face_material, keep_material, flat_materials, depth_tol,
                                      origins=b.origins, direction=b.direction,
-                                     plane_before=planes, plane_after=planes)
+                                     plane_before=planes, plane_after=keep_planes,
+                                     ring=_ring_probe(b, caster_b, caster_a, depth_tol),
+                                     tie=_tie_probe(b, caster_b, caster_a), strict=strict)
+            # A crack promotion says "BEFORE's ray alone slipped through something thinner than
+            # the ring radius, and AFTER closed it". That reading is only available when AFTER
+            # still HAS the surface. Here it may not: if BEFORE's first hit is a face this pass
+            # is deleting, the pixel changed because of the deletion, and calling that a closed
+            # crack would let the guard delete any surface narrower than `depth_tol` -- measured:
+            # `floor_with_sliver`'s 1e-4 in sliver, which every one of the 16 ring rays misses.
+            # Those pixels go back to their base class. Ties need no such rule: a tie already
+            # requires BEFORE's own first hit to match a member of AFTER's tie set, which a
+            # removed face cannot do unless the same material is still there in the same plane.
+            crack = codes == PX_CRACK_CLOSED
+            if crack.any():
+                own = crack & (b.tri >= 0) & removed[np.where(b.tri >= 0, b.tri, 0)]
+                over_cap = int(crack.sum()) > crack_closed_cap * int((b.tri >= 0).sum())
+                codes = np.where(own | (crack if over_cap else False), base, codes)
             fail = _fail_mask(codes, strict)
             failing_pixels += int(fail.sum())
             offenders = b.tri[fail]
