@@ -244,3 +244,54 @@ Blender, `.skp` write-back, inside-view clipping, camera bookmarks, `pathway_bas
 - Unity vertex compression on UVs near 1,000 (half-float step ~1): unchecked. UV re-basing near 0
   in the region kernel should remove the risk, verify in Phase 3 Unity diff.
 - All model numbers above are from the previous export.
+
+## Amendments (2026-09-23, from measured results; these override the sections above where they differ)
+
+**Guard verdicts.** Depth is measured as surface displacement (`max(dist(P_before, plane(face_after)),
+dist(P_after, plane(face_before)))`), never depth along the ray. Base classes per pixel: `hole`,
+`material_changed`, `moved_same_flat` (a failure only when `strict`), `moved_other`. For a pixel whose base
+class fails under the current strictness, three tolerances apply in this order: (1) **z-fight tie**: BEFORE's
+and AFTER's hits within `depth_tol` of their first hit form tie sets; the pixel is a tie when each side's first
+hit matches a member of the other side's set (same material, point within `depth_tol` of that member's plane);
+never a failure, reported as `zfight_tie`. (2) **crack closed**: at least 12 of the 16 BEFORE ring rays
+(radius `depth_tol` and `depth_tol/2` in the image plane) already reproduce AFTER's centre verdict; never a
+failure, reported as `crack_closed`. (3) **ring flicker**: some AFTER ring ray reproduces BEFORE's centre verdict
+and some BEFORE ring ray reproduces AFTER's; counted against `edge_flicker_cap`, 0.0 in every removal guard
+and 1e-4 in the final merge guard. `depth_tol = 1.5 * max(axis quanta)`. Documented limit: damage narrower
+than the ring radius cannot be told from a closed crack; a merge never deletes faces, so only boundary effects
+reach the merge guard. Measured: file A's single rollback pixel was a 0.02 in crack the merge closed; file B's
+12 changed pixels were coplanar faces of different materials at one depth (a real overlap defect for the
+overlap detector, not guard damage).
+
+**Degenerate faces** (relative area test) are removed only through the strict guard, like hidden faces;
+restored ones are reported. Every BEFORE render uses all faces.
+
+**Orientation.** A face is a thin sheet when both sides are exposed and `min/max >= sheet_ratio`; thin sheets
+are never flipped. Otherwise a face is flipped when its back exposure exceeds its front. Flipping never changes
+a double-sided render, so guard verdicts are identical with and without it.
+
+**Merge.** Region planes are fitted by least squares over the growing region (a seed triangle's plane is too
+noisy over a 40 m slab); ring vertices are dropped by Ramer-Douglas-Peucker with a global bound of
+`1.5 * max(quanta)`, needed vertices forced to survive; a rolled-back merge keeps the failing guard report.
+Edge classes gain `EDGE_SOFT` (crease between `coplanar_angle` 1 degree and `soft_angle` 5 degrees, kept
+geometry, softened in SketchUp, not drawn as an outline). Merged regions keep their rings with inner loops;
+hole-free regions are exported as single polygons in a second OBJ.
+
+**Solidify (new fix step, reviewed).** The only step allowed to invent vertices: for each top-surface region,
+skirts along open outline edges down to the local skirt height, and a bottom at that depth where none exists,
+under a cap guard (only pixels whose AFTER first hit is a new face may change, and only where BEFORE showed
+background, a face that becomes hidden, or the back of a sheet). The solidified mesh becomes the reference
+for the rest of the pipeline. Motivation: the sidewalk is a top sheet with partial skirts and almost no bottom,
+so rib walls stay visible through side holes and from below; closing the slab makes them hidden and lets the
+strict removal delete them without any slit acceptance.
+
+**SketchUp export.** After every run the latest `<name>.fixed.skp` is written to `OBJ FIXED RESULT\`:
+polygon faces with inner loops, `EDGE_SOFT` edges softened, materials with textures, world coordinates in inches.
+
+**Dashboard.** Ports 5190 (web, strictPort), 8190 (API), 5490 (PostgreSQL). The API reads the live export
+folder only through `engine.io.snapshot`; `SourceUnstable` -> 409 + `Retry-After: 5`, manifest mismatch ->
+422, unknown file -> 404; every fix run records `merge_report`, all guard totals, provenance and the `.skp` path,
+and the AFTER panel states a rollback when one happened.
+
+**Overlap detector** (texture hits texture) moves up: file B shows 14 z-fight ties between different
+materials; it runs after the SketchUp export, with the user's "which face wins" preference.
