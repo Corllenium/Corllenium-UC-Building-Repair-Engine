@@ -130,7 +130,12 @@ def _profile_dict(p: FixProfile) -> dict:
             "flat_texture_std": p.flat_texture_std, "guard_size": list(p.guard_size),
             "coplanar_angle": p.coplanar_angle, "soft_angle": p.soft_angle,
             "edge_flicker_cap_final": p.edge_flicker_cap_final,
-            "depth_tol_max": p.depth_tol_max, "crack_closed_cap": p.crack_closed_cap}
+            "depth_tol_max": p.depth_tol_max, "crack_closed_cap": p.crack_closed_cap,
+            "solidify": p.solidify, "top_min_nz": p.top_min_nz,
+            "top_sky_fraction": p.top_sky_fraction,
+            "skirt_search_radius": p.skirt_search_radius,
+            "min_thickness": p.min_thickness, "max_thickness": p.max_thickness,
+            "bottom_exists_fraction": p.bottom_exists_fraction}
 
 
 def _build_report(name: str, obj_path: Path, mesh: MeshData, result: FixResult,
@@ -142,7 +147,15 @@ def _build_report(name: str, obj_path: Path, mesh: MeshData, result: FixResult,
         "input_sha256": sha256_file(obj_path),
         "profile": _profile_dict(profile),
         "tris_before": mesh.n_faces,
+        # the reference every guard in this run compared against -- the solidified mesh, which
+        # is bigger than the input by exactly what `solidify_report` describes
+        "tris_reference": result.reference_mesh.n_faces,
         "tris_after": result.mesh.n_faces,
+        # every key EXCEPT `runtime_s`: report.json has to be byte-identical between two
+        # runs of the same input, and a wall-clock number never is. The CLI prints it.
+        "solidify_report": {k: v for k, v in result.solidify_report.items()
+                            if k != "runtime_s"},
+        "guard_solidify": result.guard_solidify,
         "materials_before": len(mesh.materials),
         "materials_after": len(result.mesh.materials),
         "n_hidden_candidates": result.n_hidden_candidates,
@@ -273,12 +286,12 @@ def _write_guard_images(mesh: MeshData, result: FixResult, profile: FixProfile,
 
 
 def cmd_fix(snapshot_dir: Path, out_root: Path, accept_slit: bool,
-            profile: FixProfile | None = None) -> int:
+            profile: FixProfile | None = None, solidify: bool = True) -> int:
     obj_path, mesh, flatness, _mtl_materials = _load_snapshot(snapshot_dir)
     if profile is None:
-        profile = FixProfile(accept_slit=accept_slit)
+        profile = FixProfile(accept_slit=accept_slit, solidify=solidify)
     else:
-        profile = replace(profile, accept_slit=accept_slit)
+        profile = replace(profile, accept_slit=accept_slit, solidify=solidify)
 
     result = fix_object(mesh, flatness, profile)
 
@@ -290,15 +303,24 @@ def cmd_fix(snapshot_dir: Path, out_root: Path, accept_slit: bool,
     write_obj_polygons(result.mesh, result.rings, out_dir / f"{name}.fixed.ngon.obj")
     _copy_assets(snapshot_dir, out_dir)
 
+    # The triptychs show the run's own BEFORE, which is the reference the guards compared
+    # against: the solidified mesh when `profile.solidify` is on, the input otherwise.
     flat_materials = flat_material_indices(mesh, flatness, profile.flat_texture_std)
-    topo = analyse_topology(mesh, flat_materials)
+    reference = result.reference_mesh
+    topo = analyse_topology(reference, flat_materials)
     centre = (topo.positions_w.min(axis=0) + topo.positions_w.max(axis=0)) / 2.0
     positions_c = topo.positions_w - centre
-    _write_guard_images(mesh, result, profile, flat_materials, topo, positions_c, out_dir)
+    _write_guard_images(reference, result, profile, flat_materials, topo, positions_c, out_dir)
 
     report = _build_report(name, obj_path, mesh, result, profile)
     (out_dir / "report.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
 
+    if result.solidify_report:
+        sr = result.solidify_report
+        print(f"{name}: solidify {sr['skirts_added']} skirts / {sr['bottoms_added']} bottoms, "
+              f"{sr['invented_vertices']} vertices invented, "
+              f"{sr['cap_guard_removed']} faces refused by the cap guard, "
+              f"{sr['faces_newly_hidden']} faces newly hidden, {sr['runtime_s']}s")
     print(f"{name}: {mesh.n_faces} -> {result.mesh.n_faces} tris, passed={result.passed}")
     print(f"  wrote {out_dir}")
     return 0 if result.passed else 2
@@ -385,12 +407,16 @@ def _material_colors(snapshot_dir: Path, materials: list[str], mtl_materials: di
     return out
 
 
-def cmd_preview_data(snapshot_dir: Path, out_dir: Path, profile: FixProfile | None = None) -> int:
+def cmd_preview_data(snapshot_dir: Path, out_dir: Path, profile: FixProfile | None = None,
+                     solidify: bool = True) -> int:
     obj_path, mesh, flatness, mtl_materials = _load_snapshot(snapshot_dir)
-    if profile is None:
-        profile = FixProfile()
+    profile = replace(profile or FixProfile(), solidify=solidify)
     result = fix_object(mesh, flatness, profile)
 
+    # BEFORE is the run's own reference -- the solidified mesh when solidify is on. Every
+    # per-face array in `FixResult` (`removed_hidden`, `flipped`, ...) is indexed against it, and
+    # the x-ray of "hidden inside" only lines up with the picture if the picture is that mesh.
+    input_mesh, mesh = mesh, result.reference_mesh
     flat_materials = flat_material_indices(mesh, flatness, profile.flat_texture_std)
     topo = analyse_topology(mesh, flat_materials)
     centre = (topo.positions_w.min(axis=0) + topo.positions_w.max(axis=0)) / 2.0
@@ -425,6 +451,11 @@ def cmd_preview_data(snapshot_dir: Path, out_dir: Path, profile: FixProfile | No
         "name": mesh.name,
         "stats": {
             "tris_total": int(mesh.n_faces),
+            "tris_input": int(input_mesh.n_faces),
+            "skirts_added": int(result.solidify_report.get("skirts_added", 0)),
+            "bottoms_added": int(result.solidify_report.get("bottoms_added", 0)),
+            "invented_vertices": int(result.solidify_report.get("invented_vertices", 0)),
+            "faces_newly_hidden": int(result.solidify_report.get("faces_newly_hidden", 0)),
             "zero_area": int(result.n_zero_area_dropped),
             "before_tris": int(topo.ok.sum()),
             "hidden": int(removed.sum()),
@@ -492,10 +523,14 @@ def build_parser() -> argparse.ArgumentParser:
     fix_p = sub.add_parser("fix", help="fix one snapshot, writing the fixed OBJs, report and guard images")
     fix_p.add_argument("snapshot_dir")
     fix_p.add_argument("--accept-slit", action="store_true")
+    fix_p.add_argument("--no-solidify", dest="solidify", action="store_false",
+                       help="do not close slabs with skirts and bottoms before fixing")
     fix_p.add_argument("--out", default="data/output")
 
     preview_p = sub.add_parser("preview-data", help="write the JSON preview/index.html reads")
     preview_p.add_argument("snapshot_dir")
+    preview_p.add_argument("--no-solidify", dest="solidify", action="store_false",
+                           help="do not close slabs with skirts and bottoms before fixing")
     preview_p.add_argument("--out", default="preview/data")
 
     return parser
@@ -504,9 +539,11 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     if args.command == "fix":
-        return cmd_fix(Path(args.snapshot_dir), Path(args.out), args.accept_slit)
+        return cmd_fix(Path(args.snapshot_dir), Path(args.out), args.accept_slit,
+                       solidify=args.solidify)
     if args.command == "preview-data":
-        return cmd_preview_data(Path(args.snapshot_dir), Path(args.out))
+        return cmd_preview_data(Path(args.snapshot_dir), Path(args.out),
+                                solidify=args.solidify)
     return 1
 
 

@@ -189,6 +189,34 @@ def merge_regions(mesh: MeshData, topo: Topology, flat_materials: Iterable[int] 
     return out
 
 
+def region_outline(topo: Topology, members: np.ndarray, grid_size: float = GRID_SIZE,
+                   snap_tol: float = SNAP_TOL):
+    """`(pieces, normal, origin, basis)` for one region -- exactly the union `_plan_regions`
+    computes for the merge, exposed so `engine.fixes.solidify` hangs its skirt on the SAME
+    outline the merge will later rebuild the region from.
+
+    `pieces` are `_Piece`s: each polygon of the union with its rings as WELDED vertex ids.
+    `None` when the region has no frame (no area), when every one of its triangles is excluded
+    by the overlap rule, when the union invented a vertex that no existing one is within
+    `snap_tol` of, or when the union is empty -- all of which a caller reports as one thing,
+    "the outline could not be mapped back onto vertices this mesh has"."""
+    frame = _region_frame(topo.positions_w, topo.face_w, members)
+    if frame is None:
+        return None
+    normal, origin, basis = frame
+    vertex_ids = np.unique(topo.face_w[members])
+    vertex_xy = (topo.positions_w[vertex_ids] - origin) @ basis
+    tri_xy = vertex_xy[np.searchsorted(vertex_ids, topo.face_w[members])]
+    polys = shapely.polygons(np.concatenate([tri_xy, tri_xy[:, :1]], axis=1))
+    keep = ~_overlap_excluded(polys, shapely.area(polys))
+    if not keep.any():
+        return None
+    pieces = _pieces(_union(polys[keep], grid_size), vertex_xy, vertex_ids, snap_tol)
+    if not pieces:
+        return None
+    return pieces, normal, origin, basis
+
+
 # --------------------------------------------------------------------------- pass 1: plan regions
 
 

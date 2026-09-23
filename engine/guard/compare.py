@@ -739,3 +739,101 @@ def guard_feedback(candidates: np.ndarray, positions_c: np.ndarray, faces: np.nd
         removed[list(restore)] = False
 
     return removed, history
+
+
+def solidify_feedback(positions_c: np.ndarray, faces_before: np.ndarray, faces_after: np.ndarray,
+                       is_new: np.ndarray, front_exposure_after: np.ndarray,
+                       views: Sequence[Sequence[float]] = VIEWS_26,
+                       size: tuple[int, int] = (900, 600), caster_factory=EmbreeCaster,
+                       max_rounds: int = 8) -> tuple[np.ndarray, list[dict]]:
+    """The CAP GUARD: which of the faces `engine.fixes.solidify` invented may stay.
+
+    A different question from every other guard here, and it needs its own rule. The other guards
+    ask "is the picture unchanged"; this one is asked about a step whose whole purpose is to
+    change the picture -- a slab with no bottom gets one, and from underneath that IS a change.
+    What must not happen is a new face covering something a person can still see.
+
+    Only faces are ADDED, so an AFTER first hit is either the same original face at the same
+    depth or a NEW face in front of it: a changed pixel is exactly one whose AFTER first hit is
+    new. Such a pixel is ALLOWED when what it covers is one of three things, and nothing else:
+
+    1. background -- BEFORE's ray missed everything;
+    2. a face seen on its BACK side (`n . view_dir > 0`) -- a one-sided renderer was dropping
+       that pixel anyway, which is the hole this whole step exists to close;
+    3. a face whose exposure ON THE SIDE THE RAY MET IT is 0 in the SOLIDIFIED mesh -- it is
+       interior from there now, which is the point: an interior rib wall is meant to disappear
+       behind the skirt that closed its cell.
+
+    Rule 3 is PER SIDE, and that is a deliberate departure from "a face whose exposure is 0".
+    Exposure is double-sided, so a face that is part of the outer shell always has some -- and
+    the face you see through an opening is very often exactly that: the INSIDE of the far wall,
+    or the underside of the top sheet whose other side sees sky. Measured on
+    `open_box_with_cells`, whose lid, walls and floor are all wound inward: with a whole-face
+    test the only skirt that closes the box is refused, because it covers the inside of the far
+    wall, and the step can never do its job at all. The side a ray met a face on is decided by
+    `n . view_dir`, the same quantity rule 2 uses, so the two rules read one number.
+
+    Any other change MARKS the new face at that pixel. Marked faces are dropped and the whole
+    thing runs again, because removing one new face can expose what another was covering, until
+    a round marks nothing or `max_rounds` rounds have run.
+
+    `faces_before` / `faces_after` are welded triangles into the SAME `positions_c` (solidify
+    only appends positions, so an original face still indexes the same rows) and `positions_c`
+    frames both renders, so the two line up pixel for pixel. `is_new` is a bool mask over
+    `faces_after`. `front_exposure_after` is the FRONT half of
+    `engine.vis.exposure.compute_side_exposure` per face of `faces_after`, measured ONCE on the
+    fully solidified mesh -- a face removed in a later round does not change what "interior"
+    meant.
+
+    Returns `(keep, history)`: `keep` is a bool mask over `faces_after` (always True for a face
+    that is not new), and `history` is one dict per round,
+    `{"round", "new_remaining", "failing_pixels", "removed"}`."""
+    positions_c = np.asarray(positions_c, dtype=np.float64)
+    faces_before = np.asarray(faces_before, dtype=np.int64)
+    faces_after = np.asarray(faces_after, dtype=np.int64)
+    is_new = np.asarray(is_new, dtype=bool)
+    front_exposure_after = np.asarray(front_exposure_after, dtype=np.float64)
+
+    tri = positions_c[faces_before]
+    normal = np.cross(tri[:, 1] - tri[:, 0], tri[:, 2] - tri[:, 0])
+    normal = normal / np.maximum(np.linalg.norm(normal, axis=1), 1e-300)[:, None]
+    # indexed like `faces_after`, whose first rows ARE `faces_before`
+    front_exposure = front_exposure_after[:len(faces_before)]
+
+    before_caster = ReusableCaster(caster_factory)
+    before = [(view, ortho_first_hit(positions_c, faces_before,
+                                      np.arange(len(faces_before), dtype=np.int64), view,
+                                      positions_c, size, before_caster))
+              for view in views]
+
+    keep = np.ones(len(faces_after), dtype=bool)
+    history: list[dict] = []
+    for rnd in range(max_rounds):
+        ids = np.nonzero(keep)[0]
+        after_caster = ReusableCaster(caster_factory)
+        marked: set[int] = set()
+        failing = 0
+        for view, b in before:
+            a = ortho_first_hit(positions_c, faces_after[keep], ids, view, positions_c, size,
+                                 after_caster)
+            changed = (a.tri >= 0) & is_new[np.where(a.tri >= 0, a.tri, 0)]
+            if not changed.any():
+                continue
+            hit_before = b.tri[changed]
+            direction = np.asarray(b.direction, dtype=np.float64)
+            covered = hit_before >= 0
+            safe_index = np.where(covered, hit_before, 0)
+            back_side = covered & (normal[safe_index] @ direction > 1e-9)
+            # the ray met the FRONT side wherever it is not a back-side hit, so this is the
+            # exposure of the side it met
+            interior = covered & (front_exposure[safe_index] <= 0.0)
+            bad = covered & ~back_side & ~interior
+            failing += int(bad.sum())
+            marked.update(a.tri[changed][bad].tolist())
+
+        history.append({"round": rnd, "new_remaining": int((keep & is_new).sum()),
+                         "failing_pixels": failing, "removed": len(marked)})
+        if not marked:
+            break
+        keep[sorted(marked)] = False
+    return keep, history

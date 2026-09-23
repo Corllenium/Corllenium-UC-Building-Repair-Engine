@@ -161,7 +161,7 @@ def test_fix_object_is_deterministic():
 def test_accept_slit_removes_a_barely_exposed_interior_face_under_a_colour_tolerant_guard():
     m = open_box_with_cells()  # faces 12-13 ("deep" partition) are EXP_SLIT, not EXP_HIDDEN
 
-    left_alone = fix_object(m, {}, _fast(accept_slit=False))
+    left_alone = fix_object(m, {}, _fast(accept_slit=False, solidify=False))
     assert left_alone.n_removed_slit == 0
     assert left_alone.mesh.n_faces == 14  # nothing removed beyond zero-area (there is none)
     assert left_alone.feedback_history["slit"] is None
@@ -169,7 +169,7 @@ def test_accept_slit_removes_a_barely_exposed_interior_face_under_a_colour_toler
 
     # flatness={}: every material (just "m0" here) counts as flat with no texture-std entry, so
     # the colour-tolerant (strict=False) slit guard may accept a moved_same_flat pixel.
-    accepted = fix_object(m, {}, _fast(accept_slit=True))
+    accepted = fix_object(m, {}, _fast(accept_slit=True, solidify=False))
     assert accepted.n_removed_slit == 2
     assert accepted.removed_slit.tolist() == [i in (12, 13) for i in range(m.n_faces)]
     assert accepted.mesh.n_faces == 12  # the two deep-partition triangles are gone
@@ -280,7 +280,11 @@ def test_fix_object_reports_a_thin_sheet_without_touching_it():
     fvt = [[0, 1, 2], [0, 2, 3]]
     m = _mesh("free_quad", P, uvs, fv, fvt)
 
-    r = fix_object(m, {}, _FAST)
+    # `solidify=False`: a free quad IS a top surface with four open edges, so the default profile
+    # skirts it and puts a bottom under it, which is S1's own subject (`test_solidify.py`). This
+    # test is about ORIENTATION -- what `classify_orientation` does with a sheet seen from both
+    # sides -- and it needs the two faces it was written for.
+    r = fix_object(m, {}, _fast(solidify=False))
 
     assert r.thin_sheets.tolist() == [True, True]
     assert not r.flipped.any()
@@ -403,7 +407,10 @@ def test_a_sliver_that_only_the_relative_test_calls_zero_area_is_kept_by_the_gua
     before = ortho_first_hit(pc, topo.face_w, np.arange(m.n_faces), view, pc, size)
     assert before.tri[row, col] == 2
 
-    r = fix_object(m, {}, _FAST)
+    # `solidify=False`: the floor is a top surface with four open edges, so the default profile
+    # skirts it -- which changes the scene this test aimed a pixel at. The subject here is the
+    # degenerate-sliver guard, unchanged by S1.
+    r = fix_object(m, {}, _fast(solidify=False))
 
     assert r.n_degenerate_restored >= 1
     assert r.restored_degenerate.tolist() == [False, False, True]

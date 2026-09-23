@@ -43,6 +43,7 @@ from engine.fixes.merge import merge_regions
 from engine.fixes.orient import ORIENT_FLIP, ORIENT_THIN_SHEET, classify_orientation, flip_faces, one_sided_holes
 from engine.fixes.overlap import remove_overlaps
 from engine.fixes.remove import remove_faces
+from engine.fixes.solidify import solidify
 from engine.guard.compare import GuardReport, compare_views, face_planes, guard_feedback
 from engine.guard.views import VIEWS_26, ortho_first_hit
 from engine.model import MeshData
@@ -82,6 +83,26 @@ class FixProfile:
     #: Per-view cap on `PX_CRACK_CLOSED` pixels, as a fraction of that view's model pixels; over
     #: it they fall back to their base class and fail (see `engine.guard.compare.compare_views`).
     crack_closed_cap: float = 1e-3
+    #: Close each slab before anything else runs -- skirts on its open outline edges and a bottom
+    #: under it, so its interior stops being visible (`engine.fixes.solidify`). The CLI turns it
+    #: off with `--no-solidify`. It is the only step in the engine that invents a vertex.
+    solidify: bool = True
+    #: `|n_z|` above which a region is horizontal enough to be a top surface (it must also see
+    #: sky -- see `engine.fixes.solidify`), and at or below which a face is a SIDE face, the
+    #: kind a skirt's thickness is measured from.
+    top_min_nz: float = 0.7
+    #: How much of a candidate region must see sky straight up for it to be a top surface.
+    top_sky_fraction: float = 0.5
+    #: Fallback search for an open edge whose own corners carry no side face: side faces whose
+    #: centroid is within this many inches of the edge midpoint.
+    skirt_search_radius: float = 60.0
+    #: A measured region thickness is clamped into these bounds, in inches. On file A a real
+    #: skirt varies from 1.3 to 49 in, so one uniform thickness leaks; these only bound it.
+    min_thickness: float = 2.0
+    max_thickness: float = 36.0
+    #: Fraction of a region's faces that must find something within `h + tol` straight down for
+    #: it to count as already having a bottom.
+    bottom_exists_fraction: float = 0.9
 
 
 @dataclass
@@ -156,6 +177,19 @@ class FixResult:
     #: with `.astype`, so the array IDENTITY `engine.fixes.merge` sets up does not survive here.
     face_region_final: np.ndarray
     merge_report: dict
+    #: `engine.fixes.solidify.SolidifyResult.report` -- skirts and bottoms added, the thickness
+    #: each region was given, how many vertices were invented, what the cap guard removed, and
+    #: how many faces the step moved to exposure 0. Empty when `profile.solidify` is False.
+    solidify_report: dict
+    #: `engine.guard.compare.solidify_feedback`'s per-round history -- the CAP GUARD's verdict,
+    #: and the only comparison in the run still made against the PRISTINE input. `None` when
+    #: `profile.solidify` is False.
+    guard_solidify: list | None
+    #: The mesh every guard in this run compares AGAINST: the solidified mesh, or the input when
+    #: `profile.solidify` is False. `exposure_class`, `removed_hidden`, `flipped`,
+    #: `removed_overlap` and `source_faces` are all indexed against THIS mesh's faces, not the
+    #: input's, because that is the mesh the rest of the pipeline was given.
+    reference_mesh: MeshData
     #: `engine.fixes.merge.MergeResult.rings` -- `{output face: {"outer": ids, "inners": [...]}}`
     #: -- valid against `mesh` (this result's own final mesh) exactly as documented there. Empty
     #: when the merge candidate was rolled back, since there is then no merged mesh to index into.
@@ -193,10 +227,25 @@ def _render(positions_c: np.ndarray, faces: np.ndarray, size: tuple[int, int]):
 def fix_object(mesh: MeshData, flatness: dict[str, float], profile: FixProfile = FixProfile()) -> FixResult:
     flat_materials = flat_material_indices(mesh, flatness, profile.flat_texture_std)
     angles = {"coplanar_angle": profile.coplanar_angle, "soft_angle": profile.soft_angle}
+    input_mesh = mesh
+    topo_input = analyse_topology(mesh, flat_materials, **angles)
+
+    # ---- solidify: close each slab, so its interior can become hidden at all ------------------
+    # The only step that invents a vertex, and everything after it works on the SOLIDIFIED mesh:
+    # exposure, both removal guards and the final guard all take it as the reference, because it
+    # is the mesh a person accepted when they asked for the sides to be built. The cap guard's
+    # own report against the pristine input is kept as `guard_solidify`.
+    solidify_report: dict = {}
+    if profile.solidify:
+        result = solidify(mesh, topo_input, profile)
+        mesh, solidify_report = result.mesh, result.report
+
     topo = analyse_topology(mesh, flat_materials, **angles)
     depth_tol = guard_depth_tol(topo.quanta, profile)
-    # Recentre once, to the ORIGINAL mesh's bbox centre; the same recentred frame renders every
-    # side, before and after, at every stage -- vertices never move, so one frame is always correct.
+    # Recentre once, to the REFERENCE mesh's bbox centre; the same recentred frame renders every
+    # side, before and after, at every stage -- vertices never move after this point, so one
+    # frame is always correct. The input mesh's own faces index the same rows (solidify only
+    # APPENDS positions), so they can be rendered in this frame too.
     centre = (topo.positions_w.min(axis=0) + topo.positions_w.max(axis=0)) / 2.0
     positions_c = topo.positions_w - centre
     _, remap = weld_exact(mesh.positions, mesh.coord_decimals)  # same weld space as topo, reusable
@@ -209,8 +258,12 @@ def fix_object(mesh: MeshData, flatness: dict[str, float], profile: FixProfile =
     flip_candidates_full = orientation == ORIENT_FLIP
     thin_sheets_full = orientation == ORIENT_THIN_SHEET
 
+    # ...on the INPUT mesh's own faces, not the reference's: the point of the number is what the
+    # export arrived with. They index `positions_c` too, since solidify only appends.
+    face_w_input = remap[input_mesh.face_v]
     one_sided_holes_before = one_sided_holes(
-        positions_c, topo.face_w, np.arange(mesh.n_faces, dtype=np.int64), VIEWS_26, profile.guard_size)
+        positions_c, face_w_input, np.arange(input_mesh.n_faces, dtype=np.int64), VIEWS_26,
+        profile.guard_size)
 
     # Every render below -- the hidden pass's own BEFORE, the slit pass's, and both guards
     # against the original -- casts against the SAME face set: ALL of them. A "degenerate" face
@@ -338,6 +391,10 @@ def fix_object(mesh: MeshData, flatness: dict[str, float], profile: FixProfile =
         positions_c, remap[final_mesh.face_v], np.arange(final_mesh.n_faces, dtype=np.int64),
         VIEWS_26, profile.guard_size)
 
+    # Against the REFERENCE mesh, not the pristine input: solidify deliberately grows both the
+    # bounding box (downwards, by a skirt) and the area (by the faces it invents), and it is the
+    # mesh every guard in this run compares against. The cap guard is what bounds what solidify
+    # may do; `guard_solidify` carries its verdict.
     invariants = {
         "material_count_same": len(final_mesh.materials) == len(mesh.materials),
         "bbox_same": bool(np.array_equal(final_mesh.positions.min(axis=0), mesh.positions.min(axis=0))
@@ -368,4 +425,6 @@ def fix_object(mesh: MeshData, flatness: dict[str, float], profile: FixProfile =
         guard_after_removal=guard_after_removal, guard_merge_attempt=guard_merge_attempt,
         guard_final=guard_final, strict_final=strict_final,
         face_region_final=final_face_region,
+        solidify_report=solidify_report, reference_mesh=mesh,
+        guard_solidify=solidify_report.get("cap_guard") if solidify_report else None,
         merge_report=merge_report, rings=final_rings, invariants=invariants, passed=passed)

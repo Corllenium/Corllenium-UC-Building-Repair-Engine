@@ -493,3 +493,71 @@ def partially_overlapping_fins(nx=10, ny=10, cell=15.0, length=50.0, uv_per_unit
     fvt = fvt + [[base, base + 2, base + 1], [base, base + 3, base + 1]]
     fm = fm + [0, 0]
     return _mesh("partially_overlapping_fins", P, uvs, fv, fvt, face_material=fm)
+
+
+def _quads(P, uvs, fv, fvt, fm, quads, material=0, uv_per_unit=0.05):
+    """Append each 4-corner loop of `quads` (indices into `P`) as two triangles, with a planar UV
+    projection in the quad's own plane. The loop's own order decides the winding."""
+    for loop in quads:
+        pts = np.asarray([P[i] for i in loop], float)
+        keep = [a for a in range(3) if np.ptp(pts[:, a]) > 1e-12][:2]
+        base = len(uvs)
+        uvs.extend((pts[:, keep] * uv_per_unit).tolist())
+        fv += [[loop[0], loop[1], loop[2]], [loop[0], loop[2], loop[3]]]
+        fvt += [[base, base + 1, base + 2], [base, base + 2, base + 3]]
+        fm += [material, material]
+
+
+def slab_with_three_skirts(size=40.0, height=8.0, with_bottom=False):
+    """The sidewalk's own shape in miniature: a flat top at `z = 0` with vertical skirts on THREE
+    sides reaching down to `z = -height`, the fourth (`x = 0`) left open, and no bottom unless
+    `with_bottom`.
+
+    Every face is wound OUTWARD. Vertices 0-3 are the top corners and 4-7 the corners at
+    `-height`, so a skirt or a bottom that `engine.fixes.solidify` adds lands on vertices that
+    already exist and invents none. Faces: 0-1 the top, 2-7 the three skirts, then (optionally)
+    8-9 the bottom."""
+    s, h = size, height
+    P = [[0.0, 0.0, 0.0], [s, 0.0, 0.0], [s, s, 0.0], [0.0, s, 0.0],
+         [0.0, 0.0, -h], [s, 0.0, -h], [s, s, -h], [0.0, s, -h]]
+    uvs, fv, fvt, fm = [], [], [], []
+    loops = [(0, 1, 2, 3),          # top, +z
+             (0, 4, 5, 1),          # y = 0 skirt, -y
+             (1, 5, 6, 2),          # x = s skirt, +x
+             (2, 6, 7, 3)]          # y = s skirt, +y
+    if with_bottom:
+        loops.append((4, 7, 6, 5))  # bottom, -z
+    _quads(P, uvs, fv, fvt, fm, loops)
+    return _mesh("slab_with_three_skirts", P, uvs, fv, fvt, face_material=fm)
+
+
+def two_level_slab(size=40.0, height=8.0, deep=200.0, panel_x=10.0, panel_z=(-120.0, -80.0)):
+    """`slab_with_three_skirts(with_bottom=True)` plus two things that make the cap guard earn
+    its keep:
+
+    a DEEP FIN hanging from the open edge's corner `(0, 0, 0)` down to `z = -deep` -- a side face
+    (`|n_z| = 0`) sharing that corner, so the open edge's measured thickness is `deep` instead of
+    `height`. At the default `max_thickness` (36 in) that is clamped away; raise the ceiling and
+    the skirt reaches `z = -deep`.
+
+    a PANEL at `x = panel_x` facing `-x`, spanning `panel_z`, well below the structure and
+    exposed on BOTH sides. A skirt that reaches past it covers it from every `-x` view while it
+    is still exposed elsewhere -- so the change is not "a face that is now interior", and the cap
+    guard has to refuse it."""
+    m = slab_with_three_skirts(size, height, with_bottom=True)
+    P = m.positions.tolist()
+    uvs, fv, fvt = m.uvs.tolist(), m.face_v.tolist(), m.face_vt.tolist()
+    fm = m.face_material.tolist()
+    lo, hi = panel_z
+
+    base_v = len(P)
+    P += [[0.0, 0.0, -deep], [-1.0, 0.0, -deep],                      # the fin's two free corners
+          [panel_x, 0.25 * size, hi], [panel_x, 0.75 * size, hi],     # the panel
+          [panel_x, 0.75 * size, lo], [panel_x, 0.25 * size, lo]]
+    base_uv = len(uvs)
+    uvs += [[0.0, 0.0], [0.0, -deep * 0.05], [-1.0 * 0.05, -deep * 0.05]]
+    fv.append([0, base_v, base_v + 1])
+    fvt.append([base_uv, base_uv + 1, base_uv + 2])
+    fm.append(0)
+    _quads(P, uvs, fv, fvt, fm, [(base_v + 2, base_v + 3, base_v + 4, base_v + 5)])
+    return _mesh("two_level_slab", P, uvs, fv, fvt, face_material=fm)
