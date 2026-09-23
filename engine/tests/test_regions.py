@@ -1,7 +1,8 @@
 import numpy as np
 
 from engine.pipeline import analyse_topology, topology_stats
-from engine.tests.fixtures.build import (creased_pair, cube, grid_slab, rounded_long_slab,
+from engine.tests.fixtures.build import (creased_pair, creased_pair_with_fine_band, cube,
+                                         grid_slab, rounded_long_slab,
                                          t_junction_shared_strip, t_junction_strip)
 from engine.topo.edges import EDGE_OPEN, EDGE_REAL, EDGE_REMOVABLE, EDGE_SOFT
 
@@ -180,3 +181,70 @@ def test_two_copied_through_faces_never_make_a_soft_edge():
                          creased_pair(angle_deg=3.0).face_material)
     assert cls[e] != EDGE_SOFT
     assert region_border_angles(t.table, nowhere, normals) == {}
+
+
+# ---------------------------------------------------------------------------------------------
+# MQ3: the iterative least-squares refit must not walk ACROSS a shallow crease. At y = 24,000 in
+# the plane tolerance is 0.15 in while a point d inches along a 3 degree slope sits only
+# `0.052 * d` off the other plane, so every vertex of a fine band within ~2.9 in of the hinge is
+# inside the neighbouring plane's tolerance AND inside `facing_dot`. If the refit followed them,
+# one plane would tilt, admit the next band column, and drift off its own surface.
+# ---------------------------------------------------------------------------------------------
+
+_TRUE_FLAT = np.array([0.0, -1.0, 0.0])
+_TRUE_TILT = np.array([np.sin(np.radians(3.0)), -np.cos(np.radians(3.0)), 0.0])
+
+
+def _fitted_planes(mesh):
+    """`cluster_planes`' own output for `mesh`, built exactly as `analyse_topology` builds it:
+    `[(members, normal), ...]` in plane order."""
+    from engine.topo.adjacency import degenerate_mask
+    from engine.topo.planes import cluster_planes, face_normals
+    from engine.topo.weld import axis_quanta, weld_exact
+
+    positions_w, remap = weld_exact(mesh.positions, mesh.coord_decimals)
+    face_w = remap[mesh.face_v]
+    ok = ~degenerate_mask(positions_w, face_w)
+    tri = positions_w[face_w]
+    cross = np.cross(tri[:, 1] - tri[:, 0], tri[:, 2] - tri[:, 0])
+    label, planes = cluster_planes(tri, face_normals(positions_w, face_w, ok),
+                                   0.5 * np.linalg.norm(cross, axis=1), mesh.face_material, ok,
+                                   axis_quanta(positions_w, mesh.sig_digits))
+    return [(np.nonzero(label == i)[0], n) for i, (n, _p0, _tol) in enumerate(planes)]
+
+
+def _degrees_between(a, b):
+    return float(np.degrees(np.arccos(np.clip(float(np.asarray(a) @ np.asarray(b)), -1.0, 1.0))))
+
+
+def test_least_squares_refit_does_not_drift_across_a_shallow_crease():
+    m = creased_pair_with_fine_band()
+    assert regions(analyse_topology(m)) == 2
+
+    planes = _fitted_planes(m)
+    assert len(planes) == 2, [len(mem) for mem, _ in planes]
+    for _members, normal in planes:
+        assert min(_degrees_between(normal, _TRUE_FLAT),
+                   _degrees_between(normal, _TRUE_TILT)) <= 0.5, normal
+    # ... and the two planes are the two DIFFERENT surfaces, not the same one found twice.
+    assert _degrees_between(planes[0][1], planes[1][1]) > 2.5
+
+
+def test_the_fine_band_is_what_makes_that_fixture_dangerous():
+    """Pins the geometry the test above depends on, so a later edit to the fixture cannot quietly
+    make it harmless: same material both sides, both halves wound the SAME way (or no candidate of
+    one could ever be considered for the other's plane), and a band of triangles whose edges are
+    under 2 in -- short enough to sit inside the neighbour's 0.15 in plane tolerance."""
+    m = creased_pair_with_fine_band()
+    assert len(set(m.face_material.tolist())) == 1
+    tri = m.positions[m.face_v]
+    normals = np.cross(tri[:, 1] - tri[:, 0], tri[:, 2] - tri[:, 0])
+    normals = normals / np.linalg.norm(normals, axis=1)[:, None]
+    assert (normals @ _TRUE_FLAT > 0.99).all()          # every face points the same way
+
+    edges = np.linalg.norm(tri - np.roll(tri, -1, axis=1), axis=2)
+    band = edges.max(axis=1) < 2.0
+    # 10 band columns x 25 rows x 2 triangles per cell x 2 sides
+    assert int(band.sum()) == 2 * 2 * 10 * 25, int(band.sum())
+    hinge = np.abs(tri[band][:, :, 0]).min()
+    assert hinge <= 1e-9                                 # the band really does touch the crease

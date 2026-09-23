@@ -390,3 +390,57 @@ def two_slabs_sharing_curved_border(n=12, half_span=110.0, sag=0.8, half_width=1
             fm += [material, material]
     return _mesh("two_slabs_sharing_curved_border", P, uvs, fv, fvt,
                  materials=("m0", "m1"), face_material=fm, coord_decimals=4)
+
+
+def creased_pair_with_fine_band(angle_deg=3.0, band=12.0, cell=1.2, flat_len=120.0,
+                                tilt_len=100.0, width=30.0, y=24000.0, uv_per_unit=0.05):
+    """`creased_pair`'s two planes, but with a BAND of small triangles (edge `cell`, under 2 in)
+    running along the crease on BOTH sides -- the shape that lets an iterative plane refit walk
+    off its own plane.
+
+    Both halves are one material and one UV class, hinged along `x = 0` and spanning `z`. Within
+    `band` inches of the hinge the surface is cut into `cell x cell` quads; beyond it each side is
+    one long column out to `flat_len` / `tilt_len`, so the LARGEST triangle (the seed
+    `cluster_planes` starts from) is in the flat side's outer column.
+
+    Why it is dangerous: at y = 24,000 in the plane tolerance is `1.5 * |n| . q = 0.15` in, while
+    a point `d` inches along the TILTED side sits only `d * sin(3 deg) = 0.052 * d` off the FLAT
+    plane. Every tilted vertex within 2.9 in of the hinge is therefore inside the flat plane's
+    own tolerance AND inside `facing_dot` (cos 3 deg = 0.9986 > 0.9), so the flat region admits
+    the first band columns of the wrong side, refits to a plane tilted towards them, admits the
+    next columns, and so on -- one SketchUp face per side arriving as one drifting region."""
+    a = np.radians(angle_deg)
+    zs = [k * cell for k in range(int(round(width / cell)) + 1)]
+    alongs = [k * cell for k in range(int(round(band / cell)) + 1)]
+
+    P, uvs, fv, fvt = [], [], [], []
+
+    def add_side(direction, far, sign, reverse):
+        """`reverse` flips the corner order so BOTH halves end up wound to the same side. They
+        must: `cluster_planes` only ever considers a candidate whose normal is within
+        `facing_dot` of the region's, so two halves wound against each other could never drift
+        into one another and the fixture would prove nothing."""
+        along = alongs + [far]
+        base = len(P)
+        for z in zs:
+            for s in along:
+                P.append([float(s * direction[0]), float(y + s * direction[1]), float(z)])
+        cols = len(along)
+        vid = lambda i, j: base + j * cols + i
+        for j in range(len(zs) - 1):
+            for i in range(cols - 1):
+                corners = [(i, j), (i + 1, j), (i + 1, j + 1), (i, j + 1)]
+                if reverse:
+                    corners = corners[::-1]
+                ub = len(uvs)
+                uvs.extend([[sign * along[p] * uv_per_unit, zs[q] * uv_per_unit]
+                            for p, q in corners])
+                v = [vid(p, q) for p, q in corners]
+                fv.append([v[0], v[1], v[2]])
+                fv.append([v[0], v[2], v[3]])
+                fvt.append([ub, ub + 1, ub + 2])
+                fvt.append([ub, ub + 2, ub + 3])
+
+    add_side((-1.0, 0.0), flat_len, -1.0, True)                          # the flat half, normal -y
+    add_side((float(np.cos(a)), float(np.sin(a))), tilt_len, 1.0, False)  # the tilted half
+    return _mesh("creased_pair_with_fine_band", P, uvs, fv, fvt, coord_decimals=4)
