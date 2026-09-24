@@ -769,3 +769,46 @@ def test_cmd_fix_no_skp_writes_no_skp(tmp_path):
     assert _skp_report(out_root, m.name) == {"written": False, "reason": "disabled by --no-skp"}
     assert not (out_root / m.name / f"{m.name}.fixed.skp").exists()
     assert not skp_dir.exists()
+
+
+# ---------------------------------------------------------------------------------------------
+# SR2: solidify now REPLACES the pieces of a broken side, so the reference mesh no longer starts
+# with every input face. The BEFORE pane is still the export exactly as it arrived.
+# ---------------------------------------------------------------------------------------------
+
+def test_preview_data_before_pane_keeps_the_side_pieces_solidify_replaced(tmp_path):
+    """`slab_with_sawtooth_side`'s four teeth are replaced by one wall. The BEFORE pane still
+    draws all 34 triangles of the export, and marks the four teeth as removed (together with the
+    rib the hidden pass deleted), so its hidden count is the export's own."""
+    from engine.tests.fixtures.build import slab_with_sawtooth_side
+    m = slab_with_sawtooth_side()
+    snap_dir = _write_snapshot(tmp_path, m)
+    out_dir = tmp_path / "preview_out"
+    cli.cmd_preview_data(snap_dir, out_dir, profile=_FAST)
+    data = json.loads((out_dir / f"{m.name}.json").read_text(encoding="utf-8"))
+
+    assert data["stats"]["tris_input"] == m.n_faces
+    assert len(data["before"]["hidden"]) == m.n_faces
+    teeth = range(m.n_faces - 6, m.n_faces - 2)
+    rib = range(m.n_faces - 2, m.n_faces)
+    assert all(data["before"]["hidden"][f] == 1 for f in list(teeth) + list(rib))
+    assert data["stats"]["side_pieces_replaced"] == 4
+    assert data["stats"]["hidden_in_export"] == sum(data["before"]["hidden"])
+    # the reference is the export minus the teeth plus what solidify added
+    assert data["stats"]["tris_total"] == m.n_faces - 4 + len(data["reference"]["mat"])
+
+
+def test_cmd_fix_prints_and_reports_what_the_side_rebuild_did(tmp_path, capsys):
+    from engine.tests.fixtures.build import slab_with_sawtooth_side
+    m = slab_with_sawtooth_side()
+    snap_dir = _write_snapshot(tmp_path, m)
+
+    cli.cmd_fix(snap_dir, tmp_path / "out", accept_slit=False, profile=_FAST, skp=False)
+
+    report = json.loads((tmp_path / "out" / m.name / "report.json").read_text(encoding="utf-8"))
+    sr = report["solidify_report"]
+    assert sr["side_pieces_replaced"] == 4 and sr["sides_rebuilt"]["edges"] >= 1
+    assert report["profile"]["side_band"] == 2.5
+    line = [s for s in capsys.readouterr().out.splitlines() if "sides rebuilt" in s]
+    assert len(line) == 1
+    assert "4 side pieces replaced" in line[0]

@@ -851,3 +851,178 @@ def frame_with_crossed_seam(size=1000.0, band=100.0, gap=6e-4, uv_per_unit=0.05)
           [1, 2, 6], [1, 6, 5], [2, 3, 7], [2, 7, 6], [3, 0, 4], [3, 4, 7]]
     uvs = [[p[0] * uv_per_unit, p[1] * uv_per_unit] for p in P]
     return _mesh("frame_with_crossed_seam", P, uvs, fv, fv, coord_decimals=4)
+
+
+# ------------------------------------------------------------------------------------------------
+# SR2: broken sides. Each of these is a slab whose side exists but is not a clean wall.
+# ------------------------------------------------------------------------------------------------
+
+
+def _slab_rows(size, height, ys):
+    """A slab `size` x `size` from `z = -height` to `0`, its top, bottom and `x = size` skirt cut
+    into rows at `ys` (the `y` of every row border, 0 and `size` included), and single-quad skirts
+    at `y = 0` and `y = size`. Everything is wound OUTWARD. The `x = 0` side is left to the caller.
+    Returns `(P, uvs, fv, fvt, fm, top_border)` where `top_border[k]` is the vertex at
+    `(0, ys[k], 0)`."""
+    s, h = size, height
+    P, uvs, fv, fvt, fm = [], [], [], [], []
+    left_top = [len(P) + k for k in range(len(ys))]
+    P += [[0.0, y, 0.0] for y in ys]
+    right_top = [len(P) + k for k in range(len(ys))]
+    P += [[s, y, 0.0] for y in ys]
+    left_bot = [len(P) + k for k in range(len(ys))]
+    P += [[0.0, y, -h] for y in ys]
+    right_bot = [len(P) + k for k in range(len(ys))]
+    P += [[s, y, -h] for y in ys]
+    loops = []
+    for k in range(len(ys) - 1):
+        loops.append((left_top[k], right_top[k], right_top[k + 1], left_top[k + 1]))   # top, +z
+        loops.append((left_bot[k], left_bot[k + 1], right_bot[k + 1], right_bot[k]))   # bottom, -z
+        loops.append((right_top[k], right_bot[k], right_bot[k + 1], right_top[k + 1]))  # x = s, +x
+    loops.append((left_top[0], left_bot[0], right_bot[0], right_top[0]))                # y = 0, -y
+    loops.append((right_top[-1], right_bot[-1], left_bot[-1], left_top[-1]))            # y = s, +y
+    _quads(P, uvs, fv, fvt, fm, loops)
+    return P, uvs, fv, fvt, fm, left_top
+
+
+def slab_with_sawtooth_side(size=40.0, height=8.0, teeth=5, offsets=(0.0, 0.6, -0.4, 0.9, 0.0),
+                            gap=2, rib_x=4.0):
+    """The owner's broken side in miniature (measured on file B: the ramp's side between the
+    upper landing and the lower slab is a row of triangular teeth with gaps). A closed slab --
+    top at `z = 0`, bottom at `-height`, skirts at `x = size`, `y = 0` and `y = size`, all wound
+    outward -- whose `x = 0` side is a JAGGED SAWTOOTH instead of a wall: `teeth` downward
+    triangles, base on the top edge and apex at the bottom, each lying `offsets[k]` in off the
+    `x = 0` plane (all within 1 in), every other one wound INWARD so a camera outside meets its
+    back side, and tooth `gap` missing altogether. Between them are the up-pointing gaps a person
+    sees into the slab through.
+
+    Inside, an interior RIB at `x = rib_x` (4 in in, outside a 2.5 in side band) faces the side,
+    `y` 4 to `size - 4`, `z` -1 to `-height + 1`: seen through the gaps, and from nowhere else.
+
+    The top's `x = 0` border is cut at every tooth's base, as the export ties a side to its top,
+    so a tooth lying IN the plane shares its top edge with the top (edge count 2) and the others
+    leave that edge open. Faces: the slab first (`_slab_rows`), then the teeth in `k` order
+    (skipping `gap`), then the rib's two triangles (the last two faces)."""
+    s, h = size, height
+    w = s / teeth
+    ys = [k * w for k in range(teeth + 1)]
+    P, uvs, fv, fvt, fm, border = _slab_rows(s, h, ys)
+    for k in range(teeth):
+        if k == gap:
+            continue
+        d = offsets[k]
+        if d == 0.0:
+            a, b = border[k], border[k + 1]
+        else:
+            a, b = len(P), len(P) + 1
+            P += [[d, ys[k], 0.0], [d, ys[k + 1], 0.0]]
+        apex = len(P)
+        P.append([d, (ys[k] + ys[k + 1]) / 2.0, -h])
+        # (b, apex, a) has normal -x (outward); every other tooth is reversed
+        tri = [b, apex, a] if k % 2 == 0 else [a, apex, b]
+        base = len(uvs)
+        uvs += [[P[v][1] * 0.05, P[v][2] * 0.05] for v in tri]
+        fv.append(tri)
+        fvt.append([base, base + 1, base + 2])
+        fm.append(0)
+    r = len(P)
+    P += [[rib_x, 4.0, -1.0], [rib_x, 4.0, -h + 1.0], [rib_x, s - 4.0, -h + 1.0],
+          [rib_x, s - 4.0, -1.0]]
+    _quads(P, uvs, fv, fvt, fm, [(r, r + 3, r + 2, r + 1)])        # normal -x: faces the side
+    return _mesh("slab_with_sawtooth_side", P, uvs, fv, fvt, face_material=fm)
+
+
+def slab_with_railing_outside(size=40.0, height=8.0, near=2.0, far=6.0, thick=0.4,
+                              with_bottom=True):
+    """`slab_with_three_skirts` -- its `x = 0` side missing -- with two things standing OUTSIDE
+    that edge, neither of which is part of the slab. Each is a thin sheet with BOTH faces, the way
+    a railing or a wall is modelled: one face towards the slab, one away from it, `thick` apart.
+
+    a RAILING whose inner face is `near` in outside the edge (both faces inside a 2.5 in side
+    band), parallel to the side, from the slab's underside level `-height` up to `+30`, `y` 5 to
+    35 -- it stands above the top, so it is not a piece of the side however close it is;
+    a WALL `far` in outside (beyond the band), `y` 10 to 30, `z` -20 to +10.
+
+    Faces: the slab (8, or 10 with the bottom), then the railing's inner and outer faces (two
+    triangles each), then the wall's (four)."""
+    m = slab_with_three_skirts(size, height, with_bottom=with_bottom)
+    P = m.positions.tolist()
+    uvs, fv, fvt = m.uvs.tolist(), m.face_v.tolist(), m.face_vt.tolist()
+    fm = m.face_material.tolist()
+    loops = []
+    for x, (y0, y1, z0, z1) in ((near, (5.0, 35.0, -height, 30.0)), (far, (10.0, 30.0, -20.0, 10.0))):
+        for d, towards_slab in ((-x, True), (-x - thick, False)):
+            r = len(P)
+            P += [[d, y0, z0], [d, y0, z1], [d, y1, z1], [d, y1, z0]]
+            # (r, r+1, r+2, r+3) has normal -x (away from the slab)
+            loops.append((r, r + 3, r + 2, r + 1) if towards_slab else (r, r + 1, r + 2, r + 3))
+    _quads(P, uvs, fv, fvt, fm, loops)
+    return _mesh("slab_with_railing_outside", P, uvs, fv, fvt, face_material=fm)
+
+
+def slab_with_half_side(size=40.0, height=8.0, post_x=-10.0):
+    """A closed slab whose `x = 0` side covers only HALF its edge -- `y` 0 to `size / 2`, wound
+    outward -- and is missing over the other half. The top's `x = 0` border is cut at
+    `size / 2`, where the half side ends.
+
+    Outside, beyond the missing half, a POST stands at `x = post_x`: `y` 24 to 30, `z` -20 to
+    +20, wound facing away from the slab -- something visible outside the slab that closing the
+    side must not change. Faces: the slab (`_slab_rows` with rows at 0, size/2, size), the half
+    side's two, then the post's two."""
+    s, h = size, height
+    P, uvs, fv, fvt, fm, border = _slab_rows(s, h, [0.0, s / 2.0, s])
+    lo = len(P)
+    P += [[0.0, 0.0, -h], [0.0, s / 2.0, -h]]
+    _quads(P, uvs, fv, fvt, fm, [(border[0], border[1], lo + 1, lo)])            # x = 0, -x
+    p = len(P)
+    P += [[post_x, 24.0, -20.0], [post_x, 24.0, 20.0], [post_x, 30.0, 20.0],
+          [post_x, 30.0, -20.0]]
+    _quads(P, uvs, fv, fvt, fm, [(p, p + 1, p + 2, p + 3)])                       # normal -x
+    return _mesh("slab_with_half_side", P, uvs, fv, fvt, face_material=fm)
+
+
+def slab_with_side_behind_a_t_junction(size=40.0, height=8.0):
+    """The case the merge-fix round found on file B (region 38): a slab whose side EXISTS but
+    whose top edge is not shared with the top, because the side's own top edge is cut at a
+    T-vertex the top does not have. The top edge therefore counts as OPEN (used by one face),
+    and the old solidify laid a skirt over the existing side -- a second, coplanar layer.
+
+    `slab_with_three_skirts(with_bottom=True)` plus the `x = 0` side as three triangles tiling
+    its rectangle, wound outward, with a T-vertex at `(0, size / 2, 0)` on the top edge. The side
+    is whole: nothing is missing and nothing should be added. Faces: the slab's 10, then the
+    side's 3."""
+    m = slab_with_three_skirts(size, height, with_bottom=True)
+    P = m.positions.tolist()
+    uvs, fv, fvt = m.uvs.tolist(), m.face_v.tolist(), m.face_vt.tolist()
+    fm = m.face_material.tolist()
+    t = len(P)
+    P.append([0.0, size / 2.0, 0.0])
+    a, c, d, e = 0, 3, 7, 4          # (0,0,0), (0,s,0), (0,s,-h), (0,0,-h)
+    for tri in ([a, t, e], [t, d, e], [t, c, d]):          # normal -x
+        base = len(uvs)
+        uvs += [[P[v][1] * 0.05, P[v][2] * 0.05] for v in tri]
+        fv.append(tri)
+        fvt.append([base, base + 1, base + 2])
+        fm.append(0)
+    return _mesh("slab_with_side_behind_a_t_junction", P, uvs, fv, fvt, face_material=fm)
+
+
+def two_slabs_meeting_at_a_t_junction(size=40.0, height=8.0):
+    """One closed slab, `2 * size` long, whose top is TWO regions of different materials meeting
+    at `x = size` -- and they meet at a T-junction: the left top's border there is one edge, the
+    right top's is cut at `y = size / 2`. Neither top shares that border edge with the other, so
+    both count it as OPEN; it is not a side of anything, the slab simply continues across it.
+    Skirts on every outer edge and a bottom, all wound outward. Faces: the left top's two
+    (material 0), the right top's four (material 1), then the skirts and the bottom."""
+    s, h = size, height
+    P = [[0.0, 0.0, 0.0], [s, 0.0, 0.0], [s, s, 0.0], [0.0, s, 0.0],             # 0-3 left top
+         [s, s / 2.0, 0.0], [2 * s, 0.0, 0.0], [2 * s, s / 2.0, 0.0], [2 * s, s, 0.0],  # 4-7
+         [0.0, 0.0, -h], [2 * s, 0.0, -h], [2 * s, s, -h], [0.0, s, -h]]          # 8-11 bottom
+    uvs, fv, fvt, fm = [], [], [], []
+    _quads(P, uvs, fv, fvt, fm, [(0, 1, 2, 3)], material=0)                      # left top, +z
+    _quads(P, uvs, fv, fvt, fm, [(1, 5, 6, 4), (4, 6, 7, 2)], material=1)        # right top, +z
+    # skirts and bottom, outward; the y = 0 and y = s skirts span both tops
+    _quads(P, uvs, fv, fvt, fm, [(0, 8, 9, 5), (5, 9, 10, 7), (7, 10, 11, 3), (3, 11, 8, 0),
+                                  (8, 11, 10, 9)], material=0)
+    return _mesh("two_slabs_meeting_at_a_t_junction", P, uvs, fv, fvt, materials=("m0", "m1"),
+                 face_material=fm)

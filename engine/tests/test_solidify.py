@@ -106,21 +106,19 @@ def test_a_region_that_already_has_a_bottom_gets_no_new_one():
 # -------------------------------------------------------------------- (a) the open box
 
 
-def test_the_open_box_is_skirted_but_the_cap_guard_will_not_hide_its_partitions():
-    """The skirt this fixture needs IS planned and built -- one open outline edge, measured at
-    the box's own 10 in -- and then refused, because of what it would cover.
+def test_the_open_box_is_closed_and_the_partitions_inside_it_may_be_covered():
+    """The wall this fixture needs is built -- one missing side, measured at the box's own 10 in
+    -- and KEPT, because everything it covers lies inside the box's volume.
 
-    THIS TEST USED TO ASSERT THE OPPOSITE, and S-C1 is why. `open_box_with_cells` is a
-    10 x 10 x 10 box with an ENTIRE side missing, and its near partition sits 3 in inside that
-    hole: 25 % of the sample budget escapes from its front face. Under the old rule the skirt
-    covered it, which drove its exposure in the solidified mesh to 0, which is what the old rule
-    then consulted to decide the cover was allowed -- and the hidden pass deleted a partition a
-    person could plainly see. The rule now reads the ORIGINAL mesh, where 25 % is nowhere near
-    `cover_max_exposure`, so the cover is refused.
-
-    A skirt over a face that really is seen only through the opening is still kept: see
-    `test_a_wall_seen_only_through_a_side_opening_may_be_covered_and_is_then_removed`, where the
-    covered wall measures 0.39 %."""
+    THIS TEST HAS CHANGED SIDES TWICE. Before S-C1 the skirt was kept for a wrong reason (the
+    rule read the covered face's exposure on the SOLIDIFIED mesh, which the skirt itself drove to
+    0). S-C1 made the rule read the ORIGINAL mesh, where the near partition, 3 in inside the hole,
+    is 25 % exposed -- far above `cover_max_exposure` -- and the skirt was refused, leaving the box
+    open and its insides on show. SR2 is the owner's rule: "delete the inside, build the side
+    meshes". A face lying INSIDE the slab's volume (under its top, above its measured bottom) may
+    be covered whatever its exposure, and the hidden-face pass then removes it because the slab
+    is closed. So the partitions' 25 % still does not authorise the cover (rule 3 still refuses
+    it); their position does (`interior_faces_covered`)."""
     m = open_box_with_cells()
     r = _solidified(m)
 
@@ -128,9 +126,10 @@ def test_the_open_box_is_skirted_but_the_cap_guard_will_not_hide_its_partitions(
     assert r.report["bottom_exists"] == 1         # the box floor is already there
     assert list(r.report["thickness_per_region"].values()) == [10.0]
 
-    assert r.report["cap_guard_removed"] == 2     # both triangles of the one skirt quad
-    assert not r.new_faces.any()
-    assert r.report["faces_newly_hidden"] == 0
+    assert r.report["cap_guard_removed"] == 0
+    assert int(r.new_faces.sum()) == 2            # the one wall quad
+    assert r.report["interior_faces_covered"] >= 2
+    assert r.report["faces_newly_hidden"] == 4    # both partitions, sealed on both sides
 
     front = _front_exposure(m, n_dirs=512)
     assert front[10] > FixProfile().cover_max_exposure     # the near partition, 25 % exposed
@@ -143,10 +142,9 @@ def test_a_top_sheet_wound_downwards_is_still_a_top_sheet():
     and hang a skirt below the box. The sky test is what tells them apart -- and it matters on
     the real file, where 809 faces are wound backwards.
 
-    Asserted on the PLAN rather than on the surviving faces, because the cap guard then refuses
-    this fixture's skirt for an unrelated reason (see
-    `test_the_open_box_is_skirted_but_the_cap_guard_will_not_hide_its_partitions`); which region
-    was chosen, and how far down its skirt was measured, is what this test is about."""
+    Asserted on the PLAN rather than on the surviving faces: which region was chosen, and how far
+    down its wall was measured, is what this test is about (what the cap guard then does with the
+    wall is `test_the_open_box_is_closed_and_the_partitions_inside_it_may_be_covered`)."""
     m = open_box_with_cells()
     normals = _face_normals(m)
     assert normals[2][2] == pytest.approx(-1.0)   # the lid, pointing down
@@ -163,18 +161,18 @@ def test_a_top_sheet_wound_downwards_is_still_a_top_sheet():
     assert list(r.report["thickness_per_region"].values()) == [10.0]
 
 
-def test_fix_object_leaves_the_open_box_open_when_its_partitions_are_plainly_visible():
-    """The end-to-end consequence of the same refusal: no skirt survives, so nothing becomes
-    hidden, so nothing is removed -- and the run still passes, because refusing to invent a face
-    is not damage. `test_fix_object_closes_the_compartment_and_removes_its_deep_wall` is the
-    same journey on a fixture whose interior really is seen only through the opening."""
+def test_fix_object_closes_the_open_box_and_removes_the_partitions_inside_it():
+    """End to end, SR2: the wall is kept, both partitions are then sealed inside the box, and the
+    strict hidden-face pass removes all four of their triangles. The shipped box is closed and
+    shows no back side anywhere. (Under S-C1 this box was left open and both partitions were
+    kept on show -- see the test above for why that rule changed.)"""
     m = open_box_with_cells()
     r = fix_object(m, {}, _FAST)
 
     assert r.solidify_report["skirts_added"] == 1
-    assert r.solidify_report["cap_guard_removed"] == 2
-    assert r.reference_mesh.n_faces == m.n_faces      # nothing survived to be added
-    assert r.n_removed_hidden == 0
+    assert r.solidify_report["cap_guard_removed"] == 0
+    assert r.reference_mesh.n_faces == m.n_faces + 2
+    assert r.n_removed_hidden == 4
     assert r.passed is True
 
 
@@ -264,26 +262,29 @@ def _front_exposure(mesh, n_dirs=32):
     return front
 
 
-def test_a_bottom_that_would_box_in_the_real_underside_is_refused_by_the_cap_guard():
-    """The reviewer's scenario. The region's skirts measure 9.8 in, so a bottom is invented at
-    -9.8; the slab's REAL underside is only 4 in down and covers half the footprint, so
-    `_has_bottom` does not see it. Rule 3 used to read the covered face's exposure in the
-    SOLIDIFIED mesh -- which the covering face itself had just driven to zero -- so the bottom
-    authorised itself, and the hidden pass then deleted the real underside.
+def test_a_shelf_inside_the_slab_is_interior_and_may_be_covered_by_the_bottom():
+    """The S-C1 reviewer's scenario, under SR2's rule. The region's three sides measure 9.8 in,
+    so the slab is 9.8 in deep and a bottom is invented there; a 4 in deep shelf covers a
+    quarter of the footprint, too little for `_has_bottom`.
 
-    The rule now reads the face's exposure on the ORIGINAL mesh: the underside is plainly
-    visible from below there, so the part of the bottom that covers it is refused."""
+    S-C1 refused the part of the bottom that covered the shelf, reading the shelf as the slab's
+    "real underside" because it is plainly visible from below (front exposure about 0.5). That
+    is exactly the owner's "floating thin slab visible inside": it lies under the top, above the
+    slab's measured bottom, so it is INSIDE the slab's volume, and SR2 lets the bottom cover it
+    (`interior_faces_covered`). What S-C1's rule still refuses is a cover of anything OUTSIDE the
+    volume -- `two_level_slab`'s underside below a skirt that hangs past it, below."""
     m = slab_with_partial_underside()
+    original_front = _front_exposure(m)
+    assert original_front[8] > FixProfile().cover_max_exposure    # plainly visible from below
+
     r = _solidified(m)
-
     assert r.report["bottoms_added"] == 1              # invented at the measured 9.8 in
-    assert r.report["cap_guard_removed"] >= 1          # and partly refused
-
-    front = _front_exposure(r.mesh)
-    assert front[8] > 0.0 and front[9] > 0.0           # the real underside is still seen
+    assert r.report["cap_guard_removed"] == 0          # and kept whole
+    assert r.report["interior_faces_covered"] >= 2
 
     result = fix_object(m, {}, _FAST)
-    assert not result.removed_hidden[8] and not result.removed_hidden[9]
+    assert result.removed_hidden[8] and result.removed_hidden[9]  # sealed inside, then removed
+    assert result.passed is True
 
 
 def test_a_wall_seen_only_through_a_side_opening_may_be_covered_and_is_then_removed():
@@ -491,11 +492,13 @@ def test_a_cap_guard_that_never_converged_fails_the_whole_run():
     ends with a render-only verification of the mesh it is actually handing back.
 
     Forced here by giving the guard NO rounds at all, which is the cleanest way to leave a
-    solidified mesh that has never been corrected: `slab_with_partial_underside`'s bottom boxes
-    in its real underside, 8,498 pixels' worth. The point of the test is that the verdict comes
-    from a real final render of the mesh that would have shipped, not from the loop's own
+    solidified mesh that has never been corrected: `two_level_slab`'s skirt, with the ceiling
+    raised, hangs 192 in below the slab's own underside and covers it and the panel below -- both
+    OUTSIDE the slab's volume. (This used `slab_with_partial_underside` until SR2 made its shelf
+    an interior face the bottom may cover.) The point of the test is that the verdict comes from
+    a real final render of the mesh that would have shipped, not from the loop's own
     bookkeeping."""
-    r = fix_object(slab_with_partial_underside(), {}, _fast(cap_guard_max_rounds=0))
+    r = fix_object(two_level_slab(), {}, _fast(cap_guard_max_rounds=0, max_thickness=1000.0))
 
     history = r.solidify_report["cap_guard"]
     assert len(history) == 1
@@ -520,3 +523,181 @@ def test_an_invented_face_carries_no_line_number():
     assert (r.mesh.face_line[new] == -1).all()
     # every face that DID come from the file keeps its own line
     assert np.array_equal(r.mesh.face_line[: m.n_faces], m.face_line)
+
+
+# --------------------------------------------- SR2: a broken side is rebuilt instead of preserved
+#
+# Measured on the owner's files (SR1): the sawtooth he photographed is file B's ramp side, a row
+# of triangular teeth with gaps. Solidify only walled OPEN outline edges, so the edges a tooth
+# shares with the top got nothing and the gaps' walls were judged by a rule that refuses to cover
+# anything visible -- and the teeth and the inside seen between them are visible by definition.
+# SR2 walls every outline edge whose side is missing or broken, replaces the pieces of the side
+# lying within `FixProfile.side_band` of the new wall, and lets a closing face cover what lies
+# inside the slab's volume. Nothing outside the volume may be covered.
+
+from engine.guard.views import VIEWS_26, ortho_first_hit  # noqa: E402
+from engine.tests.fixtures.build import (slab_with_half_side, slab_with_railing_outside,  # noqa: E402
+                                         slab_with_sawtooth_side,
+                                         slab_with_side_behind_a_t_junction,
+                                         two_slabs_meeting_at_a_t_junction)
+
+
+def _reference_row(r, input_faces):
+    """Where input face ids landed in `r.mesh` (solidify drops the pieces it replaced)."""
+    rows = np.cumsum(~r.replaced) - 1
+    return np.where(r.replaced[input_faces], -1, rows[input_faces])
+
+
+def _plane_faces(mesh, axis, value, tol=1e-6):
+    """Faces of `mesh` lying in the plane `x[axis] == value`."""
+    tri = mesh.positions[mesh.face_v]
+    return np.nonzero((np.abs(tri[:, :, axis] - value) <= tol).all(axis=1))[0]
+
+
+def _covered_area(mesh, faces, axes):
+    """Area of the union of `faces` projected on the two `axes`."""
+    polys = [shapely.Polygon(mesh.positions[mesh.face_v[f]][:, axes]) for f in faces]
+    return shapely.union_all(polys).area if polys else 0.0
+
+
+def _unchanged_pixels(m, r, faces, size=(120, 80)):
+    """For every pixel of the 26 guard views whose first hit on the INPUT is one of `faces`:
+    is its first hit on the solidified mesh the same face? Both meshes framed alike."""
+    positions_w, remap = weld_exact(r.mesh.positions, r.mesh.coord_decimals)
+    centre = (positions_w.min(axis=0) + positions_w.max(axis=0)) / 2.0
+    pc = positions_w - centre
+    before_faces = remap[m.face_v]
+    after_faces = remap[r.mesh.face_v]
+    rows = _reference_row(r, np.arange(m.n_faces))
+    seen = changed = 0
+    for view in VIEWS_26:
+        b = ortho_first_hit(pc, before_faces, np.arange(m.n_faces), view, pc, size)
+        a = ortho_first_hit(pc, after_faces, np.arange(r.mesh.n_faces), view, pc, size)
+        mine = np.isin(b.tri, faces)
+        seen += int(mine.sum())
+        changed += int((a.tri[mine] != rows[b.tri[mine]]).sum())
+    return seen, changed
+
+
+def test_a_sawtooth_side_is_rebuilt_as_one_clean_wall():
+    """The teeth lie within 1 in of the `x = 0` plane, some wound inward, one missing: the side
+    is broken, not missing and not whole. It is replaced by a wall wound outward, tiling the
+    whole side, and the four teeth are gone. The rib seen through the gaps lies inside the slab,
+    so covering it is allowed -- and it is still in the mesh here: deleting the inside is the
+    hidden-face pass's job, below."""
+    m = slab_with_sawtooth_side()
+    teeth = np.arange(m.n_faces - 6, m.n_faces - 2)
+    r = _solidified(m)
+
+    assert r.report["cap_guard_passed"] is True
+    assert r.replaced.tolist() == [f in teeth for f in range(m.n_faces)]
+    assert r.report["side_pieces_replaced"] == 4
+    assert r.report["sides_rebuilt"]["edges"] >= 1
+    assert r.report["sides_rebuilt"]["length"] == pytest.approx(40.0)
+    assert r.report["interior_faces_covered"] >= 2            # the rib
+    assert r.report["walls_refused"]["faces"] == 0
+
+    wall = _plane_faces(r.mesh, 0, 0.0)
+    assert len(wall) >= 2 and r.new_faces[wall].all()          # only the new wall is at x = 0
+    assert (_face_normals(r.mesh)[wall][:, 0] < -0.99).all()   # wound outward
+    assert _covered_area(r.mesh, wall, [1, 2]) == pytest.approx(40.0 * 8.0)
+    # the rib is untouched by solidify itself
+    rib = _reference_row(r, np.array([m.n_faces - 2, m.n_faces - 1]))
+    assert (rib >= 0).all()
+
+
+def test_fix_object_closes_the_sawtooth_side_and_deletes_what_was_seen_through_it():
+    """End to end: the rebuilt wall seals the slab, the rib becomes hidden and the strict hidden
+    pass deletes it, and from outside no pixel shows a face's back side any more."""
+    m = slab_with_sawtooth_side()
+    r = fix_object(m, {}, _FAST)
+
+    assert r.passed is True
+    assert r.backface_px["input"]["total"] > 0
+    assert r.backface_px["final"]["total"] == 0
+    at_rib = (np.abs(r.mesh.positions[r.mesh.face_v][:, :, 0] - 4.0) < 1e-6).all(axis=1)
+    assert not at_rib.any()
+    topo = analyse_topology(r.mesh)
+    assert set(topo.table.counts.tolist()) == {2}              # a closed solid
+
+
+def test_a_railing_standing_outside_the_edge_is_never_replaced_or_covered():
+    """A railing 2 in outside the missing side -- both its faces inside the 2.5 in side band --
+    but standing from the slab's underside up to 30 in ABOVE the top: not a piece of the side.
+    And a wall 6 in out. Neither is replaced, and not one of their pixels changes."""
+    m = slab_with_railing_outside()
+    outside = np.arange(m.n_faces - 8, m.n_faces)
+    r = _solidified(m)
+
+    assert not r.replaced.any()
+    assert r.report["sides_rebuilt"]["edges"] == 1             # the missing side is built
+    seen, changed = _unchanged_pixels(m, r, outside)
+    assert seen > 0 and changed == 0
+
+
+def test_a_railing_seen_through_an_open_slab_is_never_covered():
+    """The same railing with the slab's bottom missing too, so from below a person sees the
+    railing's inner face THROUGH the slab and its open side. Whatever closing face would cover that
+    view is refused -- the railing lies outside the slab's volume -- and its pixels are exactly
+    what they were."""
+    m = slab_with_railing_outside(with_bottom=False)
+    outside = np.arange(m.n_faces - 8, m.n_faces)
+    r = _solidified(m)
+
+    seen, changed = _unchanged_pixels(m, r, outside)
+    assert seen > 0 and changed == 0
+    assert not r.replaced[outside].any()
+
+
+def test_a_half_side_gets_the_rest_built_and_nothing_outside_the_volume_changes():
+    """The side covers `y` 0 to 20 of a 40 in edge. After solidify the whole `x = 0` side is
+    closed by faces wound outward, and the post standing outside the missing half looks exactly
+    as it did from every view."""
+    m = slab_with_half_side()
+    post = np.array([m.n_faces - 2, m.n_faces - 1])
+    r = _solidified(m)
+
+    assert r.report["cap_guard_passed"] is True
+    side = _plane_faces(r.mesh, 0, 0.0)
+    assert (_face_normals(r.mesh)[side][:, 0] < -0.99).all()
+    assert _covered_area(r.mesh, side, [1, 2]) == pytest.approx(40.0 * 8.0)
+    seen, changed = _unchanged_pixels(m, r, post)
+    assert seen > 0 and changed == 0
+    # nothing was invented outside the slab
+    new = r.mesh.positions[r.mesh.face_v[r.new_faces]]
+    assert new[:, :, 0].min() >= 0.0 and new[:, :, 2].min() >= -8.0
+
+
+def test_an_existing_side_behind_a_t_junction_gets_nothing_laid_over_it():
+    """The top edge counts as open (the side's own top edge is cut at a T-vertex), but the side
+    is whole. It is not a missing side: nothing is added in its plane and nothing is replaced."""
+    m = slab_with_side_behind_a_t_junction()
+    r = _solidified(m)
+
+    assert not r.replaced.any()
+    assert r.report["sides_rebuilt"]["edges"] == 0
+    assert not r.new_faces[_plane_faces(r.mesh, 0, 0.0)].any()
+    assert r.report["sides_intact"] >= 1
+
+
+def test_where_two_top_regions_meet_there_is_no_side():
+    """Two tops meeting at a T-junction both count their shared border as open. The slab simply
+    continues across it, so neither gets a wall there -- the old solidify hung one inside the
+    slab from each side."""
+    m = two_slabs_meeting_at_a_t_junction()
+    r = _solidified(m)
+
+    assert not r.new_faces[_plane_faces(r.mesh, 0, 40.0)].any()
+    assert r.report["edges_continued"] >= 2
+    assert r.report["sides_rebuilt"]["edges"] == 0
+
+
+def test_the_side_rebuild_is_deterministic():
+    m = slab_with_sawtooth_side()
+    a, b = _solidified(m), _solidified(m)
+    assert np.array_equal(a.mesh.face_v, b.mesh.face_v)
+    assert np.array_equal(a.mesh.positions, b.mesh.positions)
+    assert a.replaced.tolist() == b.replaced.tolist()
+    assert a.new_faces.tolist() == b.new_faces.tolist()
+    assert ({k: v for k, v in a.report.items() if k != "runtime_s"}
+            == {k: v for k, v in b.report.items() if k != "runtime_s"})

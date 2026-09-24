@@ -124,6 +124,13 @@ class FixProfile:
     #: a wall seen through a small hole: the far wall of `compartment_with_deep_wall` measures
     #: a fraction of a percent through a 10 x 10 in opening 45 in away.
     cover_max_exposure: float = 0.10
+    #: SR2. Half-width, in inches, of the band around a new wall's (or bottom's) plane in which an
+    #: original face parallel to it is a PIECE of that broken side: replaced by the new face,
+    #: removed together with its acceptance. From SR1's measurement of every face the old cap
+    #: guard refused to cover near and parallel to a new face: 99 % of those pixels lie within
+    #: 1.98 in (file A) and 2.35 in (file B). Capped at `engine.fixes.solidify.SIDE_BAND_MAX`
+    #: (3 in), past which the band reaches things standing NEXT to the slab.
+    side_band: float = 2.5
     #: Rounds the cap guard may spend removing invented faces before it gives up. It always
     #: verifies the state it hands back, so giving up is VISIBLE: `cap_guard_passed` goes False
     #: and with it the whole run's `passed`.
@@ -259,9 +266,14 @@ class FixResult:
     #: `removed_hidden`, `removed_slit`, `restored_degenerate`, `flipped`, `thin_sheets`,
     #: `removed_overlap`, `restored_overlap`, `removed_fragments`, `source_faces` and the face
     #: ids in `overlap_pairs_diff_material` -- is indexed against THIS mesh's faces, not the
-    #: input's, because that is the mesh the rest of the pipeline was given. The input's faces
-    #: are its first `input.n_faces` rows, so the two agree below that bound and only there.
+    #: input's, because that is the mesh the rest of the pipeline was given. Its first rows are
+    #: the input's faces MINUS `replaced_input`, in their original order, and every face
+    #: solidify invented follows: input face `i` (not replaced) is reference row
+    #: `cumsum(~replaced_input)[i] - 1`.
     reference_mesh: MeshData
+    #: SR2. Bool over the INPUT's faces: pieces of a broken side or bottom that solidify replaced
+    #: with a new wall or bottom -- not in the reference mesh at all. All False without solidify.
+    replaced_input: np.ndarray
     #: `engine.fixes.merge.MergeResult.rings` -- `{output face: {"outer": ids, "inners": [...]}}`
     #: -- valid against `mesh` (this result's own final mesh) exactly as documented there. Empty
     #: when the merge candidate was rolled back, since there is then no merged mesh to index into.
@@ -308,9 +320,10 @@ def fix_object(mesh: MeshData, flatness: dict[str, float], profile: FixProfile =
     # is the mesh a person accepted when they asked for the sides to be built. The cap guard's
     # own report against the pristine input is kept as `guard_solidify`.
     solidify_report: dict = {}
+    replaced_input = np.zeros(mesh.n_faces, dtype=bool)
     if profile.solidify:
         result = solidify(mesh, topo_input, profile)
-        mesh, solidify_report = result.mesh, result.report
+        mesh, solidify_report, replaced_input = result.mesh, result.report, result.replaced
 
     topo = analyse_topology(mesh, flat_materials, **angles)
     depth_tol = guard_depth_tol(topo.quanta, profile)
@@ -576,6 +589,6 @@ def fix_object(mesh: MeshData, flatness: dict[str, float], profile: FixProfile =
         guard_after_removal=guard_after_removal, guard_merge_attempt=guard_merge_attempt,
         guard_final=guard_final, strict_final=strict_final,
         face_region_final=final_face_region,
-        solidify_report=solidify_report, reference_mesh=mesh,
+        solidify_report=solidify_report, reference_mesh=mesh, replaced_input=replaced_input,
         guard_solidify=solidify_report.get("cap_guard") if solidify_report else None,
         merge_report=merge_report, rings=final_rings, invariants=invariants, passed=passed)
