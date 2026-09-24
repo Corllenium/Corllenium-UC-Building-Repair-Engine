@@ -790,3 +790,64 @@ def printed_ramp(nx=4, ny=3, cell=40.0, slope_deg=23.2, x0=2870.0, y0=23700.0, z
             fv += [[v[0], v[1], v[2]], [v[0], v[2], v[3]]]
             fvt += [[base, base + 1, base + 2], [base, base + 2, base + 3]]
     return _mesh("printed_ramp", P, uvs, fv, fvt)
+
+
+def t_junction_lattice_region():
+    """ONE sloped underside region straight out of the real export (`t_junction_lattice_region.obj`:
+    all 274 triangles of region 70 of the CHTM_SIDE_WALK_2nd_floor snapshot `ce26e0392ab0`, as
+    the merge receives them; 218 welded vertices), read through `read_obj` so the printed
+    precision (2 decimals, 6 significant digits, a 0.1 in Y quantum) is inferred exactly as it is
+    for the snapshot. The big underside sloped 8 degrees at the right-hand end of that model.
+
+    Its triangulation is a lattice with T-JUNCTIONS: vertices lie exactly on the long edges of
+    neighbouring triangles (vertex (2594.51, 23141.9, 1766.4) is 0.000000 in off the 236.2 in
+    edge it sits on). In exact arithmetic the two sides meet along that line; the grid-snapped
+    union (`engine.fixes.merge._union` at `GRID_SIZE`) moves the long edge and the short ones
+    independently, so they part by a grid cell and cross again at an angle of about 4e-7 rad.
+    The union keeps 12 real openings (0.25 to 1.27 in wide) and 3 SLIVERS 5e-5 to 9e-5 in wide
+    along those lines: one collapses to two vertices, one snaps to three distinct collinear
+    vertices, and one has a corner 7.87 in from every vertex -- where the two snapped edges
+    cross. Four of its triangles overlap each other (rule 3). Reproduces as a standalone mesh:
+    one region, the same union."""
+    return read_obj(Path(__file__).with_name("t_junction_lattice_region.obj"))
+
+
+def ramp_fan_region():
+    """ONE ramp region straight out of the real export (`ramp_fan_region.obj`: all 49 triangles of
+    region 47 of the CHTM_2nd_to_3rd_building_sidewalk_outside snapshot `0b290ec0bcb4`, as the
+    merge receives them; 51 welded vertices), read through `read_obj`. Sloped 23 degrees, normal
+    `[0.3939, 0, 0.9191]`, 0.0085 in thick along its normal.
+
+    A fan of 125 to 553 in long triangles meets at vertex (2909.47, 24204.9, 1914.51) with its
+    edges 0.3 to 4.4 degrees apart. The grid-snapped union leaves a sliver there whose tip lands
+    0.0016 in from that vertex -- the corner `new_vertex` used to refuse -- and two slivers one
+    grid cell wide along T-junction lines whose corners snap to 3 and 4 distinct collinear
+    vertices, which a rebuilt polygon cannot carry as holes. Reproduces as a standalone mesh:
+    one region, the same union."""
+    return read_obj(Path(__file__).with_name("ramp_fan_region.obj"))
+
+
+def frame_with_crossed_seam(size=1000.0, band=100.0, gap=6e-4, uv_per_unit=0.05):
+    """ONE flat region: a square frame `size` inches across, its band `band` wide, closed at the
+    middle of its bottom side by a SEAM whose two edges cross. The bottom band's left half ends
+    in edge 8-9 and its right half starts with edge 11-10; each runs across the band from one
+    border to the other with its ends `gap` apart the opposite way round, so the two edges cross
+    halfway across the band, 50 in from every vertex, at an angle of 3.4e-4 degrees.
+
+    Faces 0 `(0, 8, 9)` and 3 `(10, 5, 11)` carry the two seam edges. They overlap by 0.015 sq in
+    near the inner border, under rule 3's `1e-6 * 20,000 sq in`, so the merge keeps both in the
+    region's union; near the outer border they leave a notch `gap` wide at its mouth -- six grid
+    cells, far wider than a union sliver -- whose tip is the crossing: a union corner no vertex
+    explains. The seam ends are printed to 4 decimals (`coord_decimals=4`) so they do not weld.
+    Vertex 11 lies on edge 9-4 and vertex 9 on edge 5-11: the only T-junctions, both in the
+    input."""
+    L, t, h = size, band, gap / 2
+    P = [[0, 0, 0], [L, 0, 0], [L, L, 0], [0, L, 0],                     # 0-3 outer corners
+         [t, t, 0], [L - t, t, 0], [L - t, L - t, 0], [t, L - t, 0],     # 4-7 inner corners
+         [L / 2 - h, 0, 0], [L / 2 + h, t, 0],                           # 8, 9: left seam edge
+         [L / 2 + h, 0, 0], [L / 2 - h, t, 0]]                           # 10, 11: right seam edge
+    fv = [[0, 8, 9], [0, 9, 4],          # bottom band, left half
+          [10, 1, 5], [10, 5, 11],       # bottom band, right half
+          [1, 2, 6], [1, 6, 5], [2, 3, 7], [2, 7, 6], [3, 0, 4], [3, 4, 7]]
+    uvs = [[p[0] * uv_per_unit, p[1] * uv_per_unit] for p in P]
+    return _mesh("frame_with_crossed_seam", P, uvs, fv, fv, coord_decimals=4)
