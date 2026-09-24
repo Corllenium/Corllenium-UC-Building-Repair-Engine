@@ -971,3 +971,21 @@ def test_the_bottom_is_no_deeper_than_the_shallowest_existing_side():
     assert [d["region"] for d in deeper] == [0]
     assert deeper[0]["shallowest_side"] == pytest.approx(4.0)
     assert deeper[0]["deepest_wall"] == pytest.approx(8.0)
+
+
+# ------------------------------------------------ M1: the cap guard's cut-off path, verified
+
+
+def test_a_cap_guard_cut_off_after_one_round_verifies_what_it_hands_back():
+    """Review M1: at 0 rounds the returned mesh and the pre-removal mesh are the same mesh, so a
+    verification rendered on a stale `keep` would still pass the S-I2 test above. At ONE round,
+    round 0 removes faces and the loop runs out of rounds -- and it is the appended round 1, a
+    render of the mesh actually handed back, that makes `cap_guard_passed` True."""
+    r = _solidified(slab_with_partial_underside(), _fast(cap_guard_max_rounds=1))
+    history = r.report["cap_guard"]
+    assert len(history) == 2
+    assert history[0]["round"] == 0 and history[0]["removed"] > 0
+    assert history[0]["failing_pixels"] > 0
+    assert history[-1]["round"] == 1
+    assert history[-1]["failing_pixels"] == 0 and history[-1]["removed"] == 0
+    assert r.report["cap_guard_passed"] is True
