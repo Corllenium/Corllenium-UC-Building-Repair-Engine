@@ -23,39 +23,30 @@ side mesh, rebuild broken or missing sides; only the model's outline edges may b
 run the latest `.skp` of each file must be in `OBJ FIXED RESULT/` for the owner to check in SketchUp
 2026. Work visually: every round ends with renders that are looked at, not only numbers.
 
-## 2. Current state (2026-09-24 19:00, written by the Claude controller)
+## 2. Current state (2026-09-24 23:40, written by the Claude controller)
 
-Branch `feat-dashboard`, HEAD after `437e4ef`. Engine suite **417 passed**. `docker-compose.yml`
-shows as modified: it belongs to another session, never touch it.
+Branch `feat-dashboard`, HEAD `da53fd2`. Engine suite **431 passed** (verified 23:33).
+`docker-compose.yml` shows as modified: it belongs to another session, never touch it.
 
-Latest outputs (written 18:4x by the code at 03df53d; they are what is in `OBJ FIXED RESULT/`):
-
-| | A | B |
-|---|---|---|
-| Triangles in -> out | 4,692 -> 1,013 | 7,227 -> 601 |
-| Passed (all invariants, final guard), merge rolled back | yes, no | yes, no |
-| T-vertices before -> after the merge | 353 -> 0 | 363 -> 0 |
-| `.skp` faces | 567 | 241 |
-| Lines SketchUp draws inside flat surfaces (audit) | 7 + 2 T-junction lines | 3 + 24 (15 of them material seams) |
-
-The lines left are double layers (one surface's edge lying over a second copy of it), which the side
-rebuild or the overlap removal must handle, and material seams, which are real edges.
+While Claude was at its limit (about 20:30 to 23:30), **Hermes finished brief 07** (the review
+fixes: fragments connect through T-junctions and their own pixels are judged, a failed run writes
+`.FAILED.skp` instead of replacing the owner's file, growth over background is measured like a loss,
+the bbox invariant uses the vertices faces use) and merged it (19f97cc). Verified by the controller:
+431 passed, and the review's C2 and I2 probes now show the defects gone. Hermes's report: on file B
+four real 30-40 in wall strips had been removed as slivers before the fix and are now kept; on file A
+15 pieces removed (1 fragment, 14 slivers under 0.048 in wide), none real surface. Hermes regenerated
+the owner's `.skp` files at 22:07-22:09 (engine at 19f97cc, without the side rebuild).
 
 Jobs:
 
-1. **T1 — T-junction repair**: DONE (28d63df, 03df53d, report 437e4ef).
-2. **SR — side rebuild** (brief `briefs/02-SR-side-rebuild.md`), worktree
-   `.claude/worktrees/side-rebuild`, branch `feat/side-rebuild`, held by a Claude subagent since
-   18:34. SR0 committed (`ff4a0ec`); SR2 written but not committed when last measured; with it: back
-   faces seen from outside A 119,610 -> 29,225 px, B 21,959 -> 5,258 px, both passed, but file A's
-   merge rolls back (2,668 triangles instead of about 900). The owner's "sawtooth" broken side is on
-   file B, under the slope between the upper landing and the lower slab.
-3. **Review part 1** (brief `briefs/04-review.md`), read-only, committed state b2134e9..ce48932
-   without the side rebuild; held by a Claude subagent since 19:12; writes its review into the
-   session scratchpad, the controller files it as
-   `.superpowers/sdd/2026-09-21-phase2e-fix-pipeline/review-since-b2134e9.md`. If you take it over,
-   write that file directly.
-4. Next: `briefs/03-reconcile-and-verify.md` once SR is done, then review part 2.
+1. **SR — side rebuild** (brief `briefs/02-SR-side-rebuild.md`), worktree
+   `.claude/worktrees/side-rebuild`, branch `feat/side-rebuild`, Claude subagent resumed 23:36.
+   Committed: ff4a0ec SR0, 65e566c SR2, f57cb17, 9562aa3 SR4 (= review C1), 6233671 SR5 (= review
+   I1), 0f24da4 M1. Left: two docstrings, SR3, the real runs, the report, and whether file A's merge
+   still rolls back with the side rebuild.
+2. Next: `briefs/03-reconcile-and-verify.md` (merge feat/side-rebuild; conflicts expected in
+   compare.py, pipeline.py, cli.py, build.py because brief 07 changed them on feat-dashboard), then
+   review part 2 (the side rebuild AND Hermes's brief-07 commits).
 
 **If you take over one of these** (for example because Claude hit its usage limit): follow the
 lapse rule at the top of `WORK-CLAIMS.md`, take the claim over in writing, run `git status` and
