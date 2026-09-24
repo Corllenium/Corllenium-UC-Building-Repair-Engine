@@ -120,9 +120,15 @@ PLANE_TOL = 1e-3
 EDGE_MATCH_TOL = 1e-6
 #: How close, in inches, an edge must come to another face to lie on it: both its end points to
 #: the face's plane, and the face's boundary to the edge (a crack up to this wide is closed).
-#: Measured on both real files: the T-junction lines found are the same from 0.01 to 0.05 in
-#: (73 in A, 9 in B; 69 and 9 at 0.001 in). The next four need 0.1 in: they run along a
-#: sliver-shaped hole in the mesh, up to 0.19 in wide, which stays drawn.
+#: Swept on both real files' current output (brief 08, engine 4f0ae03: A 1,033 and B 596
+#: triangles; the sweep script is in item 7 of
+#: `.superpowers/sdd/2026-09-21-phase2e-fix-pipeline/review2a-fixes-report.md`): the T-junction
+#: lines hidden are the same at every tolerance from 0.001 to 0.1 in -- A 16, B 3 -- and B hides
+#: one more at 0.2 in; the coplanar edges hidden are A 33 (32 at 0.2 in) and B 3 throughout; the
+#: lines left drawn inside a surface are A 3 throughout, B 14 up to 0.03 in and 15 from 0.05 in.
+#: 0.02 in sits inside that plateau, so nothing depends on its exact value. The sweep this
+#: replaces (73 lines in A, 9 in B) ran on output from before d6ef1a9 and 28d63df threaded the
+#: T-junctions away.
 ON_FACE_TOL = 0.02
 #: Largest residual of one affine UV map over a polygon face's triangles that is not reported.
 UV_RESIDUAL_TOL = 1e-3
