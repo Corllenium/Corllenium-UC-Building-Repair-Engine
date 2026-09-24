@@ -29,6 +29,6 @@ preview/data/
 # one-off deliverables and legacy outputs
 OBJ FIXED RESULT/
 legacy/*.json
-*.fixed.obj
-*.fixed.ngon.obj
+/*.fixed.obj
+/*.fixed.ngon.obj
 fixed_mesh_data.json
