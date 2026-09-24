@@ -73,7 +73,7 @@ final guard passed.
 | 09-24 03:30 | Peer fixes merged: rule 9 per pass (d505241), union slivers close (dee358d), asset-aware snapshot identity (F5) | 17939a4, ee840e9, e57462d | 2,579 (merge rolled back) | 602 |
 | 09-24 04:10 | The merge guard measures border shifts instead of counting pixels | 022a67b | **1,117** | **602** |
 | 09-24 08:50 | SketchUp export: `.skp` per run into `OBJ FIXED RESULT/` | e97443e, d24da30, merge 8ffbda3 | .skp 731 faces | .skp 248 faces |
-| 09-24 09:10 | Merge snaps union corners within a measured precision bound (N1) | d6ef1a9 | running | running |
+| 09-24 09:25 | Merge: T-junction sliver rings closed at the source, a union corner no vertex explains sets aside only its triangles (N1, N2) | d6ef1a9, b3b9ad3 | **902** (0 regions skipped, 87 copied) | **555** |
 
 Every commit since b2134e9, oldest last: `git log --first-parent b2134e9..HEAD`.
 
@@ -84,20 +84,21 @@ border by 0.15 in), no surface missing. A pixel count cannot tell a 0.013 in shi
 lies on pixel centres from real damage, so the guard now measures the displacement instead
 (022a67b); anything farther than 0.15 in still fails.
 
-## 5. Measured state of the SketchUp files (8ffbda3, 08:53)
+## 5. Measured state of the SketchUp files
 
-Audit of every edge SketchUp draws, read back through the C API (`scripts/skp_edge_audit.py`):
+Audit of every edge SketchUp draws, read back through the C API (`scripts/skp_edge_audit.py`).
+First at 8ffbda3 (08:53), then after the merge fix (b3b9ad3, files written 09:29):
 
-| | A | B |
-|---|---|---|
-| Faces / edges | 731 / 1,618 | 248 / 734 |
-| Hidden (soft) edges | 560 | 143 |
-| Visible lines inside a flat same-material surface | 21 | 5 |
-| Visible T-junction lines lying on a flat surface | 100 (longest 551 in) | 36 |
-| Real outer borders | 214 | 200 |
-| Lines where a wall meets a surface | 328 | 150 |
-| Shape edges above 5 degrees | 330 | 158 |
-| Material borders | 0 | 12 |
+| | A at 8ffbda3 | A at b3b9ad3 | B at 8ffbda3 | B at b3b9ad3 |
+|---|---|---|---|---|
+| Faces / edges | 731 / 1,618 | 517 / 1,248 | 248 / 734 | 220 / 680 |
+| Hidden (soft) edges | 560 | 268 | 143 | 102 |
+| Visible lines inside a flat same-material surface | 21 | 21 | 5 | 5 |
+| Visible T-junction lines lying on a flat surface | 100 (longest 551 in) | 50 | 36 | 36 |
+| Real outer borders | 214 | 220 | 200 | 203 |
+| Lines where a wall meets a surface | 328 | 339 | 150 | 151 |
+| Shape edges above 5 degrees | 330 | 301 | 158 | 143 |
+| Material borders | 0 | 0 | 12 | 12 |
 
 ## 6. Open problems (owner screenshots, 2026-09-24)
 
@@ -110,10 +111,14 @@ Audit of every edge SketchUp draws, read back through the C API (`scripts/skp_ed
 2. **Lines inside flat surfaces in the `.skp`** (section 5). Running: the writer hides every line
    SketchUp would draw inside a flat same-material surface (branch `feat/skp-soften`). Queued: repair
    the T-junctions in the geometry itself (merge), which also removes Unity cracks.
-3. **File A's sloped underside is still a triangle lattice**: one 274-triangle region is skipped
-   because two triangle edges genuinely cross 7.87 in from any vertex; file B has one region off by
-   0.0016 in. Running: N1 committed (d6ef1a9); N2 sets aside only the crossing triangles instead of
-   the whole region.
+3. ~~File A's sloped underside is a triangle lattice~~ **fixed (b3b9ad3)**: the region's own
+   T-junctions made a 71 in x 0.00006 in sliver in its union, whose corner sat 7.87 in from any
+   vertex; such slivers are now closed at the source. In the `.skp` that underside is 111 soft-edged
+   triangles, because it is 0.005 in off flat and SketchUp splits any face more than about 0.001 in
+   off its plane (19 such regions on A, 9 on B); the edges are hidden. Leftovers found on the way:
+   file B region 74 draws as 17 triangles (4 overlapping triangles cut an island off it); region 38 is
+   a side face with a solidify wall laid over it (solidify took an existing side's top edge for an
+   open edge); region 79 is two original triangles folded over their shared edge.
 4. **Interior visible from inside the model** (owner's X-ray/inside screenshot): faces kept because
    they are visible through openings or slits in broken sides; follows item 1.
 5. **Review** of everything since b2134e9 not yet done.
