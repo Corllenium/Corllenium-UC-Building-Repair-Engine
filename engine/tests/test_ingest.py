@@ -90,3 +90,27 @@ def test_ingest_building_is_idempotent(tmp_path):
                              interval_s=0, sleep=lambda s: None)
     assert first[0].snapshot_dir == second[0].snapshot_dir
     assert len(list((out_root / "CHTM" / "CHTM_walk_obj").iterdir())) == 1
+
+
+def test_ingest_building_records_a_value_error_as_status_error_and_continues(tmp_path, monkeypatch):
+    import engine.ingest as ingest_mod
+    split = make_source(tmp_path / "src")
+    map_path = tmp_path / "map.json"
+    write_map(map_path, [ENTRIES[0], ENTRIES[3]])   # walk (ok) then extra (unlisted)
+    out_root = tmp_path / "snapshots"
+    real = ingest_mod.snapshot_object
+
+    def flaky(src_obj, dst_root, **kw):
+        if Path(src_obj).stem == "walk":
+            raise ValueError("texture basename collision under tex/: stone.png")
+        return real(src_obj, dst_root, **kw)
+
+    monkeypatch.setattr(ingest_mod, "snapshot_object", flaky)
+    rows = ingest_building(split, split / "_MANIFEST.txt", "CHTM", map_path, out_root,
+                           interval_s=0, sleep=lambda s: None)
+    by = {r.canonical: r for r in rows}
+    assert by["CHTM_walk_obj"].status == "error" and "collision" in by["CHTM_walk_obj"].detail
+    assert by["CHTM_walk_obj"].snapshot_dir is None
+    assert by["CHTM_extra_obj"].status == "unlisted" and by["CHTM_extra_obj"].tris == 1
+    manifest = json.loads((out_root / "CHTM" / "ingest_manifest.json").read_text(encoding="utf-8"))
+    assert [r["status"] for r in manifest["rows"]] == ["error", "unlisted"]

@@ -34,7 +34,7 @@ class IngestRow:
     split_object: str
     level_code: str
     role: str
-    status: str         # "ok" | "unlisted" | "missing" | "manifest_mismatch" | "unstable"
+    status: str         # "ok" | "unlisted" | "missing" | "manifest_mismatch" | "unstable" | "error"
     snapshot_dir: str | None = None
     sha256: str | None = None
     tris: int | None = None
@@ -74,6 +74,10 @@ def ingest_building(source_dir, manifest_path, building: str, floor_map_path, ou
             continue
         except SourceUnstable as exc:
             row.status, row.detail = "unstable", str(exc)
+            rows.append(row)
+            continue
+        except ValueError as exc:
+            row.status, row.detail = "error", str(exc)
             rows.append(row)
             continue
         row.status = "ok" if listed else "unlisted"
