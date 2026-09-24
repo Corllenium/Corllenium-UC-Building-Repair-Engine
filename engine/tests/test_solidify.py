@@ -262,28 +262,34 @@ def _front_exposure(mesh, n_dirs=32):
     return front
 
 
-def test_a_shelf_inside_the_slab_is_interior_and_may_be_covered_by_the_bottom():
-    """The S-C1 reviewer's scenario, under SR2's rule. The region's three sides measure 9.8 in,
-    so the slab is 9.8 in deep and a bottom is invented there; a 4 in deep shelf covers a
-    quarter of the footprint, too little for `_has_bottom`.
+@pytest.mark.parametrize("reversed_underside", [False, True])
+def test_a_partial_underside_is_never_boxed_in_whatever_its_winding(reversed_underside):
+    """S-C1's scenario, and review C1's failure 1. The region's three sides measure 9.8 in, so a
+    bottom is invented there; the slab's real underside is only 4 in down and covers a quarter
+    of the footprint, too little for `_has_bottom`. From below it is plainly visible (exposure
+    about 0.3 on the side facing down), so a bottom that boxed it in would change what a person
+    sees -- and the hidden pass would then delete it and ship the invented one.
 
-    S-C1 refused the part of the bottom that covered the shelf, reading the shelf as the slab's
-    "real underside" because it is plainly visible from below (front exposure about 0.5). That
-    is exactly the owner's "floating thin slab visible inside": it lies under the top, above the
-    slab's measured bottom, so it is INSIDE the slab's volume, and SR2 lets the bottom cover it
-    (`interior_faces_covered`). What S-C1's rule still refuses is a cover of anything OUTSIDE the
-    volume -- `two_level_slab`'s underside below a skirt that hangs past it, below."""
+    SR2 briefly let the bottom cover it as an "interior" face: it lies under the top and above
+    the measured 9.8 in. The review is right that it is the slab's underside where it exists, so
+    a bottom may not cover a face PARALLEL to it that the original mesh shows from outside,
+    unless it is a piece of that bottom or a top surface's own underside. And winding changes
+    nothing: wound into the slab (+z), the underside is seen on its BACK from below, which the
+    cap guard's rule 2 used to let through unmeasured -- it now reads the original exposure of
+    the side the ray met, back or front."""
     m = slab_with_partial_underside()
-    original_front = _front_exposure(m)
-    assert original_front[8] > FixProfile().cover_max_exposure    # plainly visible from below
-
+    if reversed_underside:
+        m.face_v[8:10] = m.face_v[8:10][:, ::-1].copy()
+        m.face_vt[8:10] = m.face_vt[8:10][:, ::-1].copy()
     r = _solidified(m)
     assert r.report["bottoms_added"] == 1              # invented at the measured 9.8 in
-    assert r.report["cap_guard_removed"] == 0          # and kept whole
-    assert r.report["interior_faces_covered"] >= 2
+    assert r.report["cap_guard_removed"] >= 1          # and refused where it boxes in the plate
 
     result = fix_object(m, {}, _FAST)
-    assert result.removed_hidden[8] and result.removed_hidden[9]  # sealed inside, then removed
+    assert not result.removed_hidden[8] and not result.removed_hidden[9]
+    z = sorted({round(float(v), 3) for v in
+                result.mesh.positions[result.mesh.face_v].reshape(-1, 3)[:, 2]})
+    assert -4.0 in z                                   # the real underside ships
     assert result.passed is True
 
 
@@ -331,17 +337,31 @@ def _skirt_lows(result):
                   for f in _skirt_faces(result))
 
 
-def test_each_open_edge_is_extruded_to_its_own_measured_height():
+def _planned(mesh, profile, monkeypatch):
+    """`solidify` with the cap guard bypassed: every face it PLANNED, none judged. For tests of
+    the extrusion rule itself, which is a different question from what the guard keeps."""
+    import engine.fixes.solidify as S
+
+    def keep_all(original, solid, new_faces, *args, **kwargs):
+        return (solid, new_faces, [], 0, {"replaced": np.zeros(original.n_faces, bool),
+                                          "interior_faces": [], "refused_reason": {}},
+                np.ones(solid.n_faces, bool))
+
+    monkeypatch.setattr(S, "_cap_guard", keep_all)
+    return _solidified(mesh, profile)
+
+
+def test_each_open_edge_is_extruded_to_its_own_measured_height(monkeypatch):
     """`slab_with_two_depths` measures 1.3 in at the two open edges touching its shallow end and
     9.8 in at the two touching its deep end. The region's single statistic (its median, 5.55 in
     here) used to be applied to all four, which hangs half of them 4 in too low and half of them
-    4 in too high -- and the cap guard then refuses the overhang."""
+    4 in too high. Asserted on the PLAN (guard bypassed): what the cap guard then keeps is the
+    next test's subject."""
     m = slab_with_two_depths()
-    r = _solidified(m, _fast(min_thickness=1.0))
+    r = _planned(m, _fast(min_thickness=1.0), monkeypatch)
 
     assert r.report["skirts_added"] == 4
     assert r.report["skirt_edges_fallback"] == 0
-    assert r.report["cap_guard_removed"] == 0
     assert r.report["thickness_per_region"] == {"0": pytest.approx(5.55)}   # the FALLBACK only
 
     skirt = _skirt_faces(r)
@@ -355,11 +375,23 @@ def test_each_open_edge_is_extruded_to_its_own_measured_height():
         assert (float(x.min()) == 0.0) if low == -1.3 else (float(x.max()) == 60.0)
 
 
-def test_a_measured_edge_height_is_still_clamped_into_the_profile_bounds():
+def test_skirts_hanging_below_the_bottom_are_refused_where_they_cover_a_visible_inside():
+    """The same slab, judged. The bottom goes at the shallowest 1.3 in; the deep skirts hang
+    8.5 in below it and cover the deep end skirt's inner side there, which nothing closes and
+    which is visible from outside. They used to pass because rule 2 let every back-side cover
+    through unmeasured; review C1 removed rule 2, and they are refused as covering below the
+    slab's bottom. The shallow skirts and the bottom stay."""
+    r = _solidified(slab_with_two_depths(), _fast(min_thickness=1.0))
+    assert r.report["walls_refused"]["reasons"].get("covers_below_bottom", 0) >= 1
+    assert r.report["bottoms_added"] == 1
+    assert -1.3 in _skirt_lows(r)
+
+
+def test_a_measured_edge_height_is_still_clamped_into_the_profile_bounds(monkeypatch):
     """Per edge now, where it used to be per region: the same 1.3 in measurement comes back as
-    the default `min_thickness` of 2.0, and `two_level_slab`'s 200 in edge still clamps to
-    `max_thickness`."""
-    assert _skirt_lows(_solidified(slab_with_two_depths())) == [-9.8] * 4 + [-2.0] * 4
+    the default `min_thickness` of 2.0 (on the plan, guard bypassed)."""
+    assert (_skirt_lows(_planned(slab_with_two_depths(), _FAST, monkeypatch))
+            == [-9.8] * 4 + [-2.0] * 4)
 
 
 def test_an_edge_whose_height_cannot_be_measured_is_counted_as_a_fallback():
@@ -492,13 +524,10 @@ def test_a_cap_guard_that_never_converged_fails_the_whole_run():
     ends with a render-only verification of the mesh it is actually handing back.
 
     Forced here by giving the guard NO rounds at all, which is the cleanest way to leave a
-    solidified mesh that has never been corrected: `two_level_slab`'s skirt, with the ceiling
-    raised, hangs 192 in below the slab's own underside and covers it and the panel below -- both
-    OUTSIDE the slab's volume. (This used `slab_with_partial_underside` until SR2 made its shelf
-    an interior face the bottom may cover.) The point of the test is that the verdict comes from
-    a real final render of the mesh that would have shipped, not from the loop's own
-    bookkeeping."""
-    r = fix_object(two_level_slab(), {}, _fast(cap_guard_max_rounds=0, max_thickness=1000.0))
+    solidified mesh that has never been corrected: `slab_with_partial_underside`'s bottom boxes
+    in its real underside. The point of the test is that the verdict comes from a real final
+    render of the mesh that would have shipped, not from the loop's own bookkeeping."""
+    r = fix_object(slab_with_partial_underside(), {}, _fast(cap_guard_max_rounds=0))
 
     history = r.solidify_report["cap_guard"]
     assert len(history) == 1
@@ -828,3 +857,66 @@ def slab_with_sawtooth_side_wall_only():
     from dataclasses import replace
     return replace(m, face_v=m.face_v[keep], face_vt=m.face_vt[keep], face_vn=m.face_vn[keep],
                    face_material=m.face_material[keep], face_line=m.face_line[keep])
+
+
+# ------------------------------------ SR4 (review C1): the cap guard measures back-side covers
+
+
+def _closed_slab_with_split_side(inward: bool):
+    """Review probe `probe_duplicate_skirt.py`: a closed 40 x 40 x 8 in slab whose x = 0 side
+    EXISTS, split at the midpoint of its top edge, so the top's outline edge 0-3 is used by the
+    top alone (edge-table count 1) -- file B's region 38 in miniature. `inward` winds that side
+    into the slab. Faces 8-11 are the side."""
+    from engine.tests.fixtures.build import _mesh, _quads
+    s, h = 40.0, 8.0
+    P = [[0, 0, 0], [s, 0, 0], [s, s, 0], [0, s, 0],
+         [0, 0, -h], [s, 0, -h], [s, s, -h], [0, s, -h],
+         [0, s / 2, 0], [0, s / 2, -h]]
+    uvs, fv, fvt, fm = [], [], [], []
+    _quads(P, uvs, fv, fvt, fm, [(0, 1, 2, 3), (0, 4, 5, 1), (1, 5, 6, 2), (2, 6, 7, 3),
+                                 (0, 8, 9, 4), (8, 3, 7, 9), (4, 7, 6, 5)])
+    fv = [list(f) for f in fv]
+    if inward:
+        for k in (8, 9, 10, 11):
+            fv[k] = fv[k][::-1]
+    return _mesh("closed_slab_with_split_side", P, uvs, fv, fvt, face_material=fm)
+
+
+@pytest.mark.parametrize("inward", [False, True])
+def test_no_skirt_is_laid_over_an_existing_side_whatever_its_winding(inward):
+    """Review C1's failure 2: with the side wound inward, a skirt laid exactly over it passed
+    the cap guard on rule 2 and shipped as a z-fighting double layer. The side is whole, so
+    nothing is built on it, and the shipped x = 0 side is the side itself, once."""
+    m = _closed_slab_with_split_side(inward)
+    r = _solidified(m)
+    assert not r.new_faces[_plane_faces(r.mesh, 0, 0.0)].any()
+    result = fix_object(m, {}, _FAST)
+    final = result.mesh.positions[result.mesh.face_v]
+    on_x0 = np.all(np.isclose(final[:, :, 0], 0.0), axis=1)
+    area = float(sum(0.5 * np.linalg.norm(np.cross(t[1] - t[0], t[2] - t[0]))
+                     for t in final[on_x0]))
+    assert area == pytest.approx(40.0 * 8.0)
+    assert result.passed is True
+
+
+def test_a_new_face_that_coincides_with_an_existing_face_is_refused():
+    """Coincidence is decided by a coplanar-overlap test, not by pixels: the renderer resolves a
+    coincident pair as a tie, so no pixel changes and no pixel rule can see it. A plate lying in
+    the plane the new bottom will take, reaching in under the slab from outside (centroid
+    outside the footprint, so it is not one of that bottom's pieces), would be doubled by it."""
+    from engine.tests.fixtures.build import _mesh, _quads
+    m = slab_with_three_skirts()
+    P = m.positions.tolist()
+    uvs, fv, fvt = m.uvs.tolist(), m.face_v.tolist(), m.face_vt.tolist()
+    fm = m.face_material.tolist()
+    b = len(P)
+    P += [[-30.0, 5.0, -8.0], [10.0, 5.0, -8.0], [10.0, 35.0, -8.0], [-30.0, 35.0, -8.0]]
+    _quads(P, uvs, fv, fvt, fm, [(b, b + 3, b + 2, b + 1)])            # a plate, -z
+    m2 = _mesh("slab_over_a_plate", P, uvs, fv, fvt, face_material=fm)
+    r = _solidified(m2)
+    assert r.report["bottom_faces_refused"]["reasons"].get("coincides_with_existing_face", 0) >= 1
+    # no kept new face overlaps the plate in its plane
+    plate = shapely.Polygon([(-30, 5), (10, 5), (10, 35), (-30, 35)])
+    new = r.mesh.positions[r.mesh.face_v[r.new_faces]]
+    at_plate = [shapely.Polygon(t[:, :2]) for t in new if np.allclose(t[:, 2], -8.0)]
+    assert all(p.intersection(plate).area < 1e-6 for p in at_plate)

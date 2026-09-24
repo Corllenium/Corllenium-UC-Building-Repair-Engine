@@ -751,12 +751,23 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
               "refused_reason": {}}
     out, out_new, keep = solid, new_faces, np.ones(solid.n_faces, bool)
     if new_faces.any():
+        # SR4: a BOTTOM's faces may not take a parallel face as "interior"; the tops of every
+        # slab processed here are the shell being closed; and a new face lying on an existing
+        # face is refused before any pixel is judged
+        kinds = np.array(group_kind + [""], dtype=object)
+        parallel_ok = ~(new_faces & (kinds[np.where(new_faces, new_group, -1)] == "bottom"))
+        shell_faces = np.zeros(mesh.n_faces, bool)
+        shell_faces[top_faces] = True
+        coincident = _coincident_new_faces(solid, new_faces, new_group, replaced_group,
+                                           topo.ok, tol)
         out, out_new, cap_history, cap_removed, detail, keep = _cap_guard(
             mesh, solid, new_faces, guard_size, getattr(profile, "n_dirs", 128),
             getattr(profile, "cover_max_exposure", 0.10),
             getattr(profile, "cap_guard_max_rounds", 8),
             replaced_group=replaced_group, new_group=new_group, side_band=band,
-            volumes=volumes, group_region=np.asarray(group_region, np.int64))
+            volumes=volumes, group_region=np.asarray(group_region, np.int64),
+            parallel_interior_ok=parallel_ok, shell_faces=shell_faces,
+            refused_before=coincident)
     replaced = np.asarray(detail["replaced"], bool)
 
     # a group is kept whole when every one of its new faces survived the cap guard
@@ -998,12 +1009,59 @@ def _interior_test(volumes: dict, new_group: np.ndarray, group_region: np.ndarra
     return interior
 
 
+#: Two faces are parallel enough to COINCIDE within this many degrees (SR4).
+_COINCIDENT_ANGLE_DEG = 1.0
+
+
+def _coincident_new_faces(solid: MeshData, new_faces: np.ndarray, new_group: np.ndarray,
+                          replaced_group: np.ndarray, ok_input: np.ndarray,
+                          tol: float) -> np.ndarray:
+    """Bool over `solid`'s faces: new faces lying ON an existing face -- parallel within
+    `_COINCIDENT_ANGLE_DEG`, every corner of it within `tol` of the new face's plane, and
+    overlapping it in that plane -- that is not one of the new face's own group's pieces.
+
+    Decided geometrically, not by pixels (review C1): a coincident pair renders as a tie, so no
+    pixel rule can see a skirt laid exactly over an existing side, and one did ship as a
+    z-fighting double layer when that side was wound inward."""
+    out = np.zeros(solid.n_faces, bool)
+    tri = solid.positions[solid.face_v]
+    cross = np.cross(tri[:, 1] - tri[:, 0], tri[:, 2] - tri[:, 0])
+    area = 0.5 * np.linalg.norm(cross, axis=1)
+    unit = cross / np.maximum(2.0 * area, 1e-300)[:, None]
+    orig = np.nonzero(np.asarray(ok_input, bool))[0]
+    lo, hi = tri.min(axis=1), tri.max(axis=1)
+    cos_parallel = float(np.cos(np.radians(_COINCIDENT_ANGLE_DEG)))
+    for f in np.nonzero(new_faces)[0]:
+        if area[f] <= 0.0:
+            continue
+        near = ((hi[orig] >= lo[f] - tol) & (lo[orig] <= hi[f] + tol)).all(axis=1)
+        cand = orig[near]
+        cand = cand[np.abs(unit[cand] @ unit[f]) >= cos_parallel]
+        if len(cand):
+            cand = cand[np.abs((tri[cand] - tri[f][0]) @ unit[f]).max(axis=1) <= tol]
+            cand = cand[replaced_group[cand] != new_group[f]]
+        if not len(cand):
+            continue
+        e1, e2 = plane_basis(unit[f])
+        basis = np.stack([e1, e2], axis=1)
+        mine = shapely.Polygon((tri[f] - tri[f][0]) @ basis)
+        for o in cand:
+            shared = mine.intersection(shapely.Polygon((tri[o] - tri[f][0]) @ basis)).area
+            if shared > max(1e-4, 1e-3 * min(float(area[f]), float(area[o]))):
+                out[f] = True
+                break
+    return out
+
+
 def _cap_guard(original: MeshData, solid: MeshData, new_faces: np.ndarray,
                 guard_size: tuple[int, int], n_dirs: int = 128,
                 cover_max_exposure: float = 0.10, max_rounds: int = 8, *,
                 replaced_group: np.ndarray | None = None, new_group: np.ndarray | None = None,
                 side_band: float = 0.0, volumes: dict | None = None,
-                group_region: np.ndarray | None = None):
+                group_region: np.ndarray | None = None,
+                parallel_interior_ok: np.ndarray | None = None,
+                shell_faces: np.ndarray | None = None,
+                refused_before: np.ndarray | None = None):
     """Render the original and the solidified mesh over `VIEWS_26` and drop every new face the
     cap rule refuses, and every original face a kept closing face replaces (see
     `engine.guard.compare.solidify_feedback`). Returns
@@ -1027,8 +1085,8 @@ def _cap_guard(original: MeshData, solid: MeshData, new_faces: np.ndarray,
     positions_c = positions_w - centre
     faces_after = remap[solid.face_v]
     faces_before = faces_after[: original.n_faces]
-    front, _back = compute_side_exposure(positions_c, faces_before,
-                                         np.ones(len(faces_before), bool), n_dirs=n_dirs)
+    front, back = compute_side_exposure(positions_c, faces_before,
+                                        np.ones(len(faces_before), bool), n_dirs=n_dirs)
 
     interior = None
     if volumes and new_group is not None and group_region is not None and len(group_region):
@@ -1038,7 +1096,9 @@ def _cap_guard(original: MeshData, solid: MeshData, new_faces: np.ndarray,
         positions_c, faces_before, faces_after, new_faces, front,
         cover_max_exposure=cover_max_exposure, views=VIEWS_26, size=guard_size,
         max_rounds=max_rounds, replaced_group=replaced_group, new_group=new_group,
-        side_band=side_band, interior=interior)
+        side_band=side_band, interior=interior, back_exposure_before=back,
+        parallel_interior_ok=parallel_interior_ok, shell_faces=shell_faces,
+        refused_before=refused_before)
     removed = int((~keep & new_faces).sum())
     if keep.all():
         return solid, new_faces, history, 0, detail, keep

@@ -1067,7 +1067,11 @@ INTERIOR_OUTSIDE_FOOTPRINT = 1
 INTERIOR_BELOW_BOTTOM = 2
 INTERIOR_AT_OR_ABOVE_TOP = 3
 INTERIOR_UNMEASURED = 4
+#: Not returned by an `interior` callable: the guard's own code for a face a BOTTOM met that
+#: lies inside the volume but PARALLEL to it -- a slab's partial underside (SR4).
+INTERIOR_UNDERSIDE = 5
 _INTERIOR_REASONS = {INTERIOR_OUTSIDE_FOOTPRINT: "covers_outside_footprint",
+                     INTERIOR_UNDERSIDE: "covers_a_partial_underside",
                      INTERIOR_BELOW_BOTTOM: "covers_below_bottom",
                      INTERIOR_AT_OR_ABOVE_TOP: "covers_at_or_above_top",
                      INTERIOR_UNMEASURED: "covers_unmeasured_slab"}
@@ -1080,7 +1084,11 @@ def solidify_feedback(positions_c: np.ndarray, faces_before: np.ndarray, faces_a
                        size: tuple[int, int] = (900, 600), caster_factory=EmbreeCaster,
                        max_rounds: int = 8, *, replaced_group: np.ndarray | None = None,
                        new_group: np.ndarray | None = None, side_band: float = 0.0,
-                       interior=None, interior_step: float = 0.25
+                       interior=None, interior_step: float = 0.25,
+                       back_exposure_before: np.ndarray | None = None,
+                       parallel_interior_ok: np.ndarray | None = None,
+                       shell_faces: np.ndarray | None = None,
+                       refused_before: np.ndarray | None = None
                        ) -> tuple[np.ndarray, list[dict], dict]:
     """The CAP GUARD: which of the faces `engine.fixes.solidify` invented may stay -- and, since
     SR2, which of the original faces it REPLACES may go.
@@ -1148,6 +1156,25 @@ def solidify_feedback(positions_c: np.ndarray, faces_before: np.ndarray, faces_a
     two apart; the hit point alone cannot. Everything else still fails -- in particular anything
     seen from outside every slab's volume, whatever it is.
 
+    SR4 (review C1) MEASURES BACK SIDES TOO. Rule 2 above let a new face cover any back-side hit
+    unmeasured, on the argument that a one-sided renderer drops that pixel anyway -- but the
+    project judges visibility double-sided (SketchUp and the Unity shader draw both sides), and a
+    face wound into the slab is seen on its back from outside: covering it boxed in S-C1's real
+    underside again, whenever it was wound +z. Given `back_exposure_before` (the BACK half of
+    `compute_side_exposure` on the original mesh), rule 2 is gone and rule 3 reads the exposure
+    of whichever side the ray met. The inner side of the shell being closed is still covered --
+    through rule 5, since a ray reaches it through the slab's inside.
+
+    Rule 5 has one exception, `parallel_interior_ok` False (a BOTTOM): a covered face PARALLEL to
+    the new face (within 30 degrees) that is neither one of its pieces (rule 4) nor a top surface
+    (`shell_faces`, the shell being closed) is judged by rule 3 alone. A plate lying under a slab's
+    top and above its measured bottom, seen from below, is that slab's underside where it
+    exists (review C1, failure 1) -- not an inside to delete.
+
+    `refused_before` (bool over `faces_after`) names new faces refused before any pixel is judged
+    -- a new face coinciding with an existing one, which no pixel can show (a coincident pair
+    renders as a tie). Their reason is `"coincides_with_existing_face"`.
+
     WHO PAYS FOR A FAILING PIXEL. When BEFORE showed an ordinary face, the new face at that pixel
     is refused, as always. When BEFORE showed a replaced piece, the REPLACEMENT is what changed
     the picture, so that piece is restored instead (it stays in the mesh) and the new face is
@@ -1199,6 +1226,14 @@ def solidify_feedback(positions_c: np.ndarray, faces_before: np.ndarray, faces_a
                  else np.asarray(new_group, dtype=np.int64))
     n_groups = int(max(replaced_group.max(initial=-1), new_group.max(initial=-1))) + 1
 
+    back_exposure = (None if back_exposure_before is None
+                     else np.asarray(back_exposure_before, dtype=np.float64)[:n_before])
+    parallel_ok = (np.ones(len(faces_after), bool) if parallel_interior_ok is None
+                   else np.asarray(parallel_interior_ok, dtype=bool))
+    shell = (np.zeros(n_before, bool) if shell_faces is None
+             else np.asarray(shell_faces, dtype=bool)[:n_before])
+    cos_parallel = float(np.cos(np.radians(30.0)))
+
     tri = positions_c[faces_before]
     normal = np.cross(tri[:, 1] - tri[:, 0], tri[:, 2] - tri[:, 0])
     normal = normal / np.maximum(np.linalg.norm(normal, axis=1), 1e-300)[:, None]
@@ -1212,6 +1247,11 @@ def solidify_feedback(positions_c: np.ndarray, faces_before: np.ndarray, faces_a
 
     keep = np.ones(len(faces_after), dtype=bool)          # new faces: not refused (yet)
     piece_ok = replaced_group >= 0                         # pieces: not restored (yet)
+    reasons: dict[int, str] = {}
+    if refused_before is not None:
+        for f in np.nonzero(np.asarray(refused_before, dtype=bool) & is_new)[0]:
+            keep[f] = False
+            reasons[int(f)] = "coincides_with_existing_face"
 
     def removed_pieces() -> np.ndarray:
         """Bool over `faces_before`: replaced in the CURRENT state -- a piece whose group has
@@ -1255,11 +1295,17 @@ def solidify_feedback(positions_c: np.ndarray, faces_before: np.ndarray, faces_a
             covered = hit_before >= 0
             safe_index = np.where(covered, hit_before, 0)
             back_side = covered & (normal[safe_index] @ direction > 1e-9)
-            # the ray met the FRONT side wherever it is not a back-side hit, so this is the
-            # exposure of the side it met -- ON THE ORIGINAL MESH, which is the one thing the
-            # face being covered cannot have changed.
-            only_through_an_opening = covered & (front_exposure[safe_index] < cover_max_exposure)
-            need = covered & ~back_side & ~only_through_an_opening
+            if back_exposure is None:
+                # the ray met the FRONT side wherever it is not a back-side hit, so this is the
+                # exposure of the side it met -- ON THE ORIGINAL MESH, which is the one thing
+                # the face being covered cannot have changed.
+                only_through_an_opening = covered & (front_exposure[safe_index]
+                                                     < cover_max_exposure)
+                need = covered & ~back_side & ~only_through_an_opening
+            else:
+                # the exposure of WHICHEVER side the ray met, on the original mesh (SR4)
+                met = np.where(back_side, back_exposure[safe_index], front_exposure[safe_index])
+                need = covered & ~(met < cover_max_exposure)
             allowed = np.zeros(len(rows), dtype=bool)
             codes = np.full(len(rows), -1, dtype=np.int64)
             if need.any():
@@ -1288,6 +1334,13 @@ def solidify_feedback(positions_c: np.ndarray, faces_before: np.ndarray, faces_a
                         code = np.asarray(interior(new_at[sel[rest]], seen_from), np.int64)
                         codes[sel[rest]] = code
                         inside = code == INTERIOR_INSIDE
+                        # a bottom may not take a parallel face that is not a top surface
+                        hit_rest = safe_index[sel[rest]]
+                        par = (np.abs(np.einsum("ij,ij->i", normal[hit_rest],
+                                                plane[rest][:, :3])) >= cos_parallel)
+                        blocked = par & ~parallel_ok[new_at[sel[rest]]] & ~shell[hit_rest]
+                        codes[sel[rest][blocked & inside]] = INTERIOR_UNDERSIDE
+                        inside &= ~blocked
                         allowed[sel[rest][inside]] = True
                         interior_px += int(inside.sum())
                         interior_faces.update(hit_before[sel[rest][inside]].tolist())
@@ -1303,7 +1356,6 @@ def solidify_feedback(positions_c: np.ndarray, faces_before: np.ndarray, faces_a
         return failing, refuse, restore, replaced_px, interior_px, interior_faces
 
     history: list[dict] = []
-    reasons: dict[int, str] = {}
     result = None
     for rnd in range(max_rounds):
         result = measure()
