@@ -13,6 +13,11 @@ Changes since that brief was written:
 - The AFTER panel (D3) must show what now ships: the merged, solidified, side-rebuilt result, the
   rollback state, `backface_px`, `border_shift`, and the `.skp` summary.
 
+- **Review M5**: every snapshot version imported before e57462d has `asset_sha256` NULL, so the
+  first re-import of each unchanged model after F5 creates a duplicate version and a second snapshot
+  folder. Backfill `asset_sha256` from each existing snapshot folder (or match NULL on sha256 alone
+  and backfill then); test it.
+
 Rules specific to this wave: `api/`, `web/` and `api/tests` only; API tests drop the shared test
 database, so never run them while another process does; verify on a spare port (127.0.0.1:8191)
 before touching the live servers, and ask the owner before restarting the live API (8190) or web

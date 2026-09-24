@@ -58,6 +58,31 @@ open edge; an existing side is not an open edge.
   still show back faces from outside, fix `engine/fixes/orient.py` test-first under
   `fix(engine): faces of a closed slab face outward`.
 
+## Added from review part 1 (2026-09-24 19:45; `review-since-b2134e9.md`, probes in `docs/superpowers/records/scripts/review-probes/`)
+
+- **SR4 = review C1** `fix(engine): the cap guard measures back-side covers`: rule 2 of the cap guard
+  (`compare.py` `back_side = covered & (normal @ direction > 1e-9)`, never bad) lets an invented face
+  cover any back-side hit unmeasured, which contradicts the double-sided decision. Probes:
+  `probe_reversed_underside.py` (S-C1's fixture with the real underside wound +z: the real underside
+  is deleted, the invented one at -9.8 in ships, passed True) and `probe_duplicate_skirt.py` (a skirt
+  laid exactly over an existing side wound inward: a z-fighting double layer, passed True). Fix: judge
+  a back-side hit by the ORIGINAL-mesh exposure of the side the ray met (`compute_side_exposure`'s
+  back half is already computed and thrown away); exempt only the backs of the shell being closed (the
+  region's own top faces and the side faces its heights were measured from); refuse any new face that
+  coincides with an existing face (coplanar-overlap test, e.g. `engine.fixes.overlap.find_overlaps`,
+  not pixels); do not treat an outline edge as open when existing side faces cover it through
+  T-junctions (`_open_edges`). Both probes become regression tests.
+- **SR5 = review I1** `fix(engine): an open edge takes its height from the slab's own sides`:
+  `solidify.py` takes an edge's height from the deepest side face at either endpoint, so a 2 in slab
+  whose corner touches a 30 in wall becomes a 30 in box (`probe_deep_corner.py`, passed True). Take
+  the height only from side faces hanging from this region's outline (sharing an edge with a region
+  face, or starting at the region's top along the outline), the shallowest of them; place the bottom
+  no deeper than the shallowest existing side of the region, closed sides included; report every
+  region whose skirt or bottom is deeper than its own existing sides.
+- **M1**: the S-I2 test reaches the cut-off path with 0 rounds; add a `max_rounds=1` case asserting
+  `history[-1]` is round 1 with 0 failing, 0 removed, and `cap_guard_passed` True
+  (`probe_cap_rounds.py`).
+
 ## Finish
 
 Suite count; both real runs in the worktree; per file: triangles, sides_rebuilt,
