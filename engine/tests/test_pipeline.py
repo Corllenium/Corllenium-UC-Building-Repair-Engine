@@ -320,6 +320,56 @@ def test_a_free_standing_quad_seen_from_both_sides_is_a_sheet_not_a_flip():
 
 
 # ---------------------------------------------------------------------------------------------
+# SR0: back faces seen from outside, for the input, the solidified reference and the final mesh.
+# SketchUp paints a face's back side blue-purple; this is that purple, counted in pixels over the
+# 26 guard views.
+# ---------------------------------------------------------------------------------------------
+
+def _assert_backface_block(block):
+    assert set(block) == {"total", "per_view"}
+    assert len(block["per_view"]) == 26
+    assert block["total"] == sum(block["per_view"])
+
+
+def test_fix_object_counts_back_face_pixels_for_the_input_the_reference_and_the_final_mesh():
+    """One reversed triangle in a closed gridded box: seen from outside through that triangle's
+    back side in the input (and in the reference, since a closed box gets nothing from
+    solidify), and nowhere once the flip has corrected it."""
+    m = gridded_box(4, 2.5)
+    m.face_v[10] = m.face_v[10][::-1]
+    r = fix_object(m, {}, _FAST)
+
+    assert set(r.backface_px) == {"input", "reference", "final"}
+    for block in r.backface_px.values():
+        _assert_backface_block(block)
+    assert r.backface_px["input"]["total"] > 0
+    assert r.backface_px["reference"] == r.backface_px["input"]
+    assert r.backface_px["final"]["total"] == 0
+    # the same measure `one_sided_holes` always reported, now broken down per view
+    assert r.backface_px["input"]["total"] == r.one_sided_holes_before
+    assert r.backface_px["final"]["total"] == r.one_sided_holes_after
+
+
+def test_closing_an_open_slab_removes_the_back_faces_seen_through_its_open_side():
+    """`slab_with_three_skirts` is wound outward everywhere but has no fourth side and no bottom,
+    so from outside a camera sees the INSIDE of the other three skirts and the underside of the
+    top -- back sides, all of them. The skirt and bottom solidify adds (wound outward) close the
+    slab, and the reference then shows no back side to any view."""
+    from engine.tests.fixtures.build import slab_with_three_skirts
+    r = fix_object(slab_with_three_skirts(), {}, _FAST)
+
+    assert r.backface_px["input"]["total"] > 0
+    assert r.backface_px["reference"]["total"] == 0
+    assert r.backface_px["final"]["total"] == 0
+
+
+def test_a_closed_correctly_wound_box_shows_no_back_face_anywhere():
+    r = fix_object(box_with_partition(), {}, _FAST)
+    for key in ("input", "reference", "final"):
+        assert r.backface_px[key] == {"total": 0, "per_view": [0] * 26}
+
+
+# ---------------------------------------------------------------------------------------------
 # E1: degenerate faces are removed only through the strict guard.
 #
 # `degenerate_mask` is RELATIVE (`area <= 1e-7 * longest**2`), so a 1,000 in sliver up to 0.0002 in

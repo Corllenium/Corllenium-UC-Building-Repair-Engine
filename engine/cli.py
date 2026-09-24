@@ -199,6 +199,9 @@ def _build_report(name: str, obj_path: Path, mesh: MeshData, result: FixResult,
         "overlap_pairs_diff_material": result.overlap_pairs_diff_material,
         "one_sided_holes_before": result.one_sided_holes_before,
         "one_sided_holes_after": result.one_sided_holes_after,
+        # SketchUp's blue-purple, in pixels over the 26 guard views: faces seen from their BACK
+        # side, for the input, the solidified reference and the final mesh, per view and total
+        "backface_px": result.backface_px,
         "feedback_history": result.feedback_history,
         "guard_after_removal": _guard_report_dict(result.guard_after_removal),
         # the MERGED mesh's guard, kept even when the merge was rolled back and something else
@@ -408,6 +411,9 @@ def cmd_fix(snapshot_dir: Path, out_root: Path, accept_slit: bool,
               f"{sr['faces_newly_hidden']} faces newly hidden, {sr['runtime_s']}s")
     print(f"{name}: {mesh.n_faces} -> {result.mesh.n_faces} tris, passed={result.passed}, "
           f"border_shift={result.guard_final.totals['border_shift']}")
+    back = result.backface_px
+    print(f"  backface_px final={back['final']['total']} (input={back['input']['total']}, "
+          f"reference={back['reference']['total']}) -- pixels showing a face's back side")
     print(f"  wrote {out_dir} (and {len(qa)} QA images under qa/)")
     if skp_report["written"]:
         print(f"  wrote {skp_report['path']}: {skp_report['faces']} faces, "

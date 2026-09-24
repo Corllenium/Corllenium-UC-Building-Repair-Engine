@@ -46,7 +46,8 @@ import numpy as np
 
 from engine.detectors.fragments import detect_fragments
 from engine.fixes.merge import default_collinear_tol, merge_regions
-from engine.fixes.orient import ORIENT_FLIP, ORIENT_THIN_SHEET, classify_orientation, flip_faces, one_sided_holes
+from engine.fixes.orient import (ORIENT_FLIP, ORIENT_THIN_SHEET, backface_counts, backface_pixels,
+                                 classify_orientation, flip_faces)
 from engine.fixes.overlap import remove_overlaps
 from engine.fixes.remove import remove_faces
 from engine.fixes.solidify import solidify
@@ -214,6 +215,13 @@ class FixResult:
     #: drop as a hole. `_after` is expected to be lower than `_before`.
     one_sided_holes_before: int
     one_sided_holes_after: int
+    #: SR0. Pixels whose FIRST hit is a face met on its BACK side -- SketchUp's blue-purple --
+    #: over the 26 guard views, for the INPUT, the solidified REFERENCE and the FINAL mesh:
+    #: `{"input" | "reference" | "final": {"total": int, "per_view": [26 ints, VIEWS_26 order]}}`.
+    #: All three are framed on the reference, so they count the same pixels. `"input"`'s total
+    #: is `one_sided_holes_before` and `"final"`'s is `one_sided_holes_after`; the reference is
+    #: counted from the guard's own renders of it (`engine.fixes.orient.backface_counts`).
+    backface_px: dict
     #: `{"hidden": ..., "slit": ..., "fragments": ..., "overlap": ...}` -- each pass's own
     #: per-round history; `"slit"` is `None` when no slit pass ran and `"fragments"` is `None`
     #: when the fragment pass did not run or had no candidate.
@@ -325,9 +333,10 @@ def fix_object(mesh: MeshData, flatness: dict[str, float], profile: FixProfile =
     # ...on the INPUT mesh's own faces, not the reference's: the point of the number is what the
     # export arrived with. They index `positions_c` too, since solidify only appends.
     face_w_input = remap[input_mesh.face_v]
-    one_sided_holes_before = one_sided_holes(
+    backface_input = backface_pixels(
         positions_c, face_w_input, np.arange(input_mesh.n_faces, dtype=np.int64), VIEWS_26,
         profile.guard_size)
+    one_sided_holes_before = int(sum(backface_input))
 
     # Every render below -- the hidden pass's own BEFORE, the slit pass's, and both guards
     # against the original -- casts against the SAME face set: ALL of them. A "degenerate" face
@@ -462,6 +471,8 @@ def fix_object(mesh: MeshData, flatness: dict[str, float], profile: FixProfile =
     material_original = mesh.face_material
     planes_original = face_planes(positions_c, face_w_original)
     before_original = _render(positions_c, face_w_original, profile.guard_size)
+    # the reference's back faces, counted from the renders the final guard needs anyway
+    backface_reference = backface_counts(before_original, planes_original[:, :3])
 
     def _guard_against_original(final_mesh: MeshData, edge_flicker_cap: float,
                                 border_shift_tol: float) -> GuardReport:
@@ -511,9 +522,14 @@ def fix_object(mesh: MeshData, flatness: dict[str, float], profile: FixProfile =
         final_face_region = merge_result.face_region
         guard_final = guard_merge_attempt   # the merged mesh IS the shipped mesh
 
-    one_sided_holes_after = one_sided_holes(
+    backface_final = backface_pixels(
         positions_c, remap[final_mesh.face_v], np.arange(final_mesh.n_faces, dtype=np.int64),
         VIEWS_26, profile.guard_size)
+    one_sided_holes_after = int(sum(backface_final))
+    backface_px = {name: {"total": int(sum(counts)), "per_view": [int(c) for c in counts]}
+                   for name, counts in (("input", backface_input),
+                                        ("reference", backface_reference),
+                                        ("final", backface_final))}
 
     # Against the REFERENCE mesh, not the pristine input: solidify deliberately grows both the
     # bounding box (downwards, by a skirt) and the area (by the faces it invents), and it is the
@@ -554,6 +570,7 @@ def fix_object(mesh: MeshData, flatness: dict[str, float], profile: FixProfile =
         n_restored_overlap=overlap_result.report["n_restored_overlap"],
         overlap_pairs_diff_material=overlap_pairs_diff_material,
         one_sided_holes_before=one_sided_holes_before, one_sided_holes_after=one_sided_holes_after,
+        backface_px=backface_px,
         feedback_history={"hidden": history_hidden, "slit": history_slit,
                           "fragments": fragment_history, "overlap": overlap_result.history},
         guard_after_removal=guard_after_removal, guard_merge_attempt=guard_merge_attempt,

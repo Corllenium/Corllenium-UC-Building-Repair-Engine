@@ -512,6 +512,29 @@ def test_cmd_fix_prints_the_final_guards_border_shift_count(tmp_path, monkeypatc
     assert report["guard_final"]["totals"]["border_shift"] == 17
 
 
+def test_cmd_fix_reports_back_face_pixels_and_prints_the_final_count(tmp_path, capsys):
+    """SR0: report.json carries the back-face pixel count of the input, the solidified reference
+    and the final mesh, each per view and in total, and the CLI prints the final one -- the
+    number that says how much purple a person will still see in SketchUp."""
+    from engine.tests.fixtures.build import slab_with_three_skirts
+    m = slab_with_three_skirts()
+    snap_dir = _write_snapshot(tmp_path, m)
+
+    cli.cmd_fix(snap_dir, tmp_path / "out", accept_slit=False, profile=_FAST, skp=False)
+
+    report = json.loads((tmp_path / "out" / m.name / "report.json").read_text(encoding="utf-8"))
+    block = report["backface_px"]
+    assert set(block) == {"input", "reference", "final"}
+    for part in block.values():
+        assert len(part["per_view"]) == 26 and part["total"] == sum(part["per_view"])
+    assert block["input"]["total"] > 0 and block["final"]["total"] == 0
+
+    lines = [line for line in capsys.readouterr().out.splitlines() if "backface_px" in line]
+    assert len(lines) == 1
+    assert f"final={block['final']['total']}" in lines[0]
+    assert f"input={block['input']['total']}" in lines[0]
+
+
 def test_preview_data_reports_the_final_guards_border_shift(tmp_path, monkeypatch):
     m = box_with_partition()
     snap_dir = _write_snapshot(tmp_path, m)
