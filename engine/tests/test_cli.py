@@ -652,6 +652,28 @@ def test_cmd_fix_output_objs_reference_the_snapshots_materials_mtl(tmp_path):
         assert mtllibs == ["mtllib materials.mtl"], (name, mtllibs)
 
 
+def test_cmd_fix_mtllib_decision_reads_the_snapshot_not_a_stale_output_file(tmp_path):
+    """B2: a PREVIOUS run's leftover materials.mtl sitting in out_dir must not fool the mtllib
+    decision when THIS run's snapshot has none to copy -- `_copy_assets` only OVERWRITES out_dir's
+    materials.mtl when the snapshot has one; the decision has to look at the same place
+    `_copy_assets` copies FROM, not at what happens to already be in out_dir."""
+    m = replace(box_with_partition(), mtllib="../CKPT17-CLEAN.mtl")
+    snap_dir = tmp_path / "snap"
+    snap_dir.mkdir()
+    write_obj(m, snap_dir / f"{m.name}.obj")
+    # deliberately no materials.mtl written into snap_dir this time
+
+    out_root = tmp_path / "out"
+    out_dir = out_root / m.name
+    out_dir.mkdir(parents=True)
+    (out_dir / "materials.mtl").write_text("newmtl stale\nKd 1 1 1\n", encoding="utf-8")  # stale leftover
+
+    assert cli.cmd_fix(snap_dir, out_root, accept_slit=False, profile=_FAST) == 0
+    lines = (out_dir / f"{m.name}.fixed.obj").read_text(encoding="utf-8").splitlines()
+    mtllibs = [line for line in lines if line.startswith("mtllib ")]
+    assert mtllibs == ["mtllib ../CKPT17-CLEAN.mtl"], mtllibs
+
+
 def test_load_profile_reads_json_and_restores_tuple_fields(tmp_path):
     p = tmp_path / "profile.json"
     p.write_text(json.dumps({"guard_size": [120, 80], "qa_size": [160, 100], "n_dirs": 32,
@@ -689,6 +711,62 @@ def test_main_loads_the_profile_file_for_cmd_fix(monkeypatch, tmp_path):
     assert seen["profile"].n_dirs == 32
 
 
+# ---------------------------------------------------------------------------------------------
+# B1: `--profile` keys must not be silently overwritten by the CLI's own defaults. Both tests go
+# through the REAL `cmd_fix` (only `cli.fix_object` is stubbed, catching a sentinel exception it
+# raises) so the assertion is on the profile the fix pipeline actually receives, not on what
+# `main` merely passed along.
+# ---------------------------------------------------------------------------------------------
+
+class _StopAtFixObject(Exception):
+    """Raised by a stubbed `fix_object` to short-circuit `cmd_fix` right after it has built the
+    final profile -- cheaper than running the real pipeline just to inspect what it was given."""
+
+
+def test_main_fix_with_profile_does_not_let_cli_defaults_overwrite_profile_keys(tmp_path, monkeypatch):
+    profile_path = tmp_path / "profile.json"
+    profile_path.write_text(json.dumps({"solidify": False, "accept_slit": True,
+                                        "accept_fragments": False}), encoding="utf-8")
+    m = box_with_partition()
+    snap_dir = _write_snapshot(tmp_path, m)
+    seen = {}
+
+    def fake_fix_object(mesh, flatness, profile):
+        seen["profile"] = profile
+        raise _StopAtFixObject()
+
+    monkeypatch.setattr(cli, "fix_object", fake_fix_object)
+
+    with pytest.raises(_StopAtFixObject):
+        cli.main(["fix", str(snap_dir), "--out", str(tmp_path / "out"), "--profile", str(profile_path)])
+
+    # no --accept-slit / --no-solidify / --keep-fragments on the CLI: the profile's own values
+    # must survive, not get overwritten by argparse's False/True/True defaults.
+    assert seen["profile"].solidify is False
+    assert seen["profile"].accept_slit is True
+    assert seen["profile"].accept_fragments is False
+
+
+def test_main_fix_no_solidify_flag_wins_over_a_profile_that_says_solidify_true(tmp_path, monkeypatch):
+    profile_path = tmp_path / "profile.json"
+    profile_path.write_text(json.dumps({"solidify": True}), encoding="utf-8")
+    m = box_with_partition()
+    snap_dir = _write_snapshot(tmp_path, m)
+    seen = {}
+
+    def fake_fix_object(mesh, flatness, profile):
+        seen["profile"] = profile
+        raise _StopAtFixObject()
+
+    monkeypatch.setattr(cli, "fix_object", fake_fix_object)
+
+    with pytest.raises(_StopAtFixObject):
+        cli.main(["fix", str(snap_dir), "--out", str(tmp_path / "out"), "--profile", str(profile_path),
+                 "--no-solidify"])
+
+    assert seen["profile"].solidify is False
+
+
 def test_build_parser_ingest_and_batch_defaults():
     p = cli.build_parser()
     a = p.parse_args(["ingest", "--source", "s", "--manifest", "m", "--building", "CHTM", "--map", "f.json"])
@@ -721,6 +799,40 @@ def test_main_dispatches_to_cmd_batch(monkeypatch):
     monkeypatch.setattr(cli, "cmd_batch", fake)
     assert cli.main(["batch", "--building", "CHTM", "--jobs", "2", "--profile", "p.json"]) == 0
     assert seen["args"] == ("CHTM", Path("data/snapshots"), Path("data/output"), 2, Path("p.json"), True)
+
+
+# ---------------------------------------------------------------------------------------------
+# B3: docs -- the module docstring covers `--profile`/`ingest`/`batch`, and the flags that had no
+# help text before (`--jobs`, `--snapshots`, both `--out`s) now have some.
+# ---------------------------------------------------------------------------------------------
+
+def _find_action(parser, flag):
+    for action in parser._actions:
+        if flag in action.option_strings:
+            return action
+    raise KeyError(flag)
+
+
+def test_batch_jobs_and_snapshots_flags_have_help_text():
+    batch_p = cli.build_parser()._subparsers._group_actions[0].choices["batch"]
+    assert _find_action(batch_p, "--jobs").help
+    assert _find_action(batch_p, "--snapshots").help
+
+
+def test_both_out_flags_have_help_text():
+    """B3 names `--jobs`, `--snapshots` and "both `--out` flags" together -- the two belonging to
+    the `ingest`/`batch` commands this branch adds (`fix`/`preview-data`'s pre-existing `--out`
+    are not part of this finding)."""
+    subparsers = cli.build_parser()._subparsers._group_actions[0].choices
+    assert _find_action(subparsers["ingest"], "--out").help
+    assert _find_action(subparsers["batch"], "--out").help
+
+
+def test_module_docstring_documents_profile_ingest_and_batch_and_their_exit_codes():
+    doc = cli.__doc__
+    assert "--profile" in doc
+    assert "`ingest`" in doc or "ingest" in doc
+    assert "`batch`" in doc or "python -m engine.cli batch" in doc
 
 
 def test_cmd_batch_exit_code_follows_the_results(monkeypatch, tmp_path, capsys):

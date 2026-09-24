@@ -1,19 +1,34 @@
 """Command-line entry point for the automatic fix pipeline.
 
-`python -m engine.cli fix <snapshot_dir> [--accept-slit] [--out data/output]`
+`python -m engine.cli fix <snapshot_dir> [--accept-slit] [--out data/output] [--profile p.json]`
     Runs `engine.fixes.pipeline.fix_object` on the snapshot and writes, under `<out>/<name>/`:
     `<name>.fixed.obj` (triangles -- the file for Unity), `<name>.fixed.ngon.obj` (polygons, a
     viewer/documentation artifact), a copy of `materials.mtl` and `tex/`, `report.json` (every
     number in `FixResult`, both guard reports per view, the profile, the input sha256), and
     `guard_<view>.png` before/after/difference triptychs for 6 axis views, and the 21-image
     visual QA sheet under `qa/` (`engine.guard.qa_render`). Exit code 0 when `passed`, 2
-    otherwise.
+    otherwise. `--profile` loads a JSON object of `FixProfile` overrides (`_load_profile`); a
+    CLI flag only ever asks for MORE than its own default, so `--accept-slit`/`--no-solidify`/
+    `--keep-fragments` win over the profile's opposite value, but a flag left at its default
+    never overwrites what the profile asked for.
 
 `python -m engine.cli preview-data <snapshot_dir> --out preview/data`
     Writes the JSON `preview/index.html` reads (see `spike/12_export_preview.py` for the shape
     this mirrors), with AFTER built from the REAL fixed mesh and the REAL guard numbers, and
     `stats` extended with the new counts (flipped, thin_sheets, one_sided_holes_before/after,
     outline_edges_after, unavoidable_diagonals_after, guard_passed).
+
+`python -m engine.cli ingest --source <split_dir> --manifest _MANIFEST.txt --building <b> --map floor_map.json [--out data/snapshots]`
+    Snapshots every object `floor_map.json` maps for building `<b>` (`engine.ingest.ingest_building`),
+    writing `<out>/<b>/ingest_manifest.json`. Exit code 0 when every row is `ok`/`unlisted`, 2 if
+    any row is `missing`/`manifest_mismatch`/`unstable`/`error`.
+
+`python -m engine.cli batch --building <b> [--snapshots data/snapshots] [--out data/output] [--jobs N] [--profile p.json] [--no-resume]`
+    Runs `fix` over every `ok`/`unlisted` row of `<snapshots>/<b>/ingest_manifest.json`
+    (`engine.batch.run_batch`), one `python -m engine.cli fix` subprocess per object, up to
+    `--jobs` at once, recording each result in `<out>/<b>/batch_state.json` so a re-run skips
+    what already passed (`--no-resume` re-runs everything). Exit code 0 when every item passed
+    (and at least one ran), 2 otherwise.
 
 A snapshot directory is the layout `engine.io.snapshot.snapshot_object` produces: one `<name>.obj`,
 `materials.mtl`, and a `tex/` folder of the textures it references.
@@ -344,7 +359,12 @@ def cmd_fix(snapshot_dir: Path, out_root: Path, accept_slit: bool,
 
     # The snapshot's OBJ still names the export's MTL (`mtllib ../CKPT17-CLEAN.mtl`), a path that
     # means nothing next to the output. The assets copied above are the MTL the shipped OBJs use.
-    mtllib = "materials.mtl" if (out_dir / "materials.mtl").exists() else result.mesh.mtllib
+    # This has to look at the SNAPSHOT (what `_copy_assets` copies FROM), not at `out_dir` (what
+    # it copies TO): `out_dir` can already hold a materials.mtl left over from a PREVIOUS run at
+    # the same output path, and `_copy_assets` only overwrites it when the snapshot has one to
+    # copy -- checking `out_dir` would trust that leftover file on a run whose own snapshot has
+    # no materials.mtl at all.
+    mtllib = "materials.mtl" if (Path(snapshot_dir) / "materials.mtl").exists() else result.mesh.mtllib
     shipped = replace(result.mesh, mtllib=mtllib)
     write_obj(shipped, out_dir / f"{name}.fixed.obj")
     write_obj_polygons(shipped, result.rings, out_dir / f"{name}.fixed.ngon.obj")
@@ -666,13 +686,17 @@ def build_parser() -> argparse.ArgumentParser:
     ingest_p.add_argument("--manifest", required=True, help="_MANIFEST.txt with file / tris / group columns")
     ingest_p.add_argument("--building", required=True)
     ingest_p.add_argument("--map", required=True, help="floor_map.json (schema corllenium.floor_map/1)")
-    ingest_p.add_argument("--out", default="data/snapshots")
+    ingest_p.add_argument("--out", default="data/snapshots",
+                          help="root snapshots are written under, as <out>/<building>/<canonical>/")
 
     batch_p = sub.add_parser("batch", help="run `fix` over every snapshot an ingest produced, one subprocess each")
     batch_p.add_argument("--building", required=True)
-    batch_p.add_argument("--snapshots", default="data/snapshots")
-    batch_p.add_argument("--out", default="data/output")
-    batch_p.add_argument("--jobs", type=int, default=1)
+    batch_p.add_argument("--snapshots", default="data/snapshots",
+                         help="root an `ingest` run wrote, read as <snapshots>/<building>/ingest_manifest.json")
+    batch_p.add_argument("--out", default="data/output",
+                         help="root each fix subprocess writes under (its own --out), as <out>/<building>/<name>/")
+    batch_p.add_argument("--jobs", type=int, default=1,
+                         help="how many fix subprocesses to run at once")
     batch_p.add_argument("--profile", default=None, help="JSON FixProfile overrides passed to every fix")
     batch_p.add_argument("--no-resume", dest="resume", action="store_false",
                          help="re-run objects that batch_state.json already records as passed")
@@ -684,10 +708,19 @@ def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     if args.command == "fix":
         kwargs = {}
+        accept_slit, solidify, fragments = args.accept_slit, args.solidify, args.fragments
         if args.profile:
-            kwargs["profile"] = _load_profile(Path(args.profile))
-        return cmd_fix(Path(args.snapshot_dir), Path(args.out), args.accept_slit,
-                       solidify=args.solidify, fragments=args.fragments, **kwargs)
+            prof = _load_profile(Path(args.profile))
+            kwargs["profile"] = prof
+            # A CLI flag can only ask for MORE than its own default (accept_slit False->True,
+            # solidify/fragments True->False) -- so a flag left at its default must never
+            # overwrite a profile key that asked for the opposite. `or`/`and` here means: the
+            # flag wins whenever it was actually given, otherwise the profile's value stands.
+            accept_slit = args.accept_slit or prof.accept_slit
+            solidify = args.solidify and prof.solidify
+            fragments = args.fragments and prof.accept_fragments
+        return cmd_fix(Path(args.snapshot_dir), Path(args.out), accept_slit,
+                       solidify=solidify, fragments=fragments, **kwargs)
     if args.command == "preview-data":
         return cmd_preview_data(Path(args.snapshot_dir), Path(args.out),
                                 solidify=args.solidify)
