@@ -92,7 +92,7 @@ def snap_tolerance(thickness: float, floor: float = SNAP_TOL) -> float:
     0 in thick and every coordinate of theirs lies within 3e-12 in of a vertex. The 66 others are
     0.008 in thick at the median, 0.11 in at most. 3,415 coordinates land within 7.1e-5 in (half
     a grid cell's diagonal) of a vertex, 24 more within 4.0e-4 in, and one at 0.0016 in: the apex
-    of file B's ramp, 0.0085 in thick, whose fan edges meet 0.3 to 4.4 degrees apart there. All
+    of file B's ramp, 0.0085 in thick, whose fan edges meet 0.3 to 4.7 degrees apart there. All
     25 lie on non-axis-aligned regions, none beyond 0.19 of that region's thickness; 24 are tips
     at a vertex (every edge within 2e-4 in of them ends at it, the narrowest angle there 0.3 to
     37 degrees) and one, 8.9e-5 in out on file A's lattice, is a T-junction sliver's corner.

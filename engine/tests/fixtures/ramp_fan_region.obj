@@ -5,7 +5,7 @@
 # [0.3939, 0, 0.9191]: a ramp sloped 23 degrees, 0.0085 in thick along its normal.
 #
 # A fan of 125 to 553 in long triangles meets at vertex (2909.47, 24204.9, 1914.51), its edges
-# 0.3 to 4.4 degrees apart. The grid-snapped union (engine.fixes.merge._union, GRID_SIZE 1e-4)
+# 0.3 to 4.7 degrees apart. The grid-snapped union (engine.fixes.merge._union, GRID_SIZE 1e-4)
 # leaves a sliver there whose tip is 0.0016 in from that vertex, and two slivers one grid cell
 # wide along T-junction lines whose corners snap to 3 and 4 distinct collinear vertices.
 # See engine.tests.fixtures.build.ramp_fan_region.

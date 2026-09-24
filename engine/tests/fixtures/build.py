@@ -819,7 +819,7 @@ def ramp_fan_region():
     `[0.3939, 0, 0.9191]`, 0.0085 in thick along its normal.
 
     A fan of 125 to 553 in long triangles meets at vertex (2909.47, 24204.9, 1914.51) with its
-    edges 0.3 to 4.4 degrees apart. The grid-snapped union leaves a sliver there whose tip lands
+    edges 0.3 to 4.7 degrees apart. The grid-snapped union leaves a sliver there whose tip lands
     0.0016 in from that vertex -- the corner `new_vertex` used to refuse -- and two slivers one
     grid cell wide along T-junction lines whose corners snap to 3 and 4 distinct collinear
     vertices, which a rebuilt polygon cannot carry as holes. Reproduces as a standalone mesh:
