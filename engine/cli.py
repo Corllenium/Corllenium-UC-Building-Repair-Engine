@@ -410,8 +410,10 @@ def cmd_fix(snapshot_dir: Path, out_root: Path, accept_slit: bool,
           f"border_shift={result.guard_final.totals['border_shift']}")
     print(f"  wrote {out_dir} (and {len(qa)} QA images under qa/)")
     if skp_report["written"]:
-        print(f"  wrote {skp_report['path']}: {skp_report['faces']} faces, "
-              f"{skp_report['soft_edges'] + skp_report['gridline_edges_softened']} edges hidden, "
+        hidden = sum(skp_report[k] for k in ("soft_edges", "gridline_edges_softened",
+                                             "coplanar_edges_softened", "tjunction_lines_softened"))
+        print(f"  wrote {skp_report['path']}: {skp_report['faces']} faces, {hidden} edges hidden, "
+              f"{skp_report['visible_lines_inside_surfaces']} lines left inside surfaces, "
               f"copied to {skp_report['copied_to'] or skp_report.get('copy_error', 'nowhere')}")
     else:
         print(f"  no .skp written: {skp_report['reason']}")

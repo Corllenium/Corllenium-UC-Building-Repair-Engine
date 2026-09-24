@@ -36,8 +36,36 @@ WHAT IS WRITTEN (`write_skp`).
   one material, e.g. two triangles copied through) that exists in the SketchUp model -- every
   such edge that is not a diagonal inside one polygon face -- is set soft AND smooth, found by
   matching its two end points (within `EDGE_MATCH_TOL`) to the edges `SUEntitiesGetEdges`
-  returns: `soft_edges`, `gridline_edges_softened`, `unmatched_edges`. Only outline edges stay
-  visible.
+  returns: `soft_edges`, `gridline_edges_softened`, `unmatched_edges`.
+* Lines inside flat surfaces. Those classes come from the mesh, and SketchUp's model can still
+  draw a line inside a flat surface: between two coplanar faces of one material that the
+  topology put in different regions (a texture seam, a triangle wound against its neighbour),
+  or where one face's edge runs along a coplanar neighbour that has no vertex there (a
+  T-junction: SketchUp keeps both edges, each with one face). So after the fill, and after the
+  edges above, the writer reads SketchUp's OWN faces and edges and also hides
+  (a) every edge whose two faces lie flat (normals within `COPLANAR_ANGLE`, either way round),
+      continue each other across it (not a double layer that ends there) and show the same
+      material on each side: `coplanar_edges_softened`;
+  (b) every edge whose faces all lie on one side of it while the other side lies, along its
+      WHOLE length, on other faces of that plane and material, to within `ON_FACE_TOL`:
+      `tjunction_lines_softened`.
+  Neither is hidden where a face at an angle meets the surface along the edge (both end points
+  on that face's plane and its middle on the face, to within `ON_FACE_TOL`: a wall standing
+  on the line), so the line where a wall meets a slab always stays drawn. Both are set soft
+  and smooth -- soft only where the faces are wound against each other (`soft_only_edges`):
+  smoothing averages their normals, and opposite normals average to nothing. An edge only PART
+  of which lies inside a surface stays drawn, since the rest of it is real outline (of the
+  model, of a hole or crack, of a double layer) that hiding it would hide too. This hides
+  lines in SketchUp only: it does not repair the T-junctions, cracks or seams in the mesh,
+  which is left to a separate engine fix.
+* Every edge still drawn is counted by kind, on the model as saved: `visible_border_edges` (one
+  side is empty: the outline of the model or of a hole), `visible_angled_edges` (a face at an
+  angle meets the surface along it: a wall standing on a slab it does not split, also where
+  the line runs inside that slab), `visible_shape_edges` (two faces more than
+  `COPLANAR_ANGLE` apart), `visible_material_borders` (a flat surface changing material),
+  `visible_nonmanifold_edges` (three faces or more) and `visible_lines_inside_surfaces` (an
+  edge that still runs inside a flat surface -- the partly-inside ones above). An edge with no
+  face is `edges_without_face` instead.
 * Materials. One SketchUp material per OBJ material (`mesh.materials`, in order), textured from
   `<tex_dir>/<file name of its map_Kd>` when that file exists, else coloured with its `Kd` (grey
   when it has neither). It is applied to the FRONT and the BACK of every face through
@@ -73,7 +101,7 @@ import numpy as np
 from engine.io.mtl import MtlMaterial
 from engine.model import MeshData
 from engine.topo.adjacency import edge_face_lists
-from engine.topo.edges import EDGE_REMOVABLE, EDGE_SOFT
+from engine.topo.edges import COPLANAR_ANGLE, EDGE_REMOVABLE, EDGE_SOFT
 from engine.topo.weld import weld_exact
 
 if TYPE_CHECKING:
@@ -90,6 +118,12 @@ DLL_ENV = "FIXER_SKETCHUP_DLL"
 PLANE_TOL = 1e-3
 #: An edge end point must lie this close, in inches, to the vertex it is matched to.
 EDGE_MATCH_TOL = 1e-6
+#: How close, in inches, an edge must come to another face to lie on it: both its end points to
+#: the face's plane, and the face's boundary to the edge (a crack up to this wide is closed).
+#: Measured on both real files: the T-junction lines found are the same from 0.01 to 0.05 in
+#: (73 in A, 9 in B; 69 and 9 at 0.001 in). The next four need 0.1 in: they run along a
+#: sliver-shaped hole in the mesh, up to 0.19 in wide, which stays drawn.
+ON_FACE_TOL = 0.02
 #: Largest residual of one affine UV map over a polygon face's triangles that is not reported.
 UV_RESIDUAL_TOL = 1e-3
 #: RGB for a material with neither a texture file nor a `Kd` line.
@@ -194,6 +228,7 @@ _REQUIRED = {
     "SUEdgeGetStartVertex": ([_Ref, _RP], c_int),
     "SUEdgeGetEndVertex": ([_Ref, _RP], c_int),
     "SUEdgeGetNumFaces": ([_Ref, _SP], c_int),
+    "SUEdgeGetFaces": ([_Ref, c_size_t, _RP, _SP], c_int),
     "SUEdgeGetSoft": ([_Ref, _BP], c_int),
     "SUEdgeGetSmooth": ([_Ref, _BP], c_int),
     "SUEdgeSetSoft": ([_Ref, c_bool], c_int),
@@ -771,6 +806,7 @@ def _build(api: _Api, mesh: MeshData, faces: list[_Face], ctx: _Context, topo: "
                     unpositioned += 1
 
         edge_report = _soften_edges(api, entities, faces, topo, welded)
+        edge_report.update(_hide_lines_inside_surfaces(api, entities))
         api.ok("SUModelSaveToFile", model, str(path).encode("utf-8"))
 
         saved = _match(api, entities, faces, welded)
@@ -792,6 +828,7 @@ def _build(api: _Api, mesh: MeshData, faces: list[_Face], ctx: _Context, topo: "
             "uv_unpositioned_faces": sum(1 for f in faces if f.material >= 0
                                          and textured[f.material] and f.uv_pick is None),
             **edge_report,
+            **_visible_edges(api, entities),
             "edges": len(sk_edges),
             "edges_without_face": sum(1 for e in sk_edges if _edge_face_count(api, e) == 0),
             "materials": material_report,
@@ -843,6 +880,267 @@ def _soften_edges(api: _Api, entities: _Ref, faces: list[_Face], topo: "Topology
     return counts
 
 
+# -------------------------------------------------------------------- lines inside flat surfaces
+
+
+#: Two faces lie flat when their unit normals agree, either way round, to within this.
+_COS_FLAT = float(np.cos(np.radians(COPLANAR_ANGLE)))
+#: What each verdict of `_verdict` counts as while the edge is still drawn.
+_VISIBLE = {"border": "visible_border_edges", "angled": "visible_angled_edges",
+            "shape": "visible_shape_edges", "material_border": "visible_material_borders",
+            "nonmanifold": "visible_nonmanifold_edges",
+            "partly_inside": "visible_lines_inside_surfaces",
+            "flat": "visible_lines_inside_surfaces", "t_junction": "visible_lines_inside_surfaces"}
+_VISIBLE_KEYS = tuple(dict.fromkeys(_VISIBLE.values()))
+
+
+@dataclass
+class _SkFace:
+    """A face of SketchUp's own model: unit normal, plane offset, loops (outer first) as
+    positions and as vertex ids, the materials a viewer sees on its front and back (`None`:
+    the default), bounding box."""
+    normal: np.ndarray
+    offset: float
+    loops: list[np.ndarray]
+    loop_ids: list[list[int]]
+    look: tuple
+    lo: np.ndarray
+    hi: np.ndarray
+
+
+@dataclass
+class _SkEdge:
+    """An edge of SketchUp's own model: end points and their vertex ids, soft flag, and its
+    faces as indices into the `_SkFace` list."""
+    ref: _Ref
+    a: np.ndarray
+    b: np.ndarray
+    ids: tuple[int, int]
+    soft: bool
+    faces: list[int]
+
+
+def _material_ptr(api: _Api, getter: str, face: _Ref):
+    mat = _Ref()
+    return mat.ptr if api.raw(getter, face, byref(mat)) == 0 and mat.ptr else None
+
+
+def _read_geometry(api: _Api, entities: _Ref) -> tuple[list[_SkFace], list[_SkEdge]]:
+    faces: list[_SkFace] = []
+    index: dict[int, int] = {}
+    for sk_face in _refs(api, "SUEntitiesGetNumFaces", "SUEntitiesGetFaces", entities):
+        outer = _Ref()
+        api.ok("SUFaceGetOuterLoop", sk_face, byref(outer))
+        loops, loop_ids = [], []
+        for loop in [outer, *_refs(api, "SUFaceGetNumInnerLoops", "SUFaceGetInnerLoops",
+                                   sk_face)]:
+            vertices = _refs(api, "SULoopGetNumVertices", "SULoopGetVertices", loop)
+            loop_ids.append([v.ptr for v in vertices])
+            loops.append(np.array([_position(api, v) for v in vertices], float).reshape(-1, 3))
+        normal = _unit_vector(_normal(api, sk_face))
+        every = np.vstack(loops)
+        index[sk_face.ptr] = len(faces)
+        faces.append(_SkFace(normal, float((loops[0] @ normal).mean()), loops, loop_ids,
+                             (_material_ptr(api, "SUFaceGetFrontMaterial", sk_face),
+                              _material_ptr(api, "SUFaceGetBackMaterial", sk_face)),
+                             every.min(axis=0), every.max(axis=0)))
+    edges = []
+    for edge in _refs(api, "SUEntitiesGetNumEdges", "SUEntitiesGetEdges", entities, False):
+        ends = []
+        for getter in ("SUEdgeGetStartVertex", "SUEdgeGetEndVertex"):
+            v = _Ref()
+            api.ok(getter, edge, byref(v))
+            ends.append(v)
+        soft = c_bool()
+        api.ok("SUEdgeGetSoft", edge, byref(soft))
+        edges.append(_SkEdge(edge, np.array(_position(api, ends[0])),
+                             np.array(_position(api, ends[1])), (ends[0].ptr, ends[1].ptr),
+                             bool(soft.value),
+                             [index[f.ptr] for f in _refs(api, "SUEdgeGetNumFaces",
+                                                          "SUEdgeGetFaces", edge)]))
+    return faces, edges
+
+
+def _inward(face: _SkFace, edge: _SkEdge):
+    """Unit vector in `face`'s plane, across `edge`, pointing into the face; `None` when the
+    edge is not a side of any of its loops. SketchUp winds an outer loop counter-clockwise
+    about the normal and an inner loop clockwise (measured), so the face lies left of every
+    loop side."""
+    a, b = edge.ids
+    for ids in face.loop_ids:
+        for k in range(len(ids)):
+            side = (ids[k], ids[(k + 1) % len(ids)])
+            if side in ((a, b), (b, a)):
+                along = edge.b - edge.a if side == (a, b) else edge.a - edge.b
+                return _unit_vector(np.cross(face.normal, along))
+    return None
+
+
+def _same_look(f: _SkFace, g: _SkFace) -> bool:
+    """Does a viewer see the same material on `f` and `g` from either side of their plane?"""
+    return f.look == (g.look if float(f.normal @ g.normal) >= 0.0 else g.look[::-1])
+
+
+def _flat(points: np.ndarray, e1: np.ndarray, e2: np.ndarray) -> np.ndarray:
+    return np.stack([points @ e1, points @ e2], axis=-1)
+
+
+def _in_face(loops: list[np.ndarray], p: np.ndarray, tol: float) -> bool:
+    """Is the 2-D point `p` on the face with these 2-D loops (outer first, then holes): inside
+    it, or within `tol` of its boundary?"""
+    inside = False
+    for loop in loops:
+        side = np.roll(loop, -1, axis=0) - loop
+        rel = p - loop
+        length2 = np.einsum("ij,ij->i", side, side)
+        t = np.clip(np.einsum("ij,ij->i", rel, side) / np.where(length2 > 0.0, length2, 1.0),
+                    0.0, 1.0)
+        if (np.linalg.norm(rel - t[:, None] * side, axis=1) <= tol).any():
+            return True
+        crosses = (loop[:, 1] > p[1]) != (loop[:, 1] + side[:, 1] > p[1])
+        with np.errstate(divide="ignore", invalid="ignore"):
+            x = loop[:, 0] + (p[1] - loop[:, 1]) * side[:, 0] / side[:, 1]
+        inside ^= bool(np.count_nonzero(crosses & (p[0] < x)) % 2)
+    return inside
+
+
+def _far_side_covered(edge: _SkEdge, e1: np.ndarray, e2: np.ndarray, far: np.ndarray,
+                      cover: list[list[np.ndarray]], tol: float) -> tuple[bool, bool]:
+    """`(somewhere, everywhere)`: does the side of `edge` that `far` points to lie on the faces
+    `cover` (each its 2-D loops in the basis `e1`, `e2`)?
+
+    The edge is cut wherever a cover face's boundary crosses it or has a vertex within `tol` of
+    its line -- between two cuts no cover face begins or ends -- and every piece at least `tol`
+    long is judged at its middle, `tol` across to the far side. So a crack up to `tol` wide
+    still counts as covered, while a face that stops AT the edge (a double layer on the near
+    side) does not cover it."""
+    a2, b2 = _flat(edge.a, e1, e2), _flat(edge.b, e1, e2)
+    d = b2 - a2
+    length = float(np.hypot(*d))
+    if length < tol:
+        return False, False
+    u = d / length
+    far2 = _unit_vector(np.array([far @ e1, far @ e2]))
+    cuts = {0.0, 1.0}
+    for loops in cover:
+        for loop in loops:
+            rel = loop - a2
+            along = rel @ u / length
+            across = rel[:, 0] * u[1] - rel[:, 1] * u[0]
+            cuts.update(along[(np.abs(across) <= tol) & (along > 0.0) & (along < 1.0)].tolist())
+            side = np.roll(loop, -1, axis=0) - loop
+            den = d[0] * side[:, 1] - d[1] * side[:, 0]
+            ok = np.abs(den) > 1e-12
+            den = np.where(ok, den, 1.0)
+            t = (rel[:, 0] * side[:, 1] - rel[:, 1] * side[:, 0]) / den
+            s = (rel[:, 0] * d[1] - rel[:, 1] * d[0]) / den
+            cuts.update(t[ok & (t > 0.0) & (t < 1.0) & (s >= 0.0) & (s <= 1.0)].tolist())
+    somewhere, everywhere = False, True
+    cuts = sorted(cuts)
+    for t0, t1 in zip(cuts, cuts[1:]):
+        if (t1 - t0) * length < tol:
+            continue
+        probe = a2 + d * (0.5 * (t0 + t1)) + tol * far2
+        if any(_in_face(loops, probe, 1e-9) for loops in cover):
+            somewhere = True
+        else:
+            everywhere = False
+    return somewhere, somewhere and everywhere
+
+
+def _verdicts(faces: list[_SkFace], edges: list[_SkEdge], tol: float) -> list[str]:
+    """Per edge: `hidden` (soft already), `no_face`, `nonmanifold`, `shape`, `material_border`,
+    `angled` (a face at an angle meets the surface along it -- decided before anything is
+    hidden), `flat` (two faces continuing one flat surface of one material: to hide),
+    `t_junction` (the far side lies on flat faces of the same material along its whole
+    length: to hide), `partly_inside` (only along part of it) or `border`."""
+    normal = np.array([f.normal for f in faces], float).reshape(-1, 3)
+    offset = np.array([f.offset for f in faces], float)
+    lo = np.array([f.lo for f in faces], float).reshape(-1, 3)
+    hi = np.array([f.hi for f in faces], float).reshape(-1, 3)
+    return [_verdict(edge, faces, normal, offset, lo, hi, tol) for edge in edges]
+
+
+def _verdict(edge: _SkEdge, faces: list[_SkFace], normal: np.ndarray, offset: np.ndarray,
+             lo: np.ndarray, hi: np.ndarray, tol: float) -> str:
+    if edge.soft:
+        return "hidden"
+    if not edge.faces:
+        return "no_face"
+    if len(edge.faces) > 2:
+        return "nonmanifold"
+    own = [faces[i] for i in edge.faces]
+    inward = [_inward(f, edge) for f in own]
+    if any(v is None for v in inward):
+        return "border"                          # its sides cannot be told: leave it drawn
+    # one flat surface goes on across the edge (not a flat double layer that ends here)
+    across = len(own) == 2 and float(inward[0] @ inward[1]) < 0.0
+    if len(own) == 2:
+        if abs(float(own[0].normal @ own[1].normal)) < _COS_FLAT:
+            return "shape"
+        if across and not _same_look(own[0], own[1]):
+            return "material_border"
+    near = ~((hi < np.minimum(edge.a, edge.b) - tol).any(axis=1)
+             | (lo > np.maximum(edge.a, edge.b) + tol).any(axis=1))
+    near &= (np.abs(normal @ edge.a - offset) <= tol) & (np.abs(normal @ edge.b - offset) <= tol)
+    near[edge.faces] = False
+    flat = near & (np.abs(normal @ own[0].normal) >= _COS_FLAT)
+    mid = 0.5 * (edge.a + edge.b)
+    for i in np.nonzero(near & ~flat)[0]:
+        # a face at an angle meets the surface along this edge (a wall standing on it)
+        g1, g2 = _plane_basis(faces[i].normal)
+        if _in_face([_flat(loop, g1, g2) for loop in faces[i].loops], _flat(mid, g1, g2), tol):
+            return "angled"
+    if across:
+        return "flat"
+    # Every face of the edge lies on one side of it: what lies on the other side?
+    same = [int(i) for i in np.nonzero(flat)[0] if all(_same_look(f, faces[i]) for f in own)]
+    other = [int(i) for i in np.nonzero(flat)[0] if int(i) not in same]
+    e1, e2 = _plane_basis(own[0].normal)
+    far = -inward[0]
+
+    def covered(ids):
+        loops = [[_flat(loop, e1, e2) for loop in faces[i].loops] for i in ids]
+        return _far_side_covered(edge, e1, e2, far, loops, tol) if ids else (False, False)
+
+    somewhere, everywhere = covered(same)
+    if everywhere:
+        return "t_junction"
+    if somewhere:
+        return "partly_inside"
+    if covered(other)[0]:
+        return "material_border"
+    return "border"
+
+
+def _hide_lines_inside_surfaces(api: _Api, entities: _Ref, tol: float = ON_FACE_TOL) -> dict:
+    """Set soft (and smooth, unless its faces are wound against each other) every edge of
+    SketchUp's own model that `_verdicts` calls `flat` or `t_junction`."""
+    faces, edges = _read_geometry(api, entities)
+    counts = {"coplanar_edges_softened": 0, "tjunction_lines_softened": 0, "soft_only_edges": 0}
+    for edge, verdict in zip(edges, _verdicts(faces, edges, tol)):
+        if verdict not in ("flat", "t_junction"):
+            continue
+        api.ok("SUEdgeSetSoft", edge.ref, True)
+        first = faces[edge.faces[0]].normal
+        if all(float(faces[i].normal @ first) > 0.0 for i in edge.faces):
+            api.ok("SUEdgeSetSmooth", edge.ref, True)
+        else:
+            counts["soft_only_edges"] += 1
+        counts["coplanar_edges_softened" if verdict == "flat" else "tjunction_lines_softened"] += 1
+    return counts
+
+
+def _visible_edges(api: _Api, entities: _Ref, tol: float = ON_FACE_TOL) -> dict:
+    """How many edges of SketchUp's own model are still drawn, by kind (`_VISIBLE_KEYS`)."""
+    faces, edges = _read_geometry(api, entities)
+    counts = dict.fromkeys(_VISIBLE_KEYS, 0)
+    for verdict in _verdicts(faces, edges, tol):
+        if verdict in _VISIBLE:
+            counts[_VISIBLE[verdict]] += 1
+    return counts
+
+
 def write_skp(mesh: MeshData, rings: dict, face_region: np.ndarray, topo: "Topology",
               mtl_materials: dict[str, MtlMaterial], path, *, tex_dir=None, dll_path=None,
               plane_tol: float = PLANE_TOL) -> dict:
@@ -891,6 +1189,8 @@ def write_skp(mesh: MeshData, rings: dict, face_region: np.ndarray, topo: "Topol
             "degenerate_faces_skipped": skipped,
             **{k: report[k] for k in ("edges", "edges_without_face", "soft_edges",
                                       "gridline_edges_softened", "unmatched_edges",
+                                      "coplanar_edges_softened", "tjunction_lines_softened",
+                                      "soft_only_edges", *_VISIBLE_KEYS,
                                       "reversed_faces", "reversed_faces_unpositioned",
                                       "uv_unpositioned_faces")},
             "fallback_regions": fallback, "uv_residual_regions": residuals,

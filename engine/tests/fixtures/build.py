@@ -851,3 +851,95 @@ def frame_with_crossed_seam(size=1000.0, band=100.0, gap=6e-4, uv_per_unit=0.05)
           [1, 2, 6], [1, 6, 5], [2, 3, 7], [2, 7, 6], [3, 0, 4], [3, 4, 7]]
     uvs = [[p[0] * uv_per_unit, p[1] * uv_per_unit] for p in P]
     return _mesh("frame_with_crossed_seam", P, uvs, fv, fv, coord_decimals=4)
+
+
+def _with_wall(P, uvs, fv, fvt, fm, foot0, foot1, height, uv_per_unit=0.05):
+    """Append one vertical wall triangle of material 0 standing on the segment foot0-foot1 of
+    the `z = 0` plane (its feet are new vertices, shared with nothing), apex `height` up."""
+    base, ub = len(P), len(uvs)
+    mid = [(a + b) / 2 for a, b in zip(foot0, foot1)]
+    P = P + [list(foot0), list(foot1), [mid[0], mid[1], height]]
+    span = float(np.hypot(foot1[0] - foot0[0], foot1[1] - foot0[1]))
+    uvs = uvs + [[0.0, 0.0], [span * uv_per_unit, 0.0],
+                 [span / 2 * uv_per_unit, height * uv_per_unit]]
+    return (P, uvs, fv + [[base, base + 1, base + 2]], fvt + [[ub, ub + 1, ub + 2]],
+            list(fm) + [0])
+
+
+def two_region_quad(size=40.0, seam=0.37, material=0, flip=False, wall=False, uv_per_unit=0.05):
+    """`bare_top_quad`'s two triangles, flat at `z = 0`, with the second one's UVs shifted by a
+    non-integer `seam` -- a real texture seam -- so `analyse_topology` puts them in TWO regions
+    and classes their shared diagonal (0,0,0)-(size,size,0) EDGE_REAL: the topology alone never
+    hides it. `material=1` gives the second triangle material `m1`; `flip=True` winds it
+    backwards (normal -z), as the export winds some panel triangles against their neighbours;
+    `wall=True` stands a vertical triangle on the middle three quarters of the diagonal."""
+    s = size
+    P = [[0.0, 0.0, 0.0], [s, 0.0, 0.0], [s, s, 0.0], [0.0, s, 0.0]]
+    uv = np.asarray(P, float)[:, :2] * uv_per_unit
+    uvs = np.vstack([uv, uv + seam]).tolist()
+    second = [0, 3, 2] if flip else [0, 2, 3]
+    fv = [[0, 1, 2], second]
+    fvt = [[0, 1, 2], [4 + v for v in second]]
+    fm = [0, material]
+    if wall:
+        P, uvs, fv, fvt, fm = _with_wall(P, uvs, fv, fvt, fm, (s / 8, s / 8, 0.0),
+                                         (7 * s / 8, 7 * s / 8, 0.0), s / 2, uv_per_unit)
+    materials = ("m0", "m1") if material else ("m0",)
+    return _mesh("two_region_quad", P, uvs, fv, fvt, materials=materials, face_material=fm)
+
+
+def t_junction_seam_strip(seam=0.37, wall=False, uv_per_unit=0.05):
+    """`t_junction_strip` without its zero-area stitch and with the two upper quads' UVs shifted
+    by a non-integer `seam`. The big quad's long top edge (0,10)-(20,10) runs along the two upper
+    quads' short edges (0,10)-(10,10) and (10,10)-(20,10), which meet at (10,10) in the middle of
+    it -- a T-junction no face closes. The seam makes the big quad and the upper quads two
+    regions, so `analyse_topology` classes all three EDGE_TJUNCTION, which it never hides.
+    `wall=True` stands a vertical triangle on (2,10)-(18,10), across the T-vertex."""
+    P = [[0, 0, 0], [20, 0, 0], [20, 10, 0], [0, 10, 0], [10, 10, 0], [0, 20, 0], [10, 20, 0],
+         [20, 20, 0]]
+    fv = [[0, 1, 2], [0, 2, 3], [3, 4, 6], [3, 6, 5], [4, 2, 7], [4, 7, 6]]
+    uv = np.asarray(P, float)[:, :2] * uv_per_unit
+    uvs = np.vstack([uv, uv + seam]).tolist()
+    fvt = fv[:2] + [[v + len(P) for v in f] for f in fv[2:]]
+    fm = [0] * len(fv)
+    if wall:
+        P, uvs, fv, fvt, fm = _with_wall(P, uvs, fv, fvt, fm, (2.0, 10.0, 0.0), (18.0, 10.0, 0.0),
+                                         8.0, uv_per_unit)
+    return _mesh("t_junction_seam_strip", P, uvs, fv, fvt, face_material=fm)
+
+
+def staggered_slabs(uv_per_unit=0.05):
+    """Two coplanar 20 x 10 slabs of one material, B shifted half a slab: A = [0,20] x [0,10],
+    B = [10,30] x [10,20]. A's top edge (0,10)-(20,10) and B's bottom edge (10,10)-(30,10) lie
+    on one line and overlap along x in [10, 20] -- a line inside the surface there -- while each
+    is the slabs' real outline over its other half. Neither is split where the other ends."""
+    P = [[0, 0, 0], [20, 0, 0], [20, 10, 0], [0, 10, 0], [10, 10, 0], [30, 10, 0], [30, 20, 0],
+         [10, 20, 0]]
+    fv = [[0, 1, 2], [0, 2, 3], [4, 5, 6], [4, 6, 7]]
+    uvs = (np.asarray(P, float)[:, :2] * uv_per_unit).tolist()
+    return _mesh("staggered_slabs", P, uvs, fv, fv)
+
+
+def back_to_back_pair(size=40.0, uv_per_unit=0.05):
+    """Two DIFFERENT coplanar triangles of one material on the SAME side of the edge
+    (0,0,0)-(size,0,0) they share, wound against each other (normals +z and -z): an
+    overlapping double layer, as the export has on some walls. The shared edge is where both
+    end -- the outline -- although its two faces are coplanar and of one material. Each
+    triangle's sloped side runs through the other layer for part of its length."""
+    s = size
+    P = [[0.0, 0.0, 0.0], [s, 0.0, 0.0], [0.0, s, 0.0], [s, 0.75 * s, 0.0]]
+    fv = [[0, 1, 2], [1, 0, 3]]
+    uvs = (np.asarray(P, float)[:, :2] * uv_per_unit).tolist()
+    return _mesh("back_to_back_pair", P, uvs, fv, fv)
+
+
+def split_double_layer(uv_per_unit=0.05):
+    """A 20 x 8 quad at `z = 0` (normal +z) with a second layer of one material lying on it,
+    wound the other way (normal -z) and split in two at x = 10: triangles (0,0)-(10,0)-(5,4)
+    and (10,0)-(20,0)-(15,4). The quad's bottom edge (0,0)-(20,0) and the two triangles' bottom
+    edges (0,0)-(10,0), (10,0)-(20,0) run along each other with every face ABOVE them: each is
+    the outline, although each lies on the others' boundary along its whole length."""
+    P = [[0, 0, 0], [20, 0, 0], [20, 8, 0], [0, 8, 0], [10, 0, 0], [5, 4, 0], [15, 4, 0]]
+    fv = [[0, 1, 2], [0, 2, 3], [0, 5, 4], [4, 6, 1]]
+    uvs = (np.asarray(P, float)[:, :2] * uv_per_unit).tolist()
+    return _mesh("split_double_layer", P, uvs, fv, fv)

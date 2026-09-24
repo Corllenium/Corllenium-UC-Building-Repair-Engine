@@ -22,9 +22,12 @@ from engine.io.mtl import MtlMaterial
 from engine.io.skp_writer import (SketchUpUnavailable, check_skp_validity, read_skp,
                                   read_skp_summary, write_skp)
 from engine.pipeline import analyse_topology
-from engine.tests.fixtures.build import (bare_top_quad, creased_pair, cube, grid_slab,
-                                         slab_with_hole, slab_with_lifted_corner,
-                                         t_junction_strip, two_slabs_sharing_border)
+from engine.tests.fixtures.build import (back_to_back_pair, bare_top_quad, creased_pair, cube,
+                                         grid_slab, slab_with_hole, slab_with_lifted_corner,
+                                         slab_with_wall, split_double_layer, staggered_slabs,
+                                         t_junction_seam_strip, t_junction_strip,
+                                         two_region_quad, two_slabs_sharing_border)
+from engine.topo.edges import EDGE_OPEN, EDGE_REAL, EDGE_TJUNCTION
 
 
 @pytest.fixture
@@ -317,3 +320,164 @@ def test_writing_twice_gives_the_same_model(tmp_path, sketchup):
     assert read_skp_summary(a) == read_skp_summary(b)
     report_a.pop("path"), report_b.pop("path")
     assert report_a == report_b
+
+
+# ------------------------------------------------------------------ lines inside flat surfaces
+# Decided on SketchUp's OWN model after the fill, whatever the topology called the edge.
+
+
+_VISIBLE_CLASSES = ("visible_border_edges", "visible_angled_edges", "visible_shape_edges",
+                    "visible_material_borders", "visible_nonmanifold_edges",
+                    "visible_lines_inside_surfaces")
+
+
+def _edge(model, p, q):
+    """The one edge of a read-back model between points `p` and `q`, either way round."""
+    p, q = np.asarray(p, float), np.asarray(q, float)
+    [edge] = [e for e in model.edges if (np.allclose(e.start, p) and np.allclose(e.end, q))
+              or (np.allclose(e.start, q) and np.allclose(e.end, p))]
+    return edge
+
+
+def _visible(model):
+    return sorted(sorted([e.start.tolist(), e.end.tolist()]) for e in model.edges if not e.soft)
+
+
+def test_coplanar_triangles_of_two_regions_share_a_soft_edge(tmp_path, sketchup):
+    mesh, rings, region = _copied_through(two_region_quad())
+    # the topology keeps the diagonal: it borders two regions (a texture seam), so it is not 1
+    assert sorted(analyse_topology(mesh).edge_class.tolist()) == [EDGE_REAL] + [EDGE_OPEN] * 4
+    path, report = _write(tmp_path, mesh, rings, region)
+    diagonal = _edge(read_skp(path), (0, 0, 0), (40, 40, 0))
+    assert diagonal.faces == 2 and diagonal.soft and diagonal.smooth
+    assert (report["coplanar_edges_softened"], report["gridline_edges_softened"],
+            report["soft_only_edges"]) == (1, 0, 0)
+    assert (report["visible_border_edges"], report["visible_lines_inside_surfaces"]) == (4, 0)
+
+
+def test_coplanar_pair_wound_against_each_other_is_soft_but_not_smooth(tmp_path, sketchup):
+    """Smoothing averages the two faces' normals across the edge, and opposite normals average
+    to nothing: a flat pair wound against each other is hidden with `soft` alone."""
+    mesh, rings, region = _copied_through(two_region_quad(flip=True))
+    path, report = _write(tmp_path, mesh, rings, region)
+    model = read_skp(path)
+    assert float(model.faces[0].normal @ model.faces[1].normal) == pytest.approx(-1.0)
+    diagonal = _edge(model, (0, 0, 0), (40, 40, 0))
+    assert diagonal.soft and not diagonal.smooth
+    assert (report["coplanar_edges_softened"], report["soft_only_edges"]) == (1, 1)
+
+
+def test_coplanar_triangles_of_two_materials_keep_the_line_between_them(tmp_path, sketchup):
+    mesh, rings, region = _copied_through(two_region_quad(material=1))
+    path, report = _write(tmp_path, mesh, rings, region)
+    assert not _edge(read_skp(path), (0, 0, 0), (40, 40, 0)).soft
+    assert report["coplanar_edges_softened"] == 0
+    assert (report["visible_material_borders"], report["visible_border_edges"]) == (1, 4)
+
+
+def test_t_junction_lines_inside_a_strip_are_soft_and_its_outline_is_not(tmp_path, sketchup):
+    mesh, rings, region = _copied_through(t_junction_seam_strip())
+    topo = analyse_topology(mesh)
+    along = [e for e, (a, b) in enumerate(topo.table.edges)
+             if topo.positions_w[a][1] == topo.positions_w[b][1] == 10.0]
+    assert sorted(topo.edge_class[along].tolist()) == [EDGE_TJUNCTION] * 3   # never hidden by it
+    path, report = _write(tmp_path, mesh, rings, region)
+    model = read_skp(path)
+    for p, q in [((0, 10, 0), (20, 10, 0)), ((0, 10, 0), (10, 10, 0)), ((10, 10, 0), (20, 10, 0))]:
+        line = _edge(model, p, q)
+        assert line.faces == 1 and line.soft and line.smooth
+    outline = [((0, 0, 0), (20, 0, 0)), ((20, 0, 0), (20, 10, 0)), ((20, 10, 0), (20, 20, 0)),
+               ((20, 20, 0), (10, 20, 0)), ((10, 20, 0), (0, 20, 0)), ((0, 20, 0), (0, 10, 0)),
+               ((0, 10, 0), (0, 0, 0))]
+    assert _visible(model) == sorted(sorted([[float(c) for c in p], [float(c) for c in q]])
+                                     for p, q in outline)
+    assert report["tjunction_lines_softened"] == 3
+    assert (report["visible_border_edges"], report["visible_lines_inside_surfaces"]) == (7, 0)
+
+
+def test_line_where_a_wall_stands_on_a_slab_stays_visible(tmp_path, sketchup):
+    mesh, rings, region = _merged(slab_with_wall())
+    path, report = _write(tmp_path, mesh, rings, region)
+    foot = _edge(read_skp(path), (0, 50, 0), (30, 50, 0))
+    assert foot.faces == 1 and not foot.soft
+    assert (report["coplanar_edges_softened"], report["tjunction_lines_softened"]) == (0, 0)
+    assert report["visible_angled_edges"] == 1
+
+
+def test_coplanar_line_a_wall_stands_on_stays_visible(tmp_path, sketchup):
+    """An edge on an angled face is where that face meets the surface: never hidden, even when
+    it also lies inside a flat surface of one material."""
+    mesh, rings, region = _copied_through(two_region_quad(wall=True))
+    path, report = _write(tmp_path, mesh, rings, region)
+    diagonal = _edge(read_skp(path), (0, 0, 0), (40, 40, 0))
+    assert diagonal.faces == 2 and not diagonal.soft
+    assert report["coplanar_edges_softened"] == 0 and report["visible_angled_edges"] == 2
+
+
+def test_t_junction_lines_a_wall_stands_on_stay_visible(tmp_path, sketchup):
+    mesh, rings, region = _copied_through(t_junction_seam_strip(wall=True))
+    path, report = _write(tmp_path, mesh, rings, region)
+    model = read_skp(path)
+    for p, q in [((0, 10, 0), (20, 10, 0)), ((0, 10, 0), (10, 10, 0)), ((10, 10, 0), (20, 10, 0))]:
+        assert not _edge(model, p, q).soft
+    assert report["tjunction_lines_softened"] == 0 and report["visible_angled_edges"] == 4
+
+
+def test_real_outline_of_a_slab_of_copied_through_triangles_stays_visible(tmp_path, sketchup):
+    mesh, rings, region = _copied_through(grid_slab(nx=4, ny=4))
+    path, report = _write(tmp_path, mesh, rings, region)
+    s = read_skp_summary(path)
+    assert (s["edges"] - s["soft_edges"], report["visible_border_edges"]) == (16, 16)
+    assert report["tjunction_lines_softened"] == 0
+
+
+def test_outline_that_only_partly_runs_along_a_neighbour_stays_visible(tmp_path, sketchup):
+    """A's top edge and B's bottom edge each lie inside the surface over half their length and
+    are the real outline over the other half. Hiding them would hide that outline, so both stay
+    and are reported as lines inside surfaces: only splitting them in the mesh removes them."""
+    mesh, rings, region = _copied_through(staggered_slabs())
+    path, report = _write(tmp_path, mesh, rings, region)
+    model = read_skp(path)
+    assert not _edge(model, (0, 10, 0), (20, 10, 0)).soft
+    assert not _edge(model, (10, 10, 0), (30, 10, 0)).soft
+    assert len(_visible(model)) == 8 and report["tjunction_lines_softened"] == 0
+    assert (report["visible_lines_inside_surfaces"], report["visible_border_edges"]) == (2, 6)
+
+
+def test_edge_two_back_to_back_faces_both_end_on_stays_visible(tmp_path, sketchup):
+    mesh, rings, region = _copied_through(back_to_back_pair())
+    path, report = _write(tmp_path, mesh, rings, region)
+    shared = _edge(read_skp(path), (0, 0, 0), (40, 0, 0))
+    assert shared.faces == 2 and not shared.soft
+    assert report["coplanar_edges_softened"] == 0
+    # the shared edge and the two vertical sides are outline; each triangle's sloped side runs
+    # through the other layer for part of its length, and is outline for the rest
+    assert (report["visible_border_edges"], report["visible_lines_inside_surfaces"]) == (3, 2)
+
+
+def test_outline_of_a_split_double_layer_stays_visible(tmp_path, sketchup):
+    """Each bottom edge lies on the other layer's boundary along its whole length, but every
+    face is on the same side of it: nothing lies beyond, so it is the outline. The upper
+    triangles' sloped sides run across the quad, which lies on both sides of them: hidden."""
+    mesh, rings, region = _copied_through(split_double_layer())
+    path, report = _write(tmp_path, mesh, rings, region)
+    model = read_skp(path)
+    for p, q in [((0, 0, 0), (20, 0, 0)), ((0, 0, 0), (10, 0, 0)), ((10, 0, 0), (20, 0, 0))]:
+        assert not _edge(model, p, q).soft
+    for p, q in [((0, 0, 0), (5, 4, 0)), ((5, 4, 0), (10, 0, 0)), ((10, 0, 0), (15, 4, 0)),
+                 ((15, 4, 0), (20, 0, 0))]:
+        assert _edge(model, p, q).soft
+    assert (report["tjunction_lines_softened"], report["visible_border_edges"]) == (4, 6)
+
+
+@pytest.mark.parametrize("build, merged", [
+    (cube, True), (grid_slab, False), (slab_with_hole, True), (two_slabs_sharing_border, True),
+    (slab_with_wall, True), (staggered_slabs, False), (t_junction_seam_strip, False),
+    (two_region_quad, False), (back_to_back_pair, False), (split_double_layer, False)])
+def test_every_visible_edge_is_in_exactly_one_class(tmp_path, sketchup, build, merged):
+    mesh = build()
+    path, report = _write(tmp_path, *(_merged(mesh) if merged else _copied_through(mesh)))
+    s = read_skp_summary(path)
+    assert report["edges"] == s["edges"]
+    assert sum(report[k] for k in _VISIBLE_CLASSES) == (
+        s["edges"] - s["soft_edges"] - s["edges_without_face"])
