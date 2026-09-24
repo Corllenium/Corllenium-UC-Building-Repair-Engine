@@ -21,15 +21,29 @@ viewer's side through p, in AFTER: the reference without the faces earlier passe
 what that viewer sees once the removal is done -- the sky, a face side the reference already
 exposed, or a face side the reference never exposed (`side_exposure`, the per-side exposure the
 fragment guard and the final guard read). A unit any of whose lines ends on a side of that last
-kind -- the inside of a shell -- is REFUSED, and put back. Its refusal can hide what other units'
-lines see, so the check is repeated over the units still marked until none is refused; a refused
-unit is never proposed again. This is review 2a's alternative fix 2 for C1, and the pixel rule of
-`engine.guard.compare.classify_pixels` (`removed_before` / `exposed_after`) applied to lines
-through the piece instead of pixels on a grid.
+kind -- the inside of a shell -- is REFUSED, and put back. A face met LEVEL with p (within `TIE`)
+is the one exception, because the line itself is the measurement: that line met the same face
+at the same place on the reference, tied with the piece, so its side was seen whatever the
+exposure's sampling found. Measured on the real references: file A's fold member 3059 and file
+B's 2254 were seen along 684 and 29 lines, every one of which met the fold's other member (3082,
+2253) level with it on a side the exposure's 4 points x 128 directions had never found -- B's
+2253 samples 0.0 on both sides. Units are refused ONE PER ROUND, and every unit still marked is
+judged again with it in place, because putting a piece back can cover what the others' lines
+saw: first a unit that fails even judged alone (it can never go), else the lowest -- so of two
+pieces failing only because each covers the other, one stays and the other goes. A refused unit
+is never proposed again, so this ends. This is review 2a's alternative fix 2 for C1, and the
+pixel rule of `engine.guard.compare.classify_pixels` (`removed_before` / `exposed_after`) applied
+to lines through the piece instead of pixels on a grid.
 
 EVERY MARKED UNIT GONE AT ONCE, never one at a time: at 670ad50 file B's faces 5750 and 5751 were
 removed together, each covering most of the other, and together they had closed an 86 in crack at
 the top of a ramp's side wall. Judged one at a time, each is covered by the other.
+
+UNITS THAT MUST STAY COVERED. A fold's redundant member (`engine.detectors.folds`) is no debris:
+its removal is meant to change nothing at all, so it is judged `covered` -- refused unless EVERY
+one of its lines still meets a face level with it, where the rest of the model covers it exactly.
+Debris may uncover the sky or an outside surface; a fold member may not. `judge_alone` gives each
+unit's verdict with only itself gone, which is how the pipeline picks the member to propose.
 
 HOW MANY POINTS. `N_POINTS` (256) per face, one per equal-area stratum (see `strata_points`): a
 needle is cut into 64 slices along its length and 4 bands across it, so file A's 16.2 in lip 3540
@@ -110,7 +124,9 @@ class PieceRayCheck:
     #: Bool per unit: still marked for removal after the check.
     confirmed: np.ndarray
     #: Per unit, the verdict of the last round that judged it -- `{"faces", "points", "lines",
-    #: "lines_inside", "inside_faces", "refused"}` -- or `None` for a unit handed in unmarked.
+    #: "lines_level", "lines_inside", "inside_faces", "refused"}` -- or `None` for a unit handed
+    #: in unmarked. `lines_level` counts the lines that met a face level with the unit (the rest of
+    #: the model covering it right there), `lines_inside` those that met a side never exposed, and
     #: `inside_faces` lists (up to 5, ascending) the faces whose never-exposed side was met.
     verdicts: list
     #: One entry per round: `{"round", "units", "lines", "lines_inside", "refused"}`.
@@ -204,13 +220,16 @@ class _Unit:
             clear[np.nonzero(clear)[0][far.any_hit(start, self.ray_dir[clear])]] = False
         self.line = clear
 
-    def follow(self, keep: np.ndarray, normals: np.ndarray, side_exposure: np.ndarray) -> dict:
+    def follow(self, keep: np.ndarray, normals: np.ndarray, side_exposure: np.ndarray,
+               covered: bool = False) -> dict:
         """Follow every line on, from the viewer through p, in the faces `keep` marks (bool over
-        the reference): what each meets first, and whether that side was exposed."""
+        the reference): what each meets first, whether that side was exposed, and whether it lies
+        level with p. `covered`: the unit must stay covered, so it is refused unless every line
+        meets a face level with it."""
         rp, rd = self.ray_point[self.line], -self.ray_dir[self.line]
         if not len(rp):
             return {"faces": self.faces.tolist(), "points": int(len(self.points)), "lines": 0,
-                    "lines_inside": 0, "inside_faces": [], "refused": False}
+                    "lines_level": 0, "lines_inside": 0, "inside_faces": [], "refused": False}
         near_keep = keep[self.near_ids]
         face, t = _near_first_hits(self.near_tri, self.near_ids, self.near & near_keep[None, :],
                                    self.points, rp, rd, -TIE, REACH)
@@ -227,21 +246,51 @@ class _Unit:
         facing = np.einsum("ij,ij->i", normals[g], rd)
         seen_side = np.where(facing > 0.0, side_exposure[g, 1], side_exposure[g, 0])
         # a face with no plane has no side a line could be said to meet
-        inside = hit & ~(seen_side & (np.linalg.norm(normals[g], axis=1) > 0.0))
-        n_inside = int(inside.sum())
+        seen_side &= np.linalg.norm(normals[g], axis=1) > 0.0
+        # a face LEVEL with the piece (a tie, within `TIE` of p) was met by this very line on
+        # the reference, tied with the piece: seen, whatever the sampled exposure says
+        level = hit & (t <= TIE)
+        inside = hit & ~(seen_side | level)
+        n_inside, n_level = int(inside.sum()), int(level.sum())
         return {"faces": self.faces.tolist(), "points": int(len(self.points)),
-                "lines": int(len(rp)), "lines_inside": n_inside,
-                "inside_faces": sorted(set(g[inside].tolist()))[:5], "refused": n_inside > 0}
+                "lines": int(len(rp)), "lines_level": n_level, "lines_inside": n_inside,
+                "inside_faces": sorted(set(g[inside].tolist()))[:5],
+                "refused": (n_level < len(rp)) if covered else n_inside > 0}
+
+
+def judge_alone(units, positions_c: np.ndarray, faces: np.ndarray, side_exposure: np.ndarray,
+                *, directions: np.ndarray, already_removed: np.ndarray | None = None,
+                n_points: int = N_POINTS, caster_factory=EmbreeCaster) -> list[dict]:
+    """Each unit's verdict with ONLY that unit and `already_removed` gone -- everything else in
+    place -- as `piece_ray_check` words it (with `lines_level`, the lines that still meet a face
+    level with the unit: where the rest of the model covers it exactly). Nothing is refused or
+    put back: this is how `engine.fixes.pipeline` decides which member of a fold is the one the
+    rest of the model covers, and so may be proposed at all."""
+    faces = np.asarray(faces, dtype=np.int64)
+    positions_c = np.asarray(positions_c, dtype=np.float64)
+    exposure = np.asarray(side_exposure, dtype=bool).reshape(len(faces), 2)
+    gone_before = (np.zeros(len(faces), dtype=bool) if already_removed is None
+                   else np.asarray(already_removed, dtype=bool))
+    normals = _unit_normals(positions_c[faces])
+    out = []
+    for ids in units:
+        unit = _Unit(ids, positions_c, faces, directions, n_points, caster_factory)
+        keep = ~gone_before
+        keep[unit.faces] = False
+        out.append(unit.follow(keep, normals, exposure))
+    return out
 
 
 def piece_ray_check(units, positions_c: np.ndarray, faces: np.ndarray, side_exposure: np.ndarray,
                     *, directions: np.ndarray, already_removed: np.ndarray | None = None,
-                    marked: np.ndarray | None = None, n_points: int = N_POINTS,
+                    marked: np.ndarray | None = None, covered=None, n_points: int = N_POINTS,
                     caster_factory=EmbreeCaster) -> PieceRayCheck:
     """Judge each candidate unit (`units[i]`, reference face ids) by the lines through it -- see
-    the module docstring -- and refuse every unit one of whose lines, with every marked unit and
-    `already_removed` gone, meets a side `side_exposure` (`(F, 2)` bool: FRONT, BACK exposed on the
-    reference) says was never exposed.
+    the module docstring -- and refuse, one per round, units one of whose lines, with every marked
+    unit and `already_removed` gone, meets a side `side_exposure` (`(F, 2)` bool: FRONT, BACK
+    exposed on the reference) says was never exposed. A unit `covered` marks (bool per unit, none
+    by default) MUST STAY COVERED -- a fold's redundant member, whose removal is meant to change
+    nothing -- and is refused unless every one of its lines meets a face level with it.
 
     `positions_c` / `faces` are the recentred reference the pipeline renders (the WHOLE reference:
     a line is judged against what a person saw), `directions` the exposure's unit directions
@@ -254,25 +303,37 @@ def piece_ray_check(units, positions_c: np.ndarray, faces: np.ndarray, side_expo
                    else np.asarray(already_removed, dtype=bool))
     marked = (np.ones(len(units), dtype=bool) if marked is None
               else np.asarray(marked, dtype=bool).copy())
+    covered = (np.zeros(len(units), dtype=bool) if covered is None
+               else np.asarray(covered, dtype=bool).reshape(len(units)))
     normals = _unit_normals(positions_c[faces])
     judged = {i: _Unit(units[i], positions_c, faces, directions, n_points, caster_factory)
               for i in np.nonzero(marked)[0].tolist()}
     verdicts: list = [None] * len(units)
     history: list[dict] = []
+    fails_alone: dict[int, bool] = {}             # judged with only itself gone, when it failed
     for rnd in range(len(units) + 1):             # every round but the last refuses a unit
         keep = ~gone_before
         for i in np.nonzero(marked)[0].tolist():
             keep[judged[i].faces] = False
-        refused = []
+        failing = []
         for i in np.nonzero(marked)[0].tolist():
-            verdicts[i] = judged[i].follow(keep, normals, exposure)
+            verdicts[i] = judged[i].follow(keep, normals, exposure, covered=bool(covered[i]))
             if verdicts[i]["refused"]:
-                refused.append(i)
+                if i not in fails_alone:
+                    solo = ~gone_before
+                    solo[judged[i].faces] = False
+                    fails_alone[i] = judged[i].follow(solo, normals, exposure,
+                                                      covered=bool(covered[i]))["refused"]
+                failing.append((not fails_alone[i], i))
         history.append({"round": rnd, "units": int(marked.sum()),
                         "lines": sum(verdicts[i]["lines"] for i in np.nonzero(marked)[0]),
                         "lines_inside": sum(verdicts[i]["lines_inside"] for i in np.nonzero(marked)[0]),
-                        "refused": len(refused)})
-        if not refused:
+                        "refused": int(bool(failing))})
+        if not failing:
             break
-        marked[refused] = False
+        # ONE per round, because putting a piece back may cover what the others' lines saw: first
+        # a unit that fails even judged alone (it can never go), else -- pieces failing only
+        # because they cover each other -- the lowest; of two pieces covering each other, one
+        # stays and the other, judged again, goes
+        marked[min(failing)[1]] = False
     return PieceRayCheck(confirmed=marked, verdicts=verdicts, history=history)

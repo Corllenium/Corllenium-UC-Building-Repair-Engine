@@ -13,7 +13,8 @@ state pass 1 leaves behind -> `remove_faces` -> `engine.detectors.fragments` (st
 and attached slivers, removed when `profile.accept_fragments` and only when both the rays through
 each piece (`engine.guard.piece_rays`: no line along which it was seen may then meet a side the
 reference never exposed) and `fragment_feedback` -- the one guard that lets a pass change the
-picture, only at those faces' own pixels -- confirm it) ->
+picture, only at those faces' own pixels -- confirm it; in the same pass, `engine.detectors.folds`
+and the member of each fold the rest of the model still covers along every line) ->
 `classify_orientation` +
 `flip_faces` on the survivors, so a face whose only real exposure was on its BACK re-joins its
 neighbours' region instead of being copied through alone -> `analyse_topology` on the flipped
@@ -46,6 +47,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
+from engine.detectors.folds import detect_folds
 from engine.detectors.fragments import detect_fragments, face_width
 from engine.fixes.merge import default_collinear_tol, merge_regions
 from engine.fixes.orient import ORIENT_FLIP, ORIENT_THIN_SHEET, classify_orientation, flip_faces, one_sided_holes
@@ -54,7 +56,7 @@ from engine.fixes.remove import remove_faces
 from engine.fixes.solidify import solidify
 from engine.guard.compare import (GuardReport, compare_views, face_planes, fragment_feedback,
                                    guard_feedback)
-from engine.guard.piece_rays import piece_ray_check
+from engine.guard.piece_rays import judge_alone, piece_ray_check
 from engine.guard.views import VIEWS_26, ortho_first_hit
 from engine.model import MeshData
 from engine.pipeline import analyse_topology, flat_material_indices
@@ -226,14 +228,33 @@ class FixResult:
     #: `lines_inside` are the piece's ray verdict (`fragment_ray_check`). Empty when the pass is
     #: off or removed nothing.
     fragment_removals: list
-    #: The rays-through-the-piece verdict of EVERY candidate the detector named, removed or not:
-    #: one entry per unit -- a fragment component or a sliver -- `{"kind", "faces", "points",
-    #: "lines", "lines_inside", "inside_faces", "refused", "removed"}` (see
-    #: `engine.guard.piece_rays`): `lines` the (point, exposure direction) lines along which the
-    #: piece was seen from outside on the reference, `lines_inside` how many of them met a side
-    #: the reference never exposed once the removal was done, `inside_faces` up to five of the
-    #: faces met there. Sorted by first face id; empty when the pass is off or named nothing.
+    #: The rays-through-the-piece verdict of EVERY candidate the pass proposed, removed or not:
+    #: one entry per unit -- a fragment component, a sliver, or a fold's redundant member --
+    #: `{"kind", "faces", "points", "lines", "lines_level", "lines_inside", "inside_faces",
+    #: "refused", "removed"}` (see `engine.guard.piece_rays`): `lines` the (point, exposure
+    #: direction) lines along which the piece was seen from outside on the reference,
+    #: `lines_level` how many of them, once the removal was done, still met a face level with it,
+    #: `lines_inside` how many met a side the reference never exposed, `inside_faces` up to five
+    #: of the faces met there. A fold member is refused unless `lines_level == lines`; debris
+    #: unless `lines_inside == 0`. Sorted by first face id; empty when the pass is off or
+    #: proposed nothing.
     fragment_ray_check: list
+    #: Faces removed as a FOLD's redundant member (`engine.detectors.folds`): two faces sharing
+    #: an edge, folded onto the same side of it in one plane, and this one covered by the rest of
+    #: the model along every line through it. Also in `removed_fragments`.
+    n_removed_folds: int
+    #: `engine.detectors.folds.FoldResult.report` plus every fold, resolved or left: `{...,
+    #: "n_resolved", "n_left", "folds": [{"faces", "edge", "overlap_area", "members",
+    #: "redundant", "verdict", "reason", "lines", "lines_level", "lines_inside"}]}` in REFERENCE
+    #: ids. `edge` is the shared edge's two ends in the input's own coordinates; `members` each
+    #: member's ray verdict judged ALONE (`{"face", "lines", "lines_level", "lines_inside"}`, empty
+    #: for a fold never proposed); `redundant` the member proposed -- one the rest of the model
+    #: covered along every line -- or `None`; `verdict` "resolved" (it was removed) or "left";
+    #: `reason` why a fold was left ("different materials", "protected", "neither is covered by
+    #: the rest", "refused by the rays", "put back by the fragment guard"); and `lines`,
+    #: `lines_level`, `lines_inside` the proposed member's verdict with every removal done (else
+    #: `None`). Empty when the fragment pass is off.
+    fold_report: dict
     #: Bool, over REFERENCE-mesh faces: a duplicate layer the rest of its own region already
     #: covered, confirmed removable by the strict guard (see `engine.fixes.overlap`).
     removed_overlap: np.ndarray
@@ -368,10 +389,12 @@ def _exposed_sides(positions_c: np.ndarray, face_w: np.ndarray, sources: list,
 
 def _fragment_removals(detected, confirmed: np.ndarray, reference_ids: np.ndarray,
                        positions_c: np.ndarray, centre: np.ndarray,
-                       face_w: np.ndarray, ray_check: list) -> list[dict]:
-    """`FixResult.fragment_removals`: every face the fragment pass removed, grouped the way the
-    detector named it, each with its ray verdict from `ray_check` (`FixResult.fragment_ray_check`).
-    `reference_ids[i]` is the reference id of the detector's face `i`."""
+                       face_w: np.ndarray, ray_check: list, covered_by: dict) -> list[dict]:
+    """`FixResult.fragment_removals`: every face the fragment pass removed, grouped the way it
+    was named -- a fragment component, a sliver, or a fold's redundant member (`covered_by`:
+    `{member: its fold partner}`, REFERENCE ids, for the members proposed as folds alone) -- each
+    with its ray verdict from `ray_check` (`FixResult.fragment_ray_check`). `reference_ids[i]` is
+    the reference id of the detector's face `i`."""
     tri = positions_c[face_w]
     area = 0.5 * np.linalg.norm(np.cross(tri[:, 1] - tri[:, 0], tri[:, 2] - tri[:, 0]), axis=1)
     verdict_of = {f: v for v in ray_check for f in v["faces"]}
@@ -397,16 +420,86 @@ def _fragment_removals(detected, confirmed: np.ndarray, reference_ids: np.ndarra
         if confirmed[f]:
             out.append(entry("sliver", detected.component[i], np.array([f]),
                              width=round(float(widths[f]), 4)))
+    local_of = {int(r): i for i, r in enumerate(reference_ids.tolist())}
+    for f, partner in sorted(covered_by.items()):
+        if confirmed[f]:
+            out.append(entry("fold", detected.component[local_of[f]], np.array([f]),
+                             covered_by=int(partner)))
     return sorted(out, key=lambda e: e["faces"][0])
 
 
-def _debris_units(detected, reference_ids: np.ndarray) -> list[tuple[str, np.ndarray]]:
-    """The detector's candidates as the units the rays judge -- each fragment component whole,
-    each sliver alone -- as `(kind, REFERENCE face ids)`, sorted by first face id."""
+def _debris_units(detected, reference_ids: np.ndarray,
+                  fold_members: np.ndarray) -> list[tuple[str, np.ndarray]]:
+    """The pass's candidates as the units the rays judge -- each fragment component whole, each
+    sliver alone, each fold's redundant member (`fold_members`, bool over the detector's faces,
+    none of them a fragment or a sliver) alone -- as `(kind, REFERENCE face ids)`, sorted by first
+    face id."""
     units = [("fragment", reference_ids[(detected.component == c) & detected.fragments])
              for c in np.unique(detected.component[detected.fragments]).tolist()]
     units += [("sliver", reference_ids[[i]]) for i in np.nonzero(detected.slivers)[0].tolist()]
+    units += [("fold", reference_ids[[i]]) for i in np.nonzero(fold_members)[0].tolist()]
     return sorted(units, key=lambda u: int(u[1].min()))
+
+
+def _fold_members(folds, face_w_local: np.ndarray, reference_ids: np.ndarray,
+                  positions_c: np.ndarray, render_faces: np.ndarray, side_exposure: np.ndarray,
+                  drop: np.ndarray, profile: FixProfile) -> tuple[dict, dict]:
+    """Which member of each fold may be proposed: one the rest of the model still covers exactly
+    when it ALONE is gone -- every line along which it was seen then meets a face level with it
+    (`engine.guard.piece_rays.judge_alone`) -- the smaller when both are, then the higher face id;
+    none when neither is. Returns `(chosen, alone)`: `{fold index: detector face id or None}` for
+    every fold with no reason against it, and `{detector face id: its verdict alone}`."""
+    eligible = [k for k, fold in enumerate(folds.folds) if fold["reason"] is None]
+    members = sorted({m for k in eligible for m in folds.folds[k]["faces"]})
+    verdicts = judge_alone([reference_ids[[m]] for m in members], positions_c, render_faces,
+                           side_exposure, directions=fib_dirs(profile.n_dirs), already_removed=drop)
+    alone = dict(zip(members, verdicts))
+    tri = positions_c[face_w_local]
+    area = 0.5 * np.linalg.norm(np.cross(tri[:, 1] - tri[:, 0], tri[:, 2] - tri[:, 0]), axis=1)
+    chosen = {}
+    for k in eligible:
+        covered = [m for m in folds.folds[k]["faces"]
+                   if alone[m]["lines_level"] == alone[m]["lines"]]
+        chosen[k] = min(covered, key=lambda m: (float(area[m]), -m)) if covered else None
+    return chosen, alone
+
+
+def _fold_report(folds, chosen: dict, alone: dict, reference_ids: np.ndarray, removed: np.ndarray,
+                 ray_check: list, positions_c: np.ndarray, centre: np.ndarray) -> dict:
+    """`FixResult.fold_report`: the fold detector's report, and every fold with its verdict, in
+    REFERENCE ids -- its shared edge's two ends in the input's own coordinates, and each member's
+    verdict judged alone. A fold whose member was proposed is "resolved" when that member was
+    removed, and otherwise "left": "refused by the rays" when, with every removal done, its lines
+    no longer all met a level face (or one met a side never exposed), "put back by the fragment
+    guard" when its pixels did not pass."""
+    verdict_of = {f: v for v in ray_check for f in v["faces"]}
+    out = []
+    for k, fold in enumerate(folds.folds):
+        f, g = (int(reference_ids[x]) for x in fold["faces"])
+        reason = fold["reason"]
+        member = chosen.get(k)
+        redundant = None if member is None else int(reference_ids[member])
+        ray = verdict_of.get(redundant) if redundant is not None else None
+        if redundant is not None and removed[redundant]:
+            verdict = "resolved"
+        else:
+            verdict = "left"
+            if reason is None and redundant is None:
+                reason = "neither is covered by the rest"
+            elif reason is None:
+                reason = "refused by the rays" if ray["refused"] else "put back by the fragment guard"
+        members = ([] if fold["reason"] is not None else
+                   [{"face": int(reference_ids[m]),
+                     **{key: alone[m][key] for key in ("lines", "lines_level", "lines_inside")}}
+                    for m in fold["faces"]])
+        out.append({"faces": [f, g], "edge": np.round(positions_c[fold["edge"]] + centre, 2).tolist(),
+                    "overlap_area": fold["overlap_area"], "members": members,
+                    "redundant": redundant, "verdict": verdict, "reason": reason,
+                    **{key: None if ray is None else ray.get(key, None)
+                       for key in ("lines", "lines_level", "lines_inside")}})
+    out.sort(key=lambda d: tuple(d["faces"]))
+    resolved = sum(d["verdict"] == "resolved" for d in out)
+    return {**folds.report, "n_resolved": resolved, "n_left": len(out) - resolved, "folds": out}
 
 
 def _confirm_debris(units: list[tuple[str, np.ndarray]], positions_c: np.ndarray,
@@ -432,9 +525,12 @@ def _confirm_debris(units: list[tuple[str, np.ndarray]], positions_c: np.ndarray
     fragment_history: list = []
     ray_history: list = []
     directions = fib_dirs(profile.n_dirs)
+    # a fold's member must stay covered: its removal is meant to change nothing at all
+    covered = np.array([kind == "fold" for kind, _ids in units], dtype=bool)
     while alive.any():
         check = piece_ray_check(faces_of, positions_c, render_faces, side_exposure,
-                                directions=directions, already_removed=drop, marked=alive)
+                                directions=directions, already_removed=drop, marked=alive,
+                                covered=covered)
         for i, verdict in enumerate(check.verdicts):
             if verdict is not None:
                 verdicts[i] = verdict
@@ -469,8 +565,8 @@ def _confirm_debris(units: list[tuple[str, np.ndarray]], positions_c: np.ndarray
     ray_check = []
     for (kind, ids), verdict in zip(units, verdicts):
         ray_check.append({"kind": kind, "faces": [int(f) for f in ids],
-                          **{k: verdict[k] for k in ("points", "lines", "lines_inside",
-                                                     "inside_faces", "refused")},
+                          **{k: verdict[k] for k in ("points", "lines", "lines_level",
+                                                     "lines_inside", "inside_faces", "refused")},
                           "removed": bool(removed[ids].any())})
     return removed, ray_check, int(refused_by_rays.sum()), fragment_history, ray_history
 
@@ -570,10 +666,12 @@ def fix_object(mesh: MeshData, flatness: dict[str, float], profile: FixProfile =
     # faces' own pixels changed" rather than "nothing changed".
     removed_fragments_full = np.zeros(mesh.n_faces, dtype=bool)
     fragment_report: dict = {}
+    fold_report: dict = {}
     fragment_removals: list = []
     fragment_ray_check: list = []
     fragment_history = ray_history = None
-    n_removed_fragments = n_removed_slivers = n_restored_fragments = n_refused_by_rays = 0
+    n_removed_fragments = n_removed_slivers = n_removed_folds = 0
+    n_restored_fragments = n_refused_by_rays = 0
     mesh_fragments, source_from_fragments = mesh_removed, np.arange(mesh_removed.n_faces, dtype=np.int64)
     if profile.accept_fragments:
         kept = ~drop
@@ -584,31 +682,55 @@ def fix_object(mesh: MeshData, flatness: dict[str, float], profile: FixProfile =
                     else np.zeros(mesh.n_faces, dtype=bool))
         # contact within the tolerance `analyse_topology` finds T-junctions with, and no sliver
         # wider than the merge's own border tolerance
+        contact_tol = 1.5 * float(topo.quanta.max())
+        max_width = sliver_width_bound(topo.quanta, profile)
         detected = detect_fragments(positions_c, render_faces[kept], profile,
-                                    contact_tol=1.5 * float(topo.quanta.max()),
-                                    max_width=sliver_width_bound(topo.quanta, profile),
+                                    contact_tol=contact_tol, max_width=max_width,
                                     protected=invented[kept])
         fragment_report = detected.report
+        # ...and FOLDS: two faces folded onto the same side of their shared edge, the area
+        # covered twice. The member proposed is one the rest of the model still covers exactly
+        # when it alone is gone -- judged by the rays through it, not by the fold's own shape
+        # (`engine.detectors.folds`) -- and it goes only if it stays covered with every other
+        # removal done too, and the fragment guard agrees.
+        folds = detect_folds(positions_c, render_faces[kept], render_material[kept],
+                             contact_tol=contact_tol, protected=invented[kept])
+        chosen, alone = _fold_members(folds, render_faces[kept], source_from_removal,
+                                      positions_c, render_faces, side_exposure, drop, profile)
+        fold_members = np.zeros(int(kept.sum()), dtype=bool)
+        fold_members[[m for m in chosen.values() if m is not None]] = True
+        fold_members &= ~(detected.fragments | detected.slivers)
+        covered_by = {int(source_from_removal[chosen[k]]):
+                      int(source_from_removal[sum(folds.folds[k]["faces"]) - chosen[k]])
+                      for k in sorted(chosen, reverse=True)
+                      if chosen[k] is not None and fold_members[chosen[k]]}
         candidates = np.zeros(mesh.n_faces, dtype=bool)      # lifted back to REFERENCE ids
-        candidates[source_from_removal[detected.fragments | detected.slivers]] = True
+        candidates[source_from_removal[detected.fragments | detected.slivers | fold_members]] = True
+        confirmed = np.zeros(mesh.n_faces, dtype=bool)
         if candidates.any():
             # every candidate is judged by the rays through it AND by the fragment guard's
             # pixels, each with all the others' removals done -- the rays because no guard pixel
             # meets a sub-pixel piece (brief 08: 10 real-surface pieces went that way)
             (confirmed, fragment_ray_check, n_refused_by_rays, fragment_history,
              ray_history) = _confirm_debris(
-                _debris_units(detected, source_from_removal), positions_c, render_faces,
-                render_material, flat_materials, depth_tol, drop, side_exposure, profile)
-            is_fragment = np.zeros(mesh.n_faces, dtype=bool)
-            is_fragment[source_from_removal[detected.fragments]] = True
-            n_removed_fragments = int((confirmed & is_fragment).sum())
-            n_removed_slivers = int((confirmed & ~is_fragment).sum())
+                _debris_units(detected, source_from_removal, fold_members), positions_c,
+                render_faces, render_material, flat_materials, depth_tol, drop, side_exposure,
+                profile)
+            kind = np.zeros(mesh.n_faces, dtype=np.int8)       # 1 fragment, 2 sliver, 3 fold
+            kind[source_from_removal[detected.fragments]] = 1
+            kind[source_from_removal[detected.slivers]] = 2
+            kind[source_from_removal[fold_members]] = 3
+            n_removed_fragments = int((confirmed & (kind == 1)).sum())
+            n_removed_slivers = int((confirmed & (kind == 2)).sum())
+            n_removed_folds = int((confirmed & (kind == 3)).sum())
             n_restored_fragments = int((candidates & ~confirmed).sum())
             removed_fragments_full = confirmed
             fragment_removals = _fragment_removals(detected, confirmed, source_from_removal,
                                                    positions_c, centre, render_faces,
-                                                   fragment_ray_check)
+                                                   fragment_ray_check, covered_by)
             mesh_fragments, source_from_fragments = remove_faces(mesh_removed, confirmed[kept])
+        fold_report = _fold_report(folds, chosen, alone, source_from_removal, confirmed,
+                                   fragment_ray_check, positions_c, centre)
     source_after_fragments = source_from_removal[source_from_fragments]
 
     # ---- orientation: correct any survivor whose only real exposure was on its BACK ----------
@@ -789,7 +911,8 @@ def fix_object(mesh: MeshData, flatness: dict[str, float], profile: FixProfile =
         n_removed_fragments=n_removed_fragments, n_removed_slivers=n_removed_slivers,
         n_restored_fragments=n_restored_fragments, n_refused_by_rays=n_refused_by_rays,
         fragment_report=fragment_report, fragment_removals=fragment_removals,
-        fragment_ray_check=fragment_ray_check,
+        fragment_ray_check=fragment_ray_check, n_removed_folds=n_removed_folds,
+        fold_report=fold_report,
         removed_overlap=removed_overlap_full, restored_overlap=restored_overlap_full,
         n_overlap_pairs_same=overlap_result.report["n_overlap_pairs_same"],
         n_overlap_pairs_diff=overlap_result.report["n_overlap_pairs_diff"],

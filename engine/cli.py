@@ -194,6 +194,10 @@ def _build_report(name: str, obj_path: Path, mesh: MeshData, result: FixResult,
         "n_removed_slivers": result.n_removed_slivers,
         "n_restored_fragments": result.n_restored_fragments,
         "n_refused_by_rays": result.n_refused_by_rays,
+        "n_removed_folds": result.n_removed_folds,
+        # every fold (two faces folded onto the same side of their shared edge, the area covered
+        # twice), resolved or left, and why. See `engine.detectors.folds`.
+        "fold_report": result.fold_report,
         # component counts and the smallest components the size rules did NOT catch -- the
         # evidence for where the thresholds sit against this model. See `engine.detectors`.
         "fragment_report": result.fragment_report,
@@ -685,6 +689,7 @@ def cmd_preview_data(snapshot_dir: Path, out_dir: Path, profile: FixProfile | No
             "n_removed_slivers": int(result.n_removed_slivers),
             "n_restored_fragments": int(result.n_restored_fragments),
             "n_refused_by_rays": int(result.n_refused_by_rays),
+            "n_removed_folds": int(result.n_removed_folds),
             "n_overlap_pairs_same": int(result.n_overlap_pairs_same),
             "n_overlap_pairs_diff": int(result.n_overlap_pairs_diff),
             "n_removed_overlap": int(result.n_removed_overlap),
@@ -753,7 +758,8 @@ def build_parser() -> argparse.ArgumentParser:
     fix_p.add_argument("--no-solidify", dest="solidify", action="store_false",
                        help="do not close slabs with skirts and bottoms before fixing")
     fix_p.add_argument("--keep-fragments", dest="fragments", action="store_false",
-                       help="do not remove stray fragments and attached slivers")
+                       help="do not remove stray fragments, attached slivers or the redundant "
+                            "member of a fold")
     fix_p.add_argument("--out", default="data/output")
     fix_p.add_argument("--no-skp", dest="skp", action="store_false",
                        help="do not write the SketchUp file")

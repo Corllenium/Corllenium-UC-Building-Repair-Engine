@@ -1269,3 +1269,72 @@ def slab_with_needle_lying_on_top(size=2000.0, height=8.0, length=16.0, width=0.
         "slab_with_needle_lying_on_top",
         [[x - length / 2.0, y, lift], [x + length / 2.0, y, lift], [x, y + width, lift]],
         [(8, 9, 10)], size, height)
+
+
+def slab_with_folded_pair(size=40.0, height=8.0, apex=(0.6, 0.4), flip=False, material=0):
+    """A FOLD (brief 09 item 2), in a closed slab's top: faces 0 and 1 split the top along the
+    diagonal from `(0, 0)` to `(size, size)`, and face 2 -- the diagonal again, with its apex at
+    `apex * size`, on face 0's side of it -- is folded onto face 0: the two share that edge, lie
+    in one plane, and both lie on the same side of it, so the area of face 2 is covered twice.
+    With the apex inside face 0 (the default), face 2 lies wholly within face 0 and is the fold's
+    redundant member. `flip=True` winds face 2 the other way (-z), as a surface folded back on
+    itself is (file B's 5750/5751); by default it is wound like face 0 (+z), as file B's region-79
+    pair is. `material` is face 2's (material `m1` when 1). Faces 3-12 are the four sides and
+    the bottom (`_slab_from_top`)."""
+    s = float(size)
+    top = [((0, 0), (s, 0), (s, s)), ((0, 0), (s, s), (0, s)),
+           ((0, 0), (s, s), (apex[0] * s, apex[1] * s))]
+    m = _slab_from_top("slab_with_folded_pair", top, size, height, materials=("m0", "m1"),
+                       top_material=[0, 0, material])
+    if flip:
+        m.face_v[2] = m.face_v[2][::-1]
+        m.face_vt[2] = m.face_vt[2][::-1]
+    return m
+
+
+def slab_with_folded_lip_over_a_slot(size=2000.0, height=8.0, length=16.0, width=0.1,
+                                     slot=0.05, cover=0.02, beyond=1.0):
+    """File B's fold 5750/5751 in miniature (brief 09 item 2): `slab_with_lip_over_a_slot`'s
+    top, with one more face -- face 8, the COVER -- folded onto the lip across its long edge A-C:
+    the cover is A, C, E with E = (c + `cover`, y1 + `beyond`), in the top's plane and on the lip's
+    side of A-C. The cover reaches `beyond` in past the lip, so it does not lie within the lip;
+    the lip lies within the cover except for a sliver at most `cover` in wide along its base A-B
+    -- inside the merge's own border tolerance (0.15 in, printed), so the lip is the fold's
+    redundant member. But that sliver lies over the slot, so removing the lip opens it: the lip
+    has to be refused, and the fold left. The lip is no sliver here -- its long edge A-C is shared
+    with the cover -- so only the fold names it. Faces: 0 the lip, 1-7 as in
+    `slab_with_lip_over_a_slot`, 8 the cover, then the four sides and the bottom."""
+    s, c = float(size), float(size) / 2.0
+    y0 = c - length / 2.0
+    y1 = y0 + length
+    A, B, C, D = (c, y0), (c, y1), (c + width, y1), (c + slot, y1)
+    E = (c + cover, y1 + beyond)
+    top = [(A, B, C),
+           ((0, 0), (c, 0), (c, s)), ((0, 0), (c, s), (0, s)),
+           ((c, 0), (s, 0), A), (A, (s, 0), D), (D, (s, 0), (s, s)), (D, (s, s), (c, s)),
+           (D, (c, s), B),
+           (A, C, E)]
+    return _slab_from_top("slab_with_folded_lip_over_a_slot", top, size, height)
+
+
+def plate_with_crossing_fold():
+    """File B's merge region 79 in miniature (brief 09 item 2), as a bare plate at `z = 0`: two
+    faces on one edge, from (0, 0) to (0, 10), with both apexes on the same side of it -- face 0's
+    at (10, 8), face 1's at (10, 2) -- so each reaches far past the other. The area near the edge
+    is covered twice and the rest once, by one face or the other, and by nothing else."""
+    P = [[0.0, 0.0, 0.0], [0.0, 10.0, 0.0], [10.0, 8.0, 0.0], [10.0, 2.0, 0.0]]
+    fv = [[0, 1, 2], [0, 1, 3]]
+    uvs = (np.asarray(P)[np.asarray(fv).reshape(-1)][:, :2] * 0.05).tolist()
+    return _mesh("plate_with_crossing_fold", P, uvs, fv, np.arange(6).reshape(-1, 3).tolist())
+
+
+def slab_with_fold_lying_on_top(size=40.0, height=8.0):
+    """A fold both of whose members the rest of the model covers (brief 09 item 2): the closed
+    slab of `slab_with_stub_on_t_junctions`, and faces 12 and 13 lying in top face 0's plane,
+    inside it, sharing the edge (22, 5)-(34, 5) with both apexes on the same side -- face 12's at
+    (28, 8), 18 sq in, and face 13's at (30, 14), 54 sq in. Whichever goes, the other and the top
+    under both still cover it."""
+    return _slab_on_its_diagonal("slab_with_fold_lying_on_top",
+                                 [[22.0, 5.0, 0.0], [34.0, 5.0, 0.0], [28.0, 8.0, 0.0],
+                                  [30.0, 14.0, 0.0]],
+                                 [(8, 9, 10), (8, 9, 11)], size, height)

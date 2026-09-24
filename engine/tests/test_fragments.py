@@ -533,8 +533,8 @@ def test_the_final_guard_judges_what_a_removed_fragment_uncovered(monkeypatch):
 
     def rays_confirm_it(units, *_a, marked=None, **_kw):
         marked = np.ones(len(units), dtype=bool) if marked is None else marked.copy()
-        verdicts = [{"faces": [int(f) for f in u], "points": 0, "lines": 0, "lines_inside": 0,
-                     "inside_faces": [], "refused": False} for u in units]
+        verdicts = [{"faces": [int(f) for f in u], "points": 0, "lines": 0, "lines_level": 0,
+                     "lines_inside": 0, "inside_faces": [], "refused": False} for u in units]
         return PieceRayCheck(confirmed=marked, verdicts=verdicts, history=[])
 
     def confirms_it(candidates, *_a, **_kw):

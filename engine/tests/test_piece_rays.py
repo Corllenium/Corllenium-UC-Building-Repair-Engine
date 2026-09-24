@@ -15,7 +15,7 @@ import pytest
 import engine.fixes.pipeline as fix_pipeline
 from engine.detectors.fragments import FragmentResult
 from engine.fixes.pipeline import FixProfile, fix_object
-from engine.guard.piece_rays import piece_ray_check, strata_points
+from engine.guard.piece_rays import judge_alone, piece_ray_check, strata_points
 from engine.pipeline import analyse_topology
 from engine.rays.caster import EmbreeCaster
 from engine.tests.fixtures.build import (printed, slab_with_interior_strip,
@@ -147,11 +147,86 @@ def test_a_double_layer_lying_on_a_coplanar_face_is_confirmed(lift):
     assert v["lines"] > 0 and v["lines_inside"] == 0
 
 
+def test_a_face_level_with_the_piece_was_seen_along_the_same_line():
+    """A line that, with the piece gone, meets a face LEVEL with it -- a double layer, or a fold's
+    other member -- met that same face at the same place on the reference, tied with the piece:
+    whatever the sampled exposure says of its side, it is no inside of a shell. Measured on the
+    real references: file A's fold member 3059 was seen along 684 lines and file B's 2254 along
+    29, every one of which met its fold partner (3082, 2253) level with it, on a side the
+    exposure's 4 points x 128 directions had never found (0.0 on both sides of B's 2253)."""
+    from engine.tests.fixtures.build import slab_with_folded_pair
+    m = slab_with_folded_pair()
+    pc, faces, exposed = _setup(m)
+    blind = exposed.copy()
+    blind[0] = False                    # as if the sampling had missed both sides of the cover
+    v = piece_ray_check([np.array([2])], pc, faces, blind, directions=fib_dirs(32)).verdicts[0]
+    assert v["lines"] > 0 and v["lines_inside"] == 0 and v["refused"] is False
+    # ...and the exposure still decides for a face met anywhere else: with the cover already gone
+    # from under the member, its lines fall through onto the inside of the slab
+    gone = np.zeros(len(faces), dtype=bool)
+    gone[0] = True
+    alone = piece_ray_check([np.array([2])], pc, faces, blind, directions=fib_dirs(32),
+                            already_removed=gone).verdicts[0]
+    assert alone["refused"] is True and alone["lines_level"] == 0
+    assert alone["lines_inside"] == alone["lines"] > 0
+
+
+def test_a_piece_that_must_stay_covered_goes_only_where_every_line_meets_a_level_face():
+    """A fold's redundant member is no debris: its removal may change nothing at all, so it is
+    judged `covered` -- refused unless every line along which it was seen still meets a face
+    level with it. Face 2 of the folded pair lies within face 0: covered. Face 0 does not lie
+    within face 2: refused. Judged together, each loses the other."""
+    from engine.tests.fixtures.build import slab_with_folded_pair
+    m = slab_with_folded_pair()
+    pc, faces, exposed = _setup(m)
+
+    def check(units):
+        return piece_ray_check([np.array(u) for u in units], pc, faces, exposed,
+                               directions=fib_dirs(32), covered=[True] * len(units))
+
+    member = check([[2]]).verdicts[0]
+    assert member["refused"] is False and member["lines_level"] == member["lines"] > 0
+    cover = check([[0]]).verdicts[0]
+    assert cover["refused"] is True and cover["lines_level"] < cover["lines"]
+    # together neither is covered; face 0 fails even judged alone, so it is put back first, and
+    # face 2 -- judged again with face 0 in place -- is covered and goes
+    both = check([[2], [0]])
+    assert both.confirmed.tolist() == [True, False]
+    assert [h["refused"] for h in both.history] == [1, 0]
+
+
+def test_a_piece_that_must_stay_covered_is_refused_where_debris_would_go():
+    """On a bare plate, a member of a crossing fold uncovers only the sky beyond its partner --
+    which debris may, and a covered piece may not."""
+    from engine.tests.fixtures.build import plate_with_crossing_fold
+    m = plate_with_crossing_fold()
+    pc, faces, exposed = _setup(m)
+    debris = piece_ray_check([np.array([0])], pc, faces, exposed, directions=fib_dirs(32))
+    assert debris.confirmed.tolist() == [True] and debris.verdicts[0]["lines_inside"] == 0
+    cover = piece_ray_check([np.array([0])], pc, faces, exposed, directions=fib_dirs(32),
+                            covered=[True])
+    assert cover.confirmed.tolist() == [False]
+    assert 0 < cover.verdicts[0]["lines_level"] < cover.verdicts[0]["lines"]
+
+
+def test_judged_alone_each_piece_is_followed_on_with_only_itself_gone():
+    """Which member of a fold may go is decided by judging each one ALONE, the other in place."""
+    from engine.tests.fixtures.build import slab_with_folded_pair
+    m = slab_with_folded_pair()
+    pc, faces, exposed = _setup(m)
+    member, cover = judge_alone([np.array([2]), np.array([0])], pc, faces, exposed,
+                                directions=fib_dirs(32))
+    assert member["lines"] > 0 and member["lines_level"] == member["lines"]
+    assert cover["lines_level"] < cover["lines"] and cover["lines_inside"] > 0
+
+
 def test_the_lines_are_followed_on_with_every_marked_piece_gone():
     """Brief 08's fold pair 5750/5751 at 670ad50: each of two pieces covers the other, so either
     one alone may go -- and the two together open the crack. The check judges each piece with
-    EVERYTHING marked for removal gone, never one at a time. Here the lip is doubled by a copy of
-    itself wound the other way (face 18)."""
+    EVERYTHING marked for removal gone, never one at a time; and when several fail, it puts back
+    one per round -- one that fails even judged alone, else the lowest -- and judges the rest
+    again with it in place, so of two pieces covering each other exactly one stays. Here the lip
+    is doubled by a copy of itself wound the other way (face 18)."""
     from dataclasses import replace
     m = printed(slab_with_lip_over_a_slot())
     lip = m.face_v[0]
@@ -163,7 +238,10 @@ def test_the_lines_are_followed_on_with_every_marked_piece_gone():
     alone = _check(twin, [[0]])
     assert alone.confirmed.tolist() == [True]           # its twin still covers the slot
     both = _check(twin, [[0], [18]])
-    assert both.confirmed.tolist() == [False, False]
+    # together both open the slot, and neither does alone: the lowest, the lip, is put back, and
+    # the twin -- judged again with the lip in place -- goes
+    assert both.confirmed.tolist() == [False, True]
+    assert both.verdicts[0]["lines_inside"] > 0 and both.verdicts[1]["lines_inside"] == 0
 
 
 def test_the_ray_check_is_deterministic():
