@@ -6,8 +6,8 @@
     viewer/documentation artifact), a copy of `materials.mtl` and `tex/`, `report.json` (every
     number in `FixResult`, both guard reports per view, the profile, the input sha256), and
     `guard_<view>.png` before/after/difference triptychs for 6 axis views, and the 21-image
-    visual QA sheet under `qa/` (`engine.guard.qa_render`). Exit code 0 when `passed`, 2
-    otherwise.
+    visual QA sheet under `qa/` (`engine.guard.qa_render`; a failure to draw it is recorded in
+    report.json's `qa` and does not fail the run). Exit code 0 when `passed`, 2 otherwise.
 
     It also writes `<name>.fixed.skp` (`engine.io.skp_writer`, through SketchUp's own C API) and
     copies it -- the LATEST, overwriting the previous one -- into `<repo root>/OBJ FIXED RESULT/`,
@@ -43,7 +43,7 @@ from PIL import Image
 from engine.fixes.pipeline import FixProfile, FixResult, fix_object, guard_depth_tol
 from engine.guard.compare import (PX_FRAGMENT_REMOVED, GuardReport, ViewVerdict, classify_pixels,
                                   face_planes)
-from engine.guard.qa_render import polygon_edges, write_qa_sheet
+from engine.guard.qa_render import polygon_edges, qa_file_names, write_qa_sheet
 from engine.guard.render import save_triptych
 from engine.guard.views import VIEWS_26, ortho_first_hit
 from engine.io.mtl import MtlMaterial, parse_mtl, texture_flatness
@@ -348,8 +348,10 @@ def _write_skp(result: FixResult, name: str, out_dir: Path, flat_materials: froz
     (created if needed; the copy replaces the previous run's), returning report.json's `skp`
     block: `engine.io.skp_writer.write_skp`'s own report plus `written`, `copied_to` and
     `sketchup_check_changed` (whether SketchUp's own validity fix would change the file; False
-    is the expected answer). A missing SketchUp, or any SketchUp API failure, does not fail the
-    run: the block says `written: false` and why, and no stale `.skp` is left in the run dir."""
+    is the expected answer). A missing SketchUp, any SketchUp API failure, or any other exception
+    (a ctypes access violation surfaces as `OSError`) does not fail the run: the block says
+    `written: false` and why -- with the exception's type as `error` when it is not a
+    `SketchUpError` -- and no stale `.skp` is left in the run dir."""
     if not enabled:
         return {"written": False, "reason": "disabled by --no-skp"}
     path = out_dir / f"{name}.fixed.skp"
@@ -362,9 +364,12 @@ def _write_skp(result: FixResult, name: str, out_dir: Path, flat_materials: froz
                             parse_mtl(mtl_path) if mtl_path.exists() else {}, path,
                             tex_dir=out_dir / "tex")
         check = check_skp_validity(path)
-    except Exception as exc:
+    except SketchUpError as exc:
         path.unlink(missing_ok=True)
         return {"written": False, "reason": str(exc)}
+    except Exception as exc:     # e.g. a ctypes access violation, which surfaces as OSError
+        path.unlink(missing_ok=True)
+        return {"written": False, "error": type(exc).__name__, "reason": str(exc)}
     out = {"written": True, **written, "sketchup_check_changed": check["changed"],
            "copied_to": None}
     if copy_dir is not None:
@@ -419,13 +424,24 @@ def cmd_fix(snapshot_dir: Path, out_root: Path, accept_slit: bool,
     # every polygon the export writes (the merge's rings, or every triangle edge when the merge
     # was rolled back and there are none), hidden lines removed. More than SketchUp will draw:
     # the writer also hides gridlines, coplanar same-material edges and T-junction lines, which
-    # this sheet still draws. See `engine.guard.qa_render`.
-    qa = write_qa_sheet(result.mesh, polygon_edges(result.mesh, result.rings), out_dir / "qa",
-                        size=profile.qa_size)
+    # this sheet still draws. See `engine.guard.qa_render`. Like the `.skp` below it is an
+    # optional export: a failure is recorded in report.json (`qa`) and does not decide `passed`,
+    # and the previous run's pictures are deleted first, so none of them is left looking current.
+    qa_dir = out_dir / "qa"
+    for stale in qa_file_names():
+        (qa_dir / stale).unlink(missing_ok=True)
+    try:
+        qa = write_qa_sheet(result.mesh, polygon_edges(result.mesh, result.rings), qa_dir,
+                            size=profile.qa_size)
+        qa_report = {"written": True, "images": len(qa)}
+    except Exception as exc:
+        qa_report = {"written": False, "error": type(exc).__name__, "reason": str(exc),
+                     "images": sum((qa_dir / name).exists() for name in qa_file_names())}
 
     skp_report = _write_skp(result, name, out_dir, flat_materials, profile, skp, skp_dir)
 
     report = _build_report(name, obj_path, mesh, result, profile)
+    report["qa"] = qa_report
     report["skp"] = skp_report
     (out_dir / "report.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
 
@@ -437,7 +453,11 @@ def cmd_fix(snapshot_dir: Path, out_root: Path, accept_slit: bool,
               f"{sr['faces_newly_hidden']} faces newly hidden, {sr['runtime_s']}s")
     print(f"{name}: {mesh.n_faces} -> {result.mesh.n_faces} tris, passed={result.passed}, "
           f"border_shift={result.guard_final.totals['border_shift']}")
-    print(f"  wrote {out_dir} (and {len(qa)} QA images under qa/)")
+    if qa_report["written"]:
+        print(f"  wrote {out_dir} (and {qa_report['images']} QA images under qa/)")
+    else:
+        print(f"  wrote {out_dir}; QA sheet NOT written: {qa_report['error']}: "
+              f"{qa_report['reason']}")
     if skp_report["written"]:
         hidden = sum(skp_report[k] for k in ("soft_edges", "gridline_edges_softened",
                                              "coplanar_edges_softened", "tjunction_lines_softened"))

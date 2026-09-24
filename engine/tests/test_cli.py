@@ -632,6 +632,8 @@ def test_cmd_fix_writes_the_21_file_qa_sheet(tmp_path):
     assert len(qa_file_names()) == 21
     for p in qa.iterdir():
         assert p.stat().st_size > 0
+    report = json.loads((out_root / m.name / "report.json").read_text(encoding="utf-8"))
+    assert report["qa"] == {"written": True, "images": 21}
 
 
 # ---------------------------------------------------------------------------------------------
@@ -897,3 +899,65 @@ def test_preview_data_counts_grown_pixels_as_damage(tmp_path, monkeypatch):
     stats = json.loads((out_dir / f"{m.name}.json").read_text(encoding="utf-8"))["stats"]
     assert stats["guard_passed"] is False
     assert stats["guard_damaged_px"] == 5
+
+
+# ---------------------------------------------------------------------------------------------
+# Review part 1 M8, pinned by review 2a Minor 7: an unexpected exception in either optional export
+# -- the QA sheet or the SketchUp file -- leaves no stale report.json from the previous run beside
+# the new OBJs, and is recorded in the new one. Neither export decides `passed`: the run's numbers
+# and files still land, exactly as they do when SketchUp is simply not installed.
+# ---------------------------------------------------------------------------------------------
+
+def _stale_run_dir(tmp_path, m):
+    out_dir = tmp_path / "out" / m.name
+    (out_dir / "qa").mkdir(parents=True)
+    (out_dir / "report.json").write_text('{"stale": true}', encoding="utf-8")
+    (out_dir / f"{m.name}.fixed.skp").write_bytes(b"the previous run's skp")
+    (out_dir / "qa" / "top.png").write_bytes(b"the previous run's picture")
+    return out_dir
+
+
+def test_a_non_sketchup_exception_in_the_skp_step_is_recorded_and_leaves_nothing_stale(
+        tmp_path, monkeypatch):
+    """`_write_skp` used to catch only `SketchUpError`; a ctypes access violation surfaces as an
+    `OSError` and took the whole run down after the OBJs were written."""
+    m = box_with_partition()
+    snap_dir = _write_snapshot(tmp_path, m)
+    out_dir = _stale_run_dir(tmp_path, m)
+    owner = tmp_path / "OBJ FIXED RESULT"
+
+    def access_violation(*_a, **_kw):
+        raise OSError("exception: access violation reading 0x0000000000000000")
+
+    monkeypatch.setattr(cli, "write_skp", access_violation)
+    assert cli.cmd_fix(snap_dir, tmp_path / "out", accept_slit=False, profile=_FAST,
+                       skp_dir=owner) == 0
+    report = json.loads((out_dir / "report.json").read_text(encoding="utf-8"))
+    assert "stale" not in report and report["passed"] is True
+    assert report["skp"] == {"written": False, "error": "OSError",
+                             "reason": "exception: access violation reading 0x0000000000000000"}
+    assert not (out_dir / f"{m.name}.fixed.skp").exists()       # no stale .skp either
+    assert not owner.exists()                                     # and nothing copied
+
+
+def test_a_qa_step_exception_is_recorded_and_leaves_nothing_stale(tmp_path, monkeypatch, capsys):
+    """The QA sheet used to raise straight through `cmd_fix`: no report.json (the previous one
+    already deleted, so at least not a stale one), no `.skp`, and the previous run's pictures
+    still in qa/ looking current. It is now recorded like the `.skp` step, and the previous
+    pictures are gone before a single new one is drawn."""
+    m = box_with_partition()
+    snap_dir = _write_snapshot(tmp_path, m)
+    out_dir = _stale_run_dir(tmp_path, m)
+
+    def device_lost(*_a, **_kw):
+        raise RuntimeError("embree device lost")
+
+    monkeypatch.setattr(cli, "write_qa_sheet", device_lost)
+    assert cli.cmd_fix(snap_dir, tmp_path / "out", accept_slit=False, profile=_FAST,
+                       skp=False) == 0
+    report = json.loads((out_dir / "report.json").read_text(encoding="utf-8"))
+    assert "stale" not in report and report["passed"] is True
+    assert report["qa"] == {"written": False, "error": "RuntimeError",
+                            "reason": "embree device lost", "images": 0}
+    assert list((out_dir / "qa").iterdir()) == []
+    assert "QA sheet NOT written" in capsys.readouterr().out
