@@ -93,9 +93,10 @@ def snap_tolerance(thickness: float, floor: float = SNAP_TOL) -> float:
     0.008 in thick at the median, 0.11 in at most. 3,415 coordinates land within 7.1e-5 in (half
     a grid cell's diagonal) of a vertex, 24 more within 4.0e-4 in, and one at 0.0016 in: the apex
     of file B's ramp, 0.0085 in thick, whose fan edges meet 0.3 to 4.4 degrees apart there. All
-    25 are tips at a vertex of a non-axis-aligned region, none beyond 0.19 of that region's
-    thickness; unions of subsets of the same ramp put its tips 0.0008 to 0.0053 in out, still
-    inside 0.0085. The one coordinate left is 7.87 in from every vertex (file A): the corner of a
+    25 lie on non-axis-aligned regions, none beyond 0.19 of that region's thickness; 24 are tips
+    at a vertex (every edge within 2e-4 in of them ends at it, the narrowest angle there 0.3 to
+    37 degrees) and one, 8.9e-5 in out on file A's lattice, is a T-junction sliver's corner.
+    Unions of subsets of the same ramp put its tips 0.0008 to 0.0053 in out, still inside 0.0085. The one coordinate left is 7.87 in from every vertex (file A): the corner of a
     T-junction sliver, which no tolerance should read as a vertex and `_pieces` closes instead."""
     return min(max(float(floor), float(thickness)), SNAP_TOL_MAX)
 
@@ -451,9 +452,10 @@ def _pieces(union, vertex_xy: np.ndarray, vertex_ids: np.ndarray, snap_tol: floa
         all 274 triangles up as `new_vertex`. A T-junction sliver whose corners do snap can snap
         to three or four distinct COLLINEAR vertices -- file B's ramp has one of each -- and a
         rebuilt polygon cannot carry that zero-width hole: the region went `invalid_polygon`.
-    Measured on the merge inputs of both real files: every sliver is 5e-5 to 9e-5 in wide by this
-    measure, every real opening at least 0.25 in (the export prints to 0.01 in); the bound, 2e-4
-    in, sits more than twice above the one and a thousand times below the other.
+    Measured over every region of the merge inputs of both real files: 13 of the 33 union holes
+    are slivers, 5.0e-5 to 8.9e-5 in wide by this measure; the other 20 are openings at least
+    0.25 in wide, and no outer ring is narrower than 0.75 in (the export prints to 0.01 in). The
+    bound, 2e-4 in, sits more than twice above the one and a thousand times below the other.
 
     A ring that is not a sliver is kept as the SIMPLE cycles its snapped ids form
     (`_simple_cycles`); a cycle of fewer than 3 ids is dropped, because no three existing vertices
