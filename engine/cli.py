@@ -415,9 +415,11 @@ def cmd_fix(snapshot_dir: Path, out_root: Path, accept_slit: bool,
     positions_c = topo.positions_w - centre
     _write_guard_images(reference, result, profile, flat_materials, topo, positions_c, out_dir)
 
-    # The picture a person checks before trusting the run: the SHIPPED mesh, with the edges the
-    # SketchUp export will draw (the merge's rings, or every triangle edge when the merge was
-    # rolled back and there are none), hidden lines removed. See `engine.guard.qa_render`.
+    # The picture a person checks before trusting the run: the SHIPPED mesh, with the outline of
+    # every polygon the export writes (the merge's rings, or every triangle edge when the merge
+    # was rolled back and there are none), hidden lines removed. More than SketchUp will draw:
+    # the writer also hides gridlines, coplanar same-material edges and T-junction lines, which
+    # this sheet still draws. See `engine.guard.qa_render`.
     qa = write_qa_sheet(result.mesh, polygon_edges(result.mesh, result.rings), out_dir / "qa",
                         size=profile.qa_size)
 

@@ -3,10 +3,16 @@
 WHY. Every number the pipeline reports is a claim about pictures -- the guards compare renders
 pixel by pixel -- yet none of those pictures is one a person would look at: the triptychs are
 diagnostic, one image per axis. This sheet is what a person checks before trusting a run: the
-fixed mesh shaded, with the EDGES SKETCHUP WILL DRAW, hidden lines removed, from 12 directions and
-9 close-ups. A missing face, a stray triangle, a gridline a merge failed to dissolve or a skirt
-hanging where it should not are all visible here at a glance, and none of them is visible in
-report.json.
+fixed mesh shaded, with the outline of every POLYGON the export writes, hidden lines removed, from
+12 directions and 9 close-ups. A missing face, a stray triangle, a gridline a merge failed to
+dissolve or a skirt hanging where it should not are all visible here at a glance, and none of
+them is visible in report.json.
+
+It is NOT the set of edges SketchUp will draw, and over-draws it: the SketchUp writer also hides
+the gridlines and soft creases of copied-through triangles, every edge between two coplanar
+faces of one material, and every T-junction line lying on a flat surface
+(`engine.io.skp_writer`), and this sheet draws all of those. A line on the sheet may therefore
+be hidden in the `.skp`; a line missing from the sheet is not drawn there either.
 
 WHICH EDGES. `polygon_edges` builds them from the merge's own rings: a merged region is drawn as
 its outer loop AND its inner loops (the SketchUp export carries holes, even though the ngon OBJ

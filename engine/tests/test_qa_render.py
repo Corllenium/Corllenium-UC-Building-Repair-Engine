@@ -1,5 +1,6 @@
-"""F2: the visual QA sheet -- 12 views and 9 close-ups of the fixed mesh, shaded, with the edges
-SketchUp will draw and hidden lines removed."""
+"""F2: the visual QA sheet -- 12 views and 9 close-ups of the fixed mesh, shaded, with the outline
+of every polygon the export writes (more than SketchUp will draw -- see `engine.guard.qa_render`)
+and hidden lines removed."""
 import numpy as np
 from PIL import Image
 

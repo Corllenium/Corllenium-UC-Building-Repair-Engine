@@ -1493,7 +1493,7 @@ def test_a_removed_face_narrower_than_the_ring_is_never_excused_as_a_closed_crac
 # failing pixel was at most 0.062 in from the other mesh -- far inside the 0.15 in the merge may
 # move a border -- but a per-view pixel COUNT cannot tell that from damage: an edge lying almost
 # on a row of pixel centres flips the whole run for a 0.013 in shift. `border_shift_tol` measures
-# how far the surface under each flicker pixel really moved instead.
+# instead each flicker pixel's clearance to the nearest triangle of the other mesh.
 # ---------------------------------------------------------------------------------------------
 
 import engine.guard.compare as guard_compare

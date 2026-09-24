@@ -313,7 +313,10 @@ def classify_pixels(before_depth: np.ndarray, before_tri: np.ndarray,
                      exposed_after: np.ndarray | None = None) -> np.ndarray:
     """Per-pixel verdict code, same shape as the inputs (uint8, one of the `PX_*` constants), in
     this priority order: `PX_FRAGMENT_REMOVED` (BEFORE's first hit is a face `removed_before`
-    marks and AFTER shows what it may, see below); `PX_HOLE` (hit before, miss after); `PX_MATERIAL_CHANGED` (both hit,
+    marks and AFTER shows what it may, see below); `PX_HOLE` (hit before, miss after);
+    `PX_GROWN` (miss before, hit after: surface appeared over the sky -- a failure symmetric to a
+    hole, which the ring and the border-shift measurement may excuse exactly as they excuse a
+    loss); `PX_MATERIAL_CHANGED` (both hit,
     `material_before[before_tri] != material_after[after_tri]`); `PX_MOVED_SAME_FLAT` /
     `PX_MOVED_OTHER` (both hit, same material, the visible surface moved further than `depth_tol`
     -- `_SAME_FLAT` when that material index is in `flat_materials`, `_OTHER` otherwise); `PX_OK`
@@ -322,7 +325,7 @@ def classify_pixels(before_depth: np.ndarray, before_tri: np.ndarray,
     A pixel whose base class FAILS under the current strictness is then re-checked, in this order,
     by the TIE test, the CRACK test and the RING test, and promoted to `PX_ZFIGHT_TIE`,
     `PX_CRACK_CLOSED` or `PX_EDGE_FLICKER` if one of them passes. "Fails under the current
-    strictness" means `PX_HOLE`, `PX_MATERIAL_CHANGED` or
+    strictness" means `PX_HOLE`, `PX_GROWN`, `PX_MATERIAL_CHANGED` or
     `PX_MOVED_OTHER` always, and `PX_MOVED_SAME_FLAT` only when `strict` -- see `_failing_base`. A
     base class the caller already TOLERATES keeps its class: promoting it would move a tolerated
     pixel into `edge_flicker`, which IS capped, so a non-strict run could fail on pixels it had
@@ -404,17 +407,29 @@ def classify_pixels(before_depth: np.ndarray, before_tri: np.ndarray,
 
     THE BORDER-SHIFT MEASUREMENT, the last step. Given `border` (build one with `_border_probe`;
     `compare_views` does, at its `border_shift_tol`), every `PX_EDGE_FLICKER` pixel whose BASE
-    class is a hole or a move is MEASURED, and becomes `PX_BORDER_SHIFT` when the surface under
-    it really moved no further than that tolerance. Where something DISAPPEARED -- AFTER's ray
-    missed, or met the scene further away than BEFORE's -- the displacement is the distance from
-    BEFORE's hit point to the nearest AFTER triangle; where something APPEARED -- AFTER's ray met
-    the scene nearer, or BEFORE's missed -- it is the distance from AFTER's hit point to the
-    nearest BEFORE triangle. Exact point-to-triangle distances, over EVERY triangle of the other
-    mesh whatever plane it lies in: quantised sloped faces are not coplanar within 0.05 in, so a
-    same-plane filter finds nothing to measure against. A flicker pixel rescued from a MATERIAL
-    change is never measured -- a surface that changed colour did not move -- and one measured
-    further than the tolerance stays `PX_EDGE_FLICKER`, capped exactly as before. A border-shift
-    pixel is never a failure, never capped, and counted on its own (`border_shift`).
+    class is a hole, a move or GROWTH (`PX_GROWN`: BEFORE saw the sky, AFTER sees surface) is
+    MEASURED, and becomes `PX_BORDER_SHIFT` when its CLEARANCE -- the distance from its hit point
+    to the nearest triangle of the OTHER mesh -- is within that tolerance. Where something
+    DISAPPEARED -- AFTER's ray missed, or met the scene further away than BEFORE's -- that is the
+    distance from BEFORE's hit point to the nearest AFTER triangle; where something APPEARED --
+    AFTER's ray met the scene nearer, or BEFORE's missed, which is every grown pixel -- it is the
+    distance from AFTER's hit point to the nearest BEFORE triangle. Exact point-to-triangle
+    distances, over EVERY triangle of the other mesh whatever plane it lies in: quantised sloped
+    faces are not coplanar within 0.05 in, so a same-plane filter finds nothing to measure
+    against. A flicker pixel rescued from a MATERIAL change is never measured -- a surface that
+    changed colour did not move -- and one measured further than the tolerance stays
+    `PX_EDGE_FLICKER`, capped exactly as before. A border-shift pixel is never a failure, never
+    capped, and counted on its own (`border_shift`).
+
+    A CLEARANCE, NOT HOW FAR THIS SURFACE MOVED. The nearest triangle of the other mesh need not
+    be the surface the pixel lost or gained: where a lost strip lies between the retreating
+    border and some other surface at the old border (a skirt, say), the clearance is to the
+    nearer of the two, so at grazing views a strip up to twice the tolerance wide can read as
+    within it; and a slit whose every point lies within the tolerance of the surface left on
+    either side reads as a border shift. It bounds how far the nearest surface lies, which is the
+    merge's own promise (a border moved by at most its collinear tolerance), and nothing more --
+    which is why the fragment detector refuses a sliver that is not on an open border instead of
+    leaving that to this measurement (`engine.detectors.fragments`).
 
     WHY A MEASUREMENT AND NOT A COUNT. The ring says a boundary within its radius COULD explain a
     pixel -- in the IMAGE plane, so seen at grazing incidence it spans inches of surface -- and
@@ -584,7 +599,9 @@ def _classify(before_depth: np.ndarray, before_tri: np.ndarray,
         promotable = _promote(promotable, crack, PX_CRACK_CLOSED)
         _promote(promotable, steady[~crack], PX_EDGE_FLICKER)
 
-    # ---- border shift: how far did the surface under a flicker pixel REALLY move? ------------
+    # ---- border shift: how close is the OTHER mesh to a flicker pixel's hit point? ----------
+    # (a clearance to its nearest triangle, not how far this pixel's own surface moved -- see
+    # `classify_pixels`)
     if border is not None and origins is not None and direction is not None:
         shift = (codes == PX_EDGE_FLICKER) & ((base == PX_HOLE) | (base == PX_MOVED_SAME_FLAT)
                                                | (base == PX_MOVED_OTHER) | (base == PX_GROWN))
