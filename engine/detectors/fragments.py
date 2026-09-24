@@ -50,22 +50,47 @@ component that survives all of this is reported with its size, so the thresholds
 with against real numbers rather than asserted.
 
 A SLIVER is a single face inside a component that is NOT a fragment candidate -- so, attached to
-something real -- whose polygon quality `4 * pi * area / perimeter^2` is below
-`FixProfile.sliver_q` (0.02) AND whose own area is at most `fragment_max_area` AND whose WIDTH --
-twice its area over its longest edge, the furthest any point of it lies from that edge -- is at
-most `FixProfile.sliver_max_width` (0.15 in). That quality is 1 for a circle and about 0.6 for an
-equilateral triangle; 0.02 is a needle roughly 1:150. It is reported separately from fragments
-because it is a different claim: a fragment is debris, a sliver is a real surface's ragged edge.
+something real -- that is THIN and lies on a BORDER. Thin: its polygon quality
+`4 * pi * area / perimeter^2` is below `FixProfile.sliver_q` (0.02), its own area is at most
+`fragment_max_area`, and its WIDTH -- twice its area over its longest edge, the furthest any point
+of it lies from that edge -- is at most `max_width`. That quality is 1 for a circle and about 0.6
+for an equilateral triangle; 0.02 is a needle roughly 1:150. On a border: one of its LONG edges
+is OPEN (below). It is reported separately from fragments because it is a different claim: a
+fragment is debris, a sliver is a real surface's ragged edge.
 
-THE WIDTH IS WHAT REMOVING A SLIVER MOVES THE SURFACE BY: every point of it lies within its width
-of the surface left on either side. Bounded by 0.15 in -- the distance the merge itself may move
-a border on both real files, and the displacement the final guard measures and excuses as a
-border shift -- a sliver's removal is a change the rest of the engine already names and bounds.
-Without the bound the rule named real surface: measured on the solidified references, the
-slivers it removed were 0.0007 to 0.047 in wide except six strips of real surface 0.19 to 0.26 in
-wide and 30 to 40 in long -- file A's faces 3203 and 3401 inside an underside, file B's faces 692,
-698, 1804 and 2734 inside walls (692 and 698 are the two faces of one wall, so removing both left
-a see-through slit). The guard met none of them: they are a fraction of a pixel wide.
+A SLIVER IS A RAGGED BORDER, NEVER A STRIP OF THE MIDDLE. Removing a face through one of its
+edges moves the border that edge belonged to onto the face's two other edges, and no point of the
+face lies further from those than the opposite corner's height over the removed edge. So a thin
+face with an OPEN LONG edge -- one whose opposite corner lies within `max_width` of it, that no
+other face uses, and that has no T-junction partner (no other face's vertex lies inside it, and it
+lies inside no other face's edge) -- is a ragged border, and removing it moves that border by at
+most `max_width`. A thin face whose long edges are all shared or T-joined is a strip of the
+surface's MIDDLE, and removing it opens a SLIT onto whatever lies behind. Every lost point still
+lies within the strip's width of the surface left on either side, so the final guard's
+border-shift measurement (a clearance to the nearest triangle) would excuse the slit, and at the
+real files' guard size no guard ray meets it at all. Review 2a C1: a 29.5 in strip 0.05 to 0.14 in
+wide, sandwiched in the top of a 2000 in slab, was removed with `passed` True, and 97 of 97 rays
+cast down it fell through onto the inside of the bottom. Such a face is counted
+(`n_sandwiched_thin_faces`) and kept; inside a flat region the merge's re-triangulation dissolves
+it anyway, with no area lost. A needle whose only open edge is its SHORT end is sandwiched too:
+removing it would open a crack as long as the needle, which is why only a long edge counts.
+
+A PARTNER BELONGS TO ONE EDGE. A face thinner than `contact_tol` has all three of its edges
+within `contact_tol` of each other, so a vertex or edge of another face that lies on one of them
+lies "on" all three by the tolerance alone. Each is therefore given to the edge of the thin face
+it lies NEAREST, and a face's own corners are never partners of its own edges.
+
+`max_width` IS THE MERGE'S OWN BORDER TOLERANCE, derived per mesh by the caller
+(`engine.fixes.pipeline.sliver_width_bound`: `default_collinear_tol`, clamped exactly like the
+final guard's border-shift tolerance): the distance the merge itself may move a border, and the
+displacement the final guard measures and excuses as a border shift -- 0.15 in on both real
+files. It used to be the constant 0.15, right for the real files' 0.1 in print step and 1,000
+times too wide for a model printed to 1e-4 in. Before any width bound the rule named real
+surface: measured on the solidified references, the slivers it removed were 0.0007 to 0.047 in
+wide except six strips of real surface 0.19 to 0.26 in wide and 30 to 40 in long -- file A's faces
+3203 and 3401 inside an underside, file B's faces 692, 698, 1804 and 2734 inside walls (692 and
+698 are the two faces of one wall, so removing both left a see-through slit). The guard met none
+of them: they are a fraction of a pixel wide.
 
 THE AREA BOUND IS NOT AN EXTRA THRESHOLD, it is the same one the component rule already applies
 ("never a component holding a face bigger than `fragment_max_area` on its own"), and leaving it
@@ -236,8 +261,30 @@ def _coplanar_contacts(positions_w: np.ndarray, face_w: np.ndarray, tol: float) 
     return pairs[_triangle_gap(flat_a, flat_b) <= tol]
 
 
-def _components(positions_w: np.ndarray, face_w: np.ndarray,
-                contact_tol: float) -> tuple[np.ndarray, dict]:
+@dataclass
+class _EdgeTables:
+    """The edge tables both the components and the sliver rule read, built once: `table` over
+    every face; `t_table` over the faces with three distinct corners (a repeated corner is an edge
+    of no length, which has no inside for a vertex to lie on), or `None` when there is none; and
+    `t_vertices`, `engine.topo.adjacency.find_t_vertices` over `t_table` at `contact_tol` -- the
+    search `analyse_topology` runs -- `{t_table edge: vertices inside it}`."""
+    table: object
+    t_table: object
+    t_vertices: dict
+
+
+def _edge_tables(positions_w: np.ndarray, face_w: np.ndarray, contact_tol: float) -> _EdgeTables:
+    n = len(face_w)
+    table = build_edge_table(face_w, np.ones(n, dtype=bool))
+    distinct = ((face_w[:, 0] != face_w[:, 1]) & (face_w[:, 1] != face_w[:, 2])
+                & (face_w[:, 0] != face_w[:, 2]))
+    t_table = build_edge_table(face_w, distinct) if distinct.any() else None
+    t_vertices = find_t_vertices(positions_w, t_table, contact_tol) if t_table is not None else {}
+    return _EdgeTables(table, t_table, t_vertices)
+
+
+def _components(positions_w: np.ndarray, face_w: np.ndarray, contact_tol: float,
+                tables: _EdgeTables) -> tuple[np.ndarray, dict]:
     """Connected components of `face_w`, numbered from 0 in ascending order of their lowest face
     id, over SHARED WELDED EDGES, T-JUNCTIONS (a vertex within `contact_tol` of the inside of
     another face's edge -- `engine.topo.adjacency.find_t_vertices`, the search
@@ -249,8 +296,7 @@ def _components(positions_w: np.ndarray, face_w: np.ndarray,
              "n_joined_by_coplanar_contact": 0}
     if not n:
         return np.zeros(0, np.int64), stats
-    table = build_edge_table(face_w, np.ones(n, dtype=bool))
-    faces_of_edge = edge_face_lists(table)
+    faces_of_edge = edge_face_lists(tables.table)
     for group in faces_of_edge:
         for f in group[1:]:
             sets.union(int(group[0]), int(f))
@@ -261,13 +307,8 @@ def _components(positions_w: np.ndarray, face_w: np.ndarray,
     order = np.argsort(corner, kind="stable")
     vertices, first = np.unique(corner[order], return_index=True)
     faces_of_vertex = dict(zip(vertices.tolist(), np.split(owner[order], first[1:])))
-    # the search runs over faces with three distinct corners: a repeated corner is an edge of no
-    # length, which has no inside for a vertex to lie on
-    distinct = ((face_w[:, 0] != face_w[:, 1]) & (face_w[:, 1] != face_w[:, 2])
-                & (face_w[:, 0] != face_w[:, 2]))
-    t_table = build_edge_table(face_w, distinct) if distinct.any() else None
+    t_table, t_vertices = tables.t_table, tables.t_vertices
     faces_of_t_edge = edge_face_lists(t_table) if t_table is not None else []
-    t_vertices = find_t_vertices(positions_w, t_table, contact_tol) if t_table is not None else {}
     for e, on_edge in sorted(t_vertices.items()):
         edge_face = int(faces_of_t_edge[e][0])
         for v in on_edge.tolist():
@@ -309,8 +350,76 @@ def face_width(positions_w: np.ndarray, face_w: np.ndarray) -> np.ndarray:
     return out
 
 
+def _to_segment(points: np.ndarray, a: np.ndarray, b: np.ndarray) -> np.ndarray:
+    """`(N,)` distance from each of `points` `(N, 3)` to the one segment `a`-`b`."""
+    points = np.asarray(points, dtype=np.float64).reshape(-1, 3)
+    return _point_segment(points, np.broadcast_to(a, points.shape), np.broadcast_to(b, points.shape))
+
+
+def _open_long_edges(positions_w: np.ndarray, face_w: np.ndarray, faces: np.ndarray,
+                     area: np.ndarray, max_width: float, tables: _EdgeTables) -> np.ndarray:
+    """Per face of `faces`: has it a LONG edge -- one whose opposite corner lies within
+    `max_width` of it -- that is an OPEN border: used by no other face, with no other face's
+    vertex inside it, and lying inside no other face's edge? See the module docstring: a thin
+    face that has one is a ragged border, and one that has none is a strip of the middle.
+
+    A vertex or edge of another face that lies within `contact_tol` of this face's edges is the
+    partner of the edge it lies NEAREST (a face thinner than `contact_tol` has all three edges
+    within it of each other), and a face's own corners are never partners of its own edges."""
+    table, t_table, t_vertices = tables.table, tables.t_table, tables.t_vertices
+    users = {(int(a), int(b)): int(c) for (a, b), c in zip(table.edges, table.counts)}
+    t_index: dict[tuple[int, int], int] = {}
+    lies_on: dict[int, set[int]] = {}           # every t_table edge a vertex ends or lies inside
+    if t_table is not None:
+        for i, (a, b) in enumerate(t_table.edges.tolist()):
+            t_index[(a, b)] = i
+            lies_on.setdefault(a, set()).add(i)
+            lies_on.setdefault(b, set()).add(i)
+        for e, inside in t_vertices.items():
+            for v in inside.tolist():
+                lies_on.setdefault(v, set()).add(int(e))
+
+    out = np.zeros(len(faces), dtype=bool)
+    for n, f in enumerate(np.asarray(faces, dtype=np.int64).tolist()):
+        corners = [int(v) for v in face_w[f]]
+        tri = positions_w[corners]
+        keys = [tuple(sorted((corners[k], corners[(k + 1) % 3]))) for k in range(3)]
+        lengths = np.linalg.norm(tri - np.roll(tri, -1, axis=0), axis=1)
+        own = {t_index[key] for key in keys if key in t_index}
+
+        def to_sides(points: np.ndarray) -> np.ndarray:
+            """`(N, 3)`: distance from each point to each of this face's three edges."""
+            return np.stack([_to_segment(points, tri[k], tri[(k + 1) % 3]) for k in range(3)],
+                            axis=1)
+
+        for k, key in enumerate(keys):
+            if lengths[k] <= 0.0 or 2.0 * float(area[f]) / lengths[k] > max_width:
+                continue                                  # not an edge the face is thin along
+            if users.get(key, 0) >= 2:
+                continue                                  # shared: a neighbour lies across it
+            e = t_index.get(key)
+            inside = ([v for v in t_vertices[e].tolist() if v not in corners]
+                      if e is not None and e in t_vertices else [])
+            if inside:
+                d = to_sides(positions_w[inside])
+                if (d[:, k] <= d.min(axis=1)).any():
+                    continue                              # another face's vertex inside it
+            covered = False
+            for g in sorted((lies_on.get(key[0], set()) & lies_on.get(key[1], set())) - own):
+                g0, g1 = t_table.edges[g]
+                reach = _to_segment(tri, positions_w[g0], positions_w[g1])    # per corner
+                far = np.maximum(reach, np.roll(reach, -1))                     # per edge
+                if far[k] <= far.min():
+                    covered = True                        # it lies inside another face's edge
+                    break
+            if not covered:
+                out[n] = True
+                break
+    return out
+
+
 def detect_fragments(positions_w: np.ndarray, face_w: np.ndarray, profile, *,
-                     contact_tol: float) -> FragmentResult:
+                     contact_tol: float, max_width: float) -> FragmentResult:
     """Find every stray-fragment and attached-sliver candidate in `face_w` (welded triangles into
     `positions_w`). See the module docstring for both rules.
 
@@ -320,6 +429,10 @@ def detect_fragments(positions_w: np.ndarray, face_w: np.ndarray, profile, *,
     `1.5 x` the mesh's coarsest print step. It has no default because it is a property of the
     mesh: 0 would join nothing that floating point does not place exactly.
 
+    `max_width` (inches) is the widest a sliver may be -- how far removing one may move a border.
+    `engine.fixes.pipeline` passes `sliver_width_bound`, the merge's own border tolerance; no
+    default, for the same reason as `contact_tol`.
+
     `profile` is an `engine.fixes.pipeline.FixProfile`, duck-typed like every other consumer in
     `engine.fixes`, so this package imports nothing from it. Nothing is removed here: the caller
     puts the candidates through `engine.guard.compare.fragment_feedback` first."""
@@ -328,16 +441,19 @@ def detect_fragments(positions_w: np.ndarray, face_w: np.ndarray, profile, *,
     max_area = float(getattr(profile, "fragment_max_area", 4.0))
     max_extent = float(getattr(profile, "fragment_max_extent", 6.0))
     min_q = float(getattr(profile, "sliver_q", 0.02))
-    max_width = float(getattr(profile, "sliver_max_width", 0.15))
+    max_width = float(max_width)
+    bounds = {"contact_tol": float(contact_tol), "sliver_max_width": max_width}
 
     n = len(face_w)
     fragments = np.zeros(n, dtype=bool)
     slivers = np.zeros(n, dtype=bool)
-    component, joins = _components(positions_w, face_w, float(contact_tol))
+    tables = _edge_tables(positions_w, face_w, float(contact_tol)) if n else None
+    component, joins = _components(positions_w, face_w, float(contact_tol), tables)
     if not n:
         return FragmentResult(fragments, slivers, component,
-                              {"n_components": 0, **joins, "n_candidate_components": 0,
+                              {"n_components": 0, **joins, **bounds, "n_candidate_components": 0,
                                "n_above_threshold_components": 0, "n_fragment_faces": 0,
+                               "n_thin_faces": 0, "n_sandwiched_thin_faces": 0,
                                "n_sliver_faces": 0, "smallest_kept_components": []})
 
     area = _face_area(positions_w, face_w)
@@ -363,11 +479,14 @@ def detect_fragments(positions_w: np.ndarray, face_w: np.ndarray, profile, *,
 
     # Slivers are looked for only OUTSIDE the fragment components: inside one the whole thing is
     # going anyway, and reporting the same face under two headings would double-count it. The
-    # area and width bounds are the module docstring's subject -- without them this catches long
-    # real strips, and strips of real surface too wide to be a ragged edge.
+    # area and width bounds and the open-border rule are the module docstring's subject --
+    # without them this catches long real strips, strips of real surface too wide to be a ragged
+    # edge, and strips sandwiched in the middle of a surface.
     quality = _face_quality(positions_w, face_w)
     width = face_width(positions_w, face_w)
-    slivers[~fragments & (quality < min_q) & (area <= max_area) & (width <= max_width)] = True
+    thin = np.nonzero(~fragments & (quality < min_q) & (area <= max_area) & (width <= max_width))[0]
+    on_border = _open_long_edges(positions_w, face_w, thin, area, max_width, tables)
+    slivers[thin[on_border]] = True
 
     kept.sort(key=lambda k: (k["area"], k["faces"], k["extent"]))
     report = {
@@ -375,9 +494,16 @@ def detect_fragments(positions_w: np.ndarray, face_w: np.ndarray, profile, *,
         #: How many components shared welded edges alone made, and how many joins the two
         #: contact rules added -- the evidence for what those rules changed on this model.
         **joins,
+        #: The two tolerances this run was given, both derived from the mesh's print step.
+        **bounds,
         "n_candidate_components": n_candidates,
         "n_above_threshold_components": n_components - n_candidates,
         "n_fragment_faces": int(fragments.sum()),
+        #: Faces thin enough to be a sliver (quality, area, width), and how many of them were
+        #: KEPT because no long edge of theirs is an open border -- strips of a surface's middle,
+        #: whose removal would open a slit (review 2a C1).
+        "n_thin_faces": int(len(thin)),
+        "n_sandwiched_thin_faces": int((~on_border).sum()),
         "n_sliver_faces": int(slivers.sum()),
         #: The smallest components the size rules did NOT catch -- the evidence for where the
         #: thresholds sit relative to this model, and the first place to look if something real

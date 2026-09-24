@@ -138,15 +138,11 @@ class FixProfile:
     #: ...and so is one whose longest bounding-box extent is under this many inches.
     fragment_max_extent: float = 6.0
     #: Polygon quality `4*pi*area/perimeter**2` below which a face ATTACHED to something real is
-    #: a sliver: 1 is a circle, ~0.6 an equilateral triangle, 0.02 a needle about 1:150.
+    #: a sliver: 1 is a circle, ~0.6 an equilateral triangle, 0.02 a needle about 1:150. How WIDE
+    #: a sliver may be is not a setting: it is the merge's own border tolerance, derived from the
+    #: mesh's print step (`sliver_width_bound`) -- and it is a sliver only on an open border
+    #: (`engine.detectors.fragments`).
     sliver_q: float = 0.02
-    #: ...and no sliver is WIDER than this, in inches (twice its area over its longest edge):
-    #: removing one moves the surface by at most its width, and 0.15 in is how far the merge may
-    #: move a border on both real files (`default_collinear_tol`: 1.5 x the 0.1 in Y print step),
-    #: the displacement the final guard excuses as a border shift. Measured on the references:
-    #: the slivers removed without this bound were 0.0007 to 0.047 in wide, except six strips of
-    #: real surface 0.19 to 0.26 in wide (A faces 3203, 3401; B faces 692, 698, 1804, 2734).
-    sliver_max_width: float = 0.15
     #: Per-view cap on `PX_FRAGMENT_REMOVED` pixels, as a fraction of that view's model pixels,
     #: in the fragment guard and the final guard alike; over it they are judged as what they
     #: really are (see `engine.guard.compare.compare_views`). Measured: at most 6.2e-5 of a view
@@ -298,6 +294,18 @@ def guard_depth_tol(quanta: np.ndarray, profile: FixProfile) -> float:
     as a crack the fix closed (`engine.guard.compare.classify_pixels` states that limit). The
     ceiling keeps the tolerance a property of what a person can see, not of where the model sits."""
     return min(1.5 * float(np.asarray(quanta).max()), profile.depth_tol_max)
+
+
+def sliver_width_bound(quanta: np.ndarray, profile: FixProfile) -> float:
+    """The widest an attached sliver may be (`engine.detectors.fragments`), in inches: the merge's
+    own border tolerance, `default_collinear_tol(quanta)`, clamped to `profile.depth_tol_max` --
+    the same derivation as the border-shift tolerance `fix_object` gives the guards that judge a
+    merged mesh. Removing a sliver through its open border moves that border by at most its
+    width, so the bound is exactly the border movement the rest of the engine already names,
+    measures and excuses: 0.15 in on both real files' 0.1 in print step, 1.5e-4 in on a model
+    printed to 1e-4 in, and never above `depth_tol_max` on a survey-coordinate export. It used to
+    be the constant 0.15 whatever the print step (review 2a C1)."""
+    return min(default_collinear_tol(quanta), profile.depth_tol_max)
 
 
 def _total_area(positions: np.ndarray, face_v: np.ndarray) -> float:
@@ -464,9 +472,11 @@ def fix_object(mesh: MeshData, flatness: dict[str, float], profile: FixProfile =
     mesh_fragments, source_from_fragments = mesh_removed, np.arange(mesh_removed.n_faces, dtype=np.int64)
     if profile.accept_fragments:
         kept = ~drop
-        # contact within the tolerance `analyse_topology` finds T-junctions with
+        # contact within the tolerance `analyse_topology` finds T-junctions with, and no sliver
+        # wider than the merge's own border tolerance
         detected = detect_fragments(positions_c, render_faces[kept], profile,
-                                    contact_tol=1.5 * float(topo.quanta.max()))
+                                    contact_tol=1.5 * float(topo.quanta.max()),
+                                    max_width=sliver_width_bound(topo.quanta, profile))
         fragment_report = detected.report
         candidates = np.zeros(mesh.n_faces, dtype=bool)      # lifted back to REFERENCE ids
         candidates[source_from_removal[detected.fragments | detected.slivers]] = True

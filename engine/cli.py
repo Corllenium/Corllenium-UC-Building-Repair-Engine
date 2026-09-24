@@ -152,7 +152,6 @@ def _profile_dict(p: FixProfile) -> dict:
             "accept_fragments": p.accept_fragments,
             "fragment_max_area": p.fragment_max_area,
             "fragment_max_extent": p.fragment_max_extent, "sliver_q": p.sliver_q,
-            "sliver_max_width": p.sliver_max_width,
             "fragment_removed_cap": p.fragment_removed_cap,
             "qa_size": list(p.qa_size)}
 

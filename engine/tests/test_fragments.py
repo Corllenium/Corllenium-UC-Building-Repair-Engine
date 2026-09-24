@@ -14,13 +14,15 @@ import pytest
 import engine.cli as cli
 import engine.fixes.pipeline as fix_pipeline
 from engine.detectors.fragments import FragmentResult, detect_fragments
-from engine.fixes.pipeline import FixProfile, fix_object
+from engine.fixes.merge import default_collinear_tol
+from engine.fixes.pipeline import FixProfile, fix_object, sliver_width_bound
 from engine.guard.compare import compare_views, fragment_feedback
 from engine.guard.views import VIEWS_26, ortho_first_hit
 from engine.pipeline import analyse_topology
 from engine.rays.caster import EmbreeCaster
-from engine.tests.fixtures.build import (slab_with_coplanar_patch, slab_with_infill_patch,
-                                         slab_with_interior_strip, slab_with_strays)
+from engine.tests.fixtures.build import (printed, slab_with_coplanar_patch, slab_with_infill_patch,
+                                         slab_with_interior_strip, slab_with_strays,
+                                         slab_with_t_joined_strip)
 from engine.vis.exposure import compute_side_exposure
 
 _FAST = FixProfile(guard_size=(120, 80), n_dirs=32, solidify=False)
@@ -32,10 +34,13 @@ def _fast(**overrides):
 
 def _detected(mesh, profile=None):
     """The detector exactly as `fix_object` calls it: contact within the T-junction tolerance
-    `analyse_topology` uses, 1.5 x the mesh's coarsest print step."""
+    `analyse_topology` uses, 1.5 x the mesh's coarsest print step, and no sliver wider than the
+    merge's own border tolerance (`sliver_width_bound`)."""
+    profile = profile or _FAST
     topo = analyse_topology(mesh)
-    return detect_fragments(topo.positions_w, topo.face_w, profile or _FAST,
-                            contact_tol=1.5 * float(topo.quanta.max()))
+    return detect_fragments(topo.positions_w, topo.face_w, profile,
+                            contact_tol=1.5 * float(topo.quanta.max()),
+                            max_width=sliver_width_bound(topo.quanta, profile))
 
 
 # --------------------------------------------------------------------------- the detector
@@ -66,10 +71,14 @@ def test_a_detached_twenty_square_inch_quad_is_kept_and_reported():
 
 
 def test_an_attached_needle_is_a_sliver_candidate():
-    m = slab_with_strays()
+    """Printed like the real files (0.1 in), so the width bound is their 0.15 in: the needle is
+    0.02 in wide, shares its long edge with the slab and has its two other long edges open -- a
+    ragged border, which removing it moves by at most 0.04 in."""
+    m = printed(slab_with_strays())
     d = _detected(m)
     assert d.slivers.tolist() == [False] * 32 + [True] + [False] * 3
     assert d.report["n_sliver_faces"] == 1
+    assert d.report["n_thin_faces"] == 1 and d.report["n_sandwiched_thin_faces"] == 0
     assert not d.fragments[32]                 # it is attached, so never a fragment
 
 
@@ -91,7 +100,8 @@ def test_the_detector_invents_no_randomness_and_repeats_itself():
 
 
 def test_fix_object_removes_the_stray_triangle_and_the_needle_and_keeps_the_quad():
-    m = slab_with_strays()
+    # printed like the real files, where a 0.02 in needle is within the merge's own 0.15 in
+    m = printed(slab_with_strays())
     r = fix_object(m, {}, _FAST)
 
     assert r.n_fragment_components == 3
@@ -116,7 +126,7 @@ def test_the_final_guard_tolerates_exactly_the_fragment_pixels():
 
     Not by leaving those faces out of the BEFORE render, which is a different thing and is wrong
     -- see the comment in `fix_object`, and the 749 phantom pixels on file A that paid for it."""
-    r = fix_object(slab_with_strays(), {}, _FAST)
+    r = fix_object(printed(slab_with_strays()), {}, _FAST)
     assert r.n_removed_fragments + r.n_removed_slivers == 2
 
     assert r.guard_final.totals["fragment_removed"] > 0     # the strays really were visible
@@ -146,8 +156,9 @@ def test_keep_fragments_removes_nothing():
 
 
 def test_fragment_removal_is_deterministic():
-    m = slab_with_strays()
+    m = printed(slab_with_strays())            # so both kinds of debris are removed
     a, b = fix_object(m, {}, _FAST), fix_object(m, {}, _FAST)
+    assert a.n_removed_fragments == 1 and a.n_removed_slivers == 1
     assert a.removed_fragments.tolist() == b.removed_fragments.tolist()
     assert np.array_equal(a.mesh.face_v, b.mesh.face_v)
     assert a.fragment_report == b.fragment_report
@@ -264,19 +275,144 @@ def test_a_strip_wider_than_the_sliver_width_bound_is_not_a_sliver():
     """File B's wall strips in miniature: 29.5 in long, 0.26 in wide, a 3.8 sq in triangle whose
     quality (0.014) and area both pass the sliver rule. Removing one opens a slit 0.26 in wide
     through a real surface (measured on B: two of them, on the two faces of one wall, left a
-    see-through slit). The WIDTH is what removing a sliver moves the surface by, and it is bounded
-    by `sliver_max_width`, the 0.15 in the merge may move a border."""
-    wide = _detected(slab_with_interior_strip(width=0.26))
+    see-through slit). Printed like the real files, the width bound is their 0.15 in."""
+    wide = _detected(printed(slab_with_interior_strip(width=0.26)))
     assert not wide.slivers[0] and not wide.fragments[0]
-    narrow = _detected(slab_with_interior_strip(width=0.1))
-    assert narrow.slivers[0]                               # within the bound: a ragged edge
-    assert narrow.slivers.sum() == 1
+    assert wide.report["n_thin_faces"] == 0
+
+
+@pytest.mark.parametrize("width", [0.05, 0.1, 0.14])
+def test_a_strip_sandwiched_between_real_faces_is_not_a_sliver(width):
+    """Review 2a C1. The same strip, narrow enough for the width bound -- and still real surface:
+    all three of its edges are shared with the fat triangles around it, so removing it moves no
+    border, it opens a slit onto the inside of the slab. Its width bounds how far every lost
+    point lies from the surface left behind, which is exactly why the guards' border-shift
+    measurement would excuse the slit; so the detector has to refuse it on its own. A sliver is
+    named only when one of its LONG edges is an open border."""
+    d = _detected(printed(slab_with_interior_strip(width=width)))
+    assert not d.slivers.any() and not d.fragments.any()
+    assert d.report["n_thin_faces"] == 1                   # quality, area and width: all thin
+    assert d.report["n_sandwiched_thin_faces"] == 1        # ...and sandwiched, so kept
+    assert d.report["n_sliver_faces"] == 0
+
+
+@pytest.mark.parametrize("join", ["vertex", "edge"])
+def test_a_strip_joined_to_the_surface_only_through_a_t_junction_is_not_a_sliver(join):
+    """The strip's BASE is used by no other face, so "not shared" alone would call it an open
+    border -- but the surface below meets it through a T-junction: a vertex lying inside the base
+    (`join="vertex"`), or a longer edge the base lies inside (`join="edge"`). A T-junction
+    partner is a neighbour, so the base is not open, and the strip is sandwiched."""
+    m = printed(slab_with_t_joined_strip(width=0.1, join=join))
+    topo = analyse_topology(m)
+    base = tuple(sorted(topo.face_w[0][:2].tolist()))
+    counts = {tuple(e): c for e, c in zip(topo.table.edges.tolist(), topo.table.counts.tolist())}
+    assert counts[base] == 1                                # the premise: nothing shares it
+    d = _detected(m)
+    assert not d.slivers[0]
+    assert d.report["n_sandwiched_thin_faces"] == 1
+
+
+def test_a_long_edge_is_only_one_the_face_is_thin_along():
+    """A needle whose SHORT end is an open border and whose two long sides are shared is not a
+    ragged border: removing it opens a crack as long as the needle into the surface. Only an edge
+    whose opposite corner lies within the width bound of it counts as a long edge. Here a 40 in
+    plate with no sides (so its rim IS open) is a fan from a point 29.5 in in from the rim; the
+    fan's triangle over a 0.1 in stretch of the rim is the needle."""
+    from engine.tests.fixtures.build import _mesh
+    tip, r1, r2 = [29.5, 20.0, 0.0], [0.0, 19.95, 0.0], [0.0, 20.05, 0.0]
+    P = [[0.0, 0.0, 0.0], [40.0, 0.0, 0.0], [40.0, 40.0, 0.0], [0.0, 40.0, 0.0], r1, r2, tip]
+    fv = [[4, 6, 5],                                      # the needle, short edge 4-5 on the rim
+          [0, 1, 6], [1, 2, 6], [2, 3, 6], [3, 5, 6], [4, 0, 6]]
+    uvs = (np.asarray(P)[np.asarray(fv).reshape(-1)][:, :2] * 0.05).tolist()
+    m = printed(_mesh("rim_needle_plate", P, uvs, fv, np.arange(18).reshape(-1, 3).tolist()))
+    d = _detected(m)
+    assert d.report["n_thin_faces"] == 1                   # the needle: 0.1 in wide, 1.5 sq in
+    assert not d.slivers[0]
+    assert d.report["n_sandwiched_thin_faces"] == 1
+
+
+def test_a_partner_belongs_to_the_edge_it_lies_nearest():
+    """A needle 0.02 in wide hangs off a plate's rim, which the plate splits at (5, 0) -- the
+    middle of the needle's base -- so the base is T-joined to the plate. That vertex is also
+    within the 0.15 in contact tolerance of the needle's two OPEN edges, as is every point of a
+    face that thin; it is the partner of the base, which it lies on, not of them. The needle is a
+    ragged border and a sliver."""
+    from engine.tests.fixtures.build import _mesh
+    P = [[0.0, 0.0, 0.0], [5.0, 0.0, 0.0], [10.0, 0.0, 0.0], [40.0, 0.0, 0.0], [40.0, 40.0, 0.0],
+         [0.0, 40.0, 0.0], [20.0, 20.0, 0.0], [5.0, -0.02, 0.0]]
+    fv = [[0, 2, 7],                                            # the needle, base 0-2
+          [0, 1, 6], [1, 2, 6], [2, 3, 6], [3, 4, 6], [4, 5, 6], [5, 0, 6]]
+    uvs = (np.asarray(P)[np.asarray(fv).reshape(-1)][:, :2] * 0.05).tolist()
+    m = printed(_mesh("plate_with_split_rim_needle", P, uvs, fv,
+                      np.arange(21).reshape(-1, 3).tolist()))
+    d = _detected(m)
+    assert d.report["n_components"] == 1                       # joined through (5, 0)
+    assert d.slivers.tolist() == [True] + [False] * 6
+
+
+def test_the_sliver_width_bound_is_the_merges_border_tolerance():
+    """Derived, not a constant: `default_collinear_tol` -- how far the merge may move a border,
+    and the border shift the final guard measures and excuses -- clamped to `depth_tol_max`
+    exactly as that border-shift tolerance is. 0.15 in on the real files' 0.1 in print step."""
+    profile = FixProfile()
+    for step, bound in ((0.1, 0.15), (1e-4, 1.5e-4), (1.0, 0.5)):
+        quanta = np.array([step, step, step / 10.0])
+        assert sliver_width_bound(quanta, profile) == pytest.approx(bound)
+        assert sliver_width_bound(quanta, profile) == pytest.approx(
+            min(default_collinear_tol(quanta), profile.depth_tol_max))
+
+    # the needle is 0.02 in wide: a sliver where the merge may move a border 0.15 in, and not
+    # one at the fixtures' own 1e-4 in print step, where the merge may move it 1.5e-4 in
+    real = _detected(printed(slab_with_strays()))
+    assert real.slivers[32] and real.report["sliver_max_width"] == pytest.approx(0.15)
+    fine = _detected(slab_with_strays())
+    assert not fine.slivers[32] and fine.report["sliver_max_width"] == pytest.approx(1.5e-4)
+    assert fine.report["n_thin_faces"] == 0
+
+
+@pytest.mark.parametrize("width", [0.05, 0.1, 0.14])
+def test_the_real_scale_sandwiched_strip_is_never_named(width):
+    d = _detected(printed(slab_with_interior_strip(width=width, size=2000.0)))
+    assert d.report["sliver_max_width"] == pytest.approx(0.15)
+    assert not d.slivers.any() and d.report["n_sandwiched_thin_faces"] == 1
 
 
 def test_fix_object_keeps_a_strip_of_real_surface():
     r = fix_object(slab_with_interior_strip(width=0.26), {}, _FAST)
     assert not r.removed_fragments[0]
     assert r.n_removed_slivers == 0 and r.n_removed_fragments == 0
+    assert r.passed is True
+
+
+def _rays_down_along_the_strip(mesh, size, width, n=97):
+    """Where `n` rays cast straight down along `slab_with_interior_strip`'s strip first meet the
+    shipped mesh: z of each hit, NaN for a miss. Every one lies inside the strip's footprint (at
+    40 % of its local width above the base), so a slit where the strip was reads as z = -height."""
+    xs = np.linspace(size / 2 - 12.0, size / 2 + 12.0, n)
+    ys = size / 2 + 0.4 * width * (1.0 - np.abs(xs - size / 2) / 14.75)
+    origins = np.stack([xs, ys, np.full_like(xs, 50.0)], axis=1)
+    tri, t = EmbreeCaster(mesh.positions, mesh.face_v).first_hit(
+        origins, np.tile([0.0, 0.0, -1.0], (n, 1)))
+    return np.where(tri >= 0, 50.0 - t, np.nan)
+
+
+@pytest.mark.parametrize("width", [0.05, 0.14])
+def test_at_the_real_files_scale_a_sandwiched_strip_ships_no_slit(width):
+    """Review 2a C1, experiment E2b as a test: a 29.5 in strip of walking surface `width` in wide,
+    sandwiched between fat triangles in a 2000 in slab printed like the real files (0.1 in, so
+    every tolerance the engine derives is 0.15 in and the strip is inside all of them). At this
+    size a guard pixel spans inches -- 900 x 600 gives about 2 in, the 240 x 160 here about 8 --
+    so no guard ray ever meets the strip, and the DETECTOR is the only defence: it used to name
+    the strip a sliver, the fragment guard confirmed it unseen, and 97 of 97 rays down the strip
+    fell through the slit onto the inside of the bottom with `passed` True. A coarser guard than
+    the real one is no weaker a test: it sees even less."""
+    size = 2000.0
+    m = printed(slab_with_interior_strip(width=width, size=size))
+    r = fix_object(m, {}, FixProfile(guard_size=(240, 160), n_dirs=32))
+    assert not r.removed_fragments[0]
+    assert r.n_removed_slivers == 0
+    z = _rays_down_along_the_strip(r.mesh, size, width)
+    assert np.isclose(z, 0.0, atol=1e-6).all(), sorted(set(np.round(z, 2).tolist()))
     assert r.passed is True
 
 
@@ -414,7 +550,7 @@ def test_fragment_pixels_over_the_per_view_cap_fall_back_to_what_they_were():
 def test_every_removed_component_is_reported_with_its_faces_area_and_bbox(tmp_path):
     from engine.tests.test_cli import _write_snapshot
 
-    m = slab_with_strays()
+    m = printed(slab_with_strays())
     r = fix_object(m, {}, _FAST)
     assert r.fragment_removals == [
         {"kind": "sliver", "component": 0, "faces": [32], "area": 0.1, "width": 0.02,
@@ -424,9 +560,15 @@ def test_every_removed_component_is_reported_with_its_faces_area_and_bbox(tmp_pa
 
     out = tmp_path / "out"
     profile = FixProfile(guard_size=(120, 80), n_dirs=32, qa_size=(160, 100))
-    assert cli.cmd_fix(_write_snapshot(tmp_path, m), out, accept_slit=False, profile=profile,
-                       solidify=False, skp=False) == 0
+    snap = _write_snapshot(tmp_path, m)
+    assert cli.cmd_fix(snap, out, accept_slit=False, profile=profile, solidify=False,
+                       skp=False) == 0
     report = json.loads((out / m.name / "report.json").read_text(encoding="utf-8"))
     assert report["fragment_removals"] == r.fragment_removals
     assert report["profile"]["fragment_removed_cap"] == profile.fragment_removed_cap
-    assert report["profile"]["sliver_max_width"] == profile.sliver_max_width
+    # the width bound is derived from the print step of the mesh the run READ -- the OBJ round
+    # trip re-infers it from the printed text -- and the report says which bound it used
+    back = cli._load_snapshot(snap)[1]
+    assert report["fragment_report"]["sliver_max_width"] == pytest.approx(
+        sliver_width_bound(analyse_topology(back).quanta, profile))
+    assert "sliver_max_width" not in report["profile"]

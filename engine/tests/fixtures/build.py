@@ -1096,3 +1096,48 @@ def slab_with_interior_strip(width=0.26, length=29.5, size=40.0, height=8.0):
            (a, c, t), (c, b, t), ((0, y), a, t), ((0, y), t, (0, s)), (b, (s, y), t),
            ((s, y), (s, s), t)]
     return _slab_from_top("slab_with_interior_strip", top, size, height)
+
+
+def printed(mesh, step=0.1):
+    """`mesh` as the real exports print it: the same geometry, with `sig_digits` set so the
+    coarsest axis quantum (`engine.topo.weld.axis_quanta`) is `step` in. Both real files print Y
+    to 0.1 in near 24,000 in, and every tolerance the engine derives from the print step -- the
+    T-junction search, the merge's `default_collinear_tol`, the guards' `depth_tol` and border
+    shift -- is 0.15 in there. At the fixtures' own 6 significant digits a 40 in slab prints to
+    1e-4 in and every one of those is 1.5e-4 in, so a test about what those tolerances allow has
+    to give its fixture the real files' print step."""
+    import math
+    from dataclasses import replace
+
+    largest = float(np.abs(np.asarray(mesh.positions, dtype=np.float64)).max())
+    sig_digits = math.ceil(math.log10(largest)) - round(math.log10(step))
+    return replace(mesh, sig_digits=int(sig_digits))
+
+
+def slab_with_t_joined_strip(width=0.1, length=29.5, size=40.0, height=8.0, join="vertex"):
+    """`slab_with_interior_strip`, except that the surface below the strip meets its BASE (face 0,
+    the strip's longest edge) only through a T-JUNCTION, never a shared edge -- the way these
+    exports join most things (353 T-vertices on file A, 363 on B, at the merge input):
+
+    * `join="vertex"`: the fat triangle under the base is split at the base's midpoint, so the
+      two halves have a vertex INSIDE the strip's base and share no edge with it;
+    * `join="edge"`: the whole lower half of the top is two triangles whose top edge runs from
+      `(0, size/2)` to `(size, size/2)`, so the strip's base lies INSIDE that longer edge.
+
+    Either way the strip is sandwiched: its other two edges are shared with the fat triangles
+    above it, and removing it opens a slit `width` wide through the top. Face 0 is the strip."""
+    s = size
+    y = s / 2.0
+    xa, xb, xm = (s - length) / 2.0, (s + length) / 2.0, s / 2.0
+    a, b, c, t, m = (xa, y), (xb, y), (xm, y + width), (xm, s), (xm, y)
+    upper = [(a, c, t), (c, b, t), ((0, y), a, t), ((0, y), t, (0, s)), (b, (s, y), t),
+             ((s, y), (s, s), t)]
+    if join == "vertex":
+        lower = [((0, 0), (s, 0), (s, y)), ((0, 0), (s, y), b), ((0, 0), m, a), ((0, 0), b, m),
+                 ((0, 0), a, (0, y))]
+    elif join == "edge":
+        lower = [((0, 0), (s, 0), (s, y)), ((0, 0), (s, y), (0, y))]
+    else:
+        raise ValueError(f"join must be 'vertex' or 'edge', got {join!r}")
+    return _slab_from_top(f"slab_with_t_joined_strip_{join}", [(a, b, c)] + lower + upper, size,
+                          height)
