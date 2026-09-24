@@ -5,6 +5,9 @@
 # snapshots, versions, guard images, spike results, db backups
 data/
 
+# the latest fixed SketchUp file per model, re-written by every `engine.cli fix` run
+OBJ FIXED RESULT/
+
 # python
 __pycache__/
 *.pyc

@@ -9,6 +9,12 @@
     visual QA sheet under `qa/` (`engine.guard.qa_render`). Exit code 0 when `passed`, 2
     otherwise.
 
+    It also writes `<name>.fixed.skp` (`engine.io.skp_writer`, through SketchUp's own C API) and
+    copies it -- the LATEST, overwriting the previous one -- into `<repo root>/OBJ FIXED RESULT/`,
+    the folder the owner opens in SketchUp after every run; `--skp-dir` names another folder,
+    `--no-skp` skips it. Without SketchUp the run still succeeds and report.json's `skp` says why
+    no file was written.
+
 `python -m engine.cli preview-data <snapshot_dir> --out preview/data`
     Writes the JSON `preview/index.html` reads (see `spike/12_export_preview.py` for the shape
     this mirrors), with AFTER built from the REAL fixed mesh and the REAL guard numbers, and
@@ -42,6 +48,7 @@ from engine.guard.views import VIEWS_26, ortho_first_hit
 from engine.io.mtl import MtlMaterial, parse_mtl, texture_flatness
 from engine.io.obj_reader import read_obj
 from engine.io.obj_writer import write_obj, write_obj_polygons
+from engine.io.skp_writer import SketchUpError, check_skp_validity, write_skp
 from engine.io.snapshot import sha256_file
 from engine.model import MeshData
 from engine.pipeline import (Topology, analyse_topology, coplanar_region_borders,
@@ -302,12 +309,58 @@ def _write_guard_images(mesh: MeshData, result: FixResult, profile: FixProfile,
         write(VIEWS_26[index], out_dir / f"guard_fail_{index}.png")
 
 
+# -------------------------------------------------------------------------------- SketchUp file
+
+
+def default_skp_dir() -> Path:
+    """`<repo root>/OBJ FIXED RESULT`: the folder the owner opens the latest `.skp` from. The
+    repo root is the directory holding the `engine` package this module was imported from."""
+    return Path(__file__).resolve().parents[1] / "OBJ FIXED RESULT"
+
+
+def _write_skp(result: FixResult, name: str, out_dir: Path, flat_materials: frozenset,
+               profile: FixProfile, enabled: bool, copy_dir: Path | None) -> dict:
+    """Write `<out_dir>/<name>.fixed.skp` from the SHIPPED mesh and copy it into `copy_dir`
+    (created if needed; the copy replaces the previous run's), returning report.json's `skp`
+    block: `engine.io.skp_writer.write_skp`'s own report plus `written`, `copied_to` and
+    `sketchup_check_changed` (whether SketchUp's own validity fix would change the file; False
+    is the expected answer). A missing SketchUp, or any SketchUp API failure, does not fail the
+    run: the block says `written: false` and why, and no stale `.skp` is left in the run dir."""
+    if not enabled:
+        return {"written": False, "reason": "disabled by --no-skp"}
+    path = out_dir / f"{name}.fixed.skp"
+    mtl_path = out_dir / "materials.mtl"
+    # the hidden edges are decided on the shipped mesh's own topology, with the run's thresholds
+    topo = analyse_topology(result.mesh, flat_materials, coplanar_angle=profile.coplanar_angle,
+                            soft_angle=profile.soft_angle)
+    try:
+        written = write_skp(result.mesh, result.rings, result.face_region_final, topo,
+                            parse_mtl(mtl_path) if mtl_path.exists() else {}, path,
+                            tex_dir=out_dir / "tex")
+        check = check_skp_validity(path)
+    except SketchUpError as exc:
+        path.unlink(missing_ok=True)
+        return {"written": False, "reason": str(exc)}
+    out = {"written": True, **written, "sketchup_check_changed": check["changed"],
+           "copied_to": None}
+    if copy_dir is not None:
+        try:
+            copy_dir.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(path, copy_dir / path.name)
+            out["copied_to"] = str(copy_dir / path.name)
+        except OSError as exc:       # e.g. the owner still has the previous file open
+            out["copy_error"] = str(exc)
+    return out
+
+
 # --------------------------------------------------------------------------------- fix command
 
 
 def cmd_fix(snapshot_dir: Path, out_root: Path, accept_slit: bool,
             profile: FixProfile | None = None, solidify: bool = True,
-            fragments: bool = True) -> int:
+            fragments: bool = True, skp: bool = True, skp_dir: Path | None = None) -> int:
+    """`skp_dir` receives a copy of the `.skp`; `None` (the default here) copies it nowhere --
+    `main` passes `default_skp_dir()` unless `--skp-dir` names another folder."""
     obj_path, mesh, flatness, _mtl_materials = _load_snapshot(snapshot_dir)
     if profile is None:
         profile = FixProfile(accept_slit=accept_slit, solidify=solidify,
@@ -341,7 +394,10 @@ def cmd_fix(snapshot_dir: Path, out_root: Path, accept_slit: bool,
     qa = write_qa_sheet(result.mesh, polygon_edges(result.mesh, result.rings), out_dir / "qa",
                         size=profile.qa_size)
 
+    skp_report = _write_skp(result, name, out_dir, flat_materials, profile, skp, skp_dir)
+
     report = _build_report(name, obj_path, mesh, result, profile)
+    report["skp"] = skp_report
     (out_dir / "report.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
 
     if result.solidify_report:
@@ -353,6 +409,12 @@ def cmd_fix(snapshot_dir: Path, out_root: Path, accept_slit: bool,
     print(f"{name}: {mesh.n_faces} -> {result.mesh.n_faces} tris, passed={result.passed}, "
           f"border_shift={result.guard_final.totals['border_shift']}")
     print(f"  wrote {out_dir} (and {len(qa)} QA images under qa/)")
+    if skp_report["written"]:
+        print(f"  wrote {skp_report['path']}: {skp_report['faces']} faces, "
+              f"{skp_report['soft_edges'] + skp_report['gridline_edges_softened']} edges hidden, "
+              f"copied to {skp_report['copied_to'] or skp_report.get('copy_error', 'nowhere')}")
+    else:
+        print(f"  no .skp written: {skp_report['reason']}")
     return 0 if result.passed else 2
 
 
@@ -607,6 +669,11 @@ def build_parser() -> argparse.ArgumentParser:
     fix_p.add_argument("--keep-fragments", dest="fragments", action="store_false",
                        help="do not remove stray fragments and attached slivers")
     fix_p.add_argument("--out", default="data/output")
+    fix_p.add_argument("--no-skp", dest="skp", action="store_false",
+                       help="do not write the SketchUp file")
+    fix_p.add_argument("--skp-dir", default=None,
+                       help="folder that receives a copy of the latest .skp "
+                            "(default: <repo root>/OBJ FIXED RESULT)")
 
     preview_p = sub.add_parser("preview-data", help="write the JSON preview/index.html reads")
     preview_p.add_argument("snapshot_dir")
@@ -621,7 +688,8 @@ def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     if args.command == "fix":
         return cmd_fix(Path(args.snapshot_dir), Path(args.out), args.accept_slit,
-                       solidify=args.solidify, fragments=args.fragments)
+                       solidify=args.solidify, fragments=args.fragments, skp=args.skp,
+                       skp_dir=Path(args.skp_dir) if args.skp_dir else default_skp_dir())
     if args.command == "preview-data":
         return cmd_preview_data(Path(args.snapshot_dir), Path(args.out),
                                 solidify=args.solidify)

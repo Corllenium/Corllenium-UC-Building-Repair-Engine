@@ -263,7 +263,7 @@ def test_build_parser_preview_data_defaults():
 def test_main_dispatches_to_cmd_fix(monkeypatch):
     calls = []
     monkeypatch.setattr(cli, "cmd_fix",
-                        lambda snap, out, accept_slit, solidify=True, fragments=True:
+                        lambda snap, out, accept_slit, solidify=True, fragments=True, **_skp:
                         calls.append((snap, out, accept_slit, solidify, fragments)) or 0)
     code = cli.main(["fix", "snapdir", "--out", "outdir", "--accept-slit"])
     assert code == 0
@@ -632,3 +632,117 @@ def test_cmd_fix_writes_the_21_file_qa_sheet(tmp_path):
     assert len(qa_file_names()) == 21
     for p in qa.iterdir():
         assert p.stat().st_size > 0
+
+
+# ---------------------------------------------------------------------------------------------
+# K2: every `fix` run writes `<run dir>/<name>.fixed.skp` and copies it, as the LATEST, into the
+# folder the owner opens in SketchUp (`<repo root>/OBJ FIXED RESULT/` unless `--skp-dir`).
+# ---------------------------------------------------------------------------------------------
+
+def _sketchup_or_skip():
+    from engine.io.skp_writer import SketchUpUnavailable, load_api
+    try:
+        load_api()
+    except SketchUpUnavailable as exc:
+        pytest.skip(f"SketchUp C API unavailable: {exc}")
+
+
+def _skp_report(out_root, name):
+    return json.loads((out_root / name / "report.json").read_text(encoding="utf-8"))["skp"]
+
+
+def test_build_parser_fix_writes_a_skp_by_default():
+    args = cli.build_parser().parse_args(["fix", "somedir"])
+    assert args.skp is True and args.skp_dir is None
+
+
+def test_build_parser_fix_no_skp_and_skp_dir():
+    args = cli.build_parser().parse_args(["fix", "somedir", "--no-skp", "--skp-dir", "x/y"])
+    assert args.skp is False and args.skp_dir == "x/y"
+
+
+def test_default_skp_dir_is_obj_fixed_result_next_to_the_engine_package():
+    import engine
+    assert cli.default_skp_dir() == (Path(engine.__file__).resolve().parent.parent
+                                     / "OBJ FIXED RESULT")
+
+
+def test_main_passes_the_skp_folder_to_cmd_fix(monkeypatch):
+    calls = []
+    monkeypatch.setattr(cli, "cmd_fix", lambda *a, skp=True, skp_dir=None, **k:
+                        calls.append((skp, skp_dir)) or 0)
+    assert cli.main(["fix", "snapdir"]) == 0
+    assert cli.main(["fix", "snapdir", "--skp-dir", "elsewhere"]) == 0
+    assert cli.main(["fix", "snapdir", "--no-skp"]) == 0
+    assert calls == [(True, cli.default_skp_dir()), (True, Path("elsewhere")),
+                     (False, cli.default_skp_dir())]
+
+
+def test_cmd_fix_writes_the_skp_and_copies_it_into_a_new_skp_folder(tmp_path):
+    _sketchup_or_skip()
+    from engine.io.skp_writer import read_skp_summary
+    m = box_with_partition()
+    snap_dir = _write_snapshot(tmp_path, m)
+    out_root = tmp_path / "out"
+    skp_dir = tmp_path / "owner" / "OBJ FIXED RESULT"       # does not exist yet
+
+    assert cli.cmd_fix(snap_dir, out_root, accept_slit=False, profile=_FAST, skp_dir=skp_dir) == 0
+
+    run_skp = out_root / m.name / f"{m.name}.fixed.skp"
+    copy = skp_dir / f"{m.name}.fixed.skp"
+    assert run_skp.exists() and copy.read_bytes() == run_skp.read_bytes()
+    skp = _skp_report(out_root, m.name)
+    assert skp["written"] is True
+    assert (skp["path"], skp["copied_to"]) == (str(run_skp), str(copy))
+    summary = read_skp_summary(copy)
+    # the fixed box: 12 triangles merged into 6 quads -> 6 faces, 12 hard edges
+    assert (skp["faces"], skp["edges"], skp["soft_edges"]) == (
+        summary["faces"], summary["edges"], summary["soft_edges"]) == (6, 12, 0)
+    assert (skp["gridline_edges_softened"], skp["fallback_regions"], skp["reversed_faces"],
+            skp["uv_residual_regions"], skp["material_path"]) == (0, [], 0, [], "geometry_input")
+    assert skp["sketchup_check_changed"] is False
+
+
+def test_cmd_fix_replaces_the_previous_skp_in_the_skp_folder(tmp_path):
+    _sketchup_or_skip()
+    m = box_with_partition()
+    snap_dir = _write_snapshot(tmp_path, m)
+    out_root = tmp_path / "out"
+    skp_dir = tmp_path / "OBJ FIXED RESULT"
+    skp_dir.mkdir()
+    (skp_dir / f"{m.name}.fixed.skp").write_bytes(b"an older run")
+
+    assert cli.cmd_fix(snap_dir, out_root, accept_slit=False, profile=_FAST, skp_dir=skp_dir) == 0
+
+    run_skp = out_root / m.name / f"{m.name}.fixed.skp"
+    assert (skp_dir / run_skp.name).read_bytes() == run_skp.read_bytes()
+
+
+def test_cmd_fix_without_sketchup_still_succeeds_and_says_why(tmp_path, monkeypatch):
+    missing = tmp_path / "no_sketchup" / "SketchUpAPI.dll"
+    monkeypatch.setenv("FIXER_SKETCHUP_DLL", str(missing))
+    m = box_with_partition()
+    snap_dir = _write_snapshot(tmp_path, m)
+    out_root = tmp_path / "out"
+    skp_dir = tmp_path / "OBJ FIXED RESULT"
+
+    assert cli.cmd_fix(snap_dir, out_root, accept_slit=False, profile=_FAST, skp_dir=skp_dir) == 0
+
+    skp = _skp_report(out_root, m.name)
+    assert skp["written"] is False and str(missing) in skp["reason"]
+    assert not (out_root / m.name / f"{m.name}.fixed.skp").exists()
+    assert not skp_dir.exists()
+
+
+def test_cmd_fix_no_skp_writes_no_skp(tmp_path):
+    m = box_with_partition()
+    snap_dir = _write_snapshot(tmp_path, m)
+    out_root = tmp_path / "out"
+    skp_dir = tmp_path / "OBJ FIXED RESULT"
+
+    assert cli.cmd_fix(snap_dir, out_root, accept_slit=False, profile=_FAST, skp=False,
+                       skp_dir=skp_dir) == 0
+
+    assert _skp_report(out_root, m.name) == {"written": False, "reason": "disabled by --no-skp"}
+    assert not (out_root / m.name / f"{m.name}.fixed.skp").exists()
+    assert not skp_dir.exists()
