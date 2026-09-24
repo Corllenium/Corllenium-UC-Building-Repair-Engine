@@ -72,7 +72,7 @@ work in progress: finish it, test it, commit it; never discard it.
 | 4 | `briefs/04-review.md` | independent review of everything since b2134e9 | read-only |
 | 5 | `briefs/05-dashboard-fix-wave.md` | dashboard fixes D1-D12 | main checkout |
 | 6 | `briefs/06-leftovers.md` | smaller engine leftovers found on the way | main checkout |
-| 7 | `briefs/07-review-fixes.md` | fixes from review part 1 (fragments, failed-run .skp, growth over background, bbox invariant, QA sheet) | worktree review-fixes (running now, before 03) |
+| 7 | `briefs/07-review-fixes.md` | fixes from review part 1 (fragments, failed-run .skp, growth over background, bbox invariant, QA sheet) | DONE: merged into feat-dashboard (431 passed) |
 
 ## 4. Rules (each one cost time when broken)
 

@@ -19,7 +19,7 @@ Hermes hands back by releasing the row after a clean commit.
 | SR side rebuild (+ review C1, I1, M1 as SR4, SR5) | briefs/02-SR-side-rebuild.md | .claude/worktrees/side-rebuild / feat/side-rebuild | Claude subagent (SR) | 2026-09-24 18:34 | SR0 committed ff4a0ec; SR2 in progress; A's merge rollback being investigated; SR4/SR5 added 19:50 |
 | Reconcile + verify | briefs/03-reconcile-and-verify.md | main checkout / feat-dashboard | Claude controller | queued | after T1 and SR |
 | Review part 1 (to ce48932, no side rebuild) | briefs/04-review.md | read-only | - | 2026-09-24 19:45 | DONE: Changes required (C1, C2, I1, I2 + 9 minor); review-since-b2134e9.md |
-| Review fixes C2, I2, M2-M4, M6-M8 | briefs/07-review-fixes.md | .claude/worktrees/review-fixes / feat/review-fixes | Claude subagent (review fixes) | 2026-09-24 19:50 | running |
+| Review fixes C2, I2, M2-M4, M6-M8 | briefs/07-review-fixes.md | .claude/worktrees/review-fixes / feat/review-fixes | - | 2026-09-24 20:30 | DONE: 431 passed; merged into feat-dashboard; report 4f2fe22; A 15 removed (0 real surface), B 6 removed (0 real surface) |
 | Review part 2 (side rebuild) | briefs/04-review.md | read-only | - | queued | after reconcile |
 | Dashboard fix wave | briefs/05-dashboard-fix-wave.md | main checkout | - | queued | after review |
 | Leftovers | briefs/06-leftovers.md | main checkout | - | queued | any time a slot is free |
