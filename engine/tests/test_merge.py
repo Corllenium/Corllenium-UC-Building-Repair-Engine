@@ -8,8 +8,8 @@ from engine.io.obj_reader import read_obj
 from engine.io.obj_writer import write_obj
 from engine.pipeline import analyse_topology
 from engine.tests.fixtures.build import (arc_topped_strip, cube, grid_slab, l_shaped_slab,
-                                         overlapping_pair, slab_with_hole, slab_with_wall,
-                                         two_slabs_sharing_border,
+                                         overlapping_pair, printed_ramp, slab_with_hole,
+                                         slab_with_wall, two_slabs_sharing_border,
                                          two_slabs_sharing_curved_border, union_sliver_region)
 
 
@@ -663,3 +663,95 @@ def test_pieces_rejects_an_outer_ring_pinched_into_two_lobes():
     p = _SQUARE[4]
     bow_tie = [_SQUARE[0], _SQUARE[1], p + (1e-4, 0.0), _SQUARE[2], _SQUARE[3], p + (-1e-4, 0.0)]
     assert _pieces_of(shapely.Polygon(bow_tie)) == []
+
+
+# ------------------------------------------- N1: the snap tolerance is the region's own thickness
+# A union corner the grid snapped off its vertex is read as that vertex when it lies within the
+# region's THICKNESS -- the spread of its vertices along its own normal -- clamped to
+# [SNAP_TOL, SNAP_TOL_MAX]. See `engine.fixes.merge.snap_tolerance` for the measurement.
+
+
+def _projected(mesh, region=0):
+    """`(topo, members, vertex_ids, vertex_xy, thickness)` of one region, projected exactly as the
+    merge projects it; the thickness is measured here from first principles."""
+    topo = analyse_topology(mesh, frozenset())
+    members = np.flatnonzero(topo.face_region == region)
+    normal, origin, basis = merge_module._region_frame(topo.positions_w, topo.face_w, members)
+    ids = np.unique(topo.face_w[members])
+    offsets = (topo.positions_w[ids] - origin) @ normal
+    return topo, members, ids, (topo.positions_w[ids] - origin) @ basis, float(np.ptp(offsets))
+
+
+def _real_union(topo, members, ids, xy):
+    tri = xy[np.searchsorted(ids, topo.face_w[members])]
+    return merge_module._union(shapely.polygons(np.concatenate([tri, tri[:, :1]], axis=1)),
+                               merge_module.GRID_SIZE)
+
+
+def _corner_moved(union, distance):
+    """`union` with its first outer ring coordinate moved `distance` inches along the ring
+    towards the next one -- a corner the grid left off its vertex, the way the union leaves one
+    at the apex of a narrow fan (0.0016 in on file B's ramp)."""
+    ring = np.asarray(union.exterior.coords)[:-1].copy()
+    step = ring[1] - ring[0]
+    ring[0] = ring[0] + distance * step / np.linalg.norm(step)
+    return shapely.Polygon(ring, [r.coords for r in union.interiors])
+
+
+def test_snap_tolerance_is_the_thickness_clamped_between_floor_and_ceiling():
+    assert merge_module.SNAP_TOL == 1e-3 and merge_module.SNAP_TOL_MAX == 1e-2
+    assert merge_module.snap_tolerance(0.0) == merge_module.SNAP_TOL
+    assert merge_module.snap_tolerance(0.0085) == 0.0085
+    assert merge_module.snap_tolerance(0.11) == merge_module.SNAP_TOL_MAX
+    assert merge_module.snap_tolerance(0.0, floor=2e-3) == 2e-3
+
+
+def test_each_region_is_planned_with_its_own_thickness_as_snap_tolerance():
+    for mesh, expected in ((grid_slab(10, 10), 0.0), (printed_ramp(), None)):
+        topo, members, ids, xy, thickness = _projected(mesh)
+        if expected is not None:
+            assert thickness == expected      # axis-aligned: exactly flat
+        else:
+            assert thickness == pytest.approx(0.0046, abs=5e-5)   # rounded Z scatters it
+        plans, _copied, _skipped = merge_module._plan_regions(topo, merge_module.GRID_SIZE,
+                                                              merge_module.SNAP_TOL)
+        assert len(plans) == 1
+        assert plans[0].snap_tol == merge_module.snap_tolerance(thickness)
+
+
+def test_a_union_corner_within_the_regions_thickness_of_its_vertex_merges(monkeypatch):
+    """The ramp is 0.0046 in thick; the union's corner lands 0.0016 in off its vertex, as it did
+    at the apex of file B's ramp fan. The region used to be copied through whole as
+    `new_vertex`; the corner is its vertex, so the region merges to its 2 triangles."""
+    m = printed_ramp()
+    topo = analyse_topology(m, frozenset())
+    real = merge_module._union
+    monkeypatch.setattr(merge_module, "_union",
+                        lambda polys, grid_size: _corner_moved(real(polys, grid_size), 0.0016))
+    r = merge_regions(m, topo)
+    assert r.report["regions_skipped"] == {} and r.report["regions_merged"] == 1
+    assert r.report["faces_copied"] == 0 and r.mesh.n_faces == 2
+    assert abs(area(r.mesh) - area(m)) <= 1e-6 * area(m)
+
+
+def test_a_union_corner_half_an_inch_from_every_vertex_never_snaps():
+    """0.5 in is fifty times the ceiling: no region is thick enough to read it as a vertex."""
+    topo, members, ids, xy, thickness = _projected(printed_ramp())
+    union = _real_union(topo, members, ids, xy)
+    tol = merge_module.snap_tolerance(thickness)
+    exact = merge_module._pieces(union, xy, ids, tol)
+    near = merge_module._pieces(_corner_moved(union, 0.0016), xy, ids, tol)
+    assert _rings(near) == _rings(exact)                       # 0.0016 in: the same vertex
+    far = _corner_moved(union, 0.5)
+    assert merge_module._pieces(far, xy, ids, tol) is None
+    assert merge_module._pieces(far, xy, ids, merge_module.SNAP_TOL_MAX) is None
+
+
+def test_an_exactly_flat_region_keeps_the_floor():
+    """An axis-aligned region projects its vertices onto the union's grid, so its union never
+    leaves a corner off one (measured: within 3e-12 in on every such region of both files); the
+    same 0.0016 in corner on it is not read as a vertex."""
+    topo, members, ids, xy, thickness = _projected(grid_slab(10, 10))
+    assert thickness == 0.0
+    union = _corner_moved(_real_union(topo, members, ids, xy), 0.0016)
+    assert merge_module._pieces(union, xy, ids, merge_module.snap_tolerance(thickness)) is None

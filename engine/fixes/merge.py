@@ -27,8 +27,13 @@ from engine.topo.planes import cluster_uv, plane_basis
 
 #: Precision grid the 2D union snaps to (inches, in the region's LOCAL frame).
 GRID_SIZE = 1e-4
-#: A union ring coordinate must land this close to an existing vertex to be accepted (inches).
+#: Floor of the per-region snap tolerance, in inches (`snap_tolerance`): even an exactly flat
+#: region reads a union ring coordinate this close to an existing vertex as that vertex.
 SNAP_TOL = 1e-3
+#: Ceiling of the per-region snap tolerance, in inches: one X/Z print step of the export, a
+#: fifteenth of the 0.15 in a merged border may move (`default_collinear_tol`). No union
+#: coordinate farther than this from every vertex is ever read as one of them.
+SNAP_TOL_MAX = 1e-2
 #: The ring-simplification bound, in axis quanta: a ring vertex may only be dropped while the
 #: WHOLE original polyline between its surviving neighbours stays this close to the chord that
 #: replaces it. `1.5 * max(q)` is one and a half of the mesh's own print steps -- the same bound
@@ -54,6 +59,38 @@ def default_collinear_tol(quanta: np.ndarray) -> float:
     It is also how far a merged border may move, which is why the guards that judge a merged mesh
     read it from here rather than restating it (`engine.fixes.pipeline`)."""
     return RING_TOL_QUANTA * float(np.asarray(quanta).max())
+
+
+def snap_tolerance(thickness: float, floor: float = SNAP_TOL) -> float:
+    """How far a union ring coordinate may land from an existing vertex and still be read as that
+    vertex, for a region whose vertices spread `thickness` inches along its own normal: the
+    thickness itself, clamped to `[floor, SNAP_TOL_MAX]`.
+
+    WHERE SUCH A CORNER COMES FROM. The union runs in the region's own plane on a `GRID_SIZE`
+    grid. An axis-aligned region projects its vertices ONTO that grid (the export printed them on
+    a 0.01 in lattice), so its union lands exactly on them. A sloped or skewed region projects
+    them OFF it; the union snaps them, and where two of a vertex's own edges meet at a narrow
+    angle the two snapped edges part by a grid cell and meet again up to `cell / sin(angle)` from
+    the vertex: the tip of a spike or sliver that belongs to that vertex. Which tip, and how far
+    out, changes with the order the union combines the same triangles.
+
+    WHY THE THICKNESS. Those regions are exactly the ones the export could not print flat -- a
+    sloped plane's vertices are rounded to 0.01 in -- and rebuilding one already moves its
+    surface by up to its thickness out of the plane: the old triangles and the new ones run
+    through the same vertices, each inside the region's slab. Reading a corner that close to a
+    vertex as the vertex moves the border within the plane by no more than that.
+
+    MEASURED on the merge inputs of both real files (A `ce26e0392ab0`, B `0b290ec0bcb4`: 271
+    regions of two or more faces, 3,441 union ring coordinates). The 205 axis-aligned regions are
+    0 in thick and every coordinate of theirs lies within 3e-12 in of a vertex. The 66 others are
+    0.008 in thick at the median, 0.11 in at most. 3,415 coordinates land within 7.1e-5 in (half
+    a grid cell's diagonal) of a vertex, 24 more within 4.0e-4 in, and one at 0.0016 in: the apex
+    of file B's ramp, 0.0085 in thick, whose fan edges meet 0.3 to 4.4 degrees apart there. All
+    25 are tips at a vertex of a non-axis-aligned region, none beyond 0.19 of that region's
+    thickness; unions of subsets of the same ramp put its tips 0.0008 to 0.0053 in out, still
+    inside 0.0085. The one coordinate left is 7.87 in from every vertex (file A); no tolerance
+    reads that as a vertex (`_pieces`)."""
+    return min(max(float(floor), float(thickness)), SNAP_TOL_MAX)
 
 
 @dataclass
@@ -107,6 +144,9 @@ class _Plan:
     normal: np.ndarray
     pieces: list[_Piece]
     original_area: float
+    #: The snap tolerance the region's union was mapped back onto its vertices with
+    #: (`snap_tolerance` of its own thickness).
+    snap_tol: float = SNAP_TOL
 
 
 def merge_regions(mesh: MeshData, topo: Topology, flat_materials: Iterable[int] = frozenset(),
@@ -145,6 +185,10 @@ def merge_regions(mesh: MeshData, topo: Topology, flat_materials: Iterable[int] 
     `collinear_tol` is the ring-simplification bound (see `_ring_keep`); `None`, the default,
     derives it from the mesh's OWN print precision as `RING_TOL_QUANTA * max(topo.quanta)`
     (`default_collinear_tol`).
+
+    `snap_tol` is the FLOOR of each region's snap tolerance: a region maps its union back onto
+    its vertices with `snap_tolerance(thickness, snap_tol)`, its own thickness clamped between
+    this floor and `SNAP_TOL_MAX`.
     """
     flat = _validated_materials(flat_materials)
     if collinear_tol is None:
@@ -208,21 +252,23 @@ def region_outline(topo: Topology, members: np.ndarray, grid_size: float = GRID_
     ring a simple cycle of at least 3 and every sliver no three vertices can bound closed (see
     `_pieces`). `None` when the region has no frame (no area), when every one of its triangles
     is excluded by the overlap rule, when the union invented a vertex that no existing one is
-    within `snap_tol` of, when the union is empty, or when an outer ring pinches into lobes no
-    single polygon over existing vertices describes -- all of which a caller reports as one
-    thing, "the outline could not be mapped back onto vertices this mesh has"."""
+    within the region's snap tolerance of (`snap_tolerance` of its thickness, `snap_tol` the
+    floor), when the union is empty, or when an outer ring pinches into lobes no single polygon
+    over existing vertices describes -- all of which a caller reports as one thing, "the outline
+    could not be mapped back onto vertices this mesh has"."""
     frame = _region_frame(topo.positions_w, topo.face_w, members)
     if frame is None:
         return None
     normal, origin, basis = frame
     vertex_ids = np.unique(topo.face_w[members])
     vertex_xy = (topo.positions_w[vertex_ids] - origin) @ basis
+    tol = snap_tolerance(_thickness(topo.positions_w[vertex_ids] - origin, normal), snap_tol)
     tri_xy = vertex_xy[np.searchsorted(vertex_ids, topo.face_w[members])]
     polys = shapely.polygons(np.concatenate([tri_xy, tri_xy[:, :1]], axis=1))
     keep = ~_overlap_excluded(polys, shapely.area(polys))
     if not keep.any():
         return None
-    pieces = _pieces(_union(polys[keep], grid_size), vertex_xy, vertex_ids, snap_tol)
+    pieces = _pieces(_union(polys[keep], grid_size), vertex_xy, vertex_ids, tol)
     if not pieces:
         return None
     return pieces, normal, origin, basis
@@ -255,6 +301,7 @@ def _plan_regions(topo: Topology, grid_size: float,
         normal, origin, basis = frame
         vertex_ids = np.unique(topo.face_w[members])
         vertex_xy = (topo.positions_w[vertex_ids] - origin) @ basis
+        tol = snap_tolerance(_thickness(topo.positions_w[vertex_ids] - origin, normal), snap_tol)
         tri_xy = vertex_xy[np.searchsorted(vertex_ids, topo.face_w[members])]
 
         polys = shapely.polygons(np.concatenate([tri_xy, tri_xy[:, :1]], axis=1))
@@ -267,7 +314,7 @@ def _plan_regions(topo: Topology, grid_size: float,
             continue
 
         union = _union(polys[keep], grid_size)
-        pieces = _pieces(union, vertex_xy, vertex_ids, snap_tol)
+        pieces = _pieces(union, vertex_xy, vertex_ids, tol)
         if pieces is None:
             copied.extend(int(f) for f in members[keep])
             skipped["new_vertex"] += 1
@@ -279,8 +326,15 @@ def _plan_regions(topo: Topology, grid_size: float,
 
         plans.append(_Plan(region=int(region), members=members[keep], vertex_ids=vertex_ids,
                            vertex_xy=vertex_xy, normal=normal, pieces=pieces,
-                           original_area=float(areas[keep].sum())))
+                           original_area=float(areas[keep].sum()), snap_tol=tol))
     return plans, copied, skipped
+
+
+def _thickness(offsets_3d: np.ndarray, normal: np.ndarray) -> float:
+    """The spread along `normal` of the points `offsets_3d` (each relative to a common origin):
+    how far from flat the export printed a region. 0.0 for an exactly flat one."""
+    along = offsets_3d @ normal
+    return float(along.max() - along.min()) if len(along) else 0.0
 
 
 def _union(polys: np.ndarray, grid_size: float):

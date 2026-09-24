@@ -763,3 +763,30 @@ def slab_with_lifted_corner(nx=3, nz=2, cell=100.0, y=24000.0, step=0.1, uv_per_
             fv += [[v[0], v[1], v[2]], [v[0], v[2], v[3]]]
             fvt += [[base, base + 1, base + 2], [base, base + 2, base + 3]]
     return _mesh("slab_with_lifted_corner", P, uvs, fv, fvt)
+
+
+def printed_ramp(nx=4, ny=3, cell=40.0, slope_deg=23.2, x0=2870.0, y0=23700.0, z0=1931.38,
+                 uv_per_unit=0.05):
+    """A ramp like file B's (`0b290ec0bcb4`, normal `[0.394, 0, 0.919]`): `nx x ny` cells of
+    `cell` inches, falling `slope_deg` degrees along +x, printed exactly as that export prints
+    (2 decimals, 6 significant digits: 0.01 in on X and Z, 0.1 in on Y near y = 24,000).
+
+    Rounding Z to 0.01 in scatters the vertices about the plane, so the region is NOT flat:
+    its vertices spread 0.0046 in along its own normal (measured). An axis-aligned slab printed
+    the same way is exactly flat -- every vertex sits on the plane -- which is the difference the
+    merge's snap tolerance is read from (`engine.fixes.merge.snap_tolerance`). One region; the
+    merge rebuilds it as 2 triangles."""
+    rise = float(np.tan(np.radians(slope_deg)))
+    cols = nx + 1
+    P = [[round(x0 + i * cell, 2), round(y0 + j * cell, 1), round(z0 - rise * i * cell, 2)]
+         for j in range(ny + 1) for i in range(nx + 1)]
+    uvs, fv, fvt = [], [], []
+    for j in range(ny):
+        for i in range(nx):
+            corners = [(i, j), (i + 1, j), (i + 1, j + 1), (i, j + 1)]
+            base = len(uvs)
+            uvs.extend([[a * cell * uv_per_unit, b * cell * uv_per_unit] for a, b in corners])
+            v = [b * cols + a for a, b in corners]
+            fv += [[v[0], v[1], v[2]], [v[0], v[2], v[3]]]
+            fvt += [[base, base + 1, base + 2], [base, base + 2, base + 3]]
+    return _mesh("printed_ramp", P, uvs, fv, fvt)
