@@ -54,6 +54,32 @@ def test_load_floor_map_rejects_other_schemas(tmp_path):
         load_floor_map(p)
 
 
+def test_load_floor_map_rejects_a_duplicate_canonical_for_the_same_building(tmp_path):
+    p = tmp_path / "map.json"
+    dup = ENTRIES + [{"building": "CHTM", "split_object": "walk2",
+                      "canonical": "CHTM_walk_obj", "level_code": "GF", "role": "sidewalk"}]
+    write_map(p, dup)
+    with pytest.raises(ValueError, match="CHTM_walk_obj"):
+        load_floor_map(p)
+
+
+def test_load_floor_map_rejects_a_duplicate_split_object_for_the_same_building(tmp_path):
+    p = tmp_path / "map.json"
+    dup = ENTRIES + [{"building": "CHTM", "split_object": "walk",
+                      "canonical": "CHTM_walk_obj_2", "level_code": "GF", "role": "sidewalk"}]
+    write_map(p, dup)
+    with pytest.raises(ValueError, match="walk"):
+        load_floor_map(p)
+
+
+def test_load_floor_map_allows_the_same_split_object_name_in_different_buildings(tmp_path):
+    """ENTRIES already has `split_object="walk"` in both CHTM and PE -- a duplicate is only a
+    duplicate WITHIN one building."""
+    p = tmp_path / "map.json"
+    write_map(p, ENTRIES)
+    assert len(load_floor_map(p)) == 5
+
+
 def test_ingest_building_snapshots_each_mapped_object_and_reports_every_status(tmp_path):
     split = make_source(tmp_path / "src")
     map_path = tmp_path / "map.json"
@@ -77,6 +103,36 @@ def test_ingest_building_snapshots_each_mapped_object_and_reports_every_status(t
     assert manifest["schema"] == "corllenium.ingest/1" and manifest["building"] == "CHTM"
     assert [r["canonical"] for r in manifest["rows"]] == [r.canonical for r in rows]
     assert manifest["rows"][0]["level_code"] == "GF" and manifest["rows"][0]["role"] == "sidewalk"
+
+
+def test_ingest_building_unknown_building_raises_before_writing_anything(tmp_path):
+    """C1: a typo'd or unmapped --building must fail loudly, not silently write a 0/0 manifest."""
+    split = make_source(tmp_path / "src")
+    map_path = tmp_path / "map.json"
+    write_map(map_path, ENTRIES)   # only has entries for "CHTM" and "PE"
+    out_root = tmp_path / "snapshots"
+
+    with pytest.raises(ValueError, match="ZZZZ") as excinfo:
+        ingest_building(split, split / "_MANIFEST.txt", "ZZZZ", map_path, out_root,
+                        interval_s=0, sleep=lambda s: None)
+    assert "CHTM" in str(excinfo.value) and "PE" in str(excinfo.value)   # names the known buildings
+    assert not out_root.exists()
+
+
+def test_ingest_manifest_snapshot_dir_and_source_dir_are_absolute(tmp_path):
+    split = make_source(tmp_path / "src")
+    map_path = tmp_path / "map.json"
+    write_map(map_path, ENTRIES[:1])
+    out_root = tmp_path / "snapshots"
+
+    ingest_building(split, split / "_MANIFEST.txt", "CHTM", map_path, out_root,
+                    interval_s=0, sleep=lambda s: None)
+
+    manifest = json.loads((out_root / "CHTM" / "ingest_manifest.json").read_text(encoding="utf-8"))
+    assert manifest["source_dir"] == str(split.resolve())
+    row = manifest["rows"][0]
+    assert Path(row["snapshot_dir"]).is_absolute()
+    assert row["snapshot_dir"] == str(Path(row["snapshot_dir"]).resolve())
 
 
 def test_ingest_building_is_idempotent(tmp_path):
