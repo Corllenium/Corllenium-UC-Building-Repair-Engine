@@ -179,19 +179,21 @@ def test_fix_object_closes_the_open_box_and_removes_the_partitions_inside_it():
 # --------------------------------------------------------------------- (d) the cap guard
 
 
-def test_a_skirt_that_reaches_past_the_slab_is_removed_by_the_cap_guard():
-    """`two_level_slab`'s deep fin makes the open edge measure 200 in on an 8 in slab; with the
-    ceiling raised the skirt hangs 192 in below the slab's own underside, covers that underside
-    from every grazing view from below, and covers the panel as well. Neither is allowed: the
-    underside is seen on its FRONT side and is still exposed, and so is the panel."""
+def test_a_fin_at_the_corner_no_longer_sets_the_edge_height():
+    """`two_level_slab`'s fin hangs 200 in from the open edge's corner `(0, 0, 0)`. Taking an
+    edge's height from the deepest side face at either endpoint measured that edge at 200 in (36
+    at the default ceiling), and the cap guard had to refuse the skirt. Review I1: the height
+    comes only from side faces hanging from the region's own outline -- the three 8 in skirts --
+    so the edge measures 8 in, the skirt meets the slab's underside, and it stays."""
     m = two_level_slab()
     r = _solidified(m, _fast(max_thickness=1000.0))
 
-    assert list(r.report["thickness_per_region"].values()) == [200.0]   # the deep fin was measured
-    assert r.report["cap_guard_rounds"] >= 2
-    assert r.report["cap_guard_removed"] == 2       # the whole skirt quad goes
-    assert int(r.new_faces.sum()) == 0
-    assert r.mesh.n_faces == m.n_faces              # nothing else was touched
+    assert list(r.report["thickness_per_region"].values()) == [8.0]
+    assert r.report["cap_guard_removed"] == 0
+    new = np.nonzero(r.new_faces)[0]
+    assert len(new) == 2
+    z = r.mesh.positions[r.mesh.face_v[new]][:, :, 2]
+    assert z.min() == pytest.approx(-8.0)
 
 
 def test_the_same_fixture_is_fine_once_the_measurement_is_right():
@@ -202,15 +204,6 @@ def test_the_same_fixture_is_fine_once_the_measurement_is_right():
     assert list(r.report["thickness_per_region"].values()) == [8.0]
     assert r.report["cap_guard_removed"] == 0
     assert int(r.new_faces.sum()) == 2
-
-
-def test_an_over_long_skirt_is_refused_at_the_default_ceiling_too():
-    """The clamp is a bound, not a measurement: 200 in clamped to 36 is still 28 in of skirt
-    hanging below an 8 in slab, and the cap guard refuses that as well. The ceiling limits how
-    wrong a measurement can get; only the guard decides whether the result is acceptable."""
-    r = _solidified(two_level_slab())
-    assert list(r.report["thickness_per_region"].values()) == [36.0]
-    assert r.report["cap_guard_removed"] == 2
 
 
 # ------------------------------------------------------------------------ (e) determinism
@@ -920,3 +913,61 @@ def test_a_new_face_that_coincides_with_an_existing_face_is_refused():
     new = r.mesh.positions[r.mesh.face_v[r.new_faces]]
     at_plate = [shapely.Polygon(t[:, :2]) for t in new if np.allclose(t[:, 2], -8.0)]
     assert all(p.intersection(plate).area < 1e-6 for p in at_plate)
+
+
+# ------------------------ SR5 (review I1): an open edge takes its height from the slab's own sides
+
+
+def _thin_slab_beside_a_deep_wall():
+    """Review probe `probe_deep_corner.py`: a 2 in slab (top and three 2 in outward skirts, the
+    x = 0 edge open) whose corner (0, 0, 0) is also the top corner of a 30 in retaining wall
+    running outward in -x, in the plane y = 0. Faces 0-7 the slab, 8-9 the wall."""
+    from engine.tests.fixtures.build import _mesh, _quads
+    s, h, deep = 40.0, 2.0, 30.0
+    P = [[0, 0, 0], [s, 0, 0], [s, s, 0], [0, s, 0],
+         [0, 0, -h], [s, 0, -h], [s, s, -h], [0, s, -h],
+         [-10, 0, 0], [-10, 0, -deep], [0, 0, -deep]]
+    uvs, fv, fvt, fm = [], [], [], []
+    _quads(P, uvs, fv, fvt, fm, [(0, 1, 2, 3), (0, 4, 5, 1), (1, 5, 6, 2), (2, 6, 7, 3),
+                                 (8, 9, 10, 0)])
+    return _mesh("thin_slab_beside_a_deep_wall", P, uvs, fv, fvt, face_material=fm)
+
+
+def test_a_thin_slab_touching_a_deep_wall_stays_thin():
+    """Review I1: the retaining wall touches the open edge's corner, but it does not hang from
+    the slab's outline -- its top edge runs away from the slab -- so it measures nothing. The
+    edge measures 2 in from the slab's own skirts, the bottom goes at 2 in, and nothing is built
+    below the slab. (It used to become a 30 in box, with every guard passing.)"""
+    m = _thin_slab_beside_a_deep_wall()
+    r = fix_object(m, {}, _FAST)
+    sr = r.solidify_report
+    assert sr["thickness_per_region"] == {"0": 2.0}
+    assert sr["bottom_depth_per_region"] == {"0": 2.0}
+    used = r.mesh.positions[r.mesh.face_v]
+    over_slab = np.all(used[:, :, 0] >= -1e-9, axis=1)
+    assert float(used[over_slab][:, :, 2].min()) == pytest.approx(-2.0)
+    assert sr["regions_deeper_than_own_sides"] == []
+    assert r.passed is True
+
+
+def test_the_bottom_is_no_deeper_than_the_shallowest_existing_side():
+    """Closed sides count too: the x = 40 side is only 4 in deep, the y = 0 and y = 40 sides 8
+    in, and x = 0 is open (its corners measure 8 from the two long sides). The open edge gets its
+    8 in wall, and the bottom goes no deeper than the region's shallowest existing side, 4 in --
+    which the report names, because an 8 in wall now hangs below it."""
+    from engine.tests.fixtures.build import _mesh, _quads
+    s = 40.0
+    P = [[0, 0, 0], [s, 0, 0], [s, s, 0], [0, s, 0],
+         [0, 0, -8], [s, 0, -8], [s, s, -8], [0, s, -8], [s, 0, -4], [s, s, -4]]
+    uvs, fv, fvt, fm = [], [], [], []
+    _quads(P, uvs, fv, fvt, fm, [(0, 1, 2, 3),              # top, +z
+                                 (0, 4, 5, 1),              # y = 0, 8 in, -y
+                                 (2, 6, 7, 3),              # y = s, 8 in, +y
+                                 (1, 8, 9, 2)])             # x = s, 4 in, +x
+    m = _mesh("slab_with_a_shallow_side", P, uvs, fv, fvt, face_material=fm)
+    r = _solidified(m, _fast(min_thickness=1.0))
+    assert r.report["bottom_depth_per_region"] == {"0": 4.0}
+    deeper = r.report["regions_deeper_than_own_sides"]
+    assert [d["region"] for d in deeper] == [0]
+    assert deeper[0]["shallowest_side"] == pytest.approx(4.0)
+    assert deeper[0]["deepest_wall"] == pytest.approx(8.0)

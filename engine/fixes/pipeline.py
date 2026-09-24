@@ -101,8 +101,9 @@ class FixProfile:
     top_min_nz: float = 0.7
     #: How much of a candidate region must see sky straight up for it to be a top surface.
     top_sky_fraction: float = 0.5
-    #: Fallback search for an open edge whose own corners carry no side face: side faces whose
-    #: centroid is within this many inches of the edge midpoint.
+    #: UNUSED since SR5 (review I1), kept so profiles and report.json keep their shape: an edge's
+    #: height comes only from the slab's own sides, never from side faces found within this many
+    #: inches of its midpoint.
     skirt_search_radius: float = 60.0
     #: A measured region thickness is clamped into these bounds, in inches. On file A a real
     #: skirt varies from 1.3 to 49 in, so one uniform thickness leaks; these only bound it.

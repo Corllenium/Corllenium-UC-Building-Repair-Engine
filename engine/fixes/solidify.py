@@ -36,10 +36,13 @@ refused because it met the strip in the same plane). So now, per top region:
 
 THICKNESS IS MEASURED PER EDGE, not per region. A real skirt on file A varies from 1.3 to 49 in, so
 one height for a whole region hangs the shallow side of it far below the slab. Each wall is
-extruded to ITS edge's resolved height (the side faces sharing an endpoint, else any within
-`skirt_search_radius`); the region's median is the fallback for an edge that resolves to nothing,
-counted as `skirt_edges_fallback`. Whether a side is whole is judged at its UNCLAMPED measured
-height: a 1.3 in skirt is a whole 1.3 in side, not a broken 2 in one.
+extruded to ITS edge's resolved height: the SHALLOWEST of the slab's OWN sides -- side faces
+hanging from its outline -- at the edge's ends or along it (review I1; the deepest side face at
+either end, own or not, boxed a 2 in slab touching a 30 in wall to 30 in). The region's median is
+the fallback for an edge that resolves to nothing, counted as `skirt_edges_fallback`, and the
+bottom never goes deeper than the region's shallowest existing side. Whether a side is whole is
+judged at its UNCLAMPED measured height: a 1.3 in skirt is a whole 1.3 in side, not a broken 2 in
+one.
 
 THE SLAB VOLUME, which rule 5 of the cap guard reads, is the region's footprint from its top down
 to its bottom depth: `bottom_h` (the SHALLOWEST measured wall, where the bottom goes) when a bottom
@@ -192,29 +195,69 @@ def _side_faces(topo: Topology, profile) -> np.ndarray:
     return np.nonzero(topo.ok & (np.abs(normals[:, 2]) <= getattr(profile, "top_min_nz", 0.7)))[0]
 
 
-def _edge_thickness(topo: Topology, edges, sides: np.ndarray, side_low: np.ndarray,
-                     side_centroid: np.ndarray, vertex_sides: dict, radius: float
-                     ) -> list[float | None]:
-    """Per edge, IN `edges` ORDER, `top z - lowest z of the side faces that reach it`, or
-    `None` when no side face does. Endpoint-sharing first, because a side that is already there
-    is attached to the very vertex the new one hangs from; the radius search is the fallback for
-    an edge whose own corner has nothing on it.
+def _own_side_rows(topo: Topology, rings: list[np.ndarray], sides: np.ndarray,
+                   tol: float) -> tuple[set[int], dict[tuple[int, int], list[int]]]:
+    """`(own, along)`: the rows of `sides` that HANG FROM THIS REGION'S OUTLINE -- one of their
+    edges lies along an outline edge (every end within `tol` of its line, overlapping the edge by
+    more than `tol`), which is how a side shares an edge with the region or starts at its top
+    through a T-junction -- and, per outline edge `(a, b)`, the rows lying along that edge itself.
+
+    Review I1: a side face that merely TOUCHES a corner of the outline -- a retaining wall
+    running away from a thin slab, a fin -- is not this slab's side and measures nothing."""
+    own: set[int] = set()
+    along: dict[tuple[int, int], list[int]] = {}
+    if not len(sides):
+        return own, along
+    P = topo.positions_w
+    tri = P[topo.face_w[sides]]
+    lo, hi = tri.min(axis=1), tri.max(axis=1)
+    for ring in rings:
+        for a, b in _ring_edges(ring):
+            pa, pb = P[a], P[b]
+            seg = pb - pa
+            length = float(np.linalg.norm(seg))
+            if length <= 1e-9:
+                continue
+            d = seg / length
+            near = ((hi >= np.minimum(pa, pb) - tol) & (lo <= np.maximum(pa, pb) + tol)).all(axis=1)
+            rows = []
+            for row in np.nonzero(near)[0]:
+                v = tri[row]
+                for i, j in ((0, 1), (1, 2), (2, 0)):
+                    u, w = v[i] - pa, v[j] - pa
+                    if (np.linalg.norm(np.cross(u, d)) > tol
+                            or np.linalg.norm(np.cross(w, d)) > tol):
+                        continue
+                    tu, tw = float(u @ d), float(w @ d)
+                    if min(max(tu, tw), length) - max(min(tu, tw), 0.0) > tol:
+                        rows.append(int(row))
+                        break
+            along[(int(a), int(b))] = rows
+            own.update(rows)
+    return own, along
+
+
+def _edge_thickness(topo: Topology, edges, own: set[int], along: dict, side_low: np.ndarray,
+                    vertex_sides: dict) -> list[float | None]:
+    """Per edge, IN `edges` ORDER, `top z - lowest z` of the SHALLOWEST of this region's own
+    sides (`_own_side_rows`) that reach it -- at either endpoint, or lying along the edge -- or
+    `None` when none does.
+
+    Review I1: this used to take the DEEPEST side face at either endpoint, own or not, with a
+    radius search as a fallback, so a 2 in slab whose corner touched a 30 in retaining wall was
+    boxed to 30 in with every guard passing. An edge nothing of the slab's own reaches falls
+    back to its region's median, as before; nothing outside the slab is consulted.
 
     One entry per edge, `None` included: the caller extrudes each edge to ITS OWN height and
     needs to know which ones it could not measure."""
     out: list[float | None] = []
     for a, b in edges:
         top_z = float(max(topo.positions_w[a][2], topo.positions_w[b][2]))
-        rows = sorted(vertex_sides.get(a, set()) | vertex_sides.get(b, set()))
-        if not rows:
-            midpoint = (topo.positions_w[a] + topo.positions_w[b]) / 2.0
-            near = np.linalg.norm(side_centroid - midpoint, axis=1) <= radius
-            rows = np.nonzero(near)[0].tolist()
-        if not rows:
-            out.append(None)
-            continue
-        thickness = top_z - float(side_low[rows].min())
-        out.append(thickness if thickness > 0.0 else None)
+        rows = ((vertex_sides.get(a, set()) | vertex_sides.get(b, set())) & own)
+        rows |= set(along.get((int(a), int(b)), []))
+        depths = [top_z - float(side_low[r]) for r in sorted(rows)]
+        depths = [d for d in depths if d > 0.0]
+        out.append(min(depths) if depths else None)
     return out
 
 
@@ -538,7 +581,6 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
     """
     started = time.perf_counter()
     tol = _depth_tol(topo, profile)
-    radius = getattr(profile, "skirt_search_radius", 60.0)
     min_h = getattr(profile, "min_thickness", 2.0)
     max_h = getattr(profile, "max_thickness", 36.0)
     bottom_fraction = getattr(profile, "bottom_exists_fraction", 0.9)
@@ -555,8 +597,8 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
     sides = _side_faces(topo, profile)
     side_low = (topo.positions_w[topo.face_w[sides]][:, :, 2].min(axis=1) if len(sides)
                 else np.zeros(0))
-    side_centroid = (topo.positions_w[topo.face_w[sides]].mean(axis=1) if len(sides)
-                     else np.zeros((0, 3)))
+    side_top = (topo.positions_w[topo.face_w[sides]][:, :, 2].max(axis=1) if len(sides)
+                else np.zeros(0))
     vertex_sides: dict[int, set] = {}
     for row, face in enumerate(sides):
         for v in topo.face_w[face]:
@@ -608,11 +650,14 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
             queued.add(other)
             queue.append(other)
             continued_tops += 1
-        measured = _edge_thickness(topo, edges, sides, side_low, side_centroid, vertex_sides,
-                                   radius)
+        own, along = _own_side_rows(topo, rings, sides, 2.0 * tol)
+        measured = _edge_thickness(topo, edges, own, along, side_low, vertex_sides)
+        own_depths = [float(side_top[r] - side_low[r]) for r in sorted(own)
+                      if side_top[r] - side_low[r] > 0.0]
         plans.append({"region": region, "members": members, "pieces": pieces, "normal": normal,
                       "origin": origin, "basis": basis, "foot": foot, "edges": edges,
-                      "frames": frames, "continued": continued, "measured": measured})
+                      "frames": frames, "continued": continued, "measured": measured,
+                      "own_depths": own_depths})
 
     top_faces = np.nonzero(np.isin(topo.face_region, sorted(queued)))[0]
     faces = _Faces(topo, top_faces)
@@ -642,6 +687,7 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
     bottom_skips = {reason: 0 for reason in _BOTTOM_SKIPS}
     bottom_exists = 0
     unresolved_thickness = 0
+    deeper: list[dict] = []
 
     for plan in plans:
         members = plan["members"]
@@ -650,6 +696,7 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
                       and plan["frames"][i][2] is not None]
         edges_continued += int(plan["continued"].sum())
         whole_heights = []
+        whole_depths: list[float] = []
         to_build = []
         for i in side_edges:
             a, b = plan["edges"][i]
@@ -664,6 +711,7 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
                 sides_intact += 1
                 if depth is not None:
                     whole_heights.append(clamp(depth))
+                    whole_depths.append(float(depth))
                 continue
             to_build.append((i, found))
         own = [clamp(plan["measured"][i]) for i, _f in to_build if plan["measured"][i] is not None]
@@ -672,8 +720,13 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
         # The region's FALLBACK height, for walls that could not be measured at all.
         h = clamp(float(np.median(heights)) if heights else file_median)
         # ...and the BOTTOM goes at the shallowest height any of its walls actually reached, so
-        # it meets one of them instead of crossing the others.
+        # it meets one of them instead of crossing the others -- and never deeper than the
+        # shallowest side the region already has, closed sides included (review I1).
         bottom_h = min(heights) if heights else h
+        existing = plan["own_depths"] + [d for d in whole_depths]
+        if existing:
+            bottom_h = min(bottom_h, min(existing))
+        wall_heights: list[float] = []
         report_thickness[str(region)] = h
         report_bottom_depth[str(region)] = bottom_h
         material = int(mesh.face_material[members[0]])
@@ -698,6 +751,7 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
             edge_h = clamp(measured) if measured is not None else h
             if measured is None:
                 wall_fallback += 1
+            wall_heights.append(edge_h)
             group = len(group_region)
             group_region.append(region)
             group_kind.append("wall")
@@ -715,6 +769,13 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
                                          pa - [0.0, 0.0, edge_h]], dtype=np.float64))
             walls += 1
             wall_length += length
+
+        if existing and ((wall_heights and max(wall_heights) > min(existing) + tol)
+                         or bottom_h > min(existing) + tol):
+            deeper.append({"region": int(region), "shallowest_side": round(min(existing), 4),
+                           "deepest_side": round(max(existing), 4),
+                           "deepest_wall": round(max(wall_heights), 4) if wall_heights else None,
+                           "bottom": round(float(bottom_h), 4)})
 
         # A bottom is only invented at a thickness that was MEASURED -- this region's own sides,
         # or the file-wide median of everyone else's. When nothing in the file resolved, `h` is
@@ -836,6 +897,10 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
         #: Why, per reason -- see `_BOTTOM_SKIPS` and `_add_bottom`.
         "bottom_skips": bottom_skips,
         "bottom_exists": bottom_exists,
+        #: SR5 (review I1). Every region with a planned wall deeper than, or a bottom below, the
+        #: shallowest side it already has: `{region, shallowest_side, deepest_side, deepest_wall,
+        #: bottom}`. A wall deeper than that hangs below the slab's bottom as a fin.
+        "regions_deeper_than_own_sides": deeper,
         "bottom_thickness_unresolved": unresolved_thickness,
         "outline_unmappable": unmappable,
         "thickness_per_region": report_thickness,
