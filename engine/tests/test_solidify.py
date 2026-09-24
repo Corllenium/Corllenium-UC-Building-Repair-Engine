@@ -950,11 +950,18 @@ def test_a_thin_slab_touching_a_deep_wall_stays_thin():
     assert r.passed is True
 
 
-def test_the_bottom_is_no_deeper_than_the_shallowest_existing_side():
-    """Closed sides count too: the x = 40 side is only 4 in deep, the y = 0 and y = 40 sides 8
-    in, and x = 0 is open (its corners measure 8 from the two long sides). The open edge gets its
-    8 in wall, and the bottom goes no deeper than the region's shallowest existing side, 4 in --
-    which the report names, because an 8 in wall now hangs below it."""
+def test_a_side_shallower_than_the_slabs_representative_depth_is_completed(monkeypatch):
+    """The x = 40 side is only 4 in deep, the y = 0 and y = 40 sides 8 in, and x = 0 is open (its
+    corners measure 8 from the two long sides).
+
+    SR5 (review I1) put the bottom no deeper than the region's shallowest existing side, closed
+    sides included -- 4 in here -- and the 8 in sides and wall hung below it as fins. SR6 item 2
+    replaced that rule: a band shallower than the slab's REPRESENTATIVE side depth (the depth
+    reached by most of its own side length, 8 in here: 80 of its 120 in) does not cap the bottom.
+    The bottom goes at 8 in; the 4 in side above it is then not a whole side of this slab but a
+    band over a missing one, so it is completed to 8 in like any broken side (on the plan, guard
+    bypassed). The report still names the region -- a wall and a bottom deeper than its
+    shallowest side."""
     from engine.tests.fixtures.build import _mesh, _quads
     s = 40.0
     P = [[0, 0, 0], [s, 0, 0], [s, s, 0], [0, s, 0],
@@ -965,11 +972,17 @@ def test_the_bottom_is_no_deeper_than_the_shallowest_existing_side():
                                  (2, 6, 7, 3),              # y = s, 8 in, +y
                                  (1, 8, 9, 2)])             # x = s, 4 in, +x
     m = _mesh("slab_with_a_shallow_side", P, uvs, fv, fvt, face_material=fm)
-    r = _solidified(m, _fast(min_thickness=1.0))
-    assert r.report["bottom_depth_per_region"] == {"0": 4.0}
+    r = _planned(m, _fast(min_thickness=1.0), monkeypatch)
+    assert r.report["representative_side_per_region"] == {"0": pytest.approx(8.0)}
+    assert r.report["bottom_depth_per_region"] == {"0": pytest.approx(8.0)}
+    completed = [f for f in _plane_faces(r.mesh, 0, s) if r.new_faces[f]]
+    assert completed
+    z = r.mesh.positions[r.mesh.face_v[completed]][:, :, 2]
+    assert z.max() == pytest.approx(0.0) and z.min() == pytest.approx(-8.0)
     deeper = r.report["regions_deeper_than_own_sides"]
     assert [d["region"] for d in deeper] == [0]
     assert deeper[0]["shallowest_side"] == pytest.approx(4.0)
+    assert deeper[0]["representative_side"] == pytest.approx(8.0)
     assert deeper[0]["deepest_wall"] == pytest.approx(8.0)
 
 
@@ -989,3 +1002,36 @@ def test_a_cap_guard_cut_off_after_one_round_verifies_what_it_hands_back():
     assert history[-1]["round"] == 1
     assert history[-1]["failing_pixels"] == 0 and history[-1]["removed"] == 0
     assert r.report["cap_guard_passed"] is True
+
+
+# --------------------------------------------- SR6 item 2: a thin lip never sets a slab's bottom
+
+
+def test_a_lip_never_sets_the_slabs_bottom():
+    """`slab_with_a_lip`: sides 12 in deep on three edges; the fourth is open but for a 2 in lip
+    along 8 of its 40 in. SR5 put the bottom no deeper than the shallowest own side -- the lip --
+    so a 12 in slab got a bottom 2 in down, inside itself (file B's ramp: 5.62 in; its landing,
+    region 92: 0.26 in). The lip measures nothing now: the open edge takes the 12 in its corners
+    measure, the lip is replaced by that wall, and the bottom goes at the slab's representative
+    side depth -- 12 in, reached by 120 of its 128 in of own side."""
+    from engine.tests.fixtures.build import slab_with_a_lip
+    r = _solidified(slab_with_a_lip())
+    assert r.report["representative_side_per_region"] == {"0": pytest.approx(12.0)}
+    assert r.report["bottom_depth_per_region"] == {"0": pytest.approx(12.0)}
+    assert r.report["bottoms_added"] == 1
+    assert r.replaced[8] and r.replaced[9]                     # the lip went with the wall
+    wall = [f for f in _plane_faces(r.mesh, 0, 0.0) if r.new_faces[f]]
+    assert wall
+    z = r.mesh.positions[r.mesh.face_v[wall]][:, :, 2]
+    assert z.max() == pytest.approx(0.0) and z.min() == pytest.approx(-12.0)
+
+
+def test_a_riser_standing_up_from_the_top_is_not_a_side():
+    """A face going UP from the outline -- the step to the next landing -- was counted as an own
+    side by its vertical extent, and capped the bottom at it: file A's lower landing (region 11)
+    got its bottom 9.85 in down from its risers, 19.67 in above its real partial bottom. A side is
+    measured by how far it reaches BELOW the edge it lies along; a riser reaches nothing."""
+    from engine.tests.fixtures.build import slab_with_a_lip
+    r = _solidified(slab_with_a_lip(with_lip=False, riser=5.0))
+    assert r.report["representative_side_per_region"] == {"0": pytest.approx(12.0)}
+    assert r.report["bottom_depth_per_region"] == {"0": pytest.approx(12.0)}

@@ -39,10 +39,18 @@ one height for a whole region hangs the shallow side of it far below the slab. E
 extruded to ITS edge's resolved height: the SHALLOWEST of the slab's OWN sides -- side faces
 hanging from its outline -- at the edge's ends or along it (review I1; the deepest side face at
 either end, own or not, boxed a 2 in slab touching a 30 in wall to 30 in). The region's median is
-the fallback for an edge that resolves to nothing, counted as `skirt_edges_fallback`, and the
-bottom never goes deeper than the region's shallowest existing side. Whether a side is whole is
-judged at its UNCLAMPED measured height: a 1.3 in skirt is a whole 1.3 in side, not a broken 2 in
-one.
+the fallback for an edge that resolves to nothing, counted as `skirt_edges_fallback`. Whether a
+side is whole is judged at its UNCLAMPED measured height: a 1.3 in skirt is a whole 1.3 in side,
+not a broken 2 in one.
+
+A THIN LIP NEVER SETS A SLAB'S BOTTOM (SR6 item 2). An own side is measured by how far it reaches
+BELOW the edge it lies along -- a riser standing up from the outline reaches nothing -- and the
+slab's REPRESENTATIVE depth is the depth down to which at least half of its own side length goes
+(`_representative_depth`). The bottom goes no deeper than that; an own side shallower than it (a
+lip, trim or fascia band) measures no edge's height, and is not a whole side either: the side
+below it is missing and is completed. SR5 capped the bottom at the shallowest own face instead,
+which put file B's ramp bottom 5.62 in down, its landing's 0.26 in, and file A's lower landing's
+9.85 in -- every one a lip or a riser, inside a slab 29.52 to 39.37 in deep.
 
 THE SLAB VOLUME, which rule 5 of the cap guard reads, is the region's footprint from its top down
 to its bottom depth: `bottom_h` (the SHALLOWEST measured wall, where the bottom goes) when a bottom
@@ -105,7 +113,7 @@ PIECE_MAX_ANGLE_DEG = 30.0
 #: SR2. The ceiling on `FixProfile.side_band`, in inches. Measured in SR1 over every original face
 #: the old cap guard refused to cover because it lay near a new wall or bottom and parallel to it:
 #: 99 % of those pixels lie within 1.98 in of the new face's plane on file A and within 2.35 in on
-#: file B, and beyond 3 in there are only 10 (A) and 15 (B) pixels of noise. A band wider than
+#: file B, and beyond 3 in there are only 7 (A) and 15 (B) pixels of noise. A band wider than
 #: that stops describing the slab's own broken side and starts reaching things that stand next to
 #: it -- a railing or a wall a few inches outside the edge.
 SIDE_BAND_MAX = 3.0
@@ -237,8 +245,66 @@ def _own_side_rows(topo: Topology, rings: list[np.ndarray], sides: np.ndarray,
     return own, along
 
 
+def _own_side_depths(topo: Topology, along: dict, sides: np.ndarray, tol: float
+                     ) -> tuple[dict[int, float], list[tuple[float, float]]]:
+    """`(row_depth, runs)` of a region's own sides (`_own_side_rows`' `along`). `row_depth` is,
+    per own row, how far BELOW the outline edge it lies along it reaches -- under the edge's own
+    height at each corner, so a sloped edge is measured where each corner lies along it. `runs`
+    holds `(depth, run)` per row and edge it lies along, `run` being the length it covers of that
+    edge, for every row reaching deeper than `tol`.
+
+    SR6 item 2. SR5 measured an own side by its vertical EXTENT, so a face standing UP from the
+    outline -- the riser of the step to the next landing -- counted as a side as tall as itself:
+    every one of the shallow "sides" that capped file A's lower landing (region 11) at 9.85 in is
+    such a riser, 0.0 in below its edge. A side of this slab is what hangs BELOW its top."""
+    P = topo.positions_w
+    row_depth: dict[int, float] = {}
+    runs: list[tuple[float, float]] = []
+    for (a, b), rows in along.items():
+        pa, pb = P[a], P[b]
+        t = pb - pa
+        t[2] = 0.0
+        length = float(np.linalg.norm(t))
+        if length <= 1e-9:
+            continue
+        th = t / length
+        for row in rows:
+            tri = P[topo.face_w[sides[row]]]
+            u = np.clip((tri - pa) @ th, 0.0, length)
+            depth = float((pa[2] + (pb[2] - pa[2]) * (u / length) - tri[:, 2]).max())
+            row_depth[row] = max(row_depth.get(row, -np.inf), depth)
+            run = float(u.max() - u.min())
+            if depth > tol and run > 0.0:
+                runs.append((depth, run))
+    return row_depth, runs
+
+
+def _representative_depth(runs: list[tuple[float, float]]) -> float | None:
+    """SR6 item 2. The depth a slab's own sides REPRESENTATIVELY reach: the length-weighted
+    (lower) median of `_own_side_depths`' runs -- the shallowest depth down to which at least
+    half of the slab's own side length goes. `None` without any own side.
+
+    Why the median of the LENGTH: a lip, trim or fascia band is short. Measured: file B's ramp
+    (region 309) has 804.1 in of own side reaching below its edges, 5.62 to 39.37 in deep, the
+    5.62 in lip running 13.1 in of it (representative 33.74 in); its landing (region 92) 1,452.3
+    in, the 0.26 in lip running 29.5 in (representative 39.37 in); file A's lower landing (region
+    11) 1,152.9 in, all of it 29.52 in -- the 15 of its 44 own faces that capped it at 9.85 in are
+    risers. SR5's shallowest side set all three bottoms at the lip or the riser; it lay below the
+    representative depth in 38 regions of file B and 56 of file A. A tie goes to the shallower
+    depth: `slab_with_two_depths`, half 1.3 in and half 9.8 in, keeps S-I5's bottom at 1.3 in."""
+    if not runs:
+        return None
+    depth = np.array([r[0] for r in runs], dtype=np.float64)
+    run = np.array([r[1] for r in runs], dtype=np.float64)
+    order = np.argsort(depth, kind="stable")
+    cumulative = np.cumsum(run[order])
+    k = int(np.searchsorted(cumulative, 0.5 * cumulative[-1], side="left"))
+    return float(depth[order][min(k, len(order) - 1)])
+
+
 def _edge_thickness(topo: Topology, edges, own: set[int], along: dict, side_low: np.ndarray,
-                    vertex_sides: dict) -> list[float | None]:
+                    vertex_sides: dict, row_depth: dict | None = None,
+                    lip_below: float | None = None) -> list[float | None]:
     """Per edge, IN `edges` ORDER, `top z - lowest z` of the SHALLOWEST of this region's own
     sides (`_own_side_rows`) that reach it -- at either endpoint, or lying along the edge -- or
     `None` when none does.
@@ -248,6 +314,11 @@ def _edge_thickness(topo: Topology, edges, own: set[int], along: dict, side_low:
     boxed to 30 in with every guard passing. An edge nothing of the slab's own reaches falls
     back to its region's median, as before; nothing outside the slab is consulted.
 
+    SR6 item 2: an own side reaching less than `lip_below` below its edge (`row_depth`) -- a lip,
+    trim or fascia band shallower than the slab's representative depth -- measures nothing. On
+    file B's ramp the 7.87 in lip along one broken edge made its wall 7.87 in, and the bottom,
+    which goes at the shallowest wall, followed it.
+
     One entry per edge, `None` included: the caller extrudes each edge to ITS OWN height and
     needs to know which ones it could not measure."""
     out: list[float | None] = []
@@ -255,6 +326,8 @@ def _edge_thickness(topo: Topology, edges, own: set[int], along: dict, side_low:
         top_z = float(max(topo.positions_w[a][2], topo.positions_w[b][2]))
         rows = ((vertex_sides.get(a, set()) | vertex_sides.get(b, set())) & own)
         rows |= set(along.get((int(a), int(b)), []))
+        if lip_below is not None and row_depth is not None:
+            rows = {r for r in rows if row_depth.get(r, np.inf) >= lip_below}
         depths = [top_z - float(side_low[r]) for r in sorted(rows)]
         depths = [d for d in depths if d > 0.0]
         out.append(min(depths) if depths else None)
@@ -449,8 +522,8 @@ class _Faces:
 
 
 def _wall_pieces(faces: _Faces, pa, pb, q, h_measured: float, h_wall: float, band: float,
-                 claimed: set, built: list | None = None, max_depth: float = 0.0
-                 ) -> tuple[list[int], float, float | None]:
+                 claimed: set, built: list | None = None, max_depth: float = 0.0,
+                 min_side: float = 0.0) -> tuple[list[int], float, float | None]:
     """`(pieces, coverage, depth)` of the side under edge `pa -> pb` (outward `q`). `depth` is
     the side's measured depth, from ORIGINAL faces only, or `None` when no original face hangs
     from the edge -- a side that is whole only because this run already walled a coincident edge
@@ -482,7 +555,11 @@ def _wall_pieces(faces: _Faces, pa, pb, q, h_measured: float, h_wall: float, ban
     A PIECE, which the wall replaces, is a face in the band with at least
     `_PIECE_INSIDE_FRACTION` of its own area inside the rectangle down to the deeper of the side
     and the wall; a face mostly outside it belongs to another edge, or is not part of this side
-    at all (a railing standing in the band but reaching far above the top)."""
+    at all (a railing standing in the band but reaching far above the top).
+
+    SR6 item 2: a side is whole only down to at least `min_side` -- the slab's representative
+    depth, less the depth tolerance. A band shallower than that is a lip, trim or fascia over a
+    side that is missing below it, and is completed like any broken side."""
     t = pb - pa
     t[2] = 0.0
     length = float(np.linalg.norm(t))
@@ -540,7 +617,7 @@ def _wall_pieces(faces: _Faces, pa, pb, q, h_measured: float, h_wall: float, ban
     inside = shapely.area(shapely.intersection(polys, shapely.box(0.0, -h_box, length, 0.0)))
     mine = (own & is_face & (inside >= _PIECE_INSIDE_FRACTION * area))[:len(cand)]
     pieces = [int(f) for f in cand[mine] if int(f) not in claimed]
-    side = shapely.box(0.0, -h_side, length, 0.0)
+    side = shapely.box(0.0, -max(h_side, min_side), length, 0.0)
     covered = shapely.area(shapely.intersection(shapely.union_all(polys[own]), side))
     return pieces, float(covered / max(side.area, 1e-12)), measured
 
@@ -651,13 +728,18 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
             queue.append(other)
             continued_tops += 1
         own, along = _own_side_rows(topo, rings, sides, 2.0 * tol)
-        measured = _edge_thickness(topo, edges, own, along, side_low, vertex_sides)
-        own_depths = [float(side_top[r] - side_low[r]) for r in sorted(own)
-                      if side_top[r] - side_low[r] > 0.0]
+        # SR6 item 2: own sides are measured BELOW their edge (a riser standing up measures 0),
+        # and the slab's representative depth is what most of their length reaches; a lip
+        # shallower than that measures no edge's height and caps no bottom
+        row_depth, runs = _own_side_depths(topo, along, sides, tol)
+        rep = _representative_depth(runs)
+        measured = _edge_thickness(topo, edges, own, along, side_low, vertex_sides, row_depth,
+                                   None if rep is None else rep - tol)
+        own_depths = sorted(d for d in row_depth.values() if d > tol)
         plans.append({"region": region, "members": members, "pieces": pieces, "normal": normal,
                       "origin": origin, "basis": basis, "foot": foot, "edges": edges,
                       "frames": frames, "continued": continued, "measured": measured,
-                      "own_depths": own_depths})
+                      "own_depths": own_depths, "rep": rep})
 
     top_faces = np.nonzero(np.isin(topo.face_region, sorted(queued)))[0]
     faces = _Faces(topo, top_faces)
@@ -679,6 +761,7 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
     volumes: dict[int, tuple] = {}
     report_thickness: dict[str, float] = {}
     report_bottom_depth: dict[str, float] = {}
+    report_rep: dict[str, float | None] = {}
     walls = 0
     wall_length = 0.0
     wall_fallback = 0
@@ -698,6 +781,8 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
         whole_heights = []
         whole_depths: list[float] = []
         to_build = []
+        rep = plan["rep"]
+        report_rep[str(region)] = None if rep is None else round(float(rep), 4)
         for i in side_edges:
             a, b = plan["edges"][i]
             pa, pb, q = plan["frames"][i]
@@ -706,7 +791,8 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
             h_side = meas if meas is not None else fallback_guess
             found, coverage, depth = _wall_pieces(faces, pa.copy(), pb.copy(), q, h_side,
                                                   fallback_guess, band, claimed, built_walls,
-                                                  max_depth=max_h)
+                                                  max_depth=max_h,
+                                                  min_side=0.0 if rep is None else rep - tol)
             if coverage >= SIDE_WHOLE_FRACTION:
                 sides_intact += 1
                 if depth is not None:
@@ -721,11 +807,12 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
         h = clamp(float(np.median(heights)) if heights else file_median)
         # ...and the BOTTOM goes at the shallowest height any of its walls actually reached, so
         # it meets one of them instead of crossing the others -- and never deeper than the
-        # shallowest side the region already has, closed sides included (review I1).
+        # slab's representative side depth (SR6 item 2; review I1 capped it at the shallowest
+        # own side, which a lip or a riser set).
         bottom_h = min(heights) if heights else h
+        if rep is not None:
+            bottom_h = min(bottom_h, rep)
         existing = plan["own_depths"] + [d for d in whole_depths]
-        if existing:
-            bottom_h = min(bottom_h, min(existing))
         wall_heights: list[float] = []
         report_thickness[str(region)] = h
         report_bottom_depth[str(region)] = bottom_h
@@ -773,6 +860,7 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
         if existing and ((wall_heights and max(wall_heights) > min(existing) + tol)
                          or bottom_h > min(existing) + tol):
             deeper.append({"region": int(region), "shallowest_side": round(min(existing), 4),
+                           "representative_side": None if rep is None else round(float(rep), 4),
                            "deepest_side": round(max(existing), 4),
                            "deepest_wall": round(max(wall_heights), 4) if wall_heights else None,
                            "bottom": round(float(bottom_h), 4)})
@@ -898,9 +986,15 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
         "bottom_skips": bottom_skips,
         "bottom_exists": bottom_exists,
         #: SR5 (review I1). Every region with a planned wall deeper than, or a bottom below, the
-        #: shallowest side it already has: `{region, shallowest_side, deepest_side, deepest_wall,
-        #: bottom}`. A wall deeper than that hangs below the slab's bottom as a fin.
+        #: shallowest side it already has: `{region, shallowest_side, representative_side,
+        #: deepest_side, deepest_wall, bottom}`, each side measured below its own edge (SR6).
+        #: Since SR6 item 2 a bottom below a lip is by design; a wall deeper than the bottom
+        #: still hangs below the slab as a fin.
         "regions_deeper_than_own_sides": deeper,
+        #: SR6 item 2. Per region, the depth most of its own side length reaches
+        #: (`_representative_depth`): the bottom goes no deeper, and an own side shallower than
+        #: it is a lip that measures nothing. `None` for a region without own sides.
+        "representative_side_per_region": report_rep,
         "bottom_thickness_unresolved": unresolved_thickness,
         "outline_unmappable": unmappable,
         "thickness_per_region": report_thickness,

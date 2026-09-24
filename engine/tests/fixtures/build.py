@@ -1074,3 +1074,33 @@ def slab_continuing_under_a_landing(length=80.0, width=40.0, depth=10.0, landing
     _quads(P, uvs, fv, fvt, fm, [tuple(r)], material=0)                         # rib, -x
     return _mesh("slab_continuing_under_a_landing", P, uvs, fv, fvt, materials=("m0", "m1"),
                  face_material=fm)
+
+
+def slab_with_a_lip(size=40.0, deep=12.0, lip=2.0, lip_length=8.0, with_lip=True, riser=0.0,
+                    riser_length=10.0):
+    """SR6 item 2: a slab whose own sides are `deep` on three edges, and whose x = 0 edge is open
+    except for a `lip` band hanging `lip` in from the top along `0 <= y <= lip_length` -- a trim,
+    not the slab's depth (file B's ramp has one 5.62 in deep over 13.1 of its 804 in of own
+    sides). With `riser > 0`, a face also stands UP `riser` in from the y = size edge along
+    `0 <= x <= riser_length`: the step to the next landing, which is not a side of this slab at
+    all (every one of file A's lower landing's shallow "sides" is such a riser). No bottom.
+
+    Faces: 0-1 the top, 2-3 y = 0, 4-5 x = size, 6-7 y = size (all `deep`, outward), then 8-9
+    the lip if any, then the riser if any."""
+    s, D = size, deep
+    P = [[0, 0, 0], [s, 0, 0], [s, s, 0], [0, s, 0],
+         [0, 0, -D], [s, 0, -D], [s, s, -D], [0, s, -D]]
+    uvs, fv, fvt, fm = [], [], [], []
+    _quads(P, uvs, fv, fvt, fm, [(0, 1, 2, 3),                    # top, +z
+                                 (4, 5, 1, 0),                    # y = 0, -y
+                                 (5, 6, 2, 1),                    # x = s, +x
+                                 (6, 7, 3, 2)])                   # y = s, +y
+    if with_lip:
+        base = len(P)
+        P += [[0, lip_length, 0], [0, lip_length, -lip], [0, 0, -lip]]
+        _quads(P, uvs, fv, fvt, fm, [(base + 2, 0, base, base + 1)])       # the lip, -x
+    if riser > 0.0:
+        base = len(P)
+        P += [[riser_length, s, 0], [riser_length, s, riser], [0, s, riser]]
+        _quads(P, uvs, fv, fvt, fm, [(3, base, base + 1, base + 2)])       # the riser, -y
+    return _mesh("slab_with_a_lip", P, uvs, fv, fvt, face_material=fm)
