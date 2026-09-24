@@ -50,7 +50,12 @@ Jobs:
    faces seen from outside A 119,610 -> 29,225 px, B 21,959 -> 5,258 px, both passed, but file A's
    merge rolls back (2,668 triangles instead of about 900). The owner's "sawtooth" broken side is on
    file B, under the slope between the upper landing and the lower slab.
-3. Next: `briefs/03-reconcile-and-verify.md` once SR is done.
+3. **Review part 1** (brief `briefs/04-review.md`), read-only, committed state b2134e9..ce48932
+   without the side rebuild; held by a Claude subagent since 19:12; writes its review into the
+   session scratchpad, the controller files it as
+   `.superpowers/sdd/2026-09-21-phase2e-fix-pipeline/review-since-b2134e9.md`. If you take it over,
+   write that file directly.
+4. Next: `briefs/03-reconcile-and-verify.md` once SR is done, then review part 2.
 
 **If you take over one of these** (for example because Claude hit its usage limit): follow the
 lapse rule at the top of `WORK-CLAIMS.md`, take the claim over in writing, run `git status` and
