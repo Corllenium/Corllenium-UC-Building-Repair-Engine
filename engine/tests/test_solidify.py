@@ -701,3 +701,130 @@ def test_the_side_rebuild_is_deterministic():
     assert a.new_faces.tolist() == b.new_faces.tolist()
     assert ({k: v for k, v in a.report.items() if k != "runtime_s"}
             == {k: v for k, v in b.report.items() if k != "runtime_s"})
+
+
+def test_a_side_is_measured_at_its_own_depth_however_shallow_its_edge_measured():
+    """File A, region 11: one outline edge measured 11.72 in from the side faces at its
+    endpoints, while the side face lying in its plane goes 29.52 in deep. The band search stopped
+    at `measured + band + 1` (15.22 in) and reported THAT as the side's depth -- the bottom was
+    then placed at 15.22 in, 14.3 in above the slab's real partial bottom, and the merge's
+    0.004 in border shrink exposed it. The side's depth is its own faces' depth."""
+    from engine.fixes.solidify import _Faces, _wall_pieces
+    m = slab_with_three_skirts(height=30.0, with_bottom=True)
+    topo = analyse_topology(m)
+    faces = _Faces(topo, np.array([0, 1]))
+    pa, pb = np.array([40.0, 0.0, 0.0]), np.array([0.0, 0.0, 0.0])
+    pieces, coverage, depth = _wall_pieces(faces, pa, pb, np.array([0.0, -1.0, 0.0]),
+                                           5.0, 5.0, 2.5, set(),
+                                           max_depth=FixProfile().max_thickness)
+    assert depth == pytest.approx(30.0)
+    assert coverage == pytest.approx(1.0)
+    assert sorted(pieces) == [2, 3]            # the y = 0 skirt's two triangles
+
+
+def test_a_wall_below_a_gap_is_not_part_of_the_side_above_it():
+    """The side is what hangs from the top edge. A second wall in the same plane further down,
+    separated from it by a gap -- the next level's side, say -- does not make this side deeper,
+    and so does not make a whole side look broken."""
+    from engine.fixes.solidify import _Faces, _wall_pieces
+    m = slab_with_three_skirts(height=8.0, with_bottom=True)
+    P = m.positions.tolist()
+    uvs, fv, fvt, fm = m.uvs.tolist(), m.face_v.tolist(), m.face_vt.tolist(), m.face_material.tolist()
+    r = len(P)
+    P += [[0.0, 0.0, -20.0], [40.0, 0.0, -20.0], [40.0, 0.0, -30.0], [0.0, 0.0, -30.0]]
+    from engine.tests.fixtures.build import _mesh, _quads
+    _quads(P, uvs, fv, fvt, fm, [(r, r + 3, r + 2, r + 1)])       # a lower wall, y = 0, -y
+    m2 = _mesh("slab_over_a_lower_wall", P, uvs, fv, fvt, face_material=fm)
+    faces = _Faces(analyse_topology(m2), np.array([0, 1]))
+    pieces, coverage, depth = _wall_pieces(
+        faces, np.array([40.0, 0.0, 0.0]), np.array([0.0, 0.0, 0.0]), np.array([0.0, -1.0, 0.0]),
+        8.0, 8.0, 2.5, set(), max_depth=FixProfile().max_thickness)
+    assert depth == pytest.approx(8.0)
+    assert coverage == pytest.approx(1.0)
+
+
+def test_a_top_that_continues_under_a_landing_is_one_slab_with_it():
+    """File A, region 11: the lower landing's top continues under the upper landing, where it
+    sees no sky and so was never a top surface -- its volume was unknown, the rib-like wall under
+    it counted as OUTSIDE, and region 11's new bottom was refused over the views of it. Once one
+    of its faces went, the bottom's pieces came back and the rest of it failed against them in
+    its own plane. A surface the top CONTINUES into is part of that top: it is processed as one,
+    its volume is inside, and it gets its own bottom."""
+    from engine.tests.fixtures.build import slab_continuing_under_a_landing
+    m = slab_continuing_under_a_landing()
+    r = _solidified(m)
+
+    assert r.report["top_regions_continued"] == 1          # B, under the landing
+    assert r.report["cap_guard_removed"] == 0
+    assert r.report["bottoms_added"] == 2                   # under A and under B
+    assert r.report["interior_faces_covered"] >= 2          # the rib
+    new = r.mesh.positions[r.mesh.face_v[r.new_faces]]
+    assert np.allclose(new[:, :, 2], -10.0)                 # the bottoms, and nothing else
+
+
+def test_fix_object_seals_the_slab_under_the_landing_and_removes_the_rib():
+    from engine.tests.fixtures.build import slab_continuing_under_a_landing
+    m = slab_continuing_under_a_landing()
+    r = fix_object(m, {}, _FAST)
+    assert r.passed is True
+    rib = (np.abs(r.mesh.positions[r.mesh.face_v][:, :, 0] - 60.0) < 1e-6).all(axis=1)
+    assert not rib.any()
+    assert r.backface_px["final"]["total"] == 0
+
+
+def test_walls_this_run_built_do_not_measure_a_duplicate_layers_sides():
+    """A top drawn twice, the second layer in another material and cut into its own regions,
+    all seeing sky. The first layer's walls also close the second layer's coincident edges, so
+    those sides count as whole -- but a wall this run invented is not a measurement: counted as
+    one, it gave 10 of the layer's regions a bottom at the 2 in fallback depth."""
+    from engine.tests.fixtures.build import stacked_duplicate_slab
+    m = stacked_duplicate_slab(nx=3, ny=3, top_material=1)
+    r = _solidified(m)
+    assert r.report["top_regions_continued"] == 0
+    # no side face anywhere, so no depth was ever measured: no bottom at a made-up depth, for
+    # either layer (the walls one layer built do not measure the other's sides)
+    assert r.report["bottoms_added"] == 0
+
+
+def test_the_faces_one_closing_face_is_made_of_share_one_texture_map():
+    """A textured material splits a plane into UV classes (`engine.topo.planes.cluster_uv`), and
+    the merge only rebuilds a class as one polygon. Every invented triangle used to be projected
+    from its OWN first corner, so no two of them shared a map: file A's region 11 bottom came out
+    as a fan of separate triangles, every edge drawn. All the invented faces in one plane are
+    projected from ONE origin now, so they are one UV class and merge."""
+    from engine.topo.planes import cluster_uv, plane_basis
+    r = _solidified(slab_with_sawtooth_side_wall_only())
+    new = np.nonzero(r.new_faces)[0]
+    tri = r.mesh.positions[r.mesh.face_v[new]]
+    n = _face_normals(r.mesh)[new]
+    for normal in ([-1.0, 0.0, 0.0], [0.0, 0.0, -1.0]):
+        rows = np.nonzero((n @ np.array(normal)) > 0.99)[0]
+        assert len(rows) >= 2
+        e1, e2 = plane_basis(np.array(normal))
+        xy = np.stack([tri[rows] @ e1, tri[rows] @ e2], axis=2)
+        uv = r.mesh.uvs[r.mesh.face_vt[new[rows]]]
+        area = 0.5 * np.linalg.norm(np.cross(tri[rows, 1] - tri[rows, 0],
+                                              tri[rows, 2] - tri[rows, 0]), axis=1)
+        labels, fits = cluster_uv(xy, uv, area)
+        assert len(fits) == 1, normal
+
+
+def test_a_closed_slab_on_a_textured_material_merges_its_new_bottom_into_one_polygon():
+    m = slab_with_three_skirts()
+    r = fix_object(m, {"m0": 100.0}, _FAST)          # std 100: textured, not flat
+    bottom = [f for f in range(r.mesh.n_faces)
+              if np.allclose(r.mesh.positions[r.mesh.face_v[f]][:, 2], -8.0)]
+    assert len(bottom) == 2
+    assert r.face_region_final[bottom[0]] >= 0
+    assert r.face_region_final[bottom[0]] == r.face_region_final[bottom[1]]
+
+
+def slab_with_sawtooth_side_wall_only():
+    """`slab_with_sawtooth_side` without its bottom, so solidify builds a wall AND a bottom."""
+    from engine.tests.fixtures.build import slab_with_sawtooth_side
+    m = slab_with_sawtooth_side()
+    tri = m.positions[m.face_v]
+    keep = ~(np.abs(tri[:, :, 2] + 8.0) < 1e-9).all(axis=1)
+    from dataclasses import replace
+    return replace(m, face_v=m.face_v[keep], face_vt=m.face_vt[keep], face_vn=m.face_vn[keep],
+                   face_material=m.face_material[keep], face_line=m.face_line[keep])

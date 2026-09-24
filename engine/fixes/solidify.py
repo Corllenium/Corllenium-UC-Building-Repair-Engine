@@ -260,6 +260,13 @@ class _Builder:
         return len(self.positions) - 1
 
     def face(self, ids, material: int, uv_scale: float, group: int) -> None:
+        """Append one invented triangle. Its UVs project its corners onto its own plane's basis,
+        measured from ONE origin for every face (the model's own origin), scaled by the region's
+        inches-to-UV scale: every invented face in one plane then follows one texture map, so a
+        textured material's plane keeps them in one UV class (`engine.topo.planes.cluster_uv`)
+        and the merge can rebuild them as one polygon. Projected from each triangle's own first
+        corner, as it used to be, no two of them shared a map and every edge of a new bottom was
+        drawn."""
         points = np.array([self.positions[i] for i in ids], dtype=np.float64)
         vt = [-1, -1, -1]
         if uv_scale > 0.0:
@@ -267,7 +274,7 @@ class _Builder:
             length = float(np.linalg.norm(normal))
             if length > 0.0:
                 e1, e2 = plane_basis(normal / length)
-                xy = (points - points[0]) @ np.stack([e1, e2], axis=1) * uv_scale
+                xy = points @ np.stack([e1, e2], axis=1) * uv_scale
                 vt = [len(self.uvs) + k for k in range(3)]
                 self.uvs.extend(xy)
         self.faces.append((list(ids), vt, material))
@@ -350,13 +357,15 @@ def _outward(foot, pa: np.ndarray, pb: np.ndarray, centroid: np.ndarray) -> np.n
 
 def _continues(topo: Topology, ok_ids: np.ndarray, caster, normals: np.ndarray,
                edges: list[tuple[np.ndarray, np.ndarray, np.ndarray]], top_min_nz: float,
-               tol: float) -> np.ndarray:
+               tol: float) -> tuple[np.ndarray, list[set]]:
     """Per edge `(pa, pb, outward)`: does the top surface CONTINUE across it -- another top-like
     face just outside whose plane passes through the edge? Probed at `_PROBE_FRACTIONS` along
     the edge, `_PROBE_OUT` outside it, straight down from an inch above; a majority decides.
-    Such an edge is where two top regions of one slab meet, and has no side at all."""
+    Such an edge is where two top regions of one slab meet, and has no side at all. Returns the
+    verdicts and, per edge, the faces the agreeing probes met -- the surface the top continues
+    into, which `solidify` then treats as part of the same top."""
     if not edges:
-        return np.zeros(0, bool)
+        return np.zeros(0, bool), []
     points, origins = [], []
     for pa, pb, q in edges:
         for f in _PROBE_FRACTIONS:
@@ -371,7 +380,11 @@ def _continues(topo: Topology, ok_ids: np.ndarray, caster, normals: np.ndarray,
     v0 = topo.positions_w[topo.face_w[face][:, 0]]
     through = np.abs(np.einsum("ij,ij->i", points - v0, n)) <= tol
     ok = hit & (np.abs(n[:, 2]) > top_min_nz) & through
-    return ok.reshape(len(edges), len(_PROBE_FRACTIONS)).sum(axis=1) * 2 > len(_PROBE_FRACTIONS)
+    k = len(_PROBE_FRACTIONS)
+    verdict = ok.reshape(len(edges), k).sum(axis=1) * 2 > k
+    met = [set(face[i * k:(i + 1) * k][ok[i * k:(i + 1) * k]].tolist()) if verdict[i] else set()
+           for i in range(len(edges))]
+    return verdict, met
 
 
 class _Faces:
@@ -393,20 +406,30 @@ class _Faces:
 
 
 def _wall_pieces(faces: _Faces, pa, pb, q, h_measured: float, h_wall: float, band: float,
-                 claimed: set, built: list | None = None) -> tuple[list[int], float, float]:
-    """`(pieces, coverage, depth)` of the side under edge `pa -> pb` (outward `q`).
+                 claimed: set, built: list | None = None, max_depth: float = 0.0
+                 ) -> tuple[list[int], float, float | None]:
+    """`(pieces, coverage, depth)` of the side under edge `pa -> pb` (outward `q`). `depth` is
+    the side's measured depth, from ORIGINAL faces only, or `None` when no original face hangs
+    from the edge -- a side that is whole only because this run already walled a coincident edge
+    measures nothing, and must not set a bottom's depth.
 
     In the side's own frame -- `u` along the edge, `v` the height below the top edge, so a
     sloped edge's side is still a rectangle `[0, L] x [-h, 0]` -- a face IN THE BAND is an
     eligible face with every corner within `band` of the side's plane and within
     `PIECE_MAX_ANGLE_DEG` of parallel to it.
 
-    The SIDE is judged at its own depth: the deepest point of the faces in the band that overlap
-    `0 <= u <= L`, or `h_measured` when there are none. Not at `h_measured` alone, which comes
-    from ANY side face touching an endpoint -- `two_level_slab`'s fin, perpendicular to its
-    `y = 0` side at a shared corner, makes that whole 8 in side measure 200 in. `coverage` is the
-    fraction of that rectangle the faces in the band cover, whichever edge they belong to: one
-    side quad spanning two outline edges (a T-junction on its top edge) covers both.
+    The SIDE is judged at its own depth: what HANGS FROM THE TOP EDGE -- the connected part of
+    the band's faces over `0 <= u <= L` that reaches up to the edge -- searched down to the
+    deepest of `h_measured`, `h_wall` and `max_depth` (the profile's `max_thickness`), or
+    `h_measured` when nothing hangs there. Not `h_measured` alone, which comes from ANY side face
+    touching an endpoint: `two_level_slab`'s fin, perpendicular to its `y = 0` side at a shared
+    corner, makes that whole 8 in side measure 200 in, and on file A (region 11) an edge measured
+    11.72 in from its endpoints while the side face in its plane goes 29.52 in deep. Nor a search
+    window cut off at `h_measured`: that reported the cut-off (15.22 in) as the side's depth, and
+    the bottom went 14.3 in above the slab's real partial bottom. A separate wall further down
+    the same plane, below a gap, is not part of the side. `coverage` is the fraction of the
+    side's rectangle the faces in the band cover, whichever edge they belong to: one side quad
+    spanning two outline edges (a T-junction on its top edge) covers both.
 
     `built` holds the `(corners)` of every wall this run has already decided to build: one in
     the band covers this side like an original face does (never as a piece), so an outline two
@@ -421,9 +444,9 @@ def _wall_pieces(faces: _Faces, pa, pb, q, h_measured: float, h_wall: float, ban
     t[2] = 0.0
     length = float(np.linalg.norm(t))
     if length <= 1e-9:
-        return [], 1.0, h_measured
+        return [], 1.0, None
     th = t / length
-    reach = max(h_measured, h_wall) + band + 1.0
+    reach = max(h_measured, h_wall, max_depth) + band + 1.0
     lo = np.minimum(pa, pb) - band
     hi = np.maximum(pa, pb) + band
     lo[2] = min(pa[2], pb[2]) - reach
@@ -444,7 +467,7 @@ def _wall_pieces(faces: _Faces, pa, pb, q, h_measured: float, h_wall: float, ban
             corners.append(quad)
             is_face.append(False)
     if not corners:
-        return [], 0.0, h_measured
+        return [], 0.0, None
     polys = []
     for v in corners:
         u = (v - pa) @ th
@@ -456,15 +479,27 @@ def _wall_pieces(faces: _Faces, pa, pb, q, h_measured: float, h_wall: float, ban
     strip = shapely.intersection(polys, shapely.box(0.0, -reach, length, band))
     own = (area > 0.0) & (shapely.area(strip) > 0.0)
     if not own.any():
-        return [], 0.0, h_measured
-    h_side = float(-shapely.bounds(strip[own])[:, 1].min())
+        return [], 0.0, None
+    top = shapely.box(0.0, -band, length, band)
+
+    def hanging_depth(mask):
+        if not mask.any():
+            return None
+        union = shapely.union_all(strip[mask])
+        hanging = [g for g in getattr(union, "geoms", [union]) if g.intersects(top)]
+        return float(max(-g.bounds[1] for g in hanging)) if hanging else None
+
+    h_side = hanging_depth(own)
+    if h_side is None:
+        return [], 0.0, None
+    measured = hanging_depth(own & is_face)
     h_box = max(h_side, h_wall)
     inside = shapely.area(shapely.intersection(polys, shapely.box(0.0, -h_box, length, 0.0)))
     mine = (own & is_face & (inside >= _PIECE_INSIDE_FRACTION * area))[:len(cand)]
     pieces = [int(f) for f in cand[mine] if int(f) not in claimed]
     side = shapely.box(0.0, -h_side, length, 0.0)
     covered = shapely.area(shapely.intersection(shapely.union_all(polys[own]), side))
-    return pieces, float(covered / max(side.area, 1e-12)), h_side
+    return pieces, float(covered / max(side.area, 1e-12)), measured
 
 
 def _bottom_pieces(faces: _Faces, foot, normal, origin, bottom_h: float, band: float,
@@ -528,8 +563,6 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
             vertex_sides.setdefault(int(v), set()).add(row)
 
     index = _edge_index(topo)
-    top_faces = np.nonzero(np.isin(topo.face_region, regions))[0] if regions else np.zeros(0, int)
-    faces = _Faces(topo, top_faces)
     claimed: set[int] = set()
     built_walls: list[np.ndarray] = []
     plans = []
@@ -537,7 +570,18 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
     edges_continued = 0
     sides_intact = 0
     open_edge_count = 0
-    for region in regions:
+    # A surface a top CONTINUES into is part of that top, whether or not it sees sky: on file A
+    # the lower landing's top runs on under the upper landing (regions 784 and 9), and a slab
+    # volume that stopped at the sky's edge counted the inside of that slab as OUTSIDE. The
+    # continued regions are processed as tops too, breadth first after the sky-seeing ones --
+    # a region must be flat enough (`|n_z| > top_min_nz` on every face) to be one.
+    top_like = {int(r) for r in np.unique(topo.face_region[topo.face_region >= 0])
+                if (np.abs(normals[topo.face_region == r][:, 2]) > top_min_nz).all()}
+    queue = list(regions)
+    queued = set(regions)
+    continued_tops = 0
+    while queue:
+        region = queue.pop(0)
         members = np.nonzero(topo.face_region == region)[0]
         outline = region_outline(topo, members)
         if outline is None:
@@ -555,13 +599,23 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
                   for a, b in edges]
         real = [i for i, f in enumerate(frames) if f[2] is not None]
         continued = np.zeros(len(edges), bool)
-        continued[real] = _continues(topo, ok_ids, caster, normals, [frames[i] for i in real],
-                                     top_min_nz, 2.0 * tol)
+        verdict, met = _continues(topo, ok_ids, caster, normals, [frames[i] for i in real],
+                                  top_min_nz, 2.0 * tol)
+        continued[real] = verdict
+        into = sorted({int(topo.face_region[f]) for faces_met in met for f in faces_met}
+                      & top_like - queued)
+        for other in into:
+            queued.add(other)
+            queue.append(other)
+            continued_tops += 1
         measured = _edge_thickness(topo, edges, sides, side_low, side_centroid, vertex_sides,
                                    radius)
         plans.append({"region": region, "members": members, "pieces": pieces, "normal": normal,
                       "origin": origin, "basis": basis, "foot": foot, "edges": edges,
                       "frames": frames, "continued": continued, "measured": measured})
+
+    top_faces = np.nonzero(np.isin(topo.face_region, sorted(queued)))[0]
+    faces = _Faces(topo, top_faces)
 
     # the file-wide fallback height, from the edges that are sides at all
     file_wide = [t for plan in plans for t, c in zip(plan["measured"], plan["continued"])
@@ -604,10 +658,12 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
             fallback_guess = clamp(meas) if meas is not None else file_median
             h_side = meas if meas is not None else fallback_guess
             found, coverage, depth = _wall_pieces(faces, pa.copy(), pb.copy(), q, h_side,
-                                                  fallback_guess, band, claimed, built_walls)
+                                                  fallback_guess, band, claimed, built_walls,
+                                                  max_depth=max_h)
             if coverage >= SIDE_WHOLE_FRACTION:
                 sides_intact += 1
-                whole_heights.append(clamp(depth))
+                if depth is not None:
+                    whole_heights.append(clamp(depth))
                 continue
             to_build.append((i, found))
         own = [clamp(plan["measured"][i]) for i, _f in to_build if plan["measured"][i] is not None]
@@ -723,6 +779,9 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
     hidden_before, hidden_after = _newly_hidden(mesh, out, topo, profile, replaced)
     report = {
         "regions_processed": len(plans),
+        #: SR2. Regions processed as tops because a top continues into them, though they see
+        #: no sky (a floor running on under an upper landing): part of the same slab.
+        "top_regions_continued": continued_tops,
         #: Outline edges of top surfaces the export left OPEN (edge count 1) -- what the first
         #: solidify walled. Informational since SR2, which walls what is missing or broken.
         "open_outline_edges": open_edge_count,

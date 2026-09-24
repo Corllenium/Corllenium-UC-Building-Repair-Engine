@@ -1026,3 +1026,51 @@ def two_slabs_meeting_at_a_t_junction(size=40.0, height=8.0):
                                   (8, 11, 10, 9)], material=0)
     return _mesh("two_slabs_meeting_at_a_t_junction", P, uvs, fv, fvt, materials=("m0", "m1"),
                  face_material=fm)
+
+
+def slab_continuing_under_a_landing(length=80.0, width=40.0, depth=10.0, landing_z=(10.0, 20.0)):
+    """File A's region 11 in miniature: a lower slab whose top CONTINUES under an upper landing.
+
+    The lower slab runs `x` 0..`length`, `y` 0..`width`, top at `z = 0`, sides down to `-depth`
+    wound outward, and NO BOTTOM. Its top is two regions: A (`x` 0..length/2, material m0) sees
+    sky; B (`x` length/2..length, material m1) lies under a closed upper landing (`z` 10..20,
+    wound outward) and sees none, so it is not a top surface by the sky test -- yet it is the
+    same slab's top, and what lies under it is inside that slab. A RIB stands under B at
+    `x = 3/4 length`, facing -x, `z` -1 to `-depth + 1`: seen from below through the missing
+    bottom, and nowhere else.
+
+    Faces, in order: A's top (2), B's top (2), the lower slab's four sides (8), the landing's six
+    quads (12), the rib (2, the last two)."""
+    L, W, D = length, width, depth
+    z0, z1 = landing_z
+    h = L / 2.0
+    P, uvs, fv, fvt, fm = [], [], [], [], []
+
+    def v(x, y, z):
+        P.append([float(x), float(y), float(z)])
+        return len(P) - 1
+
+    a = [v(0, 0, 0), v(h, 0, 0), v(h, W, 0), v(0, W, 0)]
+    _quads(P, uvs, fv, fvt, fm, [tuple(a)], material=0)                         # A, +z
+    b = [a[1], v(L, 0, 0), v(L, W, 0), a[2]]
+    _quads(P, uvs, fv, fvt, fm, [tuple(b)], material=1)                         # B, +z
+    low = [v(0, 0, -D), v(L, 0, -D), v(L, W, -D), v(0, W, -D)]
+    _quads(P, uvs, fv, fvt, fm, [
+        (low[3], low[0], a[0], a[3]),                                            # x = 0, -x
+        (low[0], low[1], b[1], a[0]),                                            # y = 0, -y
+        (low[2], low[3], a[3], b[2]),                                            # y = W, +y
+        (low[1], low[2], b[2], b[1])], material=0)                               # x = L, +x
+    t = [v(h, 0, z1), v(L, 0, z1), v(L, W, z1), v(h, W, z1)]
+    u = [v(h, 0, z0), v(L, 0, z0), v(L, W, z0), v(h, W, z0)]
+    _quads(P, uvs, fv, fvt, fm, [
+        (t[0], t[1], t[2], t[3]),                                                # top, +z
+        (u[0], u[3], u[2], u[1]),                                                # bottom, -z
+        (u[0], u[1], t[1], t[0]),                                                # y = 0, -y
+        (u[2], u[3], t[3], t[2]),                                                # y = W, +y
+        (u[3], u[0], t[0], t[3]),                                                # x = h, -x
+        (u[1], u[2], t[2], t[1])], material=0)                                   # x = L, +x
+    x = 0.75 * L
+    r = [v(x, 5, -1), v(x, W - 5, -1), v(x, W - 5, -D + 1), v(x, 5, -D + 1)]
+    _quads(P, uvs, fv, fvt, fm, [tuple(r)], material=0)                         # rib, -x
+    return _mesh("slab_continuing_under_a_landing", P, uvs, fv, fvt, materials=("m0", "m1"),
+                 face_material=fm)
