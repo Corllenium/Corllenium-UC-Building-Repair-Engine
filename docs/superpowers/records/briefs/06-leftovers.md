@@ -34,3 +34,8 @@ SketchUp file:
 Process:
 12. Review diff packages under `.superpowers/sdd/**/review-*.diff` are not versioned (large);
     regenerate from git when needed.
+
+Found by the T-junction repair (tjunction-report.md):
+13. Near-miss T-junctions left by design: 3 vertex-to-edge pairs on A and 11 on B lie 0.0006-0.0046 in apart (none between 0.005 and 0.01 in; next 0.0119 / 0.0164 in). Threading them needs a tolerance of half a print step (0.005 in) and moves borders by that much; five of B's are material borders anyway. Decide with measurement.
+14. The QA sheet draws every edge of copied-through triangles (for example a fan on B's lower-left panel) that the SketchUp file hides; draw only what SketchUp would draw.
+15. Double layers (one same-material layer's edge lying over another layer): A's 551.3 in line at x = 2515.77 (a back-to-back pair) and 9 on B. Expected to go with the side rebuild (interior layers become hidden once sides close); if not, the overlap removal must handle partial and back-to-back layers without breaking the rule that opposite-normal coincident pairs are never treated as duplicates.

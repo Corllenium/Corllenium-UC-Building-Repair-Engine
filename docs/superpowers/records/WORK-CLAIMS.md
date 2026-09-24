@@ -15,7 +15,7 @@ Hermes hands back by releasing the row after a clean commit.
 
 | Job | Brief | Tree / branch | Holder | Since | Status |
 |---|---|---|---|---|---|
-| T1 T-junction repair | briefs/01-T1-tjunction-repair.md | main checkout / feat-dashboard | Claude subagent (T1) | 2026-09-24 18:34 | core committed 28d63df; finishing B's remaining lines and the report |
+| T1 T-junction repair | briefs/01-T1-tjunction-repair.md | main checkout / feat-dashboard | - | 2026-09-24 18:50 | DONE: 28d63df, 03df53d, report 437e4ef; A 1,013 / B 601 tris, T-vertices 0 |
 | SR side rebuild | briefs/02-SR-side-rebuild.md | .claude/worktrees/side-rebuild / feat/side-rebuild | Claude subagent (SR) | 2026-09-24 18:34 | SR0 committed ff4a0ec; SR2 uncommitted in the worktree; investigating file A's merge rollback |
 | Reconcile + verify | briefs/03-reconcile-and-verify.md | main checkout / feat-dashboard | Claude controller | queued | after T1 and SR |
 | Review since b2134e9 | briefs/04-review.md | read-only | - | queued | after reconcile |

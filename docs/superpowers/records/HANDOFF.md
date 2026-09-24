@@ -23,37 +23,34 @@ side mesh, rebuild broken or missing sides; only the model's outline edges may b
 run the latest `.skp` of each file must be in `OBJ FIXED RESULT/` for the owner to check in SketchUp
 2026. Work visually: every round ends with renders that are looked at, not only numbers.
 
-## 2. Current state (2026-09-24 18:40, written by the Claude controller)
+## 2. Current state (2026-09-24 19:00, written by the Claude controller)
 
-Branch `feat-dashboard`, HEAD `28d63df`. Engine suite was 406 passed at 8ee9e4d; 28d63df added
-tests (count not yet reported). `docker-compose.yml` shows as modified: it belongs to another session,
-never touch it.
+Branch `feat-dashboard`, HEAD after `437e4ef`. Engine suite **417 passed**. `docker-compose.yml`
+shows as modified: it belongs to another session, never touch it.
 
-Latest outputs (written 14:38 by the code at 28d63df):
+Latest outputs (written 18:4x by the code at 03df53d; they are what is in `OBJ FIXED RESULT/`):
 
 | | A | B |
 |---|---|---|
 | Triangles in -> out | 4,692 -> 1,013 | 7,227 -> 601 |
-| Passed (all invariants, final guard) | yes | yes |
+| Passed (all invariants, final guard), merge rolled back | yes, no | yes, no |
 | T-vertices before -> after the merge | 353 -> 0 | 363 -> 0 |
-| `.skp` in `OBJ FIXED RESULT/` | written 14:38 | written 14:39 |
+| `.skp` faces | 567 | 241 |
+| Lines SketchUp draws inside flat surfaces (audit) | 7 + 2 T-junction lines | 3 + 24 (15 of them material seams) |
 
-Jobs in flight when this was written (both are Claude subagents; each was cut once by the account's
-usage limit and resumed at 18:34):
+The lines left are double layers (one surface's edge lying over a second copy of it), which the side
+rebuild or the overlap removal must handle, and material seams, which are real edges.
 
-1. **T1 — T-junction repair** (brief `briefs/01-T1-tjunction-repair.md`), main checkout,
-   branch `feat-dashboard`. Core commit `28d63df` done. Remaining: file B's T-junction LINES in the
-   SketchUp audit fell only 28 -> 24 although its T-vertices fell to 0; find why, then the finish
-   steps and the report `tjunction-report.md`.
+Jobs:
+
+1. **T1 — T-junction repair**: DONE (28d63df, 03df53d, report 437e4ef).
 2. **SR — side rebuild** (brief `briefs/02-SR-side-rebuild.md`), worktree
-   `.claude/worktrees/side-rebuild`, branch `feat/side-rebuild`. SR0 committed (`ff4a0ec`, back faces
-   seen from outside); branch synced with feat-dashboard at `ce79c44`. SR2 is written but NOT
-   committed (engine/cli.py, engine/fixes/pipeline.py, engine/fixes/solidify.py,
-   engine/guard/compare.py, engine/tests/fixtures/build.py, engine/tests/test_cli.py,
-   engine/tests/test_solidify.py). Measured with it: back faces seen from outside A 119,610 -> 29,225
-   px, B 21,959 -> 5,258 px, both passed, BUT file A's merge rolls back (2,668 triangles instead of
-   about 900). Being investigated. The owner's "sawtooth" broken side is on file B, under the slope
-   between the upper landing and the lower slab (render: see briefs/02).
+   `.claude/worktrees/side-rebuild`, branch `feat/side-rebuild`, held by a Claude subagent since
+   18:34. SR0 committed (`ff4a0ec`); SR2 written but not committed when last measured; with it: back
+   faces seen from outside A 119,610 -> 29,225 px, B 21,959 -> 5,258 px, both passed, but file A's
+   merge rolls back (2,668 triangles instead of about 900). The owner's "sawtooth" broken side is on
+   file B, under the slope between the upper landing and the lower slab.
+3. Next: `briefs/03-reconcile-and-verify.md` once SR is done.
 
 **If you take over one of these** (for example because Claude hit its usage limit): follow the
 lapse rule at the top of `WORK-CLAIMS.md`, take the claim over in writing, run `git status` and

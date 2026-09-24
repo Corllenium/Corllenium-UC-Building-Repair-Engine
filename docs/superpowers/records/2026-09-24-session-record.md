@@ -74,6 +74,8 @@ final guard passed.
 | 09-24 04:10 | The merge guard measures border shifts instead of counting pixels | 022a67b | **1,117** | **602** |
 | 09-24 08:50 | SketchUp export: `.skp` per run into `OBJ FIXED RESULT/` | e97443e, d24da30, merge 8ffbda3 | .skp 731 faces | .skp 248 faces |
 | 09-24 09:25 | Merge: T-junction sliver rings closed at the source, a union corner no vertex explains sets aside only its triangles (N1, N2) | d6ef1a9, b3b9ad3 | **902** (0 regions skipped, 87 copied) | **555** |
+| 09-24 14:15 | SketchUp writer hides every line inside a flat same-material surface (S1) | bcccca2, merge 8ee9e4d | .skp lines inside surfaces 14 | 32 |
+| 09-24 18:50 | Merge threads T-junction vertices into the edges they lie on (T1): T-vertices A 353 -> 0, B 363 -> 0 | 28d63df, 03df53d | **1,013** | **601** |
 
 Every commit since b2134e9, oldest last: `git log --first-parent b2134e9..HEAD`.
 
