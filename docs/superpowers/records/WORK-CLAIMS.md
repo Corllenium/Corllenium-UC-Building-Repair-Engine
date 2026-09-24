@@ -16,7 +16,7 @@ Hermes hands back by releasing the row after a clean commit.
 | Job | Brief | Tree / branch | Holder | Since | Status |
 |---|---|---|---|---|---|
 | T1 T-junction repair | briefs/01-T1-tjunction-repair.md | main checkout / feat-dashboard | - | 2026-09-24 18:50 | DONE: 28d63df, 03df53d, report 437e4ef; A 1,013 / B 601 tris, T-vertices 0 |
-| SR side rebuild (+ review C1, I1, M1 as SR4, SR5) | briefs/02-SR-side-rebuild.md | .claude/worktrees/side-rebuild / feat/side-rebuild | Claude subagent (SR), resumed | 2026-09-24 23:36 | committed: ff4a0ec SR0, 65e566c SR2, f57cb17, 9562aa3 SR4, 6233671 SR5, 0f24da4 M1; left: docstrings, SR3, real runs, report, A rollback status |
+| SR side rebuild (+ review C1, I1, M1 as SR4, SR5; SR6 ramp) | briefs/02-SR-side-rebuild.md | .claude/worktrees/side-rebuild / feat/side-rebuild | Claude subagent (SR) | 2026-09-25 00:40 | SR0-SR5, M1, report committed (6d27aaa); SR6 running: ramp walls follow the ground, lips never set the bottom, grazing pixel |
 | Reconcile + verify | briefs/03-reconcile-and-verify.md | main checkout / feat-dashboard | Claude controller | queued | after T1 and SR |
 | Review part 1 (to ce48932, no side rebuild) | briefs/04-review.md | read-only | - | 2026-09-24 19:45 | DONE: Changes required (C1, C2, I1, I2 + 9 minor); review-since-b2134e9.md |
 | Review fixes C2, I2, M2-M4, M6-M8 | briefs/07-review-fixes.md | .claude/worktrees/review-fixes / feat/review-fixes | - | 2026-09-24 20:30 | DONE: 431 passed; merged into feat-dashboard; report 4f2fe22; A 15 removed (0 real surface), B 6 removed (0 real surface) |

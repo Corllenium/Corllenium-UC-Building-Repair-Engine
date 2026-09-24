@@ -83,6 +83,37 @@ open edge; an existing side is not an open edge.
   `history[-1]` is round 1 with 0 failing, 0 removed, and `cap_guard_passed` True
   (`probe_cap_rounds.py`).
 
+## SR6 (added 2026-09-25 00:40, after the SR report `side-rebuild-report.md` at 6d27aaa)
+
+State: SR0-SR5 and M1 committed on feat/side-rebuild (last 6d27aaa). Measured: back faces seen from
+outside A 569,549 input -> 21,766 final (baseline 119,610), B 465,286 -> 18,617 (baseline 21,959);
+no merge rollback; both passed; triangles A 1,512 (baseline 902), B 632 (baseline 555). BUT the
+owner's sawtooth ramp (file B region 309, x 2673-2949, y 23654-24205) is broken again: its close-up
+back pixels went 43,696 input -> 2,274 at f57cb17 -> 16,930 at HEAD, because SR5 (bottom no deeper
+than the shallowest existing side) turned a 5.62 in lip into the bottom depth and all 14 ramp wall
+faces were refused (11 below bottom, 2 coincide, 1 outside). Same mechanism: B region 92's east side
+(6 wall faces refused under a 0.26 in bottom) and teeth along A's lower landing's diagonal edge.
+A scratch patch (`combo_fix.patch` in the scratchpad `side-rebuild` folder) fixes the ramp (1,955)
+but raises B's total to 19,980 and rolls back A's merge on one grazing pixel in view 15 at the edge
+of region 58 (0.0003 in).
+
+Do, test-first, one commit each:
+1. **A sloped top's walls follow the ground.** A wall under an edge whose two ends measure different
+   heights (a ramp's side) goes down to the measured lower surface at EACH end (a trapezoid), not to
+   one constant depth; the broken pieces of a ramp side (up to about 40 in down on an 85 in edge) are
+   then inside its band.
+2. **A thin lip never sets a slab's bottom.** Keep review I1's protection (a deep wall touching a
+   corner must not box a thin slab) but stop a lip, trim or fascia band shorter than the slab's own
+   representative side depth from capping the bottom; state the rule with the measured numbers that
+   justify it (length-weighted own-side depths per region on both files).
+3. **The grazing pixel.** Measure the view-15 pixel at region 58's edge exactly as the border-shift
+   rule does; if it is a sub-tolerance border movement, find why it is not classed as border shift
+   and fix the classification gap with a test; add no tolerance without a measurement.
+Acceptance, all on both files: the ramp close-up back pixels at or below about 2,500; B region 92's
+east side and A's landing edge rebuilt; total `backface_px` final not worse than A 21,766 / B 18,617;
+no merge rollback; the review probes (`probe_deep_corner.py`, `probe_reversed_underside.py`,
+`probe_duplicate_skirt.py`) still pass; report triangles and anything that got worse.
+
 ## Finish
 
 Suite count; both real runs in the worktree; per file: triangles, sides_rebuilt,
