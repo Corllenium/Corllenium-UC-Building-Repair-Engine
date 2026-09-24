@@ -44,7 +44,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from engine.detectors.fragments import detect_fragments
+from engine.detectors.fragments import detect_fragments, face_width
 from engine.fixes.merge import default_collinear_tol, merge_regions
 from engine.fixes.orient import ORIENT_FLIP, ORIENT_THIN_SHEET, classify_orientation, flip_faces, one_sided_holes
 from engine.fixes.overlap import remove_overlaps
@@ -140,6 +140,19 @@ class FixProfile:
     #: Polygon quality `4*pi*area/perimeter**2` below which a face ATTACHED to something real is
     #: a sliver: 1 is a circle, ~0.6 an equilateral triangle, 0.02 a needle about 1:150.
     sliver_q: float = 0.02
+    #: ...and no sliver is WIDER than this, in inches (twice its area over its longest edge):
+    #: removing one moves the surface by at most its width, and 0.15 in is how far the merge may
+    #: move a border on both real files (`default_collinear_tol`: 1.5 x the 0.1 in Y print step),
+    #: the displacement the final guard excuses as a border shift. Measured on the references:
+    #: the slivers removed without this bound were 0.0007 to 0.047 in wide, except six strips of
+    #: real surface 0.19 to 0.26 in wide (A faces 3203, 3401; B faces 692, 698, 1804, 2734).
+    sliver_max_width: float = 0.15
+    #: Per-view cap on `PX_FRAGMENT_REMOVED` pixels, as a fraction of that view's model pixels,
+    #: in the fragment guard and the final guard alike; over it they are judged as what they
+    #: really are (see `engine.guard.compare.compare_views`). Measured: at most 6.2e-5 of a view
+    #: on file A and 1.2e-4 on file B at the 900 x 600 guard size, 1.7e-3 for
+    #: `slab_with_strays`' 2 sq in stray at the tests' 120 x 80 -- the cap sits above all three.
+    fragment_removed_cap: float = 5e-3
     #: Pixel size of every image in the visual QA sheet the CLI writes under `<run dir>/qa/`
     #: (`engine.guard.qa_render.write_qa_sheet`). Not used by `fix_object` itself.
     qa_size: tuple[int, int] = (1600, 1000)
@@ -194,6 +207,14 @@ class FixResult:
     #: `engine.detectors.fragments.FragmentResult.report` -- component counts and the smallest
     #: components the size rules did NOT catch. Empty when the pass is off.
     fragment_report: dict
+    #: EVERY face the fragment pass removed, so each one can be found and checked: one entry per
+    #: fragment component (`{"kind": "fragment", "component", "faces", "component_faces",
+    #: "area", "bbox"}` -- `faces` the REFERENCE ids removed, `component_faces` how many faces
+    #: the component had, so a partly restored one shows) and one per sliver (`{"kind":
+    #: "sliver", "component", "faces", "area", "width", "bbox"}`), sorted by first face id.
+    #: `area` in sq in, `width` in in, `bbox` `[[min x, y, z], [max x, y, z]]` in the input's own
+    #: coordinates. Empty when the pass is off or removed nothing.
+    fragment_removals: list
     #: Bool, over REFERENCE-mesh faces: a duplicate layer the rest of its own region already
     #: covered, confirmed removable by the strict guard (see `engine.fixes.overlap`).
     removed_overlap: np.ndarray
@@ -231,6 +252,10 @@ class FixResult:
     #: pixels are tolerated by construction. A reader of the reports needs it to know which of
     #: their counts are failures -- see `engine.guard.compare._fail_mask`.
     strict_final: bool
+    #: `(F, 2)` bool per FINAL face: whether its FRONT / BACK side was already an outside surface
+    #: on the reference -- some face it came from had exposure above 0 on that side. What the
+    #: final guard lets a removed fragment uncover (`engine.guard.compare.classify_pixels`).
+    exposed_final: np.ndarray
     #: Per FINAL face, the merged region it belongs to, or -1 when it was copied through (and
     #: -1 everywhere when the merge was rolled back). Two final faces sharing a region id >= 0
     #: are two triangles of ONE rebuilt polygon, so the edge between them is a triangulation
@@ -288,6 +313,56 @@ def _render(positions_c: np.ndarray, faces: np.ndarray, size: tuple[int, int]):
             for v in VIEWS_26]
 
 
+def _exposed_sides(positions_c: np.ndarray, face_w: np.ndarray, sources: list,
+                   normal_reference: np.ndarray, side_exposure: np.ndarray) -> np.ndarray:
+    """`(F, 2)` bool over the faces `face_w`: is each one's FRONT / BACK side a side the
+    REFERENCE already showed -- does some reference face it came from (`sources[k]`, reference
+    ids) have exposure above 0 on the side that now faces the same way? A face wound against its
+    source (flipped, or a merged triangle facing the other way) reads that source's sides
+    swapped. `side_exposure` is `(F_reference, 2)` bool, FRONT then BACK."""
+    out = np.zeros((len(face_w), 2), dtype=bool)
+    if not len(face_w):
+        return out
+    flat = [np.asarray(s, dtype=np.int64).reshape(-1) for s in sources]
+    k = np.repeat(np.arange(len(flat)), [len(s) for s in flat])
+    src = np.concatenate(flat)
+    normal = face_planes(positions_c, face_w)[:, :3]
+    same = np.einsum("ij,ij->i", normal_reference[src], normal[k]) >= 0.0
+    np.logical_or.at(out, (k, 0), np.where(same, side_exposure[src, 0], side_exposure[src, 1]))
+    np.logical_or.at(out, (k, 1), np.where(same, side_exposure[src, 1], side_exposure[src, 0]))
+    return out
+
+
+def _fragment_removals(detected, confirmed: np.ndarray, reference_ids: np.ndarray,
+                       positions_c: np.ndarray, centre: np.ndarray,
+                       face_w: np.ndarray) -> list[dict]:
+    """`FixResult.fragment_removals`: every face the fragment pass removed, grouped the way the
+    detector named it. `reference_ids[i]` is the reference id of the detector's face `i`."""
+    tri = positions_c[face_w]
+    area = 0.5 * np.linalg.norm(np.cross(tri[:, 1] - tri[:, 0], tri[:, 2] - tri[:, 0]), axis=1)
+
+    def entry(kind: str, component: int, ids: np.ndarray, **extra) -> dict:
+        corners = positions_c[face_w[ids]].reshape(-1, 3) + centre
+        return {"kind": kind, "component": int(component), "faces": [int(f) for f in ids],
+                **extra, "area": round(float(area[ids].sum()), 4),
+                "bbox": [np.round(corners.min(axis=0), 4).tolist(),
+                         np.round(corners.max(axis=0), 4).tolist()]}
+
+    out = []
+    for c in np.unique(detected.component[detected.fragments]).tolist():
+        members = reference_ids[detected.component == c]
+        gone = members[confirmed[members]]
+        if len(gone):
+            out.append(entry("fragment", c, gone, component_faces=int(len(members))))
+    widths = face_width(positions_c, face_w)
+    for i in np.nonzero(detected.slivers)[0].tolist():
+        f = int(reference_ids[i])
+        if confirmed[f]:
+            out.append(entry("sliver", detected.component[i], np.array([f]),
+                             width=round(float(widths[f]), 4)))
+    return sorted(out, key=lambda e: e["faces"][0])
+
+
 def fix_object(mesh: MeshData, flatness: dict[str, float], profile: FixProfile = FixProfile()) -> FixResult:
     flat_materials = flat_material_indices(mesh, flatness, profile.flat_texture_std)
     angles = {"coplanar_angle": profile.coplanar_angle, "soft_angle": profile.soft_angle}
@@ -317,6 +392,10 @@ def fix_object(mesh: MeshData, flatness: dict[str, float], profile: FixProfile =
 
     front, back = compute_side_exposure(positions_c, topo.face_w, topo.ok, n_dirs=profile.n_dirs)
     exposure = front + back
+    # which side of each reference face a person could already see -- what a removed fragment
+    # may uncover and nothing else (`engine.guard.compare.classify_pixels`)
+    side_exposure = np.stack([front > 0.0, back > 0.0], axis=1)
+    normal_reference = face_planes(positions_c, topo.face_w)[:, :3]
     exposure_class = classify_exposure(exposure, topo.ok, profile.slit_threshold)
     orientation = classify_orientation(front, back, topo.ok)
     flip_candidates_full = orientation == ORIENT_FLIP
@@ -379,12 +458,15 @@ def fix_object(mesh: MeshData, flatness: dict[str, float], profile: FixProfile =
     # faces' own pixels changed" rather than "nothing changed".
     removed_fragments_full = np.zeros(mesh.n_faces, dtype=bool)
     fragment_report: dict = {}
+    fragment_removals: list = []
     fragment_history = None
     n_removed_fragments = n_removed_slivers = n_restored_fragments = 0
     mesh_fragments, source_from_fragments = mesh_removed, np.arange(mesh_removed.n_faces, dtype=np.int64)
     if profile.accept_fragments:
         kept = ~drop
-        detected = detect_fragments(positions_c, render_faces[kept], profile)
+        # contact within the tolerance `analyse_topology` finds T-junctions with
+        detected = detect_fragments(positions_c, render_faces[kept], profile,
+                                    contact_tol=1.5 * float(topo.quanta.max()))
         fragment_report = detected.report
         candidates = np.zeros(mesh.n_faces, dtype=bool)      # lifted back to REFERENCE ids
         candidates[source_from_removal[detected.fragments | detected.slivers]] = True
@@ -395,13 +477,16 @@ def fix_object(mesh: MeshData, flatness: dict[str, float], profile: FixProfile =
             confirmed, fragment_history = fragment_feedback(
                 candidates, positions_c, render_faces, render_material, flat_materials,
                 depth_tol, already_removed=drop, size=profile.guard_size,
-                crack_closed_cap=profile.crack_closed_cap)
+                crack_closed_cap=profile.crack_closed_cap, side_exposure=side_exposure,
+                fragment_removed_cap=profile.fragment_removed_cap)
             is_fragment = np.zeros(mesh.n_faces, dtype=bool)
             is_fragment[source_from_removal[detected.fragments]] = True
             n_removed_fragments = int((confirmed & is_fragment).sum())
             n_removed_slivers = int((confirmed & ~is_fragment).sum())
             n_restored_fragments = int((candidates & ~confirmed).sum())
             removed_fragments_full = confirmed
+            fragment_removals = _fragment_removals(detected, confirmed, source_from_removal,
+                                                   positions_c, centre, render_faces)
             mesh_fragments, source_from_fragments = remove_faces(mesh_removed, confirmed[kept])
     source_after_fragments = source_from_removal[source_from_fragments]
 
@@ -450,8 +535,12 @@ def fix_object(mesh: MeshData, flatness: dict[str, float], profile: FixProfile =
     # THE FINAL GUARD TOLERATES THE FRAGMENT PIXELS, and nothing else. Removing visible debris
     # is a change, and the guard's question -- "is the picture the same" -- answers no, correctly,
     # for exactly the pixels the fragment pass was authorised to change by its own guard. So
-    # those pixels are excused BY NAME: `removed_before` marks the faces, and any pixel whose
-    # BEFORE first hit is one of them is `PX_FRAGMENT_REMOVED` (see `classify_pixels`).
+    # those pixels are excused BY NAME: `removed_before` marks the faces, and a pixel whose
+    # BEFORE first hit is one of them is `PX_FRAGMENT_REMOVED` (see `classify_pixels`) -- but
+    # only where the shipped mesh shows the sky there or a side the reference already showed
+    # (`exposed_after`, mapped onto each final face through the faces it came from), and only
+    # up to `fragment_removed_cap` of a view. A removed face that uncovers the inside of a shell
+    # is a hole, judged as one. It used to be excused whatever it uncovered (review C2).
     #
     # Not by leaving those faces out of the BEFORE render, which is a different thing and is
     # wrong. The hidden pass ran FIRST and its guard judged the picture WITH the debris in it, so
@@ -463,7 +552,7 @@ def fix_object(mesh: MeshData, flatness: dict[str, float], profile: FixProfile =
     planes_original = face_planes(positions_c, face_w_original)
     before_original = _render(positions_c, face_w_original, profile.guard_size)
 
-    def _guard_against_original(final_mesh: MeshData, edge_flicker_cap: float,
+    def _guard_against_original(final_mesh: MeshData, sources: list, edge_flicker_cap: float,
                                 border_shift_tol: float) -> GuardReport:
         face_w_final = remap[final_mesh.face_v]
         after = _render(positions_c, face_w_final, profile.guard_size)
@@ -474,22 +563,30 @@ def fix_object(mesh: MeshData, flatness: dict[str, float], profile: FixProfile =
             crack_closed_cap=profile.crack_closed_cap,
             geometry_before=(positions_c, face_w_original),
             geometry_after=(positions_c, face_w_final),
-            removed_before=removed_fragments_full, border_shift_tol=border_shift_tol)
+            removed_before=removed_fragments_full, border_shift_tol=border_shift_tol,
+            exposed_after=_exposed_sides(positions_c, face_w_final, sources, normal_reference,
+                                         side_exposure),
+            fragment_removed_cap=profile.fragment_removed_cap)
 
     # the mesh the merge was attempted on, which is also what ships if it is rolled back. Nothing
     # here moved a border -- faces were only removed -- so this guard excuses no border shift.
-    guard_after_removal = _guard_against_original(mesh_overlapped, edge_flicker_cap=0.0,
-                                                  border_shift_tol=0.0)
+    sources_unmerged = [np.array([int(f)], dtype=np.int64) for f in source_from_overlap]
+    guard_after_removal = _guard_against_original(mesh_overlapped, sources_unmerged,
+                                                  edge_flicker_cap=0.0, border_shift_tol=0.0)
 
     merge_report = dict(merge_result.report)
     rolled_back_reason = None
     guard_merge_attempt = None
 
+    merged_source_faces: list = []
     if not merge_report.get("converged", True):
         rolled_back_reason = "not_converged"   # no merged mesh exists, so there is none to guard
     else:
+        merged_source_faces = [source_from_overlap[s].astype(np.int64)
+                               for s in merge_result.source_faces]
         guard_merge_attempt = _guard_against_original(
-            merge_result.mesh, profile.edge_flicker_cap_final, border_shift_tol)
+            merge_result.mesh, merged_source_faces, profile.edge_flicker_cap_final,
+            border_shift_tol)
         if not guard_merge_attempt.passed:
             rolled_back_reason = "guard_failed"
 
@@ -497,19 +594,21 @@ def fix_object(mesh: MeshData, flatness: dict[str, float], profile: FixProfile =
         merge_report["rolled_back"] = True
         merge_report["rolled_back_reason"] = rolled_back_reason
         final_mesh = mesh_overlapped
-        final_source_faces = [np.array([int(f)], dtype=np.int64) for f in source_from_overlap]
+        final_source_faces = sources_unmerged
         final_rings: dict = {}
         final_face_region = np.full(mesh_overlapped.n_faces, -1, np.int64)
         # `guard_final` describes what SHIPPED; `guard_merge_attempt` keeps the report that
         # caused the rollback, which is the only record of why the merge was thrown away.
-        guard_final = _guard_against_original(final_mesh, profile.edge_flicker_cap_final,
-                                              border_shift_tol)
+        guard_final = _guard_against_original(final_mesh, final_source_faces,
+                                              profile.edge_flicker_cap_final, border_shift_tol)
     else:
         final_mesh = merge_result.mesh
-        final_source_faces = [source_from_overlap[s].astype(np.int64) for s in merge_result.source_faces]
+        final_source_faces = merged_source_faces
         final_rings = merge_result.rings
         final_face_region = merge_result.face_region
         guard_final = guard_merge_attempt   # the merged mesh IS the shipped mesh
+    exposed_final = _exposed_sides(positions_c, remap[final_mesh.face_v], final_source_faces,
+                                   normal_reference, side_exposure)
 
     one_sided_holes_after = one_sided_holes(
         positions_c, remap[final_mesh.face_v], np.arange(final_mesh.n_faces, dtype=np.int64),
@@ -519,10 +618,21 @@ def fix_object(mesh: MeshData, flatness: dict[str, float], profile: FixProfile =
     # bounding box (downwards, by a skirt) and the area (by the faces it invents), and it is the
     # mesh every guard in this run compares against. The cap guard is what bounds what solidify
     # may do; `guard_solidify` carries its verdict.
+    # Review M2: compare the bbox of vertices that faces actually use, evaluated against the
+    # surviving reference faces (excluding faces deliberately deleted by the pipeline passes).
+    deleted = drop | removed_fragments_full | removed_overlap_full
+    surviving_face_v = mesh.face_v[~deleted] if len(mesh.face_v) else mesh.face_v
+    ref_used = np.unique(surviving_face_v) if len(surviving_face_v) else []
+    final_used = np.unique(final_mesh.face_v) if len(final_mesh.face_v) else []
+    ref_bbox = ((mesh.positions[ref_used].min(axis=0), mesh.positions[ref_used].max(axis=0))
+                if len(ref_used) else (np.zeros(3), np.zeros(3)))
+    final_bbox = ((final_mesh.positions[final_used].min(axis=0), final_mesh.positions[final_used].max(axis=0))
+                  if len(final_used) else (np.zeros(3), np.zeros(3)))
+
     invariants = {
         "material_count_same": len(final_mesh.materials) == len(mesh.materials),
-        "bbox_same": bool(np.array_equal(final_mesh.positions.min(axis=0), mesh.positions.min(axis=0))
-                          and np.array_equal(final_mesh.positions.max(axis=0), mesh.positions.max(axis=0))),
+        "bbox_same": bool(np.array_equal(final_bbox[0], ref_bbox[0])
+                          and np.array_equal(final_bbox[1], ref_bbox[1])),
         "area_not_grown": bool(_total_area(final_mesh.positions, final_mesh.face_v)
                                <= _total_area(mesh.positions, mesh.face_v) * (1.0 + _AREA_REL_TOL)),
         # The CAP GUARD's own verdict, re-verified against the mesh solidify handed back (see
@@ -547,6 +657,7 @@ def fix_object(mesh: MeshData, flatness: dict[str, float], profile: FixProfile =
         n_fragment_components=int(fragment_report.get("n_components", 0)),
         n_removed_fragments=n_removed_fragments, n_removed_slivers=n_removed_slivers,
         n_restored_fragments=n_restored_fragments, fragment_report=fragment_report,
+        fragment_removals=fragment_removals,
         removed_overlap=removed_overlap_full, restored_overlap=restored_overlap_full,
         n_overlap_pairs_same=overlap_result.report["n_overlap_pairs_same"],
         n_overlap_pairs_diff=overlap_result.report["n_overlap_pairs_diff"],
@@ -558,6 +669,7 @@ def fix_object(mesh: MeshData, flatness: dict[str, float], profile: FixProfile =
                           "fragments": fragment_history, "overlap": overlap_result.history},
         guard_after_removal=guard_after_removal, guard_merge_attempt=guard_merge_attempt,
         guard_final=guard_final, strict_final=strict_final,
+        exposed_final=exposed_final,
         face_region_final=final_face_region,
         solidify_report=solidify_report, reference_mesh=mesh,
         guard_solidify=solidify_report.get("cap_guard") if solidify_report else None,

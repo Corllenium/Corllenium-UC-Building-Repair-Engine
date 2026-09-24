@@ -718,6 +718,38 @@ def test_cmd_fix_replaces_the_previous_skp_in_the_skp_folder(tmp_path):
     assert (skp_dir / run_skp.name).read_bytes() == run_skp.read_bytes()
 
 
+def test_cmd_fix_failed_run_does_not_replace_previous_skp_in_skp_folder(tmp_path, monkeypatch):
+    _sketchup_or_skip()
+    m = box_with_partition()
+    snap_dir = _write_snapshot(tmp_path, m)
+    out_root = tmp_path / "out"
+    skp_dir = tmp_path / "OBJ FIXED RESULT"
+    skp_dir.mkdir()
+    previous = b"the last PASSING run file"
+    owner_copy = skp_dir / f"{m.name}.fixed.skp"
+    owner_copy.write_bytes(previous)
+
+    # force a failing run by making the guard drop face 0
+    import engine.fixes.pipeline as fix_pipeline
+
+    def bad_guard_feedback(candidates, positions_c, faces, face_material, flat_materials,
+                           depth_tol, strict, **kw):
+        removed = candidates.copy()
+        removed[0] = True
+        return removed, [{"round": 0, "candidates_remaining": int(removed.sum()),
+                          "failing_pixels": 0, "restored": 0}]
+
+    monkeypatch.setattr(fix_pipeline, "guard_feedback", bad_guard_feedback)
+    assert cli.cmd_fix(snap_dir, out_root, accept_slit=False, profile=_FAST, skp_dir=skp_dir) == 2
+
+    # owner's copy is kept untouched, and a .fixed.FAILED.skp is written beside it
+    assert owner_copy.read_bytes() == previous
+    failed_copy = skp_dir / f"{m.name}.fixed.FAILED.skp"
+    assert failed_copy.exists()
+    skp = _skp_report(out_root, m.name)
+    assert skp["copied_to"] == str(failed_copy)
+
+
 def test_cmd_fix_without_sketchup_still_succeeds_and_says_why(tmp_path, monkeypatch):
     missing = tmp_path / "no_sketchup" / "SketchUpAPI.dll"
     monkeypatch.setenv("FIXER_SKETCHUP_DLL", str(missing))

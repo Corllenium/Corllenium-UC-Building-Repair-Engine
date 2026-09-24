@@ -1001,3 +1001,98 @@ def slab_with_a_wall_foot_on_its_diagonal(uv_per_unit=0.05):
     P, uvs, fv, fvt, fm = _with_wall(P, uvs, fv, fvt, fm, (50.0, 50.0, 0.0), (65.0, 45.0, 0.0),
                                      25.0, uv_per_unit)
     return _mesh("slab_with_a_wall_foot_on_its_diagonal", P, uvs, fv, fvt, face_material=fm)
+
+
+def _slab_from_top(name, top, size=40.0, height=8.0, materials=("m0",), top_material=None,
+                   uv_per_unit=0.05):
+    """A closed `size` x `size` x `height` slab whose TOP, at `z = 0`, is the triangles `top`
+    (each a triple of `(x, y)` points, wound here to +z), over four outward sides and a -z
+    bottom, each of those two triangles on the square's corners. Faces `0 .. len(top) - 1` are
+    `top` in order, then the 10 side and bottom faces; `top_material[i]` is top face `i`'s
+    material (0 by default). A top vertex lying on the square's outline meets the side below it
+    at a T-junction, never a gap."""
+    P, index = [], {}
+
+    def vid(x, y, z):
+        key = (round(float(x), 6), round(float(y), 6), round(float(z), 6))
+        if key not in index:
+            index[key] = len(P)
+            P.append([float(x), float(y), float(z)])
+        return index[key]
+
+    uvs, fv, fvt, fm = [], [], [], []
+    for i, ((ax, ay), (bx, by), (cx, cy)) in enumerate(top):
+        a, b, c = vid(ax, ay, 0.0), vid(bx, by, 0.0), vid(cx, cy, 0.0)
+        if (bx - ax) * (cy - ay) - (by - ay) * (cx - ax) < 0:
+            b, c = c, b
+        base = len(uvs)
+        uvs.extend((np.array([P[a], P[b], P[c]])[:, :2] * uv_per_unit).tolist())
+        fv.append([a, b, c])
+        fvt.append([base, base + 1, base + 2])
+        fm.append(0 if top_material is None else int(top_material[i]))
+    s, h = size, height
+    k = [vid(0, 0, 0), vid(s, 0, 0), vid(s, s, 0), vid(0, s, 0),
+         vid(0, 0, -h), vid(s, 0, -h), vid(s, s, -h), vid(0, s, -h)]
+    _quads(P, uvs, fv, fvt, fm, [(k[0], k[4], k[5], k[1]), (k[1], k[5], k[6], k[2]),
+                                  (k[2], k[6], k[7], k[3]), (k[3], k[7], k[4], k[0]),
+                                  (k[4], k[7], k[6], k[5])], uv_per_unit=uv_per_unit)
+    return _mesh(name, P, uvs, fv, fvt, materials=materials, face_material=fm)
+
+
+def slab_with_infill_patch(size=40.0, height=8.0, patch=(18.5, 21.5, 19.5, 20.5)):
+    """Review C2's probe, as a fixture: a closed slab whose top holds a 3 x 1 in INFILL PATCH --
+    a real piece of the walking surface, two triangles, 3 sq in -- that meets the surrounding top
+    only through T-JUNCTIONS: the surround has a vertex at the middle of each of the patch's four
+    sides and the patch has none, so the two share corner vertices but not one welded edge.
+
+    The surround is `shapely.constrained_delaunay_triangles` of the square with the patch as a
+    hole (built exactly as `docs/superpowers/records/scripts/review-probes/probe_fragment_patch.py`
+    builds it). Faces: the surround, then the patch (`n_faces - 12` and `n_faces - 11`), then the
+    four sides and the bottom (`_slab_from_top`)."""
+    import shapely
+
+    x0, x1, y0, y1 = patch
+    hole = [(x0, y0), ((x0 + x1) / 2, y0), (x1, y0), (x1, (y0 + y1) / 2), (x1, y1),
+            ((x0 + x1) / 2, y1), (x0, y1), (x0, (y0 + y1) / 2)]
+    surround = shapely.Polygon([(0, 0), (size, 0), (size, size), (0, size)], [hole])
+    top = [tuple(tuple(p) for p in np.asarray(t.exterior.coords)[:3, :2])
+           for t in shapely.constrained_delaunay_triangles(surround).geoms]
+    top += [((x0, y0), (x1, y0), (x1, y1)), ((x0, y0), (x1, y1), (x0, y1))]
+    return _slab_from_top("slab_with_infill_patch", top, size, height)
+
+
+def slab_with_coplanar_patch(size=40.0, height=8.0, patch=(25.0, 26.0, 10.0, 11.0), lift=0.0):
+    """A closed slab whose top is two triangles (faces 0 and 1, material `m0`), with a 1 x 1 in
+    PATCH of material `m1` (faces 2 and 3) lying IN the top's plane, wholly inside face 0: a
+    painted mark. The patch shares no vertex and no edge with anything, and none of its vertices
+    lies on another face's edge -- it touches the top only by lying on it. `lift` raises the
+    patch that far above the top instead, parallel to it: then it touches nothing at all."""
+    s = size
+    x0, x1, y0, y1 = patch
+    top = [((0, 0), (s, 0), (s, s)), ((0, 0), (s, s), (0, s)),
+           ((x0, y0), (x1, y0), (x1, y1)), ((x0, y0), (x1, y1), (x0, y1))]
+    m = _slab_from_top("slab_with_coplanar_patch", top, size, height, materials=("m0", "m1"),
+                       top_material=[0, 0, 1, 1])
+    m.positions[np.unique(m.face_v[[2, 3]]), 2] += lift     # the patch's own four vertices
+    return m
+
+
+def slab_with_interior_strip(width=0.26, length=29.5, size=40.0, height=8.0):
+    """A closed slab whose top carries a STRIP of real surface in its middle: face 0, one
+    triangle over a `length` in base along `y = size / 2` with its apex `width` in above it, so
+    `width` is exactly how far any point of it lies from the base. It shares all three edges with
+    the fat triangles around it (faces 1-10, fanned from the square's corner and from the middle
+    of its far side), so removing it opens a slit `width` wide through the top.
+
+    At the defaults it is file B's wall strips in miniature (faces 692, 698, 1804 and 2734 of
+    `0b290ec0bcb4`'s solidified reference: 29.5 in long, 0.26 in wide, 3.84 sq in): quality
+    about 0.014 and area under 4 sq in, so the sliver rule's quality and area tests both name it."""
+    s = size
+    y = s / 2.0
+    xa, xb, xm = (s - length) / 2.0, (s + length) / 2.0, s / 2.0
+    a, b, c, t = (xa, y), (xb, y), (xm, y + width), (xm, s)
+    top = [(a, b, c),
+           ((0, 0), (s, 0), (s, y)), ((0, 0), (s, y), b), ((0, 0), b, a), ((0, 0), a, (0, y)),
+           (a, c, t), (c, b, t), ((0, y), a, t), ((0, y), t, (0, s)), (b, (s, y), t),
+           ((s, y), (s, s), t)]
+    return _slab_from_top("slab_with_interior_strip", top, size, height)

@@ -73,7 +73,12 @@ def qa_file_names() -> list[str]:
 
 def polygon_edges(mesh: MeshData, rings: dict[int, dict]) -> np.ndarray:
     """`(E, 2)` int64 vertex-index pairs into `mesh.positions`, each undirected edge once, sorted:
-    the edges SketchUp will draw for `mesh`.
+    the boundary edges of the merged polygon loops (outer and inner rings) plus triangle edges for
+    any unmerged or copied-through rows.
+
+    Note: this returns geometric polygon loop boundaries from region rings rather than simulating
+    the full set of edges SketchUp draws or hides (such as class 1/5 edges of copied rows or
+    softened coplanar lines that `skp_writer` flags as soft/hidden).
 
     `rings` is `engine.fixes.merge.MergeResult.rings` (as carried by `FixResult.rings`): every row
     of one merged region maps to the SAME dict, deduplicated here by identity, and contributes its

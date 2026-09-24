@@ -152,6 +152,8 @@ def _profile_dict(p: FixProfile) -> dict:
             "accept_fragments": p.accept_fragments,
             "fragment_max_area": p.fragment_max_area,
             "fragment_max_extent": p.fragment_max_extent, "sliver_q": p.sliver_q,
+            "sliver_max_width": p.sliver_max_width,
+            "fragment_removed_cap": p.fragment_removed_cap,
             "qa_size": list(p.qa_size)}
 
 
@@ -190,6 +192,7 @@ def _build_report(name: str, obj_path: Path, mesh: MeshData, result: FixResult,
         # component counts and the smallest components the size rules did NOT catch -- the
         # evidence for where the thresholds sit against this model. See `engine.detectors`.
         "fragment_report": result.fragment_report,
+        "fragment_removals": result.fragment_removals,
         "n_overlap_pairs_same": result.n_overlap_pairs_same,
         "n_overlap_pairs_diff": result.n_overlap_pairs_diff,
         "n_removed_overlap": result.n_removed_overlap,
@@ -338,16 +341,18 @@ def _write_skp(result: FixResult, name: str, out_dir: Path, flat_materials: froz
                             parse_mtl(mtl_path) if mtl_path.exists() else {}, path,
                             tex_dir=out_dir / "tex")
         check = check_skp_validity(path)
-    except SketchUpError as exc:
+    except Exception as exc:
         path.unlink(missing_ok=True)
         return {"written": False, "reason": str(exc)}
     out = {"written": True, **written, "sketchup_check_changed": check["changed"],
            "copied_to": None}
     if copy_dir is not None:
+        dest_name = f"{name}.fixed.skp" if result.passed else f"{name}.fixed.FAILED.skp"
+        dest_path = copy_dir / dest_name
         try:
             copy_dir.mkdir(parents=True, exist_ok=True)
-            shutil.copyfile(path, copy_dir / path.name)
-            out["copied_to"] = str(copy_dir / path.name)
+            shutil.copyfile(path, dest_path)
+            out["copied_to"] = str(dest_path)
         except OSError as exc:       # e.g. the owner still has the previous file open
             out["copy_error"] = str(exc)
     return out
@@ -374,6 +379,7 @@ def cmd_fix(snapshot_dir: Path, out_root: Path, accept_slit: bool,
     name = mesh.name
     out_dir = Path(out_root) / name
     out_dir.mkdir(parents=True, exist_ok=True)
+    (out_dir / "report.json").unlink(missing_ok=True)
 
     write_obj(result.mesh, out_dir / f"{name}.fixed.obj")
     write_obj_polygons(result.mesh, result.rings, out_dir / f"{name}.fixed.ngon.obj")
