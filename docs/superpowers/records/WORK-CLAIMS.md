@@ -5,6 +5,14 @@ commit this file (or at least save it; it is read in the MAIN checkout by absolu
 `D:\PROJECTS\UC MODEL FIXER\docs\superpowers\records\WORK-CLAIMS.md`, also by workers in worktrees).
 When you stop, set the status and release (holder `-`). Never work a job someone else holds.
 
+**Claude at its usage limit:** a claim held by Claude (the controller or a Claude subagent) LAPSES
+when Claude has hit its usage limit (the owner says so, or the job's tree shows no new commit or file
+change for 30 minutes). Hermes then takes the job over: edit the row (holder `Hermes`, the time),
+run `git status` and `git log` in the job's tree, and continue from the brief's remaining items;
+uncommitted work there is the Claude agent's work in progress: finish, test and commit it, never
+discard it. When Claude comes back it reads this file first and does NOT resume a job Hermes holds;
+Hermes hands back by releasing the row after a clean commit.
+
 | Job | Brief | Tree / branch | Holder | Since | Status |
 |---|---|---|---|---|---|
 | T1 T-junction repair | briefs/01-T1-tjunction-repair.md | main checkout / feat-dashboard | Claude subagent (T1) | 2026-09-24 18:34 | core committed 28d63df; finishing B's remaining lines and the report |

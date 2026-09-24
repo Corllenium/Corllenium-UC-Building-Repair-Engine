@@ -55,10 +55,10 @@ usage limit and resumed at 18:34):
    about 900). Being investigated. The owner's "sawtooth" broken side is on file B, under the slope
    between the upper landing and the lower slab (render: see briefs/02).
 
-**If you take over one of these**: check `WORK-CLAIMS.md`; if the Claude agent still holds the claim,
-leave it. Otherwise claim it, run `git status` and `git log` in that tree, and continue from the
-brief's remaining items. Uncommitted work in a tree is work in progress: finish it, test it, commit
-it; never discard it.
+**If you take over one of these** (for example because Claude hit its usage limit): follow the
+lapse rule at the top of `WORK-CLAIMS.md`, take the claim over in writing, run `git status` and
+`git log` in that tree, and continue from the brief's remaining items. Uncommitted work in a tree is
+work in progress: finish it, test it, commit it; never discard it.
 
 ## 3. The queue (do in this order)
 
