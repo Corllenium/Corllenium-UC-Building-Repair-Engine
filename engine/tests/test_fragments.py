@@ -516,9 +516,11 @@ def test_the_final_guard_excuses_a_removed_face_only_where_it_uncovers_an_expose
 
 
 def test_the_final_guard_judges_what_a_removed_fragment_uncovered(monkeypatch):
-    """The whole pipeline, with the detector made to name the patch and the fragment guard made to
-    confirm it -- the two earlier defences switched off -- so the FINAL guard is the one being
-    tested. It used to excuse every pixel of a removed fragment by name, uncapped, and pass."""
+    """The whole pipeline, with the detector made to name the patch, and the rays through it
+    (brief 09) and the fragment guard made to confirm it -- the three earlier defences switched
+    off -- so the FINAL guard is the one being tested. It used to excuse every pixel of a removed
+    fragment by name, uncapped, and pass."""
+    from engine.guard.piece_rays import PieceRayCheck
     m = slab_with_infill_patch()
     patch = _patch_faces(m)
 
@@ -529,11 +531,18 @@ def test_the_final_guard_judges_what_a_removed_fragment_uncovered(monkeypatch):
                               np.zeros(len(face_w), dtype=np.int64),
                               {"n_components": 1, "n_candidate_components": 1})
 
+    def rays_confirm_it(units, *_a, marked=None, **_kw):
+        marked = np.ones(len(units), dtype=bool) if marked is None else marked.copy()
+        verdicts = [{"faces": [int(f) for f in u], "points": 0, "lines": 0, "lines_inside": 0,
+                     "inside_faces": [], "refused": False} for u in units]
+        return PieceRayCheck(confirmed=marked, verdicts=verdicts, history=[])
+
     def confirms_it(candidates, *_a, **_kw):
         return candidates.copy(), [{"round": 0, "candidates_remaining": int(candidates.sum()),
                                     "failing_pixels": 0, "not_ours_pixels": 0, "restored": 0}]
 
     monkeypatch.setattr(fix_pipeline, "detect_fragments", names_the_patch)
+    monkeypatch.setattr(fix_pipeline, "piece_ray_check", rays_confirm_it)
     monkeypatch.setattr(fix_pipeline, "fragment_feedback", confirms_it)
     r = fix_object(m, {}, FixProfile(guard_size=(240, 160), n_dirs=32))
     assert r.removed_fragments[patch].all()
@@ -705,11 +714,18 @@ def test_every_removed_component_is_reported_with_its_faces_area_and_bbox(tmp_pa
 
     m = printed(slab_with_strays())
     r = fix_object(m, {}, _FAST)
-    assert r.fragment_removals == [
+    # each entry also carries its piece's ray verdict (brief 09): seen along lines from outside,
+    # none of which meets a side the reference never exposed once the piece is gone
+    removals = [dict(e) for e in r.fragment_removals]
+    rays = [(e.pop("lines"), e.pop("lines_inside")) for e in removals]
+    assert removals == [
         {"kind": "sliver", "component": 0, "faces": [32], "area": 0.1, "width": 0.02,
          "bbox": [[0.0, -0.02, 0.0], [10.0, 0.0, 0.0]]},
         {"kind": "fragment", "component": 1, "faces": [33], "component_faces": 1, "area": 2.0,
          "bbox": [[0.0, 0.0, 20.0], [2.0, 2.0, 20.0]]}]
+    assert all(lines > 0 and inside == 0 for lines, inside in rays), rays
+    assert [(v["faces"], v["lines"], v["lines_inside"]) for v in r.fragment_ray_check] == [
+        ([32], rays[0][0], 0), ([33], rays[1][0], 0)]
 
     out = tmp_path / "out"
     profile = FixProfile(guard_size=(120, 80), n_dirs=32, qa_size=(160, 100),
@@ -719,6 +735,8 @@ def test_every_removed_component_is_reported_with_its_faces_area_and_bbox(tmp_pa
                        skp=False) == 0
     report = json.loads((out / m.name / "report.json").read_text(encoding="utf-8"))
     assert report["fragment_removals"] == r.fragment_removals
+    assert report["fragment_ray_check"] == r.fragment_ray_check
+    assert report["n_refused_by_rays"] == 0
     assert report["profile"]["fragment_removed_cap"] == profile.fragment_removed_cap
     # the width bound is derived from the print step of the mesh the run READ -- the OBJ round
     # trip re-infers it from the printed text -- and the report says which bound it used

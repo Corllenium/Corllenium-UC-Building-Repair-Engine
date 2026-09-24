@@ -10,8 +10,10 @@ faces AND degenerate ("zero-area") faces (plus slit faces, only when `profile.ac
 `guard_feedback` against the original, STRICT for pass 1 (the only automatic deletion, so it gets
 the strictest guard) and, when slit faces are accepted, a SECOND colour-tolerant pass over the
 state pass 1 leaves behind -> `remove_faces` -> `engine.detectors.fragments` (stray fragments
-and attached slivers, removed under `fragment_feedback`, the one guard that lets a pass change the
-picture -- only at those faces' own pixels -- when `profile.accept_fragments`) ->
+and attached slivers, removed when `profile.accept_fragments` and only when both the rays through
+each piece (`engine.guard.piece_rays`: no line along which it was seen may then meet a side the
+reference never exposed) and `fragment_feedback` -- the one guard that lets a pass change the
+picture, only at those faces' own pixels -- confirm it) ->
 `classify_orientation` +
 `flip_faces` on the survivors, so a face whose only real exposure was on its BACK re-joins its
 neighbours' region instead of being copied through alone -> `analyse_topology` on the flipped
@@ -52,13 +54,15 @@ from engine.fixes.remove import remove_faces
 from engine.fixes.solidify import solidify
 from engine.guard.compare import (GuardReport, compare_views, face_planes, fragment_feedback,
                                    guard_feedback)
+from engine.guard.piece_rays import piece_ray_check
 from engine.guard.views import VIEWS_26, ortho_first_hit
 from engine.model import MeshData
 from engine.pipeline import analyse_topology, flat_material_indices
 from engine.topo.edges import COPLANAR_ANGLE, SOFT_ANGLE
 from engine.rays.caster import ReusableCaster
 from engine.topo.weld import weld_exact
-from engine.vis.exposure import EXP_HIDDEN, EXP_SLIT, classify_exposure, compute_side_exposure
+from engine.vis.exposure import (EXP_HIDDEN, EXP_SLIT, classify_exposure, compute_side_exposure,
+                                 fib_dirs)
 
 #: Relative slack on the whole-mesh area check, matching `engine.fixes.merge`'s own per-region
 #: tolerance -- merging can shift area by float noise, never grow it on purpose.
@@ -202,19 +206,34 @@ class FixResult:
     n_fragment_components: int
     n_removed_fragments: int
     n_removed_slivers: int
-    #: Candidates the fragment guard put back, so still in the mesh.
+    #: Candidates put back -- by the rays through them or by the fragment guard -- so still in
+    #: the mesh.
     n_restored_fragments: int
+    #: ...of which refused by the rays through them (`engine.guard.piece_rays`): faces of
+    #: candidates one of whose lines, with every removal done, met a side the reference never
+    #: exposed.
+    n_refused_by_rays: int
     #: `engine.detectors.fragments.FragmentResult.report` -- component counts and the smallest
     #: components the size rules did NOT catch. Empty when the pass is off.
     fragment_report: dict
     #: EVERY face the fragment pass removed, so each one can be found and checked: one entry per
     #: fragment component (`{"kind": "fragment", "component", "faces", "component_faces",
-    #: "area", "bbox"}` -- `faces` the REFERENCE ids removed, `component_faces` how many faces
-    #: the component had, so a partly restored one shows) and one per sliver (`{"kind":
-    #: "sliver", "component", "faces", "area", "width", "bbox"}`), sorted by first face id.
-    #: `area` in sq in, `width` in in, `bbox` `[[min x, y, z], [max x, y, z]]` in the input's own
-    #: coordinates. Empty when the pass is off or removed nothing.
+    #: "area", "bbox", "lines", "lines_inside"}` -- `faces` the REFERENCE ids removed,
+    #: `component_faces` how many faces the component had, so a partly restored one shows) and
+    #: one per sliver (`{"kind": "sliver", "component", "faces", "area", "width", "bbox",
+    #: "lines", "lines_inside"}`), sorted by first face id. `area` in sq in, `width` in in, `bbox`
+    #: `[[min x, y, z], [max x, y, z]]` in the input's own coordinates; `lines` and
+    #: `lines_inside` are the piece's ray verdict (`fragment_ray_check`). Empty when the pass is
+    #: off or removed nothing.
     fragment_removals: list
+    #: The rays-through-the-piece verdict of EVERY candidate the detector named, removed or not:
+    #: one entry per unit -- a fragment component or a sliver -- `{"kind", "faces", "points",
+    #: "lines", "lines_inside", "inside_faces", "refused", "removed"}` (see
+    #: `engine.guard.piece_rays`): `lines` the (point, exposure direction) lines along which the
+    #: piece was seen from outside on the reference, `lines_inside` how many of them met a side
+    #: the reference never exposed once the removal was done, `inside_faces` up to five of the
+    #: faces met there. Sorted by first face id; empty when the pass is off or named nothing.
+    fragment_ray_check: list
     #: Bool, over REFERENCE-mesh faces: a duplicate layer the rest of its own region already
     #: covered, confirmed removable by the strict guard (see `engine.fixes.overlap`).
     removed_overlap: np.ndarray
@@ -235,9 +254,11 @@ class FixResult:
     #: drop as a hole. `_after` is expected to be lower than `_before`.
     one_sided_holes_before: int
     one_sided_holes_after: int
-    #: `{"hidden": ..., "slit": ..., "fragments": ..., "overlap": ...}` -- each pass's own
-    #: per-round history; `"slit"` is `None` when no slit pass ran and `"fragments"` is `None`
-    #: when the fragment pass did not run or had no candidate.
+    #: `{"hidden": ..., "slit": ..., "fragments": ..., "fragment_rays": ..., "overlap": ...}` --
+    #: each pass's own per-round history; `"slit"` is `None` when no slit pass ran, and
+    #: `"fragments"` (the fragment guard's rounds, numbered on across its calls) and
+    #: `"fragment_rays"` (`engine.guard.piece_rays`' rounds) are `None` when the fragment pass
+    #: did not run or had no candidate.
     feedback_history: dict
     guard_after_removal: GuardReport
     #: The MERGED mesh's guard against the reference -- the report that decided whether the merge
@@ -347,18 +368,22 @@ def _exposed_sides(positions_c: np.ndarray, face_w: np.ndarray, sources: list,
 
 def _fragment_removals(detected, confirmed: np.ndarray, reference_ids: np.ndarray,
                        positions_c: np.ndarray, centre: np.ndarray,
-                       face_w: np.ndarray) -> list[dict]:
+                       face_w: np.ndarray, ray_check: list) -> list[dict]:
     """`FixResult.fragment_removals`: every face the fragment pass removed, grouped the way the
-    detector named it. `reference_ids[i]` is the reference id of the detector's face `i`."""
+    detector named it, each with its ray verdict from `ray_check` (`FixResult.fragment_ray_check`).
+    `reference_ids[i]` is the reference id of the detector's face `i`."""
     tri = positions_c[face_w]
     area = 0.5 * np.linalg.norm(np.cross(tri[:, 1] - tri[:, 0], tri[:, 2] - tri[:, 0]), axis=1)
+    verdict_of = {f: v for v in ray_check for f in v["faces"]}
 
     def entry(kind: str, component: int, ids: np.ndarray, **extra) -> dict:
         corners = positions_c[face_w[ids]].reshape(-1, 3) + centre
+        verdict = verdict_of[int(ids[0])]
         return {"kind": kind, "component": int(component), "faces": [int(f) for f in ids],
                 **extra, "area": round(float(area[ids].sum()), 4),
                 "bbox": [np.round(corners.min(axis=0), 4).tolist(),
-                         np.round(corners.max(axis=0), 4).tolist()]}
+                         np.round(corners.max(axis=0), 4).tolist()],
+                "lines": verdict["lines"], "lines_inside": verdict["lines_inside"]}
 
     out = []
     for c in np.unique(detected.component[detected.fragments]).tolist():
@@ -373,6 +398,81 @@ def _fragment_removals(detected, confirmed: np.ndarray, reference_ids: np.ndarra
             out.append(entry("sliver", detected.component[i], np.array([f]),
                              width=round(float(widths[f]), 4)))
     return sorted(out, key=lambda e: e["faces"][0])
+
+
+def _debris_units(detected, reference_ids: np.ndarray) -> list[tuple[str, np.ndarray]]:
+    """The detector's candidates as the units the rays judge -- each fragment component whole,
+    each sliver alone -- as `(kind, REFERENCE face ids)`, sorted by first face id."""
+    units = [("fragment", reference_ids[(detected.component == c) & detected.fragments])
+             for c in np.unique(detected.component[detected.fragments]).tolist()]
+    units += [("sliver", reference_ids[[i]]) for i in np.nonzero(detected.slivers)[0].tolist()]
+    return sorted(units, key=lambda u: int(u[1].min()))
+
+
+def _confirm_debris(units: list[tuple[str, np.ndarray]], positions_c: np.ndarray,
+                    render_faces: np.ndarray, render_material: np.ndarray, flat_materials,
+                    depth_tol: float, drop: np.ndarray, side_exposure: np.ndarray,
+                    profile: FixProfile):
+    """Which faces of `units` may go: every unit must pass the rays through it
+    (`engine.guard.piece_rays`) AND the fragment guard (`fragment_feedback`) -- each judging with
+    all the others' removals done.
+
+    The rays go first: they are exact where the guard's pixels never reach. The fragment guard
+    then judges the survivors, and when it puts faces back those faces are present again for the
+    rays -- so the rays judge once more, and the guard again, until neither puts anything back.
+    Both only ever put back, so this ends. Returns `(removed, ray_check, n_refused_by_rays,
+    fragment_history, ray_history)` with `removed` bool over the reference faces and `ray_check`
+    `FixResult.fragment_ray_check`."""
+    n_faces = len(render_faces)
+    faces_of = [np.asarray(ids, dtype=np.int64) for _kind, ids in units]
+    alive = np.ones(len(units), dtype=bool)
+    verdicts: list = [None] * len(units)
+    refused_by_rays = np.zeros(n_faces, dtype=bool)
+    removed = np.zeros(n_faces, dtype=bool)
+    fragment_history: list = []
+    ray_history: list = []
+    directions = fib_dirs(profile.n_dirs)
+    while alive.any():
+        check = piece_ray_check(faces_of, positions_c, render_faces, side_exposure,
+                                directions=directions, already_removed=drop, marked=alive)
+        for i, verdict in enumerate(check.verdicts):
+            if verdict is not None:
+                verdicts[i] = verdict
+        for i in np.nonzero(alive & ~check.confirmed)[0].tolist():
+            refused_by_rays[faces_of[i]] = True
+        ray_history += [dict(h, round=len(ray_history) + k) for k, h in enumerate(check.history)]
+        alive = check.confirmed
+        candidates = np.zeros(n_faces, dtype=bool)
+        for i in np.nonzero(alive)[0].tolist():
+            candidates[faces_of[i]] = True
+        if not candidates.any():
+            break
+        # `already_removed=drop`, so the guard's BEFORE is the WHOLE reference -- the same
+        # picture the final guard renders -- while its AFTER drops the candidates as well as
+        # everything earlier passes took out. See `fragment_feedback`.
+        confirmed, history = fragment_feedback(
+            candidates, positions_c, render_faces, render_material, flat_materials,
+            depth_tol, already_removed=drop, size=profile.guard_size,
+            crack_closed_cap=profile.crack_closed_cap, side_exposure=side_exposure,
+            fragment_removed_cap=profile.fragment_removed_cap)
+        fragment_history += [dict(h, round=len(fragment_history) + k) for k, h in enumerate(history)]
+        removed = confirmed & candidates
+        if not (candidates & ~confirmed).any():
+            break
+        # the guard put faces back: a unit is now what it still confirms, and the rays judge
+        # again with those faces present
+        for i in np.nonzero(alive)[0].tolist():
+            faces_of[i] = faces_of[i][confirmed[faces_of[i]]]
+            alive[i] = len(faces_of[i]) > 0
+        removed = np.zeros(n_faces, dtype=bool)
+
+    ray_check = []
+    for (kind, ids), verdict in zip(units, verdicts):
+        ray_check.append({"kind": kind, "faces": [int(f) for f in ids],
+                          **{k: verdict[k] for k in ("points", "lines", "lines_inside",
+                                                     "inside_faces", "refused")},
+                          "removed": bool(removed[ids].any())})
+    return removed, ray_check, int(refused_by_rays.sum()), fragment_history, ray_history
 
 
 def fix_object(mesh: MeshData, flatness: dict[str, float], profile: FixProfile = FixProfile()) -> FixResult:
@@ -471,8 +571,9 @@ def fix_object(mesh: MeshData, flatness: dict[str, float], profile: FixProfile =
     removed_fragments_full = np.zeros(mesh.n_faces, dtype=bool)
     fragment_report: dict = {}
     fragment_removals: list = []
-    fragment_history = None
-    n_removed_fragments = n_removed_slivers = n_restored_fragments = 0
+    fragment_ray_check: list = []
+    fragment_history = ray_history = None
+    n_removed_fragments = n_removed_slivers = n_restored_fragments = n_refused_by_rays = 0
     mesh_fragments, source_from_fragments = mesh_removed, np.arange(mesh_removed.n_faces, dtype=np.int64)
     if profile.accept_fragments:
         kept = ~drop
@@ -491,14 +592,13 @@ def fix_object(mesh: MeshData, flatness: dict[str, float], profile: FixProfile =
         candidates = np.zeros(mesh.n_faces, dtype=bool)      # lifted back to REFERENCE ids
         candidates[source_from_removal[detected.fragments | detected.slivers]] = True
         if candidates.any():
-            # `already_removed=drop`, so the guard's BEFORE is the WHOLE reference -- the same
-            # picture the final guard renders -- while its AFTER drops this pass's candidates as
-            # well as everything earlier passes took out. See `fragment_feedback`.
-            confirmed, fragment_history = fragment_feedback(
-                candidates, positions_c, render_faces, render_material, flat_materials,
-                depth_tol, already_removed=drop, size=profile.guard_size,
-                crack_closed_cap=profile.crack_closed_cap, side_exposure=side_exposure,
-                fragment_removed_cap=profile.fragment_removed_cap)
+            # every candidate is judged by the rays through it AND by the fragment guard's
+            # pixels, each with all the others' removals done -- the rays because no guard pixel
+            # meets a sub-pixel piece (brief 08: 10 real-surface pieces went that way)
+            (confirmed, fragment_ray_check, n_refused_by_rays, fragment_history,
+             ray_history) = _confirm_debris(
+                _debris_units(detected, source_from_removal), positions_c, render_faces,
+                render_material, flat_materials, depth_tol, drop, side_exposure, profile)
             is_fragment = np.zeros(mesh.n_faces, dtype=bool)
             is_fragment[source_from_removal[detected.fragments]] = True
             n_removed_fragments = int((confirmed & is_fragment).sum())
@@ -506,7 +606,8 @@ def fix_object(mesh: MeshData, flatness: dict[str, float], profile: FixProfile =
             n_restored_fragments = int((candidates & ~confirmed).sum())
             removed_fragments_full = confirmed
             fragment_removals = _fragment_removals(detected, confirmed, source_from_removal,
-                                                   positions_c, centre, render_faces)
+                                                   positions_c, centre, render_faces,
+                                                   fragment_ray_check)
             mesh_fragments, source_from_fragments = remove_faces(mesh_removed, confirmed[kept])
     source_after_fragments = source_from_removal[source_from_fragments]
 
@@ -686,8 +787,9 @@ def fix_object(mesh: MeshData, flatness: dict[str, float], profile: FixProfile =
         removed_fragments=removed_fragments_full,
         n_fragment_components=int(fragment_report.get("n_components", 0)),
         n_removed_fragments=n_removed_fragments, n_removed_slivers=n_removed_slivers,
-        n_restored_fragments=n_restored_fragments, fragment_report=fragment_report,
-        fragment_removals=fragment_removals,
+        n_restored_fragments=n_restored_fragments, n_refused_by_rays=n_refused_by_rays,
+        fragment_report=fragment_report, fragment_removals=fragment_removals,
+        fragment_ray_check=fragment_ray_check,
         removed_overlap=removed_overlap_full, restored_overlap=restored_overlap_full,
         n_overlap_pairs_same=overlap_result.report["n_overlap_pairs_same"],
         n_overlap_pairs_diff=overlap_result.report["n_overlap_pairs_diff"],
@@ -696,7 +798,8 @@ def fix_object(mesh: MeshData, flatness: dict[str, float], profile: FixProfile =
         overlap_pairs_diff_material=overlap_pairs_diff_material,
         one_sided_holes_before=one_sided_holes_before, one_sided_holes_after=one_sided_holes_after,
         feedback_history={"hidden": history_hidden, "slit": history_slit,
-                          "fragments": fragment_history, "overlap": overlap_result.history},
+                          "fragments": fragment_history, "fragment_rays": ray_history,
+                          "overlap": overlap_result.history},
         guard_after_removal=guard_after_removal, guard_merge_attempt=guard_merge_attempt,
         guard_final=guard_final, strict_final=strict_final,
         exposed_final=exposed_final,

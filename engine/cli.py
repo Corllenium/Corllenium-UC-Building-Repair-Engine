@@ -193,10 +193,15 @@ def _build_report(name: str, obj_path: Path, mesh: MeshData, result: FixResult,
         "n_removed_fragments": result.n_removed_fragments,
         "n_removed_slivers": result.n_removed_slivers,
         "n_restored_fragments": result.n_restored_fragments,
+        "n_refused_by_rays": result.n_refused_by_rays,
         # component counts and the smallest components the size rules did NOT catch -- the
         # evidence for where the thresholds sit against this model. See `engine.detectors`.
         "fragment_report": result.fragment_report,
         "fragment_removals": result.fragment_removals,
+        # every candidate's verdict from the rays through it, removed or not: the lines along
+        # which it was seen, and how many of them then met a side never exposed. See
+        # `engine.guard.piece_rays`.
+        "fragment_ray_check": result.fragment_ray_check,
         "n_overlap_pairs_same": result.n_overlap_pairs_same,
         "n_overlap_pairs_diff": result.n_overlap_pairs_diff,
         "n_removed_overlap": result.n_removed_overlap,
@@ -679,6 +684,7 @@ def cmd_preview_data(snapshot_dir: Path, out_dir: Path, profile: FixProfile | No
             "n_removed_fragments": int(result.n_removed_fragments),
             "n_removed_slivers": int(result.n_removed_slivers),
             "n_restored_fragments": int(result.n_restored_fragments),
+            "n_refused_by_rays": int(result.n_refused_by_rays),
             "n_overlap_pairs_same": int(result.n_overlap_pairs_same),
             "n_overlap_pairs_diff": int(result.n_overlap_pairs_diff),
             "n_removed_overlap": int(result.n_removed_overlap),

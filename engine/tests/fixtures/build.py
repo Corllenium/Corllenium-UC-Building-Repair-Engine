@@ -1189,3 +1189,83 @@ def plate_with_offset_corner(jitter=0.1, closed=False):
     fvt = np.arange(len(fv) * 3).reshape(-1, 3).tolist()
     return _mesh(f"plate_with_offset_corner_{'closed' if closed else 'open'}", P, uvs, fv, fvt,
                  coord_decimals=1, sig_digits=3)
+
+
+def slab_with_lip_over_a_slot(size=2000.0, height=8.0, length=16.0, width=0.1, slot=0.05):
+    """A rim-lip slot like file A's faces 3540 and 4659 (brief 09), as a fixture: a closed
+    `size` x `size` x `height` slab whose top has a needle-shaped SLOT through it into the slab,
+    and a LIP over the slot -- face 0, a needle `length` in long and `width` in wide lying in the
+    top's own plane.
+
+    With `c = size / 2` and `y1 - y0 = length`, the slot is the triangle A = (c, y0),
+    B = (c, y1), D = (c + slot, y1): the top's left half ends along x = c, and its right part
+    leaves out exactly that triangle. The lip is A, B, C = (c + width, y1). Its base A-B lies
+    inside the left half's edge along x = c (a T-junction partner), the slot's corner D lies inside
+    its short edge B-C, and its other long edge A-C is OPEN -- no other face uses it, no vertex
+    lies inside it, it lies inside no edge -- so the detector names the lip a sliver: a ragged
+    border. Yet it covers the slot, the only opening into the closed slab, so removing it shows
+    the inside of the shell -- the back of the bottom, a side nobody could see on the reference --
+    through every line that crosses the slot's half of the lip. The lip's right half lies on the
+    top's right part (coplanar), so the lines through it meet an outside surface.
+
+    At the defaults the slab is the real files' scale (a guard pixel spans inches), and
+    `printed` gives it their tolerances (0.15 in), inside which the lip lies. Faces: 0 the lip,
+    1-2 the left half, 3-7 the right part, then the four sides and the bottom
+    (`_slab_from_top`)."""
+    s, c = float(size), float(size) / 2.0
+    y0 = c - length / 2.0
+    y1 = y0 + length
+    A, B, C, D = (c, y0), (c, y1), (c + width, y1), (c + slot, y1)
+    top = [(A, B, C),
+           ((0, 0), (c, 0), (c, s)), ((0, 0), (c, s), (0, s)),
+           ((c, 0), (s, 0), A), (A, (s, 0), D), (D, (s, 0), (s, s)), (D, (s, s), (c, s)),
+           (D, (c, s), B)]
+    return _slab_from_top("slab_with_lip_over_a_slot", top, size, height)
+
+
+def _slab_on_its_diagonal(name, extra_points, extra_faces, size, height, uv_per_unit=0.05):
+    """`slab_with_stub_on_t_junctions`' closed slab (top faces 0 and 1 split along the diagonal
+    from `(0, 0)` to `(size, size)`, sides and bottom 2-11), plus `extra_faces` (triangles over
+    `extra_points`, numbered from 8) appended as faces 12 onwards."""
+    s, h = float(size), float(height)
+    P = [[0, 0, 0], [s, 0, 0], [s, s, 0], [0, s, 0], [0, 0, -h], [s, 0, -h], [s, s, -h], [0, s, -h]]
+    P = [[float(v) for v in p] for p in P] + [[float(v) for v in p] for p in extra_points]
+    uvs, fv, fvt, fm = [], [], [], []
+    _quads(P, uvs, fv, fvt, fm, [(0, 1, 2, 3),
+                                 (0, 4, 5, 1), (1, 5, 6, 2), (2, 6, 7, 3), (3, 7, 4, 0), (4, 7, 6, 5)])
+    for face in extra_faces:
+        base = len(uvs)
+        uvs.extend((np.asarray([P[i] for i in face])[:, :2] * uv_per_unit).tolist())
+        fv.append(list(face))
+        fvt.append([base, base + 1, base + 2])
+        fm.append(0)
+    return _mesh(name, P, uvs, fv, fvt, face_material=fm)
+
+
+def slab_with_standing_needle(size=2000.0, height=8.0, length=16.0, rise=0.05):
+    """A free needle pointing into the sky (brief 09): the closed slab of
+    `slab_with_stub_on_t_junctions` with face 12 a NEEDLE standing upright on the top's diagonal
+    edge -- its two feet `length` in apart lie INSIDE that edge (a T-junction, which joins it to
+    the slab and partners its base), its apex `rise` in straight above their midpoint. Its two
+    upper edges are open, so the detector names it a sliver. It is debris: every line through
+    it, once it is gone, meets the sky or the slab's top -- an outside surface."""
+    c = float(size) / 2.0
+    a = length / (2.0 * np.sqrt(2.0))
+    return _slab_on_its_diagonal("slab_with_standing_needle",
+                                 [[c - a, c - a, 0.0], [c + a, c + a, 0.0], [c, c, rise]],
+                                 [(8, 9, 10)], size, height)
+
+
+def slab_with_needle_lying_on_top(size=2000.0, height=8.0, length=16.0, width=0.05, lift=0.0):
+    """A double layer lying on a coplanar face, like file A's faces 49 and 174 (brief 09): the
+    closed slab of `slab_with_stub_on_t_junctions` with face 12 a NEEDLE lying ON top face 0 at
+    `z = lift` -- 0 by default, exactly in its plane -- wound the same way (+z), 100 in from the
+    diagonal and far from every edge: no shared edge, no vertex, no T-junction; only COPLANAR
+    CONTACT joins it to the slab, and all three of its edges are open, so the detector names it a
+    sliver. Every line through it, once it is gone, meets the top it lay on."""
+    c = float(size) / 2.0
+    x, y = c + 100.0, c - 100.0
+    return _slab_on_its_diagonal(
+        "slab_with_needle_lying_on_top",
+        [[x - length / 2.0, y, lift], [x + length / 2.0, y, lift], [x, y + width, lift]],
+        [(8, 9, 10)], size, height)
