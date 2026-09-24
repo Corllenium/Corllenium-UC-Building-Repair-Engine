@@ -832,7 +832,8 @@ def test_guard_images_excuse_exactly_the_fragment_pixels_the_final_guard_excuses
     those same pixels as damage."""
     from engine.guard.compare import PX_FRAGMENT_REMOVED
     from engine.tests.fixtures.build import slab_with_strays
-    profile = replace(_FAST, solidify=False)
+    # the stray is 1.7e-3 of a 120 x 80 view: loosen the cap sized from the real files
+    profile = replace(_FAST, solidify=False, fragment_removed_cap=5e-3)
     r = fix_pipeline.fix_object(slab_with_strays(), {}, profile)
     assert r.passed and r.guard_final.totals["fragment_removed"] > 0
     codes = _guard_image_codes(tmp_path, monkeypatch, r, profile)
@@ -849,7 +850,8 @@ def test_guard_images_apply_the_per_view_fragment_cap(tmp_path, monkeypatch):
     so the image must too, or it shows as excused exactly what made the view fail."""
     from engine.guard.compare import PX_FRAGMENT_REMOVED, PX_MOVED_SAME_FLAT
     from engine.tests.fixtures.build import slab_with_strays
-    profile = replace(_FAST, solidify=False)
+    # the stray is 1.7e-3 of a 120 x 80 view: loosen the cap sized from the real files
+    profile = replace(_FAST, solidify=False, fragment_removed_cap=5e-3)
     r = fix_pipeline.fix_object(slab_with_strays(), {}, profile)
     loose = _guard_image_codes(tmp_path, monkeypatch, r, profile)["guard_-z.png"]
     capped = _guard_image_codes(tmp_path, monkeypatch, r,

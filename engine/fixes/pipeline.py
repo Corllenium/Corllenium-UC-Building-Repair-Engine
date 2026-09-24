@@ -145,10 +145,14 @@ class FixProfile:
     sliver_q: float = 0.02
     #: Per-view cap on `PX_FRAGMENT_REMOVED` pixels, as a fraction of that view's model pixels,
     #: in the fragment guard and the final guard alike; over it they are judged as what they
-    #: really are (see `engine.guard.compare.compare_views`). Measured: at most 6.2e-5 of a view
-    #: on file A and 1.2e-4 on file B at the 900 x 600 guard size, 1.7e-3 for
-    #: `slab_with_strays`' 2 sq in stray at the tests' 120 x 80 -- the cap sits above all three.
-    fragment_removed_cap: float = 5e-3
+    #: really are (see `engine.guard.compare.compare_views`). SIZED FROM THE REAL FILES at the
+    #: 900 x 600 guard size: the largest share of a view ever recorded for them is 1.2e-4 (file
+    #: B, brief 07; A 6.2e-5); re-measured at 670ad50 it is 4.8e-5 on A (7 px of a 145,828 px
+    #: view) and 0 on B, and with the open-border sliver rule 0 on both. 1.2e-4 is about 9 px of
+    #: A's average 79,000 px view. It was 5e-3, sized for `slab_with_strays`' 2 sq in stray at
+    #: the tests' 120 x 80 (1.7e-3 of a view), which on the real files tripped only above about
+    #: 400 px of debris per view -- so the tests that need that stray removed loosen it.
+    fragment_removed_cap: float = 1.2e-4
     #: Pixel size of every image in the visual QA sheet the CLI writes under `<run dir>/qa/`
     #: (`engine.guard.qa_render.write_qa_sheet`). Not used by `fix_object` itself.
     qa_size: tuple[int, int] = (1600, 1000)

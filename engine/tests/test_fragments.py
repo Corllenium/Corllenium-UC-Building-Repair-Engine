@@ -25,11 +25,17 @@ from engine.tests.fixtures.build import (printed, slab_with_coplanar_patch, slab
                                          slab_with_stub_on_t_junctions, slab_with_t_joined_strip)
 from engine.vis.exposure import compute_side_exposure
 
-_FAST = FixProfile(guard_size=(120, 80), n_dirs=32, solidify=False)
+#: `fragment_removed_cap` for tests whose stray has to go at the tests' 120 x 80: there a 2 sq in
+#: stray is 1.7e-3 of a view, far over the default sized from the real files (see
+#: `test_the_default_fragment_cap_refuses_a_stray_as_big_as_a_fixture_view_makes_it`).
+_FIXTURE_FRAGMENT_CAP = 5e-3
+_FAST = FixProfile(guard_size=(120, 80), n_dirs=32, solidify=False,
+                   fragment_removed_cap=_FIXTURE_FRAGMENT_CAP)
 
 
 def _fast(**overrides):
-    return FixProfile(guard_size=(120, 80), n_dirs=32, solidify=False, **overrides)
+    return FixProfile(**{"guard_size": (120, 80), "n_dirs": 32, "solidify": False,
+                         "fragment_removed_cap": _FIXTURE_FRAGMENT_CAP, **overrides})
 
 
 def _detected(mesh, profile=None):
@@ -641,7 +647,8 @@ def test_fix_object_never_removes_a_face_solidify_invented(monkeypatch):
     from engine.fixes.solidify import SolidifyResult
     from engine.tests.fixtures.build import _slab_from_top
     slab = _slab_from_top("closed_slab", [((0, 0), (40, 0), (40, 40)), ((0, 0), (40, 40), (0, 40))])
-    profile = FixProfile(guard_size=(120, 80), n_dirs=32)
+    profile = FixProfile(guard_size=(120, 80), n_dirs=32,
+                         fragment_removed_cap=_FIXTURE_FRAGMENT_CAP)
 
     exported = fix_object(_with_triangle(slab, _STRAY), {}, profile)
     assert exported.removed_fragments[-1] and exported.n_removed_fragments == 1   # the premise
@@ -663,6 +670,36 @@ def test_fix_object_never_removes_a_face_solidify_invented(monkeypatch):
     assert r.passed is True
 
 
+# ------------------------- review 2a Minor 9: the fragment cap is sized from the real files
+#
+# `fragment_removed_cap` was 5e-3, sized to let `slab_with_strays`' 2 sq in stray (1.7e-3 of a
+# 120 x 80 view) through; on file A's average view of about 79,000 model px that trips only above
+# about 400 px of debris, so on the real files it did nothing. It is now sized from them, and a
+# test that needs a fixture-sized stray removed loosens it itself (`_FIXTURE_FRAGMENT_CAP`).
+
+
+def test_the_default_fragment_cap_refuses_a_stray_as_big_as_a_fixture_view_makes_it():
+    r = fix_object(slab_with_strays(), {}, FixProfile(guard_size=(120, 80), n_dirs=32,
+                                                      solidify=False))
+    assert not r.removed_fragments[33]                      # 1.7e-3 of a view: far over the cap
+    assert r.n_restored_fragments == 1
+    assert r.passed is True
+    loose = fix_object(slab_with_strays(), {}, _FAST)       # ...which the fixture tests loosen
+    assert loose.removed_fragments[33]
+
+
+def test_the_default_fragment_cap_admits_a_stray_at_the_real_files_scale():
+    """The same 2 sq in stray over a 2000 in slab -- a guard pixel spans inches there, as on the
+    real files -- is under a pixel's worth of any view, and goes."""
+    from engine.tests.fixtures.build import _slab_from_top
+    s = 2000.0
+    slab = _slab_from_top("big_slab", [((0, 0), (s, 0), (s, s)), ((0, 0), (s, s), (0, s))], size=s)
+    m = _with_triangle(slab, [[1000.0, 1000.0, 20.0], [1002.0, 1000.0, 20.0], [1000.0, 1002.0, 20.0]])
+    r = fix_object(m, {}, FixProfile(guard_size=(240, 160), n_dirs=32, solidify=False))
+    assert r.removed_fragments[-1] and r.n_removed_fragments == 1
+    assert r.passed is True
+
+
 def test_every_removed_component_is_reported_with_its_faces_area_and_bbox(tmp_path):
     from engine.tests.test_cli import _write_snapshot
 
@@ -675,7 +712,8 @@ def test_every_removed_component_is_reported_with_its_faces_area_and_bbox(tmp_pa
          "bbox": [[0.0, 0.0, 20.0], [2.0, 2.0, 20.0]]}]
 
     out = tmp_path / "out"
-    profile = FixProfile(guard_size=(120, 80), n_dirs=32, qa_size=(160, 100))
+    profile = FixProfile(guard_size=(120, 80), n_dirs=32, qa_size=(160, 100),
+                         fragment_removed_cap=_FIXTURE_FRAGMENT_CAP)
     snap = _write_snapshot(tmp_path, m)
     assert cli.cmd_fix(snap, out, accept_slit=False, profile=profile, solidify=False,
                        skp=False) == 0
