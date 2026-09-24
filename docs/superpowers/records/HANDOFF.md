@@ -44,7 +44,11 @@ Jobs:
    Committed: ff4a0ec SR0, 65e566c SR2, f57cb17, 9562aa3 SR4 (= review C1), 6233671 SR5 (= review
    I1), 0f24da4 M1. Left: two docstrings, SR3, the real runs, the report, and whether file A's merge
    still rolls back with the side rebuild.
-2. Next: `briefs/03-reconcile-and-verify.md` (merge feat/side-rebuild; conflicts expected in
+2. **Brief 08** (review 2a fixes), main checkout, Claude subagent since 00:20. Review 2a found that
+   a thin strip bordered by real faces on both long sides is still removed as a sliver (a slit at
+   real-file scale, unseen by the guard): the owner's current `.skp` files may contain such a
+   hairline crack (file B faces 5750/5751, unverified).
+3. Next: `briefs/03-reconcile-and-verify.md` (merge feat/side-rebuild; conflicts expected in
    compare.py, pipeline.py, cli.py, build.py because brief 07 changed them on feat-dashboard), then
    review part 2 (the side rebuild AND Hermes's brief-07 commits).
 
