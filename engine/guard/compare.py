@@ -656,6 +656,15 @@ class ViewVerdict:
     grown: int = 0
     #: The fourth part of `edge_flicker`'s breakdown: flicker pixels rescued from `PX_GROWN`.
     edge_flicker_grown: int = 0
+    #: What PX_GROWN RE-CLASSES: every pixel whose BASE class was `PX_GROWN` (BEFORE saw the sky,
+    #: AFTER sees surface), and how many of them the tolerated classes took -- so the growth share
+    #: of `border_shift`, `crack_closed` and `zfight_tie` can be read, not guessed. Always
+    #: `grown_base == grown + edge_flicker_grown + border_shift_grown + crack_closed_grown +
+    #: zfight_tie_grown` (a grown pixel's BEFORE hit nothing, so it is never `fragment_removed`).
+    grown_base: int = 0
+    border_shift_grown: int = 0
+    crack_closed_grown: int = 0
+    zfight_tie_grown: int = 0
 
 
 @dataclass
@@ -670,7 +679,9 @@ def _zero_totals() -> dict:
             "zfight_tie": 0, "crack_closed": 0, "edge_flicker": 0, "fragment_removed": 0,
             "edge_flicker_hole": 0, "edge_flicker_moved": 0,
             "edge_flicker_material": 0, "border_shift": 0,
-            "grown": 0, "edge_flicker_grown": 0}
+            "grown": 0, "edge_flicker_grown": 0,
+            "grown_base": 0, "border_shift_grown": 0, "crack_closed_grown": 0,
+            "zfight_tie_grown": 0}
 
 
 def _fail_mask(codes: np.ndarray, strict: bool, flicker_fails: bool = True) -> np.ndarray:
@@ -848,6 +859,7 @@ def compare_views(before: Sequence[RenderedView], after: Sequence[RenderedView],
         if fragment.any() and int(fragment.sum()) > fragment_removed_cap * int((b.tri >= 0).sum()):
             codes = np.where(fragment, base, codes)
         flicker = codes == PX_EDGE_FLICKER
+        grown_base = base == PX_GROWN
         counts = {
             "model_px": int((b.tri >= 0).sum()),
             "holes": int((codes == PX_HOLE).sum()),
@@ -864,7 +876,11 @@ def compare_views(before: Sequence[RenderedView], after: Sequence[RenderedView],
             "edge_flicker_material": int((flicker & (base == PX_MATERIAL_CHANGED)).sum()),
             "border_shift": int((codes == PX_BORDER_SHIFT).sum()),
             "grown": int((codes == PX_GROWN).sum()),
-            "edge_flicker_grown": int((flicker & (base == PX_GROWN)).sum()),
+            "edge_flicker_grown": int((flicker & grown_base).sum()),
+            "grown_base": int(grown_base.sum()),
+            "border_shift_grown": int(((codes == PX_BORDER_SHIFT) & grown_base).sum()),
+            "crack_closed_grown": int(((codes == PX_CRACK_CLOSED) & grown_base).sum()),
+            "zfight_tie_grown": int(((codes == PX_ZFIGHT_TIE) & grown_base).sum()),
         }
         view_verdicts.append(ViewVerdict(view=tuple(view), **counts))
         for k, v in counts.items():

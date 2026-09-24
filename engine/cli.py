@@ -131,7 +131,9 @@ def _view_verdict_dict(v: ViewVerdict) -> dict:
             "edge_flicker_hole": v.edge_flicker_hole, "edge_flicker_moved": v.edge_flicker_moved,
             "edge_flicker_material": v.edge_flicker_material,
             "edge_flicker_grown": v.edge_flicker_grown, "border_shift": v.border_shift,
-            "grown": v.grown}
+            "grown": v.grown, "grown_base": v.grown_base,
+            "border_shift_grown": v.border_shift_grown,
+            "crack_closed_grown": v.crack_closed_grown, "zfight_tie_grown": v.zfight_tie_grown}
 
 
 def _guard_report_dict(g: GuardReport) -> dict:

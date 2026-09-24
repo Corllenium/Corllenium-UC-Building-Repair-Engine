@@ -128,7 +128,9 @@ def test_identity_all_counts_zero_and_passed():
                               "crack_closed": 0, "edge_flicker": 0, "fragment_removed": 0,
                               "edge_flicker_hole": 0,
                               "edge_flicker_moved": 0, "edge_flicker_material": 0,
-                              "border_shift": 0, "grown": 0, "edge_flicker_grown": 0}
+                              "border_shift": 0, "grown": 0, "edge_flicker_grown": 0,
+                              "grown_base": 0, "border_shift_grown": 0, "crack_closed_grown": 0,
+                              "zfight_tie_grown": 0}
     assert report.totals["model_px"] > 0
     assert len(report.views) == 26
 
@@ -1816,3 +1818,17 @@ def test_growth_over_background_is_failing_base_and_excused_by_border_shift():
                             edge_flicker_cap=0.0, border_shift_tol=0.15, **kw)
     assert rep_tol.passed is True
     assert rep_tol.totals["border_shift"] > 0
+
+    # Review 2a Minor 4: every report says what the grown pixels BECAME -- how many pixels had
+    # PX_GROWN as their base class, and how many of those the tolerated classes took -- so a run's
+    # border shift, flicker and crack counts can be split into losses and growth.
+    for rep in (rep_strict, rep_tol):
+        for counts in [rep.totals] + [vars(v) for v in rep.views]:
+            assert counts["grown_base"] == (counts["grown"] + counts["edge_flicker_grown"]
+                                            + counts["border_shift_grown"]
+                                            + counts["crack_closed_grown"]
+                                            + counts["zfight_tie_grown"])
+    assert rep_strict.totals["grown_base"] == rep_tol.totals["grown_base"] > 0
+    assert rep_strict.totals["border_shift_grown"] == 0
+    # nothing was lost here, so every border shift is growth the tolerance measured and excused
+    assert rep_tol.totals["border_shift_grown"] == rep_tol.totals["border_shift"]
