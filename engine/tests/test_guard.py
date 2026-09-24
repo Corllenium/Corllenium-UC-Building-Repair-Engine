@@ -128,7 +128,7 @@ def test_identity_all_counts_zero_and_passed():
                               "crack_closed": 0, "edge_flicker": 0, "fragment_removed": 0,
                               "edge_flicker_hole": 0,
                               "edge_flicker_moved": 0, "edge_flicker_material": 0,
-                              "border_shift": 0}
+                              "border_shift": 0, "grown": 0, "edge_flicker_grown": 0}
     assert report.totals["model_px"] > 0
     assert len(report.views) == 26
 
@@ -1757,3 +1757,36 @@ def test_the_border_shift_distance_is_exact_and_blind_to_which_plane_a_triangle_
     far = guard_compare._nearest_triangle_distance(np.array([[2.0, 2.0, 3.0]]),
                                                    np.array([floor]), 1.0)
     assert np.isinf(far).all()
+
+
+def test_growth_over_background_is_failing_base_and_excused_by_border_shift():
+    """Review M3: A pixel where BEFORE missed and AFTER hit is classified as PX_GROWN (failing base)
+    and excused as border_shift when within border_shift_tol of the BEFORE mesh."""
+    def make_slab(xmax):
+        pos = np.array([[-5.0, -5.0, 0.0], [xmax, -5.0, 0.0], [xmax, 5.0, 0.0], [-5.0, 5.0, 0.0]])
+        faces = np.array([[0, 1, 2], [0, 2, 3]], dtype=np.int64)
+        return pos, faces
+
+    Pb, fb = make_slab(0.0)
+    Pa, fa = make_slab(0.08)
+    view = [0.0, 0.0, 1.0]
+    bounds = np.array([[-6.0, -6.0, -1.0], [6.0, 6.0, 1.0]])
+    size = (120, 80)
+    before_hit = ortho_first_hit(Pb, fb, np.arange(2), view, bounds, size)
+    after_hit = ortho_first_hit(Pa, fa, np.arange(2), view, bounds, size)
+
+    mat = np.zeros(2, np.int64)
+    kw = dict(plane_before=face_planes(Pb, fb), plane_after=face_planes(Pa, fa),
+              geometry_before=(Pb, fb), geometry_after=(Pa, fa), strict=True)
+
+    # With border_shift_tol=0.0 and cap=0.0: the grown pixels fail
+    rep_strict = compare_views([(view, before_hit)], [(view, after_hit)], mat, mat, frozenset({0}), 0.15,
+                               edge_flicker_cap=0.0, border_shift_tol=0.0, **kw)
+    assert rep_strict.passed is False
+    assert rep_strict.totals["edge_flicker_grown"] > 0
+
+    # With border_shift_tol measuring clearance to BEFORE mesh: the grown pixels are excused
+    rep_tol = compare_views([(view, before_hit)], [(view, after_hit)], mat, mat, frozenset({0}), 0.15,
+                            edge_flicker_cap=0.0, border_shift_tol=0.15, **kw)
+    assert rep_tol.passed is True
+    assert rep_tol.totals["border_shift"] > 0

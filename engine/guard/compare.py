@@ -27,6 +27,7 @@ PX_ZFIGHT_TIE = 6
 PX_CRACK_CLOSED = 7
 PX_FRAGMENT_REMOVED = 8
 PX_BORDER_SHIFT = 9
+PX_GROWN = 10
 
 #: `(view, HitBuffers)` for one `ortho_first_hit` render.
 RenderedView = tuple[Sequence[float], HitBuffers]
@@ -451,7 +452,8 @@ def _failing_base(codes: np.ndarray, strict: bool) -> np.ndarray:
     """Which BASE classes fail under the current strictness, and so may be promoted to one of the
     tolerated classes (`PX_ZFIGHT_TIE`, `PX_CRACK_CLOSED`, `PX_EDGE_FLICKER`). Deliberately the
     same rule `_fail_mask` applies to the FINAL codes, minus the promoted classes themselves."""
-    fail = (codes == PX_HOLE) | (codes == PX_MATERIAL_CHANGED) | (codes == PX_MOVED_OTHER)
+    fail = ((codes == PX_HOLE) | (codes == PX_MATERIAL_CHANGED) | (codes == PX_MOVED_OTHER)
+            | (codes == PX_GROWN))
     if strict:
         fail = fail | (codes == PX_MOVED_SAME_FLAT)
     return fail
@@ -491,6 +493,7 @@ def _classify(before_depth: np.ndarray, before_tri: np.ndarray,
     hit_after = after_tri >= 0
     codes = np.full(before_tri.shape, PX_OK, dtype=np.uint8)
     codes[hit_before & ~hit_after] = PX_HOLE
+    codes[~hit_before & hit_after] = PX_GROWN
 
     both = hit_before & hit_after
     # materials of EVERY hit pixel, not only both-hit ones: the ring test needs BEFORE's material
@@ -584,7 +587,7 @@ def _classify(before_depth: np.ndarray, before_tri: np.ndarray,
     # ---- border shift: how far did the surface under a flicker pixel REALLY move? ------------
     if border is not None and origins is not None and direction is not None:
         shift = (codes == PX_EDGE_FLICKER) & ((base == PX_HOLE) | (base == PX_MOVED_SAME_FLAT)
-                                               | (base == PX_MOVED_OTHER))
+                                               | (base == PX_MOVED_OTHER) | (base == PX_GROWN))
         if shift.any():
             t_b, t_a = before_depth[shift], after_depth[shift]
             # something DISAPPEARED where AFTER missed or met the scene further away, and BEFORE's
@@ -630,6 +633,8 @@ class ViewVerdict:
     #: `edge_flicker` or its breakdown. Always 0 at the default tolerance of 0.0. See
     #: `classify_pixels`.
     border_shift: int
+    grown: int = 0
+    edge_flicker_grown: int = 0
 
 
 @dataclass
@@ -643,13 +648,14 @@ def _zero_totals() -> dict:
     return {"model_px": 0, "holes": 0, "material_changed": 0, "moved_same_flat": 0, "moved_other": 0,
             "zfight_tie": 0, "crack_closed": 0, "edge_flicker": 0, "fragment_removed": 0,
             "edge_flicker_hole": 0, "edge_flicker_moved": 0,
-            "edge_flicker_material": 0, "border_shift": 0}
+            "edge_flicker_material": 0, "border_shift": 0,
+            "grown": 0, "edge_flicker_grown": 0}
 
 
 def _fail_mask(codes: np.ndarray, strict: bool, flicker_fails: bool = True) -> np.ndarray:
     """Which pixels count as damage. `flicker_fails` is the per-view outcome of the
     `edge_flicker_cap` test; at the default cap of 0.0 a flicker pixel fails exactly like a hole."""
-    fail = (codes == PX_HOLE) | (codes == PX_MATERIAL_CHANGED) | (codes == PX_MOVED_OTHER)
+    fail = (codes == PX_HOLE) | (codes == PX_MATERIAL_CHANGED) | (codes == PX_MOVED_OTHER) | (codes == PX_GROWN)
     if flicker_fails:
         fail = fail | (codes == PX_EDGE_FLICKER)
     if strict:
@@ -736,11 +742,12 @@ def compare_views(before: Sequence[RenderedView], after: Sequence[RenderedView],
     to be uncapped, and the excuse unconditional (review C2).
 
     `border_shift_tol` MEASURES what the flicker cap can only count. Above 0.0, every flicker
-    pixel rescued from a hole or a move gets the real displacement of the surface under it -- the
-    exact distance from the hit point to the nearest triangle of the OTHER geometry, see
-    `classify_pixels` -- and is `PX_BORDER_SHIFT` when that is within the tolerance: counted as
-    `border_shift`, never a failure, never capped, and no longer part of `edge_flicker` or its
-    breakdown. Flicker measured further than the tolerance, and every material-change flicker
+    pixel rescued from a hole, move or grown silhouette gets the real clearance of the surface
+    under it -- the exact Euclidean clearance from the hit point to the nearest triangle of the
+    OTHER geometry (taken over any surface within reach, as quantised sloped faces are not coplanar
+    within small tolerances; see `classify_pixels`) -- and is `PX_BORDER_SHIFT` when that clearance
+    is within the tolerance: counted as `border_shift`, never a failure, never capped, and no longer
+    part of `edge_flicker` or its breakdown. Flicker measured further than the tolerance, and every
     pixel, stay `PX_EDGE_FLICKER` and are capped exactly as before. The default 0.0 measures
     nothing, which is what this has always done; `engine.fixes.pipeline` passes the merge's own
     border tolerance to the guards that judge a merged mesh and 0.0 to the removal guard. Above
@@ -835,11 +842,13 @@ def compare_views(before: Sequence[RenderedView], after: Sequence[RenderedView],
                                                   | (base == PX_MOVED_OTHER))).sum()),
             "edge_flicker_material": int((flicker & (base == PX_MATERIAL_CHANGED)).sum()),
             "border_shift": int((codes == PX_BORDER_SHIFT).sum()),
+            "grown": int((codes == PX_GROWN).sum()),
+            "edge_flicker_grown": int((flicker & (base == PX_GROWN)).sum()),
         }
         view_verdicts.append(ViewVerdict(view=tuple(view), **counts))
         for k, v in counts.items():
             totals[k] += v
-        fail_total += counts["holes"] + counts["material_changed"] + counts["moved_other"]
+        fail_total += counts["holes"] + counts["material_changed"] + counts["moved_other"] + counts["grown"]
         if strict:
             fail_total += counts["moved_same_flat"]
         if counts["edge_flicker"] > edge_flicker_cap * counts["model_px"]:
