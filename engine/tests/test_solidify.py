@@ -1035,3 +1035,84 @@ def test_a_riser_standing_up_from_the_top_is_not_a_side():
     r = _solidified(slab_with_a_lip(with_lip=False, riser=5.0))
     assert r.report["representative_side_per_region"] == {"0": pytest.approx(12.0)}
     assert r.report["bottom_depth_per_region"] == {"0": pytest.approx(12.0)}
+
+
+# ----------------------------------------------- SR6 item 1: a sloped top's walls follow the ground
+
+
+def _new_faces_on_y0(r):
+    return [f for f in _plane_faces(r.mesh, 1, 0.0) if r.new_faces[f]]
+
+
+def _lowest_z_at(r, faces, x, tol=1e-6):
+    """The lowest z of `faces`' corners lying on the vertical line x = `x`."""
+    tri = r.mesh.positions[r.mesh.face_v[faces]].reshape(-1, 3)
+    on = np.abs(tri[:, 0] - x) <= tol
+    return float(tri[on, 2].min()) if on.any() else None
+
+
+def test_a_ramp_side_whose_pieces_do_not_reach_the_top_is_replaced_down_to_its_underside():
+    """File B's ramp, the owner's photograph: along its 85 in sloped edge the broken side's pieces
+    are only its LOWER part, 28 to 39.4 in down, just above the ramp's underside (39.37 in below
+    its top everywhere). Nothing hung from the top edge, so nothing was taken as a piece; the wall
+    lay ON the pieces and the coincidence test (review C1) refused it -- the sawtooth stayed.
+
+    `sloped_slab(side="low")`: the underside runs 12 in below the sloped top; the y = 0 side is
+    only a strip 8 to 12 in down over the edge's upper half. The wall goes from the top edge down
+    to the slab's lower surface at EACH end -- 12 in at both, the underside being parallel -- and
+    the strip, inside that wall, is replaced by it."""
+    from engine.tests.fixtures.build import sloped_slab
+    m = sloped_slab(side="low")
+    r = _solidified(m)
+    assert r.replaced[10] and r.replaced[11]                  # the strip went with the wall
+    wall = _new_faces_on_y0(r)
+    assert wall
+    assert _lowest_z_at(r, wall, 0.0) == pytest.approx(-12.0)
+    assert _lowest_z_at(r, wall, 80.0) == pytest.approx(20.0 - 12.0)
+    assert r.report["walls_to_lower_surface"]["walls"] == 1
+
+
+def test_a_wall_under_a_sloped_edge_goes_down_to_a_flat_underside_at_each_end():
+    """A sloped top over a FLAT underside -- a wedge on the ground. A wall at one constant depth is
+    either too shallow at the high end (a gap under it) or too deep at the low end (a fin hanging
+    below the underside, covering what lies outside the slab). It goes to the lower surface at
+    EACH end: 12 in at x = 0, 32 in at x = 80 -- a trapezoid -- and the slab's volume, which the
+    cap guard reads, follows the same surface, so the wall is kept."""
+    from engine.tests.fixtures.build import sloped_slab
+    m = sloped_slab(flat_underside=True)
+    r = _solidified(m)
+    wall = _new_faces_on_y0(r)
+    assert wall
+    assert _lowest_z_at(r, wall, 0.0) == pytest.approx(-12.0)
+    assert _lowest_z_at(r, wall, 80.0) == pytest.approx(-12.0)
+    z = r.mesh.positions[r.mesh.face_v[wall]][:, :, 2]
+    assert z.min() == pytest.approx(-12.0)                    # nothing below the underside
+    assert r.report["walls_to_lower_surface"]["trapezoids"] == 1
+    assert r.report["bottoms_added"] == 0 and r.report["bottom_exists"] == 1
+
+
+def test_a_floor_below_a_thin_slab_is_not_its_lower_surface(monkeypatch):
+    """Review I1's protection, for the lower surface: a 2 in slab (three 2 in skirts, one edge
+    open) 20 in above a floor. The floor is found straight below it, but the slab's own sides end
+    18 in above it: it is the ground under the slab, not the slab's underside, and the open edge's
+    wall is planned 2 in deep, not 20 (on the plan, guard bypassed: the cap guard then refuses
+    even the 2 in wall, before SR6 as after, because through the slab's open underside it covers
+    the floor outside the slab's footprint)."""
+    from engine.tests.fixtures.build import _mesh, _quads
+    s = 40.0
+    P = [[0, 0, 0], [s, 0, 0], [s, s, 0], [0, s, 0],
+         [0, 0, -2], [s, 0, -2], [s, s, -2], [0, s, -2],
+         [-20, -20, -20], [s + 20, -20, -20], [s + 20, s + 20, -20], [-20, s + 20, -20]]
+    uvs, fv, fvt, fm = [], [], [], []
+    _quads(P, uvs, fv, fvt, fm, [(0, 1, 2, 3),                  # top, +z
+                                 (4, 5, 1, 0),                  # y = 0, -y
+                                 (5, 6, 2, 1),                  # x = s, +x
+                                 (6, 7, 3, 2),                  # y = s, +y
+                                 (8, 9, 10, 11)])               # the floor, +z
+    m = _mesh("thin_slab_over_a_floor", P, uvs, fv, fvt, face_material=fm)
+    r = _planned(m, _FAST, monkeypatch)
+    assert r.report["walls_to_lower_surface"]["walls"] == 0
+    wall = [f for f in _plane_faces(r.mesh, 0, 0.0) if r.new_faces[f]]
+    assert wall
+    z = r.mesh.positions[r.mesh.face_v[wall]][:, :, 2]
+    assert z.min() == pytest.approx(-2.0)

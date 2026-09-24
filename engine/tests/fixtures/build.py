@@ -1104,3 +1104,34 @@ def slab_with_a_lip(size=40.0, deep=12.0, lip=2.0, lip_length=8.0, with_lip=True
         P += [[riser_length, s, 0], [riser_length, s, riser], [0, s, riser]]
         _quads(P, uvs, fv, fvt, fm, [(3, base, base + 1, base + 2)])       # the riser, -y
     return _mesh("slab_with_a_lip", P, uvs, fv, fvt, face_material=fm)
+
+
+def sloped_slab(length=80.0, width=40.0, rise=20.0, thickness=12.0, flat_underside=False,
+                side="missing", strip=(8.0, 12.0)):
+    """SR6 item 1: file B's ramp in miniature. The top slopes up along x, `z = rise * x / length`
+    over `0 <= x <= length, 0 <= y <= width`. The underside is PARALLEL to it, `thickness` below
+    (the ramp's is 39.37 in below its top everywhere), or with `flat_underside` a horizontal plate
+    at `z = -thickness` -- a wedge on flat ground. The x = 0, x = length and y = width sides are
+    complete, from the top down to the underside. The y = 0 side, under the sloped edge, is
+    `side`: "missing" (open), or "low" -- only a strip from `strip[0]` to `strip[1]` in below the
+    edge over its upper half: pieces that do not reach the top (the ramp's lie 28 to 39.4 in down
+    on its 85 in edge).
+
+    Faces: 0-1 the top, 2-3 the underside, 4-5 x = 0, 6-7 x = length, 8-9 y = width (all
+    outward), then 10-11 the strip."""
+    L, W, R, T = length, width, rise, thickness
+    under_rise = 0.0 if flat_underside else R
+    P = [[0, 0, 0], [L, 0, R], [L, W, R], [0, W, 0],                       # 0-3 the top
+         [0, 0, -T], [L, 0, under_rise - T], [L, W, under_rise - T], [0, W, -T]]   # 4-7 under
+    uvs, fv, fvt, fm = [], [], [], []
+    _quads(P, uvs, fv, fvt, fm, [(0, 1, 2, 3),                    # top, +z
+                                 (4, 7, 6, 5),                    # underside, -z
+                                 (7, 4, 0, 3),                    # x = 0, -x
+                                 (5, 6, 2, 1),                    # x = L, +x
+                                 (6, 7, 3, 2)])                   # y = W, +y
+    if side == "low":
+        d0, d1 = strip
+        base = len(P)
+        P += [[L / 2, 0, R / 2 - d1], [L, 0, R - d1], [L, 0, R - d0], [L / 2, 0, R / 2 - d0]]
+        _quads(P, uvs, fv, fvt, fm, [(base, base + 1, base + 2, base + 3)])   # the strip, -y
+    return _mesh("sloped_slab", P, uvs, fv, fvt, face_material=fm)
