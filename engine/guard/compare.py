@@ -308,10 +308,11 @@ def classify_pixels(before_depth: np.ndarray, before_tri: np.ndarray,
                      plane_after: np.ndarray | None = None,
                      ring=None, tie=None, allow_depth_fallback: bool = False,
                      strict: bool = False,
-                     removed_before: np.ndarray | None = None, border=None) -> np.ndarray:
+                     removed_before: np.ndarray | None = None, border=None,
+                     exposed_after: np.ndarray | None = None) -> np.ndarray:
     """Per-pixel verdict code, same shape as the inputs (uint8, one of the `PX_*` constants), in
     this priority order: `PX_FRAGMENT_REMOVED` (BEFORE's first hit is a face `removed_before`
-    marks, see below); `PX_HOLE` (hit before, miss after); `PX_MATERIAL_CHANGED` (both hit,
+    marks and AFTER shows what it may, see below); `PX_HOLE` (hit before, miss after); `PX_MATERIAL_CHANGED` (both hit,
     `material_before[before_tri] != material_after[after_tri]`); `PX_MOVED_SAME_FLAT` /
     `PX_MOVED_OTHER` (both hit, same material, the visible surface moved further than `depth_tol`
     -- `_SAME_FLAT` when that material index is in `flat_materials`, `_OTHER` otherwise); `PX_OK`
@@ -327,12 +328,19 @@ def classify_pixels(before_depth: np.ndarray, before_tri: np.ndarray,
     decided not to mind (measured: 15 of 991 tolerated `moved_same_flat` pixels re-classed as
     flicker, over a 1e-4 cap in a 9,291 px view).
 
-    `removed_before` is a bool mask over `material_before`'s faces, and every pixel whose BEFORE
-    first hit is one of them is `PX_FRAGMENT_REMOVED` before any other test runs -- never a
-    failure, never promotable, and counted on its own. It exists for
-    `engine.detectors.fragments`, the one removal in the engine that deliberately changes the
-    picture: those faces were debris a person could see, so the pixels they occupied MUST differ
-    and every other pixel must not.
+    `removed_before` is a bool mask over `material_before`'s faces. A pixel whose BEFORE first hit
+    is one of them is `PX_FRAGMENT_REMOVED` before any other test runs -- never a failure, never
+    promotable, and counted on its own -- when what AFTER shows there is something the removal
+    MAY uncover: the sky (AFTER missed), or a face met on a side `exposed_after` marks as already
+    exposed on the reference (`(F_after, 2)` bool, column 0 the FRONT, column 1 the BACK; the ray
+    meets the back where `n . direction > 0`, as in `solidify_feedback`). Anything else -- the
+    inside of a closed shell, a side nobody could see before -- is not debris disappearing, it is
+    a hole, and the pixel keeps its own class and is judged like every other. Without
+    `exposed_after` only the sky qualifies. It exists for `engine.detectors.fragments`, the one
+    removal in the engine that deliberately changes the picture: those faces were debris a person
+    could see, so the pixels they occupied MUST differ -- into what was already outside -- and
+    every other pixel must not. It used to excuse every such pixel by name, whatever AFTER showed,
+    and review C2's probe shipped a hole in a slab's top that way with `passed` True.
 
     Stated as a pixel rule rather than by leaving the faces out of the BEFORE geometry, which is
     not the same thing and is wrong. Measured on file A: a sliver hides a face the hidden pass
@@ -435,7 +443,8 @@ def classify_pixels(before_depth: np.ndarray, before_tri: np.ndarray,
                       material_after, flat_materials, depth_tol, origins=origins,
                       direction=direction, plane_before=plane_before, plane_after=plane_after,
                       ring=ring, tie=tie, allow_depth_fallback=allow_depth_fallback,
-                      strict=strict, removed_before=removed_before, border=border)[0]
+                      strict=strict, removed_before=removed_before, border=border,
+                      exposed_after=exposed_after)[0]
 
 
 def _failing_base(codes: np.ndarray, strict: bool) -> np.ndarray:
@@ -456,10 +465,12 @@ def _classify(before_depth: np.ndarray, before_tri: np.ndarray,
                ring=None, tie=None, allow_depth_fallback: bool = False,
                strict: bool = False,
                removed_before: np.ndarray | None = None,
-               border=None) -> tuple[np.ndarray, np.ndarray]:
+               border=None,
+               exposed_after: np.ndarray | None = None) -> tuple[np.ndarray, np.ndarray]:
     """`classify_pixels`, plus the BASE codes -- what every pixel was classed before the ring test
-    rescued any of it -- so `compare_views` can report which class each flicker pixel came from
-    (`edge_flicker_hole` / `_moved` / `_material`) without measuring displacement twice."""
+    rescued any of it, or the fragment excuse excused it -- so `compare_views` can report which
+    class each flicker pixel came from (`edge_flicker_hole` / `_moved` / `_material`) without
+    measuring displacement twice, and put a capped class back to what it was."""
     if not allow_depth_fallback and (origins is None or direction is None
                                       or plane_before is None or plane_after is None):
         raise ValueError(
@@ -500,13 +511,24 @@ def _classify(before_depth: np.ndarray, before_tri: np.ndarray,
     codes[moved & ~is_flat] = PX_MOVED_OTHER
 
     # ...and then, over everything: a pixel whose BEFORE first hit was DELIBERATELY deleted
-    # debris. Stamped last so it wins over every other class, and before `base` is taken so it
-    # is never promotable either.
+    # debris, where AFTER shows only what that deletion may uncover. Stamped last so it wins over
+    # every other class, and AFTER `base` is taken so a capped fragment pixel can fall back to
+    # what it really is -- but it is taken out of `promotable`, so it is never promoted either.
+    base = codes.copy()
     if removed_before is not None:
         gone = np.asarray(removed_before, dtype=bool)
-        codes[hit_before & gone[np.where(hit_before, before_tri, 0)]] = PX_FRAGMENT_REMOVED
+        own = hit_before & gone[np.where(hit_before, before_tri, 0)]
+        may_show = ~hit_after
+        if exposed_after is not None and plane_after is not None and direction is not None:
+            exposed = np.asarray(exposed_after, dtype=bool).reshape(-1, 2)
+            normal = np.asarray(plane_after, dtype=np.float64).reshape(-1, 4)[:, :3]
+            ids = np.where(hit_after, after_tri, 0)
+            facing = normal[ids] @ np.asarray(direction, dtype=np.float64)
+            side = np.where(facing > 0.0, exposed[ids, 1], exposed[ids, 0])
+            # a face with no plane has no side a ray could be said to meet
+            may_show |= hit_after & side & (np.linalg.norm(normal[ids], axis=-1) > 0.0)
+        codes[own & may_show] = PX_FRAGMENT_REMOVED
 
-    base = codes.copy()
     promotable = _failing_base(codes, strict)
     have_planes = plane_before is not None and plane_after is not None
     if not have_planes or not promotable.any():
@@ -647,7 +669,9 @@ def compare_views(before: Sequence[RenderedView], after: Sequence[RenderedView],
                    caster_factory=EmbreeCaster,
                    allow_depth_fallback: bool = False,
                    removed_before: np.ndarray | None = None,
-                   border_shift_tol: float = 0.0) -> GuardReport:
+                   border_shift_tol: float = 0.0,
+                   exposed_after: np.ndarray | None = None,
+                   fragment_removed_cap: float = float("inf")) -> GuardReport:
     """Compare a BEFORE/AFTER pair of `ortho_first_hit` renders, one `(view, HitBuffers)` pair per
     view, paired by position (`before[i]` and `after[i]` must be the same view, and both sequences
     the same length). Each pair must share the whole CAMERA FRAME -- direction, image size and the
@@ -699,10 +723,17 @@ def compare_views(before: Sequence[RenderedView], after: Sequence[RenderedView],
 
     `zfight_tie` is deliberately NOT capped, at any number: an overlap this run neither caused
     nor can fix here is not evidence about this run, however much of the picture it covers.
-    `fragment_removed` is not capped either, and for the same shape of reason: `removed_before`
-    names faces this run deleted ON PURPOSE under their own guard
-    (`engine.guard.compare.fragment_feedback`), so the pixels they occupied changing is the
-    outcome, not evidence against it.
+
+    `removed_before` names faces this run deleted ON PURPOSE as debris, under their own guard
+    (`fragment_feedback`), and `exposed_after` says which sides of the AFTER faces were already
+    outside surfaces on the reference: a pixel of one of those faces is `PX_FRAGMENT_REMOVED`
+    only where AFTER shows the sky or such a side (see `classify_pixels`), and is judged like any
+    other pixel everywhere else. `fragment_removed_cap` caps it PER VIEW exactly as
+    `crack_closed_cap` caps cracks: over `fragment_removed_cap * model_px` that view's fragment
+    pixels fall back to the class they would have had without the excuse, and fail as that. A
+    handful of debris pixels is the debris; a field of them is a change nobody named. The default
+    `inf` never caps; `engine.fixes.pipeline` passes `FixProfile.fragment_removed_cap`. It used
+    to be uncapped, and the excuse unconditional (review C2).
 
     `border_shift_tol` MEASURES what the flicker cap can only count. Above 0.0, every flicker
     pixel rescued from a hole or a move gets the real displacement of the surface under it -- the
@@ -777,12 +808,17 @@ def compare_views(before: Sequence[RenderedView], after: Sequence[RenderedView],
                                  origins=b.origins, direction=b.direction,
                                  plane_before=plane_before, plane_after=plane_after,
                                  ring=ring, tie=tie, allow_depth_fallback=allow_depth_fallback,
-                                 strict=strict, removed_before=removed_before, border=border)
-        # The crack cap is applied BEFORE the counts are taken, because over it a crack pixel is
-        # not a crack at all -- it goes back to being whatever it was, and is reported as that.
+                                 strict=strict, removed_before=removed_before, border=border,
+                                 exposed_after=exposed_after)
+        # The crack and fragment caps are applied BEFORE the counts are taken, because over one
+        # a pixel is not a crack or debris at all -- it goes back to being whatever it was, and is
+        # reported as that.
         crack = codes == PX_CRACK_CLOSED
         if crack.any() and int(crack.sum()) > crack_closed_cap * int((b.tri >= 0).sum()):
             codes = np.where(crack, base, codes)
+        fragment = codes == PX_FRAGMENT_REMOVED
+        if fragment.any() and int(fragment.sum()) > fragment_removed_cap * int((b.tri >= 0).sum()):
+            codes = np.where(fragment, base, codes)
         flicker = codes == PX_EDGE_FLICKER
         counts = {
             "model_px": int((b.tri >= 0).sum()),
@@ -937,7 +973,9 @@ def fragment_feedback(candidates: np.ndarray, positions_c: np.ndarray, faces: np
                        views: Sequence[Sequence[float]] = VIEWS_26,
                        size: tuple[int, int] = (900, 600), caster_factory=EmbreeCaster,
                        max_rounds: int = 8,
-                       crack_closed_cap: float = float("inf")) -> tuple[np.ndarray, list[dict]]:
+                       crack_closed_cap: float = float("inf"),
+                       side_exposure: np.ndarray | None = None,
+                       fragment_removed_cap: float = float("inf")) -> tuple[np.ndarray, list[dict]]:
     """FRAGMENT MODE: which `candidates` (bool over `faces`) may be deleted, when deleting them
     is MEANT to change the picture.
 
@@ -948,10 +986,22 @@ def fragment_feedback(candidates: np.ndarray, positions_c: np.ndarray, faces: np
     narrower and sharper: DID ANYTHING ELSE CHANGE?
 
     A pixel is permitted when its BEFORE first hit is one of the candidates currently marked for
-    removal -- that is the fragment disappearing, which is what was asked for. Every other pixel
-    is judged by exactly the same rule the strict removal guard uses (`_fail_mask(strict=True)`,
-    with the ring, tie and crack probes cast, so the three tolerated classes mean the same thing
-    they mean everywhere else).
+    removal AND what AFTER shows there is something that was already outside: the sky, or a face
+    met on a side `side_exposure` (`(F, 2)` bool over `faces`: FRONT, BACK exposed on the
+    reference) marks as exposed -- that is the fragment disappearing, which is what was asked
+    for. Where AFTER shows a side nobody could see before -- the inside of a closed shell -- the
+    candidate was part of that shell's skin, and the pixel is judged like every other one:
+    exactly the rule the strict removal guard uses (`_fail_mask(strict=True)`, with the ring, tie
+    and crack probes cast, so the three tolerated classes mean the same thing they mean
+    everywhere else). Without `side_exposure` only the sky is permitted. It used to permit every
+    pixel of a candidate whatever AFTER showed, and let review C2's probe take a patch of a slab's
+    top that only T-junctions joined to the rest (`classify_pixels` has the rule; this is its
+    `removed_before` / `exposed_after`).
+
+    `fragment_removed_cap` caps the permitted pixels PER VIEW exactly as the final guard caps them
+    (`compare_views`): over the cap that view's permitted pixels are judged as what they are,
+    and every candidate in front of them goes back -- so this guard never confirms a removal the
+    final guard would then refuse.
 
     BEFORE IS THE WHOLE MESH, including `already_removed` -- the faces earlier passes took out,
     which are dropped from AFTER only. It has to be: this guard's verdict is checked later by the
@@ -988,6 +1038,8 @@ def fragment_feedback(candidates: np.ndarray, positions_c: np.ndarray, faces: np
     faces = np.asarray(faces, dtype=np.int64)
     gone = (np.zeros(len(faces), dtype=bool) if already_removed is None
             else np.asarray(already_removed, dtype=bool))
+    exposure = (None if side_exposure is None
+                else np.asarray(side_exposure, dtype=bool).reshape(len(faces), 2))
     face_ids = np.arange(len(faces), dtype=np.int64)
 
     before_caster = ReusableCaster(caster_factory)
@@ -1014,12 +1066,18 @@ def fragment_feedback(candidates: np.ndarray, positions_c: np.ndarray, faces: np
         for view, b in before:
             a = ortho_first_hit(positions_c, keep_faces, keep_local, view, positions_c, size,
                                  after_caster)
+            # ...and THIS is the whole difference: a pixel showing a fragment on its way out, where
+            # AFTER shows only what was already outside, is not damage, it is the point. It is
+            # `PX_FRAGMENT_REMOVED`, which never fails; every other pixel of a candidate fails as
+            # what it is.
             codes, base = _classify(b.depth, b.tri, a.depth, a.tri,
                                      face_material, keep_material, flat_materials, depth_tol,
                                      origins=b.origins, direction=b.direction,
                                      plane_before=planes, plane_after=keep_planes,
                                      ring=_ring_probe(b, caster_b, caster_a, depth_tol),
-                                     tie=_tie_probe(b, caster_b, caster_a), strict=True)
+                                     tie=_tie_probe(b, caster_b, caster_a), strict=True,
+                                     removed_before=removed,
+                                     exposed_after=None if exposure is None else exposure[keep])
             # Same rule as `guard_feedback`: a crack promotion is only available when AFTER still
             # HAS the surface, which it does not where this run deleted BEFORE's first hit.
             crack = codes == PX_CRACK_CLOSED
@@ -1028,12 +1086,12 @@ def fragment_feedback(candidates: np.ndarray, positions_c: np.ndarray, faces: np
                 own_crack = crack & (b.tri >= 0) & dropped[np.where(b.tri >= 0, b.tri, 0)]
                 over_cap = int(crack.sum()) > crack_closed_cap * int((b.tri >= 0).sum())
                 codes = np.where(own_crack | (crack if over_cap else False), base, codes)
+            # the same per-view cap the final guard applies, so nothing confirmed here fails there
+            fragment = codes == PX_FRAGMENT_REMOVED
+            if int(fragment.sum()) > fragment_removed_cap * int((b.tri >= 0).sum()):
+                codes = np.where(fragment, base, codes)
 
             fail = _fail_mask(codes, strict=True)
-            # ...and THIS is the whole difference: a pixel showing a fragment that is on its way
-            # out is not damage, it is the point.
-            mine = (b.tri >= 0) & removed[np.where(b.tri >= 0, b.tri, 0)]
-            fail = fail & ~mine
             if not fail.any():
                 continue
 

@@ -152,6 +152,8 @@ def _profile_dict(p: FixProfile) -> dict:
             "accept_fragments": p.accept_fragments,
             "fragment_max_area": p.fragment_max_area,
             "fragment_max_extent": p.fragment_max_extent, "sliver_q": p.sliver_q,
+            "sliver_max_width": p.sliver_max_width,
+            "fragment_removed_cap": p.fragment_removed_cap,
             "qa_size": list(p.qa_size)}
 
 
@@ -190,6 +192,7 @@ def _build_report(name: str, obj_path: Path, mesh: MeshData, result: FixResult,
         # component counts and the smallest components the size rules did NOT catch -- the
         # evidence for where the thresholds sit against this model. See `engine.detectors`.
         "fragment_report": result.fragment_report,
+        "fragment_removals": result.fragment_removals,
         "n_overlap_pairs_same": result.n_overlap_pairs_same,
         "n_overlap_pairs_diff": result.n_overlap_pairs_diff,
         "n_removed_overlap": result.n_removed_overlap,
