@@ -35,6 +35,7 @@ class BatchResult:
     passed: bool
     started: str
     finished: str
+    error: str = ""
 
 
 def discover_items(snapshot_root: Path, building: str) -> list[BatchItem]:
@@ -88,13 +89,17 @@ def run_batch(items: list[BatchItem], out_root, jobs: int = 1, profile_path=None
 
     def one(item: BatchItem) -> None:
         started = _now()
-        code = runner(item.snapshot_dir, out_root, profile_path)
-        out_dir = out_root / object_name(item.snapshot_dir)
-        report = out_dir / "report.json"
-        passed = False
-        if report.exists():
-            passed = bool(json.loads(report.read_text(encoding="utf-8")).get("passed"))
-        res = BatchResult(item.canonical, code, str(out_dir), passed, started, _now())
+        try:
+            code = runner(item.snapshot_dir, out_root, profile_path)
+            out_dir = out_root / object_name(item.snapshot_dir)
+            report = out_dir / "report.json"
+            passed = False
+            if report.exists():
+                passed = bool(json.loads(report.read_text(encoding="utf-8")).get("passed"))
+            res = BatchResult(item.canonical, code, str(out_dir), passed, started, _now())
+        except Exception as exc:
+            res = BatchResult(item.canonical, -1, str(out_root / item.snapshot_dir.name), False,
+                              started, _now(), error=f"{type(exc).__name__}: {exc}")
         with lock:
             state[item.canonical] = asdict(res)
             save()

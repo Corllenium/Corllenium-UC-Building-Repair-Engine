@@ -83,3 +83,48 @@ def test_run_batch_drives_the_real_cli_in_a_subprocess(tmp_path):
     assert results[0].out_dir == str(out_root / m.name)
     assert (out_root / m.name / f"{m.name}.fixed.obj").exists()
     assert (out_root / m.name / "report.json").exists()
+
+
+def test_run_batch_records_a_runner_exception_as_a_failed_result_and_continues(tmp_path):
+    items = [BatchItem("A", _fake_snapshot(tmp_path / "snap", "a_obj")),
+             BatchItem("B", _fake_snapshot(tmp_path / "snap", "b_obj"))]
+    out_root = tmp_path / "out"
+
+    def runner(snapshot_dir, out_root_, profile_path):
+        if snapshot_dir.name == "a_obj":
+            raise FileNotFoundError("python.exe vanished")
+        d = out_root_ / snapshot_dir.name
+        d.mkdir(parents=True, exist_ok=True)
+        (d / "report.json").write_text(json.dumps({"passed": True}), encoding="utf-8")
+        return 0
+
+    results = run_batch(items, out_root, jobs=2, runner=runner)
+    by = {r.canonical: r for r in results}
+    assert by["A"].exit_code == -1 and by["A"].passed is False
+    assert by["A"].error.startswith("FileNotFoundError: python.exe vanished")
+    assert by["B"].exit_code == 0 and by["B"].passed is True and by["B"].error == ""
+    state = json.loads((out_root / "batch_state.json").read_text(encoding="utf-8"))
+    assert state["objects"]["A"]["exit_code"] == -1 and "vanished" in state["objects"]["A"]["error"]
+    # a failed item is re-run on resume, a passed one is not
+    calls = []
+
+    def counting_runner(snapshot_dir, out_root_, profile_path):
+        calls.append(snapshot_dir.name)
+        return runner(snapshot_dir, out_root_, profile_path)
+
+    run_batch(items, out_root, jobs=1, runner=counting_runner)
+    assert calls == ["a_obj"]
+
+
+def test_run_batch_records_a_malformed_report_as_a_failed_result(tmp_path):
+    items = [BatchItem("A", _fake_snapshot(tmp_path / "snap", "a_obj"))]
+    out_root = tmp_path / "out"
+
+    def runner(snapshot_dir, out_root_, profile_path):
+        d = out_root_ / snapshot_dir.name
+        d.mkdir(parents=True, exist_ok=True)
+        (d / "report.json").write_text("{not json", encoding="utf-8")
+        return 0
+
+    (res,) = run_batch(items, out_root, jobs=1, runner=runner)
+    assert res.exit_code == -1 and res.passed is False and "JSONDecodeError" in res.error
