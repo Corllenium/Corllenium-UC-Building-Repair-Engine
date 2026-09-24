@@ -23,34 +23,27 @@ side mesh, rebuild broken or missing sides; only the model's outline edges may b
 run the latest `.skp` of each file must be in `OBJ FIXED RESULT/` for the owner to check in SketchUp
 2026. Work visually: every round ends with renders that are looked at, not only numbers.
 
-## 2. Current state (2026-09-24 23:40, written by the Claude controller)
+## 2. Current state (2026-09-25 06:25, written by the Claude controller)
 
-Branch `feat-dashboard`, HEAD `da53fd2`. Engine suite **431 passed** (verified 23:33).
-`docker-compose.yml` shows as modified: it belongs to another session, never touch it.
+Branch `feat-dashboard`, HEAD `64023ad` (+ record commits). Engine suite **462 passed** (verified
+06:20). `docker-compose.yml` shows as modified: it belongs to another session, never touch it.
 
-While Claude was at its limit (about 20:30 to 23:30), **Hermes finished brief 07** (the review
-fixes: fragments connect through T-junctions and their own pixels are judged, a failed run writes
-`.FAILED.skp` instead of replacing the owner's file, growth over background is measured like a loss,
-the bbox invariant uses the vertices faces use) and merged it (19f97cc). Verified by the controller:
-431 passed, and the review's C2 and I2 probes now show the defects gone. Hermes's report: on file B
-four real 30-40 in wall strips had been removed as slivers before the fix and are now kept; on file A
-15 pieces removed (1 fragment, 14 slivers under 0.048 in wide), none real surface. Hermes regenerated
-the owner's `.skp` files at 22:07-22:09 (engine at 19f97cc, without the side rebuild).
+Latest outputs (05:46-05:51, code at d570927; the owner's `.skp` files were rewritten, both passed):
+file A 4,692 -> 1,033 triangles, file B 7,227 -> 596. Brief 08 re-judged the 21 pieces the fragment
+pass had removed: 10 were real surface (hairline cracks shipped until 670ad50), all kept now; still
+removed: A 3540 and A 4659 (sub-pixel slots onto the inside, fixed by brief 09), A 3908 (harmless),
+B 5634 (interior). The side rebuild is NOT yet merged, so the sawtooth ramp is still broken in the
+owner's files.
 
 Jobs:
 
-1. **SR — side rebuild** (brief `briefs/02-SR-side-rebuild.md`), worktree
-   `.claude/worktrees/side-rebuild`, branch `feat/side-rebuild`, Claude subagent resumed 23:36.
-   Committed: ff4a0ec SR0, 65e566c SR2, f57cb17, 9562aa3 SR4 (= review C1), 6233671 SR5 (= review
-   I1), 0f24da4 M1. Left: two docstrings, SR3, the real runs, the report, and whether file A's merge
-   still rolls back with the side rebuild.
-2. **Brief 08** (review 2a fixes), main checkout, Claude subagent since 00:20. Review 2a found that
-   a thin strip bordered by real faces on both long sides is still removed as a sliver (a slit at
-   real-file scale, unseen by the guard): the owner's current `.skp` files may contain such a
-   hairline crack (file B faces 5750/5751, unverified).
-3. Next: `briefs/03-reconcile-and-verify.md` (merge feat/side-rebuild; conflicts expected in
-   compare.py, pipeline.py, cli.py, build.py because brief 07 changed them on feat-dashboard), then
-   review part 2 (the side rebuild AND Hermes's brief-07 commits).
+1. **SR6 — side rebuild, ramp** (brief `briefs/02-SR-side-rebuild.md`, section SR6), worktree
+   `.claude/worktrees/side-rebuild`, Claude subagent, resumed 05:43 after an overnight stream stall.
+   SR0-SR5, M1 and the report committed (6d27aaa); SR6 items 1-2 were uncommitted at 05:42.
+2. **Brief 09** (sliver ray confirmation, folds), main checkout, Claude subagent since 06:25.
+3. Next: `briefs/03-reconcile-and-verify.md` once both are done (conflicts expected in build.py and
+   test_cli.py; compare.py/pipeline.py/cli.py hunks mostly in different functions), then review part 2
+   (the side rebuild and Hermes's brief-07 commits, already reviewed as 2a).
 
 **If you take over one of these** (for example because Claude hit its usage limit): follow the
 lapse rule at the top of `WORK-CLAIMS.md`, take the claim over in writing, run `git status` and
