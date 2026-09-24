@@ -1091,6 +1091,24 @@ def test_a_wall_under_a_sloped_edge_goes_down_to_a_flat_underside_at_each_end():
     assert r.report["bottoms_added"] == 0 and r.report["bottom_exists"] == 1
 
 
+def test_a_block_face_inside_the_slab_does_not_tilt_its_lower_surface():
+    """41 of the 196 rays file B's ramp sends down to find its lower surface meet a block face
+    inside it first, some of them only 0.4 to 0.6 in above the underside. A plane fitted to every
+    point met, dropping the far ones and fitting again, came out tilted: the ramp's walls were
+    planned 34.8 to 37.2 in deep against its 39.37 in, their covers were refused as below the
+    slab, and its whole side was judged broken. The lower surface is the one surface most of the
+    rays meet (the ramp's underside takes 154 of the 196), fitted to the points met on it alone.
+
+    Here 45 % of the slab's top has a plate 2 in above the underside: the wall still reaches the
+    underside, 12 in down, at both ends."""
+    from engine.tests.fixtures.build import sloped_slab
+    r = _solidified(sloped_slab(inner_plate=(0.0, 36.0, 2.0)))
+    wall = _new_faces_on_y0(r)
+    assert wall
+    assert _lowest_z_at(r, wall, 0.0) == pytest.approx(-12.0)
+    assert _lowest_z_at(r, wall, 80.0) == pytest.approx(20.0 - 12.0)
+
+
 def test_a_floor_below_a_thin_slab_is_not_its_lower_surface(monkeypatch):
     """Review I1's protection, for the lower surface: a 2 in slab (three 2 in skirts, one edge
     open) 20 in above a floor. The floor is found straight below it, but the slab's own sides end

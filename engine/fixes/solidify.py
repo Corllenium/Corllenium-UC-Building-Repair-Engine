@@ -1131,13 +1131,15 @@ def _lower_surface(topo: Topology, members: np.ndarray, caster, ok_ids: np.ndarr
 
     Rays go straight down from just below four points of every face of the region (its centroid,
     and halfway from it to each corner). The region has a lower surface when at least `fraction`
-    of them meet something within `reach`. The plane is fitted to the points they met on
-    floor-like faces (`|n_z| > top_min_nz`), dropping every point lying more than `band` off the
-    fit and fitting again, so an odd face met first does not tilt it (7 of the 49 centroid rays of
-    file B's ramp meet a block face inside it first, the tenth percentile of their depths 35.62
-    in against the underside's 39.37); at least half of all the rays must lie on the fitted
-    surface. Without three points to fit, the surface is taken parallel to the top at the median
-    depth.
+    of them meet something within `reach`, and it is the ONE face region most of them meet, on a
+    floor-like face (`|n_z| > top_min_nz`) -- if that region takes at least half of them. Its
+    plane is fitted to the points met on it alone (a region is planar), or, without three points
+    that span a plane, taken parallel to the top at their median depth.
+
+    Why one region, not every point met: 41 of the 196 rays of file B's ramp meet a block face
+    inside it first, some only 0.4 to 0.6 in above the underside. A plane fitted to all of them,
+    dropping the far ones and fitting again, came out tilted -- the ramp's walls were planned
+    34.8 to 37.2 in deep against its 39.37 in. Its underside, region 314, takes 154 of the 196.
 
     It must be THIS slab's: no deeper than the slab's deepest own side reaches, plus `band`. A
     floor 20 in below a 2 in slab is the ground under it, not its underside, and walls that
@@ -1152,31 +1154,25 @@ def _lower_surface(topo: Topology, members: np.ndarray, caster, ok_ids: np.ndarr
         return None
     face = ok_ids[hit_tri[hit]]
     floorlike = np.abs(normals[face][:, 2]) > top_min_nz
-    points = origins[hit][floorlike].copy()
-    points[:, 2] -= t[hit][floorlike]
-    depths = t[hit][floorlike] + EPS_IN
-    keep = np.ones(len(points), bool)
-    coef = None
-    for _ in range(4):
-        if keep.sum() < 3:
-            coef = None
-            break
-        A = np.column_stack([points[keep, 0], points[keep, 1], np.ones(int(keep.sum()))])
-        if np.linalg.matrix_rank(A) < 3:
-            coef = None
-            break
-        coef = np.linalg.lstsq(A, points[keep, 2], rcond=None)[0]
-        again = np.abs(points[:, 2] - (points[:, :2] @ coef[:2] + coef[2])) <= band
-        if (again == keep).all():
-            break
-        keep = again
-    if keep.sum() < 0.5 * int(hit.sum()) or not keep.any():
+    region = topo.face_region[face]
+    candidates = region[floorlike & (region >= 0)]
+    if not len(candidates):
         return None
-    depth = float(np.median(depths[keep]))
+    ids, counts = np.unique(candidates, return_counts=True)
+    dominant = int(ids[int(np.argmax(counts))])            # ties: the lowest id, deterministic
+    on = floorlike & (region == dominant)
+    if on.sum() < 0.5 * int(hit.sum()):
+        return None
+    points = origins[hit][on].copy()
+    points[:, 2] -= t[hit][on]
+    depth = float(np.median(t[hit][on]) + EPS_IN)
     if depth > deepest_own + band:
         return None
-    if coef is None:
-        # the top plane, `band`-free: z = z0 - (nx (x - x0) + ny (y - y0)) / nz, lowered by depth
+    A = np.column_stack([points[:, 0], points[:, 1], np.ones(len(points))])
+    if len(points) >= 3 and np.linalg.matrix_rank(A) == 3:
+        coef = np.linalg.lstsq(A, points[:, 2], rcond=None)[0]
+    else:
+        # the top plane, z = z0 - (nx (x - x0) + ny (y - y0)) / nz, lowered by the depth
         n, o = top_normal, top_origin
         coef = np.array([-n[0] / n[2], -n[1] / n[2],
                          o[2] + (n[0] * o[0] + n[1] * o[1]) / n[2] - depth])

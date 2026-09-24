@@ -1107,7 +1107,7 @@ def slab_with_a_lip(size=40.0, deep=12.0, lip=2.0, lip_length=8.0, with_lip=True
 
 
 def sloped_slab(length=80.0, width=40.0, rise=20.0, thickness=12.0, flat_underside=False,
-                side="missing", strip=(8.0, 12.0)):
+                side="missing", strip=(8.0, 12.0), inner_plate=None):
     """SR6 item 1: file B's ramp in miniature. The top slopes up along x, `z = rise * x / length`
     over `0 <= x <= length, 0 <= y <= width`. The underside is PARALLEL to it, `thickness` below
     (the ramp's is 39.37 in below its top everywhere), or with `flat_underside` a horizontal plate
@@ -1117,8 +1117,13 @@ def sloped_slab(length=80.0, width=40.0, rise=20.0, thickness=12.0, flat_undersi
     edge over its upper half: pieces that do not reach the top (the ramp's lie 28 to 39.4 in down
     on its 85 in edge).
 
+    `inner_plate=(x0, x1, h)` adds a plate INSIDE the slab, parallel to its underside and `h` in
+    above it over `x0 <= x <= x1` -- the kind of block face file B's ramp has inside it, a few
+    tenths of an inch to a few inches above its underside, which the rays looking for the lower
+    surface meet first.
+
     Faces: 0-1 the top, 2-3 the underside, 4-5 x = 0, 6-7 x = length, 8-9 y = width (all
-    outward), then 10-11 the strip."""
+    outward), then 10-11 the strip, then the inner plate."""
     L, W, R, T = length, width, rise, thickness
     under_rise = 0.0 if flat_underside else R
     P = [[0, 0, 0], [L, 0, R], [L, W, R], [0, W, 0],                       # 0-3 the top
@@ -1134,4 +1139,13 @@ def sloped_slab(length=80.0, width=40.0, rise=20.0, thickness=12.0, flat_undersi
         base = len(P)
         P += [[L / 2, 0, R / 2 - d1], [L, 0, R - d1], [L, 0, R - d0], [L / 2, 0, R / 2 - d0]]
         _quads(P, uvs, fv, fvt, fm, [(base, base + 1, base + 2, base + 3)])   # the strip, -y
+    if inner_plate is not None:
+        x0, x1, h = inner_plate
+
+        def z_under(x):
+            return (under_rise * x / L) - T + h
+
+        base = len(P)
+        P += [[x0, 0, z_under(x0)], [x1, 0, z_under(x1)], [x1, W, z_under(x1)], [x0, W, z_under(x0)]]
+        _quads(P, uvs, fv, fvt, fm, [(base, base + 1, base + 2, base + 3)])   # inner plate
     return _mesh("sloped_slab", P, uvs, fv, fvt, face_material=fm)
