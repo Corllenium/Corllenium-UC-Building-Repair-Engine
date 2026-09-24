@@ -345,13 +345,19 @@ def default_skp_dir() -> Path:
 def _write_skp(result: FixResult, name: str, out_dir: Path, flat_materials: frozenset,
                profile: FixProfile, enabled: bool, copy_dir: Path | None) -> dict:
     """Write `<out_dir>/<name>.fixed.skp` from the SHIPPED mesh and copy it into `copy_dir`
-    (created if needed; the copy replaces the previous run's), returning report.json's `skp`
-    block: `engine.io.skp_writer.write_skp`'s own report plus `written`, `copied_to` and
-    `sketchup_check_changed` (whether SketchUp's own validity fix would change the file; False
-    is the expected answer). A missing SketchUp, any SketchUp API failure, or any other exception
-    (a ctypes access violation surfaces as `OSError`) does not fail the run: the block says
-    `written: false` and why -- with the exception's type as `error` when it is not a
-    `SketchUpError` -- and no stale `.skp` is left in the run dir."""
+    (created if needed), returning report.json's `skp` block: `engine.io.skp_writer.write_skp`'s
+    own report plus `written`, `copied_to` and `sketchup_check_changed` (whether SketchUp's own
+    validity fix would change the file; False is the expected answer). A missing SketchUp, any
+    SketchUp API failure, or any other exception (a ctypes access violation surfaces as
+    `OSError`) does not fail the run: the block says `written: false` and why -- with the
+    exception's type as `error` when it is not a `SketchUpError` -- and no stale `.skp` is left
+    in the run dir.
+
+    WHICH COPY. Only a PASSING run's copy replaces `<copy_dir>/<name>.fixed.skp`, the file the
+    owner opens, and it also deletes a `<name>.fixed.FAILED.skp` an earlier failed run left
+    beside it (`removed_stale_failed_copy`). A FAILED run is copied to
+    `<name>.fixed.FAILED.skp` instead and leaves the owner's file as it was: `previous_kept`
+    names that file, or is `None` when there was none to keep."""
     if not enabled:
         return {"written": False, "reason": "disabled by --no-skp"}
     path = out_dir / f"{name}.fixed.skp"
@@ -373,14 +379,24 @@ def _write_skp(result: FixResult, name: str, out_dir: Path, flat_materials: froz
     out = {"written": True, **written, "sketchup_check_changed": check["changed"],
            "copied_to": None}
     if copy_dir is not None:
-        dest_name = f"{name}.fixed.skp" if result.passed else f"{name}.fixed.FAILED.skp"
-        dest_path = copy_dir / dest_name
+        owner_copy = copy_dir / f"{name}.fixed.skp"
+        failed_copy = copy_dir / f"{name}.fixed.FAILED.skp"
+        dest_path = owner_copy if result.passed else failed_copy
+        if not result.passed:
+            out["previous_kept"] = str(owner_copy) if owner_copy.exists() else None
         try:
             copy_dir.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(path, dest_path)
             out["copied_to"] = str(dest_path)
         except OSError as exc:       # e.g. the owner still has the previous file open
             out["copy_error"] = str(exc)
+        # a passing copy supersedes any FAILED one an earlier run left beside it
+        if result.passed and out["copied_to"] and failed_copy.exists():
+            try:
+                failed_copy.unlink()
+                out["removed_stale_failed_copy"] = str(failed_copy)
+            except OSError as exc:
+                out["stale_failed_copy_error"] = str(exc)
     return out
 
 
@@ -461,9 +477,17 @@ def cmd_fix(snapshot_dir: Path, out_root: Path, accept_slit: bool,
     if skp_report["written"]:
         hidden = sum(skp_report[k] for k in ("soft_edges", "gridline_edges_softened",
                                              "coplanar_edges_softened", "tjunction_lines_softened"))
+        # a failed run's copy is the FAILED one, and the owner's file is still the previous
+        # run's: say so on the line the owner reads, not only in report.json
+        kept = ""
+        if "previous_kept" in skp_report:
+            kept = (f"; the run FAILED, so {skp_report['previous_kept']} was kept"
+                    if skp_report["previous_kept"] else
+                    f"; the run FAILED, and there is no previous {name}.fixed.skp")
         print(f"  wrote {skp_report['path']}: {skp_report['faces']} faces, {hidden} edges hidden, "
               f"{skp_report['visible_lines_inside_surfaces']} lines left inside surfaces, "
-              f"copied to {skp_report['copied_to'] or skp_report.get('copy_error', 'nowhere')}")
+              f"copied to {skp_report['copied_to'] or skp_report.get('copy_error', 'nowhere')}"
+              f"{kept}")
     else:
         print(f"  no .skp written: {skp_report['reason']}")
     return 0 if result.passed else 2

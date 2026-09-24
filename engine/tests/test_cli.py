@@ -961,3 +961,71 @@ def test_a_qa_step_exception_is_recorded_and_leaves_nothing_stale(tmp_path, monk
                             "reason": "embree device lost", "images": 0}
     assert list((out_dir / "qa").iterdir()) == []
     assert "QA sheet NOT written" in capsys.readouterr().out
+
+
+# ---------------------------------------------------------------------------------------------
+# Review 2a Minor 8 (I2's gaps): a failed run writes `<name>.fixed.FAILED.skp` and keeps the
+# owner's previous `<name>.fixed.skp`; the next PASSING run must not leave that FAILED copy beside
+# the good one, and a failed run has to say, where the owner reads it, that the file in the folder
+# is still the previous run's.
+# ---------------------------------------------------------------------------------------------
+
+def _guard_drops_a_visible_face(monkeypatch):
+    def bad_guard_feedback(candidates, positions_c, faces, face_material, flat_materials,
+                           depth_tol, strict, **kw):
+        removed = candidates.copy()
+        removed[0] = True
+        return removed, [{"round": 0, "candidates_remaining": int(removed.sum()),
+                          "failing_pixels": 0, "restored": 0}]
+
+    monkeypatch.setattr(fix_pipeline, "guard_feedback", bad_guard_feedback)
+
+
+def test_a_passing_run_removes_a_stale_failed_skp(tmp_path):
+    _sketchup_or_skip()
+    m = box_with_partition()
+    snap_dir = _write_snapshot(tmp_path, m)
+    skp_dir = tmp_path / "OBJ FIXED RESULT"
+    skp_dir.mkdir()
+    stale = skp_dir / f"{m.name}.fixed.FAILED.skp"
+    stale.write_bytes(b"an earlier failed run")
+
+    assert cli.cmd_fix(snap_dir, tmp_path / "out", accept_slit=False, profile=_FAST,
+                       skp_dir=skp_dir) == 0
+    assert not stale.exists()
+    assert (skp_dir / f"{m.name}.fixed.skp").exists()
+    skp = _skp_report(tmp_path / "out", m.name)
+    assert skp["removed_stale_failed_copy"] == str(stale)
+
+
+def test_a_failed_run_says_the_previous_skp_was_kept(tmp_path, monkeypatch, capsys):
+    _sketchup_or_skip()
+    m = box_with_partition()
+    snap_dir = _write_snapshot(tmp_path, m)
+    skp_dir = tmp_path / "OBJ FIXED RESULT"
+    skp_dir.mkdir()
+    previous = skp_dir / f"{m.name}.fixed.skp"
+    previous.write_bytes(b"the last PASSING run file")
+    _guard_drops_a_visible_face(monkeypatch)
+
+    assert cli.cmd_fix(snap_dir, tmp_path / "out", accept_slit=False, profile=_FAST,
+                       skp_dir=skp_dir) == 2
+    [line] = [ln for ln in capsys.readouterr().out.splitlines() if ".fixed.skp:" in ln]
+    assert f"copied to {skp_dir / (m.name + '.fixed.FAILED.skp')}" in line
+    assert f"the run FAILED, so {previous} was kept" in line
+    assert previous.read_bytes() == b"the last PASSING run file"
+    assert _skp_report(tmp_path / "out", m.name)["previous_kept"] == str(previous)
+
+
+def test_a_failed_first_run_says_there_was_no_previous_skp(tmp_path, monkeypatch, capsys):
+    _sketchup_or_skip()
+    m = box_with_partition()
+    snap_dir = _write_snapshot(tmp_path, m)
+    skp_dir = tmp_path / "OBJ FIXED RESULT"
+    _guard_drops_a_visible_face(monkeypatch)
+
+    assert cli.cmd_fix(snap_dir, tmp_path / "out", accept_slit=False, profile=_FAST,
+                       skp_dir=skp_dir) == 2
+    [line] = [ln for ln in capsys.readouterr().out.splitlines() if ".fixed.skp:" in ln]
+    assert f"the run FAILED, and there is no previous {m.name}.fixed.skp" in line
+    assert _skp_report(tmp_path / "out", m.name)["previous_kept"] is None
