@@ -618,10 +618,17 @@ def fix_object(mesh: MeshData, flatness: dict[str, float], profile: FixProfile =
     # bounding box (downwards, by a skirt) and the area (by the faces it invents), and it is the
     # mesh every guard in this run compares against. The cap guard is what bounds what solidify
     # may do; `guard_solidify` carries its verdict.
+    ref_used = np.unique(mesh.face_v) if len(mesh.face_v) else []
+    final_used = np.unique(final_mesh.face_v) if len(final_mesh.face_v) else []
+    ref_bbox = ((mesh.positions[ref_used].min(axis=0), mesh.positions[ref_used].max(axis=0))
+                if len(ref_used) else (np.zeros(3), np.zeros(3)))
+    final_bbox = ((final_mesh.positions[final_used].min(axis=0), final_mesh.positions[final_used].max(axis=0))
+                  if len(final_used) else (np.zeros(3), np.zeros(3)))
+
     invariants = {
         "material_count_same": len(final_mesh.materials) == len(mesh.materials),
-        "bbox_same": bool(np.array_equal(final_mesh.positions.min(axis=0), mesh.positions.min(axis=0))
-                          and np.array_equal(final_mesh.positions.max(axis=0), mesh.positions.max(axis=0))),
+        "bbox_same": bool(np.array_equal(final_bbox[0], ref_bbox[0])
+                          and np.array_equal(final_bbox[1], ref_bbox[1])),
         "area_not_grown": bool(_total_area(final_mesh.positions, final_mesh.face_v)
                                <= _total_area(mesh.positions, mesh.face_v) * (1.0 + _AREA_REL_TOL)),
         # The CAP GUARD's own verdict, re-verified against the mesh solidify handed back (see

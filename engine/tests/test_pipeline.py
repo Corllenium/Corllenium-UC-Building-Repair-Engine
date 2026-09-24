@@ -693,3 +693,33 @@ def test_threading_the_t_junctions_of_a_slab_changes_nothing_the_guard_can_see()
     assert r.mesh.n_faces == 10
     assert r.guard_final.passed and r.passed
     assert r.guard_final.totals["holes"] == 0 and r.guard_final.totals["moved_same_flat"] == 0
+
+
+def test_bbox_invariant_compares_used_vertices(monkeypatch):
+    """Review M2: the bbox invariant must compare the vertices faces use, not the untouched
+    positions array. A shipped mesh reduced to one face must fail bbox_same."""
+    from dataclasses import replace
+    m = box_with_partition()
+
+    import engine.fixes.pipeline as fix_pipeline
+    orig_merge = fix_pipeline.merge_regions
+
+    def fake_merge(mesh, topo, flat_materials):
+        res = orig_merge(mesh, topo, flat_materials)
+        # reduce the returned mesh to just one face
+        one_face_mesh = replace(res.mesh, face_v=res.mesh.face_v[:1],
+                                face_material=res.mesh.face_material[:1],
+                                face_vt=res.mesh.face_vt[:1])
+        return replace(res, mesh=one_face_mesh, source_faces=[res.source_faces[0]])
+
+    monkeypatch.setattr(fix_pipeline, "merge_regions", fake_merge)
+    from engine.guard.compare import GuardReport
+    dummy_guard = GuardReport(views=[], passed=True,
+                              totals={"holes": 0, "moved_same_flat": 0, "moved_other": 0,
+                                      "material_changed": 0, "edge_flicker": 0,
+                                      "crack_closed": 0, "border_shift": 0,
+                                      "zfight_tie": 0, "fragment_removed": 0})
+    monkeypatch.setattr(fix_pipeline, "compare_views", lambda *a, **kw: dummy_guard)
+    r = fix_object(m, {}, _fast(solidify=False))
+    assert r.invariants["bbox_same"] is False
+    assert r.passed is False
