@@ -1163,3 +1163,29 @@ def slab_with_stub_on_t_junctions(size=2000.0, height=8.0, foot=2.0, rise=0.6):
                                  (0, 4, 5, 1), (1, 5, 6, 2), (2, 6, 7, 3), (3, 7, 4, 0), (4, 7, 6, 5),
                                  (8, 9, 10, 11)])
     return _mesh("slab_with_stub_on_t_junctions", P, uvs, fv, fvt, face_material=fm)
+
+
+def plate_with_offset_corner(jitter=0.1, closed=False):
+    """Review 2a experiment E4 as a fixture: a flat 40 x 40 in plate at `z = 0`, five triangles
+    fanned from its centre, whose east edge has a vertex at `(40 + jitter, 20)` -- the plate's
+    UNIQUE max-x vertex, `jitter` in off the straight edge. Printed like the real files (one
+    decimal, 3 significant digits: a 0.1 in quantum, so the merge's collinear tolerance is
+    0.15 in), so at the default 0.1 in the merge may drop that vertex, and moves the border by
+    at most 0.1 in doing it. `closed=True` hangs an 8 in slab under the same outline (sides and
+    a bottom), which keeps the vertex: the side below it is not flat with the top."""
+    P = [[20, 20, 0], [0, 0, 0], [40, 0, 0], [40 + jitter, 20, 0], [40, 40, 0], [0, 40, 0]]
+    fv = [[0, 1, 2], [0, 2, 3], [0, 3, 4], [0, 4, 5], [0, 5, 1]]
+    if closed:
+        base = len(P)
+        P += [[p[0], p[1], -8.0] for p in P[1:]]
+        ring = [1, 2, 3, 4, 5]
+        for i in range(5):
+            a, b = ring[i], ring[(i + 1) % 5]
+            fv += [[a, base + a - 1, base + b - 1], [a, base + b - 1, b]]
+        fv += [[base + 0, base + 4, base + 3], [base + 0, base + 3, base + 2],
+               [base + 0, base + 2, base + 1]]
+    P = np.asarray(P, dtype=np.float64)
+    uvs = (P[np.asarray(fv).reshape(-1)][:, :2] * 0.05).tolist()
+    fvt = np.arange(len(fv) * 3).reshape(-1, 3).tolist()
+    return _mesh(f"plate_with_offset_corner_{'closed' if closed else 'open'}", P, uvs, fv, fvt,
+                 coord_decimals=1, sig_digits=3)

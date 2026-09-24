@@ -636,6 +636,16 @@ def fix_object(mesh: MeshData, flatness: dict[str, float], profile: FixProfile =
     # may do; `guard_solidify` carries its verdict.
     # Review M2: compare the bbox of vertices that faces actually use, evaluated against the
     # surviving reference faces (excluding faces deliberately deleted by the pipeline passes).
+    # WHY DELETED FACES ARE LEFT OUT, and to the guards: what a removal did to the picture is
+    # exactly what its own guard judged (strict for hidden and overlap faces, the fragment guard
+    # for debris), and the bbox cannot tell a legitimate removal from damage. 0b4b8e9 compared
+    # against every reference face and left the suite red -- deleting `slab_with_strays`' stray
+    # at the model's top shrank the used bbox -- so f285ef3 compares only what survived them.
+    # WHY WITHIN `border_shift_tol` and not exactly: the merge's corner pass may drop a border
+    # vertex while the original polyline stays within that tolerance of the chord replacing it,
+    # so a merged border may sit that far inside the original one -- the movement the final
+    # guard measures and excuses. Compared exactly, review 2a's E4 plate (its unique max-x
+    # vertex 0.1 in off a straight edge, dropped) failed a run whose guard passed.
     deleted = drop | removed_fragments_full | removed_overlap_full
     surviving_face_v = mesh.face_v[~deleted] if len(mesh.face_v) else mesh.face_v
     ref_used = np.unique(surviving_face_v) if len(surviving_face_v) else []
@@ -647,8 +657,8 @@ def fix_object(mesh: MeshData, flatness: dict[str, float], profile: FixProfile =
 
     invariants = {
         "material_count_same": len(final_mesh.materials) == len(mesh.materials),
-        "bbox_same": bool(np.array_equal(final_bbox[0], ref_bbox[0])
-                          and np.array_equal(final_bbox[1], ref_bbox[1])),
+        "bbox_same": bool((np.abs(final_bbox[0] - ref_bbox[0]) <= border_shift_tol).all()
+                          and (np.abs(final_bbox[1] - ref_bbox[1]) <= border_shift_tol).all()),
         "area_not_grown": bool(_total_area(final_mesh.positions, final_mesh.face_v)
                                <= _total_area(mesh.positions, mesh.face_v) * (1.0 + _AREA_REL_TOL)),
         # The CAP GUARD's own verdict, re-verified against the mesh solidify handed back (see

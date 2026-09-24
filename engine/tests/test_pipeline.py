@@ -723,3 +723,24 @@ def test_bbox_invariant_compares_used_vertices(monkeypatch):
     r = fix_object(m, {}, _fast(solidify=False))
     assert r.invariants["bbox_same"] is False
     assert r.passed is False
+
+
+from engine.tests.fixtures.build import plate_with_offset_corner
+
+
+def test_the_bbox_invariant_allows_the_merges_own_border_movement():
+    """Review 2a E4: the merge drops the plate's unique max-x vertex, 0.1 in off its straight east
+    edge -- within the 0.15 in it may move a border, and the final guard measures exactly that
+    (every flicker pixel a border shift within 0.15 in). The used-vertex bbox therefore shrinks
+    by 0.1 in, and an EXACT comparison failed a run whose guard passed -- and so, since a failed
+    run keeps the owner's previous `.skp`, never updated the owner's file. The bbox is compared
+    within the same border tolerance the guards excuse."""
+    m = plate_with_offset_corner(jitter=0.1)
+    r = fix_object(m, {}, FixProfile(guard_size=(240, 160), n_dirs=32, solidify=False))
+    used = np.unique(r.mesh.face_v)
+    assert 3 not in used                                           # the corner was dropped
+    assert r.mesh.positions[used][:, 0].max() == pytest.approx(40.0)
+    assert r.guard_final.passed and r.guard_final.totals["border_shift"] > 0
+    assert r.invariants["bbox_same"] is True
+    assert r.passed is True
+    # (`test_bbox_invariant_compares_used_vertices` above still fails a shrink of 8 in)
