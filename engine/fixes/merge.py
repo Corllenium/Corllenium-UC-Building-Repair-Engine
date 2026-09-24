@@ -96,8 +96,9 @@ def snap_tolerance(thickness: float, floor: float = SNAP_TOL) -> float:
     25 lie on non-axis-aligned regions, none beyond 0.19 of that region's thickness; 24 are tips
     at a vertex (every edge within 2e-4 in of them ends at it, the narrowest angle there 0.3 to
     37 degrees) and one, 8.9e-5 in out on file A's lattice, is a T-junction sliver's corner.
-    Unions of subsets of the same ramp put its tips 0.0008 to 0.0053 in out, still inside 0.0085. The one coordinate left is 7.87 in from every vertex (file A): the corner of a
-    T-junction sliver, which no tolerance should read as a vertex and `_pieces` closes instead."""
+    Unions of subsets of the same ramp put its tips up to 0.0053 in out, still inside 0.0085.
+    The one coordinate left is 7.87 in from every vertex (file A): the corner of a T-junction
+    sliver, which no tolerance should read as a vertex and `_pieces` closes instead."""
     return min(max(float(floor), float(thickness)), SNAP_TOL_MAX)
 
 
