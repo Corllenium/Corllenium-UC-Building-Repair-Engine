@@ -618,7 +618,11 @@ def fix_object(mesh: MeshData, flatness: dict[str, float], profile: FixProfile =
     # bounding box (downwards, by a skirt) and the area (by the faces it invents), and it is the
     # mesh every guard in this run compares against. The cap guard is what bounds what solidify
     # may do; `guard_solidify` carries its verdict.
-    ref_used = np.unique(mesh.face_v) if len(mesh.face_v) else []
+    # Review M2: compare the bbox of vertices that faces actually use, evaluated against the
+    # surviving reference faces (excluding faces deliberately deleted by the pipeline passes).
+    deleted = drop | removed_fragments_full | removed_overlap_full
+    surviving_face_v = mesh.face_v[~deleted] if len(mesh.face_v) else mesh.face_v
+    ref_used = np.unique(surviving_face_v) if len(surviving_face_v) else []
     final_used = np.unique(final_mesh.face_v) if len(final_mesh.face_v) else []
     ref_bbox = ((mesh.positions[ref_used].min(axis=0), mesh.positions[ref_used].max(axis=0))
                 if len(ref_used) else (np.zeros(3), np.zeros(3)))
