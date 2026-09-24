@@ -472,11 +472,17 @@ def fix_object(mesh: MeshData, flatness: dict[str, float], profile: FixProfile =
     mesh_fragments, source_from_fragments = mesh_removed, np.arange(mesh_removed.n_faces, dtype=np.int64)
     if profile.accept_fragments:
         kept = ~drop
+        # The faces solidify invented are the shell it is closing, never debris: protected, so
+        # neither they nor a component holding one is ever a candidate (file A's face 4721, an
+        # invented bottom triangle, was removed as a one-face stray). `result` is solidify's.
+        invented = (np.asarray(result.new_faces, dtype=bool) if profile.solidify
+                    else np.zeros(mesh.n_faces, dtype=bool))
         # contact within the tolerance `analyse_topology` finds T-junctions with, and no sliver
         # wider than the merge's own border tolerance
         detected = detect_fragments(positions_c, render_faces[kept], profile,
                                     contact_tol=1.5 * float(topo.quanta.max()),
-                                    max_width=sliver_width_bound(topo.quanta, profile))
+                                    max_width=sliver_width_bound(topo.quanta, profile),
+                                    protected=invented[kept])
         fragment_report = detected.report
         candidates = np.zeros(mesh.n_faces, dtype=bool)      # lifted back to REFERENCE ids
         candidates[source_from_removal[detected.fragments | detected.slivers]] = True

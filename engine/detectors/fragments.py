@@ -419,7 +419,8 @@ def _open_long_edges(positions_w: np.ndarray, face_w: np.ndarray, faces: np.ndar
 
 
 def detect_fragments(positions_w: np.ndarray, face_w: np.ndarray, profile, *,
-                     contact_tol: float, max_width: float) -> FragmentResult:
+                     contact_tol: float, max_width: float,
+                     protected: np.ndarray | None = None) -> FragmentResult:
     """Find every stray-fragment and attached-sliver candidate in `face_w` (welded triangles into
     `positions_w`). See the module docstring for both rules.
 
@@ -433,6 +434,14 @@ def detect_fragments(positions_w: np.ndarray, face_w: np.ndarray, profile, *,
     `engine.fixes.pipeline` passes `sliver_width_bound`, the merge's own border tolerance; no
     default, for the same reason as `contact_tol`.
 
+    `protected` (bool over the faces handed in; `None` protects nothing) marks faces this detector
+    may never name: `engine.fixes.pipeline` passes the faces `engine.fixes.solidify` invented. A
+    protected face is never a sliver, and a component holding one is never a fragment -- it is
+    part of a shell solidify is closing, and taking only its original faces would leave invented
+    ones hanging where nothing is. Measured on file A before this: face 4721, a bottom triangle
+    solidify invented under face 174, was named a one-face stray and removed. A protected face
+    still joins components and still counts as a neighbour across a sliver's edge.
+
     `profile` is an `engine.fixes.pipeline.FixProfile`, duck-typed like every other consumer in
     `engine.fixes`, so this package imports nothing from it. Nothing is removed here: the caller
     puts the candidates through `engine.guard.compare.fragment_feedback` first."""
@@ -445,6 +454,8 @@ def detect_fragments(positions_w: np.ndarray, face_w: np.ndarray, profile, *,
     bounds = {"contact_tol": float(contact_tol), "sliver_max_width": max_width}
 
     n = len(face_w)
+    protected = (np.zeros(n, dtype=bool) if protected is None
+                 else np.asarray(protected, dtype=bool).reshape(n))
     fragments = np.zeros(n, dtype=bool)
     slivers = np.zeros(n, dtype=bool)
     tables = _edge_tables(positions_w, face_w, float(contact_tol)) if n else None
@@ -452,6 +463,7 @@ def detect_fragments(positions_w: np.ndarray, face_w: np.ndarray, profile, *,
     if not n:
         return FragmentResult(fragments, slivers, component,
                               {"n_components": 0, **joins, **bounds, "n_candidate_components": 0,
+                               "n_protected_components": 0, "n_protected_faces": 0,
                                "n_above_threshold_components": 0, "n_fragment_faces": 0,
                                "n_thin_faces": 0, "n_sandwiched_thin_faces": 0,
                                "n_sliver_faces": 0, "smallest_kept_components": []})
@@ -460,7 +472,7 @@ def detect_fragments(positions_w: np.ndarray, face_w: np.ndarray, profile, *,
     n_components = int(component.max()) + 1
 
     kept: list[dict] = []
-    n_candidates = 0
+    n_candidates = n_protected = 0
     for c in range(n_components):
         members = np.nonzero(component == c)[0]
         total = float(area[members].sum())
@@ -470,7 +482,9 @@ def detect_fragments(positions_w: np.ndarray, face_w: np.ndarray, profile, *,
 
         candidate = (biggest <= max_area
                      and (total < max_area or len(members) == 1 or extent < max_extent))
-        if candidate:
+        if candidate and protected[members].any():
+            n_protected += 1                    # small, but a shell solidify is closing
+        elif candidate:
             fragments[members] = True
             n_candidates += 1
         else:
@@ -484,7 +498,8 @@ def detect_fragments(positions_w: np.ndarray, face_w: np.ndarray, profile, *,
     # edge, and strips sandwiched in the middle of a surface.
     quality = _face_quality(positions_w, face_w)
     width = face_width(positions_w, face_w)
-    thin = np.nonzero(~fragments & (quality < min_q) & (area <= max_area) & (width <= max_width))[0]
+    thin = np.nonzero(~fragments & ~protected & (quality < min_q) & (area <= max_area)
+                      & (width <= max_width))[0]
     on_border = _open_long_edges(positions_w, face_w, thin, area, max_width, tables)
     slivers[thin[on_border]] = True
 
@@ -497,7 +512,11 @@ def detect_fragments(positions_w: np.ndarray, face_w: np.ndarray, profile, *,
         #: The two tolerances this run was given, both derived from the mesh's print step.
         **bounds,
         "n_candidate_components": n_candidates,
-        "n_above_threshold_components": n_components - n_candidates,
+        #: Components the size rules caught but that hold a `protected` face (one solidify
+        #: invented), so are never debris; and how many protected faces were handed in at all.
+        "n_protected_components": n_protected,
+        "n_protected_faces": int(protected.sum()),
+        "n_above_threshold_components": n_components - n_candidates - n_protected,
         "n_fragment_faces": int(fragments.sum()),
         #: Faces thin enough to be a sliver (quality, area, width), and how many of them were
         #: KEPT because no long edge of theirs is an open border -- strips of a surface's middle,

@@ -547,6 +547,93 @@ def test_fragment_pixels_over_the_per_view_cap_fall_back_to_what_they_were():
     assert r.passed is True
 
 
+# ---------------------------- brief 08 item 2: a face solidify invented is part of the shell
+#
+# File A's one removed "fragment", face 4721, had an id above the input's 4,692 faces: a bottom
+# triangle solidify had invented under face 174 (same area, same bbox 9.84 in lower), which the
+# detector then named a one-face stray and removed. Solidify invents faces to CLOSE a shell; the
+# detector may not second-guess that, and a component holding such a face is that shell.
+
+
+def _detected_protecting(mesh, protected):
+    topo = analyse_topology(mesh)
+    return detect_fragments(topo.positions_w, topo.face_w, _FAST,
+                            contact_tol=1.5 * float(topo.quanta.max()),
+                            max_width=sliver_width_bound(topo.quanta, _FAST),
+                            protected=protected)
+
+
+def test_a_protected_face_is_never_a_fragment_or_a_sliver():
+    m = printed(slab_with_strays())
+    free = _detected_protecting(m, None)
+    assert free.fragments[33] and free.slivers[32]           # the premise: both are debris
+    protected = np.zeros(m.n_faces, dtype=bool)
+    protected[[32, 33]] = True
+    d = _detected_protecting(m, protected)
+    assert not d.fragments.any() and not d.slivers.any()
+    assert d.report["n_protected_components"] == 1           # the stray triangle's own
+    assert d.report["n_protected_faces"] == 2
+    assert d.report["n_candidate_components"] == 0
+
+
+def test_a_component_holding_a_protected_face_is_never_a_fragment():
+    """The lifted patch is a two-face stray. Protect ONE of its faces and neither goes: removing
+    only the other would leave half a shell hanging."""
+    m = slab_with_coplanar_patch(lift=0.5)
+    assert _detected_protecting(m, None).fragments[[2, 3]].all()
+    protected = np.zeros(m.n_faces, dtype=bool)
+    protected[2] = True
+    d = _detected_protecting(m, protected)
+    assert not d.fragments.any()
+    assert d.report["n_protected_components"] == 1 and d.report["n_protected_faces"] == 1
+
+
+def _with_triangle(mesh, corners):
+    """`mesh` plus one detached triangle, material 0."""
+    from dataclasses import replace
+    base, ub = len(mesh.positions), len(mesh.uvs)
+    corners = np.asarray(corners, dtype=np.float64)
+    return replace(
+        mesh, positions=np.vstack([mesh.positions, corners]),
+        uvs=np.vstack([mesh.uvs, corners[:, :2] * 0.05]),
+        face_v=np.vstack([mesh.face_v, [[base, base + 1, base + 2]]]),
+        face_vt=np.vstack([mesh.face_vt, [[ub, ub + 1, ub + 2]]]),
+        face_vn=np.vstack([mesh.face_vn, [[-1, -1, -1]]]),
+        face_material=np.append(mesh.face_material, 0),
+        face_line=np.append(mesh.face_line, int(mesh.face_line.max()) + 1))
+
+
+_STRAY = [[5.0, 5.0, 20.0], [7.0, 5.0, 20.0], [5.0, 7.0, 20.0]]      # 2 sq in, 20 in above
+
+
+def test_fix_object_never_removes_a_face_solidify_invented(monkeypatch):
+    """A closed slab, and solidify made to invent one detached 2 sq in triangle above it -- the
+    shape the detector removes as a stray when the EXPORT carries it."""
+    from engine.fixes.solidify import SolidifyResult
+    from engine.tests.fixtures.build import _slab_from_top
+    slab = _slab_from_top("closed_slab", [((0, 0), (40, 0), (40, 40)), ((0, 0), (40, 40), (0, 40))])
+    profile = FixProfile(guard_size=(120, 80), n_dirs=32)
+
+    exported = fix_object(_with_triangle(slab, _STRAY), {}, profile)
+    assert exported.removed_fragments[-1] and exported.n_removed_fragments == 1   # the premise
+
+    real = fix_pipeline.solidify
+
+    def invents_the_stray(mesh, topo, profile_in):
+        made = real(mesh, topo, profile_in)
+        return SolidifyResult(mesh=_with_triangle(made.mesh, _STRAY),
+                              new_faces=np.append(made.new_faces, True), report=made.report)
+
+    monkeypatch.setattr(fix_pipeline, "solidify", invents_the_stray)
+    r = fix_object(slab, {}, profile)
+    assert r.reference_mesh.n_faces == slab.n_faces + 1
+    assert not r.removed_fragments.any() and r.n_removed_fragments == 0
+    assert r.fragment_report["n_protected_components"] == 1
+    z = r.mesh.positions[r.mesh.face_v][:, :, 2]
+    assert int((z == 20.0).all(axis=1).sum()) == 1            # it ships
+    assert r.passed is True
+
+
 def test_every_removed_component_is_reported_with_its_faces_area_and_bbox(tmp_path):
     from engine.tests.test_cli import _write_snapshot
 
