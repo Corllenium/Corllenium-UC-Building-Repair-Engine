@@ -674,3 +674,22 @@ def test_a_coarse_precision_export_cannot_excuse_a_border_shift_wider_than_depth
     fix_object(far, {}, _fast())
     assert calls[0] == (0.0, 0.0)
     assert calls[1] == (FixProfile().edge_flicker_cap_final, 0.5)
+
+
+# ---------------------------------------------------------------------------------------------
+# T1: the merge threads every vertex the output uses into the output edge it lies on. That only
+# splits edges -- no vertex moves, none is invented -- so the final guard must see nothing at all.
+# ---------------------------------------------------------------------------------------------
+from engine.tests.fixtures.build import slab_beside_gridded_neighbour
+
+
+def test_threading_the_t_junctions_of_a_slab_changes_nothing_the_guard_can_see():
+    # two materials: `fix_object` reads an untextured material as flat, which ignores a UV seam
+    m = slab_beside_gridded_neighbour(material=1)
+    r = fix_object(m, {}, _fast(solidify=False))
+    assert "rolled_back" not in r.merge_report
+    assert (r.merge_report["t_vertices_before"], r.merge_report["t_vertices_after"],
+            r.merge_report["edges_split"]) == (3, 0, 1)
+    assert r.mesh.n_faces == 10
+    assert r.guard_final.passed and r.passed
+    assert r.guard_final.totals["holes"] == 0 and r.guard_final.totals["moved_same_flat"] == 0

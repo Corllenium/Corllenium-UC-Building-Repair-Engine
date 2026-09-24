@@ -23,7 +23,8 @@ from engine.io.skp_writer import (SketchUpUnavailable, check_skp_validity, read_
                                   read_skp_summary, write_skp)
 from engine.pipeline import analyse_topology
 from engine.tests.fixtures.build import (back_to_back_pair, bare_top_quad, creased_pair, cube,
-                                         grid_slab, slab_with_hole, slab_with_lifted_corner,
+                                         grid_slab, slab_beside_gridded_neighbour,
+                                         slab_with_hole, slab_with_lifted_corner,
                                          slab_with_wall, split_double_layer, staggered_slabs,
                                          t_junction_seam_strip, t_junction_strip,
                                          two_region_quad, two_slabs_sharing_border)
@@ -468,6 +469,78 @@ def test_outline_of_a_split_double_layer_stays_visible(tmp_path, sketchup):
                  ((15, 4, 0), (20, 0, 0))]:
         assert _edge(model, p, q).soft
     assert (report["tjunction_lines_softened"], report["visible_border_edges"]) == (4, 6)
+
+
+def _on_face(face, point, normal, tol):
+    """Is `point` (on `face`'s plane) inside `face` -- its outer loop and none of its holes --
+    or within `tol` of its outer loop?"""
+    a = np.array([1.0, 0.0, 0.0]) if abs(normal[0]) < 0.9 else np.array([0.0, 1.0, 0.0])
+    e1 = np.cross(normal, a)
+    e1 /= np.linalg.norm(e1)
+    e2 = np.cross(normal, e1)
+    flat = lambda pts: np.stack([np.asarray(pts) @ e1, np.asarray(pts) @ e2], axis=-1)
+    p = flat(point)
+
+    def inside(loop):
+        q = flat(loop)
+        hit = False
+        for (x1, y1), (x2, y2) in zip(q, np.roll(q, -1, axis=0)):
+            if (y1 > p[1]) != (y2 > p[1]) and p[0] < x1 + (p[1] - y1) * (x2 - x1) / (y2 - y1):
+                hit = not hit
+        return hit
+
+    outer = flat(face.outer)
+    side = np.roll(outer, -1, axis=0) - outer
+    t = np.clip(np.einsum("ij,ij->i", p - outer, side) / np.einsum("ij,ij->i", side, side), 0, 1)
+    if (np.linalg.norm(p - outer - t[:, None] * side, axis=1) <= tol).any():
+        return True
+    return inside(face.outer) and not any(inside(hole) for hole in face.inners)
+
+
+def _one_face_edges_on_a_coplanar_face(model, tol=skp_writer.ON_FACE_TOL):
+    """Every edge of a read-back model with ONE face whose end points lie within `tol` of another
+    face of the same plane and whose middle lies on it: the line SketchUp draws where one face's
+    edge runs along a coplanar neighbour that has vertices on it but does not share it."""
+    key = lambda p: tuple(np.round(np.asarray(p, float), 6).tolist())
+    owner: dict[frozenset, list[int]] = {}
+    for i, face in enumerate(model.faces):
+        for loop in [face.outer, *face.inners]:
+            for k in range(len(loop)):
+                owner.setdefault(frozenset((key(loop[k]), key(loop[(k + 1) % len(loop)]))),
+                                 []).append(i)
+    unit = [f.normal / np.linalg.norm(f.normal) for f in model.faces]
+    out = []
+    for edge in model.edges:
+        if edge.faces != 1:
+            continue
+        [own] = owner[frozenset((key(edge.start), key(edge.end)))]
+        middle = (edge.start + edge.end) / 2.0
+        for i, face in enumerate(model.faces):
+            n = unit[i]
+            if i == own or abs(float(n @ unit[own])) < np.cos(np.radians(1.0)):
+                continue
+            offset = float(n @ face.outer[0])
+            if abs(float(n @ edge.start) - offset) > tol or abs(float(n @ edge.end) - offset) > tol:
+                continue
+            if _on_face(face, middle, n, tol):
+                out.append(sorted([edge.start.tolist(), edge.end.tolist()]))
+                break
+    return sorted(out)
+
+
+def test_threaded_t_junctions_leave_no_one_face_edge_on_a_coplanar_face(tmp_path, sketchup):
+    """The slab's top edge runs along its gridded neighbour, whose three border vertices lie on
+    it. Written as it came, SketchUp keeps the slab's long edge and the neighbour's four short
+    ones apart, each with one face, each lying on the other side's surface. Merged, the vertices
+    are threaded into the slab's ring and every one of those edges has both faces."""
+    mesh = slab_beside_gridded_neighbour()
+    before, _ = _write(tmp_path, *_copied_through(mesh), name="as_exported")
+    assert _one_face_edges_on_a_coplanar_face(read_skp(before)) == sorted(
+        sorted([[float(x0), 20.0, 0.0], [float(x1), 20.0, 0.0]])
+        for x0, x1 in [(0, 40), (0, 10), (10, 20), (20, 30), (30, 40)])
+    after, report = _write(tmp_path, *_merged(mesh), name="merged")
+    assert _one_face_edges_on_a_coplanar_face(read_skp(after)) == []
+    assert report["faces"] == 2 and report["fallback_regions"] == []
 
 
 @pytest.mark.parametrize("build, merged", [

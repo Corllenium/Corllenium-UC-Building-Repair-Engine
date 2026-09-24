@@ -943,3 +943,61 @@ def split_double_layer(uv_per_unit=0.05):
     fv = [[0, 1, 2], [0, 2, 3], [0, 5, 4], [4, 6, 1]]
     uvs = (np.asarray(P, float)[:, :2] * uv_per_unit).tolist()
     return _mesh("split_double_layer", P, uvs, fv, fv)
+
+
+def slab_beside_gridded_neighbour(seam=0.37, material=0, uv_per_unit=0.05):
+    """A 40 x 20 slab of two triangles at `z = 0` -- vertices 0 (0,0), 1 (40,0), 2 (40,20),
+    3 (0,20) -- and above it a 40 x 10 neighbour gridded into four 10 x 10 cells, whose bottom
+    border vertices 4 (10,20), 5 (20,20) and 6 (30,20) lie EXACTLY on the slab's top edge 3-2:
+    three T-junctions no face closes, as the export leaves them along a merged slab. The top row
+    is 7 (0,30) .. 11 (40,30).
+
+    The neighbour's UVs are shifted by a non-integer `seam` (a texture seam), so the two are
+    separate regions of ONE material -- a line inside a surface wherever the slab's edge is not
+    split; `material=1` gives the neighbour material `m1` instead. Both wound to +z."""
+    P = [[0, 0, 0], [40, 0, 0], [40, 20, 0], [0, 20, 0], [10, 20, 0], [20, 20, 0], [30, 20, 0],
+         [0, 30, 0], [10, 30, 0], [20, 30, 0], [30, 30, 0], [40, 30, 0]]
+    bottom, top = [3, 4, 5, 6, 2], [7, 8, 9, 10, 11]
+    fv = [[0, 1, 2], [0, 2, 3]]
+    for i in range(4):
+        v0, v1, v2, v3 = bottom[i], bottom[i + 1], top[i + 1], top[i]
+        fv += [[v0, v1, v2], [v0, v2, v3]]
+    uv = np.asarray(P, float)[:, :2] * uv_per_unit
+    uvs = np.vstack([uv, uv + seam]).tolist()
+    fvt = fv[:2] + [[v + len(P) for v in f] for f in fv[2:]]
+    fm = [0, 0] + [material] * (len(fv) - 2)
+    materials = ("m0", "m1") if material else ("m0",)
+    return _mesh("slab_beside_gridded_neighbour", P, uvs, fv, fvt, materials=materials,
+                 face_material=fm)
+
+
+def triangle_under_gridded_slab(uv_per_unit=0.05):
+    """A 40 x 20 slab at `z = 0` gridded into 4 x 2 cells of 10 in (material `m0`, vertices
+    `j * 5 + i` at `(10 i, 10 j)`, faces 0-15) and below it ONE triangle, face 16,
+    0 (0,0) - 15 (20,-20) - 4 (40,0), of material `m1`: a region of one face, which the merge
+    copies through unmerged. Its top edge 0-4 runs along the slab's bottom border, whose vertices
+    1 (10,0), 2 (20,0) and 3 (30,0) lie exactly on it. Every vertex's UV is its `xy *
+    uv_per_unit`; everything is wound to +z."""
+    P = [[i * 10.0, j * 10.0, 0.0] for j in range(3) for i in range(5)] + [[20.0, -20.0, 0.0]]
+    fv = []
+    for j in range(2):
+        for i in range(4):
+            v = [j * 5 + i, j * 5 + i + 1, (j + 1) * 5 + i + 1, (j + 1) * 5 + i]
+            fv += [[v[0], v[1], v[2]], [v[0], v[2], v[3]]]
+    fv.append([0, 15, 4])
+    uvs = (np.asarray(P, float)[:, :2] * uv_per_unit).tolist()
+    return _mesh("triangle_under_gridded_slab", P, uvs, fv, fv, materials=("m0", "m1"),
+                 face_material=[0] * 16 + [1])
+
+
+def slab_with_a_wall_foot_on_its_diagonal(uv_per_unit=0.05):
+    """`grid_slab(10, 10)` (100 x 100 in at `z = 0`, material `m0`) with one vertical wall
+    triangle standing inside it: feet (50,50,0) -- the slab's centre, which welds to the grid
+    vertex there and lies on BOTH diagonals of the square, so on whichever one the merged slab's
+    two triangles share -- and (65,45,0), inside a cell and on no diagonal; apex 25 in up over
+    their middle. The wall uses the centre, so the merged slab's diagonal runs through a vertex
+    the output uses."""
+    P, uvs, fv, fvt, fm = _grid(10, 10, 10.0, uv_per_unit)
+    P, uvs, fv, fvt, fm = _with_wall(P, uvs, fv, fvt, fm, (50.0, 50.0, 0.0), (65.0, 45.0, 0.0),
+                                     25.0, uv_per_unit)
+    return _mesh("slab_with_a_wall_foot_on_its_diagonal", P, uvs, fv, fvt, face_material=fm)

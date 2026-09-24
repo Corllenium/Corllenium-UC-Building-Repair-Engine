@@ -9,7 +9,18 @@ position that was already in `mesh.positions`. `vt` and `vn` rows are attributes
 new ones may be appended.
 
 A polygon with `n` ring vertices and `h` holes triangulates into exactly `n + 2h - 2` triangles,
-so the triangle count is decided by how many ring vertices survive the global corner pass.
+so the triangle count is decided by how many ring vertices survive the global corner pass -- plus
+two for every vertex another face stands on that lies on one of the polygon's diagonals, and one
+for every vertex threaded into a triangle copied through (see "T-junctions" below).
+
+T-JUNCTIONS. A vertex the output uses that lies on the interior of an output edge is a T-junction:
+SketchUp keeps the long edge and the neighbour's short ones apart and draws a line inside the
+surface, and a renderer leaves a hairline crack along it. The export is full of them (on file A's
+sloped underside 54 of 218 vertices lie exactly on a neighbouring triangle's edge). Every one is
+threaded into the edge it lies on: into a region's ring before the corner pass
+(`_thread_union_rings`), and after the output is decided by splitting every triangle that still
+has one on an edge, a region's ring taking the vertex too (`_thread_output`). Both only split
+edges at vertices already there, within `thread_tolerance`: no vertex moves, none is invented.
 """
 from __future__ import annotations
 
@@ -22,6 +33,7 @@ import shapely
 from engine.fixes.overlap import overlap_excluded as _overlap_excluded, region_frame as _region_frame
 from engine.model import MeshData
 from engine.pipeline import Topology
+from engine.topo.adjacency import build_edge_table, degenerate_mask, find_t_vertices
 from engine.topo.edges import EDGE_NONMANIFOLD, EDGE_OPEN, EDGE_TJUNCTION
 from engine.topo.planes import cluster_uv, plane_basis
 
@@ -49,6 +61,13 @@ MAX_SET_ASIDE_ROUNDS = 3
 RING_TOL_QUANTA = 1.5
 #: Most times pass 2 reruns after a feedback event (see `merge_regions`).
 MAX_ROUNDS = 10
+#: A vertex lies ON an edge -- a T-junction, threaded into the edge -- when it is within this
+#: fraction of the mesh's coarsest print step of the edge's interior (`thread_tolerance`).
+THREAD_TOL_QUANTA = 1e-5
+#: Most rounds `_thread_output` splits triangles in. A backstop, not the mechanism: a split only
+#: makes a vertex the output already uses a corner of the triangles around it, so the pass runs
+#: out of vertices to thread (every measured case needs one round and a second that finds none).
+MAX_THREAD_ROUNDS = 8
 #: Rule 3, the overlap exclusion, is `engine.fixes.overlap.overlap_excluded` -- one
 #: implementation, so "these two faces overlap" means the same thing to the merge and to the
 #: duplicate-layer removal that runs before it.
@@ -102,11 +121,30 @@ def snap_tolerance(thickness: float, floor: float = SNAP_TOL) -> float:
     return min(max(float(floor), float(thickness)), SNAP_TOL_MAX)
 
 
+def thread_tolerance(quanta: np.ndarray) -> float:
+    """How close, in inches, a vertex must lie to the interior of an edge to be ON it -- a
+    T-junction, threaded into the edge (`_thread_union_rings`, `_thread_output`):
+    `THREAD_TOL_QUANTA * max(quanta)`, a hundred-thousandth of the mesh's own coarsest print step
+    (`Topology.quanta`; 0.1 in on Y near 24,000 in gives 1e-6 in).
+
+    WHY SO TIGHT. A vertex the export put on an edge is on it to float precision, and one it put
+    beside an edge is off it by a printable amount. MEASURED on the merge outputs of both real
+    files (A `ce26e0392ab0`, B `0b290ec0bcb4`, before this pass existed): of the vertices the
+    output uses within 0.15 in of an output edge's interior, 111 (A) and 65 (B) lie within 1e-9 in
+    of it -- coordinates near 24,000 in carry about 4e-12 in of float error -- and the nearest of
+    the rest is 6.1e-4 in off (B; 1.2e-3 in on A): a real gap or overlap in the export, which
+    threading would close by moving the surface. The tolerance sits a thousand times above the one
+    and six hundred times below the other, and since threading moves a border by at most this
+    much, nothing it threads can move a surface anyone could see."""
+    return THREAD_TOL_QUANTA * float(np.asarray(quanta).max())
+
+
 @dataclass
 class MergeResult:
     """`mesh` with every mergeable region re-triangulated; `source_faces[i]` is the array of
     ORIGINAL face indices new face `i` came from (its whole region when merged, a single face when
-    copied through); `report` is the counts described in `merge_regions`.
+    copied through -- several rows when a vertex was threaded into one of that face's edges, which
+    cuts it into a fan); `report` is the counts described in `merge_regions`.
 
     `rings[i]`, when present, is the merged region output row `i` belongs to, as its kept LOOPS:
     `{"outer": ids, "inners": [ids, ...]}`. Every id array is int64 and indexes `mesh.positions`
@@ -126,7 +164,9 @@ class MergeResult:
 
     `face_region[i]` is the region output row `i` belongs to, or -1 when the row was copied
     through unmerged. Two rows sharing a region id `>= 0` are two triangles of ONE rebuilt
-    polygon, so the edge between them exists only because OBJ needs triangles."""
+    polygon, so the edge between them exists only because OBJ needs triangles. A region's
+    triangles use every vertex of its loops and, where another face stands on a diagonal of the
+    polygon, that vertex too, inside the polygon (see `merge_regions`, T-junctions)."""
     mesh: MeshData
     source_faces: list[np.ndarray]
     report: dict
@@ -145,12 +185,18 @@ class _Piece:
 
 @dataclass
 class _Plan:
-    """Everything pass 2 needs about one mergeable region, decided before the global corner pass."""
+    """Everything pass 2 needs about one mergeable region, decided before the global corner pass.
+
+    `vertex_ids` (sorted) and `vertex_xy` are every vertex the region's rings or triangles use,
+    projected into its own frame `(v - origin) @ basis` -- its members' vertices, and whatever a
+    T-junction threads into it (`_thread_union_rings`, `_thread_output`)."""
     region: int
     members: np.ndarray
     vertex_ids: np.ndarray
     vertex_xy: np.ndarray
     normal: np.ndarray
+    origin: np.ndarray
+    basis: np.ndarray
     pieces: list[_Piece]
     original_area: float
     #: The snap tolerance the region's union was mapped back onto its vertices with
@@ -159,6 +205,9 @@ class _Plan:
     #: ORIGINAL face indices set aside because their edges made a union corner no vertex
     #: explains (`_region_union`); copied through, like rule 3's exclusions. Sorted.
     set_aside: np.ndarray = field(default_factory=lambda: np.zeros(0, np.int64))
+    #: `(a, b, vertices)` for every union ring segment `a`-`b` that `_thread_union_rings` threaded
+    #: `vertices` into, in ring order.
+    threaded: list = field(default_factory=list)
 
 
 def merge_regions(mesh: MeshData, topo: Topology, flat_materials: Iterable[int] = frozenset(),
@@ -197,6 +246,17 @@ def merge_regions(mesh: MeshData, topo: Topology, flat_materials: Iterable[int] 
     edges made a union corner no vertex explains, in regions that merged without them
     (`_region_union`). A region given up whole counts in `regions_skipped` only.
 
+    T-JUNCTIONS. Every vertex of the input lying on a region's union ring segment is threaded into
+    that ring before the corner pass (`_thread_union_rings`), which keeps it wherever another face
+    needs it; once the output is decided, every triangle with a used vertex on one of its edges is
+    split at it, a region's ring taking the vertex too (`_thread_output`). Neither moves or
+    invents a vertex (`thread_tolerance` decides "on"). `t_vertices_before` / `t_vertices_after`
+    count the distinct vertices lying on the interior of an edge of the merge input / of the
+    output (`find_t_vertices` at `thread_tolerance`, over the non-degenerate faces: a zero-area
+    face covers nothing, so it opens no crack), and `edges_split` the distinct edges cut at a
+    threaded vertex: a union ring segment whose threaded vertex the kept ring keeps, or a
+    triangle edge the output pass split.
+
     `collinear_tol` is the ring-simplification bound (see `_ring_keep`); `None`, the default,
     derives it from the mesh's OWN print precision as `RING_TOL_QUANTA * max(topo.quanta)`
     (`default_collinear_tol`).
@@ -208,9 +268,11 @@ def merge_regions(mesh: MeshData, topo: Topology, flat_materials: Iterable[int] 
     flat = _validated_materials(flat_materials)
     if collinear_tol is None:
         collinear_tol = default_collinear_tol(topo.quanta)
+    thread_tol = thread_tolerance(topo.quanta)
     welded_to_original = _welded_to_original(mesh, topo)
 
     plans, copied, skipped = _plan_regions(topo, grid_size, snap_tol)
+    _thread_union_rings(topo, plans, thread_tol)
 
     fed_back: dict[int, str] = {}
     kept_whole: set[int] = set()
@@ -231,18 +293,30 @@ def merge_regions(mesh: MeshData, topo: Topology, flat_materials: Iterable[int] 
             skipped[late[plan.region]] += 1
             copied.extend(int(f) for f in plan.members)
 
+    # Each region's rings exactly as `_triangulate` built its triangles from them in the round
+    # that produced `builds`: whole for a `keep_all` region, simplified by the corner pass for the
+    # rest.
     keep_all_set = frozenset(kept_whole | set(keep_all))
+    kept = {plan.region: [[ring if plan.region in keep_all_set else ring[needed[ring]]
+                           for ring in piece.rings] for piece in plan.pieces]
+            for plan, _tris in builds}
+    split_edges = _kept_threads(builds, kept)
+    builds, copied_split, output_splits = _thread_output(topo, builds, copied, kept, thread_tol)
+    split_edges |= output_splits
+
     region_rings: dict[int, dict] = {}
     for plan, _tris in builds:
-        loops = _region_loops(plan, needed, keep_all_set, welded_to_original)
+        loops = _region_loops(plan, kept[plan.region], welded_to_original)
         if loops is not None:
             region_rings[plan.region] = loops
 
-    out = _assemble(mesh, topo, welded_to_original, builds, copied, flat, region_rings)
+    out = _assemble(mesh, topo, welded_to_original, builds, copied, flat, region_rings,
+                    copied_split)
     used_before = np.zeros(len(topo.positions_w), bool)
     used_before[topo.face_w.reshape(-1)] = True
     used_after = np.zeros(len(topo.positions_w), bool)
-    used_after[_welded_of(mesh, topo, out.mesh)] = True
+    face_w_after = _welded_of(mesh, topo, out.mesh)
+    used_after[face_w_after] = True
     out.report.update({
         "regions_merged": len(builds),
         "regions_skipped": {r: skipped[r] for r in _SKIP_REASONS if skipped[r]},
@@ -254,8 +328,33 @@ def merge_regions(mesh: MeshData, topo: Topology, flat_materials: Iterable[int] 
         "keep_all_regions": len(kept_whole | set(keep_all)),
         "converged": bool(converged),
         "new_vertex_triangles_set_aside": int(sum(len(plan.set_aside) for plan, _t in builds)),
+        "t_vertices_before": _count_t_vertices(topo.positions_w, topo.face_w, thread_tol),
+        "t_vertices_after": _count_t_vertices(topo.positions_w, face_w_after.reshape(-1, 3),
+                                              thread_tol),
+        "edges_split": len(split_edges),
     })
     return out
+
+
+def _kept_threads(builds: list, kept: dict[int, list]) -> set[tuple[int, int]]:
+    """Every union ring segment, as a sorted vertex pair, that `_thread_union_rings` threaded a
+    vertex into which the region's kept rings still hold -- an edge of the region's outline cut
+    at that vertex."""
+    out: set[tuple[int, int]] = set()
+    for plan, _tris in builds:
+        ring_vertices = {int(v) for piece in kept[plan.region] for ring in piece for v in ring}
+        for a, b, on in plan.threaded:
+            if ring_vertices.intersection(on):
+                out.add((min(a, b), max(a, b)))
+    return out
+
+
+def _count_t_vertices(positions: np.ndarray, face_w: np.ndarray, tol: float) -> int:
+    """How many distinct vertices of the non-degenerate faces `face_w` lie within `tol` of the
+    interior of one of their edges (`find_t_vertices`, without zero-area hints)."""
+    ok = ~degenerate_mask(positions, face_w)
+    hits = find_t_vertices(positions, build_edge_table(face_w, ok), tol)
+    return len({int(v) for verts in hits.values() for v in verts})
 
 
 def region_outline(topo: Topology, members: np.ndarray, grid_size: float = GRID_SIZE,
@@ -318,7 +417,8 @@ def _plan_regions(topo: Topology, grid_size: float,
         copied.extend(int(f) for f in members[outline.set_aside])
         plans.append(_Plan(region=int(region), members=members[keep],
                            vertex_ids=outline.vertex_ids, vertex_xy=outline.vertex_xy,
-                           normal=outline.normal, pieces=outline.pieces,
+                           normal=outline.normal, origin=outline.origin, basis=outline.basis,
+                           pieces=outline.pieces,
                            original_area=float(outline.areas[keep].sum()),
                            snap_tol=outline.snap_tol,
                            set_aside=members[outline.set_aside].astype(np.int64)))
@@ -604,6 +704,86 @@ def _simple_cycles(ids: np.ndarray) -> list[np.ndarray]:
     return out
 
 
+# ------------------------------------------------------------------------------------ T-junctions
+
+
+def _thread_union_rings(topo: Topology, plans: list[_Plan], tol: float) -> None:
+    """Thread into every ring of every plan each vertex of the merge input that lies within `tol`
+    of the INTERIOR of one of the ring's segments, in order along the segment -- the export's
+    T-junctions along a region's border -- before the corner pass decides what the region keeps.
+
+    Such a vertex belongs to a neighbour -- a face copied through, another region's ring, a wall
+    standing on the border -- and lies on this region's border without being one of its corners,
+    so the region's rebuilt edge would run straight past it. Threaded, it is a ring vertex like
+    any other and the corner pass treats it as one: kept when another face needs it (a vertex a
+    copied face uses, or one lying on an open edge, is `needed`), and a vertex a neighbour's ring
+    shares is decided on both sides between the same anchors (`_divergent_vertices`), so the two
+    borders stay identical. Nothing moves: the ring passes through the vertex where the segment
+    already did, to within `tol` (`thread_tolerance`).
+
+    The candidates are the vertices of every non-degenerate face, taken in each segment's own
+    order (by position along it, then by id). A vertex already in the piece is never threaded
+    again -- that would pinch its rings. Deterministic: plans, rings and segments are visited in
+    order."""
+    positions = topo.positions_w
+    candidates = np.unique(topo.face_w[topo.ok])
+    for plan in plans:
+        corners = positions[plan.vertex_ids]
+        near = ((positions[candidates] >= corners.min(axis=0) - tol).all(axis=1)
+                & (positions[candidates] <= corners.max(axis=0) + tol).all(axis=1))
+        local = candidates[near]
+        added: list[int] = []
+        for piece in plan.pieces:
+            present = {int(v) for ring in piece.rings for v in ring}
+            rings = []
+            for ring in piece.rings:
+                ids = [int(v) for v in ring]
+                out: list[int] = []
+                for k, a in enumerate(ids):
+                    b = ids[(k + 1) % len(ids)]
+                    out.append(a)
+                    on = [int(v) for v in _inside_segment(positions, local, a, b, tol)
+                          if int(v) not in present]
+                    if on:
+                        out.extend(on)
+                        present.update(on)
+                        added.extend(on)
+                        plan.threaded.append((a, b, on))
+                rings.append(np.array(out, np.int64))
+            piece.rings = rings
+        _extend_plan(plan, positions, added)
+
+
+def _inside_segment(positions: np.ndarray, candidates: np.ndarray, a: int, b: int,
+                    tol: float) -> np.ndarray:
+    """The ids of `candidates` within `tol` of the interior of segment `a`-`b`, ordered from `a`
+    to `b` (ties on the lower id): `engine.topo.adjacency.find_t_vertices`' own test, for one
+    segment."""
+    start, along = positions[a], positions[b] - positions[a]
+    denom = float(along @ along)
+    if denom == 0.0 or not len(candidates):
+        return np.zeros(0, np.int64)
+    rel = positions[candidates] - start
+    t = rel @ along / denom
+    distance = np.linalg.norm(rel - np.outer(t, along), axis=1)
+    hit = ((t > 1e-9) & (t < 1 - 1e-9) & (distance <= tol)
+           & (candidates != a) & (candidates != b))
+    ids, t = candidates[hit], t[hit]
+    return ids[np.lexsort((ids, t))]
+
+
+def _extend_plan(plan: _Plan, positions: np.ndarray, ids) -> None:
+    """Add `ids` to the plan's projected vertices, in its own frame. Rows already there are kept
+    bit for bit, so nothing the plan computed from them changes."""
+    ids = np.setdiff1d(np.asarray(ids, np.int64), plan.vertex_ids)
+    if not len(ids):
+        return
+    every = np.concatenate([plan.vertex_ids, ids])
+    xy = np.vstack([plan.vertex_xy, (positions[ids] - plan.origin) @ plan.basis])
+    order = np.argsort(every, kind="stable")
+    plan.vertex_ids, plan.vertex_xy = every[order], xy[order]
+
+
 # ------------------------------------------------------------------- the global corner pass (5)
 
 
@@ -758,26 +938,23 @@ def _ring_ccw(plan: _Plan, ring: np.ndarray) -> np.ndarray:
     return ring if area >= 0.0 else ring[::-1]
 
 
-def _region_loops(plan: _Plan, needed: np.ndarray, keep_all_set: frozenset,
-                  welded_to_original: np.ndarray):
+def _region_loops(plan: _Plan, kept: list, welded_to_original: np.ndarray):
     """The kept loops of `plan` as ORIGINAL vertex ids -- `{"outer": ids, "inners": [ids, ...]}`
     -- or `None` when the region is more than one disjoint piece (there is then no single outer
     loop to name) or its outer loop keeps fewer than 3 vertices.
 
-    Mirrors `_triangulate`'s own ring simplification exactly, without changing that function's
-    arity (callers monkeypatch against it): the FULL rings when `plan.region` took the `keep_all`
-    fallback in the round that produced `builds`, the simplified ones otherwise. A region that
-    reaches `builds` always has at least 3 kept vertices in EVERY ring -- `_polygon` rejects
-    anything less and the region falls back to `keep_all` or is skipped -- so no inner loop can
-    arrive here degenerate.
+    `kept` is the region's rings per piece exactly as its triangles were built from them
+    (`merge_regions`): the FULL rings when the region took the `keep_all` fallback in the round
+    that produced `builds`, the simplified ones otherwise, each with every vertex `_thread_output`
+    threaded into it. A region that reaches `builds` always has at least 3 kept vertices in EVERY
+    ring -- `_polygon` rejects anything less and the region falls back to `keep_all` or is
+    skipped -- so no inner loop can arrive here degenerate.
 
     `_ring_ccw` orients a loop CCW in the region's own frame; hole loops are then reversed, so
     the result is the outer-CCW / holes-CW convention a polygon consumer expects."""
-    if len(plan.pieces) != 1:
+    if len(kept) != 1:
         return None
-    piece = plan.pieces[0]
-    simplify = plan.region not in keep_all_set
-    rings = [r[needed[r]] if simplify else r for r in piece.rings]
+    rings = kept[0]
     if len(rings[0]) < 3:
         return None
     return {"outer": welded_to_original[_ring_ccw(plan, rings[0])],
@@ -914,15 +1091,125 @@ def _signed_area_sum(vertex_xy: np.ndarray, vertex_ids: np.ndarray, triangles: l
                               - (p[:, 1, 1] - p[:, 0, 1]) * (p[:, 2, 0] - p[:, 0, 0])).sum())
 
 
+# ------------------------------------------------------------ T-junctions left in the output
+
+
+def _thread_output(topo: Topology, builds: list, copied: list[int], kept: dict[int, list],
+                   tol: float):
+    """Thread every vertex the output uses into every output edge it lies on, and repeat until
+    no edge has one or `MAX_THREAD_ROUNDS` is reached. Returns `(builds, copied_split,
+    split_edges)`.
+
+    The output is the triangles of `builds` and the faces in `copied`. A round finds, with
+    `find_t_vertices` at `tol` over its non-degenerate triangles, every edge that has a used
+    vertex on its interior, and splits every non-degenerate triangle holding such an edge into a
+    fan from the corner opposite it (`_split`): each piece is wound like the triangle it came
+    from, the pieces cover exactly that triangle, and no vertex is moved or invented -- the
+    surface is unchanged, only its edges are cut. A merged region's ring edge -- two consecutive
+    vertices of `kept[region]`, its kept rings per piece -- takes the vertices into the ring as
+    well, so the polygon passes through them; a diagonal inside the region does not (the vertex
+    stands inside the polygon, where a wall's foot needs no ring vertex, see `_needed_vertices`).
+    The new edges run through a triangle's interior, where a vertex another face uses can lie,
+    which is what the next round is for.
+
+    `builds` comes back with the split triangles and every vertex they use added to each plan
+    (`_extend_plan`); `kept` is updated in place. `copied_split` maps each copied face that was
+    split to its pieces as welded triples; a zero-area face is never split (it covers nothing).
+    `split_edges` is every split edge, as a sorted vertex pair."""
+    positions = topo.positions_w
+    tris = [[tuple(int(v) for v in t) for t in triangles] for _plan, triangles in builds]
+    faces = sorted(set(int(f) for f in copied))
+    pieces = {f: [tuple(int(v) for v in topo.face_w[f])] for f in faces}
+    split_edges: set[tuple[int, int]] = set()
+    for _round in range(MAX_THREAD_ROUNDS):
+        rows = [t for triangles in tris for t in triangles] + [t for f in faces for t in pieces[f]]
+        face_w = np.array(rows, np.int64).reshape(-1, 3)
+        ok = ~degenerate_mask(positions, face_w)
+        table = build_edge_table(face_w, ok)
+        hits = find_t_vertices(positions, table, tol)
+        if not hits:
+            break
+        on_edge = {(int(table.edges[e][0]), int(table.edges[e][1])): [int(v) for v in hits[e]]
+                   for e in sorted(hits)}
+        split_edges.update(on_edge)
+        valid = iter(ok.tolist())
+        for i, (plan, _triangles) in enumerate(builds):
+            kept[plan.region] = [[_thread_ring(ring, on_edge) for ring in piece]
+                                 for piece in kept[plan.region]]
+            tris[i] = [s for t in tris[i] for s in (_split(t, on_edge) if next(valid) else [t])]
+        for f in faces:
+            pieces[f] = [s for t in pieces[f] for s in (_split(t, on_edge) if next(valid) else [t])]
+    out = []
+    for (plan, _triangles), triangles in zip(builds, tris):
+        used = [v for t in triangles for v in t]
+        used += [int(v) for piece in kept[plan.region] for ring in piece for v in ring]
+        _extend_plan(plan, positions, used)
+        out.append((plan, triangles))
+    return out, {f: pieces[f] for f in faces if len(pieces[f]) > 1}, split_edges
+
+
+def _between(on_edge: dict, p: int, q: int) -> list[int]:
+    """The vertices `on_edge` lists for edge `p`-`q`, in order from `p` to `q` (`[]` if none)."""
+    verts = on_edge.get((min(p, q), max(p, q)), [])
+    return list(verts) if p < q else list(verts)[::-1]
+
+
+def _split(tri: tuple, on_edge: dict) -> list[tuple]:
+    """`tri` cut at every vertex `on_edge` lists for one of its edges: a fan from the corner
+    opposite that edge, each piece split again at the vertices listed for its own edges. It ends:
+    each cut makes a listed vertex a corner, and a piece of the cut edge lists nothing, since the
+    vertices strictly inside the whole edge are all in its own list. Every piece keeps `tri`'s
+    winding -- a vertex strictly inside `p`-`q` makes `(p, w, r)` and `(w, q, r)` turn the way
+    `(p, q, r)` does."""
+    for k in range(3):
+        p, q, r = tri[k], tri[(k + 1) % 3], tri[(k + 2) % 3]
+        on = [v for v in _between(on_edge, p, q) if v != r]
+        if on:
+            chain = [p, *on, q]
+            return [s for i in range(len(chain) - 1)
+                    for s in _split((chain[i], chain[i + 1], r), on_edge)]
+    return [tri]
+
+
+def _thread_ring(ring: np.ndarray, on_edge: dict) -> np.ndarray:
+    """`ring` with the vertices `on_edge` lists for each of its segments inserted in order."""
+    ids = [int(v) for v in ring]
+    out: list[int] = []
+    for k, p in enumerate(ids):
+        out.append(p)
+        out.extend(_between(on_edge, p, ids[(k + 1) % len(ids)]))
+    return np.array(out, np.int64)
+
+
+def _barycentric(point: np.ndarray, corners: np.ndarray) -> np.ndarray:
+    """The weights of `corners` (a `(3, 3)` triangle) that give `point`, which lies on it."""
+    a, b, c = corners
+    v0, v1, v2 = b - a, c - a, point - a
+    d00, d01, d11 = float(v0 @ v0), float(v0 @ v1), float(v1 @ v1)
+    d20, d21 = float(v2 @ v0), float(v2 @ v1)
+    den = d00 * d11 - d01 * d01
+    u = (d11 * d20 - d01 * d21) / den
+    v = (d00 * d21 - d01 * d20) / den
+    return np.array([1.0 - u - v, u, v])
+
+
 # ------------------------------------------------------------------------------ output assembly
 
 
 def _assemble(mesh: MeshData, topo: Topology, welded_to_original: np.ndarray,
               builds: list, copied: list[int], flat: frozenset,
-              region_rings: dict[int, np.ndarray] | None = None) -> MergeResult:
+              region_rings: dict[int, np.ndarray] | None = None,
+              copied_split: dict[int, list] | None = None) -> MergeResult:
     """Emit faces ordered by the lowest original face index of their group, so a merged region
-    lands where its first member was and untouched faces keep their relative order."""
+    lands where its first member was and untouched faces keep their relative order.
+
+    A copied face in `copied_split` (`_thread_output`) is emitted as its pieces, in order, each
+    with the face's own material, line and source. A corner that is one of the face's own keeps
+    its `v`/`vt`/`vn` exactly; a threaded vertex gets its lowest original row and, when the face
+    carries them, a NEW `vt` and `vn` row interpolated at it from the face's three corners, so
+    the texture lies on the pieces exactly as it lay on the face."""
     region_rings = region_rings or {}
+    copied_split = copied_split or {}
     uvs = [mesh.uvs] if len(mesh.uvs) else []
     normals = [mesh.normals] if len(mesh.normals) else []
     next_uv = len(mesh.uvs)
@@ -930,9 +1217,40 @@ def _assemble(mesh: MeshData, topo: Topology, welded_to_original: np.ndarray,
 
     emitted: list[tuple] = []
     for face in sorted(set(copied)):
-        emitted.append((int(face), mesh.face_v[face], mesh.face_vt[face], mesh.face_vn[face],
-                        int(mesh.face_material[face]), int(mesh.face_line[face]),
-                        np.array([face], np.int64), -1))
+        material, line = int(mesh.face_material[face]), int(mesh.face_line[face])
+        if face not in copied_split:
+            emitted.append((int(face), mesh.face_v[face], mesh.face_vt[face], mesh.face_vn[face],
+                            material, line, np.array([face], np.int64), -1))
+            continue
+        corners = [int(w) for w in topo.face_w[face]]
+        vt, vn = mesh.face_vt[face], mesh.face_vn[face]
+        new_vt: dict[int, int] = {}
+        new_vn: dict[int, int] = {}
+        for piece in copied_split[face]:
+            rows = []
+            for w in piece:
+                if w in corners:
+                    j = corners.index(w)
+                    rows.append((int(mesh.face_v[face][j]), int(vt[j]), int(vn[j])))
+                    continue
+                weights = _barycentric(topo.positions_w[w], topo.positions_w[corners])
+                if w not in new_vt and (vt >= 0).all():
+                    new_vt[w] = next_uv
+                    uvs.append((weights @ mesh.uvs[vt])[None, :])
+                    next_uv += 1
+                if w not in new_vn and (vn >= 0).all():
+                    if len(set(vn.tolist())) == 1:
+                        new_vn[w] = int(vn[0])
+                    else:
+                        n = weights @ mesh.normals[vn]
+                        normals.append((n / np.linalg.norm(n))[None, :])
+                        new_vn[w] = next_normal
+                        next_normal += 1
+                rows.append((int(welded_to_original[w]), new_vt.get(w, -1), new_vn.get(w, -1)))
+            emitted.append((int(face), np.array([r[0] for r in rows], np.int64),
+                            np.array([r[1] for r in rows], np.int64),
+                            np.array([r[2] for r in rows], np.int64),
+                            material, line, np.array([face], np.int64), -1))
 
     for plan, triangles in builds:
         kept = np.unique(np.asarray(triangles, np.int64))

@@ -9,9 +9,11 @@ from engine.io.obj_writer import write_obj
 from engine.pipeline import analyse_topology
 from engine.tests.fixtures.build import (arc_topped_strip, cube, frame_with_crossed_seam,
                                          grid_slab, l_shaped_slab, overlapping_pair,
-                                         printed_ramp, ramp_fan_region, slab_with_hole,
-                                         slab_with_wall, t_junction_lattice_region,
-                                         two_slabs_sharing_border,
+                                         printed_ramp, ramp_fan_region,
+                                         slab_beside_gridded_neighbour, slab_with_hole,
+                                         slab_with_a_wall_foot_on_its_diagonal, slab_with_wall,
+                                         t_junction_lattice_region, t_junction_seam_strip,
+                                         triangle_under_gridded_slab, two_slabs_sharing_border,
                                          two_slabs_sharing_curved_border, union_sliver_region)
 
 
@@ -221,7 +223,11 @@ def test_overlapping_triangle_and_the_cells_it_overlaps_are_copied_through():
     assert copied == {44, 46, 47, 200}
     assert r.report["regions_skipped"] == {}
     assert r.report["regions_merged"] == 1
-    assert r.mesh.n_faces == 13
+    # 9 merged triangles and the 4 faces copied through, one of which comes out as two: face
+    # 200's edge (2,2)-(4,2) runs through (3,2), a corner of the cells beside it, and the vertex
+    # is threaded into that edge (T1). It was 13 before T-junctions were threaded.
+    assert [int(s[0]) for s in r.source_faces if len(s) == 1].count(200) == 2
+    assert r.mesh.n_faces == 14
 
 
 def test_cube_keeps_its_twelve_triangles_and_drops_nothing():
@@ -861,14 +867,16 @@ def test_a_triangle_whose_edge_crosses_a_neighbours_is_set_aside_and_the_rest_me
     r = merged(m)
     assert r.report["regions_skipped"] == {} and r.report["regions_merged"] == 1
     assert r.report["new_vertex_triangles_set_aside"] == 2
-    assert sorted(int(s[0]) for s in r.source_faces if len(s) == 1) == [0, 3]   # the seam pair
+    # the seam pair, copied through; face 3 comes out as two triangles, split at vertex 9, which
+    # lies on its edge 5-11 (T1 -- it was one row before T-junctions were threaded)
+    assert sorted(int(s[0]) for s in r.source_faces if len(s) == 1) == [0, 3, 3]
     assert r.report["faces_copied"] == 2
     assert abs(area(r.mesh) - area(m)) <= 1e-6 * area(m)
-    # no T-junction opens: the only vertices inside another triangle's edge are the two the
-    # input already had there
+    # the only vertices inside another triangle's edge are the two the input had there, and both
+    # are threaded: 11 into the merged ring's edge 9-4, 9 into the copied face's edge 5-11
     before = vertices_inside_an_edge(m, m.face_v, used(m))
     assert before == {9, 11}
-    assert vertices_inside_an_edge(r.mesh, r.mesh.face_v, used(r.mesh)) <= before
+    assert vertices_inside_an_edge(r.mesh, r.mesh.face_v, used(r.mesh)) == set()
 
 
 def test_setting_triangles_aside_is_deterministic():
@@ -906,3 +914,124 @@ def test_region_outline_sets_aside_the_same_triangles_as_the_merge():
 def test_an_ordinary_merge_sets_nothing_aside():
     r = merged(grid_slab(10, 10))
     assert r.report["new_vertex_triangles_set_aside"] == 0
+
+
+# ------------------------------------------ T1: a vertex on an output edge is threaded into it
+# A vertex the output uses that lies on the INTERIOR of an output edge is a T-junction: SketchUp
+# keeps the long edge and the neighbour's short ones apart and draws a line inside the surface,
+# and Unity shows a hairline crack along it. The merge threads every such vertex into the edge it
+# lies on -- into a merged region's ring, or by splitting the triangle that owns the edge -- and
+# never moves or invents a vertex, so the surface is exactly what it was.
+
+
+def _t_vertices(mesh):
+    """Every vertex `mesh`'s faces use that lies exactly inside one of their edges."""
+    return vertices_inside_an_edge(mesh, mesh.face_v, used(mesh))
+
+
+def _same_cycle(ring, expected):
+    """Is the closed ring `ring` the cycle `expected`, read from any of its vertices?"""
+    ring = [int(v) for v in ring]
+    if expected[0] not in ring:
+        return False
+    k = ring.index(expected[0])
+    return ring[k:] + ring[:k] == list(expected)
+
+
+def test_a_merged_slab_threads_its_neighbours_border_vertices_into_its_ring():
+    m = slab_beside_gridded_neighbour()
+    assert _t_vertices(m) == {4, 5, 6}           # precondition: three T-junctions on the border
+    r = merged(m)
+    assert r.report["regions_merged"] == 2 and r.report["regions_skipped"] == {}
+    assert _t_vertices(r.mesh) == set()
+    assert (r.report["t_vertices_before"], r.report["t_vertices_after"]) == (3, 0)
+    assert r.report["edges_split"] == 1          # the slab's top edge, cut at all three
+    slab = next(loops for loops in r.rings.values() if 0 in loops["outer"].tolist())
+    assert _same_cycle(slab["outer"], [0, 1, 2, 6, 5, 4, 3])     # CCW about the slab's +z
+    # 7 ring vertices -> 5 triangles; the neighbour keeps the same three and drops its top row's
+    assert r.mesh.n_faces == 5 + 5
+    assert abs(area(r.mesh) - area(m)) <= 1e-9 * area(m)
+    assert np.array_equal(r.mesh.positions, m.positions) and used(r.mesh) <= used(m)
+
+
+def test_the_t_junction_strip_threads_its_vertex_into_the_big_quads_ring():
+    m = t_junction_seam_strip()
+    assert _t_vertices(m) == {4}
+    r = merged(m)
+    assert _t_vertices(r.mesh) == set()
+    assert (r.report["t_vertices_before"], r.report["t_vertices_after"],
+            r.report["edges_split"]) == (1, 0, 1)
+    quad = next(loops for loops in r.rings.values() if 0 in loops["outer"].tolist())
+    assert _same_cycle(quad["outer"], [0, 1, 2, 4, 3])
+    assert abs(area(r.mesh) - area(m)) <= 1e-9 * area(m)
+
+
+def test_a_vertex_a_print_step_off_the_edge_is_left_alone():
+    """Threading moves a border onto the vertex, so a vertex really off the edge -- here one X/Y
+    print step, 0.01 in -- is not threaded: that would change the surface, not split an edge."""
+    m = slab_beside_gridded_neighbour()
+    m.positions[5, 1] += 0.01                    # (20, 20.01): off the slab's top edge
+    assert _t_vertices(m) == {4, 6}
+    r = merged(m)
+    slab = next(loops for loops in r.rings.values() if 0 in loops["outer"].tolist())
+    assert _same_cycle(slab["outer"], [0, 1, 2, 6, 4, 3])
+    assert (r.report["t_vertices_before"], r.report["t_vertices_after"]) == (2, 0)
+
+
+def test_a_copied_through_triangle_with_vertices_on_its_edge_is_split_into_a_fan():
+    m = triangle_under_gridded_slab()
+    assert _t_vertices(m) == {1, 2, 3}
+    r = merged(m)
+    assert r.report["faces_copied"] == 1         # still ONE face copied through, now in 4 rows
+    rows = [i for i, s in enumerate(r.source_faces) if s.tolist() == [16]]
+    fan = r.mesh.face_v[rows]
+    assert sorted(sorted(int(v) for v in f) for f in fan) == [[0, 1, 15], [1, 2, 15],
+                                                             [2, 3, 15], [3, 4, 15]]
+    p = r.mesh.positions[fan]
+    assert (np.cross(p[:, 1] - p[:, 0], p[:, 2] - p[:, 0])[:, 2] > 0).all()   # wound as before
+    assert (r.face_region[rows] == -1).all() and (r.mesh.face_material[rows] == 1).all()
+    # every corner keeps the triangle's own texture mapping: uv = xy * 0.05 on this fixture
+    assert np.allclose(r.mesh.uvs[r.mesh.face_vt[rows]], p[:, :, :2] * 0.05, atol=1e-12)
+    assert _t_vertices(r.mesh) == set()
+    assert (r.report["t_vertices_before"], r.report["t_vertices_after"],
+            r.report["edges_split"]) == (3, 0, 1)
+    assert np.array_equal(r.mesh.positions, m.positions) and used(r.mesh) <= used(m)
+    assert abs(area(r.mesh) - area(m)) <= 1e-9 * area(m)
+
+
+def test_a_used_vertex_on_a_merged_regions_diagonal_splits_the_triangles_beside_it():
+    """The wall stands on the slab's centre, which lies on the diagonal the merged square's two
+    triangles share. The polygon keeps its four corners; its triangles fan around the centre."""
+    m = slab_with_a_wall_foot_on_its_diagonal()
+    centre = 5 * 11 + 5                          # grid vertex (50, 50), the wall's foot welds to it
+    r = merged(m)
+    slab = [i for i in range(r.mesh.n_faces) if r.face_region[i] >= 0]
+    assert len(slab) == 4 and all(centre in r.mesh.face_v[i].tolist() for i in slab)
+    loops = r.rings[slab[0]]
+    assert _same_cycle(loops["outer"], [0, 10, 120, 110]) and loops["inners"] == []
+    assert _t_vertices(r.mesh) == set()
+    assert (r.report["t_vertices_after"], r.report["edges_split"]) == (0, 1)
+    assert abs(area(r.mesh) - area(m)) <= 1e-9 * area(m)
+    assert np.array_equal(r.mesh.positions, m.positions) and used(r.mesh) <= used(m)
+
+
+@pytest.mark.parametrize("build", [slab_beside_gridded_neighbour, triangle_under_gridded_slab,
+                                   slab_with_a_wall_foot_on_its_diagonal])
+def test_threading_is_deterministic(build):
+    m = build()
+    t = analyse_topology(m, frozenset())
+    a, b = merge_regions(m, t), merge_regions(m, t)
+    assert a.report["edges_split"] >= 1          # the threaded path is the one under test
+    for name in ("face_v", "face_vt", "face_vn", "face_material", "face_line", "uvs", "normals"):
+        assert np.array_equal(getattr(a.mesh, name), getattr(b.mesh, name))
+    assert a.report == b.report
+    assert [x.tolist() for x in a.source_faces] == [x.tolist() for x in b.source_faces]
+    assert np.array_equal(a.face_region, b.face_region)
+    loops = lambda r: {k: (v["outer"].tolist(), [i.tolist() for i in v["inners"]])
+                       for k, v in r.rings.items()}
+    assert loops(a) == loops(b)
+
+
+def test_the_thread_tolerance_is_a_hundred_thousandth_of_the_coarsest_print_step():
+    assert merge_module.THREAD_TOL_QUANTA == 1e-5
+    assert merge_module.thread_tolerance(np.array([0.01, 0.1, 0.01])) == pytest.approx(1e-6)
