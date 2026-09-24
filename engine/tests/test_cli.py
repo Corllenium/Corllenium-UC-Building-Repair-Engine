@@ -746,3 +746,25 @@ def test_cmd_fix_no_skp_writes_no_skp(tmp_path):
     assert _skp_report(out_root, m.name) == {"written": False, "reason": "disabled by --no-skp"}
     assert not (out_root / m.name / f"{m.name}.fixed.skp").exists()
     assert not skp_dir.exists()
+
+
+def test_cmd_fix_reports_the_lines_the_skp_hides_and_the_edges_it_shows(tmp_path, capsys):
+    _sketchup_or_skip()
+    m = box_with_partition()
+    snap_dir = _write_snapshot(tmp_path, m)
+    out_root = tmp_path / "out"
+
+    assert cli.cmd_fix(snap_dir, out_root, accept_slit=False, profile=_FAST) == 0
+
+    [line] = [ln for ln in capsys.readouterr().out.splitlines() if ".fixed.skp:" in ln]
+    assert "6 faces, 0 edges hidden, 0 lines left inside surfaces, copied to nowhere" in line
+    skp = _skp_report(out_root, m.name)
+    assert (skp["coplanar_edges_softened"], skp["tjunction_lines_softened"],
+            skp["soft_only_edges"]) == (0, 0, 0)
+    # the fixed box: 6 quads, and every one of its 12 edges is where two of them meet at 90 deg
+    assert {k: skp[k] for k in ("visible_border_edges", "visible_angled_edges",
+                                "visible_shape_edges", "visible_material_borders",
+                                "visible_nonmanifold_edges", "visible_lines_inside_surfaces")} == {
+        "visible_border_edges": 0, "visible_angled_edges": 0, "visible_shape_edges": 12,
+        "visible_material_borders": 0, "visible_nonmanifold_edges": 0,
+        "visible_lines_inside_surfaces": 0}
