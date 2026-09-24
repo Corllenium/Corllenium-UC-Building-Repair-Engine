@@ -687,3 +687,61 @@ def test_main_loads_the_profile_file_for_cmd_fix(monkeypatch, tmp_path):
     monkeypatch.setattr(cli, "cmd_fix", fake)
     assert cli.main(["fix", "snap", "--profile", str(p)]) == 0
     assert seen["profile"].n_dirs == 32
+
+
+def test_build_parser_ingest_and_batch_defaults():
+    p = cli.build_parser()
+    a = p.parse_args(["ingest", "--source", "s", "--manifest", "m", "--building", "CHTM", "--map", "f.json"])
+    assert (a.command, a.source, a.manifest, a.building, a.map, a.out) == ("ingest", "s", "m", "CHTM", "f.json", "data/snapshots")
+    b = p.parse_args(["batch", "--building", "CHTM"])
+    assert (b.command, b.snapshots, b.out, b.jobs, b.profile, b.resume) == ("batch", "data/snapshots", "data/output", 1, None, True)
+    b2 = p.parse_args(["batch", "--building", "CHTM", "--jobs", "2", "--profile", "p.json", "--no-resume"])
+    assert (b2.jobs, b2.profile, b2.resume) == (2, "p.json", False)
+
+
+def test_main_dispatches_to_cmd_ingest(monkeypatch):
+    seen = {}
+
+    def fake(*args):
+        seen["args"] = args
+        return 0
+
+    monkeypatch.setattr(cli, "cmd_ingest", fake)
+    assert cli.main(["ingest", "--source", "s", "--manifest", "m", "--building", "CHTM", "--map", "f.json"]) == 0
+    assert seen["args"] == (Path("s"), Path("m"), "CHTM", Path("f.json"), Path("data/snapshots"))
+
+
+def test_main_dispatches_to_cmd_batch(monkeypatch):
+    seen = {}
+
+    def fake(*args):
+        seen["args"] = args
+        return 0
+
+    monkeypatch.setattr(cli, "cmd_batch", fake)
+    assert cli.main(["batch", "--building", "CHTM", "--jobs", "2", "--profile", "p.json"]) == 0
+    assert seen["args"] == ("CHTM", Path("data/snapshots"), Path("data/output"), 2, Path("p.json"), True)
+
+
+def test_cmd_batch_exit_code_follows_the_results(monkeypatch, tmp_path, capsys):
+    from engine.batch import BatchItem, BatchResult
+    monkeypatch.setattr(cli, "discover_items", lambda root, b: [BatchItem("A", tmp_path), BatchItem("B", tmp_path)])
+    results = [BatchResult("A", 0, "out/a", True, "t0", "t1"), BatchResult("B", 2, "out/b", False, "t0", "t1")]
+    monkeypatch.setattr(cli, "run_batch", lambda *a, **k: results)
+    assert cli.cmd_batch("CHTM", tmp_path, tmp_path / "out", 1, None, True) == 2
+    out = capsys.readouterr().out
+    assert "PASS" in out and "FAIL" in out and "1/2 passed" in out
+    monkeypatch.setattr(cli, "run_batch", lambda *a, **k: results[:1])
+    assert cli.cmd_batch("CHTM", tmp_path, tmp_path / "out", 1, None, True) == 0
+
+
+def test_cmd_ingest_exit_code_follows_the_rows(monkeypatch, tmp_path, capsys):
+    from engine.ingest import IngestRow
+    rows = [IngestRow("A", "a", "GF", "floor", "ok", tris=3),
+            IngestRow("B", "b", "2F", "floor", "missing", detail="no file")]
+    monkeypatch.setattr(cli, "ingest_building", lambda *a, **k: rows)
+    assert cli.cmd_ingest(tmp_path, tmp_path / "m", "CHTM", tmp_path / "f.json", tmp_path / "snap") == 2
+    out = capsys.readouterr().out
+    assert "missing" in out and "no file" in out and "1/2 snapshotted" in out
+    monkeypatch.setattr(cli, "ingest_building", lambda *a, **k: rows[:1])
+    assert cli.cmd_ingest(tmp_path, tmp_path / "m", "CHTM", tmp_path / "f.json", tmp_path / "snap") == 0

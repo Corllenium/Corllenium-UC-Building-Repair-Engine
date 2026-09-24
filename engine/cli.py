@@ -34,11 +34,13 @@ from pathlib import Path
 import numpy as np
 from PIL import Image
 
+from engine.batch import discover_items, run_batch
 from engine.fixes.pipeline import FixProfile, FixResult, fix_object, guard_depth_tol
 from engine.guard.compare import GuardReport, ViewVerdict, classify_pixels, face_planes
 from engine.guard.qa_render import polygon_edges, write_qa_sheet
 from engine.guard.render import save_triptych
 from engine.guard.views import VIEWS_26, ortho_first_hit
+from engine.ingest import ingest_building
 from engine.io.mtl import MtlMaterial, parse_mtl, texture_flatness
 from engine.io.obj_reader import read_obj
 from engine.io.obj_writer import write_obj, write_obj_polygons
@@ -613,6 +615,28 @@ def cmd_preview_data(snapshot_dir: Path, out_dir: Path, profile: FixProfile | No
     return 0
 
 
+def cmd_ingest(source_dir: Path, manifest_path: Path, building: str, map_path: Path, out_root: Path) -> int:
+    rows = ingest_building(source_dir, manifest_path, building, map_path, out_root)
+    for r in rows:
+        tris = "" if r.tris is None else str(r.tris)
+        print(f"{r.status:18s} {r.canonical:45s} {tris:>8s} {r.detail}")
+    bad = [r for r in rows if r.status not in ("ok", "unlisted")]
+    print(f"{building}: {len(rows) - len(bad)}/{len(rows)} snapshotted -> {Path(out_root) / building}")
+    return 0 if not bad else 2
+
+
+def cmd_batch(building: str, snapshot_root: Path, out_root: Path, jobs: int,
+              profile_path: Path | None, resume: bool) -> int:
+    items = discover_items(snapshot_root, building)
+    results = run_batch(items, Path(out_root) / building, jobs=jobs, profile_path=profile_path,
+                        resume=resume)
+    for r in results:
+        print(f"{'PASS' if r.passed else 'FAIL'} exit={r.exit_code} {r.canonical:45s} {r.out_dir}{(' ' + r.error) if r.error else ''}")
+    n_pass = sum(1 for r in results if r.passed)
+    print(f"{building}: {n_pass}/{len(results)} passed -> {Path(out_root) / building}")
+    return 0 if results and n_pass == len(results) else 2
+
+
 # ------------------------------------------------------------------------------------------ main
 
 
@@ -637,6 +661,22 @@ def build_parser() -> argparse.ArgumentParser:
                            help="do not close slabs with skirts and bottoms before fixing")
     preview_p.add_argument("--out", default="preview/data")
 
+    ingest_p = sub.add_parser("ingest", help="snapshot every mapped object of a building from a split export folder")
+    ingest_p.add_argument("--source", required=True, help="folder of per-object OBJs (the CKPT17 split folder)")
+    ingest_p.add_argument("--manifest", required=True, help="_MANIFEST.txt with file / tris / group columns")
+    ingest_p.add_argument("--building", required=True)
+    ingest_p.add_argument("--map", required=True, help="floor_map.json (schema corllenium.floor_map/1)")
+    ingest_p.add_argument("--out", default="data/snapshots")
+
+    batch_p = sub.add_parser("batch", help="run `fix` over every snapshot an ingest produced, one subprocess each")
+    batch_p.add_argument("--building", required=True)
+    batch_p.add_argument("--snapshots", default="data/snapshots")
+    batch_p.add_argument("--out", default="data/output")
+    batch_p.add_argument("--jobs", type=int, default=1)
+    batch_p.add_argument("--profile", default=None, help="JSON FixProfile overrides passed to every fix")
+    batch_p.add_argument("--no-resume", dest="resume", action="store_false",
+                         help="re-run objects that batch_state.json already records as passed")
+
     return parser
 
 
@@ -651,6 +691,12 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "preview-data":
         return cmd_preview_data(Path(args.snapshot_dir), Path(args.out),
                                 solidify=args.solidify)
+    if args.command == "ingest":
+        return cmd_ingest(Path(args.source), Path(args.manifest), args.building, Path(args.map),
+                          Path(args.out))
+    if args.command == "batch":
+        return cmd_batch(args.building, Path(args.snapshots), Path(args.out), args.jobs,
+                         Path(args.profile) if args.profile else None, args.resume)
     return 1
 
 
