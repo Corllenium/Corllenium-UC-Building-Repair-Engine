@@ -724,6 +724,8 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
                 if (np.abs(normals[topo.face_region == r][:, 2]) > top_min_nz).all()}
     queue = list(regions)
     queued = set(regions)
+    sky = set(regions)
+    not_tops: set[int] = set()
     continued_tops = 0
     while queue:
         region = queue.pop(0)
@@ -743,21 +745,34 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
                    _outward(foot, topo.positions_w[a], topo.positions_w[b], centroid))
                   for a, b in edges]
         real = [i for i, f in enumerate(frames) if f[2] is not None]
+        own, along = _own_side_rows(topo, rings, sides, 2.0 * tol)
+        # SR6 item 2: own sides are measured BELOW their edge (a riser standing up measures 0),
+        # and the slab's representative depth is what most of their length reaches; a lip
+        # shallower than that measures no edge's height and caps no bottom
+        row_depth, runs = _own_side_depths(topo, along, sides, tol)
         continued = np.zeros(len(edges), bool)
         verdict, met = _continues(topo, ok_ids, caster, normals, [frames[i] for i in real],
                                   top_min_nz, 2.0 * tol)
         continued[real] = verdict
+        met_regions = {i: {int(topo.face_region[f]) for f in faces_met}
+                       for i, faces_met in zip(real, met) if faces_met}
         into = sorted({int(topo.face_region[f]) for faces_met in met for f in faces_met}
                       & top_like - queued)
         for other in into:
             queued.add(other)
             queue.append(other)
             continued_tops += 1
-        own, along = _own_side_rows(topo, rings, sides, 2.0 * tol)
-        # SR6 item 2: own sides are measured BELOW their edge (a riser standing up measures 0),
-        # and the slab's representative depth is what most of their length reaches; a lip
-        # shallower than that measures no edge's height and caps no bottom
-        row_depth, runs = _own_side_depths(topo, along, sides, tol)
+        # SR6 item 3: a region a top runs into, which sees no sky itself, is a top only if its
+        # own sides hang BELOW it. A slab's UNDERSIDE, met in its plane by a top's edge, has
+        # every own side standing up to the slab's top above it: 64 regions of file A and 5 of
+        # file B, each with a surface above every face and nothing below. Taken for tops, each
+        # got a bottom invented under the real underside, which the cap guard let through (it
+        # read the space under the "top" as the slab's inside) and which hid the real underside
+        # for the hidden pass to delete. It is not planned -- but the search goes on through it,
+        # as it did, so the tops beyond it are still found.
+        if region not in sky and row_depth and max(row_depth.values()) <= tol:
+            not_tops.add(region)
+            continue
         rep = _representative_depth(runs)
         measured = _edge_thickness(topo, edges, own, along, side_low, vertex_sides, row_depth,
                                    None if rep is None else rep - tol)
@@ -765,9 +780,16 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
         plans.append({"region": region, "members": members, "pieces": pieces, "normal": normal,
                       "origin": origin, "basis": basis, "foot": foot, "edges": edges,
                       "frames": frames, "continued": continued, "measured": measured,
-                      "own_depths": own_depths, "rep": rep})
+                      "own_depths": own_depths, "rep": rep, "met_regions": met_regions})
 
-    top_faces = np.nonzero(np.isin(topo.face_region, sorted(queued)))[0]
+    # ...and an edge whose top ran on only into undersides does not continue at all: it is a
+    # side, walled like any other (the plate beside the box in `slab_beside_a_lower_top`)
+    for plan in plans:
+        for i, into_regions in plan["met_regions"].items():
+            if plan["continued"][i] and into_regions <= not_tops:
+                plan["continued"][i] = False
+
+    top_faces = np.nonzero(np.isin(topo.face_region, sorted(queued - not_tops)))[0]
     faces = _Faces(topo, top_faces)
 
     # the file-wide fallback height, from the edges that are sides at all
@@ -980,7 +1002,8 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
             replaced_group=replaced_group, new_group=new_group, side_band=band,
             volumes=volumes, group_region=np.asarray(group_region, np.int64),
             parallel_interior_ok=parallel_ok, shell_faces=shell_faces,
-            refused_before=coincident)
+            refused_before=coincident,
+            piece_cover=_bottom_piece_cover(solid, new_group, replaced_group, group_kind))
     replaced = np.asarray(detail["replaced"], bool)
 
     # a group is kept whole when every one of its new faces survived the cap guard
@@ -1004,8 +1027,12 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
     report = {
         "regions_processed": len(plans),
         #: SR2. Regions processed as tops because a top continues into them, though they see
-        #: no sky (a floor running on under an upper landing): part of the same slab.
+        #: no sky (a floor running on under an upper landing): part of the same slab. Counted
+        #: when queued; `undersides_not_tops` of them were then found to be undersides.
         "top_regions_continued": continued_tops,
+        #: SR6 item 3. Regions a top ran into that are a slab's UNDERSIDE (no sky, every own
+        #: side standing up from their outline): not processed, nothing built under them.
+        "undersides_not_tops": len(not_tops),
         #: Outline edges of top surfaces the export left OPEN (edge count 1) -- what the first
         #: solidify walled. Informational since SR2, which walls what is missing or broken.
         "open_outline_edges": open_edge_count,
@@ -1273,7 +1300,14 @@ def _interior_test(volumes: dict, new_group: np.ndarray, group_region: np.ndarra
 
     `volumes` maps a region to `(foot, normal, origin, depth, under)`. With `under`, the plane
     `z = a x + b y + c` of the slab's lower surface (SR6 item 1), the bottom is that surface
-    rather than the top lowered by `depth`: a wedge's volume deepens with its slope."""
+    rather than the top lowered by `depth`: a wedge's volume deepens with its slope.
+
+    A point within `EPS_IN` of the top or the bottom plane lies ON it, and is inside (SR6). The
+    point judged for a face lying on the new bottom's own plane -- a real partial bottom the
+    bottom replaces -- is the hit point itself, and measured it came out 3.05e-6 in below file
+    A's lower-landing bottom (all 4,395 of them) and 3.4e-4 to 7.9e-4 in outside file B's ramp
+    and its neighbours: the precision of a ray hit on quantised coordinates. Judged "below the
+    bottom" they refused half of that bottom, round after round."""
     order = sorted(volumes)
 
     def interior(face_ids: np.ndarray, points_c: np.ndarray) -> np.ndarray:
@@ -1289,11 +1323,11 @@ def _interior_test(volumes: dict, new_group: np.ndarray, group_region: np.ndarra
             below_top = top - z
             if under is not None:
                 depth = top - (under[0] * x + under[1] * y + under[2])
-            inside |= over & (below_top >= 0.0) & (below_top <= depth)
+            inside |= over & (below_top >= -EPS_IN) & (below_top <= depth + EPS_IN)
             mine = own_region == region
             if mine.any():
                 code = np.where(~over, INTERIOR_OUTSIDE_FOOTPRINT,
-                                np.where(below_top < 0.0, INTERIOR_AT_OR_ABOVE_TOP,
+                                np.where(below_top < -EPS_IN, INTERIOR_AT_OR_ABOVE_TOP,
                                          INTERIOR_BELOW_BOTTOM))
                 own_code[mine] = code[mine]
         return np.where(inside, INTERIOR_INSIDE, own_code)
@@ -1345,6 +1379,31 @@ def _coincident_new_faces(solid: MeshData, new_faces: np.ndarray, new_group: np.
     return out
 
 
+def _bottom_piece_cover(solid: MeshData, new_group: np.ndarray, replaced_group: np.ndarray,
+                        group_kind: list[str]) -> dict[int, np.ndarray]:
+    """SR6. Per piece of a BOTTOM, the faces of that bottom lying over it (overlapping it seen
+    from above by more than a thousandth of the smaller one's area): the cap guard gives the
+    piece back only when one of THESE is refused, not when any face of a bottom that may span
+    the whole slab is. A wall has two faces and keeps the group rule."""
+    out: dict[int, np.ndarray] = {}
+    tri = solid.positions[solid.face_v]
+    for g, kind in enumerate(group_kind):
+        if kind != "bottom":
+            continue
+        faces = np.nonzero(new_group == g)[0]
+        pieces = np.nonzero(replaced_group == g)[0]
+        if not len(faces) or not len(pieces):
+            continue
+        polys = shapely.polygons(tri[faces][:, :, :2])
+        areas = shapely.area(polys)
+        for p in pieces:
+            mine = shapely.Polygon(tri[p][:, :2])
+            shared = shapely.area(shapely.intersection(polys, mine))
+            over = shared > np.maximum(1e-4, 1e-3 * np.minimum(areas, mine.area))
+            out[int(p)] = faces[over]
+    return out
+
+
 def _cap_guard(original: MeshData, solid: MeshData, new_faces: np.ndarray,
                 guard_size: tuple[int, int], n_dirs: int = 128,
                 cover_max_exposure: float = 0.10, max_rounds: int = 8, *,
@@ -1353,7 +1412,8 @@ def _cap_guard(original: MeshData, solid: MeshData, new_faces: np.ndarray,
                 group_region: np.ndarray | None = None,
                 parallel_interior_ok: np.ndarray | None = None,
                 shell_faces: np.ndarray | None = None,
-                refused_before: np.ndarray | None = None):
+                refused_before: np.ndarray | None = None,
+                piece_cover: dict | None = None):
     """Render the original and the solidified mesh over `VIEWS_26` and drop every new face the
     cap rule refuses, and every original face a kept closing face replaces (see
     `engine.guard.compare.solidify_feedback`). Returns
@@ -1390,7 +1450,7 @@ def _cap_guard(original: MeshData, solid: MeshData, new_faces: np.ndarray,
         max_rounds=max_rounds, replaced_group=replaced_group, new_group=new_group,
         side_band=side_band, interior=interior, back_exposure_before=back,
         parallel_interior_ok=parallel_interior_ok, shell_faces=shell_faces,
-        refused_before=refused_before)
+        refused_before=refused_before, piece_cover=piece_cover)
     removed = int((~keep & new_faces).sum())
     if keep.all():
         return solid, new_faces, history, 0, detail, keep

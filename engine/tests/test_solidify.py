@@ -1134,3 +1134,107 @@ def test_a_floor_below_a_thin_slab_is_not_its_lower_surface(monkeypatch):
     assert wall
     z = r.mesh.positions[r.mesh.face_v[wall]][:, :, 2]
     assert z.min() == pytest.approx(-2.0)
+
+
+# ------------------------------------------ SR6 item 3: an underside is not a top a top runs into
+
+
+def test_an_underside_met_in_a_tops_plane_is_not_taken_for_a_top():
+    """File A's merge was rolled back on a pixel where faces of region 57 had been deleted. Region
+    57 is no top: it is a slab's UNDERSIDE (every face has the slab's own top 9.83 in above it and
+    nothing below), met in its plane by a top's edge, so SR2's continuation took it for a top
+    running on -- and built a bottom 2 in below it, which the cap guard allowed (it read the space
+    under the "top" as the slab's inside) and which hid the real underside for the hidden pass to
+    delete. 64 regions of file A and 5 of file B are such undersides: every own side of each
+    stands UP from its outline, where a top that runs on under a landing (file A's regions 9 and
+    784) has its sides hanging below.
+
+    `slab_beside_a_lower_top`: the plate's x = 40 edge meets the box's underside plane. The
+    underside is not processed, nothing is built under the box, and its real underside is
+    neither replaced nor covered."""
+    from engine.tests.fixtures.build import slab_beside_a_lower_top
+    r = _solidified(slab_beside_a_lower_top())
+    new = np.nonzero(r.new_faces)[0]
+    tri = r.mesh.positions[r.mesh.face_v[new]]
+    assert [f for f, t in zip(new, tri) if t[:, 0].mean() < 40.0 - 1e-6] == []
+    assert r.report["undersides_not_tops"] == 1
+    assert not r.replaced[2] and not r.replaced[3]
+
+
+def test_a_top_edge_that_ran_into_an_underside_only_is_a_side(monkeypatch):
+    """The same plate with no side at the box: its x = 40 edge ran only into the box's underside,
+    which is no top, so it does not continue -- it is a side, and its 8 in wall is planned (on the
+    plan, guard bypassed: the cap guard judges the wall and the bottom each against a mesh that
+    lacks the other, and through the other's opening each covers the box's underside, outside the
+    plate)."""
+    from engine.tests.fixtures.build import slab_beside_a_lower_top
+    r = _planned(slab_beside_a_lower_top(), _FAST, monkeypatch)
+    assert r.report["edges_continued"] == 0
+    wall = [f for f in _plane_faces(r.mesh, 0, 40.0) if r.new_faces[f]]
+    assert wall
+    z = r.mesh.positions[r.mesh.face_v[wall]][:, :, 2]
+    assert z.max() == pytest.approx(0.0) and z.min() == pytest.approx(-8.0)
+    new = np.nonzero(r.new_faces)[0]
+    tri = r.mesh.positions[r.mesh.face_v[new]]
+    assert [f for f, t in zip(new, tri) if t[:, 0].mean() < 40.0 - 1e-6] == []
+
+
+def test_a_point_on_a_slabs_top_or_bottom_plane_is_inside_it():
+    """The cap guard judges the point in front of a covered hit, and for a face lying ON the new
+    bottom's plane -- a real partial bottom the bottom replaces -- that point is the hit point
+    itself. Measured, such points came out 3.05e-6 in below file A's lower landing bottom (every
+    one of 4,395) and 3.4e-4 to 7.9e-4 in outside file B's ramp and its neighbours: the precision
+    of a ray hit on quantised coordinates. Called "below the bottom", they refused half of file
+    A's lower-landing bottom, and each refusal gave the bottom's pieces back, so the next round
+    refused more. A point within `EPS_IN` of the top or bottom plane is on it: inside."""
+    from engine.guard.compare import INTERIOR_INSIDE
+    from engine.fixes.solidify import _interior_test
+    from engine.vis.exposure import EPS_IN
+    foot = shapely.box(0.0, 0.0, 40.0, 40.0)
+    shapely.prepare(foot)
+    volumes = {0: (foot, np.array([0.0, 0.0, 1.0]), np.array([0.0, 0.0, 0.0]), 12.0, None)}
+    interior = _interior_test(volumes, np.array([0, 0]), np.array([0]), np.zeros(3))
+    points = np.array([[10.0, 10.0, -12.0 - 3.05e-6],       # on the bottom plane
+                       [20.0, 20.0, 7.9e-4],                 # on the top plane
+                       [30.0, 30.0, -6.0]])                  # well inside
+    codes = interior(np.array([0, 0, 0]), points)
+    assert codes.tolist() == [INTERIOR_INSIDE] * 3
+    outside = interior(np.array([0, 0]), np.array([[10.0, 10.0, -12.0 - 2 * EPS_IN],
+                                                   [10.0, 10.0, 2 * EPS_IN]]))
+    assert INTERIOR_INSIDE not in outside.tolist()
+
+
+def test_a_bottom_face_refused_gives_back_only_the_pieces_it_covers(monkeypatch):
+    """File A's lower-landing bottom: one of its 33 faces lies over faces of the file's lower
+    level (regions 800 and 810) that straddle the landing's diagonal side, so it is refused as
+    coinciding with faces that are no piece of it -- rightly. But a group's pieces were only
+    replaced while EVERY face of the group was kept, so all 38 pieces of the landing's real
+    partial bottom came back, and 16 more bottom faces were refused for covering them: half the
+    bottom gone, 7,836 back-face pixels where it was.
+
+    A bottom's piece now comes back only when a face that covers it is refused. Here one bottom
+    face is refused by force, far from the strip: the strip is still replaced, and the faces over
+    it are kept."""
+    import engine.fixes.solidify as S
+    from engine.tests.fixtures.build import slab_with_a_bottom_strip
+    m = slab_with_a_bottom_strip()
+    real = S._coincident_new_faces
+
+    def refuse_the_far_one(solid, new_faces, new_group, replaced_group, ok_input, tol):
+        out = real(solid, new_faces, new_group, replaced_group, ok_input, tol)
+        tri = solid.positions[solid.face_v]
+        flat = np.abs(np.cross(tri[:, 1] - tri[:, 0], tri[:, 2] - tri[:, 0])[:, 2]) > 0.0
+        bottom = np.nonzero(new_faces & flat & np.isclose(tri[:, :, 2], -8.0).all(axis=1))[0]
+        far = bottom[np.argmax(tri[bottom][:, :, 0].min(axis=1))]
+        assert tri[far][:, 0].min() >= 20.0                 # it covers none of the strip
+        out[far] = True
+        return out
+
+    monkeypatch.setattr(S, "_coincident_new_faces", refuse_the_far_one)
+    r = _solidified(m)
+    assert r.replaced[14] and r.replaced[15]                 # the strip is still replaced
+    new = np.nonzero(r.new_faces)[0]
+    tri = r.mesh.positions[r.mesh.face_v[new]]
+    over_strip = [f for f, t in zip(new, tri) if np.isclose(t[:, 2], -8.0).all()
+                  and t[:, 0].max() <= 20.0 + 1e-6]
+    assert over_strip

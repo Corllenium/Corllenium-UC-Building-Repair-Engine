@@ -574,6 +574,49 @@ def _classify(before_depth: np.ndarray, before_tri: np.ndarray,
                      + np.where(np.isfinite(t), t, 0.0)[:, None] * np.asarray(direction, dtype=np.float64))
             within = border(point, gone) & np.isfinite(t)
             codes[shift] = np.where(within, PX_BORDER_SHIFT, PX_EDGE_FLICKER)
+
+    # ---- SR6: a hairline crack the merge OPENED is measured like any other border shift ------
+    # The crack test's mirror image: AFTER's centre ray went FURTHER than BEFORE's, or missed,
+    # through a gap narrower than the ring. No BEFORE ring ray can reproduce what AFTER's centre
+    # saw through a crack BEFORE never had, so the flicker test never passes and the measurement
+    # above never looked at the pixel. It is measured here instead -- and so is every ring ray
+    # around it whose verdict changed, because a crack is the ONLY thing that changed: BEFORE's
+    # hit point (a disappearance) or AFTER's (an appearance) against the other mesh, exactly as
+    # above, each within the same `border` tolerance, and AFTER's ring still meeting BEFORE's
+    # surface. A strip lost beside a new edge fails that (its changed ring rays lie up to the
+    # ring radius further out), as does a lost triangle (no AFTER ring ray meets the surface).
+    # Measured on file A: its merge was rolled back on a pixel whose AFTER centre ray missed
+    # through a 0.0001 in crack while all 16 ring rays saw the same in both meshes.
+    if (border is not None and ring is not None and origins is not None
+            and direction is not None):
+        opened = (_failing_base(codes, strict) & (codes == base) & hit_before
+                  & ((base == PX_HOLE) | (base == PX_MOVED_SAME_FLAT) | (base == PX_MOVED_OTHER))
+                  & (~hit_after | (after_depth > before_depth)))
+        if opened.any():
+            tri_b, point_b, tri_a, point_a = ring(opened)
+            centre_b = before_tri[opened]
+            still_there = _ring_matches(centre_b, mat_before[opened], planes_b[centre_b],
+                                        tri_a, point_a, mats_a[tri_a], depth_tol).any(axis=1)
+            # ray by ray: does each AFTER ring ray meet what the same BEFORE ring ray met?
+            hit_rb, hit_ra = tri_b >= 0, tri_a >= 0
+            plane = planes_b[tri_b]
+            off = np.abs(np.einsum("prk,prk->pr", point_a, plane[:, :, :3]) + plane[:, :, 3])
+            same = ((~hit_rb & ~hit_ra)
+                    | (hit_rb & hit_ra & (mats_b[tri_b] == mats_a[tri_a]) & (off <= depth_tol)
+                       & (np.linalg.norm(plane[:, :, :3], axis=2) > 0.0)))
+            direction_v = np.asarray(direction, dtype=np.float64)
+            gone_r = hit_rb & (~hit_ra | (np.einsum("prk,k->pr", point_a - point_b, direction_v)
+                                          > 0.0))
+            changed = ~same
+            ring_ok = np.ones(changed.shape, dtype=bool)
+            if changed.any():
+                where = np.nonzero(changed)
+                points = np.where(gone_r[where][:, None], point_b[where], point_a[where])
+                ring_ok[where] = border(points, gone_r[where])
+            point = (np.asarray(origins, dtype=np.float64)[opened]
+                     + before_depth[opened][:, None] * direction_v)
+            within = border(point, np.ones(len(point), dtype=bool)) & ring_ok.all(axis=1)
+            codes[opened] = np.where(still_there & within, PX_BORDER_SHIFT, codes[opened])
     return codes, base
 
 
@@ -1088,7 +1131,8 @@ def solidify_feedback(positions_c: np.ndarray, faces_before: np.ndarray, faces_a
                        back_exposure_before: np.ndarray | None = None,
                        parallel_interior_ok: np.ndarray | None = None,
                        shell_faces: np.ndarray | None = None,
-                       refused_before: np.ndarray | None = None
+                       refused_before: np.ndarray | None = None,
+                       piece_cover: dict | None = None
                        ) -> tuple[np.ndarray, list[dict], dict]:
     """The CAP GUARD: which of the faces `engine.fixes.solidify` invented may stay -- and, since
     SR2, which of the original faces it REPLACES may go.
@@ -1255,11 +1299,18 @@ def solidify_feedback(positions_c: np.ndarray, faces_before: np.ndarray, faces_a
 
     def removed_pieces() -> np.ndarray:
         """Bool over `faces_before`: replaced in the CURRENT state -- a piece whose group has
-        every new face kept, and which no round has restored."""
+        every new face kept, and which no round has restored. A piece `piece_cover` names
+        instead needs only the new faces that COVER it kept (SR6): one refused face of a bottom
+        gave all 38 pieces of file A's lower-landing bottom back, and 16 more of its faces were
+        then refused for covering them."""
         group_ok = np.ones(max(n_groups, 1), dtype=bool)
         grouped = is_new & (new_group >= 0)
         np.logical_and.at(group_ok, new_group[grouped], keep[grouped])
-        return piece_ok & group_ok[np.maximum(replaced_group, 0)]
+        out = piece_ok & group_ok[np.maximum(replaced_group, 0)]
+        for piece, cover in (piece_cover or {}).items():
+            if piece_ok[piece] and len(cover):
+                out[piece] = bool(keep[np.asarray(cover, dtype=np.int64)].all())
+        return out
 
     def measure():
         """Failing pixels, the new faces to refuse, the pieces to restore and the per-rule

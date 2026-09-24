@@ -1149,3 +1149,55 @@ def sloped_slab(length=80.0, width=40.0, rise=20.0, thickness=12.0, flat_undersi
         P += [[x0, 0, z_under(x0)], [x1, 0, z_under(x1)], [x1, W, z_under(x1)], [x0, W, z_under(x0)]]
         _quads(P, uvs, fv, fvt, fm, [(base, base + 1, base + 2, base + 3)])   # inner plate
     return _mesh("sloped_slab", P, uvs, fv, fvt, face_material=fm)
+
+
+def slab_beside_a_lower_top(size=40.0, box_height=10.0, plate_depth=8.0):
+    """SR6 item 3: a closed box (top at `z = box_height`, underside at `z = 0` facing down, four
+    sides) standing beside a lower top: a plate at `z = 0` over `size <= x <= 2 * size`, facing
+    up, skirted `plate_depth` down on its three free edges and with no bottom. The plate's
+    `x = size` edge lies in the box's underside plane, so solidify's continuation probe finds the
+    underside there -- the way 64 undersides of file A and 5 of file B were taken for tops a top
+    continues into, and each got a bottom invented below it.
+
+    Faces: 0-1 the box top, 2-3 its underside, 4-11 its four sides, 12-13 the plate, 14-19 the
+    plate's three skirts."""
+    s, H, D = size, box_height, plate_depth
+    P = [[0, 0, H], [s, 0, H], [s, s, H], [0, s, H],          # 0-3 the box top
+         [0, 0, 0], [s, 0, 0], [s, s, 0], [0, s, 0],          # 4-7 its underside
+         [2 * s, 0, 0], [2 * s, s, 0],                        # 8-9 the plate's far corners
+         [s, 0, -D], [2 * s, 0, -D], [2 * s, s, -D], [s, s, -D]]   # 10-13 the plate's skirt feet
+    uvs, fv, fvt, fm = [], [], [], []
+    _quads(P, uvs, fv, fvt, fm, [(0, 1, 2, 3),                    # box top, +z
+                                 (4, 7, 6, 5),                    # underside, -z
+                                 (4, 5, 1, 0),                    # y = 0, -y
+                                 (5, 6, 2, 1),                    # x = s, +x
+                                 (6, 7, 3, 2),                    # y = s, +y
+                                 (7, 4, 0, 3),                    # x = 0, -x
+                                 (5, 8, 9, 6),                    # the plate, +z
+                                 (10, 11, 8, 5),                  # plate y = 0, -y
+                                 (11, 12, 9, 8),                  # plate x = 2s, +x
+                                 (12, 13, 6, 9)])                 # plate y = s, +y
+    return _mesh("slab_beside_a_lower_top", P, uvs, fv, fvt, face_material=fm)
+
+
+
+def slab_with_a_bottom_strip(length=60.0, width=20.0, depth=8.0, strip=20.0):
+    """SR6: a slab `length x width`, its top in three quads (so its outline, and the bottom
+    triangulated from it, has corners along its long edges), its four sides `depth` deep, and no
+    bottom but a STRIP of it under `0 <= x <= strip`: pieces the new bottom replaces.
+
+    Faces: 0-5 the top, 6-13 the sides, 14-15 the strip."""
+    L, W, D = length, width, depth
+    third = L / 3.0
+    P = [[0, 0, 0], [third, 0, 0], [2 * third, 0, 0], [L, 0, 0],
+         [L, W, 0], [2 * third, W, 0], [third, W, 0], [0, W, 0],         # 0-7 the top
+         [0, 0, -D], [L, 0, -D], [L, W, -D], [0, W, -D],                 # 8-11 side feet
+         [strip, 0, -D], [strip, W, -D]]                                 # 12-13 the strip
+    uvs, fv, fvt, fm = [], [], [], []
+    _quads(P, uvs, fv, fvt, fm, [(0, 1, 6, 7), (1, 2, 5, 6), (2, 3, 4, 5),   # top, +z
+                                 (8, 9, 3, 0),                           # y = 0, -y
+                                 (9, 10, 4, 3),                          # x = L, +x
+                                 (10, 11, 7, 4),                         # y = W, +y
+                                 (11, 8, 0, 7),                          # x = 0, -x
+                                 (8, 11, 13, 12)])                       # the strip, -z
+    return _mesh("slab_with_a_bottom_strip", P, uvs, fv, fvt, face_material=fm)
