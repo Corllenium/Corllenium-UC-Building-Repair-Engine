@@ -129,7 +129,7 @@ def test_cmd_fix_exits_two_when_a_visible_face_is_wrongly_removed(tmp_path, monk
             continue
         for i, v in enumerate(guard["views"]):
             if any(v[k] for k in ("holes", "material_changed", "moved_other", "moved_same_flat",
-                                   "edge_flicker")):
+                                   "edge_flicker", "grown")):
                 expected.add(i)
     assert indices == expected and expected
 
@@ -800,3 +800,100 @@ def test_cmd_fix_reports_the_lines_the_skp_hides_and_the_edges_it_shows(tmp_path
         "visible_border_edges": 0, "visible_angled_edges": 0, "visible_shape_edges": 12,
         "visible_material_borders": 0, "visible_nonmanifold_edges": 0,
         "visible_lines_inside_surfaces": 0}
+
+
+# ---------------------------------------------------------------------------------------------
+# Review 2a Minor 1: the guard images and the preview know the guard's newer rules -- a removed
+# fragment's pixel is excused only where AFTER shows what was already outside (`exposed_after`),
+# per view up to `fragment_removed_cap`, and a pixel where surface APPEARED (`PX_GROWN`) fails.
+# ---------------------------------------------------------------------------------------------
+
+def _guard_image_codes(tmp_path, monkeypatch, result, profile):
+    """Run `_write_guard_images` for `result` and return `{png name: codes}` it drew."""
+    from engine.pipeline import flat_material_indices
+    captured = {}
+    monkeypatch.setattr(cli, "save_triptych",
+                        lambda path, before, after, codes, **kw: captured.update({path.name: codes}))
+    ref = result.reference_mesh
+    flat = flat_material_indices(ref, {}, profile.flat_texture_std)
+    topo = cli.analyse_topology(ref, flat)
+    centre = (topo.positions_w.min(axis=0) + topo.positions_w.max(axis=0)) / 2.0
+    cli._write_guard_images(ref, result, profile, flat, topo, topo.positions_w - centre, tmp_path)
+    return captured
+
+
+def test_guard_images_excuse_exactly_the_fragment_pixels_the_final_guard_excuses(tmp_path,
+                                                                                 monkeypatch):
+    """Experiment E-img: the run passes and its final guard excuses the stray's pixels, because
+    AFTER shows the slab's top there -- an outside surface on the reference. The images were drawn
+    without `exposed_after`, where only the sky excuses a debris pixel, so `guard_-z.png` painted
+    those same pixels as damage."""
+    from engine.guard.compare import PX_FRAGMENT_REMOVED
+    from engine.tests.fixtures.build import slab_with_strays
+    profile = replace(_FAST, solidify=False)
+    r = fix_pipeline.fix_object(slab_with_strays(), {}, profile)
+    assert r.passed and r.guard_final.totals["fragment_removed"] > 0
+    codes = _guard_image_codes(tmp_path, monkeypatch, r, profile)
+    top = cli.VIEWS_26.index(next(v for v in cli._AXIS_VIEWS if cli._axis_name(v) == "-z"))
+    assert r.guard_final.views[top].fragment_removed > 0         # the premise: seen from above
+    for view in cli._AXIS_VIEWS:
+        drawn = codes[f"guard_{cli._axis_name(view)}.png"]
+        assert (int((drawn == PX_FRAGMENT_REMOVED).sum())
+                == r.guard_final.views[cli.VIEWS_26.index(view)].fragment_removed)
+
+
+def test_guard_images_apply_the_per_view_fragment_cap(tmp_path, monkeypatch):
+    """Over `fragment_removed_cap` the real guard judges a view's debris pixels as what they are,
+    so the image must too, or it shows as excused exactly what made the view fail."""
+    from engine.guard.compare import PX_FRAGMENT_REMOVED, PX_MOVED_SAME_FLAT
+    from engine.tests.fixtures.build import slab_with_strays
+    profile = replace(_FAST, solidify=False)
+    r = fix_pipeline.fix_object(slab_with_strays(), {}, profile)
+    loose = _guard_image_codes(tmp_path, monkeypatch, r, profile)["guard_-z.png"]
+    capped = _guard_image_codes(tmp_path, monkeypatch, r,
+                                replace(profile, fragment_removed_cap=0.0))["guard_-z.png"]
+    excused = loose == PX_FRAGMENT_REMOVED
+    assert excused.any() and not (capped == PX_FRAGMENT_REMOVED).any()
+    assert (capped[excused] == PX_MOVED_SAME_FLAT).all()          # the slab's top, 20 in below
+
+
+def _with_growth(monkeypatch, view, count):
+    """Make `fix_object` hand the CLI final and merge guards that counted `count` GROWN pixels in
+    `view` and nothing else wrong anywhere."""
+    real = fix_pipeline.fix_object
+
+    def grown(mesh, flatness, profile_in):
+        result = real(mesh, flatness, profile_in)
+        views = [replace(v, grown=count if i == view else 0) for i, v in
+                 enumerate(result.guard_final.views)]
+        report = GuardReport(views=views, passed=False,
+                             totals=dict(result.guard_final.totals, grown=count))
+        return replace(result, guard_final=report, guard_merge_attempt=report)
+
+    monkeypatch.setattr(cli, "fix_object", grown)
+
+
+def test_a_view_failing_only_on_growth_gets_its_failing_view_image(tmp_path, monkeypatch):
+    m = box_with_partition()
+    snap_dir = _write_snapshot(tmp_path, m)
+    _with_growth(monkeypatch, view=7, count=3)
+    cli.cmd_fix(snap_dir, tmp_path / "out", accept_slit=False, profile=_FAST, skp=False)
+    out_dir = tmp_path / "out" / m.name
+    assert sorted(p.name for p in out_dir.glob("guard_fail_*.png")) == ["guard_fail_7.png"]
+    report = json.loads((out_dir / "report.json").read_text(encoding="utf-8"))
+    assert report["guard_final"]["views"][7]["grown"] == 3        # ...and report.json says why
+    assert report["guard_final"]["views"][7]["edge_flicker_grown"] == 0
+    assert "border_shift" in report["guard_final"]["views"][7]
+
+
+def test_preview_data_counts_grown_pixels_as_damage(tmp_path, monkeypatch):
+    """Growth fails the guard like a hole, so the page's damaged count has to include it -- or it
+    shows FAILED next to 0 damaged px."""
+    m = box_with_partition()
+    snap_dir = _write_snapshot(tmp_path, m)
+    _with_growth(monkeypatch, view=7, count=5)
+    out_dir = tmp_path / "preview_out"
+    cli.cmd_preview_data(snap_dir, out_dir, profile=_FAST)
+    stats = json.loads((out_dir / f"{m.name}.json").read_text(encoding="utf-8"))["stats"]
+    assert stats["guard_passed"] is False
+    assert stats["guard_damaged_px"] == 5

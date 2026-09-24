@@ -14,8 +14,9 @@ from pathlib import Path
 import numpy as np
 from PIL import Image
 
-from engine.guard.compare import (PX_CRACK_CLOSED, PX_EDGE_FLICKER, PX_HOLE, PX_MATERIAL_CHANGED,
-                                   PX_MOVED_OTHER, PX_MOVED_SAME_FLAT, PX_ZFIGHT_TIE)
+from engine.guard.compare import (PX_CRACK_CLOSED, PX_EDGE_FLICKER, PX_GROWN, PX_HOLE,
+                                   PX_MATERIAL_CHANGED, PX_MOVED_OTHER, PX_MOVED_SAME_FLAT,
+                                   PX_ZFIGHT_TIE)
 
 _BG = (255, 255, 255)
 _MODEL = (222, 222, 226)
@@ -27,6 +28,9 @@ _TIE = (140, 90, 205)
 #: `PX_CRACK_CLOSED`: green. An improvement -- a sub-tolerance crack BEFORE leaked through and
 #: AFTER does not.
 _CRACK = (60, 160, 90)
+#: `PX_GROWN`: blue. Surface where BEFORE saw the sky -- a failure like a hole, drawn in its own
+#: colour (on the background, where BEFORE missed) so what appeared reads apart from what went.
+_GROWN = (40, 110, 220)
 
 #: One fixed directional light (arbitrary but stable), matching the preview page's own sun.
 _LIGHT = np.array([0.4, -0.5, 0.9])
@@ -70,6 +74,7 @@ def save_triptych(path, before: tuple[np.ndarray, np.ndarray], after: tuple[np.n
     | colour | classes | meaning |
     |---|---|---|
     | red `_FAIL` | `PX_HOLE`, `PX_MATERIAL_CHANGED`, `PX_MOVED_OTHER` | damage under any setting |
+    | blue `_GROWN` | `PX_GROWN` | damage under any setting: surface appeared where BEFORE saw the sky |
     | amber `_AMBER` | `PX_MOVED_SAME_FLAT`, `PX_EDGE_FLICKER` | reported, tolerated by SOME caller -- whether either actually failed depends on the run's strictness and that view's `edge_flicker_cap`, neither of which this module is given |
     | violet `_TIE` | `PX_ZFIGHT_TIE` | a pre-existing coplanar overlap swapped winners: never damage, but it marks a real defect for the overlap detector |
     | green `_CRACK` | `PX_CRACK_CLOSED` | an improvement: a sub-tolerance crack BEFORE leaked through and AFTER does not |
@@ -90,6 +95,7 @@ def save_triptych(path, before: tuple[np.ndarray, np.ndarray], after: tuple[np.n
     panel_diff[np.isin(verdict_mask, (PX_MOVED_SAME_FLAT, PX_EDGE_FLICKER))] = _AMBER
     panel_diff[verdict_mask == PX_ZFIGHT_TIE] = _TIE
     panel_diff[verdict_mask == PX_CRACK_CLOSED] = _CRACK
+    panel_diff[verdict_mask == PX_GROWN] = _GROWN
     panel_diff[np.isin(verdict_mask, (PX_HOLE, PX_MATERIAL_CHANGED, PX_MOVED_OTHER))] = _FAIL
 
     combo = np.concatenate([panel_before, panel_after, panel_diff], axis=1)

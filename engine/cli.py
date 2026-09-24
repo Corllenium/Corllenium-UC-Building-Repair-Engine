@@ -41,7 +41,8 @@ import numpy as np
 from PIL import Image
 
 from engine.fixes.pipeline import FixProfile, FixResult, fix_object, guard_depth_tol
-from engine.guard.compare import GuardReport, ViewVerdict, classify_pixels, face_planes
+from engine.guard.compare import (PX_FRAGMENT_REMOVED, GuardReport, ViewVerdict, classify_pixels,
+                                  face_planes)
 from engine.guard.qa_render import polygon_edges, write_qa_sheet
 from engine.guard.render import save_triptych
 from engine.guard.views import VIEWS_26, ortho_first_hit
@@ -128,7 +129,9 @@ def _view_verdict_dict(v: ViewVerdict) -> dict:
             "crack_closed": v.crack_closed, "edge_flicker": v.edge_flicker,
             "fragment_removed": v.fragment_removed,
             "edge_flicker_hole": v.edge_flicker_hole, "edge_flicker_moved": v.edge_flicker_moved,
-            "edge_flicker_material": v.edge_flicker_material}
+            "edge_flicker_material": v.edge_flicker_material,
+            "edge_flicker_grown": v.edge_flicker_grown, "border_shift": v.border_shift,
+            "grown": v.grown}
 
 
 def _guard_report_dict(g: GuardReport) -> dict:
@@ -226,10 +229,12 @@ def _failing_view_indices(result: FixResult, profile: FixProfile) -> list[int]:
 
     "Real failure" is exactly `engine.guard.compare.compare_views`' own per-view arithmetic, at
     the same strictness (`result.strict_final`) and the same cap that guard ran under: `holes`,
-    `material_changed` and `moved_other` always; `moved_same_flat` only when the run is strict;
-    `edge_flicker` only when it exceeds that view's `edge_flicker_cap * model_px`. The removal
-    guard always runs at cap 0.0, where a single flicker pixel is a failure; the merge attempt
-    and the final guard run at `profile.edge_flicker_cap_final`.
+    `material_changed`, `moved_other` and `grown` (surface where BEFORE saw the sky) always;
+    `moved_same_flat` only when the run is strict; `edge_flicker` only when it exceeds that
+    view's `edge_flicker_cap * model_px`. The removal guard always runs at cap 0.0, where a
+    single flicker pixel is a failure; the merge attempt and the final guard run at
+    `profile.edge_flicker_cap_final`. `grown` was missing here (review 2a), so a view that failed
+    on growth alone had no picture.
 
     Listing a view on `moved_same_flat` or `edge_flicker` ALONE, as this used to, meant a
     non-strict (`--accept-slit`) run wrote 13-18 triptychs of pixels the guard itself had already
@@ -245,7 +250,7 @@ def _failing_view_indices(result: FixResult, profile: FixProfile) -> list[int]:
         if guard is None:
             continue
         for index, v in enumerate(guard.views):
-            failures = v.holes + v.material_changed + v.moved_other
+            failures = v.holes + v.material_changed + v.moved_other + v.grown
             if result.strict_final:
                 failures += v.moved_same_flat
             if v.edge_flicker > cap * v.model_px:
@@ -265,11 +270,18 @@ def _write_guard_images(mesh: MeshData, result: FixResult, profile: FixProfile,
     also fails gets both names.
 
     Each triptych is BEFORE (original mesh, shaded), AFTER (final shipped mesh, shaded), DIFF
-    (failures red, tolerated moves amber). A diagnostic image, not the authoritative numbers --
-    it classifies each pixel on its own, with no ring, tie or crack re-check (see
-    `engine.guard.compare.classify_pixels`), so a handful of borderline boundary pixels the real
-    `guard_final` tolerated still show red here; report.json's own numbers are always the real
-    guard reports, not re-derived from these images.
+    (failures red, grown surface blue, tolerated moves amber). A diagnostic image, not the
+    authoritative numbers -- it classifies each pixel on its own, with no ring, tie or crack
+    re-check (see `engine.guard.compare.classify_pixels`), so a handful of borderline boundary
+    pixels the real `guard_final` tolerated still show red here; report.json's own numbers are
+    always the real guard reports, not re-derived from these images.
+
+    The pixels of faces the fragment pass removed ARE judged here the way the final guard judges
+    them: excused only where the shipped mesh shows the sky or a side the reference already
+    showed (`result.exposed_final`), and in a view with more of them than
+    `profile.fragment_removed_cap` allows, not excused at all. Drawn without `exposed_after`,
+    where only the sky excuses one, the images painted as damage pixels the real guard excused
+    (review 2a, experiment E-img: 6 in `guard_-z.png` of a passing run).
 
     AFTER is always the mesh that SHIPPED. A view listed because `guard_merge_attempt` failed
     therefore shows the rolled-back result, not the discarded merge candidate -- it says which
@@ -295,13 +307,23 @@ def _write_guard_images(mesh: MeshData, result: FixResult, profile: FixProfile,
                                  profile.guard_size, caster_before)
         after = ortho_first_hit(positions_c, face_w_after, ids_after, view, positions_c,
                                 profile.guard_size, caster_after)
-        # `removed_before`: the pixels the fragment pass removed ON PURPOSE are excused here
-        # exactly as the real guard excuses them, or every stray it deleted would paint red.
-        codes = classify_pixels(
-            before.depth, before.tri, after.depth, after.tri, mesh.face_material,
-            result.mesh.face_material, flat_materials, depth_tol, origins=before.origins,
-            direction=before.direction, plane_before=planes_before, plane_after=planes_after,
-            removed_before=result.removed_fragments)
+        # `removed_before` / `exposed_after`: the pixels the fragment pass removed ON PURPOSE are
+        # excused here exactly as the real guard excuses them -- or every stray it deleted would
+        # paint red -- and, like there, only where AFTER shows what was already outside.
+        def classify(removed):
+            return classify_pixels(
+                before.depth, before.tri, after.depth, after.tri, mesh.face_material,
+                result.mesh.face_material, flat_materials, depth_tol, origins=before.origins,
+                direction=before.direction, plane_before=planes_before, plane_after=planes_after,
+                removed_before=removed, exposed_after=result.exposed_final)
+
+        codes = classify(result.removed_fragments)
+        # ...and over the per-view cap they are judged as what they are, as `compare_views`
+        # does. Without `removed_before` nothing is stamped and, with no ring or tie here,
+        # nothing promoted, so this IS the class each of those pixels would have had.
+        excused = int((codes == PX_FRAGMENT_REMOVED).sum())
+        if excused and excused > profile.fragment_removed_cap * int((before.tri >= 0).sum()):
+            codes = classify(None)
         save_triptych(path, before, after, codes, normals_before=normals_before,
                      normals_after=normals_after)
 
@@ -564,8 +586,11 @@ def cmd_preview_data(snapshot_dir: Path, out_dir: Path, profile: FixProfile | No
     # the two pictures differ only by a boundary that moved less than the tolerance, and the
     # final guard tolerates it up to `edge_flicker_cap_final`. Adding it to a number the page
     # then labelled "damaged px" made the page report the opposite of what the guard decided.
+    # `grown` IS damage -- surface where the original showed sky fails like a hole -- and left
+    # out, a run failing on growth alone read "FAILED, 0 damaged px" (review 2a).
     guard_damaged_px = (guard_final["holes"] + guard_final["material_changed"]
-                        + guard_final["moved_other"] + guard_final["moved_same_flat"])
+                        + guard_final["moved_other"] + guard_final["moved_same_flat"]
+                        + guard_final["grown"])
     guard_flicker_px = guard_final["edge_flicker"]
 
     data = {

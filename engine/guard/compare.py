@@ -622,9 +622,10 @@ class ViewVerdict:
     #: Never a failure -- the whole point of that pass is that these pixels change. See
     #: `classify_pixels`.
     fragment_removed: int
-    #: `edge_flicker` split by the class each of those pixels was rescued FROM; the three always
-    #: sum to `edge_flicker`, so a report says whether a tolerated pixel was a would-be hole, a
-    #: would-be move (`moved_same_flat` or `moved_other`), or a would-be material swap.
+    #: `edge_flicker` split by the class each of those pixels was rescued FROM; the FOUR always
+    #: sum to `edge_flicker` -- with `edge_flicker_grown` below -- so a report says whether a
+    #: tolerated pixel was a would-be hole, a would-be move (`moved_same_flat` or
+    #: `moved_other`), a would-be material swap, or would-be growth.
     edge_flicker_hole: int
     edge_flicker_moved: int
     edge_flicker_material: int
@@ -633,7 +634,10 @@ class ViewVerdict:
     #: `edge_flicker` or its breakdown. Always 0 at the default tolerance of 0.0. See
     #: `classify_pixels`.
     border_shift: int
+    #: `PX_GROWN` pixels: BEFORE saw the sky, AFTER sees surface -- a failure, like a hole, that
+    #: no tolerated class rescued. See `classify_pixels`.
     grown: int = 0
+    #: The fourth part of `edge_flicker`'s breakdown: flicker pixels rescued from `PX_GROWN`.
     edge_flicker_grown: int = 0
 
 

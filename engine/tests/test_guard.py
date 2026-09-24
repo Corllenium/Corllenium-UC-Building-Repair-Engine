@@ -1287,6 +1287,32 @@ def test_save_triptych_gives_ties_and_closed_cracks_their_own_diff_colours(tmp_p
                 render_module._CRACK, render_module._FAIL}) == 5
 
 
+def test_save_triptych_gives_grown_pixels_their_own_diff_colour(tmp_path):
+    """Review 2a Minor 1(b): `PX_GROWN` (code 10) -- surface where BEFORE saw the sky -- fails like
+    a hole but had no colour at all, so a view failing only on growth drew a DIFF panel with
+    nothing on it. It gets its own colour, painted where BEFORE saw background, so what appeared
+    reads differently from what went."""
+    from PIL import Image
+
+    from engine.guard import render as render_module
+    from engine.guard.compare import PX_GROWN
+
+    before = (np.array([[5.0, np.inf, np.inf]]), np.array([[0, -1, -1]], np.int64))
+    after = (np.array([[5.0, 5.0, np.inf]]), np.array([[0, 0, -1]], np.int64))
+    codes = np.array([[PX_OK, PX_GROWN, PX_OK]], np.int64)
+
+    out = tmp_path / "grown.png"
+    save_triptych(out, before, after, codes)
+    diff = np.array(Image.open(out))[:, 6:, :]       # the third panel
+
+    assert tuple(diff[0, 0]) == render_module._MODEL
+    assert tuple(diff[0, 1]) == render_module._GROWN
+    assert tuple(diff[0, 2]) == render_module._BG
+    assert len({render_module._MODEL, render_module._AMBER, render_module._TIE,
+                render_module._CRACK, render_module._FAIL, render_module._BG,
+                render_module._GROWN}) == 7
+
+
 # ---------------------------------------------------------------------------
 # G1: `crack_closed` is capped per view, like flicker. Its own docstring names the limit --
 # damage NARROWER than the ring radius is indistinguishable from a crack the fix closed -- so a
