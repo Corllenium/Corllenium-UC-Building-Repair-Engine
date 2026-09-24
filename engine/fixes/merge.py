@@ -34,6 +34,13 @@ SNAP_TOL = 1e-3
 #: fifteenth of the 0.15 in a merged border may move (`default_collinear_tol`). No union
 #: coordinate farther than this from every vertex is ever read as one of them.
 SNAP_TOL_MAX = 1e-2
+#: A union ring whose mean width, `4 * area / perimeter`, is at most this many grid cells is a
+#: SLIVER of the union rather than a gap in the surface, and is closed whatever its corners snap
+#: to (`_is_sliver`, `_pieces`).
+SLIVER_CELLS = 2.0
+#: How many times a region sets aside the triangles that make a union corner no vertex explains
+#: and unions the rest again before it is given up whole as `new_vertex` (`_region_union`).
+MAX_SET_ASIDE_ROUNDS = 3
 #: The ring-simplification bound, in axis quanta: a ring vertex may only be dropped while the
 #: WHOLE original polyline between its surviving neighbours stays this close to the chord that
 #: replaces it. `1.5 * max(q)` is one and a half of the mesh's own print steps -- the same bound
@@ -85,11 +92,13 @@ def snap_tolerance(thickness: float, floor: float = SNAP_TOL) -> float:
     0 in thick and every coordinate of theirs lies within 3e-12 in of a vertex. The 66 others are
     0.008 in thick at the median, 0.11 in at most. 3,415 coordinates land within 7.1e-5 in (half
     a grid cell's diagonal) of a vertex, 24 more within 4.0e-4 in, and one at 0.0016 in: the apex
-    of file B's ramp, 0.0085 in thick, whose fan edges meet 0.3 to 4.4 degrees apart there. All
-    25 are tips at a vertex of a non-axis-aligned region, none beyond 0.19 of that region's
-    thickness; unions of subsets of the same ramp put its tips 0.0008 to 0.0053 in out, still
-    inside 0.0085. The one coordinate left is 7.87 in from every vertex (file A); no tolerance
-    reads that as a vertex (`_pieces`)."""
+    of file B's ramp, 0.0085 in thick, whose fan edges meet 0.3 to 4.7 degrees apart there. All
+    25 lie on non-axis-aligned regions, none beyond 0.19 of that region's thickness; 24 are tips
+    at a vertex (every edge within 2e-4 in of them ends at it, the narrowest angle there 0.3 to
+    37 degrees) and one, 8.9e-5 in out on file A's lattice, is a T-junction sliver's corner.
+    Unions of subsets of the same ramp put its tips up to 0.0053 in out, still inside 0.0085.
+    The one coordinate left is 7.87 in from every vertex (file A): the corner of a T-junction
+    sliver, which no tolerance should read as a vertex and `_pieces` closes instead."""
     return min(max(float(floor), float(thickness)), SNAP_TOL_MAX)
 
 
@@ -147,6 +156,9 @@ class _Plan:
     #: The snap tolerance the region's union was mapped back onto its vertices with
     #: (`snap_tolerance` of its own thickness).
     snap_tol: float = SNAP_TOL
+    #: ORIGINAL face indices set aside because their edges made a union corner no vertex
+    #: explains (`_region_union`); copied through, like rule 3's exclusions. Sorted.
+    set_aside: np.ndarray = field(default_factory=lambda: np.zeros(0, np.int64))
 
 
 def merge_regions(mesh: MeshData, topo: Topology, flat_materials: Iterable[int] = frozenset(),
@@ -177,10 +189,13 @@ def merge_regions(mesh: MeshData, topo: Topology, flat_materials: Iterable[int] 
     False. `report["merge_rounds"]` says how many rounds ran either way.
 
     `report` keys: `regions_merged`, `regions_skipped` (reason -> count, only non-zero reasons,
-    from `overlap` / `new_vertex` / `invalid_polygon` / `area_grew`), `tris_before`, `tris_after`,
-    `vertices_dropped` (welded vertices used by an input face and by no output face),
-    `max_area_rel_error`, `faces_copied`, `merge_rounds`, `keep_all_regions` (how many regions took
-    the `keep_all` fallback in any round of the loop) and `converged`.
+    from `overlap` / `new_vertex` / `invalid_polygon` / `area_grew`, each a region given up
+    WHOLE), `tris_before`, `tris_after`, `vertices_dropped` (welded vertices used by an input face
+    and by no output face), `max_area_rel_error`, `faces_copied`, `merge_rounds`,
+    `keep_all_regions` (how many regions took the `keep_all` fallback in any round of the loop),
+    `converged`, and `new_vertex_triangles_set_aside`: triangles copied through because their
+    edges made a union corner no vertex explains, in regions that merged without them
+    (`_region_union`). A region given up whole counts in `regions_skipped` only.
 
     `collinear_tol` is the ring-simplification bound (see `_ring_keep`); `None`, the default,
     derives it from the mesh's OWN print precision as `RING_TOL_QUANTA * max(topo.quanta)`
@@ -238,6 +253,7 @@ def merge_regions(mesh: MeshData, topo: Topology, flat_materials: Iterable[int] 
         "merge_rounds": int(rounds),
         "keep_all_regions": len(kept_whole | set(keep_all)),
         "converged": bool(converged),
+        "new_vertex_triangles_set_aside": int(sum(len(plan.set_aside) for plan, _t in builds)),
     })
     return out
 
@@ -249,29 +265,18 @@ def region_outline(topo: Topology, members: np.ndarray, grid_size: float = GRID_
     outline the merge will later rebuild the region from.
 
     `pieces` are `_Piece`s: each polygon of the union with its rings as WELDED vertex ids, every
-    ring a simple cycle of at least 3 and every sliver no three vertices can bound closed (see
-    `_pieces`). `None` when the region has no frame (no area), when every one of its triangles
-    is excluded by the overlap rule, when the union invented a vertex that no existing one is
-    within the region's snap tolerance of (`snap_tolerance` of its thickness, `snap_tol` the
-    floor), when the union is empty, or when an outer ring pinches into lobes no single polygon
+    ring a simple cycle of at least 3 and every sliver closed (see `_pieces`). They outline the
+    triangles the merge will rebuild: rule 3's exclusions and the triangles `_region_union` sets
+    aside are left out of the union here exactly as they are there. `None` when the region has no
+    frame (no area), when every one of its triangles is excluded by the overlap rule, when a union
+    corner no vertex explains outlasts `MAX_SET_ASIDE_ROUNDS` (or no triangle is left to set
+    aside), when the union is empty, or when an outer ring pinches into lobes no single polygon
     over existing vertices describes -- all of which a caller reports as one thing, "the outline
     could not be mapped back onto vertices this mesh has"."""
-    frame = _region_frame(topo.positions_w, topo.face_w, members)
-    if frame is None:
+    outline = _region_union(topo, members, grid_size, snap_tol)
+    if outline is None or not outline.pieces:
         return None
-    normal, origin, basis = frame
-    vertex_ids = np.unique(topo.face_w[members])
-    vertex_xy = (topo.positions_w[vertex_ids] - origin) @ basis
-    tol = snap_tolerance(_thickness(topo.positions_w[vertex_ids] - origin, normal), snap_tol)
-    tri_xy = vertex_xy[np.searchsorted(vertex_ids, topo.face_w[members])]
-    polys = shapely.polygons(np.concatenate([tri_xy, tri_xy[:, :1]], axis=1))
-    keep = ~_overlap_excluded(polys, shapely.area(polys))
-    if not keep.any():
-        return None
-    pieces = _pieces(_union(polys[keep], grid_size), vertex_xy, vertex_ids, tol)
-    if not pieces:
-        return None
-    return pieces, normal, origin, basis
+    return outline.pieces, outline.normal, outline.origin, outline.basis
 
 
 # --------------------------------------------------------------------------- pass 1: plan regions
@@ -279,8 +284,10 @@ def region_outline(topo: Topology, members: np.ndarray, grid_size: float = GRID_
 
 def _plan_regions(topo: Topology, grid_size: float,
                   snap_tol: float) -> tuple[list[_Plan], list[int], dict]:
-    """Project, overlap-filter and union every region; returns the plans for the mergeable ones,
-    the original indices of every face copied through, and the skip reason counts so far."""
+    """Project, overlap-filter and union every region (`_region_union`); returns the plans for
+    the mergeable ones, the original indices of every face copied through, and the skip reason
+    counts so far. A region's rule-3 exclusions and set-aside triangles are copied through and
+    the rest of it is planned; a region given up whole is copied through whole."""
     plans: list[_Plan] = []
     copied: list[int] = []
     skipped = {r: 0 for r in _SKIP_REASONS}
@@ -293,41 +300,118 @@ def _plan_regions(topo: Topology, grid_size: float,
             copied.extend(int(f) for f in members)
             continue
 
-        frame = _region_frame(topo.positions_w, topo.face_w, members)
-        if frame is None:
+        outline = _region_union(topo, members, grid_size, snap_tol)
+        if outline is None:
             copied.extend(int(f) for f in members)
             skipped["invalid_polygon"] += 1
             continue
-        normal, origin, basis = frame
-        vertex_ids = np.unique(topo.face_w[members])
-        vertex_xy = (topo.positions_w[vertex_ids] - origin) @ basis
-        tol = snap_tolerance(_thickness(topo.positions_w[vertex_ids] - origin, normal), snap_tol)
-        tri_xy = vertex_xy[np.searchsorted(vertex_ids, topo.face_w[members])]
-
-        polys = shapely.polygons(np.concatenate([tri_xy, tri_xy[:, :1]], axis=1))
-        areas = shapely.area(polys)
-        excluded = _overlap_excluded(polys, areas)
-        copied.extend(int(f) for f in members[excluded])
-        keep = ~excluded
-        if not keep.any():
+        copied.extend(int(f) for f in members[outline.excluded])
+        if outline.excluded.all():
             skipped["overlap"] += 1
             continue
-
-        union = _union(polys[keep], grid_size)
-        pieces = _pieces(union, vertex_xy, vertex_ids, tol)
-        if pieces is None:
-            copied.extend(int(f) for f in members[keep])
-            skipped["new_vertex"] += 1
-            continue
-        if not pieces:
-            copied.extend(int(f) for f in members[keep])
-            skipped["invalid_polygon"] += 1
+        if not outline.pieces:
+            copied.extend(int(f) for f in members[~outline.excluded])
+            skipped["new_vertex" if outline.pieces is None else "invalid_polygon"] += 1
             continue
 
-        plans.append(_Plan(region=int(region), members=members[keep], vertex_ids=vertex_ids,
-                           vertex_xy=vertex_xy, normal=normal, pieces=pieces,
-                           original_area=float(areas[keep].sum()), snap_tol=tol))
+        keep = outline.keep
+        copied.extend(int(f) for f in members[outline.set_aside])
+        plans.append(_Plan(region=int(region), members=members[keep],
+                           vertex_ids=outline.vertex_ids, vertex_xy=outline.vertex_xy,
+                           normal=outline.normal, pieces=outline.pieces,
+                           original_area=float(outline.areas[keep].sum()),
+                           snap_tol=outline.snap_tol,
+                           set_aside=members[outline.set_aside].astype(np.int64)))
     return plans, copied, skipped
+
+
+@dataclass
+class _RegionUnion:
+    """One region projected into its own plane, filtered by rule 3 and unioned, with whatever
+    `_region_union` had to set aside. Every mask is over the region's members."""
+    normal: np.ndarray
+    origin: np.ndarray
+    basis: np.ndarray
+    vertex_ids: np.ndarray
+    vertex_xy: np.ndarray
+    areas: np.ndarray
+    #: Rule 3: overlaps another triangle of the region (`_overlap_excluded`).
+    excluded: np.ndarray
+    #: Its edges made a union corner no vertex explains. All False when the region was given up.
+    set_aside: np.ndarray
+    #: `_pieces` of the union of the triangles in `keep`: `None` (a corner no vertex explains
+    #: outlasted the set-aside rounds, or every triangle was excluded), `[]` (pinched), or pieces.
+    pieces: list | None
+    snap_tol: float
+
+    @property
+    def keep(self) -> np.ndarray:
+        return ~self.excluded & ~self.set_aside
+
+
+def _region_union(topo: Topology, members: np.ndarray, grid_size: float,
+                  snap_tol: float) -> _RegionUnion | None:
+    """Project `members` into their own plane, exclude rule 3's overlaps, union the rest on the
+    `grid_size` grid and map the union back onto existing vertices within the region's snap
+    tolerance (`snap_tolerance` of its thickness, `snap_tol` the floor). `None` when the region
+    has no frame (no area).
+
+    A UNION CORNER NO VERTEX EXPLAINS does not give the whole region up any more. The triangles
+    that make it are the ones whose BOUNDARY passes within the snap tolerance of it -- the union's
+    ring coordinates all lie on the (grid-snapped) edges of the triangles that bound it, so a
+    corner where two edges cross lies on both. They are set aside exactly like rule 3's
+    exclusions: copied through unmerged, and since every vertex of a copied face is `needed`,
+    the corner pass keeps each of them that lies on the rest's rings, so no T-junction opens.
+    The rest is unioned again. Proved on the real 274-triangle region of file A
+    (`engine.tests.fixtures.build.t_junction_lattice_region`) with its slivers left open: its one
+    corner, 7.87 in from every vertex, lies 4.6e-5 in from the edges of exactly two triangles --
+    the one whose 236.2 in edge carries the T-junction and the one whose 39.4 in edge ends on it
+    -- and no other triangle comes within its snap tolerance (0.01 in, the ceiling: the region is
+    0.0105 in thick) or within half of it. One round sets those two aside and the rest maps onto
+    existing vertices. (With slivers closed, `_pieces`, that region needs no round at all.)
+
+    After `MAX_SET_ASIDE_ROUNDS` rounds, or when every remaining triangle would go, the region is
+    given up whole as before (`pieces` None, nothing counted as set aside)."""
+    frame = _region_frame(topo.positions_w, topo.face_w, members)
+    if frame is None:
+        return None
+    normal, origin, basis = frame
+    vertex_ids = np.unique(topo.face_w[members])
+    vertex_xy = (topo.positions_w[vertex_ids] - origin) @ basis
+    tol = snap_tolerance(_thickness(topo.positions_w[vertex_ids] - origin, normal), snap_tol)
+    tri_xy = vertex_xy[np.searchsorted(vertex_ids, topo.face_w[members])]
+    polys = shapely.polygons(np.concatenate([tri_xy, tri_xy[:, :1]], axis=1))
+    areas = shapely.area(polys)
+    excluded = _overlap_excluded(polys, areas)
+    set_aside = np.zeros(len(members), bool)
+    pieces = None
+    keep = ~excluded
+    if keep.any():
+        boundaries = shapely.boundary(polys)
+        for attempt in range(MAX_SET_ASIDE_ROUNDS + 1):
+            pieces, corners = _map_union(_union(polys[keep], grid_size), vertex_xy, vertex_ids,
+                                         tol, grid_size)
+            if pieces is not None or attempt == MAX_SET_ASIDE_ROUNDS:
+                break
+            makers = keep & _corner_makers(boundaries, corners, tol)
+            if not makers.any() or makers.sum() == keep.sum():
+                break
+            set_aside |= makers
+            keep &= ~makers
+    if not pieces:
+        set_aside[:] = False
+    return _RegionUnion(normal=normal, origin=origin, basis=basis, vertex_ids=vertex_ids,
+                        vertex_xy=vertex_xy, areas=areas, excluded=excluded, set_aside=set_aside,
+                        pieces=pieces, snap_tol=tol)
+
+
+def _corner_makers(boundaries: np.ndarray, corners: np.ndarray, tol: float) -> np.ndarray:
+    """Bool per triangle: its boundary (`shapely.boundary` of its projected polygon) passes within
+    `tol` of at least one of `corners`."""
+    hit = np.zeros(len(boundaries), bool)
+    for point in shapely.points(np.asarray(corners, float).reshape(-1, 2)):
+        hit |= shapely.distance(boundaries, point) <= tol
+    return hit
 
 
 def _thickness(offsets_3d: np.ndarray, normal: np.ndarray) -> float:
@@ -347,47 +431,77 @@ def _union(polys: np.ndarray, grid_size: float):
             return None
 
 
-def _pieces(union, vertex_xy: np.ndarray, vertex_ids: np.ndarray, snap_tol: float):
-    """Rings of every polygon of `union`, as welded vertex ids. `None` when any ring coordinate
-    fails to land within `snap_tol` of an existing vertex -- the union invented a vertex, which
-    in the spike happened up to 94 inches away where slightly overlapping triangles crossed.
+def _pieces(union, vertex_xy: np.ndarray, vertex_ids: np.ndarray, snap_tol: float,
+            grid_size: float = GRID_SIZE):
+    """Rings of every polygon of `union`, as welded vertex ids. `None` when a ring coordinate
+    fails to land within `snap_tol` of an existing vertex -- a corner no vertex explains (see
+    `_region_union`, which sets aside the triangles that make one).
 
-    A ring is kept as the SIMPLE cycles its snapped ids form (`_simple_cycles`); a cycle of fewer
-    than 3 ids is dropped, because no three existing vertices can bound it. The union leaves such
-    rings inside a region that has no gap: slivers at most a grid cell wide, around a vertex a
-    whole fan of triangles shares or along an edge two triangles share. They belong to the union,
-    not to the surface -- on the real region `union_sliver_region` their number changes with the
-    order the union combines the same triangles. Every coordinate of one lies within `snap_tol`
-    of one or two vertices, so its ids collapse to `[p]`, `[a, b]`, or a ring that revisits a
-    vertex where two slivers meet, and the polygon over those ids is invalid however many ring
-    vertices are kept: three whole regions of the CHTM_SIDE_WALK_2nd_floor export were copied
-    through unmerged for this. Closing the sliver is the only reading existing vertices can
-    express. A hole that
-    splits into several simple cycles becomes that many holes, touching at the shared vertex. An
-    outer ring that keeps no cycle is a sliver island and its polygon is dropped; one that keeps
-    more than one is two lobes joined by a neck narrower than `snap_tol`, which no single polygon
-    over existing vertices describes, so the region is given up (`[]`, the `invalid_polygon`
-    skip, at plan time).
+    SLIVERS. The grid-snapped union leaves rings inside a region that has no gap there. A ring
+    whose mean width, `4 * area / perimeter` on the union's own coordinates, is at most
+    `SLIVER_CELLS` grid cells is one of them and is closed -- a hole dropped, an island's polygon
+    dropped -- WHATEVER ITS CORNERS SNAP TO (`_is_sliver`). They run
+      - around a vertex a whole fan of triangles shares, or along an edge two triangles share:
+        their coordinates snap to one or two vertices (on the real region `union_sliver_region`
+        their number changes with the order the union combines the same triangles);
+      - at the apex of a fan of long thin triangles: file B's ramp, 0.0016 in off the apex;
+      - along a T-JUNCTION line, a vertex lying exactly on the edge of a neighbouring triangle.
+        The union snaps the long edge and the short ones independently, they part by a grid cell
+        and cross again at a vanishing angle, and the crossing lands anywhere along the line: on
+        file A's big sloped underside (`t_junction_lattice_region`) 7.87 in from every vertex,
+        where the snapped 236.2 in edge crosses the snapped collinear 39.4 in one, which gave
+        all 274 triangles up as `new_vertex`. A T-junction sliver whose corners do snap can snap
+        to three or four distinct COLLINEAR vertices -- file B's ramp has one of each -- and a
+        rebuilt polygon cannot carry that zero-width hole: the region went `invalid_polygon`.
+    Measured over every region of the merge inputs of both real files: 13 of the 33 union holes
+    are slivers, 5.0e-5 to 8.9e-5 in wide by this measure; the other 20 are openings at least
+    0.25 in wide, and no outer ring is narrower than 0.75 in (the export prints to 0.01 in). The
+    bound, 2e-4 in, sits more than twice above the one and a thousand times below the other.
+
+    A ring that is not a sliver is kept as the SIMPLE cycles its snapped ids form
+    (`_simple_cycles`); a cycle of fewer than 3 ids is dropped, because no three existing vertices
+    can bound it. A hole that splits into several simple cycles becomes that many holes, touching
+    at the shared vertex. An outer ring that keeps no cycle is a sliver island and its polygon is
+    dropped; one that keeps more than one is two lobes joined by a neck narrower than `snap_tol`,
+    which no single polygon over existing vertices describes, so the region is given up (`[]`,
+    the `invalid_polygon` skip, at plan time).
 
     `union_area` / `union_perimeter` are measured on the union's OWN coordinates of the kept
     cycles: the polygon the rebuilt region is checked against (rule 6), every dropped ring
     closed."""
+    return _map_union(union, vertex_xy, vertex_ids, snap_tol, grid_size)[0]
+
+
+def _map_union(union, vertex_xy: np.ndarray, vertex_ids: np.ndarray, snap_tol: float,
+               grid_size: float = GRID_SIZE):
+    """`(pieces, unexplained)`: `_pieces` of `union`, and every ring coordinate of a ring that is
+    not a sliver with no vertex within `snap_tol` -- all of them, from every ring, so one round of
+    `_region_union` sees every corner at once. `unexplained` is `(0, 2)` unless `pieces` is
+    None; a corner no vertex explains decides before a pinched outer ring does."""
     out: list[_Piece] = []
+    unexplained: list[np.ndarray] = []
+    pinched = False
     for poly in _polygons(union):
+        rings = [np.asarray(ring.coords)[:-1] for ring in [poly.exterior, *poly.interiors]]
+        if _is_sliver(rings[0], grid_size):
+            continue                      # a sliver island: its polygon is dropped
         loops: list[tuple[np.ndarray, np.ndarray]] = []  # (ids, coords), outer ring first
-        for ring in [poly.exterior, *poly.interiors]:
-            coords = np.asarray(ring.coords)[:-1]
-            ids = _nearest_ids(coords, vertex_xy, vertex_ids, snap_tol)
-            if ids is None:
-                return None
+        for k, coords in enumerate(rings):
+            if k and _is_sliver(coords, grid_size):
+                continue                  # a sliver hole: closed
+            rows, distance = _nearest(coords, vertex_xy)
+            far = distance > snap_tol
+            if far.any():
+                unexplained.append(coords[far])
+                continue
+            ids = vertex_ids[rows]
             cycles = _simple_cycles(ids)
-            if not loops:
-                if not cycles:
-                    break
-                if len(cycles) > 1:
-                    return []
-            loops.extend((ids[rows], coords[rows]) for rows in cycles)
-        if not loops:
+            if k == 0 and not cycles:
+                break                     # collapses onto fewer than 3 vertices: dropped
+            if k == 0 and len(cycles) > 1:
+                pinched = True
+            loops.extend((ids[r], coords[r]) for r in cycles)
+        if unexplained or pinched or not loops:
             continue
         area = perimeter = 0.0
         for k, (_ids, xy) in enumerate(loops):
@@ -396,7 +510,23 @@ def _pieces(union, vertex_xy: np.ndarray, vertex_ids: np.ndarray, snap_tol: floa
             perimeter += loop.length
         out.append(_Piece(rings=[ids for ids, _xy in loops], union_area=float(area),
                           union_perimeter=float(perimeter)))
-    return out
+    if unexplained:
+        return None, np.concatenate(unexplained)
+    return ([] if pinched else out), np.zeros((0, 2))
+
+
+def _is_sliver(coords: np.ndarray, grid_size: float) -> bool:
+    """True when the closed ring `coords` is, on average, at most `SLIVER_CELLS` grid cells wide:
+    `4 * area <= SLIVER_CELLS * grid_size * perimeter`. For a thin triangle `4 * area / perimeter`
+    is its height, for a thin strip twice its width -- either way a ring the grid, not the
+    surface, made. Measured with the shoelace formula about the ring's first coordinate."""
+    if len(coords) < 3:
+        return True
+    rel = coords - coords[0]
+    x, y = rel[:, 0], rel[:, 1]
+    area = 0.5 * abs(float(x @ np.roll(y, -1) - np.roll(x, -1) @ y))
+    perimeter = float(np.linalg.norm(np.roll(rel, -1, axis=0) - rel, axis=1).sum())
+    return 4.0 * area <= SLIVER_CELLS * grid_size * perimeter
 
 
 def _polygons(geom) -> list:
@@ -409,18 +539,29 @@ def _polygons(geom) -> list:
 
 def _nearest_ids(coords: np.ndarray, vertex_xy: np.ndarray, vertex_ids: np.ndarray,
                  snap_tol: float):
+    """The vertex id nearest each of `coords`, or `None` when any lies farther than `snap_tol`
+    from every vertex (or there are no coordinates)."""
     if not len(coords):
         return None
+    rows, distance = _nearest(coords, vertex_xy)
+    if distance.max() > snap_tol:
+        return None
+    return vertex_ids[rows]
+
+
+def _nearest(coords: np.ndarray, vertex_xy: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """`(rows, distance)`: the row of `vertex_xy` nearest each of `coords` (the lowest row on a
+    tie) and how far it is, searched in blocks of `_SEARCH_BLOCK` coordinate x vertex pairs."""
     step = max(1, _SEARCH_BLOCK // max(len(vertex_xy), 1))
-    picked = np.empty(len(coords), np.int64)
+    rows = np.empty(len(coords), np.int64)
+    distance = np.empty(len(coords), float)
     for start in range(0, len(coords), step):
         block = coords[start:start + step]
-        distance = np.linalg.norm(block[:, None, :] - vertex_xy[None, :, :], axis=2)
-        nearest = distance.argmin(axis=1)
-        if distance[np.arange(len(nearest)), nearest].max() > snap_tol:
-            return None
-        picked[start:start + step] = nearest
-    return vertex_ids[picked]
+        d = np.linalg.norm(block[:, None, :] - vertex_xy[None, :, :], axis=2)
+        nearest = d.argmin(axis=1)
+        rows[start:start + step] = nearest
+        distance[start:start + step] = d[np.arange(len(nearest)), nearest]
+    return rows, distance
 
 
 def _dedup_rows(ids: np.ndarray) -> np.ndarray:

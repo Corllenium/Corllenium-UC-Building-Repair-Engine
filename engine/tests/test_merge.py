@@ -7,9 +7,11 @@ from engine.fixes.merge import merge_regions
 from engine.io.obj_reader import read_obj
 from engine.io.obj_writer import write_obj
 from engine.pipeline import analyse_topology
-from engine.tests.fixtures.build import (arc_topped_strip, cube, grid_slab, l_shaped_slab,
-                                         overlapping_pair, printed_ramp, slab_with_hole,
-                                         slab_with_wall, two_slabs_sharing_border,
+from engine.tests.fixtures.build import (arc_topped_strip, cube, frame_with_crossed_seam,
+                                         grid_slab, l_shaped_slab, overlapping_pair,
+                                         printed_ramp, ramp_fan_region, slab_with_hole,
+                                         slab_with_wall, t_junction_lattice_region,
+                                         two_slabs_sharing_border,
                                          two_slabs_sharing_curved_border, union_sliver_region)
 
 
@@ -755,3 +757,152 @@ def test_an_exactly_flat_region_keeps_the_floor():
     assert thickness == 0.0
     union = _corner_moved(_real_union(topo, members, ids, xy), 0.0016)
     assert merge_module._pieces(union, xy, ids, merge_module.snap_tolerance(thickness)) is None
+
+
+# --------------------------- N2: a union corner no vertex can explain sets aside only its makers
+# The grid-snapped union leaves SLIVERS along T-junction lines -- a vertex lying exactly on the
+# edge of a neighbouring triangle, the two sides snapped a grid cell apart and crossing again at
+# a vanishing angle, anywhere along the line: 7.87 in from every vertex on file A. A ring
+# narrower than two grid cells is closed whatever its corners snap to. A corner that is still no
+# vertex's sets aside the triangles whose boundary passes within the snap tolerance of it, like
+# rule 3's overlap exclusions, and the rest of the region is unioned again.
+
+
+def _merge_union(mesh, region=0):
+    """The region's union exactly as the merge builds it (rule 3 applied), with its projection."""
+    topo, members, ids, xy, thickness = _projected(mesh, region)
+    tri = xy[np.searchsorted(ids, topo.face_w[members])]
+    polys = shapely.polygons(np.concatenate([tri, tri[:, :1]], axis=1))
+    keep = ~merge_module._overlap_excluded(polys, shapely.area(polys))
+    return merge_module._union(polys[keep], merge_module.GRID_SIZE), ids, xy, thickness
+
+
+def _ring_report(union, ids, xy):
+    """`(kind, farthest distance to a vertex, distinct vertices snapped to)` per union ring."""
+    out = []
+    for poly in merge_module._polygons(union):
+        for kind, ring in [("outer", poly.exterior)] + [("hole", r) for r in poly.interiors]:
+            c = np.asarray(ring.coords)[:-1]
+            d = np.linalg.norm(c[:, None, :] - xy[None, :, :], axis=2)
+            out.append((kind, float(d.min(axis=1).max()), len(set(ids[d.argmin(axis=1)].tolist()))))
+    return out
+
+
+def test_pieces_closes_a_hole_thinner_than_two_grid_cells_whose_corner_no_vertex_explains():
+    a, b = _SQUARE[5], _SQUARE[6]                  # (30, 50) and (70, 50)
+    crossing = (40.0, 50.0 + 1e-4)                 # 10 in from every vertex, a grid cell off the line
+    pieces = _pieces_of(shapely.Polygon(_SQUARE[:4], [[a, crossing, b]]))
+    assert pieces is not None and _rings(pieces) == [[[0, 1, 2, 3]]]
+
+
+def test_pieces_closes_a_hole_thinner_than_two_grid_cells_even_when_three_vertices_bound_it():
+    a, p, b = _SQUARE[5], _SQUARE[4], _SQUARE[6]   # three collinear vertices on y = 50
+    pieces = _pieces_of(shapely.Polygon(_SQUARE[:4], [[a, p + (0.0, 1e-4), b]]))
+    assert _rings(pieces) == [[[0, 1, 2, 3]]]      # not a zero-width hole [5, 4, 6]
+
+
+def test_pieces_keeps_a_hole_one_print_step_wide():
+    """0.01 in -- one X/Z print step -- is a hundred grid cells: an opening, not a sliver."""
+    xy = np.vstack([_SQUARE, [[30.0, 50.01]]])
+    pieces = merge_module._pieces(shapely.Polygon(_SQUARE[:4], [[xy[5], xy[6], xy[12]]]), xy,
+                                  np.arange(len(xy)), merge_module.SNAP_TOL)
+    assert _rings(pieces) == [[[0, 1, 2, 3], [5, 6, 12]]]
+
+
+def test_pieces_drops_an_island_thinner_than_two_grid_cells_whatever_its_corners_snap_to():
+    top_left, top_right = _SQUARE[3], _SQUARE[2]
+    island = [top_left + (0.0, 1e-4), (50.0, 100.0 + 2e-4), top_right + (0.0, 1e-4)]
+    union = shapely.MultiPolygon([shapely.Polygon(_SQUARE[:4]), shapely.Polygon(island)])
+    pieces = _pieces_of(union)
+    assert pieces is not None and _rings(pieces) == [[[0, 1, 2, 3]]]
+
+
+def test_the_t_junction_lattice_of_file_a_merges_whole():
+    """File A's big sloped underside: 274 triangles copied through as `new_vertex`, the lattice
+    the owner saw. Its slivers close, its 12 real openings stay, nothing is set aside."""
+    m = t_junction_lattice_region()
+    union, ids, xy, _thickness = _merge_union(m)
+    rings = _ring_report(union, ids, xy)
+    # precondition: the union still has the corner 7.87 in from every vertex and its 3 slivers
+    # beside the 12 openings (if a shapely/GEOS upgrade stops making them, this is what fails)
+    assert max(d for _kind, d, _n in rings) == pytest.approx(7.868, abs=1e-3)
+    assert len([ring for ring in rings if ring[0] == "hole"]) == 15
+    r = merged(m)
+    assert r.report["regions_skipped"] == {} and r.report["regions_merged"] == 1
+    assert r.report["new_vertex_triangles_set_aside"] == 0
+    assert r.report["faces_copied"] == 4                    # rule 3's four overlapping triangles
+    loops = next(iter(r.rings.values()))
+    assert len(loops["inners"]) == 12
+    assert area(r.mesh) <= area(m) * (1.0 + 1e-6)
+    before = vertices_inside_an_edge(m, m.face_v, used(m), tol=1e-6)
+    assert vertices_inside_an_edge(r.mesh, r.mesh.face_v, used(r.mesh), tol=1e-6) <= before
+
+
+def test_the_ramp_of_file_b_merges_as_one_polygon():
+    """File B's ramp: its 0.0016 in apex tip snaps (N1), and its two T-junction slivers, which
+    snap to 3 and 4 distinct collinear vertices, close instead of making the polygon invalid."""
+    m = ramp_fan_region()
+    union, ids, xy, thickness = _merge_union(m)
+    rings = _ring_report(union, ids, xy)
+    assert sorted(n for kind, _d, n in rings if kind == "hole") == [1, 3, 4]   # precondition
+    assert max(d for _kind, d, _n in rings) == pytest.approx(0.0016, abs=1e-4)
+    assert thickness == pytest.approx(0.0085, abs=1e-4)
+    r = merged(m)
+    assert r.report["regions_skipped"] == {} and r.report["regions_merged"] == 1
+    assert r.report["faces_copied"] == 0 and r.report["new_vertex_triangles_set_aside"] == 0
+    loops = r.rings[0]
+    assert loops["inners"] == [] and r.mesh.n_faces == len(loops["outer"]) - 2
+
+
+def test_a_triangle_whose_edge_crosses_a_neighbours_is_set_aside_and_the_rest_merges():
+    m = frame_with_crossed_seam()
+    union, ids, xy, _thickness = _merge_union(m)
+    assert max(d for _kind, d, _n in _ring_report(union, ids, xy)) == pytest.approx(50.0, abs=1e-3)
+    r = merged(m)
+    assert r.report["regions_skipped"] == {} and r.report["regions_merged"] == 1
+    assert r.report["new_vertex_triangles_set_aside"] == 2
+    assert sorted(int(s[0]) for s in r.source_faces if len(s) == 1) == [0, 3]   # the seam pair
+    assert r.report["faces_copied"] == 2
+    assert abs(area(r.mesh) - area(m)) <= 1e-6 * area(m)
+    # no T-junction opens: the only vertices inside another triangle's edge are the two the
+    # input already had there
+    before = vertices_inside_an_edge(m, m.face_v, used(m))
+    assert before == {9, 11}
+    assert vertices_inside_an_edge(r.mesh, r.mesh.face_v, used(r.mesh)) <= before
+
+
+def test_setting_triangles_aside_is_deterministic():
+    m = frame_with_crossed_seam()
+    t = analyse_topology(m, frozenset())
+    a, b = merge_regions(m, t), merge_regions(m, t)
+    for name in ("face_v", "face_vt", "face_vn", "face_material", "face_line", "uvs", "normals"):
+        assert np.array_equal(getattr(a.mesh, name), getattr(b.mesh, name))
+    assert a.report == b.report
+    assert [x.tolist() for x in a.source_faces] == [x.tolist() for x in b.source_faces]
+    assert np.array_equal(a.face_region, b.face_region)
+
+
+def test_a_region_is_given_up_whole_when_its_corner_outlasts_the_bounded_rounds(monkeypatch):
+    """With no round allowed the frame is given up exactly as before: every triangle copied, one
+    `new_vertex` skip, nothing counted as set aside -- `regions_skipped` counts whole regions."""
+    monkeypatch.setattr(merge_module, "MAX_SET_ASIDE_ROUNDS", 0)
+    r = merged(frame_with_crossed_seam())
+    assert r.report["regions_skipped"] == {"new_vertex": 1}
+    assert r.report["new_vertex_triangles_set_aside"] == 0 and r.report["faces_copied"] == 10
+
+
+def test_region_outline_sets_aside_the_same_triangles_as_the_merge():
+    """Solidify hangs its skirts on `region_outline`, which must stay the merge's own outline."""
+    topo = analyse_topology(frame_with_crossed_seam(), frozenset())
+    members = np.flatnonzero(topo.face_region == 0)
+    outline = merge_module.region_outline(topo, members)
+    plans, _copied, _skipped = merge_module._plan_regions(topo, merge_module.GRID_SIZE,
+                                                          merge_module.SNAP_TOL)
+    assert outline is not None and len(plans) == 1
+    assert _rings(outline[0]) == _rings(plans[0].pieces)
+    assert sorted(plans[0].set_aside.tolist()) == [0, 3]
+
+
+def test_an_ordinary_merge_sets_nothing_aside():
+    r = merged(grid_slab(10, 10))
+    assert r.report["new_vertex_triangles_set_aside"] == 0
