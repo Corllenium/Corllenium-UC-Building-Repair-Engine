@@ -127,15 +127,18 @@ def thread_tolerance(quanta: np.ndarray) -> float:
     `THREAD_TOL_QUANTA * max(quanta)`, a hundred-thousandth of the mesh's own coarsest print step
     (`Topology.quanta`; 0.1 in on Y near 24,000 in gives 1e-6 in).
 
-    WHY SO TIGHT. A vertex the export put on an edge is on it to float precision, and one it put
-    beside an edge is off it by a printable amount. MEASURED on the merge outputs of both real
-    files (A `ce26e0392ab0`, B `0b290ec0bcb4`, before this pass existed): of the vertices the
-    output uses within 0.15 in of an output edge's interior, 111 (A) and 65 (B) lie within 1e-9 in
-    of it -- coordinates near 24,000 in carry about 4e-12 in of float error -- and the nearest of
-    the rest is 6.1e-4 in off (B; 1.2e-3 in on A): a real gap or overlap in the export, which
-    threading would close by moving the surface. The tolerance sits a thousand times above the one
-    and six hundred times below the other, and since threading moves a border by at most this
-    much, nothing it threads can move a surface anyone could see."""
+    WHY SO TIGHT. Threading puts a vertex into a border, so the border moves onto the vertex: only
+    a vertex that is ON the edge can be threaded without changing the surface. MEASURED on the
+    merge outputs of both real files (A `ce26e0392ab0`, B `0b290ec0bcb4`, before this pass
+    existed): of the vertices the output uses within 0.15 in of an output edge's interior, 111 (A)
+    and 65 (B) lie within 1e-9 in of it -- coordinates near 24,000 in carry a few 1e-12 in of
+    float error -- and the nearest of the rest is 6.1e-4 in off (B; 1.2e-3 in on A). The tolerance
+    sits a thousand times above the one and six hundred times below the other. What it leaves:
+    after this pass, 3 (A) and 11 (B) pairs of a used vertex and an output edge lie 6.1e-4 to
+    4.6e-3 in apart, none from 0.005 to 0.01 in, the rest 0.0119 in or more. Those are off by less
+    than the export's 0.01 in print step, so the file cannot say whether its source had them on
+    the edge; threading one would move a border by that much -- a change of surface, not a split
+    of an edge."""
     return THREAD_TOL_QUANTA * float(np.asarray(quanta).max())
 
 
