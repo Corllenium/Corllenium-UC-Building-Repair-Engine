@@ -632,3 +632,58 @@ def test_cmd_fix_writes_the_21_file_qa_sheet(tmp_path):
     assert len(qa_file_names()) == 21
     for p in qa.iterdir():
         assert p.stat().st_size > 0
+
+
+# ---------------------------------------------------------------------------------------------
+# Task 1: `fix --profile <json>` and shipped OBJs reference the snapshot's own materials.mtl,
+# not the split export's `mtllib ../CKPT17-CLEAN.mtl` (which means nothing next to the output).
+# ---------------------------------------------------------------------------------------------
+
+def test_cmd_fix_output_objs_reference_the_snapshots_materials_mtl(tmp_path):
+    """The split export says `mtllib ../CKPT17-CLEAN.mtl`; the snapshot carries its own
+    materials.mtl next to the OBJ, so the shipped OBJs must point at that, never at the source."""
+    m = replace(box_with_partition(), mtllib="../CKPT17-CLEAN.mtl")
+    snap_dir = _write_snapshot(tmp_path, m)
+    out_root = tmp_path / "out"
+    assert cli.cmd_fix(snap_dir, out_root, accept_slit=False, profile=_FAST) == 0
+    for name in (f"{m.name}.fixed.obj", f"{m.name}.fixed.ngon.obj"):
+        lines = (out_root / m.name / name).read_text(encoding="utf-8").splitlines()
+        mtllibs = [line for line in lines if line.startswith("mtllib ")]
+        assert mtllibs == ["mtllib materials.mtl"], (name, mtllibs)
+
+
+def test_load_profile_reads_json_and_restores_tuple_fields(tmp_path):
+    p = tmp_path / "profile.json"
+    p.write_text(json.dumps({"guard_size": [120, 80], "qa_size": [160, 100], "n_dirs": 32,
+                             "accept_slit": True}), encoding="utf-8")
+    prof = cli._load_profile(p)
+    assert prof.guard_size == (120, 80) and prof.qa_size == (160, 100)
+    assert prof.n_dirs == 32 and prof.accept_slit is True
+    assert prof.solidify is True  # untouched fields keep their defaults
+
+
+def test_load_profile_rejects_unknown_fields(tmp_path):
+    p = tmp_path / "profile.json"
+    p.write_text(json.dumps({"n_dir": 32}), encoding="utf-8")
+    with pytest.raises(ValueError, match="n_dir"):
+        cli._load_profile(p)
+
+
+def test_build_parser_fix_profile_flag():
+    args = cli.build_parser().parse_args(["fix", "snap", "--profile", "p.json"])
+    assert args.profile == "p.json"
+    assert cli.build_parser().parse_args(["fix", "snap"]).profile is None
+
+
+def test_main_loads_the_profile_file_for_cmd_fix(monkeypatch, tmp_path):
+    p = tmp_path / "profile.json"
+    p.write_text(json.dumps({"n_dirs": 32}), encoding="utf-8")
+    seen = {}
+
+    def fake(snapshot_dir, out_root, accept_slit, profile=None, solidify=True, fragments=True):
+        seen["profile"] = profile
+        return 0
+
+    monkeypatch.setattr(cli, "cmd_fix", fake)
+    assert cli.main(["fix", "snap", "--profile", str(p)]) == 0
+    assert seen["profile"].n_dirs == 32

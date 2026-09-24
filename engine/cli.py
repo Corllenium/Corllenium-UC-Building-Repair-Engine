@@ -28,7 +28,7 @@ import argparse
 import json
 import shutil
 import sys
-from dataclasses import replace
+from dataclasses import fields, replace
 from pathlib import Path
 
 import numpy as np
@@ -109,6 +109,23 @@ def _copy_assets(snapshot_dir: Path, out_dir: Path) -> None:
         if tex_dst.exists():
             shutil.rmtree(tex_dst)
         shutil.copytree(tex_src, tex_dst)
+
+
+_TUPLE_FIELDS = ("guard_size", "qa_size")
+
+
+def _load_profile(path: Path) -> FixProfile:
+    """A `FixProfile` from a JSON object of field overrides; list-valued size fields become
+    tuples. Unknown keys are an error so a typo cannot silently run the defaults."""
+    data = json.loads(Path(path).read_text(encoding="utf-8"))
+    known = {f.name for f in fields(FixProfile)}
+    unknown = sorted(set(data) - known)
+    if unknown:
+        raise ValueError(f"{path}: unknown FixProfile field(s): {', '.join(unknown)}")
+    for key in _TUPLE_FIELDS:
+        if key in data:
+            data[key] = tuple(data[key])
+    return FixProfile(**data)
 
 
 # --------------------------------------------------------------------------------------- report
@@ -321,10 +338,14 @@ def cmd_fix(snapshot_dir: Path, out_root: Path, accept_slit: bool,
     name = mesh.name
     out_dir = Path(out_root) / name
     out_dir.mkdir(parents=True, exist_ok=True)
-
-    write_obj(result.mesh, out_dir / f"{name}.fixed.obj")
-    write_obj_polygons(result.mesh, result.rings, out_dir / f"{name}.fixed.ngon.obj")
     _copy_assets(snapshot_dir, out_dir)
+
+    # The snapshot's OBJ still names the export's MTL (`mtllib ../CKPT17-CLEAN.mtl`), a path that
+    # means nothing next to the output. The assets copied above are the MTL the shipped OBJs use.
+    mtllib = "materials.mtl" if (out_dir / "materials.mtl").exists() else result.mesh.mtllib
+    shipped = replace(result.mesh, mtllib=mtllib)
+    write_obj(shipped, out_dir / f"{name}.fixed.obj")
+    write_obj_polygons(shipped, result.rings, out_dir / f"{name}.fixed.ngon.obj")
 
     # The triptychs show the run's own BEFORE, which is the reference the guards compared
     # against: the solidified mesh when `profile.solidify` is on, the input otherwise.
@@ -607,6 +628,8 @@ def build_parser() -> argparse.ArgumentParser:
     fix_p.add_argument("--keep-fragments", dest="fragments", action="store_false",
                        help="do not remove stray fragments and attached slivers")
     fix_p.add_argument("--out", default="data/output")
+    fix_p.add_argument("--profile", default=None,
+                       help="JSON object of FixProfile overrides, e.g. {\"guard_size\": [900, 600]}")
 
     preview_p = sub.add_parser("preview-data", help="write the JSON preview/index.html reads")
     preview_p.add_argument("snapshot_dir")
@@ -620,8 +643,11 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     if args.command == "fix":
+        kwargs = {}
+        if args.profile:
+            kwargs["profile"] = _load_profile(Path(args.profile))
         return cmd_fix(Path(args.snapshot_dir), Path(args.out), args.accept_slit,
-                       solidify=args.solidify, fragments=args.fragments)
+                       solidify=args.solidify, fragments=args.fragments, **kwargs)
     if args.command == "preview-data":
         return cmd_preview_data(Path(args.snapshot_dir), Path(args.out),
                                 solidify=args.solidify)
