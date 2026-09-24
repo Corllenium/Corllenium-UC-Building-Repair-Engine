@@ -52,8 +52,8 @@ topology again, **merge**, **final guard** (rolled back if it fails), invariants
 | Reversed faces (purple back side in SketchUp) | `engine/fixes/orient.py::classify_orientation` (flip when the back is more exposed than the front; "thin sheet" when both sides are) | `engine/fixes/orient.py::flip_faces` | Guard | Working for clear cases (A 780 flipped). **Limit:** thin sheets (A 79, B 16) are not flipped, and faces on open or broken sides count as thin sheets. Closing the sides fixes this. |
 | Stray fragments and slivers | `engine/detectors/fragments.py::detect_fragments` | the fragment pass in `fix_object` | `engine/guard/compare.py::fragment_feedback` | Working. A: 3 fragments and 15 slivers removed; B: 12 slivers. |
 | Zero-area faces | `engine/topo/adjacency.py::degenerate_mask` | removal in `fix_object` | Strict guard | Working. |
-| T-junction lines (a line across a flat surface; cracks and sparkle in Unity) | `engine/topo/adjacency.py`: `find_t_vertices`, `t_junction_sub_edges` | **not repaired yet.** Planned: thread the neighbour's existing vertex into the merged outline in `engine/fixes/merge.py` | Guard | Open (section 6). |
-| Lines inside flat surfaces in the `.skp` | measured on SketchUp's own model after writing | `engine/io/skp_writer.py::write_skp` (softens class 1 and 5 edges today; the running fix softens every edge SketchUp would draw inside a flat same-material surface) | `read_skp` / `read_skp_summary` read-back | In progress (section 6). |
+| T-junction lines (a line across a flat surface; cracks and sparkle in Unity) | `engine/topo/adjacency.py`: `find_t_vertices`, `t_junction_sub_edges` | `engine/fixes/merge.py` threads every existing vertex lying on an output edge into that edge (merged rings, or a fan split of a copied triangle); nothing moved or invented | Final guard (unchanged totals) | Working (28d63df): T-vertices A 353 -> 0, B 363 -> 0. Lines left are double layers, not T-junctions. |
+| Lines inside flat surfaces in the `.skp` | measured on SketchUp's own model after writing | `engine/io/skp_writer.py::write_skp` (softens class 1 and 5 edges and, decided on SketchUp's own model, every edge between two coplanar same-material faces and every one-face edge lying wholly on one) | `read_skp` / `read_skp_summary` read-back | Working (bcccca2). Left: A 9, B 27 lines, of which B's 15 are material seams and the rest double layers. |
 | "Did anything visible change?" (safety net for all of the above) | `engine/guard/views.py::ortho_first_hit` (26 views), `engine/rays/caster.py` | n/a | `engine/guard/compare.py`: `classify_pixels`, `compare_views`. Pixel classes: hole, material changed, moved, edge flicker, z-fight tie, crack closed, fragment removed, border shift | Working. |
 | Visual check of every run | n/a | `engine/guard/qa_render.py::write_qa_sheet` (21 renders into `data/output/<name>/qa/`) | n/a | Working. |
 | The SketchUp file | n/a | `engine/io/skp_writer.py::write_skp` (one face per merged region with inner loops for openings, materials with textures on both sides) | `read_skp_summary`, `check_skp_validity` | Working; files in `OBJ FIXED RESULT/`. |
@@ -110,9 +110,10 @@ First at 8ffbda3 (08:53), then after the merge fix (b3b9ad3, files written 09:29
    side is preserved. Needed: **side rebuild**, replacing a broken side with a clean wall along the
    slab outline, removing the broken pieces it replaces, faces pointing outward. Interior faces seen
    through those gaps then become hidden and are removed by the existing step. Next feature.
-2. **Lines inside flat surfaces in the `.skp`** (section 5). Running: the writer hides every line
-   SketchUp would draw inside a flat same-material surface (branch `feat/skp-soften`). Queued: repair
-   the T-junctions in the geometry itself (merge), which also removes Unity cracks.
+2. ~~Lines inside flat surfaces in the `.skp`~~ **mostly fixed** (writer softening bcccca2, T-junction
+   threading 28d63df): A 121 -> 9, B 41 -> 27. What is left: B's 15 material seams (real edges) and
+   double layers (one surface's edge lying over a second copy of it: A's 551 in line at x = 2515.77
+   and 9 on B), expected to go with the side rebuild; see briefs/06-leftovers.md item 15.
 3. ~~File A's sloped underside is a triangle lattice~~ **fixed (b3b9ad3)**: the region's own
    T-junctions made a 71 in x 0.00006 in sliver in its union, whose corner sat 7.87 in from any
    vertex; such slivers are now closed at the source. In the `.skp` that underside is 111 soft-edged
