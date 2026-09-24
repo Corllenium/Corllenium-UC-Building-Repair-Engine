@@ -1141,3 +1141,25 @@ def slab_with_t_joined_strip(width=0.1, length=29.5, size=40.0, height=8.0, join
         raise ValueError(f"join must be 'vertex' or 'edge', got {join!r}")
     return _slab_from_top(f"slab_with_t_joined_strip_{join}", [(a, b, c)] + lower + upper, size,
                           height)
+
+
+def slab_with_stub_on_t_junctions(size=2000.0, height=8.0, foot=2.0, rise=0.6):
+    """Review 2a experiment E3b as a fixture: a closed `size` x `size` x `height` slab (top faces 0
+    and 1, split along the diagonal from `(0, 0)` to `(size, size)`; sides and bottom 2-11) with
+    an UPRIGHT quad standing on it (faces 12 and 13): `2 * foot * sqrt(2)` in long, `rise` in
+    high -- 5.7 x 0.6 in, 3.4 sq in at the defaults. Its two foot vertices lie INSIDE the top's
+    diagonal edge, so it shares no edge, no vertex and no plane with anything: a T-junction is
+    the only thing joining it to the slab, and without that join it is a stray under 4 sq in.
+
+    At 2000 in a guard pixel spans inches, so the per-view fragment cap never trips on a piece
+    this small -- at 40 in the cap alone restored it, which hid a missing join."""
+    s, h, c = float(size), float(height), float(size) / 2.0
+    P = [[0, 0, 0], [s, 0, 0], [s, s, 0], [0, s, 0], [0, 0, -h], [s, 0, -h], [s, s, -h], [0, s, -h],
+         [c - foot, c - foot, 0], [c + foot, c + foot, 0], [c + foot, c + foot, rise],
+         [c - foot, c - foot, rise]]
+    P = [[float(v) for v in p] for p in P]
+    uvs, fv, fvt, fm = [], [], [], []
+    _quads(P, uvs, fv, fvt, fm, [(0, 1, 2, 3),
+                                 (0, 4, 5, 1), (1, 5, 6, 2), (2, 6, 7, 3), (3, 7, 4, 0), (4, 7, 6, 5),
+                                 (8, 9, 10, 11)])
+    return _mesh("slab_with_stub_on_t_junctions", P, uvs, fv, fvt, face_material=fm)

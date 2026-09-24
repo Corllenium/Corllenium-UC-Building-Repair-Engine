@@ -22,7 +22,7 @@ from engine.pipeline import analyse_topology
 from engine.rays.caster import EmbreeCaster
 from engine.tests.fixtures.build import (printed, slab_with_coplanar_patch, slab_with_infill_patch,
                                          slab_with_interior_strip, slab_with_strays,
-                                         slab_with_t_joined_strip)
+                                         slab_with_stub_on_t_junctions, slab_with_t_joined_strip)
 from engine.vis.exposure import compute_side_exposure
 
 _FAST = FixProfile(guard_size=(120, 80), n_dirs=32, solidify=False)
@@ -256,6 +256,35 @@ def test_a_patch_joined_only_through_t_junctions_is_not_debris():
     assert d.report["n_components"] == 1                 # top, patch, sides and bottom: one piece
     # ...where shared welded edges alone make two: the evidence of what the contact rules joined
     assert d.report["n_components_by_shared_edges"] == 2
+    # ...and the T-junctions made the join (coplanar contact would too -- the patch lies in the
+    # top's plane -- so without this a lost T-junction join goes unnoticed here)
+    assert d.report["n_joined_by_tjunction"] > 0
+
+
+def test_an_upright_piece_joined_only_through_t_junctions_is_not_debris():
+    """Review 2a I1, experiment E3b: the only defence for a piece that meets the surface out of
+    plane. Its feet lie inside the top's diagonal edge -- no shared edge, vertex or plane -- and it
+    is 3.4 sq in, so without the T-junction join it is a stray."""
+    d = _detected(slab_with_stub_on_t_junctions())
+    assert d.report["n_components_by_shared_edges"] == 2
+    assert d.report["n_joined_by_tjunction"] > 0
+    assert d.report["n_joined_by_coplanar_contact"] == 0     # nothing else could have joined it
+    assert d.report["n_components"] == 1
+    assert not d.fragments.any() and not d.slivers.any()
+
+
+def test_fix_object_keeps_a_piece_joined_only_through_t_junctions():
+    """...and the whole pipeline keeps it, at a size where the per-view fragment cap never trips:
+    the stub is under a pixel wide here, so if the detector named it, the fragment guard would
+    see it uncover only the slab's top and the sky, and let it go."""
+    m = slab_with_stub_on_t_junctions()
+    r = fix_object(m, {}, FixProfile(guard_size=(240, 160), n_dirs=32, solidify=False))
+    assert not r.removed_fragments[[12, 13]].any()
+    assert r.n_removed_fragments == 0 and r.n_removed_slivers == 0
+    assert r.fragment_report["n_joined_by_tjunction"] > 0
+    z = r.mesh.positions[r.mesh.face_v][:, :, 2]
+    assert int((z.max(axis=1) == 0.6).sum()) == 2            # the stub's two faces ship
+    assert r.passed is True
 
 
 def test_a_patch_lying_in_a_surface_is_not_debris():
