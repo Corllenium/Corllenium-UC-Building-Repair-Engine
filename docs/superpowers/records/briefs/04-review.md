@@ -1,5 +1,9 @@
 # Brief 04 — independent review of everything since b2134e9
 
+**Split (2026-09-24 19:10):** part 1 now, on `feat-dashboard` at `ce48932` (everything except the side
+rebuild, which is still being built on `feat/side-rebuild`); part 2 reviews the side rebuild after
+brief 03 merges it. Part 1 writes `review-since-b2134e9.md`, part 2 `review-side-rebuild.md`.
+
 Read-only. Review the committed state (`git show`, `git diff b2134e9..<head>`), never the working
 tree (others may have work in progress there). Prior review style: findings grouped Critical /
 Important / Minor, each with `file:line`, the failure scenario (concrete input -> wrong output), and

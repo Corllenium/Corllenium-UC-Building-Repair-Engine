@@ -18,6 +18,7 @@ Hermes hands back by releasing the row after a clean commit.
 | T1 T-junction repair | briefs/01-T1-tjunction-repair.md | main checkout / feat-dashboard | - | 2026-09-24 18:50 | DONE: 28d63df, 03df53d, report 437e4ef; A 1,013 / B 601 tris, T-vertices 0 |
 | SR side rebuild | briefs/02-SR-side-rebuild.md | .claude/worktrees/side-rebuild / feat/side-rebuild | Claude subagent (SR) | 2026-09-24 18:34 | SR0 committed ff4a0ec; SR2 uncommitted in the worktree; investigating file A's merge rollback |
 | Reconcile + verify | briefs/03-reconcile-and-verify.md | main checkout / feat-dashboard | Claude controller | queued | after T1 and SR |
-| Review since b2134e9 | briefs/04-review.md | read-only | - | queued | after reconcile |
+| Review part 1 (to ce48932, no side rebuild) | briefs/04-review.md | read-only | Claude subagent (review) | 2026-09-24 19:10 | running |
+| Review part 2 (side rebuild) | briefs/04-review.md | read-only | - | queued | after reconcile |
 | Dashboard fix wave | briefs/05-dashboard-fix-wave.md | main checkout | - | queued | after review |
 | Leftovers | briefs/06-leftovers.md | main checkout | - | queued | any time a slot is free |
