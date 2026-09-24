@@ -118,8 +118,13 @@ from engine.topo.adjacency import build_edge_table, edge_face_lists, find_t_vert
 #: and smallest-first because those are the ones near the threshold.
 _KEPT_REPORTED = 10
 
-#: Face pairs whose bounding boxes are compared at once in the coplanar-contact search, so the
-#: pair list stays bounded however many long faces overlap one another along x.
+#: Candidate pairs `_box_pairs` tests at once in the coplanar-contact search. It bounds each
+#: block's own index arrays (the pairs that overlap along x, before the y and z test) however many
+#: long faces overlap one another along x -- NOT the result: every pair that overlaps on all three
+#: axes is kept and concatenated, and `_coplanar_contacts` then measures all of them at once.
+#: Measured with tracemalloc on the detector's own input (brief 08): file A, 2,644 faces after the
+#: hidden pass, 32,089 overlapping box pairs, 10,653 in contact, a peak of 6.3 MB for the whole
+#: `_coplanar_contacts` call in 0.07 s; file B, 4,773 faces, 46,942 pairs, 12.2 MB.
 _PAIR_BLOCK = 2_000_000
 
 
