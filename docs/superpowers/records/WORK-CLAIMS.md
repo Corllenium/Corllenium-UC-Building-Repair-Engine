@@ -1,0 +1,15 @@
+# WORK CLAIMS — who is working on what
+
+One row per job. Before starting a job, add or update its row with your name and the time, and
+commit this file (or at least save it; it is read in the MAIN checkout by absolute path
+`D:\PROJECTS\UC MODEL FIXER\docs\superpowers\records\WORK-CLAIMS.md`, also by workers in worktrees).
+When you stop, set the status and release (holder `-`). Never work a job someone else holds.
+
+| Job | Brief | Tree / branch | Holder | Since | Status |
+|---|---|---|---|---|---|
+| T1 T-junction repair | briefs/01-T1-tjunction-repair.md | main checkout / feat-dashboard | Claude subagent (T1) | 2026-09-24 18:34 | core committed 28d63df; finishing B's remaining lines and the report |
+| SR side rebuild | briefs/02-SR-side-rebuild.md | .claude/worktrees/side-rebuild / feat/side-rebuild | Claude subagent (SR) | 2026-09-24 18:34 | SR0 committed ff4a0ec; SR2 uncommitted in the worktree; investigating file A's merge rollback |
+| Reconcile + verify | briefs/03-reconcile-and-verify.md | main checkout / feat-dashboard | Claude controller | queued | after T1 and SR |
+| Review since b2134e9 | briefs/04-review.md | read-only | - | queued | after reconcile |
+| Dashboard fix wave | briefs/05-dashboard-fix-wave.md | main checkout | - | queued | after review |
+| Leftovers | briefs/06-leftovers.md | main checkout | - | queued | any time a slot is free |
