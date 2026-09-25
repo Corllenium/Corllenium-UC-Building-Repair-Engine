@@ -140,6 +140,13 @@ _PROBE_FRACTIONS = (0.25, 0.5, 0.75)
 #: rectangle: a railing standing in the band but reaching far above the top is not a piece.
 _PIECE_INSIDE_FRACTION = 0.5
 
+#: Brief 10 item 6 (triage B1): an underside a top runs into lies WITHIN that top's outline --
+#: a block standing on its slab -- when at least this fraction of its footprint lies inside the
+#: convex hull of the top's footprint. Measured: file B's stair blocks on its 1 m slab (regions
+#: 115, 134, 147, 148 under the landing, region 92) lie 0.99-1.00 inside; every candidate of
+#: file A below 0.99 is a slab's real underside beside a lower top (regions 57, 455: 0.00).
+INTERFACE_HULL_FRACTION = 0.99
+
 
 @dataclass
 class SolidifyResult:
@@ -935,6 +942,7 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
     queued = set(regions)
     sky = set(regions)
     not_tops: set[int] = set()
+    underside_edges: dict[int, tuple] = {}
     continued_tops = 0
     while queue:
         region = queue.pop(0)
@@ -981,25 +989,63 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
         if region not in sky and _is_underside(topo, members, edges, continued, along, sides,
                                                sky, caster, ok_ids, min_h, max_h + band):
             not_tops.add(region)
+            # kept in case it is a block standing on a slab: its open edges are that slab's side
+            underside_edges[int(region)] = (edges, frames, continued)
             continue
         rep = _representative_depth(runs)
         measured = _edge_thickness(topo, edges, own, along, side_low, vertex_sides, row_depth,
                                    None if rep is None else rep - tol)
         own_depths = sorted(d for d in row_depth.values() if d > tol)
+        # how far this top's own sides hang below each outline edge (0 where none does)
+        hang = [max((row_depth.get(r, 0.0) for r in along.get((int(a), int(b)), [])), default=0.0)
+                for a, b in edges]
         plans.append({"region": region, "members": members, "pieces": pieces, "normal": normal,
                       "origin": origin, "basis": basis, "foot": foot, "edges": edges,
                       "frames": frames, "continued": continued, "measured": measured,
                       "own_depths": own_depths, "rep": rep, "along": along,
-                      "met_regions": met_regions})
+                      "met_regions": met_regions, "hang": hang, "interfaces": []})
+
+    # Brief 10 item 6 (triage B1): an underside a top runs into may be where a BLOCK STANDS ON that
+    # top's slab -- file B's stair blocks on its 1 m slab, whose top has no face of its own under
+    # them: the blocks' bottom faces lie in its plane. Taken for undersides, no top's volume
+    # covered the slab under them: walls were built round them inside the slab, and the bottom
+    # there was missing or refused as covering outside every footprint (the slab read as a tray
+    # from below). The slab runs on beneath such a region when the top has a measured depth, none
+    # of the top's own sides hangs along the edges they share (the slab does not end there), and
+    # the region lies within the top's outline (`INTERFACE_HULL_FRACTION`). A real underside
+    # beside a lower top fails the last two: the review's overhang has the top's own side hanging
+    # along the whole shared edge; file A's regions 57 and 455 lie outside the tops' outlines.
+    interfaces: dict[int, int] = {}
+    for k, plan in enumerate(plans):
+        if plan["rep"] is None:
+            continue
+        free: dict[int, bool] = {}
+        for i, into_regions in plan["met_regions"].items():
+            if plan["continued"][i]:
+                for u in into_regions & not_tops:
+                    free[u] = free.get(u, True) and plan["hang"][i] < min_h
+        hull = plan["foot"].convex_hull
+        for u in sorted(free):
+            if not free[u] or u in interfaces:
+                continue
+            foot_u = _footprint(topo, np.nonzero(topo.face_region == u)[0])
+            area_u = float(shapely.area(foot_u))
+            if area_u > 0.0 and (float(shapely.area(shapely.intersection(foot_u, hull)))
+                                 >= INTERFACE_HULL_FRACTION * area_u):
+                interfaces[u] = k
+                plan["interfaces"].append(u)
 
     # ...and an edge whose top ran on only into undersides does not continue at all: it is a
-    # side, walled like any other (the plate beside the box in `slab_beside_a_lower_top`)
+    # side, walled like any other (the plate beside the box in `slab_beside_a_lower_top`) --
+    # unless one of them is a block standing on the slab, beneath which the slab runs on
     for plan in plans:
         for i, into_regions in plan["met_regions"].items():
-            if plan["continued"][i] and into_regions <= not_tops:
+            if plan["continued"][i] and into_regions <= not_tops - set(interfaces):
                 plan["continued"][i] = False
 
-    top_faces = np.nonzero(np.isin(topo.face_region, sorted(queued - not_tops)))[0]
+    # a block's underside in a slab's top plane is part of that slab's top shell
+    top_faces = np.nonzero(np.isin(topo.face_region,
+                                   sorted((queued - not_tops) | set(interfaces))))[0]
     faces = _Faces(topo, top_faces)
 
     # the file-wide fallback height, from the edges that are sides at all
@@ -1040,6 +1086,25 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
         side_edges = [i for i, c in enumerate(plan["continued"]) if not c
                       and plan["frames"][i][2] is not None]
         edges_continued += int(plan["continued"].sum())
+        # the slab's footprint and bottom outline take in the blocks standing on it (item 6), and
+        # a block's edge the slab does not continue across is the slab's side there: walled like
+        # any of the slab's own edges, down to the slab's own depth
+        slab_foot, slab_plan = plan["foot"], plan
+        if plan["interfaces"]:
+            under = [np.nonzero(topo.face_region == u)[0] for u in plan["interfaces"]]
+            slab_foot = shapely.union_all([plan["foot"]] + [_footprint(topo, m) for m in under])
+            shapely.prepare(slab_foot)
+            outlines = [region_outline(topo, m) for m in under]
+            extra = [(e, f) for u in plan["interfaces"]
+                     for e, f, c in zip(*underside_edges[u]) if not c and f[2] is not None]
+            plan = dict(plan, edges=list(plan["edges"]) + [e for e, _f in extra],
+                        frames=list(plan["frames"]) + [f for _e, f in extra],
+                        continued=np.append(plan["continued"], np.zeros(len(extra), bool)),
+                        measured=list(plan["measured"]) + [plan["rep"]] * len(extra))
+            slab_plan = dict(plan, pieces=list(plan["pieces"])
+                             + [p for o in outlines if o is not None for p in o[0]])
+            side_edges = [i for i, c in enumerate(plan["continued"]) if not c
+                          and plan["frames"][i][2] is not None]
         whole_heights = []
         whole_depths: list[float] = []
         # every side's `(depth, edge length)` as `_wall_pieces` measured it -- what hangs from
@@ -1171,7 +1236,7 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
                 lower_deeper.append({"region": int(region), "lower_surface": round(float(lower[1]), 4),
                                      "representative_side": round(float(rep), 4)})
             report_bottom_depth[str(region)] = round(float(lower[1]), 4)
-            volumes[region] = (plan["foot"], plan["normal"], plan["origin"], lower[1], lower[0])
+            volumes[region] = (slab_foot, plan["normal"], plan["origin"], lower[1], lower[0])
             continue
         # A bottom is only invented at a thickness that was MEASURED -- this region's own sides,
         # or the file-wide median of everyone else's. When nothing in the file resolved, `h` is
@@ -1183,18 +1248,18 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
                                    bottom_extra, side_runs, band)
         if exists:
             bottom_exists += 1
-            volumes[region] = (plan["foot"], plan["normal"], plan["origin"], depth, None)
+            volumes[region] = (slab_foot, plan["normal"], plan["origin"], depth, None)
             continue
-        volumes[region] = (plan["foot"], plan["normal"], plan["origin"], bottom_h, None)
+        volumes[region] = (slab_foot, plan["normal"], plan["origin"], bottom_h, None)
         group = len(group_region)
-        added, part_skipped = _add_bottom(builder, topo, plan, lambda c: down(c, bottom_h),
+        added, part_skipped = _add_bottom(builder, topo, slab_plan, lambda c: down(c, bottom_h),
                                            material, uv_scale, bottom_skips, group)
         if added:
             bottoms += 1
             group_region.append(region)
             group_kind.append("bottom")
             group_length.append(0.0)
-            for f in _bottom_pieces(faces, plan["foot"], plan["normal"], plan["origin"],
+            for f in _bottom_pieces(faces, slab_foot, plan["normal"], plan["origin"],
                                     bottom_h, band, claimed):
                 replaced_group[f] = group
                 claimed.add(f)
@@ -1257,6 +1322,9 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
         #: (`_is_underside`: no sky, no body hanging below them, the slab they belong to above
         #: them): not processed, nothing built under them.
         "undersides_not_tops": len(not_tops),
+        #: Brief 10 item 6. Of those, the undersides of BLOCKS STANDING ON a slab, in its top
+        #: plane: the slab runs on beneath them (its volume and bottom take in their footprints).
+        "blocks_standing_on_slabs": len(interfaces),
         #: Outline edges of top surfaces the export left OPEN (edge count 1) -- what the first
         #: solidify walled. Informational since SR2, which walls what is missing or broken.
         "open_outline_edges": open_edge_count,

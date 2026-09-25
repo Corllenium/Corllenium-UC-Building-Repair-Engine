@@ -1904,3 +1904,48 @@ def slab_over_a_floor_with_a_bench():
     _closed_box(P, uvs, fv, fvt, fm, 15, 25, 15, 25, -24, -12, material=1)   # the bench
     return _mesh("slab_over_a_floor_with_a_bench", P, uvs, fv, fvt, materials=("m0", "m1"),
                  face_material=fm)
+
+
+def slab_with_a_block_standing_on_it(size=60.0, depth=8.0, block=(20.0, 40.0), height=10.0,
+                                     at_edge=False):
+    """Brief 10 item 6 (file B's walkway, triage B1): a slab `size` x `size`, its sides `depth`
+    deep and wound outward, NO bottom, and a closed block standing on it over `block` x `block`,
+    `height` tall. Where the block stands the slab has no top face of its own: the block's bottom
+    face (at z 0, facing down) is the slab's top there -- as file B's stair blocks stand on its 1 m
+    slab. The slab's top is a square ring around the block.
+
+    With `at_edge`, the block stands at the slab's y = 0 edge instead (over `block` in x, 0 to
+    `block[1] - block[0]` in y), the top is a U round it, and the slab's y = 0 side is MISSING
+    under the block -- as file B's slab has no -y side under its stairs.
+
+    Faces: the slab's top (four quads, or three for the U), its sides, then the block's 12 (its
+    bottom first)."""
+    s, D = size, depth
+    b0, b1 = block
+    P, uvs, fv, fvt, fm = [], [], [], [], []
+
+    def v(x, y, z):
+        P.append([float(x), float(y), float(z)])
+        return len(P) - 1
+
+    if not at_edge:
+        o = [v(0, 0, 0), v(s, 0, 0), v(s, s, 0), v(0, s, 0)]                 # outer corners
+        i = [v(b0, b0, 0), v(b1, b0, 0), v(b1, b1, 0), v(b0, b1, 0)]         # the hole's corners
+        _quads(P, uvs, fv, fvt, fm, [(o[0], o[1], i[1], i[0]), (o[1], o[2], i[2], i[1]),
+                                     (o[2], o[3], i[3], i[2]), (o[3], o[0], i[0], i[3])])  # +z
+        f = [v(0, 0, -D), v(s, 0, -D), v(s, s, -D), v(0, s, -D)]
+        _quads(P, uvs, fv, fvt, fm, [(f[0], f[1], o[1], o[0]), (f[1], f[2], o[2], o[1]),
+                                     (f[2], f[3], o[3], o[2]), (f[3], f[0], o[0], o[3])])
+        _closed_box(P, uvs, fv, fvt, fm, b0, b1, b0, b1, 0.0, height)
+    else:
+        w = b1 - b0
+        a = [v(0, 0, 0), v(b0, 0, 0), v(b0, w, 0), v(b1, w, 0), v(b1, 0, 0), v(s, 0, 0),
+             v(s, s, 0), v(0, s, 0)]
+        _quads(P, uvs, fv, fvt, fm, [(a[0], a[1], a[2], a[7]), (a[2], a[3], a[6], a[7]),
+                                     (a[3], a[4], a[5], a[6])])                        # U, +z
+        f = [v(x, y, -D) for x, y in ((0, 0), (b0, 0), (b1, 0), (s, 0), (s, s), (0, s))]
+        _quads(P, uvs, fv, fvt, fm, [(f[0], f[1], a[1], a[0]), (f[2], f[3], a[5], a[4]),
+                                     (f[3], f[4], a[6], a[5]), (f[4], f[5], a[7], a[6]),
+                                     (f[5], f[0], a[0], a[7])])        # sides, none under the block
+        _closed_box(P, uvs, fv, fvt, fm, b0, b1, 0.0, w, 0.0, height)
+    return _mesh("slab_with_a_block_standing_on_it", P, uvs, fv, fvt, face_material=fm)

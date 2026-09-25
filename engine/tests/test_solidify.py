@@ -1548,6 +1548,60 @@ def test_one_deep_side_never_makes_the_floor_under_an_open_slab_its_lower_surfac
     assert {12, 13} <= shipped                                     # L's top
 
 
+# ---------------- brief 10 item 6 (triage B1): a block standing on a slab is not an underside
+
+
+def test_the_slab_runs_on_beneath_a_block_standing_on_it():
+    """File B's walkway: a 1 m slab whose top has no face of its own where stair blocks stand on
+    it -- the blocks' bottom faces lie in its top plane. Since review part 2 C2 those count as
+    undersides (a slab above, nothing hanging below), so no top's volume covered the slab under
+    them: walls were built round them INSIDE the slab, and the bottom there was missing or refused
+    as covering outside every footprint -- the slab read as a tray from below.
+
+    An underside a top runs into is where a block STANDS ON that top's slab when the top has a
+    measured depth, none of its own sides hangs along the edges they share (the slab does not end
+    there), and the underside lies within the top's outline (its convex hull). Here: the slab gets
+    its bottom under the block too, no wall is built round the block, and from below it is one
+    closed underside."""
+    from engine.tests.fixtures.build import slab_with_a_block_standing_on_it
+    m = slab_with_a_block_standing_on_it()
+    r = _solidified(m, _FAST)
+    assert r.report["cap_guard_passed"] is True
+    assert r.report["walls_refused"]["faces"] == 0 and r.report["bottom_faces_refused"]["faces"] == 0
+    new = r.mesh.positions[r.mesh.face_v[r.new_faces]]
+    walls_round_block = [t for t in new if np.ptp(t[:, 2]) > 1e-6
+                         and (np.allclose(t[:, 0], 20.0) or np.allclose(t[:, 0], 40.0)
+                              or np.allclose(t[:, 1], 20.0) or np.allclose(t[:, 1], 40.0))]
+    assert walls_round_block == []
+    bottom = [f for f in np.nonzero(r.new_faces)[0]
+              if np.allclose(r.mesh.positions[r.mesh.face_v[f]][:, 2], -8.0)]
+    assert _covered_area(r.mesh, bottom, [0, 1]) == pytest.approx(60.0 * 60.0)
+    shipped = fix_object(m, {}, _FAST)
+    assert shipped.passed is True
+    assert shipped.backface_px["final"]["total"] == 0
+
+
+def test_the_slabs_side_under_a_block_at_its_edge_is_built():
+    """The same slab with the block standing at its y = 0 edge, and the slab's side MISSING under
+    the block (file B has no -y side under its stairs): the block's edge the slab does not continue
+    across is the slab's side there, walled down to the slab's own 8 in like any of its edges --
+    and the slab is closed: one bottom under all of it, nothing refused."""
+    from engine.tests.fixtures.build import slab_with_a_block_standing_on_it
+    m = slab_with_a_block_standing_on_it(at_edge=True)
+    r = _solidified(m, _FAST)
+    assert r.report["blocks_standing_on_slabs"] == 1
+    assert r.report["cap_guard_passed"] is True
+    assert r.report["walls_refused"]["faces"] == 0 and r.report["bottom_faces_refused"]["faces"] == 0
+    side = [f for f in _plane_faces(r.mesh, 1, 0.0) if r.new_faces[f]]
+    assert _covered_area(r.mesh, side, [0, 2]) == pytest.approx(20.0 * 8.0)
+    bottom = [f for f in np.nonzero(r.new_faces)[0]
+              if np.allclose(r.mesh.positions[r.mesh.face_v[f]][:, 2], -8.0)]
+    assert _covered_area(r.mesh, bottom, [0, 1]) == pytest.approx(60.0 * 60.0)
+    shipped = fix_object(m, {}, _FAST)
+    assert shipped.passed is True
+    assert shipped.backface_px["final"]["total"] == 0
+
+
 def test_a_point_on_a_slabs_top_or_bottom_plane_is_inside_it():
     """The cap guard judges the point in front of a covered hit, and for a face lying ON the new
     bottom's plane -- a real partial bottom the bottom replaces -- that point is the hit point
