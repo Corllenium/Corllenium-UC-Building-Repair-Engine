@@ -38,13 +38,13 @@ describe('formatFaceSourceInfo', () => {
     )
   })
 
-  it('formats AFTER view fallback without source_faces as "source line N"', () => {
+  it('formats AFTER view fallback without source_faces as "no provenance recorded for this version"', () => {
     const details: FaceDetails = {
       face_id: 0,
       line: 77,
       vertices: [[0, 0, 0], [1, 0, 0], [0, 1, 0]],
     }
-    expect(formatFaceSourceInfo('after', details)).toBe('source line 77')
+    expect(formatFaceSourceInfo('after', details)).toBe('no provenance recorded for this version')
   })
 
   it('formats AFTER view with invented face (face_id -1)', () => {

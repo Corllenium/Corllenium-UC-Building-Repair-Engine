@@ -16,5 +16,5 @@ export function formatFaceSourceInfo(viewKind: 'before' | 'after', details: Face
     }
     return `source line ${sf.line}`
   }
-  return details.line > 0 ? `source line ${details.line}` : 'no source line'
+  return 'no provenance recorded for this version'
 }
