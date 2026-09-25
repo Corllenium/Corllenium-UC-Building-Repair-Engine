@@ -44,9 +44,12 @@ The owner's decisions of 21:45 are carried out:
     come from native runs.
 - **One copy of each stacked, opposite-wound, same-material surface may be removed**: brief 13.
 
-Owner files (restored 20:42 from `data/output_verified`), built from the COMMITTED head 5300c29 in the
-clean worktree `.claude/worktrees/verified`: file A 882 triangles, back faces from outside 20,478 px;
-file B 506 triangles, 2,787 px; both passed, no rollback. To refresh them from committed code again: in
+Owner files (refreshed 23:53 and 23:54 into `data/output_verified`) are built from the COMMITTED head
+ab22ff3, which is brief 11's end, in the clean worktree `.claude/worktrees/verified`:
+- File A: 881 triangles, back faces from outside 18,348 px, `.skp` sha256 31d4440c4270…
+- File B: 513 triangles, 2,869 px, sha256 bd874b3573c7…
+- Both passed, with all invariants true.
+- The numbers equal brief 11's own runs. To refresh them from committed code again: in
 that worktree `git checkout --detach <commit>`, then run `engine.cli fix` with
 `--out "D:/PROJECTS/UC MODEL FIXER/data/output_verified" --skp-dir "D:/PROJECTS/UC MODEL FIXER/OBJ FIXED RESULT"`
 for both snapshots (the file must not be open in SketchUp).
@@ -64,7 +67,7 @@ State at 23:55:
    the main checkout.
 3. **Brief 13's branch `feat/coincident-pairs`** is not merged: it waits for that review. Its rule works
    but removes nothing today. Brief 14's measurements are on the same branch.
-4. **The owner's files** are being refreshed from committed ab22ff3 through `.claude/worktrees/verified`.
+4. **The owner's files** were refreshed from committed ab22ff3 (23:53 and 23:54): A 881, B 513, both passed.
 5. **Merged:** the dashboard wave (cba42a5) and brief 12 (f885fd9, Hermes pass 5, reviewed).
 6. **Automatic continuation is ON** (section 7): if the limit cuts brief 15, Hermes continues it on its
    own branch.
