@@ -84,14 +84,6 @@ export async function fetchModels(): Promise<Model[]> {
   return res.json()
 }
 
-export async function rescanModels(): Promise<Model[]> {
-  const res = await checkResponse(
-    await fetch(`${API_BASE}/models/rescan`, { method: 'POST' }),
-    'Rescan failed'
-  )
-  return res.json()
-}
-
 export async function fetchModel(id: number): Promise<Model> {
   const res = await checkResponse(await fetch(`${API_BASE}/models/${id}`), `Failed to fetch model ${id}`)
   return res.json()

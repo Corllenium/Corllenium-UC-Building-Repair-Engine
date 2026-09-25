@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session, selectinload
 from api.db import get_db
 from api.models import Model
 from api.schemas import ImportRequest, ModelOut
-from api.services.importer import import_model, scan_source_directory
+from api.services.importer import import_model
 from api.settings import Settings, get_settings
 from engine.io.snapshot import ManifestMismatch, SourceUnstable
 
@@ -14,35 +14,6 @@ router = APIRouter(prefix="/api/models", tags=["models"])
 
 @router.get("", response_model=list[ModelOut])
 def list_models(db: Session = Depends(get_db)):
-    stmt = select(Model).options(selectinload(Model.versions)).order_by(Model.name)
-    return list(db.scalars(stmt))
-
-
-@router.post("/rescan", response_model=list[ModelOut])
-def rescan_source_endpoint(
-    db: Session = Depends(get_db),
-    settings: Settings = Depends(get_settings),
-):
-    try:
-        source_files = scan_source_directory(settings.source_dir, settings.stable_interval_s)
-    except SourceUnstable as exc:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=str(exc),
-            headers={"Retry-After": "5"},
-        )
-    except ManifestMismatch as exc:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=str(exc),
-        )
-
-    for sf in source_files:
-        try:
-            import_model(db, sf.file, settings)
-        except Exception:
-            pass
-
     stmt = select(Model).options(selectinload(Model.versions)).order_by(Model.name)
     return list(db.scalars(stmt))
 

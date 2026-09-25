@@ -121,34 +121,6 @@ def test_texture_only_reexport_imports_a_new_version(client, textured_source_dir
     assert client.get(f"/api/versions/{old['id']}/textures/stone.png").content != tex.read_bytes()
 
 
-def test_models_rescan_endpoint(client, sample_source_dir):
-    from engine.io.obj_writer import write_obj
-    from engine.tests.fixtures.build import cube
-
-    # Rescan discovers existing test_cube.obj
-    r = client.post("/api/models/rescan")
-    assert r.status_code == 200
-    models = r.json()
-    assert any(m["name"] == "test_cube" for m in models)
-
-    # Drop a new file into source directory
-    new_mesh = cube(6.0)
-    write_obj(new_mesh, sample_source_dir / "second_cube.obj")
-    manifest_lines = [
-        "# manifest",
-        "test_cube.obj  12  CubeGroup",
-        f"second_cube.obj  {new_mesh.n_faces}  SecondGroup",
-    ]
-    (sample_source_dir / "_MANIFEST.txt").write_text("\n".join(manifest_lines), encoding="utf-8")
-
-    # Rescan again: new model is discovered and imported
-    r2 = client.post("/api/models/rescan")
-    assert r2.status_code == 200
-    models2 = r2.json()
-    assert any(m["name"] == "second_cube" for m in models2)
-    assert len(models2) >= 2
-
-
 def test_import_identical_bytes_two_file_names(client, sample_source_dir):
     from engine.io.obj_writer import write_obj
     from engine.tests.fixtures.build import cube

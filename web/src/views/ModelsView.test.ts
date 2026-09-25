@@ -26,31 +26,6 @@ describe('ModelsView error formatting & ApiError', () => {
     expect(formatErrorMessage(err422)).toBe('Manifest mismatch')
   })
 
-  it('rescanModels issues POST /api/models/rescan', async () => {
-    const { rescanModels } = await import('../api/client')
-    const originalFetch = globalThis.fetch
-    try {
-      let requestedUrl = ''
-      let requestedMethod = ''
-      globalThis.fetch = (async (url: string, init?: RequestInit) => {
-        requestedUrl = url
-        requestedMethod = init?.method || 'GET'
-        return {
-          ok: true,
-          json: async () => [{ id: 1, name: 'cube', source_file: 'cube.obj', created_at: '', versions: [] }],
-        } as unknown as Response
-      }) as typeof fetch
-
-      const res = await rescanModels()
-      expect(requestedUrl).toBe('/api/models/rescan')
-      expect(requestedMethod).toBe('POST')
-      expect(res).toHaveLength(1)
-      expect(res[0].name).toBe('cube')
-    } finally {
-      globalThis.fetch = originalFetch
-    }
-  })
-
   it('matches file names exactly, not endsWith', async () => {
     const { isSourceImported, findModelBySource } = await import('../utils/modelMatching')
     const models = [
