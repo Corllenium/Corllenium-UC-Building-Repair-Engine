@@ -28,8 +28,9 @@ are byte-identical to the run before them). The concerns are at the end. The big
 | c56018d | R2-M4 `docs(engine): docstrings the side rebuild left stale` |
 | f7e27d1 | item 6 (triage B1) `fix(engine): a block standing on a slab is not an underside; the slab runs on beneath it` |
 
-Other sessions committed three record commits in between (855848d, 62846f6, 0e88d8c). They are not
-mine.
+Other sessions made eight docs(record) commits in between: 870959b, 5791cee, 855848d, 62846f6,
+0e88d8c, 2b26636, c4a7c16 and 60bbcb0. None of them touches `engine/`. Only the ten commits above
+do.
 
 **Suite:** the full engine suite had 542 passing at e27eb79. At f7e27d1 its final line is
 `566 passed in 199.63s (0:03:19)`.
