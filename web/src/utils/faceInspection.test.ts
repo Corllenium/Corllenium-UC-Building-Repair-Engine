@@ -46,4 +46,15 @@ describe('formatFaceSourceInfo', () => {
     }
     expect(formatFaceSourceInfo('after', details)).toBe('source line 77')
   })
+
+  it('formats AFTER view with invented face (face_id -1)', () => {
+    const details: FaceDetails = {
+      face_id: 10,
+      line: -1,
+      vertices: [[0, 0, 0], [1, 0, 0], [0, 1, 0]],
+      source_faces: [{ face_id: -1, line: -1 }],
+    }
+    expect(formatFaceSourceInfo('after', details)).toBe('invented face (solidify)')
+  })
 })
+

@@ -18,6 +18,7 @@ from engine.io.obj_writer import write_obj, write_obj_polygons
 from engine.io.snapshot import sha256_file
 from engine.pipeline import analyse_topology, flat_material_indices
 from engine.transport.meshbuf import pack_meshbuf
+import numpy as np
 import threading
 
 router = APIRouter(prefix="/api/versions", tags=["versions"])
@@ -409,11 +410,20 @@ def run_fix_pipeline(
             )
         )
 
-        # Save source_faces asset
-        source_faces_list = [
-            [int(x) for x in (s.tolist() if hasattr(s, "tolist") else list(s))]
-            for s in result.source_faces
-        ]
+        # Save source_faces asset: map reference mesh IDs to original input face IDs
+        orig_indices = np.flatnonzero(~result.replaced_input)
+        n_orig = len(orig_indices)
+
+        source_faces_list = []
+        for s in result.source_faces:
+            row = []
+            for r in (s.tolist() if hasattr(s, "tolist") else list(s)):
+                r_int = int(r)
+                if 0 <= r_int < n_orig:
+                    row.append(int(orig_indices[r_int]))
+                else:
+                    row.append(-1)
+            source_faces_list.append(row)
         sf_path = out_dir / "source_faces.json"
         sf_path.write_text(json.dumps(source_faces_list), encoding="utf-8")
         db.add(

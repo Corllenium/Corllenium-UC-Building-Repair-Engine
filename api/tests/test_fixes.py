@@ -133,6 +133,62 @@ def test_fix_run_report_carries_details_and_source_faces(client, _database):
             assert isinstance(orig_id, int)
 
 
+def test_source_faces_maps_to_original_face_ids_and_obj_lines(client, _database):
+    import json
+    from api.settings import get_settings
+    from engine.io.obj_writer import write_obj
+    from engine.io.obj_reader import read_obj
+    from engine.tests.fixtures.build import slab_with_sawtooth_side
+
+    settings = get_settings()
+    src = settings.source_dir
+    src.mkdir(parents=True, exist_ok=True)
+
+    m = slab_with_sawtooth_side()
+    obj_path = src / "sawtooth.obj"
+    write_obj(m, obj_path)
+    (src / "_MANIFEST.txt").write_text(f"# manifest\nsawtooth.obj  {m.n_faces}  SawtoothGroup\n", encoding="utf-8")
+
+    r_imp = client.post("/api/models/import", json={"file": "sawtooth.obj"})
+    assert r_imp.status_code == 201
+    model_data = r_imp.json()
+    version_id = model_data["versions"][0]["id"]
+    n_snap_faces = m.n_faces
+
+    r_fix = client.post(
+        f"/api/versions/{version_id}/fix",
+        json={"profile": {"n_dirs": 16, "accept_slit": False}},
+    )
+    assert r_fix.status_code == 201
+    fixed_id = r_fix.json()["fixed_version_id"]
+
+    # Verify source_faces.json
+    r_sf = client.get(f"/api/versions/{fixed_id}/assets/source_faces.json")
+    assert r_sf.status_code == 200
+    sf_data = r_sf.json()
+
+    # Every face id in source_faces.json must be an ORIGINAL face ID (< n_snap_faces) or -1 (invented)
+    snap_mesh = read_obj(obj_path)
+    for row in sf_data:
+        for orig_id in row:
+            assert orig_id == -1 or 0 <= orig_id < n_snap_faces
+
+    # Pick face 0 in fixed version
+    r_face = client.get(f"/api/versions/{fixed_id}/faces/0")
+    assert r_face.status_code == 200
+    f_data = r_face.json()
+    assert "source_faces" in f_data
+    assert len(f_data["source_faces"]) > 0
+    for sf in f_data["source_faces"]:
+        orig_id = sf["face_id"]
+        line = sf["line"]
+        if orig_id != -1:
+            assert 0 <= orig_id < n_snap_faces
+            # Line matches the original OBJ file face_line
+            assert line == int(snap_mesh.face_line[orig_id])
+
+
+
 def test_fix_atomic_rollback_on_exception(client, imported_cube, monkeypatch, db):
     import api.routers.versions
     from api.models import FixRun, ModelVersion
