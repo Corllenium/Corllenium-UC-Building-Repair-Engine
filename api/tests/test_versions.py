@@ -42,6 +42,12 @@ def test_run_fix_endpoint(client, imported_cube):
     assert r_fixed_mb.status_code == 200
     assert r_fixed_mb.content[:4] == b"UCMB"
 
+    # Check asset paths are posix-compliant (no backslashes, m12)
+    r_ver = client.get(f"/api/versions/{fixed_ver_id}")
+    assert r_ver.status_code == 200
+    for a in r_ver.json()["assets"]:
+        assert "\\" not in a["path"]
+
 
 def test_fixed_version_keeps_materials_and_textures(client, _database):
     from dataclasses import replace

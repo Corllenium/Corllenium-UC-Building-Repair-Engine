@@ -166,7 +166,7 @@ def import_model(db: Session, file_name: str, settings: Settings) -> Model:
             version_id=version.id,
             kind="obj",
             name=snap.obj_path.name,
-            path=str(snap.obj_path.relative_to(settings.data_dir)),
+            path=snap.obj_path.relative_to(settings.data_dir).as_posix(),
             sha256=snap.sha256,
         )
     )
@@ -178,7 +178,7 @@ def import_model(db: Session, file_name: str, settings: Settings) -> Model:
                 version_id=version.id,
                 kind="mtl",
                 name=snap.mtl_path.name,
-                path=str(snap.mtl_path.relative_to(settings.data_dir)),
+                path=snap.mtl_path.relative_to(settings.data_dir).as_posix(),
                 sha256=sha256_file(snap.mtl_path),
             )
         )
@@ -191,7 +191,7 @@ def import_model(db: Session, file_name: str, settings: Settings) -> Model:
                     version_id=version.id,
                     kind="texture",
                     name=tex_path.name,
-                    path=str(tex_path.relative_to(settings.data_dir)),
+                    path=tex_path.relative_to(settings.data_dir).as_posix(),
                     sha256=sha256_file(tex_path),
                 )
             )

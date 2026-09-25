@@ -395,7 +395,7 @@ def run_fix_pipeline(
                     version_id=fixed_version.id,
                     kind="mtl",
                     name="materials.mtl",
-                    path=str(dest_mtl.relative_to(settings.data_dir)),
+                    path=dest_mtl.relative_to(settings.data_dir).as_posix(),
                     sha256=sha256_file(dest_mtl),
                 )
             )
@@ -412,7 +412,7 @@ def run_fix_pipeline(
                                 version_id=fixed_version.id,
                                 kind="texture",
                                 name=f.name,
-                                path=str(dest_tex.relative_to(settings.data_dir)),
+                                path=dest_tex.relative_to(settings.data_dir).as_posix(),
                                 sha256=sha256_file(dest_tex),
                             )
                         )
@@ -423,7 +423,7 @@ def run_fix_pipeline(
                 version_id=fixed_version.id,
                 kind="obj",
                 name=fixed_obj_path.name,
-                path=str(fixed_obj_path.relative_to(settings.data_dir)),
+                path=fixed_obj_path.relative_to(settings.data_dir).as_posix(),
                 sha256=fixed_sha256,
             )
         )
@@ -449,7 +449,7 @@ def run_fix_pipeline(
                 version_id=fixed_version.id,
                 kind="source_faces",
                 name="source_faces.json",
-                path=str(sf_path.relative_to(settings.data_dir)),
+                path=sf_path.relative_to(settings.data_dir).as_posix(),
                 sha256=sha256_file(sf_path),
             )
         )
