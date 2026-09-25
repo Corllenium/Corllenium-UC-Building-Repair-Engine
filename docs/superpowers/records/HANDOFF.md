@@ -23,7 +23,7 @@ side mesh, rebuild broken or missing sides; only the model's outline edges may b
 run the latest `.skp` of each file must be in `OBJ FIXED RESULT/` for the owner to check in SketchUp
 2026. Work visually: every round ends with renders that are looked at, not only numbers.
 
-## 2. Current state (2026-09-25 21:20, written by the Claude controller)
+## 2. Current state (2026-09-25 23:55, written by the Claude controller)
 
 Branch `feat-dashboard`, engine suite **566 passed** at brief 10's end (17:32). Brief 11's item 1 is
 committed (4019987); its next items are the brief-11 agent's uncommitted work in progress in the main
@@ -53,15 +53,21 @@ for both snapshots (the file must not be open in SketchUp).
 
 Jobs:
 
-1. **Brief 11** (remaining visual defects), main checkout, Claude subagent since 17:45: item 1 done
-   (4019987); R10-C1 and item 2 in progress.
-2. **Dashboard fix wave merged** (21:20) as cba42a5, after re-review round 3 approved it with
-   follow-ups (0 Critical, 0 Important, 6 Minor). The follow-ups are brief 12: Hermes pass 5 (run H6,
-   dispatched by hand 21:30) works on them in `.hermes/worktrees/dashboard-wave`, fast-forwarded to
-   422d0a9. Claude reviews before any merge. M6 (the 6 live backslash rows) is the owner's decision.
-3. **Automatic continuation** (section 7, commits ce3a931 and 06efe3c): ON. The owner's 21:18 `stop`
-   was not meant ("keep completing"), so it was resumed at 21:25. The watcher was restarted on 06efe3c,
-   so the hand-started pass 5 does not hold back a takeover of brief 11.
+State at 23:55:
+1. **Brief 11 is DONE_WITH_CONCERNS**: 15 commits, 4019987..ab22ff3.
+   - Suite: 607 passed, 1 xfailed (M2).
+   - A: 881 triangles, 18,348 back px. B: 513 triangles, 2,869 back px. Both passed.
+   - Its concerns are in `remaining-visual-defects-report.md`. The biggest: R10-I1 costs A two 2 in
+     walls at x 2680, a knife edge again; R10-I2 adds 112 back px on B.
+   - A read-only review of briefs 11 and 13 together is next, in the fresh window after 01:40.
+2. **Brief 15** (one wall per side plane, for no flicker) is running: the brief-11 agent continues in
+   the main checkout.
+3. **Brief 13's branch `feat/coincident-pairs`** is not merged: it waits for that review. Its rule works
+   but removes nothing today. Brief 14's measurements are on the same branch.
+4. **The owner's files** are being refreshed from committed ab22ff3 through `.claude/worktrees/verified`.
+5. **Merged:** the dashboard wave (cba42a5) and brief 12 (f885fd9, Hermes pass 5, reviewed).
+6. **Automatic continuation is ON** (section 7): if the limit cuts brief 15, Hermes continues it on its
+   own branch.
 
 **If you take over one of these** (for example because Claude hit its usage limit): follow the
 lapse rule at the top of `WORK-CLAIMS.md`, take the claim over in writing, run `git status` and
@@ -82,11 +88,11 @@ work in progress: finish it, test it, commit it; never discard it.
 | 8 | `briefs/08-review2a-fixes.md` | fixes from review 2a | DONE (536fca7..d570927, report 64023ad) |
 | 9 | `briefs/09-sliver-ray-confirmation.md` | rays through each debris piece, folds | DONE (3386c4f..d9673c1) |
 | 10 | `briefs/10-side-rebuild-followups.md` | side rebuild gaps + review part 2 findings | DONE (9f64ae9..f7e27d1, report daeb84c) |
-| 11 | `briefs/11-remaining-visual-defects.md` | margin-strip winding, broken undersides, B region 107, B4, B8 | **running** (main checkout) |
+| 11 | `briefs/11-remaining-visual-defects.md` | margin-strip winding, broken undersides, B region 107, B4, B8 | DONE_WITH_CONCERNS (4019987..ab22ff3); review next |
 | 12 | `briefs/12-dashboard-followups.md` | re-review 3 follow-ups M1-M4 and nits (API owner-copy block, tests) | DONE by Hermes pass 5; reviewed (engine 573, API 44, web 47, 5 of 5 mutation checks); merged as f885fd9 |
 | 13 | `briefs/13-coincident-pairs.md` | one copy of each exactly stacked, opposite-wound, same-material surface (owner's decision 09-25 21:45) | DONE_WITH_CONCERNS on `feat/coincident-pairs` (not merged; review together with brief 11): the rule works but removes nothing at 281a569, where A's landing is already one layer |
 | 14 | `briefs/14-zfight-sources.md` | what still z-fights on A: riser pair x 1305.14, same-wound duplicate z 1779.53 | DONE, measured and not fixed (9f39e7f): A 28 double layers (3,723.5 sq in, 141 px), B 2; all are export sides drawn twice; the fix is brief 15 |
-| 15 | `briefs/15-one-wall-per-side-plane.md` | one wall per side plane where the export drew a side twice; `double_layers` in every report | queued: after brief 11 lands (solidify.py) |
+| 15 | `briefs/15-one-wall-per-side-plane.md` | one wall per side plane where the export drew a side twice; `double_layers` in every report | **running**: the brief-11 agent, main checkout |
 
 ## 4. Rules (each one cost time when broken)
 

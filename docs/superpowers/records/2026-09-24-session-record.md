@@ -85,6 +85,7 @@ final guard passed.
 | 09-25 21:10 | Automatic continuation: `tools/auto_continue.py` hands the running brief job to Hermes on its own branch when a transcript shows Claude's usage limit (34 tests, fake Hermes; one real Hermes smoke call). The owner ran `stop` at 21:18 | ce3a931, 06efe3c | — | — |
 | 09-25 21:20 | Dashboard fix wave merged (Hermes passes 1-4, three read-only reviews; round 3 approved with 6 minor follow-ups, now brief 12); API 39, web 46; engine unchanged | cba42a5 | — | — |
 | 09-25 21:50 | Brief 11 items 2 and R10-C1: a bottom covers the whole footprint; a real underside is the bottom of the body above it, fascia or no sky (agent's real runs, before review) | 0a81860, 281a569 | 884 | 510 |
+| 09-25 23:45 | Brief 11 finished (DONE_WITH_CONCERNS, 15 commits): margin-strip winding, one bottom per footprint, the review-of-brief-10 findings C1, I1-I3, M1, M3-M6 (M2 pinned xfail); items 3-4 traced, every change measured worse; A1 purple strips and A2 stepped lines gone; 607 passed + 1 xfailed | 4019987 .. ab22ff3 | **881** | **513** |
 | 09-25 21:55 | Owner's decisions carried out: live DB backed up, 6 backslash rows rewritten, dashboard rebuilt from 281a569 (nginx timeout 600 s, live DB migrated to 0002), live model loads in the container; brief 13 (one copy of stacked opposite-wound same-material surfaces) started | — | — | — |
 
 Every commit since b2134e9, oldest last: `git log --first-parent b2134e9..HEAD`.
