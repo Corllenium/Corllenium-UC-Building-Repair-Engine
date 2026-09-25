@@ -263,4 +263,18 @@ def test_double_layers_counts_an_opposite_wound_pair_and_nothing_on_a_single_lay
     single = grid_slab()
     topo, positions_c = _centred(single)
     assert double_layers(positions_c, topo.face_w, 0.15, size=_SIZE) == {
-        "count": 0, "area": 0.0, "px": 0, "planes": []}
+        "count": 0, "area": 0.0, "px": 0, "planes": [], "pair_list": []}
+
+
+def test_double_layers_lists_every_pair_with_its_partner():
+    from engine.fixes.overlap import double_layers
+    from engine.tests.fixtures.build import back_to_back_pair
+    m = back_to_back_pair()
+    pos = np.asarray(m.positions, float)
+    centre = (pos.min(axis=0) + pos.max(axis=0)) / 2
+    d = double_layers(pos - centre, np.asarray(m.face_v), depth_tol=0.01, centre=centre)
+    assert d["count"] == 1
+    [(i, j, shared, opposite)] = d["pair_list"]
+    assert (i, j) == (0, 1)
+    assert opposite is True
+    assert shared == pytest.approx(d["area"])

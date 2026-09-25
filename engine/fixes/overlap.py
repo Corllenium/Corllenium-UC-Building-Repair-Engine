@@ -435,7 +435,7 @@ def double_layers(positions_c: np.ndarray, faces: np.ndarray, depth_tol: float,
     views = VIEWS_26 if views is None else views
     positions_c = np.asarray(positions_c, dtype=np.float64)
     faces = np.asarray(faces, dtype=np.int64)
-    empty = {"count": 0, "area": 0.0, "px": 0, "planes": []}
+    empty = {"count": 0, "area": 0.0, "px": 0, "planes": [], "pair_list": []}
     if not len(faces):
         return empty
     tri = positions_c[faces]
@@ -535,5 +535,7 @@ def double_layers(positions_c: np.ndarray, faces: np.ndarray, depth_tol: float,
             "area": round(sum(s for _i, _j, s, _o in p["_pairs"]), 3),
             "px": px_plane[k]})
     out_planes.sort(key=lambda p: (-p["area"], p["faces"]))
+    pair_list = sorted(([int(i), int(j), round(float(s), 3), bool(o)] for i, j, s, o in pairs),
+                       key=lambda p: (-p[2], p[0], p[1]))
     return {"count": len(pairs), "area": round(sum(s for _i, _j, s, _o in pairs), 3),
-            "px": int(sum(px_plane)), "planes": out_planes}
+            "px": int(sum(px_plane)), "planes": out_planes, "pair_list": pair_list}

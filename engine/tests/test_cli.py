@@ -1148,7 +1148,7 @@ def test_cmd_fix_reports_the_double_layers_that_can_still_flicker(tmp_path, caps
 
     report = json.loads((tmp_path / "out" / m.name / "report.json").read_text(encoding="utf-8"))
     d = report["double_layers"]
-    assert set(d) == {"count", "area", "px", "planes"}
+    assert set(d) == {"count", "area", "px", "planes", "pair_list"}
     assert d["count"] == 1 and abs(d["area"] - 187.5) < 1e-3
     assert d["count"] == sum(p["pairs"] for p in d["planes"])
     [line] = [ln for ln in capsys.readouterr().out.splitlines() if "double layers" in ln]
