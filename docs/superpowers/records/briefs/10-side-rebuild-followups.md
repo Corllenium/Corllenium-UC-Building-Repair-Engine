@@ -28,5 +28,21 @@ are the known gaps it reported. Main checkout, test-first, one commit per item.
 5. The small back-facing piece left at the upper-left end of the ramp close-up
    (`B_sr6_ramp_teeth_v0.png`), and the ramp's view 1 at 2,674 back pixels (target about 2,500).
 
+## Added after the merge (brief 03 report, `reconcile-side-rebuild-report.md`, 2026-09-25 10:55)
+
+6. **What the renders still show wrong** (after the merge, owner's files at 08:50-08:52): file B's
+   middle slabs look like trays from below; B's sloped slab hangs a stepped fin; panels hang at
+   different depths with a see-through slot under B's upper-left landing; clutter along A's
+   big-landing edge; step lines on A's undersides. Find each on the real files (close-ups), say which
+   are side-rebuild gaps (items 1-3) and fix those; list the rest with their cause.
+7. **Lines inside flat surfaces on A rose from 8 to 17** after the merge (shorter in total: 20.3 ft
+   against 48.8 ft); three of the six longest lie along x = 2673.2. Trace them.
+8. **Sliver 3491 on A** is a new removal after the merge (the rays confirm it); say why it became a
+   candidate.
+9. Not for this brief without the owner's decision: file A ships two copies of the same surface
+   stacked with opposite windings on its lower landing at z 1612.2 (from the export; they z-fight in
+   Unity). The project's blocked-operation rule forbids treating opposite-normal coincident pairs as
+   duplicates, so removing one needs the owner's explicit OK.
+
 Finish as brief 03 (both runs, audit, close-ups of the ramp and B region 92 read), report
 `side-rebuild-followups-report.md`.
