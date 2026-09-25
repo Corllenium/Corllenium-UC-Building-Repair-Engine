@@ -255,6 +255,7 @@ import {
 import { decodeMeshbuf } from '../three/meshbuf'
 import { Viewport, syncViewports } from '../three/Viewport'
 import { describeResult } from '../utils/describeResult'
+import { resolveActiveRun } from '../utils/runResolution'
 import { formatFaceSourceInfo } from '../utils/faceInspection'
 import { useLayers } from '../composables/useLayers'
 import { useGuardViews, getGuardImageUrl, DEFAULT_GUARD_VIEWS } from '../composables/useGuardViews'
@@ -436,15 +437,15 @@ async function reloadModel() {
       const fixBuf = await fetchMeshbuf(fixedVersion.value.id)
       viewB.loadModel(decodeMeshbuf(fixBuf))
     }
+    let fetchedRun: FixRun | null = null
     if (fixedVersion.value) {
       try {
-        latestRun.value = await fetchVersionRun(fixedVersion.value.id)
+        fetchedRun = await fetchVersionRun(fixedVersion.value.id)
       } catch {
-        latestRun.value = null
+        fetchedRun = null
       }
-    } else {
-      latestRun.value = null
     }
+    latestRun.value = resolveActiveRun(latestRun.value, fetchedRun)
     // If a fixed version exists, try to load source_faces to highlight hidden faces in BEFORE
     if (fixedVersion.value && viewA && snapshotVersion.value) {
       try {
