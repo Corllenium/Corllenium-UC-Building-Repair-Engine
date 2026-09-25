@@ -84,6 +84,9 @@ work in progress: finish it, test it, commit it; never discard it.
   or `git commit -a`. Big features go in their own worktree and branch; the controller merges.
   Foreign uncommitted edits get parked on a `wip/` branch, never discarded. Worktree `corllenium`
   (branch `corllenium/p1-ingest`) belongs to another session: leave it alone.
+- **The owner's folder `OBJ FIXED RESULT/` holds only files built from COMMITTED code.** Every
+  real-data run during work passes `--skp-dir "D:/PROJECTS/UC MODEL FIXER/data/skp_scratch"`; after
+  committing, refresh the owner's files from the clean worktree `.claude/worktrees/verified` (section 2).
 - **Test-first**: write the failing test, see it fail, implement, see it pass. Commit after every
   item so a cut loses nothing.
 - **Guards are never loosened by argument.** A change to what the guard tolerates must name the
