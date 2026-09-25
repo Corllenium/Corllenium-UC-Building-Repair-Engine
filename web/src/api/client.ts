@@ -37,6 +37,7 @@ export interface FixRun {
   config?: any
   report_json?: any
   guard_views?: string[]
+  skp?: any
   error?: string
   created_at: string
 }

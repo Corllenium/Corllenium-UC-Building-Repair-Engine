@@ -15,6 +15,8 @@ class Settings(BaseSettings):
     stable_interval_s: float = 1.0
     api_host: str = "127.0.0.1"
     api_port: int = 8190
+    skp_dir: Path = REPO_ROOT / "OBJ FIXED RESULT"
+
 
 
 

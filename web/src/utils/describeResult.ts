@@ -7,7 +7,24 @@ export interface ResultDescription {
   rolledBackReason?: string
   backfacePx?: number
   borderShiftPx?: number
+  zfightTie?: number
+  crackClosed?: number
+  edgeFlickerBreakdown?: {
+    total: number
+    hole: number
+    moved: number
+    material: number
+    grown: number
+  }
+  guardMergeAttempt?: {
+    passed: boolean
+    holes?: number
+    moved?: number
+  }
   skpSummary?: string
+  skpPath?: string
+  skpWritten?: boolean
+  skpReason?: string
   error?: string
 }
 
@@ -55,7 +72,35 @@ export function describeResult(report: any): ResultDescription {
   }
 
   const borderShiftPx = typeof totals.border_shift === 'number' ? totals.border_shift : undefined
-  const skpSummary = report.skp_summary || report.skp_path
+  const zfightTie = typeof totals.zfight_tie === 'number' ? totals.zfight_tie : undefined
+  const crackClosed = typeof totals.crack_closed === 'number' ? totals.crack_closed : undefined
+
+  let edgeFlickerBreakdown: ResultDescription['edgeFlickerBreakdown'] | undefined
+  if (typeof totals.edge_flicker === 'number') {
+    edgeFlickerBreakdown = {
+      total: totals.edge_flicker,
+      hole: totals.edge_flicker_hole ?? 0,
+      moved: totals.edge_flicker_moved ?? 0,
+      material: totals.edge_flicker_material ?? 0,
+      grown: totals.edge_flicker_grown ?? 0,
+    }
+  }
+
+  let guardMergeAttempt: ResultDescription['guardMergeAttempt'] | undefined
+  if (report.guard_merge_attempt && typeof report.guard_merge_attempt === 'object') {
+    const gmaTotals = report.guard_merge_attempt.totals || {}
+    guardMergeAttempt = {
+      passed: Boolean(report.guard_merge_attempt.passed),
+      holes: gmaTotals.holes,
+      moved: (gmaTotals.moved_same_flat ?? 0) + (gmaTotals.moved_other ?? 0),
+    }
+  }
+
+  const skp = report.skp || {}
+  const skpWritten = typeof skp.written === 'boolean' ? skp.written : undefined
+  const skpPath = skp.copied_to || skp.path || report.skp_path
+  const skpReason = skp.reason || skp.error
+  const skpSummary = report.skp_summary || (skpPath ? `SketchUp file: ${skpPath}` : undefined)
 
   return {
     heading,
@@ -66,6 +111,13 @@ export function describeResult(report: any): ResultDescription {
     rolledBackReason,
     backfacePx,
     borderShiftPx,
+    zfightTie,
+    crackClosed,
+    edgeFlickerBreakdown,
+    guardMergeAttempt,
     skpSummary,
+    skpPath,
+    skpWritten,
+    skpReason,
   }
 }

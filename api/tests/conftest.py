@@ -12,6 +12,7 @@ def _database(tmp_path_factory):
     os.environ["FIXER_DATABASE_URL"] = db_url
     os.environ["FIXER_SOURCE_DIR"] = str(root / "source")
     os.environ["FIXER_DATA_DIR"] = str(root / "data")
+    os.environ["FIXER_SKP_DIR"] = str(root / "skp_out")
     os.environ["FIXER_STABLE_INTERVAL_S"] = "0"
     from api.settings import get_settings
     get_settings.cache_clear()

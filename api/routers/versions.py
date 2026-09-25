@@ -10,7 +10,7 @@ from api.db import get_db
 from api.models import FixRun, ModelVersion, VersionAsset
 from api.schemas import FaceOut, FixRequest, FixRunOut, ModelVersionOut
 from api.settings import Settings, get_settings
-from engine.cli import _build_report, _write_guard_images
+from engine.cli import _build_report, _write_guard_images, _write_skp
 from engine.fixes.pipeline import FixProfile, fix_object
 from engine.io.mtl import parse_mtl, texture_flatness
 from engine.io.obj_reader import read_obj
@@ -417,8 +417,26 @@ def run_fix_pipeline(
             if (out_dir / f"guard_{v}.png").exists()
         ]
 
+        skp_report = _write_skp(
+            result,
+            name,
+            out_dir,
+            ref_flat_mats,
+            profile,
+            enabled=True,
+            copy_dir=settings.skp_dir,
+        )
+        skp_report.setdefault("path", str(out_dir / f"{name}.fixed.skp"))
+
         report_data = _build_report(name, obj_path, mesh, result, profile)
         report_data["guard_views"] = guard_views
+        report_data["skp"] = skp_report
+        report_data["skp_path"] = skp_report.get("copied_to") or skp_report.get("path")
+        report_data["skp_summary"] = (
+            f"SketchUp file: {report_data['skp_path']}"
+            if skp_report.get("written")
+            else f"SketchUp skipped: {skp_report.get('reason')}"
+        )
         mr = report_data.setdefault("merge_report", {})
         mr.setdefault("rolled_back", False)
         mr.setdefault("rolled_back_reason", None)

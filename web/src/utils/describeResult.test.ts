@@ -78,4 +78,63 @@ describe('describeResult', () => {
     expect(desc.guardLine).toContain('1 mat changed')
     expect(desc.guardLine).toContain('40 edge flicker')
   })
+
+  it('formats guard totals (zfight_tie, crack_closed, flicker breakdown), guard_merge_attempt, and skp info', () => {
+    const report = {
+      passed: true,
+      merge_report: { rolled_back: false },
+      guard_merge_attempt: {
+        passed: true,
+        totals: { holes: 0, moved_other: 0, moved_same_flat: 0 },
+      },
+      guard_final: {
+        passed: true,
+        totals: {
+          holes: 0,
+          moved_other: 0,
+          moved_same_flat: 0,
+          material_changed: 0,
+          edge_flicker: 15,
+          edge_flicker_hole: 5,
+          edge_flicker_moved: 7,
+          edge_flicker_material: 2,
+          edge_flicker_grown: 1,
+          zfight_tie: 3,
+          crack_closed: 8,
+          border_shift: 0,
+        },
+      },
+      skp: {
+        written: true,
+        copied_to: 'OBJ FIXED RESULT/cube.fixed.skp',
+        path: 'data/fixed/1/cube.fixed.skp',
+      },
+    }
+
+    const desc = describeResult(report)
+    expect(desc.zfightTie).toBe(3)
+    expect(desc.crackClosed).toBe(8)
+    expect(desc.edgeFlickerBreakdown).toEqual({
+      total: 15,
+      hole: 5,
+      moved: 7,
+      material: 2,
+      grown: 1,
+    })
+    expect(desc.guardMergeAttempt?.passed).toBe(true)
+    expect(desc.skpPath).toBe('OBJ FIXED RESULT/cube.fixed.skp')
+    expect(desc.skpWritten).toBe(true)
+
+    // And when skp skipped
+    const skippedReport = {
+      ...report,
+      skp: {
+        written: false,
+        reason: 'SketchUp C API DLL not found',
+      },
+    }
+    const descSkipped = describeResult(skippedReport)
+    expect(descSkipped.skpWritten).toBe(false)
+    expect(descSkipped.skpReason).toBe('SketchUp C API DLL not found')
+  })
 })

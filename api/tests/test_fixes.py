@@ -225,4 +225,45 @@ def test_concurrent_fix_returns_409(client, imported_cube):
     assert r_ok.status_code == 201
 
 
+def test_fix_run_writes_skp_and_copies_to_skp_dir(client, imported_cube):
+    from api.settings import get_settings
+    settings = get_settings()
+    version_id = imported_cube["versions"][0]["id"]
+    r_fix = client.post(f"/api/versions/{version_id}/fix", json={"profile": {"n_dirs": 32}})
+    assert r_fix.status_code == 201
+    run_data = r_fix.json()
+    assert "skp" in run_data["report_json"]
+    skp_info = run_data["report_json"]["skp"]
+
+    # When SketchUp DLL is available on the host
+    if skp_info.get("written"):
+        run_dir = settings.data_dir / "fixed" / str(run_data["id"])
+        name = imported_cube["name"]
+        assert (run_dir / f"{name}.fixed.skp").exists()
+        if settings.skp_dir:
+            assert (settings.skp_dir / f"{name}.fixed.skp").exists()
+        assert skp_info.get("copied_to") is not None
+
+
+def test_fix_run_succeeds_when_skp_dll_absent(client, imported_cube, monkeypatch):
+    from engine.io.skp_writer import SketchUpUnavailable
+    import engine.cli
+
+    def mock_write_skp(*args, **kwargs):
+        raise SketchUpUnavailable("SketchUp C API DLL not found")
+
+    monkeypatch.setattr(engine.cli, "write_skp", mock_write_skp)
+
+    version_id = imported_cube["versions"][0]["id"]
+    r_fix = client.post(f"/api/versions/{version_id}/fix", json={"profile": {"n_dirs": 32}})
+    assert r_fix.status_code == 201
+    run_data = r_fix.json()
+    assert run_data["status"] == "completed"
+    assert "skp" in run_data["report_json"]
+    skp_info = run_data["report_json"]["skp"]
+    assert skp_info["written"] is False
+    assert "SketchUp C API DLL not found" in skp_info["reason"]
+
+
+
 

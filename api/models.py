@@ -103,3 +103,10 @@ class FixRun(Base):
             return self.report_json.get("guard_views", [])
         return []
 
+    @property
+    def skp(self) -> dict[str, Any] | None:
+        if self.report_json and isinstance(self.report_json, dict):
+            return self.report_json.get("skp")
+        return None
+
+

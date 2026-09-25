@@ -74,6 +74,7 @@ class FixRunOut(BaseModel):
     config: dict[str, Any] | None = None
     report_json: dict[str, Any] | None = None
     guard_views: list[str] = []
+    skp: dict[str, Any] | None = None
     error: str | None = None
     created_at: datetime
 

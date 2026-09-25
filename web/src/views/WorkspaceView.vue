@@ -110,7 +110,36 @@
               <template v-if="resultDesc.borderShiftPx !== undefined">
                 &nbsp;&middot;&nbsp; <span>{{ resultDesc.borderShiftPx }} border shift</span>
               </template>
-              <template v-if="resultDesc.skpSummary">
+              <template v-if="resultDesc.zfightTie !== undefined">
+                &nbsp;&middot;&nbsp; <span>{{ resultDesc.zfightTie }} z-fight ties</span>
+              </template>
+              <template v-if="resultDesc.crackClosed !== undefined">
+                &nbsp;&middot;&nbsp; <span>{{ resultDesc.crackClosed }} closed cracks</span>
+              </template>
+              <template v-if="resultDesc.edgeFlickerBreakdown && resultDesc.edgeFlickerBreakdown.total > 0">
+                &nbsp;&middot;&nbsp;
+                <span>flicker {{ resultDesc.edgeFlickerBreakdown.total }} ({{ resultDesc.edgeFlickerBreakdown.hole }} hole, {{ resultDesc.edgeFlickerBreakdown.moved }} moved, {{ resultDesc.edgeFlickerBreakdown.material }} mat, {{ resultDesc.edgeFlickerBreakdown.grown }} grown)</span>
+              </template>
+              <template v-if="resultDesc.guardMergeAttempt">
+                &nbsp;&middot;&nbsp;
+                <span :style="{ color: resultDesc.guardMergeAttempt.passed ? '#0d8a43' : '#e67e22' }">
+                  merge attempt {{ resultDesc.guardMergeAttempt.passed ? 'PASSED' : 'FAILED' }}
+                </span>
+              </template>
+              <template v-if="resultDesc.skpWritten && resultDesc.skpPath">
+                &nbsp;&middot;&nbsp;
+                <span class="skp-file-box">
+                  SketchUp file: <code>{{ resultDesc.skpPath }}</code>
+                  <button class="btn-copy-skp" @click="copySkpPath(resultDesc.skpPath)">{{ copiedSkp ? 'Copied!' : 'Copy' }}</button>
+                </span>
+              </template>
+              <template v-else-if="resultDesc.skpWritten === false">
+                &nbsp;&middot;&nbsp;
+                <span class="skp-skipped-notice text-muted">
+                  SketchUp file skipped: {{ resultDesc.skpReason || 'C API DLL missing' }}
+                </span>
+              </template>
+              <template v-else-if="resultDesc.skpSummary">
                 &nbsp;&middot;&nbsp; <span class="skp-summary">{{ resultDesc.skpSummary }}</span>
               </template>
             </template>
@@ -252,6 +281,17 @@ const guardViews = computed<string[]>(() => {
   if (!latestRun.value) return []
   return latestRun.value.guard_views || latestRun.value.report_json?.guard_views || []
 })
+
+const copiedSkp = ref(false)
+function copySkpPath(path: string) {
+  if (!path) return
+  navigator.clipboard.writeText(path).then(() => {
+    copiedSkp.value = true
+    setTimeout(() => {
+      copiedSkp.value = false
+    }, 2000)
+  })
+}
 
 watch(
   guardViews,
