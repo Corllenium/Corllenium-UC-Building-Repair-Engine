@@ -1942,3 +1942,86 @@ def test_a_removed_fragment_that_opens_onto_the_inside_is_never_an_opened_crack(
     assert shows_the_inside.totals["border_shift"] == 0
     assert shows_the_inside.totals["moved_other"] == 25
     assert shows_the_inside.passed is False
+
+
+# ---------------------------------------------------------------------------
+# Brief 10 item 1: the cap guard's rule 6 -- seen through a closed slab
+# ---------------------------------------------------------------------------
+
+def test_a_view_is_through_the_slab_only_between_two_kept_shell_faces_inside_it():
+    """Two new walls of one slab, `y = 0` wound -y and `y = 20` wound +y (outward), both reaching
+    `z = -10`, while the slab itself is `z` -2 to 0: below -2 they are fins. A ray along +y enters
+    the near wall from outside and leaves through the far one. Seen through the slab -- rule 6 --
+    only when every stretch between them lies inside the slab and BEFORE's hit lies beyond the far
+    wall; never for a ray that met its new face on the back (it came in through an opening)."""
+    from engine.guard.compare import INTERIOR_BELOW_BOTTOM, INTERIOR_INSIDE, _through_closed_shell
+    from engine.rays.caster import EmbreeCaster
+    P = np.array([[0, 0, 0], [40, 0, 0], [40, 0, -10], [0, 0, -10],
+                  [0, 20, 0], [40, 20, 0], [40, 20, -10], [0, 20, -10]], dtype=np.float64)
+    faces = np.array([[0, 2, 1], [0, 3, 2], [4, 5, 6], [4, 6, 7]], dtype=np.int64)
+    planes = face_planes(P, faces)
+    assert planes[0, 1] == -1.0 and planes[2, 1] == 1.0
+    caster = EmbreeCaster(P, faces)
+
+    def interior(face_ids, points):
+        inside = (points[:, 2] <= 0.0) & (points[:, 2] >= -2.0)
+        return np.where(inside, INTERIOR_INSIDE, INTERIOR_BELOW_BOTTOM)
+
+    start = np.array([[20.0, 0.0, -1.0], [20.0, 0.0, -5.0], [20.0, 0.0, -1.0]])
+    gap = np.array([30.0, 30.0, 10.0])      # BEFORE's hit at y = 30, 30, and 10 (short of the wall)
+    out, leave = _through_closed_shell(start, np.array([0.0, 1.0, 0.0]), gap,
+                                       np.array([0, 0, 0]), planes, caster, np.arange(4),
+                                       interior)
+    assert out.tolist() == [True, False, False]
+    assert leave[0] in (2, 3) and leave[1:].tolist() == [-1, -1]
+    # the far wall's inner side, reached from within: its ray met it on the back
+    back, _ = _through_closed_shell(np.array([[20.0, 20.0, -1.0]]), np.array([0.0, 1.0, 0.0]),
+                                    np.array([10.0]), np.array([2]), planes, caster,
+                                    np.arange(4), interior)
+    assert back.tolist() == [False]
+
+
+def test_a_face_held_up_by_a_refused_face_is_refused_with_it_unless_another_holds_it():
+    """Brief 10 item 1, "refused together": a pixel rule 6 allowed because its ray left the slab
+    through a new wall at y = 20 (faces 2-3). That wall is refused this round. Re-cast against
+    the rest of the shell, the ray next leaves through the wall at y = 30 (faces 4-5):
+
+    - if the slab ends at y = 20, the stretch beyond it is outside, so the pixel's own new face
+      (0) is refused in the SAME round;
+    - if the slab runs on to y = 30 (a lower slab beyond a step wall), the ray still leaves a
+      closed slab, and face 0 stays;
+    - if what BEFORE showed there is a replaced piece, the piece is restored instead."""
+    from engine.guard.compare import (INTERIOR_BELOW_BOTTOM, INTERIOR_INSIDE,
+                                      INTERIOR_OUTSIDE_FOOTPRINT, _refuse_together)
+    from engine.rays.caster import EmbreeCaster
+    P, faces = [], []
+    for y, sign in ((0.0, -1), (20.0, 1), (30.0, 1)):
+        b = len(P)
+        P += [[0, y, 0], [40, y, 0], [40, y, -10], [0, y, -10]]
+        faces += ([[b, b + 2, b + 1], [b, b + 3, b + 2]] if sign < 0
+                  else [[b, b + 1, b + 2], [b, b + 2, b + 3]])
+    P, faces = np.array(P, dtype=np.float64), np.array(faces, dtype=np.int64)
+    planes = face_planes(P, faces)
+    assert planes[0, 1] == -1.0 and planes[2, 1] == 1.0 and planes[4, 1] == 1.0
+
+    def slab_to(y_end):
+        def interior(face_ids, points):
+            inside = (points[:, 2] >= -2.0) & (points[:, 2] <= 0.0) & (points[:, 1] <= y_end)
+            return np.where(inside, INTERIOR_INSIDE, INTERIOR_BELOW_BOTTOM)
+        return interior
+
+    def run(y_end, piece):
+        records = [[np.array([0.0, 1.0, 0.0]), np.array([[20.0, 0.0, -1.0]]), np.array([40.0]),
+                    np.array([0]), np.array([7]), np.array([INTERIOR_OUTSIDE_FOOTPRINT]),
+                    np.array([2])]]
+        refuse, restore = {2: [1], 3: [1]}, set()
+        removed = np.zeros(10, dtype=bool)
+        removed[7] = piece
+        together = _refuse_together(refuse, restore, removed, records, np.arange(6), planes, P,
+                                    faces, EmbreeCaster, slab_to(y_end))
+        return together, sorted(refuse), sorted(restore), int(records[0][6][0])
+
+    assert run(20.0, False) == (1, [0, 2, 3], [], 2)
+    together, refused, restored, leave = run(30.0, False)
+    assert (together, refused, restored) == (0, [2, 3], []) and leave in (4, 5)
+    assert run(20.0, True) == (0, [2, 3], [7], 2)

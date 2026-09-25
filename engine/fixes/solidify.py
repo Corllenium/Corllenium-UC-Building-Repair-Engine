@@ -32,7 +32,9 @@ refused because it met the strip in the same plane). So now, per top region:
 4. The cap guard (`engine.guard.compare.solidify_feedback`) allows two more named changes: a
    replaced piece's pixel showing the face that replaced it, and a pixel whose BEFORE hit point
    lies INSIDE a slab's volume (under its top, above its measured bottom). Anything outside the
-   volume still may never be covered.
+   volume still may never be covered -- except, since brief 10 item 1, what was seen THROUGH a
+   slab whose new shell is kept on both sides of the ray (rule 6): a slab's walls and bottom are
+   judged together, not each against a mesh that lacks the others.
 
 THICKNESS IS MEASURED PER EDGE, not per region. A real skirt on file A varies from 1.3 to 49 in, so
 one height for a whole region hangs the shallow side of it far below the slab. Each wall is
@@ -831,6 +833,9 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
         edges_continued += int(plan["continued"].sum())
         whole_heights = []
         whole_depths: list[float] = []
+        # every side's depth as `_wall_pieces` measured it -- what hangs from its top edge, whole
+        # or broken -- which bounds how deep this slab's existing bottom may lie (`_underside`)
+        side_depths: list[float] = []
         to_build = []
         rep = plan["rep"]
         report_rep[str(region)] = None if rep is None else round(float(rep), 4)
@@ -863,6 +868,8 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
                                                   max_depth=max_h,
                                                   min_side=0.0 if rep is None else rep - tol,
                                                   h_ends=ends)
+            if depth is not None:
+                side_depths.append(float(depth))
             if coverage >= SIDE_WHOLE_FRACTION:
                 sides_intact += 1
                 if depth is not None:
@@ -957,8 +964,9 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
         if not resolved:
             unresolved_thickness += 1
             continue
+        sides_reach = plan["own_depths"] + side_depths
         exists, depth = _underside(topo, members, caster, bottom_h, tol, bottom_fraction,
-                                   bottom_extra)
+                                   bottom_extra, max(sides_reach) if sides_reach else None, band)
         if exists:
             bottom_exists += 1
             volumes[region] = (plan["foot"], plan["normal"], plan["origin"], depth, None)
@@ -1126,7 +1134,8 @@ def _welded_to_original(mesh: MeshData, topo: Topology) -> np.ndarray:
 
 
 def _underside(topo: Topology, members: np.ndarray, caster, h: float, tol: float,
-               fraction: float, search_extra: float = 24.0) -> tuple[bool, float]:
+               fraction: float, search_extra: float = 24.0,
+               deepest_own: float | None = None, band: float = 0.0) -> tuple[bool, float]:
     """`(exists, depth)`: a ray straight down from just below each of the region's face
     centroids; the region already has a bottom when at least `fraction` of them meet something
     within `h + search_extra + tol`, and `depth` is the MEDIAN depth below the top at which they
@@ -1139,14 +1148,23 @@ def _underside(topo: Topology, members: np.ndarray, caster, h: float, tol: float
     in.
 
     Bounded rather than unbounded, because "anything at all below me" is not a bottom: a slab
-    100 in above a floor does not have that floor for an underside."""
+    100 in above a floor does not have that floor for an underside. And, given `deepest_own` (the
+    deepest the slab's sides reach: its own sides below their edges, and what `_wall_pieces`
+    measured hanging from each outline edge -- a side gridded into rows is as deep as all of
+    them), no deeper than they go plus `band` -- the limit `_lower_surface` keeps (review I1;
+    brief 10 item 1): a floor 20 in below a 2 in slab whose sides end 2 in down is the ground
+    under it, not its bottom. Taken for its bottom, the slab got none, its volume ran down to the
+    floor, and its open underside kept the wall on its missing side from ever being kept."""
     centroid = topo.positions_w[topo.face_w[members]].mean(axis=1)
     origins = centroid - np.array([0.0, 0.0, EPS_IN])
     directions = np.tile(np.array([0.0, 0.0, -1.0]), (len(origins), 1))
     tri, t = caster.first_hit(origins, directions)
     found = (tri >= 0) & (t <= h + search_extra + tol)
     depth = float(np.median(t[found]) + EPS_IN) if found.any() else h
-    return bool(found.mean() >= fraction), depth
+    exists = bool(found.mean() >= fraction)
+    if exists and deepest_own is not None and depth > deepest_own + band:
+        return False, h
+    return exists, depth
 
 
 def _lower_surface(topo: Topology, members: np.ndarray, caster, ok_ids: np.ndarray,

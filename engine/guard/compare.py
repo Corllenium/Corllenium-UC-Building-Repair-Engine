@@ -1231,6 +1231,112 @@ _INTERIOR_REASONS = {INTERIOR_OUTSIDE_FOOTPRINT: "covers_outside_footprint",
                      INTERIOR_AT_OR_ABOVE_TOP: "covers_at_or_above_top",
                      INTERIOR_UNMEASURED: "covers_unmeasured_slab"}
 
+#: Rule 6 (brief 10 item 1): how far past the new face a pixel's ray is restarted to look for the
+#: face it leaves the shell through, in inches -- well past float32 noise on the centred model
+#: (about 3e-5 in at 500 in from the centre), far below any slab's thickness.
+_SHELL_LIFT = 1e-3
+#: ...and the path between the two is sampled at most this far apart, in inches, between 3 and
+#: `_SHELL_MAX_SAMPLES` points, every one of which must lie inside a slab.
+_SHELL_SPACING = 2.0
+_SHELL_MAX_SAMPLES = 32
+
+
+def _through_closed_shell(start: np.ndarray, direction: np.ndarray, gap: np.ndarray,
+                          entry: np.ndarray, planes_after: np.ndarray, shell_caster,
+                          shell_ids: np.ndarray, interior) -> tuple[np.ndarray, np.ndarray]:
+    """Rule 6 of the cap guard, per pixel: is what BEFORE showed there seen THROUGH a closed
+    slab? `start` holds the AFTER hit points (positions_c) on the new faces `entry`, `gap` the
+    distance along `direction` from each of them to BEFORE's hit. Returns `(through, leave)`:
+    the verdict, and the new face each such ray leaves the slab through (-1 elsewhere).
+
+    True when the ray meets its new face on the FRONT (from outside: every invented face is wound
+    outward), then -- restarted `_SHELL_LIFT` past it and cast against the KEPT new faces
+    (`shell_caster` over `shell_ids`) -- leaves through another one, met on its BACK, before it
+    reaches BEFORE's hit; and every sample of the path between the two lies inside a slab
+    (`interior(...) == INTERIOR_INSIDE`). The slab is then closed on both sides of that ray, and
+    what BEFORE showed behind it is hidden by the slab being a solid, whatever it is."""
+    out = np.zeros(len(start), dtype=bool)
+    exit_face = np.full(len(start), -1, dtype=np.int64)
+    if not len(start) or shell_caster is None:
+        return out, exit_face
+    front = planes_after[entry, :3] @ direction < -1e-9
+    idx = np.nonzero(front)[0]
+    if not len(idx):
+        return out, exit_face
+    rays = np.tile(direction, (len(idx), 1))
+    tri, t = shell_caster.first_hit(start[idx] + _SHELL_LIFT * direction, rays)
+    hit = tri >= 0
+    leave = np.where(hit, shell_ids[np.where(hit, tri, 0)], 0)
+    length = _SHELL_LIFT + t
+    ok = hit & (planes_after[leave, :3] @ direction > 1e-9) & (length < gap[idx])
+    idx, length, leave = idx[ok], length[ok], leave[ok]
+    if not len(idx):
+        return out, exit_face
+    k = np.clip(np.ceil(length / _SHELL_SPACING).astype(np.int64), 3, _SHELL_MAX_SAMPLES)
+    owner = np.repeat(np.arange(len(idx)), k)
+    j = np.arange(int(k.sum())) - np.repeat(np.cumsum(k) - k, k)
+    fraction = (j + 0.5) / np.repeat(k, k)
+    points = start[idx][owner] + (fraction * length[owner])[:, None] * direction
+    codes = np.asarray(interior(entry[idx][owner], points), dtype=np.int64)
+    inside = np.ones(len(idx), dtype=bool)
+    np.logical_and.at(inside, owner, codes == INTERIOR_INSIDE)
+    out[idx[inside]] = True
+    exit_face[idx[inside]] = leave[inside]
+    return out, exit_face
+
+
+def _refuse_together(refuse: dict, restore: set, removed: np.ndarray, records: list,
+                     shell_ids: np.ndarray, planes_after: np.ndarray, positions_c: np.ndarray,
+                     faces_after: np.ndarray, caster_factory, interior) -> int:
+    """Brief 10 item 1: a slab's new shell is REFUSED TOGETHER. A pixel rule 6 allowed depends on
+    the face its ray leaves the slab through; with that face refused this round, the ray is
+    re-cast against the shell that is left, and if it no longer leaves through a kept face its
+    new face is refused in the same round -- or, when what BEFORE showed there is a replaced
+    piece, that piece is restored instead, as for any failing pixel. Repeated until nothing more
+    falls, so a shell whose faces hold each other up goes in one round rather than one link per
+    round (file B's cap guard needed all 8 of its rounds without this).
+
+    Exact, not a guess: the re-cast is rule 6 itself on the reduced shell, so a ray that still
+    leaves through another kept face -- beyond a refused step wall between two slabs, into the
+    lower one -- keeps its face. Mutates `refuse` (a new face -> the rule-5 codes of its failing
+    pixels) and `restore`; returns how many new faces it refused. `records` holds, per view,
+    `[direction, start, gap, entry, covered, code, exit]` of every rule-6 pixel (`exit` is
+    updated in place)."""
+    if not refuse or not records:
+        return 0
+    refused = set(refuse)
+    alive = [np.ones(len(rec[3]), dtype=bool) for rec in records]
+    together = 0
+    while True:
+        gone = np.array(sorted(refused), dtype=np.int64)
+        remaining = shell_ids[~np.isin(shell_ids, gone)]
+        caster = caster_factory(positions_c, faces_after[remaining]) if len(remaining) else None
+        added: set[int] = set()
+        for rec, live in zip(records, alive):
+            direction, start, gap, entry, covered, code, exit_face = rec
+            live &= ~np.isin(entry, gone)          # a refused new face is judged afresh next round
+            lost = live & np.isin(exit_face, gone)
+            if not lost.any():
+                continue
+            idx = np.nonzero(lost)[0]
+            ok, leave = _through_closed_shell(start[idx], direction, gap[idx], entry[idx],
+                                              planes_after, caster, remaining, interior)
+            exit_face[idx[ok]] = leave[ok]
+            for j in idx[~ok].tolist():
+                live[j] = False
+                f, x = int(entry[j]), int(covered[j])
+                if removed[x] and x not in restore:
+                    restore.add(x)
+                elif f not in refused:
+                    refuse.setdefault(f, []).append(int(code[j]))
+                    added.add(f)
+                elif f in added:
+                    refuse[f].append(int(code[j]))
+        if not added:
+            return together
+        together += len(added)
+        refused |= added
+
 
 def solidify_feedback(positions_c: np.ndarray, faces_before: np.ndarray, faces_after: np.ndarray,
                        is_new: np.ndarray, front_exposure_before: np.ndarray,
@@ -1331,6 +1437,30 @@ def solidify_feedback(positions_c: np.ndarray, faces_before: np.ndarray, faces_a
     -- a new face coinciding with an existing one, which no pixel can show (a coincident pair
     renders as a tie). Their reason is `"coincides_with_existing_face"`.
 
+    BRIEF 10 ITEM 1 JUDGES A SLAB'S NEW SHELL TOGETHER. Every rule above reads what BEFORE -- the
+    input, WITHOUT any of the new faces -- showed at the pixel, so each new face was judged as if
+    the rest of its shell did not exist: where a slab needs a wall and a bottom, the bottom
+    covered what BEFORE showed through the wall's opening (file-level fixture
+    `slab_beside_a_lower_top`: the box's underside beside the plate, outside the plate) and was
+    refused, and then the wall for covering the same thing through the bottom's reopened gap.
+    Nothing of the shell was kept, and the slab stayed open. So one more named change:
+
+    6. a pixel whose ray meets its new face on the FRONT -- from outside, every invented face
+       being wound outward -- then crosses the inside of a slab and LEAVES it through another new
+       face kept in the same state, met on its back, before it reaches BEFORE's hit
+       (`_through_closed_shell`: the path between the two is sampled, and every sample must be
+       `INTERIOR_INSIDE`). Whatever BEFORE showed there was seen THROUGH that slab, and the slab
+       is a solid now. Counted per round as `through_shell_px`.
+
+    Rule 6 depends on the face the ray leaves through. When a round refuses that face, the pixel
+    is re-judged in the SAME round against the shell that is left (`_refuse_together`): if its
+    ray no longer leaves through a kept face, the face in front of it is refused too (or the
+    replaced piece it covers is restored), and so on until nothing more falls -- the shell is
+    refused together, and only when some face of it fails on its own. Counted per round as
+    `refused_together`. A new face lying OUTSIDE the slab's volume keeps the per-face refusal: a
+    wall hanging below the bottom (a fin) is met from outside, and the ray beyond it runs under
+    the slab, not through it.
+
     WHO PAYS FOR A FAILING PIXEL. When BEFORE showed an ordinary face, the new face at that pixel
     is refused, as always. When BEFORE showed a replaced piece, the REPLACEMENT is what changed
     the picture, so that piece is restored instead (it stays in the mesh) and the new face is
@@ -1364,9 +1494,10 @@ def solidify_feedback(positions_c: np.ndarray, faces_before: np.ndarray, faces_a
     Returns `(keep, history, detail)`: `keep` is a bool mask over `faces_after` -- False for a
     refused new face AND for a replaced original -- `history` one dict per round, `{"round",
     "new_remaining", "failing_pixels", "removed", "pieces_restored", "replaced_px",
-    "interior_px"}`, and `detail` `{"replaced": bool over faces_before, "interior_faces": sorted
-    face ids covered under rule 5 in the returned state, "refused_reason": {new face: reason}}`,
-    a reason being the most common `INTERIOR_*` failure at that face's pixels
+    "interior_px", "through_shell_px", "refused_together"}`, and `detail` `{"replaced": bool
+    over faces_before, "interior_faces": sorted face ids covered under rule 5 in the returned
+    state, "refused_reason": {new face: reason}}`, a reason being the most common `INTERIOR_*`
+    failure at that face's pixels
     (`"covers_outside_footprint"`, `"covers_below_bottom"`, `"covers_at_or_above_top"`,
     `"covers_unmeasured_slab"`) or `"covers_visible_face"` when no interior test ran."""
     positions_c = np.asarray(positions_c, dtype=np.float64)
@@ -1432,10 +1563,16 @@ def solidify_feedback(positions_c: np.ndarray, faces_before: np.ndarray, faces_a
         visible[:n_before] &= ~removed
         ids = np.nonzero(visible)[0]
         after_caster = ReusableCaster(caster_factory)
+        # rule 6: the new faces kept in this state -- the shell a ray may leave a slab through
+        shell_ids = np.nonzero(visible & is_new)[0]
+        shell_caster = (caster_factory(positions_c, faces_after[shell_ids])
+                        if interior is not None and len(shell_ids) else None)
         refuse: dict[int, list[int]] = {}
         restore: set[int] = set()
-        failing = replaced_px = interior_px = 0
+        failing = replaced_px = interior_px = through_px = 0
         interior_faces: set[int] = set()
+        # rule 6's pixels, per view: (direction, start, gap, entry face, covered face, code, exit)
+        through_records: list[list] = []
         for view, b in before:
             a = ortho_first_hit(positions_c, faces_after[visible], ids, view, positions_c, size,
                                  after_caster)
@@ -1507,6 +1644,25 @@ def solidify_feedback(positions_c: np.ndarray, faces_before: np.ndarray, faces_a
                         allowed[sel[rest][inside]] = True
                         interior_px += int(inside.sum())
                         interior_faces.update(hit_before[sel[rest][inside]].tolist())
+                if shell_caster is not None:
+                    # rule 6: seen THROUGH a slab whose shell is kept on both sides of the ray
+                    pending = sel[~allowed[sel]]
+                    if len(pending):
+                        gap = (b.depth[rows[pending], cols[pending]]
+                               - a.depth[rows[pending], cols[pending]])
+                        start = (b.xs[cols[pending]][:, None] * b.right
+                                 + b.ys[rows[pending]][:, None] * b.up + b.standoff
+                                 + a.depth[rows[pending], cols[pending]][:, None] * direction)
+                        through, leave = _through_closed_shell(start, direction, gap,
+                                                               new_at[pending], planes_after,
+                                                               shell_caster, shell_ids, interior)
+                        allowed[pending[through]] = True
+                        through_px += int(through.sum())
+                        if through.any():
+                            px = pending[through]
+                            through_records.append([direction, start[through], gap[through],
+                                                    new_at[px], hit_before[px], codes[px],
+                                                    leave[through]])
             bad = need & ~allowed
             if not bad.any():
                 continue
@@ -1516,17 +1672,22 @@ def solidify_feedback(positions_c: np.ndarray, faces_before: np.ndarray, faces_a
             restore.update(hit_before[piece_bad].tolist())
             for f, c in zip(new_at[bad & ~piece_bad].tolist(), codes[bad & ~piece_bad].tolist()):
                 refuse.setdefault(int(f), []).append(int(c))
-        return failing, refuse, restore, replaced_px, interior_px, interior_faces
+        together = _refuse_together(refuse, restore, removed, through_records, shell_ids,
+                                    planes_after, positions_c, faces_after, caster_factory,
+                                    interior)
+        return (failing, refuse, restore, replaced_px, interior_px, interior_faces, through_px,
+                together)
 
     history: list[dict] = []
     result = None
     for rnd in range(max_rounds):
         result = measure()
-        failing, refuse, restore, replaced_px, interior_px, _faces = result
+        failing, refuse, restore, replaced_px, interior_px, _faces, through_px, together = result
         history.append({"round": rnd, "new_remaining": int((keep & is_new).sum()),
                          "failing_pixels": failing, "removed": len(refuse),
                          "pieces_restored": len(restore), "replaced_px": replaced_px,
-                         "interior_px": interior_px})
+                         "interior_px": interior_px, "through_shell_px": through_px,
+                         "refused_together": together})
         if not refuse and not restore:
             break
         for f, codes in refuse.items():
@@ -1544,7 +1705,8 @@ def solidify_feedback(positions_c: np.ndarray, faces_before: np.ndarray, faces_a
         result = measure()
         history.append({"round": max_rounds, "new_remaining": int((keep & is_new).sum()),
                          "failing_pixels": result[0], "removed": 0, "pieces_restored": 0,
-                         "replaced_px": result[3], "interior_px": result[4]})
+                         "replaced_px": result[3], "interior_px": result[4],
+                         "through_shell_px": result[6], "refused_together": 0})
     removed = removed_pieces()
     out = keep.copy()
     out[:n_before] &= ~removed

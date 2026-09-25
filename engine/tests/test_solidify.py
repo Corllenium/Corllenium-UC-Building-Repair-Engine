@@ -657,18 +657,57 @@ def test_a_railing_standing_outside_the_edge_is_never_replaced_or_covered():
     assert seen > 0 and changed == 0
 
 
-def test_a_railing_seen_through_an_open_slab_is_never_covered():
+def _through_box(origins, direction, depth, lo, hi):
+    """Per pixel: does the line of sight from the camera to the hit at `depth` pass through the
+    INSIDE of the box `lo`..`hi` (a stretch of positive length)?"""
+    d = np.asarray(direction, dtype=np.float64)
+    with np.errstate(divide="ignore", invalid="ignore"):
+        t1 = (lo - origins) / d
+        t2 = (hi - origins) / d
+    inside = (origins >= lo) & (origins <= hi)
+    t_in = np.where(d == 0.0, np.where(inside, -np.inf, np.inf), np.minimum(t1, t2)).max(axis=-1)
+    t_out = np.where(d == 0.0, np.where(inside, np.inf, -np.inf), np.maximum(t1, t2)).min(axis=-1)
+    return np.maximum(t_in, 0.0) + 1e-6 < np.minimum(t_out, depth)
+
+
+def test_a_railing_seen_through_an_open_slab_is_hidden_only_through_the_closed_slab():
     """The same railing with the slab's bottom missing too, so from below a person sees the
-    railing's inner face THROUGH the slab and its open side. Whatever closing face would cover that
-    view is refused -- the railing lies outside the slab's volume -- and its pixels are exactly
-    what they were."""
+    railing's inner face THROUGH the slab: in at its open bottom, out at its open side.
+
+    SR2 asserted that not one of those pixels may change, so whatever closing face covered that
+    view was refused -- which is only possible with the slab left open, bottom or side. Brief 10
+    item 1 judges a slab's new shell together: the wall and the bottom are both kept, and the slab
+    is a solid, so nothing is seen THROUGH it any more. The railing is still never replaced, and a
+    pixel of it (or of the wall 6 in out) changes only where the line of sight to it crosses the
+    slab's volume -- everywhere else it is exactly what it was."""
     m = slab_with_railing_outside(with_bottom=False)
     outside = np.arange(m.n_faces - 8, m.n_faces)
     r = _solidified(m)
 
-    seen, changed = _unchanged_pixels(m, r, outside)
-    assert seen > 0 and changed == 0
+    assert r.report["cap_guard_passed"] is True
     assert not r.replaced[outside].any()
+    assert r.new_faces[_plane_faces(r.mesh, 0, 0.0)].all() and len(_plane_faces(r.mesh, 0, 0.0))
+    assert len(_bottom_faces(r)) >= 2
+    positions_w, remap = weld_exact(r.mesh.positions, r.mesh.coord_decimals)
+    centre = (positions_w.min(axis=0) + positions_w.max(axis=0)) / 2.0
+    pc = positions_w - centre
+    lo, hi = np.array([0.0, 0.0, -8.0]) - centre, np.array([40.0, 40.0, 0.0]) - centre
+    rows = _reference_row(r, np.arange(m.n_faces))
+    seen = through = changed_through = changed_elsewhere = 0
+    for view in VIEWS_26:
+        b = ortho_first_hit(pc, remap[m.face_v], np.arange(m.n_faces), view, pc, (120, 80))
+        a = ortho_first_hit(pc, remap[r.mesh.face_v], np.arange(r.mesh.n_faces), view, pc,
+                            (120, 80))
+        mine = np.isin(b.tri, outside)
+        crosses = _through_box(b.origins, b.direction, b.depth, lo, hi) & mine
+        changed = mine & (a.tri != np.where(mine, rows[np.where(mine, b.tri, 0)], -2))
+        seen += int(mine.sum())
+        through += int(crosses.sum())
+        changed_through += int((changed & crosses).sum())
+        changed_elsewhere += int((changed & ~crosses).sum())
+    assert seen > through > 0
+    assert changed_elsewhere == 0
+    assert changed_through > 0                 # seen through the slab: hidden by the closed slab
 
 
 def test_a_half_side_gets_the_rest_built_and_nothing_outside_the_volume_changes():
@@ -950,7 +989,7 @@ def test_a_thin_slab_touching_a_deep_wall_stays_thin():
     assert r.passed is True
 
 
-def test_a_side_shallower_than_the_slabs_representative_depth_is_completed(monkeypatch):
+def test_a_side_shallower_than_the_slabs_representative_depth_is_completed():
     """The x = 40 side is only 4 in deep, the y = 0 and y = 40 sides 8 in, and x = 0 is open (its
     corners measure 8 from the two long sides).
 
@@ -959,8 +998,9 @@ def test_a_side_shallower_than_the_slabs_representative_depth_is_completed(monke
     replaced that rule: a band shallower than the slab's REPRESENTATIVE side depth (the depth
     reached by most of its own side length, 8 in here: 80 of its 120 in) does not cap the bottom.
     The bottom goes at 8 in; the 4 in side above it is then not a whole side of this slab but a
-    band over a missing one, so it is completed to 8 in like any broken side (on the plan, guard
-    bypassed). The report still names the region -- a wall and a bottom deeper than its
+    band over a missing one, so it is completed to 8 in like any broken side, and the band goes
+    with it. Through the cap guard (brief 10 item 1; SR6 asserted only the plan): nothing of the
+    new shell is refused. The report still names the region -- a wall and a bottom deeper than its
     shallowest side."""
     from engine.tests.fixtures.build import _mesh, _quads
     s = 40.0
@@ -972,13 +1012,18 @@ def test_a_side_shallower_than_the_slabs_representative_depth_is_completed(monke
                                  (2, 6, 7, 3),              # y = s, 8 in, +y
                                  (1, 8, 9, 2)])             # x = s, 4 in, +x
     m = _mesh("slab_with_a_shallow_side", P, uvs, fv, fvt, face_material=fm)
-    r = _planned(m, _fast(min_thickness=1.0), monkeypatch)
+    r = _solidified(m, _fast(min_thickness=1.0))
+    assert r.report["cap_guard_passed"] is True
+    assert r.report["walls_refused"]["faces"] == 0
+    assert r.report["bottom_faces_refused"]["faces"] == 0
     assert r.report["representative_side_per_region"] == {"0": pytest.approx(8.0)}
     assert r.report["bottom_depth_per_region"] == {"0": pytest.approx(8.0)}
+    assert r.replaced[6] and r.replaced[7]                   # the 4 in band went with the wall
     completed = [f for f in _plane_faces(r.mesh, 0, s) if r.new_faces[f]]
     assert completed
     z = r.mesh.positions[r.mesh.face_v[completed]][:, :, 2]
     assert z.max() == pytest.approx(0.0) and z.min() == pytest.approx(-8.0)
+    assert len(_bottom_faces(r)) >= 2
     deeper = r.report["regions_deeper_than_own_sides"]
     assert [d["region"] for d in deeper] == [0]
     assert deeper[0]["shallowest_side"] == pytest.approx(4.0)
@@ -1109,13 +1154,17 @@ def test_a_block_face_inside_the_slab_does_not_tilt_its_lower_surface():
     assert _lowest_z_at(r, wall, 80.0) == pytest.approx(20.0 - 12.0)
 
 
-def test_a_floor_below_a_thin_slab_is_not_its_lower_surface(monkeypatch):
+def test_a_floor_below_a_thin_slab_is_not_its_lower_surface():
     """Review I1's protection, for the lower surface: a 2 in slab (three 2 in skirts, one edge
     open) 20 in above a floor. The floor is found straight below it, but the slab's own sides end
     18 in above it: it is the ground under the slab, not the slab's underside, and the open edge's
-    wall is planned 2 in deep, not 20 (on the plan, guard bypassed: the cap guard then refuses
-    even the 2 in wall, before SR6 as after, because through the slab's open underside it covers
-    the floor outside the slab's footprint)."""
+    wall is 2 in deep, not 20.
+
+    Nor is the floor the slab's EXISTING bottom (brief 10 item 1): taken for one, no bottom was
+    built, and through the slab's open underside the 2 in wall covered the floor outside the
+    slab's footprint -- the cap guard refused it, and SR6 could assert only the plan. The slab
+    gets its own bottom at 2 in, and through the guard the wall and the bottom are kept together:
+    each covers only what was seen through the other's opening."""
     from engine.tests.fixtures.build import _mesh, _quads
     s = 40.0
     P = [[0, 0, 0], [s, 0, 0], [s, s, 0], [0, s, 0],
@@ -1128,12 +1177,19 @@ def test_a_floor_below_a_thin_slab_is_not_its_lower_surface(monkeypatch):
                                  (6, 7, 3, 2),                  # y = s, +y
                                  (8, 9, 10, 11)])               # the floor, +z
     m = _mesh("thin_slab_over_a_floor", P, uvs, fv, fvt, face_material=fm)
-    r = _planned(m, _FAST, monkeypatch)
+    r = _solidified(m, _FAST)
+    assert r.report["cap_guard_passed"] is True
     assert r.report["walls_to_lower_surface"]["walls"] == 0
+    assert r.report["bottom_exists"] == 0 and r.report["bottoms_added"] == 1
+    assert r.report["walls_refused"]["faces"] == 0
+    assert r.report["bottom_faces_refused"]["faces"] == 0
     wall = [f for f in _plane_faces(r.mesh, 0, 0.0) if r.new_faces[f]]
     assert wall
     z = r.mesh.positions[r.mesh.face_v[wall]][:, :, 2]
     assert z.min() == pytest.approx(-2.0)
+    bottom = _bottom_faces(r)
+    assert bottom
+    assert np.allclose(r.mesh.positions[r.mesh.face_v[bottom]][:, :, 2], -2.0)
 
 
 # ------------------------------------------ SR6 item 3: an underside is not a top a top runs into
@@ -1161,22 +1217,75 @@ def test_an_underside_met_in_a_tops_plane_is_not_taken_for_a_top():
     assert not r.replaced[2] and not r.replaced[3]
 
 
-def test_a_top_edge_that_ran_into_an_underside_only_is_a_side(monkeypatch):
+def test_a_top_edge_that_ran_into_an_underside_only_is_a_side():
     """The same plate with no side at the box: its x = 40 edge ran only into the box's underside,
-    which is no top, so it does not continue -- it is a side, and its 8 in wall is planned (on the
-    plan, guard bypassed: the cap guard judges the wall and the bottom each against a mesh that
-    lacks the other, and through the other's opening each covers the box's underside, outside the
-    plate)."""
+    which is no top, so it does not continue -- it is a side, and it gets its 8 in wall, and the
+    plate its bottom.
+
+    Through the cap guard (brief 10 item 1). The guard used to judge each new face by what the
+    input showed at its pixels -- a mesh without the OTHER new faces -- so the bottom was refused
+    for covering the box's underside seen through the wall's opening (outside the plate), and then
+    the wall for covering it through the bottom's: nothing of the plate's shell was kept. Both are
+    kept now, because every such pixel is seen THROUGH the plate: in at one kept face of its shell
+    and out at another."""
     from engine.tests.fixtures.build import slab_beside_a_lower_top
-    r = _planned(slab_beside_a_lower_top(), _FAST, monkeypatch)
+    r = _solidified(slab_beside_a_lower_top(), _FAST)
+    assert r.report["cap_guard_passed"] is True
     assert r.report["edges_continued"] == 0
+    assert r.report["walls_refused"]["faces"] == 0
+    assert r.report["bottom_faces_refused"]["faces"] == 0
+    assert sum(h.get("through_shell_px", 0) for h in r.report["cap_guard"]) > 0
     wall = [f for f in _plane_faces(r.mesh, 0, 40.0) if r.new_faces[f]]
     assert wall
     z = r.mesh.positions[r.mesh.face_v[wall]][:, :, 2]
     assert z.max() == pytest.approx(0.0) and z.min() == pytest.approx(-8.0)
+    bottom = _plane_faces(r.mesh, 2, -8.0)
+    assert len(bottom) >= 2 and r.new_faces[bottom].all()
+    assert _covered_area(r.mesh, bottom, [0, 1]) == pytest.approx(40.0 * 40.0)
     new = np.nonzero(r.new_faces)[0]
     tri = r.mesh.positions[r.mesh.face_v[new]]
     assert [f for f, t in zip(new, tri) if t[:, 0].mean() < 40.0 - 1e-6] == []
+
+
+def test_a_shell_is_refused_together_when_one_of_its_faces_fails(monkeypatch):
+    """Brief 10 item 1, the other half: the plate's bottom may cover what it covers only because
+    the wall closes the plate on the far side of every such ray. With the wall refused for a reason
+    of its own (forced here), those rays leave the plate through its opening again, so the bottom
+    covers the box's underside outside the plate, and is refused with it."""
+    import engine.fixes.solidify as S
+    from engine.tests.fixtures.build import slab_beside_a_lower_top
+    real = S._coincident_new_faces
+
+    def refuse_the_wall(solid, new_faces, new_group, replaced_group, ok_input, tol):
+        out = real(solid, new_faces, new_group, replaced_group, ok_input, tol)
+        tri = solid.positions[solid.face_v]
+        out |= new_faces & np.isclose(tri[:, :, 0], 40.0).all(axis=1)
+        return out
+
+    monkeypatch.setattr(S, "_coincident_new_faces", refuse_the_wall)
+    r = _solidified(slab_beside_a_lower_top(), _FAST)
+    assert r.report["cap_guard_passed"] is True
+    assert not r.new_faces.any()
+    assert r.report["bottom_faces_refused"]["reasons"] == {"covers_outside_footprint": 2}
+
+
+def test_a_fin_below_the_slab_is_still_refused_face_by_face():
+    """Brief 10 item 1 keeps the per-face refusal for new faces OUTSIDE the slab's volume.
+    `slab_with_fins_beside_a_post`: the two walls touching the deep end hang 8.5 in below the
+    1.3 in bottom, fins facing each other across the slab, and a post stands beyond the far one.
+    A ray from -y at the post's height enters the near fin, runs UNDER the slab -- outside it --
+    and leaves through the far fin: no view through the slab. The fins are refused for what they
+    cover below it, nothing is kept below the bottom, and the post looks exactly as it did."""
+    from engine.tests.fixtures.build import slab_with_fins_beside_a_post
+    m = slab_with_fins_beside_a_post()
+    r = _solidified(m, _fast(min_thickness=1.0))
+    assert r.report["cap_guard_passed"] is True
+    assert r.report["walls_refused"]["reasons"].get("covers_below_bottom", 0) >= 1
+    new = r.mesh.positions[r.mesh.face_v[r.new_faces]]
+    assert float(new[:, :, 2].min()) == pytest.approx(-1.3)
+    post = np.array([m.n_faces - 2, m.n_faces - 1])
+    seen, changed = _unchanged_pixels(m, r, post)
+    assert seen > 0 and changed == 0
 
 
 def test_a_point_on_a_slabs_top_or_bottom_plane_is_inside_it():

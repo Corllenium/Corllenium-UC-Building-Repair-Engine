@@ -1688,3 +1688,28 @@ def slab_with_a_bottom_strip(length=60.0, width=20.0, depth=8.0, strip=20.0):
                                  (11, 8, 0, 7),                          # x = 0, -x
                                  (8, 11, 13, 12)])                       # the strip, -z
     return _mesh("slab_with_a_bottom_strip", P, uvs, fv, fvt, face_material=fm)
+
+
+# ------------------------------------------------------------------------------------------------
+# Brief 10: side rebuild follow-ups.
+# ------------------------------------------------------------------------------------------------
+
+
+def slab_with_fins_beside_a_post(post_y=30.0, post_x=(35.0, 55.0), post_z=(-9.0, -2.0)):
+    """Brief 10 item 1: `slab_with_two_depths` -- whose two open edges touching its deep end get
+    walls 9.8 in deep under a bottom solidify puts at 1.3 in, so both hang 8.5 in below the slab as
+    FINS facing each other across it -- with a POST beyond the far one: a plate at `y = post_y`,
+    facing -y (towards the slab), over `post_x` and `post_z`, below the slab's bottom and above the
+    fins' feet. A ray from -y at the post's height enters the near fin from outside, runs UNDER the
+    slab's bottom -- outside the slab -- and leaves through the far fin before it reaches the post.
+
+    Faces: `slab_with_two_depths`' 8, then the post's two."""
+    m = slab_with_two_depths()
+    P = m.positions.tolist()
+    uvs, fv, fvt = m.uvs.tolist(), m.face_v.tolist(), m.face_vt.tolist()
+    fm = m.face_material.tolist()
+    (x0, x1), (z0, z1) = post_x, post_z
+    b = len(P)
+    P += [[x0, post_y, z0], [x1, post_y, z0], [x1, post_y, z1], [x0, post_y, z1]]
+    _quads(P, uvs, fv, fvt, fm, [(b, b + 1, b + 2, b + 3)])            # the post, -y
+    return _mesh("slab_with_fins_beside_a_post", P, uvs, fv, fvt, face_material=fm)
