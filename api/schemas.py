@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import Any
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class SourceFileOut(BaseModel):
@@ -50,12 +50,22 @@ class ImportRequest(BaseModel):
 
 
 class FixProfileConfig(BaseModel):
-    n_dirs: int = 128
-    slit_threshold: float = 0.05
+    n_dirs: int = Field(default=128, ge=8, le=512)
+    slit_threshold: float = Field(default=0.05, ge=0.0, le=1.0)
     accept_slit: bool = False
-    flat_texture_std: float = 8.0
+    flat_texture_std: float = Field(default=8.0, ge=0.0, le=255.0)
     guard_size: tuple[int, int] = (900, 600)
-    edge_flicker_cap_final: float = 0.0001
+    edge_flicker_cap_final: float = Field(default=0.0001, ge=0.0, le=1.0)
+
+    @field_validator("guard_size")
+    @classmethod
+    def validate_guard_size(cls, v: tuple[int, int]) -> tuple[int, int]:
+        if len(v) != 2:
+            raise ValueError("guard_size must be a tuple of (width, height)")
+        w, h = v
+        if not (64 <= w <= 4096 and 64 <= h <= 4096):
+            raise ValueError("guard_size dimensions must each be between 64 and 4096")
+        return v
 
 
 class FixRequest(BaseModel):

@@ -456,6 +456,29 @@ def test_fix_pipeline_sanitizes_mesh_name(client, imported_cube, monkeypatch):
     assert (run_dir / f"{report['name']}.fixed.obj").exists()
 
 
+def test_fix_profile_config_bounds_validated(client, imported_cube):
+    version_id = imported_cube["versions"][0]["id"]
+    # n_dirs too large
+    r1 = client.post(f"/api/versions/{version_id}/fix", json={"profile": {"n_dirs": 5000}})
+    assert r1.status_code == 422
+
+    # n_dirs too small
+    r2 = client.post(f"/api/versions/{version_id}/fix", json={"profile": {"n_dirs": 2}})
+    assert r2.status_code == 422
+
+    # negative slit_threshold
+    r3 = client.post(f"/api/versions/{version_id}/fix", json={"profile": {"slit_threshold": -0.5}})
+    assert r3.status_code == 422
+
+    # guard_size out of bounds
+    r4 = client.post(f"/api/versions/{version_id}/fix", json={"profile": {"guard_size": [10, 10]}})
+    assert r4.status_code == 422
+
+    r5 = client.post(f"/api/versions/{version_id}/fix", json={"profile": {"guard_size": [10000, 10000]}})
+    assert r5.status_code == 422
+
+
+
 
 
 
