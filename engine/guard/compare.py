@@ -1431,7 +1431,11 @@ def _refuse_together(refuse: dict, restore: set, removed: np.ndarray, records: l
             for j in idx[~ok].tolist():
                 live[j] = False
                 f, x = int(entry[j]), int(covered[j])
-                if removed[x] and x not in restore:
+                if removed[x]:
+                    # the replacement changed this pixel: the piece goes back and the new face
+                    # stays, however many of the piece's pixels are lost, and whether or not the
+                    # main loop already restores it (review of brief 10, M1: a second pixel on
+                    # the same piece refused the face)
                     restore.add(x)
                 elif f not in refused:
                     refuse.setdefault(f, []).append(int(code[j]))

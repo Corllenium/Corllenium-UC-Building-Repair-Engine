@@ -2080,3 +2080,44 @@ def test_a_face_held_up_by_a_refused_face_is_refused_with_it_unless_another_hold
     together, refused, restored, leave = run(30.0, False)
     assert (together, refused, restored) == (0, [2, 3], []) and leave in (4, 5)
     assert run(20.0, True) == (0, [2, 3], [7], 2)
+
+
+def test_a_lost_rule_6_pixel_over_a_replaced_piece_always_restores_the_piece():
+    """Review of brief 10, M1 (`probe_refuse_together_piece.py`): who pays when a rule-6 pixel is
+    lost and what BEFORE showed there is a REPLACED piece. The docstring and the main loop say:
+    the piece is restored, the new face kept. `_refuse_together` did so for the FIRST such pixel
+    only -- a second pixel on the same piece, or one on a piece the main loop already restores
+    this round, fell through and refused the new face (face 0), whose group then gave its pieces
+    back. The scene is `test_a_face_held_up_by_a_refused_face_is_refused_with_it_unless_another_
+    holds_it`'s: walls at y = 0, 20 (refused this round) and 30; the slab ends at y = 20."""
+    from engine.guard.compare import (INTERIOR_BELOW_BOTTOM, INTERIOR_INSIDE,
+                                      INTERIOR_OUTSIDE_FOOTPRINT, _refuse_together)
+    from engine.rays.caster import EmbreeCaster
+    P, faces = [], []
+    for y, sign in ((0.0, -1), (20.0, 1), (30.0, 1)):
+        b = len(P)
+        P += [[0, y, 0], [40, y, 0], [40, y, -10], [0, y, -10]]
+        faces += ([[b, b + 2, b + 1], [b, b + 3, b + 2]] if sign < 0
+                  else [[b, b + 1, b + 2], [b, b + 2, b + 3]])
+    P, faces = np.array(P, dtype=np.float64), np.array(faces, dtype=np.int64)
+    planes = face_planes(P, faces)
+
+    def interior(face_ids, points):
+        inside = (points[:, 2] >= -2.0) & (points[:, 2] <= 0.0) & (points[:, 1] <= 20.0)
+        return np.where(inside, INTERIOR_INSIDE, INTERIOR_BELOW_BOTTOM)
+
+    def run(n_pixels, already_restoring):
+        starts = np.array([[20.0 + k, 0.0, -1.0] for k in range(n_pixels)])
+        records = [[np.array([0.0, 1.0, 0.0]), starts, np.full(n_pixels, 40.0),
+                    np.zeros(n_pixels, np.int64), np.full(n_pixels, 7),
+                    np.full(n_pixels, INTERIOR_OUTSIDE_FOOTPRINT), np.full(n_pixels, 2)]]
+        refuse, restore = {2: [1], 3: [1]}, ({7} if already_restoring else set())
+        removed = np.zeros(10, dtype=bool)
+        removed[7] = True
+        together = _refuse_together(refuse, restore, removed, records, np.arange(6), planes, P,
+                                    faces, EmbreeCaster, interior)
+        return together, sorted(refuse), sorted(restore)
+
+    assert run(1, False) == (0, [2, 3], [7])            # as before
+    assert run(2, False) == (0, [2, 3], [7])            # was (1, [0, 2, 3], [7])
+    assert run(1, True) == (0, [2, 3], [7])             # was (1, [0, 2, 3], [7])
