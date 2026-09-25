@@ -2,38 +2,44 @@ import os
 import pytest
 from fastapi.testclient import TestClient
 
-from api.tests.db_helper import create_test_db, drop_test_db, migrate_test_db
+from api.tests.db_helper import (
+    cleanup_orphaned_test_dbs,
+    create_test_db,
+    drop_test_db,
+    migrate_test_db,
+)
 
 
 @pytest.fixture(scope="session", autouse=True)
 def _database(tmp_path_factory):
+    # At session start, drop any fixer_test_<pid>_* whose PID is dead
+    cleanup_orphaned_test_dbs()
+
     db_name, db_url = create_test_db()
-    root = tmp_path_factory.mktemp("fixer")
-    os.environ["FIXER_DATABASE_URL"] = db_url
-    os.environ["FIXER_SOURCE_DIR"] = str(root / "source")
-    os.environ["FIXER_DATA_DIR"] = str(root / "data")
-    os.environ["FIXER_SKP_DIR"] = str(root / "skp_out")
-    os.environ["FIXER_STABLE_INTERVAL_S"] = "0"
-    from api.settings import get_settings
-    get_settings.cache_clear()
-    from api.db import get_engine
-    get_engine.cache_clear()
-
-    # Run alembic migrations on test database
-    migrate_test_db(db_url)
-
-    yield root
-
-    # Clean up test database
     try:
+        root = tmp_path_factory.mktemp("fixer")
+        os.environ["FIXER_DATABASE_URL"] = db_url
+        os.environ["FIXER_SOURCE_DIR"] = str(root / "source")
+        os.environ["FIXER_DATA_DIR"] = str(root / "data")
+        os.environ["FIXER_SKP_DIR"] = str(root / "skp_out")
+        os.environ["FIXER_STABLE_INTERVAL_S"] = "0"
+        from api.settings import get_settings
+        get_settings.cache_clear()
         from api.db import get_engine
-        get_engine().dispose()
-    except Exception:
-        pass
-    try:
+        get_engine.cache_clear()
+
+        # Run alembic migrations on test database
+        migrate_test_db(db_url)
+
+        yield root
+    finally:
+        # Clean up test database
+        try:
+            from api.db import get_engine
+            get_engine().dispose()
+        except Exception:
+            pass
         drop_test_db(db_name)
-    except Exception:
-        pass
 
 
 @pytest.fixture()

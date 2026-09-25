@@ -62,3 +62,25 @@ def test_concurrent_databases_lifecycle():
         cur = conn.cursor()
         cur.execute("SELECT datname FROM pg_database WHERE datname IN (%s, %s)", (db1_name, db2_name))
         assert cur.fetchall() == []
+
+
+def test_cleanup_orphaned_dead_pid_databases():
+    from api.tests.db_helper import cleanup_orphaned_test_dbs
+    dead_db = "fixer_test_999999_dead01"
+    with psycopg.connect(ADMIN_URL, autocommit=True) as conn:
+        conn.execute(f"CREATE DATABASE {dead_db}")
+
+    # Verify created
+    with psycopg.connect(ADMIN_URL, autocommit=True) as conn:
+        cur = conn.execute("SELECT datname FROM pg_database WHERE datname = %s", (dead_db,))
+        assert cur.fetchone() is not None
+
+    # Run cleanup
+    dropped = cleanup_orphaned_test_dbs()
+    assert dead_db in dropped
+
+    # Verify dropped
+    with psycopg.connect(ADMIN_URL, autocommit=True) as conn:
+        cur = conn.execute("SELECT datname FROM pg_database WHERE datname = %s", (dead_db,))
+        assert cur.fetchone() is None
+
