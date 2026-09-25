@@ -128,9 +128,12 @@ def test_fix_atomic_rollback_on_exception(client, imported_cube, monkeypatch, db
     assert run_data["status"] == "failed"
     assert "Geometry engine crashed" in (run_data["error"] or "")
 
-    # In DB: NO kind="fixed" version exists
+    # In DB: NO kind="fixed" version exists for this model
     fixed_versions = db.scalars(
-        select(ModelVersion).where(ModelVersion.kind == "fixed")
+        select(ModelVersion).where(
+            ModelVersion.model_id == imported_cube["id"],
+            ModelVersion.kind == "fixed",
+        )
     ).all()
     assert len(fixed_versions) == 0
 
