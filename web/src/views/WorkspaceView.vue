@@ -99,13 +99,30 @@
             <strong>Fix failed:</strong> {{ resultDesc.error }}
           </div>
           <span v-else-if="fixedVersion && snapshotVersion">
-            <b :style="{ color: resultDesc && !resultDesc.guardPassed ? '#d8282f' : '#0d8a43' }">{{ fixedVersion.tri_count.toLocaleString() }}</b> triangles &nbsp;&middot;&nbsp;
+            <b :style="{ color: resultDesc && !resultDesc.runPassed ? '#d8282f' : '#0d8a43' }">{{ fixedVersion.tri_count.toLocaleString() }}</b> triangles &nbsp;&middot;&nbsp;
             <b>{{ (100 * (1 - fixedVersion.tri_count / snapshotVersion.tri_count)).toFixed(1) }}% fewer</b>
             <template v-if="resultDesc">
+              &nbsp;&middot;&nbsp;
+              <span :style="{ color: resultDesc.runPassed ? '#0d8a43' : '#d8282f', fontWeight: 'bold' }">
+                Run {{ resultDesc.runPassed ? 'PASSED' : 'FAILED' }}
+              </span>
+              <template v-if="resultDesc.failedInvariants && resultDesc.failedInvariants.length > 0">
+                &nbsp;(<span style="color: #d8282f">failed: {{ resultDesc.failedInvariants.join(', ') }}</span>)
+              </template>
               &nbsp;&middot;&nbsp;
               <span :style="{ color: resultDesc.guardPassed ? '#0d8a43' : '#d8282f' }">{{ resultDesc.guardLine }}</span>
               <template v-if="resultDesc.backfacePx !== undefined">
                 &nbsp;&middot;&nbsp; <span>{{ resultDesc.backfacePx.toLocaleString() }} backface px</span>
+              </template>
+              <template v-if="resultDesc.solidifySummary">
+                <template v-if="resultDesc.solidifySummary.skirtsAdded !== undefined || resultDesc.solidifySummary.bottomsAdded !== undefined">
+                  &nbsp;&middot;&nbsp;
+                  <span>solidify: {{ resultDesc.solidifySummary.skirtsAdded ?? 0 }} skirts, {{ resultDesc.solidifySummary.bottomsAdded ?? 0 }} bottoms</span>
+                </template>
+                <template v-if="resultDesc.solidifySummary.sidesRebuiltEdges !== undefined || resultDesc.solidifySummary.sidePiecesReplaced !== undefined">
+                  &nbsp;&middot;&nbsp;
+                  <span>side rebuild: {{ resultDesc.solidifySummary.sidesRebuiltEdges ?? 0 }} edges, {{ resultDesc.solidifySummary.sidePiecesReplaced ?? 0 }} replaced</span>
+                </template>
               </template>
               <template v-if="resultDesc.borderShiftPx !== undefined">
                 &nbsp;&middot;&nbsp; <span>{{ resultDesc.borderShiftPx }} border shift</span>

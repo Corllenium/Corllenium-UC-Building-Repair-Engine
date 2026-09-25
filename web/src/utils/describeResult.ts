@@ -1,6 +1,8 @@
 export interface ResultDescription {
   heading: string
   statusText: string
+  runPassed: boolean
+  failedInvariants: string[]
   guardLine: string
   guardPassed: boolean
   isRolledBack: boolean
@@ -15,6 +17,14 @@ export interface ResultDescription {
     moved: number
     material: number
     grown: number
+  }
+  solidifySummary?: {
+    skirtsAdded?: number
+    bottomsAdded?: number
+    inventedVertices?: number
+    sidePiecesReplaced?: number
+    sidesRebuiltEdges?: number
+    capGuardPassed?: boolean
   }
   guardMergeAttempt?: {
     passed: boolean
@@ -34,12 +44,31 @@ export function describeResult(report: any): ResultDescription {
     return {
       heading: 'Fix Run Failed',
       statusText: 'Failed',
+      runPassed: false,
+      failedInvariants: [],
       guardLine: 'Guard not run',
       guardPassed: false,
       isRolledBack: false,
       error: err,
     }
   }
+
+  const invariants = report.invariants || {}
+  const failedInvariants: string[] = []
+  if (typeof invariants === 'object') {
+    for (const [key, val] of Object.entries(invariants)) {
+      if (val === false) failedInvariants.push(key)
+    }
+  }
+
+  const guard = report.guard_final || {}
+  const totals = guard.totals
+  const guardPassed = Boolean(guard.passed ?? report.guard_passed ?? true)
+
+  const runPassed = typeof report.passed === 'boolean'
+    ? report.passed
+    : (failedInvariants.length === 0 && guardPassed)
+  const statusText = runPassed ? 'Completed' : 'Failed'
 
   const mr = report.merge_report || {}
   const isRolledBack = Boolean(mr.rolled_back)
@@ -49,40 +78,61 @@ export function describeResult(report: any): ResultDescription {
     ? `INSIDE REMOVED, FACES FLIPPED · merge rolled back (${rolledBackReason})`
     : 'INSIDE REMOVED, FACES FLIPPED, FLAT REGIONS MERGED'
 
-  const guard = report.guard_final || {}
-  const totals = guard.totals || {}
-  const holes = totals.holes ?? 0
-  const movedOther = totals.moved_other ?? 0
-  const movedSameFlat = totals.moved_same_flat ?? 0
-  const moved = movedOther + movedSameFlat
-  const matChanged = totals.material_changed ?? 0
-  const edgeFlicker = totals.edge_flicker ?? 0
-
-  const guardPassed = Boolean(guard.passed ?? report.passed ?? report.guard_passed)
   const guardStatus = guardPassed ? 'Guard PASSED' : 'Guard FAILED'
-  const guardLine = `${guardStatus} (${holes} holes, ${moved} moved, ${matChanged} mat changed, ${edgeFlicker} edge flicker)`
+  let guardLine: string
+  if (!totals || typeof totals !== 'object') {
+    guardLine = `${guardStatus} (totals not reported)`
+  } else {
+    const holesStr = typeof totals.holes === 'number' ? `${totals.holes} holes` : 'holes not reported'
+    const movedVal = (typeof totals.moved_other === 'number' || typeof totals.moved_same_flat === 'number')
+      ? (totals.moved_other ?? 0) + (totals.moved_same_flat ?? 0)
+      : undefined
+    const movedStr = typeof movedVal === 'number' ? `${movedVal} moved` : 'moved not reported'
+    const matChangedStr = typeof totals.material_changed === 'number' ? `${totals.material_changed} mat changed` : 'mat changed not reported'
+    const edgeFlickerStr = typeof totals.edge_flicker === 'number' ? `${totals.edge_flicker} edge flicker` : 'edge flicker not reported'
+    const grownStr = typeof totals.grown === 'number' ? `${totals.grown} grown` : 'grown not reported'
+
+    guardLine = `${guardStatus} (${holesStr}, ${movedStr}, ${matChangedStr}, ${edgeFlickerStr}, ${grownStr})`
+  }
 
   let backfacePx: number | undefined
   if (typeof report.backface_px === 'number') {
     backfacePx = report.backface_px
+  } else if (report.backface_px && typeof report.backface_px.final === 'object' && typeof report.backface_px.final.total === 'number') {
+    backfacePx = report.backface_px.final.total
+  } else if (report.backface_px && typeof report.backface_px.shipped === 'object' && typeof report.backface_px.shipped.total === 'number') {
+    backfacePx = report.backface_px.shipped.total
   } else if (report.backface_px && typeof report.backface_px.final === 'number') {
     backfacePx = report.backface_px.final
   } else if (report.backface_px && typeof report.backface_px.shipped === 'number') {
     backfacePx = report.backface_px.shipped
   }
 
-  const borderShiftPx = typeof totals.border_shift === 'number' ? totals.border_shift : undefined
-  const zfightTie = typeof totals.zfight_tie === 'number' ? totals.zfight_tie : undefined
-  const crackClosed = typeof totals.crack_closed === 'number' ? totals.crack_closed : undefined
+  const borderShiftPx = totals && typeof totals.border_shift === 'number' ? totals.border_shift : undefined
+  const zfightTie = totals && typeof totals.zfight_tie === 'number' ? totals.zfight_tie : undefined
+  const crackClosed = totals && typeof totals.crack_closed === 'number' ? totals.crack_closed : undefined
 
   let edgeFlickerBreakdown: ResultDescription['edgeFlickerBreakdown'] | undefined
-  if (typeof totals.edge_flicker === 'number') {
+  if (totals && typeof totals.edge_flicker === 'number') {
     edgeFlickerBreakdown = {
       total: totals.edge_flicker,
       hole: totals.edge_flicker_hole ?? 0,
       moved: totals.edge_flicker_moved ?? 0,
       material: totals.edge_flicker_material ?? 0,
       grown: totals.edge_flicker_grown ?? 0,
+    }
+  }
+
+  let solidifySummary: ResultDescription['solidifySummary'] | undefined
+  const sr = report.solidify_report
+  if (sr && typeof sr === 'object') {
+    solidifySummary = {
+      skirtsAdded: typeof sr.skirts_added === 'number' ? sr.skirts_added : undefined,
+      bottomsAdded: typeof sr.bottoms_added === 'number' ? sr.bottoms_added : undefined,
+      inventedVertices: typeof sr.invented_vertices === 'number' ? sr.invented_vertices : undefined,
+      sidePiecesReplaced: typeof sr.side_pieces_replaced === 'number' ? sr.side_pieces_replaced : undefined,
+      sidesRebuiltEdges: sr.sides_rebuilt && typeof sr.sides_rebuilt.edges === 'number' ? sr.sides_rebuilt.edges : undefined,
+      capGuardPassed: typeof sr.cap_guard_passed === 'boolean' ? sr.cap_guard_passed : undefined,
     }
   }
 
@@ -104,7 +154,9 @@ export function describeResult(report: any): ResultDescription {
 
   return {
     heading,
-    statusText: guardPassed ? 'Completed' : 'Failed',
+    statusText,
+    runPassed,
+    failedInvariants,
     guardLine,
     guardPassed,
     isRolledBack,
@@ -114,6 +166,7 @@ export function describeResult(report: any): ResultDescription {
     zfightTie,
     crackClosed,
     edgeFlickerBreakdown,
+    solidifySummary,
     guardMergeAttempt,
     skpSummary,
     skpPath,
