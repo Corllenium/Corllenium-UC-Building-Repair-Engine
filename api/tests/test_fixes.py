@@ -52,7 +52,7 @@ def test_fix_run_report_carries_details_and_source_faces(client, _database):
         f"/api/versions/{version_id}/fix",
         json={"profile": {"n_dirs": 32, "accept_slit": False}},
     )
-    assert r_fix.status_code == 200
+    assert r_fix.status_code == 201
     run_data = r_fix.json()
     rep = run_data["report_json"]
 
@@ -108,4 +108,83 @@ def test_fix_run_report_carries_details_and_source_faces(client, _database):
         assert isinstance(row, list)
         for orig_id in row:
             assert isinstance(orig_id, int)
+
+
+def test_fix_atomic_rollback_on_exception(client, imported_cube, monkeypatch, db):
+    import api.routers.versions
+    from api.models import FixRun, ModelVersion
+    from sqlalchemy import select
+
+    version_id = imported_cube["versions"][0]["id"]
+
+    def mock_fix_fail(*args, **kwargs):
+        raise RuntimeError("Geometry engine crashed")
+
+    monkeypatch.setattr(api.routers.versions, "fix_object", mock_fix_fail)
+
+    r = client.post(f"/api/versions/{version_id}/fix", json={"profile": {"n_dirs": 32}})
+    assert r.status_code == 201
+    run_data = r.json()
+    assert run_data["status"] == "failed"
+    assert "Geometry engine crashed" in (run_data["error"] or "")
+
+    # In DB: NO kind="fixed" version exists
+    fixed_versions = db.scalars(
+        select(ModelVersion).where(ModelVersion.kind == "fixed")
+    ).all()
+    assert len(fixed_versions) == 0
+
+    # In DB: run is recorded as failed
+    run_db = db.scalar(select(FixRun).where(FixRun.id == run_data["id"]))
+    assert run_db is not None
+    assert run_db.status == "failed"
+    assert "Geometry engine crashed" in (run_db.error or "")
+
+
+def test_two_sequential_runs_create_two_directories(client, imported_cube):
+    from api.settings import get_settings
+
+    settings = get_settings()
+    version_id = imported_cube["versions"][0]["id"]
+
+    r1 = client.post(f"/api/versions/{version_id}/fix", json={"profile": {"n_dirs": 32}})
+    assert r1.status_code == 201
+    run1_id = r1.json()["id"]
+
+    r2 = client.post(f"/api/versions/{version_id}/fix", json={"profile": {"n_dirs": 32}})
+    assert r2.status_code == 201
+    run2_id = r2.json()["id"]
+
+    assert run1_id != run2_id
+
+    dir1 = settings.data_dir / "fixed" / str(run1_id)
+    dir2 = settings.data_dir / "fixed" / str(run2_id)
+    assert dir1.is_dir()
+    assert dir2.is_dir()
+
+
+def test_concurrent_fix_returns_409(client, imported_cube):
+    import api.routers.versions
+
+    version_id = imported_cube["versions"][0]["id"]
+    model_id = imported_cube["id"]
+
+    # Manually acquire the in-process lock to simulate an active fix running for this model
+    with api.routers.versions._fixes_lock:
+        api.routers.versions._active_model_fixes.add(model_id)
+
+    try:
+        # A second request for the same model must be rejected with 409
+        r = client.post(f"/api/versions/{version_id}/fix", json={"profile": {"n_dirs": 32}})
+        assert r.status_code == 409
+        assert "fix already running" in r.json()["detail"]
+    finally:
+        with api.routers.versions._fixes_lock:
+            api.routers.versions._active_model_fixes.discard(model_id)
+
+    # After the lock is released, the request succeeds with 201
+    r_ok = client.post(f"/api/versions/{version_id}/fix", json={"profile": {"n_dirs": 32}})
+    assert r_ok.status_code == 201
+
+
 

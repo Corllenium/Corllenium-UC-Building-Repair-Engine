@@ -24,7 +24,7 @@ def test_run_fix_endpoint(client, imported_cube):
         f"/api/versions/{version_id}/fix",
         json={"profile": {"n_dirs": 32, "slit_threshold": 0.05, "accept_slit": False}},
     )
-    assert r.status_code == 200
+    assert r.status_code == 201
     run_data = r.json()
     assert run_data["status"] == "completed"
     assert run_data["fixed_version_id"] is not None

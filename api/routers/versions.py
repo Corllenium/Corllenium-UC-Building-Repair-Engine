@@ -18,8 +18,12 @@ from engine.io.obj_writer import write_obj, write_obj_polygons
 from engine.io.snapshot import sha256_file
 from engine.pipeline import analyse_topology, flat_material_indices
 from engine.transport.meshbuf import pack_meshbuf
+import threading
 
 router = APIRouter(prefix="/api/versions", tags=["versions"])
+
+_active_model_fixes: set[int] = set()
+_fixes_lock = threading.Lock()
 
 
 @router.get("/{id}", response_model=ModelVersionOut)
@@ -108,7 +112,7 @@ def get_texture(
     return FileResponse(tex_path)
 
 
-@router.post("/{id}/fix", response_model=FixRunOut)
+@router.post("/{id}/fix", response_model=FixRunOut, status_code=status.HTTP_201_CREATED)
 def run_fix_pipeline(
     id: int,
     req: FixRequest,
@@ -119,128 +123,162 @@ def run_fix_pipeline(
     if version is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Version not found")
 
-    obj_asset = db.scalar(
-        select(VersionAsset).where(VersionAsset.version_id == id, VersionAsset.kind == "obj")
-    )
-    if obj_asset is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="OBJ asset not found")
+    model_id = version.model_id
+    with _fixes_lock:
+        if model_id in _active_model_fixes:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="fix already running",
+            )
+        _active_model_fixes.add(model_id)
 
-    obj_path = settings.data_dir / obj_asset.path
-    mesh = read_obj(obj_path)
+    try:
+        # 1. Allocate fix_run in the session and flush to get run_id
+        fix_run = FixRun(
+            version_id=version.id,
+            status="running",
+            config=req.profile.model_dump(),
+        )
+        db.add(fix_run)
+        db.flush()
+        run_id = fix_run.id
 
-    # Load flatness
-    flatness: dict[str, float] = {}
-    mtl_asset = db.scalar(
-        select(VersionAsset).where(VersionAsset.version_id == id, VersionAsset.kind == "mtl")
-    )
-    mtl_path = None
-    if mtl_asset:
-        mtl_path = settings.data_dir / mtl_asset.path
-        if mtl_path.exists():
-            for name, mat in parse_mtl(mtl_path).items():
-                if mat.map_kd:
-                    tex_file = mtl_path.parent / mat.map_kd
-                    if tex_file.exists():
-                        flatness[name] = texture_flatness(tex_file)
+        # 2. Output directory under data/fixed/<run_id>/
+        out_dir = settings.data_dir / "fixed" / str(run_id)
+        out_dir.mkdir(parents=True, exist_ok=True)
 
-    p = req.profile
-    profile = FixProfile(
-        n_dirs=p.n_dirs,
-        slit_threshold=p.slit_threshold,
-        accept_slit=p.accept_slit,
-        flat_texture_std=p.flat_texture_std,
-        guard_size=p.guard_size,
-        edge_flicker_cap_final=p.edge_flicker_cap_final,
-    )
+        obj_asset = db.scalar(
+            select(VersionAsset).where(VersionAsset.version_id == id, VersionAsset.kind == "obj")
+        )
+        if obj_asset is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="OBJ asset not found")
 
-    result = fix_object(mesh, flatness, profile)
+        obj_path = settings.data_dir / obj_asset.path
+        mesh = read_obj(obj_path)
 
-    # Save output to data/output/<name>/
-    name = mesh.name
-    out_dir = settings.data_dir / "output" / name
-    out_dir.mkdir(parents=True, exist_ok=True)
+        # Load flatness
+        flatness: dict[str, float] = {}
+        mtl_asset = db.scalar(
+            select(VersionAsset).where(VersionAsset.version_id == id, VersionAsset.kind == "mtl")
+        )
+        mtl_path = None
+        if mtl_asset:
+            mtl_path = settings.data_dir / mtl_asset.path
+            if mtl_path.exists():
+                for name, mat in parse_mtl(mtl_path).items():
+                    if mat.map_kd:
+                        tex_file = mtl_path.parent / mat.map_kd
+                        if tex_file.exists():
+                            flatness[name] = texture_flatness(tex_file)
 
-    fixed_obj_path = out_dir / f"{name}.fixed.obj"
-    write_obj(result.mesh, fixed_obj_path)
-    write_obj_polygons(result.mesh, result.rings, out_dir / f"{name}.fixed.ngon.obj")
+        p = req.profile
+        profile = FixProfile(
+            n_dirs=p.n_dirs,
+            slit_threshold=p.slit_threshold,
+            accept_slit=p.accept_slit,
+            flat_texture_std=p.flat_texture_std,
+            guard_size=p.guard_size,
+            edge_flicker_cap_final=p.edge_flicker_cap_final,
+        )
 
-    # Copy mtl & textures if available
-    if mtl_path and mtl_path.exists():
-        (out_dir / "materials.mtl").write_bytes(mtl_path.read_bytes())
-        tex_dir = out_dir / "tex"
-        tex_dir.mkdir(exist_ok=True)
-        src_tex = mtl_path.parent / "tex"
-        if src_tex.exists():
-            for f in src_tex.glob("*"):
-                if f.is_file():
-                    (tex_dir / f.name).write_bytes(f.read_bytes())
+        result = fix_object(mesh, flatness, profile)
 
-    fixed_sha256 = sha256_file(fixed_obj_path)
+        name = mesh.name
+        fixed_obj_path = out_dir / f"{name}.fixed.obj"
+        write_obj(result.mesh, fixed_obj_path)
+        write_obj_polygons(result.mesh, result.rings, out_dir / f"{name}.fixed.ngon.obj")
 
-    # Analyze topology of fixed mesh
-    flat_mats = flat_material_indices(result.mesh, flatness, profile.flat_texture_std)
-    topo = analyse_topology(result.mesh, flat_mats)
-    centre = (topo.positions_w.min(axis=0) + topo.positions_w.max(axis=0)) / 2.0
-    quanta = [float(q) for q in topo.quanta]
-    offset = [float(c) for c in centre]
+        # Copy mtl & textures if available
+        if mtl_path and mtl_path.exists():
+            (out_dir / "materials.mtl").write_bytes(mtl_path.read_bytes())
+            tex_dir = out_dir / "tex"
+            tex_dir.mkdir(exist_ok=True)
+            src_tex = mtl_path.parent / "tex"
+            if src_tex.exists():
+                for f in src_tex.glob("*"):
+                    if f.is_file():
+                        (tex_dir / f.name).write_bytes(f.read_bytes())
 
-    fixed_version = ModelVersion(
-        model_id=version.model_id,
-        kind="fixed",
-        sha256=fixed_sha256,
-        tri_count=result.mesh.n_faces,
-        coord_quantum=quanta,
-        origin_offset=offset,
-    )
-    db.add(fixed_version)
-    db.commit()
-    db.refresh(fixed_version)
+        fixed_sha256 = sha256_file(fixed_obj_path)
 
-    # Add fixed OBJ asset
-    db.add(
-        VersionAsset(
-            version_id=fixed_version.id,
-            kind="obj",
-            name=fixed_obj_path.name,
-            path=str(fixed_obj_path.relative_to(settings.data_dir)),
+        # Analyze topology of fixed mesh
+        flat_mats = flat_material_indices(result.mesh, flatness, profile.flat_texture_std)
+        topo = analyse_topology(result.mesh, flat_mats)
+        centre = (topo.positions_w.min(axis=0) + topo.positions_w.max(axis=0)) / 2.0
+        quanta = [float(q) for q in topo.quanta]
+        offset = [float(c) for c in centre]
+
+        fixed_version = ModelVersion(
+            model_id=version.model_id,
+            kind="fixed",
             sha256=fixed_sha256,
+            tri_count=result.mesh.n_faces,
+            coord_quantum=quanta,
+            origin_offset=offset,
         )
-    )
+        db.add(fixed_version)
+        db.flush()
 
-    # Save source_faces asset
-    source_faces_list = [
-        [int(x) for x in (s.tolist() if hasattr(s, "tolist") else list(s))]
-        for s in result.source_faces
-    ]
-    sf_path = out_dir / "source_faces.json"
-    sf_path.write_text(json.dumps(source_faces_list), encoding="utf-8")
-    db.add(
-        VersionAsset(
-            version_id=fixed_version.id,
-            kind="source_faces",
-            name="source_faces.json",
-            path=str(sf_path.relative_to(settings.data_dir)),
-            sha256=sha256_file(sf_path),
+        # Add fixed OBJ asset
+        db.add(
+            VersionAsset(
+                version_id=fixed_version.id,
+                kind="obj",
+                name=fixed_obj_path.name,
+                path=str(fixed_obj_path.relative_to(settings.data_dir)),
+                sha256=fixed_sha256,
+            )
         )
-    )
 
-    report_data = _build_report(name, obj_path, mesh, result, profile)
-    mr = report_data.setdefault("merge_report", {})
-    mr.setdefault("rolled_back", False)
-    mr.setdefault("rolled_back_reason", None)
-    mr.setdefault("skipped_by_reason", mr.get("regions_skipped", {}))
+        # Save source_faces asset
+        source_faces_list = [
+            [int(x) for x in (s.tolist() if hasattr(s, "tolist") else list(s))]
+            for s in result.source_faces
+        ]
+        sf_path = out_dir / "source_faces.json"
+        sf_path.write_text(json.dumps(source_faces_list), encoding="utf-8")
+        db.add(
+            VersionAsset(
+                version_id=fixed_version.id,
+                kind="source_faces",
+                name="source_faces.json",
+                path=str(sf_path.relative_to(settings.data_dir)),
+                sha256=sha256_file(sf_path),
+            )
+        )
 
-    (out_dir / "report.json").write_text(json.dumps(report_data, indent=2), encoding="utf-8")
+        report_data = _build_report(name, obj_path, mesh, result, profile)
+        mr = report_data.setdefault("merge_report", {})
+        mr.setdefault("rolled_back", False)
+        mr.setdefault("rolled_back_reason", None)
+        mr.setdefault("skipped_by_reason", mr.get("regions_skipped", {}))
 
-    fix_run = FixRun(
-        version_id=version.id,
-        fixed_version_id=fixed_version.id,
-        status="completed" if result.passed else "failed",
-        config=req.profile.model_dump(),
-        report_json=report_data,
-    )
-    db.add(fix_run)
-    db.commit()
-    db.refresh(fix_run)
+        (out_dir / "report.json").write_text(json.dumps(report_data, indent=2), encoding="utf-8")
 
-    return fix_run
+        fix_run.fixed_version_id = fixed_version.id
+        fix_run.status = "completed" if result.passed else "failed"
+        fix_run.report_json = report_data
+
+        # Commit everything atomically in ONE transaction at the end
+        db.commit()
+        db.refresh(fix_run)
+        return fix_run
+
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as exc:
+        db.rollback()
+        failed_run = FixRun(
+            version_id=version.id,
+            status="failed",
+            error=str(exc),
+            config=req.profile.model_dump(),
+        )
+        db.add(failed_run)
+        db.commit()
+        db.refresh(failed_run)
+        return failed_run
+    finally:
+        with _fixes_lock:
+            _active_model_fixes.discard(model_id)
