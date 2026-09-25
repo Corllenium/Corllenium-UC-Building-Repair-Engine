@@ -241,4 +241,18 @@ def test_find_source_file_does_not_redundantly_read_manifest(sample_source_dir, 
     assert len(read_calls) == 1
 
 
+def test_snapshot_asset_paths_are_posix_compliant(client, textured_source_dir):
+    r = client.post("/api/models/import", json={"file": "textured_cube.obj"})
+    assert r.status_code == 201
+    model_data = r.json()
+    version = model_data["versions"][0]
+    assert version["kind"] == "snapshot"
+    assets = version["assets"]
+    assert len(assets) >= 3  # obj, mtl, texture
+    for a in assets:
+        assert "\\" not in a["path"]
+        assert "/" in a["path"]
+
+
+
 

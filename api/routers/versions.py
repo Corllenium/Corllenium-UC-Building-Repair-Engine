@@ -12,7 +12,7 @@ from api.db import get_db
 from api.models import FixRun, ModelVersion, VersionAsset
 from api.schemas import FaceOut, FixRequest, FixRunOut, ModelVersionOut
 from api.settings import Settings, get_settings
-from engine.cli import _build_report, _write_guard_images, _write_skp
+from engine.cli import _build_report, _write_guard_images, _write_skp, copy_skp_to_owner
 from engine.fixes.pipeline import FixProfile, fix_object
 from engine.io.mtl import parse_mtl, texture_flatness
 from engine.io.obj_reader import read_obj
@@ -295,6 +295,8 @@ def run_fix_pipeline(
         _active_model_fixes.add(model_id)
 
     out_dir: Path | None = None
+    committed: bool = False
+    fix_run: FixRun | None = None
     try:
         # 1. Allocate fix_run in the session and flush to get run_id
         fix_run = FixRun(
@@ -512,45 +514,63 @@ def run_fix_pipeline(
         # Commit everything atomically in ONE transaction at the end
         db.commit()
         db.refresh(fix_run)
+        committed = True
 
         # After successful database commit, copy into the owner's folder (OBJ FIXED RESULT)
         if skp_report.get("written") and settings.skp_dir is not None:
-            owner_copy = settings.skp_dir / f"{name}.fixed.skp"
-            failed_copy = settings.skp_dir / f"{name}.fixed.FAILED.skp"
-            dest_path = owner_copy if result.passed else failed_copy
-            if not result.passed:
-                skp_report["previous_kept"] = str(owner_copy) if owner_copy.exists() else None
             try:
-                settings.skp_dir.mkdir(parents=True, exist_ok=True)
-                shutil.copyfile(out_dir / f"{name}.fixed.skp", dest_path)
-                skp_report["copied_to"] = str(dest_path)
-                report_data["skp_path"] = str(dest_path)
-                report_data["skp_summary"] = f"SketchUp file: {dest_path}"
-                (out_dir / "report.json").write_text(json.dumps(report_data, indent=2), encoding="utf-8")
-                fix_run.report_json = report_data
-                db.commit()
-                db.refresh(fix_run)
-            except OSError as exc:
+                copy_skp_to_owner(
+                    out_dir / f"{name}.fixed.skp",
+                    settings.skp_dir,
+                    name,
+                    result.passed,
+                    out=skp_report,
+                )
+                if skp_report.get("copied_to"):
+                    report_data["skp_path"] = skp_report["copied_to"]
+                    report_data["skp_summary"] = f"SketchUp file: {skp_report['copied_to']}"
+                elif skp_report.get("copy_error"):
+                    report_data["skp_summary"] = (
+                        f"SketchUp file copy failed: {skp_report['copy_error']} "
+                        f"(owner folder unchanged; previous file may still be open)"
+                    )
+            except Exception as exc:
+                logger.exception("Owner copy failed for version %s: %s", id, exc)
                 skp_report["copy_error"] = str(exc)
-            if result.passed and skp_report.get("copied_to") and failed_copy.exists():
+                report_data["skp_summary"] = (
+                    f"SketchUp file copy failed: {exc} "
+                    f"(owner folder unchanged; previous file may still be open)"
+                )
+            finally:
+                report_data["skp"] = skp_report
+                if skp_report.get("copy_error"):
+                    report_data["copy_error"] = skp_report["copy_error"]
                 try:
-                    failed_copy.unlink()
-                    skp_report["removed_stale_failed_copy"] = str(failed_copy)
-                except OSError as exc:
-                    skp_report["stale_failed_copy_error"] = str(exc)
+                    (out_dir / "report.json").write_text(json.dumps(report_data, indent=2), encoding="utf-8")
+                except Exception as exc:
+                    logger.warning("Failed to write report.json with copy results: %s", exc)
+                try:
+                    fix_run.report_json = report_data
+                    db.commit()
+                    db.refresh(fix_run)
+                except Exception as exc:
+                    logger.exception("Failed to commit copy results to database: %s", exc)
+                    db.rollback()
 
         return fix_run
 
     except HTTPException:
         db.rollback()
-        if out_dir is not None and out_dir.exists():
+        if not committed and out_dir is not None and out_dir.exists():
             shutil.rmtree(out_dir, ignore_errors=True)
         raise
     except Exception as exc:
         logger.exception("Fix pipeline failed for version %s", id)
         db.rollback()
-        if out_dir is not None and out_dir.exists():
+        if not committed and out_dir is not None and out_dir.exists():
             shutil.rmtree(out_dir, ignore_errors=True)
+        if committed:
+            return fix_run
         err_msg = f"{type(exc).__name__}: {exc}" if str(exc) else type(exc).__name__
         failed_run = FixRun(
             version_id=version.id,

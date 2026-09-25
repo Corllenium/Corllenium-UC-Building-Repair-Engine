@@ -36,6 +36,7 @@ export interface ResultDescription {
   skpPath?: string
   skpWritten?: boolean
   skpReason?: string
+  skpCopyError?: string
   error?: string
 }
 
@@ -161,9 +162,17 @@ export function describeResult(report: any): ResultDescription {
 
   const skp = report.skp || {}
   const skpWritten = typeof skp.written === 'boolean' ? skp.written : undefined
+  const skpCopyError = skp.copy_error || report.copy_error
   const skpPath = skp.copied_to || skp.path || report.skp_path
   const skpReason = skp.reason || skp.error
-  const skpSummary = report.skp_summary || (skpPath ? `SketchUp file: ${skpPath}` : undefined)
+  let skpSummary = report.skp_summary
+  if (!skpSummary) {
+    if (skpCopyError) {
+      skpSummary = `SketchUp file copy failed: ${skpCopyError} (owner folder unchanged; previous file may still be open)`
+    } else if (skpPath) {
+      skpSummary = `SketchUp file: ${skpPath}`
+    }
+  }
 
   return {
     heading,
@@ -173,6 +182,7 @@ export function describeResult(report: any): ResultDescription {
     guardLine,
     guardPassed,
     isRolledBack,
+    mergeReported: hasMergeReport,
     rolledBackReason,
     backfacePx,
     borderShiftPx,
@@ -185,5 +195,6 @@ export function describeResult(report: any): ResultDescription {
     skpPath,
     skpWritten,
     skpReason,
+    skpCopyError,
   }
 }

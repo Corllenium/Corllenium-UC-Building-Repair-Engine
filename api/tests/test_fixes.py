@@ -315,14 +315,14 @@ def test_concurrent_fix_returns_409(client, imported_cube):
     assert r_ok.status_code == 201
 
 
-def test_stored_flat_materials_enforced_to_zero_std(client, imported_cube, monkeypatch, db):
+def test_stored_flat_materials_enforced_to_zero_std(client, imported_textured_cube, monkeypatch, db):
     import api.routers.versions
     from api.models import ModelVersion
     from sqlalchemy import select
 
-    version_id = imported_cube["versions"][0]["id"]
+    version_id = imported_textured_cube["versions"][0]["id"]
     ver = db.scalar(select(ModelVersion).where(ModelVersion.id == version_id))
-    ver.flat_materials = ["m0"]
+    ver.flat_materials = ["stone"]
     db.commit()
 
     captured_flatness = {}
@@ -334,12 +334,10 @@ def test_stored_flat_materials_enforced_to_zero_std(client, imported_cube, monke
         return orig_fix(mesh, flatness, profile)
 
     monkeypatch.setattr(api.routers.versions, "fix_object", spy_fix_object)
-    # Simulate initial non-zero texture std for stone/m0
-    monkeypatch.setattr(api.routers.versions, "texture_flatness", lambda *args, **kwargs: {"m0": 25.0})
 
     r = client.post(f"/api/versions/{version_id}/fix", json={"profile": {"n_dirs": 32, "flat_texture_std": 0.5}})
     assert r.status_code == 201
-    assert captured_flatness.get("m0") == 0.0
+    assert captured_flatness.get("stone") == 0.0
 
 
 def test_fix_run_writes_skp_and_copies_to_skp_dir(client, imported_cube):
@@ -381,6 +379,8 @@ def test_fix_run_succeeds_when_skp_dll_absent(client, imported_cube, monkeypatch
     skp_info = run_data["report_json"]["skp"]
     assert skp_info["written"] is False
     assert "SketchUp C API DLL not found" in skp_info["reason"]
+    assert "path" not in skp_info
+    assert run_data["report_json"].get("skp_path") is None
 
 
 def test_fix_run_failure_after_skp_does_not_replace_owner_skp(client, imported_cube, monkeypatch):
@@ -436,6 +436,133 @@ def test_skp_writing_is_serialized_by_lock(client, imported_cube, monkeypatch):
     r_fix = client.post(f"/api/versions/{version_id}/fix", json={"profile": {"n_dirs": 32}})
     assert r_fix.status_code == 201
     assert len(lock_acquired) == 1
+
+
+def test_second_commit_failure_preserves_run_files_and_meshbuf(client, imported_cube, monkeypatch):
+    import api.routers.versions as versions_mod
+    from api.settings import get_settings
+    from sqlalchemy.orm import Session
+    settings = get_settings()
+
+    def fake_write_skp(result, name, out_dir, flat_mats, profile, enabled=True, copy_dir=None):
+        skp_path = out_dir / f"{name}.fixed.skp"
+        skp_path.write_text("fixed skp content", encoding="utf-8")
+        return {"written": True, "copied_to": None}
+
+    monkeypatch.setattr(versions_mod, "_write_skp", fake_write_skp)
+
+    orig_commit = Session.commit
+    commit_count = 0
+
+    def failing_commit(self, *args, **kwargs):
+        nonlocal commit_count
+        commit_count += 1
+        if commit_count == 2:
+            raise RuntimeError("Injected database failure on second commit")
+        return orig_commit(self, *args, **kwargs)
+
+    monkeypatch.setattr(Session, "commit", failing_commit)
+
+    version_id = imported_cube["versions"][0]["id"]
+    r_fix = client.post(f"/api/versions/{version_id}/fix", json={"profile": {"n_dirs": 32}})
+    assert r_fix.status_code == 201
+    run_data = r_fix.json()
+    assert run_data["status"] == "completed"
+    fixed_ver_id = run_data["fixed_version_id"]
+    assert fixed_ver_id is not None
+
+    run_dir = settings.data_dir / "fixed" / str(run_data["id"])
+    assert run_dir.exists()
+
+    r_mesh = client.get(f"/api/versions/{fixed_ver_id}/meshbuf")
+    assert r_mesh.status_code == 200
+
+
+def test_owner_copy_failure_recorded_in_report_json_and_db(client, imported_cube, monkeypatch, db):
+    import json
+    import shutil
+    import api.routers.versions as versions_mod
+    from api.models import FixRun
+    from api.settings import get_settings
+    from sqlalchemy import select
+    settings = get_settings()
+
+    def fake_write_skp(result, name, out_dir, flat_mats, profile, enabled=True, copy_dir=None):
+        skp_path = out_dir / f"{name}.fixed.skp"
+        skp_path.write_text("fixed skp content", encoding="utf-8")
+        return {"written": True, "copied_to": None}
+
+    monkeypatch.setattr(versions_mod, "_write_skp", fake_write_skp)
+
+    def failing_copyfile(src, dst):
+        raise PermissionError("Permission denied: the owner still has the previous file open")
+
+    monkeypatch.setattr(shutil, "copyfile", failing_copyfile)
+
+    version_id = imported_cube["versions"][0]["id"]
+    r_fix = client.post(f"/api/versions/{version_id}/fix", json={"profile": {"n_dirs": 32}})
+    assert r_fix.status_code == 201
+    run_data = r_fix.json()
+    assert run_data["status"] == "completed"
+
+    skp = run_data["report_json"]["skp"]
+    assert "copy_error" in skp
+    assert "Permission denied" in skp["copy_error"]
+
+    # Verify on-disk report.json
+    run_dir = settings.data_dir / "fixed" / str(run_data["id"])
+    report_disk = json.loads((run_dir / "report.json").read_text(encoding="utf-8"))
+    assert "copy_error" in report_disk["skp"]
+    assert "Permission denied" in report_disk["skp"]["copy_error"]
+
+    # Verify database fix_run
+    run_db = db.scalar(select(FixRun).where(FixRun.id == run_data["id"]))
+    assert run_db is not None
+    assert "copy_error" in run_db.report_json["skp"]
+    assert "Permission denied" in run_db.report_json["skp"]["copy_error"]
+
+
+def test_owner_copy_stale_failed_removal_recorded_in_report_json_and_db(client, imported_cube, monkeypatch, db):
+    import json
+    import api.routers.versions as versions_mod
+    from api.models import FixRun
+    from api.settings import get_settings
+    from sqlalchemy import select
+    settings = get_settings()
+    settings.skp_dir.mkdir(parents=True, exist_ok=True)
+    name = imported_cube["name"]
+    stale_failed = settings.skp_dir / f"{name}.fixed.FAILED.skp"
+    stale_failed.write_text("stale failed skp", encoding="utf-8")
+
+    def fake_write_skp(result, name, out_dir, flat_mats, profile, enabled=True, copy_dir=None):
+        skp_path = out_dir / f"{name}.fixed.skp"
+        skp_path.write_text("fixed skp content", encoding="utf-8")
+        return {"written": True, "copied_to": None}
+
+    monkeypatch.setattr(versions_mod, "_write_skp", fake_write_skp)
+
+    version_id = imported_cube["versions"][0]["id"]
+    r_fix = client.post(f"/api/versions/{version_id}/fix", json={"profile": {"n_dirs": 32}})
+    assert r_fix.status_code == 201
+    run_data = r_fix.json()
+    assert run_data["status"] == "completed"
+
+    # Stale failed copy must be removed
+    assert not stale_failed.exists()
+
+    skp = run_data["report_json"]["skp"]
+    assert "removed_stale_failed_copy" in skp
+
+    # Verify on-disk report.json
+    run_dir = settings.data_dir / "fixed" / str(run_data["id"])
+    report_disk = json.loads((run_dir / "report.json").read_text(encoding="utf-8"))
+    assert "removed_stale_failed_copy" in report_disk["skp"]
+
+    # Verify database fix_run
+    run_db = db.scalar(select(FixRun).where(FixRun.id == run_data["id"]))
+    assert run_db is not None
+    assert "removed_stale_failed_copy" in run_db.report_json["skp"]
+
 
 
 def test_fix_pipeline_sanitizes_mesh_name(client, imported_cube, monkeypatch):
@@ -509,6 +636,32 @@ def test_guard_view_includes_and_serves_failing_views(client, imported_cube):
     # Out of range or invalid views still return 404
     assert client.get(f"/api/runs/{run_id}/guard/fail_99").status_code == 404
     assert client.get(f"/api/runs/{run_id}/guard/fail_-1").status_code == 404
+
+
+def test_failing_guard_views_written_by_run_are_listed_in_report(client, imported_cube, monkeypatch):
+    import api.routers.versions as versions_mod
+    orig_write_guard = versions_mod._write_guard_images
+
+    def spy_write_guard(reference, result, profile, ref_flat_mats, ref_topo, ref_positions_c, out_dir):
+        orig_write_guard(reference, result, profile, ref_flat_mats, ref_topo, ref_positions_c, out_dir)
+        # Simulate guard failure writing failing oblique view images
+        (out_dir / "guard_fail_3.png").write_bytes(b"\x89PNG\r\n\x1a\nfake_fail_3")
+        (out_dir / "guard_fail_7.png").write_bytes(b"\x89PNG\r\n\x1a\nfake_fail_7")
+
+    monkeypatch.setattr(versions_mod, "_write_guard_images", spy_write_guard)
+
+    def fake_write_skp(result, name, out_dir, flat_mats, profile, enabled=True, copy_dir=None):
+        return {"written": False, "reason": "skipped in test"}
+
+    monkeypatch.setattr(versions_mod, "_write_skp", fake_write_skp)
+
+    version_id = imported_cube["versions"][0]["id"]
+    r_fix = client.post(f"/api/versions/{version_id}/fix", json={"profile": {"n_dirs": 32}})
+    assert r_fix.status_code == 201
+    report = r_fix.json()["report_json"]
+    assert "fail_3" in report["guard_views"]
+    assert "fail_7" in report["guard_views"]
+
 
 
 
