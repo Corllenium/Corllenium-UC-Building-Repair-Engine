@@ -11,6 +11,10 @@
     </header>
 
     <main class="page-content">
+      <div v-if="errorMessage" class="banner banner-warning" style="margin-bottom: 16px; padding: 12px 16px; background: #fff3cd; color: #856404; border: 1px solid #ffeeba; border-radius: 4px;">
+        {{ errorMessage }}
+      </div>
+
       <!-- Section: Available Source Files -->
       <section class="card">
         <h2>Available Campus Exports</h2>
@@ -89,20 +93,23 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { fetchSourceFiles, fetchModels, importModel, type SourceFile, type Model } from '../api/client'
+import { formatErrorMessage } from '../utils/formatError'
 
 const sourceFiles = ref<SourceFile[]>([])
 const models = ref<Model[]>([])
 const loading = ref(false)
 const importing = ref<string | null>(null)
+const errorMessage = ref<string | null>(null)
 
 async function loadData() {
   loading.value = true
+  errorMessage.value = null
   try {
     const [src, mods] = await Promise.all([fetchSourceFiles(), fetchModels()])
     sourceFiles.value = src
     models.value = mods
   } catch (err: any) {
-    alert(err.message)
+    errorMessage.value = formatErrorMessage(err)
   } finally {
     loading.value = false
   }
@@ -132,11 +139,12 @@ function getReduction(m: Model): string {
 
 async function doImport(file: string) {
   importing.value = file
+  errorMessage.value = null
   try {
     await importModel(file)
     await loadData()
   } catch (err: any) {
-    alert(`Import failed: ${err.message}`)
+    errorMessage.value = formatErrorMessage(err)
   } finally {
     importing.value = null
   }

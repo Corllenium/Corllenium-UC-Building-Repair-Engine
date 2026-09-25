@@ -67,6 +67,39 @@ def test_import_nonexistent_fails(client, sample_source_dir):
     assert r.status_code == 404
 
 
+def test_source_unstable_409_and_manifest_mismatch_422(client, sample_source_dir, monkeypatch):
+    from engine.io.snapshot import SourceUnstable, ManifestMismatch
+    import api.services.importer
+
+    # 1. SourceUnstable during import -> 409 with Retry-After: 5
+    def mock_snapshot_unstable(*args, **kwargs):
+        raise SourceUnstable("Source folder is being rebuilt")
+
+    monkeypatch.setattr(api.services.importer, "snapshot_object", mock_snapshot_unstable)
+    r = client.post("/api/models/import", json={"file": "test_cube.obj"})
+    assert r.status_code == 409
+    assert r.headers.get("retry-after") == "5"
+
+    # 2. SourceUnstable during scan -> 409 with Retry-After: 5
+    def mock_read_manifest_unstable(*args, **kwargs):
+        raise SourceUnstable("Manifest locked during scan")
+
+    monkeypatch.setattr(api.services.importer, "read_manifest_stable", mock_read_manifest_unstable)
+    r_scan = client.get("/api/source/files")
+    assert r_scan.status_code == 409
+    assert r_scan.headers.get("retry-after") == "5"
+    monkeypatch.undo()
+
+    # 3. ManifestMismatch during import -> 422
+    def mock_snapshot_mismatch(*args, **kwargs):
+        raise ManifestMismatch("Face count mismatch: expected 12, got 14")
+
+    monkeypatch.setattr(api.services.importer, "snapshot_object", mock_snapshot_mismatch)
+    r_mis = client.post("/api/models/import", json={"file": "test_cube.obj"})
+    assert r_mis.status_code == 422
+
+
+
 @pytest.fixture
 def textured_source_dir(_database):
     from api.settings import get_settings
