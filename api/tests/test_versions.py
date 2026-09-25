@@ -120,3 +120,50 @@ def test_m5_backfill_null_asset_sha256(client, _database, db):
     assert versions[0]["id"] == v_id
     assert versions[0]["asset_sha256"] == real_asset_sha
 
+
+def test_face_picking_endpoint_for_snapshot_and_fixed(client, imported_cube):
+    version_id = imported_cube["versions"][0]["id"]
+
+    # 1. Test snapshot version face endpoint
+    r = client.get(f"/api/versions/{version_id}/faces/0")
+    assert r.status_code == 200
+    data = r.json()
+    assert data["face_id"] == 0
+    assert isinstance(data["line"], int)
+    assert data["line"] > 0
+    assert data["material"] == "m0"
+    assert len(data["vertices"]) == 3
+    assert len(data["vertices"][0]) == 3
+    assert "source_faces" not in data or data["source_faces"] is None
+
+    # Invalid face id
+    assert client.get(f"/api/versions/{version_id}/faces/999").status_code == 404
+    assert client.get(f"/api/versions/{version_id}/faces/-1").status_code == 404
+
+    # 2. Run fix and test fixed version face endpoint
+    r_fix = client.post(
+        f"/api/versions/{version_id}/fix",
+        json={"profile": {"n_dirs": 32, "slit_threshold": 0.05, "accept_slit": False}},
+    )
+    assert r_fix.status_code == 201
+    fixed_ver_id = r_fix.json()["fixed_version_id"]
+    assert fixed_ver_id is not None
+
+    r_fixed = client.get(f"/api/versions/{fixed_ver_id}/faces/0")
+    assert r_fixed.status_code == 200
+    data_fixed = r_fixed.json()
+    assert data_fixed["face_id"] == 0
+    assert isinstance(data_fixed["line"], int)
+    assert data_fixed["line"] > 0
+    assert len(data_fixed["vertices"]) == 3
+    assert "source_faces" in data_fixed
+    assert isinstance(data_fixed["source_faces"], list)
+    assert len(data_fixed["source_faces"]) >= 1
+    for sf in data_fixed["source_faces"]:
+        assert "face_id" in sf
+        assert "line" in sf
+        assert isinstance(sf["face_id"], int)
+        assert isinstance(sf["line"], int)
+        assert sf["line"] > 0
+
+

@@ -75,3 +75,17 @@ class FixRunOut(BaseModel):
     report_json: dict[str, Any] | None = None
     error: str | None = None
     created_at: datetime
+
+
+class SourceFaceOut(BaseModel):
+    face_id: int
+    line: int
+
+
+class FaceOut(BaseModel):
+    face_id: int
+    line: int
+    material: str | None = None
+    vertices: list[list[float]]
+    source_faces: list[SourceFaceOut] | None = None
+

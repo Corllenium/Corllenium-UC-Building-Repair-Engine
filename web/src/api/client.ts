@@ -136,3 +136,25 @@ export async function fetchRun(runId: number): Promise<FixRun> {
 export function getGuardImageUrl(runId: number, view: string): string {
   return `${API_BASE}/runs/${runId}/guard/${view}`
 }
+
+export interface SourceFaceInfo {
+  face_id: number
+  line: number
+}
+
+export interface FaceDetails {
+  face_id: number
+  line: number
+  material?: string | null
+  vertices: number[][]
+  source_faces?: SourceFaceInfo[]
+}
+
+export async function fetchFace(versionId: number, faceId: number): Promise<FaceDetails> {
+  const res = await checkResponse(
+    await fetch(`${API_BASE}/versions/${versionId}/faces/${faceId}`),
+    'Failed to fetch face details'
+  )
+  return res.json()
+}
+

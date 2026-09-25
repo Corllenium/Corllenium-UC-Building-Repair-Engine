@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from api.db import get_db
 from api.models import FixRun, ModelVersion, VersionAsset
-from api.schemas import FixRequest, FixRunOut, ModelVersionOut
+from api.schemas import FaceOut, FixRequest, FixRunOut, ModelVersionOut
 from api.settings import Settings, get_settings
 from engine.cli import _build_report
 from engine.fixes.pipeline import FixProfile, fix_object
@@ -137,6 +137,98 @@ def get_version_asset(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Asset file missing")
 
     return FileResponse(path)
+
+
+@router.get("/{id}/faces/{face_id}", response_model=FaceOut, response_model_exclude_none=True)
+def get_version_face(
+    id: int,
+    face_id: int,
+    db: Session = Depends(get_db),
+    settings: Settings = Depends(get_settings),
+):
+    version = db.scalar(select(ModelVersion).where(ModelVersion.id == id))
+    if version is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Version not found")
+
+    obj_asset = db.scalar(
+        select(VersionAsset).where(VersionAsset.version_id == id, VersionAsset.kind == "obj")
+    )
+    if obj_asset is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="OBJ asset not found")
+
+    obj_path = settings.data_dir / obj_asset.path
+    if not obj_path.exists():
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="OBJ file missing on disk")
+
+    mesh = read_obj(obj_path)
+    if face_id < 0 or face_id >= mesh.n_faces:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Face {face_id} not found")
+
+    line = int(mesh.face_line[face_id])
+    mat_idx = int(mesh.face_material[face_id])
+    mat_name = mesh.materials[mat_idx] if (0 <= mat_idx < len(mesh.materials)) else None
+    vertices = mesh.positions[mesh.face_v[face_id]].tolist()
+
+    if version.kind == "fixed":
+        source_faces = []
+        sf_asset = db.scalar(
+            select(VersionAsset).where(VersionAsset.version_id == id, VersionAsset.kind == "source_faces")
+        )
+        sf_list = None
+        if sf_asset:
+            sf_path = settings.data_dir / sf_asset.path
+            if sf_path.exists():
+                try:
+                    sf_list = json.loads(sf_path.read_text(encoding="utf-8"))
+                except Exception:
+                    sf_list = None
+
+        orig_face_ids = []
+        if sf_list is not None and 0 <= face_id < len(sf_list):
+            orig_face_ids = sf_list[face_id]
+
+        fix_run = db.scalar(select(FixRun).where(FixRun.fixed_version_id == id))
+        snap_version = None
+        if fix_run:
+            snap_version = db.scalar(select(ModelVersion).where(ModelVersion.id == fix_run.version_id))
+        if snap_version is None:
+            snap_version = db.scalar(
+                select(ModelVersion)
+                .where(ModelVersion.model_id == version.model_id, ModelVersion.kind == "snapshot")
+                .order_by(ModelVersion.id.desc())
+            )
+
+        snap_mesh = None
+        if snap_version:
+            snap_obj_asset = db.scalar(
+                select(VersionAsset).where(VersionAsset.version_id == snap_version.id, VersionAsset.kind == "obj")
+            )
+            if snap_obj_asset:
+                p = settings.data_dir / snap_obj_asset.path
+                if p.exists():
+                    snap_mesh = read_obj(p)
+
+        for orig_id in orig_face_ids:
+            orig_line = -1
+            if snap_mesh is not None and 0 <= orig_id < snap_mesh.n_faces:
+                orig_line = int(snap_mesh.face_line[orig_id])
+            source_faces.append({"face_id": orig_id, "line": orig_line})
+
+        return FaceOut(
+            face_id=face_id,
+            line=line,
+            material=mat_name,
+            vertices=vertices,
+            source_faces=source_faces,
+        )
+
+    return FaceOut(
+        face_id=face_id,
+        line=line,
+        material=mat_name,
+        vertices=vertices,
+        source_faces=None,
+    )
 
 
 @router.post("/{id}/fix", response_model=FixRunOut, status_code=status.HTTP_201_CREATED)

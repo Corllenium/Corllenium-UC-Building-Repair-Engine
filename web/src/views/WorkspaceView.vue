@@ -125,12 +125,17 @@
     <!-- Inspection Details Drawer (if face clicked) -->
     <div v-if="pickedFace" class="picked-inspector">
       <div class="inspector-header">
-        <strong>Inspected Triangle #{{ pickedFace.faceId }}</strong>
+        <strong>Inspected Triangle #{{ pickedFace.faceId }} ({{ pickedFace.viewKind.toUpperCase() }})</strong>
         <button class="btn-close" @click="pickedFace = null">&times;</button>
       </div>
       <div class="inspector-body">
         <div>Coordinates: {{ pickedFace.point.x.toFixed(2) }}, {{ pickedFace.point.y.toFixed(2) }}, {{ pickedFace.point.z.toFixed(2) }}</div>
-        <div>Source OBJ Face: line #{{ pickedFace.faceId + 1 }}</div>
+        <div v-if="pickedFace.loading">Loading face details...</div>
+        <div v-else-if="pickedFace.details">
+          <div>{{ formatFaceSourceInfo(pickedFace.viewKind, pickedFace.details) }}</div>
+          <div v-if="pickedFace.details.material">Material: {{ pickedFace.details.material }}</div>
+        </div>
+        <div v-else-if="pickedFace.error" class="text-error">{{ pickedFace.error }}</div>
       </div>
     </div>
 
@@ -194,16 +199,28 @@ import {
   fetchMeshbuf,
   runFix,
   fetchRun,
+  fetchFace,
   type Model,
   type ModelVersion,
   type FixRun,
+  type FaceDetails,
 } from '../api/client'
 import { decodeMeshbuf } from '../three/meshbuf'
 import { Viewport, syncViewports } from '../three/Viewport'
 import { describeResult } from '../utils/describeResult'
+import { formatFaceSourceInfo } from '../utils/faceInspection'
 import { useLayers } from '../composables/useLayers'
 import { useGuardViews, getGuardImageUrl, DEFAULT_GUARD_VIEWS } from '../composables/useGuardViews'
 import * as THREE from 'three'
+
+interface PickedFaceState {
+  viewKind: 'before' | 'after'
+  faceId: number
+  point: THREE.Vector3
+  details?: FaceDetails | null
+  loading?: boolean
+  error?: string | null
+}
 
 const route = useRoute()
 const modelId = computed(() => Number(route.params.id))
@@ -213,7 +230,7 @@ const latestRun = ref<FixRun | null>(null)
 const fixing = ref(false)
 const showGuardModal = ref(false)
 const imgError = ref(false)
-const pickedFace = ref<{ faceId: number; point: THREE.Vector3 } | null>(null)
+const pickedFace = ref<PickedFaceState | null>(null)
 
 const resultDesc = computed(() => {
   if (!latestRun.value) return null
@@ -283,11 +300,43 @@ async function initWorkspace() {
   viewA = new Viewport(canvasA.value)
   viewB = new Viewport(canvasB.value)
 
-  viewA.onPick = (faceId, point) => {
-    pickedFace.value = { faceId, point }
+  viewA.onPick = async (faceId, point) => {
+    pickedFace.value = { viewKind: 'before', faceId, point, loading: true }
+    if (snapshotVersion.value) {
+      try {
+        const details = await fetchFace(snapshotVersion.value.id, faceId)
+        if (pickedFace.value && pickedFace.value.faceId === faceId && pickedFace.value.viewKind === 'before') {
+          pickedFace.value.details = details
+          pickedFace.value.loading = false
+        }
+      } catch (err: any) {
+        if (pickedFace.value && pickedFace.value.faceId === faceId && pickedFace.value.viewKind === 'before') {
+          pickedFace.value.error = err.message || 'Failed to fetch face'
+          pickedFace.value.loading = false
+        }
+      }
+    } else {
+      pickedFace.value.loading = false
+    }
   }
-  viewB.onPick = (faceId, point) => {
-    pickedFace.value = { faceId, point }
+  viewB.onPick = async (faceId, point) => {
+    pickedFace.value = { viewKind: 'after', faceId, point, loading: true }
+    if (fixedVersion.value) {
+      try {
+        const details = await fetchFace(fixedVersion.value.id, faceId)
+        if (pickedFace.value && pickedFace.value.faceId === faceId && pickedFace.value.viewKind === 'after') {
+          pickedFace.value.details = details
+          pickedFace.value.loading = false
+        }
+      } catch (err: any) {
+        if (pickedFace.value && pickedFace.value.faceId === faceId && pickedFace.value.viewKind === 'after') {
+          pickedFace.value.error = err.message || 'Failed to fetch face'
+          pickedFace.value.loading = false
+        }
+      }
+    } else {
+      pickedFace.value.loading = false
+    }
   }
 
   toggleSync()
