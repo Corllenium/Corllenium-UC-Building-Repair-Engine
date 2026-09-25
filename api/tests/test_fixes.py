@@ -17,13 +17,26 @@ def test_guard_view_validation(client, imported_cube, monkeypatch):
 
     monkeypatch.setattr(api.routers.fixes, "FileResponse", mock_file_response)
 
+    from api.settings import get_settings
+    settings = get_settings()
+    # Create target file outside run directory that path traversal might attempt to reach
+    traversal_target = settings.data_dir / "fixed" / "x.png"
+    traversal_target.parent.mkdir(parents=True, exist_ok=True)
+    traversal_target.write_bytes(b"dummy_png")
+
     # Path traversal and invalid view names must return 404 before opening any file
     for bad_view in ["%5C..%5C..%5Cx", "..%2Fx", "top", "invalid_view"]:
         r = client.get(f"/api/runs/{run_id}/guard/{bad_view}")
         assert r.status_code == 404
 
-    # Assert no file was opened by FileResponse
+    # Assert no file was opened by FileResponse for bad views
     assert len(opened_paths) == 0
+
+    # Valid view returns 200 and serves the file
+    r_ok = client.get(f"/api/runs/{run_id}/guard/+z")
+    assert r_ok.status_code == 200
+    assert len(opened_paths) == 1
+    assert opened_paths[0].endswith("guard_+z.png")
 
     # Ensure VALID_GUARD_VIEWS contains exactly the six axis views
     assert set(VALID_GUARD_VIEWS) == {"+x", "-x", "+y", "-y", "+z", "-z"}
