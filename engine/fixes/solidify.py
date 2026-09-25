@@ -687,7 +687,7 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
     started = time.perf_counter()
     tol = _depth_tol(topo, profile)
     min_h = getattr(profile, "min_thickness", 2.0)
-    max_h = getattr(profile, "max_thickness", 36.0)
+    max_h = getattr(profile, "max_thickness", 50.0)
     bottom_fraction = getattr(profile, "bottom_exists_fraction", 0.9)
     bottom_extra = getattr(profile, "bottom_search_extra", 24.0)
     guard_size = getattr(profile, "guard_size", (900, 600))

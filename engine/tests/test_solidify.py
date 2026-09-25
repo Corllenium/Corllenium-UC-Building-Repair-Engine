@@ -181,8 +181,8 @@ def test_fix_object_closes_the_open_box_and_removes_the_partitions_inside_it():
 
 def test_a_fin_at_the_corner_no_longer_sets_the_edge_height():
     """`two_level_slab`'s fin hangs 200 in from the open edge's corner `(0, 0, 0)`. Taking an
-    edge's height from the deepest side face at either endpoint measured that edge at 200 in (36
-    at the default ceiling), and the cap guard had to refuse the skirt. Review I1: the height
+    edge's height from the deepest side face at either endpoint measured that edge at 200 in (the
+    default ceiling's 36, then), and the cap guard had to refuse the skirt. Review I1: the height
     comes only from side faces hanging from the region's own outline -- the three 8 in skirts --
     so the edge measures 8 in, the skirt meets the slab's underside, and it stays."""
     m = two_level_slab()
@@ -1286,6 +1286,34 @@ def test_a_fin_below_the_slab_is_still_refused_face_by_face():
     post = np.array([m.n_faces - 2, m.n_faces - 1])
     seen, changed = _unchanged_pixels(m, r, post)
     assert seen > 0 and changed == 0
+
+
+# ------------------------------- brief 10 item 2: max_thickness from the files' own side depths
+
+
+@pytest.mark.parametrize("depth", [39.37, 49.21])
+def test_a_one_metre_block_is_not_clamped_to_36_in(depth):
+    """These files are LittleTiles blocks in 9.84 in (25 cm) steps. File B's upper landing (region
+    92) and four more of its regions are 39.37 in (1 m) deep by most of their own sides, and file
+    A's region 852 is 49.21 in (1.25 m) deep by every one of its own sides -- and `max_thickness`
+    was 36 in, so their walls and bottoms stopped 3.37 in and 13.21 in short of their sides' feet.
+    The open edge's wall and the bottom now reach the slab's own depth."""
+    r = _solidified(slab_with_three_skirts(size=40.0, height=depth))
+    assert r.report["thickness_per_region"] == {"0": pytest.approx(depth)}
+    assert r.report["bottom_depth_per_region"] == {"0": pytest.approx(depth)}
+    wall = [f for f in _plane_faces(r.mesh, 0, 0.0) if r.new_faces[f]]
+    assert wall
+    assert r.mesh.positions[r.mesh.face_v[wall]][:, :, 2].min() == pytest.approx(-depth)
+    bottom = _bottom_faces(r)
+    assert bottom and np.allclose(r.mesh.positions[r.mesh.face_v[bottom]][:, :, 2], -depth)
+
+
+def test_a_side_deeper_than_any_slab_of_the_files_is_still_clamped(monkeypatch):
+    """The ceiling stays a ceiling: a 60 in skirt -- deeper than any own side either file has but
+    one 39.4 in run -- measures the open edge at `max_thickness` (on the plan, guard bypassed)."""
+    r = _planned(slab_with_three_skirts(size=40.0, height=60.0), _FAST, monkeypatch)
+    assert r.report["thickness_per_region"] == {"0": pytest.approx(FixProfile().max_thickness)}
+    assert FixProfile().max_thickness < 60.0
 
 
 def test_a_point_on_a_slabs_top_or_bottom_plane_is_inside_it():

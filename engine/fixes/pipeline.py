@@ -114,7 +114,17 @@ class FixProfile:
     #: A measured region thickness is clamped into these bounds, in inches. On file A a real
     #: skirt varies from 1.3 to 49 in, so one uniform thickness leaks; these only bound it.
     min_thickness: float = 2.0
-    max_thickness: float = 36.0
+    #: THE CEILING on a slab's thickness (brief 10 item 2), set from the measured distribution of
+    #: OWN-side depths -- how far each side hanging from a top's outline reaches below it, weighted
+    #: by the length it runs -- on both files: A 21,761 in of own side over 138 regions, B 28,019
+    #: in over 88. They come in LittleTiles steps of 9.84 in (25 cm): A 84.8 % at 9.84 in, 9.9 %
+    #: at 29.52, 0.4 % at 39.37, 4.4 % at 49.21; B 72.0 % to 10 in, 13.0 % at 36.26-39.37. The
+    #: deepest slab is A's region 852, 49.21 in (1.25 m) by all 816.9 in of its own side, and no
+    #: side face of file A stands taller. The one own side deeper -- B region 820, 51.67 in over
+    #: 39.4 of its 157.6 in, representative depth 22.14 -- is not a slab's depth and is clamped. It
+    #: was 36 in, which clamped B's upper landing (region 92) and four more 39.37 in regions, and
+    #: A's regions 852 and 857, their walls and bottoms stopping short of their own sides' feet.
+    max_thickness: float = 50.0
     #: Fraction of a region's faces that must find something within `h + bottom_search_extra`
     #: straight down for it to count as already having a bottom.
     bottom_exists_fraction: float = 0.9

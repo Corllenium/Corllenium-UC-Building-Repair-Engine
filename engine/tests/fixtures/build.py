@@ -547,8 +547,8 @@ def two_level_slab(size=40.0, height=8.0, deep=200.0, panel_x=10.0, panel_z=(-12
 
     a DEEP FIN hanging from the open edge's corner `(0, 0, 0)` down to `z = -deep` -- a side face
     (`|n_z| = 0`) sharing that corner, so the open edge's measured thickness is `deep` instead of
-    `height`. At the default `max_thickness` (36 in) that is clamped away; raise the ceiling and
-    the skirt reaches `z = -deep`.
+    `height`. At the default `max_thickness` (50 in since brief 10; 36 before) that is clamped
+    away; raise the ceiling and the skirt reaches `z = -deep`.
 
     a PANEL at `x = panel_x` facing `-x`, spanning `panel_z`, well below the structure and
     exposed on BOTH sides. A skirt that reaches past it covers it from every `-x` view while it
