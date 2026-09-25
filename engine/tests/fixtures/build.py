@@ -2286,3 +2286,16 @@ def slab_beside_a_lower_top_with_a_post():
     fm = base.face_material.tolist()
     _closed_box(P, uvs, fv, fvt, fm, 52, 60, 20, 22, -22, -18)
     return _mesh("slab_beside_a_lower_top_with_a_post", P, uvs, fv, fvt, face_material=fm)
+
+
+def real_top_under_an_open_landing():
+    """Review of brief 10, M2 (`probe_top_under_an_open_landing.py`): `real_top_under_a_landing`
+    with the landing's UNDERSIDE missing (faces 14-15 left out) -- the exports' usual state, "a
+    top sheet with partial skirts and almost no bottom". Faces: 0-1 L's top, 2-3 R's top, 4-9 L's
+    skirts, 10-11 the riser, 12-13 the landing's top, 14-21 its four sides."""
+    m = real_top_under_a_landing()
+    keep = np.ones(m.n_faces, bool)
+    keep[[14, 15]] = False
+    return _mesh("real_top_under_an_open_landing", m.positions.tolist(), m.uvs.tolist(),
+                 m.face_v[keep].tolist(), m.face_vt[keep].tolist(), materials=("m0", "m1"),
+                 face_material=m.face_material[keep].tolist())

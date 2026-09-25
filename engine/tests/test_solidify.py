@@ -2041,3 +2041,29 @@ def test_what_rule_6_hides_is_measured_and_never_deleted():
     assert all(max(listed[f][1], listed[f][2]) > 0.0 for f in under_rule6)   # visible on input
     assert _fates(r, under_rule6) == ["kept"] * len(under_rule6)
     assert seen["kept_from_hidden_pass"] >= len(under_rule6)
+
+
+# ------------------------------ review of brief 10, M2 and M6: defects and readings pinned
+
+
+@pytest.mark.xfail(strict=True, reason="review of brief 10, M2: not fixed (see the docstring)")
+def test_a_top_under_a_landing_with_no_underside_is_a_top():
+    """Review of brief 10, M2 (`probe_top_under_an_open_landing.py`): the landing over R has no
+    underside, as the exports usually leave it. `_is_underside`'s ABOVE test looks up from R
+    through the missing underside, meets the landing's TOP -- a surface that sees sky, 20 in up,
+    within the reach -- and takes R for an underside: no bottom under R (0 of 1,600 sq in), and
+    L's edge into R becomes a side whose wall stands INSIDE the real slab at x = 40, kept by rule
+    6 (4,702 px at 240 x 160).
+
+    NOT FIXED, and pinned here: a rule that reads the body above by its own sides' depth fixes
+    this scene but flipped 7 regions of file A and 10 of file B (four of them the stair blocks of
+    brief 10 item 6), so it was declined (brief 11 report). When a rule that fixes this lands,
+    this test passes, the strict xfail fails, and the mark is to be removed."""
+    from engine.tests.fixtures.build import real_top_under_an_open_landing
+    m = real_top_under_an_open_landing()
+    r = _solidified(m, FixProfile(guard_size=(240, 160), n_dirs=64))
+    assert r.report["undersides_not_tops"] == 0
+    new = r.mesh.positions[r.mesh.face_v[r.new_faces]]
+    assert [t for t in new if np.allclose(t[:, 0], 40.0)] == []   # no wall inside the slab
+    bottom = [t for t in new if np.allclose(t[:, 2], -10.0) and t[:, 0].min() >= 40.0 - 1e-9]
+    assert sum(shapely.Polygon(t[:, :2]).area for t in bottom) == pytest.approx(1600.0)
