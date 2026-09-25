@@ -47,3 +47,22 @@ def db(_database):
     with Session(get_engine()) as s:
         yield s
         s.rollback()
+
+
+@pytest.fixture()
+def imported_cube(client, _database):
+    from engine.io.obj_writer import write_obj
+    from engine.tests.fixtures.build import cube
+    from api.settings import get_settings
+    settings = get_settings()
+    src = settings.source_dir
+    src.mkdir(parents=True, exist_ok=True)
+
+    m = cube(10.0)
+    write_obj(m, src / "cube.obj")
+    (src / "_MANIFEST.txt").write_text(f"# manifest\ncube.obj  {m.n_faces}  CubeGroup\n", encoding="utf-8")
+
+    r = client.post("/api/models/import", json={"file": "cube.obj"})
+    assert r.status_code == 201
+    return r.json()
+

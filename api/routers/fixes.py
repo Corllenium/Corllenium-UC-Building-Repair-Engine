@@ -13,6 +13,9 @@ from api.settings import Settings, get_settings
 router = APIRouter(prefix="/api/runs", tags=["runs"])
 
 
+VALID_GUARD_VIEWS: tuple[str, ...] = ("+x", "-x", "+y", "-y", "+z", "-z")
+
+
 @router.get("/{id}", response_model=FixRunOut)
 def get_fix_run(id: int, db: Session = Depends(get_db)):
     run = db.scalar(select(FixRun).where(FixRun.id == id))
@@ -28,6 +31,12 @@ def get_guard_image(
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings),
 ):
+    if view not in VALID_GUARD_VIEWS:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Guard image view '{view}' not found",
+        )
+
     run = db.scalar(select(FixRun).where(FixRun.id == id))
     if run is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Fix run not found")
