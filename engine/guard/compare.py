@@ -616,6 +616,49 @@ def _classify(before_depth: np.ndarray, before_tri: np.ndarray,
                      + np.where(np.isfinite(t), t, 0.0)[:, None] * np.asarray(direction, dtype=np.float64))
             within = border(point, gone) & np.isfinite(t)
             codes[shift] = np.where(within, PX_BORDER_SHIFT, PX_EDGE_FLICKER)
+
+    # ---- SR6: a hairline crack the merge OPENED is measured like any other border shift ------
+    # The crack test's mirror image: AFTER's centre ray went FURTHER than BEFORE's, or missed,
+    # through a gap narrower than the ring. No BEFORE ring ray can reproduce what AFTER's centre
+    # saw through a crack BEFORE never had, so the flicker test never passes and the measurement
+    # above never looked at the pixel. It is measured here instead -- and so is every ring ray
+    # around it whose verdict changed, because a crack is the ONLY thing that changed: BEFORE's
+    # hit point (a disappearance) or AFTER's (an appearance) against the other mesh, exactly as
+    # above, each within the same `border` tolerance, and AFTER's ring still meeting BEFORE's
+    # surface. A strip lost beside a new edge fails that (its changed ring rays lie up to the
+    # ring radius further out), as does a lost triangle (no AFTER ring ray meets the surface).
+    # Measured on file A: its merge was rolled back on a pixel whose AFTER centre ray missed
+    # through a 0.0001 in crack while all 16 ring rays saw the same in both meshes.
+    if (border is not None and ring is not None and origins is not None
+            and direction is not None):
+        opened = (_failing_base(codes, strict) & (codes == base) & hit_before
+                  & ((base == PX_HOLE) | (base == PX_MOVED_SAME_FLAT) | (base == PX_MOVED_OTHER))
+                  & (~hit_after | (after_depth > before_depth)))
+        if opened.any():
+            tri_b, point_b, tri_a, point_a = ring(opened)
+            centre_b = before_tri[opened]
+            still_there = _ring_matches(centre_b, mat_before[opened], planes_b[centre_b],
+                                        tri_a, point_a, mats_a[tri_a], depth_tol).any(axis=1)
+            # ray by ray: does each AFTER ring ray meet what the same BEFORE ring ray met?
+            hit_rb, hit_ra = tri_b >= 0, tri_a >= 0
+            plane = planes_b[tri_b]
+            off = np.abs(np.einsum("prk,prk->pr", point_a, plane[:, :, :3]) + plane[:, :, 3])
+            same = ((~hit_rb & ~hit_ra)
+                    | (hit_rb & hit_ra & (mats_b[tri_b] == mats_a[tri_a]) & (off <= depth_tol)
+                       & (np.linalg.norm(plane[:, :, :3], axis=2) > 0.0)))
+            direction_v = np.asarray(direction, dtype=np.float64)
+            gone_r = hit_rb & (~hit_ra | (np.einsum("prk,k->pr", point_a - point_b, direction_v)
+                                          > 0.0))
+            changed = ~same
+            ring_ok = np.ones(changed.shape, dtype=bool)
+            if changed.any():
+                where = np.nonzero(changed)
+                points = np.where(gone_r[where][:, None], point_b[where], point_a[where])
+                ring_ok[where] = border(points, gone_r[where])
+            point = (np.asarray(origins, dtype=np.float64)[opened]
+                     + before_depth[opened][:, None] * direction_v)
+            within = border(point, np.ones(len(point), dtype=bool)) & ring_ok.all(axis=1)
+            codes[opened] = np.where(still_there & within, PX_BORDER_SHIFT, codes[opened])
     return codes, base
 
 
@@ -1165,13 +1208,38 @@ def fragment_feedback(candidates: np.ndarray, positions_c: np.ndarray, faces: np
     return removed, history
 
 
+#: `interior(...)` codes for a covered point, see `solidify_feedback`.
+INTERIOR_INSIDE = 0
+INTERIOR_OUTSIDE_FOOTPRINT = 1
+INTERIOR_BELOW_BOTTOM = 2
+INTERIOR_AT_OR_ABOVE_TOP = 3
+INTERIOR_UNMEASURED = 4
+#: Not returned by an `interior` callable: the guard's own code for a face a BOTTOM met that
+#: lies inside the volume but PARALLEL to it -- a slab's partial underside (SR4).
+INTERIOR_UNDERSIDE = 5
+_INTERIOR_REASONS = {INTERIOR_OUTSIDE_FOOTPRINT: "covers_outside_footprint",
+                     INTERIOR_UNDERSIDE: "covers_a_partial_underside",
+                     INTERIOR_BELOW_BOTTOM: "covers_below_bottom",
+                     INTERIOR_AT_OR_ABOVE_TOP: "covers_at_or_above_top",
+                     INTERIOR_UNMEASURED: "covers_unmeasured_slab"}
+
+
 def solidify_feedback(positions_c: np.ndarray, faces_before: np.ndarray, faces_after: np.ndarray,
                        is_new: np.ndarray, front_exposure_before: np.ndarray,
                        cover_max_exposure: float = 0.10,
                        views: Sequence[Sequence[float]] = VIEWS_26,
                        size: tuple[int, int] = (900, 600), caster_factory=EmbreeCaster,
-                       max_rounds: int = 8) -> tuple[np.ndarray, list[dict]]:
-    """The CAP GUARD: which of the faces `engine.fixes.solidify` invented may stay.
+                       max_rounds: int = 8, *, replaced_group: np.ndarray | None = None,
+                       new_group: np.ndarray | None = None, side_band: float = 0.0,
+                       interior=None, interior_step: float = 0.25,
+                       back_exposure_before: np.ndarray | None = None,
+                       parallel_interior_ok: np.ndarray | None = None,
+                       shell_faces: np.ndarray | None = None,
+                       refused_before: np.ndarray | None = None,
+                       piece_cover: dict | None = None
+                       ) -> tuple[np.ndarray, list[dict], dict]:
+    """The CAP GUARD: which of the faces `engine.fixes.solidify` invented may stay -- and, since
+    SR2, which of the original faces it REPLACES may go.
 
     A different question from every other guard here, and it needs its own rule. The other guards
     ask "is the picture unchanged"; this one is asked about a step whose whole purpose is to
@@ -1212,9 +1280,58 @@ def solidify_feedback(positions_c: np.ndarray, faces_before: np.ndarray, faces_a
     is seen through a 10 x 10 in hole 45 in away and measures a fraction of a percent. The
     default 0.10 is `engine.fixes.pipeline.FixProfile.cover_max_exposure`.
 
-    Any other change MARKS the new face at that pixel. Marked faces are dropped and the whole
-    thing runs again, because removing one new face can expose what another was covering, until
-    a round marks nothing or `max_rounds` rounds have run.
+    SR2 ADDS TWO NAMED CHANGES, and nothing else. The owner's rule is "delete the inside, build
+    the side meshes": a slab side that exists but is broken (a sawtooth of teeth with gaps, a
+    partial bottom) is visible by definition, so rules 1-3 could only ever preserve it, and the
+    inside seen through its gaps with it. Solidify now builds a closing face over such a side and
+    names the original faces it REPLACES; the guard allows exactly this:
+
+    4. a pixel whose BEFORE hit is a REPLACED piece (`replaced_group` >= 0, its group accepted)
+       and whose AFTER hit is a new face whose plane is within `side_band` of that BEFORE hit
+       point -- the piece's pixels now show the wall that replaced it;
+    5. a pixel whose BEFORE hit was reached THROUGH THE INSIDE of a slab: the point
+       `interior_step` in front of the hit, towards the camera, lies inside a slab's volume, as
+       `interior(new_face_ids, points)` says (`INTERIOR_INSIDE`) -- the inside a person saw
+       through the gaps, which the hidden-face pass then removes because the slab is closed.
+
+    Rule 5 reads a POINT, not a whole face: a face straddling a slab's outline is inside at some
+    pixels and outside at others, and only the inside ones may be covered. And it reads the point
+    just IN FRONT of the hit, not the hit itself, because the faces a person sees through a
+    broken side include the slab's own floor, lid and walls from within -- `open_box_with_cells`
+    is wound inward, so its floor seen through the missing side is met on its FRONT, at exactly
+    the slab's bottom depth -- while the same underside seen from BELOW is outside, and must not
+    be covered by a wall hanging past it (`two_level_slab`). The medium the ray crossed tells the
+    two apart; the hit point alone cannot. Everything else still fails -- in particular anything
+    seen from outside every slab's volume, whatever it is.
+
+    SR4 (review C1) MEASURES BACK SIDES TOO. Rule 2 above let a new face cover any back-side hit
+    unmeasured, on the argument that a one-sided renderer drops that pixel anyway -- but the
+    project judges visibility double-sided (SketchUp and the Unity shader draw both sides), and a
+    face wound into the slab is seen on its back from outside: covering it boxed in S-C1's real
+    underside again, whenever it was wound +z. Given `back_exposure_before` (the BACK half of
+    `compute_side_exposure` on the original mesh), rule 2 is gone and rule 3 reads the exposure
+    of whichever side the ray met. The inner side of the shell being closed is still covered --
+    through rule 5, since a ray reaches it through the slab's inside.
+
+    Rule 5 has one exception, `parallel_interior_ok` False (a BOTTOM): a covered face PARALLEL to
+    the new face (within 30 degrees) that is neither one of its pieces (rule 4) nor a top surface
+    (`shell_faces`, the shell being closed) is judged by rule 3 alone. A plate lying under a slab's
+    top and above its measured bottom, seen from below, is that slab's underside where it
+    exists (review C1, failure 1) -- not an inside to delete.
+
+    `refused_before` (bool over `faces_after`) names new faces refused before any pixel is judged
+    -- a new face coinciding with an existing one, which no pixel can show (a coincident pair
+    renders as a tie). Their reason is `"coincides_with_existing_face"`.
+
+    WHO PAYS FOR A FAILING PIXEL. When BEFORE showed an ordinary face, the new face at that pixel
+    is refused, as always. When BEFORE showed a replaced piece, the REPLACEMENT is what changed
+    the picture, so that piece is restored instead (it stays in the mesh) and the new face is
+    kept. A group's pieces are only removed while every new face of the group is kept: a wall
+    that loses a triangle gives its pieces back.
+
+    Marked faces are dropped (and restored pieces put back) and the whole thing runs again,
+    because either can expose what something else was covering, until a round changes nothing or
+    `max_rounds` rounds have run.
 
     THE LAST STATE IS ALWAYS VERIFIED. A round's `failing_pixels` is measured BEFORE that round's
     own removals, so a loop cut off at `max_rounds` would leave a history describing a mesh that
@@ -1225,73 +1342,204 @@ def solidify_feedback(positions_c: np.ndarray, faces_before: np.ndarray, faces_a
 
     `faces_before` / `faces_after` are welded triangles into the SAME `positions_c` (solidify
     only appends positions, so an original face still indexes the same rows) and `positions_c`
-    frames both renders, so the two line up pixel for pixel. `is_new` is a bool mask over
-    `faces_after`. `front_exposure_before` is the FRONT half of
-    `engine.vis.exposure.compute_side_exposure` per face of `faces_BEFORE`, measured on the
-    ORIGINAL mesh -- the geometry as it arrived, before a single face was invented.
+    frames both renders, so the two line up pixel for pixel. `faces_after` starts with
+    `faces_before`, row for row. `is_new` is a bool mask over `faces_after`.
+    `front_exposure_before` is the FRONT half of `engine.vis.exposure.compute_side_exposure` per
+    face of `faces_BEFORE`, measured on the ORIGINAL mesh -- the geometry as it arrived, before a
+    single face was invented.
 
-    Returns `(keep, history)`: `keep` is a bool mask over `faces_after` (always True for a face
-    that is not new), and `history` is one dict per round,
-    `{"round", "new_remaining", "failing_pixels", "removed"}`."""
+    `replaced_group` (over `faces_before`) and `new_group` (over `faces_after`) name each piece's
+    and each new face's closing group (one wall, or one bottom), -1 elsewhere; `interior` takes
+    `(new face ids into faces_after, (N, 3) points in positions_c)` and returns one `INTERIOR_*`
+    code per point. Without them the guard is exactly the pre-SR2 cap guard.
+
+    Returns `(keep, history, detail)`: `keep` is a bool mask over `faces_after` -- False for a
+    refused new face AND for a replaced original -- `history` one dict per round, `{"round",
+    "new_remaining", "failing_pixels", "removed", "pieces_restored", "replaced_px",
+    "interior_px"}`, and `detail` `{"replaced": bool over faces_before, "interior_faces": sorted
+    face ids covered under rule 5 in the returned state, "refused_reason": {new face: reason}}`,
+    a reason being the most common `INTERIOR_*` failure at that face's pixels
+    (`"covers_outside_footprint"`, `"covers_below_bottom"`, `"covers_at_or_above_top"`,
+    `"covers_unmeasured_slab"`) or `"covers_visible_face"` when no interior test ran."""
     positions_c = np.asarray(positions_c, dtype=np.float64)
     faces_before = np.asarray(faces_before, dtype=np.int64)
     faces_after = np.asarray(faces_after, dtype=np.int64)
     is_new = np.asarray(is_new, dtype=bool)
+    n_before = len(faces_before)
     # measured on the ORIGINAL mesh, so it is already indexed like `faces_before`
-    front_exposure = np.asarray(front_exposure_before, dtype=np.float64)[:len(faces_before)]
+    front_exposure = np.asarray(front_exposure_before, dtype=np.float64)[:n_before]
+    replaced_group = (np.full(n_before, -1, np.int64) if replaced_group is None
+                      else np.asarray(replaced_group, dtype=np.int64))
+    new_group = (np.full(len(faces_after), -1, np.int64) if new_group is None
+                 else np.asarray(new_group, dtype=np.int64))
+    n_groups = int(max(replaced_group.max(initial=-1), new_group.max(initial=-1))) + 1
+
+    back_exposure = (None if back_exposure_before is None
+                     else np.asarray(back_exposure_before, dtype=np.float64)[:n_before])
+    parallel_ok = (np.ones(len(faces_after), bool) if parallel_interior_ok is None
+                   else np.asarray(parallel_interior_ok, dtype=bool))
+    shell = (np.zeros(n_before, bool) if shell_faces is None
+             else np.asarray(shell_faces, dtype=bool)[:n_before])
+    cos_parallel = float(np.cos(np.radians(30.0)))
 
     tri = positions_c[faces_before]
     normal = np.cross(tri[:, 1] - tri[:, 0], tri[:, 2] - tri[:, 0])
     normal = normal / np.maximum(np.linalg.norm(normal, axis=1), 1e-300)[:, None]
+    planes_after = face_planes(positions_c, faces_after)
 
     before_caster = ReusableCaster(caster_factory)
     before = [(view, ortho_first_hit(positions_c, faces_before,
-                                      np.arange(len(faces_before), dtype=np.int64), view,
+                                      np.arange(n_before, dtype=np.int64), view,
                                       positions_c, size, before_caster))
               for view in views]
 
-    keep = np.ones(len(faces_after), dtype=bool)
+    keep = np.ones(len(faces_after), dtype=bool)          # new faces: not refused (yet)
+    piece_ok = replaced_group >= 0                         # pieces: not restored (yet)
+    reasons: dict[int, str] = {}
+    if refused_before is not None:
+        for f in np.nonzero(np.asarray(refused_before, dtype=bool) & is_new)[0]:
+            keep[f] = False
+            reasons[int(f)] = "coincides_with_existing_face"
 
-    def measure() -> tuple[int, set[int]]:
-        """`(failing pixels, the new faces at them)` for the CURRENT `keep`."""
-        ids = np.nonzero(keep)[0]
+    def removed_pieces() -> np.ndarray:
+        """Bool over `faces_before`: replaced in the CURRENT state -- a piece whose group has
+        every new face kept, and which no round has restored. A piece `piece_cover` names
+        instead needs only the new faces that COVER it kept (SR6): one refused face of a bottom
+        gave all 38 pieces of file A's lower-landing bottom back, and 16 more of its faces were
+        then refused for covering them."""
+        group_ok = np.ones(max(n_groups, 1), dtype=bool)
+        grouped = is_new & (new_group >= 0)
+        np.logical_and.at(group_ok, new_group[grouped], keep[grouped])
+        out = piece_ok & group_ok[np.maximum(replaced_group, 0)]
+        for piece, cover in (piece_cover or {}).items():
+            if piece_ok[piece] and len(cover):
+                out[piece] = bool(keep[np.asarray(cover, dtype=np.int64)].all())
+        return out
+
+    def measure():
+        """Failing pixels, the new faces to refuse, the pieces to restore and the per-rule
+        counts, for the CURRENT state."""
+        removed = removed_pieces()
+        visible = keep.copy()
+        visible[:n_before] &= ~removed
+        ids = np.nonzero(visible)[0]
         after_caster = ReusableCaster(caster_factory)
-        marked: set[int] = set()
-        failing = 0
+        refuse: dict[int, list[int]] = {}
+        restore: set[int] = set()
+        failing = replaced_px = interior_px = 0
+        interior_faces: set[int] = set()
         for view, b in before:
-            a = ortho_first_hit(positions_c, faces_after[keep], ids, view, positions_c, size,
+            a = ortho_first_hit(positions_c, faces_after[visible], ids, view, positions_c, size,
                                  after_caster)
-            changed = (a.tri >= 0) & is_new[np.where(a.tri >= 0, a.tri, 0)]
-            if not changed.any():
+            a_hit = a.tri >= 0
+            a_new = a_hit & is_new[np.where(a_hit, a.tri, 0)]
+            b_hit = b.tri >= 0
+            b_removed = b_hit & removed[np.where(b_hit, b.tri, 0)]
+            # a replaced piece's pixel that no new face took over: whatever shows through now
+            # (or nothing) is what the replacement exposed, so the piece goes back
+            reveal = b_removed & ~a_new
+            if reveal.any():
+                failing += int(reveal.sum())
+                restore.update(b.tri[reveal].tolist())
+            if not a_new.any():
                 continue
-            hit_before = b.tri[changed]
+            rows, cols = np.nonzero(a_new)
+            hit_before = b.tri[rows, cols]
+            new_at = a.tri[rows, cols]
             direction = np.asarray(b.direction, dtype=np.float64)
             covered = hit_before >= 0
             safe_index = np.where(covered, hit_before, 0)
             back_side = covered & (normal[safe_index] @ direction > 1e-9)
-            # the ray met the FRONT side wherever it is not a back-side hit, so this is the
-            # exposure of the side it met -- ON THE ORIGINAL MESH, which is the one thing the
-            # face being covered cannot have changed.
-            only_through_an_opening = covered & (front_exposure[safe_index] < cover_max_exposure)
-            bad = covered & ~back_side & ~only_through_an_opening
+            if back_exposure is None:
+                # the ray met the FRONT side wherever it is not a back-side hit, so this is the
+                # exposure of the side it met -- ON THE ORIGINAL MESH, which is the one thing
+                # the face being covered cannot have changed.
+                only_through_an_opening = covered & (front_exposure[safe_index]
+                                                     < cover_max_exposure)
+                need = covered & ~back_side & ~only_through_an_opening
+            else:
+                # the exposure of WHICHEVER side the ray met, on the original mesh (SR4)
+                met = np.where(back_side, back_exposure[safe_index], front_exposure[safe_index])
+                need = covered & ~(met < cover_max_exposure)
+            allowed = np.zeros(len(rows), dtype=bool)
+            codes = np.full(len(rows), -1, dtype=np.int64)
+            if need.any():
+                sel = np.nonzero(need)[0]
+                points = (b.xs[cols[sel]][:, None] * b.right + b.ys[rows[sel]][:, None] * b.up
+                          + b.standoff + b.depth[rows[sel], cols[sel]][:, None] * direction)
+                piece = removed[safe_index[sel]]
+                plane = planes_after[new_at[sel]]
+                in_band = piece & (np.abs(np.einsum("ij,ij->i", points, plane[:, :3])
+                                          + plane[:, 3]) <= side_band)
+                allowed[sel[in_band]] = True
+                replaced_px += int(in_band.sum())
+                if interior is not None:
+                    rest = ~in_band
+                    if rest.any():
+                        # the point just IN FRONT of the hit, on the camera's side: the medium
+                        # the ray crossed to reach it -- inside a slab for anything seen through
+                        # that slab's gaps, including the inner side of its own floor and walls,
+                        # and outside it for a slab's underside seen from below
+                        # ...but never back past the covering face itself: a floor hit a tenth
+                        # of an inch behind a new wall would otherwise be judged from outside it
+                        gap = (b.depth[rows[sel[rest]], cols[sel[rest]]]
+                               - a.depth[rows[sel[rest]], cols[sel[rest]]])
+                        step = np.minimum(interior_step, 0.5 * np.maximum(gap, 0.0))
+                        seen_from = points[rest] - step[:, None] * direction
+                        code = np.asarray(interior(new_at[sel[rest]], seen_from), np.int64)
+                        codes[sel[rest]] = code
+                        inside = code == INTERIOR_INSIDE
+                        # a bottom may not take a parallel face that is not a top surface
+                        hit_rest = safe_index[sel[rest]]
+                        par = (np.abs(np.einsum("ij,ij->i", normal[hit_rest],
+                                                plane[rest][:, :3])) >= cos_parallel)
+                        blocked = par & ~parallel_ok[new_at[sel[rest]]] & ~shell[hit_rest]
+                        codes[sel[rest][blocked & inside]] = INTERIOR_UNDERSIDE
+                        inside &= ~blocked
+                        allowed[sel[rest][inside]] = True
+                        interior_px += int(inside.sum())
+                        interior_faces.update(hit_before[sel[rest][inside]].tolist())
+            bad = need & ~allowed
+            if not bad.any():
+                continue
             failing += int(bad.sum())
-            marked.update(a.tri[changed][bad].tolist())
-        return failing, marked
+            # the replacement changed this pixel: restore the piece, keep the new face
+            piece_bad = bad & removed[safe_index]
+            restore.update(hit_before[piece_bad].tolist())
+            for f, c in zip(new_at[bad & ~piece_bad].tolist(), codes[bad & ~piece_bad].tolist()):
+                refuse.setdefault(int(f), []).append(int(c))
+        return failing, refuse, restore, replaced_px, interior_px, interior_faces
 
     history: list[dict] = []
+    result = None
     for rnd in range(max_rounds):
-        failing, marked = measure()
+        result = measure()
+        failing, refuse, restore, replaced_px, interior_px, _faces = result
         history.append({"round": rnd, "new_remaining": int((keep & is_new).sum()),
-                         "failing_pixels": failing, "removed": len(marked)})
-        if not marked:
-            return keep, history
-        keep[sorted(marked)] = False
-
-    # Cut off at the cap with its last round's removals never checked. A round's `failing_pixels`
-    # is measured BEFORE its own removals, so without this the history would describe a mesh that
-    # is not the one being handed back, and `history[-1]["failing_pixels"] == 0` -- which the
-    # caller publishes as `cap_guard_passed` -- would be a claim about a superseded state.
-    failing, _marked = measure()
-    history.append({"round": max_rounds, "new_remaining": int((keep & is_new).sum()),
-                     "failing_pixels": failing, "removed": 0})
-    return keep, history
+                         "failing_pixels": failing, "removed": len(refuse),
+                         "pieces_restored": len(restore), "replaced_px": replaced_px,
+                         "interior_px": interior_px})
+        if not refuse and not restore:
+            break
+        for f, codes in refuse.items():
+            known = [c for c in codes if c >= 0]
+            reasons[f] = (_INTERIOR_REASONS.get(max(set(known), key=known.count), "covers_visible_face")
+                          if known else "covers_visible_face")
+        keep[sorted(refuse)] = False
+        piece_ok[sorted(restore)] = False
+    else:
+        # Cut off at the cap with its last round's changes never checked. A round's
+        # `failing_pixels` is measured BEFORE its own removals, so without this the history
+        # would describe a mesh that is not the one being handed back, and
+        # `history[-1]["failing_pixels"] == 0` -- which the caller publishes as
+        # `cap_guard_passed` -- would be a claim about a superseded state.
+        result = measure()
+        history.append({"round": max_rounds, "new_remaining": int((keep & is_new).sum()),
+                         "failing_pixels": result[0], "removed": 0, "pieces_restored": 0,
+                         "replaced_px": result[3], "interior_px": result[4]})
+    removed = removed_pieces()
+    out = keep.copy()
+    out[:n_before] &= ~removed
+    interior_faces = sorted(result[5]) if result is not None else []
+    return out, history, {"replaced": removed, "interior_faces": interior_faces,
+                          "refused_reason": reasons}

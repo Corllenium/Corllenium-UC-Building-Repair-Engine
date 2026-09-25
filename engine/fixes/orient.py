@@ -77,6 +77,65 @@ def flip_faces(mesh: MeshData, flip: np.ndarray) -> MeshData:
     return replace(mesh, face_v=face_v, face_vt=face_vt, face_vn=face_vn)
 
 
+def face_unit_normals(positions_c: np.ndarray, faces: np.ndarray) -> np.ndarray:
+    """`(F, 3)` unit winding normal of every triangle of `faces` (rows of `positions_c`); an
+    all-zero row for a zero-area triangle, which therefore never counts as seen from its back."""
+    positions_c = np.asarray(positions_c, dtype=np.float64)
+    tri = positions_c[np.asarray(faces, dtype=np.int64)]
+    normal = np.cross(tri[:, 1] - tri[:, 0], tri[:, 2] - tri[:, 0])
+    length = np.linalg.norm(normal, axis=1)
+    unit_normal = np.zeros_like(normal)
+    safe = length > 0.0
+    unit_normal[safe] = normal[safe] / length[safe, None]
+    return unit_normal
+
+
+def backface_counts(rendered, normals: np.ndarray) -> list[int]:
+    """Per render of `rendered` (`(view, HitBuffers)` pairs, as `engine.fixes.pipeline._render`
+    returns them), in that order: how many pixels' FIRST hit is a face met on its BACK side --
+    the face's winding normal points away from the viewer, `n . direction > 0` along the ray.
+
+    That is SketchUp's blue-purple, measured: SketchUp paints a face's back side in its own
+    colour, and a one-sided renderer (Unity) drops those pixels altogether. `normals` is a unit
+    normal per `tri` id of the renders (`face_unit_normals` of the faces they were cast with), so
+    counting a render the caller already made costs nothing."""
+    normals = np.asarray(normals, dtype=np.float64)
+    out: list[int] = []
+    for _view, buf in rendered:
+        hit = buf.tri >= 0
+        if not hit.any():
+            out.append(0)
+            continue
+        direction = np.asarray(buf.direction, dtype=np.float64)
+        out.append(int(((normals[buf.tri[hit]] @ direction) > 1e-9).sum()))
+    return out
+
+
+def backface_pixels(positions_c: np.ndarray, faces: np.ndarray, face_ids: np.ndarray,
+                    views: Sequence[Sequence[float]], size: tuple[int, int],
+                    caster_factory=EmbreeCaster) -> list[int]:
+    """Render `faces` over `views` and count, per view in `views` order, the pixels that DO hit
+    in a double-sided render (`ortho_first_hit` never culls backfaces) but whose first-hit face
+    is back-facing to that view's camera -- see `backface_counts`. `faces`/`face_ids` follow
+    `ortho_first_hit`'s own convention: `faces[i]` is labelled `face_ids[i]`, so callers may
+    render a named subset. The camera is framed on `positions_c`, so two calls over the same
+    `positions_c` (the input's faces and the final mesh's, say) count the same pixels."""
+    positions_c = np.asarray(positions_c, dtype=np.float64)
+    faces = np.asarray(faces, dtype=np.int64)
+    face_ids = np.asarray(face_ids, dtype=np.int64)
+
+    unit_normal = face_unit_normals(positions_c, faces)
+    normals_by_id = np.zeros((int(face_ids.max()) + 1 if len(face_ids) else 0, 3))
+    if len(face_ids):
+        normals_by_id[face_ids] = unit_normal
+
+    # ReusableCaster: one embree BVH build for this geometry, reused across every view.
+    reused_caster = ReusableCaster(caster_factory)
+    rendered = ((view, ortho_first_hit(positions_c, faces, face_ids, view, positions_c, size,
+                                       reused_caster)) for view in views)
+    return backface_counts(rendered, normals_by_id)
+
+
 def one_sided_holes(positions_c: np.ndarray, faces: np.ndarray, face_ids: np.ndarray,
                      views: Sequence[Sequence[float]], size: tuple[int, int],
                      caster_factory=EmbreeCaster) -> int:
@@ -85,35 +144,6 @@ def one_sided_holes(positions_c: np.ndarray, faces: np.ndarray, face_ids: np.nda
     exactly the pixels a one-sided renderer (Unity, by default) would leave as a hole even though
     hidden-face removal already ran. `faces`/`face_ids` follow `ortho_first_hit`'s own convention:
     `faces[i]` is labelled `face_ids[i]` in the returned hit buffer, so callers may render a named
-    subset. Reported once as a single total across all `views`; call twice (original faces before
-    the pipeline's fixes, final faces after) to compare, as `engine.fixes.pipeline.fix_object`
-    does for `FixResult.one_sided_holes_before`/`_after`."""
-    positions_c = np.asarray(positions_c, dtype=np.float64)
-    faces = np.asarray(faces, dtype=np.int64)
-    face_ids = np.asarray(face_ids, dtype=np.int64)
-
-    tri = positions_c[faces]
-    normal = np.cross(tri[:, 1] - tri[:, 0], tri[:, 2] - tri[:, 0])
-    length = np.linalg.norm(normal, axis=1)
-    unit_normal = np.zeros_like(normal)
-    safe = length > 0.0
-    unit_normal[safe] = normal[safe] / length[safe, None]
-
-    id_to_local = np.full(int(face_ids.max()) + 1 if len(face_ids) else 0, -1, dtype=np.int64)
-    if len(face_ids):
-        id_to_local[face_ids] = np.arange(len(face_ids), dtype=np.int64)
-
-    # ReusableCaster: one embree BVH build for this geometry, reused across every view.
-    reused_caster = ReusableCaster(caster_factory)
-    total = 0
-    for view in views:
-        d = np.asarray(view, dtype=np.float64)
-        d = d / np.linalg.norm(d)
-        buf = ortho_first_hit(positions_c, faces, face_ids, view, positions_c, size, reused_caster)
-        hit = buf.tri >= 0
-        if not hit.any():
-            continue
-        local = id_to_local[buf.tri[hit]]
-        back_facing = (unit_normal[local] @ d) > 1e-9
-        total += int(back_facing.sum())
-    return total
+    subset. Reported once as a single total across all `views` -- the sum of `backface_pixels`,
+    which keeps the per-view breakdown."""
+    return int(sum(backface_pixels(positions_c, faces, face_ids, views, size, caster_factory)))

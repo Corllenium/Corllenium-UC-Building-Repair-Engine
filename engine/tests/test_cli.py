@@ -512,6 +512,29 @@ def test_cmd_fix_prints_the_final_guards_border_shift_count(tmp_path, monkeypatc
     assert report["guard_final"]["totals"]["border_shift"] == 17
 
 
+def test_cmd_fix_reports_back_face_pixels_and_prints_the_final_count(tmp_path, capsys):
+    """SR0: report.json carries the back-face pixel count of the input, the solidified reference
+    and the final mesh, each per view and in total, and the CLI prints the final one -- the
+    number that says how much purple a person will still see in SketchUp."""
+    from engine.tests.fixtures.build import slab_with_three_skirts
+    m = slab_with_three_skirts()
+    snap_dir = _write_snapshot(tmp_path, m)
+
+    cli.cmd_fix(snap_dir, tmp_path / "out", accept_slit=False, profile=_FAST, skp=False)
+
+    report = json.loads((tmp_path / "out" / m.name / "report.json").read_text(encoding="utf-8"))
+    block = report["backface_px"]
+    assert set(block) == {"input", "reference", "final"}
+    for part in block.values():
+        assert len(part["per_view"]) == 26 and part["total"] == sum(part["per_view"])
+    assert block["input"]["total"] > 0 and block["final"]["total"] == 0
+
+    lines = [line for line in capsys.readouterr().out.splitlines() if "backface_px" in line]
+    assert len(lines) == 1
+    assert f"final={block['final']['total']}" in lines[0]
+    assert f"input={block['input']['total']}" in lines[0]
+
+
 def test_preview_data_reports_the_final_guards_border_shift(tmp_path, monkeypatch):
     m = box_with_partition()
     snap_dir = _write_snapshot(tmp_path, m)
@@ -1031,3 +1054,46 @@ def test_a_failed_first_run_says_there_was_no_previous_skp(tmp_path, monkeypatch
     [line] = [ln for ln in capsys.readouterr().out.splitlines() if ".fixed.skp:" in ln]
     assert f"the run FAILED, and there is no previous {m.name}.fixed.skp" in line
     assert _skp_report(tmp_path / "out", m.name)["previous_kept"] is None
+
+
+# ---------------------------------------------------------------------------------------------
+# SR2: solidify now REPLACES the pieces of a broken side, so the reference mesh no longer starts
+# with every input face. The BEFORE pane is still the export exactly as it arrived.
+# ---------------------------------------------------------------------------------------------
+
+def test_preview_data_before_pane_keeps_the_side_pieces_solidify_replaced(tmp_path):
+    """`slab_with_sawtooth_side`'s four teeth are replaced by one wall. The BEFORE pane still
+    draws all 34 triangles of the export, and marks the four teeth as removed (together with the
+    rib the hidden pass deleted), so its hidden count is the export's own."""
+    from engine.tests.fixtures.build import slab_with_sawtooth_side
+    m = slab_with_sawtooth_side()
+    snap_dir = _write_snapshot(tmp_path, m)
+    out_dir = tmp_path / "preview_out"
+    cli.cmd_preview_data(snap_dir, out_dir, profile=_FAST)
+    data = json.loads((out_dir / f"{m.name}.json").read_text(encoding="utf-8"))
+
+    assert data["stats"]["tris_input"] == m.n_faces
+    assert len(data["before"]["hidden"]) == m.n_faces
+    teeth = range(m.n_faces - 6, m.n_faces - 2)
+    rib = range(m.n_faces - 2, m.n_faces)
+    assert all(data["before"]["hidden"][f] == 1 for f in list(teeth) + list(rib))
+    assert data["stats"]["side_pieces_replaced"] == 4
+    assert data["stats"]["hidden_in_export"] == sum(data["before"]["hidden"])
+    # the reference is the export minus the teeth plus what solidify added
+    assert data["stats"]["tris_total"] == m.n_faces - 4 + len(data["reference"]["mat"])
+
+
+def test_cmd_fix_prints_and_reports_what_the_side_rebuild_did(tmp_path, capsys):
+    from engine.tests.fixtures.build import slab_with_sawtooth_side
+    m = slab_with_sawtooth_side()
+    snap_dir = _write_snapshot(tmp_path, m)
+
+    cli.cmd_fix(snap_dir, tmp_path / "out", accept_slit=False, profile=_FAST, skp=False)
+
+    report = json.loads((tmp_path / "out" / m.name / "report.json").read_text(encoding="utf-8"))
+    sr = report["solidify_report"]
+    assert sr["side_pieces_replaced"] == 4 and sr["sides_rebuilt"]["edges"] >= 1
+    assert report["profile"]["side_band"] == 2.5
+    line = [s for s in capsys.readouterr().out.splitlines() if "sides rebuilt" in s]
+    assert len(line) == 1
+    assert "4 side pieces replaced" in line[0]

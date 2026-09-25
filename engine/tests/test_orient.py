@@ -1,6 +1,7 @@
 import numpy as np
 
-from engine.fixes.orient import (ORIENT_FLIP, ORIENT_OK, ORIENT_THIN_SHEET, classify_orientation,
+from engine.fixes.orient import (ORIENT_FLIP, ORIENT_OK, ORIENT_THIN_SHEET, backface_counts,
+                                  backface_pixels, classify_orientation, face_unit_normals,
                                   flip_faces, one_sided_holes)
 from engine.guard.views import VIEWS_26, ortho_first_hit
 from engine.pipeline import analyse_topology
@@ -193,3 +194,49 @@ def test_one_sided_holes_fixed_by_flip_faces():
     assert before > 0
     assert after == 0
     assert after < before
+
+
+# ---------------------------------------------------------------------------
+# SR0: back faces seen from outside, per view -- the objective measure of the owner's purple
+# ---------------------------------------------------------------------------
+
+def test_backface_pixels_counts_every_view_separately_and_sums_to_one_sided_holes():
+    """Face 0 is half of the cube's z = 0 bottom. Reversed, its normal points INTO the cube, so
+    a camera below the cube (looking up, `d_z > 0`) meets its back side and a camera above it
+    cannot see it at all."""
+    m = cube(10.0)
+    m.face_v[0] = m.face_v[0][::-1]
+    topo, Pc = _centered(m)
+    ids = np.arange(len(topo.face_w))
+
+    per_view = backface_pixels(Pc, topo.face_w, ids, VIEWS_26, _SIZE)
+
+    assert len(per_view) == len(VIEWS_26) == 26
+    assert all(isinstance(n, int) for n in per_view)
+    assert sum(per_view) == one_sided_holes(Pc, topo.face_w, ids, VIEWS_26, _SIZE) > 0
+    for view, n in zip(VIEWS_26, per_view):
+        if round(view[2]) == 1:            # looking up at the bottom
+            assert n > 0
+        if round(view[2]) == -1:           # looking down: the bottom is behind the cube
+            assert n == 0
+
+
+def test_backface_pixels_are_zero_in_every_view_of_a_correctly_wound_cube():
+    m = cube(10.0)
+    topo, Pc = _centered(m)
+    ids = np.arange(len(topo.face_w))
+    assert backface_pixels(Pc, topo.face_w, ids, VIEWS_26, _SIZE) == [0] * 26
+
+
+def test_backface_counts_reads_renders_that_were_already_made():
+    """The pipeline renders the reference over the 26 guard views anyway; counting its back
+    faces from those buffers must give exactly what a fresh render gives."""
+    m = cube(10.0)
+    m.face_v[0] = m.face_v[0][::-1]
+    m.face_v[5] = m.face_v[5][::-1]
+    topo, Pc = _centered(m)
+    ids = np.arange(len(topo.face_w))
+    rendered = [(v, ortho_first_hit(Pc, topo.face_w, ids, v, Pc, _SIZE)) for v in VIEWS_26]
+
+    assert backface_counts(rendered, face_unit_normals(Pc, topo.face_w)) == \
+        backface_pixels(Pc, topo.face_w, ids, VIEWS_26, _SIZE)

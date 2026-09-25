@@ -153,6 +153,7 @@ def _profile_dict(p: FixProfile) -> dict:
             "bottom_exists_fraction": p.bottom_exists_fraction,
             "bottom_search_extra": p.bottom_search_extra,
             "cover_max_exposure": p.cover_max_exposure,
+            "side_band": p.side_band,
             "cap_guard_max_rounds": p.cap_guard_max_rounds,
             "accept_fragments": p.accept_fragments,
             "fragment_max_area": p.fragment_max_area,
@@ -215,6 +216,9 @@ def _build_report(name: str, obj_path: Path, mesh: MeshData, result: FixResult,
         "overlap_pairs_diff_material": result.overlap_pairs_diff_material,
         "one_sided_holes_before": result.one_sided_holes_before,
         "one_sided_holes_after": result.one_sided_holes_after,
+        # SketchUp's blue-purple, in pixels over the 26 guard views: faces seen from their BACK
+        # side, for the input, the solidified reference and the final mesh, per view and total
+        "backface_px": result.backface_px,
         "feedback_history": result.feedback_history,
         "guard_after_removal": _guard_report_dict(result.guard_after_removal),
         # the MERGED mesh's guard, kept even when the merge was rolled back and something else
@@ -478,8 +482,16 @@ def cmd_fix(snapshot_dir: Path, out_root: Path, accept_slit: bool,
               f"{sr['invented_vertices']} vertices invented, "
               f"{sr['cap_guard_removed']} faces refused by the cap guard, "
               f"{sr['faces_newly_hidden']} faces newly hidden, {sr['runtime_s']}s")
+        print(f"  sides rebuilt: {sr['sides_rebuilt']['edges']} edges "
+              f"({sr['sides_rebuilt']['length']} in), "
+              f"{sr['side_pieces_replaced']} side pieces replaced, "
+              f"{sr['interior_faces_covered']} interior faces covered, "
+              f"{sr['walls_refused']['faces']} wall faces refused {sr['walls_refused']['reasons']}")
     print(f"{name}: {mesh.n_faces} -> {result.mesh.n_faces} tris, passed={result.passed}, "
           f"border_shift={result.guard_final.totals['border_shift']}")
+    back = result.backface_px
+    print(f"  backface_px final={back['final']['total']} (input={back['input']['total']}, "
+          f"reference={back['reference']['total']}) -- pixels showing a face's back side")
     if qa_report["written"]:
         print(f"  wrote {out_dir} (and {qa_report['images']} QA images under qa/)")
     else:
@@ -597,25 +609,32 @@ def cmd_preview_data(snapshot_dir: Path, out_dir: Path, profile: FixProfile | No
     # the export never had into the "before" picture, which is the one thing that pane is for.
     # What solidify added is written separately, as `reference`, and the page draws it as added.
     #
-    # The reference's first `input_mesh.n_faces` rows ARE the input's faces (solidify only
-    # appends), so `removed[:n]`, `topo.ok[:n]` and the rest line up without any remapping, and
-    # both meshes are framed on the SAME centre so the two panes stay registered.
+    # The reference's first rows are the input's faces MINUS the side pieces solidify replaced
+    # (SR2), in their original order, and every invented face follows. So the BEFORE pane is
+    # drawn from the INPUT mesh itself, and each input face finds its reference row through the
+    # replaced mask; a replaced piece counts as removed. Both meshes are framed on the SAME
+    # centre so the two panes stay registered.
     input_mesh, mesh = mesh, result.reference_mesh
     flat_materials = flat_material_indices(mesh, flatness, profile.flat_texture_std)
     topo = analyse_topology(mesh, flat_materials)
     centre = (topo.positions_w.min(axis=0) + topo.positions_w.max(axis=0)) / 2.0
     positions_c_w = topo.positions_w - centre       # welded frame (topo.face_w indexes it)
     positions_c_o = mesh.positions - centre          # original frame: AFTER (result.mesh.face_v indexes it)
+    topo_input = analyse_topology(input_mesh, flat_materials)
 
-    n_input = input_mesh.n_faces
-    ok_ids = np.nonzero(topo.ok)[0]
+    replaced = np.asarray(result.replaced_input, dtype=bool)
+    n_kept = int((~replaced).sum())                  # reference rows below this are input faces
+    reference_row = np.where(replaced, -1, np.cumsum(~replaced) - 1)
     removed = result.removed_hidden | result.removed_slit
-    before_ids = ok_ids[ok_ids < n_input]            # the export's own faces, and only those
-    before_tri = positions_c_w[topo.face_w[before_ids]]
-    before_mat = mesh.face_material[before_ids]
-    before_hidden = removed[before_ids].astype(int)
+    removed_input = replaced | np.where(reference_row >= 0,
+                                        removed[np.maximum(reference_row, 0)], False)
+    ok_ids = np.nonzero(topo.ok)[0]
+    before_ids = np.nonzero(topo_input.ok)[0]        # the export's own faces, and only those
+    before_tri = topo_input.positions_w[topo_input.face_w[before_ids]] - centre
+    before_mat = input_mesh.face_material[before_ids]
+    before_hidden = removed_input[before_ids].astype(int)
 
-    added_ids = ok_ids[ok_ids >= n_input]            # everything solidify invented and kept
+    added_ids = ok_ids[ok_ids >= n_kept]             # everything solidify invented and kept
     added_tri = positions_c_w[topo.face_w[added_ids]]
     added_mat = mesh.face_material[added_ids]
 
@@ -626,9 +645,8 @@ def cmd_preview_data(snapshot_dir: Path, out_dir: Path, profile: FixProfile | No
     # of a skirt the export never had would float there with no surface under it. Welded ids
     # differ between the two topologies, but `_before_edges` emits COORDINATES, and both are
     # recentred on the same `centre`, so the segments land in the same frame as everything else.
-    topo_input = analyse_topology(input_mesh, flat_materials)
     grid, tri_before, outline_before = _before_edges(
-        topo_input, topo_input.positions_w - centre, removed[:n_input])
+        topo_input, topo_input.positions_w - centre, removed_input)
     outline_after, tri_after = _after_edges(result, positions_c_o)
 
     # The SHIPPED mesh's own topology: `result.mesh.positions` IS `mesh.positions` (nothing in
@@ -662,6 +680,9 @@ def cmd_preview_data(snapshot_dir: Path, out_dir: Path, profile: FixProfile | No
             "bottoms_added": int(result.solidify_report.get("bottoms_added", 0)),
             "invented_vertices": int(result.solidify_report.get("invented_vertices", 0)),
             "faces_newly_hidden": int(result.solidify_report.get("faces_newly_hidden", 0)),
+            # SR2: pieces of broken sides solidify replaced with a wall or a bottom -- drawn in
+            # the BEFORE pane as removed, since the export had them and the result does not
+            "side_pieces_replaced": int(replaced.sum()),
             "zero_area": int(result.n_zero_area_dropped),
             "before_tris": int(topo.ok.sum()),
             "hidden": int(removed.sum()),

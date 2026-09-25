@@ -1655,7 +1655,9 @@ def test_a_two_inch_strip_lost_at_a_border_is_a_hole_even_beside_the_new_edge():
     """Head-on, the same 2 in loss is 2 in wide in the image too -- far wider than the ring -- so
     its pixels are holes, not flicker, and the measurement never sees them. That includes row 64,
     whose centres sit 0.05 in from the new edge: a rule that measured EVERY failing pixel would
-    have excused that whole run. Only a pixel the ring already calls flicker is ever measured."""
+    have excused that whole run. Only a pixel the ring already calls flicker is measured -- or,
+    since SR6, a hairline crack whose ring rays ALL saw the same, or moved no further than the
+    tolerance; row 64's ring rays out over the lost strip lie up to 0.2 in from the new edge."""
     y_row = float(_big_camera().ys[64])
     y_new = y_row - 0.05                      # row 64's centres are 0.05 in outside AFTER's plate
     y_old = y_new + 2.0
@@ -1832,3 +1834,65 @@ def test_growth_over_background_is_failing_base_and_excused_by_border_shift():
     assert rep_strict.totals["border_shift_grown"] == 0
     # nothing was lost here, so every border shift is growth the tolerance measured and excused
     assert rep_tol.totals["border_shift_grown"] == rep_tol.totals["border_shift"]
+
+
+# ---------------------------------------------------------------------------------------------
+# SR6 item 3: a hairline crack the merge OPENED, measured like any other border shift.
+#
+# Measured on file A (SR6, items 1 and 2 applied): the merge (3,168 -> 1,428 triangles) was
+# rolled back on two pixels. In view 2 AFTER's centre ray missed where BEFORE met face 4880; in
+# view 15 it went on to a surface 48.5 in behind. BEFORE's hit points were 0.0001 in and 0.0049 in
+# from the merged mesh -- within the 0.15 in the merge may move a border -- and 16 and 10 of the
+# AFTER ring rays still met BEFORE's surface. But not one BEFORE ring ray met what AFTER's centre
+# saw through the crack, so the flicker test never passed, and the border-shift measurement,
+# which only ever looked at flicker pixels, never measured them.
+# ---------------------------------------------------------------------------------------------
+
+
+def _opened_crack_report(faces_before, faces_after, n_after, **extra):
+    P = _crack_scene()[0]
+    before = ortho_first_hit(P, faces_before, np.arange(len(faces_before)), _FLAT_VIEW, _FRAME,
+                             _BIG_SIZE)
+    after = ortho_first_hit(P, faces_after, np.arange(n_after), _FLAT_VIEW, _FRAME, _BIG_SIZE)
+    mat_b = np.zeros(len(faces_before), np.int64)
+    mat_a = np.zeros(len(faces_after), np.int64)
+    report = compare_views(
+        [(_FLAT_VIEW, before)], [(_FLAT_VIEW, after)], mat_b, mat_a, frozenset(), 0.15,
+        strict=True, edge_flicker_cap=0.0,
+        plane_before=face_planes(P, faces_before), plane_after=face_planes(P, faces_after),
+        geometry_before=(P, faces_before), geometry_after=(P, faces_after), **extra)
+    return before, after, report
+
+
+def test_a_crack_the_merge_opened_narrower_than_its_border_tolerance_is_a_border_shift():
+    """The crack test's mirror image: BEFORE is the closed slab, AFTER the same slab split by a
+    0.02 in crack, so in 25 pixels AFTER's centre ray falls through to the surface 10 in behind.
+    Every AFTER ring ray still meets the slab -- the surface is still there, beside each pixel --
+    and measured as the border-shift rule measures, each BEFORE hit point is 0.01 in from the slab
+    AFTER still has: a border the merge moved less than its own tolerance, not a lost surface. At
+    `border_shift_tol = 0.0` the same pixels fail exactly as they did."""
+    P, faces_cracked, faces_closed, _ = _crack_scene()
+    before, after, today = _opened_crack_report(faces_closed, faces_cracked, 4)
+    opened = (before.tri >= 0) & (before.tri < 2) & (after.tri >= 2)
+    assert int(opened.sum()) == 25
+    assert today.totals["moved_other"] == 25 and today.totals["border_shift"] == 0
+    assert today.passed is False
+
+    _, _, measured = _opened_crack_report(faces_closed, faces_cracked, 4,
+                                          border_shift_tol=_BORDER_TOL)
+    assert measured.totals["border_shift"] == 25
+    assert measured.totals["moved_other"] == 0 and measured.totals["edge_flicker"] == 0
+    assert measured.passed is True
+
+
+def test_a_whole_triangle_lost_after_a_closed_slab_still_fails_with_the_border_tolerance():
+    """The measurement is what keeps that from excusing damage: AFTER loses one upper triangle
+    outright. Deep inside it no AFTER ring ray meets the slab, and BEFORE's hit points are far
+    from anything AFTER still has, so the lost pixels stay failures at the merge's tolerance."""
+    P, _, faces_closed, faces_torn = _crack_scene()
+    before, after, report = _opened_crack_report(faces_closed, faces_torn, 3,
+                                                 border_shift_tol=_BORDER_TOL)
+    lost = (before.tri < 2) & (after.tri >= 1)
+    assert int(lost.sum()) > 1000
+    assert report.totals["moved_other"] > 1000
+    assert report.passed is False
