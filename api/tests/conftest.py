@@ -66,3 +66,28 @@ def imported_cube(client, _database):
     assert r.status_code == 201
     return r.json()
 
+
+@pytest.fixture()
+def sample_source_dir(_database):
+    from engine.io.obj_writer import write_obj
+    from engine.tests.fixtures.build import cube
+    from api.settings import get_settings
+
+    settings = get_settings()
+    src = settings.source_dir
+    src.mkdir(parents=True, exist_ok=True)
+
+    # Write a test cube
+    m = cube(10.0)
+    write_obj(m, src / "test_cube.obj")
+
+    # Write a manifest
+    manifest_lines = [
+        "# manifest",
+        f"test_cube.obj  {m.n_faces}  CubeGroup",
+    ]
+    (src / "_MANIFEST.txt").write_text("\n".join(manifest_lines), encoding="utf-8")
+    return src
+
+
+

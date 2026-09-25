@@ -104,19 +104,32 @@ def import_model(db: Session, file_name: str, settings: Settings) -> Model:
     # Check if a version with this OBJ and these assets already exists. A texture-only or MTL-only
     # re-export keeps the OBJ sha256 but lands in a new snapshot directory, so it needs its own
     # version: the old one's assets still point at the old textures.
+    flat_mat_indices = flat_material_indices(snap.mesh, snap.flatness, 8.0)
+    flat_mat_names = sorted(name for i, name in enumerate(snap.mesh.materials) if i in flat_mat_indices)
+
     ver_stmt = select(ModelVersion).where(
         ModelVersion.model_id == model.id,
         ModelVersion.sha256 == snap.sha256,
-        ModelVersion.asset_sha256 == snap.asset_sha256,
         ModelVersion.kind == "snapshot",
     )
-    existing_ver = db.scalar(ver_stmt)
+    existing_versions = list(db.scalars(ver_stmt))
+    existing_ver = next((v for v in existing_versions if v.asset_sha256 == snap.asset_sha256), None)
+    if existing_ver is None:
+        # Review M5: backfill asset_sha256 if pre-e57462d version had NULL
+        null_ver = next((v for v in existing_versions if v.asset_sha256 is None), None)
+        if null_ver is not None:
+            null_ver.asset_sha256 = snap.asset_sha256
+            if null_ver.flat_materials is None:
+                null_ver.flat_materials = flat_mat_names
+            db.commit()
+            db.refresh(null_ver)
+            existing_ver = null_ver
+
     if existing_ver is not None:
         return model
 
     # Analyze topology to compute quantum and bounding center offset
-    flat_materials = flat_material_indices(snap.mesh, snap.flatness, 8.0)
-    topo = analyse_topology(snap.mesh, flat_materials)
+    topo = analyse_topology(snap.mesh, flat_mat_indices)
     centre = (topo.positions_w.min(axis=0) + topo.positions_w.max(axis=0)) / 2.0
     quanta = [float(q) for q in topo.quanta]
     offset = [float(c) for c in centre]
@@ -129,6 +142,7 @@ def import_model(db: Session, file_name: str, settings: Settings) -> Model:
         tri_count=snap.mesh.n_faces,
         coord_quantum=quanta,
         origin_offset=offset,
+        flat_materials=flat_mat_names,
     )
     db.add(version)
     db.commit()

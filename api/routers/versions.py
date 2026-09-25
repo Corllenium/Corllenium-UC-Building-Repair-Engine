@@ -73,7 +73,11 @@ def get_meshbuf(
                         textures[name] = mat.map_kd
                         flatness[name] = texture_flatness(tex_file)
 
-    flat_mats = flat_material_indices(mesh, flatness, 8.0)
+    if version.flat_materials is not None:
+        flat_names = set(version.flat_materials)
+        flat_mats = frozenset(i for i, name in enumerate(mesh.materials) if name in flat_names)
+    else:
+        flat_mats = flat_material_indices(mesh, flatness, 8.0)
     topo = analyse_topology(mesh, flat_mats)
     buf = pack_meshbuf(mesh, topo, textures)
 
@@ -181,6 +185,15 @@ def run_fix_pipeline(
             edge_flicker_cap_final=p.edge_flicker_cap_final,
         )
 
+        # Enforce stored flat_materials from the snapshot import
+        if version.flat_materials is not None:
+            stored_flat = set(version.flat_materials)
+            for mat_name in mesh.materials:
+                if mat_name not in stored_flat:
+                    flatness[mat_name] = max(flatness.get(mat_name, 0.0), profile.flat_texture_std + 10.0)
+                elif mat_name not in flatness:
+                    flatness[mat_name] = 0.0
+
         result = fix_object(mesh, flatness, profile)
 
         name = mesh.name
@@ -188,21 +201,14 @@ def run_fix_pipeline(
         write_obj(result.mesh, fixed_obj_path)
         write_obj_polygons(result.mesh, result.rings, out_dir / f"{name}.fixed.ngon.obj")
 
-        # Copy mtl & textures if available
-        if mtl_path and mtl_path.exists():
-            (out_dir / "materials.mtl").write_bytes(mtl_path.read_bytes())
-            tex_dir = out_dir / "tex"
-            tex_dir.mkdir(exist_ok=True)
-            src_tex = mtl_path.parent / "tex"
-            if src_tex.exists():
-                for f in src_tex.glob("*"):
-                    if f.is_file():
-                        (tex_dir / f.name).write_bytes(f.read_bytes())
-
         fixed_sha256 = sha256_file(fixed_obj_path)
 
         # Analyze topology of fixed mesh
-        flat_mats = flat_material_indices(result.mesh, flatness, profile.flat_texture_std)
+        if version.flat_materials is not None:
+            stored_flat = set(version.flat_materials)
+            flat_mats = frozenset(i for i, mat_name in enumerate(result.mesh.materials) if mat_name in stored_flat)
+        else:
+            flat_mats = flat_material_indices(result.mesh, flatness, profile.flat_texture_std)
         topo = analyse_topology(result.mesh, flat_mats)
         centre = (topo.positions_w.min(axis=0) + topo.positions_w.max(axis=0)) / 2.0
         quanta = [float(q) for q in topo.quanta]
@@ -215,9 +221,41 @@ def run_fix_pipeline(
             tri_count=result.mesh.n_faces,
             coord_quantum=quanta,
             origin_offset=offset,
+            flat_materials=version.flat_materials,
         )
         db.add(fixed_version)
         db.flush()
+
+        # Copy mtl & textures and record as assets on fixed version
+        if mtl_path and mtl_path.exists():
+            dest_mtl = out_dir / "materials.mtl"
+            dest_mtl.write_bytes(mtl_path.read_bytes())
+            db.add(
+                VersionAsset(
+                    version_id=fixed_version.id,
+                    kind="mtl",
+                    name="materials.mtl",
+                    path=str(dest_mtl.relative_to(settings.data_dir)),
+                    sha256=sha256_file(dest_mtl),
+                )
+            )
+            tex_dir = out_dir / "tex"
+            tex_dir.mkdir(exist_ok=True)
+            src_tex = mtl_path.parent / "tex"
+            if src_tex.exists():
+                for f in src_tex.glob("*"):
+                    if f.is_file():
+                        dest_tex = tex_dir / f.name
+                        dest_tex.write_bytes(f.read_bytes())
+                        db.add(
+                            VersionAsset(
+                                version_id=fixed_version.id,
+                                kind="texture",
+                                name=f.name,
+                                path=str(dest_tex.relative_to(settings.data_dir)),
+                                sha256=sha256_file(dest_tex),
+                            )
+                        )
 
         # Add fixed OBJ asset
         db.add(

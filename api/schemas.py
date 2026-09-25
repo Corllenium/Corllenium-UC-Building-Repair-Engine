@@ -29,6 +29,7 @@ class ModelVersionOut(BaseModel):
     sha256: str
     asset_sha256: str | None = None
     tri_count: int
+    flat_materials: list[str] | None = None
     created_at: datetime
     assets: list[VersionAssetOut] = []
 

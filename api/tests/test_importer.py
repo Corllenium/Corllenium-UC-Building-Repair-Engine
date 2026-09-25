@@ -9,26 +9,6 @@ from engine.io.obj_writer import write_obj
 from engine.tests.fixtures.build import cube
 
 
-@pytest.fixture
-def sample_source_dir(_database):
-    from api.settings import get_settings
-    settings = get_settings()
-    src = settings.source_dir
-    src.mkdir(parents=True, exist_ok=True)
-
-    # Write a test cube
-    m = cube(10.0)
-    write_obj(m, src / "test_cube.obj")
-
-    # Write a manifest
-    manifest_lines = [
-        "# manifest",
-        f"test_cube.obj  {m.n_faces}  CubeGroup",
-    ]
-    (src / "_MANIFEST.txt").write_text("\n".join(manifest_lines), encoding="utf-8")
-    return src
-
-
 def test_list_source_files(client, sample_source_dir):
     r = client.get("/api/source/files")
     assert r.status_code == 200
@@ -102,13 +82,20 @@ def test_source_unstable_409_and_manifest_mismatch_422(client, sample_source_dir
 
 @pytest.fixture
 def textured_source_dir(_database):
+    from dataclasses import replace
+    import numpy as np
+    from PIL import Image
+    from engine.io.obj_writer import write_obj
+    from engine.tests.fixtures.build import cube
     from api.settings import get_settings
+
     src = get_settings().source_dir
     (src / "tex").mkdir(parents=True, exist_ok=True)
     m = replace(cube(10.0), name="textured_cube", mtllib="textured_cube.mtl", materials=["stone"])
     write_obj(m, src / "textured_cube.obj")
     (src / "textured_cube.mtl").write_text("newmtl stone\nmap_Kd tex/stone.png\n", encoding="utf-8")
     Image.fromarray(np.full((4, 4, 3), 220, np.uint8)).save(src / "tex" / "stone.png")
+    (src / "_MANIFEST.txt").write_text(f"# manifest\ntextured_cube.obj  {m.n_faces}  TexturedGroup\n", encoding="utf-8")
     return src
 
 
