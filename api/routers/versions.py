@@ -332,14 +332,14 @@ def run_fix_pipeline(
             edge_flicker_cap_final=p.edge_flicker_cap_final,
         )
 
-        # Enforce stored flat_materials from the snapshot import
+        # Enforce stored flat_materials from the snapshot import (m4)
         if version.flat_materials is not None:
             stored_flat = set(version.flat_materials)
             for mat_name in mesh.materials:
-                if mat_name not in stored_flat:
-                    flatness[mat_name] = max(flatness.get(mat_name, 0.0), profile.flat_texture_std + 10.0)
-                elif mat_name not in flatness:
+                if mat_name in stored_flat:
                     flatness[mat_name] = 0.0
+                else:
+                    flatness[mat_name] = max(flatness.get(mat_name, 0.0), profile.flat_texture_std + 10.0)
 
         result = fix_object(mesh, flatness, profile)
 
