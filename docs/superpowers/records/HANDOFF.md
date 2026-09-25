@@ -29,18 +29,19 @@ Branch `feat-dashboard`, engine suite **566 passed** (verified 17:32). `docker-c
 modified: another session's, never touch it. The live dashboard is Docker containers built on 09-24
 01:22 (old code); rebuilding them is the owner's decision.
 
-Latest outputs (17:10-17:12, brief 10's final code): file A 917 triangles, back faces from outside
-21,553 px; file B 506 triangles, 2,787 px; both passed, no rollback. **File A's owner copy
-`OBJ FIXED RESULT/CHTM_SIDE_WALK_2nd_floor.fixed.skp` is still the 11:50 version**: SketchUp had it open
-(Errno 13). The current file A is `data/output/CHTM_SIDE_WALK_2nd_floor/CHTM_SIDE_WALK_2nd_floor.fixed.skp`;
-copy it over once SketchUp has closed the old one. File B's owner copy is current (17:12).
+Owner files (18:39 / 18:42), built from the COMMITTED head 5300c29 in the clean worktree
+`.claude/worktrees/verified` (outputs in `data/output_verified`): file A 882 triangles, back faces from
+outside 20,478 px; file B 506 triangles, 2,787 px; both passed, no rollback. To refresh them from committed
+code again: in that worktree `git checkout --detach <commit>`, then run `engine.cli fix` with
+`--out "D:/PROJECTS/UC MODEL FIXER/data/output_verified" --skp-dir "D:/PROJECTS/UC MODEL FIXER/OBJ FIXED RESULT"`
+for both snapshots (the file must not be open in SketchUp).
 
 Jobs:
 
 1. **Brief 11** (remaining visual defects), main checkout, Claude subagent since 17:45.
 2. **Review of brief 10** (read-only), Claude subagent since 17:45; its findings are added to brief 11.
 3. **Dashboard pass 4** (Hermes, worktree `.hermes/worktrees/dashboard-wave`, branch `feat/dashboard-wave`):
-   the re-review's findings (`rereview-dashboard-wave.md`); another review before any merge.
+   DONE. All re-review findings resolved (16 commits); API suite 39 passed, web suite 46 passed; vue-tsc clean for wave files. Awaiting merge review.
 
 **If you take over one of these** (for example because Claude hit its usage limit): follow the
 lapse rule at the top of `WORK-CLAIMS.md`, take the claim over in writing, run `git status` and
