@@ -682,6 +682,27 @@ def test_fix_object_never_removes_a_face_solidify_invented(monkeypatch):
     assert r.passed is True
 
 
+def test_the_faces_the_side_rebuild_invents_reach_the_debris_pass_protected():
+    """Reconcile of feat/side-rebuild (brief 03). The side rebuild invents its walls and bottoms
+    inside solidify and REPLACES the broken side's pieces, so the reference no longer starts with
+    every input face: it is the input minus the replaced pieces, then every invented face. The
+    debris and fold passes must see exactly those invented faces as `protected`, as they see
+    every face solidify invents -- a count taken from the input's face count would miss as many
+    as were replaced. `slab_with_sawtooth_side`: its four teeth are replaced by one wall."""
+    from engine.tests.fixtures.build import slab_with_sawtooth_side
+    r = fix_object(slab_with_sawtooth_side(), {}, FixProfile(guard_size=(120, 80), n_dirs=32))
+    assert r.solidify_report["side_pieces_replaced"] == 4                 # the premise
+    assert r.solidify_report["sides_rebuilt"]["edges"] >= 1
+    n_kept = int((~r.replaced_input).sum())
+    invented = np.arange(r.reference_mesh.n_faces) >= n_kept
+    assert r.n_zero_area_dropped == 0
+    handed_to_the_detectors = ~(r.removed_hidden | r.removed_slit)
+    assert (r.fragment_report["n_protected_faces"]
+            == int((invented & handed_to_the_detectors).sum()) > 0)
+    assert not (r.removed_fragments & invented).any()
+    assert r.passed is True
+
+
 # ------------------------- review 2a Minor 9: the fragment cap is sized from the real files
 #
 # `fragment_removed_cap` was 5e-3, sized to let `slab_with_strays`' 2 sq in stray (1.7e-3 of a
