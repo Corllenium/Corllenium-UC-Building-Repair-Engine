@@ -18,3 +18,15 @@ export function resolveActiveRun(
   }
   return fetchedRun
 }
+
+export async function loadVersionRunOnMount(
+  fixedVersionId: number | undefined,
+  fetchRun: (id: number) => Promise<FixRun>
+): Promise<FixRun | null> {
+  if (!fixedVersionId) return null
+  try {
+    return await fetchRun(fixedVersionId)
+  } catch {
+    return null
+  }
+}

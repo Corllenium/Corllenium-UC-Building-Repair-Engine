@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { resolveActiveRun } from './runResolution'
 import type { FixRun } from '../api/client'
 
@@ -60,5 +60,28 @@ describe('resolveActiveRun (N2)', () => {
     }
     const active = resolveActiveRun(completedRun, freshFetchedRun)
     expect(active).toBe(freshFetchedRun)
+  })
+
+  it('loadVersionRunOnMount fetches run for fixed version on mount (I2)', async () => {
+    const { loadVersionRunOnMount } = await import('./runResolution')
+    const fetchRunMock = vi.fn().mockResolvedValue(previousRun)
+    const run = await loadVersionRunOnMount(2, fetchRunMock)
+    expect(run).toBe(previousRun)
+    expect(fetchRunMock).toHaveBeenCalledWith(2)
+  })
+
+  it('loadVersionRunOnMount returns null without fetching when no fixed version exists (I2)', async () => {
+    const { loadVersionRunOnMount } = await import('./runResolution')
+    const fetchRunMock = vi.fn()
+    const run = await loadVersionRunOnMount(undefined, fetchRunMock)
+    expect(run).toBeNull()
+    expect(fetchRunMock).not.toHaveBeenCalled()
+  })
+
+  it('loadVersionRunOnMount catches fetch failure and returns null (I2)', async () => {
+    const { loadVersionRunOnMount } = await import('./runResolution')
+    const fetchRunMock = vi.fn().mockRejectedValue(new Error('Network error'))
+    const run = await loadVersionRunOnMount(2, fetchRunMock)
+    expect(run).toBeNull()
   })
 })
