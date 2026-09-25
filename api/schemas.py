@@ -41,8 +41,6 @@ class ModelOut(BaseModel):
     id: int
     name: str
     source_file: str
-    hidden: bool = False
-    archived_at: datetime | None = None
     created_at: datetime
     versions: list[ModelVersionOut] = []
 

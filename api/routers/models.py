@@ -1,5 +1,3 @@
-from datetime import datetime, timezone
-
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
@@ -15,33 +13,9 @@ router = APIRouter(prefix="/api/models", tags=["models"])
 
 
 @router.get("", response_model=list[ModelOut])
-def list_models(include_hidden: bool = False, db: Session = Depends(get_db)):
+def list_models(db: Session = Depends(get_db)):
     stmt = select(Model).options(selectinload(Model.versions)).order_by(Model.name)
-    if not include_hidden:
-        stmt = stmt.where(Model.hidden == False)
     return list(db.scalars(stmt))
-
-
-@router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
-def hide_model(id: int, db: Session = Depends(get_db)):
-    model = db.scalar(select(Model).where(Model.id == id))
-    if model is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Model not found")
-    model.hidden = True
-    model.archived_at = datetime.now(timezone.utc)
-    db.commit()
-
-
-@router.post("/{id}/restore", response_model=ModelOut)
-def restore_model(id: int, db: Session = Depends(get_db)):
-    model = db.scalar(select(Model).where(Model.id == id).options(selectinload(Model.versions)))
-    if model is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Model not found")
-    model.hidden = False
-    model.archived_at = None
-    db.commit()
-    db.refresh(model)
-    return model
 
 
 @router.post("/rescan", response_model=list[ModelOut])

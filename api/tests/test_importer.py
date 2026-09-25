@@ -149,44 +149,6 @@ def test_models_rescan_endpoint(client, sample_source_dir):
     assert len(models2) >= 2
 
 
-def test_soft_delete_and_restore_model(client, sample_source_dir):
-    # Import model
-    r_imp = client.post("/api/models/import", json={"file": "test_cube.obj"})
-    assert r_imp.status_code == 201
-    model_id = r_imp.json()["id"]
-
-    # Model is listed by default
-    r_list1 = client.get("/api/models")
-    assert any(m["id"] == model_id for m in r_list1.json())
-
-    # Soft delete (hide) model
-    r_del = client.delete(f"/api/models/{model_id}")
-    assert r_del.status_code == 204
-
-    # Model does not appear in default list
-    r_list2 = client.get("/api/models")
-    assert not any(m["id"] == model_id for m in r_list2.json())
-
-    # Model appears when include_hidden=true
-    r_list3 = client.get("/api/models?include_hidden=true")
-    hidden_m = next((m for m in r_list3.json() if m["id"] == model_id), None)
-    assert hidden_m is not None
-    assert hidden_m["hidden"] is True
-
-    # Restore model
-    r_restore = client.post(f"/api/models/{model_id}/restore")
-    assert r_restore.status_code == 200
-    assert r_restore.json()["hidden"] is False
-
-    # Model appears again in default list
-    r_list4 = client.get("/api/models")
-    assert any(m["id"] == model_id for m in r_list4.json())
-
-    # Delete nonexistent model returns 404
-    r_del_404 = client.delete("/api/models/999999")
-    assert r_del_404.status_code == 404
-
-
 def test_import_identical_bytes_two_file_names(client, sample_source_dir):
     from engine.io.obj_writer import write_obj
     from engine.tests.fixtures.build import cube
@@ -214,5 +176,4 @@ def test_import_identical_bytes_two_file_names(client, sample_source_dir):
 
     # Both models share identical sha256 for their snapshot versions
     assert model_a["versions"][0]["sha256"] == model_b["versions"][0]["sha256"]
-
 
