@@ -772,13 +772,20 @@ class _Faces:
                           & (self.lo <= hi).all(axis=1))[0]
 
 
-def _attached(polys: np.ndarray, members: np.ndarray, lines: list, touch: float) -> np.ndarray:
-    """Review part 2, I1. Bool over `polys`: which of `members` (indices into it) belong to a
-    connected part of the side -- polygons within `touch` of each other in the side's own frame
-    -- that comes within `touch` of one of `lines` (the top edge, the wall's foot)."""
-    out = np.zeros(len(polys), bool)
-    members = [int(m) for m in members]
-    parent = list(range(len(members)))
+def _touching(shapes: list, touch: float) -> np.ndarray:
+    """Review of brief 10, I3: connected-component labels over `shapes` (each an `(n, 3)` array of
+    corners: a triangle, or a planar quad) -- two are joined when a corner of one lies within
+    `touch` of the other, IN 3-D. Judged in a side's own 2-D frame, a sign standing 1.2 in in front
+    of a tooth "touched" it wherever their projections overlapped."""
+    from engine.guard.compare import _point_triangle_distance
+
+    tris = []
+    for corners in shapes:
+        corners = np.asarray(corners, dtype=np.float64)
+        tris.append([corners[[0, k, k + 1]] for k in range(1, len(corners) - 1)])
+    lo = np.array([np.asarray(c).min(axis=0) for c in shapes]) - touch
+    hi = np.array([np.asarray(c).max(axis=0) for c in shapes]) + touch
+    parent = list(range(len(shapes)))
 
     def find(i):
         while parent[i] != i:
@@ -786,14 +793,39 @@ def _attached(polys: np.ndarray, members: np.ndarray, lines: list, touch: float)
             i = parent[i]
         return i
 
-    for a in range(len(members)):
-        for b in range(a + 1, len(members)):
-            if shapely.distance(polys[members[a]], polys[members[b]]) <= touch:
-                parent[find(a)] = find(b)
-    anchored = {find(k) for k, m in enumerate(members)
+    def near(i, j):
+        for a, b in ((i, j), (j, i)):
+            points = np.asarray(shapes[a], dtype=np.float64)
+            for tri in tris[b]:
+                d = _point_triangle_distance(points, np.repeat(tri[None], len(points), axis=0))
+                if float(d.min()) <= touch:
+                    return True
+        return False
+
+    for i in range(len(shapes)):
+        for j in range(i + 1, len(shapes)):
+            if (hi[i] >= lo[j]).all() and (hi[j] >= lo[i]).all() and near(i, j):
+                parent[find(i)] = find(j)
+    return np.array([find(i) for i in range(len(shapes))], dtype=np.int64)
+
+
+def _attached(polys: np.ndarray, shapes: list, members: np.ndarray, lines: list,
+              touch: float) -> np.ndarray:
+    """Review part 2, I1, and review of brief 10, I3. Bool over `polys`: which of `members`
+    (indices into it) belong to a part of the side CONNECTED IN 3-D (`_touching` over `shapes`,
+    the same faces' corners) that comes within `touch` of one of `lines` in the side's own frame
+    (`polys`: the top edge, and the wall's foot only where the foot is a real edge -- the lower
+    surface; a foot the plan made up is no anchor: a sign 1.2 in out, reaching below the slab,
+    crossed it and was taken for the only piece of a missing side)."""
+    out = np.zeros(len(polys), bool)
+    members = [int(m) for m in members]
+    if not members:
+        return out
+    labels = _touching([shapes[m] for m in members], touch)
+    anchored = {int(labels[k]) for k, m in enumerate(members)
                 if any(shapely.distance(polys[m], line) <= touch for line in lines)}
     for k, m in enumerate(members):
-        out[m] = find(k) in anchored
+        out[m] = int(labels[k]) in anchored
     return out
 
 
@@ -845,8 +877,10 @@ def _wall_pieces(faces: _Faces, pa, pb, q, h_measured: float, h_wall: float, ban
     and taken as nothing it lay under the new wall, which the coincidence test then refused.
 
     Review part 2, I1: but a piece must BELONG to the slab, not merely lie near its side's plane:
-    its connected part of the side (`_attached`, faces within `touch` of each other in the side's
-    frame) reaches the top edge or the wall's foot within `touch`. A sign standing 1.2 in in front
+    its connected part of the side (`_attached`: faces within `touch` of each other IN 3-D) reaches
+    the top edge within `touch` in the side's frame, or the wall's foot where that foot is the
+    lower surface; and a face lying in the side's plane is a piece whatever it touches (review of
+    brief 10, I3). A sign standing 1.2 in in front
     of a missing side, below the top and touching nothing, lay in the band and was deleted as a
     piece at the real files' scale; the teeth of a broken side still hang from the top edge, and
     the ramp's lower pieces still rest on its underside."""
@@ -924,9 +958,18 @@ def _wall_pieces(faces: _Faces, pa, pb, q, h_measured: float, h_wall: float, ban
     foot = (shapely.LineString([(0.0, -h_ends[0]), (length, -h_ends[1])]) if h_ends is not None
             else shapely.LineString([(0.0, -max(h_side or 0.0, h_wall)),
                                      (length, -max(h_side or 0.0, h_wall))]))
-    attached = _attached(polys, np.nonzero(own & is_face)[0],
-                         [shapely.LineString([(0.0, 0.0), (length, 0.0)]), foot], touch)
-    mine = (own & is_face & attached & (inside >= _PIECE_INSIDE_FRACTION * area))[:len(cand)]
+    anchors = [shapely.LineString([(0.0, 0.0), (length, 0.0)])]
+    if h_ends is not None:
+        anchors.append(foot)                  # the lower surface: a real edge of the model
+    attached = _attached(polys, corners, np.nonzero(own & is_face)[0], anchors, touch)
+    # a face lying IN the side's plane inside the wall is a piece whatever it touches (review of
+    # brief 10, I3: the middle strip of a side, touching neither the top edge nor the foot, was
+    # no piece, and the wall over it was refused for lying on it -- half the side stayed open)
+    in_plane = np.zeros(len(polys), bool)
+    if len(cand):
+        in_plane[:len(cand)] = np.abs((faces.tri[cand] - pa) @ q).max(axis=1) <= touch
+    mine = (own & is_face & (attached | in_plane)
+            & (inside >= _PIECE_INSIDE_FRACTION * area))[:len(cand)]
     pieces = [int(f) for f in cand[mine] if int(f) not in claimed]
     if side is None:
         return pieces, 0.0, None
@@ -996,13 +1039,20 @@ def _side_looks(mesh: MeshData, topo: Topology, faces: _Faces, frames: list, to_
 
 
 def _bottom_pieces(faces: _Faces, foot, normal, origin, bottom_h: float, band: float,
-                   claimed: set, every: bool = False, overlap: bool = False) -> list[int]:
+                   claimed: set, every: bool = False, overlap: bool = False,
+                   touch: float | None = None) -> list[int]:
     """Eligible faces lying in the bottom's band: every corner within `band` of the bottom plane
     (the top plane lowered by `bottom_h`), within `PIECE_MAX_ANGLE_DEG` of parallel to it, closer
     to the bottom than to the top, with the centroid over the footprint. With `every`, faces that
     may never be pieces are counted too (the top of a block the slab stands on), and with
     `overlap` a face overlapping the footprint counts wherever its centroid lies: what the slab's
-    underside IS, for judging its state (brief 11 item 2)."""
+    underside IS, for judging its state (brief 11 item 2).
+
+    With `touch` a piece must also BELONG to the slab (review of brief 10, I3), as a wall's must:
+    lie IN the bottom plane (every corner within `touch` of it), or be part of a set of such faces
+    connected in 3-D (`_touching`) that reaches the slab's outline (within `touch` of `foot`'s
+    boundary, seen from above). A lamp hanging under a slab, its top 2 in below the bottom plane
+    and touching nothing, had its top replaced by the new bottom and shipped open."""
     x0, y0, x1, y1 = foot.bounds
     z = _z_top(normal, origin, np.array([x0, x1, x0, x1]), np.array([y0, y0, y1, y1]))
     lo = np.array([x0, y0, float(z.min()) - bottom_h - band])
@@ -1022,6 +1072,16 @@ def _bottom_pieces(faces: _Faces, foot, normal, origin, bottom_h: float, band: f
         c = v.mean(axis=1)
         over = shapely.contains_xy(foot, c[:, 0], c[:, 1])
     mine = (off.max(axis=1) <= band) & parallel & nearer & over
+    if touch is not None and mine.any():
+        in_plane = off.max(axis=1) <= touch
+        ids = np.nonzero(mine)[0]
+        labels = _touching([faces.tri[cand[k]] for k in ids], touch)
+        boundary = foot.boundary
+        anchored = {int(labels[j]) for j, k in enumerate(ids)
+                    if in_plane[k] or float(shapely.distance(
+                        boundary, shapely.MultiPoint(faces.tri[cand[k]][:, :2]))) <= touch}
+        for j, k in enumerate(ids):
+            mine[k] = in_plane[k] or int(labels[j]) in anchored
     return [int(f) for f in cand[mine] if int(f) not in claimed]
 
 
@@ -1108,7 +1168,8 @@ def _region_bottom(topo: Topology, faces: _Faces, info: dict, caster, tol: float
         present = bool(exists)
         depth = float(found) if exists else float(info["bottom_h"])
     foot = info["slab_foot"]
-    pieces = _bottom_pieces(faces, foot, info["normal"], info["origin"], depth, band, claimed)
+    pieces = _bottom_pieces(faces, foot, info["normal"], info["origin"], depth, band, claimed,
+                            touch=tol)
     if not present:
         return {"kind": "missing", "depth": depth, "pieces": pieces, "state": {}}
     there = _bottom_pieces(faces, foot, info["normal"], info["origin"], depth, band, claimed,
@@ -1372,6 +1433,8 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
     # it is: rebuilding it measured worse on both real files (see `_region_bottom`).
     broken_undersides: list[dict] = []
     bottoms_already_there = bottoms_filled = bottoms_built_round = 0
+    # walls that took the look of their pieces: {group: (pieces, top material, top UV scale)}
+    wall_looks: dict[int, tuple] = {}
     # a fill that fails is left out on its own -- the outline bottom it completes stays
     fill_skips = {reason: 0 for reason in _BOTTOM_SKIPS}
     # every bottom built, as (its plane z = a x + b y + c, the polygon it covers)
@@ -1599,6 +1662,9 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
             group_length.append(length)
             for triangle in triangles:
                 builder.face(triangle, wall_material, wall_uv, group)
+            if found and wall_material != material:
+                # a look taken from pieces: decided again after the cap guard (`_relook_walls`)
+                wall_looks[group] = (list(found), material, uv_scale)
             for f in found:
                 if f not in claimed:            # a corner piece goes to the first wall
                     replaced_group[f] = group
@@ -1662,6 +1728,7 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
             piece_cover=_bottom_piece_cover(solid, new_group, replaced_group, group_kind),
             on_pieces=_new_faces_on_pieces(solid, new_faces, replaced_group, tol))
     replaced = np.asarray(detail["replaced"], bool)
+    out, walls_relooked = _relook_walls(out, out_new, new_group[keep], wall_looks, replaced)
 
     # a group is kept whole when every one of its new faces survived the cap guard
     kept_groups = np.ones(len(group_region), bool)
@@ -1727,6 +1794,9 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
         #: review C1 came from, and the new faces lying on them are refused now.
         "side_pieces_given_back": int(sum(1 for f in np.nonzero(replaced_group >= 0)[0]
                                           if not replaced[f] and not kept_groups[replaced_group[f]])),
+        #: Review of brief 10, I3. Walls that had taken the look of their pieces and whose pieces
+        #: the cap guard all gave back: they ship in the top's look (`_relook_walls`).
+        "walls_relooked": walls_relooked,
         #: SR2. Distinct original faces a kept closing face covers where they lie INSIDE a slab's
         #: volume (rule 5) -- the inside the hidden-face pass then removes.
         "interior_faces_covered": len(detail["interior_faces"]),
@@ -1799,6 +1869,39 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
         "runtime_s": round(time.perf_counter() - started, 3),
     }
     return SolidifyResult(mesh=out, new_faces=out_new, report=report, replaced=replaced)
+
+
+def _relook_walls(out: MeshData, out_new: np.ndarray, out_group: np.ndarray, wall_looks: dict,
+                  replaced: np.ndarray) -> tuple[MeshData, int]:
+    """Review of brief 10, I3 (d): a wall's look is decided after the cap guard. A wall that took
+    the material and UV scale of its pieces (`wall_looks`: `{group: (pieces, top material, top UV
+    scale)}`) but replaces none of them in the end -- the guard gave every one back -- ships in
+    the top's look: its faces' material set back, their UVs projected again at the top's scale
+    (as `_Builder.face` projects them). Returns `(mesh, walls changed)`."""
+    if not wall_looks or not out_new.any():
+        return out, 0
+    fm = out.face_material.copy()
+    fvt = out.face_vt.copy()
+    uvs = out.uvs.copy()
+    changed = 0
+    for group, (pieces, material, uv_scale) in sorted(wall_looks.items()):
+        if replaced[np.asarray(pieces, dtype=np.int64)].any():
+            continue
+        mine = np.nonzero(out_new & (out_group == group))[0]
+        if not len(mine):
+            continue
+        changed += 1
+        for f in mine.tolist():
+            fm[f] = material
+            points = out.positions[out.face_v[f]]
+            normal = np.cross(points[1] - points[0], points[2] - points[0])
+            length = float(np.linalg.norm(normal))
+            if uv_scale > 0.0 and length > 0.0 and (fvt[f] >= 0).all():
+                e1, e2 = plane_basis(normal / length)
+                uvs[fvt[f]] = points @ np.stack([e1, e2], axis=1) * uv_scale
+            else:
+                fvt[f] = -1
+    return replace(out, face_material=fm, face_vt=fvt, uvs=uvs), changed
 
 
 def _welded_to_original(mesh: MeshData, topo: Topology) -> np.ndarray:

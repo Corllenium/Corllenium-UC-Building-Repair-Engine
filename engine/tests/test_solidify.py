@@ -1866,3 +1866,73 @@ def test_fix_object_ships_the_step_between_two_slabs_closed():
     assert _plane_band_area(r.mesh, 40.0, -4.0, 0.0) == pytest.approx(160.0)     # A's riser
     assert _plane_band_area(r.mesh, 40.0, -12.0, -8.0) == pytest.approx(160.0)   # B under A
     assert r.backface_px["final"]["total"] == 0
+
+
+# ------------------------------ review of brief 10, I3: a piece belongs to the slab, in 3-D
+
+
+_I3 = FixProfile(guard_size=(900, 600), n_dirs=32)
+
+
+@pytest.mark.parametrize("size", [40.0, 2000.0])
+def test_a_sign_in_front_of_a_tooth_is_never_a_piece(size):
+    """Review of brief 10, I3 (a): a sign 1.2 in in front of the one tooth left of a side, in the
+    same material, touches it only in projection -- judged in the side's own 2-D frame it was
+    "connected" to the tooth, so attached, and one of its triangles was replaced with the tooth.
+    Belonging is judged in 3-D: the sign is 1.2 in away from everything of the slab."""
+    from engine.tests.fixtures.build import slab_with_its_side_broken
+    m, watch = slab_with_its_side_broken("tooth_and_sign", size)
+    r = solidify(m, analyse_topology(m), _I3)
+    assert not r.replaced[watch["sign"]].any()
+    # the mechanism: the tooth is the side's ONLY piece -- the sign is never taken for one (at 40 in
+    # it used to be taken, and given back by the cap guard: the outcome alone could not tell)
+    rep = r.report
+    pieces = (rep["side_pieces_replaced"] + rep["side_pieces_restored"]
+              + rep["side_pieces_given_back"])
+    assert pieces == len(watch["tooth"])
+
+
+@pytest.mark.parametrize("size", [40.0, 2000.0])
+def test_a_lamp_under_a_slab_is_never_a_piece_of_its_bottom(size):
+    """Review of brief 10, I3 (b): bottoms had no belonging test -- a lamp hanging under a slab
+    with no bottom, its top face 2 in below the bottom plane (in the band) and touching nothing,
+    had its top replaced as a piece of the new bottom, and shipped open."""
+    from engine.tests.fixtures.build import slab_with_a_lamp_under_it
+    m, lamp = slab_with_a_lamp_under_it(size)
+    r = solidify(m, analyse_topology(m), _I3)
+    assert r.report["bottoms_added"] == 1
+    assert not r.replaced[lamp].any()
+    # the mechanism: the lamp's top is never a piece at all -- not taken and given back
+    assert r.report["side_pieces_given_back"] == 0 and r.report["side_pieces_restored"] == 0
+
+
+@pytest.mark.parametrize("size", [40.0, 2000.0])
+def test_a_middle_strip_of_a_side_is_a_piece_and_the_side_is_closed(size):
+    """Review of brief 10, I3 (c), a regression from 01cc420: only the MIDDLE strip of a side
+    survives, touching neither the top edge nor the foot -- not "attached", so not a piece, and the
+    wall over the whole side lay ON it and was refused as coinciding: half the side stayed open.
+    A face lying IN the side's plane inside the wall is a piece whatever it touches."""
+    from engine.tests.fixtures.build import slab_with_its_side_broken
+    m, watch = slab_with_its_side_broken("middle_strip", size)
+    r = solidify(m, analyse_topology(m), _I3)
+    assert r.replaced[watch["strip"]].all()
+    assert r.report["walls_refused"]["faces"] == 0
+    wall = [f for f in np.nonzero(r.new_faces)[0]
+            if np.allclose(r.mesh.positions[r.mesh.face_v[f]][:, 0], 0.0)]
+    assert _covered_area(r.mesh, wall, [1, 2]) == pytest.approx(8.0 * size)
+
+
+def test_a_wall_takes_the_look_of_the_pieces_it_really_replaces():
+    """Review of brief 10, I3 (d): a wall took the material of its pieces BEFORE the cap guard
+    decided which of them it replaces. The one tooth of this side, in m1, stands 0.9 in in front
+    of the side's plane (as file B's sawtooth teeth do) and reaches 3 in below the slab: the guard
+    gives it back, and the wall -- which then replaces nothing -- must not ship in the tooth's m1.
+    Its look is decided after the guard: the top's m0."""
+    from engine.tests.fixtures.build import slab_with_its_side_broken
+    m, watch = slab_with_its_side_broken("deep_tooth_m1", 2000.0)
+    r = solidify(m, analyse_topology(m), _I3)
+    assert not r.replaced[watch["tooth"]].any()                     # given back
+    wall = [f for f in np.nonzero(r.new_faces)[0]
+            if np.allclose(r.mesh.positions[r.mesh.face_v[f]][:, 0], 0.0)]
+    assert wall and set(r.mesh.face_material[wall].tolist()) == {0}
+    assert r.report["walls_relooked"] == 1                           # the mechanism

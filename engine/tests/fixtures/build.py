@@ -2157,3 +2157,79 @@ def step_between_two_slabs(size=40.0, depth=8.0, step=4.0):
     box(0.0, W, -D, 0.0, "x1")
     box(W, 2 * W, -s - D, -s, "x0")
     return _mesh("step_between_two_slabs", P, uvs, fv, fvt, face_material=fm)
+
+
+def _box_without(P, uvs, fv, fvt, fm, x0, x1, y0, y1, z0, z1, skip=(), material=0):
+    """A box wound outward with the sides named in `skip` left out ('bottom', 'top', 'y0', 'x1',
+    'y1', 'x0'); returns {side: [its two face ids]}."""
+    b = len(P)
+    P += [[x0, y0, z0], [x1, y0, z0], [x1, y1, z0], [x0, y1, z0],
+          [x0, y0, z1], [x1, y0, z1], [x1, y1, z1], [x0, y1, z1]]
+    loops = {"bottom": (b + 0, b + 3, b + 2, b + 1), "top": (b + 4, b + 5, b + 6, b + 7),
+             "y0": (b + 0, b + 1, b + 5, b + 4), "x1": (b + 1, b + 2, b + 6, b + 5),
+             "y1": (b + 2, b + 3, b + 7, b + 6), "x0": (b + 3, b + 0, b + 4, b + 7)}
+    ids = {}
+    for name, loop in loops.items():
+        if name in skip:
+            continue
+        ids[name] = [len(fv), len(fv) + 1]
+        _quads(P, uvs, fv, fvt, fm, [loop], material=material)
+    return ids
+
+
+def slab_with_its_side_broken(kind="tooth_and_sign", size=40.0):
+    """Review of brief 10, I3 (`probe_piece_attachment.py`): a closed slab `size` square, 8 in deep
+    (bottom and three skirts, wound outward), whose x = 0 side is missing or broken, and what
+    stands near it:
+      "tooth_and_sign"  the side missing but for ONE tooth (m0, in the side plane, base 8 in on the
+                        top edge, apex 6 in down) and a SIGN in m0 1.2 in in front of it, z -5..-1:
+                        1.2 in from the tooth in 3-D, its projection overlapping the tooth's;
+      "middle_strip"    only the side's MIDDLE strip survives (m0, z -6..-2, whole length, in the
+                        side plane), touching neither the top edge nor the foot;
+      "deep_tooth_m1"   the side missing but for ONE tooth in m1, 0.9 in in front of the side plane
+                        (as file B's sawtooth teeth stand off it) and reaching 3 in below the slab
+                        (apex at z -11): the only piece of its wall, which the cap guard gives back
+                        -- and no face of the wall lies on it.
+    Returns `(mesh, {name: face ids})`."""
+    s = size
+    P, uvs, fv, fvt, fm = [], [], [], [], []
+    _box_without(P, uvs, fv, fvt, fm, 0, s, 0, s, -8, 0, skip=("x0",))
+    watch = {}
+    c = 0.5 * s
+    if kind in ("tooth_and_sign", "deep_tooth_m1"):
+        apex, x = (-6.0, 0.0) if kind == "tooth_and_sign" else (-11.0, -0.9)
+        b = len(P)
+        P += [[x, c - 4, 0.0], [x, c + 4, 0.0], [x, c, apex]]
+        watch["tooth"] = [len(fv)]
+        fv.append([b + 1, b + 2, b + 0])                             # normal -x, outward
+        k = len(uvs)
+        uvs += [[P[v][1] * 0.05, P[v][2] * 0.05] for v in (b + 1, b + 2, b + 0)]
+        fvt.append([k, k + 1, k + 2])
+        fm.append(1 if kind == "deep_tooth_m1" else 0)
+    if kind == "tooth_and_sign":
+        ys, b = c + 3.0, len(P)
+        P += [[-1.2, ys, -5], [-1.2, ys, -1], [-1.2, ys + 8, -1], [-1.2, ys + 8, -5]]
+        watch["sign"] = [len(fv), len(fv) + 1]
+        _quads(P, uvs, fv, fvt, fm, [(b, b + 1, b + 2, b + 3)])
+    if kind == "middle_strip":
+        b = len(P)
+        P += [[0, 0, -6], [0, 0, -2], [0, s, -2], [0, s, -6]]
+        watch["strip"] = [len(fv), len(fv) + 1]
+        _quads(P, uvs, fv, fvt, fm, [(b, b + 1, b + 2, b + 3)])
+    return _mesh(f"slab_with_its_side_broken_{kind}", P, uvs, fv, fvt, materials=("m0", "m1"),
+                 face_material=fm), watch
+
+
+def slab_with_a_lamp_under_it(size=40.0):
+    """Review of brief 10, I3 (`probe_bottom_piece_belonging.py`): a slab `size` square with four
+    8 in skirts and NO bottom; under it hangs a lamp -- a closed box 6 x 6 x 2 in, m1, centred, its
+    top face 2 in BELOW the slab's bottom plane (z -12..-10), touching nothing. The bottom goes at
+    -8, and the lamp's top face lies in its band. Returns `(mesh, lamp face ids)`."""
+    s = size
+    P, uvs, fv, fvt, fm = [], [], [], [], []
+    _box_without(P, uvs, fv, fvt, fm, 0, s, 0, s, -8, 0, skip=("bottom",))
+    c = s / 2.0
+    first = len(fv)
+    _box_without(P, uvs, fv, fvt, fm, c - 3, c + 3, c - 3, c + 3, -12, -10, material=1)
+    return (_mesh("slab_with_a_lamp_under_it", P, uvs, fv, fvt, materials=("m0", "m1"),
+                  face_material=fm), np.arange(first, len(fv)))
