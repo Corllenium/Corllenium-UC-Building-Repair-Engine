@@ -23,7 +23,10 @@ more back pixels) -> `analyse_topology` on the flipped
 result -> `engine.fixes.overlap.remove_overlaps`, which drops a duplicate layer the rest of its
 own region already covers, under the SAME strict guard (the merge can do nothing with a region
 that overlaps itself: rule 3 excludes the triangles and a region whose union still overlaps is
-skipped outright) -> `analyse_topology` again -> `merge_regions` -> a final guard of the merged
+skipped outright) -- and, brief 13, one face of every exactly stacked opposite-wound
+same-material pair, the one turned away from the side the reference's exposure says the pair is
+seen from (`engine.fixes.overlap.plan_coincident_removal`) -> `analyse_topology` again ->
+`merge_regions` -> a final guard of the merged
 mesh against the ORIGINAL. If the merge
 did not converge, or the final guard fails, the result falls back to the flipped-but-unmerged
 (removal-only) mesh and `passed` reflects the fallback's own guard instead -- while
@@ -301,6 +304,14 @@ class FixResult:
     #: removed -- which of two colours a person wants is not a question geometry can answer --
     #: only reported, as the input to a later preference-driven resolution.
     overlap_pairs_diff_material: list
+    #: Brief 13. Bool, over REFERENCE-mesh faces: one copy of an exactly stacked, opposite-wound,
+    #: same-material surface, confirmed removable by the strict guard (see
+    #: `engine.fixes.overlap.plan_coincident_removal`). Not in `removed_overlap`.
+    removed_coincident: np.ndarray
+    n_removed_coincident: int
+    #: Every exactly coincident opposite-wound pair found before the merge, removed or kept, with
+    #: REFERENCE face ids and the reason -- see `plan_coincident_removal`.
+    coincident_pairs: list
     #: `engine.fixes.orient.one_sided_holes` over the ORIGINAL mesh's non-degenerate faces, and
     #: again over the mesh actually shipped (`mesh`) -- pixels a one-sided renderer would still
     #: drop as a hole. `_after` is expected to be lower than `_before`.
@@ -801,17 +812,37 @@ def fix_object(mesh: MeshData, flatness: dict[str, float], profile: FixProfile =
     # Before the merge and after the flip: the merge cannot do anything with a region that
     # overlaps itself (rule 3 excludes the triangles, and a region whose union still overlaps is
     # skipped outright), and flipping first means a face is judged in the winding it will ship in.
+    # In the same guarded pass, brief 13: one face of each exactly stacked, opposite-wound,
+    # same-material pair -- the one turned away from the side the pair is seen from.
     topo2 = analyse_topology(mesh_flipped, flat_materials, **angles)
+    # brief 13: each face's side exposure ON THE REFERENCE, read in the winding it now has
+    front_now = np.where(flip_removed, back[source_after_fragments], front[source_after_fragments])
+    back_now = np.where(flip_removed, front[source_after_fragments], back[source_after_fragments])
     overlap_result = remove_overlaps(
         mesh_flipped, topo2, positions_c, flat_materials, depth_tol,
-        guard_size=profile.guard_size, crack_closed_cap=profile.crack_closed_cap)
+        guard_size=profile.guard_size, crack_closed_cap=profile.crack_closed_cap,
+        side_exposure=(front_now, back_now))
     mesh_overlapped = overlap_result.mesh
     source_from_overlap = source_after_fragments[overlap_result.source_faces]
 
+    removed_coincident_full = np.zeros(mesh.n_faces, dtype=bool)
+    removed_coincident_full[source_after_fragments[overlap_result.removed_coincident]] = True
     removed_overlap_full = np.zeros(mesh.n_faces, dtype=bool)
-    removed_overlap_full[source_after_fragments[overlap_result.removed]] = True
+    removed_overlap_full[source_after_fragments[overlap_result.removed
+                                                & ~overlap_result.removed_coincident]] = True
     restored_overlap_full = np.zeros(mesh.n_faces, dtype=bool)
-    restored_overlap_full[source_after_fragments[overlap_result.restored]] = True
+    restored_overlap_full[source_after_fragments[overlap_result.restored
+                                                 & ~overlap_result.coincident_proposed]] = True
+    coincident_pairs = []
+    for p in overlap_result.coincident_pairs:
+        # ...with REFERENCE face ids, and the pair's place in the model's own coordinates
+        centroid = np.asarray(p["centroid"]) + centre
+        coincident_pairs.append({
+            **p, **{key: None if p[key] is None else int(source_after_fragments[p[key]])
+                    for key in ("kept", "removed")},
+            "faces": [int(source_after_fragments[f]) for f in p["faces"]],
+            "centroid": np.round(centroid, 3).tolist(),
+            "plane": [*p["normal"], round(-float(np.asarray(p["normal"]) @ centroid), 3) + 0.0]})
     # every face id leaving this function indexes the REFERENCE mesh
     overlap_pairs_diff_material = [
         {"faces": [int(source_after_fragments[e["faces"][0]]),
@@ -938,7 +969,7 @@ def fix_object(mesh: MeshData, flatness: dict[str, float], profile: FixProfile =
     # so a merged border may sit that far inside the original one -- the movement the final
     # guard measures and excuses. Compared exactly, review 2a's E4 plate (its unique max-x
     # vertex 0.1 in off a straight edge, dropped) failed a run whose guard passed.
-    deleted = drop | removed_fragments_full | removed_overlap_full
+    deleted = drop | removed_fragments_full | removed_overlap_full | removed_coincident_full
     surviving_face_v = mesh.face_v[~deleted] if len(mesh.face_v) else mesh.face_v
     ref_used = np.unique(surviving_face_v) if len(surviving_face_v) else []
     final_used = np.unique(final_mesh.face_v) if len(final_mesh.face_v) else []
@@ -985,6 +1016,9 @@ def fix_object(mesh: MeshData, flatness: dict[str, float], profile: FixProfile =
         n_removed_overlap=overlap_result.report["n_removed_overlap"],
         n_restored_overlap=overlap_result.report["n_restored_overlap"],
         overlap_pairs_diff_material=overlap_pairs_diff_material,
+        removed_coincident=removed_coincident_full,
+        n_removed_coincident=int(removed_coincident_full.sum()),
+        coincident_pairs=coincident_pairs,
         one_sided_holes_before=one_sided_holes_before, one_sided_holes_after=one_sided_holes_after,
         backface_px=backface_px,
         feedback_history={"hidden": history_hidden, "slit": history_slit,

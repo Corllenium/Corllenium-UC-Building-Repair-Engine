@@ -221,3 +221,126 @@ def test_two_exactly_stacked_layers_are_one_patch_not_two():
     assert int(plan.remove.sum()) == m.n_faces // 2
     assert plan.remove[m.n_faces // 2:].all()
     assert not plan.remove[: m.n_faces // 2].any()
+
+
+# ---------------------------------------------------------------------- brief 13: stacked copies
+# One copy of an exactly stacked, opposite-wound, same-material surface goes (the owner's
+# decision of 2026-09-25); `engine/tests/test_pipeline.py` has the brief's four cases end to end.
+
+from dataclasses import replace
+
+import pytest
+
+from engine.fixes.overlap import find_coincident_pairs, plan_coincident_removal
+from engine.tests.fixtures.build import open_tray_with_a_copy_of_its_top
+from engine.vis.exposure import compute_side_exposure
+
+
+def _tray_exposure(mesh):
+    topo, positions_c = _centred(mesh)
+    front, back = compute_side_exposure(positions_c, topo.face_w, topo.ok, n_dirs=32)
+    return topo, positions_c, front, back
+
+
+def _with_a_second_copy_wound_up(mesh):
+    """The tray with a THIRD layer: faces 10-11, the top's own two triangles again, wound up."""
+    return replace(mesh, face_v=np.vstack([mesh.face_v, mesh.face_v[:2]]),
+                   face_vt=np.vstack([mesh.face_vt, mesh.face_vt[:2]]),
+                   face_vn=np.vstack([mesh.face_vn, mesh.face_vn[:2]]),
+                   face_material=np.concatenate([mesh.face_material, mesh.face_material[:2]]),
+                   face_line=np.arange(1, mesh.n_faces + 3, dtype=np.int64))
+
+
+def test_find_coincident_pairs_pairs_each_face_of_the_copy_with_the_face_it_lies_on():
+    m = open_tray_with_a_copy_of_its_top()
+    topo, positions_c = _centred(m)
+    pairs = find_coincident_pairs(positions_c, topo.face_w, topo.ok)
+    assert [(i, j) for i, j, _a in pairs] == [(0, 8), (1, 9)]
+    assert [a for _i, _j, a in pairs] == pytest.approx([800.0, 800.0])
+
+
+def test_find_coincident_pairs_leaves_a_same_wound_duplicate_to_the_overlap_pass():
+    m = stacked_duplicate_slab(nx=3, ny=3)
+    topo, positions_c = _centred(m)
+    assert find_coincident_pairs(positions_c, topo.face_w, topo.ok) == []
+
+
+def test_an_exposure_tie_keeps_both_faces():
+    """Seen exactly as much from each side, neither face has the better claim: both stay. Fails
+    if a tie falls to either face."""
+    m = open_tray_with_a_copy_of_its_top()
+    topo, positions_c, _front, _back = _tray_exposure(m)
+    even = np.full(m.n_faces, 0.25)
+    plan = plan_coincident_removal(m, topo, positions_c, even, even, size=_SIZE)
+
+    assert not plan.remove.any()
+    assert [p["reason"] for p in plan.pairs] == ["exposure tie"] * 2
+    assert all(p["kept"] is None and p["removed"] is None for p in plan.pairs)
+
+
+def test_the_side_the_guard_views_see_less_is_never_the_one_kept():
+    """Condition 4's purpose, measured: back pixels seen from outside must not go up. Told the
+    underside is the more exposed side (the exposure arrays swapped), the rule would keep the
+    copy facing DOWN -- but the guard views see the tray's top more from above, so the pair is
+    left as it is. Fails if exposure alone decides."""
+    m = open_tray_with_a_copy_of_its_top()
+    topo, positions_c, front, back = _tray_exposure(m)
+    honest = plan_coincident_removal(m, topo, positions_c, front, back, size=_SIZE)
+    assert np.nonzero(honest.remove)[0].tolist() == [8, 9]
+    for p in honest.pairs:
+        assert p["px"][0] > p["px"][1] > 0                  # more pixels see it from above
+
+    swapped = plan_coincident_removal(m, topo, positions_c, back, front, size=_SIZE)
+    assert not swapped.remove.any()
+    assert [p["reason"] for p in swapped.pairs] == ["the guard views see the other side more"] * 2
+    assert [p["px"] for p in swapped.pairs] == [p["px"] for p in honest.pairs]
+
+
+def test_two_pairs_that_disagree_about_one_face_never_remove_the_face_one_of_them_keeps(
+        monkeypatch):
+    """Three layers: the top (up), the copy (down) and the top again (up, faces 10-11). Each
+    exposure estimate is a sample, and here the second pair's samples say the copy's side is the
+    more exposed: it would keep the copy the first pair removed. The first decision stands and the
+    second pair keeps both, so every position keeps a face. Fails if a pair may remove the face
+    another pair kept, or keep the face another pair removed.
+
+    The guard views are taken out of the question (no pixel on either side), because on a real
+    stack they side with the first pair: one render counts the same pixels for both."""
+    m = _with_a_second_copy_wound_up(open_tray_with_a_copy_of_its_top())
+    topo, positions_c, front, back = _tray_exposure(m)
+    front, back = front.copy(), back.copy()
+    front[[10, 11]], back[[10, 11]] = 0.0, 1.0      # faces 10-11 sample their up side as blind
+    none = np.zeros(m.n_faces, dtype=np.int64)
+    monkeypatch.setattr(overlap_module, "side_pixels", lambda *a, **kw: (none, none))
+    plan = plan_coincident_removal(m, topo, positions_c, front, back, size=_SIZE)
+
+    pairs = {tuple(p["faces"]): p for p in plan.pairs}
+    assert sorted(pairs) == [(0, 8), (1, 9), (8, 10), (9, 11)]
+    assert np.nonzero(plan.remove)[0].tolist() == [8, 9]
+    assert all(pairs[k]["removed"] == k[1] for k in [(0, 8), (1, 9)])
+    assert all(pairs[k]["reason"] == "conflicts with another pair" for k in [(8, 10), (9, 11)])
+
+
+def test_a_pair_the_guard_puts_back_is_reported_as_kept():
+    m = open_tray_with_a_copy_of_its_top()
+    topo, positions_c, front, back = _tray_exposure(m)
+    result = remove_overlaps(
+        m, topo, positions_c, frozenset({0}), 1.5 * float(topo.quanta.max()), guard_size=_SIZE,
+        side_exposure=(front, back),
+        guard=lambda candidates, *a, **kw: (np.zeros_like(candidates), [{"round": 0}]))
+
+    assert not result.removed_coincident.any() and result.mesh.n_faces == m.n_faces
+    assert result.report["n_coincident_pairs"] == 2
+    assert result.report["n_removed_coincident"] == 0
+    assert result.restored.tolist() == [False] * 8 + [True, True]
+    assert all(p["verdict"] == "kept" and p["reason"] == "put back by the guard"
+               and p["kept"] is None and p["removed"] is None for p in result.coincident_pairs)
+
+
+def test_no_side_exposure_means_no_stacked_copy_is_touched():
+    """`remove_overlaps` as it was called before brief 13: the rule needs the exposure to decide
+    which side a pair is seen from, and without it proposes nothing."""
+    m = open_tray_with_a_copy_of_its_top()
+    result = _removed(m)
+    assert result.mesh.n_faces == m.n_faces
+    assert result.coincident_pairs == [] and not result.removed_coincident.any()

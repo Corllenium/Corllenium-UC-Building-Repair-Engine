@@ -837,3 +837,142 @@ def test_fix_object_never_re_winds_a_face_lying_on_another():
     assert r.sheet_report["faces_lying_on_another"] == 2
     assert not r.removed_overlap[[6, 7, 30, 31]].any()
     assert r.passed is True
+
+
+# ---------------------------------------------------------------------------------------------
+# Brief 13: ONE copy of an exactly stacked, opposite-wound, same-material surface -- the owner's
+# decision of 2026-09-25 ("so that it won't flick in Unity"). Everything wider keeps both faces.
+# ---------------------------------------------------------------------------------------------
+
+from engine.tests.fixtures.build import open_tray_with_a_copy_of_its_top
+
+
+def _layer_at(mesh, z):
+    """`(area, n_z sign)` per face of `mesh` lying flat at height `z`."""
+    tri = mesh.positions[mesh.face_v]
+    on = np.abs(tri[:, :, 2] - z).max(axis=1) < 1e-9
+    cross = np.cross(tri[on, 1] - tri[on, 0], tri[on, 2] - tri[on, 0])
+    return 0.5 * np.linalg.norm(cross, axis=1), np.sign(cross[:, 2])
+
+
+def test_an_exactly_stacked_opposite_wound_copy_loses_the_face_turned_away():
+    """The open tray's top is seen from above and, through the open bottom, from below -- more
+    from above -- and carries an exact copy of itself wound DOWN, same material, same UVs. One
+    face per position remains, the one facing up: the side with the larger exposure. Fails when
+    the pair is left alone (two layers, 3,200 sq in at z = 0, which HEAD shipped) and when the
+    wrong one goes (a top facing down)."""
+    m = open_tray_with_a_copy_of_its_top()
+    r = fix_object(m, {}, _fast(solidify=False))
+
+    area, up = _layer_at(r.mesh, 0.0)
+    assert area.sum() == pytest.approx(40.0 * 40.0)          # one layer, not two
+    assert (up > 0).all()                                     # and it faces up
+    assert r.removed_coincident.tolist() == [False] * 8 + [True, True]
+    assert r.n_removed_coincident == 2
+    pairs = sorted(r.coincident_pairs, key=lambda p: p["faces"])
+    assert [(p["faces"], p["kept"], p["removed"]) for p in pairs] == [([0, 8], 0, 8),
+                                                                      ([1, 9], 1, 9)]
+    for p in pairs:
+        assert p["verdict"] == "removed" and p["reason"] is None
+        assert p["side_kept"] == pytest.approx([0.0, 0.0, 1.0])
+        assert p["seen_from_both_sides"] is True          # the tray's top is seen from below too
+        assert p["exposure"][0] > p["exposure"][1] > 0.0   # faces[0], the top, faces the more
+        assert p["px"][0] > p["px"][1]                     # ...and the guard views agree
+        assert p["materials"] == ["m0", "m0"] and p["area"] == pytest.approx(800.0)
+        assert p["plane"] == pytest.approx([0.0, 0.0, 1.0, 0.0])   # z = 0, in model coordinates
+    assert pairs[0]["centroid"] == pytest.approx([80.0 / 3.0, 40.0 / 3.0, 0.0], abs=1e-3)
+    assert pairs[1]["centroid"] == pytest.approx([40.0 / 3.0, 80.0 / 3.0, 0.0], abs=1e-3)
+    assert r.guard_final.passed and r.passed
+
+
+def test_a_copy_the_guard_puts_back_is_reported_as_kept_and_counted_apart(monkeypatch):
+    """The strict guard has the last word here too. A copy it puts back stays, its pair says so,
+    and it is not counted as a duplicate layer put back (`restored_overlap` is the same-wound
+    pass's own)."""
+    import engine.fixes.overlap as overlap_module
+
+    def refuses_everything(candidates, *args, **kwargs):
+        return np.zeros_like(candidates), [{"round": 0}]
+
+    monkeypatch.setattr(overlap_module, "guard_feedback", refuses_everything)
+    r = fix_object(open_tray_with_a_copy_of_its_top(), {}, _fast(solidify=False))
+
+    area, _up = _layer_at(r.mesh, 0.0)
+    assert area.sum() == pytest.approx(3200.0)
+    assert not r.removed_coincident.any() and r.n_removed_coincident == 0
+    assert not r.restored_overlap.any() and r.n_restored_overlap == 0
+    assert [(p["verdict"], p["reason"]) for p in r.coincident_pairs] == [
+        ("kept", "put back by the guard")] * 2
+
+
+def test_a_stacked_copy_in_another_material_keeps_both_faces():
+    """A real two-sided surface -- a different material on each side -- is what the blocked-
+    operation rule protects, and still does. Fails if the rule stops comparing materials: the m1
+    copy is then removed like a same-material one."""
+    m = open_tray_with_a_copy_of_its_top(copy_material=1)
+    r = fix_object(m, {}, _fast(solidify=False))
+
+    area, up = _layer_at(r.mesh, 0.0)
+    assert area[up > 0].sum() == pytest.approx(1600.0)
+    assert area[up < 0].sum() == pytest.approx(1600.0)       # both layers ship
+    assert not r.removed_coincident.any()
+    pairs = sorted(r.coincident_pairs, key=lambda p: p["faces"])
+    assert [p["faces"] for p in pairs] == [[0, 8], [1, 9]]
+    assert all(p["verdict"] == "kept" and p["reason"] == "different materials" for p in pairs)
+    assert all(p["kept"] is None and p["removed"] is None for p in pairs)
+    assert r.passed
+
+
+def _near_the_real_files(mesh):
+    """The same mesh, moved to y = 24,000 in like the real files, whose print step there (0.1 in)
+    makes every plane tolerance the engine derives from it 0.15 in -- wide enough to call a copy
+    0.01 in off the same plane."""
+    from dataclasses import replace
+    return replace(mesh, positions=mesh.positions + np.array([0.0, 24_000.0, 0.0]))
+
+
+@pytest.mark.parametrize("copy, z_copy, copy_area", [({"offset": 0.01}, 0.01, 1600.0),
+                                                     ({"half": True}, 0.0, 800.0)])
+def test_an_offset_or_partial_copy_is_not_a_pair_and_keeps_both_faces(copy, z_copy, copy_area):
+    """A copy 0.01 in off the plane, or one covering only half of the top, is not the same surface
+    drawn twice: both stay, and neither is even reported as a pair. Fails if coincidence is judged
+    by the engine's 0.15 in plane tolerance instead of the 0.001 in print precision (the offset
+    copy goes), or by any overlap instead of 0.99 both ways (the half copy goes)."""
+    m = _near_the_real_files(open_tray_with_a_copy_of_its_top(**copy))
+    assert 1.5 * float(analyse_topology(m).quanta.max()) == pytest.approx(0.15)
+    r = fix_object(m, {}, _fast(solidify=False))
+
+    area, up = _layer_at(r.mesh, 0.0)
+    assert area[up > 0].sum() == pytest.approx(1600.0)                  # the top
+    area_copy, up_copy = _layer_at(r.mesh, z_copy)
+    assert area_copy[up_copy < 0].sum() == pytest.approx(copy_area)     # and the copy, whole
+    assert not r.removed_coincident.any() and r.coincident_pairs == []
+    assert r.passed
+
+
+def test_a_stacked_copy_whose_uvs_are_shifted_half_a_tile_keeps_both_faces():
+    """Same material, but the copy's texture sits half a tile off: from one side the look would
+    change, so both stay. Fails if the rule stops comparing UV mappings."""
+    m = open_tray_with_a_copy_of_its_top(uv_shift=0.5)
+    r = fix_object(m, {}, _fast(solidify=False))
+
+    area, up = _layer_at(r.mesh, 0.0)
+    assert area[up > 0].sum() == pytest.approx(1600.0)
+    assert area[up < 0].sum() == pytest.approx(1600.0)
+    assert not r.removed_coincident.any()
+    pairs = sorted(r.coincident_pairs, key=lambda p: p["faces"])
+    assert [p["faces"] for p in pairs] == [[0, 8], [1, 9]]
+    assert all(p["verdict"] == "kept" and p["reason"] == "different UV mapping" for p in pairs)
+    assert r.passed
+
+
+def test_a_stacked_copy_whose_uvs_are_shifted_whole_tiles_is_the_same_surface():
+    """Modulo WHOLE tiles a texture repeats, so a copy three tiles off looks exactly the same:
+    one face per position remains. Fails if UV mappings are compared as numbers instead."""
+    m = open_tray_with_a_copy_of_its_top(uv_shift=3.0)
+    r = fix_object(m, {}, _fast(solidify=False))
+
+    area, up = _layer_at(r.mesh, 0.0)
+    assert area.sum() == pytest.approx(1600.0) and (up > 0).all()
+    assert r.removed_coincident.tolist() == [False] * 8 + [True, True]
+    assert r.passed

@@ -261,7 +261,9 @@ def orient_sheets(positions_c: np.ndarray, faces: np.ndarray, front: np.ndarray,
     3. never a face another face lies ON (`_lying_on_another`): re-winding one of an
        opposite-wound coincident pair would make it look like a duplicate layer to the overlap
        pass, and that is the one operation that must never happen to such a pair -- nor can the
-       guard see it happen, since a flip never changes a double-sided render;
+       guard see it happen, since a flip never changes a double-sided render. (Brief 13 reduces
+       an EXACT same-material, same-UV pair to one face, by its own measured conditions, in
+       `engine.fixes.overlap.plan_coincident_removal` -- never by re-winding here.);
     4. MEASURED: the sheet is re-wound only when its back pixels -- pixels over `views` at
        `size` whose first hit is one of its faces met on its back -- do not go up. Flipping never
        changes a double-sided render, so ONE render of `faces` counts every face's pixels on each

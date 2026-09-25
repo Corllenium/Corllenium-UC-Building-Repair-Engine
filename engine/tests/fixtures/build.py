@@ -2131,3 +2131,42 @@ def overhang_beside_a_slab_variant(variant="shaded", size=40.0):
         _closed_box(P, uvs, fv, fvt, fm, 55 * k, 65 * k, 19 * k, 21 * k, -6, -1, material=1)
     return _mesh(f"overhang_beside_a_slab_{variant}", P, uvs, fv, fvt, materials=("m0", "m1"),
                  face_material=fm)
+
+
+def open_tray_with_a_copy_of_its_top(size=40.0, height=8.0, copy_material=0, offset=0.0,
+                                     half=False, uv_shift=0.0):
+    """Brief 13 (the owner's decision of 2026-09-25): `slab_with_three_skirts` -- a flat top at
+    z = 0 over skirts `height` deep on three sides, NO bottom, the x = 0 side open -- carrying a
+    SECOND copy of its top on four vertices of its own, wound DOWN (-z): the same surface twice,
+    stacked with opposite windings, which z-fights in Unity's double-sided campus shader.
+
+    Through the open bottom the top is seen from below as well as from above, more from above,
+    so both copies are thin (both sides exposed, roughly equally) and the per-face flip leaves
+    them as they are wound. That is the case that reached the output before brief 13. The same
+    copy on a CLOSED slab never does: seen only from above, its only exposure is on its back, so
+    it is flipped and then removed as a same-wound duplicate layer (`engine.fixes.overlap`).
+
+    The copy's UVs map every point exactly as the top's do (`(x, y) * 0.05`), plus `uv_shift`
+    tiles in u. `copy_material=1` makes the copy m1 (the top stays m0); `offset` lifts the copy
+    that far above the top; `half` makes it cover only the middle half of the top, x from size / 4
+    to 3 size / 4 -- its corners on the top's outline, sharing no edge with it (a copy sharing an
+    edge would be a fold, `engine.detectors.folds`' to resolve).
+
+    Faces: 0-1 the top (0 is (0,0)-(s,0)-(s,s), 1 is (0,0)-(s,s)-(0,s)), 2-7 the three skirts,
+    8-9 the copy -- when whole, 8 lies exactly on 0 and 9 on 1, each wound the other way."""
+    m = slab_with_three_skirts(size, height)
+    P = m.positions.tolist()
+    uvs, fv, fvt = m.uvs.tolist(), m.face_v.tolist(), m.face_vt.tolist()
+    fm = m.face_material.tolist()
+    s = float(size)
+    x0, x1 = (s / 4.0, 3.0 * s / 4.0) if half else (0.0, s)
+    k = len(P)
+    P += [[x0, 0.0, offset], [x1, 0.0, offset], [x1, s, offset], [x0, s, offset]]
+    base = len(uvs)
+    uvs += [[P[v][0] * 0.05 + uv_shift, P[v][1] * 0.05] for v in range(k, k + 4)]
+    fv += [[k, k + 2, k + 1], [k, k + 3, k + 2]]                       # -z
+    fvt += [[base, base + 2, base + 1], [base, base + 3, base + 2]]
+    fm += [copy_material, copy_material]
+    materials = ("m0", "m1") if copy_material else ("m0",)
+    return _mesh("open_tray_with_a_copy_of_its_top", P, uvs, fv, fvt, materials=materials,
+                 face_material=fm)
