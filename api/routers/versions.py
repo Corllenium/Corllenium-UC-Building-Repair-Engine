@@ -470,6 +470,9 @@ def run_fix_pipeline(
             v for v in ("+x", "-x", "+y", "-y", "+z", "-z")
             if (out_dir / f"guard_{v}.png").exists()
         ]
+        for i in range(26):
+            if (out_dir / f"guard_fail_{i}.png").exists():
+                guard_views.append(f"fail_{i}")
 
         with _skp_lock:
             skp_report = _write_skp(

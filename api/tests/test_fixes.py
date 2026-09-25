@@ -478,6 +478,29 @@ def test_fix_profile_config_bounds_validated(client, imported_cube):
     assert r5.status_code == 422
 
 
+def test_guard_view_includes_and_serves_failing_views(client, imported_cube):
+    from api.settings import get_settings
+    settings = get_settings()
+    version_id = imported_cube["versions"][0]["id"]
+    r_fix = client.post(f"/api/versions/{version_id}/fix", json={"profile": {"n_dirs": 32}})
+    assert r_fix.status_code == 201
+    run_id = r_fix.json()["id"]
+
+    # Place a synthetic failing view image in the run directory
+    run_dir = settings.data_dir / "fixed" / str(run_id)
+    fail_img = run_dir / "guard_fail_3.png"
+    fail_img.write_bytes(b"\x89PNG\r\n\x1a\nfake_png")
+
+    r_view = client.get(f"/api/runs/{run_id}/guard/fail_3")
+    assert r_view.status_code == 200
+    assert r_view.content == b"\x89PNG\r\n\x1a\nfake_png"
+
+    # Out of range or invalid views still return 404
+    assert client.get(f"/api/runs/{run_id}/guard/fail_99").status_code == 404
+    assert client.get(f"/api/runs/{run_id}/guard/fail_-1").status_code == 404
+
+
+
 
 
 

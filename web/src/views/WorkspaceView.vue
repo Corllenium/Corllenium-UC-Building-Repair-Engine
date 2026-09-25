@@ -215,7 +215,7 @@
         </div>
         <div class="modal-diff-image">
           <p class="diff-legend">
-            Left: <strong>BEFORE</strong> &middot; Middle: <strong>AFTER</strong> &middot; Right: <strong>PIXEL DIFF</strong> (Red: damage, Blue: grown, Amber: tolerated, Green: closed crack)
+            Left: <strong>BEFORE</strong> &middot; Middle: <strong>AFTER</strong> &middot; Right: <strong>PIXEL DIFF</strong> (Red: damage, Blue: grown, Amber: tolerated, Green: closed crack, Violet: z-fight tie)
           </p>
           <div class="image-wrapper">
             <img
@@ -338,7 +338,11 @@ function formatViewName(v: string): string {
     '+z': '+Z (Top)',
     '-z': '-Z (Bottom)',
   }
-  return map[v] || v
+  if (map[v]) return map[v]
+  if (v.startsWith('fail_')) {
+    return `Fail ${v.slice(5)}`
+  }
+  return v
 }
 
 const { layers, handleKeyDown } = useLayers()

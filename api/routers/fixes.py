@@ -13,7 +13,9 @@ from api.settings import Settings, get_settings
 router = APIRouter(prefix="/api/runs", tags=["runs"])
 
 
-VALID_GUARD_VIEWS: tuple[str, ...] = ("+x", "-x", "+y", "-y", "+z", "-z")
+VALID_AXIS_VIEWS: tuple[str, ...] = ("+x", "-x", "+y", "-y", "+z", "-z")
+VALID_FAIL_VIEWS: tuple[str, ...] = tuple(f"fail_{i}" for i in range(26))
+VALID_GUARD_VIEWS: tuple[str, ...] = VALID_AXIS_VIEWS + VALID_FAIL_VIEWS
 
 
 @router.get("/{id}", response_model=FixRunOut)
