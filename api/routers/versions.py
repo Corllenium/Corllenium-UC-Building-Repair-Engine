@@ -465,18 +465,21 @@ def run_fix_pipeline(
             ref_flat_mats,
             profile,
             enabled=True,
-            copy_dir=settings.skp_dir,
+            copy_dir=None,
         )
-        skp_report.setdefault("path", str(out_dir / f"{name}.fixed.skp"))
+        if skp_report.get("written"):
+            skp_report["path"] = str(out_dir / f"{name}.fixed.skp")
+        else:
+            skp_report.pop("path", None)
 
         report_data = _build_report(name, obj_path, mesh, result, profile)
         report_data["guard_views"] = guard_views
         report_data["skp"] = skp_report
-        report_data["skp_path"] = skp_report.get("copied_to") or skp_report.get("path")
+        report_data["skp_path"] = skp_report.get("path") if skp_report.get("written") else None
         report_data["skp_summary"] = (
             f"SketchUp file: {report_data['skp_path']}"
             if skp_report.get("written")
-            else f"SketchUp skipped: {skp_report.get('reason')}"
+            else f"SketchUp skipped: {skp_report.get('reason') or skp_report.get('error') or 'unknown'}"
         )
         mr = report_data.setdefault("merge_report", {})
         mr.setdefault("rolled_back", False)
@@ -492,6 +495,33 @@ def run_fix_pipeline(
         # Commit everything atomically in ONE transaction at the end
         db.commit()
         db.refresh(fix_run)
+
+        # After successful database commit, copy into the owner's folder (OBJ FIXED RESULT)
+        if skp_report.get("written") and settings.skp_dir is not None:
+            owner_copy = settings.skp_dir / f"{name}.fixed.skp"
+            failed_copy = settings.skp_dir / f"{name}.fixed.FAILED.skp"
+            dest_path = owner_copy if result.passed else failed_copy
+            if not result.passed:
+                skp_report["previous_kept"] = str(owner_copy) if owner_copy.exists() else None
+            try:
+                settings.skp_dir.mkdir(parents=True, exist_ok=True)
+                shutil.copyfile(out_dir / f"{name}.fixed.skp", dest_path)
+                skp_report["copied_to"] = str(dest_path)
+                report_data["skp_path"] = str(dest_path)
+                report_data["skp_summary"] = f"SketchUp file: {dest_path}"
+                (out_dir / "report.json").write_text(json.dumps(report_data, indent=2), encoding="utf-8")
+                fix_run.report_json = report_data
+                db.commit()
+                db.refresh(fix_run)
+            except OSError as exc:
+                skp_report["copy_error"] = str(exc)
+            if result.passed and skp_report.get("copied_to") and failed_copy.exists():
+                try:
+                    failed_copy.unlink()
+                    skp_report["removed_stale_failed_copy"] = str(failed_copy)
+                except OSError as exc:
+                    skp_report["stale_failed_copy_error"] = str(exc)
+
         return fix_run
 
     except HTTPException:

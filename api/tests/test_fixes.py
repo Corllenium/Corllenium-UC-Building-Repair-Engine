@@ -342,13 +342,14 @@ def test_fix_run_writes_skp_and_copies_to_skp_dir(client, imported_cube):
     skp_info = run_data["report_json"]["skp"]
 
     # When SketchUp DLL is available on the host
-    if skp_info.get("written"):
-        run_dir = settings.data_dir / "fixed" / str(run_data["id"])
-        name = imported_cube["name"]
-        assert (run_dir / f"{name}.fixed.skp").exists()
-        if settings.skp_dir:
-            assert (settings.skp_dir / f"{name}.fixed.skp").exists()
-        assert skp_info.get("copied_to") is not None
+    if not skp_info.get("written"):
+        pytest.skip(f"SketchUp writer skipped: {skp_info.get('reason')}")
+    run_dir = settings.data_dir / "fixed" / str(run_data["id"])
+    name = imported_cube["name"]
+    assert (run_dir / f"{name}.fixed.skp").exists()
+    if settings.skp_dir:
+        assert (settings.skp_dir / f"{name}.fixed.skp").exists()
+    assert skp_info.get("copied_to") is not None
 
 
 def test_fix_run_succeeds_when_skp_dll_absent(client, imported_cube, monkeypatch):
@@ -369,6 +370,45 @@ def test_fix_run_succeeds_when_skp_dll_absent(client, imported_cube, monkeypatch
     skp_info = run_data["report_json"]["skp"]
     assert skp_info["written"] is False
     assert "SketchUp C API DLL not found" in skp_info["reason"]
+
+
+def test_fix_run_failure_after_skp_does_not_replace_owner_skp(client, imported_cube, monkeypatch):
+    import api.routers.versions as versions_mod
+    from api.settings import get_settings
+    settings = get_settings()
+    settings.skp_dir.mkdir(parents=True, exist_ok=True)
+    name = imported_cube["name"]
+    owner_file = settings.skp_dir / f"{name}.fixed.skp"
+    owner_file.write_text("original owner skp content", encoding="utf-8")
+
+    def fake_write_skp(result, name, out_dir, flat_mats, profile, enabled=True, copy_dir=None):
+        skp_path = out_dir / f"{name}.fixed.skp"
+        skp_path.write_text("new fixed skp content", encoding="utf-8")
+        if copy_dir is not None:
+            dest = copy_dir / f"{name}.fixed.skp"
+            copy_dir.mkdir(parents=True, exist_ok=True)
+            dest.write_text("new fixed skp content", encoding="utf-8")
+            return {"written": True, "copied_to": str(dest)}
+        return {"written": True, "copied_to": None}
+
+    monkeypatch.setattr(versions_mod, "_write_skp", fake_write_skp)
+
+    def fail_build_report(*args, **kwargs):
+        raise RuntimeError("Crash after skp step")
+
+    monkeypatch.setattr(versions_mod, "_build_report", fail_build_report)
+
+    version_id = imported_cube["versions"][0]["id"]
+    r_fix = client.post(f"/api/versions/{version_id}/fix", json={"profile": {"n_dirs": 32}})
+    assert r_fix.status_code == 201
+    run_data = r_fix.json()
+    assert run_data["status"] == "failed"
+    assert "Crash after skp step" in run_data["error"]
+
+    # The owner's file must remain untouched!
+    assert owner_file.exists()
+    assert owner_file.read_text(encoding="utf-8") == "original owner skp content"
+
 
 
 
