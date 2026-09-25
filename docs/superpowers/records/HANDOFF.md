@@ -23,27 +23,26 @@ side mesh, rebuild broken or missing sides; only the model's outline edges may b
 run the latest `.skp` of each file must be in `OBJ FIXED RESULT/` for the owner to check in SketchUp
 2026. Work visually: every round ends with renders that are looked at, not only numbers.
 
-## 2. Current state (2026-09-25 06:25, written by the Claude controller)
+## 2. Current state (2026-09-25 08:15, written by the Claude controller)
 
-Branch `feat-dashboard`, HEAD `64023ad` (+ record commits). Engine suite **462 passed** (verified
-06:20). `docker-compose.yml` shows as modified: it belongs to another session, never touch it.
+Branch `feat-dashboard`, HEAD after `d9673c1` (+ record commits). Engine suite **497 passed** (brief 09
+report). `docker-compose.yml` shows as modified: it belongs to another session, never touch it.
 
-Latest outputs (05:46-05:51, code at d570927; the owner's `.skp` files were rewritten, both passed):
-file A 4,692 -> 1,033 triangles, file B 7,227 -> 596. Brief 08 re-judged the 21 pieces the fragment
-pass had removed: 10 were real surface (hairline cracks shipped until 670ad50), all kept now; still
-removed: A 3540 and A 4659 (sub-pixel slots onto the inside, fixed by brief 09), A 3908 (harmless),
-B 5634 (interior). The side rebuild is NOT yet merged, so the sawtooth ramp is still broken in the
-owner's files.
+Latest owner files (08:00-08:01, feat-dashboard at 3d30327, both passed): file A 1,031 triangles,
+file B 600. They do NOT contain the side rebuild yet.
+
+`feat/side-rebuild` is DONE (last fafd4d6; 427 passed on the branch): with it, file A 876 triangles,
+file B 486, back faces from outside A 20,793 / B 6,006 px, the owner's ramp (B region 309) close-up
+948 back px (input 43,696), no rollback, passed.
 
 Jobs:
 
-1. **SR6 — side rebuild, ramp** (brief `briefs/02-SR-side-rebuild.md`, section SR6), worktree
-   `.claude/worktrees/side-rebuild`, Claude subagent, resumed 05:43 after an overnight stream stall.
-   SR0-SR5, M1 and the report committed (6d27aaa); SR6 items 1-2 were uncommitted at 05:42.
-2. **Brief 09** (sliver ray confirmation, folds), main checkout, Claude subagent since 06:25.
-3. Next: `briefs/03-reconcile-and-verify.md` once both are done (conflicts expected in build.py and
-   test_cli.py; compare.py/pipeline.py/cli.py hunks mostly in different functions), then review part 2
-   (the side rebuild and Hermes's brief-07 commits, already reviewed as 2a).
+1. **Brief 03 — reconcile**, main checkout, Claude subagent since 08:15: merge feat/side-rebuild into
+   feat-dashboard. A dry merge conflicts in engine/cli.py, engine/fixes/pipeline.py,
+   engine/tests/fixtures/build.py, engine/tests/test_cli.py, engine/tests/test_guard.py
+   (compare.py auto-merges). Both sides' behaviour must survive; then both real runs write the owner's
+   `.skp` files.
+2. Next: review part 2 (the side rebuild), then brief 10 (side rebuild follow-ups).
 
 **If you take over one of these** (for example because Claude hit its usage limit): follow the
 lapse rule at the top of `WORK-CLAIMS.md`, take the claim over in writing, run `git status` and
