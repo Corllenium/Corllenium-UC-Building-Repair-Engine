@@ -142,9 +142,12 @@ _PIECE_INSIDE_FRACTION = 0.5
 
 #: Brief 10 item 6 (triage B1): an underside a top runs into lies WITHIN that top's outline --
 #: a block standing on its slab -- when at least this fraction of its footprint lies inside the
-#: convex hull of the top's footprint. Measured: file B's stair blocks on its 1 m slab (regions
-#: 115, 134, 147, 148 under the landing, region 92) lie 0.99-1.00 inside; every candidate of
-#: file A below 0.99 is a slab's real underside beside a lower top (regions 57, 455: 0.00).
+#: convex hull of the top's footprint. Measured (review of brief 10, M5; the report's
+#: `interface_candidates`): of file B's stair blocks on its 1 m slab (region 92), 115 and 148 lie
+#: 1.000 inside and 147 0.991 -- taken; 134 lies 0.987 inside and is NOT taken (13,748 sq in, 179
+#: of them outside the hull). Every candidate of file A lies 0.476 or less inside (310: 0.476 and
+#: 0.334; 455, 421, 288: 0.000): a slab's real underside beside a lower top. A block and an
+#: overhang over a notch whose sides were lost read alike to this test (review of brief 10, M6).
 INTERFACE_HULL_FRACTION = 0.99
 
 #: Review of brief 10, M4: how far above a region a top runs into `_is_underside`'s ABOVE test
@@ -320,8 +323,8 @@ def _is_underside(topo: Topology, members: np.ndarray, edges: list[tuple[int, in
     1. BELOW: no slab body hangs from it -- no own side reaches at least `min_body` (the thinnest
        slab the engine builds) below one of its edges it does NOT continue across. A side along
        an edge the top continues across is the neighbour's: file A's region 33 and the review's
-       overhang each had one (29.6 in, 8 in), and SR6's test, which counted every own side, took
-       them for tops. Measured on file A, the real tops under the upper landing (regions 9 and
+       overhang each had one (29.52 in deep along 29.6 in of it; 8 in deep along the whole edge),
+       and SR6's test, which counted every own side, took them for tops. Measured on file A, the real tops under the upper landing (regions 9 and
        784) hang 29.52 in from such edges, and the slivers beside undersides 1.1 to 1.21 in.
     2. ABOVE: the slab it belongs to is there -- at least `TOP_SKY_FRACTION` of the rays straight
        up from it (four per face, as `_lower_surface` samples) meet a sky-seeing surface within
@@ -2008,11 +2011,16 @@ def _underside(topo: Topology, members: np.ndarray, caster, h: float, tol: float
     within `h + search_extra + tol`, and `depth` is the MEDIAN depth below the top at which they
     met it -- the slab's measured underside, which bounds its volume (rule 5 of the cap guard).
 
-    THE SEARCH REACHES PAST `h` DELIBERATELY. `h` is the SHALLOWEST height this region's own
-    sides measured, and an underside deeper than that is still this slab's underside -- it is
-    what a slab that is thicker in the middle than at its rim looks like. Stopping at `h + tol`
-    declares such a region bottomless and invents a second bottom ABOVE the real one, boxing it
-    in.
+    The search reaches past `h`, the slab's bottom height (its shallowest measured side, never
+    deeper than its representative depth), by `search_extra`: an underside a little deeper than that
+    is still this slab's. But since 9f64ae9 and 444d0ef a surface is its underside only where
+    most of the slab's side length ENDS (`_ends_here`, below), so a slab that is thicker in the
+    middle than at its rim is NOT found to have its bottom, whatever the reach -- and a second
+    bottom is invented above the real one. Measured (review of brief 10, M5,
+    `probe_thicker_in_the_middle.py`: a closed 40 x 40 slab, rim skirts and a 5 in ring of bottom
+    at -8, the middle 4 in deeper): `bottom_exists` 0, and a bottom is built at -8 over the whole
+    footprint. It replaces the ring, and in the middle it lies inside the solid, 4 in above the
+    real underside -- nothing visible changes, but the slab's volume stops there too.
 
     Bounded rather than unbounded, because "anything at all below me" is not a bottom: a slab
     100 in above a floor does not have that floor for an underside. And, given `side_runs` --

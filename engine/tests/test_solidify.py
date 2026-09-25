@@ -1391,8 +1391,9 @@ def test_a_one_metre_block_is_not_clamped_to_36_in(depth):
 
 
 def test_a_side_deeper_than_any_slab_of_the_files_is_still_clamped(monkeypatch):
-    """The ceiling stays a ceiling: a 60 in skirt -- deeper than any own side either file has but
-    one 39.4 in run -- measures the open edge at `max_thickness` (on the plan, guard bypassed)."""
+    """The ceiling stays a ceiling: a 60 in skirt -- deeper than every own side either file has,
+    B region 820's deepest (51.67 in deep over 39.4 in) included -- measures the open edge at
+    `max_thickness` (on the plan, guard bypassed)."""
     r = _planned(slab_with_three_skirts(size=40.0, height=60.0), _FAST, monkeypatch)
     assert r.report["thickness_per_region"] == {"0": pytest.approx(FixProfile().max_thickness)}
     assert FixProfile().max_thickness < 60.0
