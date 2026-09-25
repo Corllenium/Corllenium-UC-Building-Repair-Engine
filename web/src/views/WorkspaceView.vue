@@ -499,21 +499,10 @@ async function triggerFix() {
     await reloadModel()
     updateLayers()
   } catch (err: any) {
-    latestRun.value = {
-      id: 0,
-      version_id: snapshotVersion.value.id,
-      status: 'failed',
-      error: err.message || 'Fix execution failed',
-      created_at: new Date().toISOString(),
-    }
     alert(`Fix failed: ${err.message}`)
   } finally {
     fixing.value = false
   }
-}
-
-function onImageError() {
-  imgError.value = true
 }
 
 function onGlobalKeyDown(e: KeyboardEvent) {

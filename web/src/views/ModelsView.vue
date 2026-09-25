@@ -106,11 +106,18 @@ async function loadData() {
   loading.value = true
   errorMessage.value = null
   try {
-    const [src, mods] = await Promise.all([fetchSourceFiles(), fetchModels()])
-    sourceFiles.value = src
-    models.value = mods
-  } catch (err: any) {
-    errorMessage.value = formatErrorMessage(err)
+    const [srcRes, modsRes] = await Promise.allSettled([fetchSourceFiles(), fetchModels()])
+    if (modsRes.status === 'fulfilled') {
+      models.value = modsRes.value
+    }
+    if (srcRes.status === 'fulfilled') {
+      sourceFiles.value = srcRes.value
+    } else {
+      errorMessage.value = formatErrorMessage(srcRes.reason)
+    }
+    if (modsRes.status === 'rejected' && srcRes.status === 'fulfilled') {
+      errorMessage.value = formatErrorMessage(modsRes.reason)
+    }
   } finally {
     loading.value = false
   }
