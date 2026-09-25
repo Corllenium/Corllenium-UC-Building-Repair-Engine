@@ -2233,3 +2233,43 @@ def slab_with_a_lamp_under_it(size=40.0):
     _box_without(P, uvs, fv, fvt, fm, c - 3, c + 3, c - 3, c + 3, -12, -10, material=1)
     return (_mesh("slab_with_a_lamp_under_it", P, uvs, fv, fvt, materials=("m0", "m1"),
                   face_material=fm), np.arange(first, len(fv)))
+
+
+def overhang_shaded_with_a_post(size=40.0):
+    """Review of brief 10, I1 (`probe_rule6_post_beyond_the_overhang.py`): the "shaded" overhang
+    of `overhang_beside_a_slab_variant` (L x 0..W, z -8..0; B x W..2W, z 0..20, its underside U =
+    faces 12-13 flush with L's top; a roof over B) plus a POST beyond the overhang: a closed box in
+    m1, x 1.25W..1.75W, y 1.25W..1.275W, z -6..-2, outside every slab, seen from -y through the
+    open air under U. Returns `(mesh, U's face ids, the post's face ids)`."""
+    W = float(size)
+    P, uvs, fv, fvt, fm = [], [], [], [], []
+    _closed_box(P, uvs, fv, fvt, fm, 0, W, 0, W, -8, 0)
+    _closed_box(P, uvs, fv, fvt, fm, W, 2 * W, 0, W, 0, 20)
+    _closed_box(P, uvs, fv, fvt, fm, W, 2 * W, 0, W, 30, 34)
+    first = len(fv)
+    _closed_box(P, uvs, fv, fvt, fm, 1.25 * W, 1.75 * W, 1.25 * W, 1.275 * W, -6, -2, material=1)
+    return (_mesh("overhang_shaded_with_a_post", P, uvs, fv, fvt, materials=("m0", "m1"),
+                  face_material=fm), [12, 13], list(range(first, len(fv))))
+
+
+def slab_open_towards_a_box(size=40.0):
+    """Review of brief 10, I1, parts 2 and 3: L, a slab x 0..W (W is `size`), top z 0, skirted
+    10 in on y = 0 and y = W only: open at both x ends and below. Beyond x = W, a box in m1 (x
+    W..1.5W, y 0.1W..0.9W, z -9.8..-0.2) whose x = W face is missing: open towards L; a canopy (a
+    closed box, z 30..34) over it, so its lid sees no sky and is no slab's top -- no volume holds
+    its inside. Inside it, 2.6 in in from its opening (past the 2.5 in side band), a PLATE (m1,
+    x W + 2.6, y 0.15W..0.85W, z -9.5..-0.5) facing L: outside every volume, and seen only through
+    L -- through L's open ends and bottom. Returns `(mesh, the plate's face ids)`."""
+    W = float(size)
+    P, uvs, fv, fvt, fm = [], [], [], [], []
+    _box_without(P, uvs, fv, fvt, fm, 0, W, 0, W, -10, 0, skip=("bottom", "x0", "x1"))
+    _box_without(P, uvs, fv, fvt, fm, W, 1.5 * W, 0.1 * W, 0.9 * W, -9.8, -0.2, skip=("x0",),
+                 material=1)
+    _box_without(P, uvs, fv, fvt, fm, W, 1.5 * W, 0.1 * W, 0.9 * W, 30, 34)
+    b = len(P)
+    x = W + 2.6
+    P += [[x, 0.15 * W, -9.5], [x, 0.15 * W, -0.5], [x, 0.85 * W, -0.5], [x, 0.85 * W, -9.5]]
+    first = len(fv)
+    _quads(P, uvs, fv, fvt, fm, [(b, b + 1, b + 2, b + 3)], material=1)          # facing -x
+    return (_mesh("slab_open_towards_a_box", P, uvs, fv, fvt, materials=("m0", "m1"),
+                  face_material=fm), [first, first + 1])

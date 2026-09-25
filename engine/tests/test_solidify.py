@@ -964,7 +964,12 @@ def test_a_new_face_that_coincides_with_an_existing_face_is_refused():
     outside the footprint, so it is not one of that bottom's pieces), would be doubled by it.
 
     Brief 11 item 2: the bottom is now built ROUND such a face instead of over it -- nothing is
-    refused, and the bottom and the plate together close the slab from below."""
+    refused for coinciding, and the bottom and the plate together close the slab from below.
+
+    The plate faces down and sees sky past the slab, so it is planned as a top of its own, with no
+    measured depth: walls and a bottom at the fallback height hang under it. Since the review of
+    brief 10, I1, that fallback volume no longer authorises its own shell through rule 6, and
+    those 7 faces are refused (covers_outside_footprint): the plate ships as the plate it is."""
     from engine.tests.fixtures.build import _mesh, _quads
     m = slab_with_three_skirts()
     P = m.positions.tolist()
@@ -975,7 +980,8 @@ def test_a_new_face_that_coincides_with_an_existing_face_is_refused():
     _quads(P, uvs, fv, fvt, fm, [(b, b + 3, b + 2, b + 1)])            # a plate, -z
     m2 = _mesh("slab_over_a_plate", P, uvs, fv, fvt, face_material=fm)
     r = _solidified(m2)
-    assert r.report["bottom_faces_refused"]["faces"] == 0
+    assert "coincides_with_existing_face" not in r.report["bottom_faces_refused"]["reasons"]
+    assert r.report["rule6_volumes"]["not_confirmed"] == {"no_measured_depth": [4]}  # the plate
     # no kept new face overlaps the plate in its plane
     plate = shapely.Polygon([(-30, 5), (10, 5), (10, 35), (-30, 35)])
     new = r.mesh.positions[r.mesh.face_v[r.new_faces]]
@@ -1936,3 +1942,61 @@ def test_a_wall_takes_the_look_of_the_pieces_it_really_replaces():
             if np.allclose(r.mesh.positions[r.mesh.face_v[f]][:, 0], 0.0)]
     assert wall and set(r.mesh.face_material[wall].tolist()) == {0}
     assert r.report["walls_relooked"] == 1                           # the mechanism
+
+
+# ------------------------------ review of brief 10, I1: rule 6 sees only through confirmed volumes
+
+
+_I1 = FixProfile(guard_size=(240, 160), n_dirs=64)
+
+
+def _fates(r, faces):
+    """Per input face: 'replaced', 'hidden' (deleted by the hidden pass) or 'kept'."""
+    kept_in = np.nonzero(~r.replaced_input)[0]
+    ref_id = {int(f): i for i, f in enumerate(kept_in)}
+    return ["replaced" if r.replaced_input[f] else
+            "hidden" if bool(r.removed_hidden[ref_id[int(f)]]) else "kept" for f in faces]
+
+
+def test_a_wrong_volume_never_authorises_itself_through_rule_6(monkeypatch):
+    """Review of brief 10, I1 (`probe_rule6_post_beyond_the_overhang.py`): rule 6 lets a pixel
+    pass when its ray crosses a planned volume between two kept new faces -- judged against the
+    plan alone. Where the plan closes a gap that should stay open, every pixel that showed the
+    mistake became a rule-6 pixel: the shaded overhang's underside U, planned as a top, got walls
+    and a bottom; the walls covering a post beyond it, outside every slab, were kept together and
+    the hidden pass deleted U. (C1 now finds U an underside; the wrong plan is forced here.)
+
+    Rule 6 now sees only through volumes confirmed independently of the guard -- a sky-seeing top
+    as deep as its own measured sides -- and U sees no sky: its walls are refused face by face,
+    and U ships."""
+    import engine.fixes.solidify as S
+    from engine.tests.fixtures.build import overhang_shaded_with_a_post
+    monkeypatch.setattr(S, "_is_underside", lambda *args, **kwargs: False)
+    m, U, post = overhang_shaded_with_a_post()
+    r = fix_object(m, {}, _I1)
+    s = r.solidify_report
+    assert s["undersides_not_tops"] == 0                            # U planned: the wrong plan
+    assert s["rule6_volumes"]["not_confirmed"]["sees_no_sky"]       # U, seeing no sky
+    assert all(h["through_shell_px"] == 0 for h in s["cap_guard"])
+    assert s["walls_refused"]["reasons"].get("covers_outside_footprint", 0) > 0
+    assert _fates(r, U) == ["kept", "kept"]
+    assert set(_fates(r, post)) == {"kept"}
+
+
+def test_what_rule_6_hides_is_measured_and_never_deleted():
+    """Review of brief 10, I1, parts 2 and 3: a plate inside a box open only towards a slab's
+    missing side is seen only through that slab. The slab is closed (a sky-seeing top with
+    measured skirts: a confirmed volume), so the plate's pixels are covered under rule 6 alone,
+    and the hidden pass deleted it. It is now listed with its input exposure, and the hidden pass
+    keeps it: had the plan been wrong there, the plate is what the mistake would take away."""
+    from engine.tests.fixtures.build import slab_open_towards_a_box
+    m, plate = slab_open_towards_a_box()
+    r = fix_object(m, {}, _I1)
+    seen = r.solidify_report["seen_through_shell"]
+    listed = {row[0]: row for row in seen["most_exposed"]}
+    assert seen["faces"] == len(listed)                             # every one listed here
+    under_rule6 = [f for f in plate if f in listed]
+    assert under_rule6                                              # seen through the slab
+    assert all(max(listed[f][1], listed[f][2]) > 0.0 for f in under_rule6)   # visible on input
+    assert _fates(r, under_rule6) == ["kept"] * len(under_rule6)
+    assert seen["kept_from_hidden_pass"] >= len(under_rule6)

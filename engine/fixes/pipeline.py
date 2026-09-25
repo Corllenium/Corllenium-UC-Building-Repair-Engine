@@ -627,9 +627,11 @@ def fix_object(mesh: MeshData, flatness: dict[str, float], profile: FixProfile =
     # own report against the pristine input is kept as `guard_solidify`.
     solidify_report: dict = {}
     replaced_input = np.zeros(mesh.n_faces, dtype=bool)
+    seen_through_shell = None
     if profile.solidify:
         result = solidify(mesh, topo_input, profile)
         mesh, solidify_report, replaced_input = result.mesh, result.report, result.replaced
+        seen_through_shell = getattr(result, "seen_through_shell", None)
 
     topo = analyse_topology(mesh, flat_materials, **angles)
     depth_tol = guard_depth_tol(topo.quanta, profile)
@@ -673,6 +675,17 @@ def fix_object(mesh: MeshData, flatness: dict[str, float], profile: FixProfile =
     # ---- pass 1: hidden AND degenerate faces, one strict guard over the whole face set ------
     hidden_full = exposure_class == EXP_HIDDEN       # classify_exposure gives every `not ok` face
     degenerate_full = ~topo.ok                        # EXP_DEGENERATE, so these two are disjoint
+    if seen_through_shell is not None and "seen_through_shell" in solidify_report:
+        # review of brief 10, I1: never delete a face whose pixels only the cap guard's rule 6
+        # let a new face cover -- seen through a slab the plan closed. If the plan was wrong
+        # there, that face is what the mistake would take away; if it was right, it stays
+        # hidden. The reference's first rows are the input's faces not replaced, in order.
+        through_ref = np.zeros(mesh.n_faces, dtype=bool)
+        kept_input = ~np.asarray(replaced_input, dtype=bool)
+        through_ref[: int(kept_input.sum())] = np.asarray(seen_through_shell, bool)[kept_input]
+        solidify_report["seen_through_shell"]["kept_from_hidden_pass"] = int(
+            (hidden_full & through_ref).sum())
+        hidden_full = hidden_full & ~through_ref
     n_hidden_candidates = int(hidden_full.sum())
     removed_pass1, history_hidden = guard_feedback(
         hidden_full | degenerate_full, positions_c, render_faces, render_material, flat_materials,

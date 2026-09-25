@@ -158,6 +158,10 @@ class SolidifyResult:
     #: face replaced. They are NOT in `mesh`: its first rows are the input's faces with these left
     #: out, in their original order, and the invented faces follow.
     replaced: np.ndarray
+    #: Review of brief 10, I1. Bool over the INPUT mesh's faces: faces whose pixels the cap guard
+    #: allowed a new face to cover only by its rule 6 (seen through a closed slab) in the returned
+    #: state. The hidden pass never deletes one (`engine.fixes.pipeline`). None: not measured.
+    seen_through_shell: np.ndarray | None = None
 
 
 def _depth_tol(topo: Topology, profile) -> float:
@@ -1424,6 +1428,11 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
     trapezoids = 0
     # brief 11 item 2: what each region's bottom decision needs (`build_bottom`)
     bottom_plans: list[dict] = []
+    # review of brief 10, I1: the regions whose volume is confirmed independently of the cap
+    # guard -- the only ones its rule 6 may see through -- and why every other one is not
+    rule6_confirmed: set[int] = set()
+    rule6_not_confirmed: dict[str, list[int]] = {"sees_no_sky": [], "no_measured_depth": [],
+                                                 "lower_surface_deeper_than_sides": []}
 
     # ---- the bottoms, per region in plan order (brief 11 item 2) --------------------------------
     # A bottom covers the region's whole FOOTPRINT (`_add_footprint_bottom`), built ROUND every face
@@ -1683,11 +1692,26 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
                            "bottom": round(float(bottom_h), 4)})
 
         # SR6 item 1: a slab with a lower surface HAS its bottom, and its volume follows it
+        too_deep = False
         if lower is not None:
             lower_regions += 1
             if rep is not None and float(lower[1]) > rep + band:
+                too_deep = True
                 lower_deeper.append({"region": int(region), "lower_surface": round(float(lower[1]), 4),
                                      "representative_side": round(float(rep), 4)})
+        # review of brief 10, I1: a volume rule 6 may see through is a SKY-SEEING top's (with the
+        # blocks standing on it), as deep as its own measured sides say -- not a region reached
+        # only by continuing a top, not a fallback height, not a lower surface deeper than its
+        # sides plus the band. Rule 6 trusted the plan for what lies BEHIND a slab; a volume the
+        # guard alone vouches for vouched for itself there.
+        if region not in sky:
+            rule6_not_confirmed["sees_no_sky"].append(int(region))
+        elif rep is None:
+            rule6_not_confirmed["no_measured_depth"].append(int(region))
+        elif too_deep:
+            rule6_not_confirmed["lower_surface_deeper_than_sides"].append(int(region))
+        else:
+            rule6_confirmed.add(int(region))
         # the faces the slab's footprint is made of: its top's, and the blocks' standing on it
         foot_members = (np.concatenate([members] + [np.nonzero(topo.face_region == u)[0]
                                                     for u in plan["interfaces"]])
@@ -1726,8 +1750,18 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
             parallel_interior_ok=parallel_ok, shell_faces=shell_faces,
             refused_before=coincident,
             piece_cover=_bottom_piece_cover(solid, new_group, replaced_group, group_kind),
-            on_pieces=_new_faces_on_pieces(solid, new_faces, replaced_group, tol))
+            on_pieces=_new_faces_on_pieces(solid, new_faces, replaced_group, tol),
+            shell_volumes={r: v for r, v in volumes.items() if r in rule6_confirmed})
     replaced = np.asarray(detail["replaced"], bool)
+    # review of brief 10, I1: what rule 6 hid -- faces outside every volume whose pixels only it
+    # allowed a new face to cover, with their exposure on the input (front, back)
+    through = [int(f) for f in detail.get("through_shell_faces", []) if not replaced[int(f)]]
+    seen_through = np.zeros(mesh.n_faces, bool)
+    seen_through[through] = True
+    exposure = detail.get("exposure_before")
+    by_exposure = sorted(([f, round(float(exposure[0][f]), 4), round(float(exposure[1][f]), 4)]
+                          for f in through), key=lambda row: (-max(row[1], row[2]), row[0])
+                         ) if exposure is not None else [[f, None, None] for f in through]
     out, walls_relooked = _relook_walls(out, out_new, new_group[keep], wall_looks, replaced)
 
     # a group is kept whole when every one of its new faces survived the cap guard
@@ -1794,6 +1828,20 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
         #: review C1 came from, and the new faces lying on them are refused now.
         "side_pieces_given_back": int(sum(1 for f in np.nonzero(replaced_group >= 0)[0]
                                           if not replaced[f] and not kept_groups[replaced_group[f]])),
+        #: Review of brief 10, I1. The regions whose volume the cap guard's rule 6 may see
+        #: through (a sky-seeing top as deep as its own measured sides), and every other planned
+        #: region by why it may not.
+        "rule6_volumes": {"confirmed": sorted(rule6_confirmed),
+                          "not_confirmed": {k: v for k, v in rule6_not_confirmed.items() if v}},
+        #: Review of brief 10, I1. What rule 6 hides, in the returned state: the distinct input
+        #: faces outside every volume whose pixels only rule 6 let a new face cover, with their
+        #: exposure on the input (front, back), the most exposed first (20 listed). The hidden
+        #: pass never deletes one (`engine.fixes.pipeline`, `kept_from_hidden_pass`).
+        "seen_through_shell": {"faces": len(through),
+                               "exposure_max": (max((max(r[1], r[2]) for r in by_exposure),
+                                                    default=0.0) if exposure is not None
+                                                else None),
+                               "most_exposed": by_exposure[:20]},
         #: Review of brief 10, I3. Walls that had taken the look of their pieces and whose pieces
         #: the cap guard all gave back: they ship in the top's look (`_relook_walls`).
         "walls_relooked": walls_relooked,
@@ -1868,7 +1916,8 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
         "faces_newly_hidden": hidden_after - hidden_before,
         "runtime_s": round(time.perf_counter() - started, 3),
     }
-    return SolidifyResult(mesh=out, new_faces=out_new, report=report, replaced=replaced)
+    return SolidifyResult(mesh=out, new_faces=out_new, report=report, replaced=replaced,
+                          seen_through_shell=seen_through)
 
 
 def _relook_walls(out: MeshData, out_new: np.ndarray, out_group: np.ndarray, wall_looks: dict,
@@ -2474,11 +2523,16 @@ def _cap_guard(original: MeshData, solid: MeshData, new_faces: np.ndarray,
                 parallel_interior_ok: np.ndarray | None = None,
                 shell_faces: np.ndarray | None = None,
                 refused_before: np.ndarray | None = None,
-                piece_cover: dict | None = None, on_pieces: dict | None = None):
+                piece_cover: dict | None = None, on_pieces: dict | None = None,
+                shell_volumes: dict | None = None):
     """Render the original and the solidified mesh over `VIEWS_26` and drop every new face the
     cap rule refuses, and every original face a kept closing face replaces (see
     `engine.guard.compare.solidify_feedback`). Returns
     `(mesh, new_faces, history, removed, detail, keep)`, `keep` over `solid`'s faces.
+
+    `shell_volumes` (review of brief 10, I1): the volumes the guard's rule 6 may see through --
+    those confirmed independently of the guard; None lets it see through every one of `volumes`,
+    as before. `detail["exposure_before"]` is `(front, back)` on the original geometry.
 
     The exposure the cap rule reads is measured on the ORIGINAL geometry -- `faces_before`
     alone, cast against itself -- because a face that some invented face is covering has, by
@@ -2501,17 +2555,23 @@ def _cap_guard(original: MeshData, solid: MeshData, new_faces: np.ndarray,
     front, back = compute_side_exposure(positions_c, faces_before,
                                         np.ones(len(faces_before), bool), n_dirs=n_dirs)
 
-    interior = None
+    interior = shell_interior = None
     if volumes and new_group is not None and group_region is not None and len(group_region):
         interior = _interior_test(volumes, np.asarray(new_group, np.int64),
                                   np.asarray(group_region, np.int64), centre)
+        if shell_volumes is not None:
+            # review of brief 10, I1: rule 6 sees only through these (none: through nothing)
+            shell_interior = _interior_test(shell_volumes, np.asarray(new_group, np.int64),
+                                            np.asarray(group_region, np.int64), centre)
     keep, history, detail = solidify_feedback(
         positions_c, faces_before, faces_after, new_faces, front,
         cover_max_exposure=cover_max_exposure, views=VIEWS_26, size=guard_size,
         max_rounds=max_rounds, replaced_group=replaced_group, new_group=new_group,
         side_band=side_band, interior=interior, back_exposure_before=back,
         parallel_interior_ok=parallel_interior_ok, shell_faces=shell_faces,
-        refused_before=refused_before, piece_cover=piece_cover, on_pieces=on_pieces)
+        refused_before=refused_before, piece_cover=piece_cover, on_pieces=on_pieces,
+        shell_interior=shell_interior)
+    detail["exposure_before"] = (front, back)
     removed = int((~keep & new_faces).sum())
     if keep.all():
         return solid, new_faces, history, 0, detail, keep

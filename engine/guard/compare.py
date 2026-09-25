@@ -1457,7 +1457,8 @@ def solidify_feedback(positions_c: np.ndarray, faces_before: np.ndarray, faces_a
                        shell_faces: np.ndarray | None = None,
                        refused_before: np.ndarray | None = None,
                        piece_cover: dict | None = None,
-                       on_pieces: dict | None = None
+                       on_pieces: dict | None = None,
+                       shell_interior=None
                        ) -> tuple[np.ndarray, list[dict], dict]:
     """The CAP GUARD: which of the faces `engine.fixes.solidify` invented may stay -- and, since
     SR2, which of the original faces it REPLACES may go.
@@ -1580,6 +1581,15 @@ def solidify_feedback(positions_c: np.ndarray, faces_before: np.ndarray, faces_a
     wall hanging below the bottom (a fin) is met from outside, and the ray beyond it runs under
     the slab, not through it.
 
+    Review of brief 10, I1: rule 6 trusts the plan for what lies BEHIND a slab, outside every
+    volume -- where a wrong volume closes a gap that should stay open, every pixel that showed
+    the mistake became a rule-6 pixel, and the faces behind it were deleted by the hidden pass.
+    So its path is sampled with `shell_interior` when given: the volumes confirmed independently
+    of this guard (`engine.fixes.solidify` passes the sky-seeing tops whose depth their own
+    measured sides set); a shell of any other volume keeps the per-face refusal. `None` samples
+    with `interior`, as before. The distinct faces rule-6 pixels covered in the returned state
+    are `detail["through_shell_faces"]`, counted per round as `through_shell_faces`.
+
     WHO PAYS FOR A FAILING PIXEL. When BEFORE showed an ordinary face, the new face at that pixel
     is refused, as always. When BEFORE showed a replaced piece, the REPLACEMENT is what changed
     the picture, so that piece is restored instead (it stays in the mesh) and the new face is
@@ -1613,9 +1623,11 @@ def solidify_feedback(positions_c: np.ndarray, faces_before: np.ndarray, faces_a
     Returns `(keep, history, detail)`: `keep` is a bool mask over `faces_after` -- False for a
     refused new face AND for a replaced original -- `history` one dict per round, `{"round",
     "new_remaining", "failing_pixels", "removed", "pieces_restored", "replaced_px",
-    "interior_px", "through_shell_px", "refused_together"}`, and `detail` `{"replaced": bool
-    over faces_before, "interior_faces": sorted face ids covered under rule 5 in the returned
-    state, "refused_reason": {new face: reason}}`, a reason being the most common `INTERIOR_*`
+    "interior_px", "through_shell_px", "through_shell_faces", "refused_together"}`, and
+    `detail` `{"replaced": bool over faces_before, "interior_faces": sorted face ids covered
+    under rule 5 in the returned state, "through_shell_faces": sorted face ids of
+    `faces_before` covered by rule-6 pixels in the returned state, "refused_reason": {new face:
+    reason}}`, a reason being the most common `INTERIOR_*`
     failure at that face's pixels
     (`"covers_outside_footprint"`, `"covers_below_bottom"`, `"covers_at_or_above_top"`,
     `"covers_unmeasured_slab"`) or `"covers_visible_face"` when no interior test ran."""
@@ -1638,6 +1650,8 @@ def solidify_feedback(positions_c: np.ndarray, faces_before: np.ndarray, faces_a
                    else np.asarray(parallel_interior_ok, dtype=bool))
     shell = (np.zeros(n_before, bool) if shell_faces is None
              else np.asarray(shell_faces, dtype=bool)[:n_before])
+    # rule 6 samples its path with the volumes confirmed independently of this guard (I1)
+    rule6_interior = interior if shell_interior is None else shell_interior
     cos_parallel = float(np.cos(np.radians(30.0)))
 
     tri = positions_c[faces_before]
@@ -1705,11 +1719,12 @@ def solidify_feedback(positions_c: np.ndarray, faces_before: np.ndarray, faces_a
         # rule 6: the new faces kept in this state -- the shell a ray may leave a slab through
         shell_ids = np.nonzero(visible & is_new)[0]
         shell_caster = (caster_factory(positions_c, faces_after[shell_ids])
-                        if interior is not None and len(shell_ids) else None)
+                        if rule6_interior is not None and len(shell_ids) else None)
         refuse: dict[int, list[int]] = {}
         restore: set[int] = set()
         failing = replaced_px = interior_px = through_px = 0
         interior_faces: set[int] = set()
+        through_faces: set[int] = set()
         # rule 6's pixels, per view: (direction, start, gap, entry face, covered face, code, exit)
         through_records: list[list] = []
         for view, b in before:
@@ -1794,11 +1809,13 @@ def solidify_feedback(positions_c: np.ndarray, faces_before: np.ndarray, faces_a
                                  + a.depth[rows[pending], cols[pending]][:, None] * direction)
                         through, leave = _through_closed_shell(start, direction, gap,
                                                                new_at[pending], planes_after,
-                                                               shell_caster, shell_ids, interior)
+                                                               shell_caster, shell_ids,
+                                                               rule6_interior)
                         allowed[pending[through]] = True
                         through_px += int(through.sum())
                         if through.any():
                             px = pending[through]
+                            through_faces.update(hit_before[px].tolist())
                             through_records.append([direction, start[through], gap[through],
                                                     new_at[px], hit_before[px], codes[px],
                                                     leave[through]])
@@ -1813,20 +1830,24 @@ def solidify_feedback(positions_c: np.ndarray, faces_before: np.ndarray, faces_a
                 refuse.setdefault(int(f), []).append(int(c))
         together = _refuse_together(refuse, restore, removed, through_records, shell_ids,
                                     planes_after, positions_c, faces_after, caster_factory,
-                                    interior)
+                                    rule6_interior)
+        # `through_faces`: what rule 6 covered in THIS state; the round that ends the loop (or the
+        # verification round) measures the state handed back
         return (failing, refuse, restore, replaced_px, interior_px, interior_faces, through_px,
-                together)
+                together, through_faces)
 
     history: list[dict] = []
     result = None
     for rnd in range(max_rounds):
         on_restored = refuse_faces_on_present_pieces()
         result = measure()
-        failing, refuse, restore, replaced_px, interior_px, _faces, through_px, together = result
+        (failing, refuse, restore, replaced_px, interior_px, _faces, through_px, together,
+         through_faces) = result
         history.append({"round": rnd, "new_remaining": int((keep & is_new).sum()),
                          "failing_pixels": failing, "removed": len(refuse),
                          "pieces_restored": len(restore), "replaced_px": replaced_px,
                          "interior_px": interior_px, "through_shell_px": through_px,
+                         "through_shell_faces": len(through_faces),
                          "refused_together": together, "refused_on_pieces": on_restored})
         if not refuse and not restore:
             break
@@ -1847,11 +1868,12 @@ def solidify_feedback(positions_c: np.ndarray, faces_before: np.ndarray, faces_a
         history.append({"round": max_rounds, "new_remaining": int((keep & is_new).sum()),
                          "failing_pixels": result[0], "removed": 0, "pieces_restored": 0,
                          "replaced_px": result[3], "interior_px": result[4],
-                         "through_shell_px": result[6], "refused_together": 0,
-                         "refused_on_pieces": on_restored})
+                         "through_shell_px": result[6], "through_shell_faces": len(result[8]),
+                         "refused_together": 0, "refused_on_pieces": on_restored})
     removed = removed_pieces()
     out = keep.copy()
     out[:n_before] &= ~removed
     interior_faces = sorted(result[5]) if result is not None else []
+    through_faces = sorted(result[8]) if result is not None else []
     return out, history, {"replaced": removed, "interior_faces": interior_faces,
-                          "refused_reason": reasons}
+                          "through_shell_faces": through_faces, "refused_reason": reasons}
