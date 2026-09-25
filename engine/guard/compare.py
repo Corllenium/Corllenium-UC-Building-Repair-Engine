@@ -279,14 +279,61 @@ def _nearest_triangle_distance(points: np.ndarray, triangles: np.ndarray, reach:
     return out
 
 
-def _border_probe(geometry_before, geometry_after, tol: float):
+def _closest_points(points: np.ndarray, triangles: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """`(distance, closest)`: per pair, the exact distance from `points[i]` to the closed triangle
+    `triangles[i]` (as `_point_triangle_distance`) and the point of the triangle that attains it."""
+    points = np.asarray(points, dtype=np.float64).reshape(-1, 3)
+    triangles = np.asarray(triangles, dtype=np.float64).reshape(-1, 3, 3)
+    a, b, c = triangles[:, 0], triangles[:, 1], triangles[:, 2]
+    best = np.full(len(points), np.inf)
+    closest = np.zeros_like(points)
+    for p0, p1 in ((a, b), (b, c), (c, a)):
+        edge = p1 - p0
+        length2 = np.einsum("ij,ij->i", edge, edge)
+        along = np.einsum("ij,ij->i", points - p0, edge) / np.where(length2 > 0.0, length2, 1.0)
+        nearest = p0 + np.clip(np.where(length2 > 0.0, along, 0.0), 0.0, 1.0)[:, None] * edge
+        d = np.linalg.norm(points - nearest, axis=1)
+        better = d < best
+        best = np.where(better, d, best)
+        closest = np.where(better[:, None], nearest, closest)
+    normal = np.cross(b - a, c - a)
+    normal2 = np.einsum("ij,ij->i", normal, normal)
+    inside = normal2 > 0.0
+    for p0, p1 in ((a, b), (b, c), (c, a)):
+        inside &= np.einsum("ij,ij->i", np.cross(p1 - p0, points - p0), normal) >= 0.0
+    offset = np.einsum("ij,ij->i", points - a, normal) / np.where(inside, normal2, 1.0)
+    foot = points - offset[:, None] * normal
+    plane_d = np.linalg.norm(points - foot, axis=1)
+    use = inside & (plane_d < best)
+    return np.where(use, plane_d, best), np.where(use[:, None], foot, closest)
+
+
+#: Review part 2, M1: how close to a surface a point must come to lie ON it when the crack width
+#: is measured across, in inches -- far below any tolerance, far above float64 noise.
+_ON_SURFACE = 1e-6
+
+
+def _border_probe(geometry_before, geometry_after, tol: float, material_before=None,
+                  material_after=None, plane_tol: float = 0.0):
     """A `(points, gone) -> within` callable for `classify_pixels`: is each of `points` `(P, 3)`
     within `tol` of the OTHER geometry? `gone[i]` True measures a BEFORE hit point against every
     AFTER triangle -- something disappeared there; False measures an AFTER hit point against every
     BEFORE triangle -- something appeared. `geometry_*` are `(positions, faces)`, exactly as
-    `compare_views` takes them, and are turned into triangles once, not once per view."""
+    `compare_views` takes them, and are turned into triangles once, not once per view.
+
+    The callable also carries `crack_width_ok(points, before_faces) -> bool` (review part 2, M1),
+    for a crack the merge OPENED: is the crack at each BEFORE hit point at most `tol` wide,
+    measured ACROSS it, against the AFTER triangles lying in that BEFORE face's own plane (every
+    corner within `plane_tol` of it) and of its material? The nearest such surface is `d` away at
+    `q`; the crack is no wider than `tol` when the point `tol - d` further on, away from `q`, lies
+    on that surface again. Measured from the point alone, the nearest surface is only HALF the
+    crack's width away when the point lies in its middle, and cracks up to twice the tolerance
+    passed (0.29 in did at 0.15)."""
     before, after = (np.asarray(positions, dtype=np.float64)[np.asarray(faces, dtype=np.int64).reshape(-1, 3)]
                      for positions, faces in (geometry_before, geometry_after))
+    mat_before = None if material_before is None else np.asarray(material_before).reshape(-1)
+    mat_after = None if material_after is None else np.asarray(material_after).reshape(-1)
+    lo_after, hi_after = after.min(axis=1), after.max(axis=1)
 
     def probe(points: np.ndarray, gone: np.ndarray) -> np.ndarray:
         points = np.asarray(points, dtype=np.float64).reshape(-1, 3)
@@ -297,6 +344,51 @@ def _border_probe(geometry_before, geometry_after, tol: float):
                 distance[side] = _nearest_triangle_distance(points[side], triangles, tol)
         return distance <= tol
 
+    def crack_width_ok(points: np.ndarray, before_faces: np.ndarray) -> np.ndarray:
+        points = np.asarray(points, dtype=np.float64).reshape(-1, 3)
+        before_faces = np.asarray(before_faces, dtype=np.int64).reshape(-1)
+        out = np.zeros(len(points), dtype=bool)
+        for f in np.unique(before_faces):
+            rows = np.nonzero(before_faces == f)[0]
+            tri = before[f]
+            normal = np.cross(tri[1] - tri[0], tri[2] - tri[0])
+            length = float(np.linalg.norm(normal))
+            if f < 0 or length <= 0.0:
+                continue
+            normal = normal / length
+            offset = -float(normal @ tri[0])
+            lo = points[rows].min(axis=0) - 2.0 * tol - plane_tol
+            hi = points[rows].max(axis=0) + 2.0 * tol + plane_tol
+            cand = ((hi_after >= lo) & (lo_after <= hi)).all(axis=1)
+            if mat_before is not None and mat_after is not None:
+                cand &= mat_after == mat_before[f]
+            cand = np.nonzero(cand)[0]
+            if len(cand):
+                off = np.abs(after[cand] @ normal + offset)
+                cand = cand[(off <= plane_tol + _ON_SURFACE).all(axis=1)]
+            if not len(cand):
+                continue
+            # the surface as it lies in THIS face's plane: measured across, never through depth
+            flat = after[cand] - (after[cand] @ normal + offset)[:, :, None] * normal
+            n_c = len(cand)
+            block = max(1, _DISTANCE_BLOCK // n_c)
+            for start in range(0, len(rows), block):
+                chunk = rows[start:start + block]
+                p = points[chunk] - (points[chunk] @ normal + offset)[:, None] * normal
+                pairs = np.tile(flat, (len(chunk), 1, 1))
+                d, q = _closest_points(np.repeat(p, n_c, axis=0), pairs)
+                d, q = d.reshape(len(chunk), n_c), q.reshape(len(chunk), n_c, 3)
+                k = np.argmin(d, axis=1)
+                d1 = d[np.arange(len(chunk)), k]
+                q1 = q[np.arange(len(chunk)), k]
+                across = (p - q1) / np.maximum(d1, _ON_SURFACE)[:, None]
+                r = p + (tol - d1)[:, None] * across
+                dr = _point_triangle_distance(np.repeat(r, n_c, axis=0), pairs)
+                on_again = dr.reshape(len(chunk), n_c).min(axis=1) <= _ON_SURFACE
+                out[chunk] = (d1 <= tol) & ((d1 <= _ON_SURFACE) | on_again)
+        return out
+
+    probe.crack_width_ok = crack_width_ok
     return probe
 
 
@@ -533,20 +625,22 @@ def _classify(before_depth: np.ndarray, before_tri: np.ndarray,
     # every other class, and AFTER `base` is taken so a capped fragment pixel can fall back to
     # what it really is -- but it is taken out of `promotable`, so it is never promoted either.
     base = codes.copy()
+    # what a removal may uncover, and what may show through a crack the merge opened: the sky
+    # (AFTER missed), or a face met on a side `exposed_after` marks as already exposed
+    may_show = ~hit_after
+    if exposed_after is not None and plane_after is not None and direction is not None:
+        exposed = np.asarray(exposed_after, dtype=bool).reshape(-1, 2)
+        normal = np.asarray(plane_after, dtype=np.float64).reshape(-1, 4)[:, :3]
+        ids = np.where(hit_after, after_tri, 0)
+        facing = normal[ids] @ np.asarray(direction, dtype=np.float64)
+        side = np.where(facing > 0.0, exposed[ids, 1], exposed[ids, 0])
+        # a face with no plane has no side a ray could be said to meet
+        may_show |= hit_after & side & (np.linalg.norm(normal[ids], axis=-1) > 0.0)
     # pixels whose BEFORE first hit is removed debris, whether or not the excuse below takes them
     own = np.zeros(before_tri.shape, dtype=bool)
     if removed_before is not None:
         gone = np.asarray(removed_before, dtype=bool)
         own = hit_before & gone[np.where(hit_before, before_tri, 0)]
-        may_show = ~hit_after
-        if exposed_after is not None and plane_after is not None and direction is not None:
-            exposed = np.asarray(exposed_after, dtype=bool).reshape(-1, 2)
-            normal = np.asarray(plane_after, dtype=np.float64).reshape(-1, 4)[:, :3]
-            ids = np.where(hit_after, after_tri, 0)
-            facing = normal[ids] @ np.asarray(direction, dtype=np.float64)
-            side = np.where(facing > 0.0, exposed[ids, 1], exposed[ids, 0])
-            # a face with no plane has no side a ray could be said to meet
-            may_show |= hit_after & side & (np.linalg.norm(normal[ids], axis=-1) > 0.0)
         codes[own & may_show] = PX_FRAGMENT_REMOVED
 
     promotable = _failing_base(codes, strict)
@@ -659,13 +753,24 @@ def _classify(before_depth: np.ndarray, before_tri: np.ndarray,
                                           > 0.0))
             changed = ~same
             ring_ok = np.ones(changed.shape, dtype=bool)
+            across = getattr(border, "crack_width_ok", None)
             if changed.any():
                 where = np.nonzero(changed)
-                points = np.where(gone_r[where][:, None], point_b[where], point_a[where])
-                ring_ok[where] = border(points, gone_r[where])
+                gone_w = gone_r[where]
+                points = np.where(gone_w[:, None], point_b[where], point_a[where])
+                ring_ok[where] = border(points, gone_w)
+                if across is not None and gone_w.any():
+                    # a ring ray that lost the surface lies in the crack too: measured across
+                    lost = (where[0][gone_w], where[1][gone_w])
+                    ring_ok[lost] &= across(point_b[lost], tri_b[lost])
             point = (np.asarray(origins, dtype=np.float64)[opened]
                      + before_depth[opened][:, None] * direction_v)
-            within = border(point, np.ones(len(point), dtype=bool)) & ring_ok.all(axis=1)
+            # review part 2, M1: the crack measured ACROSS, in BEFORE's own plane and material
+            # (its middle is only half its width from either side), and what shows through it
+            # may only be the sky or a side the reference already exposed
+            centre_ok = (across(point, centre_b) if across is not None
+                         else border(point, np.ones(len(point), dtype=bool)))
+            within = centre_ok & ring_ok.all(axis=1) & may_show[opened]
             codes[opened] = np.where(still_there & within, PX_BORDER_SHIFT, codes[opened])
     return codes, base
 
@@ -876,7 +981,8 @@ def compare_views(before: Sequence[RenderedView], after: Sequence[RenderedView],
 
     caster_before = caster_factory(*geometry_before) if geometry_before is not None else None
     caster_after = caster_factory(*geometry_after) if geometry_after is not None else None
-    border = (_border_probe(geometry_before, geometry_after, border_shift_tol)
+    border = (_border_probe(geometry_before, geometry_after, border_shift_tol,
+                            face_material_before, face_material_after, depth_tol)
               if border_shift_tol > 0.0 else None)
 
     view_verdicts = []

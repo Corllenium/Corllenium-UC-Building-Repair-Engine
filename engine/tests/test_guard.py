@@ -1864,13 +1864,23 @@ def _opened_crack_report(faces_before, faces_after, n_after, **extra):
     return before, after, report
 
 
+def _lower_exposed(front: bool) -> np.ndarray:
+    """`exposed_after` for `_crack_scene`'s AFTER faces `[upper, upper, lower, lower]`: whether
+    the lower surface's FRONT (+z, the side the camera meets) was already exposed."""
+    exposed = np.ones((4, 2), dtype=bool)
+    exposed[2:, 0] = front
+    return exposed
+
+
 def test_a_crack_the_merge_opened_narrower_than_its_border_tolerance_is_a_border_shift():
     """The crack test's mirror image: BEFORE is the closed slab, AFTER the same slab split by a
     0.02 in crack, so in 25 pixels AFTER's centre ray falls through to the surface 10 in behind.
     Every AFTER ring ray still meets the slab -- the surface is still there, beside each pixel --
-    and measured as the border-shift rule measures, each BEFORE hit point is 0.01 in from the slab
-    AFTER still has: a border the merge moved less than its own tolerance, not a lost surface. At
-    `border_shift_tol = 0.0` the same pixels fail exactly as they did."""
+    and the crack, measured across against the slab AFTER still has in BEFORE's own plane and
+    material, is 0.02 in wide: a border the merge moved less than its own tolerance, not a lost
+    surface -- where what shows through it is a side the reference already exposed (review part
+    2, M1: the rule used to excuse whatever showed through). At `border_shift_tol = 0.0` the same
+    pixels fail exactly as they did."""
     P, faces_cracked, faces_closed, _ = _crack_scene()
     before, after, today = _opened_crack_report(faces_closed, faces_cracked, 4)
     opened = (before.tri >= 0) & (before.tri < 2) & (after.tri >= 2)
@@ -1879,10 +1889,55 @@ def test_a_crack_the_merge_opened_narrower_than_its_border_tolerance_is_a_border
     assert today.passed is False
 
     _, _, measured = _opened_crack_report(faces_closed, faces_cracked, 4,
-                                          border_shift_tol=_BORDER_TOL)
+                                          border_shift_tol=_BORDER_TOL,
+                                          exposed_after=_lower_exposed(True))
     assert measured.totals["border_shift"] == 25
     assert measured.totals["moved_other"] == 0 and measured.totals["edge_flicker"] == 0
     assert measured.passed is True
+
+
+def test_a_crack_the_merge_opened_onto_a_side_nobody_saw_is_never_a_border_shift():
+    """Review part 2, M1: the opened-crack rule never asked what shows through the crack. The same
+    0.02 in crack, but the surface behind it was NOT exposed on the reference -- the inside of a
+    shell: a hole judged as one, as the fragment rule judges it (review C2). Without any exposure
+    given, only the sky qualifies."""
+    P, faces_cracked, faces_closed, _ = _crack_scene()
+    for extra in ({"exposed_after": _lower_exposed(False)}, {}):
+        _, _, report = _opened_crack_report(faces_closed, faces_cracked, 4,
+                                            border_shift_tol=_BORDER_TOL, **extra)
+        assert report.totals["border_shift"] == 0
+        assert report.totals["moved_other"] == 25
+        assert report.passed is False
+
+
+def test_a_crack_wider_than_the_border_tolerance_is_never_a_border_shift(monkeypatch):
+    """Review part 2, M1: the rule measured BEFORE's hit point -- in the MIDDLE of the crack --
+    against the nearest AFTER surface, which is half the crack's width away: cracks up to twice
+    the 0.15 in tolerance passed (0.29 in did, 0.31 in failed). It measures the crack ACROSS now:
+    0.2 in fails, whatever shows through it."""
+    import engine.tests.test_guard as tg
+    monkeypatch.setattr(tg, "_CRACK_GAP", 0.2)
+    P, faces_cracked, faces_closed, _ = _crack_scene()
+    before, after, report = _opened_crack_report(faces_closed, faces_cracked, 4,
+                                                 border_shift_tol=_BORDER_TOL,
+                                                 exposed_after=_lower_exposed(True))
+    opened = (before.tri >= 0) & (before.tri < 2) & (after.tri >= 2)
+    assert int(opened.sum()) == 25            # one pixel per row, as at 0.02 in: finer than a pixel
+    assert report.totals["border_shift"] == 0
+    assert report.passed is False
+
+
+def test_a_crack_the_merge_opened_onto_the_sky_is_a_border_shift():
+    """The file A pixel the opened-crack rule exists for: AFTER's centre ray MISSED through a
+    0.0001 in crack. The sky may always show (as for removed debris): the same 0.02 in crack with
+    nothing behind the slab is a border shift with no exposure given at all."""
+    P, faces_cracked, faces_closed, _ = _crack_scene()
+    upper_closed, upper_cracked = faces_closed[:2], faces_cracked[:2]
+    before, after, report = _opened_crack_report(upper_closed, upper_cracked, 2,
+                                                 border_shift_tol=_BORDER_TOL)
+    opened = (before.tri >= 0) & (after.tri < 0)
+    assert int(opened.sum()) == 25
+    assert report.totals["border_shift"] == 25 and report.passed is True
 
 
 def test_a_whole_triangle_lost_after_a_closed_slab_still_fails_with_the_border_tolerance():
