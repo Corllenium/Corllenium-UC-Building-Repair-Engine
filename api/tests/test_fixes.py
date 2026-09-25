@@ -315,14 +315,14 @@ def test_concurrent_fix_returns_409(client, imported_cube):
     assert r_ok.status_code == 201
 
 
-def test_stored_flat_materials_enforced_to_zero_std(client, imported_cube, monkeypatch, db):
+def test_stored_flat_materials_enforced_to_zero_std(client, imported_textured_cube, monkeypatch, db):
     import api.routers.versions
     from api.models import ModelVersion
     from sqlalchemy import select
 
-    version_id = imported_cube["versions"][0]["id"]
+    version_id = imported_textured_cube["versions"][0]["id"]
     ver = db.scalar(select(ModelVersion).where(ModelVersion.id == version_id))
-    ver.flat_materials = ["m0"]
+    ver.flat_materials = ["stone"]
     db.commit()
 
     captured_flatness = {}
@@ -334,12 +334,10 @@ def test_stored_flat_materials_enforced_to_zero_std(client, imported_cube, monke
         return orig_fix(mesh, flatness, profile)
 
     monkeypatch.setattr(api.routers.versions, "fix_object", spy_fix_object)
-    # Simulate initial non-zero texture std for stone/m0
-    monkeypatch.setattr(api.routers.versions, "texture_flatness", lambda *args, **kwargs: {"m0": 25.0})
 
     r = client.post(f"/api/versions/{version_id}/fix", json={"profile": {"n_dirs": 32, "flat_texture_std": 0.5}})
     assert r.status_code == 201
-    assert captured_flatness.get("m0") == 0.0
+    assert captured_flatness.get("stone") == 0.0
 
 
 def test_fix_run_writes_skp_and_copies_to_skp_dir(client, imported_cube):

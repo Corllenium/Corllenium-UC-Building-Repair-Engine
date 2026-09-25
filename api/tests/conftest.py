@@ -76,6 +76,34 @@ def imported_cube(client, _database):
 
 
 @pytest.fixture()
+def imported_textured_cube(client, _database):
+    from dataclasses import replace
+    import numpy as np
+    from PIL import Image
+    from engine.io.obj_writer import write_obj
+    from engine.tests.fixtures.build import cube
+    from api.settings import get_settings
+    settings = get_settings()
+    src = settings.source_dir
+    src.mkdir(parents=True, exist_ok=True)
+    (src / "tex").mkdir(parents=True, exist_ok=True)
+
+    m = replace(cube(16.0), name="tex_cube", mtllib="tex_cube.mtl", materials=["stone"])
+    write_obj(m, src / "tex_cube.obj")
+    (src / "tex_cube.mtl").write_text("newmtl stone\nmap_Kd tex/stone.png\n", encoding="utf-8")
+    checker = (np.indices((4, 4)).sum(axis=0) % 2 * 255).astype(np.uint8)
+    Image.fromarray(np.dstack([checker] * 3)).save(src / "tex" / "stone.png")
+
+    manifest = src / "_MANIFEST.txt"
+    existing = manifest.read_text(encoding="utf-8") if manifest.exists() else ""
+    manifest.write_text(existing + f"tex_cube.obj  {m.n_faces}  TexCubeGroup\n", encoding="utf-8")
+
+    r = client.post("/api/models/import", json={"file": "tex_cube.obj"})
+    assert r.status_code == 201
+    return r.json()
+
+
+@pytest.fixture()
 def sample_source_dir(_database):
     from engine.io.obj_writer import write_obj
     from engine.tests.fixtures.build import cube
