@@ -1,5 +1,7 @@
 import json
+import logging
 from pathlib import Path
+import shutil
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from fastapi.responses import FileResponse
@@ -20,6 +22,8 @@ from engine.pipeline import analyse_topology, flat_material_indices
 from engine.transport.meshbuf import pack_meshbuf
 import numpy as np
 import threading
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/versions", tags=["versions"])
 
@@ -278,6 +282,7 @@ def run_fix_pipeline(
             )
         _active_model_fixes.add(model_id)
 
+    out_dir: Path | None = None
     try:
         # 1. Allocate fix_run in the session and flush to get run_id
         fix_run = FixRun(
@@ -491,13 +496,19 @@ def run_fix_pipeline(
 
     except HTTPException:
         db.rollback()
+        if out_dir is not None and out_dir.exists():
+            shutil.rmtree(out_dir, ignore_errors=True)
         raise
     except Exception as exc:
+        logger.exception("Fix pipeline failed for version %s", id)
         db.rollback()
+        if out_dir is not None and out_dir.exists():
+            shutil.rmtree(out_dir, ignore_errors=True)
+        err_msg = f"{type(exc).__name__}: {exc}" if str(exc) else type(exc).__name__
         failed_run = FixRun(
             version_id=version.id,
             status="failed",
-            error=str(exc),
+            error=err_msg,
             config=req.profile.model_dump(),
         )
         db.add(failed_run)

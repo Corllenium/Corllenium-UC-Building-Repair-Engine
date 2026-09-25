@@ -204,15 +204,18 @@ def test_source_faces_maps_to_original_face_ids_and_obj_lines(client, _database)
 
 def test_fix_atomic_rollback_on_exception(client, imported_cube, monkeypatch, db):
     import api.routers.versions
-    from api.models import FixRun, ModelVersion
+    from api.models import FixRun, ModelVersion, VersionAsset
+    from api.settings import get_settings
     from sqlalchemy import select
 
+    settings = get_settings()
     version_id = imported_cube["versions"][0]["id"]
 
-    def mock_fix_fail(*args, **kwargs):
-        raise RuntimeError("Geometry engine crashed")
+    def mock_build_report_fail(*args, **kwargs):
+        raise RuntimeError("Report generation crash after flush")
 
-    monkeypatch.setattr(api.routers.versions, "fix_object", mock_fix_fail)
+    # Monkeypatch _build_report to fail AFTER fixed version and assets have been flushed
+    monkeypatch.setattr(api.routers.versions, "_build_report", mock_build_report_fail)
 
     fixed_count_before = len(
         db.scalars(
@@ -222,15 +225,16 @@ def test_fix_atomic_rollback_on_exception(client, imported_cube, monkeypatch, db
             )
         ).all()
     )
+    asset_count_before = len(db.scalars(select(VersionAsset)).all())
 
     r = client.post(f"/api/versions/{version_id}/fix", json={"profile": {"n_dirs": 32}})
     assert r.status_code == 201
     run_data = r.json()
     assert run_data["status"] == "failed"
-    assert "Geometry engine crashed" in (run_data["error"] or "")
+    assert "RuntimeError: Report generation crash after flush" in (run_data["error"] or "")
     assert run_data.get("fixed_version_id") is None
 
-    # In DB: NO new kind="fixed" version was created for this model
+    # In DB: NO new kind="fixed" version was created for this model (rolled back atomically)
     fixed_count_after = len(
         db.scalars(
             select(ModelVersion).where(
@@ -241,11 +245,19 @@ def test_fix_atomic_rollback_on_exception(client, imported_cube, monkeypatch, db
     )
     assert fixed_count_after == fixed_count_before
 
-    # In DB: run is recorded as failed
+    # In DB: NO orphaned VersionAsset rows created
+    asset_count_after = len(db.scalars(select(VersionAsset)).all())
+    assert asset_count_after == asset_count_before
+
+    # On disk: out_dir was cleaned up, no orphan directory left behind (m2)
+    run_dir = settings.data_dir / "fixed" / str(run_data["id"])
+    assert not run_dir.exists()
+
+    # In DB: run is recorded as failed with formatted error
     run_db = db.scalar(select(FixRun).where(FixRun.id == run_data["id"]))
     assert run_db is not None
     assert run_db.status == "failed"
-    assert "Geometry engine crashed" in (run_db.error or "")
+    assert run_db.error == "RuntimeError: Report generation crash after flush"
 
 
 def test_two_sequential_runs_create_two_directories(client, imported_cube):
