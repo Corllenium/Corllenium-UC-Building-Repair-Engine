@@ -379,6 +379,8 @@ def test_fix_run_succeeds_when_skp_dll_absent(client, imported_cube, monkeypatch
     skp_info = run_data["report_json"]["skp"]
     assert skp_info["written"] is False
     assert "SketchUp C API DLL not found" in skp_info["reason"]
+    assert "path" not in skp_info
+    assert run_data["report_json"].get("skp_path") is None
 
 
 def test_fix_run_failure_after_skp_does_not_replace_owner_skp(client, imported_cube, monkeypatch):
@@ -634,6 +636,32 @@ def test_guard_view_includes_and_serves_failing_views(client, imported_cube):
     # Out of range or invalid views still return 404
     assert client.get(f"/api/runs/{run_id}/guard/fail_99").status_code == 404
     assert client.get(f"/api/runs/{run_id}/guard/fail_-1").status_code == 404
+
+
+def test_failing_guard_views_written_by_run_are_listed_in_report(client, imported_cube, monkeypatch):
+    import api.routers.versions as versions_mod
+    orig_write_guard = versions_mod._write_guard_images
+
+    def spy_write_guard(reference, result, profile, ref_flat_mats, ref_topo, ref_positions_c, out_dir):
+        orig_write_guard(reference, result, profile, ref_flat_mats, ref_topo, ref_positions_c, out_dir)
+        # Simulate guard failure writing failing oblique view images
+        (out_dir / "guard_fail_3.png").write_bytes(b"\x89PNG\r\n\x1a\nfake_fail_3")
+        (out_dir / "guard_fail_7.png").write_bytes(b"\x89PNG\r\n\x1a\nfake_fail_7")
+
+    monkeypatch.setattr(versions_mod, "_write_guard_images", spy_write_guard)
+
+    def fake_write_skp(result, name, out_dir, flat_mats, profile, enabled=True, copy_dir=None):
+        return {"written": False, "reason": "skipped in test"}
+
+    monkeypatch.setattr(versions_mod, "_write_skp", fake_write_skp)
+
+    version_id = imported_cube["versions"][0]["id"]
+    r_fix = client.post(f"/api/versions/{version_id}/fix", json={"profile": {"n_dirs": 32}})
+    assert r_fix.status_code == 201
+    report = r_fix.json()["report_json"]
+    assert "fail_3" in report["guard_views"]
+    assert "fail_7" in report["guard_views"]
+
 
 
 
