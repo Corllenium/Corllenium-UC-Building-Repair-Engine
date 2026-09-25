@@ -122,20 +122,32 @@ def test_fix_atomic_rollback_on_exception(client, imported_cube, monkeypatch, db
 
     monkeypatch.setattr(api.routers.versions, "fix_object", mock_fix_fail)
 
+    fixed_count_before = len(
+        db.scalars(
+            select(ModelVersion).where(
+                ModelVersion.model_id == imported_cube["id"],
+                ModelVersion.kind == "fixed",
+            )
+        ).all()
+    )
+
     r = client.post(f"/api/versions/{version_id}/fix", json={"profile": {"n_dirs": 32}})
     assert r.status_code == 201
     run_data = r.json()
     assert run_data["status"] == "failed"
     assert "Geometry engine crashed" in (run_data["error"] or "")
+    assert run_data.get("fixed_version_id") is None
 
-    # In DB: NO kind="fixed" version exists for this model
-    fixed_versions = db.scalars(
-        select(ModelVersion).where(
-            ModelVersion.model_id == imported_cube["id"],
-            ModelVersion.kind == "fixed",
-        )
-    ).all()
-    assert len(fixed_versions) == 0
+    # In DB: NO new kind="fixed" version was created for this model
+    fixed_count_after = len(
+        db.scalars(
+            select(ModelVersion).where(
+                ModelVersion.model_id == imported_cube["id"],
+                ModelVersion.kind == "fixed",
+            )
+        ).all()
+    )
+    assert fixed_count_after == fixed_count_before
 
     # In DB: run is recorded as failed
     run_db = db.scalar(select(FixRun).where(FixRun.id == run_data["id"]))
