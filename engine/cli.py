@@ -363,6 +363,34 @@ def default_skp_dir() -> Path:
     return Path(__file__).resolve().parents[1] / "OBJ FIXED RESULT"
 
 
+def copy_skp_to_owner(path: Path, copy_dir: Path, name: str, passed: bool, out: dict | None = None) -> dict:
+    """Copy the fixed SKP to the owner's directory according to the engine's rules:
+    - If passed: copy to <copy_dir>/<name>.fixed.skp, and unlink any stale <name>.fixed.FAILED.skp
+    - If failed: copy to <copy_dir>/<name>.fixed.FAILED.skp, leaving any existing <name>.fixed.skp
+    Records copied_to, previous_kept, copy_error, removed_stale_failed_copy, and stale_failed_copy_error in out."""
+    if out is None:
+        out = {}
+    owner_copy = copy_dir / f"{name}.fixed.skp"
+    failed_copy = copy_dir / f"{name}.fixed.FAILED.skp"
+    dest_path = owner_copy if passed else failed_copy
+    if not passed:
+        out["previous_kept"] = str(owner_copy) if owner_copy.exists() else None
+    try:
+        copy_dir.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(path, dest_path)
+        out["copied_to"] = str(dest_path)
+    except OSError as exc:       # e.g. the owner still has the previous file open
+        out["copy_error"] = str(exc)
+    # a passing copy supersedes any FAILED one an earlier run left beside it
+    if passed and out.get("copied_to") and failed_copy.exists():
+        try:
+            failed_copy.unlink()
+            out["removed_stale_failed_copy"] = str(failed_copy)
+        except OSError as exc:
+            out["stale_failed_copy_error"] = str(exc)
+    return out
+
+
 def _write_skp(result: FixResult, name: str, out_dir: Path, flat_materials: frozenset,
                profile: FixProfile, enabled: bool, copy_dir: Path | None) -> dict:
     """Write `<out_dir>/<name>.fixed.skp` from the SHIPPED mesh and copy it into `copy_dir`
@@ -400,24 +428,7 @@ def _write_skp(result: FixResult, name: str, out_dir: Path, flat_materials: froz
     out = {"written": True, **written, "sketchup_check_changed": check["changed"],
            "copied_to": None}
     if copy_dir is not None:
-        owner_copy = copy_dir / f"{name}.fixed.skp"
-        failed_copy = copy_dir / f"{name}.fixed.FAILED.skp"
-        dest_path = owner_copy if result.passed else failed_copy
-        if not result.passed:
-            out["previous_kept"] = str(owner_copy) if owner_copy.exists() else None
-        try:
-            copy_dir.mkdir(parents=True, exist_ok=True)
-            shutil.copyfile(path, dest_path)
-            out["copied_to"] = str(dest_path)
-        except OSError as exc:       # e.g. the owner still has the previous file open
-            out["copy_error"] = str(exc)
-        # a passing copy supersedes any FAILED one an earlier run left beside it
-        if result.passed and out["copied_to"] and failed_copy.exists():
-            try:
-                failed_copy.unlink()
-                out["removed_stale_failed_copy"] = str(failed_copy)
-            except OSError as exc:
-                out["stale_failed_copy_error"] = str(exc)
+        copy_skp_to_owner(path, copy_dir, name, result.passed, out)
     return out
 
 

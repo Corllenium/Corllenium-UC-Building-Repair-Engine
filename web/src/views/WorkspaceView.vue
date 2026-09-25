@@ -143,7 +143,17 @@
                   merge attempt {{ resultDesc.guardMergeAttempt.passed ? 'PASSED' : 'FAILED' }}
                 </span>
               </template>
-              <template v-if="resultDesc.skpWritten && resultDesc.skpPath">
+              <template v-if="resultDesc.skpCopyError">
+                &nbsp;&middot;&nbsp;
+                <span class="skp-copy-error" style="color: #e67e22;">
+                  SketchUp copy failed: {{ resultDesc.skpCopyError }} (OBJ FIXED RESULT unchanged &mdash; previous file may still be open)
+                </span>
+                <span v-if="resultDesc.skpPath" class="skp-file-box">
+                  <code>{{ resultDesc.skpPath }}</code>
+                  <button class="btn-copy-skp" @click="copySkpPath(resultDesc.skpPath)">{{ copiedSkp ? 'Copied!' : 'Copy' }}</button>
+                </span>
+              </template>
+              <template v-else-if="resultDesc.skpWritten && resultDesc.skpPath">
                 &nbsp;&middot;&nbsp;
                 <span class="skp-file-box">
                   SketchUp file: <code>{{ resultDesc.skpPath }}</code>

@@ -478,6 +478,93 @@ def test_second_commit_failure_preserves_run_files_and_meshbuf(client, imported_
     assert r_mesh.status_code == 200
 
 
+def test_owner_copy_failure_recorded_in_report_json_and_db(client, imported_cube, monkeypatch, db):
+    import json
+    import shutil
+    import api.routers.versions as versions_mod
+    from api.models import FixRun
+    from api.settings import get_settings
+    from sqlalchemy import select
+    settings = get_settings()
+
+    def fake_write_skp(result, name, out_dir, flat_mats, profile, enabled=True, copy_dir=None):
+        skp_path = out_dir / f"{name}.fixed.skp"
+        skp_path.write_text("fixed skp content", encoding="utf-8")
+        return {"written": True, "copied_to": None}
+
+    monkeypatch.setattr(versions_mod, "_write_skp", fake_write_skp)
+
+    def failing_copyfile(src, dst):
+        raise PermissionError("Permission denied: the owner still has the previous file open")
+
+    monkeypatch.setattr(shutil, "copyfile", failing_copyfile)
+
+    version_id = imported_cube["versions"][0]["id"]
+    r_fix = client.post(f"/api/versions/{version_id}/fix", json={"profile": {"n_dirs": 32}})
+    assert r_fix.status_code == 201
+    run_data = r_fix.json()
+    assert run_data["status"] == "completed"
+
+    skp = run_data["report_json"]["skp"]
+    assert "copy_error" in skp
+    assert "Permission denied" in skp["copy_error"]
+
+    # Verify on-disk report.json
+    run_dir = settings.data_dir / "fixed" / str(run_data["id"])
+    report_disk = json.loads((run_dir / "report.json").read_text(encoding="utf-8"))
+    assert "copy_error" in report_disk["skp"]
+    assert "Permission denied" in report_disk["skp"]["copy_error"]
+
+    # Verify database fix_run
+    run_db = db.scalar(select(FixRun).where(FixRun.id == run_data["id"]))
+    assert run_db is not None
+    assert "copy_error" in run_db.report_json["skp"]
+    assert "Permission denied" in run_db.report_json["skp"]["copy_error"]
+
+
+def test_owner_copy_stale_failed_removal_recorded_in_report_json_and_db(client, imported_cube, monkeypatch, db):
+    import json
+    import api.routers.versions as versions_mod
+    from api.models import FixRun
+    from api.settings import get_settings
+    from sqlalchemy import select
+    settings = get_settings()
+    settings.skp_dir.mkdir(parents=True, exist_ok=True)
+    name = imported_cube["name"]
+    stale_failed = settings.skp_dir / f"{name}.fixed.FAILED.skp"
+    stale_failed.write_text("stale failed skp", encoding="utf-8")
+
+    def fake_write_skp(result, name, out_dir, flat_mats, profile, enabled=True, copy_dir=None):
+        skp_path = out_dir / f"{name}.fixed.skp"
+        skp_path.write_text("fixed skp content", encoding="utf-8")
+        return {"written": True, "copied_to": None}
+
+    monkeypatch.setattr(versions_mod, "_write_skp", fake_write_skp)
+
+    version_id = imported_cube["versions"][0]["id"]
+    r_fix = client.post(f"/api/versions/{version_id}/fix", json={"profile": {"n_dirs": 32}})
+    assert r_fix.status_code == 201
+    run_data = r_fix.json()
+    assert run_data["status"] == "completed"
+
+    # Stale failed copy must be removed
+    assert not stale_failed.exists()
+
+    skp = run_data["report_json"]["skp"]
+    assert "removed_stale_failed_copy" in skp
+
+    # Verify on-disk report.json
+    run_dir = settings.data_dir / "fixed" / str(run_data["id"])
+    report_disk = json.loads((run_dir / "report.json").read_text(encoding="utf-8"))
+    assert "removed_stale_failed_copy" in report_disk["skp"]
+
+    # Verify database fix_run
+    run_db = db.scalar(select(FixRun).where(FixRun.id == run_data["id"]))
+    assert run_db is not None
+    assert "removed_stale_failed_copy" in run_db.report_json["skp"]
+
+
+
 def test_fix_pipeline_sanitizes_mesh_name(client, imported_cube, monkeypatch):
     import api.routers.versions as versions_mod
     import dataclasses

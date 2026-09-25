@@ -270,6 +270,22 @@ describe('describeResult', () => {
     expect(descSkipped.skpReason).toBe('SketchUp C API DLL not found')
   })
 
+  it('reports skp copy_error when owner copy fails', () => {
+    const report = {
+      ...REAL_ENGINE_REPORT,
+      skp: {
+        written: true,
+        path: 'data/fixed/1/cube.fixed.skp',
+        copied_to: null,
+        copy_error: '[Errno 13] Permission denied',
+      },
+    }
+    const desc = describeResult(report)
+    expect(desc.skpCopyError).toBe('[Errno 13] Permission denied')
+    expect(desc.skpSummary).toContain('[Errno 13] Permission denied')
+    expect(desc.skpSummary).toContain('previous file')
+  })
+
   it('handles pre-branch reports (like v4) with missing merge_report as merge not reported', () => {
     const v4Report = {
       name: 'CHTM_SIDE_WALK_2nd_floor',
