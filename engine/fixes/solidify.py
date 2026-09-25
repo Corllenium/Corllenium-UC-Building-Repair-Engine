@@ -1059,7 +1059,8 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
             volumes=volumes, group_region=np.asarray(group_region, np.int64),
             parallel_interior_ok=parallel_ok, shell_faces=shell_faces,
             refused_before=coincident,
-            piece_cover=_bottom_piece_cover(solid, new_group, replaced_group, group_kind))
+            piece_cover=_bottom_piece_cover(solid, new_group, replaced_group, group_kind),
+            on_pieces=_new_faces_on_pieces(solid, new_faces, replaced_group, tol))
     replaced = np.asarray(detail["replaced"], bool)
 
     # a group is kept whole when every one of its new faces survived the cap guard
@@ -1118,6 +1119,11 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
         #: SR2. Pieces the guard gave back because removing them exposed something else.
         "side_pieces_restored": int(sum(1 for f in np.nonzero(replaced_group >= 0)[0]
                                         if not replaced[f] and kept_groups[replaced_group[f]])),
+        #: Review part 2, M3. Pieces given back because a face of their wall (or of the bottom
+        #: over them) was refused -- counted nowhere before; they are where the double layers of
+        #: review C1 came from, and the new faces lying on them are refused now.
+        "side_pieces_given_back": int(sum(1 for f in np.nonzero(replaced_group >= 0)[0]
+                                          if not replaced[f] and not kept_groups[replaced_group[f]])),
         #: SR2. Distinct original faces a kept closing face covers where they lie INSIDE a slab's
         #: volume (rule 5) -- the inside the hidden-face pass then removes.
         "interior_faces_covered": len(detail["interior_faces"]),
@@ -1406,43 +1412,84 @@ def _interior_test(volumes: dict, new_group: np.ndarray, group_region: np.ndarra
 _COINCIDENT_ANGLE_DEG = 1.0
 
 
+class _Planes:
+    """Every face of `solid` as a triangle, its unit normal, area and bounding box, for the
+    geometric coincidence tests below."""
+
+    def __init__(self, solid: MeshData):
+        self.tri = solid.positions[solid.face_v]
+        cross = np.cross(self.tri[:, 1] - self.tri[:, 0], self.tri[:, 2] - self.tri[:, 0])
+        self.area = 0.5 * np.linalg.norm(cross, axis=1)
+        self.unit = cross / np.maximum(2.0 * self.area, 1e-300)[:, None]
+        self.lo, self.hi = self.tri.min(axis=1), self.tri.max(axis=1)
+
+    def lying_on(self, f: int, cand: np.ndarray, tol: float) -> np.ndarray:
+        """The faces of `cand` lying ON face `f`: parallel to it within `_COINCIDENT_ANGLE_DEG`,
+        every corner within `tol` of its plane, and overlapping it in that plane by more than a
+        thousandth of the smaller one's area."""
+        if self.area[f] <= 0.0 or not len(cand):
+            return np.zeros(0, np.int64)
+        cand = np.asarray(cand, np.int64)
+        near = ((self.hi[cand] >= self.lo[f] - tol) & (self.lo[cand] <= self.hi[f] + tol)).all(axis=1)
+        cand = cand[near]
+        cos_parallel = float(np.cos(np.radians(_COINCIDENT_ANGLE_DEG)))
+        cand = cand[np.abs(self.unit[cand] @ self.unit[f]) >= cos_parallel]
+        cand = cand[np.abs((self.tri[cand] - self.tri[f][0]) @ self.unit[f]).max(axis=1) <= tol]
+        if not len(cand):
+            return cand
+        e1, e2 = plane_basis(self.unit[f])
+        basis = np.stack([e1, e2], axis=1)
+        mine = shapely.Polygon((self.tri[f] - self.tri[f][0]) @ basis)
+        keep = []
+        for o in cand:
+            shared = mine.intersection(shapely.Polygon((self.tri[o] - self.tri[f][0]) @ basis)).area
+            if shared > max(1e-4, 1e-3 * min(float(self.area[f]), float(self.area[o]))):
+                keep.append(int(o))
+        return np.asarray(keep, np.int64)
+
+
 def _coincident_new_faces(solid: MeshData, new_faces: np.ndarray, new_group: np.ndarray,
                           replaced_group: np.ndarray, ok_input: np.ndarray,
                           tol: float) -> np.ndarray:
-    """Bool over `solid`'s faces: new faces lying ON an existing face -- parallel within
-    `_COINCIDENT_ANGLE_DEG`, every corner of it within `tol` of the new face's plane, and
-    overlapping it in that plane -- that is not one of the new face's own group's pieces.
+    """Bool over `solid`'s faces: new faces lying ON an existing face (`_Planes.lying_on`) that
+    is not one of the new face's own group's pieces -- or ON a new face another group built
+    before it that is not itself refused here (review part 2, C1: one bottom per footprint).
 
     Decided geometrically, not by pixels (review C1): a coincident pair renders as a tie, so no
     pixel rule can see a skirt laid exactly over an existing side, and one did ship as a
-    z-fighting double layer when that side was wound inward."""
+    z-fighting double layer when that side was wound inward. Walls were deduplicated across
+    regions (`built_walls`) but bottoms were not: a top that is a duplicate layer of two
+    materials got a bottom under each of its regions, 1,600 sq in of m0 exactly over m1."""
     out = np.zeros(solid.n_faces, bool)
-    tri = solid.positions[solid.face_v]
-    cross = np.cross(tri[:, 1] - tri[:, 0], tri[:, 2] - tri[:, 0])
-    area = 0.5 * np.linalg.norm(cross, axis=1)
-    unit = cross / np.maximum(2.0 * area, 1e-300)[:, None]
+    planes = _Planes(solid)
     orig = np.nonzero(np.asarray(ok_input, bool))[0]
-    lo, hi = tri.min(axis=1), tri.max(axis=1)
-    cos_parallel = float(np.cos(np.radians(_COINCIDENT_ANGLE_DEG)))
+    new_ids = np.nonzero(new_faces)[0]
+    for f in new_ids:
+        cand = orig[replaced_group[orig] != new_group[f]]
+        if len(planes.lying_on(f, cand, tol)):
+            out[f] = True
+            continue
+        earlier = new_ids[(new_ids < f) & (new_group[new_ids] != new_group[f])]
+        if len(planes.lying_on(f, earlier[~out[earlier]], tol)):
+            out[f] = True
+    return out
+
+
+def _new_faces_on_pieces(solid: MeshData, new_faces: np.ndarray, replaced_group: np.ndarray,
+                         tol: float) -> dict[int, np.ndarray]:
+    """Review part 2, C1: per new face, the PIECES (original faces some closing face replaces)
+    lying on it -- its own group's included, which `_coincident_new_faces` skips because they are
+    to be removed. The cap guard refuses a new face whenever one of these is present in the state
+    it judges: a piece it gave back must never stay under a new face lying on it."""
+    planes = _Planes(solid)
+    pieces = np.nonzero(np.asarray(replaced_group) >= 0)[0]
+    out: dict[int, np.ndarray] = {}
+    if not len(pieces):
+        return out
     for f in np.nonzero(new_faces)[0]:
-        if area[f] <= 0.0:
-            continue
-        near = ((hi[orig] >= lo[f] - tol) & (lo[orig] <= hi[f] + tol)).all(axis=1)
-        cand = orig[near]
-        cand = cand[np.abs(unit[cand] @ unit[f]) >= cos_parallel]
-        if len(cand):
-            cand = cand[np.abs((tri[cand] - tri[f][0]) @ unit[f]).max(axis=1) <= tol]
-            cand = cand[replaced_group[cand] != new_group[f]]
-        if not len(cand):
-            continue
-        e1, e2 = plane_basis(unit[f])
-        basis = np.stack([e1, e2], axis=1)
-        mine = shapely.Polygon((tri[f] - tri[f][0]) @ basis)
-        for o in cand:
-            shared = mine.intersection(shapely.Polygon((tri[o] - tri[f][0]) @ basis)).area
-            if shared > max(1e-4, 1e-3 * min(float(area[f]), float(area[o]))):
-                out[f] = True
-                break
+        on = planes.lying_on(int(f), pieces, tol)
+        if len(on):
+            out[int(f)] = on
     return out
 
 
@@ -1480,7 +1527,7 @@ def _cap_guard(original: MeshData, solid: MeshData, new_faces: np.ndarray,
                 parallel_interior_ok: np.ndarray | None = None,
                 shell_faces: np.ndarray | None = None,
                 refused_before: np.ndarray | None = None,
-                piece_cover: dict | None = None):
+                piece_cover: dict | None = None, on_pieces: dict | None = None):
     """Render the original and the solidified mesh over `VIEWS_26` and drop every new face the
     cap rule refuses, and every original face a kept closing face replaces (see
     `engine.guard.compare.solidify_feedback`). Returns
@@ -1517,7 +1564,7 @@ def _cap_guard(original: MeshData, solid: MeshData, new_faces: np.ndarray,
         max_rounds=max_rounds, replaced_group=replaced_group, new_group=new_group,
         side_band=side_band, interior=interior, back_exposure_before=back,
         parallel_interior_ok=parallel_interior_ok, shell_faces=shell_faces,
-        refused_before=refused_before, piece_cover=piece_cover)
+        refused_before=refused_before, piece_cover=piece_cover, on_pieces=on_pieces)
     removed = int((~keep & new_faces).sum())
     if keep.all():
         return solid, new_faces, history, 0, detail, keep

@@ -1373,6 +1373,75 @@ def test_a_floor_under_a_landing_with_its_sides_missing_is_a_top():
     assert [t for t in new if np.allclose(t[:, 0], 40.0)] == []   # no wall inside the slab
 
 
+# ------------------------ review part 2, C1: the side rebuild never ships a coincident double layer
+
+
+def _plane_census(mesh, axis, value, tol=1e-6):
+    """`(sum of face areas, area of their union, area covered by two materials)` over the faces
+    of `mesh` lying in the plane `x[axis] == value`: a double layer shows as sum > union."""
+    tri = mesh.positions[mesh.face_v]
+    on = np.nonzero((np.abs(tri[:, :, axis] - value) <= tol).all(axis=1))[0]
+    keep = [a for a in range(3) if a != axis]
+    by_material: dict = {}
+    total = 0.0
+    for f in on:
+        poly = shapely.Polygon(tri[f][:, keep])
+        total += poly.area
+        by_material.setdefault(int(mesh.face_material[f]), []).append(poly)
+    unions = [shapely.union_all(p) for p in by_material.values()]
+    union = shapely.union_all(unions).area if unions else 0.0
+    both = sum(a.intersection(b).area for i, a in enumerate(unions) for b in unions[i + 1:])
+    return total, union, both
+
+
+@pytest.mark.parametrize("teeth_material", [1, 0])
+def test_a_piece_given_back_never_keeps_a_new_face_lying_on_it(teeth_material):
+    """R2-C1 (`probe_restored_piece_double_layer.py`, `..._same_material.py`): the coincidence
+    rule ran once, before the cap guard, and skipped a wall's own pieces -- they were to be
+    removed. But the guard gives pieces back: the deep tooth's tip, 3 in below the wall, fails
+    and is restored, and a wall that loses a face gives back every piece. At the default 900 x
+    600 the wall face lying on tooth 35 was kept on it: 21.33 sq in of m0 over m1 shipped (in one
+    material the fold and overlap passes left it too), `passed` True. A new face lying on a piece
+    present in the state being judged is refused, every round. (Solidify's own output, where the
+    layer was made -- nothing after it invents a face -- at the default 900 x 600 guard, the size
+    it shows at.)"""
+    from engine.tests.fixtures.build import slab_with_a_deep_tooth_in_its_side
+    r = _solidified(slab_with_a_deep_tooth_in_its_side(teeth_material),
+                    FixProfile(guard_size=(900, 600), n_dirs=32))
+    assert r.report["cap_guard_passed"] is True
+    total, union, both = _plane_census(r.mesh, 0, 0.0)
+    assert both == pytest.approx(0.0, abs=1e-6)
+    assert total == pytest.approx(union, abs=1e-6)
+
+
+@pytest.mark.parametrize("size", [40.0, 2000.0])
+def test_a_tooth_given_back_at_real_scale_leaves_no_double_layer(size):
+    """R2-C1 at the real files' scale (`probe_piece_below_wall.py`): at 2000 in the tooth's fin
+    shows in a few guard pixels, so it is given back; one wall face was refused and the other
+    kept ON the tooth -- a 14.46 sq in coincident double layer, `passed` True. No face of the
+    x = 0 plane lies on another (solidify's output, at the default 900 x 600 guard)."""
+    from engine.tests.fixtures.build import slab_with_one_deep_tooth
+    r = _solidified(slab_with_one_deep_tooth(size), FixProfile(guard_size=(900, 600), n_dirs=32))
+    assert r.report["cap_guard_passed"] is True
+    total, union, _both = _plane_census(r.mesh, 0, 0.0)
+    assert total == pytest.approx(union, abs=1e-3)
+
+
+def test_two_coincident_tops_get_one_bottom():
+    """R2-C1 failure 3 (`probe_double_bottom.py`): a slab whose top is a duplicate layer of two
+    materials got a bottom under EACH top region -- 1,600 sq in of m0 exactly over 1,600 sq in of
+    m1 shipped on the underside, `passed` True. Walls were deduplicated across regions; bottoms
+    were not. One bottom per footprint: the second one, lying on the first, is refused."""
+    from engine.tests.fixtures.build import slab_with_a_double_layer_top
+    r = fix_object(slab_with_a_double_layer_top(), {}, _FAST)
+    assert r.passed is True
+    total, union, both = _plane_census(r.mesh, 2, -8.0)
+    assert union == pytest.approx(1600.0)
+    assert both == pytest.approx(0.0, abs=1e-6) and total == pytest.approx(union)
+    reasons = r.solidify_report["bottom_faces_refused"]["reasons"]
+    assert reasons.get("coincides_with_existing_face", 0) >= 2
+
+
 def test_a_point_on_a_slabs_top_or_bottom_plane_is_inside_it():
     """The cap guard judges the point in front of a covered hit, and for a face lying ON the new
     bottom's plane -- a real partial bottom the bottom replaces -- that point is the hit point

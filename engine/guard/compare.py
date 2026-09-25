@@ -1350,7 +1350,8 @@ def solidify_feedback(positions_c: np.ndarray, faces_before: np.ndarray, faces_a
                        parallel_interior_ok: np.ndarray | None = None,
                        shell_faces: np.ndarray | None = None,
                        refused_before: np.ndarray | None = None,
-                       piece_cover: dict | None = None
+                       piece_cover: dict | None = None,
+                       on_pieces: dict | None = None
                        ) -> tuple[np.ndarray, list[dict], dict]:
     """The CAP GUARD: which of the faces `engine.fixes.solidify` invented may stay -- and, since
     SR2, which of the original faces it REPLACES may go.
@@ -1436,6 +1437,14 @@ def solidify_feedback(positions_c: np.ndarray, faces_before: np.ndarray, faces_a
     `refused_before` (bool over `faces_after`) names new faces refused before any pixel is judged
     -- a new face coinciding with an existing one, which no pixel can show (a coincident pair
     renders as a tie). Their reason is `"coincides_with_existing_face"`.
+
+    `on_pieces` (review part 2, C1) maps a new face to the pieces lying ON it -- its own group's
+    included, which `refused_before` skips because they are to be removed. But the guard gives
+    pieces back (a piece whose pixel fails; every piece of a wall that loses a face; a bottom's
+    piece whose covering face is refused), and a new face left lying on one is a double layer no
+    pixel can see. So before every round, and before the verification, every kept new face lying
+    on a piece present in that state is refused (`"lies_on_a_restored_piece"`), repeated until
+    none is left; counted per round as `refused_on_pieces`.
 
     BRIEF 10 ITEM 1 JUDGES A SLAB'S NEW SHELL TOGETHER. Every rule above reads what BEFORE -- the
     input, WITHOUT any of the new faces -- showed at the pixel, so each new face was judged as if
@@ -1554,6 +1563,26 @@ def solidify_feedback(positions_c: np.ndarray, faces_before: np.ndarray, faces_a
             if piece_ok[piece] and len(cover):
                 out[piece] = bool(keep[np.asarray(cover, dtype=np.int64)].all())
         return out
+
+    def refuse_faces_on_present_pieces() -> int:
+        """Review part 2, C1: every kept new face lying ON a piece present in the current state
+        -- one the guard gave back, or one whose group lost a face -- is refused, until none is
+        left: a coincident pair renders as a tie, so no pixel can see the double layer it makes
+        (file-level probes shipped 21.33 and 14.46 sq in). Refusing a wall face gives back the
+        rest of its pieces, so this repeats. Returns how many new faces it refused."""
+        if not on_pieces:
+            return 0
+        refused = 0
+        while True:
+            present = (replaced_group >= 0) & ~removed_pieces()
+            hit = [f for f, lying in on_pieces.items()
+                   if keep[f] and present[np.asarray(lying, dtype=np.int64)].any()]
+            if not hit:
+                return refused
+            for f in hit:
+                keep[f] = False
+                reasons[int(f)] = "lies_on_a_restored_piece"
+            refused += len(hit)
 
     def measure():
         """Failing pixels, the new faces to refuse, the pieces to restore and the per-rule
@@ -1681,13 +1710,14 @@ def solidify_feedback(positions_c: np.ndarray, faces_before: np.ndarray, faces_a
     history: list[dict] = []
     result = None
     for rnd in range(max_rounds):
+        on_restored = refuse_faces_on_present_pieces()
         result = measure()
         failing, refuse, restore, replaced_px, interior_px, _faces, through_px, together = result
         history.append({"round": rnd, "new_remaining": int((keep & is_new).sum()),
                          "failing_pixels": failing, "removed": len(refuse),
                          "pieces_restored": len(restore), "replaced_px": replaced_px,
                          "interior_px": interior_px, "through_shell_px": through_px,
-                         "refused_together": together})
+                         "refused_together": together, "refused_on_pieces": on_restored})
         if not refuse and not restore:
             break
         for f, codes in refuse.items():
@@ -1702,11 +1732,13 @@ def solidify_feedback(positions_c: np.ndarray, faces_before: np.ndarray, faces_a
         # would describe a mesh that is not the one being handed back, and
         # `history[-1]["failing_pixels"] == 0` -- which the caller publishes as
         # `cap_guard_passed` -- would be a claim about a superseded state.
+        on_restored = refuse_faces_on_present_pieces()
         result = measure()
         history.append({"round": max_rounds, "new_remaining": int((keep & is_new).sum()),
                          "failing_pixels": result[0], "removed": 0, "pieces_restored": 0,
                          "replaced_px": result[3], "interior_px": result[4],
-                         "through_shell_px": result[6], "refused_together": 0})
+                         "through_shell_px": result[6], "refused_together": 0,
+                         "refused_on_pieces": on_restored})
     removed = removed_pieces()
     out = keep.copy()
     out[:n_before] &= ~removed

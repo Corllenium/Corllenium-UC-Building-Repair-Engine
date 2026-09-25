@@ -1775,3 +1775,64 @@ def real_top_under_a_landing():
            material=0)                                                        # the landing U
     return _mesh("real_top_under_a_landing", P, uvs, fv, fvt, materials=("m0", "m1"),
                  face_material=fm)
+
+
+def slab_with_a_deep_tooth_in_its_side(teeth_material=1):
+    """Review part 2, C1 (`probe_restored_piece_double_layer.py`, `..._same_material.py`):
+    `slab_with_sawtooth_side` with every tooth IN the side plane (offsets 0) and in material
+    `teeth_material` (m1, concrete, under an m0 top; 0 = the top's own), and tooth 0 reaching 3 in
+    BELOW the slab (apex at z = -11 against the slab's -8): its tip is not covered by the 8 in wall,
+    so its pixels fail, and the cap guard gives it back while keeping the wall face lying on it.
+
+    Faces: `slab_with_sawtooth_side`'s (the slab 0-33, the teeth 34-37, the rib 38-39)."""
+    from dataclasses import replace
+    m = slab_with_sawtooth_side(offsets=(0.0, 0.0, 0.0, 0.0, 0.0))
+    teeth = np.arange(34, m.n_faces - 2)
+    P = m.positions.copy()
+    apex = int(m.face_v[teeth[0]][1])                   # tooth 0 is (b, apex, a)
+    P[apex, 2] = -11.0
+    fm = m.face_material.copy()
+    fm[teeth] = teeth_material
+    return replace(m, name="slab_with_a_deep_tooth_in_its_side", positions=P, face_material=fm,
+                   materials=["m0_paving", "m1_concrete"])
+
+
+def slab_with_one_deep_tooth(size=40.0, height=8.0):
+    """Review part 2, C1 at the real files' scale (`probe_piece_below_wall.py`): a closed slab
+    `size` x `size` x `height` (bottom and three skirts, outward) whose x = 0 side is missing
+    except ONE tooth in the side plane -- base on the top edge over y = size/2 .. size/2 + 8, apex
+    11 in down, 3 in below the slab. At 2000 in a guard pixel spans 2 to 3 in.
+
+    Faces: 0-9 the slab, 10 the tooth."""
+    s, h = size, height
+    P = [[0, 0, 0], [s, 0, 0], [s, s, 0], [0, s, 0], [0, 0, -h], [s, 0, -h], [s, s, -h], [0, s, -h]]
+    uvs, fv, fvt, fm = [], [], [], []
+    _quads(P, uvs, fv, fvt, fm, [(0, 1, 2, 3), (4, 7, 6, 5), (4, 5, 1, 0), (5, 6, 2, 1), (6, 7, 3, 2)])
+    y0 = s / 2.0
+    b = len(P)
+    P += [[0, y0, 0], [0, y0 + 8.0, 0], [0, y0 + 4.0, -11.0]]
+    fv.append([b + 1, b + 2, b + 0])                    # normal -x, outward
+    base = len(uvs)
+    uvs += [[P[v][1] * 0.05, P[v][2] * 0.05] for v in (b + 1, b + 2, b + 0)]
+    fvt.append([base, base + 1, base + 2])
+    fm.append(0)
+    return _mesh("slab_with_one_deep_tooth", P, uvs, fv, fvt, face_material=fm)
+
+
+def slab_with_a_double_layer_top(size=40.0, height=8.0):
+    """Review part 2, C1 failure 3 (`probe_double_bottom.py`): a slab `size` x `size`, its four
+    sides `height` deep and closed, NO bottom, whose top is two coincident sheets -- one in m0 and
+    one in m1, each on its own vertex rows, as a separate export layer would be (the duplicate
+    layer the overlap pass leaves because the materials differ).
+
+    Faces: 0-1 the m0 top, 2-3 the m1 top, 4-11 the sides."""
+    s, h = size, height
+    P = [[0, 0, 0], [s, 0, 0], [s, s, 0], [0, s, 0], [0, 0, -h], [s, 0, -h], [s, s, -h], [0, s, -h],
+         [0, 0, 0], [s, 0, 0], [s, s, 0], [0, s, 0]]
+    uvs, fv, fvt, fm = [], [], [], []
+    _quads(P, uvs, fv, fvt, fm, [(0, 1, 2, 3)], material=0)                   # top, m0
+    _quads(P, uvs, fv, fvt, fm, [(8, 9, 10, 11)], material=1)                 # the same top, m1
+    _quads(P, uvs, fv, fvt, fm, [(4, 5, 1, 0), (5, 6, 2, 1), (6, 7, 3, 2), (7, 4, 0, 3)],
+           material=0)
+    return _mesh("slab_with_a_double_layer_top", P, uvs, fv, fvt, materials=("m0", "m1"),
+                 face_material=fm)
