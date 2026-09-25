@@ -73,16 +73,31 @@
 
       <section class="canvas-panel">
         <div class="canvas-header">
-          <h2>AFTER &middot; Inside Removed &amp; Planar Regions Merged</h2>
+          <h2>AFTER &middot; {{ resultDesc ? resultDesc.heading : 'Inside Removed & Planar Regions Merged' }}</h2>
           <span class="version-label fixed-tag" v-if="fixedVersion">v{{ fixedVersion.id }} (Cleaned)</span>
           <span class="version-label preview-tag" v-else>No Fix Applied Yet</span>
         </div>
         <div ref="canvasB" class="canvas-viewport"></div>
         <div class="panel-stats">
-          <span v-if="fixedVersion && snapshotVersion">
-            <b style="color: #0d8a43">{{ fixedVersion.tri_count.toLocaleString() }}</b> triangles &nbsp;&middot;&nbsp;
-            <b>{{ (100 * (1 - fixedVersion.tri_count / snapshotVersion.tri_count)).toFixed(1) }}% fewer</b> &nbsp;&middot;&nbsp;
-            <span style="color: #0d8a43">Guard Passed (0 damaged px)</span>
+          <div v-if="resultDesc && resultDesc.error" class="text-error" style="color: #d8282f">
+            <strong>Fix failed:</strong> {{ resultDesc.error }}
+          </div>
+          <span v-else-if="fixedVersion && snapshotVersion">
+            <b :style="{ color: resultDesc && !resultDesc.guardPassed ? '#d8282f' : '#0d8a43' }">{{ fixedVersion.tri_count.toLocaleString() }}</b> triangles &nbsp;&middot;&nbsp;
+            <b>{{ (100 * (1 - fixedVersion.tri_count / snapshotVersion.tri_count)).toFixed(1) }}% fewer</b>
+            <template v-if="resultDesc">
+              &nbsp;&middot;&nbsp;
+              <span :style="{ color: resultDesc.guardPassed ? '#0d8a43' : '#d8282f' }">{{ resultDesc.guardLine }}</span>
+              <template v-if="resultDesc.backfacePx !== undefined">
+                &nbsp;&middot;&nbsp; <span>{{ resultDesc.backfacePx.toLocaleString() }} backface px</span>
+              </template>
+              <template v-if="resultDesc.borderShiftPx !== undefined">
+                &nbsp;&middot;&nbsp; <span>{{ resultDesc.borderShiftPx }} border shift</span>
+              </template>
+              <template v-if="resultDesc.skpSummary">
+                &nbsp;&middot;&nbsp; <span class="skp-summary">{{ resultDesc.skpSummary }}</span>
+              </template>
+            </template>
           </span>
           <span v-else class="text-muted">
             Click "Run Fix Pipeline" to execute the geometry fix engine.
@@ -155,6 +170,7 @@ import {
 } from '../api/client'
 import { decodeMeshbuf } from '../three/meshbuf'
 import { Viewport, syncViewports } from '../three/Viewport'
+import { describeResult } from '../utils/describeResult'
 import * as THREE from 'three'
 
 const route = useRoute()
@@ -167,6 +183,11 @@ const showGuardModal = ref(false)
 const selectedView = ref('top')
 const imgError = ref(false)
 const pickedFace = ref<{ faceId: number; point: THREE.Vector3 } | null>(null)
+
+const resultDesc = computed(() => {
+  if (!latestRun.value) return null
+  return describeResult(latestRun.value.report_json || latestRun.value)
+})
 
 const standardViews = ['top', 'bottom', 'north', 'south', 'east', 'west']
 
@@ -269,6 +290,13 @@ async function triggerFix() {
     await reloadModel()
     updateLayers()
   } catch (err: any) {
+    latestRun.value = {
+      id: 0,
+      version_id: snapshotVersion.value.id,
+      status: 'failed',
+      error: err.message || 'Fix execution failed',
+      created_at: new Date().toISOString(),
+    }
     alert(`Fix failed: ${err.message}`)
   } finally {
     fixing.value = false
