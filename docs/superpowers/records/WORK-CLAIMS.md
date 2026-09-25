@@ -31,5 +31,7 @@ Hermes hands back by releasing the row after a clean commit.
 | Dashboard fix wave, pass 4 (re-review findings) | rereview-dashboard-wave.md | .hermes/worktrees/dashboard-wave | Hermes (started by the Claude controller) | 2026-09-25 17:40 | running |
 | Review of feat/dashboard-wave (pass 1, c0f2ea4) | read-only | committed state c0f2ea4 | - | 2026-09-25 13:49 | DONE: Changes required (0 Critical, 8 Important, 12 Minor); review-dashboard-wave.md |
 | Leftovers | briefs/06-leftovers.md | main checkout | - | queued | any time a slot is free |
-| Side rebuild follow-ups | briefs/10-side-rebuild-followups.md | main checkout / feat-dashboard | Claude subagent (brief 10) | 2026-09-25 11:15 | running |
+| Side rebuild follow-ups | briefs/10-side-rebuild-followups.md | main checkout / feat-dashboard | - | 2026-09-25 17:12 | DONE_WITH_CONCERNS: 9f64ae9..f7e27d1, report daeb84c/4f84ccb; 566 passed; A 917 / B 506, backface final A 21,553 / B 2,787; A owner .skp NOT replaced (file open in SketchUp) |
+| Review of brief 10 (rule 6 and the R2 fixes) | read-only | committed state after 4f84ccb | Claude subagent (review 10) | 2026-09-25 17:45 | running |
+| Remaining visual defects | briefs/11-remaining-visual-defects.md | main checkout / feat-dashboard | Claude subagent (brief 11) | 2026-09-25 17:45 | running |
 | Visual triage 2026-09-25 | (inline prompt) | read-only, data/visual_triage/2026-09-25 | - | 2026-09-25 12:05 | DONE by Hermes (gemini-3.8-flash, 52 calls, about 0.55 USD): docs/superpowers/records/visual-triage-2026-09-25.md; top items verified by the controller (B middle slabs hollow from below; A big-landing margin line clutter) |

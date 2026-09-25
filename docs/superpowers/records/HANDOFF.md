@@ -23,32 +23,24 @@ side mesh, rebuild broken or missing sides; only the model's outline edges may b
 run the latest `.skp` of each file must be in `OBJ FIXED RESULT/` for the owner to check in SketchUp
 2026. Work visually: every round ends with renders that are looked at, not only numbers.
 
-## 2. Current state (2026-09-25 10:55, written by the brief 03 Claude subagent)
+## 2. Current state (2026-09-25 17:45, written by the Claude controller)
 
-Branch `feat-dashboard`. The side rebuild is MERGED: 68f6d15 (merge), a89f771, 82adc60 and ca463c2
-(follow-ups), f8e72bb (report `reconcile-side-rebuild-report.md`), then these record files. Engine
-suite **542 passed** at ca463c2. `docker-compose.yml` shows as modified: it belongs to another
-session, never touch it.
+Branch `feat-dashboard`, engine suite **566 passed** (verified 17:32). `docker-compose.yml` shows as
+modified: another session's, never touch it. The live dashboard is Docker containers built on 09-24
+01:22 (old code); rebuilding them is the owner's decision.
 
-Latest owner files (A 08:52, B 08:50, engine ca463c2). Both passed, with no merge rollback:
-- file A: 1,044 triangles, back faces from outside 20,945 px;
-- file B: 530 triangles, 5,993 px;
-- the owner's ramp (B region 309) in the written `.skp`: one clean wall, close-up 948 back px
-  (input 43,696);
-- two runs of A give a byte-identical `report.json`.
-
-Against the side rebuild alone (876 / 486), the extra triangles are feat-dashboard's T-junction
-threading (A 143, B 49, measured with it switched off) and its debris and fold pass.
+Latest outputs (17:10-17:12, brief 10's final code): file A 917 triangles, back faces from outside
+21,553 px; file B 506 triangles, 2,787 px; both passed, no rollback. **File A's owner copy
+`OBJ FIXED RESULT/CHTM_SIDE_WALK_2nd_floor.fixed.skp` is still the 11:50 version**: SketchUp had it open
+(Errno 13). The current file A is `data/output/CHTM_SIDE_WALK_2nd_floor/CHTM_SIDE_WALK_2nd_floor.fixed.skp`;
+copy it over once SketchUp has closed the old one. File B's owner copy is current (17:12).
 
 Jobs:
 
-1. Next: review part 2 (the side rebuild), then brief 10 (side rebuild follow-ups).
-2. Found in brief 03, for brief 10 or the leftovers:
-   - A ships a coincident double layer with opposite windings at z 1612.2 on its lower landing
-     (session record section 6 item 8);
-   - 3 of A's 6 longest lines inside a surface lie along x = 2673.2;
-   - a new sliver, A face 3491, is removed and confirmed by the rays, but why it became a
-     candidate was not traced.
+1. **Brief 11** (remaining visual defects), main checkout, Claude subagent since 17:45.
+2. **Review of brief 10** (read-only), Claude subagent since 17:45; its findings are added to brief 11.
+3. **Dashboard pass 4** (Hermes, worktree `.hermes/worktrees/dashboard-wave`, branch `feat/dashboard-wave`):
+   the re-review's findings (`rereview-dashboard-wave.md`); another review before any merge.
 
 **If you take over one of these** (for example because Claude hit its usage limit): follow the
 lapse rule at the top of `WORK-CLAIMS.md`, take the claim over in writing, run `git status` and
@@ -68,7 +60,8 @@ work in progress: finish it, test it, commit it; never discard it.
 | 7 | `briefs/07-review-fixes.md` | fixes from review part 1 | DONE by Hermes (merge 19f97cc) |
 | 8 | `briefs/08-review2a-fixes.md` | fixes from review 2a | DONE (536fca7..d570927, report 64023ad) |
 | 9 | `briefs/09-sliver-ray-confirmation.md` | rays through each debris piece, folds | DONE (3386c4f..d9673c1) |
-| 10 | `briefs/10-side-rebuild-followups.md` | side rebuild gaps + the render findings after the merge | **NEXT** (main checkout) |
+| 10 | `briefs/10-side-rebuild-followups.md` | side rebuild gaps + review part 2 findings | DONE (9f64ae9..f7e27d1, report daeb84c) |
+| 11 | `briefs/11-remaining-visual-defects.md` | margin-strip winding, broken undersides, B region 107, B4, B8 | **running** (main checkout) |
 
 ## 4. Rules (each one cost time when broken)
 
