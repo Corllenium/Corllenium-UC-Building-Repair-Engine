@@ -1836,3 +1836,36 @@ def slab_with_a_double_layer_top(size=40.0, height=8.0):
            material=0)
     return _mesh("slab_with_a_double_layer_top", P, uvs, fv, fvt, materials=("m0", "m1"),
                  face_material=fm)
+
+
+def slab_with_a_concrete_sawtooth_side():
+    """Review part 2, I1 failure 1 (`probe_side_material.py`): `slab_with_sawtooth_side` with its
+    teeth -- the broken x = 0 side -- in m1 ("concrete") while the top and every other face keep
+    m0 ("paving"). Faces as `slab_with_sawtooth_side` (the teeth 34-37)."""
+    from dataclasses import replace
+    m = slab_with_sawtooth_side()
+    fm = m.face_material.copy()
+    fm[34:m.n_faces - 2] = 1
+    return replace(m, name="slab_with_a_concrete_sawtooth_side", face_material=fm,
+                   materials=["m0_paving", "m1_concrete"])
+
+
+def slab_with_half_side_and_a_sign(size=40.0):
+    """Review part 2, I1 failure 2 (`probe_object_in_band.py`): `slab_with_half_side(size)` with a
+    SIGN in m1 standing in front of the missing half of the x = 0 side -- ONE face (SketchUp faces
+    are two-sided), 1.2 in out (inside the 2.5 in side band), z -6..-2, 8 in long, facing -x,
+    touching nothing of the slab. At 2000 in a guard pixel spans 2 to 3 in.
+
+    Returns `(mesh, sign faces)`."""
+    base = slab_with_half_side(size=size)
+    P = base.positions.tolist()
+    uvs, fv, fvt = base.uvs.tolist(), base.face_v.tolist(), base.face_vt.tolist()
+    fm = base.face_material.tolist()
+    first = len(fv)
+    b = len(P)
+    y0 = 24.0 * size / 40.0
+    P += [[-1.2, y0, -6.0], [-1.2, y0 + 8.0, -6.0], [-1.2, y0 + 8.0, -2.0], [-1.2, y0, -2.0]]
+    _quads(P, uvs, fv, fvt, fm, [(b + 0, b + 3, b + 2, b + 1)], material=1)   # the sign, -x
+    m = _mesh("slab_with_half_side_and_a_sign", P, uvs, fv, fvt, materials=("m0", "m1"),
+              face_material=fm)
+    return m, np.arange(first, m.n_faces)

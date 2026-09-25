@@ -1442,6 +1442,40 @@ def test_two_coincident_tops_get_one_bottom():
     assert reasons.get("coincides_with_existing_face", 0) >= 2
 
 
+# ------------------------------ review part 2, I1: a piece belongs to the slab and to the side's look
+
+
+def test_a_rebuilt_side_keeps_the_material_of_the_side_it_replaces():
+    """R2-I1 failure 1 (`probe_side_material.py`): the teeth of the broken x = 0 side are m1
+    (concrete) under an m0 (paving) top. The wall took the TOP's material, so the side shipped as
+    320 sq in of m0 where the input had 128 sq in of m1 -- every tooth pixel changed material, and
+    no rule named it. A wall takes the material of the side it replaces."""
+    from engine.tests.fixtures.build import slab_with_a_concrete_sawtooth_side
+    r = fix_object(slab_with_a_concrete_sawtooth_side(), {}, _FAST)
+    assert r.passed is True
+    assert r.solidify_report["side_pieces_replaced"] == 4
+    shipped = r.mesh
+    side = _plane_faces(shipped, 0, 0.0)
+    assert len(side)
+    assert set(shipped.face_material[side].tolist()) == {1}
+    assert _covered_area(shipped, side, [1, 2]) == pytest.approx(40.0 * 8.0)
+
+
+@pytest.mark.parametrize("size", [40.0, 2000.0])
+def test_a_sign_standing_in_front_of_a_missing_side_is_never_a_piece(size):
+    """R2-I1 failure 2 (`probe_object_in_band.py`): a sign 1.2 in in front of the missing half of
+    a side -- inside the 2.5 in band, below the top, another material, touching nothing of the
+    slab -- was taken for a piece of that side: at 2000 in and the default 900 x 600 guard both
+    its triangles were deleted with the wall's acceptance, `passed` True. A piece is attached to
+    the slab: its part of the side reaches the top edge or the wall's foot; the sign reaches
+    neither, and stays."""
+    from engine.tests.fixtures.build import slab_with_half_side_and_a_sign
+    m, sign = slab_with_half_side_and_a_sign(size)
+    r = _solidified(m, FixProfile(guard_size=(900, 600), n_dirs=32))
+    assert r.report["cap_guard_passed"] is True
+    assert not r.replaced[sign].any()
+
+
 def test_a_point_on_a_slabs_top_or_bottom_plane_is_inside_it():
     """The cap guard judges the point in front of a covered hit, and for a face lying ON the new
     bottom's plane -- a real partial bottom the bottom replaces -- that point is the hit point

@@ -581,10 +581,35 @@ class _Faces:
                           & (self.lo <= hi).all(axis=1))[0]
 
 
+def _attached(polys: np.ndarray, members: np.ndarray, lines: list, touch: float) -> np.ndarray:
+    """Review part 2, I1. Bool over `polys`: which of `members` (indices into it) belong to a
+    connected part of the side -- polygons within `touch` of each other in the side's own frame
+    -- that comes within `touch` of one of `lines` (the top edge, the wall's foot)."""
+    out = np.zeros(len(polys), bool)
+    members = [int(m) for m in members]
+    parent = list(range(len(members)))
+
+    def find(i):
+        while parent[i] != i:
+            parent[i] = parent[parent[i]]
+            i = parent[i]
+        return i
+
+    for a in range(len(members)):
+        for b in range(a + 1, len(members)):
+            if shapely.distance(polys[members[a]], polys[members[b]]) <= touch:
+                parent[find(a)] = find(b)
+    anchored = {find(k) for k, m in enumerate(members)
+                if any(shapely.distance(polys[m], line) <= touch for line in lines)}
+    for k, m in enumerate(members):
+        out[m] = find(k) in anchored
+    return out
+
+
 def _wall_pieces(faces: _Faces, pa, pb, q, h_measured: float, h_wall: float, band: float,
                  claimed: set, built: list | None = None, max_depth: float = 0.0,
-                 min_side: float = 0.0, h_ends: tuple[float, float] | None = None
-                 ) -> tuple[list[int], float, float | None]:
+                 min_side: float = 0.0, h_ends: tuple[float, float] | None = None,
+                 touch: float = EPS_IN) -> tuple[list[int], float, float | None]:
     """`(pieces, coverage, depth)` of the side under edge `pa -> pb` (outward `q`). `depth` is
     the side's measured depth, from ORIGINAL faces only, or `None` when no original face hangs
     from the edge -- a side that is whole only because this run already walled a coincident edge
@@ -626,7 +651,14 @@ def _wall_pieces(faces: _Faces, pa, pb, q, h_measured: float, h_wall: float, ban
     and the side is judged -- and its pieces taken -- over the TRAPEZOID from the top edge down to
     that surface, not over a rectangle. And a piece no longer has to hang from the top edge: on
     file B's ramp the broken side along an 85 in edge is only its lower part, 28 to 39.4 in down,
-    and taken as nothing it lay under the new wall, which the coincidence test then refused."""
+    and taken as nothing it lay under the new wall, which the coincidence test then refused.
+
+    Review part 2, I1: but a piece must BELONG to the slab, not merely lie near its side's plane:
+    its connected part of the side (`_attached`, faces within `touch` of each other in the side's
+    frame) reaches the top edge or the wall's foot within `touch`. A sign standing 1.2 in in front
+    of a missing side, below the top and touching nothing, lay in the band and was deleted as a
+    piece at the real files' scale; the teeth of a broken side still hang from the top edge, and
+    the ramp's lower pieces still rest on its underside."""
     t = pb - pa
     t[2] = 0.0
     length = float(np.linalg.norm(t))
@@ -690,12 +722,78 @@ def _wall_pieces(faces: _Faces, pa, pb, q, h_measured: float, h_wall: float, ban
         side = (None if h_side is None
                 else shapely.box(0.0, -max(h_side, min_side), length, 0.0))
     inside = shapely.area(shapely.intersection(polys, window))
-    mine = (own & is_face & (inside >= _PIECE_INSIDE_FRACTION * area))[:len(cand)]
+    foot = (shapely.LineString([(0.0, -h_ends[0]), (length, -h_ends[1])]) if h_ends is not None
+            else shapely.LineString([(0.0, -max(h_side or 0.0, h_wall)),
+                                     (length, -max(h_side or 0.0, h_wall))]))
+    attached = _attached(polys, np.nonzero(own & is_face)[0],
+                         [shapely.LineString([(0.0, 0.0), (length, 0.0)]), foot], touch)
+    mine = (own & is_face & attached & (inside >= _PIECE_INSIDE_FRACTION * area))[:len(cand)]
     pieces = [int(f) for f in cand[mine] if int(f) not in claimed]
     if side is None:
         return pieces, 0.0, None
     covered = shapely.area(shapely.intersection(shapely.union_all(polys[own]), side))
     return pieces, float(covered / max(side.area, 1e-12)), measured
+
+
+def _wall_look(mesh: MeshData, topo: Topology, faces: _Faces, found: list[int], material: int,
+               uv_scale: float, origin: np.ndarray, normal: np.ndarray
+               ) -> tuple[int, float, list[int]]:
+    """Review part 2, I1: `(material, uv_scale, pieces)` of a wall. A wall replacing pieces takes
+    the material covering most of their area (ties: the lowest id), its UV scale fitted to those
+    pieces in the wall's own plane, and only the pieces of that material -- a face of another
+    material in the band keeps its own look. A wall replacing nothing takes the top's material
+    and scale, as before. The broken side of the review's probe was m1 (concrete) under an m0
+    (paving) top, and shipped as 320 sq in of m0: every one of its pixels changed material."""
+    if not found:
+        return material, uv_scale, found
+    ids = np.asarray(found, dtype=np.int64)
+    tri = faces.tri[ids]
+    area = 0.5 * np.linalg.norm(np.cross(tri[:, 1] - tri[:, 0], tri[:, 2] - tri[:, 0]), axis=1)
+    mats = mesh.face_material[ids]
+    totals = {int(m): float(area[mats == m].sum()) for m in np.unique(mats)}
+    dominant = max(sorted(totals), key=lambda m: totals[m])
+    pieces = [int(f) for f in ids if int(mesh.face_material[f]) == dominant]
+    if dominant == int(material):
+        return int(material), uv_scale, pieces
+    e1, e2 = plane_basis(np.asarray(normal, dtype=np.float64))
+    scale = _uv_scale(mesh, topo, np.asarray(pieces, dtype=np.int64), np.asarray(origin),
+                      np.stack([e1, e2], axis=1))
+    return dominant, scale, pieces
+
+
+def _side_looks(mesh: MeshData, topo: Topology, faces: _Faces, frames: list, to_build: list,
+                material: int, uv_scale: float, band: float) -> list[tuple[int, float, list[int]]]:
+    """Review part 2, I1: per wall of `to_build` (`(edge index, pieces, ends)`), its
+    `(material, uv_scale, pieces)`. A wall replacing pieces takes their look (`_wall_look`). One
+    replacing nothing takes the look of the walls along the SAME straight side that replace
+    something -- outward the same way within `_COINCIDENT_ANGLE_DEG`, its edge within `band` of
+    their plane -- the most common material among them (ties: the lowest id); else the top's.
+    The side of the review's probe is five outline edges (the top is cut at every tooth), four
+    with an m1 tooth and one where the tooth is missing: that one is the same m1 side."""
+    looks: list = [(_wall_look(mesh, topo, faces, found, material, uv_scale, frames[i][0],
+                               frames[i][2]) if found else None) for i, found, _e in to_build]
+    cos_same = float(np.cos(np.radians(_COINCIDENT_ANGLE_DEG)))
+    for k, (i, _found, _e) in enumerate(to_build):
+        if looks[k] is not None:
+            continue
+        pa, pb, q = frames[i]
+        same = []
+        for j, (i2, _f2, _e2) in enumerate(to_build):
+            if looks[j] is None or not looks[j][2]:
+                continue
+            pa2, pb2, q2 = frames[i2]
+            if (float(q2 @ q) >= cos_same and abs(float((pa2 - pa) @ q)) <= band
+                    and abs(float((pb2 - pa) @ q)) <= band):
+                same.append(looks[j])
+        if same:
+            counts: dict[int, int] = {}
+            for look in same:
+                counts[look[0]] = counts.get(look[0], 0) + 1
+            best = max(sorted(counts), key=lambda m: counts[m])
+            looks[k] = (best, next(look[1] for look in same if look[0] == best), [])
+        else:
+            looks[k] = (int(material), uv_scale, [])
+    return looks
 
 
 def _bottom_pieces(faces: _Faces, foot, normal, origin, bottom_h: float, band: float,
@@ -915,7 +1013,7 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
                                                   fallback_guess, band, claimed, built_walls,
                                                   max_depth=max_h,
                                                   min_side=0.0 if rep is None else rep - tol,
-                                                  h_ends=ends)
+                                                  h_ends=ends, touch=max(tol, EPS_IN))
             if depth is not None:
                 side_depths.append(float(depth))
             if coverage >= SIDE_WHOLE_FRACTION:
@@ -944,6 +1042,8 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
         report_bottom_depth[str(region)] = bottom_h
         material = int(mesh.face_material[members[0]])
         uv_scale = _uv_scale(mesh, topo, members, plan["origin"], plan["basis"])
+        looks = _side_looks(mesh, topo, faces, plan["frames"], to_build, material, uv_scale,
+                            band)
 
         # keyed by (welded id, height): two edges of one region that measured different depths
         # need two different shifted vertices at the corner they share, and the vertical step
@@ -957,7 +1057,7 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
                 shifted[key] = builder.vertex(p)
             return shifted[key]
 
-        for i, found, ends in to_build:
+        for (i, _found, ends), (wall_material, wall_uv, found) in zip(to_build, looks):
             a, b = plan["edges"][i]
             pa, pb, q = plan["frames"][i]
             measured = plan["measured"][i]
@@ -981,7 +1081,7 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
             quad = [int(welded_to_original[a]), int(welded_to_original[b]),
                     down(b, h_b), down(a, h_a)]
             for triangle in _wound_outward(quad, builder.positions, q):
-                builder.face(triangle, material, uv_scale, group)
+                builder.face(triangle, wall_material, wall_uv, group)
             for f in found:
                 if f not in claimed:            # a corner piece goes to the first wall
                     replaced_group[f] = group
