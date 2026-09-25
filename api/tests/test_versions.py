@@ -167,8 +167,22 @@ def test_face_picking_endpoint_for_snapshot_and_fixed(client, imported_cube):
         assert sf["line"] > 0
 
 
-def test_get_version_run(client, imported_cube):
-    version_id = imported_cube["versions"][0]["id"]
+def test_get_version_run(client, _database):
+    from engine.io.obj_writer import write_obj
+    from engine.tests.fixtures.build import cube
+    from api.settings import get_settings
+
+    settings = get_settings()
+    src = settings.source_dir
+    src.mkdir(parents=True, exist_ok=True)
+    m = cube(8.0)
+    write_obj(m, src / "fresh_run_cube.obj")
+    (src / "_MANIFEST.txt").write_text(f"# manifest\nfresh_run_cube.obj  {m.n_faces}  FreshGroup\n", encoding="utf-8")
+
+    r_imp = client.post("/api/models/import", json={"file": "fresh_run_cube.obj"})
+    assert r_imp.status_code == 201
+    version_id = r_imp.json()["versions"][0]["id"]
+
     # 404 when no fix run has occurred
     r_empty = client.get(f"/api/versions/{version_id}/run")
     assert r_empty.status_code == 404
