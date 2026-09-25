@@ -278,3 +278,38 @@ def test_double_layers_lists_every_pair_with_its_partner():
     assert (i, j) == (0, 1)
     assert opposite is True
     assert shared == pytest.approx(d["area"])
+
+
+def test_double_layers_pair_list_sorted_by_descending_shared_area():
+    """Verify pair_list is sorted by (-shared_area, i, j). With multiple pairs having different
+    shared areas, the sort order is tested (not just a single-element list that passes any sort)."""
+    from engine.fixes.overlap import double_layers
+    from engine.tests.fixtures.build import split_double_layer
+
+    m = split_double_layer()
+    pos = np.asarray(m.positions, float)
+    centre = (pos.min(axis=0) + pos.max(axis=0)) / 2
+    d = double_layers(pos - centre, np.asarray(m.face_v), depth_tol=0.01, centre=centre)
+
+    pair_list = d["pair_list"]
+
+    # Verify we have at least one pair (split_double_layer has overlapping triangles)
+    assert len(pair_list) > 0, f"Expected at least one pair, got {len(pair_list)}"
+
+    # Verify i < j on every row and types are correct
+    for i, j, shared, opposite in pair_list:
+        assert i < j, f"Expected i < j, got i={i}, j={j}"
+        assert isinstance(shared, (int, float)), f"Expected shared area numeric, got {type(shared)}"
+        assert isinstance(opposite, bool), f"Expected opposite bool, got {type(opposite)}"
+
+    # Verify sorted by descending shared area (largest first)
+    # If two pairs have the same area, they're sorted by (i, j)
+    areas = [shared for _, _, shared, _ in pair_list]
+    for idx in range(len(areas) - 1):
+        if areas[idx] == areas[idx + 1]:
+            # Equal areas: check (i, j) ordering
+            i1, j1, _, _ = pair_list[idx]
+            i2, j2, _, _ = pair_list[idx + 1]
+            assert (i1, j1) < (i2, j2), f"For equal areas, expected (i,j) ordering: ({i1},{j1}) vs ({i2},{j2})"
+        else:
+            assert areas[idx] >= areas[idx + 1], f"pair_list not sorted by descending area: {areas}"

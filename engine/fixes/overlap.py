@@ -423,12 +423,13 @@ def double_layers(positions_c: np.ndarray, faces: np.ndarray, depth_tol: float,
     one of the two and whose ray meets the other within `depth_tol` -- where the two can trade
     places. Each pixel is counted once.
 
-    Returns `{"count": pairs, "area": their shared sq in, "px": pixels, "planes": [...]}`, the
-    planes largest first, each `{"normal", "offset", "centroid", "faces", "pairs", "opposite",
+    Returns `{"count": pairs, "area": their shared sq in, "px": pixels, "planes": [...], "pair_list": [...]}`,
+    the planes largest first, each `{"normal", "offset", "centroid", "faces", "pairs", "opposite",
     "area", "px"}` (`faces` index `faces`; `offset` is `n . p` on the plane, `n` pointing to the
-    positive side of its largest component). `positions_c` is the recentred frame the guard
-    renders in; with `centre`, the planes' centroid and offset are given in world coordinates.
-    No double layer: no render at all."""
+    positive side of its largest component). `pair_list` is every pair `[i, j, shared, opposite]`
+    with `i < j` indexing the input `faces`, sorted by descending shared area, then by `i` and `j`.
+    `positions_c` is the recentred frame the guard renders in; with `centre`, the planes' centroid
+    and offset are given in world coordinates. No double layer: no render at all."""
     from engine.guard.views import VIEWS_26, ortho_first_hit
     from engine.rays.caster import ReusableCaster
 
