@@ -1296,23 +1296,37 @@ def test_a_top_edge_that_ran_into_an_underside_only_is_a_side():
 
 def test_a_shell_is_refused_together_when_one_of_its_faces_fails(monkeypatch):
     """Brief 10 item 1, the other half: the plate's bottom may cover what it covers only because
-    the wall closes the plate on the far side of every such ray. With the wall refused for a reason
-    of its own (forced here), those rays leave the plate through its opening again, so the bottom
-    covers the box's underside outside the plate, and is refused with it."""
-    import engine.fixes.solidify as S
-    from engine.tests.fixtures.build import slab_beside_a_lower_top
-    real = S._coincident_new_faces
+    the wall closes the plate on the far side of every such ray. With the wall refused IN THE SAME
+    ROUND for a reason of its own, those rays leave the plate through its opening again, so the
+    bottom covers the box's underside outside the plate, and is refused WITH it, in that round.
 
-    def refuse_the_wall(solid, new_faces, new_group, replaced_group, ok_input, tol):
-        out = real(solid, new_faces, new_group, replaced_group, ok_input, tol)
-        tri = solid.positions[solid.face_v]
-        out |= new_faces & np.isclose(tri[:, :, 0], 40.0).all(axis=1)
-        return out
+    Review of brief 10, M3: the wall used to be forced out before any pixel was judged
+    (`refused_before`), so `_refuse_together` had no records to work on, and this test passed
+    with it a no-op and with rule 6 off. Now the wall fails in round 0 on its own pixels: a post
+    under the plate is seen through the wall and the bottom (`slab_beside_a_lower_top_with_a_
+    post`), and rule 6 is denied to every ray that enters the shell through the wall (forced
+    here) -- so the wall is refused, and the bottom's rule-6 pixels of the same round, which left
+    the plate through the wall, are re-cast and refuse the bottom together: 4 faces in round 0,
+    2 of them together. With `_refuse_together` a no-op the bottom goes a round later; with rule 6
+    off it goes in round 0 on its own, none together."""
+    import engine.guard.compare as C
+    from engine.tests.fixtures.build import slab_beside_a_lower_top_with_a_post
+    real = C._through_closed_shell
 
-    monkeypatch.setattr(S, "_coincident_new_faces", refuse_the_wall)
-    r = _solidified(slab_beside_a_lower_top(), _FAST)
+    def deny_the_wall(start, direction, gap, entry, planes_after, shell_caster, shell_ids,
+                      interior):
+        through, leave = real(start, direction, gap, entry, planes_after, shell_caster,
+                              shell_ids, interior)
+        wall = np.abs(planes_after[entry, 0]) > 0.9          # the only new face facing -x
+        return through & ~wall, np.where(wall, -1, leave)
+
+    monkeypatch.setattr(C, "_through_closed_shell", deny_the_wall)
+    r = _solidified(slab_beside_a_lower_top_with_a_post(), _FAST)
+    first = r.report["cap_guard"][0]
+    assert (first["removed"], first["refused_together"]) == (4, 2)
     assert r.report["cap_guard_passed"] is True
     assert not r.new_faces.any()
+    assert r.report["walls_refused"]["faces"] == 2
     assert r.report["bottom_faces_refused"]["reasons"] == {"covers_outside_footprint": 2}
 
 
@@ -1323,9 +1337,30 @@ def test_a_fin_below_the_slab_is_still_refused_face_by_face():
     A ray from -y at the post's height enters the near fin, runs UNDER the slab -- outside it --
     and leaves through the far fin: no view through the slab. The fins are refused for what they
     cover below it, nothing is kept below the bottom, and the post looks exactly as it did."""
+    import engine.guard.compare as C
     from engine.tests.fixtures.build import slab_with_fins_beside_a_post
     m = slab_with_fins_beside_a_post()
-    r = _solidified(m, _fast(min_thickness=1.0))
+    # review of brief 10, M3: the fins are refused for other pixels too, so the outcome alone
+    # does not show the path check -- count the rule-6 pixels over the post: a ray that enters
+    # the near fin below the slab and leaves through the far one never passes (494 did with the
+    # path check removed). The frame is centred on the solid's box, which is the input's here.
+    real = C._through_closed_shell
+    centre = (m.positions.min(axis=0) + m.positions.max(axis=0)) / 2.0
+    over_the_post = []
+
+    def spy(start, direction, gap, entry, planes_after, shell_caster, shell_ids, interior):
+        through, leave = real(start, direction, gap, entry, planes_after, shell_caster,
+                              shell_ids, interior)
+        hit = start + gap[:, None] * direction                # what BEFORE showed there
+        over_the_post.append(int((through & (np.abs(hit[:, 1] + centre[1] - 30.0) < 1e-2)).sum()))
+        return through, leave
+
+    C._through_closed_shell = spy
+    try:
+        r = _solidified(m, _fast(min_thickness=1.0))
+    finally:
+        C._through_closed_shell = real
+    assert over_the_post and sum(over_the_post) == 0
     assert r.report["cap_guard_passed"] is True
     assert r.report["walls_refused"]["reasons"].get("covers_below_bottom", 0) >= 1
     new = r.mesh.positions[r.mesh.face_v[r.new_faces]]
@@ -1523,6 +1558,12 @@ def test_a_sign_standing_in_front_of_a_missing_side_is_never_a_piece(size):
     r = _solidified(m, FixProfile(guard_size=(900, 600), n_dirs=32))
     assert r.report["cap_guard_passed"] is True
     assert not r.replaced[sign].any()
+    # review of brief 10, M3: the mechanism -- the sign is never taken for a piece at all. At
+    # 3561127 the 40 in case passed on its outcome alone: the sign was a piece there, and the cap
+    # guard restored both its faces
+    rep = r.report
+    assert (rep["side_pieces_replaced"] + rep["side_pieces_restored"]
+            + rep["side_pieces_given_back"]) == 0
 
 
 # --------------- review part 2, I2: a lower surface is where the slab's own sides end, not a floor

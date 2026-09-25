@@ -2273,3 +2273,16 @@ def slab_open_towards_a_box(size=40.0):
     _quads(P, uvs, fv, fvt, fm, [(b, b + 1, b + 2, b + 3)], material=1)          # facing -x
     return (_mesh("slab_open_towards_a_box", P, uvs, fv, fvt, materials=("m0", "m1"),
                   face_material=fm), [first, first + 1])
+
+
+def slab_beside_a_lower_top_with_a_post():
+    """Review of brief 10, M3: `slab_beside_a_lower_top` with a POST under the plate -- a closed
+    box x 52..60, y 20..22, z -22..-18, outside every slab. A ray that enters the plate's new wall
+    at x = 40 from under the box and leaves through the new bottom meets the post: a pixel only
+    rule 6 allows. Faces: `slab_beside_a_lower_top`'s 20, then the post's 12."""
+    base = slab_beside_a_lower_top()
+    P = base.positions.tolist()
+    uvs, fv, fvt = base.uvs.tolist(), base.face_v.tolist(), base.face_vt.tolist()
+    fm = base.face_material.tolist()
+    _closed_box(P, uvs, fv, fvt, fm, 52, 60, 20, 22, -22, -18)
+    return _mesh("slab_beside_a_lower_top_with_a_post", P, uvs, fv, fvt, face_material=fm)
