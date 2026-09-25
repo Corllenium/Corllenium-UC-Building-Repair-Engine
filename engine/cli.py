@@ -10,10 +10,11 @@
     report.json's `qa` and does not fail the run). Exit code 0 when `passed`, 2 otherwise.
 
     It also writes `<name>.fixed.skp` (`engine.io.skp_writer`, through SketchUp's own C API) and
-    copies it -- the LATEST, overwriting the previous one -- into `<repo root>/OBJ FIXED RESULT/`,
-    the folder the owner opens in SketchUp after every run; `--skp-dir` names another folder,
-    `--no-skp` skips it. Without SketchUp the run still succeeds and report.json's `skp` says why
-    no file was written.
+    copies it into `<repo root>/OBJ FIXED RESULT/`, the folder the owner opens in SketchUp after
+    every run: a PASSING run's copy replaces `<name>.fixed.skp` there, a failed run's goes to
+    `<name>.fixed.FAILED.skp` and leaves the owner's file as it was (see `_write_skp`); `--skp-dir`
+    names another folder, `--no-skp` skips it. Without SketchUp the run still succeeds and
+    report.json's `skp` says why no file was written.
 
 `python -m engine.cli preview-data <snapshot_dir> --out preview/data`
     Writes the JSON `preview/index.html` reads (see `spike/12_export_preview.py` for the shape

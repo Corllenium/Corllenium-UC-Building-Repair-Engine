@@ -1467,16 +1467,20 @@ def solidify_feedback(positions_c: np.ndarray, faces_before: np.ndarray, faces_a
     change the picture -- a slab with no bottom gets one, and from underneath that IS a change.
     What must not happen is a new face covering something a person can still see.
 
-    Only faces are ADDED, so an AFTER first hit is either the same original face at the same
-    depth or a NEW face in front of it: a changed pixel is exactly one whose AFTER first hit is
-    new. Such a pixel is ALLOWED when what it covers is one of three things, and nothing else:
+    Faces are ADDED, and -- since SR2 -- the pieces of a broken side or bottom are REMOVED with
+    the face that replaces them. So a changed pixel is one whose AFTER first hit is new, or one
+    whose BEFORE first hit is a removed piece that no new face took over (`reveal` below: the
+    piece is given back). A pixel whose AFTER first hit is new is ALLOWED when what it covers is
+    one of these, and nothing else:
 
     1. background -- BEFORE's ray missed everything;
     2. a face seen on its BACK side (`n . view_dir > 0`) -- a one-sided renderer was dropping
-       that pixel anyway, which is the hole this whole step exists to close;
-    3. a face met on its FRONT side whose FRONT exposure ON THE ORIGINAL MESH is below
+       that pixel anyway. ONLY without `back_exposure_before`: solidify always passes it, and
+       SR4 replaced this rule with rule 3 read on whichever side the ray met (below);
+    3. a face whose exposure ON THE ORIGINAL MESH, on the side the ray met it, is below
        `cover_max_exposure` -- a surface that was only ever seen through an opening, which is
-       the interior rib wall this step exists to hide behind the skirt that closes its cell.
+       the interior rib wall this step exists to hide behind the skirt that closes its cell
+       (without `back_exposure_before`, the front side only).
 
     RULE 3 READS THE ORIGINAL MESH, NOT THE SOLIDIFIED ONE, and that is the whole point of the
     rule. It used to ask whether the covered face's exposure was 0 in the SOLIDIFIED mesh --

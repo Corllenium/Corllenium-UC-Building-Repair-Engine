@@ -135,11 +135,12 @@ class FixProfile:
     #: at all below me" is not a bottom.
     bottom_search_extra: float = 24.0
     #: The CAP GUARD's cover threshold (`engine.guard.compare.solidify_feedback`, rule 3): an
-    #: invented face may cover a pixel whose BEFORE hit is the FRONT side of an original face
-    #: only while that face's front exposure ON THE ORIGINAL MESH is below this -- a surface
-    #: seen only through an opening. Not `== 0`, because ray sampling never gives exactly 0 for
-    #: a wall seen through a small hole: the far wall of `compartment_with_deep_wall` measures
-    #: a fraction of a percent through a 10 x 10 in opening 45 in away.
+    #: invented face may cover a pixel whose BEFORE hit is an original face only while that
+    #: face's exposure ON THE ORIGINAL MESH, on WHICHEVER side the ray met it (SR4; it read the
+    #: front side only before), is below this -- a surface seen only through an opening. Not
+    #: `== 0`, because ray sampling never gives exactly 0 for a wall seen through a small hole:
+    #: the far wall of `compartment_with_deep_wall` measures a fraction of a percent through a
+    #: 10 x 10 in opening 45 in away.
     cover_max_exposure: float = 0.10
     #: SR2. Half-width, in inches, of the band around a new wall's (or bottom's) plane in which an
     #: original face parallel to it is a PIECE of that broken side: replaced by the new face,
