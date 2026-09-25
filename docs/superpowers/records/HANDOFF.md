@@ -44,11 +44,12 @@ Jobs:
 1. **Brief 11** (remaining visual defects), main checkout, Claude subagent since 17:45: item 1 done
    (4019987); R10-C1 and item 2 in progress.
 2. **Dashboard fix wave merged** (21:20) as cba42a5, after re-review round 3 approved it with
-   follow-ups (0 Critical, 0 Important, 6 Minor). The follow-ups are brief 12, queued for Hermes.
-   M6 (the 6 live backslash rows) is the owner's decision.
-3. **Automatic continuation** (section 7, commits ce3a931 and 06efe3c): the watcher runs, but the
-   owner ran `stop` at 21:18. It starts nothing until `tools/auto_continue.py resume`, which is the
-   owner's call.
+   follow-ups (0 Critical, 0 Important, 6 Minor). The follow-ups are brief 12: Hermes pass 5 (run H6,
+   dispatched by hand 21:30) works on them in `.hermes/worktrees/dashboard-wave`, fast-forwarded to
+   422d0a9. Claude reviews before any merge. M6 (the 6 live backslash rows) is the owner's decision.
+3. **Automatic continuation** (section 7, commits ce3a931 and 06efe3c): ON. The owner's 21:18 `stop`
+   was not meant ("keep completing"), so it was resumed at 21:25. The watcher was restarted on 06efe3c,
+   so the hand-started pass 5 does not hold back a takeover of brief 11.
 
 **If you take over one of these** (for example because Claude hit its usage limit): follow the
 lapse rule at the top of `WORK-CLAIMS.md`, take the claim over in writing, run `git status` and
