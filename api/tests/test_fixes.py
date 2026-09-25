@@ -427,6 +427,36 @@ def test_skp_writing_is_serialized_by_lock(client, imported_cube, monkeypatch):
     assert len(lock_acquired) == 1
 
 
+def test_fix_pipeline_sanitizes_mesh_name(client, imported_cube, monkeypatch):
+    import api.routers.versions as versions_mod
+    import dataclasses
+
+    orig_read_obj = versions_mod.read_obj
+    def mock_read_obj(path):
+        m = orig_read_obj(path)
+        # Inject an unsafe name with traversal / invalid chars
+        return dataclasses.replace(m, name="../../unsafe/model:name*")
+
+    monkeypatch.setattr(versions_mod, "read_obj", mock_read_obj)
+
+    version_id = imported_cube["versions"][0]["id"]
+    r_fix = client.post(f"/api/versions/{version_id}/fix", json={"profile": {"n_dirs": 32}})
+    assert r_fix.status_code == 201
+    run_data = r_fix.json()
+    assert run_data["status"] == "completed"
+    report = run_data["report_json"]
+    # Unsafe characters and traversal must be sanitized
+    assert "/" not in report["name"]
+    assert "\\" not in report["name"]
+    assert ":" not in report["name"]
+    assert ".." not in report["name"]
+    from api.settings import get_settings
+    settings = get_settings()
+    run_dir = settings.data_dir / "fixed" / str(run_data["id"])
+    assert (run_dir / f"{report['name']}.fixed.obj").exists()
+
+
+
 
 
 

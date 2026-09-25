@@ -21,6 +21,7 @@ from engine.io.snapshot import sha256_file
 from engine.pipeline import analyse_topology, flat_material_indices
 from engine.transport.meshbuf import pack_meshbuf
 import numpy as np
+import re
 import threading
 
 logger = logging.getLogger(__name__)
@@ -30,6 +31,16 @@ router = APIRouter(prefix="/api/versions", tags=["versions"])
 _active_model_fixes: set[int] = set()
 _fixes_lock = threading.Lock()
 _skp_lock = threading.Lock()
+
+
+def _sanitize_filename(name: str | None, fallback: str) -> str:
+    if not name:
+        return fallback
+    cleaned = re.sub(r"[^a-zA-Z0-9_-]", "_", name).strip("_")
+    cleaned = re.sub(r"_+", "_", cleaned)
+    if not cleaned:
+        return fallback
+    return cleaned
 
 
 @router.get("/{id}", response_model=ModelVersionOut)
@@ -344,7 +355,8 @@ def run_fix_pipeline(
 
         result = fix_object(mesh, flatness, profile)
 
-        name = mesh.name
+        fallback = f"model_{version.model_id}"
+        name = _sanitize_filename(mesh.name, fallback)
         fixed_obj_path = out_dir / f"{name}.fixed.obj"
         write_obj(result.mesh, fixed_obj_path)
         write_obj_polygons(result.mesh, result.rings, out_dir / f"{name}.fixed.ngon.obj")
