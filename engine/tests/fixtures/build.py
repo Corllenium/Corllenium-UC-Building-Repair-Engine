@@ -2014,3 +2014,91 @@ def slab_with_a_pocket_in_its_top(cell=20.0, depth=2.0, patch_on_floor=False):
         P += [[c + q, q, -d], [c + q, c - q, -d], [2 * c - q, c - q, -d], [2 * c - q, q, -d]]
         _quads(P, uvs, fv, fvt, fm, [(k, k + 1, k + 2, k + 3)])        # -z, lying on the floor
     return _mesh("slab_with_a_pocket_in_its_top", P, uvs, fv, fvt, face_material=fm)
+
+
+def slab_with_a_bottom_under_one_of_its_tops(size=40.0, depth=10.0, reach=10.0,
+                                             strip_material=None):
+    """Brief 11 item 2 (triage A2, file A's lower landing in miniature): ONE slab, `2 * size` by
+    `size`, whose top is two regions that continue into each other at x = `size` -- L (m0) and
+    R (m1) -- with its four sides `depth` deep (outward, m0, one quad each along the whole length,
+    meeting the top's border at T-junctions) and an existing underside under R only: one quad at
+    z = -`depth`, wound down, in m2 (the underside's own look), reaching `reach` in under L
+    (x `size - reach` to `2 * size`). Nothing else closes L from below.
+
+    The underside is R's lower surface, and it straddles into L's footprint: a bottom planned per
+    region leaves L's part of it to R (its centroid lies under R), and L's own bottom lies ON it
+    there -- refused as coinciding, the whole of L stayed open from below. File A's lower landing
+    had two such holes (628 and 194 sq in), and the landing's inner walls, seen through them,
+    drew stepped lines on its underside.
+
+    With `strip_material`, the underside's last half of R (x `1.5 * size` to `2 * size`) is a
+    separate quad in that material: a face in the bottom plane the new bottom does not replace
+    (it keeps its own look), which the bottom must build round, not lie on.
+
+    Faces: 0-1 L's top, 2-3 R's top, 4-11 the sides (y = 0, x = 2 * size, y = size, x = 0),
+    12-13 the underside (then 14-15 the strip, when there is one)."""
+    s, D, e = size, depth, reach
+    P = [[0, 0, 0], [s, 0, 0], [s, s, 0], [0, s, 0], [2 * s, 0, 0], [2 * s, s, 0],
+         [0, 0, -D], [2 * s, 0, -D], [2 * s, s, -D], [0, s, -D],
+         [s - e, 0, -D], [s - e, s, -D]]
+    uvs, fv, fvt, fm = [], [], [], []
+    _quads(P, uvs, fv, fvt, fm, [(0, 1, 2, 3)], material=0)                   # L, +z
+    _quads(P, uvs, fv, fvt, fm, [(1, 4, 5, 2)], material=1)                   # R, +z
+    _quads(P, uvs, fv, fvt, fm, [(6, 7, 4, 0), (7, 8, 5, 4), (8, 9, 3, 5), (9, 6, 0, 3)],
+           material=0)                                                        # sides, outward
+    if strip_material is None:
+        _quads(P, uvs, fv, fvt, fm, [(10, 11, 8, 7)], material=2)             # underside, -z
+    else:
+        k = len(P)
+        P += [[1.5 * s, 0, -D], [1.5 * s, s, -D]]
+        _quads(P, uvs, fv, fvt, fm, [(10, 11, k + 1, k)], material=2)         # underside, -z
+        _quads(P, uvs, fv, fvt, fm, [(k, k + 1, 8, 7)], material=strip_material)   # the strip
+    return _mesh("slab_with_a_bottom_under_one_of_its_tops", P, uvs, fv, fvt,
+                 materials=("m0", "m1", "m2"), face_material=fm)
+
+
+def slab_with_a_stepped_underside(size=40.0, depth=10.0, step=1.5):
+    """Brief 11 item 2 (the real views' partial layers and stepped borders): a slab `2 * size` by
+    `size`, one top region at z = 0, four sides `depth` deep (outward), whose underside EXISTS
+    over its whole footprint but in two levels: x 0 to `size` at z = -`depth`, x `size` to
+    `2 * size` raised by `step` (inside the side band), with the riser between them at x = `size`
+    facing +x (outward). Seen from below it is a stepped border and a partial layer; nothing is
+    open.
+
+    Faces: 0-1 the top, 2-9 the sides (y = 0, x = 2 * size, y = size, x = 0), 10-11 the deep
+    half of the underside, 12-13 the raised half, 14-15 the riser."""
+    s, D, h = size, depth, depth - step
+    P = [[0, 0, 0], [2 * s, 0, 0], [2 * s, s, 0], [0, s, 0],
+         [0, 0, -D], [2 * s, 0, -D], [2 * s, s, -D], [0, s, -D],
+         [s, 0, -D], [s, s, -D], [s, 0, -h], [s, s, -h], [2 * s, 0, -h], [2 * s, s, -h]]
+    uvs, fv, fvt, fm = [], [], [], []
+    _quads(P, uvs, fv, fvt, fm, [(0, 1, 2, 3),                                # top, +z
+                                 (4, 5, 1, 0), (5, 6, 2, 1), (6, 7, 3, 2), (7, 4, 0, 3),   # sides
+                                 (4, 7, 9, 8),                                # deep half, -z
+                                 (10, 11, 13, 12),                            # raised half, -z
+                                 (8, 9, 11, 10)])                             # the riser, +x
+    return _mesh("slab_with_a_stepped_underside", P, uvs, fv, fvt, face_material=fm)
+
+
+def slab_with_a_fold_in_its_top(size=40.0, depth=8.0):
+    """Brief 11 item 2 (the cause of triage A2): a slab `size` square, four sides `depth` deep and
+    no bottom, whose top region holds a triangle FOLDED onto the top: it shares the top's y = 0
+    edge and lies inside the top's first triangle, in its plane, wound the same way. The merge's
+    outline (`region_outline`) leaves overlapping triangles out of its union (its rule 3), so it
+    covers only half the top -- and a bottom triangulated from that outline left the other half
+    of the slab open from below. On file A the lower landing's regions 9 and 11 hold such
+    overlaps, and the bottom had two holes there (194 and 628 sq in).
+
+    Faces: 0-1 the top, 2-9 the sides, 10 the folded triangle."""
+    s, D = size, depth
+    P = [[0, 0, 0], [s, 0, 0], [s, s, 0], [0, s, 0], [0, 0, -D], [s, 0, -D], [s, s, -D], [0, s, -D],
+         [s / 2, s / 4, 0]]
+    uvs, fv, fvt, fm = [], [], [], []
+    _quads(P, uvs, fv, fvt, fm, [(0, 1, 2, 3), (4, 5, 1, 0), (5, 6, 2, 1), (6, 7, 3, 2),
+                                 (7, 4, 0, 3)])
+    base = len(uvs)
+    uvs += [[P[v][0] * 0.05, P[v][1] * 0.05] for v in (0, 1, 8)]
+    fv.append([0, 1, 8])                                    # +z, folded onto face 0
+    fvt.append([base, base + 1, base + 2])
+    fm.append(0)
+    return _mesh("slab_with_a_fold_in_its_top", P, uvs, fv, fvt, face_material=fm)

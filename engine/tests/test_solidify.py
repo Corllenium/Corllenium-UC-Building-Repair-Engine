@@ -481,7 +481,7 @@ def test_a_clean_bottom_reports_no_skips_at_all():
 
 def test_a_bottom_with_a_skipped_part_is_refused_whole(monkeypatch):
     """`shapely.constrained_delaunay_triangles` returns a GeometryCollection whose members are
-    normally all Polygons; a degenerate one comes back as a LineString instead, which `_add_bottom`
+    normally all Polygons; a degenerate one comes back as a LineString instead, which the bottom
     skips. No fixture in this repo produces one -- `b2134e9`, which added that guard, says the
     same -- so the branch is driven here by replacing ONE part of the real CDT's output.
 
@@ -846,6 +846,7 @@ def test_a_top_that_continues_under_a_landing_is_one_slab_with_it():
     assert r.report["interior_faces_covered"] >= 2          # the rib
     new = r.mesh.positions[r.mesh.face_v[r.new_faces]]
     assert np.allclose(new[:, :, 2], -10.0)                 # the bottoms, and nothing else
+    assert _covered_area(r.mesh, np.nonzero(r.new_faces)[0], [0, 1]) == pytest.approx(80.0 * 40.0)
 
 
 def test_fix_object_seals_the_slab_under_the_landing_and_removes_the_rib():
@@ -960,7 +961,10 @@ def test_a_new_face_that_coincides_with_an_existing_face_is_refused():
     """Coincidence is decided by a coplanar-overlap test, not by pixels: the renderer resolves a
     coincident pair as a tie, so no pixel changes and no pixel rule can see it. A plate lying in
     the plane the new bottom will take, reaching in under the slab from outside (centroid
-    outside the footprint, so it is not one of that bottom's pieces), would be doubled by it."""
+    outside the footprint, so it is not one of that bottom's pieces), would be doubled by it.
+
+    Brief 11 item 2: the bottom is now built ROUND such a face instead of over it -- nothing is
+    refused, and the bottom and the plate together close the slab from below."""
     from engine.tests.fixtures.build import _mesh, _quads
     m = slab_with_three_skirts()
     P = m.positions.tolist()
@@ -971,12 +975,14 @@ def test_a_new_face_that_coincides_with_an_existing_face_is_refused():
     _quads(P, uvs, fv, fvt, fm, [(b, b + 3, b + 2, b + 1)])            # a plate, -z
     m2 = _mesh("slab_over_a_plate", P, uvs, fv, fvt, face_material=fm)
     r = _solidified(m2)
-    assert r.report["bottom_faces_refused"]["reasons"].get("coincides_with_existing_face", 0) >= 1
+    assert r.report["bottom_faces_refused"]["faces"] == 0
     # no kept new face overlaps the plate in its plane
     plate = shapely.Polygon([(-30, 5), (10, 5), (10, 35), (-30, 35)])
     new = r.mesh.positions[r.mesh.face_v[r.new_faces]]
     at_plate = [shapely.Polygon(t[:, :2]) for t in new if np.allclose(t[:, 2], -8.0)]
     assert all(p.intersection(plate).area < 1e-6 for p in at_plate)
+    closed = shapely.union_all(at_plate + [plate]).intersection(shapely.box(0, 0, 40, 40)).area
+    assert closed == pytest.approx(40.0 * 40.0)
 
 
 # ------------------------ SR5 (review I1): an open edge takes its height from the slab's own sides
@@ -1466,15 +1472,17 @@ def test_two_coincident_tops_get_one_bottom():
     """R2-C1 failure 3 (`probe_double_bottom.py`): a slab whose top is a duplicate layer of two
     materials got a bottom under EACH top region -- 1,600 sq in of m0 exactly over 1,600 sq in of
     m1 shipped on the underside, `passed` True. Walls were deduplicated across regions; bottoms
-    were not. One bottom per footprint: the second one, lying on the first, is refused."""
+    were not. One bottom per footprint: since brief 11 item 2 the second one is built round the
+    first -- which leaves nothing to build -- instead of being built on it and refused."""
     from engine.tests.fixtures.build import slab_with_a_double_layer_top
     r = fix_object(slab_with_a_double_layer_top(), {}, _FAST)
     assert r.passed is True
     total, union, both = _plane_census(r.mesh, 2, -8.0)
     assert union == pytest.approx(1600.0)
     assert both == pytest.approx(0.0, abs=1e-6) and total == pytest.approx(union)
-    reasons = r.solidify_report["bottom_faces_refused"]["reasons"]
-    assert reasons.get("coincides_with_existing_face", 0) >= 2
+    assert r.solidify_report["bottoms_added"] == 1
+    assert r.solidify_report["bottoms_already_there"] >= 1      # m1's top is two regions here
+    assert r.solidify_report["bottom_faces_refused"]["faces"] == 0
 
 
 # ------------------------------ review part 2, I1: a piece belongs to the slab and to the side's look
@@ -1661,3 +1669,99 @@ def test_a_bottom_face_refused_gives_back_only_the_pieces_it_covers(monkeypatch)
     over_strip = [f for f, t in zip(new, tri) if np.isclose(t[:, 2], -8.0).all()
                   and t[:, 0].max() <= 20.0 + 1e-6]
     assert over_strip
+
+
+# ------------------------------------ brief 11 item 2: one clean bottom per slab, broken ones rebuilt
+
+
+def test_the_second_top_of_a_slab_gets_its_bottom_round_the_underside_the_first_has():
+    """Triage A2 in miniature. One slab whose top is two regions that continue into each other, and
+    whose only underside lies under R and straddles 10 in into L's footprint. R keeps that
+    underside (its lower surface, whole under R). L had no underside of its own, so it got a
+    bottom -- which lay ON the straddling underside over those 10 in and was refused there as
+    coinciding, and a refused face is a hole (file A's lower landing: two holes, 628 and 194 sq in,
+    through which its inner walls drew stepped lines on the underside). L's bottom is now built
+    ROUND the face already on its plane: nothing is refused, the two meet edge to edge, and the
+    slab is closed from below with no double layer."""
+    from engine.tests.fixtures.build import slab_with_a_bottom_under_one_of_its_tops
+    m = slab_with_a_bottom_under_one_of_its_tops()
+    r = _solidified(m)
+
+    assert r.report["bottoms_added"] == 1
+    assert r.report["bottom_faces_refused"]["faces"] == 0
+    assert not r.replaced.any()                              # R's underside is whole: kept
+    tri = r.mesh.positions[r.mesh.face_v]
+    bottom = [f for f in np.nonzero(r.new_faces)[0] if np.allclose(tri[f][:, 2], -10.0)]
+    assert _covered_area(r.mesh, bottom, [0, 1]) == pytest.approx(30.0 * 40.0)
+    total, union, both = _plane_census(r.mesh, 2, -10.0)
+    assert union == pytest.approx(80.0 * 40.0) and total == pytest.approx(union)
+    assert (_face_normals(r.mesh)[bottom][:, 2] < -0.99).all()
+
+
+def test_fix_object_ships_the_slab_of_two_tops_closed_from_below():
+    from engine.tests.fixtures.build import slab_with_a_bottom_under_one_of_its_tops
+    r = fix_object(slab_with_a_bottom_under_one_of_its_tops(), {}, _FAST)
+    assert r.passed is True
+    tri = r.mesh.positions[r.mesh.face_v]
+    under = np.nonzero(np.isclose(tri[:, :, 2], -10.0).all(axis=1))[0]
+    assert _covered_area(r.mesh, under, [0, 1]) == pytest.approx(80.0 * 40.0)
+    assert r.backface_px["final"]["total"] == 0
+
+
+def test_a_broken_underside_is_measured_and_kept_as_it_is():
+    """The real views' partial layers and stepped borders in miniature: the slab's underside is
+    there over its whole footprint, but half of it sits 1.5 in higher, with a riser between the
+    two. It is measured as BROKEN -- two levels in the band of the plane where the slab's sides
+    end -- and reported, and kept as it is: rebuilding a broken underside measured worse on both
+    real files (brief 11 item 2, `_region_bottom`). Nothing is built, nothing replaced."""
+    from engine.tests.fixtures.build import slab_with_a_stepped_underside
+    m = slab_with_a_stepped_underside()
+    r = _solidified(m)
+
+    assert r.report["bottoms_added"] == 0
+    assert not r.replaced.any()
+    broken = r.report["undersides_broken"]
+    assert len(broken) == 1 and broken[0]["planes"] == 2 and broken[0]["whole"] is False
+    assert broken[0]["depth"] == pytest.approx(10.0)
+
+
+def test_fix_object_ships_the_stepped_underside_closed_as_it_was():
+    """...and ships closed, both levels as the export had them. The stepped border stays visible
+    (the inside of the sides' strips hanging below the raised half shows its back from below):
+    that is the defect the declined rebuild was for."""
+    from engine.tests.fixtures.build import slab_with_a_stepped_underside
+    r = fix_object(slab_with_a_stepped_underside(), {}, _FAST)
+    assert r.passed is True
+    tri = r.mesh.positions[r.mesh.face_v]
+    low = np.nonzero(np.isclose(tri[:, :, 2], -10.0).all(axis=1))[0]
+    high = np.nonzero(np.isclose(tri[:, :, 2], -8.5).all(axis=1))[0]
+    assert _covered_area(r.mesh, list(low) + list(high), [0, 1]) == pytest.approx(80.0 * 40.0)
+
+
+def test_a_whole_underside_is_neither_rebuilt_nor_reported_broken():
+    """A slab closed below by one flat face at its own depth gets nothing, and is not reported
+    as broken."""
+    r = _solidified(slab_with_three_skirts(with_bottom=True))
+    assert r.report["bottoms_added"] == 0
+    assert r.report["undersides_broken"] == []
+    assert not r.replaced.any()
+
+
+def test_a_bottom_covers_the_whole_footprint_where_the_top_overlaps_itself():
+    """The cause of triage A2: a bottom used to be triangulated from the merge's outline of its
+    top, which leaves overlapping triangles out (rule 3). A top with a folded triangle got half a
+    bottom, and the slab shipped open from below with every guard passing. The bottom now covers
+    the slab's footprint -- every face of its top, seen from above."""
+    from engine.tests.fixtures.build import slab_with_a_fold_in_its_top
+    m = slab_with_a_fold_in_its_top()
+    r = solidify(m, analyse_topology(m, frozenset({0})), _FAST)
+    bottom = [f for f in np.nonzero(r.new_faces)[0]
+              if np.allclose(r.mesh.positions[r.mesh.face_v[f]][:, 2], -8.0)]
+    assert _covered_area(r.mesh, bottom, [0, 1]) == pytest.approx(40.0 * 40.0)
+
+
+def test_fix_object_ships_the_slab_with_a_fold_in_its_top_closed():
+    from engine.tests.fixtures.build import slab_with_a_fold_in_its_top
+    r = fix_object(slab_with_a_fold_in_its_top(), {}, _FAST)
+    assert r.passed is True
+    assert r.backface_px["final"]["total"] == 0

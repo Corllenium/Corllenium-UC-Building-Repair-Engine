@@ -636,8 +636,10 @@ class _Faces:
         self.eligible = topo.ok.copy()
         self.eligible[top_faces] = False
 
-    def near(self, lo: np.ndarray, hi: np.ndarray) -> np.ndarray:
-        return np.nonzero(self.eligible & (self.hi >= lo).all(axis=1)
+    def near(self, lo: np.ndarray, hi: np.ndarray, every: bool = False) -> np.ndarray:
+        """Faces whose bounds meet `[lo, hi]`: eligible ones, or with `every` every face at all
+        (a top face included: what is THERE, which is not the same as what may be replaced)."""
+        return np.nonzero((True if every else self.eligible) & (self.hi >= lo).all(axis=1)
                           & (self.lo <= hi).all(axis=1))[0]
 
 
@@ -865,15 +867,18 @@ def _side_looks(mesh: MeshData, topo: Topology, faces: _Faces, frames: list, to_
 
 
 def _bottom_pieces(faces: _Faces, foot, normal, origin, bottom_h: float, band: float,
-                   claimed: set) -> list[int]:
+                   claimed: set, every: bool = False, overlap: bool = False) -> list[int]:
     """Eligible faces lying in the bottom's band: every corner within `band` of the bottom plane
     (the top plane lowered by `bottom_h`), within `PIECE_MAX_ANGLE_DEG` of parallel to it, closer
-    to the bottom than to the top, with the centroid over the footprint."""
+    to the bottom than to the top, with the centroid over the footprint. With `every`, faces that
+    may never be pieces are counted too (the top of a block the slab stands on), and with
+    `overlap` a face overlapping the footprint counts wherever its centroid lies: what the slab's
+    underside IS, for judging its state (brief 11 item 2)."""
     x0, y0, x1, y1 = foot.bounds
     z = _z_top(normal, origin, np.array([x0, x1, x0, x1]), np.array([y0, y0, y1, y1]))
     lo = np.array([x0, y0, float(z.min()) - bottom_h - band])
     hi = np.array([x1, y1, float(z.max()) - bottom_h + band])
-    cand = faces.near(lo, hi)
+    cand = faces.near(lo, hi, every)
     if not len(cand):
         return []
     v = faces.tri[cand]
@@ -882,10 +887,151 @@ def _bottom_pieces(faces: _Faces, foot, normal, origin, bottom_h: float, band: f
     off = np.abs(below_top - bottom_h) * abs(float(normal[2]))
     parallel = np.abs(faces.normal[cand] @ normal) >= np.cos(np.radians(PIECE_MAX_ANGLE_DEG))
     nearer = np.abs(below_top - bottom_h).mean(axis=1) < np.abs(below_top).mean(axis=1)
-    c = v.mean(axis=1)
-    over = shapely.contains_xy(foot, c[:, 0], c[:, 1])
+    if overlap:
+        over = shapely.area(shapely.intersection(shapely.polygons(v[:, :, :2]), foot)) > 1e-6
+    else:
+        c = v.mean(axis=1)
+        over = shapely.contains_xy(foot, c[:, 0], c[:, 1])
     mine = (off.max(axis=1) <= band) & parallel & nearer & over
     return [int(f) for f in cand[mine] if int(f) not in claimed]
+
+
+def _underside_state(faces: _Faces, pieces: list[int], foot, normal, origin, depth: float,
+                     tol: float) -> dict:
+    """Brief 11 item 2: the state of a slab's existing underside at `depth` below its top -- its
+    `pieces` (`_bottom_pieces`): the fraction of the footprint `foot` they cover seen from above,
+    how many distinct levels they lie at (`tol` apart, measured from the bottom plane square to
+    it), how many are tilted off it by more than `_COINCIDENT_ANGLE_DEG`, and whether the
+    underside is WHOLE: covering `SIDE_WHOLE_FRACTION` of the footprint, every corner within
+    `tol` of the bottom plane, nothing tilted. Anything else -- gaps, steps, partial layers,
+    tilted pieces -- is a broken underside."""
+    if not pieces:
+        return {"coverage": 0.0, "planes": 0, "tilted": 0, "whole": False}
+    ids = np.asarray(pieces, dtype=np.int64)
+    tri = faces.tri[ids]
+    polys = shapely.polygons(tri[:, :, :2])
+    polys = polys[shapely.area(polys) > 0.0]
+    covered = (float(shapely.area(shapely.intersection(shapely.union_all(polys), foot)))
+               if len(polys) else 0.0)
+    coverage = covered / max(float(shapely.area(foot)), 1e-12)
+    top = _z_top(normal, origin, tri[:, :, 0], tri[:, :, 1])
+    off = (top - tri[:, :, 2] - depth) * abs(float(normal[2]))   # square to the bottom plane
+    levels = np.sort(off.mean(axis=1))
+    planes = 1 + int((np.diff(levels) > tol).sum())
+    tilted = int((np.abs(faces.normal[ids] @ normal)
+                  < np.cos(np.radians(_COINCIDENT_ANGLE_DEG))).sum())
+    whole = (coverage >= SIDE_WHOLE_FRACTION and float(np.abs(off).max()) <= tol
+             and tilted == 0)
+    return {"coverage": round(coverage, 4), "planes": planes, "tilted": tilted, "whole": whole}
+
+
+def _follows_top(coef: np.ndarray, info: dict, tol: float) -> bool:
+    """Does the lower surface `z = a x + b y + c` (`coef`) run parallel to the plan's top over
+    its footprint -- its depth below the top the same, within `2 * tol`, at every corner of the
+    footprint's bounds? A wedge's flat underside under a sloped top does not."""
+    x0, y0, x1, y1 = info["slab_foot"].bounds
+    x = np.array([x0, x1, x0, x1])
+    y = np.array([y0, y0, y1, y1])
+    depth = _z_top(info["normal"], info["origin"], x, y) - (coef[0] * x + coef[1] * y + coef[2])
+    return float(np.ptp(depth)) <= 2.0 * tol
+
+
+def _region_bottom(topo: Topology, faces: _Faces, info: dict, caster, tol: float, band: float,
+                   fraction: float, extra: float, claimed: set) -> dict:
+    """Brief 11 item 2: the bottom decision for one planned top region (`info`, as the plan loop
+    recorded it): `{"kind", "depth", "pieces", "state"}`, `kind`
+
+    - "whole": its existing underside -- its lower surface, or one `_underside` finds -- is whole
+      at `depth` (`_underside_state`): nothing is built. So is a lower surface that does not
+      follow the top (a wedge's flat underside under a sloped top: a bottom parallel to the top
+      cannot replace it);
+    - "broken": it exists but is broken -- gaps, steps, partial layers, tilted pieces
+      (`_underside_state`, judged where the slab's own sides end): reported, and kept as it is;
+    - "missing": it does not exist: a bottom at the region's bottom height, its pieces (faces in
+      the band of that plane, `_bottom_pieces`) replaced, as before;
+    - "unresolved": no thickness was measured anywhere, and nothing is invented.
+
+    WHY A BROKEN UNDERSIDE IS NOT REBUILT (brief 11 item 2 asked for it; measured, and declined).
+    A rebuild replaces the pieces with one bottom, and the cap guard judges every new face on its
+    own: where one is refused, the pieces under it come back, the new faces lying on them are
+    refused next (`lies_on_a_restored_piece`), and the underside ships as a patchwork with holes.
+    Back faces seen from outside, measured against the run without any rebuild (file A 20,478, B
+    2,787): per region, A 29,670 (126 faces refused as lying on a restored piece); per slab of
+    several regions, A 20,488 (the big landing's rebuild: 92 of its 151 faces refused) and, with
+    footprint bottoms, B 11,083. The state is reported (`undersides_broken`) so the broken ones
+    can be seen."""
+    lower = info["lower"]
+    if lower is not None:
+        depth, present = float(lower[1]), True
+        if not _follows_top(lower[0], info, tol):
+            return {"kind": "whole", "depth": depth}
+        # judged -- and rebuilt -- where the slab's own sides end, when the lower surface lies
+        # within the band of it: the surface most rays met may be one level of a stepped
+        # underside, and a rebuild at that level leaves the others hanging below it
+        rep = info["rep"]
+        if rep is not None and abs(float(rep) - depth) <= band:
+            depth = float(rep)
+    else:
+        if not info["resolved"]:
+            return {"kind": "unresolved"}
+        exists, found = _underside(topo, info["members"], caster, info["bottom_h"], tol, fraction,
+                                   extra, info["side_runs"], band)
+        present = bool(exists)
+        depth = float(found) if exists else float(info["bottom_h"])
+    foot = info["slab_foot"]
+    pieces = _bottom_pieces(faces, foot, info["normal"], info["origin"], depth, band, claimed)
+    if not present:
+        return {"kind": "missing", "depth": depth, "pieces": pieces, "state": {}}
+    there = _bottom_pieces(faces, foot, info["normal"], info["origin"], depth, band, claimed,
+                           every=True, overlap=True)
+    state = _underside_state(faces, there, foot, info["normal"], info["origin"], depth, tol)
+    state["lower_surface"] = lower is not None
+    if state["whole"]:
+        return {"kind": "whole", "depth": depth}
+    return {"kind": "broken", "depth": depth, "pieces": pieces, "state": state}
+
+
+def _with_vertices(geom, points: np.ndarray, eps: float = 1e-5):
+    """`geom` (a Polygon or a MultiPolygon) with every point of `points` (`(N, 2)`) that lies on
+    one of its rings' segments -- within `eps`, strictly between the ends -- inserted there, in
+    order: the corners a union dropped as collinear come back, so a triangulation of it is cut
+    where the top's own outline is."""
+    points = np.asarray(points, dtype=np.float64).reshape(-1, 2)
+
+    def ring(coords):
+        coords = np.asarray(coords, dtype=np.float64)[:-1]
+        out = []
+        for a, b in zip(coords, np.roll(coords, -1, axis=0)):
+            out.append((float(a[0]), float(a[1])))
+            d = b - a
+            length2 = float(d @ d)
+            if length2 <= 0.0 or not len(points):
+                continue
+            lo, hi = np.minimum(a, b) - eps, np.maximum(a, b) + eps
+            near = points[((points >= lo) & (points <= hi)).all(axis=1)]
+            if not len(near):
+                continue
+            t = ((near - a) @ d) / length2
+            on = (t > 1e-9) & (t < 1.0 - 1e-9)
+            on &= np.linalg.norm(near - (a + t[:, None] * d), axis=1) <= eps
+            seen = set()
+            for k in np.argsort(t[on], kind="stable"):
+                q = (float(near[on][k][0]), float(near[on][k][1]))
+                if q not in seen:
+                    seen.add(q)
+                    out.append(q)
+        return out
+
+    parts = []
+    for part in getattr(geom, "geoms", [geom]):
+        if part.geom_type != "Polygon" or part.is_empty:
+            continue
+        parts.append(shapely.Polygon(ring(part.exterior.coords),
+                                     [ring(r.coords) for r in part.interiors]))
+    if not parts:
+        return shapely.Polygon()
+    return shapely.MultiPolygon(parts) if len(parts) > 1 else parts[0]
+
 
 
 def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
@@ -1079,6 +1225,106 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
     lower_regions = 0
     lower_walls = 0
     trapezoids = 0
+    # brief 11 item 2: what each region's bottom decision needs (`build_bottom`)
+    bottom_plans: list[dict] = []
+
+    # ---- the bottoms, per region in plan order (brief 11 item 2) --------------------------------
+    # A bottom covers the region's whole FOOTPRINT (`_add_footprint_bottom`), built ROUND every face
+    # already lying on its plane that it does not replace and round the bottoms built before it
+    # in that plane (`_bottom_outline`). An underside that exists but is BROKEN -- gaps, steps,
+    # partial layers, tilted pieces (`_underside_state`) -- is measured and reported, and kept as
+    # it is: rebuilding it measured worse on both real files (see `_region_bottom`).
+    broken_undersides: list[dict] = []
+    bottoms_already_there = bottoms_filled = bottoms_built_round = 0
+    # a fill that fails is left out on its own -- the outline bottom it completes stays
+    fill_skips = {reason: 0 for reason in _BOTTOM_SKIPS}
+    # every bottom built, as (its plane z = a x + b y + c, the polygon it covers)
+    built_bottoms: list[tuple[np.ndarray, object]] = []
+    def build_bottom(info: dict, down) -> None:
+        """One region's bottom, right after its own walls (brief 11 item 2)."""
+        nonlocal unresolved_thickness, bottom_exists, bottoms, bottoms_refused
+        nonlocal bottoms_already_there, bottoms_filled, bottoms_built_round
+        region = info["region"]
+        decision = _region_bottom(topo, faces, info, caster, tol, band, bottom_fraction,
+                                  bottom_extra, claimed)
+        kind = decision["kind"]
+        if kind == "unresolved":
+            unresolved_thickness += 1
+            return
+        depth = decision["depth"]
+        if kind == "broken":
+            broken_undersides.append(dict(decision["state"], region=int(region),
+                                          depth=round(float(depth), 4)))
+        if kind in ("whole", "broken"):
+            bottom_exists += 1
+            if info["lower"] is not None:
+                report_bottom_depth[str(region)] = round(float(info["lower"][1]), 4)
+                volumes[region] = (info["slab_foot"], info["normal"], info["origin"],
+                                   info["lower"][1], info["lower"][0])
+            else:
+                volumes[region] = (info["slab_foot"], info["normal"], info["origin"], depth,
+                                   None)
+            return
+        report_bottom_depth[str(region)] = depth
+        volumes[region] = (info["slab_foot"], info["normal"], info["origin"], depth, None)
+        material, uv_scale, pieces = info["material"], info["uv_scale"], decision["pieces"]
+        group = len(group_region)
+        foot = info["slab_foot"]
+        coef = _bottom_plane(info["normal"], info["origin"], depth)
+        replaced_here = set(pieces)
+        kept = [f for f in _faces_on_plane(faces, foot, coef, tol) if f not in replaced_here]
+        earlier = [poly for other, poly in built_bottoms if _same_plane(other, coef, foot, tol)
+                   and float(shapely.area(shapely.intersection(poly, foot))) > 1e-4]
+        cut_parts = [shapely.Polygon(faces.tri[f][:, :2]) for f in kept] + earlier
+        cut_parts = [c for c in cut_parts if c.is_valid and c.area > 0.0]
+        cut = shapely.union_all(cut_parts) if cut_parts else None
+        kept_corners = {(float(p[0]), float(p[1])): int(w)
+                        for f in kept for w, p in zip(topo.face_w[f], faces.tri[f])}
+        outline = _pieces_polygon(topo, info["slab_pieces"])
+        # the outline bottom, triangulated exactly as it always was -- the cuts the cap guard was
+        # measured against -- each triangle cut only where a face on the plane or an earlier
+        # bottom lies (never laid on one: a coincident face is refused, and a refused face is a
+        # hole); then the part of the footprint the outline leaves out is FILLED (the merge's
+        # outline drops overlapping triangles, its rule 3: file A's lower landing had two holes,
+        # 628 and 194 sq in, through which its inner walls drew stepped lines on the underside)
+        added, part_skipped = _add_bottom(builder, topo, {"pieces": info["slab_pieces"]},
+                                          (lambda c, h=depth: down(c, h)), material, uv_scale,
+                                          bottom_skips, group, cut=cut, plane=coef,
+                                          at_plane=kept_corners)
+        covered = outline if cut is None else shapely.difference(outline, cut)
+        fill = _bottom_outline(foot, [], [outline] + ([cut] if cut is not None else []))
+        if not fill.is_empty:
+            corners = topo.positions_w[np.unique(topo.face_w[info["foot_members"]])][:, :2]
+            if kept_corners:
+                corners = np.concatenate([corners, np.array(list(kept_corners))])
+            filled, _fill_skipped = _add_footprint_bottom(
+                builder, topo, _with_vertices(fill, corners), info["foot_members"],
+                info["normal"], info["origin"], depth, (lambda c, h=depth: down(c, h)),
+                material, uv_scale, fill_skips, group, at_plane=kept_corners)
+            if filled:
+                bottoms_filled += 1
+                covered = shapely.union_all([covered, fill])
+                added = added or filled
+        if cut is not None:
+            bottoms_built_round += 1
+        if not added and not part_skipped and covered.is_empty:
+            # the footprint is covered already -- by a bottom built for a coincident top (a
+            # duplicate layer of two materials) or by faces on the plane: one bottom per
+            # footprint, and nothing is built to be refused
+            bottoms_already_there += 1
+            return
+        build = covered
+        if added:
+            built_bottoms.append((coef, build))
+            bottoms += 1
+            group_region.append(region)
+            group_kind.append("bottom")
+            group_length.append(0.0)
+            for f in pieces:
+                replaced_group[f] = group
+                claimed.add(f)
+        elif part_skipped:
+            bottoms_refused += 1
 
     for plan in plans:
         members = plan["members"]
@@ -1086,23 +1332,22 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
         side_edges = [i for i, c in enumerate(plan["continued"]) if not c
                       and plan["frames"][i][2] is not None]
         edges_continued += int(plan["continued"].sum())
-        # the slab's footprint and bottom outline take in the blocks standing on it (item 6), and
-        # a block's edge the slab does not continue across is the slab's side there: walled like
-        # any of the slab's own edges, down to the slab's own depth
-        slab_foot, slab_plan = plan["foot"], plan
+        # the slab's footprint and bottom take in the blocks standing on it (item 6), and a block's
+        # edge the slab does not continue across is the slab's side there: walled like any of the
+        # slab's own edges, down to the slab's own depth
+        slab_foot, slab_pieces = plan["foot"], list(plan["pieces"])
         if plan["interfaces"]:
             under = [np.nonzero(topo.face_region == u)[0] for u in plan["interfaces"]]
             slab_foot = shapely.union_all([plan["foot"]] + [_footprint(topo, m) for m in under])
             shapely.prepare(slab_foot)
             outlines = [region_outline(topo, m) for m in under]
+            slab_pieces += [p for o in outlines if o is not None for p in o[0]]
             extra = [(e, f) for u in plan["interfaces"]
                      for e, f, c in zip(*underside_edges[u]) if not c and f[2] is not None]
             plan = dict(plan, edges=list(plan["edges"]) + [e for e, _f in extra],
                         frames=list(plan["frames"]) + [f for _e, f in extra],
                         continued=np.append(plan["continued"], np.zeros(len(extra), bool)),
                         measured=list(plan["measured"]) + [plan["rep"]] * len(extra))
-            slab_plan = dict(plan, pieces=list(plan["pieces"])
-                             + [p for o in outlines if o is not None for p in o[0]])
             side_edges = [i for i, c in enumerate(plan["continued"]) if not c
                           and plan["frames"][i][2] is not None]
         whole_heights = []
@@ -1231,40 +1476,21 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
         # SR6 item 1: a slab with a lower surface HAS its bottom, and its volume follows it
         if lower is not None:
             lower_regions += 1
-            bottom_exists += 1
             if rep is not None and float(lower[1]) > rep + band:
                 lower_deeper.append({"region": int(region), "lower_surface": round(float(lower[1]), 4),
                                      "representative_side": round(float(rep), 4)})
-            report_bottom_depth[str(region)] = round(float(lower[1]), 4)
-            volumes[region] = (slab_foot, plan["normal"], plan["origin"], lower[1], lower[0])
-            continue
-        # A bottom is only invented at a thickness that was MEASURED -- this region's own sides,
-        # or the file-wide median of everyone else's. When nothing in the file resolved, `h` is
-        # just `min_thickness`, and a floor at a made-up depth is pure invention.
-        if not resolved:
-            unresolved_thickness += 1
-            continue
-        exists, depth = _underside(topo, members, caster, bottom_h, tol, bottom_fraction,
-                                   bottom_extra, side_runs, band)
-        if exists:
-            bottom_exists += 1
-            volumes[region] = (slab_foot, plan["normal"], plan["origin"], depth, None)
-            continue
-        volumes[region] = (slab_foot, plan["normal"], plan["origin"], bottom_h, None)
-        group = len(group_region)
-        added, part_skipped = _add_bottom(builder, topo, slab_plan, lambda c: down(c, bottom_h),
-                                           material, uv_scale, bottom_skips, group)
-        if added:
-            bottoms += 1
-            group_region.append(region)
-            group_kind.append("bottom")
-            group_length.append(0.0)
-            for f in _bottom_pieces(faces, slab_foot, plan["normal"], plan["origin"],
-                                    bottom_h, band, claimed):
-                replaced_group[f] = group
-                claimed.add(f)
-        elif part_skipped:
-            bottoms_refused += 1
+        # the faces the slab's footprint is made of: its top's, and the blocks' standing on it
+        foot_members = (np.concatenate([members] + [np.nonzero(topo.face_region == u)[0]
+                                                    for u in plan["interfaces"]])
+                        if plan["interfaces"] else members)
+        bottom_plans.append({"region": region, "members": members, "normal": plan["normal"],
+                             "origin": plan["origin"], "basis": plan["basis"], "rep": rep,
+                             "lower": lower, "resolved": resolved, "bottom_h": bottom_h,
+                             "side_runs": side_runs, "slab_foot": slab_foot,
+                             "slab_pieces": slab_pieces,
+                             "foot_members": foot_members, "material": material,
+                             "uv_scale": uv_scale})
+        build_bottom(bottom_plans[-1], down)
 
     solid, new_faces, new_group = builder.build()
     cap_history: list = []
@@ -1366,7 +1592,21 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
         "walls_refused": {"faces": walls_refused_faces, "reasons": wall_reasons},
         "bottom_faces_refused": {"faces": bottom_faces_refused, "reasons": bottom_reasons},
         "side_band": band,
+        #: Bottoms BUILT, before the cap guard judged them.
         "bottoms_added": bottoms,
+        #: Brief 11 item 2. Bottoms not built at all: every part of the footprint already had one
+        #: -- built for a coincident top, or faces lying on the plane (`_bottom_outline`).
+        "bottoms_already_there": bottoms_already_there,
+        #: Brief 11 item 2. Bottoms whose outline left part of the footprint out (the merge's rule
+        #: 3 drops overlapping triangles) and that part was filled; and bottoms built ROUND a face
+        #: already on their plane or an earlier bottom in it, over the footprint.
+        "bottoms_filled": bottoms_filled,
+        "bottoms_built_round": bottoms_built_round,
+        "bottom_fill_skips": {k: v for k, v in fill_skips.items() if v},
+        #: Brief 11 item 2. Every region whose existing underside is BROKEN -- gaps, steps, partial
+        #: layers or tilted pieces (`_underside_state`): `{region, depth, coverage, planes, tilted,
+        #: whole, lower_surface}`. Measured and kept as it is, not rebuilt (`_region_bottom`).
+        "undersides_broken": broken_undersides,
         #: Regions whose bottom WAS built and then thrown away whole, because at least one of
         #: its parts could not be triangulated. Never reported as added.
         "bottoms_partial_refused": bottoms_refused,
@@ -1545,7 +1785,8 @@ def _has_bottom(topo: Topology, members: np.ndarray, caster, h: float, tol: floa
 
 
 def _add_bottom(builder: _Builder, topo: Topology, plan: dict, down, material: int,
-                 uv_scale: float, skips: dict, group: int) -> tuple[bool, bool]:
+                 uv_scale: float, skips: dict, group: int, cut=None, plane=None,
+                 at_plane: dict | None = None) -> tuple[bool, bool]:
     """The region's outline (outer plus inners), shifted down by the region's bottom depth and
     triangulated over the SHIFTED vertices with `shapely.constrained_delaunay_triangles`, which
     adds no Steiner points -- so every bottom corner is a vertex this function already made.
@@ -1560,7 +1801,16 @@ def _add_bottom(builder: _Builder, topo: Topology, plan: dict, down, material: i
     Returns `(added, skipped)`: `added` is True only for a COMPLETE bottom; `skipped` says at
     least one part was refused, which the caller counts as `bottoms_partial_refused`. Building the
     triangle list before touching the builder is also what keeps a refused bottom from inventing
-    vertices -- `down()` is only called for parts that are actually emitted."""
+    vertices -- `down()` is only called for parts that are actually emitted.
+
+    Brief 11 item 2: with `cut` (a polygon seen from above: faces already lying on the bottom
+    plane that it does not replace, and bottoms built before it in that plane), a triangle
+    overlapping it is cut LOCALLY -- replaced by the triangulation of what is left of it -- and
+    every other triangle stays exactly as it was: the cap guard judges every new face on its own,
+    and triangulating the whole footprint afresh made triangles up to 34,882 sq in, each refused
+    whole for a few outside pixels (file B's region 92). A corner of such a part is a vertex of
+    the top shifted down (`down`), a vertex of a face on the plane (`at_plane`, xy -> welded id),
+    or invented on `plane` (`z = a x + b y + c`, `_bottom_plane`)."""
     triangles: list[list[int]] = []
     skipped = False
     for piece in plan["pieces"]:
@@ -1607,11 +1857,202 @@ def _add_bottom(builder: _Builder, topo: Topology, plan: dict, down, material: i
 
     if skipped or not triangles:
         return False, skipped
-    for corners in triangles:
-        ids = [down(c) for c in corners]
+    emitted: list[list] = [[("top", c) for c in corners] for corners in triangles]
+    if cut is not None and not cut.is_empty:
+        pos = topo.positions_w
+        lookup = {}
+        for corners in triangles:
+            for c in corners:
+                lookup[(float(pos[c][0]), float(pos[c][1]))] = ("top", c)
+        for (x, y), w in (at_plane or {}).items():
+            lookup[(x, y)] = ("plane", w)
+        emitted = []
+        for corners in triangles:
+            tri = shapely.Polygon([pos[c][:2] for c in corners])
+            if float(shapely.area(shapely.intersection(tri, cut))) <= 1e-6:
+                emitted.append([("top", c) for c in corners])
+                continue
+            rest = shapely.difference(tri, cut)
+            for part in getattr(rest, "geoms", [rest]):
+                if part.geom_type != "Polygon" or part.area <= 1e-6:
+                    continue
+                try:
+                    pieces = shapely.constrained_delaunay_triangles(part)
+                except shapely.errors.GEOSException:
+                    skips["cdt_failed"] += 1
+                    return False, True
+                for small in getattr(pieces, "geoms", []):
+                    if small.geom_type != "Polygon" or small.is_empty:
+                        continue
+                    emitted.append([lookup.get((float(x), float(y)), ("new", (float(x), float(y))))
+                                    for x, y in np.asarray(small.exterior.coords)[:3]])
+        if not emitted:
+            return False, False
+    for corners in emitted:
+        ids = []
+        for kind, c in corners:
+            if kind == "top":
+                ids.append(down(c))
+            elif kind == "plane":
+                ids.append(builder.vertex(topo.positions_w[c]))
+            else:
+                x, y = c
+                ids.append(builder.vertex(np.array([x, y, plane[0] * x + plane[1] * y
+                                                    + plane[2]])))
         points = np.array([builder.positions[i] for i in ids], dtype=np.float64)
         normal = np.cross(points[1] - points[0], points[2] - points[0])
         if float(normal[2]) > 0.0:
+            ids = [ids[0], ids[2], ids[1]]
+        builder.face(ids, material, uv_scale, group)
+    return True, False
+
+
+def _pieces_polygon(topo: Topology, pieces: list):
+    """The union, seen from above, of outline `pieces` (`engine.fixes.merge.region_outline`'s,
+    rings of welded vertex ids): what an outline bottom covers."""
+    polys = []
+    for piece in pieces:
+        rings = [r for r in piece.rings if len(r) >= 3]
+        if not rings:
+            continue
+        xy = [[tuple(topo.positions_w[int(v)][:2]) for v in r] for r in rings]
+        try:
+            poly = shapely.Polygon(xy[0], xy[1:])
+        except (ValueError, shapely.errors.GEOSException):
+            continue
+        if poly.is_valid and poly.area > 0.0:
+            polys.append(poly)
+    return shapely.union_all(polys) if polys else shapely.Polygon()
+
+
+def _bottom_plane(normal: np.ndarray, origin: np.ndarray, depth: float) -> np.ndarray:
+    """The bottom plane as `z = a x + b y + c` (`(a, b, c)`): the top plane (`normal`,
+    `origin`) lowered by `depth`."""
+    n, o = np.asarray(normal, dtype=np.float64), np.asarray(origin, dtype=np.float64)
+    return np.array([-n[0] / n[2], -n[1] / n[2], o[2] + (n[0] * o[0] + n[1] * o[1]) / n[2] - depth])
+
+
+def _same_plane(a: np.ndarray, b: np.ndarray, foot, tol: float) -> bool:
+    """Do the planes `z = a . (x, y, 1)` and `z = b . (x, y, 1)` agree within `tol` at every
+    corner of `foot`'s bounds?"""
+    x0, y0, x1, y1 = foot.bounds
+    pts = np.array([[x0, y0, 1.0], [x1, y0, 1.0], [x0, y1, 1.0], [x1, y1, 1.0]])
+    return bool(np.abs(pts @ (np.asarray(a) - np.asarray(b))).max() <= tol)
+
+
+def _faces_on_plane(faces: _Faces, foot, coef: np.ndarray, tol: float) -> list[int]:
+    """Brief 11 item 2: every face lying ON the plane `z = a x + b y + c` (`coef`) over `foot`,
+    eligible to be a piece or not: parallel to it within `_COINCIDENT_ANGLE_DEG`, every corner
+    within `tol` of it (vertically), and overlapping `foot` seen from above. A bottom built on that
+    plane goes ROUND those it does not replace."""
+    x0, y0, x1, y1 = foot.bounds
+    z = coef[0] * np.array([x0, x1, x0, x1]) + coef[1] * np.array([y0, y0, y1, y1]) + coef[2]
+    cand = faces.near(np.array([x0, y0, float(z.min()) - tol]),
+                      np.array([x1, y1, float(z.max()) + tol]), every=True)
+    if not len(cand):
+        return []
+    v = faces.tri[cand]
+    off = np.abs(v[:, :, 2] - (coef[0] * v[:, :, 0] + coef[1] * v[:, :, 1] + coef[2]))
+    up = np.array([-coef[0], -coef[1], 1.0]) / np.sqrt(coef[0] ** 2 + coef[1] ** 2 + 1.0)
+    parallel = np.abs(faces.normal[cand] @ up) >= np.cos(np.radians(_COINCIDENT_ANGLE_DEG))
+    cand = cand[(off.max(axis=1) <= tol) & parallel]
+    if not len(cand):
+        return []
+    polys = shapely.polygons(faces.tri[cand][:, :, :2])
+    over = shapely.area(shapely.intersection(polys, foot)) > 1e-6
+    return [int(f) for f in cand[over]]
+
+
+def _bottom_outline(foot, keep_out: list, earlier: list):
+    """Brief 11 item 2: what a bottom covers -- the slab's footprint less the faces already lying
+    on its plane that it does not replace (`keep_out`, each a triangle's xy corners) and less the
+    bottoms built before it in the same plane (`earlier`, polygons). Two new faces are never laid
+    one on the other, and a new face never on an existing one (review of brief 10, I2: a wall or
+    bottom partly on an earlier one was refused WHOLE, reopening what it closed elsewhere)."""
+    cut = [shapely.Polygon(np.asarray(t, dtype=np.float64)) for t in keep_out] + list(earlier)
+    cut = [c for c in cut if c.is_valid and c.area > 0.0]
+    if not cut:
+        return foot
+    out = shapely.difference(foot, shapely.union_all(cut))
+    parts = [p for p in getattr(out, "geoms", [out])
+             if p.geom_type == "Polygon" and p.area > 1e-4]
+    return shapely.MultiPolygon(parts) if len(parts) > 1 else (parts[0] if parts
+                                                                 else shapely.Polygon())
+
+
+def _add_footprint_bottom(builder: _Builder, topo: Topology, foot, members: np.ndarray,
+                          normal: np.ndarray, origin: np.ndarray, depth: float, down,
+                          material: int, uv_scale: float, skips: dict,
+                          group: int, at_plane: dict | None = None) -> tuple[bool, bool]:
+    """Brief 11 item 2: a bottom over `foot` -- the part of a slab's FOOTPRINT (every face of its
+    top, seen from above) that its outline bottom (`_add_bottom`) leaves out -- `depth` below the
+    top, triangulated with `shapely.constrained_delaunay_triangles` and wound to face down. A corner at a vertex of a face the bottom is built round (`at_plane`:
+    xy -> welded id, faces lying on its plane) is that vertex; one at a vertex of the top
+    (`members`' corners) is that vertex shifted straight down (`down(welded)`); a corner no vertex
+    explains -- where two of the top's triangles overlap and their edges cross -- is invented on
+    the bottom plane, the top plane lowered by `depth` (solidify is the step that may invent a
+    vertex).
+
+    Why a fill at all: the outline is the MERGE's (`engine.fixes.merge.region_outline`), which
+    leaves overlapping triangles out of its union (its rule 3). A top with a triangle folded onto
+    it got half a bottom; file A's lower landing got two holes (194 and 628 sq in) through which
+    its inner walls stayed visible and drew stepped lines on its underside. Only the missing part
+    is triangulated here: a bottom triangulated whole from the footprint came out in triangles up
+    to 34,882 sq in, each refused whole by the cap guard for a few outside pixels.
+
+    ALL OR NOTHING. Every triangle is worked out before any is emitted, so a refused bottom invents
+    nothing, and a part that fails refuses the whole bottom, counted into `skips`: a bottom missing
+    one of its parts is a HOLE in the underside, which is worse than no bottom at all -- the rest of
+    it still hides whatever is above, so the hidden pass deletes the real geometry and the hole is
+    what ships. Returns `(added, skipped)`: `added` only for a complete bottom, `skipped` when a
+    part was refused (counted as `bottoms_partial_refused`)."""
+    lookup: dict[tuple[float, float], int] = {}
+    for welded in np.unique(topo.face_w[members]).tolist():
+        p = topo.positions_w[int(welded)]
+        lookup.setdefault((float(p[0]), float(p[1])), int(welded))
+    corners: list[list] = []
+    skipped = False
+    for part in getattr(foot, "geoms", [foot]):
+        if part.is_empty or part.geom_type != "Polygon" or part.area <= 0.0:
+            continue
+        if not part.is_valid:
+            skips["invalid_polygon"] += 1
+            skipped = True
+            continue
+        try:
+            cdt = shapely.constrained_delaunay_triangles(part)
+        except shapely.errors.GEOSException:
+            skips["cdt_failed"] += 1
+            skipped = True
+            continue
+        for tri in getattr(cdt, "geoms", []):
+            if tri.geom_type != "Polygon" or tri.is_empty:
+                skips["non_polygon_part"] += 1
+                skipped = True
+                continue
+            corners.append([(float(x), float(y)) for x, y in np.asarray(tri.exterior.coords)[:3]])
+    if skipped or not corners:
+        if not corners and not skipped:
+            skips["empty_outline"] += 1
+            skipped = True
+        return False, skipped
+    for triangle in corners:
+        ids = []
+        for x, y in triangle:
+            welded = lookup.get((x, y))
+            on_plane = (at_plane or {}).get((x, y))
+            if on_plane is not None:
+                # a corner of a face lying on the plane that the bottom is built round: that
+                # very vertex, so the two meet on one edge
+                ids.append(builder.vertex(topo.positions_w[on_plane]))
+            elif welded is not None:
+                ids.append(down(welded))
+            else:
+                z = float(_z_top(normal, origin, np.array([x]), np.array([y]))[0]) - depth
+                ids.append(builder.vertex(np.array([x, y, z])))
+        points = np.array([builder.positions[i] for i in ids], dtype=np.float64)
+        n = np.cross(points[1] - points[0], points[2] - points[0])
+        if float(n[2]) > 0.0:
             ids = [ids[0], ids[2], ids[1]]
         builder.face(ids, material, uv_scale, group)
     return True, False
@@ -1757,7 +2198,10 @@ def _bottom_piece_cover(solid: MeshData, new_group: np.ndarray, replaced_group: 
     """SR6. Per piece of a BOTTOM, the faces of that bottom lying over it (overlapping it seen
     from above by more than a thousandth of the smaller one's area): the cap guard gives the
     piece back only when one of THESE is refused, not when any face of a bottom that may span
-    the whole slab is. A wall has two faces and keeps the group rule."""
+    the whole slab is. A wall has two faces and keeps the group rule. A bottom that rebuilds a
+    broken underside (brief 11 item 2) keeps this rule too: measured on file A, giving back every
+    piece of a rebuild when one face of it was refused cascaded -- the faces lying on the pieces
+    went next -- and lost both of the file's rebuilt undersides (back faces 20,478 -> 45,949)."""
     out: dict[int, np.ndarray] = {}
     tri = solid.positions[solid.face_v]
     for g, kind in enumerate(group_kind):
