@@ -149,3 +149,35 @@ def test_import_identical_bytes_two_file_names(client, sample_source_dir):
     # Both models share identical sha256 for their snapshot versions
     assert model_a["versions"][0]["sha256"] == model_b["versions"][0]["sha256"]
 
+
+def test_import_path_traversal_rejected(client, sample_source_dir):
+    # Directory traversal attempts must be rejected with 404 (m11)
+    for bad_name in ["../test_cube.obj", "..\\test_cube.obj", "/test_cube.obj", "nonexistent.obj"]:
+        r = client.post("/api/models/import", json={"file": bad_name})
+        assert r.status_code == 404
+
+
+def test_m5_backfill_does_not_backfill_when_assets_differ(client, textured_source_dir, db):
+    from api.models import ModelVersion
+    from sqlalchemy import select
+
+    # First import
+    r = client.post("/api/models/import", json={"file": "textured_cube.obj"})
+    assert r.status_code == 201
+    initial_count = len(r.json()["versions"])
+    v_id = r.json()["versions"][-1]["id"]
+
+    ver = db.scalar(select(ModelVersion).where(ModelVersion.id == v_id))
+    ver.asset_sha256 = None
+    db.commit()
+
+    # Modify texture on disk before re-importing
+    tex = textured_source_dir / "tex" / "stone.png"
+    Image.fromarray(np.full((4, 4, 3), 100, np.uint8)).save(tex)
+
+    # Re-importing must NOT backfill since assets differ; it must create a new version (m5)
+    r2 = client.post("/api/models/import", json={"file": "textured_cube.obj"})
+    assert r2.status_code == 201
+    versions = r2.json()["versions"]
+    assert len(versions) == initial_count + 1
+

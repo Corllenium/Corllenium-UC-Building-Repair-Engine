@@ -22,6 +22,14 @@ from engine.pipeline import analyse_topology, flat_material_indices
 
 def find_source_file(source_dir: Path, file_name: str, stable_interval_s: float = 1.0) -> tuple[Path, int | None]:
     """Finds an OBJ file under source_dir or source_dir/split and reads its manifest expected_tris if available."""
+    # Reject directory traversal and unlisted files (m11)
+    if Path(file_name).name != file_name or "/" in file_name or "\\" in file_name:
+        raise FileNotFoundError(f"Source file {file_name!r} not found in {source_dir} or {source_dir / 'split'}")
+
+    valid_files = {s.file for s in scan_source_directory(source_dir, stable_interval_s=stable_interval_s)}
+    if file_name not in valid_files:
+        raise FileNotFoundError(f"Source file {file_name!r} not found in {source_dir} or {source_dir / 'split'}")
+
     candidates = [
         source_dir / file_name,
         source_dir / "split" / file_name,
@@ -115,15 +123,26 @@ def import_model(db: Session, file_name: str, settings: Settings) -> Model:
     existing_versions = list(db.scalars(ver_stmt))
     existing_ver = next((v for v in existing_versions if v.asset_sha256 == snap.asset_sha256), None)
     if existing_ver is None:
-        # Review M5: backfill asset_sha256 if pre-e57462d version had NULL
+        # Review M5: backfill asset_sha256 only if mtl and texture assets match (m5)
         null_ver = next((v for v in existing_versions if v.asset_sha256 is None), None)
         if null_ver is not None:
-            null_ver.asset_sha256 = snap.asset_sha256
-            if null_ver.flat_materials is None:
-                null_ver.flat_materials = flat_mat_names
-            db.commit()
-            db.refresh(null_ver)
-            existing_ver = null_ver
+            existing_assets = {
+                a.name: a.sha256 for a in null_ver.assets if a.kind in ("mtl", "texture")
+            }
+            new_assets = {}
+            if snap.mtl_path and snap.mtl_path.exists():
+                new_assets[snap.mtl_path.name] = sha256_file(snap.mtl_path)
+            for tex_name, tex_path in snap.textures.items():
+                if tex_path.exists():
+                    new_assets[tex_name] = sha256_file(tex_path)
+
+            if existing_assets == new_assets:
+                null_ver.asset_sha256 = snap.asset_sha256
+                if null_ver.flat_materials is None:
+                    null_ver.flat_materials = flat_mat_names
+                db.commit()
+                db.refresh(null_ver)
+                existing_ver = null_ver
 
     if existing_ver is not None:
         return model
