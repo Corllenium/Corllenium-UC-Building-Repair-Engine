@@ -96,3 +96,20 @@ Resolution of re-review findings N1-N2, n1-n12, I2, m12:
   - The nits.
 - M6 is the owner's decision.
 
+### Pass 5 (Brief 12 Follow-ups)
+Resolution of re-review round 3 minor findings M1-M4 and nits (commits 1c2d8f3..6a9141c):
+
+| Item | Commit | Test(s) |
+|---|---|---|
+| **M1** (post-commit failure deletes files) | `1c2d8f3` | `test_second_commit_failure_preserves_run_files_and_meshbuf` (`api/tests/test_fixes.py`) |
+| **M2** (unrecorded owner copy / stale removal) | `9dcd1ad` | `test_owner_copy_failure_recorded_in_report_json_and_db`, `test_owner_copy_stale_failed_removal_recorded_in_report_json_and_db` (`api/tests/test_fixes.py`), `reports skp copy_error when owner copy fails` (`web/src/utils/describeResult.test.ts`) |
+| **M3** (vacuous m4 test with non-zero std) | `fcd890b` | `test_stored_flat_materials_enforced_to_zero_std` (`api/tests/test_fixes.py`, fixture in `api/tests/conftest.py`) |
+| **M4** (three pass-4 changes without tests) | `d37f4ba` | `test_snapshot_asset_paths_are_posix_compliant` (`api/tests/test_importer.py`), `test_failing_guard_views_written_by_run_are_listed_in_report` (`api/tests/test_fixes.py`), `test_fix_run_succeeds_when_skp_dll_absent` assertions (`api/tests/test_fixes.py`) |
+| **Nits** (`mergeReported` + neutral guard color) | `6a9141c` | `handles pre-branch reports (like v4) with missing merge_report as merge not reported` (`web/src/utils/describeResult.test.ts`), `vue-tsc --noEmit` |
+
+Measured test counts:
+- API (`python -m pytest api/tests -q -p no:cacheprovider`): **44 passed**, 0 failed, 9 warnings in 1193.80s (0:19:53)
+- Web (`pnpm vitest run`): **47 passed** (8 test files, 47 tests passed)
+- Web `pnpm vue-tsc --noEmit`: **3 errors** (all pre-existing in `src/three/Viewport.ts:332,333,360`)
+
+
