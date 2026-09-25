@@ -13,6 +13,22 @@ uncommitted work there is the Claude agent's work in progress: finish, test and 
 discard it. When Claude comes back it reads this file first and does NOT resume a job Hermes holds;
 Hermes hands back by releasing the row after a clean commit.
 
+**Automatic continuation** (`tools/auto_continue.py watch`, HANDOFF.md section 7; it runs outside
+Claude, so it keeps going while Claude is at its limit). It reads Claude's transcripts. When one says
+Claude hit its usage limit ("You've hit your ... limit · resets ...") at least 10 minutes ago and the
+reset is at least 45 minutes away, or when no Claude transcript has changed for 90 minutes, it takes
+the first `running` job held by Claude whose brief is a `briefs/NN-*.md` file and whose final report
+does not exist yet. Reviews and read-only jobs are never given to Hermes. It writes holder
+`Hermes (auto-continue)` here, makes a worktree `.hermes/worktrees/auto-<run>` on branch
+`hermes/auto-<run>` from the job's HEAD, copies the job tree's uncommitted `engine/` and
+`docs/superpowers/records/scripts/` work into it (the tree keeps its copy), and starts Hermes on the
+brief. One run at a time, at most 150 minutes, at most 12 USD of Hermes spend a day. When Hermes stops,
+the runner releases the row as `HERMES-AUTO DONE`, `STOPPED` or `TIMEOUT` with the branch and its
+commits, and adds a line to `AUTO-CONTINUE-LOG.md`. Claude reviews that branch before anything merges
+it. A queued job is started only if its row says `auto-ok`. Kill switch:
+`tools/auto_continue.py stop` (no new runs; `--kill` also ends the running one), `resume` to allow runs
+again.
+
 | Job | Brief | Tree / branch | Holder | Since | Status |
 |---|---|---|---|---|---|
 | T1 T-junction repair | briefs/01-T1-tjunction-repair.md | main checkout / feat-dashboard | - | 2026-09-24 18:50 | DONE: 28d63df, 03df53d, report 437e4ef; A 1,013 / B 601 tris, T-vertices 0 |

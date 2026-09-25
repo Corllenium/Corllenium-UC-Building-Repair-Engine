@@ -1,6 +1,6 @@
 # HERMES Agent — Project Memory: UC MODEL FIXER
 
-## 0. START HERE (updated 2026-09-24)
+## 0. START HERE (updated 2026-09-25)
 
 This file is the entry point. The work is shared between Claude sessions and Hermes: when Claude
 reaches its usage limit, Hermes continues from the same records.
@@ -14,13 +14,18 @@ reaches its usage limit, Hermes continues from the same records.
    `docs/superpowers/records/2026-09-24-session-record.md`.
 5. Every ruling and measurement in order (the ledger):
    `.superpowers/sdd/2026-09-21-phase2e-fix-pipeline/progress.md` (tracked with `git add -f`).
+6. If you were started by `tools/auto_continue.py` (your prompt says "This run is automatic"), that
+   prompt's rules come first: work only in the worktree it made, never edit `WORK-CLAIMS.md` or
+   `HANDOFF.md` (the runner and Claude keep them), and write the report it names.
 
 **Project Directory:** `D:\PROJECTS\UC MODEL FIXER`
 **Source model:** `UC-campus-FIXED-v2026-07-11 - CHECKPOINT-17.skp`; the engine works on its OBJ
 exports, test files `CHTM_SIDE_WALK_2nd_floor` (snapshot `data/snapshots/ce26e0392ab0`) and
 `CHTM_2nd_to_3rd_building_sidewalk_outside` (snapshot `data/snapshots/0b290ec0bcb4`).
-**Deliverable the owner checks:** `OBJ FIXED RESULT/<name>.fixed.skp`, rewritten by every
-`python -m engine.cli fix` run.
+**Deliverable the owner checks:** `OBJ FIXED RESULT/<name>.fixed.skp`. It holds only files built from
+COMMITTED code: every run during work passes
+`--skp-dir "D:/PROJECTS/UC MODEL FIXER/data/skp_scratch"` (without it, `engine.cli fix` writes the
+owner's folder).
 **Target Engine:** Unity 6000.4.7f1 / URP 17.4.0 (`CampusDoubleSided.cs`, `_Cull = 0`)
 
 ---

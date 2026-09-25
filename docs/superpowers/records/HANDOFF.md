@@ -23,25 +23,30 @@ side mesh, rebuild broken or missing sides; only the model's outline edges may b
 run the latest `.skp` of each file must be in `OBJ FIXED RESULT/` for the owner to check in SketchUp
 2026. Work visually: every round ends with renders that are looked at, not only numbers.
 
-## 2. Current state (2026-09-25 17:45, written by the Claude controller)
+## 2. Current state (2026-09-25 21:20, written by the Claude controller)
 
-Branch `feat-dashboard`, engine suite **566 passed** (verified 17:32). `docker-compose.yml` shows as
-modified: another session's, never touch it. The live dashboard is Docker containers built on 09-24
-01:22 (old code); rebuilding them is the owner's decision.
+Branch `feat-dashboard`, engine suite **566 passed** at brief 10's end (17:32). Brief 11's item 1 is
+committed (4019987); its next items are the brief-11 agent's uncommitted work in progress in the main
+checkout (measured 21:15: `engine/fixes/solidify.py`, `engine/tests/fixtures/build.py`,
+`engine/tests/test_solidify.py`, 614 lines added, 93 removed). `docker-compose.yml` and the Docker files
+at the root are another session's: never touch them. The live dashboard is Docker containers built on
+09-24 01:22 (old code); rebuilding them is the owner's decision.
 
-Owner files (18:39 / 18:42), built from the COMMITTED head 5300c29 in the clean worktree
-`.claude/worktrees/verified` (outputs in `data/output_verified`): file A 882 triangles, back faces from
-outside 20,478 px; file B 506 triangles, 2,787 px; both passed, no rollback. To refresh them from committed
-code again: in that worktree `git checkout --detach <commit>`, then run `engine.cli fix` with
+Owner files (restored 20:42 from `data/output_verified`), built from the COMMITTED head 5300c29 in the
+clean worktree `.claude/worktrees/verified`: file A 882 triangles, back faces from outside 20,478 px;
+file B 506 triangles, 2,787 px; both passed, no rollback. To refresh them from committed code again: in
+that worktree `git checkout --detach <commit>`, then run `engine.cli fix` with
 `--out "D:/PROJECTS/UC MODEL FIXER/data/output_verified" --skp-dir "D:/PROJECTS/UC MODEL FIXER/OBJ FIXED RESULT"`
 for both snapshots (the file must not be open in SketchUp).
 
 Jobs:
 
-1. **Brief 11** (remaining visual defects), main checkout, Claude subagent since 17:45.
-2. **Review of brief 10** (read-only), Claude subagent since 17:45; its findings are added to brief 11.
-3. **Dashboard pass 4** (Hermes, worktree `.hermes/worktrees/dashboard-wave`, branch `feat/dashboard-wave`):
-   DONE. All re-review findings resolved (16 commits); API suite 39 passed, web suite 46 passed; vue-tsc clean for wave files. Awaiting merge review.
+1. **Brief 11** (remaining visual defects), main checkout, Claude subagent since 17:45: item 1 done
+   (4019987); R10-C1 and item 2 in progress.
+2. **Re-review round 3** of `feat/dashboard-wave` at da8ba85 (read-only), Claude subagent since 18:50.
+   Hermes's dashboard pass 4 (16 commits) waits for it before any merge.
+3. **Automatic continuation** (section 7) watches in the background: if Claude's usage limit cuts the
+   brief-11 agent, Hermes continues brief 11 on a branch of its own.
 
 **If you take over one of these** (for example because Claude hit its usage limit): follow the
 lapse rule at the top of `WORK-CLAIMS.md`, take the claim over in writing, run `git status` and
@@ -103,13 +108,16 @@ work in progress: finish it, test it, commit it; never discard it.
 
 ```bash
 .venv/Scripts/python.exe -m pytest engine/tests -q -p no:cacheprovider
-.venv/Scripts/python.exe -m engine.cli fix data/snapshots/ce26e0392ab0 --out data/output
-.venv/Scripts/python.exe -m engine.cli fix data/snapshots/0b290ec0bcb4 --out data/output
+.venv/Scripts/python.exe -m engine.cli fix data/snapshots/ce26e0392ab0 --out data/output --skp-dir "D:/PROJECTS/UC MODEL FIXER/data/skp_scratch"
+.venv/Scripts/python.exe -m engine.cli fix data/snapshots/0b290ec0bcb4 --out data/output --skp-dir "D:/PROJECTS/UC MODEL FIXER/data/skp_scratch"
 .venv/Scripts/python.exe -m engine.cli preview-data data/snapshots/ce26e0392ab0 --out preview/data
 .venv/Scripts/python.exe -m engine.cli preview-data data/snapshots/0b290ec0bcb4 --out preview/data
-PYTHONPATH="$PWD" .venv/Scripts/python.exe docs/superpowers/records/scripts/skp_edge_audit.py "OBJ FIXED RESULT/CHTM_SIDE_WALK_2nd_floor.fixed.skp"
-PYTHONPATH="$PWD" .venv/Scripts/python.exe docs/superpowers/records/scripts/render_skp.py "OBJ FIXED RESULT/CHTM_SIDE_WALK_2nd_floor.fixed.skp" data/skp_render/A
+PYTHONPATH="$PWD" .venv/Scripts/python.exe docs/superpowers/records/scripts/skp_edge_audit.py "data/skp_scratch/CHTM_SIDE_WALK_2nd_floor.fixed.skp"
+PYTHONPATH="$PWD" .venv/Scripts/python.exe docs/superpowers/records/scripts/render_skp.py "data/skp_scratch/CHTM_SIDE_WALK_2nd_floor.fixed.skp" data/skp_render/A
 ```
+
+Without `--skp-dir` the run writes the owner's `OBJ FIXED RESULT/`, which must hold only files built
+from committed code (section 4).
 
 Read in `data/output/<name>/report.json`: `tris_after`, `passed`, `invariants` (all true),
 `merge_report.rolled_back` (must be false), `guard_final.totals` (holes, material_changed,
@@ -121,3 +129,35 @@ crack_closed, fragment_removed are tolerated classes), `solidify_report.cap_guar
 When you stop (limit reached, owner says Claude is back, or the job is done): commit at a clean point,
 release your claim in `WORK-CLAIMS.md`, update section 2 here with what is done and what is left,
 append to the ledger, commit those three files.
+
+## 7. Automatic continuation while Claude is at its usage limit
+
+`tools/auto_continue.py` runs outside Claude, so it keeps working when Claude's usage limit stops every
+Claude agent. The Claude controller starts it in the background after every restart of the app:
+
+```bash
+.venv/Scripts/python.exe tools/auto_continue.py watch    # checks every 5 minutes, acts, supervises
+.venv/Scripts/python.exe tools/auto_continue.py status   # what it sees and would do now; changes nothing
+```
+
+The rule it follows is written in `WORK-CLAIMS.md` (automatic continuation). In short, when Claude is
+cut with the reset at least 45 minutes away, the running brief job goes to Hermes on branch
+`hermes/auto-<run>` in `.hermes/worktrees/auto-<run>`, with the job tree's uncommitted work copied in
+and a prompt that carries section 4's rules. Reviews stay with Claude. Everything a run did is in
+`data/auto_continue/<run>/` (`prompt.md`, `hermes.out`, `usage.json`, `wip.patch`, `run.json`), one line
+per event in `AUTO-CONTINUE-LOG.md`, and Hermes's report in the branch at
+`docs/superpowers/records/hermes-auto/<run>-report.md`.
+
+When Claude comes back:
+1. Run `status`, read `WORK-CLAIMS.md` and `AUTO-CONTINUE-LOG.md`. Do not resume a job Hermes holds.
+   To take it back early: `tools/auto_continue.py stop --kill` (the row is released as STOPPED with
+   Hermes's commits so far), then `tools/auto_continue.py resume` so later cuts are covered again.
+2. Review the branch `hermes/auto-<run>` like any worker's (a read-only reviewer with probes).
+3. Merging it into `feat-dashboard`: the job's work in progress is STILL uncommitted in the job's tree;
+   the runner copied it and did not move it (`data/auto_continue/<run>/wip.patch` is the copy). Park it
+   first (`git stash push -- <those files>`), merge, check that nothing in the parked copy is missing
+   from the merged files, and only then drop the stash.
+4. Then continue the brief (claim the row again) and refresh the owner's files from the new commit.
+
+Tested by `tools/tests/test_auto_continue.py` (a fake Hermes in a throwaway repository); run
+`.venv/Scripts/python.exe -m pytest tools/tests -q -p no:cacheprovider`.

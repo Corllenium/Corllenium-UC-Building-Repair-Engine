@@ -192,19 +192,23 @@ Run from the repo root with `PYTHONPATH` set to the repo root and the project in
 | `scripts/skp_edge_audit.py <file.skp>` | Every edge SketchUp draws, classed; lines inside flat surfaces and T-junction lines |
 | `scripts/edge_audit.py <file.ngon.obj>` | The same for the polygon OBJ (overstates: holed regions are triangles there) |
 | `scripts/render_skp.py <file.skp> <out dir>` | 21 renders of a `.skp` with only the edges SketchUp draws |
+| `scripts/sketchup_views.rb` (through the SketchUp bridge) | Real SketchUp views of the open model: shaded with back faces purple, X-ray, textured |
+| `tools/auto_continue.py status` (repo root) | Is Claude at its usage limit, which job Hermes would take over, what Hermes spent today (HANDOFF.md section 7) |
 
 ## 9. How to resume
 
 ```bash
 .venv/Scripts/python.exe -m pytest engine/tests -q -p no:cacheprovider
-.venv/Scripts/python.exe -m engine.cli fix data/snapshots/ce26e0392ab0 --out data/output
-.venv/Scripts/python.exe -m engine.cli fix data/snapshots/0b290ec0bcb4 --out data/output
+.venv/Scripts/python.exe -m engine.cli fix data/snapshots/ce26e0392ab0 --out data/output --skp-dir "D:/PROJECTS/UC MODEL FIXER/data/skp_scratch"
+.venv/Scripts/python.exe -m engine.cli fix data/snapshots/0b290ec0bcb4 --out data/output --skp-dir "D:/PROJECTS/UC MODEL FIXER/data/skp_scratch"
 .venv/Scripts/python.exe -m engine.cli preview-data data/snapshots/ce26e0392ab0 --out preview/data
 ```
 
 Then read `data/output/<name>/report.json`, look at `data/output/<name>/qa/*.png`, audit
-`OBJ FIXED RESULT/<name>.fixed.skp` with `scripts/skp_edge_audit.py`, and read the tail of the
-ledger for the current queue.
+`data/skp_scratch/<name>.fixed.skp` with `scripts/skp_edge_audit.py`, and read the tail of the
+ledger for the current queue. The owner's `OBJ FIXED RESULT/` is refreshed only from committed code
+(HANDOFF.md section 2). If Claude was cut by its usage limit, first run `tools/auto_continue.py status`
+and read `AUTO-CONTINUE-LOG.md`: Hermes may hold a job (HANDOFF.md section 7).
 
 Lessons that cost time: agents are cut by the account session limit (resume them by message after
 the reset, never re-dispatch blindly); on Windows a running agent's output file reads as empty, which
