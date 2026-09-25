@@ -12,6 +12,10 @@ photograph, file B's ramp side, is broken again at HEAD: it was a mostly clean w
 (f57cb17), and the review fixes SR4 and SR5 reopened it. The fix that restores it is measured below
 and was NOT committed, because it makes file A's merge roll back on one pixel (section 7).
 
+**Update, SR6 (section 9, HEAD 8d238c4):** the ramp is a clean wall again (its close-up 948 back
+pixels, input 43,696), both merges hold, back faces seen from outside are A 20,793 and B 6,006, and
+the section lists what was wrong in sections 1-8.
+
 | Commit | Item |
 |---|---|
 | ff4a0ec | SR0 `feat(engine): count back faces seen from outside` |
@@ -420,6 +424,397 @@ measured, for a pixel whose BEFORE hit lies within 0.001 in of its face's edge.
    `engine/tests/fixtures/build.py` and `engine/tests/test_cli.py`. The merged result was not built
    or tested; the controller reconciles.
 
+## 9. SR6 (2026-09-25): lips, sloped sides, and the grazing pixel
+
+**Status: DONE_WITH_CONCERNS.**
+
+Met on both files (table below):
+- back pixels under both limits;
+- no merge rollback, both passed;
+- the three probes unchanged;
+- the ramp close-up at 948 in view 0, the view tracked since SR1;
+- A's lower-landing edge rebuilt.
+
+Not met as written:
+- The ramp close-up's view 1 measures 2,674, above the 2,500 target.
+- B region 92's "east side" is not a side (corrections below). Its real sides are only partly
+  rebuilt, and 2,927 back pixels remain in its volume.
+
+The concerns are listed at the end of this section.
+
+| Commit | Item |
+|---|---|
+| f58243d | item 2 `fix(engine): a thin lip never sets a slab's bottom` |
+| 6eb6fb8 | item 1 `fix(engine): a sloped top's walls follow the ground` |
+| cb85e0d | item 1 follow-up `fix(engine): a slab's lower surface is the one surface most of its rays meet` |
+| 8d238c4 | item 3 `fix(engine): the grazing pixel is no border shift; its causes are fixed at the source` |
+
+**Commit order.** Item 2 was committed before item 1 because item 1 depends on it. Item 1 searches
+for a slab's lower surface from item 2's representative depth. From the lip-driven depth SR5 gave,
+the search stops 24 in below 5.62 in and never reaches the ramp's underside at 39.37 in.
+
+**Suite:** `427 passed in 65.48s (0:01:05)` at HEAD 8d238c4, with only this report uncommitted
+(`python -m pytest engine/tests -q -p no:cacheprovider`; 415 at 0f24da4).
+
+### Item 2: a thin lip never sets a slab's bottom
+
+**Measured.** SR5 capped the bottom at the shallowest own side, measured by its vertical extent:
+- **B, region 309 (the ramp):** a 5.62 in lip, face 7105, running 13.1 in along the outline.
+- **B, region 92 (the landing):** a 0.26 in lip, face 692, running 29.5 in. It lies on the edge at
+  y 24195.0 (x 2247.8-2279.3), not on the east side where the brief places it.
+- **A, region 11 (the lower landing):** 9.85 in, from faces standing UP from its top (the risers of
+  the steps). All 15 of its own faces shallower than 29.52 in reach 0.0 in below their edges and
+  stand 9.85 in tall.
+
+Measured below the edge each own side lies along (risers reach 0), and weighted by the length it
+runs along that edge:
+
+| region | own-side length reaching below | representative (length-weighted lower median) | SR5's cap |
+|---|---|---|---|
+| B 309 | 804.1 in, 24 own faces, 5.62 to 39.37 in deep | 33.74 in | 5.62 in |
+| B 92 | 1,452.3 in; 28 of its 73 own faces reach nothing below their edge | 39.37 in | 0.26 in |
+| A 11 | 1,152.9 in, all of it 29.52 in deep; 15 of its 44 own faces reach nothing below | 29.52 in | 9.85 in |
+
+SR5's cap was shallower than the representative depth in 56 of the 202 regions measured on A, and
+38 of the 93 on B.
+
+**Rule:**
+- An own side is measured by how far it reaches below its edge.
+- The representative depth is the length-weighted lower median: the shallowest depth down to which
+  at least half of the own side length goes. A tie goes to the shallower depth, so
+  `slab_with_two_depths` (half 1.3 in, half 9.8 in) keeps S-I5's 1.3 in bottom.
+- The bottom goes no deeper than the representative depth.
+- An own side shallower than it measures no edge's height and is not a whole side. The side below it
+  is completed.
+- Review I1's protection is unchanged, because only own sides count: `probe_deep_corner` prints the
+  same as at 0f24da4 (2.0 in).
+
+**Tests:** a lip never sets the bottom; a riser is not a side.
+
+**SR5's test changed with the rule.**
+- Old test: `test_the_bottom_is_no_deeper_than_the_shallowest_existing_side`. The 4 in side capped
+  an 8 in slab's bottom at 4 in.
+- New test: `test_a_side_shallower_than_the_slabs_representative_depth_is_completed`. The 4 in side
+  is completed to 8 in and the bottom goes at 8 in. It checks the plan, with the guard bypassed.
+- The requirement changed (SR6 item 2), so the test was rewritten, not weakened.
+
+### Item 1: a sloped top's walls follow the ground
+
+**Measured.** The ramp is a sloped slab 39.37 in thick.
+- All 49 centroid rays from its top meet a surface below, median depth 39.369 in.
+- 42 of those rays meet region 314, its underside. Region 314 is parallel to the top: normal z
+  -0.92 against the top's +0.92.
+- On the 85.4 in edge, the broken side's pieces sit 28.2-39.4 in down, just above the underside,
+  and nothing hangs from the top edge (section 7).
+- At 0f24da4 no piece was taken on that edge (coverage 0), and the bottom was capped at the 5.62 in
+  lip. The cap guard refused all 14 new wall faces.
+
+**Rule.** A slab has a LOWER SURFACE when rays straight down from its top meet one:
+- within reach of its representative depth (+ `bottom_search_extra`);
+- no deeper than its own sides go, + `side_band`. A floor under a thin slab is the ground, not its
+  underside (review I1). With that check removed, the floor test fails: 4 walls go down to the
+  floor instead of 0.
+
+Then:
+- Every wall under the slab's outline goes down to that surface at EACH end: a trapezoid over a flat
+  underside, a parallelogram over a parallel one.
+- The side is judged whole over that trapezoid.
+- Any band face mostly inside the wall is a piece, whether or not it reaches the top.
+- No bottom is invented, and the slab volume the cap guard reads follows the surface's plane.
+
+On the real files:
+
+| | regions with a lower surface | walls built down to it | of them trapezoids |
+|---|---|---|---|
+| A | 101 | 73 | 16 |
+| B | 64 | 30 | 6 |
+
+**Follow-up (cb85e0d).** The first version fitted a plane to every point the rays met.
+- On the ramp, 41 of the 196 rays first meet another face above the underside: faces of other
+  regions inside the slab.
+- At the wall ends, some of those faces face up only 0.4 to 0.6 in above the underside (regions
+  833, 846 and 851, at 38.97 and 38.79 in).
+- The fit came out tilted:
+  - wall ends measured 34.8 to 37.2 in;
+  - the broken side's walls were refused as below the slab's bottom;
+  - the intact side at y 24204.9 was judged broken and got new walls in place of its pieces.
+
+The lower surface is now the one face region most of the rays meet, if it takes at least half of
+them: region 314 takes 154 of 196. Its plane is fitted to the points met on it alone, and every end
+of the ramp's walls now measures 39.37 in.
+
+**Tests:** low pieces are replaced down to the underside; a trapezoid over a flat underside; a floor
+under a thin slab is not its lower surface; an inner block face does not tilt the lower surface.
+
+### Item 3: the grazing pixel
+
+With items 1 and 2, file A's merge was rolled back on two pixels (3,168 triangles out). Both were
+measured exactly as the border-shift rule measures: distance from BEFORE's hit point to every AFTER
+triangle, against the 0.15 in tolerance.
+
+| | view 2, pixel (202, 178) | view 15, pixel (315, 436), on the combo patch's face and edge |
+|---|---|---|
+| base class | hole | moved_same_flat |
+| centre measured | 0.0001 in | 0.0049 in |
+| AFTER ring rays on BEFORE's surface | 16 of 16 | 10 of 16 |
+| BEFORE ring rays on AFTER's centre | 0 | 0 |
+| ring rays that changed, measured | none | 6: 0.44, 0.72, 1.99, 1.99, 1.99, 1.99 in |
+| verdict | a crack the merge opened: a sub-tolerance border movement | NOT a border shift: surface up to 2 in away is gone |
+
+**The two numbers for the view 15 pixel.**
+- The brief's 0.0003 in (section 7) is the pixel's distance to the edge of its own BEFORE face.
+- 0.0049 in is the border-shift measure: the distance to AFTER's surface.
+- Section 7's "region 58" is the merge's region number. In the solidify topology, the pixel's face
+  (1071) and faces 1078 and 1079 are all in region 57.
+
+**View 2, a classification gap.** The border-shift measurement looked only at edge-flicker pixels.
+The flicker test needs a BEFORE ring ray to reproduce AFTER's centre, which is impossible through a
+crack BEFORE never had.
+
+`_classify` now measures such an opened crack itself: AFTER's ray went further or missed, and AFTER's
+ring still meets BEFORE's surface. It also measures every ring ray around the pixel whose verdict
+changed, each within the same tolerance. No new tolerance is added.
+
+Tests:
+- A 0.02 in crack the merge opened (the crack test's mirror image) is a border shift, 25 px.
+- A lost triangle still fails.
+- The existing "2 in strip lost beside a new edge" test still fails, as it should.
+
+**View 15, a real change, fixed at the source.**
+- Six ring rays met faces 1078 and 1079 in BEFORE. The hidden pass had deleted both faces in that
+  run.
+- Both faces are in region 57, which is no top but a slab's underside:
+  - none of its 160 faces sees sky;
+  - rays up meet the slab's tops, a median 9.83 in above;
+  - rays down meet nothing.
+- SR2's continuation had taken region 57 for a top running on, and built its bottom 2 in below it.
+  Rays up from under faces 1078 and 1079 meet that bottom (face 5337) 2 in below them.
+- The cap guard kept that bottom. With it in place, the hidden pass deleted the real underside's
+  faces above it.
+- 64 continued regions of A and 5 of B are such undersides: every own side stands up from the
+  outline, and rays down from every one of them meet nothing.
+- They are no longer processed, and a top's edge that ran only into one is a side. The continuation
+  still passes through them, so regions 9 and 784 (tops under A's upper landing, with hanging
+  sides) are still processed, their bottoms at 29.52 in.
+- Tests: the underside is not taken for a top; an edge that ran only into an underside is walled.
+
+**Two more causes, found through their back faces, each measured and tested.**
+- *A point ON a slab's top or bottom plane was judged outside it.* The error was the precision of
+  the ray hit on quantized coordinates:
+  - A's lower-landing bottom: all 4,395 such points at 3.05e-6 in below it.
+  - B: 3 points within 0.001 in of a plane, 3.4e-4 to 7.9e-4 in out. One of them, on the ramp
+    (region 309), was judged at or above its top.
+
+  Within `EPS_IN` (0.02 in, the engine's own "just off a surface" constant) of either plane, a point
+  is now inside.
+- *One refused face of a bottom gave back every piece of that bottom.*
+  - A's lower landing: one of its 33 bottom faces lies over faces of regions 800 and 810 that
+    straddle its diagonal side. It is rightly refused as coincident.
+  - Under the group rule, the bottom's pieces (the real partial bottom) then came back. 16 more
+    bottom faces were refused as `covers_a_partial_underside`, and only 16 were kept.
+  - The landing's 80 in cell at x 1200, y 22560 then showed 7,926 back pixels (90 at 0f24da4).
+
+  A bottom's piece now comes back only when a face over it is refused (`piece_cover`). Walls keep
+  the group rule.
+  - The lower landing's bottom keeps 31 of its 33 faces, at its real 29.52 in.
+  - The landing's volume shows 2,245 back pixels (7,631 at 0f24da4).
+  - Test: one forced refusal far from the strip leaves the strip replaced.
+
+### Acceptance, at HEAD 8d238c4
+
+| | A `CHTM_SIDE_WALK_2nd_floor` | B `CHTM_2nd_to_3rd_building_sidewalk_outside` |
+|---|---|---|
+| backface_px final (limit) | **20,793** (21,766) | **6,006** (18,617) |
+| ramp close-up back px, view 0 (target about 2,500) | - | **948** (input 43,696; f57cb17 2,274; 0f24da4 16,930); views 1 and 2: 2,674 and 590 |
+| merge rolled back | **no** (147 regions merged) | **no** (71 merged, 1 skipped for overlap) |
+| passed | **True** | **True** |
+| triangles in -> reference -> out | 4,692 -> 4,933 -> **876** (0f24da4 1,512; baseline 902) | 7,227 -> 7,443 -> **486** (0f24da4 632; baseline 555) |
+| probes (`probe_deep_corner`, `probe_reversed_underside`, `probe_duplicate_skirt`) | output identical to HEAD 0f24da4, all three | |
+
+**The acceptance spots, over the 26 full-model guard views (no crop box):**
+- **B, the ramp's volume:** 6,202 back pixels at 0f24da4 -> **2**.
+- **B, region 92's volume:** 11,080 -> **2,927**.
+- **A, the lower landing's volume (region 11):** 7,631 -> **2,245**.
+
+### Real data at HEAD 8d238c4
+
+| | A | B |
+|---|---|---|
+| sides_rebuilt | 92 edges, 2,672.6 in | 35 edges, 1,179.7 in |
+| side_pieces_replaced | 105 (walls 49, bottoms 56); 7 restored | 45 (walls 45); 14 restored |
+| interior_faces_covered | 598 | 442 |
+| walls_refused | 392: covers_outside_footprint 355, covers_below_bottom 32, coincides 5 | 90: outside 56, below bottom 28, coincides 6 |
+| bottom faces refused | 230: outside 222, partial underside 7, coincides 1 | 61: outside 40, partial underside 19, below bottom 2 |
+| bottoms added / existing | 21 / 117 (0f24da4 85 / 117) | 11 / 77 (17 / 76) |
+| undersides_not_tops | 64 (of 99 continued) | 5 (of 23) |
+| invented vertices | 589 (947) | 268 (410) |
+| cap guard rounds (new, failing, removed, restored) | (962, 23668, 569, 10), (393, 1705, 44, 1), (349, 6, 3, 0), (346, 0, 0, 0) | (406, 14699, 116, 29), (290, 2798, 27, 1), (263, 234, 2, 0), (261, 0, 0, 0) |
+| hidden removed | 2,063 (2,058) | 2,734 (2,607) |
+| thin sheets | 65 (85) | 3 (25) |
+| backface_px input / reference / final | 568,683 / 454,537 / **20,793** | 464,939 / 373,002 / **6,006** |
+| guard_after_removal | passed; model_px 2,065,994, fragment_removed 49 | passed; model_px 2,432,650, zfight_tie 38, fragment_removed 12 |
+| guard_merge_attempt = guard_final | passed; crack_closed 2, fragment_removed 49, border_shift 81 | passed; zfight_tie 39, crack_closed 2, fragment_removed 12, border_shift 33 |
+| invariants | all True | all True |
+| .skp | 527 faces, 1,281 edges, 0 missing, 0 unexpected | 184 faces, 567 edges, 0 missing, 0 unexpected |
+
+**Determinism:** two runs of A give a byte-identical `report.json`, sha256 8003b028...9221613c. B's
+is be840a62...ed08cfb5.
+
+### .skp audit (`docs/superpowers/records/scripts/skp_edge_audit.py`, PYTHONPATH = worktree)
+
+```
+CHTM_SIDE_WALK_2nd_floor.fixed.skp: 527 faces, 1281 edges
+  VISIBLE LINE INSIDE A FLAT SURFACE (coplanar, same material)      30      73.6 ft
+  hidden (soft)                                                    289    2474.4 ft
+  visible, non-manifold (3+ faces)                                  40      88.1 ft
+  visible, open border (1 face)                                    676    1433.7 ft
+  visible, shape edge > 5 deg                                      246    1153.6 ft
+    line inside a surface:   124.5 in  [1275.6, 22826.9, 1582.7] -> [1275.6, 22708.8, 1622.0]
+    line inside a surface:    55.7 in  [1374.0, 22708.8, 1582.7] -> [1374.0, 22748.2, 1622.0]
+    line inside a surface:    55.7 in  [1315.0, 22787.5, 1622.0] -> [1315.0, 22826.9, 1582.7]
+    line inside a surface:    55.7 in  [1413.4, 22708.8, 1622.0] -> [1374.0, 22708.8, 1582.7]
+    line inside a surface:    49.2 in  [1442.9, 22590.7, 1612.2] -> [1413.4, 22630.1, 1612.2]
+    line inside a surface:    49.2 in  [1442.9, 22708.8, 1622.0] -> [1413.4, 22708.8, 1582.7]
+  visible open edges split:
+    open edge = real border of the model                                       328     717.5 ft
+    open edge lying ON a coplanar face (T-junction line inside a surface)       68     133.3 ft
+    open edge lying on an angled face (face meets a surface it does not split)   280     582.9 ft
+      T-junction line:   121.7 in  [1275.6, 22708.8, 1612.2] -> [1275.6, 22826.9, 1582.7]
+      T-junction line:    49.2 in  [1374.0, 22748.2, 1612.2] -> [1374.0, 22708.8, 1582.7]
+      T-junction line:    49.2 in  [1315.0, 22826.9, 1582.7] -> [1315.0, 22787.5, 1612.2]
+      T-junction line:    49.2 in  [1374.0, 22630.1, 1612.2] -> [1334.7, 22630.1, 1582.7]
+      T-junction line:    44.3 in  [2673.2, 23358.4, 1777.5] -> [2633.9, 23338.7, 1772.2]
+
+CHTM_2nd_to_3rd_building_sidewalk_outside.fixed.skp: 184 faces, 567 edges
+  hidden (soft)                                                    112    1481.8 ft
+  visible, material border (coplanar)                               13     227.7 ft
+  visible, non-manifold (3+ faces)                                  16      41.2 ft
+  visible, open border (1 face)                                    289     936.3 ft
+  visible, shape edge > 5 deg                                      137    1730.5 ft
+  visible open edges split:
+    open edge = real border of the model                                       133     421.3 ft
+    open edge lying ON a coplanar face (T-junction line inside a surface)       33      54.0 ft
+    open edge lying on an angled face (face meets a surface it does not split)   123     461.0 ft
+      T-junction line:    39.7 in  [2121.8, 24204.9, 2042.2] -> [2082.5, 24204.9, 2047.4]
+      T-junction line:    39.7 in  [2200.6, 24204.9, 2031.8] -> [2161.2, 24204.9, 2037.0]
+      T-junction line:    39.7 in  [2397.4, 24195.0, 2005.9] -> [2358.1, 24195.0, 2011.1]
+      T-junction line:    39.7 in  [2358.1, 24195.0, 2005.1] -> [2397.4, 24195.0, 2000.0]
+      T-junction line:    39.7 in  [2043.1, 24012.9, 2055.1] -> [2082.5, 24012.9, 2049.9]
+```
+
+**Against 0f24da4:**
+- A: 1,046 -> 527 faces; 36 -> 30 lines inside flat surfaces; 107 -> 68 T-junction lines; 79 -> 40
+  non-manifold edges.
+- B: 242 -> 184 faces; 9 -> 0 lines inside flat surfaces; 24 -> 33 T-junction lines; 32 -> 16
+  non-manifold edges.
+
+### QA images and close-ups at HEAD 8d238c4 (read)
+
+- **A `obl_top_a`:**
+  - The staircase line that the baseline drew across the lower landing's top is gone (zoomed crop,
+    baseline beside SR6).
+  - A triangle fan now spans that top from its corner, and a few short line fragments lie along its
+    diagonal edge. The diagonal side stands as a wall.
+  - The upper landing's top carries short line fragments and small outlines along its far edge.
+- **A `obl_bot_a`:** no holes show in the undersides. Region 11's step lines remain; the far landing
+  carries region borders and fans.
+- **A `side_low_a`:** the slabs read solid. A strip of thin triangles remains under the far landing's
+  right edge.
+- **B `obl_top_a`:** the tops read as single faces, except the far right slab: a triangle fan with a
+  cluster of thin triangles at its corner nearest the middle slabs.
+- **B `obl_bot_a`:** the far undersides are clean single faces. The middle slabs still read as trays
+  from below.
+- **B `side_low_a`:** the landings read as solids. Thin triangles still hang under the far right
+  slab's left end, and a few slivers under the upper landing.
+- **Close-up of the owner's ramp** (`B_sr6_ramp_teeth_v0`, input beside 8d238c4): one continuous
+  wall along the whole sloped side, no teeth and no gaps.
+  - 948 back pixels.
+  - What is left: one purple strip at the far left, at the landing end. I did not check its cause.
+- **Close-up A region 11 from below** (`A_sr6_r11_under`): 201,682 -> 2,745, and 148,958 -> 24,389.
+- **Close-up A diagonal side** (`A_sr6_diag`): 47,150 -> 51, and 13,331 -> 2,508.
+- **Close-up A region 173** (`A_sr6_r173`): 91,506 -> 7,002.
+
+**Are the slab sides clean walls now?** On the ramp and A's lower landing, yes, measured above.
+**Where not:**
+- B region 92, walls: its 7 walls along x 2121-2397, y 24013-24126, where the stairs rise from it,
+  are all refused as `covers_outside_footprint`. On its south edge by the ramp, 3 of the 4 wall faces
+  are refused as `covers_below_bottom`.
+- B region 92, bottom: it sits at 36 in, with 32 of its 49 faces kept. Its walls and bottom are
+  clamped to 36 in (`max_thickness`), while its representative depth is 39.37 in.
+- 2,927 back pixels remain in its volume.
+
+### Corrections to sections 1-8
+
+- **Region 92's "east side" (sections 2, 6 and 8) is not a side.** Its edge at x 2673.2 is where
+  the landing runs on into the ramp's top, at the same height (z 2015.75). The purple band under it
+  in `B_head_r92edge_v0` came from the close-up's crop box: rays start at the box face, which cuts
+  through the ramp's slab, so the render shows its inside.
+  - The same close-up, re-rendered at 8d238c4 (42,774 -> 43,879), and a wider box
+    (34,584 -> 35,229, which cuts region 310 instead) measure the cut, not the model.
+  - The measurement that stands is the 26-view one above: 11,080 -> 2,927.
+  - Crop-box close-ups show a slab's inside wherever the box cuts it; read with that in mind.
+- **Section 8 concern 4 was wrong for 64 of those 99 regions.** It said "99 regions on A are
+  processed as tops because a top continues into them", and measured them right only for regions
+  784 and 9. The 64 are undersides (item 3).
+- **Section 7's "region 58"** is the merge's region number for the grazing pixel's surface. In the
+  solidify topology that surface is region 57 (item 3).
+- **The SIDE_BAND_MAX comment in `solidify.py` said 10 pixels beyond 3 in on file A.** The measured
+  figure is 7; the comment is corrected (f58243d).
+
+### What got worse, measured
+
+Against 0f24da4. I did not break these down by cause.
+
+- **Reference back pixels** (the solidified mesh, before removal and merge):
+  - A: 266,112 -> 454,537. The 64 undersides no longer get a bottom, which I expect is most of this
+    rise; I did not measure that. A's final count is lower (21,766 -> 20,793).
+  - B: 366,067 -> 373,002.
+- **Refusals on A:**
+  - wall faces 157 -> 392, 355 of them as covering outside the footprint;
+  - bottom faces 108 -> 230, 222 of them outside.
+- **Refused bottom faces on B:** 40 -> 61.
+- **Z-fight ties on B:** 3 -> 39 pixels in the final guard. They are tolerated and the guard
+  passes.
+- **Restored pieces on B:** 3 -> 14.
+- **B's .skp:**
+  - T-junction lines: 24 (38.8 ft) -> 33 (54.0 ft);
+  - material-border edges: 12 -> 13 (229.3 ft -> 227.7 ft).
+
+### Concerns
+
+1. **The underside test misses some undersides.**
+   - The test needs every own side to stand up. Some continued regions of A have nothing below them
+     but a little own side hanging, so they are still processed:
+     - region 467: 2,353.9 in of own side rising, 44.3 in hanging;
+     - region 166: 1,129.4 in rising, 10.1 in hanging;
+     - region 244: 805.2 in rising, 9.1 in hanging.
+   - They look like undersides with a neighbour's side hanging from a shared edge. I have not
+     checked that.
+   - Region 467's bottom is mostly refused: 98 of its 121 faces (97 as outside the footprint), 23
+     kept. Back pixels remain there.
+   - I added no ratio threshold. On A's 13 continued regions with some hanging side and nothing
+     below, rising-to-hanging length ratios are:
+     - 2.6 to 4.2 for seven of them, among them the real tops 9 and 784;
+     - 18.7 to 111.8 for six (502, 33, 467, 709, 244, 166).
+   - I have not checked which of those six are undersides. Region 33 (ratio 22.9) is 29.52 in
+     thick, like 9 and 784.
+2. **`max_thickness` (36 in) is below these files' 39.37 in blocks** (LittleTiles, 1 m).
+   - Region 92's walls and bottom stop at 36 in, 3.37 in above its sides' bottoms.
+   - Walls down to a measured lower surface are clamped only to the search reach; walls from own
+     sides are clamped to 36 in.
+3. **The cap guard judges each new face against a mesh that lacks the other new faces.**
+   - Where a wall and a bottom are both needed, each covers what shows through the other's opening,
+     and both are refused.
+   - `slab_beside_a_lower_top` shows it. With the guard on, its 2 wall faces and 2 bottom faces are
+     all refused as `covers_outside_footprint`, and no new face is kept.
+   - The test asserts the plan, with the guard bypassed.
+4. **The item 3 commit (8d238c4) holds four fixes**: crack measurement, undersides, plane precision
+   and bottom piece cover. The brief asked for one commit per item. The commit message and this
+   section separate them.
+5. **Reconciling with feat-dashboard.** This round touches `_classify` (a new block after the border
+   step, which feat-dashboard also rewrote) and `solidify_feedback` (`piece_cover`) in
+   `engine/guard/compare.py`. Expect conflicts there, besides `build.py` and `test_cli.py`.
+
 ## Public signatures
 
 Only what changed this round.
@@ -508,4 +903,51 @@ engine/cli.py
 report.json: + "backface_px"; profile + "side_band"
 stdout: + "backface_px final=... (input=..., reference=...)" and a "sides rebuilt: ..." line
 preview-data stats: + "side_pieces_replaced"; the BEFORE pane marks replaced pieces as removed
+```
+
+**SR6 (f58243d, 6eb6fb8, cb85e0d, 8d238c4).** One public signature changed: `solidify_feedback`
+gained the keyword `piece_cover`. The solidify report gained three keys:
+
+```
+engine/fixes/solidify.py
+solidify(mesh, topo, profile) -> SolidifyResult   # signature unchanged; report gains:
+    # representative_side_per_region {region: depth | None},
+    # walls_to_lower_surface {regions, walls, trapezoids}, undersides_not_tops;
+    # regions_deeper_than_own_sides entries gain representative_side
+
+_own_side_depths(topo, along, sides, tol)
+    -> (dict[int, float], list[(depth, run)])                                        # NEW (item 2)
+_representative_depth(runs) -> float | None                                         # NEW (item 2)
+_edge_thickness(topo, edges, own, along, side_low, vertex_sides, row_depth=None,
+                lip_below=None) -> list[float | None]                               # CHANGED (item 2)
+_wall_pieces(faces, pa, pb, q, h_measured, h_wall, band, claimed, built=None,
+             max_depth=0.0, min_side=0.0, h_ends=None)
+    -> (pieces, coverage, measured_depth | None)                                    # CHANGED (items 1, 2)
+_lower_surface(topo, members, caster, ok_ids, normals, reach, fraction, deepest_own,
+               band, top_min_nz, top_normal, top_origin)
+    -> (plane coef, depth) | None                                                   # NEW (item 1)
+_bottom_piece_cover(solid, new_group, replaced_group, group_kind)
+    -> dict[int, np.ndarray]                                                        # NEW (item 3)
+_cap_guard(..., refused_before=None, piece_cover=None)                              # CHANGED (item 3)
+_interior_test(volumes, new_group, group_region, centre)   # signature unchanged; a volume is now
+    # (foot, normal, origin, depth, lower-surface plane | None), and a point within EPS_IN of the
+    # top or bottom plane is inside
+```
+
+```
+engine/guard/compare.py
+solidify_feedback(..., refused_before=None, piece_cover=None)                       # CHANGED (item 3)
+    # piece_cover {piece: the new faces over it}: a bottom's piece comes back only when one
+    # of those faces is refused; pieces not in it keep the group rule
+_classify(...)   # signature unchanged; an opened hairline crack is measured as a border shift
+```
+
+```
+engine/tests/fixtures/build.py (appended at the end)
+slab_with_a_lip(size=40.0, deep=12.0, lip=2.0, lip_length=8.0, with_lip=True, riser=0.0,
+                riser_length=10.0)
+sloped_slab(length=80.0, width=40.0, rise=20.0, thickness=12.0, flat_underside=False,
+            side="missing", strip=(8.0, 12.0), inner_plate=None)
+slab_beside_a_lower_top(size=40.0, box_height=10.0, plate_depth=8.0)
+slab_with_a_bottom_strip(length=60.0, width=20.0, depth=8.0, strip=20.0)
 ```
