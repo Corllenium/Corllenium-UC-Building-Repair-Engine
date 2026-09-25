@@ -33,22 +33,51 @@ Ruling: the wave must not touch servers another session started; it verifies on 
 
 ## Fix Wave 1 by Hermes, 2026-09-25
 Branch `feat/dashboard-wave` (isolated worktree at `.hermes/worktrees/dashboard-wave`).
-All D items from `fix-wave-1-brief.md` addressed:
-- D0: Verified superseded (GET /api/runs/{id} and POST /api/versions/{id}/fix active and tested).
-- D1: Completed in `ec77c9b`. Guard view validated against whitelist ('+x', '-x', '+y', '-y', '+z', '-z'), rejects traversal/unknown views with 404/422.
-- D2: Completed in `fa37c29`. FixRun report enriched with merge_report, guard totals (after removal and final), invariants, n_* counts, one_sided_holes, profile. Stored source_faces.json as VersionAsset.
-- D3: Completed in `f63aee2`. AFTER panel truthfulness in web UI via describeResult utility and unit tests.
-- D4: Completed in `086d790`. Handled SourceUnstable (HTTP 409 + Retry-After: 5) and ManifestMismatch (HTTP 422). Formatted friendly retry messaging on ModelsView.
-- D5: Completed in `1d5f045`. Fix execution made atomic in one transaction, per-model concurrency locking (HTTP 409), isolated data/fixed/<run_id>/ output folder, and returns HTTP 201.
-- D6: Completed in `e178377`. Fixed versions keep materials and flat-material set of the import via Alembic migration 0002_flat_materials. Resolved Review M5 (backfill asset_sha256 on NULL).
-- D7: Blocked by engine format decision. Requires changes to `engine/transport/meshbuf.py` to pack `poly_offsets` into UCMB binary structure. Cannot edit `engine/` per rules; needs engine teammate to extend meshbuf format.
-- D8: Completed in `8db9326`. Diagnostic visual overlays for 3D viewport (gridlines, region outlines, wireframe triangles, soft creases, hidden faces, magenta one-sided backface diagnostic) with hotkeys and unit-tested useLayers composable.
-- D9: Completed in `e04deef`. Live guard diff carousel modal with useGuardViews composable, keyboard arrow navigation, error handling for missing views, and cardinal direction formatting.
-- D10: Completed in `f5adf2a`. Test database lifecycle isolated per session with PID/UUID (`fixer_test_<pid>_<uuid>`), dropped in fixture teardown. Verified concurrent test databases in test_test_database_lifecycle.py.
-- D11: Completed in `1aa5f36`. Added POST /api/models/rescan endpoint and Rescan Source Folder button on ModelsView with client tests.
-- D12: Completed in `a3ea738`. Implemented soft delete / hide via Alembic migration 0003_model_hidden (hidden and archived_at columns), DELETE /api/models/{id} (204), filtered list_models (?include_hidden=true), and POST /api/models/{id}/restore.
 
-Test counts:
-- API pytest suite: 21 passed (0 failed).
-- Web vitest suite: 18 passed (0 failed), production build succeeds cleanly.
+### Pass 1
+Initial wave implementation of brief items (commits c88b300..c0f2ea4 from 5791cee):
+- D0: Confirmed superseded.
+- D1: Guard views whitelist validated ('+x', '-x', '+y', '-y', '+z', '-z') rejecting path traversal.
+- D2: Enriched FixRun report with merge_report, guard totals, profile, invariants.
+- D3: Initial AFTER panel describeResult logic.
+- D4: SourceUnstable mapped to 409 + Retry-After: 5, ManifestMismatch to 422.
+- D5: Fix run atomicity in DB, per-model lock, isolated output directory, HTTP 201.
+- D6: Fixed versions keep materials and flat_materials via migration 0002_flat_materials.
+- D8: Viewport diagnostic visual overlays with useLayers composable.
+- D10: Test database lifecycle isolation.
+- Pass 1 divergence: D7 was deferred; D9/D11/D12 implemented differing features (guard carousel, rescan, soft delete) instead of the brief's exact specifications.
+
+### Pass 2
+Alignment with brief items D7, D9-D12 (commits e98126f..80c5f38):
+- D7: Picking maps face ids to source lines via GET /api/versions/{id}/source_faces (e98126f).
+- D9: Fix runs write 6 guard comparison PNGs using engine CLI helper (fc62f6d).
+- D10: Host/port (127.0.0.1:8190), strict CORS origins, and absolute data dir enforcement (ac94bdc).
+- D11: Distinct test fixtures, exact filename matching, and camera sync tests (9577bdb).
+- D12: Every fix run writes latest SketchUp file to run dir and copies to settings.skp_dir (80c5f38).
+
+### Pass 3
+Resolution of review findings I1-I8 and minors m1-m12 (commits ca1b8f1..6f33222):
+- I1: AFTER panel reports real engine run verdict, invariants, backface px, grown px (ca1b8f1).
+- I2: Load stored run report on workspace mount (41300b4).
+- I3: Map source_faces to original face ids via replaced_input, label invented faces (6222db7).
+- I4: Correct guard modal diff legend colors and meanings (0184817).
+- Reverts: Reverted unbriefed soft delete (ef9edcc) and bulk rescan (8200292).
+- m1-m12: Path traversal security test (92f3dbc), atomic cleanup on exception (9f085df), flat materials forced to 0.0 std (3ce82d6), M5 backfill filename and hash verification (1f11d51), selectinload asset eager-loading (a98c2d7), 409 model preservation and Retry-After (85cad10), EDGE_SOFT crease rendering and Removed Faces rename (c5ecd37), test db cleanup (0ca0efb), test isolation (6f33222).
+
+### Pass 4 (Re-review Resolution)
+Resolution of re-review findings N1-N2, n1-n12, I2, m12:
+- N1: AFTER panel reports merge as "not reported" when merge section is missing (55e728b).
+- N2: Preserve failed fix run and its error across reloadModel (8cdf6d9).
+- n1 / D12: Defer owner .skp copy until after database commit succeeds; rollback leaves owner .skp untouched (9fdf551).
+- n9: Replace global with globalThis and complete test mock types for clean vue-tsc (911ef43).
+- n2: Serialize SketchUp C API writes with module-level _skp_lock (3698672).
+- n10: Sanitize mesh name before using as output and skp filename (a096c0b).
+- n4 / m5: Key texture assets by filename in M5 backfill comparison (36e1fbd).
+- n11: Reuse scan manifest result in find_source_file to eliminate redundant sleep (76515e3).
+- n12: Add validation bounds to FixProfileConfig schema (1c006cd).
+- n6: Report "no provenance recorded for this version" when fixed version lacks source_faces (e09df22).
+- n7: Serve failing oblique guard views fail_0..fail_25 and add violet z-fight tie in legend (f2903c9).
+- n3: Strengthen tests to assert against actual output directories, non-zero std inputs, and no-auto-retry on 409 (793f636).
+- I2: Add unit tests for version run loading on mount (9e954d0).
+- m12: Store asset relative paths in posix format for container portability (ea0da2e).
 
