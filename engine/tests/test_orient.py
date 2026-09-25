@@ -2,10 +2,10 @@ import numpy as np
 
 from engine.fixes.orient import (ORIENT_FLIP, ORIENT_OK, ORIENT_THIN_SHEET, backface_counts,
                                   backface_pixels, classify_orientation, face_unit_normals,
-                                  flip_faces, one_sided_holes)
+                                  flip_faces, one_sided_holes, orient_sheets)
 from engine.guard.views import VIEWS_26, ortho_first_hit
 from engine.pipeline import analyse_topology
-from engine.tests.fixtures.build import cube
+from engine.tests.fixtures.build import cube, slab_with_a_pocket_in_its_top
 from engine.vis.exposure import compute_side_exposure
 
 _SIZE = (120, 80)  # small render: only correctness is under test, not image fidelity
@@ -240,3 +240,87 @@ def test_backface_counts_reads_renders_that_were_already_made():
 
     assert backface_counts(rendered, face_unit_normals(Pc, topo.face_w)) == \
         backface_pixels(Pc, topo.face_w, ids, VIEWS_26, _SIZE)
+
+
+# ---------------------------------------------------------------------------
+# Brief 11 item 1: a connected near-coplanar sheet is wound consistently, measured in back pixels
+# ---------------------------------------------------------------------------
+
+def _sheet_inputs(mesh, n_dirs=32):
+    """What `orient_sheets` is handed in `fix_object`: centred welded positions, the faces, their
+    side exposures as wound, the per-face verdict's flips and thin sheets, and the depth tolerance
+    (1.5 print steps)."""
+    topo, Pc = _centered(mesh)
+    front, back = compute_side_exposure(Pc, topo.face_w, topo.ok, n_dirs=n_dirs)
+    cls = classify_orientation(front, back, topo.ok)
+    tol = 1.5 * float(topo.quanta.max())
+    return Pc, topo.face_w, front, back, cls == ORIENT_FLIP, cls == ORIENT_THIN_SHEET, topo.ok, tol
+
+
+def test_a_thin_face_takes_the_winding_of_the_sheet_it_belongs_to():
+    """Triage A1 in miniature: the slab's underside is one flat sheet of three cell quads, and the
+    middle one -- the floor of a pocket in the top, seen from above as well as from below -- is
+    a thin sheet wound UP, while the rest of the underside faces down (cell 2's once the per-face
+    flip has turned it). Seen from below it shows its back. The sheet is wound consistently: the
+    floor takes the side the whole sheet is more exposed on, and the back pixels of the 26 views
+    go down -- measured from one render, since a flip never changes a double-sided render."""
+    m = slab_with_a_pocket_in_its_top()
+    Pc, faces, front, back, flipped, thin, ok, tol = _sheet_inputs(m)
+    assert thin[[6, 7]].all() and flipped[[2, 3, 8, 9]].all()        # the fixture's premise
+
+    result = orient_sheets(Pc, faces, front, back, flipped, thin, ok, tol=tol, size=_SIZE)
+
+    assert np.nonzero(result.flip)[0].tolist() == [6, 7]
+    assert result.report["sheets_made_consistent"] == 1
+    assert result.report["faces_flipped"] == 2
+    before, after = result.report["back_px"]["before"], result.report["back_px"]["after"]
+    assert after < before
+    # ...and the count is what a fresh render of the re-wound faces gives
+    wound = faces.copy()
+    turned = flipped | result.flip
+    wound[turned] = wound[turned][:, ::-1]
+    ids = np.arange(len(faces))
+    assert sum(backface_pixels(Pc, wound, ids, VIEWS_26, _SIZE)) == after
+
+
+def test_a_sheet_is_not_re_wound_where_that_measures_more_back_pixels():
+    """The measurement decides: seen only from ABOVE, the pocket's floor shows its front now and
+    would show its back once wound with the underside, so the sheet is left as it is."""
+    m = slab_with_a_pocket_in_its_top()
+    Pc, faces, front, back, flipped, thin, ok, tol = _sheet_inputs(m)
+
+    result = orient_sheets(Pc, faces, front, back, flipped, thin, ok, tol=tol, size=_SIZE,
+                           views=[(0.0, 0.0, -1.0)])
+
+    assert not result.flip.any()
+    assert result.report["sheets_refused"] == 1
+    assert result.report["sheets_made_consistent"] == 0
+
+
+def test_a_lopsided_face_keeps_its_own_verdict_inside_a_sheet():
+    """Only THIN faces follow their sheet. Face 4 (half of cell 0's underside) is handed in as
+    seen only from above -- lopsided, its per-face verdict turning it up -- so it disagrees with
+    the underside, which the sheet as a whole is more exposed on. It keeps its own verdict: its
+    one-sided exposure is evidence, the sheet's total is not. The thin pocket floor is re-wound."""
+    m = slab_with_a_pocket_in_its_top()
+    Pc, faces, front, back, flipped, thin, ok, tol = _sheet_inputs(m)
+    front, back, flipped = front.copy(), back.copy(), flipped.copy()
+    front[4], back[4], flipped[4] = 0.0, 0.5, True        # seen from above only: turned up
+
+    result = orient_sheets(Pc, faces, front, back, flipped, thin, ok, tol=tol, size=_SIZE)
+
+    assert np.nonzero(result.flip)[0].tolist() == [6, 7]
+
+
+def test_a_face_lying_on_another_face_is_never_re_wound():
+    """A patch lying ON the pocket's floor, wound the other way, is a coincident pair of opposite
+    windings. Re-winding the floor would make the pair look like a duplicate layer to the overlap
+    pass -- the operation that is blocked -- so neither the floor nor the patch is touched."""
+    m = slab_with_a_pocket_in_its_top(patch_on_floor=True)
+    Pc, faces, front, back, flipped, thin, ok, tol = _sheet_inputs(m)
+    assert thin[[6, 7]].all()
+
+    result = orient_sheets(Pc, faces, front, back, flipped, thin, ok, tol=tol, size=_SIZE)
+
+    assert not result.flip.any()
+    assert result.report["faces_lying_on_another"] == 2

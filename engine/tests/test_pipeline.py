@@ -794,3 +794,46 @@ def test_the_bbox_invariant_allows_the_merges_own_border_movement():
     assert r.invariants["bbox_same"] is True
     assert r.passed is True
     # (`test_bbox_invariant_compares_used_vertices` above still fails a shrink of 8 in)
+
+
+# ---------------------------------------------------------------------------------------------
+# Brief 11 item 1: a thin face is wound with the connected near-coplanar sheet it belongs to.
+# ---------------------------------------------------------------------------------------------
+
+from engine.tests.fixtures.build import slab_with_a_pocket_in_its_top
+
+
+def test_fix_object_winds_a_pocket_floor_with_the_underside_it_belongs_to():
+    """Triage A1 end to end: the pocket's floor (faces 6-7, a thin sheet wound up) is wound with
+    the rest of the slab's underside, on top of the per-face flips of cell 2's top and bottom. The
+    back pixels the rule measured go down, the run passes, and the underside ships as ONE merged
+    region facing down -- no line between two halves wound opposite ways (brief 10 item 7)."""
+    m = slab_with_a_pocket_in_its_top()
+    r = fix_object(m, {}, _fast(solidify=False))
+
+    assert np.nonzero(r.flipped)[0].tolist() == [2, 3, 6, 7, 8, 9]
+    assert r.thin_sheets[[6, 7]].all()                       # still reported for what it was
+    sheet = r.sheet_report
+    assert sheet["sheets_made_consistent"] == 1 and sheet["faces_flipped"] == 2
+    assert sheet["back_px"]["after"] < sheet["back_px"]["before"]
+    assert r.passed is True and "rolled_back" not in r.merge_report
+
+    tri = r.mesh.positions[r.mesh.face_v]
+    under = np.nonzero(np.abs(tri[:, :, 2] + 2.0).max(axis=1) < 1e-9)[0]
+    normal = np.cross(tri[under, 1] - tri[under, 0], tri[under, 2] - tri[under, 0])
+    assert len(under) and (normal[:, 2] < 0).all()
+    assert len(set(r.face_region_final[under].tolist())) == 1
+    assert r.face_region_final[under[0]] >= 0
+
+
+def test_fix_object_never_re_winds_a_face_lying_on_another():
+    """The patch lying on the pocket's floor, wound the other way: the floor is not re-wound to
+    match the underside, the patch is not flipped either, and neither is removed as a duplicate
+    layer -- an opposite-wound coincident pair is never treated as one."""
+    m = slab_with_a_pocket_in_its_top(patch_on_floor=True)
+    r = fix_object(m, {}, _fast(solidify=False))
+
+    assert not r.flipped[[6, 7, 30, 31]].any()
+    assert r.sheet_report["faces_lying_on_another"] == 2
+    assert not r.removed_overlap[[6, 7, 30, 31]].any()
+    assert r.passed is True

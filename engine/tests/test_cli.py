@@ -1097,3 +1097,22 @@ def test_cmd_fix_prints_and_reports_what_the_side_rebuild_did(tmp_path, capsys):
     line = [s for s in capsys.readouterr().out.splitlines() if "sides rebuilt" in s]
     assert len(line) == 1
     assert "4 side pieces replaced" in line[0]
+
+
+def test_cmd_fix_reports_the_sheet_rule_and_prints_it(tmp_path, capsys):
+    """Brief 11 item 1: report.json carries what the sheet rule re-wound and the back pixels it
+    measured before and after, and the CLI prints them."""
+    from engine.tests.fixtures.build import slab_with_a_pocket_in_its_top
+    m = slab_with_a_pocket_in_its_top()
+    snap_dir = _write_snapshot(tmp_path, m)
+
+    cli.cmd_fix(snap_dir, tmp_path / "out", accept_slit=False, profile=_FAST, solidify=False,
+                skp=False)
+
+    report = json.loads((tmp_path / "out" / m.name / "report.json").read_text(encoding="utf-8"))
+    sheet = report["sheet_orientation"]
+    assert report["n_sheet_flipped"] == sheet["faces_flipped"] == 2
+    assert sheet["back_px"]["after"] < sheet["back_px"]["before"]
+    lines = [line for line in capsys.readouterr().out.splitlines() if "sheets:" in line]
+    assert len(lines) == 1
+    assert f"back_px {sheet['back_px']['before']} -> {sheet['back_px']['after']}" in lines[0]

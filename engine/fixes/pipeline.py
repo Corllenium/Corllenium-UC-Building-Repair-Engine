@@ -17,7 +17,9 @@ picture, only at those faces' own pixels -- confirm it; in the same pass, `engin
 and the member of each fold the rest of the model still covers along every line) ->
 `classify_orientation` +
 `flip_faces` on the survivors, so a face whose only real exposure was on its BACK re-joins its
-neighbours' region instead of being copied through alone -> `analyse_topology` on the flipped
+neighbours' region instead of being copied through alone (and, brief 11, `orient_sheets`: a THIN
+survivor is wound like the connected near-coplanar sheet it belongs to, where that measures no
+more back pixels) -> `analyse_topology` on the flipped
 result -> `engine.fixes.overlap.remove_overlaps`, which drops a duplicate layer the rest of its
 own region already covers, under the SAME strict guard (the merge can do nothing with a region
 that overlaps itself: rule 3 excludes the triangles and a region whose union still overlaps is
@@ -51,7 +53,7 @@ from engine.detectors.folds import detect_folds
 from engine.detectors.fragments import detect_fragments, face_width
 from engine.fixes.merge import default_collinear_tol, merge_regions
 from engine.fixes.orient import (ORIENT_FLIP, ORIENT_THIN_SHEET, backface_counts, backface_pixels,
-                                 classify_orientation, flip_faces)
+                                 classify_orientation, flip_faces, orient_sheets)
 from engine.fixes.overlap import remove_overlaps
 from engine.fixes.remove import remove_faces
 from engine.fixes.solidify import solidify
@@ -213,12 +215,21 @@ class FixResult:
     #: Bool, over REFERENCE-mesh faces: degenerate faces the guard put back, which stay in the
     #: mesh.
     restored_degenerate: np.ndarray
-    #: Bool, over REFERENCE-mesh faces: survived removal and had its winding reversed (its only
-    #: real exposure was on the BACK -- see `engine.fixes.orient.classify_orientation`).
+    #: Bool, over REFERENCE-mesh faces: survived removal and had its winding reversed -- its only
+    #: real exposure was on the BACK (`engine.fixes.orient.classify_orientation`), or it is a
+    #: thin face wound like its sheet (`sheet_flipped`).
     flipped: np.ndarray
-    #: Bool, over REFERENCE-mesh faces: both sides exposed, roughly equally -- reported, never
-    #: touched, and never flipped either (see `engine.fixes.orient.classify_orientation`).
+    #: Bool, over REFERENCE-mesh faces: both sides exposed, roughly equally -- reported, and never
+    #: flipped on its own evidence (`engine.fixes.orient.classify_orientation`); only the sheet
+    #: rule may re-wind one, with the sheet it belongs to (`sheet_flipped`).
     thin_sheets: np.ndarray
+    #: Brief 11 item 1. Bool, over REFERENCE-mesh faces: THIN faces re-wound like the connected
+    #: near-coplanar sheet they belong to (`engine.fixes.orient.orient_sheets`); also in
+    #: `flipped`.
+    sheet_flipped: np.ndarray
+    #: `engine.fixes.orient.orient_sheets`' report: the sheets whose windings disagreed, what was
+    #: re-wound, what was refused, and the back pixels over the guard views before and after.
+    sheet_report: dict
     #: Bool, over REFERENCE-mesh faces: debris -- a whole stray component, or an attached
     #: sliver -- confirmed removable by the FRAGMENT-mode guard (see
     #: `engine.detectors.fragments` and `engine.guard.compare.fragment_feedback`). Empty when
@@ -769,6 +780,19 @@ def fix_object(mesh: MeshData, flatness: dict[str, float], profile: FixProfile =
 
     # ---- orientation: correct any survivor whose only real exposure was on its BACK ----------
     flip_removed = flip_candidates_full[source_after_fragments]
+    # ...and wind a THIN survivor like the connected near-coplanar sheet it belongs to, where
+    # that sheet's windings disagree and the change measures no more back pixels over the guard
+    # views (brief 11 item 1, `engine.fixes.orient.orient_sheets`). Judged on the survivors,
+    # framed on the reference like every other render here; a flip changes no double-sided
+    # render, so no guard can see it.
+    sheets = orient_sheets(
+        positions_c, remap[mesh_fragments.face_v], front[source_after_fragments],
+        back[source_after_fragments], flip_removed, thin_sheets_full[source_after_fragments],
+        topo.ok[source_after_fragments], tol=depth_tol, angle_deg=profile.coplanar_angle,
+        size=profile.guard_size, centre=centre)
+    sheet_flipped_full = np.zeros(mesh.n_faces, dtype=bool)
+    sheet_flipped_full[source_after_fragments[sheets.flip]] = True
+    flip_removed = flip_removed | sheets.flip
     mesh_flipped = flip_faces(mesh_fragments, flip_removed)
     flipped_full = np.zeros(mesh.n_faces, dtype=bool)
     flipped_full[source_after_fragments[flip_removed]] = True
@@ -947,6 +971,7 @@ def fix_object(mesh: MeshData, flatness: dict[str, float], profile: FixProfile =
         n_zero_area_dropped=n_zero_area_dropped, n_degenerate_restored=n_degenerate_restored,
         restored_degenerate=restored_degenerate_full,
         flipped=flipped_full, thin_sheets=thin_sheets_full,
+        sheet_flipped=sheet_flipped_full, sheet_report=sheets.report,
         removed_fragments=removed_fragments_full,
         n_fragment_components=int(fragment_report.get("n_components", 0)),
         n_removed_fragments=n_removed_fragments, n_removed_slivers=n_removed_slivers,

@@ -191,6 +191,11 @@ def _build_report(name: str, obj_path: Path, mesh: MeshData, result: FixResult,
         "n_degenerate_restored": result.n_degenerate_restored,
         "n_flipped": int(result.flipped.sum()),
         "n_thin_sheets": int(result.thin_sheets.sum()),
+        # brief 11 item 1: thin faces wound like the connected near-coplanar sheet they belong to
+        # (also in `n_flipped`), and the rule's own measurement -- see
+        # `engine.fixes.orient.orient_sheets`
+        "n_sheet_flipped": int(result.sheet_flipped.sum()),
+        "sheet_orientation": result.sheet_report,
         "n_fragment_components": result.n_fragment_components,
         "n_removed_fragments": result.n_removed_fragments,
         "n_removed_slivers": result.n_removed_slivers,
@@ -493,6 +498,11 @@ def cmd_fix(snapshot_dir: Path, out_root: Path, accept_slit: bool,
     back = result.backface_px
     print(f"  backface_px final={back['final']['total']} (input={back['input']['total']}, "
           f"reference={back['reference']['total']}) -- pixels showing a face's back side")
+    sheet = result.sheet_report
+    print(f"  sheets: {sheet['sheets_made_consistent']} made consistent "
+          f"({sheet['faces_flipped']} thin faces re-wound), {sheet['sheets_refused']} refused, "
+          f"{sheet['faces_lying_on_another']} faces lying on another left as they are; "
+          f"back_px {sheet['back_px']['before']} -> {sheet['back_px']['after']} before the merge")
     if qa_report["written"]:
         print(f"  wrote {out_dir} (and {qa_report['images']} QA images under qa/)")
     else:

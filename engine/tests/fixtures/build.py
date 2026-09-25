@@ -1949,3 +1949,68 @@ def slab_with_a_block_standing_on_it(size=60.0, depth=8.0, block=(20.0, 40.0), h
                                      (f[5], f[0], a[0], a[7])])        # sides, none under the block
         _closed_box(P, uvs, fv, fvt, fm, b0, b1, 0.0, w, 0.0, height)
     return _mesh("slab_with_a_block_standing_on_it", P, uvs, fv, fvt, face_material=fm)
+
+
+# ------------------------------------------------------------------------------------------------
+# Brief 11: the defects still visible after brief 10.
+# ------------------------------------------------------------------------------------------------
+
+
+def slab_with_a_pocket_in_its_top(cell=20.0, depth=2.0, patch_on_floor=False):
+    """Brief 11 item 1 (triage A1, file A's margin strip in miniature): a slab of three cells in a
+    row -- x 0..3 * `cell`, y 0..`cell`, top z = 0, underside z = -`depth` -- whose underside is
+    ONE flat sheet of three cell quads sharing edges, and whose MIDDLE cell has no top: a pocket
+    in the top, through which the underside's middle quad is seen from above as well as from
+    below. On file A the big landing's underside is such a sheet (234 faces in one plane), and
+    the cells of its east strip that have no top are single sloped faces seen from both sides.
+
+    Windings, as the export left them: cell 0 is wound outward throughout; cell 2's top and
+    bottom are wound INTO it (each seen only on its back: a flip); the middle cell's underside
+    quad -- the pocket's floor -- is wound UP (+z), seen from above through the pocket and from
+    below, both sides exposed: a thin sheet, left as it is by the per-face rule, and the only
+    quad of the underside that faces up. The sides are outward (`y = 0` and `y = cell` run the
+    whole length, one quad per cell), and the pocket's walls at x = `cell` and x = 2 * `cell`
+    face into it.
+
+    `patch_on_floor` adds a smaller quad lying ON the pocket's floor -- inset `cell / 4` on every
+    side, on four vertices of its own, sharing no edge with anything -- wound DOWN: a coincident
+    layer of the opposite winding (file A's double layer at z 1612.2 is one), which no pass may
+    treat as a duplicate.
+
+    Faces: 0-1 cell 0's top, 2-3 cell 2's top, 4-5 / 6-7 / 8-9 the underside of cells 0 / 1 / 2,
+    10-15 the y = 0 side (cells 0, 1, 2), 16-21 the y = cell side, 22-23 x = 0, 24-25
+    x = 3 * cell, 26-27 the pocket's wall at x = cell, 28-29 its wall at x = 2 * cell, then 30-31
+    the patch if any."""
+    c, d = cell, depth
+    xs = [0.0, c, 2 * c, 3 * c]
+    P = ([[x, 0.0, 0.0] for x in xs] + [[x, c, 0.0] for x in xs]
+         + [[x, 0.0, -d] for x in xs] + [[x, c, -d] for x in xs])
+
+    def t(i, y):          # top corner at xs[i], y = 0 (y=0) or cell (y=1)
+        return i + 4 * y
+
+    def b(i, y):          # underside corner
+        return 8 + i + 4 * y
+
+    uvs, fv, fvt, fm = [], [], [], []
+    _quads(P, uvs, fv, fvt, fm, [
+        (t(0, 0), t(1, 0), t(1, 1), t(0, 1)),          # cell 0 top, +z
+        (t(2, 0), t(2, 1), t(3, 1), t(3, 0)),          # cell 2 top, wound -z (into the cell)
+        (b(0, 0), b(0, 1), b(1, 1), b(1, 0)),          # cell 0 underside, -z
+        (b(1, 0), b(2, 0), b(2, 1), b(1, 1)),          # the pocket's floor, wound +z
+        (b(2, 0), b(3, 0), b(3, 1), b(2, 1)),          # cell 2 underside, wound +z (into it)
+        (b(0, 0), b(1, 0), t(1, 0), t(0, 0)),          # y = 0 side, -y, cells 0, 1, 2
+        (b(1, 0), b(2, 0), t(2, 0), t(1, 0)),
+        (b(2, 0), b(3, 0), t(3, 0), t(2, 0)),
+        (b(1, 1), b(0, 1), t(0, 1), t(1, 1)),          # y = cell side, +y
+        (b(2, 1), b(1, 1), t(1, 1), t(2, 1)),
+        (b(3, 1), b(2, 1), t(2, 1), t(3, 1)),
+        (b(0, 1), b(0, 0), t(0, 0), t(0, 1)),          # x = 0, -x
+        (b(3, 0), b(3, 1), t(3, 1), t(3, 0)),          # x = 3c, +x
+        (b(1, 0), b(1, 1), t(1, 1), t(1, 0)),          # the pocket's wall at x = c, +x
+        (b(2, 1), b(2, 0), t(2, 0), t(2, 1))])         # its wall at x = 2c, -x
+    if patch_on_floor:
+        q, k = c / 4.0, len(P)
+        P += [[c + q, q, -d], [c + q, c - q, -d], [2 * c - q, c - q, -d], [2 * c - q, q, -d]]
+        _quads(P, uvs, fv, fvt, fm, [(k, k + 1, k + 2, k + 3)])        # -z, lying on the floor
+    return _mesh("slab_with_a_pocket_in_its_top", P, uvs, fv, fvt, face_material=fm)
