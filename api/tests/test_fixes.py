@@ -438,6 +438,46 @@ def test_skp_writing_is_serialized_by_lock(client, imported_cube, monkeypatch):
     assert len(lock_acquired) == 1
 
 
+def test_second_commit_failure_preserves_run_files_and_meshbuf(client, imported_cube, monkeypatch):
+    import api.routers.versions as versions_mod
+    from api.settings import get_settings
+    from sqlalchemy.orm import Session
+    settings = get_settings()
+
+    def fake_write_skp(result, name, out_dir, flat_mats, profile, enabled=True, copy_dir=None):
+        skp_path = out_dir / f"{name}.fixed.skp"
+        skp_path.write_text("fixed skp content", encoding="utf-8")
+        return {"written": True, "copied_to": None}
+
+    monkeypatch.setattr(versions_mod, "_write_skp", fake_write_skp)
+
+    orig_commit = Session.commit
+    commit_count = 0
+
+    def failing_commit(self, *args, **kwargs):
+        nonlocal commit_count
+        commit_count += 1
+        if commit_count == 2:
+            raise RuntimeError("Injected database failure on second commit")
+        return orig_commit(self, *args, **kwargs)
+
+    monkeypatch.setattr(Session, "commit", failing_commit)
+
+    version_id = imported_cube["versions"][0]["id"]
+    r_fix = client.post(f"/api/versions/{version_id}/fix", json={"profile": {"n_dirs": 32}})
+    assert r_fix.status_code == 201
+    run_data = r_fix.json()
+    assert run_data["status"] == "completed"
+    fixed_ver_id = run_data["fixed_version_id"]
+    assert fixed_ver_id is not None
+
+    run_dir = settings.data_dir / "fixed" / str(run_data["id"])
+    assert run_dir.exists()
+
+    r_mesh = client.get(f"/api/versions/{fixed_ver_id}/meshbuf")
+    assert r_mesh.status_code == 200
+
+
 def test_fix_pipeline_sanitizes_mesh_name(client, imported_cube, monkeypatch):
     import api.routers.versions as versions_mod
     import dataclasses

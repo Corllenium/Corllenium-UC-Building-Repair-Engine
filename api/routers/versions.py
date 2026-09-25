@@ -295,6 +295,8 @@ def run_fix_pipeline(
         _active_model_fixes.add(model_id)
 
     out_dir: Path | None = None
+    committed: bool = False
+    fix_run: FixRun | None = None
     try:
         # 1. Allocate fix_run in the session and flush to get run_id
         fix_run = FixRun(
@@ -512,15 +514,16 @@ def run_fix_pipeline(
         # Commit everything atomically in ONE transaction at the end
         db.commit()
         db.refresh(fix_run)
+        committed = True
 
         # After successful database commit, copy into the owner's folder (OBJ FIXED RESULT)
         if skp_report.get("written") and settings.skp_dir is not None:
-            owner_copy = settings.skp_dir / f"{name}.fixed.skp"
-            failed_copy = settings.skp_dir / f"{name}.fixed.FAILED.skp"
-            dest_path = owner_copy if result.passed else failed_copy
-            if not result.passed:
-                skp_report["previous_kept"] = str(owner_copy) if owner_copy.exists() else None
             try:
+                owner_copy = settings.skp_dir / f"{name}.fixed.skp"
+                failed_copy = settings.skp_dir / f"{name}.fixed.FAILED.skp"
+                dest_path = owner_copy if result.passed else failed_copy
+                if not result.passed:
+                    skp_report["previous_kept"] = str(owner_copy) if owner_copy.exists() else None
                 settings.skp_dir.mkdir(parents=True, exist_ok=True)
                 shutil.copyfile(out_dir / f"{name}.fixed.skp", dest_path)
                 skp_report["copied_to"] = str(dest_path)
@@ -530,27 +533,31 @@ def run_fix_pipeline(
                 fix_run.report_json = report_data
                 db.commit()
                 db.refresh(fix_run)
-            except OSError as exc:
+                if result.passed and skp_report.get("copied_to") and failed_copy.exists():
+                    try:
+                        failed_copy.unlink()
+                        skp_report["removed_stale_failed_copy"] = str(failed_copy)
+                    except OSError as exc:
+                        skp_report["stale_failed_copy_error"] = str(exc)
+            except Exception as exc:
+                logger.exception("Owner copy failed for version %s: %s", id, exc)
+                db.rollback()
                 skp_report["copy_error"] = str(exc)
-            if result.passed and skp_report.get("copied_to") and failed_copy.exists():
-                try:
-                    failed_copy.unlink()
-                    skp_report["removed_stale_failed_copy"] = str(failed_copy)
-                except OSError as exc:
-                    skp_report["stale_failed_copy_error"] = str(exc)
 
         return fix_run
 
     except HTTPException:
         db.rollback()
-        if out_dir is not None and out_dir.exists():
+        if not committed and out_dir is not None and out_dir.exists():
             shutil.rmtree(out_dir, ignore_errors=True)
         raise
     except Exception as exc:
         logger.exception("Fix pipeline failed for version %s", id)
         db.rollback()
-        if out_dir is not None and out_dir.exists():
+        if not committed and out_dir is not None and out_dir.exists():
             shutil.rmtree(out_dir, ignore_errors=True)
+        if committed:
+            return fix_run
         err_msg = f"{type(exc).__name__}: {exc}" if str(exc) else type(exc).__name__
         failed_run = FixRun(
             version_id=version.id,
