@@ -62,11 +62,11 @@
           {{ fixing ? 'Fixing in Engine...' : 'Run Fix Pipeline' }}
         </button>
         <button
-          v-if="latestRun"
+          v-if="latestRun && availableGuardViews.length > 0"
           class="btn btn-secondary"
           @click="showGuardModal = true"
         >
-          Guard Diff (26 Views)
+          Guard Diff ({{ availableGuardViews.length }} Views)
         </button>
       </div>
     </header>
@@ -244,8 +244,22 @@ const {
   selectView: selectGuardView,
   nextView: nextGuardView,
   prevView: prevGuardView,
+  setViews: setGuardViews,
   handleKeyDown: handleGuardKey,
-} = useGuardViews(DEFAULT_GUARD_VIEWS, '+z')
+} = useGuardViews([], '+z')
+
+const guardViews = computed<string[]>(() => {
+  if (!latestRun.value) return []
+  return latestRun.value.guard_views || latestRun.value.report_json?.guard_views || []
+})
+
+watch(
+  guardViews,
+  (views) => {
+    setGuardViews(views)
+  },
+  { immediate: true }
+)
 
 const guardImageUrl = computed(() => {
   if (!latestRun.value) return ''

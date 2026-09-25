@@ -10,7 +10,7 @@ from api.db import get_db
 from api.models import FixRun, ModelVersion, VersionAsset
 from api.schemas import FaceOut, FixRequest, FixRunOut, ModelVersionOut
 from api.settings import Settings, get_settings
-from engine.cli import _build_report
+from engine.cli import _build_report, _write_guard_images
 from engine.fixes.pipeline import FixProfile, fix_object
 from engine.io.mtl import parse_mtl, texture_flatness
 from engine.io.obj_reader import read_obj
@@ -400,7 +400,25 @@ def run_fix_pipeline(
             )
         )
 
+        # Write guard images under out_dir
+        reference = result.reference_mesh
+        if version.flat_materials is not None:
+            stored_flat = set(version.flat_materials)
+            ref_flat_mats = frozenset(i for i, mat_name in enumerate(reference.materials) if mat_name in stored_flat)
+        else:
+            ref_flat_mats = flat_material_indices(reference, flatness, profile.flat_texture_std)
+        ref_topo = analyse_topology(reference, ref_flat_mats)
+        ref_centre = (ref_topo.positions_w.min(axis=0) + ref_topo.positions_w.max(axis=0)) / 2.0
+        ref_positions_c = ref_topo.positions_w - ref_centre
+        _write_guard_images(reference, result, profile, ref_flat_mats, ref_topo, ref_positions_c, out_dir)
+
+        guard_views = [
+            v for v in ("+x", "-x", "+y", "-y", "+z", "-z")
+            if (out_dir / f"guard_{v}.png").exists()
+        ]
+
         report_data = _build_report(name, obj_path, mesh, result, profile)
+        report_data["guard_views"] = guard_views
         mr = report_data.setdefault("merge_report", {})
         mr.setdefault("rolled_back", False)
         mr.setdefault("rolled_back_reason", None)

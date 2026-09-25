@@ -36,6 +36,7 @@ export interface FixRun {
   status: 'pending' | 'running' | 'completed' | 'failed'
   config?: any
   report_json?: any
+  guard_views?: string[]
   error?: string
   created_at: string
 }

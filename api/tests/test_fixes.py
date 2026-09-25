@@ -29,6 +29,29 @@ def test_guard_view_validation(client, imported_cube, monkeypatch):
     assert set(VALID_GUARD_VIEWS) == {"+x", "-x", "+y", "-y", "+z", "-z"}
 
 
+def test_guard_images_written_by_run(client, imported_cube):
+    from api.settings import get_settings
+    settings = get_settings()
+    version_id = imported_cube["versions"][0]["id"]
+    r_fix = client.post(f"/api/versions/{version_id}/fix", json={"profile": {"n_dirs": 32}})
+    assert r_fix.status_code == 201
+    run_data = r_fix.json()
+    run_id = run_data["id"]
+
+    run_dir = settings.data_dir / "fixed" / str(run_id)
+    # The run writes the six PNGs under its run directory
+    for view in ["+x", "-x", "+y", "-y", "+z", "-z"]:
+        png_path = run_dir / f"guard_{view}.png"
+        assert png_path.exists(), f"guard_{view}.png should exist in {run_dir}"
+
+    # And the endpoint serves one
+    r_img = client.get(f"/api/runs/{run_id}/guard/+z")
+    assert r_img.status_code == 200
+    assert r_img.headers["content-type"] == "image/png"
+    assert len(r_img.content) > 0
+
+
+
 def test_fix_run_report_carries_details_and_source_faces(client, _database):
     import json
     from api.settings import get_settings

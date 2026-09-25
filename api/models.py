@@ -96,3 +96,10 @@ class FixRun(Base):
     )
 
     version: Mapped["ModelVersion"] = relationship("ModelVersion", foreign_keys=[version_id], back_populates="fix_runs")
+
+    @property
+    def guard_views(self) -> list[str]:
+        if self.report_json and isinstance(self.report_json, dict):
+            return self.report_json.get("guard_views", [])
+        return []
+

@@ -58,4 +58,19 @@ describe('useGuardViews', () => {
     expect(getGuardImageUrl(42, '+x')).toBe('/api/runs/42/guard/%2Bx')
     expect(getGuardImageUrl(42, '-z')).toBe('/api/runs/42/guard/-z')
   })
+
+  it('updates available views and resets currentView if current is not in new list', () => {
+    const { currentView, availableViews, setViews } = useGuardViews(['+x', '-x'])
+    expect(availableViews.value).toEqual(['+x', '-x'])
+    setViews(['+y', '+z'])
+    expect(availableViews.value).toEqual(['+y', '+z'])
+    expect(currentView.value).toBe('+y')
+  })
+
+  it('handles empty views gracefully', () => {
+    const { currentView, availableViews } = useGuardViews([])
+    expect(availableViews.value).toEqual([])
+    expect(currentView.value).toBe('')
+  })
 })
+

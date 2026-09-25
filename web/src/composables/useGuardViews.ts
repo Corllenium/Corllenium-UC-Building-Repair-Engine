@@ -44,6 +44,13 @@ export function useGuardViews(views: string[] = DEFAULT_GUARD_VIEWS, initialView
     }
   }
 
+  function setViews(newViews: string[]) {
+    availableViews.value = [...newViews]
+    if (!newViews.includes(currentView.value)) {
+      currentView.value = newViews[0] || ''
+    }
+  }
+
   return {
     availableViews,
     currentView,
@@ -51,6 +58,7 @@ export function useGuardViews(views: string[] = DEFAULT_GUARD_VIEWS, initialView
     selectView,
     nextView,
     prevView,
+    setViews,
     handleKeyDown,
   }
 }
