@@ -1869,3 +1869,38 @@ def slab_with_half_side_and_a_sign(size=40.0):
     m = _mesh("slab_with_half_side_and_a_sign", P, uvs, fv, fvt, materials=("m0", "m1"),
               face_material=fm)
     return m, np.arange(first, m.n_faces)
+
+
+def slab_over_a_floor_with_a_bench():
+    """Review part 2, I2 (`probe_lower_surface_floor.py`, W along S's edge):
+      S  a thin upper slab: top z = 0 over x, y in [0, 40]; 2 in skirts on y = 0, x = 40 and
+         y = 40; NO bottom.
+      W  the wall S is attached to: one face in the plane x = 0, y 0..40, z 0 down to -32, facing
+         +x -- its top edge lies along S's x = 0 edge, so it is one of S's OWN sides, 32 in deep.
+      L  a lower slab with S's footprint: top z = -24, bottom -32, closed but for its x = 0 side
+         (W closes it). 22 in of open space lies between S's skirts and L's top.
+      B  a bench standing on L under S: a closed box x, y in [15, 25], z -24..-12, in m1.
+
+    Faces: 0-1 S's top, 2-7 its skirts, 8-9 W, 10-19 L (bottom 10-11, top 12-13, then its y0, x1
+    and y1 sides), 20-31 the bench."""
+    P, uvs, fv, fvt, fm = [], [], [], [], []
+    P += [[0, 0, 0], [40, 0, 0], [40, 40, 0], [0, 40, 0],
+          [0, 0, -2], [40, 0, -2], [40, 40, -2], [0, 40, -2]]
+    _quads(P, uvs, fv, fvt, fm, [(0, 1, 2, 3),                     # S's top, +z
+                                 (4, 5, 1, 0),                     # y = 0, -y
+                                 (5, 6, 2, 1),                     # x = 40, +x
+                                 (6, 7, 3, 2)])                    # y = 40, +y
+    w = len(P)
+    P += [[0, 0, 0], [0, 40, 0], [0, 40, -32], [0, 0, -32]]
+    _quads(P, uvs, fv, fvt, fm, [(w + 0, w + 3, w + 2, w + 1)])     # W, +x
+    b = len(P)
+    P += [[0, 0, -32], [40, 0, -32], [40, 40, -32], [0, 40, -32],
+          [0, 0, -24], [40, 0, -24], [40, 40, -24], [0, 40, -24]]
+    _quads(P, uvs, fv, fvt, fm, [(b + 0, b + 3, b + 2, b + 1),     # L's bottom, -z
+                                 (b + 4, b + 5, b + 6, b + 7),     # L's top, +z
+                                 (b + 0, b + 1, b + 5, b + 4),     # y0, -y
+                                 (b + 1, b + 2, b + 6, b + 5),     # x1, +x
+                                 (b + 2, b + 3, b + 7, b + 6)])    # y1, +y
+    _closed_box(P, uvs, fv, fvt, fm, 15, 25, 15, 25, -24, -12, material=1)   # the bench
+    return _mesh("slab_over_a_floor_with_a_bench", P, uvs, fv, fvt, materials=("m0", "m1"),
+                 face_material=fm)

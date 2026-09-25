@@ -1476,6 +1476,43 @@ def test_a_sign_standing_in_front_of_a_missing_side_is_never_a_piece(size):
     assert not r.replaced[sign].any()
 
 
+# --------------- review part 2, I2: a lower surface is where the slab's own sides end, not a floor
+
+
+def _shipped_input_faces(r):
+    """Input face ids that reach the shipped mesh (through the merge's provenance)."""
+    ref_rows = np.nonzero(~r.replaced_input)[0]
+    n_ref_in = len(ref_rows)
+    src = (np.unique(np.concatenate([np.asarray(s).reshape(-1) for s in r.source_faces]))
+           if len(r.source_faces) else np.zeros(0, np.int64))
+    return set(ref_rows[src[src < n_ref_in]].tolist())
+
+
+def test_one_deep_side_never_makes_the_floor_under_an_open_slab_its_lower_surface():
+    """R2-I2 (`probe_lower_surface_floor.py`): S, a 2 in slab with no bottom, is attached to a
+    32 in wall W -- one of its own sides -- over L, a lower slab whose top is 24 in down, with a
+    bench standing on it under S. "No deeper than the slab's DEEPEST own side, + band" let L's top
+    pass for S's lower surface: S's three WHOLE 2 in skirts were replaced by 24 in walls, and the
+    hidden pass deleted the bench and L's top, `passed` True.
+
+    A lower surface is where the MOST of the slab's own side length ends (within the band): here
+    2 in (120 in of skirts), not 24 -- W passes 8 in below L's top, a wall S hangs on, not a side
+    ending on it. S keeps its skirts, gets its bottom at 2 in, and the bench and L's top ship."""
+    from engine.tests.fixtures.build import slab_over_a_floor_with_a_bench
+    m = slab_over_a_floor_with_a_bench()
+    r = fix_object(m, {}, _FAST)
+    assert r.passed is True
+    sr = r.solidify_report
+    assert sr["walls_to_lower_surface"]["walls"] == 0
+    assert not r.replaced_input[2:8].any()                       # the whole skirts stay
+    n_in = int((~r.replaced_input).sum())
+    invented = r.reference_mesh.positions[r.reference_mesh.face_v[n_in:]]
+    assert len(invented) and float(invented[:, :, 2].min()) == pytest.approx(-2.0)
+    shipped = _shipped_input_faces(r)
+    assert set(range(22, 32)) <= shipped        # the bench (its bottom, 20-21, sits on L's top)
+    assert {12, 13} <= shipped                                     # L's top
+
+
 def test_a_point_on_a_slabs_top_or_bottom_plane_is_inside_it():
     """The cap guard judges the point in front of a covered hit, and for a face lying ON the new
     bottom's plane -- a real partial bottom the bottom replaces -- that point is the hit point

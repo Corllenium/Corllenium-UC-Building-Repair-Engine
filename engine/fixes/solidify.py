@@ -339,6 +339,59 @@ def _is_underside(topo: Topology, members: np.ndarray, edges: list[tuple[int, in
     return bool(np.isin(above, sorted(sky)).sum() >= TOP_SKY_FRACTION * len(samples))
 
 
+def _ends_here(runs: list[tuple[float, float]], depth: float, band: float) -> bool:
+    """Review part 2, I2: does the MOST side length END at `depth`? Among `(depth, run)` runs, at
+    least as much run length lies within `band` of `depth` as within `band` of any other run depth
+    away from it, and some does. A surface below a slab is its underside only there: the slab's
+    sides run down to it and stop. (`_sides_end_on` asks the same of a plane, locally.)"""
+    if not runs:
+        return False
+    d = np.array([r[0] for r in runs], dtype=np.float64)
+    run = np.array([r[1] for r in runs], dtype=np.float64)
+    here = np.abs(d - depth) <= band
+    on = float(run[here].sum())
+    other = max((float(run[(np.abs(d - c) <= band) & ~here].sum()) for c in d[~here]),
+                default=0.0)
+    return on > 0.0 and on >= other
+
+
+def _sides_end_on(topo: Topology, along: dict, sides: np.ndarray, coef: np.ndarray, band: float,
+                  tol: float) -> bool:
+    """Review part 2, I2: do the MOST of a slab's own sides END on the surface `z = a x + b y + c`
+    (`coef`)? Per own side hanging below its edge (`_own_side_rows`' `along`; a riser measures
+    nothing), its FOOT -- the height of its lowest corner above that plane -- weighted by the
+    length it runs along the edge. The surface is where they end when at least as much of that
+    length has its foot on it (within `band`) as in any other `band`-wide cluster of feet, and
+    some does. Measured locally, not by a depth below the top: a wedge's sides reach its flat
+    underside 12 in down at one end and 32 at the other."""
+    P = topo.positions_w
+    feet: list[tuple[float, float]] = []
+    for (a, b), rows in along.items():
+        pa, pb = P[a], P[b]
+        t = pb - pa
+        t[2] = 0.0
+        length = float(np.linalg.norm(t))
+        if length <= 1e-9:
+            continue
+        th = t / length
+        for row in rows:
+            tri = P[topo.face_w[sides[row]]]
+            u = np.clip((tri - pa) @ th, 0.0, length)
+            if float((pa[2] + (pb[2] - pa[2]) * (u / length) - tri[:, 2]).max()) <= tol:
+                continue
+            plane = coef[0] * tri[:, 0] + coef[1] * tri[:, 1] + coef[2]
+            feet.append((float((tri[:, 2] - plane).min()), float(u.max() - u.min())))
+    if not feet:
+        return False
+    foot = np.array([f[0] for f in feet])
+    run = np.array([f[1] for f in feet])
+    on = float(run[np.abs(foot) <= band].sum())
+    off = foot[np.abs(foot) > band]
+    other = max((float(run[(np.abs(foot - c) <= band) & (np.abs(foot) > band)].sum()) for c in off),
+                default=0.0)
+    return on > 0.0 and on >= other
+
+
 def _representative_depth(runs: list[tuple[float, float]]) -> float | None:
     """SR6 item 2. The depth a slab's own sides REPRESENTATIVELY reach: the length-weighted
     (lower) median of `_own_side_depths`' runs -- the shallowest depth down to which at least
@@ -710,6 +763,14 @@ def _wall_pieces(faces: _Faces, pa, pb, q, h_measured: float, h_wall: float, ban
 
     h_side = hanging_depth(own)
     measured = hanging_depth(own & is_face)
+    if h_ends is not None and h_side is not None:
+        # review part 2, I2: a side WHOLE at its own depth (down to the slab's representative
+        # depth at least) is whole -- never extended down to a lower surface. Judged only over the
+        # trapezoid, the review's slab lost its three whole 2 in skirts to 24 in walls.
+        own_depth = shapely.box(0.0, -max(h_side, min_side), length, 0.0)
+        whole = shapely.area(shapely.intersection(shapely.union_all(polys[own]), own_depth))
+        if whole / max(own_depth.area, 1e-12) >= SIDE_WHOLE_FRACTION:
+            return [], float(whole / max(own_depth.area, 1e-12)), measured
     if h_ends is not None:
         # down to the lower surface at each end, or to what hangs from the edge if deeper
         hang = h_side or 0.0
@@ -928,7 +989,8 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
         plans.append({"region": region, "members": members, "pieces": pieces, "normal": normal,
                       "origin": origin, "basis": basis, "foot": foot, "edges": edges,
                       "frames": frames, "continued": continued, "measured": measured,
-                      "own_depths": own_depths, "rep": rep, "met_regions": met_regions})
+                      "own_depths": own_depths, "rep": rep, "along": along,
+                      "met_regions": met_regions})
 
     # ...and an edge whose top ran on only into undersides does not continue at all: it is a
     # side, walled like any other (the plate beside the box in `slab_beside_a_lower_top`)
@@ -967,6 +1029,7 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
     bottom_exists = 0
     unresolved_thickness = 0
     deeper: list[dict] = []
+    lower_deeper: list[dict] = []
     lower_regions = 0
     lower_walls = 0
     trapezoids = 0
@@ -979,9 +1042,10 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
         edges_continued += int(plan["continued"].sum())
         whole_heights = []
         whole_depths: list[float] = []
-        # every side's depth as `_wall_pieces` measured it -- what hangs from its top edge, whole
-        # or broken -- which bounds how deep this slab's existing bottom may lie (`_underside`)
-        side_depths: list[float] = []
+        # every side's `(depth, edge length)` as `_wall_pieces` measured it -- what hangs from
+        # its top edge, whole or broken: this slab's existing bottom lies where most of that
+        # side length ends (`_underside`)
+        side_runs: list[tuple[float, float]] = []
         to_build = []
         rep = plan["rep"]
         report_rep[str(region)] = None if rep is None else round(float(rep), 4)
@@ -991,7 +1055,7 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
         reach = (rep if rep is not None else 0.0) + bottom_extra + tol
         if rep is not None and plan["own_depths"]:
             lower = _lower_surface(topo, members, caster, ok_ids, normals, reach,
-                                   bottom_fraction, max(plan["own_depths"]), band, top_min_nz,
+                                   bottom_fraction, plan["along"], sides, band, tol, top_min_nz,
                                    plan["normal"], plan["origin"])
 
         def ends_of(pa: np.ndarray, pb: np.ndarray) -> tuple[float, float] | None:
@@ -1015,7 +1079,7 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
                                                   min_side=0.0 if rep is None else rep - tol,
                                                   h_ends=ends, touch=max(tol, EPS_IN))
             if depth is not None:
-                side_depths.append(float(depth))
+                side_runs.append((float(depth), float(np.linalg.norm((pb - pa)[:2]))))
             if coverage >= SIDE_WHOLE_FRACTION:
                 sides_intact += 1
                 if depth is not None:
@@ -1103,6 +1167,9 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
         if lower is not None:
             lower_regions += 1
             bottom_exists += 1
+            if rep is not None and float(lower[1]) > rep + band:
+                lower_deeper.append({"region": int(region), "lower_surface": round(float(lower[1]), 4),
+                                     "representative_side": round(float(rep), 4)})
             report_bottom_depth[str(region)] = round(float(lower[1]), 4)
             volumes[region] = (plan["foot"], plan["normal"], plan["origin"], lower[1], lower[0])
             continue
@@ -1112,9 +1179,8 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
         if not resolved:
             unresolved_thickness += 1
             continue
-        sides_reach = plan["own_depths"] + side_depths
         exists, depth = _underside(topo, members, caster, bottom_h, tol, bottom_fraction,
-                                   bottom_extra, max(sides_reach) if sides_reach else None, band)
+                                   bottom_extra, side_runs, band)
         if exists:
             bottom_exists += 1
             volumes[region] = (plan["foot"], plan["normal"], plan["origin"], depth, None)
@@ -1254,6 +1320,10 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
         #: `trapezoids` differ in depth between their two ends by more than the depth tolerance.
         "walls_to_lower_surface": {"regions": lower_regions, "walls": lower_walls,
                                    "trapezoids": trapezoids},
+        #: Review part 2, I2. Every region whose walls and volume a lower surface set that lies
+        #: deeper than its representative side depth plus `side_band`: `{region, lower_surface,
+        #: representative_side}` (file B's ramp is one: 39.37 against 33.74 in).
+        "lower_surface_deeper_than_sides": lower_deeper,
         "bottom_thickness_unresolved": unresolved_thickness,
         "outline_unmappable": unmappable,
         "thickness_per_region": report_thickness,
@@ -1290,7 +1360,7 @@ def _welded_to_original(mesh: MeshData, topo: Topology) -> np.ndarray:
 
 def _underside(topo: Topology, members: np.ndarray, caster, h: float, tol: float,
                fraction: float, search_extra: float = 24.0,
-               deepest_own: float | None = None, band: float = 0.0) -> tuple[bool, float]:
+               side_runs: list | None = None, band: float = 0.0) -> tuple[bool, float]:
     """`(exists, depth)`: a ray straight down from just below each of the region's face
     centroids; the region already has a bottom when at least `fraction` of them meet something
     within `h + search_extra + tol`, and `depth` is the MEDIAN depth below the top at which they
@@ -1303,13 +1373,17 @@ def _underside(topo: Topology, members: np.ndarray, caster, h: float, tol: float
     in.
 
     Bounded rather than unbounded, because "anything at all below me" is not a bottom: a slab
-    100 in above a floor does not have that floor for an underside. And, given `deepest_own` (the
-    deepest the slab's sides reach: its own sides below their edges, and what `_wall_pieces`
-    measured hanging from each outline edge -- a side gridded into rows is as deep as all of
-    them), no deeper than they go plus `band` -- the limit `_lower_surface` keeps (review I1;
-    brief 10 item 1): a floor 20 in below a 2 in slab whose sides end 2 in down is the ground
-    under it, not its bottom. Taken for its bottom, the slab got none, its volume ran down to the
-    floor, and its open underside kept the wall on its missing side from ever being kept."""
+    100 in above a floor does not have that floor for an underside. And, given `side_runs` --
+    `(depth, length)` of every side of the slab as `_wall_pieces` measured it hanging from each
+    outline edge (a side gridded into rows is as deep as all of them) -- the underside is where
+    MOST of that side length ends (`_ends_here`): brief 10 item 1 bounded it by the deepest side,
+    and review part 2's I2 showed one deep side (a 32 in wall a 2 in slab hangs on) passes a
+    floor 24 in down. A floor below a slab whose sides end higher is the ground under it, not its
+    bottom: taken for its bottom, the slab got none, its volume ran down to the floor, and its
+    open underside kept the wall on its missing side from ever being kept. When the FIRST
+    surface below is not where the sides end -- an inner partition halfway down a closed box --
+    the rays are followed on: the underside exists where, under at least `fraction` of them, a
+    surface lies where the sides do end."""
     centroid = topo.positions_w[topo.face_w[members]].mean(axis=1)
     origins = centroid - np.array([0.0, 0.0, EPS_IN])
     directions = np.tile(np.array([0.0, 0.0, -1.0]), (len(origins), 1))
@@ -1317,15 +1391,24 @@ def _underside(topo: Topology, members: np.ndarray, caster, h: float, tol: float
     found = (tri >= 0) & (t <= h + search_extra + tol)
     depth = float(np.median(t[found]) + EPS_IN) if found.any() else h
     exists = bool(found.mean() >= fraction)
-    if exists and deepest_own is not None and depth > deepest_own + band:
-        return False, h
-    return exists, depth
+    if not exists or not side_runs or _ends_here(side_runs, depth, band):
+        return exists, depth
+    ray, _hit, t_all = caster.all_hits(origins, directions)
+    depth_all = t_all + EPS_IN
+    for c in sorted({float(d) for d, _run in side_runs}):
+        if not _ends_here(side_runs, c, band):
+            continue
+        at = np.abs(depth_all - c) <= band
+        if len(np.unique(ray[at])) >= fraction * len(origins):
+            return True, float(np.median(depth_all[at]))
+    return False, h
 
 
 def _lower_surface(topo: Topology, members: np.ndarray, caster, ok_ids: np.ndarray,
-                   normals: np.ndarray, reach: float, fraction: float, deepest_own: float,
-                   band: float, top_min_nz: float, top_normal: np.ndarray,
-                   top_origin: np.ndarray) -> tuple[np.ndarray, float] | None:
+                   normals: np.ndarray, reach: float, fraction: float, along: dict,
+                   sides: np.ndarray, band: float, tol: float, top_min_nz: float,
+                   top_normal: np.ndarray, top_origin: np.ndarray
+                   ) -> tuple[np.ndarray, float] | None:
     """SR6 item 1. The slab's LOWER SURFACE, as the plane `z = a x + b y + c` (`(a, b, c)`) with
     the median depth below the top at which it was met -- or `None`.
 
@@ -1341,9 +1424,16 @@ def _lower_surface(topo: Topology, members: np.ndarray, caster, ok_ids: np.ndarr
     dropping the far ones and fitting again, came out tilted -- the ramp's walls were planned
     34.8 to 37.2 in deep against its 39.37 in. Its underside, region 314, takes 154 of the 196.
 
-    It must be THIS slab's: no deeper than the slab's deepest own side reaches, plus `band`. A
-    floor 20 in below a 2 in slab is the ground under it, not its underside, and walls that
-    followed it would box the slab down to the floor (review I1)."""
+    It must be THIS slab's: where the most of its own side length ENDS (`_sides_end_on`, its own
+    sides being `along`). A floor 20 in below a 2 in slab is the ground under it, not its
+    underside, and walls that followed it would box the slab down to the floor (review I1). SR6
+    bounded it by the DEEPEST own side, so one deep side let the floor through (review part 2,
+    I2): a 2 in slab hanging on a 32 in wall took the floor 24 in down for its underside, its
+    three whole skirts were replaced by 24 in walls, and the hidden pass deleted the bench
+    standing there -- the wall passes 8 in below that floor, the skirts end 22 in above it.
+    Measured on the real files, the rule keeps file B's ramp (49 % of its own side ends on its
+    underside, the rest shallower along its broken side) and drops file A's inner plates (regions
+    171, 358, 376: a plate 3.5 in down, their sides ending at 7.03)."""
     tri = topo.positions_w[topo.face_w[members]]
     centroid = tri.mean(axis=1)
     samples = np.concatenate([centroid] + [(centroid + tri[:, k]) / 2.0 for k in range(3)])
@@ -1366,8 +1456,6 @@ def _lower_surface(topo: Topology, members: np.ndarray, caster, ok_ids: np.ndarr
     points = origins[hit][on].copy()
     points[:, 2] -= t[hit][on]
     depth = float(np.median(t[hit][on]) + EPS_IN)
-    if depth > deepest_own + band:
-        return None
     A = np.column_stack([points[:, 0], points[:, 1], np.ones(len(points))])
     if len(points) >= 3 and np.linalg.matrix_rank(A) == 3:
         coef = np.linalg.lstsq(A, points[:, 2], rcond=None)[0]
@@ -1376,7 +1464,10 @@ def _lower_surface(topo: Topology, members: np.ndarray, caster, ok_ids: np.ndarr
         n, o = top_normal, top_origin
         coef = np.array([-n[0] / n[2], -n[1] / n[2],
                          o[2] + (n[0] * o[0] + n[1] * o[1]) / n[2] - depth])
-    return np.asarray(coef, dtype=np.float64), depth
+    coef = np.asarray(coef, dtype=np.float64)
+    if not _sides_end_on(topo, along, sides, coef, band, tol):
+        return None
+    return coef, depth
 
 
 def _has_bottom(topo: Topology, members: np.ndarray, caster, h: float, tol: float,
