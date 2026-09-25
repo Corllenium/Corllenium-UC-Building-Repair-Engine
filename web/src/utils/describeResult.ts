@@ -182,6 +182,7 @@ export function describeResult(report: any): ResultDescription {
     guardLine,
     guardPassed,
     isRolledBack,
+    mergeReported: hasMergeReport,
     rolledBackReason,
     backfacePx,
     borderShiftPx,

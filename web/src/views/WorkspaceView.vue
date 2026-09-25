@@ -110,7 +110,7 @@
                 &nbsp;(<span style="color: #d8282f">failed: {{ resultDesc.failedInvariants.join(', ') }}</span>)
               </template>
               &nbsp;&middot;&nbsp;
-              <span :style="{ color: resultDesc.guardPassed ? '#0d8a43' : '#d8282f' }">{{ resultDesc.guardLine }}</span>
+              <span :style="{ color: resultDesc.guardLine === 'Guard not reported' ? '#676b75' : (resultDesc.guardPassed ? '#0d8a43' : '#d8282f') }">{{ resultDesc.guardLine }}</span>
               <template v-if="resultDesc.backfacePx !== undefined">
                 &nbsp;&middot;&nbsp; <span>{{ resultDesc.backfacePx.toLocaleString() }} backface px</span>
               </template>

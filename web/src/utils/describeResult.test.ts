@@ -303,6 +303,7 @@ describe('describeResult', () => {
 
     const desc = describeResult(v4Report)
     expect(desc.heading).toBe('INSIDE REMOVED, FACES FLIPPED · merge not reported')
+    expect(desc.mergeReported).toBe(false)
     expect(desc.isRolledBack).toBe(false)
     expect(desc.runPassed).toBe(true)
     expect(desc.guardPassed).toBe(true)
