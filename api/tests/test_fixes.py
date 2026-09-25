@@ -211,6 +211,14 @@ def test_fix_atomic_rollback_on_exception(client, imported_cube, monkeypatch, db
     settings = get_settings()
     version_id = imported_cube["versions"][0]["id"]
 
+    captured_dirs = []
+    orig_write_skp = api.routers.versions._write_skp
+    def spy_write_skp(result, name, out_dir, *args, **kwargs):
+        captured_dirs.append(out_dir)
+        return orig_write_skp(result, name, out_dir, *args, **kwargs)
+
+    monkeypatch.setattr(api.routers.versions, "_write_skp", spy_write_skp)
+
     def mock_build_report_fail(*args, **kwargs):
         raise RuntimeError("Report generation crash after flush")
 
@@ -249,9 +257,9 @@ def test_fix_atomic_rollback_on_exception(client, imported_cube, monkeypatch, db
     asset_count_after = len(db.scalars(select(VersionAsset)).all())
     assert asset_count_after == asset_count_before
 
-    # On disk: out_dir was cleaned up, no orphan directory left behind (m2)
-    run_dir = settings.data_dir / "fixed" / str(run_data["id"])
-    assert not run_dir.exists()
+    # On disk: the actual out_dir created before failure was cleaned up (m2, n3)
+    assert len(captured_dirs) == 1
+    assert not captured_dirs[0].exists()
 
     # In DB: run is recorded as failed with formatted error
     run_db = db.scalar(select(FixRun).where(FixRun.id == run_data["id"]))
@@ -325,6 +333,8 @@ def test_stored_flat_materials_enforced_to_zero_std(client, imported_cube, monke
         return orig_fix(mesh, flatness, profile)
 
     monkeypatch.setattr(api.routers.versions, "fix_object", spy_fix_object)
+    # Simulate initial non-zero texture std for stone/m0
+    monkeypatch.setattr(api.routers.versions, "texture_flatness", lambda *args, **kwargs: {"m0": 25.0})
 
     r = client.post(f"/api/versions/{version_id}/fix", json={"profile": {"n_dirs": 32, "flat_texture_std": 0.5}})
     assert r.status_code == 201

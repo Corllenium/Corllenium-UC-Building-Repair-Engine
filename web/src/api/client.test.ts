@@ -66,4 +66,18 @@ describe('client API and ApiError', () => {
     const files = await fetchSourceFiles()
     expect(files).toEqual([{ file: 'model.obj', size_bytes: 100 }])
   })
+
+  it('does not auto-retry on 409, throwing ApiError on the single attempt', async () => {
+    let callCount = 0
+    globalThis.fetch = vi.fn().mockImplementation(async () => {
+      callCount++
+      return new Response(JSON.stringify({ detail: 'Locked' }), {
+        status: 409,
+        headers: { 'Content-Type': 'application/json', 'Retry-After': '5' },
+      })
+    })
+
+    await expect(fetchSourceFiles()).rejects.toThrow(ApiError)
+    expect(callCount).toBe(1)
+  })
 })

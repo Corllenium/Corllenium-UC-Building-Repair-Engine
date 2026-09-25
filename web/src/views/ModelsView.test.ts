@@ -43,20 +43,16 @@ describe('ModelsView error formatting & ApiError', () => {
   })
 
   it('allows loading models when source scanning returns 409 (m6 UX gap)', async () => {
+    const { loadModelsData } = await import('../utils/modelsLoader')
     const fetchSourceFiles = vi.fn().mockRejectedValue(new ApiError('Source locked', 409, 5))
     const fetchModels = vi.fn().mockResolvedValue([
       { id: 1, name: 'existing_model', source_file: 'existing.obj', created_at: '', versions: [] },
     ])
 
-    const [srcRes, modsRes] = await Promise.allSettled([fetchSourceFiles(), fetchModels()])
-    expect(modsRes.status).toBe('fulfilled')
-    if (modsRes.status === 'fulfilled') {
-      expect(modsRes.value).toHaveLength(1)
-      expect(modsRes.value[0].name).toBe('existing_model')
-    }
-    expect(srcRes.status).toBe('rejected')
-    if (srcRes.status === 'rejected') {
-      expect(formatErrorMessage(srcRes.reason)).toBe('Export folder is being rebuilt, try again in 5 s')
-    }
+    const res = await loadModelsData(fetchSourceFiles, fetchModels)
+    expect(res.models).toHaveLength(1)
+    expect(res.models[0].name).toBe('existing_model')
+    expect(res.sourceFiles).toHaveLength(0)
+    expect(res.errorMessage).toBe('Export folder is being rebuilt, try again in 5 s')
   })
 })

@@ -95,6 +95,7 @@ import { ref, onMounted } from 'vue'
 import { fetchSourceFiles, fetchModels, importModel, type SourceFile, type Model } from '../api/client'
 import { formatErrorMessage } from '../utils/formatError'
 import { isSourceImported, findModelBySource } from '../utils/modelMatching'
+import { loadModelsData } from '../utils/modelsLoader'
 
 const sourceFiles = ref<SourceFile[]>([])
 const models = ref<Model[]>([])
@@ -106,17 +107,11 @@ async function loadData() {
   loading.value = true
   errorMessage.value = null
   try {
-    const [srcRes, modsRes] = await Promise.allSettled([fetchSourceFiles(), fetchModels()])
-    if (modsRes.status === 'fulfilled') {
-      models.value = modsRes.value
-    }
-    if (srcRes.status === 'fulfilled') {
-      sourceFiles.value = srcRes.value
-    } else {
-      errorMessage.value = formatErrorMessage(srcRes.reason)
-    }
-    if (modsRes.status === 'rejected' && srcRes.status === 'fulfilled') {
-      errorMessage.value = formatErrorMessage(modsRes.reason)
+    const res = await loadModelsData(fetchSourceFiles, fetchModels)
+    models.value = res.models
+    sourceFiles.value = res.sourceFiles
+    if (res.errorMessage) {
+      errorMessage.value = res.errorMessage
     }
   } finally {
     loading.value = false
