@@ -54,7 +54,7 @@ from engine.detectors.fragments import detect_fragments, face_width
 from engine.fixes.merge import default_collinear_tol, merge_regions
 from engine.fixes.orient import (ORIENT_FLIP, ORIENT_THIN_SHEET, backface_counts, backface_pixels,
                                  classify_orientation, flip_faces, orient_sheets)
-from engine.fixes.overlap import remove_overlaps
+from engine.fixes.overlap import double_layers, remove_overlaps
 from engine.fixes.remove import remove_faces
 from engine.fixes.solidify import solidify
 from engine.guard.compare import (GuardReport, compare_views, face_planes, fragment_feedback,
@@ -370,6 +370,10 @@ class FixResult:
     rings: dict
     invariants: dict
     passed: bool
+    #: Brief 15 item 1: what can still flicker in Unity -- the pairs of FINAL faces drawn twice in
+    #: one plane (`engine.fixes.overlap.double_layers`): count, shared area, pixels over the 26
+    #: views, and a per-plane list with world centroids. `None` when not measured.
+    double_layers: dict | None = None
 
 
 def guard_depth_tol(quanta: np.ndarray, profile: FixProfile) -> float:
@@ -929,6 +933,9 @@ def fix_object(mesh: MeshData, flatness: dict[str, float], profile: FixProfile =
     backface_final = backface_pixels(
         positions_c, remap[final_mesh.face_v], np.arange(final_mesh.n_faces, dtype=np.int64),
         VIEWS_26, profile.guard_size)
+    # brief 15 item 1: every run says what can still flicker -- two layers of one plane
+    double = double_layers(positions_c, remap[final_mesh.face_v], depth_tol, VIEWS_26,
+                           profile.guard_size, centre=centre)
     one_sided_holes_after = int(sum(backface_final))
     backface_px = {name: {"total": int(sum(counts)), "per_view": [int(c) for c in counts]}
                    for name, counts in (("input", backface_input),
@@ -1009,4 +1016,5 @@ def fix_object(mesh: MeshData, flatness: dict[str, float], profile: FixProfile =
         face_region_final=final_face_region,
         solidify_report=solidify_report, reference_mesh=mesh, replaced_input=replaced_input,
         guard_solidify=solidify_report.get("cap_guard") if solidify_report else None,
-        merge_report=merge_report, rings=final_rings, invariants=invariants, passed=passed)
+        merge_report=merge_report, rings=final_rings, invariants=invariants, passed=passed,
+        double_layers=double)

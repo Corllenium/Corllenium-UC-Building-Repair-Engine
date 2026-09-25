@@ -397,3 +397,143 @@ def remove_overlaps(mesh: MeshData, topo: Topology, positions_c: np.ndarray, fla
                          candidates=plan.candidates, restored=restored,
                          pairs_same=plan.pairs_same, pairs_diff=plan.pairs_diff,
                          history=history, report=report)
+
+
+# ------------------------------------------------------------------------------------------------
+# Brief 15 item 1: what can still flicker, measured on every run
+
+#: Two faces are a DOUBLE LAYER when they share more than this many square inches within one
+#: plane (brief 14's `MIN_AREA`): below it, a sliver along a shared edge, not a surface drawn twice.
+DOUBLE_LAYER_MIN_AREA = 1.0
+
+
+def double_layers(positions_c: np.ndarray, faces: np.ndarray, depth_tol: float,
+                  views=None, size: tuple[int, int] = (900, 600), caster_factory=EmbreeCaster,
+                  min_area: float = DOUBLE_LAYER_MIN_AREA,
+                  centre: np.ndarray | None = None) -> dict:
+    """Brief 15 item 1 -- brief 14's measurement of what can still flicker in Unity, cheap enough
+    for every run. A DOUBLE LAYER is two of `faces` whose outlines share more than `min_area` sq in
+    within ONE plane: parallel (`|n . m| > PLANE_PARALLEL_DOT`), every corner of each within
+    `depth_tol` of the other's plane -- the band the guard itself calls one surface. Any winding,
+    any material: two layers of one colour still trade places in a depth test whenever their
+    lighting or texture mapping differ, and the guard's `zfight_tie` sees none of them, because it
+    only counts pixels whose winning face CHANGED between two meshes.
+
+    Its PIXELS are those of the renders over `views` (`VIEWS_26` by default) whose first hit is
+    one of the two and whose ray meets the other within `depth_tol` -- where the two can trade
+    places. Each pixel is counted once.
+
+    Returns `{"count": pairs, "area": their shared sq in, "px": pixels, "planes": [...]}`, the
+    planes largest first, each `{"normal", "offset", "centroid", "faces", "pairs", "opposite",
+    "area", "px"}` (`faces` index `faces`; `offset` is `n . p` on the plane, `n` pointing to the
+    positive side of its largest component). `positions_c` is the recentred frame the guard
+    renders in; with `centre`, the planes' centroid and offset are given in world coordinates.
+    No double layer: no render at all."""
+    from engine.guard.views import VIEWS_26, ortho_first_hit
+    from engine.rays.caster import ReusableCaster
+
+    views = VIEWS_26 if views is None else views
+    positions_c = np.asarray(positions_c, dtype=np.float64)
+    faces = np.asarray(faces, dtype=np.int64)
+    empty = {"count": 0, "area": 0.0, "px": 0, "planes": []}
+    if not len(faces):
+        return empty
+    tri = positions_c[faces]
+    cross = np.cross(tri[:, 1] - tri[:, 0], tri[:, 2] - tri[:, 0])
+    length = np.linalg.norm(cross, axis=1)
+    ok = length > 1e-12
+    normal = np.zeros_like(cross)
+    normal[ok] = cross[ok] / length[ok, None]
+    lo, hi = tri.min(axis=1) - depth_tol, tri.max(axis=1) + depth_tol
+    ids = np.nonzero(ok)[0]
+    pairs: list[tuple[int, int, float, bool]] = []
+    for s in range(0, len(ids), 400):
+        rows = ids[s:s + 400]
+        near = ((lo[rows, None] <= hi[None, ids]) & (hi[rows, None] >= lo[None, ids])).all(axis=2)
+        near &= np.abs(normal[rows] @ normal[ids].T) > PLANE_PARALLEL_DOT
+        near &= ids[None, :] > rows[:, None]
+        for a, b in zip(*np.nonzero(near)):
+            i, j = int(rows[a]), int(ids[b])
+            sep = max(float(np.abs((tri[j] - tri[i][0]) @ normal[i]).max()),
+                      float(np.abs((tri[i] - tri[j][0]) @ normal[j]).max()))
+            if sep > depth_tol:
+                continue
+            e1, e2 = plane_basis(normal[i])
+            basis = np.stack([e1, e2], axis=1)
+            shared = float(shapely.area(shapely.intersection(
+                shapely.Polygon((tri[i] - tri[i][0]) @ basis),
+                shapely.Polygon((tri[j] - tri[i][0]) @ basis))))
+            if shared > min_area:
+                pairs.append((i, j, shared, bool(normal[i] @ normal[j] < 0.0)))
+    if not pairs:
+        return empty
+
+    # the planes: pairs whose faces share a plane (parallel, offsets within the tolerance)
+    def plane_of(f):
+        n = normal[f].copy()
+        if n[int(np.argmax(np.abs(n)))] < 0.0:
+            n = -n
+        return n, float(tri[f][0] @ n)
+
+    planes: list[dict] = []
+    for i, j, shared, opposite in pairs:
+        n, d = plane_of(i)
+        for p in planes:
+            if abs(float(p["_n"] @ n)) > PLANE_PARALLEL_DOT and abs(p["_d"] - d) <= depth_tol:
+                break
+        else:
+            p = {"_n": n, "_d": d, "_faces": set(), "_pairs": [], "_c": []}
+            planes.append(p)
+        p["_faces"].update((i, j))
+        p["_pairs"].append((i, j, shared, opposite))
+        p["_c"].append((tri[i].mean(axis=0) + tri[j].mean(axis=0)) / 2.0)
+
+    # the pixels: first hit on a face of a pair, and the ray meets its partner within depth_tol
+    partners: dict[int, set] = {}
+    plane_index: dict[int, int] = {}
+    for k, p in enumerate(planes):
+        for i, j, _s, _o in p["_pairs"]:
+            partners.setdefault(i, set()).add(j)
+            partners.setdefault(j, set()).add(i)
+            plane_index[i] = plane_index[j] = k
+    ids_all = np.arange(len(faces), dtype=np.int64)
+    reusable = ReusableCaster(caster_factory)
+    caster = caster_factory(positions_c, faces)
+    px_plane = [0] * len(planes)
+    watched = np.array(sorted(partners), dtype=np.int64)
+    for view in views:
+        buf = ortho_first_hit(positions_c, faces, ids_all, view, positions_c, size, reusable)
+        mask = (buf.tri >= 0) & np.isin(buf.tri, watched)
+        if not mask.any():
+            continue
+        rows, cols = np.nonzero(mask)
+        origins = (buf.xs[cols][:, None] * buf.right + buf.ys[rows][:, None] * buf.up
+                   + buf.standoff)
+        direction = np.asarray(buf.direction, dtype=np.float64)
+        ray, hit, t = caster.all_hits(origins, np.tile(direction, (len(origins), 1)))
+        first_f = buf.tri[rows, cols]
+        first_t = buf.depth[rows, cols]
+        near = np.abs(t - first_t[ray]) <= depth_tol
+        met: dict[int, set] = {}
+        for q, f in zip(ray[near].tolist(), hit[near].tolist()):
+            met.setdefault(q, set()).add(f)
+        for q in range(len(rows)):
+            f = int(first_f[q])
+            if partners[f] & met.get(q, set()):
+                px_plane[plane_index[f]] += 1
+
+    shift = np.zeros(3) if centre is None else np.asarray(centre, dtype=np.float64)
+    out_planes = []
+    for k, p in enumerate(planes):
+        out_planes.append({
+            "normal": [round(float(v), 4) for v in p["_n"]],
+            "offset": round(p["_d"] + float(p["_n"] @ shift), 4),
+            "centroid": [round(float(v), 2) for v in np.mean(p["_c"], axis=0) + shift],
+            "faces": sorted(int(f) for f in p["_faces"]),
+            "pairs": len(p["_pairs"]),
+            "opposite": sum(1 for _i, _j, _s, o in p["_pairs"] if o),
+            "area": round(sum(s for _i, _j, s, _o in p["_pairs"]), 3),
+            "px": px_plane[k]})
+    out_planes.sort(key=lambda p: (-p["area"], p["faces"]))
+    return {"count": len(pairs), "area": round(sum(s for _i, _j, s, _o in pairs), 3),
+            "px": int(sum(px_plane)), "planes": out_planes}

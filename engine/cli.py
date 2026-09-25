@@ -225,6 +225,9 @@ def _build_report(name: str, obj_path: Path, mesh: MeshData, result: FixResult,
         # SketchUp's blue-purple, in pixels over the 26 guard views: faces seen from their BACK
         # side, for the input, the solidified reference and the final mesh, per view and total
         "backface_px": result.backface_px,
+        # brief 15 item 1: what can still flicker in Unity -- pairs of shipped faces drawn twice in
+        # one plane, their shared area, their pixels over the 26 views, and a per-plane list
+        "double_layers": result.double_layers,
         "feedback_history": result.feedback_history,
         "guard_after_removal": _guard_report_dict(result.guard_after_removal),
         # the MERGED mesh's guard, kept even when the merge was rolled back and something else
@@ -520,6 +523,9 @@ def cmd_fix(snapshot_dir: Path, out_root: Path, accept_slit: bool,
     back = result.backface_px
     print(f"  backface_px final={back['final']['total']} (input={back['input']['total']}, "
           f"reference={back['reference']['total']}) -- pixels showing a face's back side")
+    double = result.double_layers or {"count": 0, "area": 0.0, "px": 0, "planes": []}
+    print(f"  double layers: {double['count']} pairs, {double['area']} sq in, {double['px']} px "
+          f"over the 26 views, in {len(double['planes'])} planes -- what can still flicker")
     sheet = result.sheet_report
     print(f"  sheets: {sheet['sheets_made_consistent']} made consistent "
           f"({sheet['faces_flipped']} thin faces re-wound), {sheet['sheets_refused']} refused, "

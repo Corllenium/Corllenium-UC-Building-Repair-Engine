@@ -1132,3 +1132,24 @@ def test_cmd_fix_prints_the_blocks_standing_on_slabs_and_what_rule_6_sees_throug
     [line] = [ln for ln in capsys.readouterr().out.splitlines() if "blocks standing" in ln]
     assert "tops read as undersides: 1" in line and "blocks standing on slabs: 1" in line
     assert "rule 6 sees through 2 confirmed volumes" in line
+
+
+def test_cmd_fix_reports_the_double_layers_that_can_still_flicker(tmp_path, capsys):
+    """Brief 15 item 1: every run says what can still flicker in Unity -- `double_layers` in
+    report.json (the pairs of faces drawn twice in one plane, their shared area, their pixels over
+    the 26 views, and a per-plane list) and one printed line. The fins overlap over 187.5 sq in
+    and the fix keeps both (neither is covered by its own region), so the shipped mesh has one."""
+    from engine.tests.fixtures.build import partially_overlapping_fins
+    m = partially_overlapping_fins()
+    snap_dir = _write_snapshot(tmp_path, m)
+
+    cli.cmd_fix(snap_dir, tmp_path / "out", accept_slit=False, profile=_FAST, skp=False,
+                solidify=False)
+
+    report = json.loads((tmp_path / "out" / m.name / "report.json").read_text(encoding="utf-8"))
+    d = report["double_layers"]
+    assert set(d) == {"count", "area", "px", "planes"}
+    assert d["count"] == 1 and abs(d["area"] - 187.5) < 1e-3
+    assert d["count"] == sum(p["pairs"] for p in d["planes"])
+    [line] = [ln for ln in capsys.readouterr().out.splitlines() if "double layers" in ln]
+    assert "1 pairs" in line and "187.5 sq in" in line

@@ -7,6 +7,7 @@ overlaps, so those 133 faces and every triangle around them were copied through 
 their gridlines drawn.
 """
 import numpy as np
+import pytest
 
 from engine.fixes import merge as merge_module
 from engine.fixes import overlap as overlap_module
@@ -221,3 +222,45 @@ def test_two_exactly_stacked_layers_are_one_patch_not_two():
     assert int(plan.remove.sum()) == m.n_faces // 2
     assert plan.remove[m.n_faces // 2:].all()
     assert not plan.remove[: m.n_faces // 2].any()
+
+
+# ------------------------------------------ brief 15 item 1: what can still flicker, every run
+
+
+def test_double_layers_measures_two_layers_of_one_plane():
+    """Brief 15 item 1 (brief 14's measurement, made cheap enough for every run): a DOUBLE LAYER
+    is two faces sharing more than 1 sq in within one plane -- any winding, any material -- and
+    its pixels are those of the 26 views whose first hit is one of the two and whose ray meets the
+    other within the depth tolerance: where the two can trade places in Unity's depth test. The
+    fins overlap over exactly half of each, 187.5 sq in, in the slab's top plane, seen from above."""
+    from engine.fixes.overlap import double_layers
+    m = partially_overlapping_fins()
+    topo, positions_c = _centred(m)
+    fins = [m.n_faces - 2, m.n_faces - 1]
+    d = double_layers(positions_c, topo.face_w, 0.15, size=_SIZE)
+    assert d["count"] == 1
+    assert d["area"] == pytest.approx(187.5, abs=1e-3)
+    assert d["px"] > 0
+    [plane] = d["planes"]
+    assert sorted(plane["faces"]) == fins
+    assert (plane["pairs"], plane["opposite"]) == (1, 0)
+    assert plane["area"] == d["area"] and plane["px"] == d["px"]
+    assert plane["normal"] == pytest.approx([0.0, 0.0, 1.0])
+
+
+def test_double_layers_counts_an_opposite_wound_pair_and_nothing_on_a_single_layer():
+    """The same fins with one of them wound the other way are still one double layer -- opposite,
+    now -- and the slab alone, a single layer everywhere, has none."""
+    from dataclasses import replace
+    from engine.fixes.overlap import double_layers
+    m = partially_overlapping_fins()
+    fv = m.face_v.copy()
+    fv[-1] = fv[-1][[0, 2, 1]]
+    flipped = replace(m, face_v=fv)
+    topo, positions_c = _centred(flipped)
+    d = double_layers(positions_c, topo.face_w, 0.15, size=_SIZE)
+    assert (d["count"], d["planes"][0]["opposite"]) == (1, 1)
+    single = grid_slab()
+    topo, positions_c = _centred(single)
+    assert double_layers(positions_c, topo.face_w, 0.15, size=_SIZE) == {
+        "count": 0, "area": 0.0, "px": 0, "planes": []}
