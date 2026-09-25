@@ -1896,3 +1896,49 @@ def test_a_whole_triangle_lost_after_a_closed_slab_still_fails_with_the_border_t
     assert int(lost.sum()) > 1000
     assert report.totals["moved_other"] > 1000
     assert report.passed is False
+
+
+def test_a_removed_fragment_that_opens_onto_the_inside_is_never_an_opened_crack():
+    """The side rebuild's opened-crack rule (SR6) meets the debris rule (review C2) in one place:
+    a pixel whose BEFORE hit is a face the fragment pass REMOVED. The crack here is filled by a
+    0.02 in sliver in BEFORE, and the sliver is the debris removed; AFTER's centre ray falls
+    through to the surface 10 in behind, in the same 25 pixels as the opened crack above.
+
+    Where that surface's side was already outside on the reference, the removal may show it:
+    `fragment_removed`, as on feat-dashboard. Where it was NOT -- the inside of a shell -- the
+    removal uncovered a side nobody could see, which is a hole judged as one (review C2), and the
+    merge's border tolerance is no excuse for it: the merge did not open that crack, the removal
+    did. Neither branch ever let such a pixel through as `border_shift` (on feat/side-rebuild a
+    removed fragment's pixel was always `fragment_removed`, and feat-dashboard had no opened-crack
+    rule), so the merged guard does not either."""
+    P, faces_cracked, faces_closed, _ = _crack_scene()
+    upper, lower = faces_cracked[:2], faces_cracked[2:]
+    sliver = np.array([[0, 1, 4], [0, 4, 3]], np.int64)        # fills the crack, in the z = 0 plane
+    faces_before = np.vstack([upper, sliver, lower])            # 0-1 upper, 2-3 sliver, 4-5 lower
+    removed = np.array([False, False, True, True, False, False])
+    before = ortho_first_hit(P, faces_before, np.arange(6), _FLAT_VIEW, _FRAME, _BIG_SIZE)
+    after = ortho_first_hit(P, faces_cracked, np.arange(4), _FLAT_VIEW, _FRAME, _BIG_SIZE)
+    opened = (before.tri >= 2) & (before.tri < 4) & (after.tri >= 2)
+    assert int(opened.sum()) == 25
+
+    def report(lower_front_exposed: bool, **extra):
+        exposed = np.ones((4, 2), dtype=bool)
+        exposed[2:, 0] = lower_front_exposed        # the lower surface's FRONT (+z) faces the camera
+        return compare_views(
+            [(_FLAT_VIEW, before)], [(_FLAT_VIEW, after)], np.zeros(6, np.int64),
+            np.zeros(4, np.int64), frozenset(), 0.15, strict=True, edge_flicker_cap=0.0,
+            plane_before=face_planes(P, faces_before), plane_after=face_planes(P, faces_cracked),
+            geometry_before=(P, faces_before), geometry_after=(P, faces_cracked),
+            border_shift_tol=_BORDER_TOL, removed_before=removed,
+            exposed_after=exposed, **extra)
+
+    shows_the_outside = report(True)
+    assert shows_the_outside.totals["fragment_removed"] == 25
+    assert shows_the_outside.totals["border_shift"] == 0
+    assert shows_the_outside.passed is True
+
+    shows_the_inside = report(False)
+    assert shows_the_inside.totals["fragment_removed"] == 0
+    assert shows_the_inside.totals["border_shift"] == 0
+    assert shows_the_inside.totals["moved_other"] == 25
+    assert shows_the_inside.passed is False

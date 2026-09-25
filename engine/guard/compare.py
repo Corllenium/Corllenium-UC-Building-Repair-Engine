@@ -533,6 +533,8 @@ def _classify(before_depth: np.ndarray, before_tri: np.ndarray,
     # every other class, and AFTER `base` is taken so a capped fragment pixel can fall back to
     # what it really is -- but it is taken out of `promotable`, so it is never promoted either.
     base = codes.copy()
+    # pixels whose BEFORE first hit is removed debris, whether or not the excuse below takes them
+    own = np.zeros(before_tri.shape, dtype=bool)
     if removed_before is not None:
         gone = np.asarray(removed_before, dtype=bool)
         own = hit_before & gone[np.where(hit_before, before_tri, 0)]
@@ -629,9 +631,15 @@ def _classify(before_depth: np.ndarray, before_tri: np.ndarray,
     # ring radius further out), as does a lost triangle (no AFTER ring ray meets the surface).
     # Measured on file A: its merge was rolled back on a pixel whose AFTER centre ray missed
     # through a 0.0001 in crack while all 16 ring rays saw the same in both meshes.
+    # NEVER a pixel whose BEFORE hit is removed debris (`removed_before`): the merge did not open
+    # that gap, the fragment pass did, and what it may uncover is already decided above -- the
+    # sky or a side the reference exposed is `PX_FRAGMENT_REMOVED`, anything else a hole judged
+    # as one (review C2). A 0.02 in sliver opening onto the inside of a shell would otherwise pass
+    # here as a sub-tolerance border shift, which neither the fragment rule nor this one allowed
+    # on its own branch (`test_a_removed_fragment_that_opens_onto_the_inside_is_never_an_opened_crack`).
     if (border is not None and ring is not None and origins is not None
             and direction is not None):
-        opened = (_failing_base(codes, strict) & (codes == base) & hit_before
+        opened = (_failing_base(codes, strict) & (codes == base) & hit_before & ~own
                   & ((base == PX_HOLE) | (base == PX_MOVED_SAME_FLAT) | (base == PX_MOVED_OTHER))
                   & (~hit_after | (after_depth > before_depth)))
         if opened.any():
