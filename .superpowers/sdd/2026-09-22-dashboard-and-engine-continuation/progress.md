@@ -30,3 +30,25 @@ Whole-branch review of api/ + web/ dispatched (opus, read-only, static diff pack
 Whole-branch review (opus, read-only) of api + web: NOT READY. Critical: C1 fixes.py view name reaches the filesystem (path traversal via %5C on Windows); C2 merge_report never leaves the API, AFTER panel hardcodes merged + Guard Passed; C3 fix run non-atomic (version committed before its asset) and unlocked (concurrent runs clobber one file); C4 SourceUnstable never mapped to 409. Important: I5 fixed versions lack mtl/texture assets and flat_materials is empty so every material counts flat; I6 picking prints faceId+1 as a line number, provenance discarded; I7 guard modal dead (PNGs never written by the run); I8 live manifest read with read_manifest (unstable); I9 order-dependent tests = engine bug in snapshot_object (identical bytes under a second name make _load fail -> 404); I10 port 8190 enforced nowhere. Minors: CORS star with credentials, data_dir relative to CWD, endsWith mispairing, POST fix returns 200, sync ignores zoom/fov.
 Ruling: all Critical + Important fixed before merge, minors folded in. Brief written: fix-wave-1-brief.md (D0-D11). Dispatch AFTER the engine round finishes so two agents never commit into this tree at once - costs: dashboard fixes start about an hour later.
 Ruling: the wave must not touch servers another session started; it verifies on 127.0.0.1:8191; the controller restarts the real servers (venv Python, python -m api, vite) after the wave, because the API loads engine code only at start.
+
+## Fix Wave 1 by Hermes, 2026-09-25
+Branch `feat/dashboard-wave` (isolated worktree at `.hermes/worktrees/dashboard-wave`).
+All D items from `fix-wave-1-brief.md` addressed:
+- D0: Verified superseded (GET /api/runs/{id} and POST /api/versions/{id}/fix active and tested).
+- D1: Completed in `ec77c9b`. Guard view validated against whitelist ('+x', '-x', '+y', '-y', '+z', '-z'), rejects traversal/unknown views with 404/422.
+- D2: Completed in `fa37c29`. FixRun report enriched with merge_report, guard totals (after removal and final), invariants, n_* counts, one_sided_holes, profile. Stored source_faces.json as VersionAsset.
+- D3: Completed in `f63aee2`. AFTER panel truthfulness in web UI via describeResult utility and unit tests.
+- D4: Completed in `086d790`. Handled SourceUnstable (HTTP 409 + Retry-After: 5) and ManifestMismatch (HTTP 422). Formatted friendly retry messaging on ModelsView.
+- D5: Completed in `1d5f045`. Fix execution made atomic in one transaction, per-model concurrency locking (HTTP 409), isolated data/fixed/<run_id>/ output folder, and returns HTTP 201.
+- D6: Completed in `e178377`. Fixed versions keep materials and flat-material set of the import via Alembic migration 0002_flat_materials. Resolved Review M5 (backfill asset_sha256 on NULL).
+- D7: Blocked by engine format decision. Requires changes to `engine/transport/meshbuf.py` to pack `poly_offsets` into UCMB binary structure. Cannot edit `engine/` per rules; needs engine teammate to extend meshbuf format.
+- D8: Completed in `8db9326`. Diagnostic visual overlays for 3D viewport (gridlines, region outlines, wireframe triangles, soft creases, hidden faces, magenta one-sided backface diagnostic) with hotkeys and unit-tested useLayers composable.
+- D9: Completed in `e04deef`. Live guard diff carousel modal with useGuardViews composable, keyboard arrow navigation, error handling for missing views, and cardinal direction formatting.
+- D10: Completed in `f5adf2a`. Test database lifecycle isolated per session with PID/UUID (`fixer_test_<pid>_<uuid>`), dropped in fixture teardown. Verified concurrent test databases in test_test_database_lifecycle.py.
+- D11: Completed in `1aa5f36`. Added POST /api/models/rescan endpoint and Rescan Source Folder button on ModelsView with client tests.
+- D12: Completed in `a3ea738`. Implemented soft delete / hide via Alembic migration 0003_model_hidden (hidden and archived_at columns), DELETE /api/models/{id} (204), filtered list_models (?include_hidden=true), and POST /api/models/{id}/restore.
+
+Test counts:
+- API pytest suite: 21 passed (0 failed).
+- Web vitest suite: 18 passed (0 failed), production build succeeds cleanly.
+
