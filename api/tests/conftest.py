@@ -1,22 +1,15 @@
 import os
-import psycopg
 import pytest
 from fastapi.testclient import TestClient
 
-ADMIN = "postgresql://fixer:fixer@127.0.0.1:5490/postgres"
-TEST_URL = "postgresql+psycopg://fixer:fixer@127.0.0.1:5490/fixer_test"
+from api.tests.db_helper import create_test_db, drop_test_db, migrate_test_db
 
 
 @pytest.fixture(scope="session", autouse=True)
 def _database(tmp_path_factory):
-    try:
-        with psycopg.connect(ADMIN, autocommit=True) as conn:
-            conn.execute("DROP DATABASE IF EXISTS fixer_test WITH (FORCE)")
-            conn.execute("CREATE DATABASE fixer_test")
-    except Exception as e:
-        print(f"Warning: could not create fixer_test: {e}")
+    db_name, db_url = create_test_db()
     root = tmp_path_factory.mktemp("fixer")
-    os.environ["FIXER_DATABASE_URL"] = TEST_URL
+    os.environ["FIXER_DATABASE_URL"] = db_url
     os.environ["FIXER_SOURCE_DIR"] = str(root / "source")
     os.environ["FIXER_DATA_DIR"] = str(root / "data")
     os.environ["FIXER_STABLE_INTERVAL_S"] = "0"
@@ -26,12 +19,20 @@ def _database(tmp_path_factory):
     get_engine.cache_clear()
 
     # Run alembic migrations on test database
-    from alembic import command
-    from alembic.config import Config
-    alembic_cfg = Config("alembic.ini")
-    command.upgrade(alembic_cfg, "head")
+    migrate_test_db(db_url)
 
     yield root
+
+    # Clean up test database
+    try:
+        from api.db import get_engine
+        get_engine().dispose()
+    except Exception:
+        pass
+    try:
+        drop_test_db(db_name)
+    except Exception:
+        pass
 
 
 @pytest.fixture()
