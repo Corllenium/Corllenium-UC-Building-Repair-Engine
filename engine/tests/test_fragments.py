@@ -666,8 +666,11 @@ def test_fix_object_never_removes_a_face_solidify_invented(monkeypatch):
 
     def invents_the_stray(mesh, topo, profile_in):
         made = real(mesh, topo, profile_in)
+        # the stray is appended to the SOLIDIFIED mesh, so which input faces the side rebuild
+        # replaced (`replaced`, over the input's faces) is solidify's own answer, unchanged
         return SolidifyResult(mesh=_with_triangle(made.mesh, _STRAY),
-                              new_faces=np.append(made.new_faces, True), report=made.report)
+                              new_faces=np.append(made.new_faces, True), report=made.report,
+                              replaced=made.replaced)
 
     monkeypatch.setattr(fix_pipeline, "solidify", invents_the_stray)
     r = fix_object(slab, {}, profile)
