@@ -331,17 +331,42 @@ def _skirt_lows(result):
 
 
 def _planned(mesh, profile, monkeypatch):
-    """`solidify` with the cap guard bypassed: every face it PLANNED, none judged. For tests of
-    the extrusion rule itself, which is a different question from what the guard keeps."""
+    """`solidify` with the cap guard bypassed: every face it PLANNED, none judged -- what ships
+    when the guard keeps every new face, the pieces they replace included (review part 2, M5: it
+    used to report none). For tests of the extrusion rule itself, which is a different question
+    from what the guard keeps."""
+    from dataclasses import replace as dc_replace
+
     import engine.fixes.solidify as S
 
     def keep_all(original, solid, new_faces, *args, **kwargs):
-        return (solid, new_faces, [], 0, {"replaced": np.zeros(original.n_faces, bool),
-                                          "interior_faces": [], "refused_reason": {}},
-                np.ones(solid.n_faces, bool))
+        group = kwargs.get("replaced_group")
+        replaced = (np.zeros(original.n_faces, bool) if group is None
+                    else np.asarray(group)[:original.n_faces] >= 0)
+        keep = np.ones(solid.n_faces, bool)
+        keep[:original.n_faces] = ~replaced
+        out = dc_replace(solid, face_v=solid.face_v[keep], face_vt=solid.face_vt[keep],
+                         face_vn=solid.face_vn[keep], face_material=solid.face_material[keep],
+                         face_line=solid.face_line[keep])
+        return (out, new_faces[keep], [], 0, {"replaced": replaced, "interior_faces": [],
+                                              "refused_reason": {}}, keep)
 
     monkeypatch.setattr(S, "_cap_guard", keep_all)
     return _solidified(mesh, profile)
+
+
+def test_the_plan_replaces_the_pieces_it_would_replace(monkeypatch):
+    """Review part 2, M5: `_planned` -- solidify with the cap guard bypassed -- reported no
+    replaced pieces at all, so no plan test could see replacement. The plan is what ships when the
+    guard keeps every new face: the sawtooth side's four teeth are replaced, and gone from its
+    mesh."""
+    m = slab_with_sawtooth_side()
+    teeth = np.arange(m.n_faces - 6, m.n_faces - 2)
+    r = _planned(m, _FAST, monkeypatch)
+    assert r.replaced.tolist() == [f in teeth for f in range(m.n_faces)]
+    assert r.mesh.n_faces == m.n_faces - len(teeth) + int(r.new_faces.sum())
+    kept_input = r.mesh.face_v[~r.new_faces]
+    assert not any(np.array_equal(row, m.face_v[t]) for t in teeth for row in kept_input)
 
 
 def test_each_open_edge_is_extruded_to_its_own_measured_height(monkeypatch):
@@ -1245,6 +1270,16 @@ def test_a_top_edge_that_ran_into_an_underside_only_is_a_side():
     new = np.nonzero(r.new_faces)[0]
     tri = r.mesh.positions[r.mesh.face_v[new]]
     assert [f for f, t in zip(new, tri) if t[:, 0].mean() < 40.0 - 1e-6] == []
+    # ...and it SHIPS (review part 2, M5: the plan was pinned, never what ships): the plate is a
+    # closed solid in the final mesh, and the box beside it is untouched
+    m = slab_beside_a_lower_top()
+    shipped = fix_object(m, {}, _FAST)
+    assert shipped.passed is True
+    final = shipped.mesh
+    assert _covered_area(final, _plane_faces(final, 0, 40.0), [1, 2]) == pytest.approx(
+        40.0 * 10.0 + 40.0 * 8.0)                              # the box's side over the plate's wall
+    assert _covered_area(final, _plane_faces(final, 2, -8.0), [0, 1]) == pytest.approx(1600.0)
+    assert _covered_area(final, _plane_faces(final, 2, 0.0), [0, 1]) == pytest.approx(3200.0)
 
 
 def test_a_shell_is_refused_together_when_one_of_its_faces_fails(monkeypatch):
