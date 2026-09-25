@@ -6,6 +6,7 @@ export interface ResultDescription {
   guardLine: string
   guardPassed: boolean
   isRolledBack: boolean
+  mergeReported?: boolean
   rolledBackReason?: string
   backfacePx?: number
   borderShiftPx?: number
@@ -63,26 +64,38 @@ export function describeResult(report: any): ResultDescription {
 
   const guard = report.guard_final || {}
   const totals = guard.totals
-  const guardPassed = Boolean(guard.passed ?? report.guard_passed ?? true)
+  const hasGuardPassed = typeof guard.passed === 'boolean' || typeof report.guard_passed === 'boolean'
+  const guardPassed = hasGuardPassed
+    ? Boolean(guard.passed ?? report.guard_passed)
+    : false
 
   const runPassed = typeof report.passed === 'boolean'
     ? report.passed
     : (failedInvariants.length === 0 && guardPassed)
   const statusText = runPassed ? 'Completed' : 'Failed'
 
-  const mr = report.merge_report || {}
-  const isRolledBack = Boolean(mr.rolled_back)
-  const rolledBackReason = mr.rolled_back_reason || (isRolledBack ? 'unknown' : undefined)
+  const hasMergeReport = Boolean(report.merge_report && typeof report.merge_report === 'object')
+  const mr = hasMergeReport ? report.merge_report : null
+  const isRolledBack = Boolean(mr?.rolled_back)
+  const rolledBackReason = mr?.rolled_back_reason || (isRolledBack ? 'unknown' : undefined)
 
-  const heading = isRolledBack
-    ? `INSIDE REMOVED, FACES FLIPPED · merge rolled back (${rolledBackReason})`
-    : 'INSIDE REMOVED, FACES FLIPPED, FLAT REGIONS MERGED'
+  let heading: string
+  if (!hasMergeReport) {
+    heading = 'INSIDE REMOVED, FACES FLIPPED · merge not reported'
+  } else if (isRolledBack) {
+    heading = `INSIDE REMOVED, FACES FLIPPED · merge rolled back (${rolledBackReason})`
+  } else {
+    heading = 'INSIDE REMOVED, FACES FLIPPED, FLAT REGIONS MERGED'
+  }
 
-  const guardStatus = guardPassed ? 'Guard PASSED' : 'Guard FAILED'
   let guardLine: string
-  if (!totals || typeof totals !== 'object') {
+  if (!hasGuardPassed) {
+    guardLine = 'Guard not reported'
+  } else if (!totals || typeof totals !== 'object') {
+    const guardStatus = guardPassed ? 'Guard PASSED' : 'Guard FAILED'
     guardLine = `${guardStatus} (totals not reported)`
   } else {
+    const guardStatus = guardPassed ? 'Guard PASSED' : 'Guard FAILED'
     const holesStr = typeof totals.holes === 'number' ? `${totals.holes} holes` : 'holes not reported'
     const movedVal = (typeof totals.moved_other === 'number' || typeof totals.moved_same_flat === 'number')
       ? (totals.moved_other ?? 0) + (totals.moved_same_flat ?? 0)

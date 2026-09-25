@@ -269,4 +269,40 @@ describe('describeResult', () => {
     expect(descSkipped.skpWritten).toBe(false)
     expect(descSkipped.skpReason).toBe('SketchUp C API DLL not found')
   })
+
+  it('handles pre-branch reports (like v4) with missing merge_report as merge not reported', () => {
+    const v4Report = {
+      name: 'CHTM_SIDE_WALK_2nd_floor',
+      tris_before: 4692,
+      tris_after: 2656,
+      passed: true,
+      n_removed_hidden: 1819,
+      n_restored_by_guard: 34,
+      n_flipped: 844,
+      n_zero_area_dropped: 217,
+      one_sided_holes_before: 570046,
+      one_sided_holes_after: 116041,
+      guard_passed: true,
+    }
+
+    const desc = describeResult(v4Report)
+    expect(desc.heading).toBe('INSIDE REMOVED, FACES FLIPPED · merge not reported')
+    expect(desc.isRolledBack).toBe(false)
+    expect(desc.runPassed).toBe(true)
+    expect(desc.guardPassed).toBe(true)
+    expect(desc.guardLine).toBe('Guard PASSED (totals not reported)')
+  })
+
+  it('reports guard not reported when neither guard_final nor guard_passed is present', () => {
+    const noGuardReport = {
+      name: 'test_model',
+      passed: true,
+      tris_before: 10,
+      tris_after: 10,
+    }
+
+    const desc = describeResult(noGuardReport)
+    expect(desc.guardPassed).toBe(false)
+    expect(desc.guardLine).toBe('Guard not reported')
+  })
 })
