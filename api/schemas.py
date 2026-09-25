@@ -9,6 +9,17 @@ class SourceFileOut(BaseModel):
     size_bytes: int | None = None
 
 
+class VersionAssetOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    version_id: int
+    kind: str
+    name: str
+    path: str
+    sha256: str
+
+
 class ModelVersionOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -19,6 +30,8 @@ class ModelVersionOut(BaseModel):
     asset_sha256: str | None = None
     tri_count: int
     created_at: datetime
+    assets: list[VersionAssetOut] = []
+
 
 
 class ModelOut(BaseModel):

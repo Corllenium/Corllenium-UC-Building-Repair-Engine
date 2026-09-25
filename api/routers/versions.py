@@ -10,6 +10,7 @@ from api.db import get_db
 from api.models import FixRun, ModelVersion, VersionAsset
 from api.schemas import FixRequest, FixRunOut, ModelVersionOut
 from api.settings import Settings, get_settings
+from engine.cli import _build_report
 from engine.fixes.pipeline import FixProfile, fix_object
 from engine.io.mtl import parse_mtl, texture_flatness
 from engine.io.obj_reader import read_obj
@@ -206,19 +207,29 @@ def run_fix_pipeline(
         )
     )
 
-    report_data = {
-        "name": name,
-        "tris_before": mesh.n_faces,
-        "tris_after": result.mesh.n_faces,
-        "passed": result.passed,
-        "n_removed_hidden": result.n_removed_hidden,
-        "n_restored_by_guard": result.n_restored_by_guard,
-        "n_flipped": int(result.flipped.sum()),
-        "n_zero_area_dropped": result.n_zero_area_dropped,
-        "one_sided_holes_before": result.one_sided_holes_before,
-        "one_sided_holes_after": result.one_sided_holes_after,
-        "guard_passed": result.guard_final.passed,
-    }
+    # Save source_faces asset
+    source_faces_list = [
+        [int(x) for x in (s.tolist() if hasattr(s, "tolist") else list(s))]
+        for s in result.source_faces
+    ]
+    sf_path = out_dir / "source_faces.json"
+    sf_path.write_text(json.dumps(source_faces_list), encoding="utf-8")
+    db.add(
+        VersionAsset(
+            version_id=fixed_version.id,
+            kind="source_faces",
+            name="source_faces.json",
+            path=str(sf_path.relative_to(settings.data_dir)),
+            sha256=sha256_file(sf_path),
+        )
+    )
+
+    report_data = _build_report(name, obj_path, mesh, result, profile)
+    mr = report_data.setdefault("merge_report", {})
+    mr.setdefault("rolled_back", False)
+    mr.setdefault("rolled_back_reason", None)
+    mr.setdefault("skipped_by_reason", mr.get("regions_skipped", {}))
+
     (out_dir / "report.json").write_text(json.dumps(report_data, indent=2), encoding="utf-8")
 
     fix_run = FixRun(
