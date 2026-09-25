@@ -7,6 +7,7 @@ export const EDGE_REMOVABLE = 1
 export const EDGE_OPEN = 2
 export const EDGE_NONMANIFOLD = 3
 export const EDGE_TJUNCTION = 4
+export const EDGE_SOFT = 5
 
 const COLORS = {
   grid: 0x1f5bff,     // blue: removable gridlines
@@ -31,6 +32,7 @@ export class Viewport {
     hidden?: THREE.Mesh
     backfaceDiagnostic?: THREE.Mesh
   } = {}
+  private currentData?: DecodedMeshbuf
   private lastPositions?: Float32Array
   private animId: number = 0
   private resizeObserver: ResizeObserver
@@ -146,89 +148,10 @@ export class Viewport {
     backfaceMesh.visible = false
     this.parts.backfaceDiagnostic = backfaceMesh
     this.group.add(backfaceMesh)
+    this.currentData = data
 
-    // Wireframe triangle edges
-    const triLines: number[] = []
-    for (let f = 0; f < nFaces; f++) {
-      const idx = f * 9
-      const ax = positions[idx], ay = positions[idx + 1], az = positions[idx + 2]
-      const bx = positions[idx + 3], by = positions[idx + 4], bz = positions[idx + 5]
-      const cx = positions[idx + 6], cy = positions[idx + 7], cz = positions[idx + 8]
-      // a -> b
-      triLines.push(ax, ay, az, bx, by, bz)
-      // b -> c
-      triLines.push(bx, by, bz, cx, cy, cz)
-      // c -> a
-      triLines.push(cx, cy, cz, ax, ay, az)
-    }
-    if (triLines.length > 0) {
-      const tGeom = new THREE.BufferGeometry()
-      tGeom.setAttribute('position', new THREE.Float32BufferAttribute(triLines, 3))
-      const tLines = new THREE.LineSegments(
-        tGeom,
-        new THREE.LineBasicMaterial({ color: COLORS.tri, linewidth: 1, transparent: true, opacity: 0.6 })
-      )
-      tLines.visible = false
-      this.parts.tri = tLines
-      this.group.add(tLines)
-    }
-
-    // Soft creases: edges between adjacent faces within a normal angle threshold (2° to 45°)
-    const edgeMap = new Map<string, { nx: number; ny: number; nz: number; p1: [number, number, number]; p2: [number, number, number] }>()
-    const creaseLines: number[] = []
-
-    function vKey(x: number, y: number, z: number): string {
-      return `${Math.round(x * 1000)},${Math.round(y * 1000)},${Math.round(z * 1000)}`
-    }
-
-    for (let f = 0; f < nFaces; f++) {
-      const idx = f * 9
-      const ax = positions[idx], ay = positions[idx + 1], az = positions[idx + 2]
-      const bx = positions[idx + 3], by = positions[idx + 4], bz = positions[idx + 5]
-      const cx = positions[idx + 6], cy = positions[idx + 7], cz = positions[idx + 8]
-      const kA = vKey(ax, ay, az)
-      const kB = vKey(bx, by, bz)
-      const kC = vKey(cx, cy, cz)
-
-      const nx = data.normals[idx]
-      const ny = data.normals[idx + 1]
-      const nz = data.normals[idx + 2]
-
-      const edges: [string, string, [number, number, number], [number, number, number]][] = [
-        [kA, kB, [ax, ay, az], [bx, by, bz]],
-        [kB, kC, [bx, by, bz], [cx, cy, cz]],
-        [kC, kA, [cx, cy, cz], [ax, ay, az]],
-      ]
-
-      for (const [k1, k2, p1, p2] of edges) {
-        const edgeKey = k1 < k2 ? `${k1}|${k2}` : `${k2}|${k1}`
-        const existing = edgeMap.get(edgeKey)
-        if (existing) {
-          const dot = existing.nx * nx + existing.ny * ny + existing.nz * nz
-          // angle between 2 deg (dot ~ 0.9994) and 45 deg (dot ~ 0.707)
-          if (dot > 0.707 && dot < 0.999) {
-            creaseLines.push(p1[0], p1[1], p1[2], p2[0], p2[1], p2[2])
-          }
-          edgeMap.delete(edgeKey)
-        } else {
-          edgeMap.set(edgeKey, { nx, ny, nz, p1, p2 })
-        }
-      }
-    }
-
-    if (creaseLines.length > 0) {
-      const cGeom = new THREE.BufferGeometry()
-      cGeom.setAttribute('position', new THREE.Float32BufferAttribute(creaseLines, 3))
-      const cLines = new THREE.LineSegments(
-        cGeom,
-        new THREE.LineBasicMaterial({ color: 0x00b4d8, linewidth: 1.5 })
-      )
-      cLines.visible = false
-      this.parts.creases = cLines
-      this.group.add(cLines)
-    }
-
-    // Separate edges into gridlines (removable) and outlines (real)
+    // Separate edges into gridlines (removable) and outlines (real borders)
+    // EDGE_SOFT edges are reserved for creases and excluded from dark outlines
     const edgePos = data.edgePositions
     const edgeCls = data.edgeClass
     const nEdges = edgeCls.length
@@ -239,9 +162,14 @@ export class Viewport {
     for (let e = 0; e < nEdges; e++) {
       const cls = edgeCls[e]
       const idx = e * 6
-      const arr = (cls === EDGE_REMOVABLE || cls === EDGE_TJUNCTION) ? gridLines : outlineLines
-      for (let k = 0; k < 6; k++) {
-        arr.push(edgePos[idx + k])
+      if (cls === EDGE_REMOVABLE || cls === EDGE_TJUNCTION) {
+        for (let k = 0; k < 6; k++) {
+          gridLines.push(edgePos[idx + k])
+        }
+      } else if (cls !== EDGE_SOFT) {
+        for (let k = 0; k < 6; k++) {
+          outlineLines.push(edgePos[idx + k])
+        }
       }
     }
 
@@ -280,10 +208,73 @@ export class Viewport {
     this.controls.update()
   }
 
+  private buildTriangles() {
+    if (!this.currentData || this.parts.tri) return
+    const positions = this.currentData.positions
+    const nFaces = this.currentData.header.counts.faces
+    const triLines: number[] = []
+    for (let f = 0; f < nFaces; f++) {
+      const idx = f * 9
+      const ax = positions[idx], ay = positions[idx + 1], az = positions[idx + 2]
+      const bx = positions[idx + 3], by = positions[idx + 4], bz = positions[idx + 5]
+      const cx = positions[idx + 6], cy = positions[idx + 7], cz = positions[idx + 8]
+      triLines.push(ax, ay, az, bx, by, bz)
+      triLines.push(bx, by, bz, cx, cy, cz)
+      triLines.push(cx, cy, cz, ax, ay, az)
+    }
+    if (triLines.length > 0) {
+      const tGeom = new THREE.BufferGeometry()
+      tGeom.setAttribute('position', new THREE.Float32BufferAttribute(triLines, 3))
+      const tLines = new THREE.LineSegments(
+        tGeom,
+        new THREE.LineBasicMaterial({ color: COLORS.tri, linewidth: 1, transparent: true, opacity: 0.6 })
+      )
+      this.parts.tri = tLines
+      this.group.add(tLines)
+    }
+  }
+
+  private buildCreases() {
+    if (!this.currentData || this.parts.creases) return
+    const edgePos = this.currentData.edgePositions
+    const edgeCls = this.currentData.edgeClass
+    const nEdges = edgeCls.length
+    const creaseLines: number[] = []
+    for (let e = 0; e < nEdges; e++) {
+      if (edgeCls[e] === EDGE_SOFT) {
+        const idx = e * 6
+        for (let k = 0; k < 6; k++) {
+          creaseLines.push(edgePos[idx + k])
+        }
+      }
+    }
+    if (creaseLines.length > 0) {
+      const cGeom = new THREE.BufferGeometry()
+      cGeom.setAttribute('position', new THREE.Float32BufferAttribute(creaseLines, 3))
+      const cLines = new THREE.LineSegments(
+        cGeom,
+        new THREE.LineBasicMaterial({ color: 0x00b4d8, linewidth: 1.5 })
+      )
+      this.parts.creases = cLines
+      this.group.add(cLines)
+    }
+  }
+
   setLayer(layer: 'grid' | 'outline' | 'tri' | 'creases' | 'hidden', visible: boolean) {
+    if (visible) {
+      if (layer === 'tri' && !this.parts.tri) {
+        this.buildTriangles()
+      } else if (layer === 'creases' && !this.parts.creases) {
+        this.buildCreases()
+      }
+    }
     if (this.parts[layer]) {
       this.parts[layer]!.visible = visible
     }
+  }
+
+  setRemovedFaces(faceIndices: number[] | Set<number>) {
+    this.setHiddenFaces(faceIndices)
   }
 
   setOnesidedDiagnostic(enabled: boolean) {

@@ -31,7 +31,7 @@
         <label class="toggle-item" title="Hotkey: H">
           <input type="checkbox" v-model="layers.hidden" @change="updateLayers" />
           <span class="swatch" style="background: #ff3344"></span>
-          Hidden Faces <kbd class="kbd-hint">H</kbd>
+          Removed Faces <kbd class="kbd-hint">H</kbd>
         </label>
         <label class="toggle-item" title="Diagnostic only: Inverted normal / backface detection. Hotkey: M">
           <input type="checkbox" v-model="layers.onesided" @change="updateLayers" />

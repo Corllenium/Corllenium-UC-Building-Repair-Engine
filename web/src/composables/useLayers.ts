@@ -44,7 +44,13 @@ export function useLayers(initial?: Partial<LayerState>) {
     const target = e.target as HTMLElement | null
     if (target) {
       const tag = target.tagName?.toLowerCase()
-      if (tag === 'input' || tag === 'textarea' || tag === 'select' || target.isContentEditable) {
+      const inputType = (target as HTMLInputElement).type?.toLowerCase()
+      if (
+        (tag === 'input' && inputType !== 'checkbox' && inputType !== 'radio') ||
+        tag === 'textarea' ||
+        tag === 'select' ||
+        target.isContentEditable
+      ) {
         return
       }
     }

@@ -68,8 +68,15 @@ describe('useLayers', () => {
 
   it('ignores hotkeys when typing into an input element', () => {
     const { layers, handleKeyDown } = useLayers()
-    const target = { tagName: 'INPUT' } as unknown as HTMLElement
+    const target = { tagName: 'INPUT', type: 'text' } as unknown as HTMLElement
     handleKeyDown({ key: 'g', target } as unknown as KeyboardEvent)
     expect(layers.grid).toBe(true) // unchanged
+  })
+
+  it('does not block hotkeys when focused on a checkbox input (m8)', () => {
+    const { layers, handleKeyDown } = useLayers()
+    const target = { tagName: 'INPUT', type: 'checkbox' } as unknown as HTMLElement
+    handleKeyDown({ key: 'g', target } as unknown as KeyboardEvent)
+    expect(layers.grid).toBe(false)
   })
 })
