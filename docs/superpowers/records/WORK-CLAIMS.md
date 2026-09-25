@@ -23,7 +23,7 @@ Hermes hands back by releasing the row after a clean commit.
 | Review 2a (Hermes's brief-07 commits a1e0349..4f2fe22) | briefs/04-review.md | read-only | - | 2026-09-25 00:15 | DONE: Changes required (1 Critical sandwiched slivers, 1 Important T-junction join untested, 11 minor); review-hermes-fixes.md |
 | Review 2a fixes | briefs/08-review2a-fixes.md | main checkout / feat-dashboard | - | 2026-09-25 06:20 | DONE: 12 commits 536fca7..d570927, report 64023ad; 462 passed; A 1,033 / B 596 passed; 10 of 21 old removals were real surface, all kept now |
 | Sliver ray confirmation + folds | briefs/09-sliver-ray-confirmation.md | main checkout / feat-dashboard | - | 2026-09-25 08:10 | DONE: 3386c4f, 62bee9d, 54fbce5, 3d30327, report d9673c1; 497 passed; A 1,031 / B 600; slots A 3540, 4659 refused; folds A 34/43, B 22/31 |
-| Review part 2 (side rebuild, merge, briefs 08 and 09) | briefs/04-review.md | read-only, committed state at 8a81747 | Claude subagent (review 2) | 2026-09-25 11:15 | running |
+| Review part 2 (side rebuild, merge, briefs 08 and 09) | briefs/04-review.md | read-only, committed state at e27eb79 | - | 2026-09-25 12:05 | DONE: Changes required (C1 double layers from restored pieces, C2 real underside deleted, I1 band replaces any face, I2 floor taken as lower surface, 5 minor); review-side-rebuild.md; all folded into brief 10 |
 | Dashboard fix wave | briefs/05-dashboard-fix-wave.md | main checkout | - | queued | after review |
 | Leftovers | briefs/06-leftovers.md | main checkout | - | queued | any time a slot is free |
 | Side rebuild follow-ups | briefs/10-side-rebuild-followups.md | main checkout / feat-dashboard | Claude subagent (brief 10) | 2026-09-25 11:15 | running |

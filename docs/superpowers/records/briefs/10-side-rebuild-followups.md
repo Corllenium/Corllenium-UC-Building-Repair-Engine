@@ -44,5 +44,45 @@ are the known gaps it reported. Main checkout, test-first, one commit per item.
    Unity). The project's blocked-operation rule forbids treating opposite-normal coincident pairs as
    duplicates, so removing one needs the owner's explicit OK.
 
+## Added from review part 2 (2026-09-25 12:10; `review-side-rebuild.md`, probes in `docs/superpowers/records/scripts/review2-side-rebuild/`) — do R2-C1 and R2-C2 FIRST
+
+- **R2-C1 (Critical) the side rebuild makes its own z-fighting double layers.** The coincidence rule
+  runs once, before the cap guard, and skips a wall's own pieces (`solidify.py:1368`); the guard can
+  later give pieces back while keeping the wall faces lying on them (`compare.py:1418-1421`,
+  `1446-1451`, `1514-1516`); and two coincident top regions each get their own bottom. Probes
+  `probe_restored_piece_double_layer.py`, `probe_restored_piece_same_material.py`,
+  `probe_double_bottom.py`: coplanar double layers of 21.3, 14.5 (at 2000 in scale) and 1,600 sq in
+  ship with `passed = True`. Fix: when a piece is given back, give back (refuse) every new face lying
+  on it; re-run the coincidence test after the guard's last round; one bottom per footprint however
+  many coincident tops. Count the pieces given back because a wall lost a face (review M3).
+- **R2-C2 (Critical) a real underside is still deleted.** The underside test treats a slab's
+  underside as a top when a neighbour's side hangs along one of its edges (`solidify.py:773`); its
+  invented bottom covers it through the shell exemption (`compare.py:1500-1507`); the hidden pass
+  deletes the real underside and 1,600 sq in of invented floor ships 8 in lower, `passed = True`
+  (`probe_underside_with_hanging_neighbour.py`; the suspects on A are regions 467, 166, 244). Fix:
+  decide top versus underside by looking above AND below the region (sky above and the slab body
+  below for a top), not by which sides hang; this also covers review M2
+  (`probe_real_top_taken_for_underside.py`, a real top taken for an underside).
+- **R2-I1 rule 4 replaces any face in the side band**: no check of material or of belonging to the
+  slab, so a concrete side ships as a wall in the paving material and, at real scale, a sign standing
+  1.2 in outside the slab is deleted as a piece (`probe_side_material.py`, `probe_object_in_band.py`).
+  Fix: a piece must share the wall's material (the wall takes the replaced side's material, not the
+  top's) and be connected to the slab's outline (edge-adjacent or within the band along the outline,
+  not merely near its plane).
+- **R2-I2 one deep own side lets the floor under an open slab become its "lower surface"** and rule 5
+  then boxes in whatever stands there (`probe_lower_surface_floor.py`: a bench and the lower slab's
+  top deleted, `passed = True`). Fix: accept a lower surface only when the slab's own sides reach it
+  along a real, length-weighted share of the outline; never extend a side that is whole at its own
+  depth; report every region whose walls or volume were set by a lower surface deeper than its
+  representative depth plus `side_band`.
+- **R2-M1** the opened-crack rule excuses a crack up to 2 x the border tolerance and never asks what
+  shows through (`probe_opened_crack_width.py`): measure against AFTER triangles in BEFORE's own
+  plane and material, require AFTER to show sky or an exposed side, pin a case between 0.15 and
+  0.3 in. **R2-M4** stale docstrings (`solidify_feedback` "only faces are ADDED" and rule 2;
+  `cover_max_exposure` "FRONT side"; `cli.py:12-13` "overwriting"; the session record's cap-guard
+  cell). **R2-M5** two SR6 tests pin plans that never ship (`test_a_top_edge_that_ran_into_an_
+  underside_only_is_a_side`, `_planned` reports no replaced pieces): test shipped behaviour.
+Every probe above becomes a regression test that fails before the fix and passes after.
+
 Finish as brief 03 (both runs, audit, close-ups of the ramp and B region 92 read), report
 `side-rebuild-followups-report.md`.
