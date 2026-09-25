@@ -38,8 +38,9 @@ def test_guard_view_validation(client, imported_cube, monkeypatch):
     assert len(opened_paths) == 1
     assert opened_paths[0].endswith("guard_+z.png")
 
-    # Ensure VALID_GUARD_VIEWS contains exactly the six axis views
-    assert set(VALID_GUARD_VIEWS) == {"+x", "-x", "+y", "-y", "+z", "-z"}
+    # Ensure VALID_GUARD_VIEWS contains the six axis views and failing views (n7)
+    expected_views = {"+x", "-x", "+y", "-y", "+z", "-z", *(f"fail_{i}" for i in range(26))}
+    assert set(VALID_GUARD_VIEWS) == expected_views
 
 
 def test_guard_images_written_by_run(client, imported_cube):
