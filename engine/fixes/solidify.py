@@ -1363,6 +1363,9 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
     # beside a lower top fails the last two: the review's overhang has the top's own side hanging
     # along the whole shared edge; file A's regions 57 and 455 lie outside the tops' outlines.
     interfaces: dict[int, int] = {}
+    # review of brief 10, M6: every underside the hull test judged, with its fraction inside the
+    # top's convex hull -- a block and an overhang over a notch read alike, so they are listed
+    interface_candidates: list[dict] = []
     for k, plan in enumerate(plans):
         if plan["rep"] is None:
             continue
@@ -1377,8 +1380,13 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
                 continue
             foot_u = _footprint(topo, np.nonzero(topo.face_region == u)[0])
             area_u = float(shapely.area(foot_u))
-            if area_u > 0.0 and (float(shapely.area(shapely.intersection(foot_u, hull)))
-                                 >= INTERFACE_HULL_FRACTION * area_u):
+            inside = float(shapely.area(shapely.intersection(foot_u, hull))) if area_u > 0.0 else 0.0
+            taken = area_u > 0.0 and inside >= INTERFACE_HULL_FRACTION * area_u
+            interface_candidates.append({"region": int(u), "top": int(plan["region"]),
+                                         "area": round(area_u, 1),
+                                         "inside_hull": round(inside / area_u, 5) if area_u else 0.0,
+                                         "taken": bool(taken)})
+            if taken:
                 interfaces[u] = k
                 plan["interfaces"].append(u)
 
@@ -1795,6 +1803,10 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
         #: Brief 10 item 6. Of those, the undersides of BLOCKS STANDING ON a slab, in its top
         #: plane: the slab runs on beneath them (its volume and bottom take in their footprints).
         "blocks_standing_on_slabs": len(interfaces),
+        #: Review of brief 10, M6. Every underside item 6's hull test judged: its region, the top
+        #: it would stand on, its footprint area (sq in), the fraction of it inside that top's
+        #: convex hull, and whether it was taken for a block (`INTERFACE_HULL_FRACTION`).
+        "interface_candidates": interface_candidates,
         #: Outline edges of top surfaces the export left OPEN (edge count 1) -- what the first
         #: solidify walled. Informational since SR2, which walls what is missing or broken.
         "open_outline_edges": open_edge_count,

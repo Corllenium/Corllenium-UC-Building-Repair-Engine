@@ -2091,3 +2091,16 @@ def test_a_block_at_a_slabs_edge_is_read_as_a_block_not_an_overhang():
     at_bottom = [t for t in tri if np.allclose(t[:, 2], -8.0)]
     assert sum(shapely.Polygon(t[:, :2]).intersection(notch).area
                for t in at_bottom) == pytest.approx(400.0)
+
+
+def test_every_underside_the_hull_test_judged_is_listed_with_its_fraction():
+    """Review of brief 10, M6: since a block and an overhang over a notch read alike, the report
+    lists every underside item 6's hull test judged -- its region, the top it would stand on, its
+    footprint area, the fraction inside the top's convex hull, and whether it was taken -- so a
+    person can look at each (file B: its stair blocks, and region 134 at the bar)."""
+    from engine.tests.fixtures.build import slab_with_a_block_standing_on_it
+    m = slab_with_a_block_standing_on_it(at_edge=True)
+    r = solidify(m, analyse_topology(m), _I1)
+    [c] = r.report["interface_candidates"]
+    assert c["taken"] is True and c["inside_hull"] == pytest.approx(1.0)
+    assert c["area"] == pytest.approx(400.0)
