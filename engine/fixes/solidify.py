@@ -633,6 +633,59 @@ def _wound_outward(quad, positions, outward) -> list[tuple[int, int, int]]:
     return [(a, b, c), (a, c, d)]
 
 
+def _wall_rest(pa: np.ndarray, pb: np.ndarray, q: np.ndarray, h_a: float, h_b: float,
+               quad: list[int], built: list, tol: float, builder) -> list[tuple[int, int, int]]:
+    """Review of brief 10, I2: the triangles of the wall under edge `pa -> pb` (outward `q`, down
+    `h_a` and `h_b` at its ends, corners `quad`: a, b, b down, a down) over the part of its side
+    that no wall already built (`built`, each four corners) in the same plane -- every corner
+    within `tol` of it -- covers. In the side's own frame, `u` along the edge and `z` the height.
+    Untouched by any, it is `quad` as two triangles (`_wound_outward`), as it always was; covered
+    whole, nothing; otherwise the rest is triangulated (`shapely.constrained_delaunay_triangles`)
+    and each triangle wound outward, a corner at one of `quad`'s its vertex, any other a vertex at
+    that point (`builder.vertex`: an earlier wall's corner there is reused, not duplicated)."""
+    t = pb - pa
+    t[2] = 0.0
+    length = float(np.linalg.norm(t))
+    if length <= 1e-9:
+        return []
+    th = t / length
+    corners = [(0.0, float(pa[2])), (length, float(pb[2])), (length, float(pb[2]) - h_b),
+               (0.0, float(pa[2]) - h_a)]
+    wall = shapely.Polygon(corners)
+    cover = []
+    for other in built:
+        other = np.asarray(other, dtype=np.float64)
+        if float(np.abs((other - pa) @ q).max()) > tol:
+            continue
+        poly = shapely.Polygon(np.stack([(other - pa) @ th, other[:, 2]], axis=1))
+        if poly.is_valid and poly.area > 0.0:
+            cover.append(poly)
+    covered = shapely.union_all(cover) if cover else None
+    if covered is None or float(shapely.area(shapely.intersection(wall, covered))) <= 1e-6:
+        return _wound_outward(quad, builder.positions, q)
+    rest = shapely.difference(wall, covered)
+    out = []
+    for part in getattr(rest, "geoms", [rest]):
+        if part.geom_type != "Polygon" or part.area <= 1e-6:
+            continue
+        for tri in getattr(shapely.constrained_delaunay_triangles(part), "geoms", []):
+            if tri.geom_type != "Polygon" or tri.is_empty:
+                continue
+            ids = []
+            for u, z in np.asarray(tri.exterior.coords)[:3]:
+                known = [k for k, (cu, cz) in enumerate(corners)
+                         if abs(cu - u) <= 1e-9 and abs(cz - z) <= 1e-9]
+                if known:
+                    ids.append(quad[known[0]])
+                else:
+                    ids.append(builder.vertex(np.array([pa[0] + u * th[0], pa[1] + u * th[1], z])))
+            points = np.array([builder.positions[i] for i in ids], dtype=np.float64)
+            if float(np.cross(points[1] - points[0], points[2] - points[0]) @ q) < 0.0:
+                ids = [ids[0], ids[2], ids[1]]
+            out.append(tuple(ids))
+    return out
+
+
 def _footprint(topo: Topology, members: np.ndarray):
     """The region's xy footprint: the union of its triangles seen from above, prepared."""
     tri = topo.positions_w[topo.face_w[members]][:, :, :2]
@@ -1530,14 +1583,21 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
                     wall_fallback += 1
                 h_a = h_b = edge_h
             wall_heights.append(max(h_a, h_b))
+            quad = [int(welded_to_original[a]), int(welded_to_original[b]),
+                    down(b, h_b), down(a, h_a)]
+            # review of brief 10, I2: only over the part of its side no earlier wall covers --
+            # two new faces are never laid one on the other (a later wall lying partly on an
+            # earlier one was refused WHOLE, and at a step between two slabs the band under the
+            # upper one stayed open)
+            triangles = _wall_rest(pa, pb, q, h_a, h_b, quad, built_walls, tol, builder)
+            if not triangles:
+                continue
             group = len(group_region)
             group_region.append(region)
             group_kind.append("wall")
             length = float(np.linalg.norm(pb - pa))
             group_length.append(length)
-            quad = [int(welded_to_original[a]), int(welded_to_original[b]),
-                    down(b, h_b), down(a, h_a)]
-            for triangle in _wound_outward(quad, builder.positions, q):
+            for triangle in triangles:
                 builder.face(triangle, wall_material, wall_uv, group)
             for f in found:
                 if f not in claimed:            # a corner piece goes to the first wall
@@ -2234,26 +2294,24 @@ class _Planes:
 def _coincident_new_faces(solid: MeshData, new_faces: np.ndarray, new_group: np.ndarray,
                           replaced_group: np.ndarray, ok_input: np.ndarray,
                           tol: float) -> np.ndarray:
-    """Bool over `solid`'s faces: new faces lying ON an existing face (`_Planes.lying_on`) that
-    is not one of the new face's own group's pieces -- or ON a new face another group built
-    before it that is not itself refused here (review part 2, C1: one bottom per footprint).
+    """Bool over `solid`'s faces: new faces lying ON an existing ORIGINAL face
+    (`_Planes.lying_on`) that is not one of the new face's own group's pieces.
 
     Decided geometrically, not by pixels (review C1): a coincident pair renders as a tie, so no
     pixel rule can see a skirt laid exactly over an existing side, and one did ship as a
-    z-fighting double layer when that side was wound inward. Walls were deduplicated across
-    regions (`built_walls`) but bottoms were not: a top that is a duplicate layer of two
-    materials got a bottom under each of its regions, 1,600 sq in of m0 exactly over m1."""
+    z-fighting double layer when that side was wound inward.
+
+    Two NEW faces are never tested here (review of brief 10, I2): they are never built one on the
+    other in the first place -- a wall only over the part of its side no earlier wall covers
+    (`_wall_rest`), a bottom round the bottoms built before it in its plane (`_add_bottom`'s
+    `cut`). Refusing a later one whole where it overlapped an earlier one only in part reopened
+    the side band under the upper slab at a step between two slabs (0 of 160 sq in)."""
     out = np.zeros(solid.n_faces, bool)
     planes = _Planes(solid)
     orig = np.nonzero(np.asarray(ok_input, bool))[0]
-    new_ids = np.nonzero(new_faces)[0]
-    for f in new_ids:
+    for f in np.nonzero(new_faces)[0]:
         cand = orig[replaced_group[orig] != new_group[f]]
         if len(planes.lying_on(f, cand, tol)):
-            out[f] = True
-            continue
-        earlier = new_ids[(new_ids < f) & (new_group[new_ids] != new_group[f])]
-        if len(planes.lying_on(f, earlier[~out[earlier]], tol)):
             out[f] = True
     return out
 
