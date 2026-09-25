@@ -407,6 +407,37 @@ def remove_overlaps(mesh: MeshData, topo: Topology, positions_c: np.ndarray, fla
 DOUBLE_LAYER_MIN_AREA = 1.0
 
 
+def coplanar_overlap_pairs(tri: np.ndarray, normal: np.ndarray, tol: float, min_area: float,
+                           ids: np.ndarray | None = None) -> list[tuple[int, int, float, bool]]:
+    """`(i, j, shared sq in, opposite)` for every two of `ids` (every face with a normal, by
+    default) lying in one plane -- parallel (`|n . m| > PLANE_PARALLEL_DOT`), every corner of each
+    within `tol` of the other's plane -- whose outlines share more than `min_area`. `tri` is
+    `(F, 3, 3)`, `normal` `(F, 3)` unit normals (zero for a degenerate face)."""
+    ok = np.linalg.norm(normal, axis=1) > 0.5
+    ids = np.nonzero(ok)[0] if ids is None else np.asarray(ids, dtype=np.int64)[ok[ids]]
+    lo, hi = tri.min(axis=1) - tol, tri.max(axis=1) + tol
+    pairs: list[tuple[int, int, float, bool]] = []
+    for s in range(0, len(ids), 400):
+        rows = ids[s:s + 400]
+        near = ((lo[rows, None] <= hi[None, ids]) & (hi[rows, None] >= lo[None, ids])).all(axis=2)
+        near &= np.abs(normal[rows] @ normal[ids].T) > PLANE_PARALLEL_DOT
+        near &= ids[None, :] > rows[:, None]
+        for a, b in zip(*np.nonzero(near)):
+            i, j = int(rows[a]), int(ids[b])
+            sep = max(float(np.abs((tri[j] - tri[i][0]) @ normal[i]).max()),
+                      float(np.abs((tri[i] - tri[j][0]) @ normal[j]).max()))
+            if sep > tol:
+                continue
+            e1, e2 = plane_basis(normal[i])
+            basis = np.stack([e1, e2], axis=1)
+            shared = float(shapely.area(shapely.intersection(
+                shapely.Polygon((tri[i] - tri[i][0]) @ basis),
+                shapely.Polygon((tri[j] - tri[i][0]) @ basis))))
+            if shared > min_area:
+                pairs.append((i, j, shared, bool(normal[i] @ normal[j] < 0.0)))
+    return pairs
+
+
 def double_layers(positions_c: np.ndarray, faces: np.ndarray, depth_tol: float,
                   views=None, size: tuple[int, int] = (900, 600), caster_factory=EmbreeCaster,
                   min_area: float = DOUBLE_LAYER_MIN_AREA,
@@ -444,27 +475,7 @@ def double_layers(positions_c: np.ndarray, faces: np.ndarray, depth_tol: float,
     ok = length > 1e-12
     normal = np.zeros_like(cross)
     normal[ok] = cross[ok] / length[ok, None]
-    lo, hi = tri.min(axis=1) - depth_tol, tri.max(axis=1) + depth_tol
-    ids = np.nonzero(ok)[0]
-    pairs: list[tuple[int, int, float, bool]] = []
-    for s in range(0, len(ids), 400):
-        rows = ids[s:s + 400]
-        near = ((lo[rows, None] <= hi[None, ids]) & (hi[rows, None] >= lo[None, ids])).all(axis=2)
-        near &= np.abs(normal[rows] @ normal[ids].T) > PLANE_PARALLEL_DOT
-        near &= ids[None, :] > rows[:, None]
-        for a, b in zip(*np.nonzero(near)):
-            i, j = int(rows[a]), int(ids[b])
-            sep = max(float(np.abs((tri[j] - tri[i][0]) @ normal[i]).max()),
-                      float(np.abs((tri[i] - tri[j][0]) @ normal[j]).max()))
-            if sep > depth_tol:
-                continue
-            e1, e2 = plane_basis(normal[i])
-            basis = np.stack([e1, e2], axis=1)
-            shared = float(shapely.area(shapely.intersection(
-                shapely.Polygon((tri[i] - tri[i][0]) @ basis),
-                shapely.Polygon((tri[j] - tri[i][0]) @ basis))))
-            if shared > min_area:
-                pairs.append((i, j, shared, bool(normal[i] @ normal[j] < 0.0)))
+    pairs = coplanar_overlap_pairs(tri, normal, depth_tol, min_area)
     if not pairs:
         return empty
 

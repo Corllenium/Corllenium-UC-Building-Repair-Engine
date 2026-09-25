@@ -2149,3 +2149,54 @@ def test_a_wall_deeper_than_its_slab_is_reported_and_keeps_its_own_depth(monkeyp
     listed = r.report["walls_deeper_than_their_slab"]
     assert [(w["wall"], w["representative_side"]) for w in listed] == [(9.8, 1.3)] * 2
     assert _skirt_lows(r) == [-9.8] * 4 + [-1.3] * 4
+
+
+# ------------------------------------------ brief 15 item 2: one wall per side plane drawn twice
+
+
+def _x0_faces(mesh, ids):
+    """Of `ids`, the faces lying in the plane x = 0."""
+    tri = mesh.positions[mesh.face_v[np.asarray(ids, dtype=np.int64)]]
+    return [int(f) for f, t in zip(ids, tri) if np.allclose(t[:, 0], 0.0)]
+
+
+@pytest.mark.parametrize("kind", ["same", "opposite"])
+@pytest.mark.parametrize("size", [40.0, 2000.0])
+def test_a_side_drawn_twice_becomes_one_wall_over_its_union(kind, size):
+    """Brief 15 item 2: the export drew the slab's x = 0 side twice, in two pieces that overlap
+    over half the side (brief 14's lower-landing walls; opposite-wound where the per-face flip
+    turned one layer). Both are replaced by ONE wall over their union -- the whole side, whose
+    corners are vertices already, so none is invented -- wound outward by exposure (the side
+    seen from outside, -x) in the pieces' material. Nothing is drawn twice there any more."""
+    from engine.fixes.overlap import double_layers
+    from engine.tests.fixtures.build import slab_with_a_side_drawn_twice
+    m, pieces = slab_with_a_side_drawn_twice(kind, size)
+    r = solidify(m, analyse_topology(m), _I1)
+    assert r.replaced[pieces].all()
+    ds = r.report["double_sides"]
+    assert (ds["built"], ds["replaced"], ds["pieces"]) == (1, 1, 4)
+    assert r.report["invented_vertices"] == 0
+    wall = _x0_faces(r.mesh, np.nonzero(r.new_faces)[0])
+    tri = r.mesh.positions[r.mesh.face_v[wall]]
+    n = np.cross(tri[:, 1] - tri[:, 0], tri[:, 2] - tri[:, 0])
+    assert (n[:, 0] < 0.0).all()                                     # outward, -x
+    assert set(r.mesh.face_material[wall].tolist()) == {0}
+    assert _covered_area(r.mesh, wall, [1, 2]) == pytest.approx(8.0 * size)
+    d = double_layers(r.mesh.positions, r.mesh.face_v, 0.15, size=(120, 80))
+    assert d["count"] == 0
+
+
+@pytest.mark.parametrize("kind,reason", [("materials", "different_materials"),
+                                         ("detached", "not_on_a_slab"),
+                                         ("parapet", "new_vertices")])
+def test_a_side_drawn_twice_is_kept_and_reported_where_one_wall_cannot_replace_it(kind, reason):
+    """Brief 15 item 2: pieces of different materials are kept and reported; two panels drawn
+    twice in the side's plane but touching nothing of the slab are not its side (review of
+    brief 10, I3: a piece belongs to the slab in 3-D); and a union that needs a vertex that does
+    not exist (the parapet's corner at (0.75W, 3)) is measured and reported, not built."""
+    from engine.tests.fixtures.build import slab_with_a_side_drawn_twice
+    m, pieces = slab_with_a_side_drawn_twice(kind)
+    r = solidify(m, analyse_topology(m), _I1)
+    assert not r.replaced[pieces].any()
+    ds = r.report["double_sides"]
+    assert ds["built"] == 0 and ds["kept"] == {reason: 1}

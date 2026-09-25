@@ -2299,3 +2299,42 @@ def real_top_under_an_open_landing():
     return _mesh("real_top_under_an_open_landing", m.positions.tolist(), m.uvs.tolist(),
                  m.face_v[keep].tolist(), m.face_vt[keep].tolist(), materials=("m0", "m1"),
                  face_material=m.face_material[keep].tolist())
+
+
+def slab_with_a_side_drawn_twice(kind="same", size=40.0):
+    """Brief 15 item 2 (brief 14's lower-landing walls): a closed slab `size` square, 8 in deep,
+    wound outward, whose x = 0 side the export drew TWICE, in two pieces that overlap:
+      "same"       A over y 0..0.75W and B over y 0.25W..W, both the full 8 in, both wound -x
+                   (outward): they share 0.5W x 8 in, and their union is the whole side, whose
+                   four corners are vertices already;
+      "opposite"   the same, B wound +x (inward), as the per-face flip leaves one layer;
+      "materials"  the same, B in m1;
+      "detached"   the side is ONE face (whole), and the two pieces stand in its plane beyond the
+                   slab (y W+10..W+25 and W+15..W+30, z -6..-2), touching nothing of it;
+      "parapet"    the side is one face, and the two pieces stand ON its top edge, A over y
+                   0..0.75W up to z 4 and B over y 0.25W..W up to z 3: their union has a corner
+                   at (0.75W, 3) that is no vertex -- a new one would be needed.
+    Returns `(mesh, the two pieces' face ids)`."""
+    s = float(size)
+    P, uvs, fv, fvt, fm = [], [], [], [], []
+    whole = kind in ("detached", "parapet")
+    _box_without(P, uvs, fv, fvt, fm, 0, s, 0, s, -8, 0, skip=() if whole else ("x0",))
+
+    def piece(y0, y1, z0, z1, outward=True, material=0):
+        b = len(P)
+        P.extend([[0.0, y1, z0], [0.0, y0, z0], [0.0, y0, z1], [0.0, y1, z1]])   # -x
+        loop = (b, b + 1, b + 2, b + 3) if outward else (b + 3, b + 2, b + 1, b)
+        first = len(fv)
+        _quads(P, uvs, fv, fvt, fm, [loop], material=material)
+        return [first, first + 1]
+
+    if kind == "detached":
+        ids = piece(s + 10, s + 25, -6, -2) + piece(s + 15, s + 30, -6, -2)
+    elif kind == "parapet":
+        ids = piece(0.0, 0.75 * s, 0.0, 4.0) + piece(0.25 * s, s, 0.0, 3.0)
+    else:
+        ids = (piece(0.0, 0.75 * s, -8.0, 0.0)
+               + piece(0.25 * s, s, -8.0, 0.0, outward=(kind != "opposite"),
+                       material=1 if kind == "materials" else 0))
+    return (_mesh(f"slab_with_a_side_drawn_twice_{kind}", P, uvs, fv, fvt, materials=("m0", "m1"),
+                  face_material=fm), ids)

@@ -1753,6 +1753,36 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
                              "uv_scale": uv_scale})
         build_bottom(bottom_plans[-1], down)
 
+    # ---- brief 15 item 2: one wall per side plane the export drew twice --------------------------
+    exposure_cache: list = []
+
+    def exposure():
+        if not exposure_cache:
+            from engine.vis.exposure import compute_side_exposure
+            centre = (topo.positions_w.min(axis=0) + topo.positions_w.max(axis=0)) / 2.0
+            exposure_cache.append(compute_side_exposure(
+                topo.positions_w - centre, topo.face_w, np.ones(topo.face_w.shape[0], bool),
+                n_dirs=getattr(profile, "n_dirs", 128)))
+        return exposure_cache[0]
+
+    union_walls, union_kept = _double_sides(topo, mesh, faces, top_faces, claimed, built_walls,
+                                            tol, max(tol, EPS_IN), top_min_nz, exposure)
+    union_groups: list[int] = []
+    for wall in union_walls:
+        group = len(group_region)
+        group_region.append(wall["region"])
+        group_kind.append("wall")
+        group_length.append(float(np.ptp(np.asarray([topo.positions_w[w] for t in wall["triangles"]
+                                                      for w in t])[:, :2], axis=0).max()))
+        scale = _uv_scale(mesh, topo, np.asarray(wall["pieces"], dtype=np.int64), wall["origin"],
+                          wall["basis"])
+        for ids in wall["triangles"]:
+            builder.face([int(welded_to_original[w]) for w in ids], wall["material"], scale, group)
+        for f in wall["pieces"]:
+            replaced_group[f] = group
+            claimed.add(f)
+        union_groups.append(group)
+
     solid, new_faces, new_group = builder.build()
     cap_history: list = []
     cap_removed = 0
@@ -1860,6 +1890,18 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
         #: review C1 came from, and the new faces lying on them are refused now.
         "side_pieces_given_back": int(sum(1 for f in np.nonzero(replaced_group >= 0)[0]
                                           if not replaced[f] and not kept_groups[replaced_group[f]])),
+        #: Brief 15 item 2. Side planes the export drew twice (`_double_sides`): how many were
+        #: found, how many got ONE wall over their union (`built`) and how many of those the cap
+        #: guard kept whole (`replaced`), the pieces and area those replace, and every other one
+        #: by why it was kept as it is.
+        "double_sides": {"planes": len(union_walls) + sum(union_kept.values()),
+                         "built": len(union_walls),
+                         "replaced": int(sum(1 for g in union_groups if kept_groups[g])),
+                         "pieces": int(sum(len(w["pieces"]) for w, g in zip(union_walls, union_groups)
+                                           if kept_groups[g])),
+                         "area": round(float(sum(w["area"] for w, g in zip(union_walls, union_groups)
+                                                 if kept_groups[g])), 3),
+                         "kept": dict(sorted(union_kept.items()))},
         #: Review of brief 10, I1. The regions whose volume the cap guard's rule 6 may see
         #: through (a sky-seeing top as deep as its own measured sides), and every other planned
         #: region by why it may not.
@@ -1993,6 +2035,173 @@ def _relook_walls(out: MeshData, out_new: np.ndarray, out_group: np.ndarray, wal
             else:
                 fvt[f] = -1
     return replace(out, face_material=fm, face_vt=fvt, uvs=uvs), changed
+
+
+#: Brief 15 item 2: a corner of a side's union matches an existing vertex within this many
+#: inches -- it IS that vertex; farther, the union needs a vertex that does not exist.
+_UNION_VERTEX_TOL = 1e-3
+
+
+def _double_sides(topo: Topology, mesh: MeshData, faces: _Faces, top_faces: np.ndarray,
+                  claimed: set, built_walls: list, tol: float, touch: float,
+                  top_min_nz: float, exposure) -> tuple[list[dict], dict]:
+    """Brief 15 item 2 (brief 14's lower-landing walls): the side planes the export drew TWICE,
+    and what ONE wall over each would be.
+
+    A DOUBLE SIDE is a set of eligible, unclaimed SIDE faces (`|n_z| <= top_min_nz`) drawn twice
+    within one plane: connected through pairs sharing more than `DOUBLE_LAYER_MIN_AREA` sq in
+    (`engine.fixes.overlap.coplanar_overlap_pairs`, within `tol` of one plane), any winding --
+    brief 14 found the per-face flip turning one layer and not the other -- plus any unclaimed
+    eligible face of that plane lying on their union. It is replaced by ONE wall over the union
+    when:
+    - it belongs to a slab: connected IN 3-D, within `touch`, to a top face of a planned slab
+      (`_touching`, the belonging test of the review of brief 10, I3);
+    - its faces share one material (otherwise kept: `different_materials`);
+    - the union is one polygon without holes (`not_one_polygon`) whose every corner is an
+      existing vertex (`new_vertices`: solidify may invent vertices only under its existing
+      rules, which build walls from a top's outline, not unions);
+    - it lies on no other face -- claimed by a wall already, or a top (`lies_on_another_face`)
+      -- and on no wall built this run (`beside_a_new_wall`): two new faces are never laid one on
+      the other (review of brief 10, I2);
+    - some side of it is seen (`not_seen`: both sides unexposed on the original mesh -- the
+      hidden pass deletes it as it is).
+    Wound outward BY EXPOSURE: to the side of the plane its faces are seen from most, weighted by
+    area (`exposure()` gives the original mesh's `(front, back)`).
+
+    Returns `(walls, kept)`: per wall `{"pieces", "region", "triangles" (welded ids, wound),
+    "material", "normal", "origin", "basis", "area"}`, and `{reason: count}`."""
+    from engine.fixes.overlap import DOUBLE_LAYER_MIN_AREA, coplanar_overlap_pairs
+
+    kept: dict[str, int] = {}
+    side = np.nonzero(faces.eligible & (np.abs(faces.normal[:, 2]) <= top_min_nz))[0]
+    side = np.array([f for f in side.tolist() if f not in claimed], dtype=np.int64)
+    if len(side) < 2:
+        return [], kept
+    pairs = coplanar_overlap_pairs(faces.tri, faces.normal, tol, DOUBLE_LAYER_MIN_AREA, side)
+    if not pairs:
+        return [], kept
+    parent: dict[int, int] = {}
+
+    def find(i):
+        parent.setdefault(i, i)
+        while parent[i] != i:
+            parent[i] = parent[parent[i]]
+            i = parent[i]
+        return i
+
+    for i, j, _shared, _opposite in pairs:
+        parent[find(i)] = find(j)
+    groups: dict[int, list[int]] = {}
+    for f in sorted(parent):
+        groups.setdefault(find(f), []).append(f)
+    tops = set(np.asarray(top_faces, dtype=np.int64).tolist())
+    P = topo.positions_w
+    walls: list[dict] = []
+
+    def keep(reason):
+        kept[reason] = kept.get(reason, 0) + 1
+
+    for comp in sorted(groups.values(), key=lambda c: (-len(c), c[0])):
+        normal = faces.normal[comp[0]].copy()
+        if normal[int(np.argmax(np.abs(normal)))] < 0.0:
+            normal = -normal
+        origin = faces.tri[comp[0]][0].copy()
+        e1, e2 = plane_basis(normal)
+        basis = np.stack([e1, e2], axis=1)
+
+        def poly(f):
+            return shapely.Polygon((faces.tri[f] - origin) @ basis)
+
+        union = shapely.union_all([poly(f) for f in comp])
+        lo = faces.tri[comp].reshape(-1, 3).min(axis=0) - touch
+        hi = faces.tri[comp].reshape(-1, 3).max(axis=0) + touch
+        near = faces.near(lo, hi, every=True)
+        in_plane = near[np.abs((faces.tri[near] - origin) @ normal).max(axis=1) <= tol]
+        members = set(comp)
+        blocked = False
+        for f in in_plane.tolist():
+            if f in members or float(shapely.area(shapely.intersection(poly(f), union))) <= 1e-3:
+                continue
+            if faces.eligible[f] and f not in claimed and abs(float(faces.normal[f] @ normal)) > 0.999:
+                members.add(f)              # an unclaimed face of the plane lying on the union
+            else:
+                blocked = True
+        comp = sorted(members)
+        union = shapely.union_all([poly(f) for f in comp])
+        # it belongs to a slab: connected in 3-D to a planned top
+        near_tops = [f for f in near.tolist() if f in tops]
+        labels = _touching([faces.tri[f] for f in comp] + [faces.tri[f] for f in near_tops],
+                           touch) if near_tops else None
+        mine = set(int(x) for x in labels[:len(comp)]) if labels is not None else set()
+        owners = [int(topo.face_region[near_tops[k]]) for k in range(len(near_tops))
+                  if int(labels[len(comp) + k]) in mine]
+        if not owners:
+            keep("not_on_a_slab")
+            continue
+        if len({int(mesh.face_material[f]) for f in comp}) > 1:
+            keep("different_materials")
+            continue
+        if blocked:
+            keep("lies_on_another_face")
+            continue
+        union = shapely.simplify(union, 1e-6)
+        if union.geom_type != "Polygon" or len(union.interiors) or union.is_empty:
+            keep("not_one_polygon")
+            continue
+        clash = False
+        for quad in built_walls:
+            quad = np.asarray(quad, dtype=np.float64)
+            if float(np.abs((quad - origin) @ normal).max()) <= tol:
+                q2 = shapely.Polygon((quad - origin) @ basis)
+                if q2.is_valid and float(shapely.area(shapely.intersection(q2, union))) > 1e-3:
+                    clash = True
+        if clash:
+            keep("beside_a_new_wall")
+            continue
+        # every corner of the union is an existing vertex
+        verts = np.unique(topo.face_w[near])
+        rel = P[verts] - origin
+        on = np.abs(rel @ normal) <= tol
+        verts, uv = verts[on], rel[on] @ basis
+        corners = np.asarray(union.exterior.coords)[:-1]
+        match = {}
+        for c in corners:
+            d = np.linalg.norm(uv - c, axis=1) if len(uv) else np.zeros(0)
+            if len(d) and float(d.min()) <= _UNION_VERTEX_TOL:
+                match[(round(float(c[0]), 9), round(float(c[1]), 9))] = int(verts[int(np.argmin(d))])
+        if len(match) < len(corners):
+            keep("new_vertices")
+            continue
+        front, back = exposure()
+        area = 0.5 * np.linalg.norm(np.cross(faces.tri[comp][:, 1] - faces.tri[comp][:, 0],
+                                             faces.tri[comp][:, 2] - faces.tri[comp][:, 0]), axis=1)
+        facing = faces.normal[comp] @ normal > 0.0
+        plus = float((area * np.where(facing, front[comp], back[comp])).sum())
+        minus = float((area * np.where(facing, back[comp], front[comp])).sum())
+        if plus <= 0.0 and minus <= 0.0:
+            keep("not_seen")
+            continue
+        out = normal if plus >= minus else -normal
+        triangles = []
+        for tri2 in getattr(shapely.constrained_delaunay_triangles(union), "geoms", []):
+            if tri2.geom_type != "Polygon" or tri2.is_empty:
+                continue
+            ids = [match.get((round(float(x), 9), round(float(y), 9)))
+                   for x, y in np.asarray(tri2.exterior.coords)[:3]]
+            if any(i is None for i in ids):
+                triangles = None
+                break
+            pts = P[ids]
+            if float(np.cross(pts[1] - pts[0], pts[2] - pts[0]) @ out) < 0.0:
+                ids = [ids[0], ids[2], ids[1]]
+            triangles.append(ids)
+        if not triangles:
+            keep("new_vertices")
+            continue
+        walls.append({"pieces": comp, "region": owners[0], "triangles": triangles,
+                      "material": int(mesh.face_material[comp[0]]), "normal": out,
+                      "origin": origin, "basis": basis, "area": float(union.area)})
+    return walls, kept
 
 
 def _welded_to_original(mesh: MeshData, topo: Topology) -> np.ndarray:
