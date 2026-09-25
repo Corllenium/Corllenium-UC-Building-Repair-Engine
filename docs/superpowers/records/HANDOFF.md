@@ -79,8 +79,11 @@ work in progress: finish it, test it, commit it; never discard it.
   checkout's engine).
 - **Never touch**: `docker-compose.yml` and the Docker files at the root (another session's), any
   untracked file you did not create, the live export folder `D:\PROJECTS\UC ENVIRONMENT BUILDING\...`,
-  the owner's campus model `D:\PROJECTS\UC\02-SKETCHUP\current\...skp`, and the running servers
-  (uvicorn 8190, vite 5190, http.server 5180, Postgres 5490).
+  the owner's campus model `D:\PROJECTS\UC\02-SKETCHUP\current\...skp`, and the running servers.
+  Since 2026-09-24 01:22 they are Docker containers started by another session: `fixer-api` (8190),
+  `fixer-web` (5190 and 5180, nginx), `fixer-db` (Postgres 16, 5490); their images were built at that
+  time, so the live dashboard runs code from before 2026-09-24 01:22. Rebuilding or restarting them is
+  the owner's decision.
 - **API tests** (`pytest api`) drop and recreate the shared test database; never run them while any
   other process runs them.
 - **Shared working tree**: other sessions edit this folder. Stage files by name, never `git add -A`
