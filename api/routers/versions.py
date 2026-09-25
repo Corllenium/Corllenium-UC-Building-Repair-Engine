@@ -116,6 +116,29 @@ def get_texture(
     return FileResponse(tex_path)
 
 
+@router.get("/{id}/assets/{name}")
+def get_version_asset(
+    id: int,
+    name: str,
+    db: Session = Depends(get_db),
+    settings: Settings = Depends(get_settings),
+):
+    asset = db.scalar(
+        select(VersionAsset).where(
+            VersionAsset.version_id == id,
+            VersionAsset.name == name,
+        )
+    )
+    if asset is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Asset not found")
+
+    path = settings.data_dir / asset.path
+    if not path.exists():
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Asset file missing")
+
+    return FileResponse(path)
+
+
 @router.post("/{id}/fix", response_model=FixRunOut, status_code=status.HTTP_201_CREATED)
 def run_fix_pipeline(
     id: int,

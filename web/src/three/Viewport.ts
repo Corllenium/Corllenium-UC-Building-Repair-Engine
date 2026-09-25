@@ -27,7 +27,11 @@ export class Viewport {
     grid?: THREE.LineSegments
     outline?: THREE.LineSegments
     tri?: THREE.LineSegments
+    creases?: THREE.LineSegments
+    hidden?: THREE.Mesh
+    backfaceDiagnostic?: THREE.Mesh
   } = {}
+  private lastPositions?: Float32Array
   private animId: number = 0
   private resizeObserver: ResizeObserver
   onPick?: (faceId: number, point: THREE.Vector3) => void
@@ -128,6 +132,101 @@ export class Viewport {
     const mesh = new THREE.Mesh(geom, mat)
     this.parts.facade = mesh
     this.group.add(mesh)
+    this.lastPositions = positions
+
+    // Backface diagnostic mesh (magenta / red for backfaces when one-sided diagnostic is active)
+    const backfaceMat = new THREE.MeshBasicMaterial({
+      color: 0xff007f, // magenta
+      side: THREE.BackSide,
+      polygonOffset: true,
+      polygonOffsetFactor: 1,
+      polygonOffsetUnits: 1,
+    })
+    const backfaceMesh = new THREE.Mesh(geom, backfaceMat)
+    backfaceMesh.visible = false
+    this.parts.backfaceDiagnostic = backfaceMesh
+    this.group.add(backfaceMesh)
+
+    // Wireframe triangle edges
+    const triLines: number[] = []
+    for (let f = 0; f < nFaces; f++) {
+      const idx = f * 9
+      const ax = positions[idx], ay = positions[idx + 1], az = positions[idx + 2]
+      const bx = positions[idx + 3], by = positions[idx + 4], bz = positions[idx + 5]
+      const cx = positions[idx + 6], cy = positions[idx + 7], cz = positions[idx + 8]
+      // a -> b
+      triLines.push(ax, ay, az, bx, by, bz)
+      // b -> c
+      triLines.push(bx, by, bz, cx, cy, cz)
+      // c -> a
+      triLines.push(cx, cy, cz, ax, ay, az)
+    }
+    if (triLines.length > 0) {
+      const tGeom = new THREE.BufferGeometry()
+      tGeom.setAttribute('position', new THREE.Float32BufferAttribute(triLines, 3))
+      const tLines = new THREE.LineSegments(
+        tGeom,
+        new THREE.LineBasicMaterial({ color: COLORS.tri, linewidth: 1, transparent: true, opacity: 0.6 })
+      )
+      tLines.visible = false
+      this.parts.tri = tLines
+      this.group.add(tLines)
+    }
+
+    // Soft creases: edges between adjacent faces within a normal angle threshold (2° to 45°)
+    const edgeMap = new Map<string, { nx: number; ny: number; nz: number; p1: [number, number, number]; p2: [number, number, number] }>()
+    const creaseLines: number[] = []
+
+    function vKey(x: number, y: number, z: number): string {
+      return `${Math.round(x * 1000)},${Math.round(y * 1000)},${Math.round(z * 1000)}`
+    }
+
+    for (let f = 0; f < nFaces; f++) {
+      const idx = f * 9
+      const ax = positions[idx], ay = positions[idx + 1], az = positions[idx + 2]
+      const bx = positions[idx + 3], by = positions[idx + 4], bz = positions[idx + 5]
+      const cx = positions[idx + 6], cy = positions[idx + 7], cz = positions[idx + 8]
+      const kA = vKey(ax, ay, az)
+      const kB = vKey(bx, by, bz)
+      const kC = vKey(cx, cy, cz)
+
+      const nx = data.normals[idx]
+      const ny = data.normals[idx + 1]
+      const nz = data.normals[idx + 2]
+
+      const edges: [string, string, [number, number, number], [number, number, number]][] = [
+        [kA, kB, [ax, ay, az], [bx, by, bz]],
+        [kB, kC, [bx, by, bz], [cx, cy, cz]],
+        [kC, kA, [cx, cy, cz], [ax, ay, az]],
+      ]
+
+      for (const [k1, k2, p1, p2] of edges) {
+        const edgeKey = k1 < k2 ? `${k1}|${k2}` : `${k2}|${k1}`
+        const existing = edgeMap.get(edgeKey)
+        if (existing) {
+          const dot = existing.nx * nx + existing.ny * ny + existing.nz * nz
+          // angle between 2 deg (dot ~ 0.9994) and 45 deg (dot ~ 0.707)
+          if (dot > 0.707 && dot < 0.999) {
+            creaseLines.push(p1[0], p1[1], p1[2], p2[0], p2[1], p2[2])
+          }
+          edgeMap.delete(edgeKey)
+        } else {
+          edgeMap.set(edgeKey, { nx, ny, nz, p1, p2 })
+        }
+      }
+    }
+
+    if (creaseLines.length > 0) {
+      const cGeom = new THREE.BufferGeometry()
+      cGeom.setAttribute('position', new THREE.Float32BufferAttribute(creaseLines, 3))
+      const cLines = new THREE.LineSegments(
+        cGeom,
+        new THREE.LineBasicMaterial({ color: 0x00b4d8, linewidth: 1.5 })
+      )
+      cLines.visible = false
+      this.parts.creases = cLines
+      this.group.add(cLines)
+    }
 
     // Separate edges into gridlines (removable) and outlines (real)
     const edgePos = data.edgePositions
@@ -181,10 +280,60 @@ export class Viewport {
     this.controls.update()
   }
 
-  setLayer(layer: 'grid' | 'outline' | 'tri', visible: boolean) {
+  setLayer(layer: 'grid' | 'outline' | 'tri' | 'creases' | 'hidden', visible: boolean) {
     if (this.parts[layer]) {
       this.parts[layer]!.visible = visible
     }
+  }
+
+  setOnesidedDiagnostic(enabled: boolean) {
+    if (this.parts.facade) {
+      const mat = this.parts.facade.material as THREE.MeshStandardMaterial
+      mat.side = enabled ? THREE.FrontSide : THREE.DoubleSide
+      mat.needsUpdate = true
+    }
+    if (this.parts.backfaceDiagnostic) {
+      this.parts.backfaceDiagnostic.visible = enabled
+    }
+  }
+
+  setHiddenFaces(faceIndices: number[] | Set<number>) {
+    if (this.parts.hidden) {
+      this.group.remove(this.parts.hidden)
+      this.parts.hidden.geometry.dispose()
+      ;(this.parts.hidden.material as THREE.Material).dispose()
+      delete this.parts.hidden
+    }
+    if (!this.lastPositions) return
+
+    const indices = Array.isArray(faceIndices) ? faceIndices : Array.from(faceIndices)
+    if (indices.length === 0) return
+
+    const hiddenVerts: number[] = []
+    for (const f of indices) {
+      const idx = f * 9
+      if (idx + 8 < this.lastPositions.length) {
+        for (let k = 0; k < 9; k++) {
+          hiddenVerts.push(this.lastPositions[idx + k])
+        }
+      }
+    }
+    if (hiddenVerts.length === 0) return
+
+    const hGeom = new THREE.BufferGeometry()
+    hGeom.setAttribute('position', new THREE.Float32BufferAttribute(hiddenVerts, 3))
+    hGeom.computeVertexNormals()
+    const hMat = new THREE.MeshStandardMaterial({
+      color: 0xff3344,
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.75,
+      depthWrite: false,
+    })
+    const hMesh = new THREE.Mesh(hGeom, hMat)
+    hMesh.visible = false
+    this.parts.hidden = hMesh
+    this.group.add(hMesh)
   }
 
   setDoubleSided(doubleSided: boolean) {

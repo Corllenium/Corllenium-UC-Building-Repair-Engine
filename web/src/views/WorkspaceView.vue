@@ -8,28 +8,44 @@
       </div>
 
       <div class="layer-toggles">
-        <label class="toggle-item">
+        <label class="toggle-item" title="Hotkey: G">
           <input type="checkbox" v-model="layers.grid" @change="updateLayers" />
           <span class="swatch" style="background: #1f5bff"></span>
-          Gridlines
+          Gridlines <kbd class="kbd-hint">G</kbd>
         </label>
-        <label class="toggle-item">
+        <label class="toggle-item" title="Hotkey: O">
           <input type="checkbox" v-model="layers.outline" @change="updateLayers" />
           <span class="swatch" style="background: #222222"></span>
-          Outlines
+          Outlines <kbd class="kbd-hint">O</kbd>
         </label>
-        <label class="toggle-item">
+        <label class="toggle-item" title="Hotkey: T">
+          <input type="checkbox" v-model="layers.tri" @change="updateLayers" />
+          <span class="swatch" style="background: #9aa0a8"></span>
+          Triangles <kbd class="kbd-hint">T</kbd>
+        </label>
+        <label class="toggle-item" title="Hotkey: C">
+          <input type="checkbox" v-model="layers.creases" @change="updateLayers" />
+          <span class="swatch" style="background: #00b4d8"></span>
+          Creases <kbd class="kbd-hint">C</kbd>
+        </label>
+        <label class="toggle-item" title="Hotkey: H">
+          <input type="checkbox" v-model="layers.hidden" @change="updateLayers" />
+          <span class="swatch" style="background: #ff3344"></span>
+          Hidden Faces <kbd class="kbd-hint">H</kbd>
+        </label>
+        <label class="toggle-item" title="Diagnostic only: Inverted normal / backface detection. Hotkey: M">
+          <input type="checkbox" v-model="layers.onesided" @change="updateLayers" />
+          <span class="swatch" style="background: #ff007f"></span>
+          One-Sided / Flipped <kbd class="kbd-hint">M</kbd>
+        </label>
+        <label class="toggle-item" title="Hotkey: X">
           <input type="checkbox" v-model="layers.xray" @change="updateLayers" />
           <span class="swatch" style="background: #d8282f"></span>
-          X-Ray Inside
+          X-Ray <kbd class="kbd-hint">X</kbd>
         </label>
-        <label class="toggle-item" title="Diagnostic only. SketchUp and Unity draw both sides.">
-          <input type="checkbox" v-model="layers.onesided" @change="updateLayers" />
-          One-Sided
-        </label>
-        <label class="toggle-item">
+        <label class="toggle-item" title="Hotkey: S">
           <input type="checkbox" v-model="layers.sync" @change="toggleSync" />
-          Sync Cameras
+          Sync <kbd class="kbd-hint">S</kbd>
         </label>
       </div>
 
@@ -156,7 +172,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, onBeforeUnmount, computed } from 'vue'
+import { ref, reactive, onMounted, onBeforeUnmount, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import {
   fetchModel,
@@ -171,6 +187,7 @@ import {
 import { decodeMeshbuf } from '../three/meshbuf'
 import { Viewport, syncViewports } from '../three/Viewport'
 import { describeResult } from '../utils/describeResult'
+import { useLayers } from '../composables/useLayers'
 import * as THREE from 'three'
 
 const route = useRoute()
@@ -191,13 +208,7 @@ const resultDesc = computed(() => {
 
 const standardViews = ['top', 'bottom', 'north', 'south', 'east', 'west']
 
-const layers = reactive({
-  grid: true,
-  outline: true,
-  xray: false,
-  onesided: false,
-  sync: true,
-})
+const { layers, handleKeyDown } = useLayers()
 
 const fixProfile = reactive({
   accept_slit: false,
@@ -261,6 +272,25 @@ async function reloadModel() {
       const fixBuf = await fetchMeshbuf(fixedVersion.value.id)
       viewB.loadModel(decodeMeshbuf(fixBuf))
     }
+    // If a fixed version exists, try to load source_faces to highlight hidden faces in BEFORE
+    if (fixedVersion.value && viewA && snapshotVersion.value) {
+      try {
+        const res = await fetch(`/api/versions/${fixedVersion.value.id}/assets/source_faces.json`)
+        if (res.ok) {
+          const sf: number[][] = await res.json()
+          const kept = new Set(sf.flat())
+          const nSnap = snapshotVersion.value.tri_count || 0
+          const deleted: number[] = []
+          for (let f = 0; f < nSnap; f++) {
+            if (!kept.has(f)) deleted.push(f)
+          }
+          viewA.setHiddenFaces(deleted)
+        }
+      } catch {
+        // Assets not available or fetch failed
+      }
+    }
+    updateLayers()
   } catch (err: any) {
     console.error('Failed loading models:', err)
   }
@@ -270,14 +300,20 @@ function updateLayers() {
   if (viewA) {
     viewA.setLayer('grid', layers.grid)
     viewA.setLayer('outline', layers.outline)
+    viewA.setLayer('tri', layers.tri)
+    viewA.setLayer('creases', layers.creases)
+    viewA.setLayer('hidden', layers.hidden)
     viewA.setXRay(layers.xray)
-    viewA.setDoubleSided(!layers.onesided)
+    viewA.setOnesidedDiagnostic(layers.onesided)
   }
   if (viewB) {
     viewB.setLayer('grid', layers.grid)
     viewB.setLayer('outline', layers.outline)
+    viewB.setLayer('tri', layers.tri)
+    viewB.setLayer('creases', layers.creases)
+    viewB.setLayer('hidden', layers.hidden)
     viewB.setXRay(layers.xray)
-    viewB.setDoubleSided(!layers.onesided)
+    viewB.setOnesidedDiagnostic(layers.onesided)
   }
 }
 
@@ -309,9 +345,19 @@ function onImageError() {
 
 onMounted(() => {
   initWorkspace()
+  window.addEventListener('keydown', handleKeyDown)
+  watch(
+    () => ({ ...layers }),
+    () => {
+      updateLayers()
+      toggleSync()
+    },
+    { deep: true }
+  )
 })
 
 onBeforeUnmount(() => {
+  window.removeEventListener('keydown', handleKeyDown)
   if (disposeSync) disposeSync()
   if (viewA) viewA.dispose()
   if (viewB) viewB.dispose()
@@ -382,6 +428,16 @@ onBeforeUnmount(() => {
   height: 4px;
   border-radius: 2px;
   display: inline-block;
+}
+
+.kbd-hint {
+  font-size: 10px;
+  background: #eaecef;
+  border: 1px solid #d0d7de;
+  border-radius: 3px;
+  padding: 0 4px;
+  color: #57606a;
+  font-family: ui-monospace, monospace;
 }
 
 .fix-actions {
