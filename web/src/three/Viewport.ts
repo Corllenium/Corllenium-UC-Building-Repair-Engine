@@ -390,6 +390,11 @@ export function syncViewports(a: Viewport, b: Viewport): () => void {
     isSyncing = true
     dst.camera.position.copy(src.camera.position)
     dst.camera.quaternion.copy(src.camera.quaternion)
+    if (dst.camera.zoom !== src.camera.zoom || dst.camera.fov !== src.camera.fov) {
+      dst.camera.zoom = src.camera.zoom
+      dst.camera.fov = src.camera.fov
+      dst.camera.updateProjectionMatrix()
+    }
     dst.controls.target.copy(src.controls.target)
     dst.controls.update()
     isSyncing = false

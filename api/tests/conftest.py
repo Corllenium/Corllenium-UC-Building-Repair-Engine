@@ -78,8 +78,8 @@ def sample_source_dir(_database):
     src = settings.source_dir
     src.mkdir(parents=True, exist_ok=True)
 
-    # Write a test cube
-    m = cube(10.0)
+    # Write a test cube with distinct geometry (size 12.0)
+    m = cube(12.0)
     write_obj(m, src / "test_cube.obj")
 
     # Write a manifest

@@ -91,7 +91,7 @@ def textured_source_dir(_database):
 
     src = get_settings().source_dir
     (src / "tex").mkdir(parents=True, exist_ok=True)
-    m = replace(cube(10.0), name="textured_cube", mtllib="textured_cube.mtl", materials=["stone"])
+    m = replace(cube(18.0), name="textured_cube", mtllib="textured_cube.mtl", materials=["stone"])
     write_obj(m, src / "textured_cube.obj")
     (src / "textured_cube.mtl").write_text("newmtl stone\nmap_Kd tex/stone.png\n", encoding="utf-8")
     Image.fromarray(np.full((4, 4, 3), 220, np.uint8)).save(src / "tex" / "stone.png")
@@ -185,4 +185,34 @@ def test_soft_delete_and_restore_model(client, sample_source_dir):
     # Delete nonexistent model returns 404
     r_del_404 = client.delete("/api/models/999999")
     assert r_del_404.status_code == 404
+
+
+def test_import_identical_bytes_two_file_names(client, sample_source_dir):
+    from engine.io.obj_writer import write_obj
+    from engine.tests.fixtures.build import cube
+
+    # Two distinct files with identical OBJ bytes (D0 identity test case)
+    m = cube(20.0)
+    write_obj(m, sample_source_dir / "identical_a.obj")
+    write_obj(m, sample_source_dir / "identical_b.obj")
+
+    manifest = (sample_source_dir / "_MANIFEST.txt").read_text(encoding="utf-8")
+    manifest += f"identical_a.obj  {m.n_faces}  IdenticalGroup\n"
+    manifest += f"identical_b.obj  {m.n_faces}  IdenticalGroup\n"
+    (sample_source_dir / "_MANIFEST.txt").write_text(manifest, encoding="utf-8")
+
+    r_a = client.post("/api/models/import", json={"file": "identical_a.obj"})
+    assert r_a.status_code == 201
+    model_a = r_a.json()
+    assert model_a["name"] == "identical_a"
+
+    r_b = client.post("/api/models/import", json={"file": "identical_b.obj"})
+    assert r_b.status_code == 201
+    model_b = r_b.json()
+    assert model_b["name"] == "identical_b"
+    assert model_b["id"] != model_a["id"]
+
+    # Both models share identical sha256 for their snapshot versions
+    assert model_a["versions"][0]["sha256"] == model_b["versions"][0]["sha256"]
+
 

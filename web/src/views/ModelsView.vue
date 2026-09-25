@@ -97,6 +97,7 @@
 import { ref, onMounted } from 'vue'
 import { fetchSourceFiles, fetchModels, rescanModels, importModel, type SourceFile, type Model } from '../api/client'
 import { formatErrorMessage } from '../utils/formatError'
+import { isSourceImported, findModelBySource } from '../utils/modelMatching'
 
 const sourceFiles = ref<SourceFile[]>([])
 const models = ref<Model[]>([])
@@ -135,11 +136,11 @@ async function loadData() {
 }
 
 function isImported(file: string): boolean {
-  return models.value.some(m => m.source_file === file || m.source_file.endsWith(file))
+  return isSourceImported(models.value, file)
 }
 
 function getModelBySource(file: string): Model | undefined {
-  return models.value.find(m => m.source_file === file || m.source_file.endsWith(file))
+  return findModelBySource(models.value, file)
 }
 
 function hasFixedVersion(m: Model): boolean {

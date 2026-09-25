@@ -50,4 +50,20 @@ describe('ModelsView error formatting & ApiError', () => {
       globalThis.fetch = originalFetch
     }
   })
+
+  it('matches file names exactly, not endsWith', async () => {
+    const { isSourceImported, findModelBySource } = await import('../utils/modelMatching')
+    const models = [
+      { id: 1, name: 'other_cube', source_file: 'other_cube.obj', created_at: '', versions: [] },
+      { id: 2, name: 'prefix_cube', source_file: 'prefix_cube.obj', created_at: '', versions: [] },
+    ]
+
+    // "cube.obj" is a suffix of "other_cube.obj" and "prefix_cube.obj", but should NOT match
+    expect(isSourceImported(models, 'cube.obj')).toBe(false)
+    expect(findModelBySource(models, 'cube.obj')).toBeUndefined()
+
+    // Exact matches succeed
+    expect(isSourceImported(models, 'other_cube.obj')).toBe(true)
+    expect(findModelBySource(models, 'other_cube.obj')?.id).toBe(1)
+  })
 })
