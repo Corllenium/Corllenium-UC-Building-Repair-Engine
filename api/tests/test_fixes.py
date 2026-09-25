@@ -410,6 +410,24 @@ def test_fix_run_failure_after_skp_does_not_replace_owner_skp(client, imported_c
     assert owner_file.read_text(encoding="utf-8") == "original owner skp content"
 
 
+def test_skp_writing_is_serialized_by_lock(client, imported_cube, monkeypatch):
+    import api.routers.versions as versions_mod
+    lock_acquired = []
+
+    def spy_write_skp(*args, **kwargs):
+        assert versions_mod._skp_lock.locked()
+        lock_acquired.append(True)
+        return {"written": False, "reason": "test lock spy"}
+
+    monkeypatch.setattr(versions_mod, "_write_skp", spy_write_skp)
+
+    version_id = imported_cube["versions"][0]["id"]
+    r_fix = client.post(f"/api/versions/{version_id}/fix", json={"profile": {"n_dirs": 32}})
+    assert r_fix.status_code == 201
+    assert len(lock_acquired) == 1
+
+
+
 
 
 

@@ -29,6 +29,7 @@ router = APIRouter(prefix="/api/versions", tags=["versions"])
 
 _active_model_fixes: set[int] = set()
 _fixes_lock = threading.Lock()
+_skp_lock = threading.Lock()
 
 
 @router.get("/{id}", response_model=ModelVersionOut)
@@ -458,15 +459,16 @@ def run_fix_pipeline(
             if (out_dir / f"guard_{v}.png").exists()
         ]
 
-        skp_report = _write_skp(
-            result,
-            name,
-            out_dir,
-            ref_flat_mats,
-            profile,
-            enabled=True,
-            copy_dir=None,
-        )
+        with _skp_lock:
+            skp_report = _write_skp(
+                result,
+                name,
+                out_dir,
+                ref_flat_mats,
+                profile,
+                enabled=True,
+                copy_dir=None,
+            )
         if skp_report.get("written"):
             skp_report["path"] = str(out_dir / f"{name}.fixed.skp")
         else:
