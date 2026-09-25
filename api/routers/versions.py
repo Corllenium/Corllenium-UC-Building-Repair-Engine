@@ -231,6 +231,32 @@ def get_version_face(
     )
 
 
+@router.get("/{id}/run", response_model=FixRunOut)
+def get_version_run(id: int, db: Session = Depends(get_db)):
+    version = db.scalar(select(ModelVersion).where(ModelVersion.id == id))
+    if version is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Version not found")
+
+    fix_run = None
+    if version.kind == "fixed":
+        fix_run = db.scalar(
+            select(FixRun)
+            .where(FixRun.fixed_version_id == id)
+            .order_by(FixRun.id.desc())
+        )
+    if fix_run is None:
+        fix_run = db.scalar(
+            select(FixRun)
+            .where(FixRun.version_id == id)
+            .order_by(FixRun.id.desc())
+        )
+
+    if fix_run is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No fix run found for version")
+
+    return fix_run
+
+
 @router.post("/{id}/fix", response_model=FixRunOut, status_code=status.HTTP_201_CREATED)
 def run_fix_pipeline(
     id: int,

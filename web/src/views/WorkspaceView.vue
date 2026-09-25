@@ -89,7 +89,7 @@
 
       <section class="canvas-panel">
         <div class="canvas-header">
-          <h2>AFTER &middot; {{ resultDesc ? resultDesc.heading : 'Inside Removed & Planar Regions Merged' }}</h2>
+          <h2>AFTER &middot; {{ resultDesc ? resultDesc.heading : 'Fixed Version' }}</h2>
           <span class="version-label fixed-tag" v-if="fixedVersion">v{{ fixedVersion.id }} (Cleaned)</span>
           <span class="version-label preview-tag" v-else>No Fix Applied Yet</span>
         </div>
@@ -245,6 +245,7 @@ import {
   fetchMeshbuf,
   runFix,
   fetchRun,
+  fetchVersionRun,
   fetchFace,
   type Model,
   type ModelVersion,
@@ -434,6 +435,15 @@ async function reloadModel() {
     if (fixedVersion.value && viewB) {
       const fixBuf = await fetchMeshbuf(fixedVersion.value.id)
       viewB.loadModel(decodeMeshbuf(fixBuf))
+    }
+    if (fixedVersion.value) {
+      try {
+        latestRun.value = await fetchVersionRun(fixedVersion.value.id)
+      } catch {
+        latestRun.value = null
+      }
+    } else {
+      latestRun.value = null
     }
     // If a fixed version exists, try to load source_faces to highlight hidden faces in BEFORE
     if (fixedVersion.value && viewA && snapshotVersion.value) {

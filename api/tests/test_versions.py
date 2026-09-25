@@ -167,3 +167,29 @@ def test_face_picking_endpoint_for_snapshot_and_fixed(client, imported_cube):
         assert sf["line"] > 0
 
 
+def test_get_version_run(client, imported_cube):
+    version_id = imported_cube["versions"][0]["id"]
+    # 404 when no fix run has occurred
+    r_empty = client.get(f"/api/versions/{version_id}/run")
+    assert r_empty.status_code == 404
+
+    # Run fix
+    r_fix = client.post(
+        f"/api/versions/{version_id}/fix",
+        json={"profile": {"n_dirs": 32, "slit_threshold": 0.05, "accept_slit": False}},
+    )
+    assert r_fix.status_code == 201
+    run_data = r_fix.json()
+    fixed_ver_id = run_data["fixed_version_id"]
+    assert fixed_ver_id is not None
+
+    # Fetch run for fixed version
+    r_run = client.get(f"/api/versions/{fixed_ver_id}/run")
+    assert r_run.status_code == 200
+    assert r_run.json()["id"] == run_data["id"]
+    assert "report_json" in r_run.json()
+
+    # Non-existent version
+    assert client.get("/api/versions/99999/run").status_code == 404
+
+

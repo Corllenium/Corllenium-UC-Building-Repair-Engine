@@ -134,6 +134,11 @@ export async function fetchRun(runId: number): Promise<FixRun> {
   return res.json()
 }
 
+export async function fetchVersionRun(versionId: number): Promise<FixRun> {
+  const res = await checkResponse(await fetch(`${API_BASE}/versions/${versionId}/run`), 'Failed to fetch version run')
+  return res.json()
+}
+
 
 export function getGuardImageUrl(runId: number, view: string): string {
   return `${API_BASE}/runs/${runId}/guard/${view}`
