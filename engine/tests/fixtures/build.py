@@ -2102,3 +2102,32 @@ def slab_with_a_fold_in_its_top(size=40.0, depth=8.0):
     fvt.append([base, base + 1, base + 2])
     fm.append(0)
     return _mesh("slab_with_a_fold_in_its_top", P, uvs, fv, fvt, face_material=fm)
+
+
+def overhang_beside_a_slab_variant(variant="shaded", size=40.0):
+    """Review of brief 10, C1 (`probe_underside_variants.py`, `probe_underside_fascia_real_scale.py`):
+    `overhang_beside_a_slab` -- L, a closed slab (x 0..W, z -8..0), and B, a closed block (x W..2W,
+    z 0..20) overhanging open air, its underside U (faces 12-13) flush with L's top -- in one of
+    the shapes `_is_underside` took U for a top in, so a bottom was invented under it and the
+    hidden pass deleted it:
+      "shaded"  a roof box over B (z 30..34): B's top sees no sky;
+      "tall"    B 60 in tall: its top is out of the old 52.5 in reach;
+      "fascia"  a 3 in fascia (one quad, x = 2W, z -3..0, facing +x) hangs from U's free edge;
+      "sign"    "shaded", with a sign hanging under the overhang (a closed box in m1, x 55..65
+                scaled, y 19..21 scaled, z -6..-1), touching nothing.
+    W is `size`. Faces: 0-11 L, 12-23 B (U = 12-13), then the roof, the fascia or the sign."""
+    W = float(size)
+    k = W / 40.0
+    P, uvs, fv, fvt, fm = [], [], [], [], []
+    _closed_box(P, uvs, fv, fvt, fm, 0, W, 0, W, -8, 0)
+    _closed_box(P, uvs, fv, fvt, fm, W, 2 * W, 0, W, 0, 60.0 if variant == "tall" else 20.0)
+    if variant in ("shaded", "sign"):
+        _closed_box(P, uvs, fv, fvt, fm, W, 2 * W, 0, W, 30, 34)
+    if variant == "fascia":
+        b = len(P)
+        P += [[2 * W, 0, -3], [2 * W, W, -3], [2 * W, W, 0], [2 * W, 0, 0]]
+        _quads(P, uvs, fv, fvt, fm, [(b, b + 1, b + 2, b + 3)])                  # +x
+    if variant == "sign":
+        _closed_box(P, uvs, fv, fvt, fm, 55 * k, 65 * k, 19 * k, 21 * k, -6, -1, material=1)
+    return _mesh(f"overhang_beside_a_slab_{variant}", P, uvs, fv, fvt, materials=("m0", "m1"),
+                 face_material=fm)

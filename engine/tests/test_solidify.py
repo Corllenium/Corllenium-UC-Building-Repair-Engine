@@ -1765,3 +1765,65 @@ def test_fix_object_ships_the_slab_with_a_fold_in_its_top_closed():
     r = fix_object(slab_with_a_fold_in_its_top(), {}, _FAST)
     assert r.passed is True
     assert r.backface_px["final"]["total"] == 0
+
+
+# ------------------- review of brief 10, C1: a real underside is never taken for a top and deleted
+
+
+def _area_at(mesh, x0, x1, y0, y1, z, tol=1e-6):
+    """Horizontal area of `mesh`'s faces lying at height `z`, over the box `x0..x1, y0..y1`."""
+    tri = mesh.positions[mesh.face_v]
+    flat = (np.ptp(tri[:, :, 2], axis=1) <= tol) & (np.abs(tri[:, 0, 2] - z) <= tol)
+    box = shapely.box(x0, y0, x1, y1)
+    return sum(shapely.Polygon(t[:, :2]).intersection(box).area for t in tri[flat])
+
+
+@pytest.mark.parametrize("variant", ["shaded", "tall", "fascia", "sign"])
+def test_the_underside_of_an_overhang_is_never_taken_for_a_top(variant):
+    """Review of brief 10, C1 (`probe_underside_variants.py`): B's underside U is flush with L's
+    top, so L's edge continues into it, and `_is_underside` took it for a top when B's top saw no
+    sky ("shaded"), lay beyond 52.5 in ("tall"), or a 3 in fascia hung from U's free edge
+    ("fascia"): a bottom was invented 8 in under U, and the hidden pass deleted U, `passed` True.
+    U is the BOTTOM OF THE BODY ABOVE IT -- B's own sides reach down to it from B's top -- and a
+    band hanging from its edge shallower than the slab that runs into it is a fascia, not a slab
+    body: nothing is built under B."""
+    from engine.tests.fixtures.build import overhang_beside_a_slab_variant
+    m = overhang_beside_a_slab_variant(variant)
+    r = _solidified(m, FixProfile(guard_size=(240, 160), n_dirs=64))
+    assert r.report["undersides_not_tops"] == 1
+    new = r.mesh.positions[r.mesh.face_v[r.new_faces]]
+    assert [t for t in new if t[:, 0].min() >= 40.0 - 1e-9] == []
+
+
+@pytest.mark.parametrize("variant", ["shaded", "tall", "fascia"])
+def test_fix_object_ships_the_underside_of_an_overhang(variant):
+    from engine.tests.fixtures.build import overhang_beside_a_slab_variant
+    r = fix_object(overhang_beside_a_slab_variant(variant), {},
+                   FixProfile(guard_size=(240, 160), n_dirs=64))
+    assert r.passed is True
+    assert _area_at(r.mesh, 40, 80, 0, 40, 0.0) == pytest.approx(1600.0)     # U ships
+    assert _area_at(r.mesh, 40, 80, 0, 40, -8.0) == pytest.approx(0.0)       # no floor under B
+
+
+def test_fix_object_ships_the_fascia_overhang_at_the_real_files_scale():
+    """The fascia case at 2000 in, where a guard pixel spans 2 to 3 in: 4,000,000 sq in of floor
+    was invented 3 in under U and U deleted, `passed` True (`probe_underside_fascia_real_scale`)."""
+    from engine.tests.fixtures.build import overhang_beside_a_slab_variant
+    r = fix_object(overhang_beside_a_slab_variant("fascia", size=2000.0), {}, FixProfile())
+    assert r.passed is True
+    assert _area_at(r.mesh, 2000, 4000, 0, 2000, 0.0) == pytest.approx(2000.0 * 2000.0)
+    assert _area_at(r.mesh, 2000, 4000, 0, 2000, -3.0) == pytest.approx(0.0)
+
+
+def test_a_sign_hung_under_a_shaded_overhang_ships_whole():
+    """All 12 faces of a sign hung under the shaded overhang were deleted: 2 replaced as pieces of
+    the invented bottom, 10 by the hidden pass. With U an underside nothing is built there."""
+    from engine.tests.fixtures.build import overhang_beside_a_slab_variant
+    m = overhang_beside_a_slab_variant("sign")
+    r = fix_object(m, {}, FixProfile(guard_size=(240, 160), n_dirs=64))
+    sign = np.arange(m.n_faces - 12, m.n_faces)
+    assert not r.replaced_input[sign].any()
+    kept = np.nonzero(~r.replaced_input)[0]
+    ref_id = {int(f): i for i, f in enumerate(kept)}
+    assert not r.removed_hidden[[ref_id[int(f)] for f in sign]].any()
+    assert r.passed is True

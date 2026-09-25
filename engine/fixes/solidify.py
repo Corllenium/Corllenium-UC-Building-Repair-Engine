@@ -300,7 +300,9 @@ def _own_side_depths(topo: Topology, along: dict, sides: np.ndarray, tol: float
 
 def _is_underside(topo: Topology, members: np.ndarray, edges: list[tuple[int, int]],
                   continued: np.ndarray, along: dict, sides: np.ndarray, sky: set, caster,
-                  ok_ids: np.ndarray, min_body: float, reach: float) -> bool:
+                  ok_ids: np.ndarray, min_body: float, reach: float, *,
+                  parent_rep: float | None = None, tol: float = 0.0,
+                  body_above=None) -> bool:
     """Review part 2, C2 (brief 10 item 3): is a region a top runs into, which sees no sky itself,
     the UNDERSIDE of a slab above it -- decided by looking below it AND above it:
 
@@ -318,8 +320,24 @@ def _is_underside(topo: Topology, members: np.ndarray, edges: list[tuple[int, in
 
     Why not SR6's test alone: a slab's underside with a neighbour's side hanging along it passed
     for a top, got a bottom invented under it, and the hidden pass deleted it (file A's region
-    33: all 16 faces, 19,777 sq in, visible on the input)."""
+    33: all 16 faces, 19,777 sq in, visible on the input; the neighbour's side hangs 29.52 in
+    deep along 29.6 in of it, and the review's overhang's L hangs 8 in along its whole edge).
+
+    The review of brief 10 (C1) found the same deletion three more ways, and both tests widen:
+    - BELOW counts a side only when it hangs as deep as the slab that RUNS INTO the region
+      (`parent_rep`, that top's representative depth, less `tol`; `min_body` without one). A
+      shallower band hanging from a free edge is a fascia or a trim, as SR6 item 2 already treats
+      a lip: a 3 in fascia hanging from the overhang's free edge made its underside a top.
+    - ABOVE also holds where the region is the BOTTOM OF THE BODY ABOVE IT (`body_above`, see
+      `_BodyAbove`): the face straight above is the top of a body -- its up side seen on the
+      original mesh -- whose own sides reach down to this region. Sky above is not needed and no
+      reach caps it: the overhang's underside was taken for a top when a roof shaded its block,
+      and when the block was 60 in tall.
+    Measured on the real files, neither widening changes a verdict of file A (78 undersides of 97)
+    and on file B it turns 3 small regions into undersides through the first (39, 189, 205:
+    sides hanging shallower than the slab that runs into them)."""
     P = topo.positions_w
+    body = min_body if parent_rep is None else max(min_body, float(parent_rep) - tol)
     for i, (a, b) in enumerate(edges):
         rows = along.get((int(a), int(b)), [])
         if continued[i] or not rows:
@@ -334,7 +352,7 @@ def _is_underside(topo: Topology, members: np.ndarray, edges: list[tuple[int, in
         for row in rows:
             tri = P[topo.face_w[sides[row]]]
             u = np.clip((tri - pa) @ th, 0.0, length)
-            if float((pa[2] + (pb[2] - pa[2]) * (u / length) - tri[:, 2]).max()) >= min_body:
+            if float((pa[2] + (pb[2] - pa[2]) * (u / length) - tri[:, 2]).max()) >= body:
                 return False
     tri = P[topo.face_w[members]]
     centroid = tri.mean(axis=1)
@@ -343,7 +361,65 @@ def _is_underside(topo: Topology, members: np.ndarray, edges: list[tuple[int, in
                               np.tile(np.array([0.0, 0.0, 1.0]), (len(samples), 1)))
     near = (hit >= 0) & (t <= reach)
     above = topo.face_region[ok_ids[hit[near]]]
-    return bool(np.isin(above, sorted(sky)).sum() >= TOP_SKY_FRACTION * len(samples))
+    if np.isin(above, sorted(sky)).sum() >= TOP_SKY_FRACTION * len(samples):
+        return True
+    return bool(body_above is not None and body_above(samples, hit, t))
+
+
+class _BodyAbove:
+    """Review of brief 10, C1: is a region the BOTTOM OF THE BODY ABOVE IT? Called by
+    `_is_underside` with the rays it already cast straight up (`samples`, first-hit `hit` into
+    `ok_ids`, distance `t`): true when at least `TOP_SKY_FRACTION` of them meet a top-like face
+    (`|n_z| > top_min_nz`) that is the TOP of a body -- its up side seen on the original mesh
+    (`compute_side_exposure`, measured once, on first use) -- whose region's own sides reach down
+    to the region: the distance within `band` of that region's representative own-side depth
+    (`_own_side_rows`, `_own_side_depths`, `_representative_depth`, as for a top).
+
+    Why "seen from above": through a floor under a landing the rays meet the landing's
+    UNDERSIDE, 10 in up, and a riser standing on the floor's free edge hangs 10 in below that
+    underside's outline -- the right depth -- but no one sees the landing's underside from above:
+    it is the inside of the landing (review part 2's M2 fixture, a top, stays one)."""
+
+    def __init__(self, topo: Topology, sides: np.ndarray, ok_ids: np.ndarray,
+                 normals: np.ndarray, tol: float, band: float, top_min_nz: float, n_dirs: int):
+        self.topo, self.sides, self.ok_ids, self.normals = topo, sides, ok_ids, normals
+        self.tol, self.band, self.top_min_nz, self.n_dirs = tol, band, top_min_nz, n_dirs
+        self._up_seen = None
+        self._depth: dict[int, float | None] = {}
+
+    def up_seen(self) -> np.ndarray:
+        if self._up_seen is None:
+            P = self.topo.positions_w
+            centre = (P.min(axis=0) + P.max(axis=0)) / 2.0
+            front, back = compute_side_exposure(P - centre, self.topo.face_w, self.topo.ok,
+                                                n_dirs=self.n_dirs)
+            self._up_seen = np.where(self.normals[:, 2] > 0.0, front, back) > 0.0
+        return self._up_seen
+
+    def depth_of(self, region: int) -> float | None:
+        if region not in self._depth:
+            members = np.nonzero(self.topo.face_region == region)[0]
+            outline = region_outline(self.topo, members) if len(members) else None
+            if outline is None:
+                self._depth[region] = None
+            else:
+                rings = [ring for piece in outline[0] for ring in piece.rings]
+                _own, along = _own_side_rows(self.topo, rings, self.sides, 2.0 * self.tol)
+                _rows, runs = _own_side_depths(self.topo, along, self.sides, self.tol)
+                self._depth[region] = _representative_depth(runs)
+        return self._depth[region]
+
+    def __call__(self, samples: np.ndarray, hit: np.ndarray, t: np.ndarray) -> bool:
+        ok = 0
+        for k in np.nonzero(hit >= 0)[0].tolist():
+            f = int(self.ok_ids[hit[k]])
+            if abs(float(self.normals[f][2])) <= self.top_min_nz or not self.up_seen()[f]:
+                continue
+            region = int(self.topo.face_region[f])
+            depth = self.depth_of(region) if region >= 0 else None
+            if depth is not None and abs(float(t[k]) + EPS_IN - depth) <= self.band:
+                ok += 1
+        return ok >= TOP_SKY_FRACTION * len(samples)
 
 
 def _ends_here(runs: list[tuple[float, float]], depth: float, band: float) -> bool:
@@ -1089,6 +1165,9 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
     sky = set(regions)
     not_tops: set[int] = set()
     underside_edges: dict[int, tuple] = {}
+    parent_rep: dict[int, float | None] = {}
+    body_above = _BodyAbove(topo, sides, ok_ids, normals, tol, band, top_min_nz,
+                            getattr(profile, "n_dirs", 128))
     continued_tops = 0
     while queue:
         region = queue.pop(0)
@@ -1113,6 +1192,7 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
         # and the slab's representative depth is what most of their length reaches; a lip
         # shallower than that measures no edge's height and caps no bottom
         row_depth, runs = _own_side_depths(topo, along, sides, tol)
+        rep_here = _representative_depth(runs)
         continued = np.zeros(len(edges), bool)
         verdict, met = _continues(topo, ok_ids, caster, normals, [frames[i] for i in real],
                                   top_min_nz, 2.0 * tol)
@@ -1125,6 +1205,7 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
             queued.add(other)
             queue.append(other)
             continued_tops += 1
+            parent_rep[other] = rep_here            # the slab that runs into it
         # SR6 item 3, review part 2 C2: a region a top runs into, which sees no sky itself, may
         # be a slab's UNDERSIDE, met in its plane by a top's edge. Taken for a top, it gets a
         # bottom invented under it, which the cap guard lets through (it reads the space under
@@ -1133,7 +1214,9 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
         # not by which way its own sides run. It is not planned -- but the search goes on through
         # it, as it did, so the tops beyond it are still found.
         if region not in sky and _is_underside(topo, members, edges, continued, along, sides,
-                                               sky, caster, ok_ids, min_h, max_h + band):
+                                               sky, caster, ok_ids, min_h, max_h + band,
+                                               parent_rep=parent_rep.get(region), tol=tol,
+                                               body_above=body_above):
             not_tops.add(region)
             # kept in case it is a block standing on a slab: its open edges are that slab's side
             underside_edges[int(region)] = (edges, frames, continued)
