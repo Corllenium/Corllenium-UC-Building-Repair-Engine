@@ -215,7 +215,7 @@
         </div>
         <div class="modal-diff-image">
           <p class="diff-legend">
-            Left: <strong>BEFORE</strong> &middot; Middle: <strong>AFTER</strong> &middot; Right: <strong>PIXEL DIFF</strong> (Red: deleted, Green: added, Amber: moved)
+            Left: <strong>BEFORE</strong> &middot; Middle: <strong>AFTER</strong> &middot; Right: <strong>PIXEL DIFF</strong> (Red: damage, Blue: grown, Amber: tolerated, Green: closed crack)
           </p>
           <div class="image-wrapper">
             <img
