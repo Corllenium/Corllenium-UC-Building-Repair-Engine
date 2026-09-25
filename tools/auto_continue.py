@@ -280,11 +280,11 @@ def _minutes(delta: dt.timedelta) -> float:
 
 def decide(rows: list[Row], state: ClaudeState, now: dt.datetime, spent_today: float, cfg: Config,
            eligible: Callable[[Row], bool], stopped: bool = False) -> Decision:
+    # One automatic run at a time is kept by tick() (active.json). A Hermes job started by hand does
+    # not hold the takeover back: its row stays "running" until Claude releases it, and a Claude cut
+    # by its limit cannot.
     if stopped:
         return Decision("none", "stopped: the STOP file is present (python tools/auto_continue.py resume)")
-    busy = [r.job for r in rows if r.hermes_running]
-    if busy:
-        return Decision("wait", f"Hermes already holds {', '.join(busy)}; one Hermes job at a time")
     if state.limit is None and state.last_activity is None:
         return Decision("none", "no Claude transcript found, so Claude's state is unknown")
     if state.at_limit(now):

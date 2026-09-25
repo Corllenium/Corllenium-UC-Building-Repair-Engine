@@ -201,10 +201,14 @@ def test_never_hands_a_review_to_hermes():
     assert d.action == "none" and "Re-review round 3" in d.reason
 
 
-def test_one_hermes_job_at_a_time():
-    text = ac.update_claim(CLAIMS, "Leftovers", holder="Hermes", since="x", status="running (manual)")
+def test_a_job_hermes_holds_by_hand_neither_blocks_the_takeover_nor_is_taken():
+    # a hand-started Hermes row stays "running" until Claude releases it, which a cut Claude cannot do
+    text = ac.update_claim(CLAIMS, "Leftovers", holder="Hermes", since="x", status="running (pass 5, by hand)")
     d = ac.decide(ac.parse_claims(text), CUT, at(22, 25), 0.0, CFG, eligible)
-    assert d.action == "wait" and "Leftovers" in d.reason
+    assert d.action == "takeover" and d.row.job == "Remaining visual defects"
+    text = CLAIMS.replace("| Claude subagent (brief 11) | 2026-09-25 17:45 | running |", "| - | 2026-09-25 17:45 | DONE |")
+    text = ac.update_claim(text, "Leftovers", holder="Hermes", since="x", status="running (auto-ok)")
+    assert ac.decide(ac.parse_claims(text), CUT, at(22, 25), 0.0, CFG, eligible).action == "none"
 
 
 def test_the_daily_cap_stops_new_runs():
