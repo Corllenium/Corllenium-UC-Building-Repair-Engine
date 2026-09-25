@@ -135,36 +135,51 @@
     </div>
 
     <!-- Guard 26 Views Diff Modal -->
-    <div v-if="showGuardModal && latestRun" class="modal-backdrop" @click.self="showGuardModal = false">
+    <div
+      v-if="showGuardModal && latestRun"
+      class="modal-backdrop"
+      @click.self="showGuardModal = false"
+    >
       <div class="modal-card">
         <div class="modal-header">
-          <h3>Guard Visual Verification &middot; 26 Orthographic Views</h3>
+          <div class="modal-title-wrap">
+            <h3>Guard Visual Verification &middot; Orthographic Diff</h3>
+            <span class="view-indicator">View {{ currentViewIndex + 1 }} / {{ availableGuardViews.length }} &mdash; <kbd class="kbd-hint">&larr;</kbd> <kbd class="kbd-hint">&rarr;</kbd> to navigate</span>
+          </div>
           <button class="btn-close" @click="showGuardModal = false">&times;</button>
         </div>
         <div class="modal-views-bar">
-          <span>Select View:</span>
-          <button
-            v-for="v in standardViews"
-            :key="v"
-            :class="['btn-view', { active: selectedView === v }]"
-            @click="selectedView = v"
-          >
-            {{ v }}
-          </button>
+          <button class="btn-arrow" @click="prevGuardView">&larr; Prev</button>
+          <div class="views-chips">
+            <button
+              v-for="v in availableGuardViews"
+              :key="v"
+              :class="['btn-view', { active: currentGuardView === v }]"
+              @click="selectGuardView(v)"
+            >
+              {{ formatViewName(v) }}
+            </button>
+          </div>
+          <button class="btn-arrow" @click="nextGuardView">Next &rarr;</button>
         </div>
         <div class="modal-diff-image">
           <p class="diff-legend">
-            Left: <strong>BEFORE</strong> &middot; Middle: <strong>AFTER</strong> &middot; Right: <strong>PIXEL DIFF</strong> (Red: deleted, Green: added)
+            Left: <strong>BEFORE</strong> &middot; Middle: <strong>AFTER</strong> &middot; Right: <strong>PIXEL DIFF</strong> (Red: deleted, Green: added, Amber: moved)
           </p>
-          <img
-            :src="getGuardImageUrl(latestRun.id, selectedView)"
-            :alt="`Guard View ${selectedView}`"
-            class="diff-triptych"
-            @error="onImageError"
-          />
-          <p v-if="imgError" class="text-muted" style="color: #d8282f">
-            Guard image not generated for this view or run.
-          </p>
+          <div class="image-wrapper">
+            <img
+              v-show="!imgError"
+              :src="guardImageUrl"
+              :alt="`Guard View ${currentGuardView}`"
+              class="diff-triptych"
+              @load="imgError = false"
+              @error="imgError = true"
+            />
+            <div v-if="imgError" class="empty-guard-state">
+              <p>Guard image not generated for view <strong>{{ currentGuardView }}</strong> in this run.</p>
+              <p class="text-hint">Axis views (+x, -x, +y, -y, +z, -z) and failing oblique views generate guard renders.</p>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -179,7 +194,6 @@ import {
   fetchMeshbuf,
   runFix,
   fetchRun,
-  getGuardImageUrl,
   type Model,
   type ModelVersion,
   type FixRun,
@@ -188,6 +202,7 @@ import { decodeMeshbuf } from '../three/meshbuf'
 import { Viewport, syncViewports } from '../three/Viewport'
 import { describeResult } from '../utils/describeResult'
 import { useLayers } from '../composables/useLayers'
+import { useGuardViews, getGuardImageUrl, DEFAULT_GUARD_VIEWS } from '../composables/useGuardViews'
 import * as THREE from 'three'
 
 const route = useRoute()
@@ -197,7 +212,6 @@ const model = ref<Model | null>(null)
 const latestRun = ref<FixRun | null>(null)
 const fixing = ref(false)
 const showGuardModal = ref(false)
-const selectedView = ref('top')
 const imgError = ref(false)
 const pickedFace = ref<{ faceId: number; point: THREE.Vector3 } | null>(null)
 
@@ -206,7 +220,36 @@ const resultDesc = computed(() => {
   return describeResult(latestRun.value.report_json || latestRun.value)
 })
 
-const standardViews = ['top', 'bottom', 'north', 'south', 'east', 'west']
+const {
+  availableViews: availableGuardViews,
+  currentView: currentGuardView,
+  currentIndex: currentViewIndex,
+  selectView: selectGuardView,
+  nextView: nextGuardView,
+  prevView: prevGuardView,
+  handleKeyDown: handleGuardKey,
+} = useGuardViews(DEFAULT_GUARD_VIEWS, '+z')
+
+const guardImageUrl = computed(() => {
+  if (!latestRun.value) return ''
+  return getGuardImageUrl(latestRun.value.id, currentGuardView.value)
+})
+
+watch(currentGuardView, () => {
+  imgError.value = false
+})
+
+function formatViewName(v: string): string {
+  const map: Record<string, string> = {
+    '+x': '+X (East)',
+    '-x': '-X (West)',
+    '+y': '+Y (North)',
+    '-y': '-Y (South)',
+    '+z': '+Z (Top)',
+    '-z': '-Z (Bottom)',
+  }
+  return map[v] || v
+}
 
 const { layers, handleKeyDown } = useLayers()
 
@@ -343,9 +386,21 @@ function onImageError() {
   imgError.value = true
 }
 
+function onGlobalKeyDown(e: KeyboardEvent) {
+  if (showGuardModal.value) {
+    if (e.key === 'Escape') {
+      showGuardModal.value = false
+      return
+    }
+    handleGuardKey(e)
+    return
+  }
+  handleKeyDown(e)
+}
+
 onMounted(() => {
   initWorkspace()
-  window.addEventListener('keydown', handleKeyDown)
+  window.addEventListener('keydown', onGlobalKeyDown)
   watch(
     () => ({ ...layers }),
     () => {
@@ -357,7 +412,7 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
-  window.removeEventListener('keydown', handleKeyDown)
+  window.removeEventListener('keydown', onGlobalKeyDown)
   if (disposeSync) disposeSync()
   if (viewA) viewA.dispose()
   if (viewB) viewB.dispose()
@@ -614,9 +669,20 @@ onBeforeUnmount(() => {
   border-bottom: 1px solid #eee;
 }
 
+.modal-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .modal-header h3 {
   margin: 0;
   font-size: 15px;
+}
+
+.view-indicator {
+  font-size: 12px;
+  color: #6a737d;
 }
 
 .modal-views-bar {
@@ -628,6 +694,26 @@ onBeforeUnmount(() => {
   border-bottom: 1px solid #eee;
 }
 
+.views-chips {
+  display: flex;
+  gap: 6px;
+  flex: 1;
+  overflow-x: auto;
+}
+
+.btn-arrow {
+  background: #fff;
+  border: 1px solid #dcdde2;
+  border-radius: 4px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.btn-arrow:hover {
+  background: #f0f1f4;
+}
+
 .btn-view {
   background: #f0f1f4;
   border: 1px solid #dcdde2;
@@ -635,7 +721,7 @@ onBeforeUnmount(() => {
   padding: 4px 8px;
   font-size: 12px;
   cursor: pointer;
-  text-transform: capitalize;
+  white-space: nowrap;
 }
 
 .btn-view.active {
@@ -662,5 +748,20 @@ onBeforeUnmount(() => {
   height: auto;
   border: 1px solid #eee;
   border-radius: 4px;
+}
+
+.empty-guard-state {
+  padding: 40px 20px;
+  background: #fcfcfd;
+  border: 1px dashed #d0d7de;
+  border-radius: 6px;
+  color: #57606a;
+}
+.empty-guard-state p {
+  margin: 4px 0;
+}
+.text-hint {
+  font-size: 12px;
+  color: #8c959f;
 }
 </style>
