@@ -6,7 +6,10 @@
         <span class="badge">Campus SketchUp &rarr; Unity 6 URP</span>
       </div>
       <div class="header-actions">
-        <button class="btn btn-secondary" @click="loadData" :disabled="loading">Refresh</button>
+        <button class="btn btn-primary" @click="doRescan" :disabled="rescanning || loading">
+          {{ rescanning ? 'Rescanning...' : 'Rescan Source Folder' }}
+        </button>
+        <button class="btn btn-secondary" @click="loadData" :disabled="loading || rescanning">Refresh</button>
       </div>
     </header>
 
@@ -92,14 +95,30 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { fetchSourceFiles, fetchModels, importModel, type SourceFile, type Model } from '../api/client'
+import { fetchSourceFiles, fetchModels, rescanModels, importModel, type SourceFile, type Model } from '../api/client'
 import { formatErrorMessage } from '../utils/formatError'
 
 const sourceFiles = ref<SourceFile[]>([])
 const models = ref<Model[]>([])
 const loading = ref(false)
+const rescanning = ref(false)
 const importing = ref<string | null>(null)
 const errorMessage = ref<string | null>(null)
+
+async function doRescan() {
+  rescanning.value = true
+  errorMessage.value = null
+  try {
+    const updated = await rescanModels()
+    models.value = updated
+    const src = await fetchSourceFiles()
+    sourceFiles.value = src
+  } catch (err: any) {
+    errorMessage.value = formatErrorMessage(err)
+  } finally {
+    rescanning.value = false
+  }
+}
 
 async function loadData() {
   loading.value = true
