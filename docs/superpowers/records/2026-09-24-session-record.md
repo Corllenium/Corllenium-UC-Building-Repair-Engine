@@ -87,6 +87,7 @@ final guard passed.
 | 09-25 21:50 | Brief 11 items 2 and R10-C1: a bottom covers the whole footprint; a real underside is the bottom of the body above it, fascia or no sky (agent's real runs, before review) | 0a81860, 281a569 | 884 | 510 |
 | 09-25 21:55 | Owner's decisions carried out: live DB backed up, 6 backslash rows rewritten, dashboard rebuilt from 281a569 (nginx timeout 600 s, live DB migrated to 0002), live model loads in the container; brief 13 (one copy of stacked opposite-wound same-material surfaces) started | — | — | — |
 | 09-25 23:45 | Brief 11 finished (DONE_WITH_CONCERNS, 15 commits): margin-strip winding, one bottom per footprint, the review-of-brief-10 findings C1, I1-I3, M1, M3-M6 (M2 pinned xfail); items 3-4 traced, every change measured worse; A1 purple strips and A2 stepped lines gone; 607 passed + 1 xfailed | 4019987 .. ab22ff3 | **881** | **513** |
+| 09-26 00:10 | Session closed by the owner. Brief 15 item 1 committed (`double_layers` in every report); item 2 (one wall per side plane) parked unverified on `wip/brief15-one-wall`; runner and auto-resume stopped; owner files from ab22ff3 | 3c54e77 (1795d38 on its branch) | 881 | 513 |
 
 Every commit since b2134e9, oldest last: `git log --first-parent b2134e9..HEAD`.
 

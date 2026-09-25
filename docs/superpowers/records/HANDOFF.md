@@ -23,13 +23,14 @@ side mesh, rebuild broken or missing sides; only the model's outline edges may b
 run the latest `.skp` of each file must be in `OBJ FIXED RESULT/` for the owner to check in SketchUp
 2026. Work visually: every round ends with renders that are looked at, not only numbers.
 
-## 2. Current state (2026-09-25 23:55, written by the Claude controller)
+## 2. Current state (2026-09-26 00:15, written by the Claude controller)
 
-Branch `feat-dashboard`, engine suite **566 passed** at brief 10's end (17:32). Brief 11's item 1 is
-committed (4019987); its next items are the brief-11 agent's uncommitted work in progress in the main
-checkout (measured 21:15: `engine/fixes/solidify.py`, `engine/tests/fixtures/build.py`,
-`engine/tests/test_solidify.py`, 614 lines added, 93 removed). Brief 11 has since committed 0a81860
-(item 2) and 281a569 (R10-C1).
+**The owner closed the session at 00:10 ("finish what we finish for now").**
+- Nothing is running: the brief-15 agent is stopped, the auto-continue runner is stopped (STOP file,
+  watcher ended), and Claude's scheduled auto-resume is cancelled.
+- The main checkout has no uncommitted engine work. `docker-compose.yml` and the Docker files at the
+  root stay uncommitted: another session wrote them.
+- Branch `feat-dashboard` holds everything committed; see "Open work" below for where to pick up.
 
 The owner's decisions of 21:45 are carried out:
 - **Live database backed up** to `data/backups/fixer-20260925-2150.dump`.
@@ -54,23 +55,28 @@ that worktree `git checkout --detach <commit>`, then run `engine.cli fix` with
 `--out "D:/PROJECTS/UC MODEL FIXER/data/output_verified" --skp-dir "D:/PROJECTS/UC MODEL FIXER/OBJ FIXED RESULT"`
 for both snapshots (the file must not be open in SketchUp).
 
-Jobs:
+Done in the session:
+- **Brief 11** is DONE_WITH_CONCERNS: 15 commits, 4019987..ab22ff3; 607 passed, 1 xfailed (M2). A has
+  881 triangles and 18,348 back px, B 513 and 2,869; both passed. Its concerns are in
+  `remaining-visual-defects-report.md`.
+- **Merged:** the dashboard wave (cba42a5), and brief 12 (f885fd9, Hermes pass 5, reviewed).
+- **Brief 15 item 1** is committed (3c54e77): every run reports `double_layers`.
+- **The owner's files** come from committed ab22ff3.
 
-State at 23:55:
-1. **Brief 11 is DONE_WITH_CONCERNS**: 15 commits, 4019987..ab22ff3.
-   - Suite: 607 passed, 1 xfailed (M2).
-   - A: 881 triangles, 18,348 back px. B: 513 triangles, 2,869 back px. Both passed.
-   - Its concerns are in `remaining-visual-defects-report.md`. The biggest: R10-I1 costs A two 2 in
-     walls at x 2680, a knife edge again; R10-I2 adds 112 back px on B.
-   - A read-only review of briefs 11 and 13 together is next, in the fresh window after 01:40.
-2. **Brief 15** (one wall per side plane, for no flicker) is running: the brief-11 agent continues in
-   the main checkout.
-3. **Brief 13's branch `feat/coincident-pairs`** is not merged: it waits for that review. Its rule works
-   but removes nothing today. Brief 14's measurements are on the same branch.
-4. **The owner's files** were refreshed from committed ab22ff3 (23:53 and 23:54): A 881, B 513, both passed.
-5. **Merged:** the dashboard wave (cba42a5) and brief 12 (f885fd9, Hermes pass 5, reviewed).
-6. **Automatic continuation is ON** (section 7): if the limit cuts brief 15, Hermes continues it on its
-   own branch.
+Open work, in the order to pick it up:
+1. **A read-only review of briefs 11 and 13 together**, with probes, as in every round.
+   - Brief 11's biggest concerns: R10-I1 costs A two 2 in walls at x 2680, so the slab edge is a knife
+     edge again; R10-I2 adds 112 back px on B; M2 is pinned as an xfail.
+2. **Brief 15 item 2** (one wall per side plane, for no flicker) is parked UNVERIFIED on branch
+   `wip/brief15-one-wall` (1795d38).
+   - Its 7 tests passed, but the full suite and the real runs never ran.
+   - Continue from that branch: suite, both real runs with `double_layers` before and after,
+     close-ups, then merge after a review.
+3. **Brief 13's branch `feat/coincident-pairs`** is not merged; it waits for the review in item 1. Its
+   rule works but removes nothing today. Brief 14's measurements are on the same branch.
+4. **Leftovers** (brief 06), and the D9 move of `_write_guard_images` to `engine/guard/render.py`.
+5. **To turn automatic continuation back on:** `tools/auto_continue.py resume`, then `watch` in the
+   background (section 7).
 
 **If you take over one of these** (for example because Claude hit its usage limit): follow the
 lapse rule at the top of `WORK-CLAIMS.md`, take the claim over in writing, run `git status` and
@@ -95,7 +101,7 @@ work in progress: finish it, test it, commit it; never discard it.
 | 12 | `briefs/12-dashboard-followups.md` | re-review 3 follow-ups M1-M4 and nits (API owner-copy block, tests) | DONE by Hermes pass 5; reviewed (engine 573, API 44, web 47, 5 of 5 mutation checks); merged as f885fd9 |
 | 13 | `briefs/13-coincident-pairs.md` | one copy of each exactly stacked, opposite-wound, same-material surface (owner's decision 09-25 21:45) | DONE_WITH_CONCERNS on `feat/coincident-pairs` (not merged; review together with brief 11): the rule works but removes nothing at 281a569, where A's landing is already one layer |
 | 14 | `briefs/14-zfight-sources.md` | what still z-fights on A: riser pair x 1305.14, same-wound duplicate z 1779.53 | DONE, measured and not fixed (9f39e7f): A 28 double layers (3,723.5 sq in, 141 px), B 2; all are export sides drawn twice; the fix is brief 15 |
-| 15 | `briefs/15-one-wall-per-side-plane.md` | one wall per side plane where the export drew a side twice; `double_layers` in every report | **running**: the brief-11 agent, main checkout |
+| 15 | `briefs/15-one-wall-per-side-plane.md` | one wall per side plane where the export drew a side twice; `double_layers` in every report | item 1 committed (3c54e77); item 2 parked unverified on `wip/brief15-one-wall` (1795d38); stopped by the owner |
 
 ## 4. Rules (each one cost time when broken)
 
