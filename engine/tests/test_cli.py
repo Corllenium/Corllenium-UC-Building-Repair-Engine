@@ -1116,3 +1116,26 @@ def test_cmd_fix_reports_the_sheet_rule_and_prints_it(tmp_path, capsys):
     lines = [line for line in capsys.readouterr().out.splitlines() if "sheets:" in line]
     assert len(lines) == 1
     assert f"back_px {sheet['back_px']['before']} -> {sheet['back_px']['after']}" in lines[0]
+
+
+def test_cmd_fix_reports_every_stacked_copy_and_prints_the_count(tmp_path, capsys):
+    """Brief 13: report.json lists every exactly stacked opposite-wound pair -- face ids, area,
+    plane, materials, the side kept and why -- and the CLI prints how many went."""
+    from engine.tests.fixtures.build import open_tray_with_a_copy_of_its_top
+    m = open_tray_with_a_copy_of_its_top()
+    snap_dir = _write_snapshot(tmp_path, m)
+
+    cli.cmd_fix(snap_dir, tmp_path / "out", accept_slit=False, profile=_FAST, solidify=False,
+                skp=False)
+
+    report = json.loads((tmp_path / "out" / m.name / "report.json").read_text(encoding="utf-8"))
+    assert report["n_removed_coincident"] == 2
+    pairs = sorted(report["coincident_pairs"], key=lambda p: p["faces"])
+    assert [(p["faces"], p["kept"], p["removed"], p["verdict"]) for p in pairs] == [
+        ([0, 8], 0, 8, "removed"), ([1, 9], 1, 9, "removed")]
+    for p in pairs:
+        assert {"area", "plane", "centroid", "materials", "side_kept", "exposure", "px",
+                "seen_from_both_sides", "reason"} <= set(p)
+    lines = [line for line in capsys.readouterr().out.splitlines() if "stacked copies" in line]
+    assert len(lines) == 1
+    assert "2 exactly stacked opposite-wound pairs, 2 faces removed" in lines[0]

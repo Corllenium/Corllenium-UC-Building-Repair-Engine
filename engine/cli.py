@@ -35,6 +35,7 @@ import argparse
 import json
 import shutil
 import sys
+from collections import Counter
 from dataclasses import replace
 from pathlib import Path
 
@@ -220,6 +221,11 @@ def _build_report(name: str, obj_path: Path, mesh: MeshData, result: FixResult,
         # never removed here, only reported: which of two materials a person wants is not a
         # question geometry can answer. Face ids are ORIGINAL ones.
         "overlap_pairs_diff_material": result.overlap_pairs_diff_material,
+        # brief 13: every exactly stacked opposite-wound pair, removed or kept and why -- face
+        # ids (reference), area, plane, materials, the side kept -- see
+        # `engine.fixes.overlap.plan_coincident_removal`
+        "n_removed_coincident": result.n_removed_coincident,
+        "coincident_pairs": result.coincident_pairs,
         "one_sided_holes_before": result.one_sided_holes_before,
         "one_sided_holes_after": result.one_sided_holes_after,
         # SketchUp's blue-purple, in pixels over the 26 guard views: faces seen from their BACK
@@ -503,6 +509,10 @@ def cmd_fix(snapshot_dir: Path, out_root: Path, accept_slit: bool,
           f"({sheet['faces_flipped']} thin faces re-wound), {sheet['sheets_refused']} refused, "
           f"{sheet['faces_lying_on_another']} faces lying on another left as they are; "
           f"back_px {sheet['back_px']['before']} -> {sheet['back_px']['after']} before the merge")
+    kept = Counter(p["reason"] for p in result.coincident_pairs if p["verdict"] == "kept")
+    print(f"  stacked copies: {len(result.coincident_pairs)} exactly stacked opposite-wound pairs, "
+          f"{result.n_removed_coincident} faces removed"
+          + "".join(f"; {n} kept: {reason}" for reason, n in sorted(kept.items())))
     if qa_report["written"]:
         print(f"  wrote {out_dir} (and {qa_report['images']} QA images under qa/)")
     else:
