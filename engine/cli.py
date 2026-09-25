@@ -493,6 +493,17 @@ def cmd_fix(snapshot_dir: Path, out_root: Path, accept_slit: bool,
               f"{sr['side_pieces_replaced']} side pieces replaced, "
               f"{sr['interior_faces_covered']} interior faces covered, "
               f"{sr['walls_refused']['faces']} wall faces refused {sr['walls_refused']['reasons']}")
+        # review of brief 10, M6 and I1: the readings a person should be able to check -- a block
+        # standing on a slab reads exactly like an overhang over a notch whose sides were lost
+        rule6 = sr.get("rule6_volumes", {})
+        seen = sr.get("seen_through_shell", {})
+        print(f"  tops read as undersides: {sr.get('undersides_not_tops', 0)}, blocks standing "
+              f"on slabs: {sr.get('blocks_standing_on_slabs', 0)}, walls relooked: "
+              f"{sr.get('walls_relooked', 0)}; rule 6 sees through "
+              f"{len(rule6.get('confirmed', []))} confirmed volumes (not: "
+              f"{ {k: len(v) for k, v in rule6.get('not_confirmed', {}).items()} }), "
+              f"{seen.get('faces', 0)} faces seen only through a shell "
+              f"({seen.get('kept_from_hidden_pass', 0)} kept from the hidden pass)")
     print(f"{name}: {mesh.n_faces} -> {result.mesh.n_faces} tris, passed={result.passed}, "
           f"border_shift={result.guard_final.totals['border_shift']}")
     back = result.backface_px

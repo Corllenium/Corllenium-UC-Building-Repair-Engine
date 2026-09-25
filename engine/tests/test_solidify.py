@@ -2067,3 +2067,27 @@ def test_a_top_under_a_landing_with_no_underside_is_a_top():
     assert [t for t in new if np.allclose(t[:, 0], 40.0)] == []   # no wall inside the slab
     bottom = [t for t in new if np.allclose(t[:, 2], -10.0) and t[:, 0].min() >= 40.0 - 1e-9]
     assert sum(shapely.Polygon(t[:, :2]).area for t in bottom) == pytest.approx(1600.0)
+
+
+def test_a_block_at_a_slabs_edge_is_read_as_a_block_not_an_overhang():
+    """Review of brief 10, M6 (`probe_block_or_overhang.py`): item 6's rule cannot tell a block
+    standing on a slab from an overhang over a notch whose sides the export lost. Its three
+    tests -- the top's measured depth, no own side along the shared edges, 99 % inside the top's
+    convex hull -- read nothing that differs, and a hull contains a U-shaped top's notch by
+    construction. `slab_with_a_block_standing_on_it(at_edge=True)` is both shapes at once.
+
+    The engine reads it as a BLOCK: it is counted (`blocks_standing_on_slabs`, in every CLI
+    summary), the slab's bottom fills the notch (400 sq in at z -8) and the hidden pass deletes
+    the block's underside. For a real overhang in this shape that is C1's damage. This test pins
+    the reading chosen, so a change to the rule has to say which reading it takes."""
+    from engine.tests.fixtures.build import slab_with_a_block_standing_on_it
+    m = slab_with_a_block_standing_on_it(at_edge=True)
+    first = m.n_faces - 12                                       # the block: its bottom first
+    r = fix_object(m, {}, _I1)
+    assert r.solidify_report["blocks_standing_on_slabs"] == 1
+    assert _fates(r, [first, first + 1]) == ["hidden", "hidden"]
+    notch = shapely.box(20.0, 0.0, 40.0, 20.0)
+    tri = r.mesh.positions[r.mesh.face_v]
+    at_bottom = [t for t in tri if np.allclose(t[:, 2], -8.0)]
+    assert sum(shapely.Polygon(t[:, :2]).intersection(notch).area
+               for t in at_bottom) == pytest.approx(400.0)

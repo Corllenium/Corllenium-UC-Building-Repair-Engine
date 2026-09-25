@@ -1116,3 +1116,19 @@ def test_cmd_fix_reports_the_sheet_rule_and_prints_it(tmp_path, capsys):
     lines = [line for line in capsys.readouterr().out.splitlines() if "sheets:" in line]
     assert len(lines) == 1
     assert f"back_px {sheet['back_px']['before']} -> {sheet['back_px']['after']}" in lines[0]
+
+
+def test_cmd_fix_prints_the_blocks_standing_on_slabs_and_what_rule_6_sees_through(tmp_path,
+                                                                                  capsys):
+    """Review of brief 10, M6: a block standing on a slab reads exactly like an overhang over a
+    notch whose sides the export lost, so the count of blocks is in every printed summary, with
+    the tops read as undersides and what rule 6 may see through (I1)."""
+    from engine.tests.fixtures.build import slab_with_a_block_standing_on_it
+    m = slab_with_a_block_standing_on_it(at_edge=True)
+    snap_dir = _write_snapshot(tmp_path, m)
+
+    cli.cmd_fix(snap_dir, tmp_path / "out", accept_slit=False, profile=_FAST, skp=False)
+
+    [line] = [ln for ln in capsys.readouterr().out.splitlines() if "blocks standing" in ln]
+    assert "tops read as undersides: 1" in line and "blocks standing on slabs: 1" in line
+    assert "rule 6 sees through 2 confirmed volumes" in line
