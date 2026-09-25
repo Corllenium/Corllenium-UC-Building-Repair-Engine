@@ -30,3 +30,54 @@ Whole-branch review of api/ + web/ dispatched (opus, read-only, static diff pack
 Whole-branch review (opus, read-only) of api + web: NOT READY. Critical: C1 fixes.py view name reaches the filesystem (path traversal via %5C on Windows); C2 merge_report never leaves the API, AFTER panel hardcodes merged + Guard Passed; C3 fix run non-atomic (version committed before its asset) and unlocked (concurrent runs clobber one file); C4 SourceUnstable never mapped to 409. Important: I5 fixed versions lack mtl/texture assets and flat_materials is empty so every material counts flat; I6 picking prints faceId+1 as a line number, provenance discarded; I7 guard modal dead (PNGs never written by the run); I8 live manifest read with read_manifest (unstable); I9 order-dependent tests = engine bug in snapshot_object (identical bytes under a second name make _load fail -> 404); I10 port 8190 enforced nowhere. Minors: CORS star with credentials, data_dir relative to CWD, endsWith mispairing, POST fix returns 200, sync ignores zoom/fov.
 Ruling: all Critical + Important fixed before merge, minors folded in. Brief written: fix-wave-1-brief.md (D0-D11). Dispatch AFTER the engine round finishes so two agents never commit into this tree at once - costs: dashboard fixes start about an hour later.
 Ruling: the wave must not touch servers another session started; it verifies on 127.0.0.1:8191; the controller restarts the real servers (venv Python, python -m api, vite) after the wave, because the API loads engine code only at start.
+
+## Fix Wave 1 by Hermes, 2026-09-25
+Branch `feat/dashboard-wave` (isolated worktree at `.hermes/worktrees/dashboard-wave`).
+
+### Pass 1
+Initial wave implementation of brief items (commits c88b300..c0f2ea4 from 5791cee):
+- D0: Confirmed superseded.
+- D1: Guard views whitelist validated ('+x', '-x', '+y', '-y', '+z', '-z') rejecting path traversal.
+- D2: Enriched FixRun report with merge_report, guard totals, profile, invariants.
+- D3: Initial AFTER panel describeResult logic.
+- D4: SourceUnstable mapped to 409 + Retry-After: 5, ManifestMismatch to 422.
+- D5: Fix run atomicity in DB, per-model lock, isolated output directory, HTTP 201.
+- D6: Fixed versions keep materials and flat_materials via migration 0002_flat_materials.
+- D8: Viewport diagnostic visual overlays with useLayers composable.
+- D10: Test database lifecycle isolation.
+- Pass 1 divergence: D7 was deferred; D9/D11/D12 implemented differing features (guard carousel, rescan, soft delete) instead of the brief's exact specifications.
+
+### Pass 2
+Alignment with brief items D7, D9-D12 (commits e98126f..80c5f38):
+- D7: Picking maps face ids to source lines via GET /api/versions/{id}/source_faces (e98126f).
+- D9: Fix runs write 6 guard comparison PNGs using engine CLI helper (fc62f6d).
+- D10: Host/port (127.0.0.1:8190), strict CORS origins, and absolute data dir enforcement (ac94bdc).
+- D11: Distinct test fixtures, exact filename matching, and camera sync tests (9577bdb).
+- D12: Every fix run writes latest SketchUp file to run dir and copies to settings.skp_dir (80c5f38).
+
+### Pass 3
+Resolution of review findings I1-I8 and minors m1-m12 (commits ca1b8f1..6f33222):
+- I1: AFTER panel reports real engine run verdict, invariants, backface px, grown px (ca1b8f1).
+- I2: Load stored run report on workspace mount (41300b4).
+- I3: Map source_faces to original face ids via replaced_input, label invented faces (6222db7).
+- I4: Correct guard modal diff legend colors and meanings (0184817).
+- Reverts: Reverted unbriefed soft delete (ef9edcc) and bulk rescan (8200292).
+- m1-m12: Path traversal security test (92f3dbc), atomic cleanup on exception (9f085df), flat materials forced to 0.0 std (3ce82d6), M5 backfill filename and hash verification (1f11d51), selectinload asset eager-loading (a98c2d7), 409 model preservation and Retry-After (85cad10), EDGE_SOFT crease rendering and Removed Faces rename (c5ecd37), test db cleanup (0ca0efb), test isolation (6f33222).
+
+### Pass 4 (Re-review Resolution)
+Resolution of re-review findings N1-N2, n1-n12, I2, m12:
+- N1: AFTER panel reports merge as "not reported" when merge section is missing (55e728b).
+- N2: Preserve failed fix run and its error across reloadModel (8cdf6d9).
+- n1 / D12: Defer owner .skp copy until after database commit succeeds; rollback leaves owner .skp untouched (9fdf551).
+- n9: Replace global with globalThis and complete test mock types for clean vue-tsc (911ef43).
+- n2: Serialize SketchUp C API writes with module-level _skp_lock (3698672).
+- n10: Sanitize mesh name before using as output and skp filename (a096c0b).
+- n4 / m5: Key texture assets by filename in M5 backfill comparison (36e1fbd).
+- n11: Reuse scan manifest result in find_source_file to eliminate redundant sleep (76515e3).
+- n12: Add validation bounds to FixProfileConfig schema (1c006cd).
+- n6: Report "no provenance recorded for this version" when fixed version lacks source_faces (e09df22).
+- n7: Serve failing oblique guard views fail_0..fail_25 and add violet z-fight tie in legend (f2903c9).
+- n3: Strengthen tests to assert against actual output directories, non-zero std inputs, and no-auto-retry on 409 (793f636).
+- I2: Add unit tests for version run loading on mount (9e954d0).
+- m12: Store asset relative paths in posix format for container portability (ea0da2e).
+

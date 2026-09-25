@@ -7,6 +7,7 @@ export const EDGE_REMOVABLE = 1
 export const EDGE_OPEN = 2
 export const EDGE_NONMANIFOLD = 3
 export const EDGE_TJUNCTION = 4
+export const EDGE_SOFT = 5
 
 const COLORS = {
   grid: 0x1f5bff,     // blue: removable gridlines
@@ -27,7 +28,12 @@ export class Viewport {
     grid?: THREE.LineSegments
     outline?: THREE.LineSegments
     tri?: THREE.LineSegments
+    creases?: THREE.LineSegments
+    hidden?: THREE.Mesh
+    backfaceDiagnostic?: THREE.Mesh
   } = {}
+  private currentData?: DecodedMeshbuf
+  private lastPositions?: Float32Array
   private animId: number = 0
   private resizeObserver: ResizeObserver
   onPick?: (faceId: number, point: THREE.Vector3) => void
@@ -128,8 +134,24 @@ export class Viewport {
     const mesh = new THREE.Mesh(geom, mat)
     this.parts.facade = mesh
     this.group.add(mesh)
+    this.lastPositions = positions
 
-    // Separate edges into gridlines (removable) and outlines (real)
+    // Backface diagnostic mesh (magenta / red for backfaces when one-sided diagnostic is active)
+    const backfaceMat = new THREE.MeshBasicMaterial({
+      color: 0xff007f, // magenta
+      side: THREE.BackSide,
+      polygonOffset: true,
+      polygonOffsetFactor: 1,
+      polygonOffsetUnits: 1,
+    })
+    const backfaceMesh = new THREE.Mesh(geom, backfaceMat)
+    backfaceMesh.visible = false
+    this.parts.backfaceDiagnostic = backfaceMesh
+    this.group.add(backfaceMesh)
+    this.currentData = data
+
+    // Separate edges into gridlines (removable) and outlines (real borders)
+    // EDGE_SOFT edges are reserved for creases and excluded from dark outlines
     const edgePos = data.edgePositions
     const edgeCls = data.edgeClass
     const nEdges = edgeCls.length
@@ -140,9 +162,14 @@ export class Viewport {
     for (let e = 0; e < nEdges; e++) {
       const cls = edgeCls[e]
       const idx = e * 6
-      const arr = (cls === EDGE_REMOVABLE || cls === EDGE_TJUNCTION) ? gridLines : outlineLines
-      for (let k = 0; k < 6; k++) {
-        arr.push(edgePos[idx + k])
+      if (cls === EDGE_REMOVABLE || cls === EDGE_TJUNCTION) {
+        for (let k = 0; k < 6; k++) {
+          gridLines.push(edgePos[idx + k])
+        }
+      } else if (cls !== EDGE_SOFT) {
+        for (let k = 0; k < 6; k++) {
+          outlineLines.push(edgePos[idx + k])
+        }
       }
     }
 
@@ -181,10 +208,123 @@ export class Viewport {
     this.controls.update()
   }
 
-  setLayer(layer: 'grid' | 'outline' | 'tri', visible: boolean) {
+  private buildTriangles() {
+    if (!this.currentData || this.parts.tri) return
+    const positions = this.currentData.positions
+    const nFaces = this.currentData.header.counts.faces
+    const triLines: number[] = []
+    for (let f = 0; f < nFaces; f++) {
+      const idx = f * 9
+      const ax = positions[idx], ay = positions[idx + 1], az = positions[idx + 2]
+      const bx = positions[idx + 3], by = positions[idx + 4], bz = positions[idx + 5]
+      const cx = positions[idx + 6], cy = positions[idx + 7], cz = positions[idx + 8]
+      triLines.push(ax, ay, az, bx, by, bz)
+      triLines.push(bx, by, bz, cx, cy, cz)
+      triLines.push(cx, cy, cz, ax, ay, az)
+    }
+    if (triLines.length > 0) {
+      const tGeom = new THREE.BufferGeometry()
+      tGeom.setAttribute('position', new THREE.Float32BufferAttribute(triLines, 3))
+      const tLines = new THREE.LineSegments(
+        tGeom,
+        new THREE.LineBasicMaterial({ color: COLORS.tri, linewidth: 1, transparent: true, opacity: 0.6 })
+      )
+      this.parts.tri = tLines
+      this.group.add(tLines)
+    }
+  }
+
+  private buildCreases() {
+    if (!this.currentData || this.parts.creases) return
+    const edgePos = this.currentData.edgePositions
+    const edgeCls = this.currentData.edgeClass
+    const nEdges = edgeCls.length
+    const creaseLines: number[] = []
+    for (let e = 0; e < nEdges; e++) {
+      if (edgeCls[e] === EDGE_SOFT) {
+        const idx = e * 6
+        for (let k = 0; k < 6; k++) {
+          creaseLines.push(edgePos[idx + k])
+        }
+      }
+    }
+    if (creaseLines.length > 0) {
+      const cGeom = new THREE.BufferGeometry()
+      cGeom.setAttribute('position', new THREE.Float32BufferAttribute(creaseLines, 3))
+      const cLines = new THREE.LineSegments(
+        cGeom,
+        new THREE.LineBasicMaterial({ color: 0x00b4d8, linewidth: 1.5 })
+      )
+      this.parts.creases = cLines
+      this.group.add(cLines)
+    }
+  }
+
+  setLayer(layer: 'grid' | 'outline' | 'tri' | 'creases' | 'hidden', visible: boolean) {
+    if (visible) {
+      if (layer === 'tri' && !this.parts.tri) {
+        this.buildTriangles()
+      } else if (layer === 'creases' && !this.parts.creases) {
+        this.buildCreases()
+      }
+    }
     if (this.parts[layer]) {
       this.parts[layer]!.visible = visible
     }
+  }
+
+  setRemovedFaces(faceIndices: number[] | Set<number>) {
+    this.setHiddenFaces(faceIndices)
+  }
+
+  setOnesidedDiagnostic(enabled: boolean) {
+    if (this.parts.facade) {
+      const mat = this.parts.facade.material as THREE.MeshStandardMaterial
+      mat.side = enabled ? THREE.FrontSide : THREE.DoubleSide
+      mat.needsUpdate = true
+    }
+    if (this.parts.backfaceDiagnostic) {
+      this.parts.backfaceDiagnostic.visible = enabled
+    }
+  }
+
+  setHiddenFaces(faceIndices: number[] | Set<number>) {
+    if (this.parts.hidden) {
+      this.group.remove(this.parts.hidden)
+      this.parts.hidden.geometry.dispose()
+      ;(this.parts.hidden.material as THREE.Material).dispose()
+      delete this.parts.hidden
+    }
+    if (!this.lastPositions) return
+
+    const indices = Array.isArray(faceIndices) ? faceIndices : Array.from(faceIndices)
+    if (indices.length === 0) return
+
+    const hiddenVerts: number[] = []
+    for (const f of indices) {
+      const idx = f * 9
+      if (idx + 8 < this.lastPositions.length) {
+        for (let k = 0; k < 9; k++) {
+          hiddenVerts.push(this.lastPositions[idx + k])
+        }
+      }
+    }
+    if (hiddenVerts.length === 0) return
+
+    const hGeom = new THREE.BufferGeometry()
+    hGeom.setAttribute('position', new THREE.Float32BufferAttribute(hiddenVerts, 3))
+    hGeom.computeVertexNormals()
+    const hMat = new THREE.MeshStandardMaterial({
+      color: 0xff3344,
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.75,
+      depthWrite: false,
+    })
+    const hMesh = new THREE.Mesh(hGeom, hMat)
+    hMesh.visible = false
+    this.parts.hidden = hMesh
+    this.group.add(hMesh)
   }
 
   setDoubleSided(doubleSided: boolean) {
@@ -241,6 +381,11 @@ export function syncViewports(a: Viewport, b: Viewport): () => void {
     isSyncing = true
     dst.camera.position.copy(src.camera.position)
     dst.camera.quaternion.copy(src.camera.quaternion)
+    if (dst.camera.zoom !== src.camera.zoom || dst.camera.fov !== src.camera.fov) {
+      dst.camera.zoom = src.camera.zoom
+      dst.camera.fov = src.camera.fov
+      dst.camera.updateProjectionMatrix()
+    }
     dst.controls.target.copy(src.controls.target)
     dst.controls.update()
     isSyncing = false

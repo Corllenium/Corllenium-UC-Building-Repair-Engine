@@ -13,15 +13,23 @@ from engine.io.snapshot import (
     ManifestMismatch,
     SnapshotResult,
     SourceUnstable,
-    read_manifest,
+    read_manifest_stable,
     sha256_file,
     snapshot_object,
 )
 from engine.pipeline import analyse_topology, flat_material_indices
 
 
-def find_source_file(source_dir: Path, file_name: str) -> tuple[Path, int | None]:
+def find_source_file(source_dir: Path, file_name: str, stable_interval_s: float = 1.0) -> tuple[Path, int | None]:
     """Finds an OBJ file under source_dir or source_dir/split and reads its manifest expected_tris if available."""
+    # Reject directory traversal and unlisted files (m11)
+    if Path(file_name).name != file_name or "/" in file_name or "\\" in file_name:
+        raise FileNotFoundError(f"Source file {file_name!r} not found in {source_dir} or {source_dir / 'split'}")
+
+    scanned = {s.file: s for s in scan_source_directory(source_dir, stable_interval_s=stable_interval_s)}
+    if file_name not in scanned:
+        raise FileNotFoundError(f"Source file {file_name!r} not found in {source_dir} or {source_dir / 'split'}")
+
     candidates = [
         source_dir / file_name,
         source_dir / "split" / file_name,
@@ -35,23 +43,13 @@ def find_source_file(source_dir: Path, file_name: str) -> tuple[Path, int | None
     if target is None:
         raise FileNotFoundError(f"Source file {file_name!r} not found in {source_dir} or {source_dir / 'split'}")
 
-    manifest_path = target.parent / "_MANIFEST.txt"
-    if not manifest_path.exists():
-        manifest_path = source_dir / "_MANIFEST.txt"
-
-    expected_tris = None
-    if manifest_path.exists():
-        try:
-            m = read_manifest(manifest_path)
-            if file_name in m:
-                expected_tris = m[file_name].tris
-        except Exception:
-            pass
+    # Reuse the tri_count already extracted from the stable manifest read in scan_source_directory (n11)
+    expected_tris = scanned[file_name].tri_count
 
     return target, expected_tris
 
 
-def scan_source_directory(source_dir: Path) -> list[SourceFileOut]:
+def scan_source_directory(source_dir: Path, stable_interval_s: float = 1.0) -> list[SourceFileOut]:
     """Scans for available OBJ files in the source directory and split/ subfolder."""
     if not source_dir.exists():
         return []
@@ -59,11 +57,8 @@ def scan_source_directory(source_dir: Path) -> list[SourceFileOut]:
     manifest_map: dict[str, int] = {}
     for manifest_cand in [source_dir / "_MANIFEST.txt", source_dir / "split" / "_MANIFEST.txt"]:
         if manifest_cand.exists():
-            try:
-                for name, row in read_manifest(manifest_cand).items():
-                    manifest_map[name] = row.tris
-            except Exception:
-                pass
+            for name, row in read_manifest_stable(manifest_cand, interval_s=stable_interval_s).items():
+                manifest_map[name] = row.tris
 
     found: dict[str, SourceFileOut] = {}
 
@@ -87,7 +82,7 @@ def scan_source_directory(source_dir: Path) -> list[SourceFileOut]:
 
 def import_model(db: Session, file_name: str, settings: Settings) -> Model:
     """Imports an OBJ export into an immutable snapshot and records it in PostgreSQL."""
-    src_file, expected_tris = find_source_file(settings.source_dir, file_name)
+    src_file, expected_tris = find_source_file(settings.source_dir, file_name, stable_interval_s=settings.stable_interval_s)
 
     snapshots_dir = settings.data_dir / "snapshots"
     snap: SnapshotResult = snapshot_object(
@@ -110,19 +105,43 @@ def import_model(db: Session, file_name: str, settings: Settings) -> Model:
     # Check if a version with this OBJ and these assets already exists. A texture-only or MTL-only
     # re-export keeps the OBJ sha256 but lands in a new snapshot directory, so it needs its own
     # version: the old one's assets still point at the old textures.
+    flat_mat_indices = flat_material_indices(snap.mesh, snap.flatness, 8.0)
+    flat_mat_names = sorted(name for i, name in enumerate(snap.mesh.materials) if i in flat_mat_indices)
+
     ver_stmt = select(ModelVersion).where(
         ModelVersion.model_id == model.id,
         ModelVersion.sha256 == snap.sha256,
-        ModelVersion.asset_sha256 == snap.asset_sha256,
         ModelVersion.kind == "snapshot",
     )
-    existing_ver = db.scalar(ver_stmt)
+    existing_versions = list(db.scalars(ver_stmt))
+    existing_ver = next((v for v in existing_versions if v.asset_sha256 == snap.asset_sha256), None)
+    if existing_ver is None:
+        # Review M5: backfill asset_sha256 only if mtl and texture assets match (m5)
+        null_ver = next((v for v in existing_versions if v.asset_sha256 is None), None)
+        if null_ver is not None:
+            existing_assets = {
+                a.name: a.sha256 for a in null_ver.assets if a.kind in ("mtl", "texture")
+            }
+            new_assets = {}
+            if snap.mtl_path and snap.mtl_path.exists():
+                new_assets[snap.mtl_path.name] = sha256_file(snap.mtl_path)
+            for tex_name, tex_path in snap.textures.items():
+                if tex_path.exists():
+                    new_assets[tex_path.name] = sha256_file(tex_path)
+
+            if existing_assets == new_assets:
+                null_ver.asset_sha256 = snap.asset_sha256
+                if null_ver.flat_materials is None:
+                    null_ver.flat_materials = flat_mat_names
+                db.commit()
+                db.refresh(null_ver)
+                existing_ver = null_ver
+
     if existing_ver is not None:
         return model
 
     # Analyze topology to compute quantum and bounding center offset
-    flat_materials = flat_material_indices(snap.mesh, snap.flatness, 8.0)
-    topo = analyse_topology(snap.mesh, flat_materials)
+    topo = analyse_topology(snap.mesh, flat_mat_indices)
     centre = (topo.positions_w.min(axis=0) + topo.positions_w.max(axis=0)) / 2.0
     quanta = [float(q) for q in topo.quanta]
     offset = [float(c) for c in centre]
@@ -135,6 +154,7 @@ def import_model(db: Session, file_name: str, settings: Settings) -> Model:
         tri_count=snap.mesh.n_faces,
         coord_quantum=quanta,
         origin_offset=offset,
+        flat_materials=flat_mat_names,
     )
     db.add(version)
     db.commit()
@@ -146,7 +166,7 @@ def import_model(db: Session, file_name: str, settings: Settings) -> Model:
             version_id=version.id,
             kind="obj",
             name=snap.obj_path.name,
-            path=str(snap.obj_path.relative_to(settings.data_dir)),
+            path=snap.obj_path.relative_to(settings.data_dir).as_posix(),
             sha256=snap.sha256,
         )
     )
@@ -158,7 +178,7 @@ def import_model(db: Session, file_name: str, settings: Settings) -> Model:
                 version_id=version.id,
                 kind="mtl",
                 name=snap.mtl_path.name,
-                path=str(snap.mtl_path.relative_to(settings.data_dir)),
+                path=snap.mtl_path.relative_to(settings.data_dir).as_posix(),
                 sha256=sha256_file(snap.mtl_path),
             )
         )
@@ -171,7 +191,7 @@ def import_model(db: Session, file_name: str, settings: Settings) -> Model:
                     version_id=version.id,
                     kind="texture",
                     name=tex_path.name,
-                    path=str(tex_path.relative_to(settings.data_dir)),
+                    path=tex_path.relative_to(settings.data_dir).as_posix(),
                     sha256=sha256_file(tex_path),
                 )
             )

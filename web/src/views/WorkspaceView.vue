@@ -8,28 +8,44 @@
       </div>
 
       <div class="layer-toggles">
-        <label class="toggle-item">
+        <label class="toggle-item" title="Hotkey: G">
           <input type="checkbox" v-model="layers.grid" @change="updateLayers" />
           <span class="swatch" style="background: #1f5bff"></span>
-          Gridlines
+          Gridlines <kbd class="kbd-hint">G</kbd>
         </label>
-        <label class="toggle-item">
+        <label class="toggle-item" title="Hotkey: O">
           <input type="checkbox" v-model="layers.outline" @change="updateLayers" />
           <span class="swatch" style="background: #222222"></span>
-          Outlines
+          Outlines <kbd class="kbd-hint">O</kbd>
         </label>
-        <label class="toggle-item">
+        <label class="toggle-item" title="Hotkey: T">
+          <input type="checkbox" v-model="layers.tri" @change="updateLayers" />
+          <span class="swatch" style="background: #9aa0a8"></span>
+          Triangles <kbd class="kbd-hint">T</kbd>
+        </label>
+        <label class="toggle-item" title="Hotkey: C">
+          <input type="checkbox" v-model="layers.creases" @change="updateLayers" />
+          <span class="swatch" style="background: #00b4d8"></span>
+          Creases <kbd class="kbd-hint">C</kbd>
+        </label>
+        <label class="toggle-item" title="Hotkey: H">
+          <input type="checkbox" v-model="layers.hidden" @change="updateLayers" />
+          <span class="swatch" style="background: #ff3344"></span>
+          Removed Faces <kbd class="kbd-hint">H</kbd>
+        </label>
+        <label class="toggle-item" title="Diagnostic only: Inverted normal / backface detection. Hotkey: M">
+          <input type="checkbox" v-model="layers.onesided" @change="updateLayers" />
+          <span class="swatch" style="background: #ff007f"></span>
+          One-Sided / Flipped <kbd class="kbd-hint">M</kbd>
+        </label>
+        <label class="toggle-item" title="Hotkey: X">
           <input type="checkbox" v-model="layers.xray" @change="updateLayers" />
           <span class="swatch" style="background: #d8282f"></span>
-          X-Ray Inside
+          X-Ray <kbd class="kbd-hint">X</kbd>
         </label>
-        <label class="toggle-item" title="Diagnostic only. SketchUp and Unity draw both sides.">
-          <input type="checkbox" v-model="layers.onesided" @change="updateLayers" />
-          One-Sided
-        </label>
-        <label class="toggle-item">
+        <label class="toggle-item" title="Hotkey: S">
           <input type="checkbox" v-model="layers.sync" @change="toggleSync" />
-          Sync Cameras
+          Sync <kbd class="kbd-hint">S</kbd>
         </label>
       </div>
 
@@ -46,11 +62,11 @@
           {{ fixing ? 'Fixing in Engine...' : 'Run Fix Pipeline' }}
         </button>
         <button
-          v-if="latestRun"
+          v-if="latestRun && availableGuardViews.length > 0"
           class="btn btn-secondary"
           @click="showGuardModal = true"
         >
-          Guard Diff (26 Views)
+          Guard Diff ({{ availableGuardViews.length }} Views)
         </button>
       </div>
     </header>
@@ -73,16 +89,77 @@
 
       <section class="canvas-panel">
         <div class="canvas-header">
-          <h2>AFTER &middot; Inside Removed &amp; Planar Regions Merged</h2>
+          <h2>AFTER &middot; {{ resultDesc ? resultDesc.heading : 'Fixed Version' }}</h2>
           <span class="version-label fixed-tag" v-if="fixedVersion">v{{ fixedVersion.id }} (Cleaned)</span>
           <span class="version-label preview-tag" v-else>No Fix Applied Yet</span>
         </div>
         <div ref="canvasB" class="canvas-viewport"></div>
         <div class="panel-stats">
-          <span v-if="fixedVersion && snapshotVersion">
-            <b style="color: #0d8a43">{{ fixedVersion.tri_count.toLocaleString() }}</b> triangles &nbsp;&middot;&nbsp;
-            <b>{{ (100 * (1 - fixedVersion.tri_count / snapshotVersion.tri_count)).toFixed(1) }}% fewer</b> &nbsp;&middot;&nbsp;
-            <span style="color: #0d8a43">Guard Passed (0 damaged px)</span>
+          <div v-if="resultDesc && resultDesc.error" class="text-error" style="color: #d8282f">
+            <strong>Fix failed:</strong> {{ resultDesc.error }}
+          </div>
+          <span v-else-if="fixedVersion && snapshotVersion">
+            <b :style="{ color: resultDesc && !resultDesc.runPassed ? '#d8282f' : '#0d8a43' }">{{ fixedVersion.tri_count.toLocaleString() }}</b> triangles &nbsp;&middot;&nbsp;
+            <b>{{ (100 * (1 - fixedVersion.tri_count / snapshotVersion.tri_count)).toFixed(1) }}% fewer</b>
+            <template v-if="resultDesc">
+              &nbsp;&middot;&nbsp;
+              <span :style="{ color: resultDesc.runPassed ? '#0d8a43' : '#d8282f', fontWeight: 'bold' }">
+                Run {{ resultDesc.runPassed ? 'PASSED' : 'FAILED' }}
+              </span>
+              <template v-if="resultDesc.failedInvariants && resultDesc.failedInvariants.length > 0">
+                &nbsp;(<span style="color: #d8282f">failed: {{ resultDesc.failedInvariants.join(', ') }}</span>)
+              </template>
+              &nbsp;&middot;&nbsp;
+              <span :style="{ color: resultDesc.guardPassed ? '#0d8a43' : '#d8282f' }">{{ resultDesc.guardLine }}</span>
+              <template v-if="resultDesc.backfacePx !== undefined">
+                &nbsp;&middot;&nbsp; <span>{{ resultDesc.backfacePx.toLocaleString() }} backface px</span>
+              </template>
+              <template v-if="resultDesc.solidifySummary">
+                <template v-if="resultDesc.solidifySummary.skirtsAdded !== undefined || resultDesc.solidifySummary.bottomsAdded !== undefined">
+                  &nbsp;&middot;&nbsp;
+                  <span>solidify: {{ resultDesc.solidifySummary.skirtsAdded ?? 0 }} skirts, {{ resultDesc.solidifySummary.bottomsAdded ?? 0 }} bottoms</span>
+                </template>
+                <template v-if="resultDesc.solidifySummary.sidesRebuiltEdges !== undefined || resultDesc.solidifySummary.sidePiecesReplaced !== undefined">
+                  &nbsp;&middot;&nbsp;
+                  <span>side rebuild: {{ resultDesc.solidifySummary.sidesRebuiltEdges ?? 0 }} edges, {{ resultDesc.solidifySummary.sidePiecesReplaced ?? 0 }} replaced</span>
+                </template>
+              </template>
+              <template v-if="resultDesc.borderShiftPx !== undefined">
+                &nbsp;&middot;&nbsp; <span>{{ resultDesc.borderShiftPx }} border shift</span>
+              </template>
+              <template v-if="resultDesc.zfightTie !== undefined">
+                &nbsp;&middot;&nbsp; <span>{{ resultDesc.zfightTie }} z-fight ties</span>
+              </template>
+              <template v-if="resultDesc.crackClosed !== undefined">
+                &nbsp;&middot;&nbsp; <span>{{ resultDesc.crackClosed }} closed cracks</span>
+              </template>
+              <template v-if="resultDesc.edgeFlickerBreakdown && resultDesc.edgeFlickerBreakdown.total > 0">
+                &nbsp;&middot;&nbsp;
+                <span>flicker {{ resultDesc.edgeFlickerBreakdown.total }} ({{ resultDesc.edgeFlickerBreakdown.hole }} hole, {{ resultDesc.edgeFlickerBreakdown.moved }} moved, {{ resultDesc.edgeFlickerBreakdown.material }} mat, {{ resultDesc.edgeFlickerBreakdown.grown }} grown)</span>
+              </template>
+              <template v-if="resultDesc.guardMergeAttempt">
+                &nbsp;&middot;&nbsp;
+                <span :style="{ color: resultDesc.guardMergeAttempt.passed ? '#0d8a43' : '#e67e22' }">
+                  merge attempt {{ resultDesc.guardMergeAttempt.passed ? 'PASSED' : 'FAILED' }}
+                </span>
+              </template>
+              <template v-if="resultDesc.skpWritten && resultDesc.skpPath">
+                &nbsp;&middot;&nbsp;
+                <span class="skp-file-box">
+                  SketchUp file: <code>{{ resultDesc.skpPath }}</code>
+                  <button class="btn-copy-skp" @click="copySkpPath(resultDesc.skpPath)">{{ copiedSkp ? 'Copied!' : 'Copy' }}</button>
+                </span>
+              </template>
+              <template v-else-if="resultDesc.skpWritten === false">
+                &nbsp;&middot;&nbsp;
+                <span class="skp-skipped-notice text-muted">
+                  SketchUp file skipped: {{ resultDesc.skpReason || 'C API DLL missing' }}
+                </span>
+              </template>
+              <template v-else-if="resultDesc.skpSummary">
+                &nbsp;&middot;&nbsp; <span class="skp-summary">{{ resultDesc.skpSummary }}</span>
+              </template>
+            </template>
           </span>
           <span v-else class="text-muted">
             Click "Run Fix Pipeline" to execute the geometry fix engine.
@@ -94,46 +171,66 @@
     <!-- Inspection Details Drawer (if face clicked) -->
     <div v-if="pickedFace" class="picked-inspector">
       <div class="inspector-header">
-        <strong>Inspected Triangle #{{ pickedFace.faceId }}</strong>
+        <strong>Inspected Triangle #{{ pickedFace.faceId }} ({{ pickedFace.viewKind.toUpperCase() }})</strong>
         <button class="btn-close" @click="pickedFace = null">&times;</button>
       </div>
       <div class="inspector-body">
         <div>Coordinates: {{ pickedFace.point.x.toFixed(2) }}, {{ pickedFace.point.y.toFixed(2) }}, {{ pickedFace.point.z.toFixed(2) }}</div>
-        <div>Source OBJ Face: line #{{ pickedFace.faceId + 1 }}</div>
+        <div v-if="pickedFace.loading">Loading face details...</div>
+        <div v-else-if="pickedFace.details">
+          <div>{{ formatFaceSourceInfo(pickedFace.viewKind, pickedFace.details) }}</div>
+          <div v-if="pickedFace.details.material">Material: {{ pickedFace.details.material }}</div>
+        </div>
+        <div v-else-if="pickedFace.error" class="text-error">{{ pickedFace.error }}</div>
       </div>
     </div>
 
     <!-- Guard 26 Views Diff Modal -->
-    <div v-if="showGuardModal && latestRun" class="modal-backdrop" @click.self="showGuardModal = false">
+    <div
+      v-if="showGuardModal && latestRun"
+      class="modal-backdrop"
+      @click.self="showGuardModal = false"
+    >
       <div class="modal-card">
         <div class="modal-header">
-          <h3>Guard Visual Verification &middot; 26 Orthographic Views</h3>
+          <div class="modal-title-wrap">
+            <h3>Guard Visual Verification &middot; Orthographic Diff</h3>
+            <span class="view-indicator">View {{ currentViewIndex + 1 }} / {{ availableGuardViews.length }} &mdash; <kbd class="kbd-hint">&larr;</kbd> <kbd class="kbd-hint">&rarr;</kbd> to navigate</span>
+          </div>
           <button class="btn-close" @click="showGuardModal = false">&times;</button>
         </div>
         <div class="modal-views-bar">
-          <span>Select View:</span>
-          <button
-            v-for="v in standardViews"
-            :key="v"
-            :class="['btn-view', { active: selectedView === v }]"
-            @click="selectedView = v"
-          >
-            {{ v }}
-          </button>
+          <button class="btn-arrow" @click="prevGuardView">&larr; Prev</button>
+          <div class="views-chips">
+            <button
+              v-for="v in availableGuardViews"
+              :key="v"
+              :class="['btn-view', { active: currentGuardView === v }]"
+              @click="selectGuardView(v)"
+            >
+              {{ formatViewName(v) }}
+            </button>
+          </div>
+          <button class="btn-arrow" @click="nextGuardView">Next &rarr;</button>
         </div>
         <div class="modal-diff-image">
           <p class="diff-legend">
-            Left: <strong>BEFORE</strong> &middot; Middle: <strong>AFTER</strong> &middot; Right: <strong>PIXEL DIFF</strong> (Red: deleted, Green: added)
+            Left: <strong>BEFORE</strong> &middot; Middle: <strong>AFTER</strong> &middot; Right: <strong>PIXEL DIFF</strong> (Red: damage, Blue: grown, Amber: tolerated, Green: closed crack, Violet: z-fight tie)
           </p>
-          <img
-            :src="getGuardImageUrl(latestRun.id, selectedView)"
-            :alt="`Guard View ${selectedView}`"
-            class="diff-triptych"
-            @error="onImageError"
-          />
-          <p v-if="imgError" class="text-muted" style="color: #d8282f">
-            Guard image not generated for this view or run.
-          </p>
+          <div class="image-wrapper">
+            <img
+              v-show="!imgError"
+              :src="guardImageUrl"
+              :alt="`Guard View ${currentGuardView}`"
+              class="diff-triptych"
+              @load="imgError = false"
+              @error="imgError = true"
+            />
+            <div v-if="imgError" class="empty-guard-state">
+              <p>Guard image not generated for view <strong>{{ currentGuardView }}</strong> in this run.</p>
+              <p class="text-hint">Axis views (+x, -x, +y, -y, +z, -z) and failing oblique views generate guard renders.</p>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -141,21 +238,37 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, onBeforeUnmount, computed } from 'vue'
+import { ref, reactive, onMounted, onBeforeUnmount, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import {
   fetchModel,
   fetchMeshbuf,
   runFix,
   fetchRun,
-  getGuardImageUrl,
+  fetchVersionRun,
+  fetchFace,
   type Model,
   type ModelVersion,
   type FixRun,
+  type FaceDetails,
 } from '../api/client'
 import { decodeMeshbuf } from '../three/meshbuf'
 import { Viewport, syncViewports } from '../three/Viewport'
+import { describeResult } from '../utils/describeResult'
+import { resolveActiveRun, loadVersionRunOnMount } from '../utils/runResolution'
+import { formatFaceSourceInfo } from '../utils/faceInspection'
+import { useLayers } from '../composables/useLayers'
+import { useGuardViews, getGuardImageUrl, DEFAULT_GUARD_VIEWS } from '../composables/useGuardViews'
 import * as THREE from 'three'
+
+interface PickedFaceState {
+  viewKind: 'before' | 'after'
+  faceId: number
+  point: THREE.Vector3
+  details?: FaceDetails | null
+  loading?: boolean
+  error?: string | null
+}
 
 const route = useRoute()
 const modelId = computed(() => Number(route.params.id))
@@ -164,19 +277,75 @@ const model = ref<Model | null>(null)
 const latestRun = ref<FixRun | null>(null)
 const fixing = ref(false)
 const showGuardModal = ref(false)
-const selectedView = ref('top')
 const imgError = ref(false)
-const pickedFace = ref<{ faceId: number; point: THREE.Vector3 } | null>(null)
+const pickedFace = ref<PickedFaceState | null>(null)
 
-const standardViews = ['top', 'bottom', 'north', 'south', 'east', 'west']
-
-const layers = reactive({
-  grid: true,
-  outline: true,
-  xray: false,
-  onesided: false,
-  sync: true,
+const resultDesc = computed(() => {
+  if (!latestRun.value) return null
+  return describeResult(latestRun.value.report_json || latestRun.value)
 })
+
+const {
+  availableViews: availableGuardViews,
+  currentView: currentGuardView,
+  currentIndex: currentViewIndex,
+  selectView: selectGuardView,
+  nextView: nextGuardView,
+  prevView: prevGuardView,
+  setViews: setGuardViews,
+  handleKeyDown: handleGuardKey,
+} = useGuardViews([], '+z')
+
+const guardViews = computed<string[]>(() => {
+  if (!latestRun.value) return []
+  return latestRun.value.guard_views || latestRun.value.report_json?.guard_views || []
+})
+
+const copiedSkp = ref(false)
+function copySkpPath(path: string) {
+  if (!path) return
+  navigator.clipboard.writeText(path).then(() => {
+    copiedSkp.value = true
+    setTimeout(() => {
+      copiedSkp.value = false
+    }, 2000)
+  })
+}
+
+watch(
+  guardViews,
+  (views) => {
+    setGuardViews(views)
+  },
+  { immediate: true }
+)
+
+const guardImageUrl = computed(() => {
+  if (!latestRun.value) return ''
+  return getGuardImageUrl(latestRun.value.id, currentGuardView.value)
+})
+
+watch(currentGuardView, () => {
+  imgError.value = false
+})
+
+function formatViewName(v: string): string {
+  const map: Record<string, string> = {
+    '+x': '+X (East)',
+    '-x': '-X (West)',
+    '+y': '+Y (North)',
+    '-y': '-Y (South)',
+    '+z': '+Z (Top)',
+    '-z': '-Z (Bottom)',
+  }
+  if (map[v]) return map[v]
+  if (v.startsWith('fail_')) {
+    return `Fail ${v.slice(5)}`
+  }
+  return v
+}
+
+const { layers, handleKeyDown } = useLayers()
 
 const fixProfile = reactive({
   accept_slit: false,
@@ -208,11 +377,43 @@ async function initWorkspace() {
   viewA = new Viewport(canvasA.value)
   viewB = new Viewport(canvasB.value)
 
-  viewA.onPick = (faceId, point) => {
-    pickedFace.value = { faceId, point }
+  viewA.onPick = async (faceId, point) => {
+    pickedFace.value = { viewKind: 'before', faceId, point, loading: true }
+    if (snapshotVersion.value) {
+      try {
+        const details = await fetchFace(snapshotVersion.value.id, faceId)
+        if (pickedFace.value && pickedFace.value.faceId === faceId && pickedFace.value.viewKind === 'before') {
+          pickedFace.value.details = details
+          pickedFace.value.loading = false
+        }
+      } catch (err: any) {
+        if (pickedFace.value && pickedFace.value.faceId === faceId && pickedFace.value.viewKind === 'before') {
+          pickedFace.value.error = err.message || 'Failed to fetch face'
+          pickedFace.value.loading = false
+        }
+      }
+    } else {
+      pickedFace.value.loading = false
+    }
   }
-  viewB.onPick = (faceId, point) => {
-    pickedFace.value = { faceId, point }
+  viewB.onPick = async (faceId, point) => {
+    pickedFace.value = { viewKind: 'after', faceId, point, loading: true }
+    if (fixedVersion.value) {
+      try {
+        const details = await fetchFace(fixedVersion.value.id, faceId)
+        if (pickedFace.value && pickedFace.value.faceId === faceId && pickedFace.value.viewKind === 'after') {
+          pickedFace.value.details = details
+          pickedFace.value.loading = false
+        }
+      } catch (err: any) {
+        if (pickedFace.value && pickedFace.value.faceId === faceId && pickedFace.value.viewKind === 'after') {
+          pickedFace.value.error = err.message || 'Failed to fetch face'
+          pickedFace.value.loading = false
+        }
+      }
+    } else {
+      pickedFace.value.loading = false
+    }
   }
 
   toggleSync()
@@ -240,6 +441,27 @@ async function reloadModel() {
       const fixBuf = await fetchMeshbuf(fixedVersion.value.id)
       viewB.loadModel(decodeMeshbuf(fixBuf))
     }
+    const fetchedRun = await loadVersionRunOnMount(fixedVersion.value?.id, fetchVersionRun)
+    latestRun.value = resolveActiveRun(latestRun.value, fetchedRun)
+    // If a fixed version exists, try to load source_faces to highlight hidden faces in BEFORE
+    if (fixedVersion.value && viewA && snapshotVersion.value) {
+      try {
+        const res = await fetch(`/api/versions/${fixedVersion.value.id}/assets/source_faces.json`)
+        if (res.ok) {
+          const sf: number[][] = await res.json()
+          const kept = new Set(sf.flat())
+          const nSnap = snapshotVersion.value.tri_count || 0
+          const deleted: number[] = []
+          for (let f = 0; f < nSnap; f++) {
+            if (!kept.has(f)) deleted.push(f)
+          }
+          viewA.setHiddenFaces(deleted)
+        }
+      } catch {
+        // Assets not available or fetch failed
+      }
+    }
+    updateLayers()
   } catch (err: any) {
     console.error('Failed loading models:', err)
   }
@@ -249,14 +471,20 @@ function updateLayers() {
   if (viewA) {
     viewA.setLayer('grid', layers.grid)
     viewA.setLayer('outline', layers.outline)
+    viewA.setLayer('tri', layers.tri)
+    viewA.setLayer('creases', layers.creases)
+    viewA.setLayer('hidden', layers.hidden)
     viewA.setXRay(layers.xray)
-    viewA.setDoubleSided(!layers.onesided)
+    viewA.setOnesidedDiagnostic(layers.onesided)
   }
   if (viewB) {
     viewB.setLayer('grid', layers.grid)
     viewB.setLayer('outline', layers.outline)
+    viewB.setLayer('tri', layers.tri)
+    viewB.setLayer('creases', layers.creases)
+    viewB.setLayer('hidden', layers.hidden)
     viewB.setXRay(layers.xray)
-    viewB.setDoubleSided(!layers.onesided)
+    viewB.setOnesidedDiagnostic(layers.onesided)
   }
 }
 
@@ -275,15 +503,33 @@ async function triggerFix() {
   }
 }
 
-function onImageError() {
-  imgError.value = true
+function onGlobalKeyDown(e: KeyboardEvent) {
+  if (showGuardModal.value) {
+    if (e.key === 'Escape') {
+      showGuardModal.value = false
+      return
+    }
+    handleGuardKey(e)
+    return
+  }
+  handleKeyDown(e)
 }
 
 onMounted(() => {
   initWorkspace()
+  window.addEventListener('keydown', onGlobalKeyDown)
+  watch(
+    () => ({ ...layers }),
+    () => {
+      updateLayers()
+      toggleSync()
+    },
+    { deep: true }
+  )
 })
 
 onBeforeUnmount(() => {
+  window.removeEventListener('keydown', onGlobalKeyDown)
   if (disposeSync) disposeSync()
   if (viewA) viewA.dispose()
   if (viewB) viewB.dispose()
@@ -354,6 +600,16 @@ onBeforeUnmount(() => {
   height: 4px;
   border-radius: 2px;
   display: inline-block;
+}
+
+.kbd-hint {
+  font-size: 10px;
+  background: #eaecef;
+  border: 1px solid #d0d7de;
+  border-radius: 3px;
+  padding: 0 4px;
+  color: #57606a;
+  font-family: ui-monospace, monospace;
 }
 
 .fix-actions {
@@ -530,9 +786,20 @@ onBeforeUnmount(() => {
   border-bottom: 1px solid #eee;
 }
 
+.modal-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .modal-header h3 {
   margin: 0;
   font-size: 15px;
+}
+
+.view-indicator {
+  font-size: 12px;
+  color: #6a737d;
 }
 
 .modal-views-bar {
@@ -544,6 +811,26 @@ onBeforeUnmount(() => {
   border-bottom: 1px solid #eee;
 }
 
+.views-chips {
+  display: flex;
+  gap: 6px;
+  flex: 1;
+  overflow-x: auto;
+}
+
+.btn-arrow {
+  background: #fff;
+  border: 1px solid #dcdde2;
+  border-radius: 4px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.btn-arrow:hover {
+  background: #f0f1f4;
+}
+
 .btn-view {
   background: #f0f1f4;
   border: 1px solid #dcdde2;
@@ -551,7 +838,7 @@ onBeforeUnmount(() => {
   padding: 4px 8px;
   font-size: 12px;
   cursor: pointer;
-  text-transform: capitalize;
+  white-space: nowrap;
 }
 
 .btn-view.active {
@@ -578,5 +865,20 @@ onBeforeUnmount(() => {
   height: auto;
   border: 1px solid #eee;
   border-radius: 4px;
+}
+
+.empty-guard-state {
+  padding: 40px 20px;
+  background: #fcfcfd;
+  border: 1px dashed #d0d7de;
+  border-radius: 6px;
+  color: #57606a;
+}
+.empty-guard-state p {
+  margin: 4px 0;
+}
+.text-hint {
+  font-size: 12px;
+  color: #8c959f;
 }
 </style>

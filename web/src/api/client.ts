@@ -35,81 +35,125 @@ export interface FixRun {
   fixed_version_id?: number
   status: 'pending' | 'running' | 'completed' | 'failed'
   config?: any
-  report_json?: {
-    name: string
-    tris_before: number
-    tris_after: number
-    passed: boolean
-    n_removed_hidden: number
-    n_restored_by_guard: number
-    n_flipped: number
-    n_zero_area_dropped: number
-    one_sided_holes_before: number
-    one_sided_holes_after: number
-    guard_passed: boolean
-  }
+  report_json?: any
+  guard_views?: string[]
+  skp?: any
   error?: string
   created_at: string
 }
 
+export class ApiError extends Error {
+  status: number
+  retryAfter?: number
+
+  constructor(message: string, status: number, retryAfter?: number) {
+    super(message)
+    this.name = 'ApiError'
+    this.status = status
+    this.retryAfter = retryAfter
+  }
+}
+
 const API_BASE = '/api'
 
+async function checkResponse(res: Response, fallbackMsg: string): Promise<Response> {
+  if (!res.ok) {
+    let detail = fallbackMsg
+    try {
+      const data = await res.json()
+      if (data?.detail) {
+        detail = typeof data.detail === 'string' ? data.detail : JSON.stringify(data.detail)
+      }
+    } catch {
+      detail = `${fallbackMsg}: ${res.statusText}`
+    }
+    const retryHeader = res.headers.get('Retry-After')
+    const retryAfter = retryHeader ? parseInt(retryHeader, 10) : undefined
+    throw new ApiError(detail, res.status, retryAfter)
+  }
+  return res
+}
+
 export async function fetchSourceFiles(): Promise<SourceFile[]> {
-  const res = await fetch(`${API_BASE}/source/files`)
-  if (!res.ok) throw new Error(`Failed to fetch source files: ${res.statusText}`)
+  const res = await checkResponse(await fetch(`${API_BASE}/source/files`), 'Failed to fetch source files')
   return res.json()
 }
 
 export async function fetchModels(): Promise<Model[]> {
-  const res = await fetch(`${API_BASE}/models`)
-  if (!res.ok) throw new Error(`Failed to fetch models: ${res.statusText}`)
+  const res = await checkResponse(await fetch(`${API_BASE}/models`), 'Failed to fetch models')
   return res.json()
 }
 
 export async function fetchModel(id: number): Promise<Model> {
-  const res = await fetch(`${API_BASE}/models/${id}`)
-  if (!res.ok) throw new Error(`Failed to fetch model ${id}: ${res.statusText}`)
+  const res = await checkResponse(await fetch(`${API_BASE}/models/${id}`), `Failed to fetch model ${id}`)
   return res.json()
 }
 
 export async function importModel(fileName: string): Promise<Model> {
-  const res = await fetch(`${API_BASE}/models/import`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ file: fileName }),
-  })
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ detail: res.statusText }))
-    throw new Error(err.detail || 'Import failed')
-  }
+  const res = await checkResponse(
+    await fetch(`${API_BASE}/models/import`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ file: fileName }),
+    }),
+    'Import failed'
+  )
   return res.json()
 }
 
 export async function fetchMeshbuf(versionId: number): Promise<ArrayBuffer> {
-  const res = await fetch(`${API_BASE}/versions/${versionId}/meshbuf`)
-  if (!res.ok) throw new Error(`Failed to fetch meshbuf: ${res.statusText}`)
+  const res = await checkResponse(
+    await fetch(`${API_BASE}/versions/${versionId}/meshbuf`),
+    'Failed to fetch meshbuf'
+  )
   return res.arrayBuffer()
 }
 
 export async function runFix(versionId: number, profile?: FixProfile): Promise<FixRun> {
-  const res = await fetch(`${API_BASE}/versions/${versionId}/fix`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ profile: profile || {} }),
-  })
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ detail: res.statusText }))
-    throw new Error(err.detail || 'Fix failed')
-  }
+  const res = await checkResponse(
+    await fetch(`${API_BASE}/versions/${versionId}/fix`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ profile: profile || {} }),
+    }),
+    'Fix failed'
+  )
   return res.json()
 }
 
 export async function fetchRun(runId: number): Promise<FixRun> {
-  const res = await fetch(`${API_BASE}/runs/${runId}`)
-  if (!res.ok) throw new Error(`Failed to fetch run: ${res.statusText}`)
+  const res = await checkResponse(await fetch(`${API_BASE}/runs/${runId}`), 'Failed to fetch run')
   return res.json()
 }
+
+export async function fetchVersionRun(versionId: number): Promise<FixRun> {
+  const res = await checkResponse(await fetch(`${API_BASE}/versions/${versionId}/run`), 'Failed to fetch version run')
+  return res.json()
+}
+
 
 export function getGuardImageUrl(runId: number, view: string): string {
   return `${API_BASE}/runs/${runId}/guard/${view}`
 }
+
+export interface SourceFaceInfo {
+  face_id: number
+  line: number
+}
+
+export interface FaceDetails {
+  face_id: number
+  line: number
+  material?: string | null
+  vertices: number[][]
+  source_faces?: SourceFaceInfo[]
+}
+
+export async function fetchFace(versionId: number, faceId: number): Promise<FaceDetails> {
+  const res = await checkResponse(
+    await fetch(`${API_BASE}/versions/${versionId}/faces/${faceId}`),
+    'Failed to fetch face details'
+  )
+  return res.json()
+}
+

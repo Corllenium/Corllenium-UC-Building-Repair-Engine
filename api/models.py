@@ -37,6 +37,7 @@ class ModelVersion(Base):
     tri_count: Mapped[int] = mapped_column(Integer, nullable=False)
     coord_quantum: Mapped[list[float] | None] = mapped_column(JSON, nullable=True)
     origin_offset: Mapped[list[float] | None] = mapped_column(JSON, nullable=True)
+    flat_materials: Mapped[list[str] | None] = mapped_column(JSON, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False
     )
@@ -93,3 +94,17 @@ class FixRun(Base):
     )
 
     version: Mapped["ModelVersion"] = relationship("ModelVersion", foreign_keys=[version_id], back_populates="fix_runs")
+
+    @property
+    def guard_views(self) -> list[str]:
+        if self.report_json and isinstance(self.report_json, dict):
+            return self.report_json.get("guard_views", [])
+        return []
+
+    @property
+    def skp(self) -> dict[str, Any] | None:
+        if self.report_json and isinstance(self.report_json, dict):
+            return self.report_json.get("skp")
+        return None
+
+
