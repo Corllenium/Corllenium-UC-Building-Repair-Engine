@@ -2104,3 +2104,47 @@ def test_every_underside_the_hull_test_judged_is_listed_with_its_fraction():
     [c] = r.report["interface_candidates"]
     assert c["taken"] is True and c["inside_hull"] == pytest.approx(1.0)
     assert c["area"] == pytest.approx(400.0)
+
+
+# ------------------------------ review of brief 10, M4: the reach, and what the ceiling clamps
+
+
+def test_the_underside_reach_is_its_own_constant(monkeypatch):
+    """Review of brief 10, M4: `_is_underside`'s reach was `max_thickness` plus the side band, so
+    changing the thickness ceiling moved every top-or-underside decision with it. It is its own
+    constant (`UNDERSIDE_REACH`, 52.5 in), whatever the profile's ceiling."""
+    import engine.fixes.solidify as S
+    from engine.tests.fixtures.build import overhang_beside_a_slab_variant
+    reaches = []
+    real = S._is_underside
+
+    def spy(*args, **kwargs):
+        reaches.append(args[10])
+        return real(*args, **kwargs)
+
+    monkeypatch.setattr(S, "_is_underside", spy)
+    for ceiling in (30.0, 50.0, 80.0):
+        m = overhang_beside_a_slab_variant("shaded")
+        solidify(m, analyse_topology(m), _fast(max_thickness=ceiling))
+    assert reaches and set(reaches) == {S.UNDERSIDE_REACH} and S.UNDERSIDE_REACH == 52.5
+
+
+def test_a_wall_the_ceiling_clamps_is_reported(monkeypatch):
+    """Review of brief 10, M4: a side deeper than `max_thickness` gets a wall short of its own
+    foot (its pieces below are given back), and nothing said so. The 60 in skirt's open edge is
+    walled 50 in deep, and reported with its measured depth."""
+    r = _planned(slab_with_three_skirts(size=40.0, height=60.0), _FAST, monkeypatch)
+    [w] = r.report["walls_clamped_by_the_ceiling"]
+    assert w["measured"] == pytest.approx(60.0) and w["wall"] == pytest.approx(50.0)
+
+
+def test_a_wall_deeper_than_its_slab_is_reported_and_keeps_its_own_depth(monkeypatch):
+    """Review of brief 10, M4 proposed clamping every wall to its slab's representative depth plus
+    the band. `slab_with_two_depths`' deep end is 9.8 in, its representative depth 1.3 in (a tie
+    goes to the shallower): clamped, the two walls touching the deep end would stop at 3.8 in,
+    against S-I4 (each open edge takes its own measured depth). Measured and reported instead:
+    both walls are listed, and they keep their 9.8 in."""
+    r = _planned(slab_with_two_depths(), _fast(min_thickness=1.0), monkeypatch)
+    listed = r.report["walls_deeper_than_their_slab"]
+    assert [(w["wall"], w["representative_side"]) for w in listed] == [(9.8, 1.3)] * 2
+    assert _skirt_lows(r) == [-9.8] * 4 + [-1.3] * 4

@@ -147,6 +147,13 @@ _PIECE_INSIDE_FRACTION = 0.5
 #: file A below 0.99 is a slab's real underside beside a lower top (regions 57, 455: 0.00).
 INTERFACE_HULL_FRACTION = 0.99
 
+#: Review of brief 10, M4: how far above a region a top runs into `_is_underside`'s ABOVE test
+#: looks for a sky-seeing surface, in inches. It was `max_thickness` plus the side band, so every
+#: change to the thickness ceiling -- fitted to these two files with 0.79 in to spare -- moved
+#: the top-or-underside decisions (C1, M2) with it. Its own constant now, at the same 52.5 in: no
+#: slab of either file is thicker (A's deepest, region 852, is 49.21 in).
+UNDERSIDE_REACH = 52.5
+
 
 @dataclass
 class SolidifyResult:
@@ -318,7 +325,7 @@ def _is_underside(topo: Topology, members: np.ndarray, edges: list[tuple[int, in
        784) hang 29.52 in from such edges, and the slivers beside undersides 1.1 to 1.21 in.
     2. ABOVE: the slab it belongs to is there -- at least `TOP_SKY_FRACTION` of the rays straight
        up from it (four per face, as `_lower_surface` samples) meet a sky-seeing surface within
-       `reach` (`max_thickness` plus the side band: no slab is thicker). A floor under a landing
+       `reach` (`UNDERSIDE_REACH`, 52.5 in: no slab of either file is thicker). A floor under a landing
        meets the landing's own underside instead (review M2, which SR6's test -- every own side
        standing up -- took for an underside).
 
@@ -1332,7 +1339,7 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
         # not by which way its own sides run. It is not planned -- but the search goes on through
         # it, as it did, so the tops beyond it are still found.
         if region not in sky and _is_underside(topo, members, edges, continued, along, sides,
-                                               sky, caster, ok_ids, min_h, max_h + band,
+                                               sky, caster, ok_ids, min_h, UNDERSIDE_REACH,
                                                parent_rep=parent_rep.get(region), tol=tol,
                                                body_above=body_above):
             not_tops.add(region)
@@ -1431,6 +1438,10 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
     unresolved_thickness = 0
     deeper: list[dict] = []
     lower_deeper: list[dict] = []
+    # review of brief 10, M4: walls the thickness ceiling shortened, and walls hanging deeper than
+    # their slab's representative depth plus the band (measured, not clamped)
+    ceiling_clamped: list[dict] = []
+    deeper_than_slab: list[dict] = []
     lower_regions = 0
     lower_walls = 0
     trapezoids = 0
@@ -1652,6 +1663,12 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
             pa, pb, q = plan["frames"][i]
             measured = plan["measured"][i]
             edge_h = clamp(measured) if measured is not None else h
+            if measured is not None and measured > max_h:
+                ceiling_clamped.append({"region": int(region), "measured": round(float(measured), 4),
+                                        "wall": round(float(edge_h), 4)})
+            if ends is None and rep is not None and edge_h > rep + band:
+                deeper_than_slab.append({"region": int(region), "wall": round(float(edge_h), 4),
+                                         "representative_side": round(float(rep), 4)})
             if ends is not None:
                 # SR6 item 1: down to the lower surface at EACH end -- a trapezoid under a
                 # sloped edge over a flat underside, a parallelogram over a parallel one
@@ -1905,6 +1922,16 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
         #: deeper than its representative side depth plus `side_band`: `{region, lower_surface,
         #: representative_side}` (file B's ramp is one: 39.37 against 33.74 in).
         "lower_surface_deeper_than_sides": lower_deeper,
+        #: Review of brief 10, M4. Walls the thickness ceiling (`max_thickness`) shortened: their
+        #: edge's measured depth and the wall built. A side deeper than the ceiling gets a wall
+        #: short of its own foot, and its pieces below are given back.
+        "walls_clamped_by_the_ceiling": ceiling_clamped,
+        #: Review of brief 10, M4. Walls hanging deeper than their slab's representative depth
+        #: plus the side band -- an edge whose own side is deeper than most of the slab's
+        #: (`slab_with_two_depths`' deep end). Measured, NOT clamped: each open edge takes its own
+        #: measured depth (S-I4); clamping them to the slab's depth was measured and declined
+        #: (brief 11 report). Walls down to a lower surface follow that surface instead.
+        "walls_deeper_than_their_slab": deeper_than_slab,
         "bottom_thickness_unresolved": unresolved_thickness,
         "outline_unmappable": unmappable,
         "thickness_per_region": report_thickness,
