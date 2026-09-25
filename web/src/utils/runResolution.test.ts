@@ -5,6 +5,7 @@ import type { FixRun } from '../api/client'
 describe('resolveActiveRun (N2)', () => {
   const previousRun: FixRun = {
     id: 1,
+    version_id: 1,
     status: 'completed',
     fixed_version_id: 2,
     created_at: '2026-09-25T10:00:00Z',
@@ -13,6 +14,7 @@ describe('resolveActiveRun (N2)', () => {
 
   const failedRun: FixRun = {
     id: 2,
+    version_id: 1,
     status: 'failed',
     error: 'ValueError: non-manifold edges encountered in mesh',
     created_at: '2026-09-25T10:05:00Z',
@@ -47,6 +49,7 @@ describe('resolveActiveRun (N2)', () => {
   it('updates to fetched run when latest run completed successfully', () => {
     const completedRun: FixRun = {
       id: 3,
+      version_id: 1,
       status: 'completed',
       fixed_version_id: 4,
       created_at: '2026-09-25T10:10:00Z',

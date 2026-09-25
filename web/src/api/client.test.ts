@@ -2,18 +2,18 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { ApiError, fetchSourceFiles, fetchModels } from './client'
 
 describe('client API and ApiError', () => {
-  const originalFetch = global.fetch
+  const originalFetch = globalThis.fetch
 
   beforeEach(() => {
     vi.restoreAllMocks()
   })
 
   afterEach(() => {
-    global.fetch = originalFetch
+    globalThis.fetch = originalFetch
   })
 
   it('parses Retry-After header and status into ApiError on 409 response', async () => {
-    global.fetch = vi.fn().mockResolvedValue(
+    globalThis.fetch = vi.fn().mockResolvedValue(
       new Response(JSON.stringify({ detail: 'Source folder undergoing rebuild' }), {
         status: 409,
         statusText: 'Conflict',
@@ -36,7 +36,7 @@ describe('client API and ApiError', () => {
   })
 
   it('parses error without Retry-After header', async () => {
-    global.fetch = vi.fn().mockResolvedValue(
+    globalThis.fetch = vi.fn().mockResolvedValue(
       new Response(JSON.stringify({ detail: 'Unprocessable entity' }), {
         status: 422,
         statusText: 'Unprocessable Entity',
@@ -56,7 +56,7 @@ describe('client API and ApiError', () => {
   })
 
   it('returns parsed json on 200 response', async () => {
-    global.fetch = vi.fn().mockResolvedValue(
+    globalThis.fetch = vi.fn().mockResolvedValue(
       new Response(JSON.stringify([{ file: 'model.obj', size_bytes: 100 }]), {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
