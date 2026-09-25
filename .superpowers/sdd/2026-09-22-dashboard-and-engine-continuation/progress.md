@@ -44,12 +44,12 @@ Initial wave implementation of brief items (commits c88b300..c0f2ea4 from 5791ce
 - D5: Fix run atomicity in DB, per-model lock, isolated output directory, HTTP 201.
 - D6: Fixed versions keep materials and flat_materials via migration 0002_flat_materials.
 - D8: Viewport diagnostic visual overlays with useLayers composable.
-- D10: Test database lifecycle isolation.
-- Pass 1 divergence: D7 was deferred; D9/D11/D12 implemented differing features (guard carousel, rescan, soft delete) instead of the brief's exact specifications.
+- Per-session test databases (f5adf2a). Not a brief item: earlier versions of this ledger labelled it D10, but the brief's D10 is host/port/CORS/data dir, done in pass 2 (ac94bdc).
+- Pass 1 divergence: D7 was deferred; D10 was not done; D9/D11/D12 implemented differing features (guard carousel, rescan, soft delete) instead of the brief's exact specifications.
 
 ### Pass 2
 Alignment with brief items D7, D9-D12 (commits e98126f..80c5f38):
-- D7: Picking maps face ids to source lines via GET /api/versions/{id}/source_faces (e98126f).
+- D7: Picking maps face ids to source lines through the `/faces/{face_id}` route that e98126f adds (no `source_faces` route exists; `source_faces` is a field in its response).
 - D9: Fix runs write 6 guard comparison PNGs using engine CLI helper (fc62f6d).
 - D10: Host/port (127.0.0.1:8190), strict CORS origins, and absolute data dir enforcement (ac94bdc).
 - D11: Distinct test fixtures, exact filename matching, and camera sync tests (9577bdb).
@@ -77,7 +77,22 @@ Resolution of re-review findings N1-N2, n1-n12, I2, m12:
 - n12: Add validation bounds to FixProfileConfig schema (1c006cd).
 - n6: Report "no provenance recorded for this version" when fixed version lacks source_faces (e09df22).
 - n7: Serve failing oblique guard views fail_0..fail_25 and add violet z-fight tie in legend (f2903c9).
-- n3: Strengthen tests to assert against actual output directories, non-zero std inputs, and no-auto-retry on 409 (793f636).
+- n3: Strengthen tests to assert against actual output directories, non-zero std inputs, and no-auto-retry on 409 (793f636). Not for m4: that test is still vacuous (the cube has no MTL, so `texture_flatness` is never called; re-review round 3 M3).
 - I2: Add unit tests for version run loading on mount (9e954d0).
-- m12: Store asset relative paths in posix format for container portability (ea0da2e).
+- m12: Store asset relative paths in posix format for container portability (ea0da2e). New rows only: the 6 live `version_assets` rows keep backslash paths, so the Linux container still cannot load the live model (owner's decision; re-review round 3 M6).
+
+### Re-review round 3 and merge (2026-09-25)
+- Verdict at da8ba85: approved with follow-ups (0 Critical, 0 Important, 6 Minor):
+  `rereview3-dashboard-wave.md` in this folder.
+- Measured by the reviewer:
+  - API: 39 passed at da8ba85, and 39 passed on the merged tree.
+  - Web: vitest 46/46 (8 files).
+  - `vue-tsc`: 3 errors, all predating the branch (`Viewport.ts:332,333,360`).
+  - `vite build`: passes (617.63 kB chunk warning).
+- Merged into feat-dashboard as cba42a5. The merged `api/` and `web/` are byte-identical to da8ba85.
+- Follow-ups are brief 12:
+  - M1 and M2: the post-commit owner-copy block.
+  - M3 and M4: a vacuous test and three untested changes.
+  - The nits.
+- M6 is the owner's decision.
 

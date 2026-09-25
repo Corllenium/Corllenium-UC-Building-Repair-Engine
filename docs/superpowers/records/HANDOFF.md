@@ -43,10 +43,12 @@ Jobs:
 
 1. **Brief 11** (remaining visual defects), main checkout, Claude subagent since 17:45: item 1 done
    (4019987); R10-C1 and item 2 in progress.
-2. **Re-review round 3** of `feat/dashboard-wave` at da8ba85 (read-only), Claude subagent since 18:50.
-   Hermes's dashboard pass 4 (16 commits) waits for it before any merge.
-3. **Automatic continuation** (section 7) watches in the background: if Claude's usage limit cuts the
-   brief-11 agent, Hermes continues brief 11 on a branch of its own.
+2. **Dashboard fix wave merged** (21:20) as cba42a5, after re-review round 3 approved it with
+   follow-ups (0 Critical, 0 Important, 6 Minor). The follow-ups are brief 12, queued for Hermes.
+   M6 (the 6 live backslash rows) is the owner's decision.
+3. **Automatic continuation** (section 7, commits ce3a931 and 06efe3c): the watcher runs, but the
+   owner ran `stop` at 21:18. It starts nothing until `tools/auto_continue.py resume`, which is the
+   owner's call.
 
 **If you take over one of these** (for example because Claude hit its usage limit): follow the
 lapse rule at the top of `WORK-CLAIMS.md`, take the claim over in writing, run `git status` and
@@ -61,13 +63,14 @@ work in progress: finish it, test it, commit it; never discard it.
 | 2 | `briefs/02-SR-side-rebuild.md` | side rebuild SR0-SR6 | DONE on feat/side-rebuild (fafd4d6), merged by brief 03 |
 | 3 | `briefs/03-reconcile-and-verify.md` | merge the side rebuild, rerun, verify | DONE (68f6d15 + a89f771, 82adc60, ca463c2; report f8e72bb); 542 passed; A 1,044 / B 530 passed |
 | 4 | `briefs/04-review.md` | review part 1 DONE (review-since-b2134e9.md); review 2a of Hermes's commits DONE (review-hermes-fixes.md); **part 2 (the side rebuild and the merge) NEXT** | read-only |
-| 5 | `briefs/05-dashboard-fix-wave.md` | dashboard fixes D1-D12 | queued |
+| 5 | `briefs/05-dashboard-fix-wave.md` | dashboard fixes D1-D12 | DONE by Hermes (passes 1-4, three reviews); merged as cba42a5 |
 | 6 | `briefs/06-leftovers.md` | smaller leftovers | any time a slot is free |
 | 7 | `briefs/07-review-fixes.md` | fixes from review part 1 | DONE by Hermes (merge 19f97cc) |
 | 8 | `briefs/08-review2a-fixes.md` | fixes from review 2a | DONE (536fca7..d570927, report 64023ad) |
 | 9 | `briefs/09-sliver-ray-confirmation.md` | rays through each debris piece, folds | DONE (3386c4f..d9673c1) |
 | 10 | `briefs/10-side-rebuild-followups.md` | side rebuild gaps + review part 2 findings | DONE (9f64ae9..f7e27d1, report daeb84c) |
 | 11 | `briefs/11-remaining-visual-defects.md` | margin-strip winding, broken undersides, B region 107, B4, B8 | **running** (main checkout) |
+| 12 | `briefs/12-dashboard-followups.md` | re-review 3 follow-ups M1-M4 and nits (API owner-copy block, tests) | queued, for Hermes |
 
 ## 4. Rules (each one cost time when broken)
 
@@ -83,8 +86,10 @@ work in progress: finish it, test it, commit it; never discard it.
   `fixer-web` (5190 and 5180, nginx), `fixer-db` (Postgres 16, 5490); their images were built at that
   time, so the live dashboard runs code from before 2026-09-24 01:22. Rebuilding or restarting them is
   the owner's decision.
-- **API tests** (`pytest api`) drop and recreate the shared test database; never run them while any
-  other process runs them.
+- **API tests** (`pytest api`): since cba42a5 each session makes its own `fixer_test_<pid>_*` database
+  and drops only its own (and ones left by dead processes), so runs of this code may overlap. A
+  worktree or container on an older commit still drops the one shared `fixer_test`: never overlap two
+  runs of such old code. Never touch the live database `fixer`.
 - **Shared working tree**: other sessions edit this folder. Stage files by name, never `git add -A`
   or `git commit -a`. Big features go in their own worktree and branch; the controller merges.
   Foreign uncommitted edits get parked on a `wip/` branch, never discarded. Worktree `corllenium`

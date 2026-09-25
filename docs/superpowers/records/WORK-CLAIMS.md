@@ -22,7 +22,8 @@ does not exist yet. Reviews and read-only jobs are never given to Hermes. It wri
 `Hermes (auto-continue)` here, makes a worktree `.hermes/worktrees/auto-<run>` on branch
 `hermes/auto-<run>` from the job's HEAD, copies the job tree's uncommitted `engine/` and
 `docs/superpowers/records/scripts/` work into it (the tree keeps its copy), and starts Hermes on the
-brief. One run at a time, at most 150 minutes, at most 12 USD of Hermes spend a day. When Hermes stops,
+brief. One automatic run at a time (a Hermes job started by hand does not hold it back), at most 150
+minutes, at most 12 USD of automatic Hermes spend a day. When Hermes stops,
 the runner releases the row as `HERMES-AUTO DONE`, `STOPPED` or `TIMEOUT` with the branch and its
 commits, and adds a line to `AUTO-CONTINUE-LOG.md`. Claude reviews that branch before anything merges
 it. A queued job is started only if its row says `auto-ok`. Kill switch:
@@ -45,10 +46,11 @@ again.
 | Dashboard fix wave, pass 3 (review findings) | review-dashboard-wave.md | .hermes/worktrees/dashboard-wave | - | 2026-09-25 16:38 | DONE by Hermes (15 commits ca1b8f1..6f33222, about 4.60 USD): I1-I8 and m1-m12 fixed or already fixed; rescan and soft delete reverted; web 35 passed, api 32 passed (its report) |
 | Re-review of feat/dashboard-wave passes 2+3 | read-only | committed state 6f33222 | - | 2026-09-25 17:35 | DONE: Changes required (0 Critical, 2 Important, 12 Minor); api 32, web 35 passed; vue-tsc 8 errors (5 new); rereview-dashboard-wave.md |
 | Dashboard fix wave, pass 4 (re-review findings) | rereview-dashboard-wave.md | .hermes/worktrees/dashboard-wave | - | 2026-09-25 18:30 | DONE by Hermes (16 commits 55e728b..da8ba85, about 3.35 USD): N1, N2, n1-n12 claimed fixed; engine untouched; merge-tree clean |
-| Re-review round 3 (pass 4 only) | read-only | committed state da8ba85 | Claude subagent (re-review 3) | 2026-09-25 18:50 | running |
+| Re-review round 3 (pass 4 only) | read-only | committed state da8ba85 | - | 2026-09-25 21:20 | DONE: approved with follow-ups (0 Critical, 0 Important, 6 Minor); API 39 / web 46 on the merged tree; rereview3-dashboard-wave.md; branch merged as cba42a5; follow-ups are brief 12 |
 | Review of feat/dashboard-wave (pass 1, c0f2ea4) | read-only | committed state c0f2ea4 | - | 2026-09-25 13:49 | DONE: Changes required (0 Critical, 8 Important, 12 Minor); review-dashboard-wave.md |
 | Leftovers | briefs/06-leftovers.md | main checkout | - | queued | any time a slot is free |
 | Side rebuild follow-ups | briefs/10-side-rebuild-followups.md | main checkout / feat-dashboard | - | 2026-09-25 17:12 | DONE_WITH_CONCERNS: 9f64ae9..f7e27d1, report daeb84c/4f84ccb; 566 passed; A 917 / B 506, backface final A 21,553 / B 2,787; A owner .skp NOT replaced (file open in SketchUp) |
 | Review of brief 10 (rule 6 and the R2 fixes) | read-only | committed state dc24e9a | - | 2026-09-25 18:40 | DONE: Changes required (1 Critical: underside still taken for a top in 3 cases; 3 Important: rule 6 hides geometry when the plan is wrong, regression at steps, piece belonging 2-D/walls only; 6 Minor); review-brief10.md; folded into brief 11 |
 | Remaining visual defects | briefs/11-remaining-visual-defects.md | main checkout / feat-dashboard | Claude subagent (brief 11) | 2026-09-25 17:45 | running |
 | Visual triage 2026-09-25 | (inline prompt) | read-only, data/visual_triage/2026-09-25 | - | 2026-09-25 12:05 | DONE by Hermes (gemini-3.8-flash, 52 calls, about 0.55 USD): docs/superpowers/records/visual-triage-2026-09-25.md; top items verified by the controller (B middle slabs hollow from below; A big-landing margin line clutter) |
+| Dashboard follow-ups (re-review 3 M1-M4, nits) | briefs/12-dashboard-followups.md | .hermes/worktrees/dashboard-wave / feat/dashboard-wave | - | queued | for Hermes (pass 5); not dispatched: the owner stopped the auto-continue runner at 21:18, so Hermes work waits for the owner's word |
