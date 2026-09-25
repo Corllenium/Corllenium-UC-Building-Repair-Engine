@@ -509,10 +509,10 @@ def cmd_fix(snapshot_dir: Path, out_root: Path, accept_slit: bool,
           f"({sheet['faces_flipped']} thin faces re-wound), {sheet['sheets_refused']} refused, "
           f"{sheet['faces_lying_on_another']} faces lying on another left as they are; "
           f"back_px {sheet['back_px']['before']} -> {sheet['back_px']['after']} before the merge")
-    kept = Counter(p["reason"] for p in result.coincident_pairs if p["verdict"] == "kept")
+    pairs_kept = Counter(p["reason"] for p in result.coincident_pairs if p["verdict"] == "kept")
     print(f"  stacked copies: {len(result.coincident_pairs)} exactly stacked opposite-wound pairs, "
           f"{result.n_removed_coincident} faces removed"
-          + "".join(f"; {n} kept: {reason}" for reason, n in sorted(kept.items())))
+          + "".join(f"; {n} kept: {reason}" for reason, n in sorted(pairs_kept.items())))
     if qa_report["written"]:
         print(f"  wrote {out_dir} (and {qa_report['images']} QA images under qa/)")
     else:
