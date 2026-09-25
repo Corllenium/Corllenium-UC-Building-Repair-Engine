@@ -181,3 +181,47 @@ def test_m5_backfill_does_not_backfill_when_assets_differ(client, textured_sourc
     versions = r2.json()["versions"]
     assert len(versions) == initial_count + 1
 
+
+def test_m5_backfill_succeeds_for_unchanged_textured_model(client, textured_source_dir, db):
+    from dataclasses import replace
+    import numpy as np
+    from PIL import Image
+    from engine.io.obj_writer import write_obj
+    from engine.tests.fixtures.build import cube
+    from api.models import ModelVersion
+    from sqlalchemy import select
+
+    src = textured_source_dir
+    m = replace(cube(14.0), name="backfill_cube", mtllib="backfill_cube.mtl", materials=["granite"])
+    write_obj(m, src / "backfill_cube.obj")
+    (src / "backfill_cube.mtl").write_text("newmtl granite\nmap_Kd tex/granite.png\n", encoding="utf-8")
+    Image.fromarray(np.full((4, 4, 3), 150, np.uint8)).save(src / "tex" / "granite.png")
+
+    manifest_lines = (src / "_MANIFEST.txt").read_text(encoding="utf-8")
+    (src / "_MANIFEST.txt").write_text(manifest_lines + f"backfill_cube.obj  {m.n_faces}  BackfillGroup\n", encoding="utf-8")
+
+    # First import
+    r = client.post("/api/models/import", json={"file": "backfill_cube.obj"})
+    assert r.status_code == 201
+    model_data = r.json()
+    assert len(model_data["versions"]) == 1
+    v_id = model_data["versions"][0]["id"]
+    orig_asset_sha = model_data["versions"][0]["asset_sha256"]
+    assert orig_asset_sha is not None
+
+    # Simulate pre-migration state where asset_sha256 was NULL
+    ver = db.scalar(select(ModelVersion).where(ModelVersion.id == v_id))
+    ver.asset_sha256 = None
+    ver.flat_materials = None
+    db.commit()
+
+    # Re-importing with UNCHANGED textures/MTL must backfill asset_sha256, NOT create a duplicate version!
+    r2 = client.post("/api/models/import", json={"file": "backfill_cube.obj"})
+    assert r2.status_code == 201
+    versions = r2.json()["versions"]
+    assert len(versions) == 1
+    assert versions[0]["id"] == v_id
+    assert versions[0]["asset_sha256"] == orig_asset_sha
+    assert versions[0]["flat_materials"] is not None
+
+

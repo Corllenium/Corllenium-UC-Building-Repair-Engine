@@ -134,7 +134,7 @@ def import_model(db: Session, file_name: str, settings: Settings) -> Model:
                 new_assets[snap.mtl_path.name] = sha256_file(snap.mtl_path)
             for tex_name, tex_path in snap.textures.items():
                 if tex_path.exists():
-                    new_assets[tex_name] = sha256_file(tex_path)
+                    new_assets[tex_path.name] = sha256_file(tex_path)
 
             if existing_assets == new_assets:
                 null_ver.asset_sha256 = snap.asset_sha256
