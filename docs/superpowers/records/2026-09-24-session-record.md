@@ -46,11 +46,11 @@ topology again, **merge**, **final guard** (rolled back if it fails), invariants
 | What you see | Detected by | Fixed by | Safety check | Status |
 |---|---|---|---|---|
 | Hidden inside faces (only visible with X-ray) | `engine/vis/exposure.py`: `compute_exposure`, `compute_side_exposure`, `classify_exposure` (128 ray directions x 4 samples per face) | `engine/fixes/remove.py::remove_faces`, called from `fix_object` | `engine/guard/compare.py::guard_feedback` (strict: a face whose removal changes any pixel is restored) | Working. A: 1,985 removed; B: 2,584. **Limit:** a face visible through an opening or slit in a broken side is kept. |
-| Missing slab sides and bottoms | `engine/fixes/solidify.py::top_regions` | `engine/fixes/solidify.py::solidify` (walls at each edge's own measured height, bottoms at the shallowest measured depth) | `engine/guard/compare.py::solidify_feedback` (cap guard: a new face may cover a FRONT-side hit only if that face's original exposure is under 0.10; background and BACK-side hits are allowed unmeasured, which review C1 shows can delete a real reversed underside; fix in brief 02, SR4) | Working for open edges. A: 99 walls, 9 bottoms; B: 42 and 8. **Limit:** a side that exists but is broken (jagged, partial, with gaps) is not replaced. That is the owner's sawtooth screenshot, and the next feature. |
+| Missing slab sides and bottoms | `engine/fixes/solidify.py::top_regions` | `engine/fixes/solidify.py::solidify` (walls at each edge's own measured height, bottoms at the shallowest measured depth) | `engine/guard/compare.py::solidify_feedback` (cap guard: a new face may cover a hit only where the side the ray met had original exposure under 0.10 (SR4, review C1), where it replaces a broken piece within the side band, or where the ray reached the hit through a slab's inside (SR2 rules 4, 5); a new face lying on an existing one is refused) | Working, with the side rebuild (merged 68f6d15): walls along missing OR broken outline edges, down to a slab's lower surface where it has one, broken pieces replaced. At ca463c2: A 92 edges rebuilt, 105 pieces replaced; B 35 and 45. **Limits:** brief 10. |
 | Gridlines, triangle edges on flat surfaces | `engine/topo/planes.py`: `cluster_planes`, `build_regions`, `cluster_uv`; `engine/topo/edges.py::classify_edges` (class 1 = removable gridline) | `engine/fixes/merge.py::merge_regions` (per flat region: union, then constrained triangulation over existing vertices only; border vertices within 0.15 in of a straight line dropped) | Final guard in `fix_object` (`compare_views` against the solidified reference; border shifts up to 0.15 in are measured and tolerated) | Working. A: 177 regions merged; B: 90. One region per file skipped, being fixed now (section 6). |
 | Texture on texture (z-fighting, stacked duplicate layers) | `engine/fixes/overlap.py`: `find_overlaps`, `covered_fractions` | `engine/fixes/overlap.py`: `plan_overlap_removal`, `remove_overlaps` | Strict guard | Same material: working (A 49, B 23 removed). Different materials: reported only (B had 39 such pairs at b2134e9); the owner's "which face wins" preference step is not built. |
 | Reversed faces (purple back side in SketchUp) | `engine/fixes/orient.py::classify_orientation` (flip when the back is more exposed than the front; "thin sheet" when both sides are) | `engine/fixes/orient.py::flip_faces` | Guard | Working for clear cases (A 780 flipped). **Limit:** thin sheets (A 79, B 16) are not flipped, and faces on open or broken sides count as thin sheets. Closing the sides fixes this. |
-| Stray fragments and slivers | `engine/detectors/fragments.py::detect_fragments` | the fragment pass in `fix_object` | `engine/guard/compare.py::fragment_feedback` (a candidate's own pixels are NOT judged, and the final guard excuses them by name; review C2 shows a real surface patch joined only through T-junctions can be removed; fix in brief 07) | Working with a known hole in the check. A: 3 fragments and 15 slivers removed; B: 12 slivers; not yet verified that none of them was real surface. |
+| Stray fragments, slivers and folds | `engine/detectors/fragments.py::detect_fragments` (components joined through T-junctions; a sliver only on an open border), `engine/detectors/folds.py::detect_folds` | the fragment pass in `fix_object`; faces solidify invented, side-rebuild walls included, are protected | `engine/guard/piece_rays.py` (no line through a removed piece may reach a side never exposed), then `engine/guard/compare.py::fragment_feedback` (a candidate's pixels may show only the sky or an exposed side; per-view cap) | Working (briefs 07-09). At ca463c2: A 2 slivers + 26 fold members removed, B 1 sliver + 6 fold members; every one confirmed by the rays. |
 | Zero-area faces | `engine/topo/adjacency.py::degenerate_mask` | removal in `fix_object` | Strict guard | Working. |
 | T-junction lines (a line across a flat surface; cracks and sparkle in Unity) | `engine/topo/adjacency.py`: `find_t_vertices`, `t_junction_sub_edges` | `engine/fixes/merge.py` threads every existing vertex lying on an output edge into that edge (merged rings, or a fan split of a copied triangle); nothing moved or invented | Final guard (unchanged totals) | Working (28d63df): T-vertices A 353 -> 0, B 363 -> 0. Lines left are double layers, not T-junctions. |
 | Lines inside flat surfaces in the `.skp` | measured on SketchUp's own model after writing | `engine/io/skp_writer.py::write_skp` (softens class 1 and 5 edges and, decided on SketchUp's own model, every edge between two coplanar same-material faces and every one-face edge lying wholly on one) | `read_skp` / `read_skp_summary` read-back | Working (bcccca2). Left: A 9, B 27 lines, of which B's 15 are material seams and the rest double layers. |
@@ -76,6 +76,11 @@ final guard passed.
 | 09-24 09:25 | Merge: T-junction sliver rings closed at the source, a union corner no vertex explains sets aside only its triangles (N1, N2) | d6ef1a9, b3b9ad3 | **902** (0 regions skipped, 87 copied) | **555** |
 | 09-24 14:15 | SketchUp writer hides every line inside a flat same-material surface (S1) | bcccca2, merge 8ee9e4d | .skp lines inside surfaces 14 | 32 |
 | 09-24 18:50 | Merge threads T-junction vertices into the edges they lie on (T1): T-vertices A 353 -> 0, B 363 -> 0 | 28d63df, 03df53d | **1,013** | **601** |
+| 09-24 22:09 | Review part 1 fixes (brief 07): fragments joined through T-junctions and their own pixels judged, failed run writes `.FAILED.skp`, growth over background fails (PX_GROWN), bbox invariant on used vertices | merge 19f97cc | 1,019 | 593 |
+| 09-25 05:50 | Review 2a fixes (brief 08): a sliver only on an open border, invented faces never debris, bbox within the border tolerance, guard images know the new classes, fragment cap from the real files | 536fca7 ... d570927 | 1,033 | 596 |
+| 09-25 07:30 | Side rebuild SR0-SR6, on its own branch: walls along missing or broken sides, broken pieces replaced; back faces A 20,793, B 6,006; owner's ramp close-up 948 back px (input 43,696) | ff4a0ec ... 8d238c4 (feat/side-rebuild) | 876 | 486 |
+| 09-25 08:00 | Debris confirmed by rays through each piece; folds resolved (brief 09) | 3386c4f, 62bee9d | 1,031 | 600 |
+| 09-25 08:52 | Side rebuild merged into feat-dashboard (brief 03): back faces A 20,945, B 5,993; ramp close-up in the written `.skp` 948 back px; no rollback | 68f6d15, a89f771, 82adc60, ca463c2 | **1,044** | **530** |
 
 Every commit since b2134e9, oldest last: `git log --first-parent b2134e9..HEAD`.
 
@@ -102,18 +107,42 @@ First at 8ffbda3 (08:53), then after the merge fix (b3b9ad3, files written 09:29
 | Shape edges above 5 degrees | 330 | 301 | 158 | 143 |
 | Material borders | 0 | 0 | 12 | 12 |
 
+At ca463c2, after the side rebuild was merged (brief 03; files written 08:50 B, 08:52 A), the same
+audit. The before columns are feat-dashboard's owner files of 08:00/08:01, audited the same way.
+
+| | A before (3d30327) | A at ca463c2 | B before (3d30327) | B at ca463c2 |
+|---|---|---|---|---|
+| Faces / edges | 588 / 1,321 | 622 / 1,397 | 254 / 690 | 211 / 571 |
+| Hidden (soft) edges | 397 | 426 | 149 | 146 |
+| Visible lines inside a flat same-material surface | 8 (48.8 ft) | 17 (20.3 ft) | 2 (1.6 ft) | 0 |
+| Visible T-junction lines lying on a flat surface | 3 (54.9 ft) | 3 (12.3 ft) | 20 (47.2 ft) | 20 (42.3 ft) |
+| Real outer borders | 232 | 380 | 200 | 126 |
+| Lines where a wall meets a surface | 251 | 181 | 91 | 63 |
+| Shape edges above 5 degrees | 354 | 311 | 165 | 171 |
+| Material borders | 0 | 0 | 12 | 14 |
+| Non-manifold edges (3+ faces) | 76 | 79 | 51 | 31 |
+
 ## 6. Open problems (owner screenshots, 2026-09-24)
 
-1. **Broken sides are kept, not rebuilt.** A slab side that exists but is jagged (sawtooth), has
-   gaps you can see through, and shows the purple back side. Cause: solidify only adds walls where
-   the side is missing, and its guard refuses to cover visible original faces, so a broken visible
-   side is preserved. Needed: **side rebuild**, replacing a broken side with a clean wall along the
-   slab outline, removing the broken pieces it replaces, faces pointing outward. Interior faces seen
-   through those gaps then become hidden and are removed by the existing step. Next feature.
+1. ~~Broken sides are kept, not rebuilt.~~ **Rebuilt: the side rebuild is merged** (68f6d15,
+   brief 03; built on feat/side-rebuild, SR0-SR6). Walls go along missing OR broken outline edges,
+   and the broken pieces are replaced (A 105, B 45). The inside seen through them is covered and
+   then removed by the hidden pass.
+   - Back faces seen from outside: A 119,504 -> 20,945, B 21,948 -> 5,993.
+   - The owner's sawtooth (B region 309, the ramp) is one clean wall in the written `.skp`: its
+     close-up has 948 back pixels (input 43,696).
+   - Left (brief 10): the cap guard judges a wall and its bottom separately; `max_thickness`
+     (36 in) is below the 39.37 in blocks; the underside test misses some undersides; B's middle
+     slabs read as trays from below; a thin purple plate stays at the ramp's landing end.
 2. ~~Lines inside flat surfaces in the `.skp`~~ **mostly fixed** (writer softening bcccca2, T-junction
    threading 28d63df): A 121 -> 9, B 41 -> 27. What is left: B's 15 material seams (real edges) and
    double layers (one surface's edge lying over a second copy of it: A's 551 in line at x = 2515.77
    and 9 on B), expected to go with the side rebuild; see briefs/06-leftovers.md item 15.
+   **At ca463c2** (side rebuild merged), by the audit:
+   - A has 17 lines inside flat surfaces (20.3 ft) and 3 T-junction lines (12.3 ft). A's 551 in
+     double-layer line at x = 2515.77 is gone. Three of the six longest lines left lie along
+     x = 2673.2 at z 1778.1, not traced.
+   - B has 0 lines inside flat surfaces and 20 T-junction lines (42.3 ft).
 3. ~~File A's sloped underside is a triangle lattice~~ **fixed (b3b9ad3)**: the region's own
    T-junctions made a 71 in x 0.00006 in sliver in its union, whose corner sat 7.87 in from any
    vertex; such slivers are now closed at the source. In the `.skp` that underside is 111 soft-edged
@@ -123,11 +152,19 @@ First at 8ffbda3 (08:53), then after the merge fix (b3b9ad3, files written 09:29
    a side face with a solidify wall laid over it (solidify took an existing side's top edge for an
    open edge); region 79 is two original triangles folded over their shared edge.
 4. **Interior visible from inside the model** (owner's X-ray/inside screenshot): faces kept because
-   they are visible through openings or slits in broken sides; follows item 1.
-5. **Review** of everything since b2134e9 not yet done.
+   they are visible through openings or slits in broken sides; follows item 1. With the side
+   rebuild merged, the hidden pass removes A 2,063 and B 2,734 faces (was 1,985 and 2,566). Not
+   re-checked from inside.
+5. **Review**: part 1 and 2a done, and their fixes landed (briefs 07, 08, 09). Part 2, the side
+   rebuild, is queued.
 6. **Dashboard fix wave** (brief `.superpowers/sdd/2026-09-22-dashboard-and-engine-continuation/fix-wave-1-brief.md`,
    D1-D12) not started; D0 superseded by the F5 merge.
 7. Different-material overlaps: the owner's preference step ("which face wins") not built.
+8. **File A ships a coincident double layer with opposite windings** on its lower landing at
+   z 1612.2 (x 1384-1443, y 22591-22630). Both layers come from the export, and they z-fight.
+   Neither the fold pass nor the duplicate-layer pass removed either one (not traced). Found in
+   brief 03, while tracing why the T-junction threading moves A's back-face count by 161 pixels:
+   it is only which of the two layers a ray meets first.
 
 ## 7. Decisions that shape the engine (details in the ledger)
 

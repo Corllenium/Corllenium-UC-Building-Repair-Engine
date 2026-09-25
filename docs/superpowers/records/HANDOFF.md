@@ -23,26 +23,32 @@ side mesh, rebuild broken or missing sides; only the model's outline edges may b
 run the latest `.skp` of each file must be in `OBJ FIXED RESULT/` for the owner to check in SketchUp
 2026. Work visually: every round ends with renders that are looked at, not only numbers.
 
-## 2. Current state (2026-09-25 08:15, written by the Claude controller)
+## 2. Current state (2026-09-25 10:55, written by the brief 03 Claude subagent)
 
-Branch `feat-dashboard`, HEAD after `d9673c1` (+ record commits). Engine suite **497 passed** (brief 09
-report). `docker-compose.yml` shows as modified: it belongs to another session, never touch it.
+Branch `feat-dashboard`. The side rebuild is MERGED: 68f6d15 (merge), a89f771, 82adc60 and ca463c2
+(follow-ups), f8e72bb (report `reconcile-side-rebuild-report.md`), then these record files. Engine
+suite **542 passed** at ca463c2. `docker-compose.yml` shows as modified: it belongs to another
+session, never touch it.
 
-Latest owner files (08:00-08:01, feat-dashboard at 3d30327, both passed): file A 1,031 triangles,
-file B 600. They do NOT contain the side rebuild yet.
+Latest owner files (A 08:52, B 08:50, engine ca463c2). Both passed, with no merge rollback:
+- file A: 1,044 triangles, back faces from outside 20,945 px;
+- file B: 530 triangles, 5,993 px;
+- the owner's ramp (B region 309) in the written `.skp`: one clean wall, close-up 948 back px
+  (input 43,696);
+- two runs of A give a byte-identical `report.json`.
 
-`feat/side-rebuild` is DONE (last fafd4d6; 427 passed on the branch): with it, file A 876 triangles,
-file B 486, back faces from outside A 20,793 / B 6,006 px, the owner's ramp (B region 309) close-up
-948 back px (input 43,696), no rollback, passed.
+Against the side rebuild alone (876 / 486), the extra triangles are feat-dashboard's T-junction
+threading (A 143, B 49, measured with it switched off) and its debris and fold pass.
 
 Jobs:
 
-1. **Brief 03 — reconcile**, main checkout, Claude subagent since 08:15: merge feat/side-rebuild into
-   feat-dashboard. A dry merge conflicts in engine/cli.py, engine/fixes/pipeline.py,
-   engine/tests/fixtures/build.py, engine/tests/test_cli.py, engine/tests/test_guard.py
-   (compare.py auto-merges). Both sides' behaviour must survive; then both real runs write the owner's
-   `.skp` files.
-2. Next: review part 2 (the side rebuild), then brief 10 (side rebuild follow-ups).
+1. Next: review part 2 (the side rebuild), then brief 10 (side rebuild follow-ups).
+2. Found in brief 03, for brief 10 or the leftovers:
+   - A ships a coincident double layer with opposite windings at z 1612.2 on its lower landing
+     (session record section 6 item 8);
+   - 3 of A's 6 longest lines inside a surface lie along x = 2673.2;
+   - a new sliver, A face 3491, is removed and confirmed by the rays, but why it became a
+     candidate was not traced.
 
 **If you take over one of these** (for example because Claude hit its usage limit): follow the
 lapse rule at the top of `WORK-CLAIMS.md`, take the claim over in writing, run `git status` and
@@ -55,7 +61,7 @@ work in progress: finish it, test it, commit it; never discard it.
 |---|---|---|---|
 | 1 | `briefs/01-T1-tjunction-repair.md` | finish T1 | main checkout |
 | 2 | `briefs/02-SR-side-rebuild.md` | finish SR2, SR3 (side rebuild, faces outward), fix A's rollback | worktree side-rebuild |
-| 3 | `briefs/03-reconcile-and-verify.md` | merge feat/side-rebuild into feat-dashboard, rerun both files, audit the `.skp`, renders, update records | main checkout |
+| 3 | `briefs/03-reconcile-and-verify.md` | merge feat/side-rebuild into feat-dashboard, rerun both files, audit the `.skp`, renders, update records | DONE: 68f6d15 (+ a89f771, 82adc60, ca463c2), report f8e72bb; 542 passed; A 1,044 / B 530 passed |
 | 4 | `briefs/04-review.md` | independent review of everything since b2134e9 | read-only |
 | 5 | `briefs/05-dashboard-fix-wave.md` | dashboard fixes D1-D12 | main checkout |
 | 6 | `briefs/06-leftovers.md` | smaller engine leftovers found on the way | main checkout |
