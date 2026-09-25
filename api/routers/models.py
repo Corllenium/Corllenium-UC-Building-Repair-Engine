@@ -3,7 +3,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
 from api.db import get_db
-from api.models import Model
+from api.models import Model, ModelVersion
 from api.schemas import ImportRequest, ModelOut
 from api.services.importer import import_model
 from api.settings import Settings, get_settings
@@ -14,13 +14,21 @@ router = APIRouter(prefix="/api/models", tags=["models"])
 
 @router.get("", response_model=list[ModelOut])
 def list_models(db: Session = Depends(get_db)):
-    stmt = select(Model).options(selectinload(Model.versions)).order_by(Model.name)
+    stmt = (
+        select(Model)
+        .options(selectinload(Model.versions).selectinload(ModelVersion.assets))
+        .order_by(Model.name)
+    )
     return list(db.scalars(stmt))
 
 
 @router.get("/{id}", response_model=ModelOut)
 def get_model(id: int, db: Session = Depends(get_db)):
-    stmt = select(Model).where(Model.id == id).options(selectinload(Model.versions))
+    stmt = (
+        select(Model)
+        .where(Model.id == id)
+        .options(selectinload(Model.versions).selectinload(ModelVersion.assets))
+    )
     model = db.scalar(stmt)
     if model is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Model not found")
@@ -35,8 +43,12 @@ def import_model_endpoint(
 ):
     try:
         model = import_model(db, req.file, settings)
-        # Reload with versions
-        stmt = select(Model).where(Model.id == model.id).options(selectinload(Model.versions))
+        # Reload with versions and assets
+        stmt = (
+            select(Model)
+            .where(Model.id == model.id)
+            .options(selectinload(Model.versions).selectinload(ModelVersion.assets))
+        )
         return db.scalar(stmt)
     except SourceUnstable as exc:
         raise HTTPException(
