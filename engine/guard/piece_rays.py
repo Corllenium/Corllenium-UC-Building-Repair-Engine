@@ -51,9 +51,12 @@ is sampled every 0.25 in. Measured with this module on brief 08's captured refer
 exposure's 128 directions, each piece judged alone: 3540 opens a slot onto the inside along 219
 of its 15,360 lines at 256 points, and along none of its 3,840 at 64 (16 slices x 4 bands: the
 slot lies between the slices) -- so 64 is too few for a needle, and 256 is the least count tried
-that finds it. Every other piece brief 08 judged real surface is refused at both counts, by 229
-lines or more (B 5750 alone at 64 points; the risers by all of theirs), and none of the pieces it
-judged harmless is. A face costs under 0.1 s.
+that finds it. At both counts every other piece brief 08 judged real surface is refused, by 229
+lines or more (B 5750 alone at 64 points), except B 5751 judged alone -- 5750 and the wall face
+5753 cover it exactly; the pair together opened the crack. The double layers, the harmless lip
+A 3908, B 5634 and solidify's own A 4721 are confirmed; A 1983 and 3711 and B 5229, which brief 08
+called interior, are refused -- they are seen from thousands of lines (below). A face costs
+under 0.1 s.
 
 FLOAT64 NEAR THE PIECE. `EmbreeCaster` stores vertices as float32, and on file B its hits strayed
 6e-5 in outside a 129 in face's edge and leaked through another 1.1e-4 in inside its edge -- a
@@ -61,8 +64,9 @@ sizeable part of a strip 0.0015 in wide. So every ray is cast in float64 (Moller
 `BruteCaster` does, over only the faces near its own point) for its first `REACH` inches from the
 piece, and by embree, recentred on the unit, beyond that. Brief 08's own scratch check
 (`own_rays.py`) cast everything in float32 from 1e-5 in off the piece, and read A 1983 and B 5229
-as reached by no line at all: each one's coincident twin (1982, 5233) was met 1e-5 to 4e-5 in
-BEHIND the ray's own start. Both are seen from thousands of lines here, and both would be refused.
+as reached by no line at all: along the lines inspected, each one's coincident twin (1982, 5233)
+was met 1.0e-5 to 8.5e-5 in BEHIND the ray's own start. Both are seen from thousands of lines
+here, and both would be refused.
 
 Deterministic: fixed points, fixed directions, units in the order given, sorted lists, no random
 number anywhere.
