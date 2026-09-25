@@ -1316,6 +1316,63 @@ def test_a_side_deeper_than_any_slab_of_the_files_is_still_clamped(monkeypatch):
     assert FixProfile().max_thickness < 60.0
 
 
+# ------------------ review part 2, C2 (brief 10 item 3): top or underside, by looking above and below
+
+
+def test_an_underside_with_a_neighbours_side_along_it_is_not_taken_for_a_top():
+    """R2-C2 (`probe_underside_with_hanging_neighbour.py`). B's underside is flush with L's top, so
+    L's edge runs on into it, and L's own 8 in side hangs along the underside's x = 40 edge. SR6's
+    test (an underside has no own side hanging) took it for a top: three 8 in walls and a bottom
+    8 in down were built under B, the cap guard let them through, and the hidden pass deleted B's
+    real underside -- 1,600 sq in of invented floor shipped 8 in low, `passed` True. On file A the
+    same fired at region 33: all 16 of its faces (19,777 sq in, visible on the input) deleted.
+
+    A side hanging along an edge the top CONTINUES across is the neighbour's; no body hangs below
+    B's underside, and the slab it belongs to is above it: nothing is built under it, and it ships."""
+    from engine.tests.fixtures.build import overhang_beside_a_slab
+    m = overhang_beside_a_slab()
+    r = fix_object(m, {}, _FAST)
+    assert r.passed is True
+    assert r.solidify_report["undersides_not_tops"] == 1
+    assert not r.replaced_input[[12, 13]].any()
+    rows = np.cumsum(~r.replaced_input) - 1
+    assert not r.removed_hidden[rows[[12, 13]]].any()
+    n_in = int((~r.replaced_input).sum())
+    invented = r.reference_mesh.positions[r.reference_mesh.face_v[n_in:]]
+    assert [t for t in invented if t[:, 0].min() >= 40.0 - 1e-9] == []
+    shipped = r.mesh.positions[r.mesh.face_v]
+    flat = np.ptp(shipped[:, :, 2], axis=1) <= 1e-9
+    under_b = shapely.box(40.0, 0.0, 80.0, 40.0)
+
+    def area_at(z):
+        return sum(shapely.Polygon(t[:, :2]).intersection(under_b).area
+                   for t in shipped[flat & np.isclose(shipped[:, 0, 2], z)])
+    assert area_at(0.0) == pytest.approx(1600.0)              # B's underside ships, whole
+    assert area_at(-8.0) == pytest.approx(0.0)
+
+
+def test_a_floor_under_a_landing_with_its_sides_missing_is_a_top():
+    """Review part 2, M2 (`probe_real_top_taken_for_underside.py`): R, the slab's top running on
+    under a landing, has its two sides missing and only a riser standing up to the landing. SR6's
+    test (every own side stands up) took it for an underside: nothing was built under it, and
+    L's edge into it became a "side" whose wall was refused -- a missed rebuild. Looking up from
+    R meets the landing's own underside, not the top of a slab R belongs to: R is a top. Its open
+    sides are walled, the slab gets its bottom, and nothing is built between L and R."""
+    from engine.tests.fixtures.build import real_top_under_a_landing
+    m = real_top_under_a_landing()
+    r = _solidified(m, FixProfile(guard_size=(240, 160), n_dirs=64))
+    assert r.report["undersides_not_tops"] == 0
+    assert r.report["cap_guard_passed"] is True
+    new = r.mesh.positions[r.mesh.face_v[r.new_faces]]
+    under_r = [t for t in new if t[:, 0].min() >= 40.0 - 1e-9]
+    for y in (0.0, 40.0):
+        wall = [t for t in under_r if np.allclose(t[:, 1], y)]
+        assert wall and min(t[:, 2].min() for t in wall) == pytest.approx(-10.0)
+    bottom = [t for t in new if np.allclose(t[:, 2], -10.0)]
+    assert sum(shapely.Polygon(t[:, :2]).area for t in bottom) == pytest.approx(80.0 * 40.0)
+    assert [t for t in new if np.allclose(t[:, 0], 40.0)] == []   # no wall inside the slab
+
+
 def test_a_point_on_a_slabs_top_or_bottom_plane_is_inside_it():
     """The cap guard judges the point in front of a covered hit, and for a face lying ON the new
     bottom's plane -- a real partial bottom the bottom replaces -- that point is the hit point

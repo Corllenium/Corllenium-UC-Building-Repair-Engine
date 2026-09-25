@@ -1713,3 +1713,65 @@ def slab_with_fins_beside_a_post(post_y=30.0, post_x=(35.0, 55.0), post_z=(-9.0,
     P += [[x0, post_y, z0], [x1, post_y, z0], [x1, post_y, z1], [x0, post_y, z1]]
     _quads(P, uvs, fv, fvt, fm, [(b, b + 1, b + 2, b + 3)])            # the post, -y
     return _mesh("slab_with_fins_beside_a_post", P, uvs, fv, fvt, face_material=fm)
+
+
+def _closed_box(P, uvs, fv, fvt, fm, x0, x1, y0, y1, z0, z1, material=0):
+    """Append a closed box wound outward: its bottom (2 faces), top, then the y0, x1, y1 and x0
+    sides, in that order."""
+    b = len(P)
+    P += [[x0, y0, z0], [x1, y0, z0], [x1, y1, z0], [x0, y1, z0],
+          [x0, y0, z1], [x1, y0, z1], [x1, y1, z1], [x0, y1, z1]]
+    _quads(P, uvs, fv, fvt, fm, [(b + 0, b + 3, b + 2, b + 1),     # bottom, -z
+                                 (b + 4, b + 5, b + 6, b + 7),     # top, +z
+                                 (b + 0, b + 1, b + 5, b + 4),     # y0, -y
+                                 (b + 1, b + 2, b + 6, b + 5),     # x1, +x
+                                 (b + 2, b + 3, b + 7, b + 6),     # y1, +y
+                                 (b + 3, b + 0, b + 4, b + 7)],    # x0, -x
+           material=material)
+
+
+def overhang_beside_a_slab():
+    """Review part 2, C2 (`probe_underside_with_hanging_neighbour.py`): L, a closed slab (x 0..40,
+    y 0..40, z -8..0), and B, a closed block overhanging open air beside it (x 40..80, z 0..20).
+    B's underside is flush with L's top, so L's x = 40 edge CONTINUES into it -- and L's own 8 in
+    x = 40 side hangs along the underside's x = 40 edge: a neighbour's side, not a body under it.
+
+    Faces: 0-11 L (bottom 0-1, top 2-3, sides), 12-23 B (its underside 12-13, top 14-15, sides)."""
+    P, uvs, fv, fvt, fm = [], [], [], [], []
+    _closed_box(P, uvs, fv, fvt, fm, 0, 40, 0, 40, -8, 0)
+    _closed_box(P, uvs, fv, fvt, fm, 40, 80, 0, 40, 0, 20)
+    return _mesh("overhang_beside_a_slab", P, uvs, fv, fvt, face_material=fm)
+
+
+def real_top_under_a_landing():
+    """Review part 2, M2 (`probe_real_top_taken_for_underside.py`): one slab whose top is two
+    regions at z = 0 -- L (x 0..40, m0) sees sky, R (x 40..80, m1) lies under an upper landing U
+    (a closed box, x 40..80, z 10..20) and sees none. L has 10 in skirts on x = 0, y = 0 and
+    y = 40; under R the export left the sides OPEN (y = 0 and y = 40 over x 40..80), there is no
+    bottom anywhere, and R's only own side is a RISER at x = 80 standing up to the landing.
+
+    Faces: 0-1 L's top, 2-3 R's top, 4-9 L's skirts, 10-11 the riser, 12-23 the landing."""
+    P, uvs, fv, fvt, fm = [], [], [], [], []
+
+    def v(x, y, z):
+        P.append([float(x), float(y), float(z)])
+        return len(P) - 1
+
+    a = [v(0, 0, 0), v(40, 0, 0), v(40, 40, 0), v(0, 40, 0)]
+    _quads(P, uvs, fv, fvt, fm, [tuple(a)], material=0)                       # L's top, +z
+    b = [a[1], v(80, 0, 0), v(80, 40, 0), a[2]]
+    _quads(P, uvs, fv, fvt, fm, [tuple(b)], material=1)                       # R's top, +z
+    lo = [v(0, 0, -10), v(40, 0, -10), v(40, 40, -10), v(0, 40, -10)]
+    _quads(P, uvs, fv, fvt, fm, [(lo[3], lo[0], a[0], a[3]),                  # L x = 0, -x
+                                 (lo[0], lo[1], a[1], a[0]),                  # L y = 0, -y
+                                 (lo[2], lo[3], a[3], a[2])], material=0)     # L y = 40, +y
+    r_top = [v(80, 0, 10), v(80, 40, 10)]
+    _quads(P, uvs, fv, fvt, fm, [(b[1], b[2], r_top[1], r_top[0])], material=0)   # riser, +x
+    t = [v(40, 0, 20), v(80, 0, 20), v(80, 40, 20), v(40, 40, 20)]
+    u = [v(40, 0, 10), v(80, 0, 10), v(80, 40, 10), v(40, 40, 10)]
+    _quads(P, uvs, fv, fvt, fm, [(t[0], t[1], t[2], t[3]), (u[0], u[3], u[2], u[1]),
+                                 (u[0], u[1], t[1], t[0]), (u[2], u[3], t[3], t[2]),
+                                 (u[3], u[0], t[0], t[3]), (u[1], u[2], t[2], t[1])],
+           material=0)                                                        # the landing U
+    return _mesh("real_top_under_a_landing", P, uvs, fv, fvt, materials=("m0", "m1"),
+                 face_material=fm)

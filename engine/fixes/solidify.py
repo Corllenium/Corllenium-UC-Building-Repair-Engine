@@ -291,6 +291,54 @@ def _own_side_depths(topo: Topology, along: dict, sides: np.ndarray, tol: float
     return row_depth, runs
 
 
+def _is_underside(topo: Topology, members: np.ndarray, edges: list[tuple[int, int]],
+                  continued: np.ndarray, along: dict, sides: np.ndarray, sky: set, caster,
+                  ok_ids: np.ndarray, min_body: float, reach: float) -> bool:
+    """Review part 2, C2 (brief 10 item 3): is a region a top runs into, which sees no sky itself,
+    the UNDERSIDE of a slab above it -- decided by looking below it AND above it:
+
+    1. BELOW: no slab body hangs from it -- no own side reaches at least `min_body` (the thinnest
+       slab the engine builds) below one of its edges it does NOT continue across. A side along
+       an edge the top continues across is the neighbour's: file A's region 33 and the review's
+       overhang each had one (29.6 in, 8 in), and SR6's test, which counted every own side, took
+       them for tops. Measured on file A, the real tops under the upper landing (regions 9 and
+       784) hang 29.52 in from such edges, and the slivers beside undersides 1.1 to 1.21 in.
+    2. ABOVE: the slab it belongs to is there -- at least `TOP_SKY_FRACTION` of the rays straight
+       up from it (four per face, as `_lower_surface` samples) meet a sky-seeing surface within
+       `reach` (`max_thickness` plus the side band: no slab is thicker). A floor under a landing
+       meets the landing's own underside instead (review M2, which SR6's test -- every own side
+       standing up -- took for an underside).
+
+    Why not SR6's test alone: a slab's underside with a neighbour's side hanging along it passed
+    for a top, got a bottom invented under it, and the hidden pass deleted it (file A's region
+    33: all 16 faces, 19,777 sq in, visible on the input)."""
+    P = topo.positions_w
+    for i, (a, b) in enumerate(edges):
+        rows = along.get((int(a), int(b)), [])
+        if continued[i] or not rows:
+            continue
+        pa, pb = P[a], P[b]
+        t = pb - pa
+        t[2] = 0.0
+        length = float(np.linalg.norm(t))
+        if length <= 1e-9:
+            continue
+        th = t / length
+        for row in rows:
+            tri = P[topo.face_w[sides[row]]]
+            u = np.clip((tri - pa) @ th, 0.0, length)
+            if float((pa[2] + (pb[2] - pa[2]) * (u / length) - tri[:, 2]).max()) >= min_body:
+                return False
+    tri = P[topo.face_w[members]]
+    centroid = tri.mean(axis=1)
+    samples = np.concatenate([centroid] + [(centroid + tri[:, k]) / 2.0 for k in range(3)])
+    hit, t = caster.first_hit(samples + np.array([0.0, 0.0, EPS_IN]),
+                              np.tile(np.array([0.0, 0.0, 1.0]), (len(samples), 1)))
+    near = (hit >= 0) & (t <= reach)
+    above = topo.face_region[ok_ids[hit[near]]]
+    return bool(np.isin(above, sorted(sky)).sum() >= TOP_SKY_FRACTION * len(samples))
+
+
 def _representative_depth(runs: list[tuple[float, float]]) -> float | None:
     """SR6 item 2. The depth a slab's own sides REPRESENTATIVELY reach: the length-weighted
     (lower) median of `_own_side_depths`' runs -- the shallowest depth down to which at least
@@ -764,15 +812,15 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
             queued.add(other)
             queue.append(other)
             continued_tops += 1
-        # SR6 item 3: a region a top runs into, which sees no sky itself, is a top only if its
-        # own sides hang BELOW it. A slab's UNDERSIDE, met in its plane by a top's edge, has
-        # every own side standing up to the slab's top above it: 64 regions of file A and 5 of
-        # file B, each with a surface above every face and nothing below. Taken for tops, each
-        # got a bottom invented under the real underside, which the cap guard let through (it
-        # read the space under the "top" as the slab's inside) and which hid the real underside
-        # for the hidden pass to delete. It is not planned -- but the search goes on through it,
-        # as it did, so the tops beyond it are still found.
-        if region not in sky and row_depth and max(row_depth.values()) <= tol:
+        # SR6 item 3, review part 2 C2: a region a top runs into, which sees no sky itself, may
+        # be a slab's UNDERSIDE, met in its plane by a top's edge. Taken for a top, it gets a
+        # bottom invented under it, which the cap guard lets through (it reads the space under
+        # the "top" as the slab's inside) and which hides the real underside for the hidden pass
+        # to delete. Whether it is one is decided by looking below and above it (`_is_underside`),
+        # not by which way its own sides run. It is not planned -- but the search goes on through
+        # it, as it did, so the tops beyond it are still found.
+        if region not in sky and _is_underside(topo, members, edges, continued, along, sides,
+                                               sky, caster, ok_ids, min_h, max_h + band):
             not_tops.add(region)
             continue
         rep = _representative_depth(runs)
@@ -1038,8 +1086,9 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
         #: no sky (a floor running on under an upper landing): part of the same slab. Counted
         #: when queued; `undersides_not_tops` of them were then found to be undersides.
         "top_regions_continued": continued_tops,
-        #: SR6 item 3. Regions a top ran into that are a slab's UNDERSIDE (no sky, every own
-        #: side standing up from their outline): not processed, nothing built under them.
+        #: SR6 item 3, review part 2 C2. Regions a top ran into that are a slab's UNDERSIDE
+        #: (`_is_underside`: no sky, no body hanging below them, the slab they belong to above
+        #: them): not processed, nothing built under them.
         "undersides_not_tops": len(not_tops),
         #: Outline edges of top surfaces the export left OPEN (edge count 1) -- what the first
         #: solidify walled. Informational since SR2, which walls what is missing or broken.
