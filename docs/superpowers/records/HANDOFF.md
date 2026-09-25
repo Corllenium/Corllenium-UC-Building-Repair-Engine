@@ -28,9 +28,21 @@ run the latest `.skp` of each file must be in `OBJ FIXED RESULT/` for the owner 
 Branch `feat-dashboard`, engine suite **566 passed** at brief 10's end (17:32). Brief 11's item 1 is
 committed (4019987); its next items are the brief-11 agent's uncommitted work in progress in the main
 checkout (measured 21:15: `engine/fixes/solidify.py`, `engine/tests/fixtures/build.py`,
-`engine/tests/test_solidify.py`, 614 lines added, 93 removed). `docker-compose.yml` and the Docker files
-at the root are another session's: never touch them. The live dashboard is Docker containers built on
-09-24 01:22 (old code); rebuilding them is the owner's decision.
+`engine/tests/test_solidify.py`, 614 lines added, 93 removed). Brief 11 has since committed 0a81860
+(item 2) and 281a569 (R10-C1).
+
+The owner's decisions of 21:45 are carried out:
+- **Live database backed up** to `data/backups/fixer-20260925-2150.dump`.
+- **The 6 `version_assets` rows** with backslash paths were rewritten to forward slashes (`UPDATE 6`).
+- **The dashboard was rebuilt** from committed 281a569 (section 8):
+  - nginx now has `proxy_read_timeout` / `proxy_send_timeout` of 600 s.
+  - `fixer-api` and `fixer-web` were recreated at 21:55, and the API migrated the live database from
+    0001 to 0002_flat_materials when it started.
+  - The live model now loads in the container: every version's meshbuf returns 200 through nginx.
+  - The old images are kept as `ucmodelfixer-api:pre-20260925` and `ucmodelfixer-web:pre-20260925`.
+  - The container writes no `.skp` (there is no SketchUp DLL on Linux), so the owner's files still
+    come from native runs.
+- **One copy of each stacked, opposite-wound, same-material surface may be removed**: brief 13.
 
 Owner files (restored 20:42 from `data/output_verified`), built from the COMMITTED head 5300c29 in the
 clean worktree `.claude/worktrees/verified`: file A 882 triangles, back faces from outside 20,478 px;
@@ -71,7 +83,8 @@ work in progress: finish it, test it, commit it; never discard it.
 | 9 | `briefs/09-sliver-ray-confirmation.md` | rays through each debris piece, folds | DONE (3386c4f..d9673c1) |
 | 10 | `briefs/10-side-rebuild-followups.md` | side rebuild gaps + review part 2 findings | DONE (9f64ae9..f7e27d1, report daeb84c) |
 | 11 | `briefs/11-remaining-visual-defects.md` | margin-strip winding, broken undersides, B region 107, B4, B8 | **running** (main checkout) |
-| 12 | `briefs/12-dashboard-followups.md` | re-review 3 follow-ups M1-M4 and nits (API owner-copy block, tests) | queued, for Hermes |
+| 12 | `briefs/12-dashboard-followups.md` | re-review 3 follow-ups M1-M4 and nits (API owner-copy block, tests) | **running**: Hermes pass 5 |
+| 13 | `briefs/13-coincident-pairs.md` | one copy of each exactly stacked, opposite-wound, same-material surface (owner's decision 09-25 21:45) | **running**: Claude subagent, `.claude/worktrees/coincident` |
 
 ## 4. Rules (each one cost time when broken)
 
@@ -80,13 +93,12 @@ work in progress: finish it, test it, commit it; never discard it.
   `"/d/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe"` from the worktree root, and set
   `PYTHONPATH` to the worktree root for any plain `python script.py` (otherwise it imports the main
   checkout's engine).
-- **Never touch**: `docker-compose.yml` and the Docker files at the root (another session's), any
-  untracked file you did not create, the live export folder `D:\PROJECTS\UC ENVIRONMENT BUILDING\...`,
-  the owner's campus model `D:\PROJECTS\UC\02-SKETCHUP\current\...skp`, and the running servers.
-  Since 2026-09-24 01:22 they are Docker containers started by another session: `fixer-api` (8190),
-  `fixer-web` (5190 and 5180, nginx), `fixer-db` (Postgres 16, 5490); their images were built at that
-  time, so the live dashboard runs code from before 2026-09-24 01:22. Rebuilding or restarting them is
-  the owner's decision.
+- **Never touch**: any untracked file you did not create, the live export folder
+  `D:\PROJECTS\UC ENVIRONMENT BUILDING\...`, the owner's campus model
+  `D:\PROJECTS\UC\02-SKETCHUP\current\...skp`, and the running servers: the Docker containers
+  `fixer-api` (8190), `fixer-web` (5190 and 5180, nginx) and `fixer-db` (Postgres 16, 5490).
+  Rebuilding or restarting them, and any write to the live database `fixer`, is the owner's decision.
+  The owner approved the 2026-09-25 rebuild (section 8).
 - **API tests** (`pytest api`): since cba42a5 each session makes its own `fixer_test_<pid>_*` database
   and drops only its own (and ones left by dead processes), so runs of this code may overlap. A
   worktree or container on an older commit still drops the one shared `fixer_test`: never overlap two
@@ -167,3 +179,28 @@ When Claude comes back:
 
 Tested by `tools/tests/test_auto_continue.py` (a fake Hermes in a throwaway repository); run
 `.venv/Scripts/python.exe -m pytest tools/tests -q -p no:cacheprovider`.
+
+## 8. Rebuilding the Docker dashboard (only with the owner's OK)
+
+The compose file builds from `.`, the main checkout's working tree. That tree holds other agents'
+uncommitted work, so build the images from a clean worktree of a COMMIT instead. In git bash, set
+`MSYS_NO_PATHCONV=1` for any `docker exec` that passes a container path.
+
+```bash
+git -C .claude/worktrees/dk checkout --detach <commit>
+cp Dockerfile.api Dockerfile.web nginx.conf .dockerignore .claude/worktrees/dk/
+pnpm --dir .claude/worktrees/dk/web install --frozen-lockfile
+pnpm --dir .claude/worktrees/dk/web run build
+docker exec fixer-db pg_dump -U fixer -d fixer -Fc -f /tmp/fixer.dump
+docker cp fixer-db:/tmp/fixer.dump data/backups/fixer-<date>.dump
+docker tag ucmodelfixer-api ucmodelfixer-api:pre-<date>
+docker tag ucmodelfixer-web ucmodelfixer-web:pre-<date>
+docker build -t ucmodelfixer-api -f .claude/worktrees/dk/Dockerfile.api .claude/worktrees/dk
+docker build -t ucmodelfixer-web -f .claude/worktrees/dk/Dockerfile.web .claude/worktrees/dk
+docker compose -p ucmodelfixer up -d --no-build api web
+```
+
+- `pg_dump` and `docker cp` make the backup, before anything else touches the database.
+- The two `docker tag` commands keep the old images, so a rollback is one command.
+- The API runs `alembic upgrade head` on the live database when it starts.
+- Check `docker logs fixer-api`, then that `/api/versions/<id>/meshbuf` returns 200 through port 5190.

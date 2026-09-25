@@ -84,6 +84,8 @@ final guard passed.
 | 09-25 17:12 | Side rebuild follow-ups + review part 2 (brief 10): joint shell judgement, thickness from the files, top/underside by looking below and above (it was deleting 19,777 sq in of A's region 33), no new face on a given-back piece, pieces belong to the slab, lower surface only where own sides end | 9f64ae9..f7e27d1 | **917** | **506** |
 | 09-25 21:10 | Automatic continuation: `tools/auto_continue.py` hands the running brief job to Hermes on its own branch when a transcript shows Claude's usage limit (34 tests, fake Hermes; one real Hermes smoke call). The owner ran `stop` at 21:18 | ce3a931, 06efe3c | — | — |
 | 09-25 21:20 | Dashboard fix wave merged (Hermes passes 1-4, three read-only reviews; round 3 approved with 6 minor follow-ups, now brief 12); API 39, web 46; engine unchanged | cba42a5 | — | — |
+| 09-25 21:50 | Brief 11 items 2 and R10-C1: a bottom covers the whole footprint; a real underside is the bottom of the body above it, fascia or no sky (agent's real runs, before review) | 0a81860, 281a569 | 884 | 510 |
+| 09-25 21:55 | Owner's decisions carried out: live DB backed up, 6 backslash rows rewritten, dashboard rebuilt from 281a569 (nginx timeout 600 s, live DB migrated to 0002), live model loads in the container; brief 13 (one copy of stacked opposite-wound same-material surfaces) started | — | — | — |
 
 Every commit since b2134e9, oldest last: `git log --first-parent b2134e9..HEAD`.
 
