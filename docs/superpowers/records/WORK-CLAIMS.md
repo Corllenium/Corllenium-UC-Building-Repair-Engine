@@ -26,3 +26,4 @@ Hermes hands back by releasing the row after a clean commit.
 | Review part 2 (side rebuild) | briefs/04-review.md | read-only | - | queued | after reconcile |
 | Dashboard fix wave | briefs/05-dashboard-fix-wave.md | main checkout | - | queued | after review |
 | Leftovers | briefs/06-leftovers.md | main checkout | - | queued | any time a slot is free |
+| Side rebuild follow-ups | briefs/10-side-rebuild-followups.md | main checkout | - | queued | after brief 03 |
