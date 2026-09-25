@@ -225,3 +225,20 @@ def test_m5_backfill_succeeds_for_unchanged_textured_model(client, textured_sour
     assert versions[0]["flat_materials"] is not None
 
 
+def test_find_source_file_does_not_redundantly_read_manifest(sample_source_dir, monkeypatch):
+    import api.services.importer as imp
+    read_calls = []
+    orig_read = imp.read_manifest_stable
+    def spy_read(*args, **kwargs):
+        read_calls.append(args[0])
+        return orig_read(*args, **kwargs)
+
+    monkeypatch.setattr(imp, "read_manifest_stable", spy_read)
+    path, tris = imp.find_source_file(sample_source_dir, "test_cube.obj", stable_interval_s=0.0)
+    assert path.is_file()
+    assert tris == 12
+    # Only the manifest during scan should be read, no redundant second read
+    assert len(read_calls) == 1
+
+
+

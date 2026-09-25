@@ -26,8 +26,8 @@ def find_source_file(source_dir: Path, file_name: str, stable_interval_s: float 
     if Path(file_name).name != file_name or "/" in file_name or "\\" in file_name:
         raise FileNotFoundError(f"Source file {file_name!r} not found in {source_dir} or {source_dir / 'split'}")
 
-    valid_files = {s.file for s in scan_source_directory(source_dir, stable_interval_s=stable_interval_s)}
-    if file_name not in valid_files:
+    scanned = {s.file: s for s in scan_source_directory(source_dir, stable_interval_s=stable_interval_s)}
+    if file_name not in scanned:
         raise FileNotFoundError(f"Source file {file_name!r} not found in {source_dir} or {source_dir / 'split'}")
 
     candidates = [
@@ -43,15 +43,8 @@ def find_source_file(source_dir: Path, file_name: str, stable_interval_s: float 
     if target is None:
         raise FileNotFoundError(f"Source file {file_name!r} not found in {source_dir} or {source_dir / 'split'}")
 
-    manifest_path = target.parent / "_MANIFEST.txt"
-    if not manifest_path.exists():
-        manifest_path = source_dir / "_MANIFEST.txt"
-
-    expected_tris = None
-    if manifest_path.exists():
-        m = read_manifest_stable(manifest_path, interval_s=stable_interval_s)
-        if file_name in m:
-            expected_tris = m[file_name].tris
+    # Reuse the tri_count already extracted from the stable manifest read in scan_source_directory (n11)
+    expected_tris = scanned[file_name].tri_count
 
     return target, expected_tris
 
