@@ -57,15 +57,18 @@ work in progress: finish it, test it, commit it; never discard it.
 
 ## 3. The queue (do in this order)
 
-| # | Brief | What | Where |
+| # | Brief | What | Status |
 |---|---|---|---|
-| 1 | `briefs/01-T1-tjunction-repair.md` | finish T1 | main checkout |
-| 2 | `briefs/02-SR-side-rebuild.md` | finish SR2, SR3 (side rebuild, faces outward), fix A's rollback | worktree side-rebuild |
-| 3 | `briefs/03-reconcile-and-verify.md` | merge feat/side-rebuild into feat-dashboard, rerun both files, audit the `.skp`, renders, update records | DONE: 68f6d15 (+ a89f771, 82adc60, ca463c2), report f8e72bb; 542 passed; A 1,044 / B 530 passed |
-| 4 | `briefs/04-review.md` | independent review of everything since b2134e9 | read-only |
-| 5 | `briefs/05-dashboard-fix-wave.md` | dashboard fixes D1-D12 | main checkout |
-| 6 | `briefs/06-leftovers.md` | smaller engine leftovers found on the way | main checkout |
-| 7 | `briefs/07-review-fixes.md` | fixes from review part 1 (fragments, failed-run .skp, growth over background, bbox invariant, QA sheet) | DONE: merged into feat-dashboard (431 passed) |
+| 1 | `briefs/01-T1-tjunction-repair.md` | T-junction repair | DONE (28d63df, 03df53d, report 437e4ef) |
+| 2 | `briefs/02-SR-side-rebuild.md` | side rebuild SR0-SR6 | DONE on feat/side-rebuild (fafd4d6), merged by brief 03 |
+| 3 | `briefs/03-reconcile-and-verify.md` | merge the side rebuild, rerun, verify | DONE (68f6d15 + a89f771, 82adc60, ca463c2; report f8e72bb); 542 passed; A 1,044 / B 530 passed |
+| 4 | `briefs/04-review.md` | review part 1 DONE (review-since-b2134e9.md); review 2a of Hermes's commits DONE (review-hermes-fixes.md); **part 2 (the side rebuild and the merge) NEXT** | read-only |
+| 5 | `briefs/05-dashboard-fix-wave.md` | dashboard fixes D1-D12 | queued |
+| 6 | `briefs/06-leftovers.md` | smaller leftovers | any time a slot is free |
+| 7 | `briefs/07-review-fixes.md` | fixes from review part 1 | DONE by Hermes (merge 19f97cc) |
+| 8 | `briefs/08-review2a-fixes.md` | fixes from review 2a | DONE (536fca7..d570927, report 64023ad) |
+| 9 | `briefs/09-sliver-ray-confirmation.md` | rays through each debris piece, folds | DONE (3386c4f..d9673c1) |
+| 10 | `briefs/10-side-rebuild-followups.md` | side rebuild gaps + the render findings after the merge | **NEXT** (main checkout) |
 
 ## 4. Rules (each one cost time when broken)
 
