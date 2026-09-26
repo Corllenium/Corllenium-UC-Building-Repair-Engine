@@ -177,6 +177,12 @@ onMounted(() => {
   margin-bottom: 24px;
 }
 
+.header-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
 .brand h1 {
   margin: 0;
   font-size: 24px;

@@ -274,9 +274,13 @@ async function saveVerdict(payload: { kindId: string; modelId: string; verdict: 
         delete validation.value.verdicts[data.kind]
       }
     }
-    windowRef.value?.setSaveError(payload.modelId, null)
+    if (openId.value === payload.kindId) {
+      windowRef.value?.setSaveError(payload.modelId, null)
+    }
   } catch (err) {
-    windowRef.value?.setSaveError(payload.modelId, `Not saved: ${errMsg(err)}`)
+    if (openId.value === payload.kindId) {
+      windowRef.value?.setSaveError(payload.modelId, `Not saved: ${errMsg(err)}`)
+    }
   }
 }
 
@@ -439,10 +443,12 @@ onUnmounted(() => {
   border-radius: 8px;
   padding: 16px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  min-width: 0;
 }
 .model-card h3 {
   margin: 0 0 4px;
   font-size: 15px;
+  overflow-wrap: anywhere;
 }
 .model-id-tag {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
@@ -481,6 +487,7 @@ onUnmounted(() => {
   font-size: 12px;
   color: #676b75;
   margin: 8px 0 0;
+  overflow-wrap: anywhere;
 }
 .model-skp {
   margin-top: 10px;
@@ -574,6 +581,7 @@ onUnmounted(() => {
   cursor: pointer;
   text-align: left;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  min-width: 0;
 }
 .kind-card:hover {
   box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);

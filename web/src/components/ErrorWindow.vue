@@ -1,6 +1,6 @@
 <template>
   <div ref="el" class="window" :style="{ left: pos.x + 'px', top: pos.y + 'px' }">
-    <div class="title-bar" @pointerdown="startDrag" @pointermove="onDrag" @pointerup="stopDrag">
+    <div class="title-bar" @pointerdown="startDrag" @pointermove="onDrag" @pointerup="stopDrag" @pointercancel="stopDrag">
       <span class="swatch" :style="{ background: color }"></span>
       <span class="title-text">{{ title }}</span>
       <button type="button" class="close-btn" @click="emit('close')">&times;</button>
@@ -193,7 +193,11 @@ function onDrag(ev: PointerEvent) {
 }
 function stopDrag(ev: PointerEvent) {
   dragging = false
-  ;(ev.currentTarget as HTMLElement).releasePointerCapture(ev.pointerId)
+  try {
+    ;(ev.currentTarget as HTMLElement).releasePointerCapture(ev.pointerId)
+  } catch {
+    // pointercancel may have already released capture
+  }
 }
 
 // --- images ---
@@ -318,7 +322,7 @@ onUnmounted(() => {
   padding: 14px 20px 24px;
   font-size: 14px;
   line-height: 1.5;
-  word-wrap: break-word;
+  overflow-wrap: anywhere;
 }
 
 .body h3 {
