@@ -25,6 +25,45 @@ run the latest `.skp` of each file must be in `OBJ FIXED RESULT/` for the owner 
 
 ## 2. Current state (2026-09-26 00:15, written by the Claude controller)
 
+**Update 2026-09-26 23:30: the 3D error filter is merged and live.**
+- **Merge.** `feat/error-filter` was merged into feat-dashboard as 0bfd433. The branch is on GitHub too.
+- **The live images run 0bfd433** (API and web), rebuilt at 23:27.
+  - Rollback images: `:pre-20260926-6`.
+  - Backups:
+    - database: `data/backups/fixer-20260926-2325.dump`;
+    - the owner's verdicts: `validation-20260926-2325.json`;
+    - the old CHTM errors file: `errors-version-6-20260926-2325.json`.
+  - No migration ran.
+- **What it is.** The workspace has an Errors column:
+  - Find errors per version;
+  - a legend of 7 kinds, with an (i) per kind that opens the Errors page's window, plus a facade layer;
+  - isolate, blink, worst spots with fly-to;
+  - a click on a face shows its kinds and the faces it fights;
+  - real textures (toggle U).
+
+  Plan `docs/superpowers/plans/2026-09-26-3d-error-filter.md`; ledger
+  `.superpowers/sdd/2026-09-26-3d-error-filter/progress.md`.
+- **CHTM 5th floor (model 2, version 6).** Its errors file was recomputed with `ERRORS_VERSION` 2 (37.5 s):
+  - flicker 5,668 (texture on texture) + 4,793 (same material);
+  - reversed 29, hidden 12,870;
+  - zero-area and stray bits 1,055 (1,055 zero-area, 0 fragments, 0 slivers);
+  - open edges 346, cracks 3,884, facade 5,765.
+
+  An errors file from an older `find_errors` answers 404 "not computed yet", so the panel offers Find
+  errors again.
+- **After a reboot the dashboard stays down.** The machine rebooted at 22:31, and the containers' restart
+  policy is "no". Bring it back with `docker start fixer-db fixer-api fixer-web`, in that order, waiting
+  for the database to be healthy. Do not use `compose up`: the database container predates the compose
+  file's last change and would be recreated.
+- **Parked**, with the rulings in the ledger:
+  - `classify_edges` downgrades some real open edges (engine; needs its own brief with A/B
+    re-verification);
+  - an in-flight guard on POST errors;
+  - a memory bound on the flicker pixel stage;
+  - the spec gaps M9;
+  - `api/tests/test_health.py::test_settings_host_port_data_dir` fails in the main checkout because it
+    reads the local `.env`. The owner started that fix as its own session.
+
 **Update 2026-09-26 12:55: the Errors page is live** (`http://localhost:5190/errors`).
 - The owner asked where the Errors & fixes documentation page was: only its spec existed. It was then
   redesigned with the owner (11:55-12:15) into a planning catalogue:
@@ -38,11 +77,10 @@ run the latest `.skp` of each file must be in `OBJ FIXED RESULT/` for the owner 
 - Plan `docs/superpowers/plans/2026-09-26-errors-and-fixes-page.md` (Tasks 1, 2, 8, 9, 10, 11); ledger
   `.superpowers/sdd/2026-09-26-errors-and-fixes-page/progress.md`; branch `feat/errors-page` in
   `.claude/worktrees/errors-page`.
-- **The live containers run `feat/errors-page`, NOT yet merged into feat-dashboard:** the API image from
-  2b63a26, the web image from 3ac8331 (rebuilt 13:10).
-  - A rebuild from feat-dashboard before that merge would remove the page.
-  - Rollback images: `:pre-20260926`. Database backup: `data/backups/fixer-20260926-1246.dump`.
-  - No migration ran.
+- `feat/errors-page` was later merged into feat-dashboard (dee9801). The live images now come from
+  feat-dashboard: see the 23:30 update above.
+  - The first deploy of the page (API 2b63a26, web 3ac8331) has rollback images `:pre-20260926` and the
+    database backup `data/backups/fixer-20260926-1246.dump`.
 - **Data (git-ignored, never committed):**
   - The owner's 32 screenshots are in `data/errors_doc/img`, with `owner_images.json`, zipped to
     `data/backups/errors_doc-2026-09-26.zip`.
