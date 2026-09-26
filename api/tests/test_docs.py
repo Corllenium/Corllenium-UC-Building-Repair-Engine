@@ -1,4 +1,7 @@
 """The Errors & fixes page's image route (spec 2026-09-26-errors-and-fixes-page-design.md)."""
+import json
+
+from api.routers.docs import validation_file
 from api.settings import get_settings
 
 PNG = b"\x89PNG\r\n\x1a\n" + b"\0" * 16
@@ -36,3 +39,38 @@ def test_names_outside_the_pattern_are_404(client):
     (_img_dir() / "notes.txt").write_text("x", encoding="utf-8")
     for name in ["notes.txt", "..%2Fsecret.png", "..%5C..%5Csecret.png", "%2E%2E", "a%20b.png", "x.png%0A"]:
         assert client.get(f"/api/docs/images/{name}").status_code == 404, name
+
+
+def _fresh():
+    validation_file(get_settings()).unlink(missing_ok=True)
+
+
+def test_validation_starts_empty(client):
+    _fresh()
+    assert client.get("/api/docs/validation").json() == {"version": 1, "verdicts": {}}
+
+
+def test_a_verdict_is_saved_and_read_back(client):
+    _fresh()
+    r = client.put("/api/docs/validation/hidden-faces/CHTM5", json={"verdict": "error", "note": "remove all"})
+    assert r.status_code == 200
+    assert r.json()["entry"]["verdict"] == "error"
+    got = client.get("/api/docs/validation").json()["verdicts"]["hidden-faces"]["CHTM5"]
+    assert got["verdict"] == "error" and got["note"] == "remove all" and got["at"].endswith("Z")
+    on_disk = json.loads(validation_file(get_settings()).read_text(encoding="utf-8"))
+    assert on_disk["verdicts"]["hidden-faces"]["CHTM5"]["note"] == "remove all"
+
+
+def test_clearing_a_verdict_removes_it(client):
+    _fresh()
+    client.put("/api/docs/validation/sawtooth/B", json={"verdict": "ok", "note": ""})
+    r = client.put("/api/docs/validation/sawtooth/B", json={"verdict": None})
+    assert r.json()["entry"] is None
+    assert client.get("/api/docs/validation").json() == {"version": 1, "verdicts": {}}
+
+
+def test_bad_verdicts_and_ids_are_refused(client):
+    assert client.put("/api/docs/validation/hidden-faces/A", json={"verdict": "maybe"}).status_code == 422
+    assert client.put("/api/docs/validation/hidden-faces/A", json={"verdict": "ok", "note": "x" * 2001}).status_code == 422
+    assert client.put("/api/docs/validation/Hidden..Faces/A", json={"verdict": "ok"}).status_code == 404
+    assert client.put("/api/docs/validation/hidden-faces/A%20B", json={"verdict": "ok"}).status_code == 404
