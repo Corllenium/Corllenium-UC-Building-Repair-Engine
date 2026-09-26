@@ -109,6 +109,16 @@ export const VERDICTS: { id: Verdict; label: string }[] = [
 
 export const IMAGE_NAME = /^[A-Za-z0-9_.-]+\.(png|webp|jpg)$/
 
+// The workspace's layer toggles that show an error, mapped to the catalogue kind their (i)
+// button opens. Outlines, Creases and Sync are not errors and have no entry.
+export const LAYER_KINDS: Record<string, string> = {
+  grid: 'gridlines',
+  tri: 'gridlines',
+  hidden: 'hidden-faces',
+  xray: 'hidden-faces',
+  onesided: 'reversed-faces',
+}
+
 export const WINDOW_HEADER = 48 // px of the floating window's title bar that must stay on screen
 
 export function engineStem(file: string): string {
@@ -187,6 +197,11 @@ export function clampWindow(x: number, y: number, w: number, vw: number, vh: num
   const clampedX = Math.min(Math.max(x, 0), Math.max(0, vw - w))
   const clampedY = Math.min(Math.max(y, 0), Math.max(0, vh - WINDOW_HEADER))
   return { x: clampedX, y: clampedY }
+}
+
+// The catalogue model whose name equals the workspace model's name, or null when none matches.
+export function catalogueModelId(cat: Catalogue, modelName: string): string | null {
+  return cat.models.find(m => m.name === modelName)?.id ?? null
 }
 
 export function verdictOf(v: Validation | null, kindId: string, modelId: string): VerdictEntry | null {

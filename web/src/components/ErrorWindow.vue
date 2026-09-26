@@ -23,7 +23,7 @@
         <h3>How much of each model it is</h3>
         <table class="model-table">
           <tbody>
-            <tr v-for="modelId in Object.keys(kind.models)" :key="modelId">
+            <tr v-for="modelId in visibleModelIds" :key="modelId">
               <td>{{ modelName(modelId) }}</td>
               <td><span class="status-badge" :class="'status-' + kind.models[modelId].status">{{ statusLabel(kind.models[modelId].status) }}</span></td>
               <td>{{ kind.models[modelId].count }}</td>
@@ -71,7 +71,7 @@
 
         <h3>Your verdict</h3>
         <p v-if="!verdictsReady" class="note">Verdicts could not be loaded — reload the page before giving verdicts.</p>
-        <div v-for="modelId in Object.keys(kind.models)" :key="modelId" class="verdict-row">
+        <div v-for="modelId in visibleModelIds" :key="modelId" class="verdict-row">
           <div class="verdict-row-head">
             <span class="model-id">{{ modelId }}</span>
             <button
@@ -165,6 +165,7 @@ const props = defineProps<{
   models: ModelCard[]
   validation: Validation | null
   verdictsReady: boolean
+  onlyModel?: string | null
 }>()
 
 const emit = defineEmits<{
@@ -186,6 +187,16 @@ const examples = computed<Example[]>(() => props.kind?.examples ?? props.mistake
 function modelName(id: string): string {
   return props.models.find(m => m.id === id)?.name ?? id
 }
+
+// Both the "how much of each model" table and the verdict rows narrow to onlyModel when it
+// names one of the kind's models; otherwise (unset, or naming a model this kind has no row for)
+// every model of the kind still shows, same as before onlyModel existed.
+const visibleModelIds = computed<string[]>(() => {
+  if (!props.kind) return []
+  const all = Object.keys(props.kind.models)
+  if (props.onlyModel && all.includes(props.onlyModel)) return [props.onlyModel]
+  return all
+})
 
 // --- dragging ---
 let dragging = false

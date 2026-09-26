@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   filterKinds, filterMistakes, filterChoices, filterFromQuery, openFromQuery, filterToQuery, clampWindow,
-  statusLabel, imageUrl, engineStem, verdictOf, validationSummary, validateCatalogue,
+  statusLabel, imageUrl, engineStem, verdictOf, validationSummary, validateCatalogue, LAYER_KINDS, catalogueModelId,
   type Catalogue, type Kind, type EngineMistake, type Validation,
 } from './errorsDoc'
 import content from '../../public/docs/errors.json'
@@ -161,5 +161,20 @@ describe('errorsDoc', () => {
 
   it('the committed errors.json is valid', () => {
     expect(validateCatalogue(content as unknown as Catalogue)).toEqual([])
+  })
+
+  it('maps each error layer to its catalogue kind', () => {
+    expect(LAYER_KINDS).toEqual({
+      grid: 'gridlines',
+      tri: 'gridlines',
+      hidden: 'hidden-faces',
+      xray: 'hidden-faces',
+      onesided: 'reversed-faces',
+    })
+  })
+
+  it('finds the catalogue model with the same name as a workspace model, else null', () => {
+    expect(catalogueModelId(content as unknown as Catalogue, 'chtm_5ft_floor')).toBe('CHTM5')
+    expect(catalogueModelId(content as unknown as Catalogue, 'no_such_model')).toBeNull()
   })
 })
