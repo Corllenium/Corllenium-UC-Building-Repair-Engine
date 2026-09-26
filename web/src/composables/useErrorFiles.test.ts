@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import { nextTick, isProxy } from 'vue'
-import { useErrorFiles } from './useErrorFiles'
+import { useErrorFiles, errorsOrNull } from './useErrorFiles'
 import type { ErrorsFile } from '../utils/errorLayers'
 
 function makeFile(): ErrorsFile {
@@ -89,5 +89,54 @@ describe('useErrorFiles', () => {
 
     expect(before.reads() - readsBefore).toBe(0)
     expect(after.reads() - readsAfter).toBe(0)
+  })
+})
+
+describe('errorsOrNull (review M1)', () => {
+  it('puts a failed errors fetch in the banner and reads it as no file, so the models still load', async () => {
+    const report = vi.fn()
+    await expect(errorsOrNull(Promise.reject(new Error('Failed to fetch errors: 500')), 'AFTER', report))
+      .resolves.toBeNull()
+    expect(report).toHaveBeenCalledTimes(1)
+    expect(report).toHaveBeenCalledWith('Loading errors failed for AFTER: Failed to fetch errors: 500')
+  })
+
+  it('passes a fetched file, or none (404), through without a banner', async () => {
+    const report = vi.fn()
+    const file = makeFile()
+    await expect(errorsOrNull(Promise.resolve(file), 'BEFORE', report)).resolves.toBe(file)
+    await expect(errorsOrNull(Promise.resolve(null), 'BEFORE', report)).resolves.toBeNull()
+    expect(report).not.toHaveBeenCalled()
+  })
+})
+
+describe('fitToModel (review M3)', () => {
+  const MISMATCH = 'errors file does not match this model; press Find errors'
+
+  it('refuses a file whose n_faces is not the loaded model s face count: dropped, one banner line', () => {
+    const report = vi.fn()
+    const { errorsBefore, errorsAfter, fitToModel } = useErrorFiles(() => {})
+    const stale = makeFile()                 // n_faces 6
+    const other = makeFile()
+    errorsBefore.value = stale
+    errorsAfter.value = other
+
+    expect(fitToModel(stale, 12, report)).toBeNull()      // nothing is drawn from it
+    expect(errorsBefore.value).toBeNull()                 // so the panel offers Find errors again
+    expect(errorsAfter.value).toBe(other)                 // the other panel's file is untouched
+    expect(report).toHaveBeenCalledTimes(1)
+    expect(report).toHaveBeenCalledWith(MISMATCH)
+  })
+
+  it('passes a file that fits the model, and any file while no model is loaded', () => {
+    const report = vi.fn()
+    const { errorsAfter, fitToModel } = useErrorFiles(() => {})
+    const file = makeFile()
+    errorsAfter.value = file
+    expect(fitToModel(file, 6, report)).toBe(file)
+    expect(fitToModel(file, null, report)).toBe(file)
+    expect(fitToModel(null, 6, report)).toBeNull()
+    expect(errorsAfter.value).toBe(file)
+    expect(report).not.toHaveBeenCalled()
   })
 })

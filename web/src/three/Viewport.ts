@@ -548,6 +548,11 @@ export class Viewport {
     return (this.currentData?.header.origin_offset ?? [0, 0, 0]) as [number, number, number]
   }
 
+  /** The loaded model's face count, its meshbuf's `counts.faces`; null before any model. */
+  faceCount(): number | null {
+    return this.currentData?.header.counts.faces ?? null
+  }
+
   private setupPicking() {
     const raycaster = new THREE.Raycaster()
     const mouse = new THREE.Vector2()

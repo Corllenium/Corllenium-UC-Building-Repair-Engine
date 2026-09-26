@@ -349,7 +349,7 @@ import { formatFaceSourceInfo } from '../utils/faceInspection'
 import { useLayers } from '../composables/useLayers'
 import { useGuardViews, getGuardImageUrl, DEFAULT_GUARD_VIEWS } from '../composables/useGuardViews'
 import { useErrorsDoc, type SavePayload } from '../composables/useErrorsDoc'
-import { useErrorFiles } from '../composables/useErrorFiles'
+import { useErrorFiles, errorsOrNull } from '../composables/useErrorFiles'
 import { LAYER_KINDS, catalogueModelId, imageUrl, type Kind } from '../utils/errorsDoc'
 import {
   overlayFaces,
@@ -541,7 +541,7 @@ let disposeSync: (() => void) | null = null
 let snapTriMaterial: Uint16Array | undefined
 let fixTriMaterial: Uint16Array | undefined
 
-const { errorFilter, errorsBefore, errorsAfter } = useErrorFiles(redrawErrors)
+const { errorFilter, errorsBefore, errorsAfter, fitToModel } = useErrorFiles(redrawErrors)
 const busyBefore = ref(false)
 const busyAfter = ref(false)
 const loadingA = ref(false)
@@ -572,6 +572,8 @@ const fixedVersion = computed(() => {
 
 function applyErrors(view: Viewport | null, file: ErrorsFile | null, triMaterial?: ArrayLike<number>) {
   if (!view) return
+  // never draw another model's file: one sized for a different face count is dropped (review M3)
+  file = fitToModel(file, view.faceCount(), pushBanner)
   if (!file) {
     view.setErrorOverlay([], new Float32Array(0), false)
     view.setErrorBlink(null, null)
@@ -679,7 +681,8 @@ async function reloadModel() {
         const snap = decodeMeshbuf(await fetchMeshbuf(snapshotVersion.value.id))
         snapTriMaterial = snap.triMaterial
         viewA.loadModel(snap, snapshotVersion.value.id)
-        errorsBefore.value = await fetchErrors(snapshotVersion.value.id)
+        // a failed errors fetch goes to the banner and never stops the models loading (review M1)
+        errorsBefore.value = await errorsOrNull(fetchErrors(snapshotVersion.value.id), 'BEFORE', pushBanner)
         applyErrors(viewA, errorsBefore.value, snapTriMaterial)
       } finally {
         loadingA.value = false
@@ -691,7 +694,7 @@ async function reloadModel() {
         const fix = decodeMeshbuf(await fetchMeshbuf(fixedVersion.value.id))
         fixTriMaterial = fix.triMaterial
         viewB.loadModel(fix, fixedVersion.value.id)
-        errorsAfter.value = await fetchErrors(fixedVersion.value.id)
+        errorsAfter.value = await errorsOrNull(fetchErrors(fixedVersion.value.id), 'AFTER', pushBanner)
         applyErrors(viewB, errorsAfter.value, fixTriMaterial)
       } finally {
         loadingB.value = false
