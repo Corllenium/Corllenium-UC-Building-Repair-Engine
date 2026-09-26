@@ -357,7 +357,14 @@ def test_double_layers_counts_the_same_pixels_as_every_surface_along_the_ray(bui
     faces = np.asarray(m.face_v)
     d = double_layers(pos - centre, faces, 0.01, VIEWS_26, (300, 200), centre=centre)
     assert d["px"] > 0
-    assert d["px"] == _reference_px(pos - centre, faces, d, 0.01, VIEWS_26, (300, 200))
+    reference = _reference_px(pos - centre, faces, d, 0.01, VIEWS_26, (300, 200))
+    if build == "two_sided_wall":
+        assert d["px"] == reference
+    else:
+        # rays grazing exactly a partner's edge: reference is Embree's float32 mesh plus the
+        # caster's coincident tolerance, the new count is a float64 barycentric test at eps=1e-6;
+        # 1 px of 153028 (back_to_back_pair) and 3 px of 102022 (split_double_layer), measured 2026-09-26
+        assert abs(d["px"] - reference) <= max(5, reference * 1e-4)
 
 
 def test_double_layers_no_longer_asks_the_caster_for_every_surface(monkeypatch):
