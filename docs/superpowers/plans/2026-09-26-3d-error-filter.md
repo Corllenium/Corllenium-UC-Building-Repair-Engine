@@ -1599,8 +1599,18 @@ const hex = (c: number) => '#' + c.toString(16).padStart(6, '0')
   - **Isolate after a reload.** A model reload must re-apply the error overlay, isolate and blink, the way
     `reloadModel` → `updateLayers` re-applies X-ray: call `applyErrors` for both panels after
     `loadModel`.
-  - **Loading overlay** (the amendment of 2026-09-26, above in this task): `loadingA`/`loadingB` and the
-    `.panel-loading` message "Loading model… a large building can take 20 s the first time" must be in.
+  - **Loading overlay** (added with Task 12; the text also stands at the end of Task 12's section). Show a
+    loading message in each panel while its meshbuf loads:
+    - add `const loadingA = ref(false)` and `const loadingB = ref(false)`;
+    - set each to `true` before its `fetchMeshbuf(...)` in `reloadModel()`, and back to `false` in a
+      `finally`;
+    - in each panel's viewport container add
+      `<div v-if="loadingA" class="panel-loading">Loading model… a large building can take 20 s the first time</div>`,
+      and the same with `loadingB`;
+    - style `.panel-loading` as a centred overlay: `position: absolute; inset: 0; display: flex;
+      align-items: center; justify-content: center; background: rgba(246,246,248,0.85); color: #555;
+      font-size: 14px; z-index: 2;`;
+    - make the viewport container `position: relative`.
 
 - [ ] **Step 3: Type-check and run the web tests**
 
