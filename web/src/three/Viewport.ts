@@ -1,6 +1,7 @@
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { DecodedMeshbuf } from './meshbuf'
+import { groupByMaterial, textureUrl } from '../utils/materialGroups'
 
 export const EDGE_REAL = 0
 export const EDGE_REMOVABLE = 1
@@ -25,6 +26,7 @@ export class Viewport {
   group: THREE.Group
   parts: {
     facade?: THREE.Mesh
+    textured?: THREE.Mesh
     grid?: THREE.LineSegments
     outline?: THREE.LineSegments
     tri?: THREE.LineSegments
@@ -37,8 +39,10 @@ export class Viewport {
   } = {}
   private currentData?: DecodedMeshbuf
   private lastPositions?: Float32Array
+  private faceOrder?: Uint32Array
   private xray = false
   private isolate = false
+  private texturedOn = true
   private blinkA: Float32Array | null = null
   private blinkB: Float32Array | null = null
   private blinkPhase = -1
@@ -111,16 +115,17 @@ export class Viewport {
       if ((o as any).geometry) (o as any).geometry.dispose()
       if ((o as any).material) {
         const m = (o as any).material
-        if (Array.isArray(m)) m.forEach(x => x.dispose())
-        else m.dispose()
+        const mats = Array.isArray(m) ? m : [m]
+        mats.forEach(x => { x.map?.dispose(); x.dispose() })
       }
       this.group.remove(o)
     }
     this.parts = {}
+    this.faceOrder = undefined
     this.blinkA = this.blinkB = null
   }
 
-  loadModel(data: DecodedMeshbuf) {
+  loadModel(data: DecodedMeshbuf, versionId?: number) {
     this.clear()
 
     const nFaces = data.header.counts.faces
@@ -216,6 +221,49 @@ export class Viewport {
       this.group.add(oLines)
     }
 
+    // A textured facade, drawn instead of the flat-shaded one when textures are on and the
+    // model has any. Non-indexed geometry sorted by material so each material can be one
+    // three.js draw group; faceOrder maps a slot in that sort back to the real face id.
+    if (versionId !== undefined && data.header.materials.some(m => m.texture)) {
+      const { order, groups } = groupByMaterial(data.triMaterial)
+      const n = order.length
+      const pos = new Float32Array(n * 9), nor = new Float32Array(n * 9), uv = new Float32Array(n * 6)
+      for (let k = 0; k < n; k++) {
+        const f = order[k]
+        pos.set(data.positions.subarray(f * 9, f * 9 + 9), k * 9)
+        nor.set(data.normals.subarray(f * 9, f * 9 + 9), k * 9)
+        uv.set(data.uvs.subarray(f * 6, f * 6 + 6), k * 6)
+      }
+      const tgeom = new THREE.BufferGeometry()
+      tgeom.setAttribute('position', new THREE.BufferAttribute(pos, 3))
+      tgeom.setAttribute('normal', new THREE.BufferAttribute(nor, 3))
+      tgeom.setAttribute('uv', new THREE.BufferAttribute(uv, 2))
+      const nMat = data.header.materials.length
+      const loader = new THREE.TextureLoader()
+      const mats: THREE.Material[] = data.header.materials.map((m, i) => {
+        const url = textureUrl(versionId, m.texture)
+        const mat = new THREE.MeshStandardMaterial({
+          side: THREE.DoubleSide, roughness: 0.9, metalness: 0.0,
+          polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1,
+          color: url ? 0xffffff : new THREE.Color().setScalar(0.8 + (i % 5) * 0.04),
+        })
+        if (url) {
+          const tex = loader.load(url)
+          tex.wrapS = tex.wrapT = THREE.RepeatWrapping
+          tex.magFilter = THREE.NearestFilter          // block textures stay crisp
+          tex.colorSpace = THREE.SRGBColorSpace
+          mat.map = tex
+        }
+        return mat
+      })
+      mats.push(new THREE.MeshStandardMaterial({ side: THREE.DoubleSide, color: 0xcccccc }))  // faces with no material
+      for (const g of groups) tgeom.addGroup(g.start, g.count, g.material < nMat ? g.material : nMat)
+      this.parts.textured = new THREE.Mesh(tgeom, mats)
+      this.faceOrder = order
+      this.group.add(this.parts.textured)
+      this.setTextured(this.texturedOn)
+    }
+
     // Fit camera to bounding box
     const box = new THREE.Box3().setFromBufferAttribute(geom.getAttribute('position') as THREE.BufferAttribute)
     const c = box.getCenter(new THREE.Vector3())
@@ -299,10 +347,9 @@ export class Viewport {
   }
 
   setOnesidedDiagnostic(enabled: boolean) {
-    if (this.parts.facade) {
-      const mat = this.parts.facade.material as THREE.MeshStandardMaterial
-      mat.side = enabled ? THREE.FrontSide : THREE.DoubleSide
-      mat.needsUpdate = true
+    for (const m of this.surfaceMaterials()) {
+      m.side = enabled ? THREE.FrontSide : THREE.DoubleSide
+      m.needsUpdate = true
     }
     if (this.parts.backfaceDiagnostic) {
       this.parts.backfaceDiagnostic.visible = enabled
@@ -349,11 +396,17 @@ export class Viewport {
   }
 
   setDoubleSided(doubleSided: boolean) {
-    if (this.parts.facade) {
-      const m = this.parts.facade.material as THREE.Material
+    for (const m of this.surfaceMaterials()) {
       m.side = doubleSided ? THREE.DoubleSide : THREE.FrontSide
       m.needsUpdate = true
     }
+  }
+
+  setTextured(on: boolean) {
+    this.texturedOn = on
+    const hasTextured = !!this.parts.textured
+    if (this.parts.textured) this.parts.textured.visible = on
+    if (this.parts.facade) this.parts.facade.visible = !(on && hasTextured)
   }
 
   setXRay(xray: boolean) {
@@ -361,25 +414,38 @@ export class Viewport {
     this.applyFacadeLook()
   }
 
-  /** Isolate wins over X-ray; either wins over the plain opaque look. Shared so toggling one
-   *  never clobbers the other's material state on the facade. */
-  private applyFacadeLook() {
-    if (!this.parts.facade) return
-    const m = this.parts.facade.material as THREE.MeshStandardMaterial
-    if (this.isolate) {
-      m.transparent = true
-      m.opacity = 0.08
-      m.depthWrite = false
-    } else if (this.xray) {
-      m.transparent = true
-      m.opacity = 0.25
-      m.depthWrite = false
-    } else {
-      m.transparent = false
-      m.opacity = 1.0
-      m.depthWrite = true
+  /** Every material the model's surface is drawn with, shaded and textured -- the flat facade
+   *  and, when textures are on, the textured mesh's per-material list. */
+  private surfaceMaterials(): THREE.MeshStandardMaterial[] {
+    const out: THREE.MeshStandardMaterial[] = []
+    for (const mesh of [this.parts.facade, this.parts.textured]) {
+      if (!mesh) continue
+      const m = mesh.material
+      out.push(...((Array.isArray(m) ? m : [m]) as THREE.MeshStandardMaterial[]))
     }
-    m.needsUpdate = true
+    return out
+  }
+
+  /** Isolate wins over X-ray; either wins over the plain opaque look. Shared so toggling one
+   *  never clobbers the other's material state, on the facade or the textured mesh alike. */
+  private applyFacadeLook() {
+    const materials = this.surfaceMaterials()
+    for (const m of materials) {
+      if (this.isolate) {
+        m.transparent = true
+        m.opacity = 0.08
+        m.depthWrite = false
+      } else if (this.xray) {
+        m.transparent = true
+        m.opacity = 0.25
+        m.depthWrite = false
+      } else {
+        m.transparent = false
+        m.opacity = 1.0
+        m.depthWrite = true
+      }
+      m.needsUpdate = true
+    }
   }
 
   private removePart(name: 'errors' | 'errorLines' | 'errorPoints') {
@@ -470,15 +536,18 @@ export class Viewport {
     const mouse = new THREE.Vector2()
 
     this.el.addEventListener('click', (e: MouseEvent) => {
-      if (!this.onPick || !this.parts.facade) return
+      const target = this.parts.textured?.visible ? this.parts.textured : this.parts.facade
+      if (!this.onPick || !target) return
       const rect = this.el.getBoundingClientRect()
       mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1
       mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1
 
       raycaster.setFromCamera(mouse, this.camera)
-      const hits = raycaster.intersectObject(this.parts.facade)
+      const hits = raycaster.intersectObject(target)
       if (hits.length > 0 && hits[0].faceIndex != null) {
-        this.onPick(hits[0].faceIndex, hits[0].point)
+        const slot = hits[0].faceIndex
+        const faceId = target === this.parts.textured && this.faceOrder ? this.faceOrder[slot] : slot
+        this.onPick(faceId, hits[0].point)
       }
     })
   }

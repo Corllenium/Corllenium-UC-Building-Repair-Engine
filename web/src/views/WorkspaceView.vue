@@ -48,6 +48,10 @@
           X-Ray <kbd class="kbd-hint">X</kbd>
           <button type="button" class="info-btn" aria-label="What is this error?" :title="infoTitle('xray')" @click.stop.prevent="openInfo('xray')">i</button>
         </label>
+        <label class="toggle-item" title="Hotkey: U">
+          <input type="checkbox" v-model="layers.textures" @change="updateLayers" />
+          Textures <kbd class="kbd-hint">U</kbd>
+        </label>
         <label class="toggle-item" title="Hotkey: S">
           <input type="checkbox" v-model="layers.sync" @change="toggleSync" />
           Sync <kbd class="kbd-hint">S</kbd>
@@ -675,7 +679,7 @@ async function reloadModel() {
       try {
         const snap = decodeMeshbuf(await fetchMeshbuf(snapshotVersion.value.id))
         snapTriMaterial = snap.triMaterial
-        viewA.loadModel(snap)
+        viewA.loadModel(snap, snapshotVersion.value.id)
         errorsBefore.value = await fetchErrors(snapshotVersion.value.id)
         applyErrors(viewA, errorsBefore.value, snapTriMaterial)
       } finally {
@@ -687,7 +691,7 @@ async function reloadModel() {
       try {
         const fix = decodeMeshbuf(await fetchMeshbuf(fixedVersion.value.id))
         fixTriMaterial = fix.triMaterial
-        viewB.loadModel(fix)
+        viewB.loadModel(fix, fixedVersion.value.id)
         errorsAfter.value = await fetchErrors(fixedVersion.value.id)
         applyErrors(viewB, errorsAfter.value, fixTriMaterial)
       } finally {
@@ -729,6 +733,7 @@ function updateLayers() {
     viewA.setLayer('hidden', layers.hidden)
     viewA.setXRay(layers.xray)
     viewA.setOnesidedDiagnostic(layers.onesided)
+    viewA.setTextured(layers.textures)
   }
   if (viewB) {
     viewB.setLayer('grid', layers.grid)
@@ -738,6 +743,7 @@ function updateLayers() {
     viewB.setLayer('hidden', layers.hidden)
     viewB.setXRay(layers.xray)
     viewB.setOnesidedDiagnostic(layers.onesided)
+    viewB.setTextured(layers.textures)
   }
 }
 

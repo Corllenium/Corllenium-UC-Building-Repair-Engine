@@ -9,6 +9,7 @@ export interface LayerState {
   onesided: boolean
   xray: boolean
   sync: boolean
+  textures: boolean
 }
 
 export const HOTKEYS: Record<string, keyof LayerState> = {
@@ -20,6 +21,7 @@ export const HOTKEYS: Record<string, keyof LayerState> = {
   m: 'onesided',
   x: 'xray',
   s: 'sync',
+  u: 'textures',
 }
 
 export function useLayers(initial?: Partial<LayerState>) {
@@ -32,6 +34,7 @@ export function useLayers(initial?: Partial<LayerState>) {
     onesided: false,
     xray: false,
     sync: true,
+    textures: true,
     ...initial,
   })
 
