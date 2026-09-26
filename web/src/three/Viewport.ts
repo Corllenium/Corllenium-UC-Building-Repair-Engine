@@ -431,7 +431,7 @@ export class Viewport {
     if (points.length === 0) return
     const geom = new THREE.BufferGeometry()
     geom.setAttribute('position', new THREE.BufferAttribute(points.slice(), 3))
-    this.parts.errorPoints = new THREE.Points(geom, new THREE.PointsMaterial({ color, size: 6, sizeAttenuation: false, depthTest: false }))
+    this.parts.errorPoints = new THREE.Points(geom, new THREE.PointsMaterial({ color, size: 4, sizeAttenuation: false, depthTest: true }))
     this.group.add(this.parts.errorPoints)
   }
 

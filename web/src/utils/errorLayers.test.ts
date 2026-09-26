@@ -22,12 +22,23 @@ describe('errorLayers', () => {
     expect(FACE_KINDS).toEqual(['flicker_diff', 'flicker_same', 'reversed', 'hidden', 'loose', 'facade'])
   })
 
+  it('defaults to just the flicker kinds -- the owner s "especially flickering" focus', () => {
+    const f = defaultFilter()
+    expect(f.enabled).toEqual({
+      flicker_diff: true, flicker_same: true, reversed: false, hidden: false, loose: false,
+      open_edges: false, cracks: false, facade: false,
+    })
+    expect(f.isolate).toBe(false)
+    expect(f.blink).toBe(false)
+  })
+
   it('draws the facade in teal only when asked, and never over an error colour', () => {
     const f = defaultFilter()
     expect(f.enabled.facade).toBe(false)
     f.enabled.facade = true
     const { faces, colors } = overlayFaces(file, f)
-    expect(faces).toEqual([0, 1, 3, 4, 5])
+    // hidden is off by default, so faces 4 and 5 (hidden only) are not drawn
+    expect(faces).toEqual([0, 1, 3])
     // face 0 is flicker_diff AND facade: red wins; face 3 (slot 2) is facade only: teal
     expect(Array.from(colors.slice(0, 3)).map(v => Math.round(v * 255))).toEqual([0xd8, 0x28, 0x2f])
     expect(Array.from(colors.slice(18, 21)).map(v => Math.round(v * 255))).toEqual([0x0d, 0x94, 0x88])
@@ -40,6 +51,8 @@ describe('errorLayers', () => {
 
   it('draws only the enabled kinds, a face in two kinds in the first one', () => {
     const f = defaultFilter()
+    f.enabled.reversed = true
+    f.enabled.hidden = true
     const { faces, colors } = overlayFaces(file, f)
     expect(faces).toEqual([0, 1, 4, 5])
     // face 1 is flicker_diff AND reversed: red wins

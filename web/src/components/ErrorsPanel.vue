@@ -21,6 +21,7 @@
               type="button"
               class="info-btn"
               aria-label="What is this error?"
+              :title="infoTitle(k.kind)"
               @click.stop.prevent="$emit('info', catalogueId(k.kind)!)"
             >i</button>
           </td>
@@ -50,16 +51,22 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { ERROR_KINDS, countOf, type ErrorFilter, type ErrorKind, type ErrorsFile, type ErrorSpot } from '../utils/errorLayers'
-import { ERROR_KIND_CATALOGUE } from '../utils/errorsDoc'
+import { ERROR_KIND_CATALOGUE, type Catalogue } from '../utils/errorsDoc'
 
-defineProps<{ before: ErrorsFile | null; after: ErrorsFile | null; busyBefore: boolean; busyAfter: boolean;
-  filter: ErrorFilter; hasAfter: boolean }>()
+const props = defineProps<{ before: ErrorsFile | null; after: ErrorsFile | null; busyBefore: boolean; busyAfter: boolean;
+  filter: ErrorFilter; hasAfter: boolean; catalogue: Catalogue | null }>()
 defineEmits<{ (e: 'find', panel: 'before' | 'after'): void; (e: 'fly', spot: ErrorSpot, panel: 'before' | 'after'): void;
   (e: 'info', kindId: string): void }>()
 
 const spotKind = ref<ErrorKind>('flicker_diff')
 const hex = (c: number) => '#' + c.toString(16).padStart(6, '0')
 const catalogueId = (kind: ErrorKind): string | null => ERROR_KIND_CATALOGUE[kind] ?? null
+// Same wording as the layer (i) buttons: specific once the catalogue has loaded, generic before.
+function infoTitle(kind: ErrorKind): string {
+  const id = catalogueId(kind)
+  const found = id ? props.catalogue?.kinds.find(kk => kk.id === id) : undefined
+  return found ? `About: ${found.title}` : 'About this error'
+}
 </script>
 
 <style scoped>

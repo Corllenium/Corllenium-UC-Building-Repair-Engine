@@ -46,8 +46,12 @@ export function materialColor(index: number): number {
   return MATERIAL_PALETTE[((index % MATERIAL_PALETTE.length) + MATERIAL_PALETTE.length) % MATERIAL_PALETTE.length]
 }
 
+// Everything on at once is unreadable (owner feedback): default to just the flicker kinds --
+// "especially flickering" -- and let the owner switch the rest on from the legend.
+const DEFAULT_ON: ErrorKind[] = ['flicker_diff', 'flicker_same']
+
 export function defaultFilter(): ErrorFilter {
-  const enabled = Object.fromEntries(ERROR_KINDS.map(k => [k.kind, k.kind !== 'facade'])) as Record<ErrorKind, boolean>
+  const enabled = Object.fromEntries(ERROR_KINDS.map(k => [k.kind, DEFAULT_ON.includes(k.kind)])) as Record<ErrorKind, boolean>
   return { enabled, isolate: false, blink: false }
 }
 

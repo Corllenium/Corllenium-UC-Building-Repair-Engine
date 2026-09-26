@@ -76,25 +76,42 @@
       </div>
     </header>
 
-    <ErrorsPanel
-      :before="errorsBefore"
-      :after="errorsAfter"
-      :busy-before="busyBefore"
-      :busy-after="busyAfter"
-      :filter="errorFilter"
-      :has-after="!!fixedVersion"
-      @find="onFindErrors"
-      @fly="onFly"
-      @info="onErrorInfo"
-    />
-
     <div v-if="infoSaveBanner" class="info-save-banner">
       <span>{{ infoSaveBanner }}</span>
       <button type="button" class="banner-dismiss" @click="dismissInfoSaveBanner">&times;</button>
     </div>
 
-    <!-- Center: Synced Dual 3D Viewports -->
-    <main class="canvases-container">
+    <div class="workspace-body">
+      <aside
+        class="errors-column"
+        :class="{ collapsed: errorsColumnCollapsed }"
+        @transitionend="onErrorsColumnTransitionEnd"
+      >
+        <button
+          type="button"
+          class="errors-collapse-btn"
+          :aria-label="errorsColumnCollapsed ? 'Expand errors panel' : 'Collapse errors panel'"
+          :title="errorsColumnCollapsed ? 'Expand errors panel' : 'Collapse errors panel'"
+          @click="toggleErrorsColumn"
+        >{{ errorsColumnCollapsed ? '›' : '‹' }}</button>
+        <div v-if="!errorsColumnCollapsed" class="errors-column-scroll">
+          <ErrorsPanel
+            :before="errorsBefore"
+            :after="errorsAfter"
+            :busy-before="busyBefore"
+            :busy-after="busyAfter"
+            :filter="errorFilter"
+            :has-after="!!fixedVersion"
+            :catalogue="errorsCatalogue"
+            @find="onFindErrors"
+            @fly="onFly"
+            @info="onErrorInfo"
+          />
+        </div>
+      </aside>
+
+      <!-- Center: Synced Dual 3D Viewports -->
+      <main class="canvases-container">
       <section class="canvas-panel">
         <div class="canvas-header">
           <h2>BEFORE &middot; As Exported from SketchUp</h2>
@@ -202,7 +219,8 @@
           </span>
         </div>
       </section>
-    </main>
+      </main>
+    </div>
 
     <!-- Inspection Details Drawer (if face clicked) -->
     <div v-if="pickedFace" class="picked-inspector">
@@ -518,6 +536,18 @@ const busyAfter = ref(false)
 const loadingA = ref(false)
 const loadingB = ref(false)
 
+const errorsColumnCollapsed = ref(false)
+function toggleErrorsColumn() {
+  errorsColumnCollapsed.value = !errorsColumnCollapsed.value
+}
+// The column only transitions its own width, so any transitionend on it means that finished.
+// The canvases' own ResizeObserver reacts to the width change already, mid-transition; this call
+// once it settles is belt-and-suspenders so the final render is never mid-animation-frame stale.
+function onErrorsColumnTransitionEnd() {
+  viewA?.resize()
+  viewB?.resize()
+}
+
 const snapshotVersion = computed(() => {
   if (!model.value) return null
   return model.value.versions.find(v => v.kind === 'snapshot') || model.value.versions[0] || null
@@ -540,12 +570,14 @@ function applyErrors(view: Viewport | null, file: ErrorsFile | null, triMaterial
   }
   const { faces, colors } = overlayFaces(file, errorFilter)
   view.setErrorOverlay(faces, colors, errorFilter.isolate)
-  const flicker = faces.filter(f => file.faces.flicker_diff.includes(f) || file.faces.flicker_same.includes(f))
-  if (errorFilter.blink && triMaterial && flicker.length) {
+  // A Set built once per call: faces.includes()/flicker.includes() inside the loop below was
+  // O(faces * flicker) on every toggle, in both panels.
+  const flickerSet = new Set([...file.faces.flicker_diff, ...file.faces.flicker_same])
+  if (errorFilter.blink && triMaterial && flickerSet.size) {
     const a = colors.slice(), b = colors.slice()
     const pa = blinkColors(file, faces, triMaterial, 0), pb = blinkColors(file, faces, triMaterial, 1)
     faces.forEach((f, slot) => {
-      if (!flicker.includes(f)) return
+      if (!flickerSet.has(f)) return
       a.set(pa.subarray(slot * 9, slot * 9 + 9), slot * 9)
       b.set(pb.subarray(slot * 9, slot * 9 + 9), slot * 9)
     })
@@ -561,8 +593,10 @@ function applyErrors(view: Viewport | null, file: ErrorsFile | null, triMaterial
 }
 
 watch([errorFilter, errorsBefore, errorsAfter], () => {
-  applyErrors(viewA, errorsBefore.value, snapTriMaterial)
-  applyErrors(viewB, errorsAfter.value, fixTriMaterial)
+  // Skip a panel mid-reload: its explicit applyErrors call right after loadModel (in
+  // reloadModel) already covers it, on the mesh that's actually current by then.
+  if (!loadingA.value) applyErrors(viewA, errorsBefore.value, snapTriMaterial)
+  if (!loadingB.value) applyErrors(viewB, errorsAfter.value, fixTriMaterial)
 }, { deep: true })
 
 async function initWorkspace() {
@@ -722,6 +756,9 @@ async function onFindErrors(panel: 'before' | 'after') {
     const file = await computeErrors(version.id)
     if (panel === 'before') errorsBefore.value = file
     else errorsAfter.value = file
+  } catch (err: any) {
+    const label = panel === 'before' ? 'BEFORE' : 'AFTER'
+    infoSaveBanner.value = `Find errors failed for ${label}: ${err?.message || 'unknown error'}`
   } finally {
     busy.value = false
   }
@@ -939,6 +976,62 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   gap: 4px;
+}
+
+.workspace-body {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
+.errors-column {
+  flex: 0 0 auto;
+  width: 340px;
+  background: #fff;
+  border-right: 1px solid #dcdde2;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+  transition: width 0.2s ease;
+}
+
+.errors-column.collapsed {
+  width: 28px;
+}
+
+.errors-collapse-btn {
+  position: absolute;
+  top: 8px;
+  right: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  border: 1px solid #d0d2d7;
+  background: #fff;
+  color: #444;
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  z-index: 3;
+}
+.errors-collapse-btn:hover {
+  background: #f0f1f4;
+}
+
+.errors-column.collapsed .errors-collapse-btn {
+  position: static;
+  margin: 8px auto 0;
+}
+
+.errors-column-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 34px 10px 10px;
 }
 
 .canvases-container {
