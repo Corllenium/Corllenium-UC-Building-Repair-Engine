@@ -1564,16 +1564,54 @@ const hex = (c: number) => '#' + c.toString(16).padStart(6, '0')
 
     If `computed` is not yet imported from `vue` in this file, add it to the existing vue import.
 
+- [ ] **Step 2b (amendments, 2026-09-26 15:00): what changed since this task was written.**
+  - **WorkspaceView changed.** feat-dashboard was merged into this branch (2d6a067), so `WorkspaceView.vue`
+    now also has:
+    - the layer (i) buttons, with `openLayerKindId`, `infoWindowRef` and one `ErrorWindow` in the template;
+    - the shared `useErrorsDoc()` composable;
+    - an info-save banner.
+
+    Read the current file first and fit Steps 1-2's code into it. Keep every existing feature working.
+  - **(i) per legend kind.** The owner wants the error's description window from the 3D view.
+    - Each row of the ErrorsPanel legend gets the same small round (i) button (`type="button"`,
+      `@click.stop.prevent`, `aria-label="What is this error?"`). Clicking it emits a new ErrorsPanel event
+      `info` with the catalogue kind id.
+    - WorkspaceView handles `info` by opening the SAME window the layer (i) buttons use (`openInfo(kindId)`),
+      so there is one window at a time. The window's verdict row is the open model's.
+    - The mapping goes in `web/src/utils/errorsDoc.ts` as
+      `export const ERROR_KIND_CATALOGUE: Record<string, string | null>`:
+
+      | Error-filter kind | Catalogue kind id |
+      |---|---|
+      | `flicker_diff`, `flicker_same` | `flicker` |
+      | `reversed` | `reversed-faces` |
+      | `hidden` | `hidden-faces` |
+      | `loose` | `fragments` |
+      | `open_edges` | `holes-sides` |
+      | `cracks` | `cracks` |
+      | `facade` | `null` |
+
+      Add a test that pins it, next to the `LAYER_KINDS` test.
+    - A kind whose mapping is `null` (facade) gets no (i).
+  - **Blink after every overlay.** Viewport's contract after Task 9's fix round: `setErrorOverlay` clears the
+    blink buffers. So every call to `setErrorOverlay` must be followed by `setErrorBlink(...)` when blink
+    is on (`applyErrors` already does this in order; keep it so).
+  - **Isolate after a reload.** A model reload must re-apply the error overlay, isolate and blink, the way
+    `reloadModel` → `updateLayers` re-applies X-ray: call `applyErrors` for both panels after
+    `loadModel`.
+  - **Loading overlay** (the amendment of 2026-09-26, above in this task): `loadingA`/`loadingB` and the
+    `.panel-loading` message "Loading model… a large building can take 20 s the first time" must be in.
+
 - [ ] **Step 3: Type-check and run the web tests**
 
-Run: `pnpm --dir web exec vue-tsc --noEmit` and `pnpm --dir web exec vitest run`
-Expected: no new type errors (the same 3 predating ones), and all tests pass.
+Run: `pnpm --dir web exec vue-tsc -b` and `pnpm --dir web exec vitest run`.
+Expected: vue-tsc exits 0 (Task 9 fixed the 3 predating errors), and all tests pass.
 
 - [ ] **Step 4: Commit**
 
 ```bash
-git add web/src/components/ErrorsPanel.vue web/src/views/WorkspaceView.vue
-git commit -m "feat(web): Errors panel in the workspace -- find, filter, isolate, blink, click, fly to" -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
+git add web/src/components/ErrorsPanel.vue web/src/views/WorkspaceView.vue web/src/utils/errorsDoc.ts web/src/utils/errorsDoc.test.ts
+git commit -m "feat(web): Errors panel in the workspace -- find, filter, isolate, blink, click, fly to, and an (i) per kind" -m "Co-Authored-By: <your model> <noreply@anthropic.com>"
 ```
 
 ---
