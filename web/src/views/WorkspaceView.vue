@@ -76,6 +76,18 @@
       </div>
     </header>
 
+    <ErrorsPanel
+      :before="errorsBefore"
+      :after="errorsAfter"
+      :busy-before="busyBefore"
+      :busy-after="busyAfter"
+      :filter="errorFilter"
+      :has-after="!!fixedVersion"
+      @find="onFindErrors"
+      @fly="onFly"
+      @info="onErrorInfo"
+    />
+
     <div v-if="infoSaveBanner" class="info-save-banner">
       <span>{{ infoSaveBanner }}</span>
       <button type="button" class="banner-dismiss" @click="dismissInfoSaveBanner">&times;</button>
@@ -88,7 +100,9 @@
           <h2>BEFORE &middot; As Exported from SketchUp</h2>
           <span class="version-label" v-if="snapshotVersion">v{{ snapshotVersion.id }} (Snapshot)</span>
         </div>
-        <div ref="canvasA" class="canvas-viewport"></div>
+        <div ref="canvasA" class="canvas-viewport">
+          <div v-if="loadingA" class="panel-loading">Loading model… a large building can take 20 s the first time</div>
+        </div>
         <div class="panel-stats">
           <span v-if="snapshotVersion">
             <b>{{ snapshotVersion.tri_count.toLocaleString() }}</b> triangles &nbsp;&middot;&nbsp;
@@ -103,7 +117,9 @@
           <span class="version-label fixed-tag" v-if="fixedVersion">v{{ fixedVersion.id }} (Cleaned)</span>
           <span class="version-label preview-tag" v-else>No Fix Applied Yet</span>
         </div>
-        <div ref="canvasB" class="canvas-viewport"></div>
+        <div ref="canvasB" class="canvas-viewport">
+          <div v-if="loadingB" class="panel-loading">Loading model… a large building can take 20 s the first time</div>
+        </div>
         <div class="panel-stats">
           <div v-if="resultDesc && resultDesc.error" class="text-error" style="color: #d8282f">
             <strong>Fix failed:</strong> {{ resultDesc.error }}
@@ -202,6 +218,13 @@
           <div v-if="pickedFace.details.material">Material: {{ pickedFace.details.material }}</div>
         </div>
         <div v-else-if="pickedFace.error" class="text-error">{{ pickedFace.error }}</div>
+        <div v-if="pickedErrors.kinds.length">
+          <strong>Errors:</strong> {{ pickedErrors.kinds.map(k => ERROR_KINDS.find(e => e.kind === k)!.label).join(', ') }}
+          <div v-for="p in pickedErrors.partners" :key="p.face">
+            fights face {{ p.face }} ({{ p.shared.toFixed(1) }} sq in shared{{ p.opposite ? ', back to back' : '' }})
+            <button class="btn-link" @click="selectFace(p.face)">select</button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -287,6 +310,8 @@ import {
   fetchRun,
   fetchVersionRun,
   fetchFace,
+  fetchErrors,
+  computeErrors,
   type Model,
   type ModelVersion,
   type FixRun,
@@ -301,7 +326,20 @@ import { useLayers } from '../composables/useLayers'
 import { useGuardViews, getGuardImageUrl, DEFAULT_GUARD_VIEWS } from '../composables/useGuardViews'
 import { useErrorsDoc, type SavePayload } from '../composables/useErrorsDoc'
 import { LAYER_KINDS, catalogueModelId, imageUrl, type Kind } from '../utils/errorsDoc'
+import {
+  defaultFilter,
+  overlayFaces,
+  blinkColors,
+  openEdgeSegments,
+  crackPoints,
+  partnersOf,
+  kindsOf,
+  ERROR_KINDS,
+  type ErrorsFile,
+  type ErrorSpot,
+} from '../utils/errorLayers'
 import ErrorWindow from '../components/ErrorWindow.vue'
+import ErrorsPanel from '../components/ErrorsPanel.vue'
 import * as THREE from 'three'
 
 interface PickedFaceState {
@@ -427,6 +465,13 @@ function openInfo(layerKey: string) {
 function closeInfo() {
   openLayerKindId.value = null
 }
+// The Errors panel legend already resolves its kind to a catalogue id (ERROR_KIND_CATALOGUE, in
+// ErrorsPanel.vue), so this opens the same single (i) window the layer buttons use, directly --
+// skipping openInfo's LAYER_KINDS lookup, which expects a layer key, not a catalogue id.
+function onErrorInfo(catalogueKindId: string) {
+  openLayerKindId.value = catalogueKindId
+  loadErrorsDoc()
+}
 // Routes a save's outcome exactly like ErrorsView.vue: while this kind's window is still open,
 // errors and the all-clear go to that model's row; otherwise (window closed, or another kind
 // open by the time the request settles) a failure goes to the workspace banner instead.
@@ -462,6 +507,16 @@ const canvasB = ref<HTMLElement | null>(null)
 let viewA: Viewport | null = null
 let viewB: Viewport | null = null
 let disposeSync: (() => void) | null = null
+let snapTriMaterial: Uint16Array | undefined
+let fixTriMaterial: Uint16Array | undefined
+
+const errorFilter = reactive(defaultFilter())
+const errorsBefore = ref<ErrorsFile | null>(null)
+const errorsAfter = ref<ErrorsFile | null>(null)
+const busyBefore = ref(false)
+const busyAfter = ref(false)
+const loadingA = ref(false)
+const loadingB = ref(false)
 
 const snapshotVersion = computed(() => {
   if (!model.value) return null
@@ -473,6 +528,42 @@ const fixedVersion = computed(() => {
   const fixed = model.value.versions.filter(v => v.kind === 'fixed')
   return fixed.length ? fixed[fixed.length - 1] : null
 })
+
+function applyErrors(view: Viewport | null, file: ErrorsFile | null, triMaterial?: ArrayLike<number>) {
+  if (!view) return
+  if (!file) {
+    view.setErrorOverlay([], new Float32Array(0), false)
+    view.setErrorBlink(null, null)
+    view.setErrorLines(new Float32Array(0), 0)
+    view.setErrorPoints(new Float32Array(0), 0)
+    return
+  }
+  const { faces, colors } = overlayFaces(file, errorFilter)
+  view.setErrorOverlay(faces, colors, errorFilter.isolate)
+  const flicker = faces.filter(f => file.faces.flicker_diff.includes(f) || file.faces.flicker_same.includes(f))
+  if (errorFilter.blink && triMaterial && flicker.length) {
+    const a = colors.slice(), b = colors.slice()
+    const pa = blinkColors(file, faces, triMaterial, 0), pb = blinkColors(file, faces, triMaterial, 1)
+    faces.forEach((f, slot) => {
+      if (!flicker.includes(f)) return
+      a.set(pa.subarray(slot * 9, slot * 9 + 9), slot * 9)
+      b.set(pb.subarray(slot * 9, slot * 9 + 9), slot * 9)
+    })
+    view.setErrorBlink(a, b)
+  } else {
+    view.setErrorBlink(null, null)
+  }
+  const origin = view.originOffset()
+  view.setErrorLines(errorFilter.enabled.open_edges ? openEdgeSegments(file, origin) : new Float32Array(0),
+    ERROR_KINDS.find(k => k.kind === 'open_edges')!.color)
+  view.setErrorPoints(errorFilter.enabled.cracks ? crackPoints(file, origin) : new Float32Array(0),
+    ERROR_KINDS.find(k => k.kind === 'cracks')!.color)
+}
+
+watch([errorFilter, errorsBefore, errorsAfter], () => {
+  applyErrors(viewA, errorsBefore.value, snapTriMaterial)
+  applyErrors(viewB, errorsAfter.value, fixTriMaterial)
+}, { deep: true })
 
 async function initWorkspace() {
   if (!canvasA.value || !canvasB.value) return
@@ -537,12 +628,28 @@ async function reloadModel() {
   try {
     model.value = await fetchModel(modelId.value)
     if (snapshotVersion.value && viewA) {
-      const snapBuf = await fetchMeshbuf(snapshotVersion.value.id)
-      viewA.loadModel(decodeMeshbuf(snapBuf))
+      loadingA.value = true
+      try {
+        const snap = decodeMeshbuf(await fetchMeshbuf(snapshotVersion.value.id))
+        snapTriMaterial = snap.triMaterial
+        viewA.loadModel(snap)
+        errorsBefore.value = await fetchErrors(snapshotVersion.value.id)
+        applyErrors(viewA, errorsBefore.value, snapTriMaterial)
+      } finally {
+        loadingA.value = false
+      }
     }
     if (fixedVersion.value && viewB) {
-      const fixBuf = await fetchMeshbuf(fixedVersion.value.id)
-      viewB.loadModel(decodeMeshbuf(fixBuf))
+      loadingB.value = true
+      try {
+        const fix = decodeMeshbuf(await fetchMeshbuf(fixedVersion.value.id))
+        fixTriMaterial = fix.triMaterial
+        viewB.loadModel(fix)
+        errorsAfter.value = await fetchErrors(fixedVersion.value.id)
+        applyErrors(viewB, errorsAfter.value, fixTriMaterial)
+      } finally {
+        loadingB.value = false
+      }
     }
     const fetchedRun = await loadVersionRunOnMount(fixedVersion.value?.id, fetchVersionRun)
     latestRun.value = resolveActiveRun(latestRun.value, fetchedRun)
@@ -604,6 +711,41 @@ async function triggerFix() {
   } finally {
     fixing.value = false
   }
+}
+
+async function onFindErrors(panel: 'before' | 'after') {
+  const version = panel === 'before' ? snapshotVersion.value : fixedVersion.value
+  if (!version) return
+  const busy = panel === 'before' ? busyBefore : busyAfter
+  busy.value = true
+  try {
+    const file = await computeErrors(version.id)
+    if (panel === 'before') errorsBefore.value = file
+    else errorsAfter.value = file
+  } finally {
+    busy.value = false
+  }
+}
+
+function onFly(spot: ErrorSpot, panel: 'before' | 'after') {
+  const view = panel === 'before' ? viewA : viewB
+  if (!view) return
+  const o = view.originOffset()
+  view.flyTo([spot.centre[0] - o[0], spot.centre[1] - o[1], spot.centre[2] - o[2]], spot.size)
+}
+
+const pickedErrors = computed(() => {
+  const face = pickedFace.value?.faceId
+  const file = pickedFace.value?.viewKind === 'after' ? errorsAfter.value : errorsBefore.value
+  if (face === undefined || !file) return { kinds: [], partners: [] }
+  return { kinds: kindsOf(file, face), partners: partnersOf(file, face) }
+})
+
+function selectFace(face: number) {
+  const current = pickedFace.value
+  if (!current) return
+  const view = current.viewKind === 'before' ? viewA : viewB
+  view?.onPick?.(face, current.point)   // the same path as a click: loads that face's details
 }
 
 function onGlobalKeyDown(e: KeyboardEvent) {
@@ -856,6 +998,18 @@ onBeforeUnmount(() => {
   position: relative;
 }
 
+.panel-loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(246, 246, 248, 0.85);
+  color: #555;
+  font-size: 14px;
+  z-index: 2;
+}
+
 .panel-stats {
   padding: 8px 14px;
   border-top: 1px solid #eef0f4;
@@ -927,6 +1081,14 @@ onBeforeUnmount(() => {
 }
 .btn-close:hover {
   color: #111;
+}
+
+.btn-link {
+  background: none;
+  border: none;
+  color: #1f5bff;
+  cursor: pointer;
+  padding: 0 4px;
 }
 
 .modal-backdrop {

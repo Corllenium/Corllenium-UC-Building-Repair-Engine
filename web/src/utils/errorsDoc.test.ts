@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   filterKinds, filterMistakes, filterChoices, filterFromQuery, openFromQuery, filterToQuery, clampWindow,
   statusLabel, imageUrl, engineStem, verdictOf, validationSummary, validateCatalogue, LAYER_KINDS, catalogueModelId,
+  ERROR_KIND_CATALOGUE,
   type Catalogue, type Kind, type EngineMistake, type Validation,
 } from './errorsDoc'
 import content from '../../public/docs/errors.json'
@@ -176,5 +177,18 @@ describe('errorsDoc', () => {
   it('finds the catalogue model with the same name as a workspace model, else null', () => {
     expect(catalogueModelId(content as unknown as Catalogue, 'chtm_5ft_floor')).toBe('CHTM5')
     expect(catalogueModelId(content as unknown as Catalogue, 'no_such_model')).toBeNull()
+  })
+
+  it('maps each error-filter kind to its catalogue kind id, facade to none', () => {
+    expect(ERROR_KIND_CATALOGUE).toEqual({
+      flicker_diff: 'flicker',
+      flicker_same: 'flicker',
+      reversed: 'reversed-faces',
+      hidden: 'hidden-faces',
+      loose: 'fragments',
+      open_edges: 'holes-sides',
+      cracks: 'cracks',
+      facade: null,
+    })
   })
 })
