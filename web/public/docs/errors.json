@@ -1,0 +1,76 @@
+{
+  "built_from": { "commit": "ab22ff3", "date": "2026-09-25 23:53" },
+  "origin": [
+    "These models were built in Minecraft with the Little Tiles mod, exported, brought into SketchUp, and exported again as one OBJ per SketchUp group. Every step keeps all the geometry the step before made, so the OBJ carries what Little Tiles builds with: many small closed boxes on the block grid.",
+    "This page lays out every kind of error found so far: what it is, how it is found, why the model has it, how much of each model it is, why it is unwanted in Unity, the solution, what was done, and why some can remain. It is a plan: nothing in any model is changed by it. Give your verdict per model in each error's window."
+  ],
+  "models": [
+    { "id": "CHTM5", "name": "chtm_5ft_floor", "role": "Example building, not fixed: errors measured only", "numbers": { "triangles": 20599 },
+      "source": "snapshot c0c877002500 (dashboard model 2, version 6)" },
+    { "id": "A", "name": "CHTM_SIDE_WALK_2nd_floor", "role": "Sidewalk, fixed by the engine",
+      "skp": "D:/PROJECTS/UC MODEL FIXER/OBJ FIXED RESULT/CHTM_SIDE_WALK_2nd_floor.fixed.skp",
+      "numbers": { "triangles": [4692, 881], "back_faces_px": [569108, 18348] },
+      "source": "data/output_verified/CHTM_SIDE_WALK_2nd_floor/report.json at ab22ff3" },
+    { "id": "B", "name": "CHTM_2nd_to_3rd_building_sidewalk_outside", "role": "Sidewalk, fixed by the engine",
+      "skp": "D:/PROJECTS/UC MODEL FIXER/OBJ FIXED RESULT/CHTM_2nd_to_3rd_building_sidewalk_outside.fixed.skp",
+      "numbers": { "triangles": [7227, 513], "back_faces_px": [464939, 2869] },
+      "source": "data/output_verified/CHTM_2nd_to_3rd_building_sidewalk_outside/report.json at ab22ff3" }
+  ],
+  "kinds": [
+    {
+      "id": "hidden-faces",
+      "title": "Hidden inside faces",
+      "summary": "Faces inside the solid parts of the model that no camera outside can ever see.",
+      "color": "#1f5bff",
+      "models": {
+        "CHTM5": { "status": "planned", "count": "12,870 of 20,599 triangles (62 %)" },
+        "A": { "status": "fixed", "count": "2,108 of 4,692 triangles; 2,065 removed, 43 kept by the guard" },
+        "B": { "status": "fixed", "count": "2,787 of 7,227 triangles; 2,771 removed, 16 kept by the guard" }
+      },
+      "what": "Faces inside the solid parts of the model: between two slabs, inside a wall, under a floor. They are real triangles in the OBJ, but no camera standing anywhere outside can ever see them.",
+      "find": [
+        "Take 4 points on each face: its centre, and three points near its corners (0.6 / 0.2 / 0.2 of the way to each corner).",
+        "From every point, cast 128 rays spread evenly over all directions, on both sides of the face. The rays hit every other face of the object from either side, the way Unity and SketchUp draw them.",
+        "A ray escapes when it leaves the object without hitting a face. A face is hidden when none of its rays escapes.",
+        "When some rays escape but fewer than 5 % (the slit threshold, 0.05), the face is seen only through a thin gap: a 'slit' face. It is kept unless 'Accept slit faces' is on.",
+        "The test sees this object alone. A face hidden only by a neighbouring building still counts as visible, because Unity may stream that neighbour out.",
+        "Zero-area triangles are left out: they are their own kind of error."
+      ],
+      "why": "Little Tiles builds everything from small boxes (tiles) on Minecraft's block grid. Each tile is exported as a closed box with all six sides, including the sides pressed against a neighbouring tile, so a wall built from 16 small tiles carries every wall between every pair of tiles. SketchUp keeps every face it imports, and the OBJ export per group keeps them again. That is also why they come in pairs: two touching tiles give two faces on one plane, facing opposite ways. CHTM 5th floor has 13,947 such pairs.",
+      "why_note": "Our reading of the measurements; we have not seen the exporter's code.",
+      "unity": [
+        "Unity still sends every one of those triangles to the GPU: 62 % of CHTM 5th floor is never seen.",
+        "They take lightmap space and collider cost for nothing.",
+        "Where a hidden face lies exactly on an outer surface, Unity cannot decide which one is in front, so it flickers.",
+        "In X-ray and in SketchUp they fill the slabs with lines (the 09-21 screenshots)."
+      ],
+      "solution": [
+        "Find them with the ray test above, never by guessing.",
+        "Remove only those faces, never the sides of a slab or wall (owner's rule: only the inside).",
+        "Guard every removal: render the object from 26 directions with and without the removed faces; if even one pixel of the outside changes, that face is put back.",
+        "Check what is left in the dashboard: X-ray, and the blue 'Hidden inside faces' filter of the 3D viewer."
+      ],
+      "never": [
+        "Blender's 'select interior faces' and delete: it deleted 88 % of this model once.",
+        "Welding vertices farther apart than 0.1 mm.",
+        "'Make Manifold' or 'Fill Holes': both closed real openings in this model before."
+      ],
+      "done": [
+        "Sidewalk A: 2,065 removed, 43 put back by the guard.",
+        "Sidewalk B: 2,771 removed, 16 put back by the guard.",
+        "Both files pass every check.",
+        "CHTM 5th floor: not touched. Planning only."
+      ],
+      "remain": "Faces seen through a real small gap are kept on purpose, so no hole opens. Faces the guard put back stay: removing them changed the picture, so they were visible after all.",
+      "engine_files": ["vis/exposure.py", "fixes/remove.py", "guard/compare.py"],
+      "examples": [],
+      "sources": [
+        "CHTM 5th floor: engine.cli errors on snapshot c0c877002500, 2026-09-26 (hidden 12,870)",
+        "A and B: report.json at ab22ff3 (n_hidden_candidates, n_removed_hidden, n_restored_by_guard)",
+        "Method: engine/vis/exposure.py (4 sample points, 128 directions, slit threshold 0.05); guard: engine/guard/compare.py (26 views)"
+      ]
+    }
+  ],
+  "engine_mistakes": [],
+  "other_screenshots": []
+}
