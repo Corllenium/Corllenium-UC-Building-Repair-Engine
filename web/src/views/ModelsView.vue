@@ -6,6 +6,7 @@
         <span class="badge">Campus SketchUp &rarr; Unity 6 URP</span>
       </div>
       <div class="header-actions">
+        <router-link to="/errors" class="btn btn-secondary">Errors &amp; fixes</router-link>
         <button class="btn btn-secondary" @click="loadData" :disabled="loading">Refresh</button>
       </div>
     </header>
@@ -174,6 +175,12 @@ onMounted(() => {
   border-bottom: 1px solid #dcdde2;
   padding-bottom: 16px;
   margin-bottom: 24px;
+}
+
+.header-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
 }
 
 .brand h1 {

@@ -1,0 +1,1024 @@
+{
+  "built_from": {
+    "commit": "ab22ff3",
+    "date": "2026-09-25 23:53 (files); measured 2026-09-26"
+  },
+  "origin": [
+    "These models were built in Minecraft with the Little Tiles mod, exported, brought into SketchUp, and exported again as one OBJ per SketchUp group. Every step keeps all the geometry the step before made, so the OBJ carries what Little Tiles builds with: many small closed boxes on the block grid, with every side of every box.",
+    "That one fact explains most of what follows: the hidden faces inside every slab, the back-to-back double layers where two tiles touch, the gridlines along the tile grid, the cracks where tiles of different sizes meet, and the sawtooth steps where a slope was built from boxes.",
+    "This page lays out every kind of error found so far: what it is, how it is found, why the model has it, how much of each model it is, why it is unwanted in Unity, the solution, what was done, and why some can remain. It is a plan: nothing in any model is changed by it. Give your verdict per model in each error's window: an error to fix, OK for that model, or not sure."
+  ],
+  "models": [
+    {
+      "id": "CHTM5",
+      "name": "chtm_5ft_floor",
+      "role": "Example building, not fixed: errors measured only",
+      "numbers": {
+        "triangles": 20599
+      },
+      "source": "snapshot c0c877002500 (dashboard model 2, version 6), measured 2026-09-26"
+    },
+    {
+      "id": "A",
+      "name": "CHTM_SIDE_WALK_2nd_floor",
+      "role": "Sidewalk, fixed by the engine",
+      "skp": "D:/PROJECTS/UC MODEL FIXER/OBJ FIXED RESULT/CHTM_SIDE_WALK_2nd_floor.fixed.skp",
+      "numbers": {
+        "triangles": [
+          4692,
+          881
+        ],
+        "back_faces_px": [
+          569108,
+          18348
+        ]
+      },
+      "source": "data/output_verified/CHTM_SIDE_WALK_2nd_floor/report.json at ab22ff3"
+    },
+    {
+      "id": "B",
+      "name": "CHTM_2nd_to_3rd_building_sidewalk_outside",
+      "role": "Sidewalk, fixed by the engine",
+      "skp": "D:/PROJECTS/UC MODEL FIXER/OBJ FIXED RESULT/CHTM_2nd_to_3rd_building_sidewalk_outside.fixed.skp",
+      "numbers": {
+        "triangles": [
+          7227,
+          513
+        ],
+        "back_faces_px": [
+          464939,
+          2869
+        ]
+      },
+      "source": "data/output_verified/CHTM_2nd_to_3rd_building_sidewalk_outside/report.json at ab22ff3"
+    }
+  ],
+  "kinds": [
+    {
+      "id": "hidden-faces",
+      "title": "Hidden inside faces",
+      "summary": "Faces inside the solid parts of the model that no camera outside can ever see.",
+      "color": "#1f5bff",
+      "models": {
+        "CHTM5": {
+          "status": "planned",
+          "count": "12,870 of 20,599 triangles (62 %)"
+        },
+        "A": {
+          "status": "partly",
+          "count": "1,853 of 4,692 triangles in the export; 2,065 removed; 66 left in the shipped file"
+        },
+        "B": {
+          "status": "partly",
+          "count": "2,411 of 7,227 triangles in the export; 2,771 removed; 27 left in the shipped file"
+        }
+      },
+      "what": "Faces inside the solid parts of the model: between two slabs, inside a wall, under a floor. They are real triangles in the OBJ, but no camera standing anywhere outside can ever see them.",
+      "find": [
+        "Take 4 points on each face: its centre, and three points near its corners (0.6 / 0.2 / 0.2 of the way to each corner).",
+        "From every point, cast 128 rays spread evenly over all directions, on both sides of the face. The rays hit every other face of the object from either side, the way Unity and SketchUp draw them.",
+        "A ray escapes when it leaves the object without hitting a face. A face is hidden when none of its rays escapes.",
+        "When some rays escape but fewer than 5 % (the slit threshold, 0.05), the face is seen only through a thin gap: a 'slit' face. It is kept unless 'Accept slit faces' is on.",
+        "The test sees this object alone. A face hidden only by a neighbouring building still counts as visible, because Unity may stream that neighbour out.",
+        "Zero-area triangles are left out: they are their own kind of error."
+      ],
+      "why": "Little Tiles builds everything from small boxes (tiles) on Minecraft's block grid. Each tile is exported as a closed box with all six sides, including the sides pressed against a neighbouring tile, so a wall built from 16 small tiles carries every wall between every pair of tiles. SketchUp keeps every face it imports, and the OBJ export per group keeps them again. That is also why they come in pairs: two touching tiles give two faces on one plane, facing opposite ways. CHTM 5th floor has 13,947 such pairs, and 5,261 edges where three or more faces meet (an inside wall meeting a surface).",
+      "why_note": "Our reading of the measurements; we have not seen the exporter's code.",
+      "unity": [
+        "Unity still sends every one of those triangles to the GPU: 62 % of CHTM 5th floor is never seen.",
+        "They take lightmap space and collider cost for nothing.",
+        "Where a hidden face lies exactly on an outer surface, Unity cannot decide which one is in front, so it flickers.",
+        "In X-ray and in SketchUp they fill the slabs with lines (your 09-21 screenshots)."
+      ],
+      "solution": [
+        "Find them with the ray test above, never by guessing.",
+        "Remove only those faces, never the sides of a slab or wall (your rule: only the inside).",
+        "Guard every removal: render the object from 26 directions with and without the removed faces; if even one pixel of the outside changes, that face is put back.",
+        "Check what is left in the dashboard: X-ray, and the blue 'Hidden inside faces' filter of the 3D viewer."
+      ],
+      "never": [
+        "Blender's 'select interior faces' and delete: it deleted 88 % of this model once.",
+        "Welding vertices farther apart than 0.1 mm.",
+        "'Make Manifold' or 'Fill Holes': both closed real openings in this model before."
+      ],
+      "done": [
+        "Sidewalk A: 2,065 removed, 43 put back by the guard. That is more than the 1,853 hidden in the export, because the side and bottom rebuild runs first and encloses more faces (239 more on A), which the hidden pass then removes too.",
+        "Sidewalk B: 2,771 removed, 16 put back by the guard (2,411 hidden in the export, plus 232 the rebuild enclosed).",
+        "Both files pass every check.",
+        "CHTM 5th floor: not touched. Planning only."
+      ],
+      "remain": "Faces seen through a real small gap are kept on purpose, so no hole opens. Faces the guard put back stay: removing them changed the picture, so they were visible after all. The shipped files still show a few faces the ray test calls hidden (A 66, B 27), most likely enclosed by the walls and bottoms the engine built after the hidden pass; they have not been traced yet.",
+      "engine_files": [
+        "vis/exposure.py",
+        "fixes/remove.py",
+        "guard/compare.py"
+      ],
+      "examples": [
+        {
+          "image": "you-0921-0346-2.png",
+          "date": "2026-09-21",
+          "caption": "Inside a slab: a partition face nobody outside can see.",
+          "words": "in this file iwant you to used your skills, likecreate a a workflow that can fix so the interface gonna be a dashboard wep used perhaps maybe vue.js lets utilzied a postgresql for databassed so the goal here is we hav..."
+        },
+        {
+          "image": "you-0921-0346-3.png",
+          "date": "2026-09-21",
+          "caption": "Inside a slab: many partition faces, between the tiles.",
+          "words": "in this file iwant you to used your skills, likecreate a a workflow that can fix so the interface gonna be a dashboard wep used perhaps maybe vue.js lets utilzied a postgresql for databassed so the goal here is we hav..."
+        },
+        {
+          "image": "you-0921-0448-1.png",
+          "date": "2026-09-21",
+          "caption": "You asked: remove what is not visible, keep the facade.",
+          "words": "yes this is right now inside of the meshed how can we removed that is not visible bujt preserved the facade of it"
+        },
+        {
+          "image": "you-0921-0809-1.png",
+          "date": "2026-09-21",
+          "caption": "The inside of the OBJ at a slab edge.",
+          "words": "how do we removed this inside of the obj live everything at the same the outside is a smooth mesh no lines vertices"
+        },
+        {
+          "image": "you-0921-0815-1.png",
+          "date": "2026-09-21",
+          "caption": "X-ray: the red faces are the hidden inside faces.",
+          "words": "these one this xray right hereree these are not needed irellevant but again if we removed that it wil lremoved also the face of the mesh so how can we removed tihs by preserving the outside mesh that represent slab"
+        },
+        {
+          "image": "you-0921-0908-1.png",
+          "date": "2026-09-21",
+          "caption": "Your rule from the first day: removing the inside must never remove the surface. The guard exists for this.",
+          "words": "wait if i removed the hgidden inside faces why the surface mesh was remvoed idont want i think thises are just filteres okny ands the all triangle edes but the shpae is preservd to behonest region outlines so in the a..."
+        },
+        {
+          "image": "you-0923-0337-1.png",
+          "date": "2026-09-23",
+          "caption": "X-ray after a run: some hidden faces were still there.",
+          "words": "these is good xray hidenen inside faces but there are still that are not labled and need to be removed meeaning iwil lexpect in the model all of hidden inisde faces will be removed okay"
+        },
+        {
+          "image": "you-0923-0813-2.png",
+          "date": "2026-09-23",
+          "caption": "Faces left inside a slab that the engine had not picked up (09-23).",
+          "words": "these are the hidden inside faces that needst obe delete it seem the engine is not did not pickup theeverything"
+        }
+      ],
+      "sources": [
+        "CHTM 5th floor: engine.cli errors on snapshot c0c877002500, 2026-09-26 (hidden 12,870); edges with 3+ faces from engine.pipeline.analyse_topology",
+        "A and B in the export and in the shipped OBJ: find_errors, 2026-09-26",
+        "Removed and put back: report.json at ab22ff3 (n_removed_hidden, n_restored_by_guard); enclosed by the rebuild: solidify_report.faces_newly_hidden (A 239, B 232)",
+        "Method: engine/vis/exposure.py (4 sample points, 128 directions, slit threshold 0.05); guard: engine/guard/compare.py (26 views)"
+      ]
+    },
+    {
+      "id": "double-layers",
+      "title": "Back-to-back double layers",
+      "summary": "Two faces on the same plane, back to back, where two tiles touched.",
+      "color": "#92400e",
+      "models": {
+        "CHTM5": {
+          "status": "planned",
+          "count": "13,947 double-layer pairs over 325 planes; 95 exact copies, 48 of them with a different material on each copy"
+        },
+        "A": {
+          "status": "partly",
+          "count": "11 exact opposite-wound copies in the export, all removed; 10 opposite-wound partial pairs left (at 281a569)"
+        },
+        "B": {
+          "status": "partly",
+          "count": "31 exact opposite-wound copies in the export (24 with a different material on each side), all removed; 2 double-layer sources left (49.3 sq in, at 281a569; see Flicker)"
+        }
+      },
+      "what": "Two faces lying in the same plane, on top of each other, facing opposite ways: one looks left, its twin looks right. Seen from the side they are one surface drawn twice. Most of them sit inside the model; some sit on its outside.",
+      "find": [
+        "Two faces are in the same plane when they are parallel (the dot product of their normals is above 0.999, within about 2.6 degrees) and every corner of each lies within the depth tolerance of the other's plane. The depth tolerance is 1.5 times the export's print precision: 0.15 in for these files, whose coordinates are printed to 0.1 in.",
+        "Two faces in one plane form a double layer when their outlines share more than 1 sq in.",
+        "They are back to back when their normals point opposite ways (opposite winding), and face to face when they point the same way.",
+        "An exact copy is the special case where both faces use the same three corners."
+      ],
+      "why": "In Little Tiles every tile is a closed box. Where two tiles touch, the side of one and the side of its neighbour lie in the same plane, facing away from each other. The export keeps both, SketchUp keeps both, and the OBJ keeps both. That is why these pairs are almost all opposite-wound, and why the two faces often carry different materials: each belongs to a different tile.",
+      "why_note": "Our reading of the measurements: 13,947 pairs, almost all opposite-wound, in the one building we scanned.",
+      "unity": [
+        "Where a pair sits inside a slab, it is two hidden faces: triangles for nothing (see Hidden inside faces).",
+        "Where a pair reaches the outside, the two layers sit at the same depth. With the two-sided shader used here, Unity cannot decide which one is in front, so the surface flickers between the two materials as the camera moves (see Flicker).",
+        "A pair doubles the triangles, lightmap space and collider cost of that surface."
+      ],
+      "solution": [
+        "Pairs inside a slab: the hidden-face pass removes both faces, like any hidden face.",
+        "Exact copies with the SAME material: keep one, remove the other (your decision of 09-25, brief 13).",
+        "Exact copies with DIFFERENT materials: keep the one whose material you choose. This 'which face wins' step is not built yet; these pairs are reported, not changed.",
+        "Partial pairs on a side (a side drawn twice, in pieces): replace the pieces with one wall over their union, wound outward, keeping the pieces' material (brief 15 item 2, parked on branch wip/brief15-one-wall, not verified).",
+        "Every change passes the same 26-view guard."
+      ],
+      "never": [
+        "Treating every opposite-facing pair as a duplicate and deleting one: on a thin wall both faces are the real surface, one seen from each side. The engine refuses this unless the two are exact copies with the same material."
+      ],
+      "done": [
+        "A: the export's 11 exact opposite-wound copies are gone before the output (brief 14's measurement).",
+        "B: the export's 31 exact copies are gone.",
+        "Every run now reports the double layers that are left: count, area, and pixels over the 26 views (brief 15 item 1, 3c54e77).",
+        "CHTM 5th floor: measured only."
+      ],
+      "remain": "A still has partial pairs where the export drew a side twice, in pieces: 10 of its 28 double-layer sources are opposite-wound (3,723.5 sq in for all 28, measured at 281a569). The one-wall-per-side fix that would replace them is written but parked, unverified, on wip/brief15-one-wall.",
+      "engine_files": [
+        "fixes/overlap.py",
+        "vis/exposure.py",
+        "fixes/remove.py"
+      ],
+      "examples": [
+        {
+          "image": "you-0924-0110-1.png",
+          "date": "2026-09-24",
+          "caption": "Inside the model in SketchUp: purple is the back of a face. The walls between tiles show their backs to each other.",
+          "words": "its like iwant to understand the scripts files engine that is responsible for specific e3rrrors"
+        }
+      ],
+      "sources": [
+        "CHTM 5th floor: chtm5_scan.py on snapshot c0c877002500, 2026-09-26 (13,947 pairs over 325 planes; 95 exact copies, 48 different-material)",
+        "A and B exact copies: re-measure of 2026-09-21 (A 11, B 31, of which 24 with a different front and back material)",
+        "A's leftovers: brief 14 report (zfight-sources-report.md), measured at 281a569"
+      ]
+    },
+    {
+      "id": "flicker",
+      "title": "Flicker: two layers fighting for the same pixels",
+      "summary": "Two faces in one plane where Unity cannot decide which one is in front, so the surface shimmers (texture on texture).",
+      "color": "#d8282f",
+      "models": {
+        "CHTM5": {
+          "status": "planned",
+          "count": "10,461 faces in double layers (5,668 texture on texture, 4,793 same material); 4,876 px where two layers can trade places"
+        },
+        "A": {
+          "status": "partly",
+          "count": "530 faces in the export, 40 in the shipped file (one material); 28 sources, 141 px (at 281a569)"
+        },
+        "B": {
+          "status": "partly",
+          "count": "1,347 faces in the export (321 texture on texture), 4 in the shipped file (0 texture on texture); 2 sources, 7 px (at 281a569)"
+        }
+      },
+      "what": "Z-fighting. When two faces lie at the same depth, the graphics card cannot tell which one is nearer. It picks a different winner pixel by pixel and frame by frame, so the surface shimmers, or shows a noisy mix of the two textures, as the camera moves. It is worst when the two faces carry different textures: 'texture on texture'.",
+      "find": [
+        "Take every double layer (same plane within the depth tolerance, more than 1 sq in shared; see Back-to-back double layers), whatever its winding.",
+        "Render the object from the 26 guard views. A pixel can flicker when its first hit is one of the two faces and the same ray meets the other within the depth tolerance: there the two can trade places.",
+        "Split by material. Different materials on the two faces = texture on texture (red in the 3D viewer). The same material = same-material flicker (orange); it still shimmers when the two faces' lighting or texture mapping differ."
+      ],
+      "why": "The Little Tiles boxes touch and overlap. Touching tiles give back-to-back pairs; tiles placed into each other, or stacked, give two faces in one plane facing the same way. When the export and SketchUp put everything into one mesh, both faces stay. The engine's own side rebuild also made double layers once (see the engine mistakes).",
+      "why_note": "Our reading of the measurements.",
+      "unity": [
+        "Visible shimmer and texture noise on walls and floors as the player moves: the most noticeable defect in the scene.",
+        "It changes with distance and screen resolution, so camera placement cannot hide it.",
+        "Twice the triangles and draw work for the same surface."
+      ],
+      "solution": [
+        "Measure it on every run (done: report.json 'double_layers').",
+        "Same material, where one face covers the other (99 % or more): remove the covered one (overlap pass, strict guard).",
+        "Different materials: you choose which face wins, per material pair, and the choice is remembered for the next export. Not built yet.",
+        "Partial overlaps on a side: one wall per side plane (brief 15 item 2, parked).",
+        "Check it in the 3D viewer: the blink mode swaps each flicker face with its partner, so you see both layers."
+      ],
+      "done": [
+        "Overlap pass: A 11 and B 3 covered same-material layers removed (report.json at ab22ff3).",
+        "Exact copies removed (A 11, B 31).",
+        "What is left is counted in every report (3c54e77)."
+      ],
+      "remain": "Partial overlaps (a side drawn twice in pieces, riser pairs half a tile apart) are not one face covering another, so the overlap pass leaves them: that is A's 28 sources. Texture-on-texture pairs wait for your 'which face wins' choice.",
+      "engine_files": [
+        "fixes/overlap.py",
+        "guard/compare.py"
+      ],
+      "examples": [
+        {
+          "image": "you-0921-0346-4.png",
+          "date": "2026-09-21",
+          "caption": "The noisy strip along the wall is two surfaces fighting for the same pixels.",
+          "words": "in this file iwant you to used your skills, likecreate a a workflow that can fix so the interface gonna be a dashboard wep used perhaps maybe vue.js lets utilzied a postgresql for databassed so the goal here is we hav..."
+        }
+      ],
+      "sources": [
+        "CHTM 5th floor faces: engine.cli errors, 2026-09-26; pixels: chtm5_scan.py",
+        "A and B faces: find_errors on the export and on the shipped OBJ at ab22ff3, 2026-09-26",
+        "A and B sources and pixels: brief 15, measured at 281a569",
+        "Overlap pass: report.json n_removed_overlap at ab22ff3"
+      ]
+    },
+    {
+      "id": "gridlines",
+      "title": "Gridlines: extra lines and triangles on flat surfaces",
+      "summary": "Lines and triangles cutting a flat surface into many small pieces.",
+      "color": "#64748b",
+      "models": {
+        "CHTM5": {
+          "status": "planned",
+          "count": "11,700 removable lines inside flat surfaces (44 % of its 26,856 edges), over 5,011 flat regions"
+        },
+        "A": {
+          "status": "fixed",
+          "count": "2,463 removable lines in the export; 4,692 to 881 triangles; each flat area is one face in the .skp"
+        },
+        "B": {
+          "status": "fixed",
+          "count": "5,678 removable lines in the export; 7,227 to 513 triangles"
+        }
+      },
+      "what": "A flat surface that should be one face is cut into many small faces and triangles. In SketchUp and in the dashboard you see a grid of lines across floors, walls and slabs. In the OBJ they are extra triangles.",
+      "find": [
+        "Group the triangles into flat regions: the same material, facing within 0.9 of each other (dot product of normals), every corner within 1.5 times the print precision of the region's fitted plane, and texture coordinates that line up (the same texture mapping, allowing whole-tile shifts).",
+        "Every edge between two triangles of the same region is a removable line (edge class 1). Edges on a region's border are real (class 0): a crease, a material change or a texture seam.",
+        "The count is the number of removable lines, and the triangles each region has against the triangles it needs."
+      ],
+      "why": "Each Little Tiles tile has its own faces, so a floor made of 100 tiles arrives as at least 100 faces, split along the tile grid. Where a hidden inside wall meets the surface, the surface is split along that wall too: in the dashboard these are the blue lines ('gridlines: hidden wall meets surface'). SketchUp then triangulates every face for the OBJ.",
+      "why_note": "Our reading of the measurements.",
+      "unity": [
+        "Many more triangles than the shape needs: A had 4,692 where 881 draw the same surface.",
+        "Every split is a place where lighting, normals and lightmap charts can show a seam.",
+        "Where the pieces do not share corners exactly, the lines become cracks (see Cracks)."
+      ],
+      "solution": [
+        "Merge each flat region into one polygon: the union of its triangles, then a constrained triangulation that uses only the region's existing border corners, so no new crack appears. Nothing is moved or invented.",
+        "Keep every real border: material changes, creases and texture seams stay as lines.",
+        "Guard the result: the 26-view guard lets a border shift at most 0.15 in, measured, not counted.",
+        "Write the .skp with one face per region, with openings as inner loops. The triangle OBJ keeps only the triangles each region needs, and the .ngon.obj keeps each region as one polygon."
+      ],
+      "never": [
+        "Blender 'Dissolve' above 5 degrees, or 'Decimate': a bulk merge once bridged openings in this model (surface area grew from 14,943 to 18,044 m2)."
+      ],
+      "done": [
+        "A: 4,692 to 881 triangles; B: 7,227 to 513. The merge step alone: A 2,474 to 881, B 4,619 to 513 (report.json at ab22ff3).",
+        "The .skp shows each flat area as one face.",
+        "CHTM 5th floor: measured only."
+      ],
+      "remain": "Lines that are real borders stay by design: a material change, a crease, a texture seam. A flat region whose merge fails the guard keeps its original triangles instead. The triangle OBJ always keeps the triangles a polygon needs; they are not gridlines.",
+      "engine_files": [
+        "topo/planes.py",
+        "fixes/merge.py",
+        "guard/compare.py",
+        "io/skp_writer.py"
+      ],
+      "examples": [
+        {
+          "image": "you-0921-0346-1.webp",
+          "date": "2026-09-21",
+          "caption": "Blue lines: where hidden inside walls meet the surface.",
+          "words": "in this file iwant you to used your skills, likecreate a a workflow that can fix so the interface gonna be a dashboard wep used perhaps maybe vue.js lets utilzied a postgresql for databassed so the goal here is we hav..."
+        },
+        {
+          "image": "you-0921-0353-1.png",
+          "date": "2026-09-21",
+          "caption": "The sidewalk in SketchUp: a grid of lines across the flat surfaces.",
+          "words": "so also for example if i can have a window preview before and after like for example there are lines and then no lines that wouldbe helpful"
+        },
+        {
+          "image": "you-0923-0332-1.png",
+          "date": "2026-09-23",
+          "caption": "An AFTER from 09-23: the triangles still show.",
+          "words": "the after the 3d model but clean. okay. now everytime we do the removeal i will have a a letst skp file i will check here of the mode lif the xray hidden inside face are remvoed all triangle edges D:\\PROJECTS\\UC MODEL..."
+        },
+        {
+          "image": "you-0923-0335-2.png",
+          "date": "2026-09-23",
+          "caption": "You asked for outlines only at the model's edges, not across the slabs.",
+          "words": "i dont want region outlines in the slabs i think region outlines will only define on the edge line of the model"
+        },
+        {
+          "image": "you-0923-0338-1.png",
+          "date": "2026-09-23",
+          "caption": "The look you want: only the outer outlines.",
+          "words": "the model now shows only the outer region outlines, with all internal triangles and hidden faces removed. The result is a clean wireframe that emphasizes the external geometry and edge contours, giving a crisp, simpli..."
+        },
+        {
+          "image": "you-0923-0339-1.png",
+          "date": "2026-09-23",
+          "caption": "'From this to this': a wireframe full of lines.",
+          "words": "FROM THIS TO THIS RIGHT BUT 3D MODEL OKAY"
+        },
+        {
+          "image": "you-0923-0809-1.png",
+          "date": "2026-09-23",
+          "caption": "A sloped surface cut into a triangle lattice.",
+          "words": "what aboout in here"
+        },
+        {
+          "image": "you-0926-0326-1.webp",
+          "date": "2026-09-26",
+          "caption": "CHTM 5th floor as exported: blue lines all over the building."
+        }
+      ],
+      "sources": [
+        "Removable lines and regions: edge classes from engine.pipeline.analyse_topology on each export, 2026-09-26",
+        "Triangles: report.json tris_before, tris_after and merge_report at ab22ff3",
+        "The 14,943 to 18,044 m2 merge: the 2026-09-21 design (UC project history)"
+      ]
+    },
+    {
+      "id": "cracks",
+      "title": "Cracks: T-junction points",
+      "summary": "A corner of one face touching the middle of another face's edge: a hairline gap that sparkles.",
+      "color": "#00b4d8",
+      "models": {
+        "CHTM5": {
+          "status": "planned",
+          "count": "3,884 T-junction points; 2,678 edges affected"
+        },
+        "A": {
+          "status": "partly",
+          "count": "550 points in the export, 32 in the shipped file"
+        },
+        "B": {
+          "status": "partly",
+          "count": "559 points in the export, 25 in the shipped file"
+        }
+      },
+      "what": "A T-junction: one face's corner sits on the middle of its neighbour's edge instead of on a shared corner, like the stem of a T. The two surfaces look joined, but the long edge and the two short edges are computed separately and round differently, so tiny gaps open along the line.",
+      "find": [
+        "For every edge, look for any vertex of the object that lies on the inside of that edge (within the print-precision tolerance) without being one of its two corners. Each such vertex is a T-junction point.",
+        "Zero-area triangles along an edge are used as hints: SketchUp often stitches a T-junction with a triangle of no area.",
+        "In the 3D viewer they are the cyan dots."
+      ],
+      "why": "Little Tiles tiles come in different sizes, so a big tile's edge runs past the corners of the small tiles beside it. Nothing in the export splits the long edge at those corners, and SketchUp triangulates each face on its own.",
+      "why_note": "Our reading of the measurements.",
+      "unity": [
+        "Sparkling pixels along the line: single pixels of the background or sky flashing through as the camera moves.",
+        "Seams in lighting and shadows along the line.",
+        "They break watertight checks and some baking tools."
+      ],
+      "solution": [
+        "When the merge rebuilds a flat region, thread every existing vertex that lies on an output edge into that edge: the long edge is split at the small tiles' corners. Nothing is moved or invented (T1, 28d63df).",
+        "Close, at the source, the thin slivers T-junctions leave in a region's union (b3b9ad3).",
+        "Guard: the final guard's totals must not change."
+      ],
+      "done": [
+        "At the merge step: T-junction vertices A 353 to 0, B 363 to 0 (28d63df, 09-24).",
+        "In the shipped files (find_errors, 2026-09-26): A 550 to 32 points, B 559 to 25."
+      ],
+      "remain": "The merge threads only the regions it rebuilds. The points left in the shipped files (A 32, B 25) sit where the merge did not work, or where the new walls meet old faces; they have not been traced yet. Check them in the 3D viewer (cyan dots).",
+      "engine_files": [
+        "topo/adjacency.py",
+        "fixes/merge.py"
+      ],
+      "examples": [],
+      "sources": [
+        "Points: find_errors (cracks) on the exports and the shipped OBJs, 2026-09-26; affected edges: edge class 4 from analyse_topology",
+        "Merge-stage counts: session record, 09-24 18:50 (28d63df)"
+      ]
+    },
+    {
+      "id": "reversed-faces",
+      "title": "Reversed faces",
+      "summary": "Faces turned inside out: their front points into the model, so Unity shows their back, or nothing.",
+      "color": "#9650ff",
+      "models": {
+        "CHTM5": {
+          "status": "planned",
+          "count": "29 faces seen mostly from behind"
+        },
+        "A": {
+          "status": "partly",
+          "count": "809 faces in the export, 24 in the shipped file; back faces seen from outside 569,108 to 18,348 px"
+        },
+        "B": {
+          "status": "fixed",
+          "count": "838 faces in the export, 0 in the shipped file; back faces seen from outside 464,939 to 2,869 px"
+        }
+      },
+      "what": "Every face has a front and a back, set by the order of its corners (its winding). A reversed face has its front pointing into the model and its back to the outside. SketchUp paints the back of a face purple-blue, so reversed faces show as purple areas.",
+      "find": [
+        "Using the same rays as the hidden-face test, measure how exposed each side of the face is: its front and its back.",
+        "A face is reversed when its back is more exposed than its front: from outside it is seen mostly from behind.",
+        "A face exposed about equally on both sides (the smaller side at least half of the larger) is a thin sheet, not a reversed face. Flipping cannot help it; it needs a second side (see Holes, sides and bottoms).",
+        "The overall effect is measured as back-face pixels: pixels in the 26 views where the camera sees the back of a face."
+      ],
+      "why": "Little Tiles builds each tile as its own box, and the export and SketchUp keep whatever winding each piece had. Faces that were the inside of one tile end up on the outside once the neighbouring tile's faces are hidden or removed. Exploding and regrouping in SketchUp can flip faces too.",
+      "why_note": "Our reading; the cause of each single face is not traced.",
+      "unity": [
+        "Unity's standard shaders draw only the front: a reversed face disappears, and you see through the model.",
+        "With a two-sided shader it shows, but its normal points inward, so it is lit wrong: dark or black.",
+        "A one-sided view once made the intact sidewalk look destroyed (see the engine mistakes)."
+      ],
+      "solution": [
+        "Flip every face whose back is more exposed than its front: reverse its corner order.",
+        "Leave thin sheets alone, and give them a real second side instead (side and bottom rebuild).",
+        "Guard every flip with the 26 views.",
+        "Judge visibility double-sided, the way SketchUp and this project's Unity shader draw; a one-sided render is a diagnostic only."
+      ],
+      "done": [
+        "A: 653 faces flipped and 19 thin sheets turned; back faces seen from outside 569,108 to 18,348 px (report.json at ab22ff3).",
+        "B: 723 faces flipped; 464,939 to 2,869 px.",
+        "Measured on the shipped files: A 24 reversed faces left, B 0."
+      ],
+      "remain": "A's shipped file still has 24 faces seen mostly from behind, and 18,348 back-face pixels over the 26 views. They have not been traced to their cause yet. B has none left.",
+      "engine_files": [
+        "fixes/orient.py",
+        "vis/exposure.py",
+        "guard/compare.py"
+      ],
+      "examples": [
+        {
+          "image": "you-0924-0108-1.webp",
+          "date": "2026-09-24",
+          "caption": "SketchUp paints the back of a face purple-blue.",
+          "words": "there are here also . also make sure we have a sessino record of everything okay"
+        }
+      ],
+      "sources": [
+        "Faces: find_errors (reversed) on the exports and the shipped OBJs, 2026-09-26",
+        "Flipped and back-face pixels: report.json n_flipped, sheet_orientation, backface_px at ab22ff3"
+      ]
+    },
+    {
+      "id": "holes-sides",
+      "title": "Holes, and broken or missing sides and bottoms",
+      "summary": "Slabs with no side walls, broken side pieces, missing undersides, and open edges you can see through.",
+      "color": "#16a34a",
+      "models": {
+        "CHTM5": {
+          "status": "planned",
+          "count": "346 open edges (an edge with one face and nothing on its other side)"
+        },
+        "A": {
+          "status": "partly",
+          "count": "250 open edges in the export, 378 in the shipped file; walls and bottoms rebuilt; the knife edge at x 2680 and the lower landing's hole 1 still open"
+        },
+        "B": {
+          "status": "partly",
+          "count": "326 open edges in the export, 134 in the shipped file; region 107 partly rebuilt; the B4 notch and the B8 fin still open"
+        }
+      },
+      "what": "Slabs and landings that are not closed boxes: the top is there, but a side is missing or made of broken pieces, or there is no underside. From some angles you look into the slab, or straight through it.",
+      "find": [
+        "Open edge: an edge used by exactly one face, with no face on its other side, after welding corners closer than the print precision. An edge whose other side is covered through a T-junction is not counted here (see Cracks).",
+        "Missing side: walk the outline of each flat top region; where no face runs down from an outline edge to the slab's depth, the side is missing.",
+        "Broken side: faces inside the outline's side band that do not form one clean wall (pieces, gaps, steps).",
+        "Top or underside is decided by looking above and below the region: sky above and the slab's body below means a top.",
+        "Missing bottom: a slab whose footprint has no underside at the slab's own depth."
+      ],
+      "why": "Little Tiles slabs are built from tiles whose outer sides were sometimes never placed, or disappeared in Minecraft because a neighbouring block covered them. Once the object is split per SketchUp group and exported alone, that neighbour is gone and the side is an opening. Tiles on a slope leave steps and slivers instead of a clean side.",
+      "why_note": "Our reading of the measurements.",
+      "unity": [
+        "You see into, or through, the slab from the side or from below: holes in the scene.",
+        "Light leaks and missing shadows at the openings.",
+        "Faces inside the slab become visible through the opening, so the hidden-face pass must keep them: they are no longer hidden."
+      ],
+      "solution": [
+        "Build walls along every missing or broken outline edge, at each edge's own height; sloped tops keep their slope.",
+        "Replace broken side pieces inside the side band, but only pieces that belong to the slab and share the wall's material. Never delete a side face (your rule: only the inside).",
+        "Build one bottom per footprint, at the slab's own depth.",
+        "Cover the interior, then let the hidden-face pass remove what is now enclosed.",
+        "Judge the slab's new shell as a whole with the cap guard: nothing outside the slab's own volume may change."
+      ],
+      "never": [
+        "'Make Manifold' or 'Fill Holes' (Blender, MeshLab): they close real openings and invent surfaces.",
+        "Deleting side meshes to 'clean' a slab."
+      ],
+      "done": [
+        "Side rebuild, over four rounds (briefs 02 and 03 on 09-25, then 10 and 11): walls along missing or broken sides, broken pieces replaced, one bottom per footprint, tops and undersides told apart by looking above and below.",
+        "B's ramp (region 309) is one clean wall in the .skp.",
+        "Both files pass every check at ab22ff3."
+      ],
+      "remain": "Still open: A's knife edge at x 2680; A's lower-landing hole 1, partly closed; B region 107, partly rebuilt (18 of 40 walls and 20 of 36 bottom faces kept); B4, a notch at the ramp junction; B8, a fin at the ramp toe; and M2, a real top that can still be taken for an underside (pinned as a known failing test). Some open edges are real: where the sidewalk meets a building, the object simply ends. A's shipped file has more open edges than its export (378 against 250); not traced yet.",
+      "engine_files": [
+        "fixes/solidify.py",
+        "guard/compare.py",
+        "guard/piece_rays.py",
+        "fixes/remove.py"
+      ],
+      "examples": [
+        {
+          "image": "you-0923-0335-1.png",
+          "date": "2026-09-23",
+          "caption": "A side with a hole in it.",
+          "words": "side meshed and theres a hole here look"
+        },
+        {
+          "image": "you-0923-0810-1.png",
+          "date": "2026-09-23",
+          "caption": "Faces still inside, and no new side built.",
+          "words": "there are still meshes inside but you havent build a new mesh that will represent on the side"
+        },
+        {
+          "image": "you-0923-0811-1.png",
+          "date": "2026-09-23",
+          "caption": "Good: one clean side, the look you want.",
+          "words": "this is good this is the one im looknig to all sides"
+        },
+        {
+          "image": "you-0923-0811-2.png",
+          "date": "2026-09-23",
+          "caption": "Bad: a side made of broken pieces.",
+          "words": "and this is bad"
+        },
+        {
+          "image": "you-0923-0811-3.png",
+          "date": "2026-09-23",
+          "caption": "So bad: the underside.",
+          "words": "this is so bad"
+        },
+        {
+          "image": "you-0923-0812-1.png",
+          "date": "2026-09-23",
+          "caption": "Your rule: never delete the side meshes, only the inside.",
+          "words": "again to harddont delete the sides meshed just inside"
+        },
+        {
+          "image": "you-0923-0813-1.png",
+          "date": "2026-09-23",
+          "caption": "Delete the inside, and build the side.",
+          "words": "delete the inside and build the side meshed"
+        }
+      ],
+      "sources": [
+        "Open edges: edge class 2 from engine.pipeline.analyse_topology on the exports and the shipped OBJs, 2026-09-26",
+        "Rebuild history and what is open: session record sections 4 and 6; briefs 10 and 11"
+      ]
+    },
+    {
+      "id": "sawtooth",
+      "title": "Sawtooth steps on slopes",
+      "summary": "Ramps and sloped edges built from tiny steps instead of one smooth slope.",
+      "color": "#ca8a04",
+      "models": {
+        "CHTM5": {
+          "status": "planned",
+          "count": "not measured: there is no automatic test yet"
+        },
+        "A": {
+          "status": "fixed",
+          "count": "the lower landing's stepped lines (A2) are gone"
+        },
+        "B": {
+          "status": "partly",
+          "count": "the ramp (region 309): close-up 43,696 to 948 back-face px, one clean wall; B4 notch and B8 fin still open"
+        }
+      },
+      "what": "Where the model should have a smooth slope, it has a staircase of tiny steps: along a ramp's edge, under a landing, where a sloped slab meets a flat one. In SketchUp you see a jagged, saw-toothed outline, often with purple backs showing between the teeth.",
+      "find": [
+        "There is no automatic test yet. Today it is found by eye (your 09-24 screenshot) and by back-face pixels in close-up renders of the spot.",
+        "Planned test: along a region's outline, a run of short edges that alternate between two directions (rise and run) whose overall line follows a slope. The step size is the tile size, a fraction of a Minecraft block, so a run of equal steps is the signature.",
+        "This is a good candidate for the next phase (scripts or machine learning): it is a shape pattern, not a single number."
+      ],
+      "why": "Little Tiles tiles are boxes on a grid. A slope can only be approximated by placing boxes at stepped heights, the way pixels draw a diagonal line. Finer tiles make smaller teeth, but the teeth never become a slope.",
+      "why_note": "Our reading; the export may also add slivers between the steps.",
+      "unity": [
+        "A jagged silhouette where the design is smooth.",
+        "Each tooth is extra triangles and edges, and the gaps between teeth show back faces or leak light.",
+        "Colliders follow the teeth, so players and objects catch on them."
+      ],
+      "solution": [
+        "Where the steps are the side of a sloped slab, replace them with one wall that follows the slope (side rebuild: walls at each edge's own height).",
+        "Where the steps are real (stairs), keep them. That is your call, per model: use the verdict below.",
+        "Guard: the new wall must cover the same outline, and nothing outside the slab may change.",
+        "Planned: an automatic detector for step runs, so every export is checked."
+      ],
+      "done": [
+        "B's ramp (region 309) is one clean wall in the written .skp: its close-up went from 43,696 to 948 back-face pixels (side rebuild, 09-25).",
+        "A's lower-landing stepped lines (A2) are gone (brief 11, 09-25)."
+      ],
+      "remain": "B4 (a notch where the ramp meets the landing) and B8 (a fin at the ramp's toe) are still open. Real stairs must stay, so any automatic fix needs your verdict per model.",
+      "engine_files": [
+        "fixes/solidify.py",
+        "guard/compare.py"
+      ],
+      "examples": [
+        {
+          "image": "you-0924-0109-1.webp",
+          "date": "2026-09-24",
+          "caption": "A sawtooth edge: steps where the slab should end in one line.",
+          "words": "this si stil lbroken and not yet completet on building it thisis the part you will build the meshed and fixed"
+        }
+      ],
+      "sources": [
+        "Ramp close-up: session record, 09-25 07:30 and 08:52 (side rebuild)",
+        "A2 and the open items: brief 11 (4019987..ab22ff3); HANDOFF queue"
+      ]
+    },
+    {
+      "id": "fragments",
+      "title": "Zero-area triangles, slivers and stray fragments",
+      "summary": "Triangles with no area, needle-thin slivers, folds, and tiny loose pieces.",
+      "color": "#e0199b",
+      "models": {
+        "CHTM5": {
+          "status": "planned",
+          "count": "1,055 zero-area triangles"
+        },
+        "A": {
+          "status": "fixed",
+          "count": "217 zero-area triangles in the export, 0 in the shipped file; 2 slivers and 32 fold faces removed"
+        },
+        "B": {
+          "status": "fixed",
+          "count": "79 zero-area triangles in the export, 0 in the shipped file; 1 sliver and 6 fold faces removed"
+        }
+      },
+      "what": "Geometry that is technically there but shows as nothing, or as noise: triangles whose three corners lie on one line (zero area), needle-thin slivers along an edge, two triangles folded over each other on a shared edge, and tiny loose pieces floating in or on a slab.",
+      "find": [
+        "Zero-area: a triangle whose area is at most 1e-7 times its longest edge squared, so its corners lie on one line.",
+        "Fragment: a small piece joined to the rest only through T-junctions, judged by its own pixels in the 26 views.",
+        "Sliver: a needle-thin triangle, counted only on an open border (on a closed border it is part of the surface).",
+        "Fold: two triangles folded over their shared edge, so they lie on top of each other.",
+        "Every candidate is confirmed by rays: no line through the piece may reach a side that was never exposed."
+      ],
+      "why": "SketchUp stitches T-junctions and tile edges with zero-area triangles when it triangulates for the OBJ. Tiny tiles and trim pieces from Little Tiles become loose fragments once their neighbours are hidden or removed.",
+      "why_note": "Our reading of the measurements.",
+      "unity": [
+        "Zero-area triangles can produce invalid normals and black specks in lighting, and they upset some importers and lightmap unwrapping.",
+        "Slivers and folds flicker and catch light at odd angles.",
+        "Fragments are stray visible bits, and wasted draw work."
+      ],
+      "solution": [
+        "Remove zero-area triangles, after they have been used as T-junction hints.",
+        "Remove confirmed fragments, slivers and folds. Faces the engine built itself are never taken for debris.",
+        "Guard: a removed piece's pixels may show only sky or an exposed side, under a per-view cap."
+      ],
+      "done": [
+        "A: zero-area triangles 217 to 0 in the shipped file; 2 slivers and 32 fold faces removed (report.json at ab22ff3).",
+        "B: 79 to 0; 1 sliver and 6 fold faces removed."
+      ],
+      "remain": "Pieces whose removal would show something new are kept: the guard put back 4 fragments on A and 3 on B. CHTM 5th floor: measured only.",
+      "engine_files": [
+        "topo/adjacency.py",
+        "detectors/fragments.py",
+        "detectors/folds.py",
+        "guard/piece_rays.py",
+        "guard/compare.py"
+      ],
+      "examples": [
+        {
+          "image": "you-0923-0814-1.png",
+          "date": "2026-09-23",
+          "caption": "Small stray pieces on the slab: some can only be judged by looking.",
+          "words": "look this is why you have to work with visual"
+        }
+      ],
+      "sources": [
+        "Zero-area: find_errors (loose) on the exports and the shipped OBJs, 2026-09-26",
+        "Slivers, folds and fragments put back: report.json at ab22ff3 (n_removed_slivers, n_removed_folds, n_restored_fragments)"
+      ]
+    },
+    {
+      "id": "skp-lines",
+      "title": "Lines left inside surfaces in the .skp",
+      "summary": "Visible edges drawn across a flat surface in the SketchUp file the engine writes.",
+      "color": "#475569",
+      "models": {
+        "CHTM5": {
+          "status": "planned",
+          "count": "no .skp written (not fixed)"
+        },
+        "A": {
+          "status": "partly",
+          "count": "17 lines inside flat surfaces (20.3 ft) and 3 T-junction lines (12.3 ft), at ca463c2"
+        },
+        "B": {
+          "status": "partly",
+          "count": "0 lines inside flat surfaces and 20 T-junction lines (42.3 ft), at ca463c2"
+        }
+      },
+      "what": "In the .skp the engine writes, a flat surface should be one face with no line across it. A line left inside the surface splits it visually, and in SketchUp the two halves can be selected separately.",
+      "find": [
+        "Read the written .skp back through SketchUp's own API.",
+        "Count every visible edge (neither soft nor hidden) that lies inside one flat, same-material surface: the two faces beside it are coplanar and share the material, or the edge lies wholly on one face.",
+        "Material seams are real edges and are not counted."
+      ],
+      "why": "The OBJ holds only triangles, so every flat area arrives in SketchUp as triangles with lines between them. SketchUp also splits any face that is more than about 0.001 in off flat, and many merged regions are a few thousandths of an inch off flat.",
+      "unity": [
+        "Unity does not import SketchUp's lines, but they mark the same splits as in the mesh: seams in lighting and in texture mapping.",
+        "In SketchUp they make the model look unfinished and hard to edit, and SketchUp is where you check every model."
+      ],
+      "solution": [
+        "Write each merged region as one face, with openings as inner loops.",
+        "Soften every edge between two coplanar same-material faces, decided on SketchUp's own model after writing.",
+        "Thread T-junction vertices into the edges they lie on, so they leave no line."
+      ],
+      "done": [
+        "Writer softening (bcccca2) and T-junction threading (28d63df): A 121 to 9 lines, B 41 to 27, on 09-24.",
+        "After the side rebuild (ca463c2, 09-25): A 17 lines inside flat surfaces and 3 T-junction lines; B 0 and 20."
+      ],
+      "remain": "B's lines are T-junction lines where new walls meet old faces, plus its real material seams. A's include three long lines along x 2673.2 at z 1778.1, not traced. The lines have not been re-counted on the current files (ab22ff3).",
+      "engine_files": [
+        "io/skp_writer.py",
+        "fixes/merge.py",
+        "topo/adjacency.py"
+      ],
+      "examples": [],
+      "sources": [
+        "Session record section 6 item 2 (audit at ca463c2) and section 4 (bcccca2, 28d63df)"
+      ]
+    }
+  ],
+  "engine_mistakes": [
+    {
+      "id": "one-sided-render",
+      "title": "A one-sided render made the intact sidewalk look destroyed",
+      "what_happened": "On the first day, the engine's view drew only the front of each face. With hundreds of reversed faces, the intact sidewalk looked broken and full of holes, while SketchUp showed it whole.",
+      "how_caught": "Your comparison of 09-21: 'in SketchUp the sidewalk is right, but on your side the meshes are destroyed or not visible'.",
+      "fix": "Visibility is judged double-sided everywhere (SketchUp and this project's Unity shader draw both sides). A one-sided render is kept only as a diagnostic layer ('One-Sided / Flipped').",
+      "models": [
+        "A",
+        "B"
+      ],
+      "engine_files": [
+        "vis/exposure.py",
+        "guard/compare.py"
+      ],
+      "commits": [],
+      "examples": [
+        {
+          "image": "you-0921-0446-1.png",
+          "date": "2026-09-21",
+          "caption": "SketchUp's view: the sidewalk is whole.",
+          "words": "in sketchup its like the sidewalk is in ther right. but in your side its like the shape and meshes and obj are destroyed some i think or not visible"
+        }
+      ]
+    },
+    {
+      "id": "surface-as-debris",
+      "title": "Real surface taken for debris",
+      "what_happened": "The fragment pass could take real surface for debris: a thin sliver on a closed border, or a face the engine had just built, and delete it.",
+      "how_caught": "Review part 2a (09-25), with probes that fail on the old code.",
+      "fix": "A sliver counts only on an open border; faces the engine invented are never debris (brief 08). Then every debris piece is confirmed by rays through it: no line through a removed piece may reach a side that was never exposed (brief 09).",
+      "models": [
+        "A",
+        "B"
+      ],
+      "engine_files": [
+        "detectors/fragments.py",
+        "guard/piece_rays.py",
+        "guard/compare.py"
+      ],
+      "commits": [
+        "536fca7..d570927",
+        "3386c4f",
+        "62bee9d"
+      ],
+      "examples": []
+    },
+    {
+      "id": "underside-as-top",
+      "title": "An underside taken for a top: 19,777 sq in of A's region 33 deleted",
+      "what_happened": "Solidify decided top or underside from which neighbouring sides hang along a region's edges. A's region 33, a real underside, was taken for a top; the bottom the engine invented covered it, and the hidden pass then deleted 19,777 sq in of real underside. The run still reported passed.",
+      "how_caught": "Review part 2 (R2-C2), probe 'underside with hanging neighbour'.",
+      "fix": "Top or underside is decided by looking above AND below the region: sky above and the slab's body below means a top (brief 10).",
+      "models": [
+        "A"
+      ],
+      "engine_files": [
+        "fixes/solidify.py",
+        "guard/compare.py"
+      ],
+      "commits": [
+        "9f64ae9..f7e27d1"
+      ],
+      "examples": []
+    },
+    {
+      "id": "rebuild-double-layers",
+      "title": "The side rebuild made its own double layers",
+      "what_happened": "The rule that stops a new face landing on an existing one ran once, before the cap guard. When the guard later gave a side piece back, it kept the new wall face lying on that piece, so two layers shipped on one plane (probes: 21.3, 14.5 and 1,600 sq in), with passed = True.",
+      "how_caught": "Review part 2 (R2-C1).",
+      "fix": "When a piece is given back, every new face lying on it is given back too; the coincidence test runs again after the guard's last round; one bottom per footprint, however many coincident tops (brief 10).",
+      "models": [
+        "A",
+        "B"
+      ],
+      "engine_files": [
+        "fixes/solidify.py",
+        "guard/compare.py"
+      ],
+      "commits": [
+        "9f64ae9..f7e27d1"
+      ],
+      "examples": []
+    },
+    {
+      "id": "merge-rolled-back",
+      "title": "A's merge rolled back on a pixel count",
+      "what_happened": "On 09-24 the merge made 1,117 triangles, but the final guard failed on 14 'edge flicker' pixels in one of 26 views, against a cap of 11, and the whole merge was rolled back (2,579 triangles shipped).",
+      "how_caught": "Every one of the 59 flagged pixels was measured: surface borders had moved by at most 0.062 in, and no surface was missing. A pixel count cannot tell a tiny shift along an edge from real damage.",
+      "fix": "The guard measures the displacement of a border instead of counting pixels; anything moved farther than 0.15 in still fails (022a67b).",
+      "models": [
+        "A"
+      ],
+      "engine_files": [
+        "guard/compare.py",
+        "fixes/merge.py"
+      ],
+      "commits": [
+        "022a67b"
+      ],
+      "examples": []
+    },
+    {
+      "id": "floor-as-lower-surface",
+      "title": "A floor taken for a slab's lower surface",
+      "what_happened": "One deep side of its own let the floor under an open slab count as the slab's lower surface, and the rebuild then boxed in whatever stood there: in the probe, a bench and the lower slab's top were deleted, with passed = True.",
+      "how_caught": "Review part 2 (R2-I2).",
+      "fix": "A lower surface is accepted only where the slab's own sides reach it along a real share of the outline; a side that is whole at its own depth is never extended (brief 10).",
+      "models": [
+        "A",
+        "B"
+      ],
+      "engine_files": [
+        "fixes/solidify.py"
+      ],
+      "commits": [
+        "9f64ae9..f7e27d1"
+      ],
+      "examples": []
+    },
+    {
+      "id": "side-band-any-face",
+      "title": "The side band replaced any face",
+      "what_happened": "The rule that replaces broken side pieces took any face inside the side band, without checking its material or whether it belonged to the slab: a concrete side shipped as a wall in the paving material, and a sign standing 1.2 in outside a slab would have been deleted as a piece.",
+      "how_caught": "Review part 2 (R2-I1), then review of brief 10 (R10-I3).",
+      "fix": "A piece must share the wall's material and connect to the slab's outline; the wall takes the replaced side's material. Brief 11 judges this in 3-D, for walls and bottoms.",
+      "models": [
+        "A",
+        "B"
+      ],
+      "engine_files": [
+        "fixes/solidify.py"
+      ],
+      "commits": [
+        "9f64ae9..f7e27d1",
+        "4019987..ab22ff3"
+      ],
+      "examples": []
+    },
+    {
+      "id": "rule-6",
+      "title": "Rule 6 could hide real geometry",
+      "what_happened": "Rule 6 excuses a face outside every slab that is seen only through a slab the engine has just closed. When the planned volume was wrong, it counted real geometry (in the probe, a post behind an overhang) as 'seen through a closed slab', so 15,139 failing pixels went unreported and the underside was deleted.",
+      "how_caught": "Review of brief 10 (R10-I1).",
+      "fix": "Rule 6 is bounded by a measurement independent of the plan: the covered geometry must lie inside the slab's own measured volume (brief 11).",
+      "models": [
+        "A",
+        "B"
+      ],
+      "engine_files": [
+        "guard/compare.py",
+        "fixes/solidify.py"
+      ],
+      "commits": [
+        "4019987..ab22ff3"
+      ],
+      "examples": []
+    },
+    {
+      "id": "regression-at-steps",
+      "title": "The regression at steps",
+      "what_happened": "A new face lying partly on an earlier NEW face was refused whole, so the side band below an upper slab stayed open (0 of 160 sq in closed, where an earlier commit, 8c729c1, had closed it).",
+      "how_caught": "Review of brief 10 (R10-I2), probe 'step between two slabs'.",
+      "fix": "Coincidence is tested against the original faces only; two new faces are merged or trimmed, not refused (brief 11).",
+      "models": [
+        "A",
+        "B"
+      ],
+      "engine_files": [
+        "fixes/solidify.py"
+      ],
+      "commits": [
+        "4019987..ab22ff3"
+      ],
+      "examples": []
+    },
+    {
+      "id": "guard-blind-double-layers",
+      "title": "The guard was blind to double layers",
+      "what_happened": "The guard's z-fight check counts only pixels whose winning face changed between the reference and the output. Double layers the export already had never change, so they passed unseen: A 28 sources (3,723.5 sq in, 141 px), B 2 (49.3 sq in, 7 px).",
+      "how_caught": "Brief 14, measuring every z-fight source in the output for your goal of no flicker in Unity.",
+      "fix": "Every run now reports what can still flicker: double_layers in report.json, with count, area, pixels over the 26 views and a per-plane list (brief 15 item 1, 3c54e77). The fix itself, one wall per side plane, is parked on wip/brief15-one-wall.",
+      "models": [
+        "A",
+        "B"
+      ],
+      "engine_files": [
+        "fixes/overlap.py",
+        "guard/compare.py"
+      ],
+      "commits": [
+        "3c54e77"
+      ],
+      "examples": []
+    }
+  ],
+  "other_screenshots": [
+    {
+      "image": "you-0921-0910-1.webp",
+      "date": "2026-09-21",
+      "caption": "The clean shape you want (an AI illustration you sent on 09-21)."
+    },
+    {
+      "image": "you-0923-0334-1.png",
+      "date": "2026-09-23",
+      "caption": "The clean shape you want (sent again on 09-23)."
+    },
+    {
+      "image": "you-0926-0251-1.webp",
+      "date": "2026-09-26",
+      "caption": "The dashboard's panels were blank while CHTM 5th floor loaded; a loading message and a cache are planned in the 3D filter's plan.",
+      "words": "where"
+    }
+  ]
+}
