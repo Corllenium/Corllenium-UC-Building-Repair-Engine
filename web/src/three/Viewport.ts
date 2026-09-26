@@ -17,6 +17,17 @@ const COLORS = {
   nonmanifold: 0xd8282f, // red: non-manifold edges
 }
 
+// Crack dots and open edges sit exactly on a real surface (a T-junction point, an edge), so a
+// plain depth test would z-fight that surface and lose. After three's own projection, the vertex
+// shader re-projects each vertex from its view-space position scaled by 0.998 toward the eye: the
+// same pixel (the camera is a PerspectiveCamera, which maps every point on a line through the eye
+// to one pixel) at the depth of a point 0.2 % of its distance nearer. That beats the surface it
+// sits on at every zoom, and any real wall in front hides it unless the wall is within that 0.2 %:
+// 6.5 in at CHTM's overview (a 24-bit depth step there is 0.56 in), 0.19 in at the 96 in fly-to.
+// The constant NDC nudge this replaces showed them through about 114 ft of walls at the overview
+// (review I2). Used by both setErrorLines and setErrorPoints.
+export const DEPTH_BIAS_GLSL = '#include <project_vertex>\n  gl_Position = projectionMatrix * vec4(mvPosition.xyz * 0.998, 1.0);'
+
 export class Viewport {
   el: HTMLElement
   scene: THREE.Scene
@@ -483,12 +494,6 @@ export class Viewport {
     this.blinkPhase = -1
   }
 
-  // Both overlays sit exactly on a real surface (an edge, or a T-junction point on one), so a
-  // plain depthTest would z-fight against that surface and lose -- invisible, not just occluded.
-  // Nudging the projected depth very slightly toward the camera keeps them winning that tie while
-  // still losing, correctly, to actual geometry in front of them (a nearer wall still hides them).
-  private static readonly DEPTH_BIAS_GLSL = '#include <project_vertex>\n  gl_Position.z -= 0.0005 * gl_Position.w;'
-
   setErrorLines(segments: Float32Array, color: number) {
     this.removePart('errorLines')
     if (segments.length === 0) return
@@ -496,7 +501,7 @@ export class Viewport {
     geom.setAttribute('position', new THREE.BufferAttribute(segments.slice(), 3))
     const mat = new THREE.LineBasicMaterial({ color, depthTest: true, depthWrite: false })
     mat.onBeforeCompile = (shader) => {
-      shader.vertexShader = shader.vertexShader.replace('#include <project_vertex>', Viewport.DEPTH_BIAS_GLSL)
+      shader.vertexShader = shader.vertexShader.replace('#include <project_vertex>', DEPTH_BIAS_GLSL)
     }
     this.parts.errorLines = new THREE.LineSegments(geom, mat)
     this.parts.errorLines.renderOrder = 3
@@ -510,7 +515,7 @@ export class Viewport {
     geom.setAttribute('position', new THREE.BufferAttribute(points.slice(), 3))
     const mat = new THREE.PointsMaterial({ color, size: 6, sizeAttenuation: false, depthTest: true, depthWrite: false })
     mat.onBeforeCompile = (shader) => {
-      shader.vertexShader = shader.vertexShader.replace('#include <project_vertex>', Viewport.DEPTH_BIAS_GLSL)
+      shader.vertexShader = shader.vertexShader.replace('#include <project_vertex>', DEPTH_BIAS_GLSL)
     }
     this.parts.errorPoints = new THREE.Points(geom, mat)
     this.parts.errorPoints.renderOrder = 3
