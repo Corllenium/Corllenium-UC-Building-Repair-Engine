@@ -135,6 +135,30 @@ describe('errorsDoc', () => {
     expect(validateCatalogue(cat)).toEqual([])
   })
 
+  it('checks titles, sources, and the ids and numbers the verdict API accepts', () => {
+    const bad2: Catalogue = {
+      ...cat,
+      models: [
+        { id: 'bad id', name: 'X', role: 'r', numbers: { triangles: [1, 2, 3] }, source: 's' },
+      ],
+      kinds: [
+        kind({ id: 'Not_OK', title: ' ', sources: [''], models: {} }),
+      ],
+      engine_mistakes: [
+        mistake({ id: 'mistake-1', title: '  ', models: [] }),
+      ],
+    }
+    expect(validateCatalogue(bad2)).toEqual([
+      'model bad id: id does not fit the verdict API',
+      'model bad id: bad number "triangles"',
+      'Not_OK: id does not fit the verdict API',
+      'Not_OK: "title" is empty',
+      'Not_OK: "sources" is empty',
+      'mistake-1: "title" is empty',
+    ])
+    expect(validateCatalogue(cat)).toEqual([])
+  })
+
   it('the committed errors.json is valid', () => {
     expect(validateCatalogue(content as unknown as Catalogue)).toEqual([])
   })

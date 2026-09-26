@@ -16,7 +16,12 @@
         <span>{{ saveBanner }}</span>
         <button type="button" class="banner-dismiss" @click="dismissSaveBanner">&times;</button>
       </div>
-      <div v-if="loadError" class="banner banner-error">{{ loadError }}</div>
+      <div v-if="loadError" class="banner banner-error">
+        {{ loadError }}
+        <ul v-if="loadProblems.length" class="banner-list">
+          <li v-for="(p, i) in loadProblems" :key="i">{{ p }}</li>
+        </ul>
+      </div>
       <div v-else-if="loading" class="loading-state">Loading&hellip;</div>
 
       <template v-if="catalogue">
@@ -153,7 +158,7 @@ import { useRoute, useRouter } from 'vue-router'
 import ErrorWindow from '../components/ErrorWindow.vue'
 import {
   filterKinds, filterMistakes, filterChoices, filterFromQuery, openFromQuery, filterToQuery,
-  statusLabel, imageUrl, verdictOf, validationSummary, VERDICTS,
+  statusLabel, imageUrl, verdictOf, validationSummary, validateCatalogue, VERDICTS,
   type Catalogue, type Kind, type EngineMistake, type DocFilter, type Validation, type Verdict, type VerdictEntry,
 } from '../utils/errorsDoc'
 
@@ -164,6 +169,7 @@ const catalogue = ref<Catalogue | null>(null)
 const validation = ref<Validation | null>(null)
 const loading = ref(true)
 const loadError = ref<string | null>(null)
+const loadProblems = ref<string[]>([])
 const validationError = ref(false)
 const ready = ref(false)
 
@@ -315,10 +321,23 @@ async function doSaveVerdict(payload: { kindId: string; modelId: string; verdict
 async function load() {
   loading.value = true
   loadError.value = null
+  loadProblems.value = []
   try {
     const res = await fetch('/docs/errors.json', { cache: 'no-cache' })
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
-    catalogue.value = (await res.json()) as Catalogue
+    const contentType = res.headers.get('content-type') ?? ''
+    if (!contentType.includes('json')) {
+      loadError.value = 'The documentation file is missing from this build (/docs/errors.json)'
+    } else {
+      const parsed = (await res.json()) as Catalogue
+      const problems = validateCatalogue(parsed)
+      if (problems.length > 0) {
+        loadError.value = `The documentation file has ${problems.length} problems:`
+        loadProblems.value = problems
+      } else {
+        catalogue.value = parsed
+      }
+    }
   } catch (err) {
     loadError.value = `Could not load the documentation: ${errMsg(err)}`
   } finally {
@@ -440,6 +459,11 @@ onUnmounted(() => {
   background: #fde8e8;
   color: #b3261e;
   border: 1px solid #f5c2c2;
+}
+.banner-list {
+  margin: 8px 0 0;
+  padding-left: 20px;
+  font-size: 13px;
 }
 .banner-note {
   color: #8a6d0d;

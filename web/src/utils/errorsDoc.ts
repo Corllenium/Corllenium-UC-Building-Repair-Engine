@@ -238,10 +238,24 @@ function checkImages(problems: string[], label: string, examples: Example[]): vo
   }
 }
 
+// Ids the verdict API (PUT /api/docs/validation/{kind}/{model}) accepts.
+const KIND_ID_PATTERN = /^[a-z0-9][a-z0-9-]{0,63}$/
+const MODEL_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_-]{0,31}$/
+
 export function validateCatalogue(cat: Catalogue): string[] {
   const problems: string[] = []
   const seenIds = new Set<string>()
   const modelIds = new Set(cat.models.map(m => m.id))
+
+  for (const m of cat.models) {
+    if (!MODEL_ID_PATTERN.test(m.id)) problems.push(`model ${m.id}: id does not fit the verdict API`)
+    for (const key of Object.keys(m.numbers)) {
+      const value = m.numbers[key]
+      const isNumber = typeof value === 'number'
+      const isPair = Array.isArray(value) && value.length === 2 && value.every(v => typeof v === 'number')
+      if (!isNumber && !isPair) problems.push(`model ${m.id}: bad number "${key}"`)
+    }
+  }
 
   for (const k of cat.kinds) {
     const id = k.id
@@ -250,8 +264,12 @@ export function validateCatalogue(cat: Catalogue): string[] {
     if (seenIds.has(id)) problems.push(`${id}: duplicate id`)
     else seenIds.add(id)
 
+    // 1b. id accepted by the verdict API
+    if (!KIND_ID_PATTERN.test(id)) problems.push(`${id}: id does not fit the verdict API`)
+
     // 2. empty text fields
     const textFields: [string, string][] = [
+      ['title', k.title],
       ['summary', k.summary],
       ['what', k.what],
       ['why', k.why],
@@ -271,6 +289,9 @@ export function validateCatalogue(cat: Catalogue): string[] {
     for (const [field, values] of stepFields) {
       if (hasNoSteps(values)) problems.push(`${id}: "${field}" has no steps`)
     }
+
+    // 3b. sources: no non-empty item
+    if (hasNoSteps(k.sources)) problems.push(`${id}: "sources" is empty`)
 
     // 4. colour
     if (!/^#[0-9a-fA-F]{6}$/.test(k.color)) problems.push(`${id}: bad colour "${k.color}"`)
@@ -302,6 +323,7 @@ export function validateCatalogue(cat: Catalogue): string[] {
 
     // 2. empty text fields
     const textFields: [string, string][] = [
+      ['title', m.title],
       ['what_happened', m.what_happened],
       ['how_caught', m.how_caught],
       ['fix', m.fix],
