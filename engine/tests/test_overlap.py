@@ -313,3 +313,62 @@ def test_double_layers_pair_list_sorted_by_descending_shared_area():
             assert (i1, j1) < (i2, j2), f"For equal areas, expected (i,j) ordering: ({i1},{j1}) vs ({i2},{j2})"
         else:
             assert areas[idx] >= areas[idx + 1], f"pair_list not sorted by descending area: {areas}"
+
+
+def _reference_px(positions_c, faces, result, depth_tol, views, size):
+    """The visible-pixel total exactly as double_layers counted it before 2026-09-26: every surface
+    along the ray, from the caster's all_hits."""
+    from engine.guard.views import ortho_first_hit
+    from engine.rays.caster import EmbreeCaster, ReusableCaster
+    partners = {}
+    for i, j, _s, _o in result["pair_list"]:
+        partners.setdefault(i, set()).add(j)
+        partners.setdefault(j, set()).add(i)
+    watched = np.array(sorted(partners), dtype=np.int64)
+    caster = EmbreeCaster(positions_c, faces)
+    reusable = ReusableCaster(EmbreeCaster)
+    ids_all = np.arange(len(faces), dtype=np.int64)
+    total = 0
+    for view in views:
+        buf = ortho_first_hit(positions_c, faces, ids_all, view, positions_c, size, reusable)
+        mask = (buf.tri >= 0) & np.isin(buf.tri, watched)
+        if not mask.any():
+            continue
+        rows, cols = np.nonzero(mask)
+        origins = buf.xs[cols][:, None] * buf.right + buf.ys[rows][:, None] * buf.up + buf.standoff
+        ray, hit, t = caster.all_hits(origins, np.tile(np.asarray(buf.direction, float), (len(origins), 1)))
+        first_f, first_t = buf.tri[rows, cols], buf.depth[rows, cols]
+        near = np.abs(t - first_t[ray]) <= depth_tol
+        met = {}
+        for q, f in zip(ray[near].tolist(), hit[near].tolist()):
+            met.setdefault(q, set()).add(f)
+        total += sum(1 for q in range(len(rows)) if partners[int(first_f[q])] & met.get(q, set()))
+    return total
+
+
+@pytest.mark.parametrize("build", ["back_to_back_pair", "split_double_layer", "two_sided_wall"])
+def test_double_layers_counts_the_same_pixels_as_every_surface_along_the_ray(build):
+    from engine.fixes.overlap import double_layers
+    from engine.guard.views import VIEWS_26
+    from engine.tests.fixtures import build as fixtures
+    m = getattr(fixtures, build)()
+    pos = np.asarray(m.positions, float)
+    centre = (pos.min(axis=0) + pos.max(axis=0)) / 2
+    faces = np.asarray(m.face_v)
+    d = double_layers(pos - centre, faces, 0.01, VIEWS_26, (300, 200), centre=centre)
+    assert d["px"] > 0
+    assert d["px"] == _reference_px(pos - centre, faces, d, 0.01, VIEWS_26, (300, 200))
+
+
+def test_double_layers_no_longer_asks_the_caster_for_every_surface(monkeypatch):
+    from engine.fixes import overlap
+    from engine.rays.caster import EmbreeCaster
+    from engine.tests.fixtures.build import two_sided_wall
+
+    def forbidden(*a, **k):
+        raise AssertionError("all_hits called")
+
+    monkeypatch.setattr(EmbreeCaster, "all_hits", forbidden)
+    m = two_sided_wall()
+    pos = np.asarray(m.positions, float)
+    overlap.double_layers(pos - pos.mean(axis=0), np.asarray(m.face_v), 0.01)

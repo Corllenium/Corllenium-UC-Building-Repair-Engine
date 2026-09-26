@@ -499,8 +499,18 @@ def double_layers(positions_c: np.ndarray, faces: np.ndarray, depth_tol: float,
             plane_index[i] = plane_index[j] = k
     ids_all = np.arange(len(faces), dtype=np.int64)
     reusable = ReusableCaster(caster_factory)
-    caster = caster_factory(positions_c, faces)
-    px_plane = [0] * len(planes)
+    px_plane = np.zeros(len(planes), dtype=np.int64)
+    # partners as CSR arrays over face ids, for a vectorized (pixel, partner) expansion
+    ptr = np.zeros(len(faces) + 1, dtype=np.int64)
+    for f, ps in partners.items():
+        ptr[f + 1] = len(ps)
+    ptr = np.cumsum(ptr)
+    idx = np.zeros(int(ptr[-1]), dtype=np.int64)
+    for f, ps in partners.items():
+        idx[ptr[f]:ptr[f + 1]] = sorted(ps)
+    plane_of_face = np.full(len(faces), -1, dtype=np.int64)
+    for f, k in plane_index.items():
+        plane_of_face[f] = k
     watched = np.array(sorted(partners), dtype=np.int64)
     for view in views:
         buf = ortho_first_hit(positions_c, faces, ids_all, view, positions_c, size, reusable)
@@ -508,20 +518,33 @@ def double_layers(positions_c: np.ndarray, faces: np.ndarray, depth_tol: float,
         if not mask.any():
             continue
         rows, cols = np.nonzero(mask)
-        origins = (buf.xs[cols][:, None] * buf.right + buf.ys[rows][:, None] * buf.up
-                   + buf.standoff)
-        direction = np.asarray(buf.direction, dtype=np.float64)
-        ray, hit, t = caster.all_hits(origins, np.tile(direction, (len(origins), 1)))
-        first_f = buf.tri[rows, cols]
+        first_f = buf.tri[rows, cols].astype(np.int64)
         first_t = buf.depth[rows, cols]
-        near = np.abs(t - first_t[ray]) <= depth_tol
-        met: dict[int, set] = {}
-        for q, f in zip(ray[near].tolist(), hit[near].tolist()):
-            met.setdefault(q, set()).add(f)
-        for q in range(len(rows)):
-            f = int(first_f[q])
-            if partners[f] & met.get(q, set()):
-                px_plane[plane_index[f]] += 1
+        origins = buf.xs[cols][:, None] * buf.right + buf.ys[rows][:, None] * buf.up + buf.standoff
+        direction = np.asarray(buf.direction, dtype=np.float64)
+        # every (pixel, partner of its first face) row
+        counts = ptr[first_f + 1] - ptr[first_f]
+        pix = np.repeat(np.arange(len(first_f)), counts)
+        starts = np.repeat(ptr[first_f] - np.concatenate(([0], np.cumsum(counts)[:-1])), counts)
+        partner = idx[starts + np.arange(len(pix))]
+        # Moller-Trumbore against that partner: does the ray meet it within depth_tol of the first hit?
+        v0 = tri[partner, 0]
+        e1 = tri[partner, 1] - v0
+        e2 = tri[partner, 2] - v0
+        pvec = np.cross(np.broadcast_to(direction, e2.shape), e2)
+        det = np.einsum("ij,ij->i", e1, pvec)
+        usable = np.abs(det) > 1e-12
+        inv = np.where(usable, 1.0 / np.where(usable, det, 1.0), 0.0)
+        s = origins[pix] - v0
+        u = np.einsum("ij,ij->i", s, pvec) * inv
+        qvec = np.cross(s, e1)
+        v = (qvec @ direction) * inv
+        t = np.einsum("ij,ij->i", e2, qvec) * inv
+        eps = 1e-6
+        met = usable & (u >= -eps) & (v >= -eps) & (u + v <= 1.0 + eps) & (np.abs(t - first_t[pix]) <= depth_tol)
+        counted = np.unique(pix[met])
+        np.add.at(px_plane, plane_of_face[first_f[counted]], 1)
+    px_plane = px_plane.tolist()
 
     shift = np.zeros(3) if centre is None else np.asarray(centre, dtype=np.float64)
     out_planes = []
