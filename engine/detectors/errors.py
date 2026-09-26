@@ -16,7 +16,7 @@ from engine.fixes.pipeline import FixProfile, guard_depth_tol
 from engine.guard.views import VIEWS_26
 from engine.model import MeshData
 from engine.pipeline import analyse_topology
-from engine.vis.exposure import EXP_HIDDEN, classify_exposure, compute_side_exposure
+from engine.vis.exposure import EXP_HIDDEN, EXP_OUTSIDE, classify_exposure, compute_side_exposure
 
 #: In drawing priority: a face in several kinds is drawn in the first.
 KINDS = ("flicker_diff", "flicker_same", "reversed", "hidden", "loose", "open_edges", "cracks")
@@ -53,7 +53,9 @@ def find_errors(mesh: MeshData, profile: FixProfile = FixProfile()) -> dict:
 
     # hidden and reversed: the pipeline's own exposure and orientation verdicts
     front, back = compute_side_exposure(positions_c, faces, ok, n_dirs=profile.n_dirs)
-    hidden = np.nonzero((classify_exposure(front + back, ok, profile.slit_threshold) == EXP_HIDDEN) & ok)[0]
+    exposure_class = classify_exposure(front + back, ok, profile.slit_threshold)
+    hidden = np.nonzero((exposure_class == EXP_HIDDEN) & ok)[0]
+    facade = np.nonzero((exposure_class == EXP_OUTSIDE) & ok)[0]
     reversed_ = np.nonzero((classify_orientation(front, back, ok) == ORIENT_FLIP) & ok)[0]
     loose = np.nonzero(~ok)[0]
 
@@ -89,6 +91,7 @@ def find_errors(mesh: MeshData, profile: FixProfile = FixProfile()) -> dict:
     for kind in ("reversed", "hidden", "loose"):
         spots[kind] = _face_group_spots(kind, pos, faces, np.asarray(face_lists[kind], dtype=np.int64),
                                         topo.face_region, area)
+    spots["facade"] = _face_group_spots("facade", pos, faces, facade, topo.face_region, area)
     spots["open_edges"] = [_spot(f"open edge {lengths[k]:.1f} in", open_edges[k].reshape(2, 3),
                                  lengths[k], []) for k in open_order.tolist()]
     spots["cracks"] = [_spot("T-junction point", cracks[k:k + 1], 0.0, [])
@@ -100,6 +103,8 @@ def find_errors(mesh: MeshData, profile: FixProfile = FixProfile()) -> dict:
     return {"version": 1, "n_faces": int(mesh.n_faces),
             "counts": {k: counts[k] for k in KINDS},
             "faces": {k: [int(f) for f in face_lists[k]] for k in face_lists},
+            "layers": {"facade": [int(f) for f in facade]},
+            "layer_counts": {"facade": int(len(facade))},
             "open_edges": [[round(float(v), 3) for v in row] for row in open_edges],
             "cracks": [[round(float(v), 3) for v in row] for row in cracks],
             "flicker_pairs": dl["pair_list"],

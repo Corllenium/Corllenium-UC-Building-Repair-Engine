@@ -62,3 +62,17 @@ def test_a_t_junction_is_a_crack_and_its_stitch_is_loose():
 def test_the_result_is_plain_json():
     e = find_errors(two_sided_wall(), PROFILE)
     assert json.loads(json.dumps(e)) == e
+
+
+def test_the_facade_layer_is_every_face_seen_from_outside():
+    e = find_errors(box_with_partition(), PROFILE)
+    assert e["layers"]["facade"] == list(range(12))   # the 12 outer faces, not the sealed partition
+    assert e["layer_counts"]["facade"] == 12
+    assert e["counts"]["hidden"] == 2
+    assert e["spots"]["facade"][0]["value"] > 0
+
+
+def test_a_clean_cube_is_all_facade_and_still_has_no_errors():
+    e = find_errors(cube(), PROFILE)
+    assert e["layers"]["facade"] == list(range(12))
+    assert e["counts"] == {k: 0 for k in KINDS}
