@@ -329,8 +329,9 @@ export class Viewport {
 
   setDoubleSided(doubleSided: boolean) {
     if (this.parts.facade) {
-      this.parts.facade.material.side = doubleSided ? THREE.DoubleSide : THREE.FrontSide
-      this.parts.facade.material.needsUpdate = true
+      const m = this.parts.facade.material as THREE.Material
+      m.side = doubleSided ? THREE.DoubleSide : THREE.FrontSide
+      m.needsUpdate = true
     }
   }
 
@@ -356,7 +357,7 @@ export class Viewport {
 
       raycaster.setFromCamera(mouse, this.camera)
       const hits = raycaster.intersectObject(this.parts.facade)
-      if (hits.length > 0 && hits[0].faceIndex !== undefined) {
+      if (hits.length > 0 && hits[0].faceIndex != null) {
         this.onPick(hits[0].faceIndex, hits[0].point)
       }
     })
