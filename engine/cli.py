@@ -226,8 +226,11 @@ def _build_report(name: str, obj_path: Path, mesh: MeshData, result: FixResult,
         # side, for the input, the solidified reference and the final mesh, per view and total
         "backface_px": result.backface_px,
         # brief 15 item 1: what can still flicker in Unity -- pairs of shipped faces drawn twice in
-        # one plane, their shared area, their pixels over the 26 views, and a per-plane list
-        "double_layers": result.double_layers,
+        # one plane, their shared area, their pixels over the 26 views, and a per-plane list. Not
+        # the pair list itself (review M5): it would put every remaining pair in every run's
+        # report.json and fix_runs.report_json; the 3D error filter's file carries it.
+        "double_layers": (None if result.double_layers is None else
+                          {k: v for k, v in result.double_layers.items() if k != "pair_list"}),
         "feedback_history": result.feedback_history,
         "guard_after_removal": _guard_report_dict(result.guard_after_removal),
         # the MERGED mesh's guard, kept even when the merge was rolled back and something else
