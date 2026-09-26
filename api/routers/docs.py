@@ -1,7 +1,9 @@
-"""Images for the dashboard's Errors & fixes page, served from data/errors_doc/img.
+"""Images and verdicts for the dashboard's Errors & fixes page.
 
 The owner's screenshots stay out of git (spec 2026-09-26-errors-and-fixes-page-design.md), so
 the web image cannot hold them; the API, which mounts data/, serves them by plain file name.
+The owner's per kind/model verdicts (error, ok, unsure) and notes are stored the same way, in
+data/errors_doc/validation.json.
 """
 import json
 import os
@@ -29,7 +31,7 @@ _LOCK = threading.Lock()  # one read-modify-write at a time within this process
 
 class VerdictIn(BaseModel):
     verdict: Literal["error", "ok", "unsure"] | None
-    note: str = Field(default="", max_length=2000)
+    note: str | None = Field(default=None, max_length=2000)
 
 
 def validation_file(settings: Settings):
@@ -68,7 +70,11 @@ def get_validation(settings: Settings = Depends(get_settings)):
 
 @router.put("/validation/{kind_id}/{model_id}")
 def put_verdict(kind_id: str, model_id: str, body: VerdictIn, settings: Settings = Depends(get_settings)):
-    """The owner's verdict on one kind of error in one model; a null verdict clears it."""
+    """The owner's verdict on one kind of error in one model; a null verdict clears it.
+
+    A PUT that omits ``note`` (or sends it explicitly as null) keeps the previously saved note
+    for that kind/model -- "" when there was none -- instead of blanking it out.
+    """
     if not KIND_ID.fullmatch(kind_id) or not MODEL_ID.fullmatch(model_id):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Unknown error kind or model")
     with _LOCK:
@@ -78,7 +84,12 @@ def put_verdict(kind_id: str, model_id: str, body: VerdictIn, settings: Settings
         if body.verdict is None:
             per_kind.pop(model_id, None)
         else:
-            entry = {"verdict": body.verdict, "note": body.note,
+            if body.note is not None:
+                note = body.note
+            else:
+                existing = per_kind.get(model_id)
+                note = existing["note"] if existing else ""
+            entry = {"verdict": body.verdict, "note": note,
                      "at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}
             per_kind[model_id] = entry
         if not per_kind:

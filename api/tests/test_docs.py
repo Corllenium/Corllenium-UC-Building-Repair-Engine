@@ -1,4 +1,4 @@
-"""The Errors & fixes page's image route (spec 2026-09-26-errors-and-fixes-page-design.md)."""
+"""The Errors & fixes page's image and verdict routes (spec 2026-09-26-errors-and-fixes-page-design.md)."""
 import json
 
 from api.routers.docs import validation_file
@@ -67,6 +67,17 @@ def test_clearing_a_verdict_removes_it(client):
     r = client.put("/api/docs/validation/sawtooth/B", json={"verdict": None})
     assert r.json()["entry"] is None
     assert client.get("/api/docs/validation").json() == {"version": 1, "verdicts": {}}
+
+
+def test_a_verdict_sent_without_a_note_keeps_the_saved_note(client):
+    _fresh()
+    client.put("/api/docs/validation/hidden-faces/A", json={"verdict": "ok", "note": "keep"})
+    r = client.put("/api/docs/validation/hidden-faces/A", json={"verdict": "error"})
+    assert r.status_code == 200
+    assert r.json()["entry"]["verdict"] == "error"
+    assert r.json()["entry"]["note"] == "keep"
+    got = client.get("/api/docs/validation").json()["verdicts"]["hidden-faces"]["A"]
+    assert got["verdict"] == "error" and got["note"] == "keep"
 
 
 def test_bad_verdicts_and_ids_are_refused(client):
