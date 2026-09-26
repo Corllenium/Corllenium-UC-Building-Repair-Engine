@@ -38,6 +38,7 @@ export class Viewport {
   private currentData?: DecodedMeshbuf
   private lastPositions?: Float32Array
   private xray = false
+  private isolate = false
   private blinkA: Float32Array | null = null
   private blinkB: Float32Array | null = null
   private blinkPhase = -1
@@ -84,8 +85,11 @@ export class Viewport {
       const phase = Math.floor(performance.now() / 125) % 2   // 4 swaps a second
       if (phase !== this.blinkPhase) {
         const attr = this.parts.errors.geometry.getAttribute('color') as THREE.BufferAttribute
-        attr.copyArray(phase === 0 ? this.blinkA : this.blinkB)
-        attr.needsUpdate = true
+        const blink = phase === 0 ? this.blinkA : this.blinkB
+        if (blink.length === attr.array.length) {
+          attr.copyArray(blink)
+          attr.needsUpdate = true
+        }
         this.blinkPhase = phase
       }
     }
@@ -354,13 +358,28 @@ export class Viewport {
 
   setXRay(xray: boolean) {
     this.xray = xray
-    if (this.parts.facade) {
-      const m = this.parts.facade.material as THREE.MeshStandardMaterial
-      m.transparent = xray
-      m.opacity = xray ? 0.25 : 1.0
-      m.depthWrite = !xray
-      m.needsUpdate = true
+    this.applyFacadeLook()
+  }
+
+  /** Isolate wins over X-ray; either wins over the plain opaque look. Shared so toggling one
+   *  never clobbers the other's material state on the facade. */
+  private applyFacadeLook() {
+    if (!this.parts.facade) return
+    const m = this.parts.facade.material as THREE.MeshStandardMaterial
+    if (this.isolate) {
+      m.transparent = true
+      m.opacity = 0.08
+      m.depthWrite = false
+    } else if (this.xray) {
+      m.transparent = true
+      m.opacity = 0.25
+      m.depthWrite = false
+    } else {
+      m.transparent = false
+      m.opacity = 1.0
+      m.depthWrite = true
     }
+    m.needsUpdate = true
   }
 
   private removePart(name: 'errors' | 'errorLines' | 'errorPoints') {
@@ -374,13 +393,9 @@ export class Viewport {
 
   setErrorOverlay(faces: number[], colors: Float32Array, isolate: boolean) {
     this.removePart('errors')
-    if (this.parts.facade) {
-      const m = this.parts.facade.material as THREE.MeshStandardMaterial
-      m.transparent = isolate || this.xray
-      m.opacity = isolate ? 0.08 : this.xray ? 0.25 : 1.0
-      m.depthWrite = !(isolate || this.xray)
-      m.needsUpdate = true
-    }
+    this.blinkA = this.blinkB = null   // stale buffers would be sized for the old overlay
+    this.isolate = faces.length > 0 && isolate   // clearing the overlay always restores the normal look
+    this.applyFacadeLook()
     if (!this.lastPositions || faces.length === 0) return
     const pos = new Float32Array(faces.length * 9)
     faces.forEach((f, slot) => pos.set(this.lastPositions!.subarray(f * 9, f * 9 + 9), slot * 9))
@@ -406,7 +421,7 @@ export class Viewport {
     this.removePart('errorLines')
     if (segments.length === 0) return
     const geom = new THREE.BufferGeometry()
-    geom.setAttribute('position', new THREE.BufferAttribute(segments, 3))
+    geom.setAttribute('position', new THREE.BufferAttribute(segments.slice(), 3))
     this.parts.errorLines = new THREE.LineSegments(geom, new THREE.LineBasicMaterial({ color, depthTest: false }))
     this.group.add(this.parts.errorLines)
   }
@@ -415,7 +430,7 @@ export class Viewport {
     this.removePart('errorPoints')
     if (points.length === 0) return
     const geom = new THREE.BufferGeometry()
-    geom.setAttribute('position', new THREE.BufferAttribute(points, 3))
+    geom.setAttribute('position', new THREE.BufferAttribute(points.slice(), 3))
     this.parts.errorPoints = new THREE.Points(geom, new THREE.PointsMaterial({ color, size: 6, sizeAttenuation: false, depthTest: false }))
     this.group.add(this.parts.errorPoints)
   }
@@ -423,6 +438,7 @@ export class Viewport {
   flyTo(centre: [number, number, number], size: number) {
     const target = new THREE.Vector3(...centre)
     const dir = this.camera.position.clone().sub(this.controls.target).normalize()
+    if (dir.lengthSq() === 0) dir.set(0, -1, 0.3).normalize()
     this.controls.target.copy(target)
     this.camera.position.copy(target).add(dir.multiplyScalar(Math.max(size, 60) * 1.6))
     this.controls.update()
