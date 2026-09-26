@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   ERROR_KINDS, FACE_KINDS, defaultFilter, overlayFaces, blinkColors, partnersOf, kindsOf,
   openEdgeSegments, crackPoints, toViewer, materialColor, countOf, type ErrorsFile, partnerIndex,
+  chooseFace,
 } from './errorLayers'
 
 const file: ErrorsFile = {
@@ -116,5 +117,36 @@ describe('errorLayers', () => {
     expect(Array.from(colors1.slice(0, 3))).toEqual(Array.from(colors0.slice(9, 12)))
     // partnersOf on face 0 should find exactly one partner
     expect(partnerIndex(bigFile).get(0)).toHaveLength(1)
+  })
+})
+
+describe('chooseFace (review I3)', () => {
+  // the overlay draws faces 7, 9 and 42 in its slots 0, 1 and 2
+  const overlayFaceIds = [7, 9, 42]
+
+  it('in Isolate or X-ray, a click on the overlay picks the error face drawn there, not the ghost wall', () => {
+    expect(chooseFace(true, { faceIndex: 2, point: 'on the error' }, overlayFaceIds,
+      { faceIndex: 5, point: 'on the wall' }, null))
+      .toEqual({ faceId: 42, point: 'on the error' })
+  })
+
+  it('with the surface opaque, picks the surface as before, through faceOrder on the textured mesh', () => {
+    expect(chooseFace(false, { faceIndex: 2, point: 'on the error' }, overlayFaceIds,
+      { faceIndex: 1, point: 'on the wall' }, [3, 8, 0]))
+      .toEqual({ faceId: 8, point: 'on the wall' })
+    expect(chooseFace(false, null, null, { faceIndex: 1, point: 'on the wall' }, null))
+      .toEqual({ faceId: 1, point: 'on the wall' })
+  })
+
+  it('falls back to the surface when the click misses every overlay face', () => {
+    expect(chooseFace(true, null, overlayFaceIds, { faceIndex: 5, point: 'on the wall' }, null))
+      .toEqual({ faceId: 5, point: 'on the wall' })
+    expect(chooseFace(true, null, overlayFaceIds, { faceIndex: 1, point: 'on the wall' }, [3, 8, 0]))
+      .toEqual({ faceId: 8, point: 'on the wall' })
+  })
+
+  it('picks nothing when the click misses the model', () => {
+    expect(chooseFace(true, null, overlayFaceIds, null, null)).toBeNull()
+    expect(chooseFace(false, null, null, null, null)).toBeNull()
   })
 })

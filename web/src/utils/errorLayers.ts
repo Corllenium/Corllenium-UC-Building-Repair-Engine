@@ -117,6 +117,24 @@ export function kindsOf(file: ErrorsFile, face: number): ErrorKind[] {
   return FACE_KINDS.filter(k => faceList(file, k).includes(face))
 }
 
+/** One raycast hit: the triangle slot it met in a mesh, and where. */
+export interface SlotHit<P> { faceIndex: number; point: P }
+
+/** The face a click picks, and where (review I3). With the surface ghosted (Isolate or X-ray) the
+ *  error overlay is what the owner sees and clicks, so a hit on it wins and names the face drawn in
+ *  that overlay slot, `overlayFaceIds[slot]`. Otherwise -- the surface is opaque, or the click
+ *  missed every overlay face -- it is the surface's own hit, through `faceOrder` when the surface
+ *  is the textured mesh (sorted by material: its slot k draws face `faceOrder[k]`). */
+export function chooseFace<P>(ghosted: boolean, overlayHit: SlotHit<P> | null,
+  overlayFaceIds: ArrayLike<number> | null, surfaceHit: SlotHit<P> | null,
+  faceOrder: ArrayLike<number> | null): { faceId: number; point: P } | null {
+  if (ghosted && overlayHit && overlayFaceIds && overlayHit.faceIndex < overlayFaceIds.length) {
+    return { faceId: overlayFaceIds[overlayHit.faceIndex], point: overlayHit.point }
+  }
+  if (!surfaceHit) return null
+  return { faceId: faceOrder ? faceOrder[surfaceHit.faceIndex] : surfaceHit.faceIndex, point: surfaceHit.point }
+}
+
 export function toViewer(p: number[], origin: number[]): [number, number, number] {
   return [p[0] - origin[0], p[1] - origin[1], p[2] - origin[2]]
 }

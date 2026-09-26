@@ -2,6 +2,7 @@ import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { DecodedMeshbuf } from './meshbuf'
 import { groupByMaterial, textureUrl } from '../utils/materialGroups'
+import { chooseFace, type SlotHit } from '../utils/errorLayers'
 
 export const EDGE_REAL = 0
 export const EDGE_REMOVABLE = 1
@@ -28,6 +29,17 @@ const COLORS = {
 // (review I2). Used by both setErrorLines and setErrorPoints.
 export const DEPTH_BIAS_GLSL = '#include <project_vertex>\n  gl_Position = projectionMatrix * vec4(mvPosition.xyz * 0.998, 1.0);'
 
+/** The error overlay's material: its vertex colours, drawn a hair in front of the surface each
+ *  face lies on. Both sides are drawn, which also lets a pick ray meet a face from behind: the
+ *  raycaster skips a FrontSide triangle's back, and an interior flicker face faces away from half
+ *  the views (review I3). */
+export function errorOverlayMaterial(): THREE.MeshBasicMaterial {
+  return new THREE.MeshBasicMaterial({
+    vertexColors: true, side: THREE.DoubleSide,
+    polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1,
+  })
+}
+
 export class Viewport {
   el: HTMLElement
   scene: THREE.Scene
@@ -51,6 +63,7 @@ export class Viewport {
   private currentData?: DecodedMeshbuf
   private lastPositions?: Float32Array
   private faceOrder?: Uint32Array
+  private overlayFaceIds: number[] | null = null   // the face drawn in each error-overlay slot
   private xray = false
   private isolate = false
   private texturedOn = true
@@ -133,6 +146,7 @@ export class Viewport {
     }
     this.parts = {}
     this.faceOrder = undefined
+    this.overlayFaceIds = null
     this.blinkA = this.blinkB = null
   }
 
@@ -470,6 +484,7 @@ export class Viewport {
 
   setErrorOverlay(faces: number[], colors: Float32Array, isolate: boolean) {
     this.removePart('errors')
+    this.overlayFaceIds = null
     this.blinkA = this.blinkB = null   // stale buffers would be sized for the old overlay
     this.isolate = faces.length > 0 && isolate   // clearing the overlay always restores the normal look
     this.applyFacadeLook()
@@ -479,11 +494,8 @@ export class Viewport {
     const geom = new THREE.BufferGeometry()
     geom.setAttribute('position', new THREE.BufferAttribute(pos, 3))
     geom.setAttribute('color', new THREE.BufferAttribute(colors.slice(), 3))
-    const mat = new THREE.MeshBasicMaterial({
-      vertexColors: true, side: THREE.DoubleSide,
-      polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1,
-    })
-    this.parts.errors = new THREE.Mesh(geom, mat)
+    this.parts.errors = new THREE.Mesh(geom, errorOverlayMaterial())
+    this.overlayFaceIds = faces
     this.group.add(this.parts.errors)
     this.blinkPhase = -1
   }
@@ -539,6 +551,10 @@ export class Viewport {
   private setupPicking() {
     const raycaster = new THREE.Raycaster()
     const mouse = new THREE.Vector2()
+    const firstHit = (mesh: THREE.Mesh | undefined): SlotHit<THREE.Vector3> | null => {
+      const hit = mesh ? raycaster.intersectObject(mesh)[0] : undefined
+      return hit && hit.faceIndex != null ? { faceIndex: hit.faceIndex, point: hit.point } : null
+    }
 
     this.el.addEventListener('click', (e: MouseEvent) => {
       const target = this.parts.textured?.visible ? this.parts.textured : this.parts.facade
@@ -548,12 +564,12 @@ export class Viewport {
       mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1
 
       raycaster.setFromCamera(mouse, this.camera)
-      const hits = raycaster.intersectObject(target)
-      if (hits.length > 0 && hits[0].faceIndex != null) {
-        const slot = hits[0].faceIndex
-        const faceId = target === this.parts.textured && this.faceOrder ? this.faceOrder[slot] : slot
-        this.onPick(faceId, hits[0].point)
-      }
+      // In Isolate or X-ray the surface is a faded ghost, so the error overlay is tried first: a
+      // click on a highlighted face picks it, not the wall in front of it (review I3).
+      const ghosted = this.isolate || this.xray
+      const pick = chooseFace(ghosted, ghosted ? firstHit(this.parts.errors) : null, this.overlayFaceIds,
+        firstHit(target), target === this.parts.textured ? this.faceOrder ?? null : null)
+      if (pick) this.onPick(pick.faceId, pick.point)
     })
   }
 
