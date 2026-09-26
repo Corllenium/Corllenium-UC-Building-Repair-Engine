@@ -86,3 +86,11 @@ Run SDD scripts from the main checkout with explicit refs (feat/error-filter or 
 - Task 6: dispatched (implementer haiku, BASE 4a998da)
 - Task 6: implementer DONE e661224 (test_errors 4/4, test_versions 6/6); full API suite deferred to Task 11 (17.5 min, CPU shared with the errors-page build)
 - Ruling: the 3D filter pauses after Task 6's review; the owner asked where the Errors & fixes page is (spec efad19a, never planned) — it goes first, plan docs/superpowers/plans/2026-09-26-errors-and-fixes-page.md — costs the 3D filter a few hours
+- Task 6: review dispatched (sonnet), package review-4a998da..e661224.diff
+- Task 6: review — spec ✅, Approved (block on the success path after the owner-copy block; variables in scope; failure cannot change the response; test targets a fresh version id).
+- Task 6: Important (parked, plan-mandated): find_errors on the AFTER mesh runs synchronously before the response; on a large building it adds an exposure pass + a 26-view double-layer pass inside nginx's 600 s. Ruling: measure it on CHTM 5th floor in Task 11 (a dashboard fix run is only done if the owner asks); if it adds more than 60 s, move it to a background thread — costs one small follow-up task if it proves slow.
+- Task 6: minor (deferred): log text "errors file for fixed version %s" dropped the brief's "failed" (logger.exception already logs at error level).
+- Task 6: complete (commits 4a998da..e661224, review clean)
+- PAUSED after Task 6 for the Errors page (owner 11:45). Resume at Task 12.
+- Finding (controller, 12:40, while measuring for the Errors page): find_errors' "open_edges" counts every edge used by one face, which includes T-junction sub-edges (covered on the other side by a longer edge). CHTM 5th floor: 3,074 "open" = 346 truly open (edge class 2) + 2,678 T-junction (class 4) + a few degenerate; A shipped 427 vs 378 class-2. Ruling for resumption: the 3D filter's green "Open edges" layer must show edge class 2 only (T-junction edges are already the cyan crack points), else the owner sees thousands of false holes — costs a small change in find_errors + its test when the filter resumes.
+- Finding: vue-tsc -b fails on feat-dashboard with 3 pre-existing errors in web/src/three/Viewport.ts (332, 333, 360); Task 9 (Viewport draw) should fix them in passing since it edits that file.

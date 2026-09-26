@@ -25,6 +25,34 @@ run the latest `.skp` of each file must be in `OBJ FIXED RESULT/` for the owner 
 
 ## 2. Current state (2026-09-26 00:15, written by the Claude controller)
 
+**Update 2026-09-26 12:55: the Errors page is live** (`http://localhost:5190/errors`).
+- The owner asked where the Errors & fixes documentation page was: only its spec existed. It was then
+  redesigned with the owner (11:55-12:15) into a planning catalogue:
+  - 10 kinds of error and 10 engine mistakes;
+  - each kind opens a floating window (what it is, how it is found, why the Minecraft Little Tiles
+    export has it, how much of each model, why unwanted in Unity, the solution, what was done, why some
+    remain);
+  - the owner gives a verdict per kind and model.
+  Nothing in any model is fixed in this phase; the next phase plans scripts, engine work and machine
+  learning against these verdicts.
+- Plan `docs/superpowers/plans/2026-09-26-errors-and-fixes-page.md` (Tasks 1, 2, 8, 9, 10, 11); ledger
+  `.superpowers/sdd/2026-09-26-errors-and-fixes-page/progress.md`; branch `feat/errors-page` in
+  `.claude/worktrees/errors-page`.
+- **The live containers run `feat/errors-page` at 2b63a26, NOT yet merged into feat-dashboard.**
+  - A rebuild from feat-dashboard before that merge would remove the page.
+  - Rollback images: `:pre-20260926`. Database backup: `data/backups/fixer-20260926-1246.dump`.
+  - No migration ran.
+- **Data (git-ignored, never committed):**
+  - The owner's 32 screenshots are in `data/errors_doc/img`, with `owner_images.json`, zipped to
+    `data/backups/errors_doc-2026-09-26.zip`.
+  - The owner's verdicts go to `data/errors_doc/validation.json`, written by the page. Read it before
+    planning any fix.
+- **Measured today, read-only:**
+  - find_errors on A and B, as exported and as shipped: `data/errors/A-raw.json`, `A-after.json`,
+    `B-raw.json`, `B-after.json`. They show errors left after the engine: A hidden 66, reversed 24,
+    flicker faces 40, cracks 32; B hidden 27, flicker 4, cracks 25.
+  - Edge classes: open edges A 250 → 378, which is not traced.
+
 **Update 2026-09-26 11:40: the owner reopened the session for the 3D error filter** (understand a
 building's errors in the dashboard, CHTM 5th floor as the example; nothing is fixed by it).
 - Spec `docs/superpowers/specs/2026-09-26-3d-error-filter-design.md`; plan
