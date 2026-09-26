@@ -477,7 +477,7 @@ git commit -m "feat(tools): extract the owner's screenshots from the session log
 
 ---
 
-### Task 3: the page's logic, and the content test
+### Task 3 (SUPERSEDED by Task 8 — owner 11:55; do not implement): the page's logic, and the content test
 
 **Files:**
 - Create: `web/src/utils/errorsDoc.ts`, `web/src/utils/errorsDoc.test.ts`, `web/public/docs/errors.json` (a seed the controller fills in Task 5)
@@ -788,7 +788,7 @@ git commit -m "feat(web): the Errors & fixes page's content model, filters and c
 
 ---
 
-### Task 4: the page
+### Task 4 (SUPERSEDED by Task 10 — owner 11:55; do not implement): the page
 
 **Files:**
 - Create: `web/src/views/ErrorsView.vue`
@@ -1092,7 +1092,7 @@ git commit -m "feat(web): the Errors & fixes page at /errors, linked from the Mo
 
 ---
 
-### Task 5 (controller): the content
+### Task 5 (SUPERSEDED by Task 11 — owner 11:55): the content
 
 This task is judgement work: viewing the images, writing plain words and re-reading numbers. So the controller does it, not a subagent.
 
@@ -1106,7 +1106,7 @@ This task is judgement work: viewing the images, writing plain words and re-read
 - [ ] **Step 4:** Run the content test (`vitest run src/utils/errorsDoc.test.ts`) and `python -m tools.errors_doc.check`. Missing AFTER renders are allowed until Task 6; unused owner screenshots are not.
 - [ ] **Step 5:** Commit `web/public/docs/errors.json`.
 
-### Task 6: AFTER renders
+### Task 6 (DEFERRED — the page is a plan; renders per kind can come later): AFTER renders
 
 **Files:**
 - Create: `tools/errors_doc/render_after.py`, `tools/errors_doc/cameras.json`
@@ -1130,9 +1130,579 @@ The controller writes this task's brief once Task 5 has shown which spots need r
   - `check.py` passes.
 - [ ] Send the owner screenshots of the page. Update the records (HANDOFF sections 2 and 3, the session record, the ledger) and commit them.
 
+---
+
+## Tasks 8-11: the planning catalogue (owner, 2026-09-26 11:55-12:15; spec "Amendment" sections)
+
+The page lays out every **kind** of error for the owner to validate before any fix phase. Each kind
+opens a floating window with eight parts:
+1. What it is.
+2. How we find it: the exact, measurable test.
+3. Why the model has it: Minecraft → Little Tiles → SketchUp → OBJ.
+4. How much of each model it is.
+5. Why you don't want it in Unity.
+6. The solution, plus what is never done.
+7. Done so far.
+8. Why some can remain.
+
+The owner gives a verdict per kind and model. Nothing in any model is changed.
+
+### Task 8: the catalogue's logic, and the content test
+
+**Files:**
+- Create: `web/src/utils/errorsDoc.ts`, `web/src/utils/errorsDoc.test.ts`, `web/public/docs/errors.json` (seed)
+
+**Interfaces:**
+- Produces (exported from `web/src/utils/errorsDoc.ts`):
+
+```ts
+export type Status = 'fixed' | 'partly' | 'open' | 'planned'
+export type Verdict = 'error' | 'ok' | 'unsure'
+export interface Example { image?: string; date?: string; words?: string; caption?: string; model?: string }
+export interface Kind {
+  id: string; title: string; summary: string; color: string            // color: '#rrggbb'
+  models: Record<string, { status: Status; count: string }>             // keyed by model id
+  what: string; find: string[]; why: string; why_note?: string
+  unity: string[]; solution: string[]; never?: string[]; done: string[]; remain: string
+  engine_files: string[]; examples: Example[]; sources: string[]
+}
+export interface EngineMistake {
+  id: string; title: string; what_happened: string; how_caught: string; fix: string
+  models: string[]; engine_files: string[]; commits?: string[]; examples: Example[]
+}
+export interface ModelCard { id: string; name: string; role: string; skp?: string; numbers: Record<string, number | number[]>; source: string }
+export interface Catalogue {
+  built_from: { commit: string; date: string }
+  origin: string[]                       // intro paragraphs
+  models: ModelCard[]; kinds: Kind[]; engine_mistakes: EngineMistake[]; other_screenshots: Example[]
+}
+export interface DocFilter { model: string | null; engine: string | null }
+export interface VerdictEntry { verdict: Verdict; note: string; at: string }
+export interface Validation { version: 1; verdicts: Record<string, Record<string, VerdictEntry>> }   // kind id -> model id -> entry
+
+export const ENGINE_FILES: string[]      // the 13 files of the Global Constraints, in that order
+export const STATUS_LABEL: Record<Status, string>   // Fixed / Partly fixed / Open / Planned, not fixed yet
+export const VERDICTS: { id: Verdict; label: string }[]   // error 'Error, must fix'; ok 'OK for this model'; unsure 'Not sure'
+export const IMAGE_NAME: RegExp          // /^[A-Za-z0-9_.-]+\.(png|webp|jpg)$/
+export const WINDOW_HEADER = 48          // px of the floating window's title bar that must stay on screen
+export function engineStem(file: string): string
+export function statusLabel(s: Status): string
+export function imageUrl(name: string): string      // '/api/docs/images/' + encodeURIComponent(name)
+export function filterKinds(kinds: Kind[], f: DocFilter): Kind[]          // model: kind.models has the key; engine: in engine_files
+export function filterMistakes(ms: EngineMistake[], f: DocFilter): EngineMistake[]   // model: in m.models; engine: in engine_files
+export function filterChoices(cat: Catalogue): { models: { id: string; label: string }[]; engineFiles: string[] }
+export function filterFromQuery(q: Record<string, unknown>, cat: Catalogue): DocFilter
+export function openFromQuery(q: Record<string, unknown>, cat: Catalogue): string | null   // a kind or mistake id, else null
+export function filterToQuery(f: DocFilter, open: string | null): Record<string, string>   // model, engine (stem), open
+export function clampWindow(x: number, y: number, w: number, vw: number, vh: number): { x: number; y: number }
+export function verdictOf(v: Validation | null, kindId: string, modelId: string): VerdictEntry | null
+export function validationSummary(cat: Catalogue, v: Validation | null): { pairs: number; validated: number; error: number; ok: number; unsure: number }
+export function validateCatalogue(cat: Catalogue): string[]
+```
+
+- [ ] **Step 1: Write the failing tests** (`web/src/utils/errorsDoc.test.ts`)
+
+```ts
+import { describe, it, expect } from 'vitest'
+import {
+  filterKinds, filterMistakes, filterChoices, filterFromQuery, openFromQuery, filterToQuery, clampWindow,
+  statusLabel, imageUrl, engineStem, verdictOf, validationSummary, validateCatalogue,
+  type Catalogue, type Kind, type EngineMistake, type Validation,
+} from './errorsDoc'
+import content from '../../public/docs/errors.json'
+
+function kind(over: Partial<Kind>): Kind {
+  return {
+    id: 'k', title: 'T', summary: 'S', color: '#1f5bff', models: { A: { status: 'fixed', count: '1' } },
+    what: 'W', find: ['F'], why: 'Y', unity: ['U'], solution: ['S1'], done: ['D'], remain: 'R',
+    engine_files: ['vis/exposure.py'], examples: [], sources: ['report.json'], ...over,
+  }
+}
+
+function mistake(over: Partial<EngineMistake>): EngineMistake {
+  return {
+    id: 'm', title: 'M', what_happened: 'H', how_caught: 'C', fix: 'F', models: ['A'],
+    engine_files: ['guard/compare.py'], examples: [], ...over,
+  }
+}
+
+const cat: Catalogue = {
+  built_from: { commit: 'abc1234', date: '2026-09-26 12:00' },
+  origin: ['Minecraft, Little Tiles, SketchUp, OBJ.'],
+  models: [
+    { id: 'CHTM5', name: 'chtm_5ft_floor', role: 'example, not fixed', numbers: {}, source: 's' },
+    { id: 'A', name: 'CHTM_SIDE_WALK_2nd_floor', role: 'fixed file', numbers: {}, source: 's' },
+    { id: 'B', name: 'CHTM_2nd_to_3rd_building_sidewalk_outside', role: 'fixed file', numbers: {}, source: 's' },
+  ],
+  kinds: [
+    kind({ id: 'hidden-faces', engine_files: ['vis/exposure.py', 'fixes/remove.py'], models: {
+      CHTM5: { status: 'planned', count: '12,870' }, A: { status: 'fixed', count: '2,065' }, B: { status: 'fixed', count: '2,771' } } }),
+    kind({ id: 'gridlines', models: { A: { status: 'fixed', count: 'x' } }, engine_files: ['fixes/merge.py', 'topo/planes.py'] }),
+    kind({ id: 'sawtooth', models: { B: { status: 'partly', count: 'y' } }, engine_files: ['fixes/solidify.py'] }),
+  ],
+  engine_mistakes: [
+    mistake({ id: 'guard-blind', models: ['B'], engine_files: ['guard/compare.py'] }),
+    mistake({ id: 'underside-top', models: ['A'], engine_files: ['fixes/solidify.py'] }),
+  ],
+  other_screenshots: [],
+}
+
+describe('errorsDoc', () => {
+  it('filters kinds by the model they occur in and by engine file, combined', () => {
+    const none = { model: null, engine: null }
+    expect(filterKinds(cat.kinds, none).map(k => k.id)).toEqual(['hidden-faces', 'gridlines', 'sawtooth'])
+    expect(filterKinds(cat.kinds, { ...none, model: 'CHTM5' }).map(k => k.id)).toEqual(['hidden-faces'])
+    expect(filterKinds(cat.kinds, { ...none, model: 'A' }).map(k => k.id)).toEqual(['hidden-faces', 'gridlines'])
+    expect(filterKinds(cat.kinds, { ...none, engine: 'fixes/solidify.py' }).map(k => k.id)).toEqual(['sawtooth'])
+    expect(filterKinds(cat.kinds, { model: 'A', engine: 'fixes/solidify.py' })).toEqual([])
+  })
+
+  it('filters engine mistakes the same way', () => {
+    expect(filterMistakes(cat.engine_mistakes, { model: 'A', engine: null }).map(m => m.id)).toEqual(['underside-top'])
+    expect(filterMistakes(cat.engine_mistakes, { model: null, engine: 'guard/compare.py' }).map(m => m.id)).toEqual(['guard-blind'])
+  })
+
+  it('offers the models, and only the engine files something uses, in the fixed order', () => {
+    const c = filterChoices(cat)
+    expect(c.models).toEqual([
+      { id: 'CHTM5', label: 'CHTM5 · chtm_5ft_floor' },
+      { id: 'A', label: 'A · CHTM_SIDE_WALK_2nd_floor' },
+      { id: 'B', label: 'B · CHTM_2nd_to_3rd_building_sidewalk_outside' },
+    ])
+    expect(c.engineFiles).toEqual(['vis/exposure.py', 'fixes/remove.py', 'fixes/solidify.py', 'fixes/merge.py',
+      'guard/compare.py', 'topo/planes.py'])
+  })
+
+  it('reads the filter and the open window from the URL, ignoring unknown values', () => {
+    expect(filterFromQuery({ model: 'B', engine: 'solidify' }, cat)).toEqual({ model: 'B', engine: 'fixes/solidify.py' })
+    expect(filterFromQuery({ model: 'Z', engine: 'nope' }, cat)).toEqual({ model: null, engine: null })
+    expect(filterFromQuery({ model: ['A', 'B'] }, cat).model).toBe('A')
+    expect(openFromQuery({ open: 'gridlines' }, cat)).toBe('gridlines')
+    expect(openFromQuery({ open: 'guard-blind' }, cat)).toBe('guard-blind')
+    expect(openFromQuery({ open: 'nothing' }, cat)).toBeNull()
+  })
+
+  it('writes the filter and the open window back as a short query', () => {
+    expect(filterToQuery({ model: 'A', engine: 'fixes/solidify.py' }, 'hidden-faces'))
+      .toEqual({ model: 'A', engine: 'solidify', open: 'hidden-faces' })
+    expect(filterToQuery({ model: null, engine: null }, null)).toEqual({})
+    expect(engineStem('guard/piece_rays.py')).toBe('piece_rays')
+  })
+
+  it('keeps a dragged window s title bar on screen', () => {
+    expect(clampWindow(100, 50, 560, 1600, 900)).toEqual({ x: 100, y: 50 })
+    expect(clampWindow(-40, -10, 560, 1600, 900)).toEqual({ x: 0, y: 0 })
+    expect(clampWindow(1500, 880, 560, 1600, 900)).toEqual({ x: 1040, y: 852 })
+    expect(clampWindow(50, 50, 900, 700, 500)).toEqual({ x: 0, y: 50 })
+  })
+
+  it('labels statuses in plain words and builds image URLs through the API', () => {
+    expect(statusLabel('planned')).toBe('Planned, not fixed yet')
+    expect(statusLabel('partly')).toBe('Partly fixed')
+    expect(imageUrl('you-0921-0346-1.png')).toBe('/api/docs/images/you-0921-0346-1.png')
+  })
+
+  it('reads the owner s verdicts and counts the validated kind-and-model pairs', () => {
+    const v: Validation = { version: 1, verdicts: {
+      'hidden-faces': { CHTM5: { verdict: 'error', note: '', at: 't' }, A: { verdict: 'ok', note: 'fine here', at: 't' } },
+      gridlines: { B: { verdict: 'error', note: '', at: 't' } },     // B is not one of gridlines' models: not counted
+      unknown: { A: { verdict: 'unsure', note: '', at: 't' } },
+    } }
+    expect(validationSummary(cat, v)).toEqual({ pairs: 5, validated: 2, error: 1, ok: 1, unsure: 0 })
+    expect(validationSummary(cat, null)).toEqual({ pairs: 5, validated: 0, error: 0, ok: 0, unsure: 0 })
+    expect(verdictOf(v, 'hidden-faces', 'A')?.note).toBe('fine here')
+    expect(verdictOf(v, 'hidden-faces', 'B')).toBeNull()
+    expect(verdictOf(null, 'hidden-faces', 'A')).toBeNull()
+  })
+
+  it('names every problem in a bad catalogue, in a fixed order', () => {
+    const bad: Catalogue = {
+      ...cat,
+      kinds: [
+        kind({ id: 'a', what: ' ', color: 'blue', models: { Z: { status: 'fixed', count: '1' } },
+               engine_files: ['fixes/nope.py'], examples: [{ image: '../x.png' }] }),
+        kind({ id: 'a', solution: [], models: { A: { status: 'maybe' as never, count: '1' } } }),
+      ],
+      engine_mistakes: [mistake({ id: 'm', fix: '', models: ['Q'] })],
+    }
+    expect(validateCatalogue(bad)).toEqual([
+      'a: "what" is empty',
+      'a: bad colour "blue"',
+      'a: unknown model "Z"',
+      'a: unknown engine file "fixes/nope.py"',
+      'a: bad image name "../x.png"',
+      'a: duplicate id',
+      'a: "solution" has no steps',
+      'a: unknown status "maybe"',
+      'm: "fix" is empty',
+      'm: unknown model "Q"',
+    ])
+    expect(validateCatalogue(cat)).toEqual([])
+  })
+
+  it('the committed errors.json is valid', () => {
+    expect(validateCatalogue(content as unknown as Catalogue)).toEqual([])
+  })
+})
+```
+
+- [ ] **Step 2: Run and see them fail**
+
+Run: `pnpm --dir web exec vitest run src/utils/errorsDoc.test.ts`
+Expected: FAIL. `./errorsDoc` and `../../public/docs/errors.json` do not resolve.
+
+- [ ] **Step 3: Implement** `web/src/utils/errorsDoc.ts` to the interface above. These rules are exact:
+  - `ENGINE_FILES`, in this order: `vis/exposure.py`, `fixes/remove.py`, `fixes/solidify.py`, `fixes/merge.py`, `fixes/orient.py`, `fixes/overlap.py`, `detectors/fragments.py`, `detectors/folds.py`, `guard/compare.py`, `guard/piece_rays.py`, `io/skp_writer.py`, `topo/adjacency.py`, `topo/planes.py`.
+  - `filterChoices`:
+    - `models` are all of `cat.models` in order, labelled `` `${id} · ${name}` ``;
+    - `engineFiles` are the `ENGINE_FILES` that any kind or engine mistake names, kept in `ENGINE_FILES` order.
+  - `filterFromQuery`:
+    - takes the first element of an array value;
+    - `model` must be a model id and `engine` must be the stem of one of `filterChoices(cat).engineFiles`, which returns the full path;
+    - anything else becomes `null`.
+  - `openFromQuery` returns `q.open` when it equals a kind id or an engine-mistake id; otherwise `null`.
+  - `filterToQuery` includes only the keys that are set, with `engine` as its stem.
+  - `clampWindow`: `x = min(max(x, 0), max(0, vw - w))` and `y = min(max(y, 0), max(0, vh - WINDOW_HEADER))`.
+  - `validationSummary`:
+    - `pairs` counts every `(kind, model id)` in `kind.models`;
+    - `validated`, `error`, `ok` and `unsure` count only those pairs that have a verdict;
+    - verdicts for other ids are ignored.
+  - `validateCatalogue`: one shared set of ids across kinds and engine mistakes.
+    - **For each kind**, in array order, check in this order:
+      1. duplicate id → `id: duplicate id`;
+      2. each of `summary`, `what`, `why`, `remain` that is empty after trim → `id: "<field>" is empty`;
+      3. each of `find`, `unity`, `solution`, `done` that has no non-empty item → `id: "<field>" has no steps`;
+      4. `color` not matching `/^#[0-9a-fA-F]{6}$/` → `id: bad colour "<color>"`;
+      5. for each `models` key in order: not a model id → `id: unknown model "<key>"`, then a status not in `STATUS_LABEL` → `id: unknown status "<status>"`;
+      6. each engine file not in `ENGINE_FILES` → `id: unknown engine file "<file>"`;
+      7. each example image not matching `IMAGE_NAME` → `id: bad image name "<name>"`.
+    - **For each engine mistake**, check in this order:
+      1. duplicate id;
+      2. each of `what_happened`, `how_caught`, `fix` that is empty → `id: "<field>" is empty`;
+      3. each model not a model id → `id: unknown model "<m>"`;
+      4. engine files;
+      5. example images.
+    - **Last**, check each `other_screenshots` image, as `other_screenshots: bad image name "<name>"`.
+
+  Then create the seed `web/public/docs/errors.json`. It must validate. Its content is the owner-approved "Hidden inside faces" kind (12:05), with the "How we find it" part the owner asked for at 12:15:
+
+```json
+{
+  "built_from": { "commit": "ab22ff3", "date": "2026-09-25 23:53" },
+  "origin": [
+    "These models were built in Minecraft with the Little Tiles mod, exported, brought into SketchUp, and exported again as one OBJ per SketchUp group. Every step keeps all the geometry the step before made, so the OBJ carries what Little Tiles builds with: many small closed boxes on the block grid.",
+    "This page lays out every kind of error found so far: what it is, how it is found, why the model has it, how much of each model it is, why it is unwanted in Unity, the solution, what was done, and why some can remain. It is a plan: nothing in any model is changed by it. Give your verdict per model in each error's window."
+  ],
+  "models": [
+    { "id": "CHTM5", "name": "chtm_5ft_floor", "role": "Example building, not fixed: errors measured only", "numbers": { "triangles": 20599 },
+      "source": "snapshot c0c877002500 (dashboard model 2, version 6)" },
+    { "id": "A", "name": "CHTM_SIDE_WALK_2nd_floor", "role": "Sidewalk, fixed by the engine",
+      "skp": "D:/PROJECTS/UC MODEL FIXER/OBJ FIXED RESULT/CHTM_SIDE_WALK_2nd_floor.fixed.skp",
+      "numbers": { "triangles": [4692, 881], "back_faces_px": [569108, 18348] },
+      "source": "data/output_verified/CHTM_SIDE_WALK_2nd_floor/report.json at ab22ff3" },
+    { "id": "B", "name": "CHTM_2nd_to_3rd_building_sidewalk_outside", "role": "Sidewalk, fixed by the engine",
+      "skp": "D:/PROJECTS/UC MODEL FIXER/OBJ FIXED RESULT/CHTM_2nd_to_3rd_building_sidewalk_outside.fixed.skp",
+      "numbers": { "triangles": [7227, 513], "back_faces_px": [464939, 2869] },
+      "source": "data/output_verified/CHTM_2nd_to_3rd_building_sidewalk_outside/report.json at ab22ff3" }
+  ],
+  "kinds": [
+    {
+      "id": "hidden-faces",
+      "title": "Hidden inside faces",
+      "summary": "Faces inside the solid parts of the model that no camera outside can ever see.",
+      "color": "#1f5bff",
+      "models": {
+        "CHTM5": { "status": "planned", "count": "12,870 of 20,599 triangles (62 %)" },
+        "A": { "status": "fixed", "count": "2,108 of 4,692 triangles; 2,065 removed, 43 kept by the guard" },
+        "B": { "status": "fixed", "count": "2,787 of 7,227 triangles; 2,771 removed, 16 kept by the guard" }
+      },
+      "what": "Faces inside the solid parts of the model: between two slabs, inside a wall, under a floor. They are real triangles in the OBJ, but no camera standing anywhere outside can ever see them.",
+      "find": [
+        "Take 4 points on each face: its centre, and three points near its corners (0.6 / 0.2 / 0.2 of the way to each corner).",
+        "From every point, cast 128 rays spread evenly over all directions, on both sides of the face. The rays hit every other face of the object from either side, the way Unity and SketchUp draw them.",
+        "A ray escapes when it leaves the object without hitting a face. A face is hidden when none of its rays escapes.",
+        "When some rays escape but fewer than 5 % (the slit threshold, 0.05), the face is seen only through a thin gap: a 'slit' face. It is kept unless 'Accept slit faces' is on.",
+        "The test sees this object alone. A face hidden only by a neighbouring building still counts as visible, because Unity may stream that neighbour out.",
+        "Zero-area triangles are left out: they are their own kind of error."
+      ],
+      "why": "Little Tiles builds everything from small boxes (tiles) on Minecraft's block grid. Each tile is exported as a closed box with all six sides, including the sides pressed against a neighbouring tile, so a wall built from 16 small tiles carries every wall between every pair of tiles. SketchUp keeps every face it imports, and the OBJ export per group keeps them again. That is also why they come in pairs: two touching tiles give two faces on one plane, facing opposite ways. CHTM 5th floor has 13,947 such pairs.",
+      "why_note": "Our reading of the measurements; we have not seen the exporter's code.",
+      "unity": [
+        "Unity still sends every one of those triangles to the GPU: 62 % of CHTM 5th floor is never seen.",
+        "They take lightmap space and collider cost for nothing.",
+        "Where a hidden face lies exactly on an outer surface, Unity cannot decide which one is in front, so it flickers.",
+        "In X-ray and in SketchUp they fill the slabs with lines (the 09-21 screenshots)."
+      ],
+      "solution": [
+        "Find them with the ray test above, never by guessing.",
+        "Remove only those faces, never the sides of a slab or wall (owner's rule: only the inside).",
+        "Guard every removal: render the object from 26 directions with and without the removed faces; if even one pixel of the outside changes, that face is put back.",
+        "Check what is left in the dashboard: X-ray, and the blue 'Hidden inside faces' filter of the 3D viewer."
+      ],
+      "never": [
+        "Blender's 'select interior faces' and delete: it deleted 88 % of this model once.",
+        "Welding vertices farther apart than 0.1 mm.",
+        "'Make Manifold' or 'Fill Holes': both closed real openings in this model before."
+      ],
+      "done": [
+        "Sidewalk A: 2,065 removed, 43 put back by the guard.",
+        "Sidewalk B: 2,771 removed, 16 put back by the guard.",
+        "Both files pass every check.",
+        "CHTM 5th floor: not touched. Planning only."
+      ],
+      "remain": "Faces seen through a real small gap are kept on purpose, so no hole opens. Faces the guard put back stay: removing them changed the picture, so they were visible after all.",
+      "engine_files": ["vis/exposure.py", "fixes/remove.py", "guard/compare.py"],
+      "examples": [],
+      "sources": [
+        "CHTM 5th floor: engine.cli errors on snapshot c0c877002500, 2026-09-26 (hidden 12,870)",
+        "A and B: report.json at ab22ff3 (n_hidden_candidates, n_removed_hidden, n_restored_by_guard)",
+        "Method: engine/vis/exposure.py (4 sample points, 128 directions, slit threshold 0.05); guard: engine/guard/compare.py (26 views)"
+      ]
+    }
+  ],
+  "engine_mistakes": [],
+  "other_screenshots": []
+}
+```
+
+- [ ] **Step 4: Run and see them pass**, then the type check
+
+Run: `pnpm --dir web exec vitest run src/utils/errorsDoc.test.ts`, then `pnpm --dir web run type-check`.
+Expected: 10 tests pass, and the type check exits 0. If `vue-tsc` rejects the JSON import, add `"resolveJsonModule": true` to `compilerOptions` in the tsconfig that includes `src` (check `web/tsconfig.app.json` or `web/tsconfig.json`), and list that file in the commit.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add web/src/utils/errorsDoc.ts web/src/utils/errorsDoc.test.ts web/public/docs/errors.json
+git commit -m "feat(web): the error catalogue's model, filters, verdict counts and content test" -m "The Errors page lays out every kind of error for the owner to validate before any fix phase; validateCatalogue enforces the spec's rules on the committed errors.json, which starts with the owner-approved 'Hidden inside faces' kind." -m "Co-Authored-By: <your model> <noreply@anthropic.com>"
+```
+
+### Task 9: the owner's verdicts through the API
+
+**Files:**
+- Modify: `api/routers/docs.py` (from Task 1)
+- Test: `api/tests/test_docs.py` (append)
+
+**Interfaces:**
+- Produces:
+  - `GET /api/docs/validation` returns `{"version": 1, "verdicts": {kind_id: {model_id: {verdict, note, at}}}}`, or an empty document when there is no file yet.
+  - `PUT /api/docs/validation/{kind_id}/{model_id}`:
+    - The body is `{"verdict": "error"|"ok"|"unsure"|null, "note": str <= 2000 chars}`. `null` clears the verdict.
+    - It returns `{"kind", "model", "entry"}`.
+    - The file is `settings.data_dir / "errors_doc" / "validation.json"`, written atomically.
+    - `kind_id` must fully match `[a-z0-9][a-z0-9-]{0,63}`, and `model_id` must fully match `[A-Za-z0-9][A-Za-z0-9_-]{0,31}`; otherwise 404.
+  - `validation_file(settings)` and `read_validation(settings)` are importable.
+
+- [ ] **Step 1: Write the failing tests** (append to `api/tests/test_docs.py`; add `import json` at the top)
+
+```python
+from api.routers.docs import validation_file
+
+
+def _fresh():
+    validation_file(get_settings()).unlink(missing_ok=True)
+
+
+def test_validation_starts_empty(client):
+    _fresh()
+    assert client.get("/api/docs/validation").json() == {"version": 1, "verdicts": {}}
+
+
+def test_a_verdict_is_saved_and_read_back(client):
+    _fresh()
+    r = client.put("/api/docs/validation/hidden-faces/CHTM5", json={"verdict": "error", "note": "remove all"})
+    assert r.status_code == 200
+    assert r.json()["entry"]["verdict"] == "error"
+    got = client.get("/api/docs/validation").json()["verdicts"]["hidden-faces"]["CHTM5"]
+    assert got["verdict"] == "error" and got["note"] == "remove all" and got["at"].endswith("Z")
+    on_disk = json.loads(validation_file(get_settings()).read_text(encoding="utf-8"))
+    assert on_disk["verdicts"]["hidden-faces"]["CHTM5"]["note"] == "remove all"
+
+
+def test_clearing_a_verdict_removes_it(client):
+    _fresh()
+    client.put("/api/docs/validation/sawtooth/B", json={"verdict": "ok", "note": ""})
+    r = client.put("/api/docs/validation/sawtooth/B", json={"verdict": None})
+    assert r.json()["entry"] is None
+    assert client.get("/api/docs/validation").json() == {"version": 1, "verdicts": {}}
+
+
+def test_bad_verdicts_and_ids_are_refused(client):
+    assert client.put("/api/docs/validation/hidden-faces/A", json={"verdict": "maybe"}).status_code == 422
+    assert client.put("/api/docs/validation/hidden-faces/A", json={"verdict": "ok", "note": "x" * 2001}).status_code == 422
+    assert client.put("/api/docs/validation/Hidden..Faces/A", json={"verdict": "ok"}).status_code == 404
+    assert client.put("/api/docs/validation/hidden-faces/A%20B", json={"verdict": "ok"}).status_code == 404
+```
+
+- [ ] **Step 2: Run and see them fail**
+
+Run: `.venv/Scripts/python.exe -m pytest api/tests/test_docs.py -q -p no:cacheprovider`
+Expected: the collection fails, because `validation_file` cannot be imported.
+
+- [ ] **Step 3: Implement.** Add to `api/routers/docs.py`: `import json`, `import os`, `import tempfile`, `import threading`, `from datetime import datetime, timezone`, `from typing import Literal`, and `from pydantic import BaseModel, Field`, next to the other imports. Then append:
+
+```python
+KIND_ID = re.compile(r"[a-z0-9][a-z0-9-]{0,63}")
+MODEL_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]{0,31}")
+_LOCK = threading.Lock()  # one read-modify-write at a time within this process
+
+
+class VerdictIn(BaseModel):
+    verdict: Literal["error", "ok", "unsure"] | None
+    note: str = Field(default="", max_length=2000)
+
+
+def validation_file(settings: Settings):
+    return settings.data_dir / "errors_doc" / "validation.json"
+
+
+def read_validation(settings: Settings) -> dict:
+    path = validation_file(settings)
+    if not path.is_file():
+        return {"version": 1, "verdicts": {}}
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _write_validation(settings: Settings, data: dict) -> None:
+    path = validation_file(settings)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd, tmp = tempfile.mkstemp(dir=path.parent, prefix="validation-", suffix=".tmp")
+    with os.fdopen(fd, "w", encoding="utf-8") as fh:
+        json.dump(data, fh, indent=1)
+    os.replace(tmp, path)
+
+
+@router.get("/validation")
+def get_validation(settings: Settings = Depends(get_settings)):
+    return read_validation(settings)
+
+
+@router.put("/validation/{kind_id}/{model_id}")
+def put_verdict(kind_id: str, model_id: str, body: VerdictIn, settings: Settings = Depends(get_settings)):
+    """The owner's verdict on one kind of error in one model; a null verdict clears it."""
+    if not KIND_ID.fullmatch(kind_id) or not MODEL_ID.fullmatch(model_id):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Unknown error kind or model")
+    with _LOCK:
+        data = read_validation(settings)
+        per_kind = data["verdicts"].setdefault(kind_id, {})
+        entry = None
+        if body.verdict is None:
+            per_kind.pop(model_id, None)
+        else:
+            entry = {"verdict": body.verdict, "note": body.note,
+                     "at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}
+            per_kind[model_id] = entry
+        if not per_kind:
+            del data["verdicts"][kind_id]
+        _write_validation(settings, data)
+    return {"kind": kind_id, "model": model_id, "entry": entry}
+```
+
+- [ ] **Step 4: Run and see them pass**
+
+Run: `.venv/Scripts/python.exe -m pytest api/tests/test_docs.py api/tests/test_health.py -q -p no:cacheprovider`
+Expected: all pass (8 docs tests and the health tests).
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add api/routers/docs.py api/tests/test_docs.py
+git commit -m "feat(api): the owner's verdict per error kind and model, kept in data/errors_doc/validation.json" -m "The owner validates each error before the fix phase ('sometimes it seems like an error but it's okay for that model'); the verdicts live beside the page's images, with no database change, so the fix phase can read them." -m "Co-Authored-By: <your model> <noreply@anthropic.com>"
+```
+
+### Task 10: the page and its floating window
+
+**Files:**
+- Create: `web/src/views/ErrorsView.vue`, `web/src/components/ErrorWindow.vue`
+- Modify: `web/src/router.ts` (route `/errors`), `web/src/views/ModelsView.vue` (header button)
+
+**Interfaces:**
+- Consumes: Task 8's exports; `GET /docs/errors.json`; `GET /api/docs/images/{name}` (Task 1); `GET /api/docs/validation` and `PUT /api/docs/validation/{kind}/{model}` (Task 9).
+
+- [ ] **Step 1: Route and button.**
+  - `web/src/router.ts`: import `ErrorsView from './views/ErrorsView.vue'`, and add `{ path: '/errors', name: 'errors', component: ErrorsView }` after the workspace route.
+  - `web/src/views/ModelsView.vue`: inside `<div class="header-actions">`, before Refresh, add `<router-link to="/errors" class="btn btn-secondary">Errors &amp; fixes</router-link>`.
+
+- [ ] **Step 2: `ErrorsView.vue`** (script setup, TypeScript, scoped styles in the light style of `ModelsView.vue`: max-width 1200px, `#1c1d21` text, `#dcdde2` borders, white cards, 8px radius). Top to bottom:
+  1. **Header.** A "← Models" link to `/`, the title **"Errors: what they are, and the plan"**, and the line "Built from commit `<built_from.commit>`, <built_from.date>".
+     - Beside the title, the validation summary from `validationSummary(cat, validation)`: "Validated 2 of 5 · 1 must fix · 1 OK · 0 not sure".
+  2. **Origin:** each paragraph of `cat.origin`.
+  3. **The models:** one card per `cat.models`, holding its name, `role`, its `numbers` (a `[a, b]` pair shown as `a → b`, with thousands separators) and `source`.
+     - When `skp` is set, show the path with a Copy button that uses `navigator.clipboard.writeText` in try/catch.
+     - Number labels: triangles "Triangles"; back_faces_px "Back faces seen from outside (px)". Any other key is shown as-is.
+  4. **Filter bar** (sticky at the top): Model select (All + `filterChoices().models`), Engine file select (All + `engineFiles`), "N of M kinds" and a Clear button.
+  5. **Catalogue grid** of `filterKinds(cat.kinds, filter)` (CSS grid, `minmax(300px, 1fr)`). Each card is a button-like `article` (`role="button"`, `tabindex="0"`, Enter opens it) and shows:
+     - a 6px left border in `kind.color`, the title, and the summary;
+     - one row per model in `kind.models`: the model id, a status badge (`statusLabel`), the count, and the owner's verdict when there is one (`verdictOf`), as a small badge;
+     - clicking the card opens the window.
+  6. **"Engine mistakes caught by reviews":** cards of `filterMistakes(...)` (title and models). Clicking opens the window.
+  7. **"Other screenshots you sent":** a strip of `other_screenshots`. Clicking opens the lightbox.
+  8. **Loading and errors.** Fetch `/docs/errors.json` with `{ cache: 'no-cache' }` and `/api/docs/validation` on mount.
+     - A failed catalogue fetch shows "Could not load the documentation: <message>".
+     - A failed validation fetch only shows a small note, "Verdicts could not be loaded", and the page still works.
+  9. **URL.** On load, set the filter from `filterFromQuery(route.query, cat)` and the open window from `openFromQuery`. Then `watch` the filter and the open id, and call `router.replace({ query: filterToQuery(filter, openId) })`.
+  10. **Lightbox** (full-screen dark overlay). The image comes from `imageUrl(name)`. It has a Close button, ‹ › buttons when there is more than one image, Esc to close and ArrowLeft/ArrowRight to step. The keydown listener is added on mount and removed on unmount.
+
+- [ ] **Step 3: `ErrorWindow.vue`,** the floating window.
+  - **Props:** `kind: Kind | null`, `mistake: EngineMistake | null`, `models: ModelCard[]`, `validation: Validation | null`.
+  - **Emits:** `close`, `image` (payload `{ list: string[]; name: string }`) and `verdict` (payload `{ kindId: string; modelId: string; verdict: Verdict | null; note: string }`).
+  - **Frame:** `position: fixed`, z-index 40, width 560px, height 72vh. `resize: both; overflow: hidden`. Min 360 × 240. White, with a shadow.
+  - **Title bar:** 48px, drag handle, cursor move. It shows the colour swatch, the title, and a ✕ button.
+  - **Body:** scrolls (`overflow: auto`).
+  - **Starting position:** `clampWindow(window.innerWidth - 560 - 24, 72, 560, innerWidth, innerHeight)`.
+  - **Dragging:**
+    - `pointerdown` on the title bar calls `setPointerCapture` and records the offset.
+    - `pointermove` moves the window to `clampWindow(ev.clientX - offX, ev.clientY - offY, el.offsetWidth, innerWidth, innerHeight)`.
+    - `pointerup` releases.
+  - **Esc** emits `close` (keydown listener on `window`, removed on unmount).
+  - **Body for a kind:** headings in this order, each followed by its content.
+    1. **What it is:** `what`.
+    2. **How we find it:** `find`, as an ordered list.
+    3. **Why the model has it:** `why`, then `why_note` in small italic.
+    4. **How much of each model it is:** a table with rows model name, status badge, count.
+    5. **Why you don't want it in Unity:** `unity`, as a list.
+    6. **The solution:** `solution`, as an ordered list. Then **Never do this**, `never` as a list, when present.
+    7. **Done so far:** `done`, as a list.
+    8. **Why some can remain:** `remain`.
+    9. **Your screenshots:** a grid of `examples`, each with its image (click emits `image`), date, words and caption.
+    10. **Your verdict:** one row per model in `kind.models`.
+        - The row holds three toggle buttons from `VERDICTS`. The active one is highlighted, and clicking it again emits `null`.
+        - It also holds a note `textarea`, prefilled from `verdictOf`. It emits on blur when changed, keeping the current verdict; with no verdict yet, it emits `'unsure'`.
+        - A small "saved <at>" follows.
+    11. **Engine files:** monospace tags. Then **Numbers from:** `sources`, in small print.
+  - **Body for a mistake:** What happened, How it was caught, The fix, Engine files, Commits, then the examples.
+
+- [ ] **Step 4: Saving a verdict** (in `ErrorsView.vue`).
+  - On `verdict`, `PUT /api/docs/validation/<kind>/<model>` with JSON `{ verdict, note }`.
+  - On success, update the local `validation` object: set or delete the entry from the response.
+  - On failure, show a short red note in the window's verdict row ("Not saved: <message>") and keep the previous state.
+
+- [ ] **Step 5: Check types, tests and the build**
+
+Run: `pnpm --dir web run type-check`, then `pnpm --dir web exec vitest run`, then `pnpm --dir web run build`.
+Expected:
+- the type check exits 0;
+- all web tests pass;
+- the build succeeds, and `web/dist/docs/errors.json` exists.
+
+  Note for the template: TypeScript does not narrow `x.image` inside an `@click` closure, so pass `image: string | undefined` and handle `undefined`.
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add web/src/views/ErrorsView.vue web/src/components/ErrorWindow.vue web/src/router.ts web/src/views/ModelsView.vue
+git commit -m "feat(web): the Errors page at /errors -- a catalogue of error kinds, each opening a floating window with its plan and the owner's verdict" -m "Every kind shows what it is, how it is found, why the model has it (Minecraft Little Tiles export), how much of each model it is, why it is unwanted in Unity, the solution, what was done and why some remain; the owner marks each kind per model as an error to fix, OK for that model, or not sure." -m "Co-Authored-By: <your model> <noreply@anthropic.com>"
+```
+
+### Task 11 (controller): the content
+
+- [ ] Run the extraction on the session log (Task 2's CLI), and zip `data/errors_doc/img` into `data/backups/errors_doc-2026-09-26.zip`.
+- [ ] View every screenshot, and assign each one as an example of the kind or engine mistake it shows, or to `other_screenshots`.
+- [ ] Write the other nine kinds at the approved depth, including "How we find it", and the engine mistakes. Re-read every number from its report, and give each one its source.
+- [ ] Run `vitest run src/utils/errorsDoc.test.ts` and `python -m tools.errors_doc.check` (no missing images, no unused owner screenshots). Commit `web/public/docs/errors.json`.
+
 ## Order
 
-Tasks run in this order: **1 and 2 (one dispatch), 3, 4, 5, 6, 7**.
-- Task 5's content work runs while Tasks 3 and 4 are built.
-- A first deploy may happen after Task 5, with the AFTER columns saying "No render yet".
-- Task 6 then adds the renders, and a second, web-only deploy follows.
+Tasks run in this order: **1 and 2 (done), 8, 9, 10, then 7 (deploy)**.
+- Task 11's content work runs while Tasks 8-10 are built.
+- Tasks 3, 4 and 5 are superseded; Task 6 is deferred.
