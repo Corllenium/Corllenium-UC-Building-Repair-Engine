@@ -12,6 +12,7 @@
           <input type="checkbox" v-model="layers.grid" @change="updateLayers" />
           <span class="swatch" style="background: #1f5bff"></span>
           Gridlines <kbd class="kbd-hint">G</kbd>
+          <button type="button" class="info-btn" aria-label="What is this error?" :title="infoTitle('grid')" @click.stop.prevent="openInfo('grid')">i</button>
         </label>
         <label class="toggle-item" title="Hotkey: O">
           <input type="checkbox" v-model="layers.outline" @change="updateLayers" />
@@ -22,6 +23,7 @@
           <input type="checkbox" v-model="layers.tri" @change="updateLayers" />
           <span class="swatch" style="background: #9aa0a8"></span>
           Triangles <kbd class="kbd-hint">T</kbd>
+          <button type="button" class="info-btn" aria-label="What is this error?" :title="infoTitle('tri')" @click.stop.prevent="openInfo('tri')">i</button>
         </label>
         <label class="toggle-item" title="Hotkey: C">
           <input type="checkbox" v-model="layers.creases" @change="updateLayers" />
@@ -32,16 +34,19 @@
           <input type="checkbox" v-model="layers.hidden" @change="updateLayers" />
           <span class="swatch" style="background: #ff3344"></span>
           Removed Faces <kbd class="kbd-hint">H</kbd>
+          <button type="button" class="info-btn" aria-label="What is this error?" :title="infoTitle('hidden')" @click.stop.prevent="openInfo('hidden')">i</button>
         </label>
         <label class="toggle-item" title="Diagnostic only: Inverted normal / backface detection. Hotkey: M">
           <input type="checkbox" v-model="layers.onesided" @change="updateLayers" />
           <span class="swatch" style="background: #ff007f"></span>
           One-Sided / Flipped <kbd class="kbd-hint">M</kbd>
+          <button type="button" class="info-btn" aria-label="What is this error?" :title="infoTitle('onesided')" @click.stop.prevent="openInfo('onesided')">i</button>
         </label>
         <label class="toggle-item" title="Hotkey: X">
           <input type="checkbox" v-model="layers.xray" @change="updateLayers" />
           <span class="swatch" style="background: #d8282f"></span>
           X-Ray <kbd class="kbd-hint">X</kbd>
+          <button type="button" class="info-btn" aria-label="What is this error?" :title="infoTitle('xray')" @click.stop.prevent="openInfo('xray')">i</button>
         </label>
         <label class="toggle-item" title="Hotkey: S">
           <input type="checkbox" v-model="layers.sync" @change="toggleSync" />
@@ -70,6 +75,11 @@
         </button>
       </div>
     </header>
+
+    <div v-if="infoSaveBanner" class="info-save-banner">
+      <span>{{ infoSaveBanner }}</span>
+      <button type="button" class="banner-dismiss" @click="dismissInfoSaveBanner">&times;</button>
+    </div>
 
     <!-- Center: Synced Dual 3D Viewports -->
     <main class="canvases-container">
@@ -244,6 +254,26 @@
         </div>
       </div>
     </div>
+
+    <!-- (i) window: what an error layer means, with the owner's verdict for this model -->
+    <div v-if="openLayerKindId && errorsLoadError" class="info-load-error">
+      <p>{{ errorsLoadError }}</p>
+      <button type="button" class="btn btn-secondary" @click="closeInfo">Close</button>
+    </div>
+    <ErrorWindow
+      v-else-if="openKind"
+      :key="openLayerKindId ?? ''"
+      ref="infoWindowRef"
+      :kind="openKind"
+      :mistake="null"
+      :models="errorsCatalogue ? errorsCatalogue.models : []"
+      :validation="errorsValidation"
+      :verdicts-ready="!errorsValidationError"
+      :only-model="onlyModelId"
+      @close="closeInfo"
+      @image="onInfoImage"
+      @verdict="onInfoVerdict"
+    />
   </div>
 </template>
 
@@ -269,6 +299,9 @@ import { resolveActiveRun, loadVersionRunOnMount } from '../utils/runResolution'
 import { formatFaceSourceInfo } from '../utils/faceInspection'
 import { useLayers } from '../composables/useLayers'
 import { useGuardViews, getGuardImageUrl, DEFAULT_GUARD_VIEWS } from '../composables/useGuardViews'
+import { useErrorsDoc, type SavePayload } from '../composables/useErrorsDoc'
+import { LAYER_KINDS, catalogueModelId, imageUrl, type Kind } from '../utils/errorsDoc'
+import ErrorWindow from '../components/ErrorWindow.vue'
 import * as THREE from 'three'
 
 interface PickedFaceState {
@@ -356,6 +389,66 @@ function formatViewName(v: string): string {
 }
 
 const { layers, handleKeyDown } = useLayers()
+
+// The (i) windows beside the error layers: one shared doc/catalogue load for all 5 buttons.
+const {
+  catalogue: errorsCatalogue,
+  validation: errorsValidation,
+  loadError: errorsLoadError,
+  validationError: errorsValidationError,
+  load: loadErrorsDoc,
+  saveVerdict: saveErrorVerdict,
+} = useErrorsDoc()
+const openLayerKindId = ref<string | null>(null)
+const infoWindowRef = ref<InstanceType<typeof ErrorWindow> | null>(null)
+const infoSaveBanner = ref<string | null>(null)
+function dismissInfoSaveBanner() {
+  infoSaveBanner.value = null
+}
+
+const openKind = computed<Kind | null>(() => {
+  if (!errorsCatalogue.value || !openLayerKindId.value) return null
+  return errorsCatalogue.value.kinds.find(k => k.id === openLayerKindId.value) ?? null
+})
+const onlyModelId = computed<string | null>(() => {
+  if (!errorsCatalogue.value || !model.value) return null
+  return catalogueModelId(errorsCatalogue.value, model.value.name)
+})
+
+function infoTitle(layerKey: string): string {
+  const kind = errorsCatalogue.value?.kinds.find(k => k.id === LAYER_KINDS[layerKey])
+  return kind ? `About: ${kind.title}` : 'About this error'
+}
+function openInfo(layerKey: string) {
+  if (!LAYER_KINDS[layerKey]) return
+  openLayerKindId.value = LAYER_KINDS[layerKey]
+  loadErrorsDoc()
+}
+function closeInfo() {
+  openLayerKindId.value = null
+}
+// Routes a save's outcome exactly like ErrorsView.vue: while this kind's window is still open,
+// errors and the all-clear go to that model's row; otherwise (window closed, or another kind
+// open by the time the request settles) a failure goes to the workspace banner instead.
+function onInfoVerdict(payload: SavePayload) {
+  let errored = false
+  saveErrorVerdict(payload, (message) => {
+    errored = true
+    if (openLayerKindId.value === payload.kindId) {
+      infoWindowRef.value?.setSaveError(payload.modelId, `Not saved: ${message}`)
+    } else {
+      const title = errorsCatalogue.value?.kinds.find(k => k.id === payload.kindId)?.title ?? payload.kindId
+      infoSaveBanner.value = `Not saved: ${title} — ${payload.modelId}: ${message}`
+    }
+  }).then(() => {
+    if (!errored && openLayerKindId.value === payload.kindId) {
+      infoWindowRef.value?.setSaveError(payload.modelId, null)
+    }
+  })
+}
+function onInfoImage(payload: { list: string[]; name: string }) {
+  window.open(imageUrl(payload.name), '_blank', 'noopener')
+}
 
 const fixProfile = reactive({
   accept_slit: false,
@@ -620,6 +713,76 @@ onBeforeUnmount(() => {
   padding: 0 4px;
   color: #57606a;
   font-family: ui-monospace, monospace;
+}
+
+.info-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  border: 1px solid #b8bcc4;
+  background: #fff;
+  color: #57606a;
+  font-size: 10px;
+  font-style: italic;
+  font-weight: 700;
+  line-height: 1;
+  padding: 0;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.info-btn:hover {
+  background: #eaecef;
+  color: #1c1d21;
+}
+
+.info-save-banner {
+  position: fixed;
+  top: 76px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 90vw;
+  background: #fde8e8;
+  color: #b3261e;
+  border: 1px solid #f5c2c2;
+  border-radius: 6px;
+  padding: 8px 14px;
+  font-size: 13px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.16);
+}
+.info-save-banner .banner-dismiss {
+  border: none;
+  background: transparent;
+  color: inherit;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 2px;
+  flex-shrink: 0;
+}
+
+.info-load-error {
+  position: fixed;
+  z-index: 40;
+  top: 72px;
+  right: 24px;
+  width: 320px;
+  background: #fff;
+  border: 1px solid #f5c2c2;
+  border-radius: 8px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.28);
+  padding: 14px 16px;
+  font-size: 13px;
+  color: #b3261e;
+}
+.info-load-error p {
+  margin: 0 0 10px;
 }
 
 .fix-actions {
