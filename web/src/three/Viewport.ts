@@ -29,6 +29,71 @@ const COLORS = {
 // (review I2). Used by both setErrorLines and setErrorPoints.
 export const DEPTH_BIAS_GLSL = '#include <project_vertex>\n  gl_Position = projectionMatrix * vec4(mvPosition.xyz * 0.998, 1.0);'
 
+/** The options every material of the textured facade shares: the textured ones, the flat ones
+ *  and the fallback for faces with no material (review M8). */
+const SURFACE_OPTIONS = {
+  side: THREE.DoubleSide, roughness: 0.9, metalness: 0.0,
+  polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1,
+}
+
+/** The grey a material without a texture is drawn in: the flat facade's shade for material `i`. */
+function flatGrey(i: number): THREE.Color {
+  return new THREE.Color().setScalar(0.8 + (i % 5) * 0.04)
+}
+
+/** The textured facade's materials: one per model material, then the fallback for faces with no
+ *  material (index `materials.length`), all with SURFACE_OPTIONS. A texture file is loaded ONCE
+ *  per URL and shared by every material that uses it; `textures` holds each, for clear() to
+ *  dispose once. When one fails to load, the materials using it drop it and show their flat grey
+ *  instead of black (review M8). `load` is TextureLoader.load with its error callback. */
+export function texturedSurfaceMaterials(materials: { texture: string | null }[], versionId: number,
+  load: (url: string, onError: () => void) => THREE.Texture,
+): { materials: THREE.MeshStandardMaterial[]; textures: Map<string, THREE.Texture> } {
+  const textures = new Map<string, THREE.Texture>()
+  const out: THREE.MeshStandardMaterial[] = []
+  materials.forEach((m, i) => {
+    const url = textureUrl(versionId, m.texture)
+    const mat = new THREE.MeshStandardMaterial({ ...SURFACE_OPTIONS, color: url ? 0xffffff : flatGrey(i) })
+    if (url) {
+      let tex = textures.get(url)
+      if (!tex) {
+        const failed = () => out.forEach((o, k) => {
+          if (o.map && o.map === tex) {
+            o.map = null
+            o.color.copy(flatGrey(k))
+            o.needsUpdate = true
+          }
+        })
+        tex = load(url, failed)
+        tex.wrapS = tex.wrapT = THREE.RepeatWrapping
+        tex.magFilter = THREE.NearestFilter          // block textures stay crisp
+        tex.colorSpace = THREE.SRGBColorSpace
+        textures.set(url, tex)
+      }
+      mat.map = tex
+    }
+    out.push(mat)
+  })
+  out.push(new THREE.MeshStandardMaterial({ ...SURFACE_OPTIONS, color: 0xcccccc }))   // faces with no material
+  return { materials: out, textures }
+}
+
+/** Dispose `objects`' geometries and materials, and every texture among their maps and in
+ *  `textures` exactly once, however many materials share it (review M8). */
+export function disposeObjects(objects: THREE.Object3D[], textures: Iterable<THREE.Texture> = []) {
+  const maps = new Set<THREE.Texture>(textures)
+  for (const o of objects) {
+    const { geometry, material } = o as THREE.Mesh
+    geometry?.dispose()
+    for (const m of material ? (Array.isArray(material) ? material : [material]) : []) {
+      const map = (m as THREE.MeshStandardMaterial).map
+      if (map) maps.add(map)
+      m.dispose()
+    }
+  }
+  maps.forEach(t => t.dispose())
+}
+
 /** The error overlay's material: its vertex colours, drawn a hair in front of the surface each
  *  face lies on. Both sides are drawn, which also lets a pick ray meet a face from behind: the
  *  raycaster skips a FrontSide triangle's back, and an interior flicker face faces away from half
@@ -64,6 +129,7 @@ export class Viewport {
   private lastPositions?: Float32Array
   private faceOrder?: Uint32Array
   private overlayFaceIds: number[] | null = null   // the face drawn in each error-overlay slot
+  private textures = new Map<string, THREE.Texture>()   // this load's textures, one per URL
   private xray = false
   private isolate = false
   private texturedOn = true
@@ -135,15 +201,10 @@ export class Viewport {
   }
 
   clear() {
-    for (const o of [...this.group.children]) {
-      if ((o as any).geometry) (o as any).geometry.dispose()
-      if ((o as any).material) {
-        const m = (o as any).material
-        const mats = Array.isArray(m) ? m : [m]
-        mats.forEach(x => { x.map?.dispose(); x.dispose() })
-      }
-      this.group.remove(o)
-    }
+    const objects = [...this.group.children]
+    disposeObjects(objects, this.textures.values())   // each texture once, however many share it
+    for (const o of objects) this.group.remove(o)
+    this.textures = new Map()
     this.parts = {}
     this.faceOrder = undefined
     this.overlayFaceIds = null
@@ -265,23 +326,9 @@ export class Viewport {
       tgeom.setAttribute('uv', new THREE.BufferAttribute(uv, 2))
       const nMat = data.header.materials.length
       const loader = new THREE.TextureLoader()
-      const mats: THREE.Material[] = data.header.materials.map((m, i) => {
-        const url = textureUrl(versionId, m.texture)
-        const mat = new THREE.MeshStandardMaterial({
-          side: THREE.DoubleSide, roughness: 0.9, metalness: 0.0,
-          polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1,
-          color: url ? 0xffffff : new THREE.Color().setScalar(0.8 + (i % 5) * 0.04),
-        })
-        if (url) {
-          const tex = loader.load(url)
-          tex.wrapS = tex.wrapT = THREE.RepeatWrapping
-          tex.magFilter = THREE.NearestFilter          // block textures stay crisp
-          tex.colorSpace = THREE.SRGBColorSpace
-          mat.map = tex
-        }
-        return mat
-      })
-      mats.push(new THREE.MeshStandardMaterial({ side: THREE.DoubleSide, color: 0xcccccc }))  // faces with no material
+      const { materials: mats, textures } = texturedSurfaceMaterials(data.header.materials, versionId,
+        (url, onError) => loader.load(url, undefined, undefined, onError))
+      this.textures = textures
       for (const g of groups) tgeom.addGroup(g.start, g.count, g.material < nMat ? g.material : nMat)
       this.parts.textured = new THREE.Mesh(tgeom, mats)
       this.faceOrder = order
