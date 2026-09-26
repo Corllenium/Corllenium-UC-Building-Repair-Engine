@@ -36,8 +36,20 @@ export function useErrorsDoc() {
   const validationError = ref(false)
   const loaded = ref(false)
 
-  async function load(): Promise<void> {
-    if (loaded.value) return
+  let inflight: Promise<void> | null = null
+
+  // Idempotent, and safe to call from every (i) button: a call while a load is already in
+  // flight reuses that same promise instead of firing a second fetch.
+  function load(): Promise<void> {
+    if (loaded.value) return Promise.resolve()
+    if (inflight) return inflight
+    inflight = doLoad().finally(() => {
+      inflight = null
+    })
+    return inflight
+  }
+
+  async function doLoad(): Promise<void> {
     loadError.value = ''
     loadProblems.value = []
     try {

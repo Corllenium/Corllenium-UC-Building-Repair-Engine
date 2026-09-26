@@ -46,6 +46,34 @@ describe('useErrorsDoc', () => {
     expect(validationError.value).toBe(false)
   })
 
+  it('reuses an in-flight load: two calls before the first resolves fetch errors.json once', async () => {
+    let errorsJsonFetches = 0
+    let resolveFirst!: (r: Response) => void
+    const firstPromise = new Promise<Response>(res => { resolveFirst = res })
+
+    globalThis.fetch = vi.fn((url: unknown) => {
+      if (String(url) === '/docs/errors.json') {
+        errorsJsonFetches++
+        return firstPromise
+      }
+      return Promise.resolve(jsonResponse({ version: 1, verdicts: {} }))
+    }) as unknown as typeof fetch
+
+    const { load, loaded } = useErrorsDoc()
+    const p1 = load()
+    const p2 = load()
+
+    expect(errorsJsonFetches).toBe(1)
+    expect(loaded.value).toBe(false)
+
+    resolveFirst(jsonResponse(validCat))
+    await p1
+    await p2
+
+    expect(errorsJsonFetches).toBe(1)
+    expect(loaded.value).toBe(true)
+  })
+
   it('sets loadError to the missing-from-build message for a non-JSON errors.json response', async () => {
     globalThis.fetch = vi.fn()
       .mockResolvedValueOnce(new Response('<html></html>', { status: 200, headers: { 'Content-Type': 'text/html' } }))

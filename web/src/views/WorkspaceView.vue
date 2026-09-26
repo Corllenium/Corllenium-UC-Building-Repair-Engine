@@ -76,6 +76,11 @@
       </div>
     </header>
 
+    <div v-if="infoSaveBanner" class="info-save-banner">
+      <span>{{ infoSaveBanner }}</span>
+      <button type="button" class="banner-dismiss" @click="dismissInfoSaveBanner">&times;</button>
+    </div>
+
     <!-- Center: Synced Dual 3D Viewports -->
     <main class="canvases-container">
       <section class="canvas-panel">
@@ -396,6 +401,10 @@ const {
 } = useErrorsDoc()
 const openLayerKindId = ref<string | null>(null)
 const infoWindowRef = ref<InstanceType<typeof ErrorWindow> | null>(null)
+const infoSaveBanner = ref<string | null>(null)
+function dismissInfoSaveBanner() {
+  infoSaveBanner.value = null
+}
 
 const openKind = computed<Kind | null>(() => {
   if (!errorsCatalogue.value || !openLayerKindId.value) return null
@@ -418,9 +427,23 @@ function openInfo(layerKey: string) {
 function closeInfo() {
   openLayerKindId.value = null
 }
+// Routes a save's outcome exactly like ErrorsView.vue: while this kind's window is still open,
+// errors and the all-clear go to that model's row; otherwise (window closed, or another kind
+// open by the time the request settles) a failure goes to the workspace banner instead.
 function onInfoVerdict(payload: SavePayload) {
+  let errored = false
   saveErrorVerdict(payload, (message) => {
-    infoWindowRef.value?.setSaveError(payload.modelId, message)
+    errored = true
+    if (openLayerKindId.value === payload.kindId) {
+      infoWindowRef.value?.setSaveError(payload.modelId, `Not saved: ${message}`)
+    } else {
+      const title = errorsCatalogue.value?.kinds.find(k => k.id === payload.kindId)?.title ?? payload.kindId
+      infoSaveBanner.value = `Not saved: ${title} — ${payload.modelId}: ${message}`
+    }
+  }).then(() => {
+    if (!errored && openLayerKindId.value === payload.kindId) {
+      infoWindowRef.value?.setSaveError(payload.modelId, null)
+    }
   })
 }
 function onInfoImage(payload: { list: string[]; name: string }) {
@@ -713,6 +736,35 @@ onBeforeUnmount(() => {
 .info-btn:hover {
   background: #eaecef;
   color: #1c1d21;
+}
+
+.info-save-banner {
+  position: fixed;
+  top: 76px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 90vw;
+  background: #fde8e8;
+  color: #b3261e;
+  border: 1px solid #f5c2c2;
+  border-radius: 6px;
+  padding: 8px 14px;
+  font-size: 13px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.16);
+}
+.info-save-banner .banner-dismiss {
+  border: none;
+  background: transparent;
+  color: inherit;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 2px;
+  flex-shrink: 0;
 }
 
 .info-load-error {
