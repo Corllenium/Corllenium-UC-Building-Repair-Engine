@@ -31,9 +31,16 @@ export class Viewport {
     creases?: THREE.LineSegments
     hidden?: THREE.Mesh
     backfaceDiagnostic?: THREE.Mesh
+    errors?: THREE.Mesh
+    errorLines?: THREE.LineSegments
+    errorPoints?: THREE.Points
   } = {}
   private currentData?: DecodedMeshbuf
   private lastPositions?: Float32Array
+  private xray = false
+  private blinkA: Float32Array | null = null
+  private blinkB: Float32Array | null = null
+  private blinkPhase = -1
   private animId: number = 0
   private resizeObserver: ResizeObserver
   onPick?: (faceId: number, point: THREE.Vector3) => void
@@ -73,6 +80,15 @@ export class Viewport {
 
   private loop = () => {
     this.controls.update()
+    if (this.blinkA && this.blinkB && this.parts.errors) {
+      const phase = Math.floor(performance.now() / 125) % 2   // 4 swaps a second
+      if (phase !== this.blinkPhase) {
+        const attr = this.parts.errors.geometry.getAttribute('color') as THREE.BufferAttribute
+        attr.copyArray(phase === 0 ? this.blinkA : this.blinkB)
+        attr.needsUpdate = true
+        this.blinkPhase = phase
+      }
+    }
     this.renderer.render(this.scene, this.camera)
     this.animId = requestAnimationFrame(this.loop)
   }
@@ -97,6 +113,7 @@ export class Viewport {
       this.group.remove(o)
     }
     this.parts = {}
+    this.blinkA = this.blinkB = null
   }
 
   loadModel(data: DecodedMeshbuf) {
@@ -336,6 +353,7 @@ export class Viewport {
   }
 
   setXRay(xray: boolean) {
+    this.xray = xray
     if (this.parts.facade) {
       const m = this.parts.facade.material as THREE.MeshStandardMaterial
       m.transparent = xray
@@ -343,6 +361,76 @@ export class Viewport {
       m.depthWrite = !xray
       m.needsUpdate = true
     }
+  }
+
+  private removePart(name: 'errors' | 'errorLines' | 'errorPoints') {
+    const part = this.parts[name]
+    if (!part) return
+    this.group.remove(part)
+    part.geometry.dispose()
+    ;(part.material as THREE.Material).dispose()
+    delete this.parts[name]
+  }
+
+  setErrorOverlay(faces: number[], colors: Float32Array, isolate: boolean) {
+    this.removePart('errors')
+    if (this.parts.facade) {
+      const m = this.parts.facade.material as THREE.MeshStandardMaterial
+      m.transparent = isolate || this.xray
+      m.opacity = isolate ? 0.08 : this.xray ? 0.25 : 1.0
+      m.depthWrite = !(isolate || this.xray)
+      m.needsUpdate = true
+    }
+    if (!this.lastPositions || faces.length === 0) return
+    const pos = new Float32Array(faces.length * 9)
+    faces.forEach((f, slot) => pos.set(this.lastPositions!.subarray(f * 9, f * 9 + 9), slot * 9))
+    const geom = new THREE.BufferGeometry()
+    geom.setAttribute('position', new THREE.BufferAttribute(pos, 3))
+    geom.setAttribute('color', new THREE.BufferAttribute(colors.slice(), 3))
+    const mat = new THREE.MeshBasicMaterial({
+      vertexColors: true, side: THREE.DoubleSide,
+      polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1,
+    })
+    this.parts.errors = new THREE.Mesh(geom, mat)
+    this.group.add(this.parts.errors)
+    this.blinkPhase = -1
+  }
+
+  setErrorBlink(colorsA: Float32Array | null, colorsB: Float32Array | null) {
+    this.blinkA = colorsA
+    this.blinkB = colorsB
+    this.blinkPhase = -1
+  }
+
+  setErrorLines(segments: Float32Array, color: number) {
+    this.removePart('errorLines')
+    if (segments.length === 0) return
+    const geom = new THREE.BufferGeometry()
+    geom.setAttribute('position', new THREE.BufferAttribute(segments, 3))
+    this.parts.errorLines = new THREE.LineSegments(geom, new THREE.LineBasicMaterial({ color, depthTest: false }))
+    this.group.add(this.parts.errorLines)
+  }
+
+  setErrorPoints(points: Float32Array, color: number) {
+    this.removePart('errorPoints')
+    if (points.length === 0) return
+    const geom = new THREE.BufferGeometry()
+    geom.setAttribute('position', new THREE.BufferAttribute(points, 3))
+    this.parts.errorPoints = new THREE.Points(geom, new THREE.PointsMaterial({ color, size: 6, sizeAttenuation: false, depthTest: false }))
+    this.group.add(this.parts.errorPoints)
+  }
+
+  flyTo(centre: [number, number, number], size: number) {
+    const target = new THREE.Vector3(...centre)
+    const dir = this.camera.position.clone().sub(this.controls.target).normalize()
+    this.controls.target.copy(target)
+    this.camera.position.copy(target).add(dir.multiplyScalar(Math.max(size, 60) * 1.6))
+    this.controls.update()
+    this.controls.dispatchEvent({ type: 'change' } as any)   // lets syncViewports move the other panel
+  }
+
+  originOffset(): [number, number, number] {
+    return (this.currentData?.header.origin_offset ?? [0, 0, 0]) as [number, number, number]
   }
 
   private setupPicking() {
