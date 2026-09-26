@@ -78,6 +78,19 @@ def test_an_attached_needle_is_loose_as_a_sliver_and_a_big_detached_quad_is_not(
     assert e["loose_parts"] == {"zero_area": 0, "fragments": 1, "slivers": 1}
 
 
+@pytest.mark.parametrize("build", [two_sided_wall, box_with_partition, t_junction_strip_with_a_stray])
+def test_finding_errors_changes_nothing_in_the_mesh(build):
+    """Review M6: the plan's Global Constraint -- `find_errors` is read-only. Three fixtures between
+    them reach every detector it gathers: flicker pairs, hidden and facade faces, zero-area faces,
+    a stray fragment, open edges and a crack."""
+    m = build()
+    positions, face_v, face_material = m.positions.copy(), m.face_v.copy(), m.face_material.copy()
+    find_errors(m, PROFILE)
+    assert np.array_equal(m.positions, positions)
+    assert np.array_equal(m.face_v, face_v)
+    assert np.array_equal(m.face_material, face_material)
+
+
 def test_the_file_carries_the_current_schema_version():
     """Review M2: 2 since I4, and Tasks 14 and 15, changed what the file means; the API serves no
     file of another version."""

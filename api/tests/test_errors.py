@@ -57,4 +57,23 @@ def test_a_fix_run_writes_its_after_errors_file(client, imported_cube):
     assert run["status"] == "completed"
     r = client.get(f"/api/versions/{run['fixed_version_id']}/errors")
     assert r.status_code == 200
-    assert r.json()["n_faces"] > 0
+    # numbered as the AFTER meshbuf is, so the viewer's face-count guard accepts it (review M6)
+    after = client.get(f"/api/versions/{run['fixed_version_id']}").json()
+    assert r.json()["n_faces"] == after["tri_count"]
+
+
+def test_a_fix_run_completes_when_its_after_errors_file_fails(client, imported_cube, monkeypatch):
+    """Review M6, Task 6's isolation: the AFTER file is written after the run is committed, and a
+    failure there never changes the run's outcome -- the AFTER version simply has no file."""
+    import api.routers.versions as versions_mod
+
+    def fails(*_args, **_kwargs):
+        raise RuntimeError("find_errors failed")
+
+    monkeypatch.setattr(versions_mod, "find_errors", fails)
+    vid = imported_cube["versions"][0]["id"]
+    run = client.post(f"/api/versions/{vid}/fix", json={"profile": {"n_dirs": 32}}).json()
+    assert run["status"] == "completed"
+    r = client.get(f"/api/versions/{run['fixed_version_id']}/errors")
+    assert r.status_code == 404
+    assert r.json()["detail"] == "not computed yet"
