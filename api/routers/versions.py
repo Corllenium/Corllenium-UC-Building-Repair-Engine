@@ -12,7 +12,9 @@ from api.db import get_db
 from api.models import FixRun, ModelVersion, VersionAsset
 from api.schemas import FaceOut, FixRequest, FixRunOut, ModelVersionOut
 from api.settings import Settings, get_settings
+from api.routers.errors import write_errors
 from engine.cli import _build_report, _write_guard_images, _write_skp, copy_skp_to_owner
+from engine.detectors.errors import find_errors
 from engine.fixes.pipeline import FixProfile, fix_object
 from engine.io.mtl import parse_mtl, texture_flatness
 from engine.io.obj_reader import read_obj
@@ -556,6 +558,12 @@ def run_fix_pipeline(
                 except Exception as exc:
                     logger.exception("Failed to commit copy results to database: %s", exc)
                     db.rollback()
+
+        # the 3D error filter's AFTER file; never allowed to change the run's own outcome
+        try:
+            write_errors(settings, fix_run.fixed_version_id, find_errors(result.mesh, profile))
+        except Exception:
+            logger.exception("errors file for fixed version %s", fix_run.fixed_version_id)
 
         return fix_run
 

@@ -25,3 +25,12 @@ def test_an_unknown_version_is_refused(client):
     r = client.post("/api/versions/999999/errors")
     assert r.status_code == 404
     assert r.json()["detail"] == "Version not found"
+
+
+def test_a_fix_run_writes_its_after_errors_file(client, imported_cube):
+    vid = imported_cube["versions"][0]["id"]
+    run = client.post(f"/api/versions/{vid}/fix", json={"profile": {"n_dirs": 32}}).json()
+    assert run["status"] == "completed"
+    r = client.get(f"/api/versions/{run['fixed_version_id']}/errors")
+    assert r.status_code == 200
+    assert r.json()["n_faces"] > 0
