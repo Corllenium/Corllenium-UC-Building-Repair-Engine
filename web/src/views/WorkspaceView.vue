@@ -48,6 +48,10 @@
           X-Ray <kbd class="kbd-hint">X</kbd>
           <button type="button" class="info-btn" aria-label="What is this error?" :title="infoTitle('xray')" @click.stop.prevent="openInfo('xray')">i</button>
         </label>
+        <label class="toggle-item" title="Hotkey: U">
+          <input type="checkbox" v-model="layers.textures" @change="updateLayers" />
+          Textures <kbd class="kbd-hint">U</kbd>
+        </label>
         <label class="toggle-item" title="Hotkey: S">
           <input type="checkbox" v-model="layers.sync" @change="toggleSync" />
           Sync <kbd class="kbd-hint">S</kbd>
@@ -81,14 +85,45 @@
       <button type="button" class="banner-dismiss" @click="dismissInfoSaveBanner">&times;</button>
     </div>
 
-    <!-- Center: Synced Dual 3D Viewports -->
-    <main class="canvases-container">
+    <div class="workspace-body">
+      <aside
+        class="errors-column"
+        :class="{ collapsed: errorsColumnCollapsed }"
+        @transitionend="onErrorsColumnTransitionEnd"
+      >
+        <button
+          type="button"
+          class="errors-collapse-btn"
+          :aria-label="errorsColumnCollapsed ? 'Expand errors panel' : 'Collapse errors panel'"
+          :title="errorsColumnCollapsed ? 'Expand errors panel' : 'Collapse errors panel'"
+          @click="toggleErrorsColumn"
+        >{{ errorsColumnCollapsed ? '›' : '‹' }}</button>
+        <div v-if="!errorsColumnCollapsed" class="errors-column-scroll">
+          <ErrorsPanel
+            :before="errorsBefore"
+            :after="errorsAfter"
+            :busy-before="busyBefore"
+            :busy-after="busyAfter"
+            :filter="errorFilter"
+            :has-after="!!fixedVersion"
+            :catalogue="errorsCatalogue"
+            @find="onFindErrors"
+            @fly="onFly"
+            @info="onErrorInfo"
+          />
+        </div>
+      </aside>
+
+      <!-- Center: Synced Dual 3D Viewports -->
+      <main class="canvases-container">
       <section class="canvas-panel">
         <div class="canvas-header">
           <h2>BEFORE &middot; As Exported from SketchUp</h2>
           <span class="version-label" v-if="snapshotVersion">v{{ snapshotVersion.id }} (Snapshot)</span>
         </div>
-        <div ref="canvasA" class="canvas-viewport"></div>
+        <div ref="canvasA" class="canvas-viewport">
+          <div v-if="loadingA" class="panel-loading">Loading model… a large building can take 20 s the first time</div>
+        </div>
         <div class="panel-stats">
           <span v-if="snapshotVersion">
             <b>{{ snapshotVersion.tri_count.toLocaleString() }}</b> triangles &nbsp;&middot;&nbsp;
@@ -103,7 +138,9 @@
           <span class="version-label fixed-tag" v-if="fixedVersion">v{{ fixedVersion.id }} (Cleaned)</span>
           <span class="version-label preview-tag" v-else>No Fix Applied Yet</span>
         </div>
-        <div ref="canvasB" class="canvas-viewport"></div>
+        <div ref="canvasB" class="canvas-viewport">
+          <div v-if="loadingB" class="panel-loading">Loading model… a large building can take 20 s the first time</div>
+        </div>
         <div class="panel-stats">
           <div v-if="resultDesc && resultDesc.error" class="text-error" style="color: #d8282f">
             <strong>Fix failed:</strong> {{ resultDesc.error }}
@@ -186,23 +223,33 @@
           </span>
         </div>
       </section>
-    </main>
 
-    <!-- Inspection Details Drawer (if face clicked) -->
-    <div v-if="pickedFace" class="picked-inspector">
-      <div class="inspector-header">
-        <strong>Inspected Triangle #{{ pickedFace.faceId }} ({{ pickedFace.viewKind.toUpperCase() }})</strong>
-        <button class="btn-close" @click="pickedFace = null">&times;</button>
-      </div>
-      <div class="inspector-body">
-        <div>Coordinates: {{ pickedFace.point.x.toFixed(2) }}, {{ pickedFace.point.y.toFixed(2) }}, {{ pickedFace.point.z.toFixed(2) }}</div>
-        <div v-if="pickedFace.loading">Loading face details...</div>
-        <div v-else-if="pickedFace.details">
-          <div>{{ formatFaceSourceInfo(pickedFace.viewKind, pickedFace.details) }}</div>
-          <div v-if="pickedFace.details.material">Material: {{ pickedFace.details.material }}</div>
+        <!-- Inspection Details Drawer (if face clicked). Lives inside canvases-container (which
+             is position: relative) so its `left: 20px` measures from the BEFORE canvas's own
+             left edge, not the errors column's -- the errors column sits to its left now. -->
+        <div v-if="pickedFace" class="picked-inspector">
+          <div class="inspector-header">
+            <strong>Inspected Triangle #{{ pickedFace.faceId }} ({{ pickedFace.viewKind.toUpperCase() }})</strong>
+            <button class="btn-close" @click="pickedFace = null">&times;</button>
+          </div>
+          <div class="inspector-body">
+            <div>Coordinates: {{ pickedFace.point.x.toFixed(2) }}, {{ pickedFace.point.y.toFixed(2) }}, {{ pickedFace.point.z.toFixed(2) }}</div>
+            <div v-if="pickedFace.loading">Loading face details...</div>
+            <div v-else-if="pickedFace.details">
+              <div>{{ formatFaceSourceInfo(pickedFace.viewKind, pickedFace.details) }}</div>
+              <div v-if="pickedFace.details.material">Material: {{ pickedFace.details.material }}</div>
+            </div>
+            <div v-else-if="pickedFace.error" class="text-error">{{ pickedFace.error }}</div>
+            <div v-if="pickedErrors.kinds.length">
+              <strong>Errors:</strong> {{ pickedErrors.kinds.map(k => ERROR_KINDS.find(e => e.kind === k)!.label).join(', ') }}
+              <div v-for="p in pickedErrors.partners" :key="p.face">
+                fights face {{ p.face }} ({{ p.shared.toFixed(1) }} sq in shared{{ p.opposite ? ', back to back' : '' }})
+                <button class="btn-link" @click="selectFace(p.face)">select</button>
+              </div>
+            </div>
+          </div>
         </div>
-        <div v-else-if="pickedFace.error" class="text-error">{{ pickedFace.error }}</div>
-      </div>
+      </main>
     </div>
 
     <!-- Guard 26 Views Diff Modal -->
@@ -287,6 +334,8 @@ import {
   fetchRun,
   fetchVersionRun,
   fetchFace,
+  fetchErrors,
+  computeErrors,
   type Model,
   type ModelVersion,
   type FixRun,
@@ -300,8 +349,21 @@ import { formatFaceSourceInfo } from '../utils/faceInspection'
 import { useLayers } from '../composables/useLayers'
 import { useGuardViews, getGuardImageUrl, DEFAULT_GUARD_VIEWS } from '../composables/useGuardViews'
 import { useErrorsDoc, type SavePayload } from '../composables/useErrorsDoc'
+import { useErrorFiles, errorsOrNull } from '../composables/useErrorFiles'
 import { LAYER_KINDS, catalogueModelId, imageUrl, type Kind } from '../utils/errorsDoc'
+import {
+  overlayFaces,
+  blinkColors,
+  openEdgeSegments,
+  crackPoints,
+  partnersOf,
+  kindsOf,
+  ERROR_KINDS,
+  type ErrorsFile,
+  type ErrorSpot,
+} from '../utils/errorLayers'
 import ErrorWindow from '../components/ErrorWindow.vue'
+import ErrorsPanel from '../components/ErrorsPanel.vue'
 import * as THREE from 'three'
 
 interface PickedFaceState {
@@ -402,6 +464,13 @@ const {
 const openLayerKindId = ref<string | null>(null)
 const infoWindowRef = ref<InstanceType<typeof ErrorWindow> | null>(null)
 const infoSaveBanner = ref<string | null>(null)
+// Two independent writers (a closed-window save failure, and a failed Find errors) can each want
+// the banner around the same time; append instead of overwriting, capped so it can't grow forever.
+function pushBanner(message: string) {
+  const lines = infoSaveBanner.value ? infoSaveBanner.value.split('\n') : []
+  lines.push(message)
+  infoSaveBanner.value = lines.slice(-3).join('\n')
+}
 function dismissInfoSaveBanner() {
   infoSaveBanner.value = null
 }
@@ -427,6 +496,13 @@ function openInfo(layerKey: string) {
 function closeInfo() {
   openLayerKindId.value = null
 }
+// The Errors panel legend already resolves its kind to a catalogue id (ERROR_KIND_CATALOGUE, in
+// ErrorsPanel.vue), so this opens the same single (i) window the layer buttons use, directly --
+// skipping openInfo's LAYER_KINDS lookup, which expects a layer key, not a catalogue id.
+function onErrorInfo(catalogueKindId: string) {
+  openLayerKindId.value = catalogueKindId
+  loadErrorsDoc()
+}
 // Routes a save's outcome exactly like ErrorsView.vue: while this kind's window is still open,
 // errors and the all-clear go to that model's row; otherwise (window closed, or another kind
 // open by the time the request settles) a failure goes to the workspace banner instead.
@@ -438,7 +514,7 @@ function onInfoVerdict(payload: SavePayload) {
       infoWindowRef.value?.setSaveError(payload.modelId, `Not saved: ${message}`)
     } else {
       const title = errorsCatalogue.value?.kinds.find(k => k.id === payload.kindId)?.title ?? payload.kindId
-      infoSaveBanner.value = `Not saved: ${title} — ${payload.modelId}: ${message}`
+      pushBanner(`Not saved: ${title} — ${payload.modelId}: ${message}`)
     }
   }).then(() => {
     if (!errored && openLayerKindId.value === payload.kindId) {
@@ -462,6 +538,26 @@ const canvasB = ref<HTMLElement | null>(null)
 let viewA: Viewport | null = null
 let viewB: Viewport | null = null
 let disposeSync: (() => void) | null = null
+let snapTriMaterial: Uint16Array | undefined
+let fixTriMaterial: Uint16Array | undefined
+
+const { errorFilter, errorsBefore, errorsAfter, fitToModel } = useErrorFiles(redrawErrors)
+const busyBefore = ref(false)
+const busyAfter = ref(false)
+const loadingA = ref(false)
+const loadingB = ref(false)
+
+const errorsColumnCollapsed = ref(false)
+function toggleErrorsColumn() {
+  errorsColumnCollapsed.value = !errorsColumnCollapsed.value
+}
+// The column only transitions its own width, so any transitionend on it means that finished.
+// The canvases' own ResizeObserver reacts to the width change already, mid-transition; this call
+// once it settles is belt-and-suspenders so the final render is never mid-animation-frame stale.
+function onErrorsColumnTransitionEnd() {
+  viewA?.resize()
+  viewB?.resize()
+}
 
 const snapshotVersion = computed(() => {
   if (!model.value) return null
@@ -473,6 +569,49 @@ const fixedVersion = computed(() => {
   const fixed = model.value.versions.filter(v => v.kind === 'fixed')
   return fixed.length ? fixed[fixed.length - 1] : null
 })
+
+function applyErrors(view: Viewport | null, file: ErrorsFile | null, triMaterial?: ArrayLike<number>) {
+  if (!view) return
+  // never draw another model's file: one sized for a different face count is dropped (review M3)
+  file = fitToModel(file, view.faceCount(), pushBanner)
+  if (!file) {
+    view.setErrorOverlay([], new Float32Array(0), false)
+    view.setErrorBlink(null, null)
+    view.setErrorLines(new Float32Array(0), 0)
+    view.setErrorPoints(new Float32Array(0), 0)
+    return
+  }
+  const { faces, colors } = overlayFaces(file, errorFilter)
+  view.setErrorOverlay(faces, colors, errorFilter.isolate)
+  // A Set built once per call: faces.includes()/flicker.includes() inside the loop below was
+  // O(faces * flicker) on every toggle, in both panels.
+  const flickerSet = new Set([...file.faces.flicker_diff, ...file.faces.flicker_same])
+  if (errorFilter.blink && triMaterial && flickerSet.size) {
+    const a = colors.slice(), b = colors.slice()
+    const pa = blinkColors(file, faces, triMaterial, 0), pb = blinkColors(file, faces, triMaterial, 1)
+    faces.forEach((f, slot) => {
+      if (!flickerSet.has(f)) return
+      a.set(pa.subarray(slot * 9, slot * 9 + 9), slot * 9)
+      b.set(pb.subarray(slot * 9, slot * 9 + 9), slot * 9)
+    })
+    view.setErrorBlink(a, b)
+  } else {
+    view.setErrorBlink(null, null)
+  }
+  const origin = view.originOffset()
+  view.setErrorLines(errorFilter.enabled.open_edges ? openEdgeSegments(file, origin) : new Float32Array(0),
+    ERROR_KINDS.find(k => k.kind === 'open_edges')!.color)
+  view.setErrorPoints(errorFilter.enabled.cracks ? crackPoints(file, origin) : new Float32Array(0),
+    ERROR_KINDS.find(k => k.kind === 'cracks')!.color)
+}
+
+// useErrorFiles calls this whenever the filter or either file changes.
+function redrawErrors() {
+  // Skip a panel mid-reload: its explicit applyErrors call right after loadModel (in
+  // reloadModel) already covers it, on the mesh that's actually current by then.
+  if (!loadingA.value) applyErrors(viewA, errorsBefore.value, snapTriMaterial)
+  if (!loadingB.value) applyErrors(viewB, errorsAfter.value, fixTriMaterial)
+}
 
 async function initWorkspace() {
   if (!canvasA.value || !canvasB.value) return
@@ -537,12 +676,29 @@ async function reloadModel() {
   try {
     model.value = await fetchModel(modelId.value)
     if (snapshotVersion.value && viewA) {
-      const snapBuf = await fetchMeshbuf(snapshotVersion.value.id)
-      viewA.loadModel(decodeMeshbuf(snapBuf))
+      loadingA.value = true
+      try {
+        const snap = decodeMeshbuf(await fetchMeshbuf(snapshotVersion.value.id))
+        snapTriMaterial = snap.triMaterial
+        viewA.loadModel(snap, snapshotVersion.value.id)
+        // a failed errors fetch goes to the banner and never stops the models loading (review M1)
+        errorsBefore.value = await errorsOrNull(fetchErrors(snapshotVersion.value.id), 'BEFORE', pushBanner)
+        applyErrors(viewA, errorsBefore.value, snapTriMaterial)
+      } finally {
+        loadingA.value = false
+      }
     }
     if (fixedVersion.value && viewB) {
-      const fixBuf = await fetchMeshbuf(fixedVersion.value.id)
-      viewB.loadModel(decodeMeshbuf(fixBuf))
+      loadingB.value = true
+      try {
+        const fix = decodeMeshbuf(await fetchMeshbuf(fixedVersion.value.id))
+        fixTriMaterial = fix.triMaterial
+        viewB.loadModel(fix, fixedVersion.value.id)
+        errorsAfter.value = await errorsOrNull(fetchErrors(fixedVersion.value.id), 'AFTER', pushBanner)
+        applyErrors(viewB, errorsAfter.value, fixTriMaterial)
+      } finally {
+        loadingB.value = false
+      }
     }
     const fetchedRun = await loadVersionRunOnMount(fixedVersion.value?.id, fetchVersionRun)
     latestRun.value = resolveActiveRun(latestRun.value, fetchedRun)
@@ -579,6 +735,7 @@ function updateLayers() {
     viewA.setLayer('hidden', layers.hidden)
     viewA.setXRay(layers.xray)
     viewA.setOnesidedDiagnostic(layers.onesided)
+    viewA.setTextured(layers.textures)
   }
   if (viewB) {
     viewB.setLayer('grid', layers.grid)
@@ -588,6 +745,7 @@ function updateLayers() {
     viewB.setLayer('hidden', layers.hidden)
     viewB.setXRay(layers.xray)
     viewB.setOnesidedDiagnostic(layers.onesided)
+    viewB.setTextured(layers.textures)
   }
 }
 
@@ -604,6 +762,44 @@ async function triggerFix() {
   } finally {
     fixing.value = false
   }
+}
+
+async function onFindErrors(panel: 'before' | 'after') {
+  const version = panel === 'before' ? snapshotVersion.value : fixedVersion.value
+  if (!version) return
+  const busy = panel === 'before' ? busyBefore : busyAfter
+  busy.value = true
+  try {
+    const file = await computeErrors(version.id)
+    if (panel === 'before') errorsBefore.value = file
+    else errorsAfter.value = file
+  } catch (err: any) {
+    const label = panel === 'before' ? 'BEFORE' : 'AFTER'
+    pushBanner(`Find errors failed for ${label}: ${err?.message || 'unknown error'}`)
+  } finally {
+    busy.value = false
+  }
+}
+
+function onFly(spot: ErrorSpot, panel: 'before' | 'after') {
+  const view = panel === 'before' ? viewA : viewB
+  if (!view) return
+  const o = view.originOffset()
+  view.flyTo([spot.centre[0] - o[0], spot.centre[1] - o[1], spot.centre[2] - o[2]], spot.size)
+}
+
+const pickedErrors = computed(() => {
+  const face = pickedFace.value?.faceId
+  const file = pickedFace.value?.viewKind === 'after' ? errorsAfter.value : errorsBefore.value
+  if (face === undefined || !file) return { kinds: [], partners: [] }
+  return { kinds: kindsOf(file, face), partners: partnersOf(file, face) }
+})
+
+function selectFace(face: number) {
+  const current = pickedFace.value
+  if (!current) return
+  const view = current.viewKind === 'before' ? viewA : viewB
+  view?.onPick?.(face, current.point)   // the same path as a click: loads that face's details
 }
 
 function onGlobalKeyDown(e: KeyboardEvent) {
@@ -756,6 +952,9 @@ onBeforeUnmount(() => {
   font-size: 13px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.16);
 }
+.info-save-banner span {
+  white-space: pre-line;
+}
 .info-save-banner .banner-dismiss {
   border: none;
   background: transparent;
@@ -799,6 +998,62 @@ onBeforeUnmount(() => {
   gap: 4px;
 }
 
+.workspace-body {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
+.errors-column {
+  flex: 0 0 auto;
+  width: 340px;
+  background: #fff;
+  border-right: 1px solid #dcdde2;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+  transition: width 0.2s ease;
+}
+
+.errors-column.collapsed {
+  width: 28px;
+}
+
+.errors-collapse-btn {
+  position: absolute;
+  top: 8px;
+  right: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  border: 1px solid #d0d2d7;
+  background: #fff;
+  color: #444;
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  z-index: 3;
+}
+.errors-collapse-btn:hover {
+  background: #f0f1f4;
+}
+
+.errors-column.collapsed .errors-collapse-btn {
+  position: static;
+  margin: 8px auto 0;
+}
+
+.errors-column-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 34px 10px 10px;
+}
+
 .canvases-container {
   flex: 1;
   display: grid;
@@ -806,6 +1061,7 @@ onBeforeUnmount(() => {
   gap: 1px;
   background: #dcdde2;
   min-height: 0;
+  position: relative;
 }
 
 .canvas-panel {
@@ -854,6 +1110,18 @@ onBeforeUnmount(() => {
   flex: 1;
   min-height: 0;
   position: relative;
+}
+
+.panel-loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(246, 246, 248, 0.85);
+  color: #555;
+  font-size: 14px;
+  z-index: 2;
 }
 
 .panel-stats {
@@ -927,6 +1195,14 @@ onBeforeUnmount(() => {
 }
 .btn-close:hover {
   color: #111;
+}
+
+.btn-link {
+  background: none;
+  border: none;
+  color: #1f5bff;
+  cursor: pointer;
+  padding: 0 4px;
 }
 
 .modal-backdrop {

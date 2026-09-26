@@ -12,6 +12,7 @@ describe('useLayers', () => {
     expect(layers.onesided).toBe(false)
     expect(layers.xray).toBe(false)
     expect(layers.sync).toBe(true)
+    expect(layers.textures).toBe(true)
   })
 
   it('toggles layer state when toggleLayer is called', () => {
@@ -53,6 +54,11 @@ describe('useLayers', () => {
     expect(layers.hidden).toBe(false)
     handleKeyDown({ key: 'h' } as KeyboardEvent)
     expect(layers.hidden).toBe(true)
+
+    // Test 'u' for textures
+    expect(layers.textures).toBe(true)
+    handleKeyDown({ key: 'u' } as KeyboardEvent)
+    expect(layers.textures).toBe(false)
   })
 
   it('ignores hotkeys if ctrl/alt/meta are pressed', () => {

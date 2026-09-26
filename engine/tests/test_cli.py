@@ -1148,8 +1148,22 @@ def test_cmd_fix_reports_the_double_layers_that_can_still_flicker(tmp_path, caps
 
     report = json.loads((tmp_path / "out" / m.name / "report.json").read_text(encoding="utf-8"))
     d = report["double_layers"]
+    # never the pair list itself (review M5): every run's report.json and fix_runs.report_json
+    # would carry every remaining pair; the 3D error filter's file is where the viewer gets them
     assert set(d) == {"count", "area", "px", "planes"}
     assert d["count"] == 1 and abs(d["area"] - 187.5) < 1e-3
     assert d["count"] == sum(p["pairs"] for p in d["planes"])
     [line] = [ln for ln in capsys.readouterr().out.splitlines() if "double layers" in ln]
     assert "1 pairs" in line and "187.5 sq in" in line
+
+
+def test_cmd_errors_writes_the_errors_file(tmp_path):
+    from engine.tests.fixtures.build import two_sided_wall
+    snap = tmp_path / "snap"
+    snap.mkdir()
+    write_obj(two_sided_wall(), snap / "two_sided_wall.obj")
+    (snap / "materials.mtl").write_text("newmtl default\nKd 0.8 0.8 0.8\n", encoding="utf-8")
+    out = tmp_path / "errors.json"
+    result = cli.cmd_errors(snap, out, FixProfile(n_dirs=32))
+    assert json.loads(out.read_text(encoding="utf-8")) == result
+    assert result["counts"]["flicker_diff"] == 4

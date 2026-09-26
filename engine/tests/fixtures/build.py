@@ -2299,3 +2299,28 @@ def real_top_under_an_open_landing():
     return _mesh("real_top_under_an_open_landing", m.positions.tolist(), m.uvs.tolist(),
                  m.face_v[keep].tolist(), m.face_vt[keep].tolist(), materials=("m0", "m1"),
                  face_material=m.face_material[keep].tolist())
+
+
+def two_sided_wall(size=40.0, uv_per_unit=0.05):
+    """CHTM 5th floor's flicker in miniature: a zero-thickness wall at y = 0 written twice, once
+    per side, in the SAME place -- faces 0-1 face -y in material 0 ("concrete"), faces 2-3 face
+    +y in material 1 ("prismarine"), as the export writes a two-sided SketchUp face (OBJ lines
+    13472 / 14606 on chtm_5ft_floor). Both sides are open to the air, so both layers are seen."""
+    s = size
+    P = [[0.0, 0.0, 0.0], [s, 0.0, 0.0], [s, 0.0, s], [0.0, 0.0, s]]
+    fv = [[0, 1, 2], [0, 2, 3], [0, 2, 1], [0, 3, 2]]
+    uvs = (np.asarray(P, float)[:, [0, 2]] * uv_per_unit).tolist()
+    return _mesh("two_sided_wall", P, uvs, fv, fv, materials=("concrete", "prismarine"),
+                 face_material=[0, 0, 1, 1])
+
+
+def t_junction_strip_with_a_stray():
+    """`t_junction_strip()` plus a DETACHED 2 sq in triangle floating 20 in above it: face 6 is the
+    zero-area stitching triangle and face 7 a one-face stray fragment -- one of each thing the 3D
+    error filter's "Zero-area and stray bits" kind holds (review I4)."""
+    m = t_junction_strip()
+    base = len(m.positions)
+    P = np.vstack([m.positions, [[0.0, 0.0, 20.0], [2.0, 0.0, 20.0], [0.0, 2.0, 20.0]]])
+    fv = np.vstack([m.face_v, [[base, base + 1, base + 2]]])
+    return _mesh("t_strip_with_stray", P.tolist(), (P[:, :2] * 0.05).tolist(), fv.tolist(),
+                 fv.tolist())

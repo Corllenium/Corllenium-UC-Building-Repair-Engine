@@ -263,4 +263,119 @@ def test_double_layers_counts_an_opposite_wound_pair_and_nothing_on_a_single_lay
     single = grid_slab()
     topo, positions_c = _centred(single)
     assert double_layers(positions_c, topo.face_w, 0.15, size=_SIZE) == {
-        "count": 0, "area": 0.0, "px": 0, "planes": []}
+        "count": 0, "area": 0.0, "px": 0, "planes": [], "pair_list": []}
+
+
+def test_double_layers_lists_every_pair_with_its_partner():
+    from engine.fixes.overlap import double_layers
+    from engine.tests.fixtures.build import back_to_back_pair
+    m = back_to_back_pair()
+    pos = np.asarray(m.positions, float)
+    centre = (pos.min(axis=0) + pos.max(axis=0)) / 2
+    d = double_layers(pos - centre, np.asarray(m.face_v), depth_tol=0.01, centre=centre)
+    assert d["count"] == 1
+    [(i, j, shared, opposite)] = d["pair_list"]
+    assert (i, j) == (0, 1)
+    assert opposite is True
+    assert shared == pytest.approx(d["area"])
+
+
+def test_double_layers_pair_list_sorted_by_descending_shared_area():
+    """Verify pair_list is sorted by (-shared_area, i, j). With multiple pairs having different
+    shared areas, the sort order is tested (not just a single-element list that passes any sort)."""
+    from engine.fixes.overlap import double_layers
+    from engine.tests.fixtures.build import split_double_layer
+
+    m = split_double_layer()
+    pos = np.asarray(m.positions, float)
+    centre = (pos.min(axis=0) + pos.max(axis=0)) / 2
+    d = double_layers(pos - centre, np.asarray(m.face_v), depth_tol=0.01, centre=centre)
+
+    pair_list = d["pair_list"]
+
+    # Verify we have at least one pair (split_double_layer has overlapping triangles)
+    assert len(pair_list) > 0, f"Expected at least one pair, got {len(pair_list)}"
+
+    # Verify i < j on every row and types are correct
+    for i, j, shared, opposite in pair_list:
+        assert i < j, f"Expected i < j, got i={i}, j={j}"
+        assert isinstance(shared, (int, float)), f"Expected shared area numeric, got {type(shared)}"
+        assert isinstance(opposite, bool), f"Expected opposite bool, got {type(opposite)}"
+
+    # Verify sorted by descending shared area (largest first)
+    # If two pairs have the same area, they're sorted by (i, j)
+    areas = [shared for _, _, shared, _ in pair_list]
+    for idx in range(len(areas) - 1):
+        if areas[idx] == areas[idx + 1]:
+            # Equal areas: check (i, j) ordering
+            i1, j1, _, _ = pair_list[idx]
+            i2, j2, _, _ = pair_list[idx + 1]
+            assert (i1, j1) < (i2, j2), f"For equal areas, expected (i,j) ordering: ({i1},{j1}) vs ({i2},{j2})"
+        else:
+            assert areas[idx] >= areas[idx + 1], f"pair_list not sorted by descending area: {areas}"
+
+
+def _reference_px(positions_c, faces, result, depth_tol, views, size):
+    """The visible-pixel total exactly as double_layers counted it before 2026-09-26: every surface
+    along the ray, from the caster's all_hits."""
+    from engine.guard.views import ortho_first_hit
+    from engine.rays.caster import EmbreeCaster, ReusableCaster
+    partners = {}
+    for i, j, _s, _o in result["pair_list"]:
+        partners.setdefault(i, set()).add(j)
+        partners.setdefault(j, set()).add(i)
+    watched = np.array(sorted(partners), dtype=np.int64)
+    caster = EmbreeCaster(positions_c, faces)
+    reusable = ReusableCaster(EmbreeCaster)
+    ids_all = np.arange(len(faces), dtype=np.int64)
+    total = 0
+    for view in views:
+        buf = ortho_first_hit(positions_c, faces, ids_all, view, positions_c, size, reusable)
+        mask = (buf.tri >= 0) & np.isin(buf.tri, watched)
+        if not mask.any():
+            continue
+        rows, cols = np.nonzero(mask)
+        origins = buf.xs[cols][:, None] * buf.right + buf.ys[rows][:, None] * buf.up + buf.standoff
+        ray, hit, t = caster.all_hits(origins, np.tile(np.asarray(buf.direction, float), (len(origins), 1)))
+        first_f, first_t = buf.tri[rows, cols], buf.depth[rows, cols]
+        near = np.abs(t - first_t[ray]) <= depth_tol
+        met = {}
+        for q, f in zip(ray[near].tolist(), hit[near].tolist()):
+            met.setdefault(q, set()).add(f)
+        total += sum(1 for q in range(len(rows)) if partners[int(first_f[q])] & met.get(q, set()))
+    return total
+
+
+@pytest.mark.parametrize("build", ["back_to_back_pair", "split_double_layer", "two_sided_wall"])
+def test_double_layers_counts_the_same_pixels_as_every_surface_along_the_ray(build):
+    from engine.fixes.overlap import double_layers
+    from engine.guard.views import VIEWS_26
+    from engine.tests.fixtures import build as fixtures
+    m = getattr(fixtures, build)()
+    pos = np.asarray(m.positions, float)
+    centre = (pos.min(axis=0) + pos.max(axis=0)) / 2
+    faces = np.asarray(m.face_v)
+    d = double_layers(pos - centre, faces, 0.01, VIEWS_26, (300, 200), centre=centre)
+    assert d["px"] > 0
+    reference = _reference_px(pos - centre, faces, d, 0.01, VIEWS_26, (300, 200))
+    if build == "two_sided_wall":
+        assert d["px"] == reference
+    else:
+        # rays grazing exactly a partner's edge: reference is Embree's float32 mesh plus the
+        # caster's coincident tolerance, the new count is a float64 barycentric test at eps=1e-6;
+        # 1 px of 153028 (back_to_back_pair) and 3 px of 102022 (split_double_layer), measured 2026-09-26
+        assert abs(d["px"] - reference) <= max(5, reference * 1e-4)
+
+
+def test_double_layers_no_longer_asks_the_caster_for_every_surface(monkeypatch):
+    from engine.fixes import overlap
+    from engine.rays.caster import EmbreeCaster
+    from engine.tests.fixtures.build import two_sided_wall
+
+    def forbidden(*a, **k):
+        raise AssertionError("all_hits called")
+
+    monkeypatch.setattr(EmbreeCaster, "all_hits", forbidden)
+    m = two_sided_wall()
+    pos = np.asarray(m.positions, float)
+    overlap.double_layers(pos - pos.mean(axis=0), np.asarray(m.face_v), 0.01)

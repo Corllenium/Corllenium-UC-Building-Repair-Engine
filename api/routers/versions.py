@@ -1,7 +1,10 @@
 import json
 import logging
+import os
 from pathlib import Path
 import shutil
+import struct
+import tempfile
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from fastapi.responses import FileResponse
@@ -12,14 +15,16 @@ from api.db import get_db
 from api.models import FixRun, ModelVersion, VersionAsset
 from api.schemas import FaceOut, FixRequest, FixRunOut, ModelVersionOut
 from api.settings import Settings, get_settings
+from api.routers.errors import write_errors
 from engine.cli import _build_report, _write_guard_images, _write_skp, copy_skp_to_owner
+from engine.detectors.errors import find_errors
 from engine.fixes.pipeline import FixProfile, fix_object
 from engine.io.mtl import parse_mtl, texture_flatness
 from engine.io.obj_reader import read_obj
 from engine.io.obj_writer import write_obj, write_obj_polygons
 from engine.io.snapshot import sha256_file
 from engine.pipeline import analyse_topology, flat_material_indices
-from engine.transport.meshbuf import pack_meshbuf
+from engine.transport.meshbuf import pack_meshbuf, MAGIC, VERSION
 import numpy as np
 import re
 import threading
@@ -31,6 +36,31 @@ router = APIRouter(prefix="/api/versions", tags=["versions"])
 _active_model_fixes: set[int] = set()
 _fixes_lock = threading.Lock()
 _skp_lock = threading.Lock()
+
+
+def meshbuf_cache_file(settings: Settings, version_id: int) -> Path:
+    return settings.data_dir / "meshbuf" / f"version-{version_id}.bin"
+
+
+def _is_valid_meshbuf_format(buf: bytes) -> bool:
+    """Check if buffer is a valid meshbuf format (MAGIC and current VERSION)."""
+    if len(buf) < 8:
+        return False
+    if buf[:4] != MAGIC:
+        return False
+    try:
+        version = struct.unpack("<I", buf[4:8])[0]
+        return version == VERSION
+    except struct.error:
+        return False
+
+
+def _meshbuf_response(buf: bytes) -> Response:
+    hlen = struct.unpack("<I", buf[8:12])[0]
+    faces = json.loads(buf[12:12 + hlen].decode("utf-8").strip())["counts"]["faces"]
+    return Response(content=buf, media_type="application/octet-stream",
+                    headers={"X-Tris-Count": str(faces), "X-Face-Count": str(faces),
+                             "Cache-Control": "public, max-age=3600"})
 
 
 def _sanitize_filename(name: str | None, fallback: str) -> str:
@@ -60,6 +90,17 @@ def get_meshbuf(
     version = db.scalar(select(ModelVersion).where(ModelVersion.id == id))
     if version is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Version not found")
+
+    # Versions are immutable: once a version is created, its OBJ and MTL never change.
+    # The importer's legacy flat_materials backfill (api/services/importer.py) may set that field
+    # on an existing version; it converges to the same value this route would compute from the same
+    # MTL bytes, so the cache stays valid. If that backfill ever changes, delete data/meshbuf/.
+    cached = meshbuf_cache_file(settings, id)
+    if cached.exists():
+        buf = cached.read_bytes()
+        if _is_valid_meshbuf_format(buf):
+            return _meshbuf_response(buf)
+        # Cache is stale (wrong format); will rebuild below and overwrite
 
     obj_asset = db.scalar(
         select(VersionAsset).where(VersionAsset.version_id == id, VersionAsset.kind == "obj")
@@ -98,15 +139,19 @@ def get_meshbuf(
     topo = analyse_topology(mesh, flat_mats)
     buf = pack_meshbuf(mesh, topo, textures)
 
-    return Response(
-        content=buf,
-        media_type="application/octet-stream",
-        headers={
-            "X-Tris-Count": str(mesh.n_faces),
-            "X-Face-Count": str(mesh.n_faces),
-            "Cache-Control": "public, max-age=3600",
-        },
-    )
+    cached.parent.mkdir(parents=True, exist_ok=True)
+    fd, tmp_path = tempfile.mkstemp(dir=cached.parent, prefix=f"version-{id}-", suffix=".tmp")
+    try:
+        with os.fdopen(fd, "wb") as f:
+            f.write(buf)
+        os.replace(tmp_path, cached)
+    except Exception:
+        try:
+            os.unlink(tmp_path)
+        except OSError:
+            pass
+        raise
+    return _meshbuf_response(buf)
 
 
 @router.get("/{id}/textures/{name}")
@@ -556,6 +601,12 @@ def run_fix_pipeline(
                 except Exception as exc:
                     logger.exception("Failed to commit copy results to database: %s", exc)
                     db.rollback()
+
+        # the 3D error filter's AFTER file; never allowed to change the run's own outcome
+        try:
+            write_errors(settings, fix_run.fixed_version_id, find_errors(result.mesh, profile))
+        except Exception:
+            logger.exception("errors file for fixed version %s", fix_run.fixed_version_id)
 
         return fix_run
 

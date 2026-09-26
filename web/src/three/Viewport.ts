@@ -1,6 +1,8 @@
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { DecodedMeshbuf } from './meshbuf'
+import { groupByMaterial, textureUrl } from '../utils/materialGroups'
+import { chooseFace, type SlotHit } from '../utils/errorLayers'
 
 export const EDGE_REAL = 0
 export const EDGE_REMOVABLE = 1
@@ -16,6 +18,93 @@ const COLORS = {
   nonmanifold: 0xd8282f, // red: non-manifold edges
 }
 
+// Crack dots and open edges sit exactly on a real surface (a T-junction point, an edge), so a
+// plain depth test would z-fight that surface and lose. After three's own projection, the vertex
+// shader re-projects each vertex from its view-space position scaled by 0.998 toward the eye: the
+// same pixel (the camera is a PerspectiveCamera, which maps every point on a line through the eye
+// to one pixel) at the depth of a point 0.2 % of its distance nearer. That beats the surface it
+// sits on at every zoom, and any real wall in front hides it unless the wall is within that 0.2 %:
+// 6.5 in at CHTM's overview (a 24-bit depth step there is 0.56 in), 0.19 in at the 96 in fly-to.
+// The constant NDC nudge this replaces showed them through about 114 ft of walls at the overview
+// (review I2). Used by both setErrorLines and setErrorPoints.
+export const DEPTH_BIAS_GLSL = '#include <project_vertex>\n  gl_Position = projectionMatrix * vec4(mvPosition.xyz * 0.998, 1.0);'
+
+/** The options every material of the textured facade shares: the textured ones, the flat ones
+ *  and the fallback for faces with no material (review M8). */
+const SURFACE_OPTIONS = {
+  side: THREE.DoubleSide, roughness: 0.9, metalness: 0.0,
+  polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1,
+}
+
+/** The grey a material without a texture is drawn in: the flat facade's shade for material `i`. */
+function flatGrey(i: number): THREE.Color {
+  return new THREE.Color().setScalar(0.8 + (i % 5) * 0.04)
+}
+
+/** The textured facade's materials: one per model material, then the fallback for faces with no
+ *  material (index `materials.length`), all with SURFACE_OPTIONS. A texture file is loaded ONCE
+ *  per URL and shared by every material that uses it; `textures` holds each, for clear() to
+ *  dispose once. When one fails to load, the materials using it drop it and show their flat grey
+ *  instead of black (review M8). `load` is TextureLoader.load with its error callback. */
+export function texturedSurfaceMaterials(materials: { texture: string | null }[], versionId: number,
+  load: (url: string, onError: () => void) => THREE.Texture,
+): { materials: THREE.MeshStandardMaterial[]; textures: Map<string, THREE.Texture> } {
+  const textures = new Map<string, THREE.Texture>()
+  const out: THREE.MeshStandardMaterial[] = []
+  materials.forEach((m, i) => {
+    const url = textureUrl(versionId, m.texture)
+    const mat = new THREE.MeshStandardMaterial({ ...SURFACE_OPTIONS, color: url ? 0xffffff : flatGrey(i) })
+    if (url) {
+      let tex = textures.get(url)
+      if (!tex) {
+        const failed = () => out.forEach((o, k) => {
+          if (o.map && o.map === tex) {
+            o.map = null
+            o.color.copy(flatGrey(k))
+            o.needsUpdate = true
+          }
+        })
+        tex = load(url, failed)
+        tex.wrapS = tex.wrapT = THREE.RepeatWrapping
+        tex.magFilter = THREE.NearestFilter          // block textures stay crisp
+        tex.colorSpace = THREE.SRGBColorSpace
+        textures.set(url, tex)
+      }
+      mat.map = tex
+    }
+    out.push(mat)
+  })
+  out.push(new THREE.MeshStandardMaterial({ ...SURFACE_OPTIONS, color: 0xcccccc }))   // faces with no material
+  return { materials: out, textures }
+}
+
+/** Dispose `objects`' geometries and materials, and every texture among their maps and in
+ *  `textures` exactly once, however many materials share it (review M8). */
+export function disposeObjects(objects: THREE.Object3D[], textures: Iterable<THREE.Texture> = []) {
+  const maps = new Set<THREE.Texture>(textures)
+  for (const o of objects) {
+    const { geometry, material } = o as THREE.Mesh
+    geometry?.dispose()
+    for (const m of material ? (Array.isArray(material) ? material : [material]) : []) {
+      const map = (m as THREE.MeshStandardMaterial).map
+      if (map) maps.add(map)
+      m.dispose()
+    }
+  }
+  maps.forEach(t => t.dispose())
+}
+
+/** The error overlay's material: its vertex colours, drawn a hair in front of the surface each
+ *  face lies on. Both sides are drawn, which also lets a pick ray meet a face from behind: the
+ *  raycaster skips a FrontSide triangle's back, and an interior flicker face faces away from half
+ *  the views (review I3). */
+export function errorOverlayMaterial(): THREE.MeshBasicMaterial {
+  return new THREE.MeshBasicMaterial({
+    vertexColors: true, side: THREE.DoubleSide,
+    polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1,
+  })
+}
+
 export class Viewport {
   el: HTMLElement
   scene: THREE.Scene
@@ -25,15 +114,28 @@ export class Viewport {
   group: THREE.Group
   parts: {
     facade?: THREE.Mesh
+    textured?: THREE.Mesh
     grid?: THREE.LineSegments
     outline?: THREE.LineSegments
     tri?: THREE.LineSegments
     creases?: THREE.LineSegments
     hidden?: THREE.Mesh
     backfaceDiagnostic?: THREE.Mesh
+    errors?: THREE.Mesh
+    errorLines?: THREE.LineSegments
+    errorPoints?: THREE.Points
   } = {}
   private currentData?: DecodedMeshbuf
   private lastPositions?: Float32Array
+  private faceOrder?: Uint32Array
+  private overlayFaceIds: number[] | null = null   // the face drawn in each error-overlay slot
+  private textures = new Map<string, THREE.Texture>()   // this load's textures, one per URL
+  private xray = false
+  private isolate = false
+  private texturedOn = true
+  private blinkA: Float32Array | null = null
+  private blinkB: Float32Array | null = null
+  private blinkPhase = -1
   private animId: number = 0
   private resizeObserver: ResizeObserver
   onPick?: (faceId: number, point: THREE.Vector3) => void
@@ -73,6 +175,18 @@ export class Viewport {
 
   private loop = () => {
     this.controls.update()
+    if (this.blinkA && this.blinkB && this.parts.errors) {
+      const phase = Math.floor(performance.now() / 125) % 2   // 4 swaps a second
+      if (phase !== this.blinkPhase) {
+        const attr = this.parts.errors.geometry.getAttribute('color') as THREE.BufferAttribute
+        const blink = phase === 0 ? this.blinkA : this.blinkB
+        if (blink.length === attr.array.length) {
+          attr.copyArray(blink)
+          attr.needsUpdate = true
+        }
+        this.blinkPhase = phase
+      }
+    }
     this.renderer.render(this.scene, this.camera)
     this.animId = requestAnimationFrame(this.loop)
   }
@@ -87,19 +201,17 @@ export class Viewport {
   }
 
   clear() {
-    for (const o of [...this.group.children]) {
-      if ((o as any).geometry) (o as any).geometry.dispose()
-      if ((o as any).material) {
-        const m = (o as any).material
-        if (Array.isArray(m)) m.forEach(x => x.dispose())
-        else m.dispose()
-      }
-      this.group.remove(o)
-    }
+    const objects = [...this.group.children]
+    disposeObjects(objects, this.textures.values())   // each texture once, however many share it
+    for (const o of objects) this.group.remove(o)
+    this.textures = new Map()
     this.parts = {}
+    this.faceOrder = undefined
+    this.overlayFaceIds = null
+    this.blinkA = this.blinkB = null
   }
 
-  loadModel(data: DecodedMeshbuf) {
+  loadModel(data: DecodedMeshbuf, versionId?: number) {
     this.clear()
 
     const nFaces = data.header.counts.faces
@@ -195,6 +307,35 @@ export class Viewport {
       this.group.add(oLines)
     }
 
+    // A textured facade, drawn instead of the flat-shaded one when textures are on and the
+    // model has any. Non-indexed geometry sorted by material so each material can be one
+    // three.js draw group; faceOrder maps a slot in that sort back to the real face id.
+    if (versionId !== undefined && data.header.materials.some(m => m.texture)) {
+      const { order, groups } = groupByMaterial(data.triMaterial)
+      const n = order.length
+      const pos = new Float32Array(n * 9), nor = new Float32Array(n * 9), uv = new Float32Array(n * 6)
+      for (let k = 0; k < n; k++) {
+        const f = order[k]
+        pos.set(data.positions.subarray(f * 9, f * 9 + 9), k * 9)
+        nor.set(data.normals.subarray(f * 9, f * 9 + 9), k * 9)
+        uv.set(data.uvs.subarray(f * 6, f * 6 + 6), k * 6)
+      }
+      const tgeom = new THREE.BufferGeometry()
+      tgeom.setAttribute('position', new THREE.BufferAttribute(pos, 3))
+      tgeom.setAttribute('normal', new THREE.BufferAttribute(nor, 3))
+      tgeom.setAttribute('uv', new THREE.BufferAttribute(uv, 2))
+      const nMat = data.header.materials.length
+      const loader = new THREE.TextureLoader()
+      const { materials: mats, textures } = texturedSurfaceMaterials(data.header.materials, versionId,
+        (url, onError) => loader.load(url, undefined, undefined, onError))
+      this.textures = textures
+      for (const g of groups) tgeom.addGroup(g.start, g.count, g.material < nMat ? g.material : nMat)
+      this.parts.textured = new THREE.Mesh(tgeom, mats)
+      this.faceOrder = order
+      this.group.add(this.parts.textured)
+      this.setTextured(this.texturedOn)
+    }
+
     // Fit camera to bounding box
     const box = new THREE.Box3().setFromBufferAttribute(geom.getAttribute('position') as THREE.BufferAttribute)
     const c = box.getCenter(new THREE.Vector3())
@@ -278,10 +419,9 @@ export class Viewport {
   }
 
   setOnesidedDiagnostic(enabled: boolean) {
-    if (this.parts.facade) {
-      const mat = this.parts.facade.material as THREE.MeshStandardMaterial
-      mat.side = enabled ? THREE.FrontSide : THREE.DoubleSide
-      mat.needsUpdate = true
+    for (const m of this.surfaceMaterials()) {
+      m.side = enabled ? THREE.FrontSide : THREE.DoubleSide
+      m.needsUpdate = true
     }
     if (this.parts.backfaceDiagnostic) {
       this.parts.backfaceDiagnostic.visible = enabled
@@ -328,37 +468,160 @@ export class Viewport {
   }
 
   setDoubleSided(doubleSided: boolean) {
-    if (this.parts.facade) {
-      this.parts.facade.material.side = doubleSided ? THREE.DoubleSide : THREE.FrontSide
-      this.parts.facade.material.needsUpdate = true
+    for (const m of this.surfaceMaterials()) {
+      m.side = doubleSided ? THREE.DoubleSide : THREE.FrontSide
+      m.needsUpdate = true
     }
   }
 
+  setTextured(on: boolean) {
+    this.texturedOn = on
+    const hasTextured = !!this.parts.textured
+    if (this.parts.textured) this.parts.textured.visible = on
+    if (this.parts.facade) this.parts.facade.visible = !(on && hasTextured)
+  }
+
   setXRay(xray: boolean) {
-    if (this.parts.facade) {
-      const m = this.parts.facade.material as THREE.MeshStandardMaterial
-      m.transparent = xray
-      m.opacity = xray ? 0.25 : 1.0
-      m.depthWrite = !xray
+    this.xray = xray
+    this.applyFacadeLook()
+  }
+
+  /** Every material the model's surface is drawn with, shaded and textured -- the flat facade
+   *  and, when textures are on, the textured mesh's per-material list. */
+  private surfaceMaterials(): THREE.MeshStandardMaterial[] {
+    const out: THREE.MeshStandardMaterial[] = []
+    for (const mesh of [this.parts.facade, this.parts.textured]) {
+      if (!mesh) continue
+      const m = mesh.material
+      out.push(...((Array.isArray(m) ? m : [m]) as THREE.MeshStandardMaterial[]))
+    }
+    return out
+  }
+
+  /** Isolate wins over X-ray; either wins over the plain opaque look. Shared so toggling one
+   *  never clobbers the other's material state, on the facade or the textured mesh alike. */
+  private applyFacadeLook() {
+    const materials = this.surfaceMaterials()
+    for (const m of materials) {
+      if (this.isolate) {
+        m.transparent = true
+        m.opacity = 0.08
+        m.depthWrite = false
+      } else if (this.xray) {
+        m.transparent = true
+        m.opacity = 0.25
+        m.depthWrite = false
+      } else {
+        m.transparent = false
+        m.opacity = 1.0
+        m.depthWrite = true
+      }
       m.needsUpdate = true
     }
+  }
+
+  private removePart(name: 'errors' | 'errorLines' | 'errorPoints') {
+    const part = this.parts[name]
+    if (!part) return
+    this.group.remove(part)
+    part.geometry.dispose()
+    ;(part.material as THREE.Material).dispose()
+    delete this.parts[name]
+  }
+
+  setErrorOverlay(faces: number[], colors: Float32Array, isolate: boolean) {
+    this.removePart('errors')
+    this.overlayFaceIds = null
+    this.blinkA = this.blinkB = null   // stale buffers would be sized for the old overlay
+    this.isolate = faces.length > 0 && isolate   // clearing the overlay always restores the normal look
+    this.applyFacadeLook()
+    if (!this.lastPositions || faces.length === 0) return
+    const pos = new Float32Array(faces.length * 9)
+    faces.forEach((f, slot) => pos.set(this.lastPositions!.subarray(f * 9, f * 9 + 9), slot * 9))
+    const geom = new THREE.BufferGeometry()
+    geom.setAttribute('position', new THREE.BufferAttribute(pos, 3))
+    geom.setAttribute('color', new THREE.BufferAttribute(colors.slice(), 3))
+    this.parts.errors = new THREE.Mesh(geom, errorOverlayMaterial())
+    this.overlayFaceIds = faces
+    this.group.add(this.parts.errors)
+    this.blinkPhase = -1
+  }
+
+  setErrorBlink(colorsA: Float32Array | null, colorsB: Float32Array | null) {
+    this.blinkA = colorsA
+    this.blinkB = colorsB
+    this.blinkPhase = -1
+  }
+
+  setErrorLines(segments: Float32Array, color: number) {
+    this.removePart('errorLines')
+    if (segments.length === 0) return
+    const geom = new THREE.BufferGeometry()
+    geom.setAttribute('position', new THREE.BufferAttribute(segments.slice(), 3))
+    const mat = new THREE.LineBasicMaterial({ color, depthTest: true, depthWrite: false })
+    mat.onBeforeCompile = (shader) => {
+      shader.vertexShader = shader.vertexShader.replace('#include <project_vertex>', DEPTH_BIAS_GLSL)
+    }
+    this.parts.errorLines = new THREE.LineSegments(geom, mat)
+    this.parts.errorLines.renderOrder = 3
+    this.group.add(this.parts.errorLines)
+  }
+
+  setErrorPoints(points: Float32Array, color: number) {
+    this.removePart('errorPoints')
+    if (points.length === 0) return
+    const geom = new THREE.BufferGeometry()
+    geom.setAttribute('position', new THREE.BufferAttribute(points.slice(), 3))
+    const mat = new THREE.PointsMaterial({ color, size: 6, sizeAttenuation: false, depthTest: true, depthWrite: false })
+    mat.onBeforeCompile = (shader) => {
+      shader.vertexShader = shader.vertexShader.replace('#include <project_vertex>', DEPTH_BIAS_GLSL)
+    }
+    this.parts.errorPoints = new THREE.Points(geom, mat)
+    this.parts.errorPoints.renderOrder = 3
+    this.group.add(this.parts.errorPoints)
+  }
+
+  flyTo(centre: [number, number, number], size: number) {
+    const target = new THREE.Vector3(...centre)
+    const dir = this.camera.position.clone().sub(this.controls.target).normalize()
+    if (dir.lengthSq() === 0) dir.set(0, -1, 0.3).normalize()
+    this.controls.target.copy(target)
+    this.camera.position.copy(target).add(dir.multiplyScalar(Math.max(size, 60) * 1.6))
+    this.controls.update()
+    this.controls.dispatchEvent({ type: 'change' } as any)   // lets syncViewports move the other panel
+  }
+
+  originOffset(): [number, number, number] {
+    return (this.currentData?.header.origin_offset ?? [0, 0, 0]) as [number, number, number]
+  }
+
+  /** The loaded model's face count, its meshbuf's `counts.faces`; null before any model. */
+  faceCount(): number | null {
+    return this.currentData?.header.counts.faces ?? null
   }
 
   private setupPicking() {
     const raycaster = new THREE.Raycaster()
     const mouse = new THREE.Vector2()
+    const firstHit = (mesh: THREE.Mesh | undefined): SlotHit<THREE.Vector3> | null => {
+      const hit = mesh ? raycaster.intersectObject(mesh)[0] : undefined
+      return hit && hit.faceIndex != null ? { faceIndex: hit.faceIndex, point: hit.point } : null
+    }
 
     this.el.addEventListener('click', (e: MouseEvent) => {
-      if (!this.onPick || !this.parts.facade) return
+      const target = this.parts.textured?.visible ? this.parts.textured : this.parts.facade
+      if (!this.onPick || !target) return
       const rect = this.el.getBoundingClientRect()
       mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1
       mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1
 
       raycaster.setFromCamera(mouse, this.camera)
-      const hits = raycaster.intersectObject(this.parts.facade)
-      if (hits.length > 0 && hits[0].faceIndex !== undefined) {
-        this.onPick(hits[0].faceIndex, hits[0].point)
-      }
+      // In Isolate or X-ray the surface is a faded ghost, so the error overlay is tried first: a
+      // click on a highlighted face picks it, not the wall in front of it (review I3).
+      const ghosted = this.isolate || this.xray
+      const pick = chooseFace(ghosted, ghosted ? firstHit(this.parts.errors) : null, this.overlayFaceIds,
+        firstHit(target), target === this.parts.textured ? this.faceOrder ?? null : null)
+      if (pick) this.onPick(pick.faceId, pick.point)
     })
   }
 

@@ -226,8 +226,11 @@ def _build_report(name: str, obj_path: Path, mesh: MeshData, result: FixResult,
         # side, for the input, the solidified reference and the final mesh, per view and total
         "backface_px": result.backface_px,
         # brief 15 item 1: what can still flicker in Unity -- pairs of shipped faces drawn twice in
-        # one plane, their shared area, their pixels over the 26 views, and a per-plane list
-        "double_layers": result.double_layers,
+        # one plane, their shared area, their pixels over the 26 views, and a per-plane list. Not
+        # the pair list itself (review M5): it would put every remaining pair in every run's
+        # report.json and fix_runs.report_json; the 3D error filter's file carries it.
+        "double_layers": (None if result.double_layers is None else
+                          {k: v for k, v in result.double_layers.items() if k != "pair_list"}),
         "feedback_history": result.feedback_history,
         "guard_after_removal": _guard_report_dict(result.guard_after_removal),
         # the MERGED mesh's guard, kept even when the merge was rolled back and something else
@@ -805,6 +808,19 @@ def cmd_preview_data(snapshot_dir: Path, out_dir: Path, profile: FixProfile | No
     return 0
 
 
+def cmd_errors(snapshot_dir: Path, out_file: Path, profile: FixProfile | None = None) -> dict:
+    """What is wrong with the snapshot's model, face by face (the 3D error filter's file);
+    the model is not changed."""
+    from engine.detectors.errors import find_errors
+    _obj_path, mesh, _flatness, _mtl = _load_snapshot(Path(snapshot_dir))
+    result = find_errors(mesh, profile or FixProfile())
+    out_file = Path(out_file)
+    out_file.parent.mkdir(parents=True, exist_ok=True)
+    out_file.write_text(json.dumps(result), encoding="utf-8")
+    print(f"{mesh.name}: " + ", ".join(f"{k} {v}" for k, v in result["counts"].items()))
+    return result
+
+
 # ------------------------------------------------------------------------------------------ main
 
 
@@ -833,6 +849,10 @@ def build_parser() -> argparse.ArgumentParser:
                            help="do not close slabs with skirts and bottoms before fixing")
     preview_p.add_argument("--out", default="preview/data")
 
+    errors_p = sub.add_parser("errors", help="find what is wrong with each face, without fixing it")
+    errors_p.add_argument("snapshot", type=Path)
+    errors_p.add_argument("--out", type=Path, required=True)
+
     return parser
 
 
@@ -845,6 +865,9 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "preview-data":
         return cmd_preview_data(Path(args.snapshot_dir), Path(args.out),
                                 solidify=args.solidify)
+    elif args.command == "errors":
+        cmd_errors(args.snapshot, args.out)
+        return 0
     return 1
 
 

@@ -119,6 +119,19 @@ export const LAYER_KINDS: Record<string, string> = {
   onesided: 'reversed-faces',
 }
 
+// The error-filter panel's kinds (Task 8), mapped to the catalogue kind id their (i) button
+// opens. facade is a layer (Task 14), not an error, and gets no description window.
+export const ERROR_KIND_CATALOGUE: Record<string, string | null> = {
+  flicker_diff: 'flicker',
+  flicker_same: 'flicker',
+  reversed: 'reversed-faces',
+  hidden: 'hidden-faces',
+  loose: 'fragments',
+  open_edges: 'holes-sides',
+  cracks: 'cracks',
+  facade: null,
+}
+
 export const WINDOW_HEADER = 48 // px of the floating window's title bar that must stay on screen
 
 export function engineStem(file: string): string {
