@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from api.db import get_db
 from api.models import ModelVersion, VersionAsset
 from api.settings import Settings, get_settings
-from engine.detectors.errors import find_errors
+from engine.detectors.errors import ERRORS_VERSION, find_errors
 from engine.fixes.pipeline import FixProfile
 from engine.io.obj_reader import read_obj
 
@@ -48,6 +48,9 @@ def compute_errors(id: int, db: Session = Depends(get_db), settings: Settings = 
 @router.get("/{id}/errors")
 def get_errors(id: int, settings: Settings = Depends(get_settings)):
     path = errors_file(settings, id)
-    if not path.exists():
+    result = json.loads(path.read_text(encoding="utf-8")) if path.exists() else None
+    # A file an older find_errors wrote (another version, or none) means something else now, so
+    # it reads as not computed yet and the panel offers Find errors again (review M2).
+    if not isinstance(result, dict) or result.get("version") != ERRORS_VERSION:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="not computed yet")
-    return JSONResponse(json.loads(path.read_text(encoding="utf-8")))
+    return JSONResponse(result)

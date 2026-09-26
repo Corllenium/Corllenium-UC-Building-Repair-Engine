@@ -27,6 +27,12 @@ from engine.pipeline import analyse_topology
 from engine.topo.edges import EDGE_OPEN
 from engine.vis.exposure import EXP_HIDDEN, EXP_OUTSIDE, classify_exposure, compute_side_exposure
 
+#: The file's schema version, written as its `"version"`. Bumped whenever what the file MEANS
+#: changes, and the API serves no file of another version (review M2): 2 since the facade layer
+#: (Task 14), T-junction edges no longer read as open (Task 15) and `loose` holding the fragment
+#: and sliver candidates (review I4).
+ERRORS_VERSION = 2
+
 #: In drawing priority: a face in several kinds is drawn in the first.
 KINDS = ("flicker_diff", "flicker_same", "reversed", "hidden", "loose", "open_edges", "cracks")
 SPOTS_PER_KIND = 20
@@ -120,7 +126,7 @@ def find_errors(mesh: MeshData, profile: FixProfile = FixProfile()) -> dict:
     counts = {k: len(face_lists[k]) for k in face_lists}
     counts["open_edges"] = int(len(open_edges))
     counts["cracks"] = int(len(cracks))
-    return {"version": 1, "n_faces": int(mesh.n_faces),
+    return {"version": ERRORS_VERSION, "n_faces": int(mesh.n_faces),
             "counts": {k: counts[k] for k in KINDS},
             "loose_parts": loose_parts,
             "faces": {k: [int(f) for f in face_lists[k]] for k in face_lists},

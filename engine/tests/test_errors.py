@@ -78,6 +78,14 @@ def test_an_attached_needle_is_loose_as_a_sliver_and_a_big_detached_quad_is_not(
     assert e["loose_parts"] == {"zero_area": 0, "fragments": 1, "slivers": 1}
 
 
+def test_the_file_carries_the_current_schema_version():
+    """Review M2: 2 since I4, and Tasks 14 and 15, changed what the file means; the API serves no
+    file of another version."""
+    from engine.detectors.errors import ERRORS_VERSION
+    assert ERRORS_VERSION == 2
+    assert find_errors(cube(), PROFILE)["version"] == ERRORS_VERSION
+
+
 def test_the_result_is_plain_json():
     e = find_errors(two_sided_wall(), PROFILE)
     assert json.loads(json.dumps(e)) == e
