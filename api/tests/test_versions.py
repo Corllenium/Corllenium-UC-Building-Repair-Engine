@@ -227,4 +227,44 @@ def test_meshbuf_is_built_once_per_version(client, imported_cube, monkeypatch):
     assert second.status_code == 200
     assert second.content == first.content
     assert second.headers["x-tris-count"] == first.headers["x-tris-count"]
+    assert second.headers["content-type"] == first.headers["content-type"]
+
+
+def test_meshbuf_cache_format_guard(client, imported_cube, monkeypatch):
+    import struct
+    from api.routers.versions import meshbuf_cache_file
+    from api.settings import get_settings
+    from engine.transport.meshbuf import MAGIC
+
+    vid = imported_cube["versions"][0]["id"]
+
+    # Get a valid meshbuf first to establish cache
+    first = client.get(f"/api/versions/{vid}/meshbuf")
+    assert first.status_code == 200
+    assert first.content[:4] == MAGIC
+
+    # Plant a file with wrong version number
+    settings = get_settings()
+    cache_file = meshbuf_cache_file(settings, vid)
+    wrong_version_data = MAGIC + struct.pack("<I", 999) + first.content[8:]  # Wrong VERSION
+    cache_file.write_bytes(wrong_version_data)
+
+    # Monkeypatch to detect rebuild
+    import api.routers.versions as versions_mod
+    call_count = {"count": 0}
+    original_pack = versions_mod.pack_meshbuf
+
+    def tracked_pack(*a, **k):
+        call_count["count"] += 1
+        return original_pack(*a, **k)
+
+    monkeypatch.setattr(versions_mod, "pack_meshbuf", tracked_pack)
+
+    # Request should rebuild due to format mismatch
+    response = client.get(f"/api/versions/{vid}/meshbuf")
+    assert response.status_code == 200
+    assert response.content[:4] == MAGIC
+    assert struct.unpack("<I", response.content[4:8])[0] == 1  # Current VERSION
+    assert response.content != wrong_version_data
+    assert call_count["count"] == 1  # pack_meshbuf was called
 

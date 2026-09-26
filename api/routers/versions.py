@@ -1,8 +1,10 @@
 import json
 import logging
+import os
 from pathlib import Path
 import shutil
 import struct
+import tempfile
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from fastapi.responses import FileResponse
@@ -22,7 +24,7 @@ from engine.io.obj_reader import read_obj
 from engine.io.obj_writer import write_obj, write_obj_polygons
 from engine.io.snapshot import sha256_file
 from engine.pipeline import analyse_topology, flat_material_indices
-from engine.transport.meshbuf import pack_meshbuf
+from engine.transport.meshbuf import pack_meshbuf, MAGIC, VERSION
 import numpy as np
 import re
 import threading
@@ -38,6 +40,19 @@ _skp_lock = threading.Lock()
 
 def meshbuf_cache_file(settings: Settings, version_id: int) -> Path:
     return settings.data_dir / "meshbuf" / f"version-{version_id}.bin"
+
+
+def _is_valid_meshbuf_format(buf: bytes) -> bool:
+    """Check if buffer is a valid meshbuf format (MAGIC and current VERSION)."""
+    if len(buf) < 8:
+        return False
+    if buf[:4] != MAGIC:
+        return False
+    try:
+        version = struct.unpack("<I", buf[4:8])[0]
+        return version == VERSION
+    except struct.error:
+        return False
 
 
 def _meshbuf_response(buf: bytes) -> Response:
@@ -76,9 +91,16 @@ def get_meshbuf(
     if version is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Version not found")
 
+    # Versions are immutable: once a version is created, its OBJ and MTL never change.
+    # The importer's legacy flat_materials backfill (api/services/importer.py) may set that field
+    # on an existing version; it converges to the same value this route would compute from the same
+    # MTL bytes, so the cache stays valid. If that backfill ever changes, delete data/meshbuf/.
     cached = meshbuf_cache_file(settings, id)
     if cached.exists():
-        return _meshbuf_response(cached.read_bytes())
+        buf = cached.read_bytes()
+        if _is_valid_meshbuf_format(buf):
+            return _meshbuf_response(buf)
+        # Cache is stale (wrong format); will rebuild below and overwrite
 
     obj_asset = db.scalar(
         select(VersionAsset).where(VersionAsset.version_id == id, VersionAsset.kind == "obj")
@@ -118,9 +140,17 @@ def get_meshbuf(
     buf = pack_meshbuf(mesh, topo, textures)
 
     cached.parent.mkdir(parents=True, exist_ok=True)
-    tmp = cached.with_suffix(".bin.tmp")
-    tmp.write_bytes(buf)
-    tmp.replace(cached)
+    fd, tmp_path = tempfile.mkstemp(dir=cached.parent, prefix=f"version-{id}-", suffix=".tmp")
+    try:
+        with os.fdopen(fd, "wb") as f:
+            f.write(buf)
+        os.replace(tmp_path, cached)
+    except Exception:
+        try:
+            os.unlink(tmp_path)
+        except OSError:
+            pass
+        raise
     return _meshbuf_response(buf)
 
 
