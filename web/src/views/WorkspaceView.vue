@@ -349,9 +349,9 @@ import { formatFaceSourceInfo } from '../utils/faceInspection'
 import { useLayers } from '../composables/useLayers'
 import { useGuardViews, getGuardImageUrl, DEFAULT_GUARD_VIEWS } from '../composables/useGuardViews'
 import { useErrorsDoc, type SavePayload } from '../composables/useErrorsDoc'
+import { useErrorFiles } from '../composables/useErrorFiles'
 import { LAYER_KINDS, catalogueModelId, imageUrl, type Kind } from '../utils/errorsDoc'
 import {
-  defaultFilter,
   overlayFaces,
   blinkColors,
   openEdgeSegments,
@@ -541,9 +541,7 @@ let disposeSync: (() => void) | null = null
 let snapTriMaterial: Uint16Array | undefined
 let fixTriMaterial: Uint16Array | undefined
 
-const errorFilter = reactive(defaultFilter())
-const errorsBefore = ref<ErrorsFile | null>(null)
-const errorsAfter = ref<ErrorsFile | null>(null)
+const { errorFilter, errorsBefore, errorsAfter } = useErrorFiles(redrawErrors)
 const busyBefore = ref(false)
 const busyAfter = ref(false)
 const loadingA = ref(false)
@@ -605,12 +603,13 @@ function applyErrors(view: Viewport | null, file: ErrorsFile | null, triMaterial
     ERROR_KINDS.find(k => k.kind === 'cracks')!.color)
 }
 
-watch([errorFilter, errorsBefore, errorsAfter], () => {
+// useErrorFiles calls this whenever the filter or either file changes.
+function redrawErrors() {
   // Skip a panel mid-reload: its explicit applyErrors call right after loadModel (in
   // reloadModel) already covers it, on the mesh that's actually current by then.
   if (!loadingA.value) applyErrors(viewA, errorsBefore.value, snapTriMaterial)
   if (!loadingB.value) applyErrors(viewB, errorsAfter.value, fixTriMaterial)
-}, { deep: true })
+}
 
 async function initWorkspace() {
   if (!canvasA.value || !canvasB.value) return
