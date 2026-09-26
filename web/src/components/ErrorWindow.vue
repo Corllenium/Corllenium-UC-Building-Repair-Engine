@@ -69,6 +69,7 @@
         <p v-else class="note">None yet.</p>
 
         <h3>Your verdict</h3>
+        <p v-if="!verdictsReady" class="note">Verdicts could not be loaded — reload the page before giving verdicts.</p>
         <div v-for="modelId in Object.keys(kind.models)" :key="modelId" class="verdict-row">
           <div class="verdict-row-head">
             <span class="model-id">{{ modelId }}</span>
@@ -78,14 +79,18 @@
               type="button"
               class="verdict-btn"
               :class="{ active: currentVerdict(modelId) === v.id }"
+              :disabled="!verdictsReady"
               @click="toggleVerdict(modelId, v.id)"
             >{{ v.label }}</button>
           </div>
           <textarea
             class="verdict-note"
-            :value="noteFor(modelId)"
+            :value="drafts[modelId] ?? noteFor(modelId)"
             placeholder="Note (optional)"
-            @blur="onNoteBlur(modelId, $event)"
+            maxlength="2000"
+            :disabled="!verdictsReady"
+            @input="drafts[modelId] = ($event.target as HTMLTextAreaElement).value"
+            @blur="onNoteBlur(modelId)"
           ></textarea>
           <div class="verdict-foot">
             <span v-if="verdictOf(validation, kind.id, modelId)" class="verdict-saved">saved {{ verdictOf(validation, kind.id, modelId)!.at }}</span>
@@ -153,6 +158,7 @@ const props = defineProps<{
   mistake: EngineMistake | null
   models: ModelCard[]
   validation: Validation | null
+  verdictsReady: boolean
 }>()
 
 const emit = defineEmits<{
@@ -164,6 +170,7 @@ const emit = defineEmits<{
 const el = ref<HTMLElement | null>(null)
 const pos = reactive({ x: 0, y: 0 })
 const saveError = reactive<Record<string, string>>({})
+const drafts = reactive<Record<string, string>>({})
 
 const title = computed(() => props.kind?.title ?? props.mistake?.title ?? '')
 const color = computed(() => props.kind?.color ?? '#374151')
@@ -179,6 +186,7 @@ let offX = 0
 let offY = 0
 
 function startDrag(ev: PointerEvent) {
+  if (ev.button !== 0 || (ev.target as Element).closest('button')) return
   dragging = true
   ;(ev.currentTarget as HTMLElement).setPointerCapture(ev.pointerId)
   offX = ev.clientX - pos.x
@@ -219,11 +227,11 @@ function noteFor(modelId: string): string {
 function toggleVerdict(modelId: string, v: Verdict) {
   if (!props.kind) return
   const next: Verdict | null = currentVerdict(modelId) === v ? null : v
-  emit('verdict', { kindId: props.kind.id, modelId, verdict: next, note: noteFor(modelId) })
+  emit('verdict', { kindId: props.kind.id, modelId, verdict: next, note: drafts[modelId] ?? noteFor(modelId) })
 }
-function onNoteBlur(modelId: string, ev: FocusEvent) {
+function onNoteBlur(modelId: string) {
   if (!props.kind) return
-  const value = (ev.target as HTMLTextAreaElement).value
+  const value = drafts[modelId] ?? noteFor(modelId)
   if (value === noteFor(modelId)) return
   const verdict = currentVerdict(modelId) ?? 'unsure'
   emit('verdict', { kindId: props.kind.id, modelId, verdict, note: value })

@@ -12,6 +12,10 @@
     </header>
 
     <main class="page-content">
+      <div v-if="saveBanner" class="banner banner-error banner-save">
+        <span>{{ saveBanner }}</span>
+        <button type="button" class="banner-dismiss" @click="dismissSaveBanner">&times;</button>
+      </div>
       <div v-if="loadError" class="banner banner-error">{{ loadError }}</div>
       <div v-else-if="loading" class="loading-state">Loading&hellip;</div>
 
@@ -128,6 +132,7 @@
       :mistake="openMistake"
       :models="catalogue ? catalogue.models : []"
       :validation="validation"
+      :verdicts-ready="!validationError"
       @close="closeWindow"
       @image="onWindowImage"
       @verdict="saveVerdict"
@@ -167,6 +172,11 @@ const openId = ref<string | null>(null)
 const windowRef = ref<InstanceType<typeof ErrorWindow> | null>(null)
 const copiedModel = ref<string | null>(null)
 const lightbox = ref<{ list: string[]; index: number } | null>(null)
+const saveBanner = ref<string | null>(null)
+
+function dismissSaveBanner() {
+  saveBanner.value = null
+}
 
 function errMsg(err: unknown): string {
   return err instanceof Error ? err.message : String(err)
@@ -243,7 +253,18 @@ function clearFilter() {
   filter.engine = null
 }
 
-async function saveVerdict(payload: { kindId: string; modelId: string; verdict: Verdict | null; note: string }) {
+const saveChains = new Map<string, Promise<void>>()
+
+// Saves for the same kind/model are chained so a note-blur and a verdict click fired close
+// together always reach the server in the order the owner made them, never racing.
+function saveVerdict(payload: { kindId: string; modelId: string; verdict: Verdict | null; note: string }): Promise<void> {
+  const key = `${payload.kindId}/${payload.modelId}`
+  const chained = (saveChains.get(key) ?? Promise.resolve()).then(() => doSaveVerdict(payload))
+  saveChains.set(key, chained)
+  return chained
+}
+
+async function doSaveVerdict(payload: { kindId: string; modelId: string; verdict: Verdict | null; note: string }) {
   try {
     const res = await fetch(
       `/api/docs/validation/${encodeURIComponent(payload.kindId)}/${encodeURIComponent(payload.modelId)}`,
@@ -257,7 +278,11 @@ async function saveVerdict(payload: { kindId: string; modelId: string; verdict: 
       let detail = `HTTP ${res.status}`
       try {
         const data = await res.json()
-        if (data && data.detail) detail = typeof data.detail === 'string' ? data.detail : JSON.stringify(data.detail)
+        if (res.status === 422 && Array.isArray(data?.detail) && data.detail[0]?.msg) {
+          detail = data.detail[0].msg
+        } else if (typeof data?.detail === 'string') {
+          detail = data.detail
+        }
       } catch {
         // keep default detail
       }
@@ -280,6 +305,9 @@ async function saveVerdict(payload: { kindId: string; modelId: string; verdict: 
   } catch (err) {
     if (openId.value === payload.kindId) {
       windowRef.value?.setSaveError(payload.modelId, `Not saved: ${errMsg(err)}`)
+    } else {
+      const title = catalogue.value?.kinds.find(k => k.id === payload.kindId)?.title ?? payload.kindId
+      saveBanner.value = `Not saved: ${title} — ${payload.modelId}: ${errMsg(err)}`
     }
   }
 }
@@ -417,6 +445,22 @@ onUnmounted(() => {
   color: #8a6d0d;
   font-size: 13px;
   margin: 0 0 16px;
+}
+.banner-save {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.banner-dismiss {
+  border: none;
+  background: transparent;
+  color: inherit;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 4px;
+  flex-shrink: 0;
 }
 
 .loading-state {
