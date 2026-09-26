@@ -80,4 +80,22 @@ describe('client API and ApiError', () => {
     await expect(fetchSourceFiles()).rejects.toThrow(ApiError)
     expect(callCount).toBe(1)
   })
+
+  it('fetchErrors returns null when a version has no errors file yet', async () => {
+    const { fetchErrors } = await import('./client')
+    globalThis.fetch = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ detail: 'not computed yet' }), { status: 404 })
+    )
+    expect(await fetchErrors(6)).toBeNull()
+  })
+
+  it('computeErrors posts to the version and returns the file', async () => {
+    const { computeErrors } = await import('./client')
+    const body = { version: 1, n_faces: 12, counts: {}, faces: {}, open_edges: [], cracks: [], flicker_pairs: [], spots: {} }
+    const spy = vi.fn().mockResolvedValue(new Response(JSON.stringify(body), { status: 200 }))
+    globalThis.fetch = spy
+    expect(await computeErrors(6)).toEqual(body)
+    expect(spy.mock.calls[0][0]).toContain('/versions/6/errors')
+    expect(spy.mock.calls[0][1].method).toBe('POST')
+  })
 })

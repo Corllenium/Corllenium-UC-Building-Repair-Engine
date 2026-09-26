@@ -1,3 +1,5 @@
+import type { ErrorsFile } from '../utils/errorLayers'
+
 export interface SourceFile {
   file: string
   tri_count?: number
@@ -157,3 +159,17 @@ export async function fetchFace(versionId: number, faceId: number): Promise<Face
   return res.json()
 }
 
+export async function fetchErrors(versionId: number): Promise<ErrorsFile | null> {
+  const res = await fetch(`${API_BASE}/versions/${versionId}/errors`)
+  if (res.status === 404) return null
+  await checkResponse(res, 'Failed to fetch errors')
+  return res.json()
+}
+
+export async function computeErrors(versionId: number): Promise<ErrorsFile> {
+  const res = await checkResponse(
+    await fetch(`${API_BASE}/versions/${versionId}/errors`, { method: 'POST' }),
+    'Failed to find errors'
+  )
+  return res.json()
+}
