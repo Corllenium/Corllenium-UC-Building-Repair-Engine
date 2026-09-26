@@ -38,7 +38,8 @@ def test_settings_host_port_data_dir(monkeypatch):
     monkeypatch.delenv("FIXER_DATA_DIR", raising=False)
     monkeypatch.delenv("FIXER_API_HOST", raising=False)
     monkeypatch.delenv("FIXER_API_PORT", raising=False)
-    s = Settings()
+    # Built-in defaults only: skip any untracked .env in the working directory
+    s = Settings(_env_file=None)
     assert s.api_host == "127.0.0.1"
     assert s.api_port == 8190
     repo_root = Path(__file__).resolve().parents[2]
