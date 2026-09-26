@@ -219,31 +219,33 @@
           </span>
         </div>
       </section>
-      </main>
-    </div>
 
-    <!-- Inspection Details Drawer (if face clicked) -->
-    <div v-if="pickedFace" class="picked-inspector">
-      <div class="inspector-header">
-        <strong>Inspected Triangle #{{ pickedFace.faceId }} ({{ pickedFace.viewKind.toUpperCase() }})</strong>
-        <button class="btn-close" @click="pickedFace = null">&times;</button>
-      </div>
-      <div class="inspector-body">
-        <div>Coordinates: {{ pickedFace.point.x.toFixed(2) }}, {{ pickedFace.point.y.toFixed(2) }}, {{ pickedFace.point.z.toFixed(2) }}</div>
-        <div v-if="pickedFace.loading">Loading face details...</div>
-        <div v-else-if="pickedFace.details">
-          <div>{{ formatFaceSourceInfo(pickedFace.viewKind, pickedFace.details) }}</div>
-          <div v-if="pickedFace.details.material">Material: {{ pickedFace.details.material }}</div>
-        </div>
-        <div v-else-if="pickedFace.error" class="text-error">{{ pickedFace.error }}</div>
-        <div v-if="pickedErrors.kinds.length">
-          <strong>Errors:</strong> {{ pickedErrors.kinds.map(k => ERROR_KINDS.find(e => e.kind === k)!.label).join(', ') }}
-          <div v-for="p in pickedErrors.partners" :key="p.face">
-            fights face {{ p.face }} ({{ p.shared.toFixed(1) }} sq in shared{{ p.opposite ? ', back to back' : '' }})
-            <button class="btn-link" @click="selectFace(p.face)">select</button>
+        <!-- Inspection Details Drawer (if face clicked). Lives inside canvases-container (which
+             is position: relative) so its `left: 20px` measures from the BEFORE canvas's own
+             left edge, not the errors column's -- the errors column sits to its left now. -->
+        <div v-if="pickedFace" class="picked-inspector">
+          <div class="inspector-header">
+            <strong>Inspected Triangle #{{ pickedFace.faceId }} ({{ pickedFace.viewKind.toUpperCase() }})</strong>
+            <button class="btn-close" @click="pickedFace = null">&times;</button>
+          </div>
+          <div class="inspector-body">
+            <div>Coordinates: {{ pickedFace.point.x.toFixed(2) }}, {{ pickedFace.point.y.toFixed(2) }}, {{ pickedFace.point.z.toFixed(2) }}</div>
+            <div v-if="pickedFace.loading">Loading face details...</div>
+            <div v-else-if="pickedFace.details">
+              <div>{{ formatFaceSourceInfo(pickedFace.viewKind, pickedFace.details) }}</div>
+              <div v-if="pickedFace.details.material">Material: {{ pickedFace.details.material }}</div>
+            </div>
+            <div v-else-if="pickedFace.error" class="text-error">{{ pickedFace.error }}</div>
+            <div v-if="pickedErrors.kinds.length">
+              <strong>Errors:</strong> {{ pickedErrors.kinds.map(k => ERROR_KINDS.find(e => e.kind === k)!.label).join(', ') }}
+              <div v-for="p in pickedErrors.partners" :key="p.face">
+                fights face {{ p.face }} ({{ p.shared.toFixed(1) }} sq in shared{{ p.opposite ? ', back to back' : '' }})
+                <button class="btn-link" @click="selectFace(p.face)">select</button>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+      </main>
     </div>
 
     <!-- Guard 26 Views Diff Modal -->
@@ -458,6 +460,13 @@ const {
 const openLayerKindId = ref<string | null>(null)
 const infoWindowRef = ref<InstanceType<typeof ErrorWindow> | null>(null)
 const infoSaveBanner = ref<string | null>(null)
+// Two independent writers (a closed-window save failure, and a failed Find errors) can each want
+// the banner around the same time; append instead of overwriting, capped so it can't grow forever.
+function pushBanner(message: string) {
+  const lines = infoSaveBanner.value ? infoSaveBanner.value.split('\n') : []
+  lines.push(message)
+  infoSaveBanner.value = lines.slice(-3).join('\n')
+}
 function dismissInfoSaveBanner() {
   infoSaveBanner.value = null
 }
@@ -501,7 +510,7 @@ function onInfoVerdict(payload: SavePayload) {
       infoWindowRef.value?.setSaveError(payload.modelId, `Not saved: ${message}`)
     } else {
       const title = errorsCatalogue.value?.kinds.find(k => k.id === payload.kindId)?.title ?? payload.kindId
-      infoSaveBanner.value = `Not saved: ${title} — ${payload.modelId}: ${message}`
+      pushBanner(`Not saved: ${title} — ${payload.modelId}: ${message}`)
     }
   }).then(() => {
     if (!errored && openLayerKindId.value === payload.kindId) {
@@ -758,7 +767,7 @@ async function onFindErrors(panel: 'before' | 'after') {
     else errorsAfter.value = file
   } catch (err: any) {
     const label = panel === 'before' ? 'BEFORE' : 'AFTER'
-    infoSaveBanner.value = `Find errors failed for ${label}: ${err?.message || 'unknown error'}`
+    pushBanner(`Find errors failed for ${label}: ${err?.message || 'unknown error'}`)
   } finally {
     busy.value = false
   }
@@ -935,6 +944,9 @@ onBeforeUnmount(() => {
   font-size: 13px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.16);
 }
+.info-save-banner span {
+  white-space: pre-line;
+}
 .info-save-banner .banner-dismiss {
   border: none;
   background: transparent;
@@ -1041,6 +1053,7 @@ onBeforeUnmount(() => {
   gap: 1px;
   background: #dcdde2;
   min-height: 0;
+  position: relative;
 }
 
 .canvas-panel {
