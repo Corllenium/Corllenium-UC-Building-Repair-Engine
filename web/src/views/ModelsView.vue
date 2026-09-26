@@ -6,6 +6,7 @@
         <span class="badge">Campus SketchUp &rarr; Unity 6 URP</span>
       </div>
       <div class="header-actions">
+        <router-link to="/errors" class="btn btn-secondary">Errors &amp; fixes</router-link>
         <button class="btn btn-secondary" @click="loadData" :disabled="loading">Refresh</button>
       </div>
     </header>
