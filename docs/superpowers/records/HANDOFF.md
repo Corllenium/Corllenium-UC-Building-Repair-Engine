@@ -25,6 +25,16 @@ run the latest `.skp` of each file must be in `OBJ FIXED RESULT/` for the owner 
 
 ## 2. Current state (2026-09-26 00:15, written by the Claude controller)
 
+**Update 2026-09-26 11:40: the owner reopened the session for the 3D error filter** (understand a
+building's errors in the dashboard, CHTM 5th floor as the example; nothing is fixed by it).
+- Spec `docs/superpowers/specs/2026-09-26-3d-error-filter-design.md`; plan
+  `docs/superpowers/plans/2026-09-26-3d-error-filter.md`; ledger
+  `.superpowers/sdd/2026-09-26-3d-error-filter/progress.md` (force-added copy goes in with the records).
+- Work happens on branch `feat/error-filter` in the worktree `.claude/worktrees/error-filter`. Tasks 1-5 are
+  complete; order of the rest: 6, 12, 14, 8, 7, 9, 10, 13, 11. Task 11 (the controller's) rebuilds the
+  dashboard by section 8 and shows the owner.
+- CHTM 5th floor is in the live dashboard as model 2, version 6 (snapshot c0c877002500).
+
 **The owner closed the session at 00:10 ("finish what we finish for now").**
 - Nothing is running: the brief-15 agent is stopped, the auto-continue runner is stopped (STOP file,
   watcher ended), and Claude's scheduled auto-resume is cancelled.
