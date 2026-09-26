@@ -244,6 +244,77 @@ because Claude Code prunes old session logs. It is zipped into `data/backups/err
 **Records:** HANDOFF sections 2 and 3, the session record's history, the ledger; all committed. Images
 are never committed.
 
+## Amendment: a planning catalogue (owner, 2026-09-26 11:55 and 12:10)
+
+The owner's words: "every error has its own document description ... why it's like this, because it
+came from a Minecraft export using the Little Tiles mod ... it has been fixed so many times but still
+there are errors ... the goal is to show the description planning of all errors ... a floating
+window description, let's say hidden faces, that's what I really don't want in the model, and what is
+the solution ... more detailed ... we are planning a documented plan for now ... we're not yet fixing
+anything in the models".
+
+This amendment overrides sections 1 and 2 where they differ.
+
+- **Planning only.** The page changes nothing in any model and starts no fix run.
+- **Organised by kind of error.** The page is a catalogue of error kinds, not a list of incidents.
+  - Each kind has a card: its colour (the 3D filter's colour where one exists), a one-line summary,
+    its count in each model, and a status per model: Fixed / Partly fixed / Open / Planned, not fixed
+    yet.
+  - Clicking a card opens a **floating window**. The window is draggable, resizable, and closes with ✕
+    or Esc. It holds the kind's full description, at the depth the owner approved (the "Hidden inside
+    faces" draft of 12:05):
+    1. **What it is.**
+    2. **Why the model has it:** the Minecraft → Little Tiles → SketchUp → OBJ chain. Where this is
+       our reading of the measurements rather than a known fact, it says so.
+    3. **How much of each model it is,** measured, with the source of each number.
+    4. **Why you don't want it in Unity.**
+    5. **The solution,** step by step, and what is never done and why.
+    6. **Done so far,** and the result.
+    7. **Why some can remain.**
+
+    Under the seven parts come the owner's screenshots as examples, the engine files, and the sources.
+- **Kinds (approved):**
+  1. Hidden inside faces
+  2. Back-to-back double layers
+  3. Flicker (texture on texture, same-material overlaps)
+  4. Gridlines on flat surfaces
+  5. Cracks (T-junctions)
+  6. Reversed faces
+  7. Holes, and broken or missing sides and bottoms
+  8. Sawtooth steps on slopes
+  9. Zero-area triangles, slivers and fragments
+  10. Lines left inside surfaces in the `.skp`
+
+  A separate section lists the **engine mistakes that reviews caught**. Each one opens the same
+  window, with three parts: what happened, how it was caught, and the fix.
+- **Models on the page:** CHTM 5th floor (`chtm_5ft_floor`, the example, not fixed), sidewalk A and
+  sidewalk B.
+- **Filters:** Model and Engine file.
+  - The kind is the catalogue itself, so a Kind filter is not needed.
+  - The URL keeps the filter and the open window (`?model=A&engine=solidify&open=hidden-faces`).
+- **Where the window opens:** only from the Errors page cards. The owner did not choose the 3D
+  viewer's legend.
+- **Images:** the owner's screenshots are the examples. AFTER renders (section 2) are deferred: the
+  page is a plan, and they can be added per kind later.
+- **The owner validates each error (owner, 12:15).** The owner's words: "we are identifying first
+  the errors ... next we will plan out special script, engine, machine learning ... how to fix them
+  with AI ... I will validate them because sometimes it seems like there is an error but it's okay
+  for me for that model, but I don't want any error in the OBJ ... laying out the foundation:
+  identifying and specifying errors, fix solution and planning".
+  - Each window gains a part **"How we find it"**, placed after "What it is". It gives the exact,
+    measurable test that decides that a face (or edge, or vertex) has this error, with its
+    thresholds. It is the specification a later script or model is built against. "The solution"
+    then covers only the fix.
+  - Each window has a **verdict per model**: *Error, must fix* / *OK for this model* / *Not sure*,
+    plus a free-text note.
+    - Verdicts are saved through the API in `data/errors_doc/validation.json` (git-ignored, no
+      database change), so Claude can read them when the fix phase is planned.
+    - Each card shows its verdicts. The page header shows how many kind-and-model pairs are
+      validated.
+- **Content file:** `web/public/docs/errors.json`, in the catalogue shape of the plan's Task 8.
+  - It is not at `web/public/errors/`: a `dist/errors/` folder would make nginx answer `/errors` with
+    a 301 and then a 403.
+
 ## Out of scope
 
 - A "dashboard fixes" section (not chosen).
