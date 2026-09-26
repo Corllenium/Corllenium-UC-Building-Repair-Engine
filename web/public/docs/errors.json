@@ -700,7 +700,7 @@
       "models": {
         "CHTM5": {
           "status": "planned",
-          "count": "1,055 zero-area triangles"
+          "count": "1,055 zero-area triangles; 0 stray fragments and 0 slivers (one connected piece)"
         },
         "A": {
           "status": "fixed",
