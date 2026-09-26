@@ -65,12 +65,12 @@
           "count": "12,870 of 20,599 triangles (62 %)"
         },
         "A": {
-          "status": "fixed",
-          "count": "1,853 of 4,692 triangles in the export; 66 left in the shipped file"
+          "status": "partly",
+          "count": "1,853 of 4,692 triangles in the export; 2,065 removed; 66 left in the shipped file"
         },
         "B": {
-          "status": "fixed",
-          "count": "2,411 of 7,227 triangles in the export; 27 left in the shipped file"
+          "status": "partly",
+          "count": "2,411 of 7,227 triangles in the export; 2,771 removed; 27 left in the shipped file"
         }
       },
       "what": "Faces inside the solid parts of the model: between two slabs, inside a wall, under a floor. They are real triangles in the OBJ, but no camera standing anywhere outside can ever see them.",
@@ -102,8 +102,8 @@
         "'Make Manifold' or 'Fill Holes': both closed real openings in this model before."
       ],
       "done": [
-        "Sidewalk A: 2,065 removed, 43 put back by the guard.",
-        "Sidewalk B: 2,771 removed, 16 put back by the guard.",
+        "Sidewalk A: 2,065 removed, 43 put back by the guard. That is more than the 1,853 hidden in the export, because the side and bottom rebuild runs first and encloses more faces (239 more on A), which the hidden pass then removes too.",
+        "Sidewalk B: 2,771 removed, 16 put back by the guard (2,411 hidden in the export, plus 232 the rebuild enclosed).",
         "Both files pass every check.",
         "CHTM 5th floor: not touched. Planning only."
       ],
@@ -166,7 +166,7 @@
       "sources": [
         "CHTM 5th floor: engine.cli errors on snapshot c0c877002500, 2026-09-26 (hidden 12,870); edges with 3+ faces from engine.pipeline.analyse_topology",
         "A and B in the export and in the shipped OBJ: find_errors, 2026-09-26",
-        "Removed and put back: report.json at ab22ff3 (n_removed_hidden, n_restored_by_guard)",
+        "Removed and put back: report.json at ab22ff3 (n_removed_hidden, n_restored_by_guard); enclosed by the rebuild: solidify_report.faces_newly_hidden (A 239, B 232)",
         "Method: engine/vis/exposure.py (4 sample points, 128 directions, slit threshold 0.05); guard: engine/guard/compare.py (26 views)"
       ]
     },
@@ -185,8 +185,8 @@
           "count": "11 exact opposite-wound copies in the export, all removed; 10 opposite-wound partial pairs left (at 281a569)"
         },
         "B": {
-          "status": "fixed",
-          "count": "31 exact opposite-wound copies in the export (24 with a different material on each side), all removed"
+          "status": "partly",
+          "count": "31 exact opposite-wound copies in the export (24 with a different material on each side), all removed; 2 double-layer sources left (49.3 sq in, at 281a569; see Flicker)"
         }
       },
       "what": "Two faces lying in the same plane, on top of each other, facing opposite ways: one looks left, its twin looks right. Seen from the side they are one surface drawn twice. Most of them sit inside the model; some sit on its outside.",
