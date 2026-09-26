@@ -38,7 +38,8 @@ run the latest `.skp` of each file must be in `OBJ FIXED RESULT/` for the owner 
 - Plan `docs/superpowers/plans/2026-09-26-errors-and-fixes-page.md` (Tasks 1, 2, 8, 9, 10, 11); ledger
   `.superpowers/sdd/2026-09-26-errors-and-fixes-page/progress.md`; branch `feat/errors-page` in
   `.claude/worktrees/errors-page`.
-- **The live containers run `feat/errors-page` at 2b63a26, NOT yet merged into feat-dashboard.**
+- **The live containers run `feat/errors-page`, NOT yet merged into feat-dashboard:** the API image from
+  2b63a26, the web image from 3ac8331 (rebuilt 13:10).
   - A rebuild from feat-dashboard before that merge would remove the page.
   - Rollback images: `:pre-20260926`. Database backup: `data/backups/fixer-20260926-1246.dump`.
   - No migration ran.
@@ -245,9 +246,11 @@ uncommitted work, so build the images from a clean worktree of a COMMIT instead.
 git -C .claude/worktrees/dk checkout --detach <commit>
 cp Dockerfile.api Dockerfile.web nginx.conf .dockerignore .claude/worktrees/dk/
 pnpm --dir .claude/worktrees/dk/web install --frozen-lockfile
+pnpm --dir .claude/worktrees/dk/web exec vitest run src/utils/errorsDoc.test.ts   # the Errors page's content must be valid
 pnpm --dir .claude/worktrees/dk/web run build
 docker exec fixer-db pg_dump -U fixer -d fixer -Fc -f /tmp/fixer.dump
 docker cp fixer-db:/tmp/fixer.dump data/backups/fixer-<date>.dump
+cp data/errors_doc/validation.json data/backups/validation-<date>.json   # the owner's verdicts (if the file exists)
 docker tag ucmodelfixer-api ucmodelfixer-api:pre-<date>
 docker tag ucmodelfixer-web ucmodelfixer-web:pre-<date>
 docker build -t ucmodelfixer-api -f .claude/worktrees/dk/Dockerfile.api .claude/worktrees/dk
