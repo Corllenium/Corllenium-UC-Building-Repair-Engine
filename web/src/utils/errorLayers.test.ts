@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   ERROR_KINDS, FACE_KINDS, defaultFilter, overlayFaces, blinkColors, partnersOf, kindsOf,
-  openEdgeSegments, crackPoints, toViewer, materialColor, countOf, type ErrorsFile,
+  openEdgeSegments, crackPoints, toViewer, materialColor, countOf, type ErrorsFile, partnerIndex,
 } from './errorLayers'
 
 const file: ErrorsFile = {
@@ -74,5 +74,34 @@ describe('errorLayers', () => {
   it('gives different materials different colours', () => {
     expect(materialColor(0)).not.toBe(materialColor(1))
     expect(materialColor(12)).toBe(materialColor(0))
+  })
+
+  it('blinks 40,000 faces with 20,000 pairs in under 1,000 ms via cached partner lookup', () => {
+    const flicker_pairs: [number, number, number, boolean][] = []
+    for (let k = 0; k < 20000; k++) {
+      flicker_pairs.push([2*k, 2*k+1, 1, true])
+    }
+    const bigFile: ErrorsFile = {
+      version: 1, n_faces: 40000,
+      counts: { flicker_diff: 40000, flicker_same: 0, reversed: 0, hidden: 0, loose: 0, open_edges: 0, cracks: 0 },
+      faces: { flicker_diff: Array.from({length: 40000}, (_, i) => i), flicker_same: [], reversed: [], hidden: [], loose: [] },
+      layers: { facade: [] }, layer_counts: { facade: 0 },
+      open_edges: [], cracks: [],
+      flicker_pairs,
+      spots: { flicker_diff: [], flicker_same: [], reversed: [], hidden: [], loose: [], open_edges: [], cracks: [], facade: [] },
+    }
+    const triMaterial = Array.from({length: 40000}, (_, i) => i % 12)
+    const allFaces = Array.from({length: 40000}, (_, i) => i)
+
+    const start = performance.now()
+    const colors1 = blinkColors(bigFile, allFaces, triMaterial, 1)
+    const elapsed = performance.now() - start
+
+    expect(elapsed).toBeLessThan(1000)
+    // face 0 phase=1 should equal face 1 phase=0 (they blink in sync)
+    const colors0 = blinkColors(bigFile, allFaces, triMaterial, 0)
+    expect(Array.from(colors1.slice(0, 3))).toEqual(Array.from(colors0.slice(9, 12)))
+    // partnersOf on face 0 should find exactly one partner
+    expect(partnerIndex(bigFile).get(0)).toHaveLength(1)
   })
 })

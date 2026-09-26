@@ -51,6 +51,26 @@ export function defaultFilter(): ErrorFilter {
   return { enabled, isolate: false, blink: false }
 }
 
+// Cache partner indices per file object to avoid O(pairs) scan per face
+const partnerIndexCache = new WeakMap<ErrorsFile, Map<number, { face: number; shared: number; opposite: boolean }[]>>()
+
+export function partnerIndex(file: ErrorsFile): Map<number, { face: number; shared: number; opposite: boolean }[]> {
+  let cached = partnerIndexCache.get(file)
+  if (!cached) {
+    cached = new Map<number, { face: number; shared: number; opposite: boolean }[]>()
+    for (const [i, j, shared, opposite] of file.flicker_pairs) {
+      // Add i -> j
+      if (!cached.has(i)) cached.set(i, [])
+      cached.get(i)!.push({ face: j, shared, opposite })
+      // Add j -> i (with opposite flipped)
+      if (!cached.has(j)) cached.set(j, [])
+      cached.get(j)!.push({ face: i, shared, opposite })
+    }
+    partnerIndexCache.set(file, cached)
+  }
+  return cached
+}
+
 function rgb(color: number): [number, number, number] {
   return [((color >> 16) & 255) / 255, ((color >> 8) & 255) / 255, (color & 255) / 255]
 }
@@ -74,18 +94,14 @@ export function overlayFaces(file: ErrorsFile, filter: ErrorFilter): { faces: nu
 }
 
 export function partnersOf(file: ErrorsFile, face: number): { face: number; shared: number; opposite: boolean }[] {
-  const out: { face: number; shared: number; opposite: boolean }[] = []
-  for (const [i, j, shared, opposite] of file.flicker_pairs) {
-    if (i === face) out.push({ face: j, shared, opposite })
-    else if (j === face) out.push({ face: i, shared, opposite })
-  }
-  return out
+  return partnerIndex(file).get(face) ?? []
 }
 
 export function blinkColors(file: ErrorsFile, faces: number[], triMaterial: ArrayLike<number>, phase: 0 | 1): Float32Array {
   const colors = new Float32Array(faces.length * 9)
+  const partners = partnerIndex(file)
   faces.forEach((f, slot) => {
-    const partner = partnersOf(file, f)[0]
+    const partner = partners.get(f)?.[0]
     const own = triMaterial[f]
     const other = partner ? triMaterial[partner.face] : own
     fill(colors, slot, materialColor(phase === 0 ? own : other))
