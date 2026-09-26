@@ -137,6 +137,21 @@ Engine run (test only, scratch folders; `data/out_chtm5/chtm_5ft_floor/report.js
   rebuild the API and web images. No migration.
 - **Records:** HANDOFF, session record, ledger.
 
+## Amendments (owner, 2026-09-26, during the build)
+
+- **Real textures in the viewer.** The owner asked "where's the texture" and noted that without them a
+  filtered model is all flat colour. Both panels draw each material with its own texture, and the error
+  colours sit on top of the textured model. A texture toggle sits with the other layers.
+- **Facade layer.** The owner asked for a filter that highlights "the face-out walls that represent the
+  facade of the model, not the hidden faces". `find_errors` also lists every face a ray from outside
+  reaches (`EXP_OUTSIDE`, the same 128-direction exposure test used for hidden faces):
+  - It is saved beside the errors as `layers.facade`, with its count in `layer_counts.facade`.
+  - It is not an error, so a clean model still reports none.
+  - The legend shows it as "Facade (seen from outside)" in teal. It is off by default.
+  - Any error colour wins over the facade colour.
+- **Loading.** A panel shows a loading message while its model downloads. The packed model is cached
+  per version, so only the first open of a large building is slow.
+
 ## Out of scope
 
 - Fixing CHTM 5th floor or any building. This is for understanding.
