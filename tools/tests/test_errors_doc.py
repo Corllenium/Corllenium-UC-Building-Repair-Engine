@@ -73,10 +73,11 @@ def test_two_messages_in_one_minute_get_different_numbers(tmp_path):
     assert [r["file"] for r in extract(log, tmp_path / "o")] == ["you-0925-1230-1.png", "you-0925-1230-2.png"]
 
 
-def _doc(tmp_path, errors, other=()):
+def _doc(tmp_path, kinds=(), engine_mistakes=(), other=()):
     p = tmp_path / "errors.json"
-    p.write_text(json.dumps({"built_from": {"commit": "x", "date": "d"}, "models": [],
-                             "errors": errors, "other_screenshots": list(other)}), encoding="utf-8")
+    p.write_text(json.dumps({"built_from": {"commit": "x", "date": "d"}, "origin": [], "models": [],
+                             "kinds": list(kinds), "engine_mistakes": list(engine_mistakes),
+                             "other_screenshots": list(other)}), encoding="utf-8")
     return p
 
 
@@ -84,13 +85,31 @@ def test_check_names_images_that_are_missing(tmp_path):
     img = tmp_path / "img"
     img.mkdir()
     (img / "you-0921-0346-1.png").write_bytes(PNG)
-    doc = _doc(tmp_path, [{"you_saw": [{"image": "you-0921-0346-1.png"}], "after": [{"image": "after-a.png"}]}],
-               [{"image": "you-0922-1005-1.webp"}])
+    doc = _doc(tmp_path,
+               kinds=[{"id": "k", "examples": [{"image": "you-0921-0346-1.png"}, {"image": "after-a.png"}]}],
+               engine_mistakes=[{"id": "m", "examples": [{"image": "you-0922-1005-1.webp"}]}])
     assert missing_images(doc, img) == ["after-a.png", "you-0922-1005-1.webp"]
 
 
 def test_check_names_owner_images_used_nowhere(tmp_path):
     owner = tmp_path / "owner_images.json"
     owner.write_text(json.dumps([{"file": "you-0921-0346-1.png"}, {"file": "you-0923-0800-1.png"}]), encoding="utf-8")
-    doc = _doc(tmp_path, [{"you_saw": [{"image": "you-0921-0346-1.png"}], "after": []}])
+    doc = _doc(tmp_path, kinds=[{"id": "k", "examples": [{"image": "you-0921-0346-1.png"}]}])
     assert unused_owner_images(doc, owner) == ["you-0923-0800-1.png"]
+
+
+def test_tool_result_images_are_skipped(tmp_path):
+    """A human-origin message containing a tool_result block is not extracted, even if there are other images."""
+    human = {"kind": "human"}
+    lines = [
+        {"type": "user", "timestamp": "2026-09-25T10:00:00.000Z", "origin": human,
+         "message": {"role": "user", "content": [_img(PNG, "image/png"),
+                                                 {"type": "tool_result", "tool_use_id": "t9",
+                                                  "content": [_img(SHOT, "image/png")]}]}}
+    ]
+    log = tmp_path / "test.jsonl"
+    log.write_text("\n".join(json.dumps(x) for x in lines), encoding="utf-8")
+    records = extract(log, tmp_path / "out")
+    assert len(records) == 0
+    files = list((tmp_path / "out" / "img").glob("*"))
+    assert len(files) == 0

@@ -11,9 +11,22 @@ from pathlib import Path
 
 def _named_images(errors_json: Path) -> set[str]:
     doc = json.loads(Path(errors_json).read_text(encoding="utf-8"))
-    items = [i for e in doc.get("errors", []) for i in e.get("you_saw", []) + e.get("after", [])]
-    items += doc.get("other_screenshots", [])
-    return {i["image"] for i in items if i.get("image")}
+    images = set()
+    # Images from kinds[].examples[]
+    for kind in doc.get("kinds", []):
+        for ex in kind.get("examples", []):
+            if isinstance(ex, dict) and ex.get("image"):
+                images.add(ex["image"])
+    # Images from engine_mistakes[].examples[]
+    for mistake in doc.get("engine_mistakes", []):
+        for ex in mistake.get("examples", []):
+            if isinstance(ex, dict) and ex.get("image"):
+                images.add(ex["image"])
+    # Images from other_screenshots[]
+    for item in doc.get("other_screenshots", []):
+        if isinstance(item, dict) and item.get("image"):
+            images.add(item["image"])
+    return images
 
 
 def missing_images(errors_json, img_dir) -> list[str]:
