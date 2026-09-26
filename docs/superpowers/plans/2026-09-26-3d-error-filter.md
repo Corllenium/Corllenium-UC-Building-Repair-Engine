@@ -29,6 +29,9 @@
   | `loose` | "Zero-area and stray bits" | `0xe0199b` magenta | faces |
   | `open_edges` | "Open edges" | `0x16a34a` green | lines |
   | `cracks` | "Cracks (T-junction points)" | `0x00b4d8` cyan | points |
+  | `facade` (Task 14; a layer, not an error) | "Facade (seen from outside)" | `0x0d9488` teal | faces, lowest priority, off by default |
+
+  The facade is not in the engine's `KINDS` or `counts`; it is `layers.facade` / `layer_counts.facade`.
 
 - **Files:** stored at `settings.data_dir / "errors" / f"version-{id}.json"` (git-ignored `data/`).
 - **Python and tests:**
