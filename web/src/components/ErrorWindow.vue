@@ -58,7 +58,8 @@
         <h3>Your screenshots</h3>
         <div v-if="kind.examples.length" class="examples-grid">
           <figure v-for="(ex, i) in kind.examples" :key="i" class="example" @click="onImageClick(ex.image)">
-            <img v-if="ex.image" :src="imageUrl(ex.image)" :alt="ex.caption || ex.words || ''" />
+            <img v-if="ex.image && !brokenImages[ex.image]" :src="imageUrl(ex.image)" :alt="ex.caption || ex.words || ''" @error="onImageError(ex.image)" />
+            <div v-else-if="ex.image" class="image-placeholder">Screenshot not found on this machine (data/errors_doc/img/{{ ex.image }})</div>
             <figcaption>
               <span v-if="ex.date" class="ex-date">{{ ex.date }}</span>
               <span v-if="ex.words" class="ex-words">&ldquo;{{ ex.words }}&rdquo;</span>
@@ -93,7 +94,11 @@
             @blur="onNoteBlur(modelId)"
           ></textarea>
           <div class="verdict-foot">
-            <span v-if="verdictOf(validation, kind.id, modelId)" class="verdict-saved">saved {{ verdictOf(validation, kind.id, modelId)!.at }}</span>
+            <span
+              v-if="verdictOf(validation, kind.id, modelId)"
+              class="verdict-saved"
+              :title="verdictOf(validation, kind.id, modelId)!.at"
+            >saved {{ formatSavedAt(verdictOf(validation, kind.id, modelId)!.at) }}</span>
             <span v-if="saveError[modelId]" class="verdict-error">{{ saveError[modelId] }}</span>
           </div>
         </div>
@@ -132,7 +137,8 @@
         <h3>Your screenshots</h3>
         <div v-if="mistake.examples.length" class="examples-grid">
           <figure v-for="(ex, i) in mistake.examples" :key="i" class="example" @click="onImageClick(ex.image)">
-            <img v-if="ex.image" :src="imageUrl(ex.image)" :alt="ex.caption || ex.words || ''" />
+            <img v-if="ex.image && !brokenImages[ex.image]" :src="imageUrl(ex.image)" :alt="ex.caption || ex.words || ''" @error="onImageError(ex.image)" />
+            <div v-else-if="ex.image" class="image-placeholder">Screenshot not found on this machine (data/errors_doc/img/{{ ex.image }})</div>
             <figcaption>
               <span v-if="ex.date" class="ex-date">{{ ex.date }}</span>
               <span v-if="ex.words" class="ex-words">&ldquo;{{ ex.words }}&rdquo;</span>
@@ -171,6 +177,7 @@ const el = ref<HTMLElement | null>(null)
 const pos = reactive({ x: 0, y: 0 })
 const saveError = reactive<Record<string, string>>({})
 const drafts = reactive<Record<string, string>>({})
+const brokenImages = reactive<Record<string, boolean>>({})
 
 const title = computed(() => props.kind?.title ?? props.mistake?.title ?? '')
 const color = computed(() => props.kind?.color ?? '#374151')
@@ -214,6 +221,10 @@ function onImageClick(image: string | undefined) {
   const list = examples.value.map(e => e.image).filter((n): n is string => n !== undefined)
   emit('image', { list, name: image })
 }
+function onImageError(image: string | undefined) {
+  if (!image) return
+  brokenImages[image] = true
+}
 
 // --- verdicts ---
 function currentVerdict(modelId: string): Verdict | null {
@@ -235,6 +246,10 @@ function onNoteBlur(modelId: string) {
   if (value === noteFor(modelId)) return
   const verdict = currentVerdict(modelId) ?? 'unsure'
   emit('verdict', { kindId: props.kind.id, modelId, verdict, note: value })
+}
+
+function formatSavedAt(at: string): string {
+  return new Date(at).toLocaleString()
 }
 
 function setSaveError(modelId: string, message: string | null) {
@@ -420,6 +435,19 @@ onUnmounted(() => {
   height: 90px;
   object-fit: cover;
   display: block;
+}
+.image-placeholder {
+  width: 100%;
+  height: 90px;
+  background: #eceef2;
+  color: #676b75;
+  font-size: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 6px;
+  overflow-wrap: anywhere;
 }
 .example figcaption {
   padding: 6px 8px;

@@ -44,8 +44,16 @@ def main(argv=None) -> int:
     ap.add_argument("--errors-json", type=Path, default=Path("web/public/docs/errors.json"))
     ap.add_argument("--doc-dir", type=Path, default=Path("data/errors_doc"))
     a = ap.parse_args(argv)
+
+    owner_images_json = a.doc_dir / "owner_images.json"
+    for required in (a.errors_json, owner_images_json):
+        if not required.is_file():
+            print(f"{required} is missing. Make it with: "
+                  f"python -m tools.errors_doc.extract_owner_images <log> --out {a.doc_dir}")
+            return 2
+
     missing = missing_images(a.errors_json, a.doc_dir / "img")
-    unused = unused_owner_images(a.errors_json, a.doc_dir / "owner_images.json")
+    unused = unused_owner_images(a.errors_json, owner_images_json)
     for n in missing:
         print(f"missing: {n}")
     for n in unused:

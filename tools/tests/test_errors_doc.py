@@ -3,7 +3,9 @@ import base64
 import hashlib
 import json
 
-from tools.errors_doc.check import missing_images, unused_owner_images
+import pytest
+
+from tools.errors_doc.check import main, missing_images, unused_owner_images
 from tools.errors_doc.extract_owner_images import extract
 
 PNG = b"\x89PNG\r\n\x1a\nowner-one"
@@ -96,6 +98,26 @@ def test_check_names_owner_images_used_nowhere(tmp_path):
     owner.write_text(json.dumps([{"file": "you-0921-0346-1.png"}, {"file": "you-0923-0800-1.png"}]), encoding="utf-8")
     doc = _doc(tmp_path, kinds=[{"id": "k", "examples": [{"image": "you-0921-0346-1.png"}]}])
     assert unused_owner_images(doc, owner) == ["you-0923-0800-1.png"]
+
+
+@pytest.mark.parametrize("missing", ["errors_json", "owner_images_json"])
+def test_check_exits_2_with_a_clear_message_when_an_input_file_is_missing(tmp_path, capsys, missing):
+    """No traceback: a one-line message naming the missing file and the command that makes it."""
+    doc_dir = tmp_path / "errors_doc"
+    doc_dir.mkdir()
+    errors_json = tmp_path / "errors.json"
+    if missing != "errors_json":
+        errors_json.write_text("{}", encoding="utf-8")
+    if missing != "owner_images_json":
+        (doc_dir / "owner_images.json").write_text("[]", encoding="utf-8")
+
+    code = main(["--errors-json", str(errors_json), "--doc-dir", str(doc_dir)])
+
+    assert code == 2
+    out = capsys.readouterr().out
+    assert "is missing" in out
+    assert "python -m tools.errors_doc.extract_owner_images" in out
+    assert str(doc_dir) in out
 
 
 def test_tool_result_images_are_skipped(tmp_path):

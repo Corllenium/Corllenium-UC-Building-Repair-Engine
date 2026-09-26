@@ -95,8 +95,8 @@
         </section>
 
         <section class="mistakes-section">
-          <h2>Engine mistakes caught by reviews</h2>
-          <div class="mistakes-grid">
+          <h2>Engine mistakes caught by reviews ({{ filteredMistakes.length }})</h2>
+          <div v-if="filteredMistakes.length" class="mistakes-grid">
             <article
               v-for="m in filteredMistakes"
               :key="m.id"
@@ -110,6 +110,7 @@
               <p class="mistake-models">{{ m.models.join(', ') }}</p>
             </article>
           </div>
+          <p v-else class="mistakes-empty">No engine mistake for this filter.</p>
         </section>
 
         <section class="other-screenshots">
@@ -121,7 +122,8 @@
               class="screenshot"
               @click="openOtherLightbox(ex.image)"
             >
-              <img v-if="ex.image" :src="imageUrl(ex.image)" :alt="ex.caption || ''" />
+              <img v-if="ex.image && !brokenImages[ex.image]" :src="imageUrl(ex.image)" :alt="ex.caption || ''" @error="onImageError(ex.image)" />
+              <div v-else-if="ex.image" class="image-placeholder">Screenshot not found on this machine (data/errors_doc/img/{{ ex.image }})</div>
               <figcaption>{{ ex.caption }}</figcaption>
             </figure>
           </div>
@@ -179,9 +181,14 @@ const windowRef = ref<InstanceType<typeof ErrorWindow> | null>(null)
 const copiedModel = ref<string | null>(null)
 const lightbox = ref<{ list: string[]; index: number } | null>(null)
 const saveBanner = ref<string | null>(null)
+const brokenImages = reactive<Record<string, boolean>>({})
 
 function dismissSaveBanner() {
   saveBanner.value = null
+}
+function onImageError(image: string | undefined) {
+  if (!image) return
+  brokenImages[image] = true
 }
 
 function errMsg(err: unknown): string {
@@ -740,6 +747,12 @@ onUnmounted(() => {
   margin: 0;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
+.mistakes-empty {
+  color: #676b75;
+  font-style: italic;
+  font-size: 13px;
+  margin: 0 0 32px;
+}
 
 .screenshots-strip {
   display: flex;
@@ -760,6 +773,19 @@ onUnmounted(() => {
   height: 100px;
   object-fit: cover;
   display: block;
+}
+.image-placeholder {
+  width: 100%;
+  height: 100px;
+  background: #eceef2;
+  color: #676b75;
+  font-size: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 6px;
+  overflow-wrap: anywhere;
 }
 .screenshot figcaption {
   font-size: 11px;
