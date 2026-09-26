@@ -805,6 +805,19 @@ def cmd_preview_data(snapshot_dir: Path, out_dir: Path, profile: FixProfile | No
     return 0
 
 
+def cmd_errors(snapshot_dir: Path, out_file: Path, profile: FixProfile | None = None) -> dict:
+    """What is wrong with the snapshot's model, face by face (the 3D error filter's file);
+    the model is not changed."""
+    from engine.detectors.errors import find_errors
+    _obj_path, mesh, _flatness, _mtl = _load_snapshot(Path(snapshot_dir))
+    result = find_errors(mesh, profile or FixProfile())
+    out_file = Path(out_file)
+    out_file.parent.mkdir(parents=True, exist_ok=True)
+    out_file.write_text(json.dumps(result), encoding="utf-8")
+    print(f"{mesh.name}: " + ", ".join(f"{k} {v}" for k, v in result["counts"].items()))
+    return result
+
+
 # ------------------------------------------------------------------------------------------ main
 
 
@@ -833,6 +846,10 @@ def build_parser() -> argparse.ArgumentParser:
                            help="do not close slabs with skirts and bottoms before fixing")
     preview_p.add_argument("--out", default="preview/data")
 
+    errors_p = sub.add_parser("errors", help="find what is wrong with each face, without fixing it")
+    errors_p.add_argument("snapshot", type=Path)
+    errors_p.add_argument("--out", type=Path, required=True)
+
     return parser
 
 
@@ -845,6 +862,9 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "preview-data":
         return cmd_preview_data(Path(args.snapshot_dir), Path(args.out),
                                 solidify=args.solidify)
+    elif args.command == "errors":
+        cmd_errors(args.snapshot, args.out)
+        return 0
     return 1
 
 
