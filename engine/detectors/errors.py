@@ -16,6 +16,7 @@ from engine.fixes.pipeline import FixProfile, guard_depth_tol
 from engine.guard.views import VIEWS_26
 from engine.model import MeshData
 from engine.pipeline import analyse_topology
+from engine.topo.edges import EDGE_OPEN
 from engine.vis.exposure import EXP_HIDDEN, EXP_OUTSIDE, classify_exposure, compute_side_exposure
 
 #: In drawing priority: a face in several kinds is drawn in the first.
@@ -70,7 +71,7 @@ def find_errors(mesh: MeshData, profile: FixProfile = FixProfile()) -> dict:
     same -= diff
 
     # open edges and cracks from the same edge table the pipeline builds
-    open_rows = np.nonzero(topo.table.counts == 1)[0]
+    open_rows = np.nonzero(np.asarray(topo.edge_class) == EDGE_OPEN)[0]
     open_edges = pos[topo.table.edges[open_rows]].reshape(-1, 6)
     t_ids = sorted({int(v) for vs in topo.t_vertices.values() for v in np.atleast_1d(vs)})
     cracks = pos[t_ids] if t_ids else np.zeros((0, 3))

@@ -76,3 +76,10 @@ def test_a_clean_cube_is_all_facade_and_still_has_no_errors():
     e = find_errors(cube(), PROFILE)
     assert e["layers"]["facade"] == list(range(12))
     assert e["counts"] == {k: 0 for k in KINDS}
+
+
+def test_edges_covered_through_a_t_junction_are_not_open():
+    e = find_errors(t_junction_strip(), PROFILE)
+    assert e["counts"]["open_edges"] == 7            # the strip's outline only
+    assert all(not (abs(s[1] - 10.0) < 1e-6 and abs(s[4] - 10.0) < 1e-6) for s in e["open_edges"])  # none on the T line y = 10
+    assert e["counts"]["cracks"] == 1                # the T-junction itself stays a crack point
