@@ -213,3 +213,18 @@ def test_get_version_run(client, _database):
     assert client.get("/api/versions/99999/run").status_code == 404
 
 
+def test_meshbuf_is_built_once_per_version(client, imported_cube, monkeypatch):
+    import api.routers.versions as versions_mod
+    vid = imported_cube["versions"][0]["id"]
+    first = client.get(f"/api/versions/{vid}/meshbuf")
+    assert first.status_code == 200
+
+    def packed_again(*a, **k):
+        raise AssertionError("packed again")
+
+    monkeypatch.setattr(versions_mod, "pack_meshbuf", packed_again)
+    second = client.get(f"/api/versions/{vid}/meshbuf")
+    assert second.status_code == 200
+    assert second.content == first.content
+    assert second.headers["x-tris-count"] == first.headers["x-tris-count"]
+

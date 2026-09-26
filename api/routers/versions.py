@@ -2,6 +2,7 @@ import json
 import logging
 from pathlib import Path
 import shutil
+import struct
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from fastapi.responses import FileResponse
@@ -35,6 +36,18 @@ _fixes_lock = threading.Lock()
 _skp_lock = threading.Lock()
 
 
+def meshbuf_cache_file(settings: Settings, version_id: int) -> Path:
+    return settings.data_dir / "meshbuf" / f"version-{version_id}.bin"
+
+
+def _meshbuf_response(buf: bytes) -> Response:
+    hlen = struct.unpack("<I", buf[8:12])[0]
+    faces = json.loads(buf[12:12 + hlen].decode("utf-8").strip())["counts"]["faces"]
+    return Response(content=buf, media_type="application/octet-stream",
+                    headers={"X-Tris-Count": str(faces), "X-Face-Count": str(faces),
+                             "Cache-Control": "public, max-age=3600"})
+
+
 def _sanitize_filename(name: str | None, fallback: str) -> str:
     if not name:
         return fallback
@@ -62,6 +75,10 @@ def get_meshbuf(
     version = db.scalar(select(ModelVersion).where(ModelVersion.id == id))
     if version is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Version not found")
+
+    cached = meshbuf_cache_file(settings, id)
+    if cached.exists():
+        return _meshbuf_response(cached.read_bytes())
 
     obj_asset = db.scalar(
         select(VersionAsset).where(VersionAsset.version_id == id, VersionAsset.kind == "obj")
@@ -100,15 +117,11 @@ def get_meshbuf(
     topo = analyse_topology(mesh, flat_mats)
     buf = pack_meshbuf(mesh, topo, textures)
 
-    return Response(
-        content=buf,
-        media_type="application/octet-stream",
-        headers={
-            "X-Tris-Count": str(mesh.n_faces),
-            "X-Face-Count": str(mesh.n_faces),
-            "Cache-Control": "public, max-age=3600",
-        },
-    )
+    cached.parent.mkdir(parents=True, exist_ok=True)
+    tmp = cached.with_suffix(".bin.tmp")
+    tmp.write_bytes(buf)
+    tmp.replace(cached)
+    return _meshbuf_response(buf)
 
 
 @router.get("/{id}/textures/{name}")
