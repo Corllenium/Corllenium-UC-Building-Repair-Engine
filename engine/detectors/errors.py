@@ -5,14 +5,22 @@ gathers them.
 Face numbers are `mesh`'s own, which the meshbuf also uses (`tri_face_id = arange`), so the
 viewer colours face `f` by looking it up here. Points and lines are world inches; the viewer
 subtracts the meshbuf's `origin_offset`.
+
+"Zero-area and stray bits" (`loose`) is the zero-area faces plus the stray-fragment and
+attached-sliver CANDIDATES `engine.detectors.fragments.detect_fragments` names, at the tolerances
+`engine.fixes.pipeline.fix_object` gives it; `loose_parts` counts each. They are candidates, not
+verdicts: the pipeline also passes every one through `engine.guard.compare.fragment_feedback`
+(and the rays through it) before removing any, and puts back those whose removal would show
+something it must not.
 """
 from __future__ import annotations
 
 import numpy as np
 
+from engine.detectors.fragments import detect_fragments
 from engine.fixes.orient import ORIENT_FLIP, classify_orientation
 from engine.fixes.overlap import double_layers
-from engine.fixes.pipeline import FixProfile, guard_depth_tol
+from engine.fixes.pipeline import FixProfile, guard_depth_tol, sliver_width_bound
 from engine.guard.views import VIEWS_26
 from engine.model import MeshData
 from engine.pipeline import analyse_topology
@@ -58,7 +66,18 @@ def find_errors(mesh: MeshData, profile: FixProfile = FixProfile()) -> dict:
     hidden = np.nonzero((exposure_class == EXP_HIDDEN) & ok)[0]
     facade = np.nonzero((exposure_class == EXP_OUTSIDE) & ok)[0]
     reversed_ = np.nonzero((classify_orientation(front, back, ok) == ORIENT_FLIP) & ok)[0]
-    loose = np.nonzero(~ok)[0]
+
+    # loose: the zero-area faces, and the stray-fragment and sliver candidates among the rest, at
+    # the tolerances fix_object uses (contact within its T-junction tolerance, no sliver wider
+    # than the merge's own border tolerance)
+    ok_ids = np.nonzero(ok)[0]
+    fr = detect_fragments(positions_c, faces[ok_ids], profile,
+                          contact_tol=1.5 * float(topo.quanta.max()),
+                          max_width=sliver_width_bound(topo.quanta, profile))
+    zero_area = np.nonzero(~ok)[0]
+    loose = np.union1d(zero_area, ok_ids[fr.fragments | fr.slivers])
+    loose_parts = {"zero_area": int(len(zero_area)), "fragments": int(fr.fragments.sum()),
+                   "slivers": int(fr.slivers.sum())}
 
     # flicker: two layers of one plane, split by whether the two materials differ
     depth_tol = guard_depth_tol(topo.quanta, profile)
@@ -103,6 +122,7 @@ def find_errors(mesh: MeshData, profile: FixProfile = FixProfile()) -> dict:
     counts["cracks"] = int(len(cracks))
     return {"version": 1, "n_faces": int(mesh.n_faces),
             "counts": {k: counts[k] for k in KINDS},
+            "loose_parts": loose_parts,
             "faces": {k: [int(f) for f in face_lists[k]] for k in face_lists},
             "layers": {"facade": [int(f) for f in facade]},
             "layer_counts": {"facade": int(len(facade))},

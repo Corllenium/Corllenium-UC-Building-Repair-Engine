@@ -2312,3 +2312,15 @@ def two_sided_wall(size=40.0, uv_per_unit=0.05):
     uvs = (np.asarray(P, float)[:, [0, 2]] * uv_per_unit).tolist()
     return _mesh("two_sided_wall", P, uvs, fv, fv, materials=("concrete", "prismarine"),
                  face_material=[0, 0, 1, 1])
+
+
+def t_junction_strip_with_a_stray():
+    """`t_junction_strip()` plus a DETACHED 2 sq in triangle floating 20 in above it: face 6 is the
+    zero-area stitching triangle and face 7 a one-face stray fragment -- one of each thing the 3D
+    error filter's "Zero-area and stray bits" kind holds (review I4)."""
+    m = t_junction_strip()
+    base = len(m.positions)
+    P = np.vstack([m.positions, [[0.0, 0.0, 20.0], [2.0, 0.0, 20.0], [0.0, 2.0, 20.0]]])
+    fv = np.vstack([m.face_v, [[base, base + 1, base + 2]]])
+    return _mesh("t_strip_with_stray", P.tolist(), (P[:, :2] * 0.05).tolist(), fv.tolist(),
+                 fv.tolist())

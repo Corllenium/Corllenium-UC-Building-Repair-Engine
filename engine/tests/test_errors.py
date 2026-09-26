@@ -6,7 +6,8 @@ import pytest
 
 from engine.detectors.errors import KINDS, find_errors
 from engine.fixes.pipeline import FixProfile
-from engine.tests.fixtures.build import (_mesh, box_with_partition, cube, t_junction_strip,
+from engine.tests.fixtures.build import (_mesh, box_with_partition, cube, printed, slab_with_strays,
+                                         t_junction_strip, t_junction_strip_with_a_stray,
                                          two_sided_wall)
 
 PROFILE = FixProfile(n_dirs=32)
@@ -57,6 +58,24 @@ def test_a_t_junction_is_a_crack_and_its_stitch_is_loose():
     e = find_errors(t_junction_strip(), PROFILE)
     assert [10.0, 10.0, 0.0] in [[round(v, 3) for v in p] for p in e["cracks"]]
     assert e["faces"]["loose"] == [6]  # the zero-area stitching triangle (3, 4, 2)
+
+
+def test_a_one_face_stray_is_loose_and_a_zero_area_face_stays_loose():
+    """Review I4: "Zero-area and stray bits" also holds the stray-fragment and sliver candidates the
+    fix pipeline's own detector names (`detect_fragments`, at `fix_object`'s tolerances)."""
+    e = find_errors(t_junction_strip_with_a_stray(), PROFILE)
+    assert e["faces"]["loose"] == [6, 7]            # the zero-area stitch, the detached stray
+    assert e["counts"]["loose"] == 2
+    assert e["loose_parts"] == {"zero_area": 1, "fragments": 1, "slivers": 0}
+
+
+def test_an_attached_needle_is_loose_as_a_sliver_and_a_big_detached_quad_is_not():
+    """Printed like the real files (0.1 in), so the sliver width bound is their 0.15 in and the
+    0.02 in needle hanging off the slab is a sliver candidate (as in test_fragments); the detached
+    20 sq in quad, faces 34-35, is kept, as the pipeline keeps it."""
+    e = find_errors(printed(slab_with_strays()), PROFILE)
+    assert e["faces"]["loose"] == [32, 33]          # the needle (a sliver), the stray triangle
+    assert e["loose_parts"] == {"zero_area": 0, "fragments": 1, "slivers": 1}
 
 
 def test_the_result_is_plain_json():
