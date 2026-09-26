@@ -22,7 +22,7 @@
           <li v-for="(p, i) in loadProblems" :key="i">{{ p }}</li>
         </ul>
       </div>
-      <div v-else-if="loading" class="loading-state">Loading&hellip;</div>
+      <div v-else-if="!loaded" class="loading-state">Loading&hellip;</div>
 
       <template v-if="catalogue">
         <section class="origin">
@@ -160,19 +160,16 @@ import { useRoute, useRouter } from 'vue-router'
 import ErrorWindow from '../components/ErrorWindow.vue'
 import {
   filterKinds, filterMistakes, filterChoices, filterFromQuery, openFromQuery, filterToQuery,
-  statusLabel, imageUrl, verdictOf, validationSummary, validateCatalogue, VERDICTS,
-  type Catalogue, type Kind, type EngineMistake, type DocFilter, type Validation, type Verdict, type VerdictEntry,
+  statusLabel, imageUrl, verdictOf, validationSummary, VERDICTS,
+  type Kind, type EngineMistake, type DocFilter, type Verdict,
 } from '../utils/errorsDoc'
+import { useErrorsDoc, type SavePayload } from '../composables/useErrorsDoc'
 
 const route = useRoute()
 const router = useRouter()
 
-const catalogue = ref<Catalogue | null>(null)
-const validation = ref<Validation | null>(null)
-const loading = ref(true)
-const loadError = ref<string | null>(null)
-const loadProblems = ref<string[]>([])
-const validationError = ref(false)
+const errorsDoc = useErrorsDoc()
+const { catalogue, validation, loadError, loadProblems, validationError, loaded } = errorsDoc
 const ready = ref(false)
 
 const filter = reactive<DocFilter>({ model: null, engine: null })
@@ -189,10 +186,6 @@ function dismissSaveBanner() {
 function onImageError(image: string | undefined) {
   if (!image) return
   brokenImages[image] = true
-}
-
-function errMsg(err: unknown): string {
-  return err instanceof Error ? err.message : String(err)
 }
 
 const summary = computed(() => (catalogue.value ? validationSummary(catalogue.value, validation.value) : null))
@@ -266,99 +259,29 @@ function clearFilter() {
   filter.engine = null
 }
 
-const saveChains = new Map<string, Promise<void>>()
-
-// Saves for the same kind/model are chained so a note-blur and a verdict click fired close
-// together always reach the server in the order the owner made them, never racing.
-function saveVerdict(payload: { kindId: string; modelId: string; verdict: Verdict | null; note: string }): Promise<void> {
-  const key = `${payload.kindId}/${payload.modelId}`
-  const chained = (saveChains.get(key) ?? Promise.resolve()).then(() => doSaveVerdict(payload))
-  saveChains.set(key, chained)
-  return chained
-}
-
-async function doSaveVerdict(payload: { kindId: string; modelId: string; verdict: Verdict | null; note: string }) {
-  try {
-    const res = await fetch(
-      `/api/docs/validation/${encodeURIComponent(payload.kindId)}/${encodeURIComponent(payload.modelId)}`,
-      {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ verdict: payload.verdict, note: payload.note }),
+// Routes a save's outcome exactly as before: while the kind's window is open, errors and the
+// all-clear go to that model's row; otherwise a failure goes to the page banner instead.
+function saveVerdict(payload: SavePayload): Promise<void> {
+  let errored = false
+  return errorsDoc
+    .saveVerdict(payload, (message) => {
+      errored = true
+      if (openId.value === payload.kindId) {
+        windowRef.value?.setSaveError(payload.modelId, `Not saved: ${message}`)
+      } else {
+        const title = catalogue.value?.kinds.find(k => k.id === payload.kindId)?.title ?? payload.kindId
+        saveBanner.value = `Not saved: ${title} — ${payload.modelId}: ${message}`
       }
-    )
-    if (!res.ok) {
-      let detail = `HTTP ${res.status}`
-      try {
-        const data = await res.json()
-        if (res.status === 422 && Array.isArray(data?.detail) && data.detail[0]?.msg) {
-          detail = data.detail[0].msg
-        } else if (typeof data?.detail === 'string') {
-          detail = data.detail
-        }
-      } catch {
-        // keep default detail
+    })
+    .then(() => {
+      if (!errored && openId.value === payload.kindId) {
+        windowRef.value?.setSaveError(payload.modelId, null)
       }
-      throw new Error(detail)
-    }
-    const data = (await res.json()) as { kind: string; model: string; entry: VerdictEntry | null }
-    if (!validation.value) validation.value = { version: 1, verdicts: {} }
-    if (data.entry) {
-      if (!validation.value.verdicts[data.kind]) validation.value.verdicts[data.kind] = {}
-      validation.value.verdicts[data.kind][data.model] = data.entry
-    } else if (validation.value.verdicts[data.kind]) {
-      delete validation.value.verdicts[data.kind][data.model]
-      if (Object.keys(validation.value.verdicts[data.kind]).length === 0) {
-        delete validation.value.verdicts[data.kind]
-      }
-    }
-    if (openId.value === payload.kindId) {
-      windowRef.value?.setSaveError(payload.modelId, null)
-    }
-  } catch (err) {
-    if (openId.value === payload.kindId) {
-      windowRef.value?.setSaveError(payload.modelId, `Not saved: ${errMsg(err)}`)
-    } else {
-      const title = catalogue.value?.kinds.find(k => k.id === payload.kindId)?.title ?? payload.kindId
-      saveBanner.value = `Not saved: ${title} — ${payload.modelId}: ${errMsg(err)}`
-    }
-  }
+    })
 }
 
 async function load() {
-  loading.value = true
-  loadError.value = null
-  loadProblems.value = []
-  try {
-    const res = await fetch('/docs/errors.json', { cache: 'no-cache' })
-    if (!res.ok) throw new Error(`HTTP ${res.status}`)
-    const contentType = res.headers.get('content-type') ?? ''
-    if (!contentType.includes('json')) {
-      loadError.value = 'The documentation file is missing from this build (/docs/errors.json)'
-    } else {
-      const parsed = (await res.json()) as Catalogue
-      const problems = validateCatalogue(parsed)
-      if (problems.length > 0) {
-        loadError.value = `The documentation file has ${problems.length} problems:`
-        loadProblems.value = problems
-      } else {
-        catalogue.value = parsed
-      }
-    }
-  } catch (err) {
-    loadError.value = `Could not load the documentation: ${errMsg(err)}`
-  } finally {
-    loading.value = false
-  }
-
-  try {
-    const res = await fetch('/api/docs/validation')
-    if (!res.ok) throw new Error(`HTTP ${res.status}`)
-    validation.value = (await res.json()) as Validation
-  } catch {
-    validationError.value = true
-  }
-
+  await errorsDoc.load()
   if (catalogue.value) {
     const f = filterFromQuery(route.query, catalogue.value)
     filter.model = f.model
