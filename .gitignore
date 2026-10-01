@@ -8,6 +8,9 @@ data/
 # the latest fixed SketchUp file per model, re-written by every `engine.cli fix` run
 OBJ FIXED RESULT/
 
+# the owner's working files: original drawings, SketchUp models, model/drawing sync, colouring, fixing
+MODEL FIXER ENGINE FILES/
+
 # python
 __pycache__/
 *.pyc
