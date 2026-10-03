@@ -389,6 +389,21 @@ def test_a_missing_dll_is_unavailable_and_says_where(tmp_path):
         skp_reader.walk_skp(tmp_path / "x.skp", dll_path=missing)
 
 
+# --------------------------------------------------------------- how much memory is left to use
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="Windows' commit figures")
+def test_available_commit_is_the_megabytes_the_machine_can_still_promise():
+    free = skp_reader.available_commit_mb()
+    assert isinstance(free, float) and 0 < free < 4 * 1024 * 1024        # under 4 TB, more than none
+
+
+def test_off_windows_there_is_no_commit_figure_and_so_no_guard(monkeypatch):
+    monkeypatch.setattr(os, "name", "posix")
+    assert skp_reader.available_commit_mb() is None
+    assert skp_reader._peak_memory_mb() == (None, None)
+
+
 # ---------------------------------------------------------------- the command that walks a file
 
 

@@ -45,7 +45,8 @@ import sys
 import tempfile
 import time
 from contextlib import contextmanager
-from ctypes import POINTER, Structure, byref, c_bool, c_char_p, c_double, c_int, c_size_t, c_void_p
+from ctypes import (POINTER, Structure, byref, c_bool, c_char_p, c_double, c_int, c_size_t,
+                    c_ulonglong, c_void_p)
 from pathlib import Path
 
 import numpy as np
@@ -427,6 +428,31 @@ def _peak_memory_mb() -> tuple[float | None, float | None]:
         return None, None
     return (round(counters.PeakWorkingSetSize / 2 ** 20, 1),
             round(counters.PeakPagefileUsage / 2 ** 20, 1))
+
+
+def available_commit_mb() -> float | None:
+    """How many MB the machine can still promise to a process: the commit limit minus what is
+    already committed (`ullAvailPageFile` of `GlobalMemoryStatusEx`) -- what decides whether the
+    next big allocation succeeds, however much RAM looks free. `None` off Windows."""
+    if os.name != "nt":
+        return None
+    from ctypes import wintypes
+
+    class Status(Structure):
+        _fields_ = [("dwLength", wintypes.DWORD), ("dwMemoryLoad", wintypes.DWORD),
+                    ("ullTotalPhys", c_ulonglong), ("ullAvailPhys", c_ulonglong),
+                    ("ullTotalPageFile", c_ulonglong), ("ullAvailPageFile", c_ulonglong),
+                    ("ullTotalVirtual", c_ulonglong), ("ullAvailVirtual", c_ulonglong),
+                    ("ullAvailExtendedVirtual", c_ulonglong)]
+
+    kernel32 = ctypes.WinDLL("kernel32")
+    kernel32.GlobalMemoryStatusEx.argtypes = [POINTER(Status)]
+    kernel32.GlobalMemoryStatusEx.restype = wintypes.BOOL
+    status = Status()
+    status.dwLength = ctypes.sizeof(Status)
+    if not kernel32.GlobalMemoryStatusEx(byref(status)):
+        return None
+    return round(status.ullAvailPageFile / 2 ** 20, 1)
 
 
 def main(argv: list[str] | None = None) -> int:
