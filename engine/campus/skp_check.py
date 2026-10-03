@@ -592,7 +592,13 @@ def render_markdown(report: dict) -> str:
     lines += [f"- {e}" for e in extra] + [""]
     mismatches = report["mismatches"]
     if mismatches:
-        more = report["measured"]["area_more_in_backup"]
+        more = [m["area_rel"] for m in mismatches if m["area_rel"] > 0]
+        if len(more) == len(mismatches):
+            direction = (f"In every mismatch the backup has MORE area than the export "
+                         f"({min(more) * 100:+.2f} % to {max(more) * 100:+.2f} %).")
+        else:
+            direction = (f"In {len(more)} of the {len(mismatches)} mismatches the backup has MORE area "
+                         "than the export, in the others less.")
         lines += [f"## Worst mismatches ({min(5, len(mismatches))} of {len(mismatches)})", "",
                   "| file | paired by | box, max off (in) | area: backup vs export | difference |",
                   "|---|---|---:|---|---:|"]
@@ -600,8 +606,7 @@ def render_markdown(report: dict) -> str:
             lines.append(f"| {m['name']} | {m['paired_by']} | {_num(m['bbox_max_dev'])} | "
                          f"{m['unit']['area']:,.0f} vs {m['export']['area']:,.0f} sq in | "
                          f"{m['area_rel'] * 100:+.2f} % |")
-        lines += ["", f"The reason for every mismatch, in words, is in `skp_check.json`. In {more} of the "
-                  f"{report['measured']['paired']} paired files the backup has MORE area than the export.", ""]
+        lines += ["", f"The reason for every mismatch, in words, is in `skp_check.json`. {direction}", ""]
     for amb in (a for a in report["ambiguities"] if not a["resolved"]):
         lines.append(f"- ambiguous `{amb['family']}` ({', '.join(amb['rows'])}): {amb['reason']}")
     for miss in report["misses"]:

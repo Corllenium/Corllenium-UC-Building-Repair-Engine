@@ -804,6 +804,7 @@ def test_the_summary_gives_the_counts_and_the_five_worst_mismatches_worst_first(
     table = [line for line in text.splitlines() if line.startswith("| F")]
     assert [line.split("|")[1].strip() for line in table] == [f"F{i}_Floor" for i in (7, 6, 5, 4, 3)]
     assert "Lost_Floor" in text and "M - CHECKPOINT-17.skp" in text and sha(b"skp-bytes")[:12] in text
+    assert "In every mismatch the backup has MORE area than the export (+1.00 % to +7.00 %)." in text
     assert "the export has 32 triangles fewer" in text             # 8 paired floors x 4 more in the backup
     assert ("bounding boxes of the 8 paired files differ by at most 0 in "
             "(median 0 in; the tolerance is 2 in)") in text
