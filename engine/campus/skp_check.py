@@ -500,7 +500,8 @@ def check_source(source_json, backup_dir, out_dir, *, name: str | None = None, s
         stats = export_stats(snapshots[m["file"]])
         rows.append({"name": m["group"], "file": m["file"], **stats})
     max_abs = max(r["max_abs_coordinate"] for r in rows)
-    step = print_step(max_abs, rows[0]["sig_digits"])
+    sig_digits = max(r["sig_digits"] for r in rows)       # a file of round numbers shows no precision
+    step = print_step(max_abs, sig_digits)
     tolerance = 2 * step if bbox_tol is None else bbox_tol
     units = sdk_units(walk)
     result = compare(rows, units, bbox_tol=tolerance, area_tol=area_tol)
@@ -514,7 +515,7 @@ def check_source(source_json, backup_dir, out_dir, *, name: str | None = None, s
                    "backup": copy.name, "backup_sha256": source["backup"][copy.name]["sha256"],
                    "copy": str(copy)},
         "tolerance": {"bbox_in": tolerance, "area_fraction": area_tol, "print_step_in": step,
-                      "max_abs_coordinate": max_abs, "sig_digits": rows[0]["sig_digits"]},
+                      "max_abs_coordinate": max_abs, "sig_digits": sig_digits},
         "sdk": {"api_version": walk.get("api_version"), "elapsed_s": walk.get("elapsed_s"),
                 "peak_working_set_mb": walk.get("peak_working_set_mb"),
                 "peak_commit_mb": walk.get("peak_commit_mb"), "totals": walk.get("totals"),

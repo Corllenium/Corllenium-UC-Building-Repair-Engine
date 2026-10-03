@@ -703,6 +703,17 @@ def test_the_bounding_box_tolerance_is_twice_the_print_step_measured_in_the_expo
     assert pinned["tolerance"]["bbox_in"] == 0.5
 
 
+def test_the_export_s_precision_is_the_best_any_of_its_files_shows(tmp_path):
+    """A file whose numbers happen to be round (`0`, `30`) says nothing about the exporter's digits:
+    the precision is the most significant digits any file shows, not the first file's."""
+    rows = [("A_Floor", 0, 0, 30, 10), ("B_Floor", 100, 24000, 130, 24244.2)]
+    walk = floor_walk(("A Floor", 5, 300.0, box(0, 0, 30, 10)),
+                      ("B Floor", 5, 30 * 244.2, box(100, 24000, 130, 24244.2)))
+    report, _, _ = run_check(tmp_path, rows, walk)
+    assert report["tolerance"]["sig_digits"] == 6
+    assert report["tolerance"]["bbox_in"] == pytest.approx(0.2)
+
+
 def test_what_the_sdk_left_out_as_hidden_is_counted_in_the_report(tmp_path):
     rows = [("A_Floor", 0, 0, 30, 10)]
     walk = floor_walk(("A Floor", 5, 300.0, box(0, 0, 30, 10)))
@@ -795,7 +806,7 @@ def test_the_summary_gives_the_counts_and_the_five_worst_mismatches_worst_first(
     assert "Lost_Floor" in text and "M - CHECKPOINT-17.skp" in text and sha(b"skp-bytes")[:12] in text
     assert "the export has 32 triangles fewer" in text             # 8 paired floors x 4 more in the backup
     assert ("bounding boxes of the 8 paired files differ by at most 0 in "
-            "(median 0 in; the tolerance is 0.002 in)") in text
+            "(median 0 in; the tolerance is 2 in)") in text
     assert len(text.splitlines()) < 80                              # short, as asked
 
 
