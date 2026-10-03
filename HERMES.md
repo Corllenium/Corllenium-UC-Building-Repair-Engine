@@ -42,6 +42,9 @@ Never use default ports (5173, 8000, 5432) — other services run on this machin
 ---
 
 ## 2. Hard Invariants & Guardrails
+**The binding rules, the blocked operations, the owner's decisions and the owner's validation rule are in
+[`AGENTS.md`](AGENTS.md) §3-6 (since 2026-10-03). Read it before any work. The notes below are engine
+background.**
 - **Double-sided rendering by default**: Match SketchUp & Unity campus shaders. Single-sided is only a diagnostic canvas toggle.
 - **Vertices are never moved or invented**, except by `engine/fixes/solidify.py` (walls and bottoms). The planar merge triangulates over existing welded vertices only.
 - **Blocked operations** (these previously destroyed model geometry):
