@@ -2,7 +2,9 @@
 
 This is the single rules file for Claude, Hermes and every other agent working in this repo.
 `CLAUDE.md` imports it; `HERMES.md`, `docs/superpowers/records/HANDOFF.md` and the skills link to it.
-If anything elsewhere disagrees with this file, this file wins. Change it only with the owner's OK.
+If anything elsewhere disagrees with this file, this file wins. Sections 3-6 (the binding rules, the blocked
+operations, the owner's decisions, the validation rule) change only with the owner's OK. Claude may fix
+wording, pointers and consistency elsewhere in this file, and reports each such fix to the owner.
 
 ## 1. What this project is
 
@@ -34,12 +36,16 @@ If anything elsewhere disagrees with this file, this file wins. Change it only w
   `"/d/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe"` from the worktree root, and set
   `PYTHONPATH` to the worktree root for any plain `python script.py` (otherwise it imports the main
   checkout's engine).
-- **Never touch**: any untracked file you did not create, the live export folder
-  `D:\PROJECTS\UC ENVIRONMENT BUILDING\...`, the owner's campus model
-  `D:\PROJECTS\UC\02-SKETCHUP\current\...skp`, and the running servers: the Docker containers
-  `fixer-api` (8190), `fixer-web` (5190 and 5180, nginx) and `fixer-db` (Postgres 16, 5490).
-  Rebuilding or restarting them, and any write to the live database `fixer`, is the owner's decision.
-  The owner approved the 2026-09-25 rebuild (section 8).
+- **Never touch**:
+  - any untracked file you did not create;
+  - the live export folder `D:\PROJECTS\UC ENVIRONMENT BUILDING\...`: never write there, and read it only
+    through `engine/io/snapshot.py`;
+  - the owner's campus model `D:\PROJECTS\UC\02-SKETCHUP\current\...skp`;
+  - the running servers, the Docker containers `fixer-api` (8190), `fixer-web` (5190 and 5180, nginx) and
+    `fixer-db` (Postgres 16, 5490).
+
+  Rebuilding or restarting them, and any write to the live database `fixer`, is the owner's decision, and
+  each rebuild needs its own OK (section 8).
 - **API tests** (`pytest api`): since cba42a5 each session makes its own `fixer_test_<pid>_*` database
   and drops only its own (and ones left by dead processes), so runs of this code may overlap. A
   worktree or container on an older commit still drops the one shared `fixer_test`: never overlap two
@@ -55,13 +61,13 @@ If anything elsewhere disagrees with this file, this file wins. Change it only w
   item so a cut loses nothing.
 - **Guards are never loosened by argument.** A change to what the guard tolerates must name the
   change and MEASURE it (example: border shifts are tolerated only up to the merge's own 0.15 in,
-  measured per pixel). Only `engine/fixes/solidify.py` may invent vertices; the merge never moves or
-  invents one.
+  measured per pixel). Only `engine/fixes/solidify.py` may invent vertices, except the E5 cut's points
+  on the winning face's border (§4). The merge never moves or invents one.
 - **Visual pass every round**: read `data/output/<name>/qa/*.png` and render the `.skp` with
   `docs/superpowers/records/scripts/render_skp.py`, audit it with `skp_edge_audit.py`, and say what
   you see. A log line is not evidence.
-- **Records**: after every step append to the ledger, update section 2 of this page and the session
-  record's history, and commit them (`git add -f` for files under `.superpowers/sdd/`).
+- **Records**: after every step append to the ledger, update HANDOFF §2 and the session record's
+  history, and commit them (`git add -f` for files under `.superpowers/sdd/`).
 
 (The references to "section 2" and "section 8" in this list point to `docs/superpowers/records/HANDOFF.md`.)
 
@@ -124,7 +130,8 @@ Validator's `validation.json` together with its evidence images.
    - Never work a job you have not claimed; never take a job someone else holds.
 2. **One job is one brief, one branch and one worktree.**
    - Claude: `claude/<id>` in `.claude/worktrees/<id>`. Hermes: `hermes/<id>` in `.hermes/worktrees/<id>`.
-   - Branches are made from the phase's integration branch (P0: `feat/repair-p0`).
+   - Branches are made from the branch the brief names; if it names none, from the phase's
+     integration branch for code (P0: `feat/repair-p0`) and from `feat-dashboard` for a records-only job.
 3. **Follow the brief item by item, test first.** Each item says when it is done and names its tests.
 4. **The report carries real output.**
    - Hermes writes `docs/superpowers/records/hermes/<id>-report.md`; Claude writes its ledger.
