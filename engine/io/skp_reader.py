@@ -85,6 +85,18 @@ _REQUIRED = {
     "SUModelCreateFromFile": ([_RP, c_char_p], c_int),
     "SUModelRelease": ([_RP], c_int),
     "SUModelGetEntities": ([_Ref, _RP], c_int),
+    "SUEntitiesGetNumGroups": ([_Ref, _SP], c_int),
+    "SUEntitiesGetGroups": ([_Ref, c_size_t, _RP, _SP], c_int),
+    "SUEntitiesGetNumInstances": ([_Ref, _SP], c_int),
+    "SUEntitiesGetInstances": ([_Ref, c_size_t, _RP, _SP], c_int),
+    "SUGroupGetName": ([_Ref, _RP], c_int),
+    "SUGroupGetTransform": ([_Ref, POINTER(_Transformation)], c_int),
+    "SUGroupGetEntities": ([_Ref, _RP], c_int),
+    "SUComponentInstanceGetName": ([_Ref, _RP], c_int),
+    "SUComponentInstanceGetTransform": ([_Ref, POINTER(_Transformation)], c_int),
+    "SUComponentInstanceGetDefinition": ([_Ref, _RP], c_int),
+    "SUComponentDefinitionGetName": ([_Ref, _RP], c_int),
+    "SUComponentDefinitionGetEntities": ([_Ref, _RP], c_int),
     "SUEntitiesGetNumFaces": ([_Ref, _SP], c_int),
     "SUEntitiesGetFaces": ([_Ref, c_size_t, _RP, _SP], c_int),
     "SUFaceGetArea": ([_Ref, _DP], c_int),
@@ -248,11 +260,66 @@ class _Faces:
         return float(self.areas @ scale), [moved.min(axis=0).tolist(), moved.max(axis=0).tolist()]
 
 
-def _node(kind: str, name: str, definition: str | None, faces: _Faces, world: np.ndarray) -> dict:
-    area, bbox = faces.in_world(world)
-    return {"kind": kind, "name": name, "definition": definition, "faces": faces.count,
-            "tris": faces.tris, "area": area, "bbox": bbox, "hidden_faces": faces.hidden,
-            "layer_hidden_faces": faces.layer_hidden, "children": [], "skipped": []}
+def _string(api: _Api, getter: str, owner: _Ref) -> str:
+    """A SketchUp string property (`getter` is the SDK call) as text; the string is released."""
+    string = _Ref()
+    api.ok("SUStringCreate", byref(string))
+    try:
+        api.ok(getter, owner, byref(string))
+        n = c_size_t()
+        api.ok("SUStringGetUTF8Length", string, byref(n))
+        buf = ctypes.create_string_buffer(n.value + 1)
+        got = c_size_t()
+        api.ok("SUStringGetUTF8", string, n.value + 1, buf, byref(got))
+        return buf.value.decode("utf-8", errors="replace")
+    finally:
+        api.raw("SUStringRelease", byref(string))
+
+
+def _matrix(transformation: _Transformation) -> np.ndarray:
+    """`SUTransformation` (column-major) as a 4 x 4 matrix acting on column vectors."""
+    return np.array(transformation.values, float).reshape(4, 4, order="F")
+
+
+class _Walker:
+    def __init__(self, api: _Api):
+        self.api = api
+        self._faces: dict[int, _Faces] = {}
+
+    def faces(self, entities: _Ref) -> _Faces:
+        """The faces of `entities`, read once however many instances share them."""
+        if entities.ptr not in self._faces:
+            self._faces[entities.ptr] = _Faces(self.api, entities)
+        return self._faces[entities.ptr]
+
+    def children(self, entities: _Ref):
+        """`(kind, name, definition, local transform, entities)` of each group, then each
+        component instance, directly in `entities`."""
+        api = self.api
+        for group in _refs(api, "SUEntitiesGetNumGroups", "SUEntitiesGetGroups", entities):
+            inner, local = _Ref(), _Transformation()
+            api.ok("SUGroupGetEntities", group, byref(inner))
+            api.ok("SUGroupGetTransform", group, byref(local))
+            yield "group", _string(api, "SUGroupGetName", group), None, _matrix(local), inner
+        for instance in _refs(api, "SUEntitiesGetNumInstances", "SUEntitiesGetInstances", entities):
+            definition, inner, local = _Ref(), _Ref(), _Transformation()
+            api.ok("SUComponentInstanceGetDefinition", instance, byref(definition))
+            api.ok("SUComponentDefinitionGetEntities", definition, byref(inner))
+            api.ok("SUComponentInstanceGetTransform", instance, byref(local))
+            yield ("instance", _string(api, "SUComponentInstanceGetName", instance),
+                   _string(api, "SUComponentDefinitionGetName", definition), _matrix(local), inner)
+
+    def walk(self, kind: str, name: str, definition: str | None, entities: _Ref,
+             world: np.ndarray) -> dict:
+        faces = self.faces(entities)
+        area, bbox = faces.in_world(world)
+        node = {"kind": kind, "name": name, "definition": definition, "faces": faces.count,
+                "tris": faces.tris, "area": area, "bbox": bbox, "hidden_faces": faces.hidden,
+                "layer_hidden_faces": faces.layer_hidden, "children": [], "skipped": []}
+        for child_kind, child_name, child_definition, local, inner in self.children(entities):
+            node["children"].append(
+                self.walk(child_kind, child_name, child_definition, inner, world @ local))
+        return node
 
 
 def walk_skp(path, *, dll_path=None) -> dict:
@@ -264,7 +331,7 @@ def walk_skp(path, *, dll_path=None) -> dict:
     with api.session(), _open(api, path) as model:
         entities = _Ref()
         api.ok("SUModelGetEntities", model, byref(entities))
-        root = _node("model", "", None, _Faces(api, entities), np.eye(4))
+        root = _Walker(api).walk("model", "", None, entities, np.eye(4))
         version = api.version()
     return {"path": str(path), "api_version": version,
             "elapsed_s": round(time.perf_counter() - started, 3), "root": root}
