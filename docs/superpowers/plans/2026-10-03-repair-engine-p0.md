@@ -643,6 +643,13 @@ There is no save call in this module, and a test asserts that.
 
 ### Task 12: census with timings (either)
 
+**Owner order (2026-10-03):** the error map of every floor of every building comes first, as on CHTM 5th;
+fixing starts only after. The census is that run, so it keeps each unit's whole error file, not only the
+counts. The error files are the engines' record of what to fix, not something the owner colours or reviews
+now. After the fix the owner may use the dashboard's filters per floor. Each unit also gets a **fix plan**:
+the engine steps its errors need, in the pipeline's order. The per-floor n8n workflow (spec §6) runs those
+steps.
+
 **Files:**
 - Create `engine/campus/census.py`, `engine/tests/test_campus_census.py`.
 - Modify `engine/detectors/errors.py`: an optional `timings: dict | None = None` argument that records `perf_counter` per stage (topology, exposure, double_layers, fragments, assemble). The output is unchanged when it is None.
@@ -657,14 +664,41 @@ There is no save call in this module, and a test asserts that.
   - machine load at start and end: the count of other `python.exe` and `msedge.exe` processes, and the system CPU times through `GetSystemTimes`.
 - Flicker split: pairs × {same look, different look} × {opposite, same facing}, using `materials.json`.
 - A timeout writes `{"status": "timeout"}` for that unit.
-- Outputs: `data/campus/census.json` and `docs/superpowers/records/campus/census.md` (a table: building, unit, triangles, each kind, seconds, peak MB).
+- Outputs:
+  - `data/campus/census.json`;
+  - `data/campus/errors/<unit>.json`: each unit's whole `find_errors` result, in exactly the format
+    `engine.cli errors` writes (the file the dashboard's 3D error filter draws);
+  - `docs/superpowers/records/campus/census.md`: a table (building, unit, triangles, each kind, seconds, peak
+    MB) plus the totals per building and kind.
+- **Fix plan per unit**, in `census.json`: `"fix_plan": [{"engine", "kinds", "count"}]`, listing only the
+  engines whose error kinds the unit has, in the order E8 → E3 → E1 → E2 → E4 → E5 → E6 → E7. The kinds map to
+  the engines through one table in `census.py`:
+
+  | Kind (`find_errors` counts) | Engine |
+  |---|---|
+  | `open_edges` | E8 |
+  | `hidden` | E3 |
+  | `loose` | E1 |
+  | `reversed` | E2 |
+  | flicker pairs with the **same look** (the census's look split) | E4 |
+  | flicker pairs with **different looks** (the census's look split) | E5 |
+  | `cracks` | E6 |
+
+  `flicker_same` and `flicker_diff` split by material name; E4 and E5 go by look (`materials.json`), so the
+  fix plan uses the look split. E7 (gridlines) has no `find_errors` kind: it is listed for every unit with
+  faces, with `count` null.
+- Showing every unit in the dashboard is not part of this job. If the owner wants per-floor filters after the
+  fix, importing units into the live database `fixer` needs the owner's OK at that time.
 
 - [ ] **Step 1: Write the failing tests:**
   - `find_errors(..., timings=t)` fills 5 stage keys and gives the same result as without it (on `two_sided_wall`);
   - the flicker split on `two_sided_wall` sums to the total pair count;
-  - `census` on two fixture units writes both rows with `seconds` and `peak_mb`, and a `timeout_s` of 0.001 marks a unit as timeout.
+  - `census` on two fixture units writes both rows with `seconds` and `peak_mb`, and a `timeout_s` of 0.001 marks a unit as timeout;
+  - each unit's `errors/<unit>.json` loads equal to `find_errors` run directly on that unit;
+  - the fix plan of a unit whose only errors are `hidden` faces and different-look flicker pairs is
+    `E3, E5, E7`, in that order, with their counts (E7's count null).
 - [ ] **Steps 2-4:** see them fail, implement, see them pass, and the engine suite stays green.
-- [ ] **Step 5: Real run** on all 85 snapshots, `--jobs 4`. Record the machine load. **Done when:** every unit has counts or `timeout`, and the report names the 5 slowest units and the 5 with the highest peak memory.
+- [ ] **Step 5: Real run** on all 85 snapshots, `--jobs 4`. Record the machine load. **Done when:** every unit has counts and an error file, or `timeout`, and the report names the 5 slowest units and the 5 with the highest peak memory.
 - [ ] **Step 6: Commit.** `feat(campus): census of every unit with stage timings, peak memory and flicker split by look and winding`.
 
 ### Task 13: owner decision sheet (claude)

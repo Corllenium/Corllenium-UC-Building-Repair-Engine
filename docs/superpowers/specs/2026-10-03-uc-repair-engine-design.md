@@ -107,6 +107,13 @@
   - the time and peak memory of each stage, plus the machine load;
   - flicker split by look and by winding.
 - Output: `data/campus/census.json`, the baseline for "problems solved" and for the speed budget.
+- **Owner order (2026-10-03):** every floor of every building gets its error map first, as CHTM 5th did;
+  fixing starts only after. The census therefore keeps each unit's whole error file
+  (`data/campus/errors/<unit>.json`, the format the dashboard's 3D error filter draws). Those files are the
+  engines' record of what to fix ("not perfect, but it captures all errors we need to fix"). The owner does
+  not colour or review them now; after the fix the owner may use the dashboard's filters per floor.
+- Each unit also gets a **fix plan**: the engines its error kinds need, in the pipeline's order (§4). The
+  per-floor workflow (§6) runs exactly those steps.
 
 ### 3. Validator, before any engine (P0b)
 `engine/validate/` is its own module, float64, and not built on `compare_views`, so it is independent in
@@ -174,6 +181,12 @@ code as well as in agent. `engine.cli validate <unit>` writes `validation.json` 
 
 ### 6. Runner, outputs, comparison (P3)
 - `engine.cli repair-unit | repair-building`: a resumable queue of unit jobs. There is no campus command.
+- **One engine flow for every floor of every building, run as an n8n workflow** (the owner, 2026-10-03).
+  Per floor the workflow takes the unit's fix plan from the census (§2) and runs its steps in order:
+  snapshot → each engine the plan lists → validate → evidence → owner review → publish. Each step names the
+  script or CLI command it ran and its result, so the workflow shows, floor by floor, which step fixed what.
+  n8n runs on the Corllenium VPS; the heavy compute stays on this PC. How the two talk (a runner on the PC
+  that pulls the workflow's jobs, so the PC opens no inbound port) is part of the hosting design (H2).
 - Work in progress goes to `data/fixing_scratch/`.
 - **The owner's `05-FIXING\` holds committed-code results only.** They are published from
   `.claude/worktrees/verified` (created then), with a per-floor `manifest.json` giving the commit and the
