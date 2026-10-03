@@ -860,6 +860,13 @@ def build_parser() -> argparse.ArgumentParser:
     freeze_p.add_argument("--out", type=Path, default=Path("data/campus"))
     freeze_p.add_argument("--snapshots", type=Path, default=Path("data/snapshots"))
 
+    index_p = sub.add_parser("campus-index",
+                             help="index every face of CKPT17-CLEAN.obj by its SketchUp group path")
+    index_p.add_argument("--source", type=Path, default=Path("data/campus/source.json"),
+                         help="the source.json file from campus-freeze")
+    index_p.add_argument("--out", type=Path, default=Path("data/campus/group_index.json"),
+                         help="output group_index.json")
+
     return parser
 
 
@@ -880,6 +887,11 @@ def main(argv: list[str] | None = None) -> int:
         res = freeze_source(args.export, args.backup, args.out, args.snapshots)
         totals = json.loads(res.json_path.read_text(encoding="utf-8"))["totals"]
         print(f"froze {totals['files']} files, {totals['tris']} triangles -> {res.json_path}")
+        return 0
+    elif args.command == "campus-index":
+        from engine.campus.groups import cmd_campus_index
+        res = cmd_campus_index(args.source, args.out)
+        print(f"indexed {len(res['paths'])} paths, {len(res['faces'])} runs, {len(res['split'])} splits -> {args.out}")
         return 0
     return 1
 

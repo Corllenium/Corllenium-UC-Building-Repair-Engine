@@ -1,0 +1,33 @@
+# Alias OBJ Model File
+# Exported from SketchUp, (c) 2000-2012 Trimble Navigation Limited
+# File units = inches
+
+mtllib CKPT17-CLEAN.mtl
+
+v 0.0 0.0 0.0
+v 1.0 0.0 0.0
+v 1.0 1.0 0.0
+v 0.0 1.0 0.0
+vt 0.0 0.0
+vt 1.0 0.0
+vt 1.0 1.0
+vt 0.0 1.0
+vn 0.0 0.0 1.0
+
+# Face before any g line (path () and split "unnamed")
+f 1/1/1 2/2/1 3/3/1
+
+# Group 1: nested 3 deep
+g Mesh1 minecraft_quartz_block_side__1 SubGroup MiddleGroup Outer_Level Model
+usemtl minecraft_quartz_block_side_-98
+f 1/1/1 3/3/1 4/4/1
+
+# Group 2: automatic name Group124
+g Mesh2 minecraft_quartz_block_side__1 Group124 Model
+usemtl minecraft_quartz_block_side_-98
+f 1/1/1 2/2/1 4/4/1
+
+# Group 3: floor name with a space and a dot
+g Mesh3 minecraft_quartz_block_side__1 "Eds 2nd Floor.obj" Model
+usemtl minecraft_quartz_block_side_-98
+f 2/2/1 3/3/1 4/4/1
