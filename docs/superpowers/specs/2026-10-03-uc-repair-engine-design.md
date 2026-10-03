@@ -242,7 +242,7 @@ code as well as in agent. `engine.cli validate <unit>` writes `validation.json` 
   - job templates for unit snapshots;
   - a Windows scheduled task.
 
-### 9. Decision hooks and Jev (the owner asked for Jev 2026-10-03; the pilot was approved, the hook design awaits the owner's confirmation)
+### 9. Decision hooks and Jev (approved by the owner 2026-10-03: the pilot and this hook design, as written)
 
 **What Jev is.** TypeSafe's Jev answers typed questions about a text "state", each with a confidence:
 - `Noul`: true or false;
