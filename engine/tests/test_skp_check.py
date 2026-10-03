@@ -212,6 +212,14 @@ def test_a_unit_that_agrees_with_its_file_is_a_match():
         [], [], [], [])
 
 
+def test_the_triangles_the_export_lacks_are_counted_beside_the_verdict_and_do_not_decide_it():
+    """A face of `v` corners (and `h` holes) is `v + 2h - 2` triangles when nothing is dropped, so
+    the backup's count minus the export's is how many triangles the export does not have."""
+    [m] = compared([row("A_Floor", 1000.0, box(0, 0, 10, 100), tris=2)],
+                   [unit("A_Floor", 1000.0, box(0, 0, 10, 100), faces=3)])["matches"]
+    assert m["unit"]["tris"] == 6 and m["export"]["tris"] == 2 and m["tris_diff"] == 4
+
+
 def test_a_bounding_box_off_by_more_than_the_tolerance_is_a_mismatch_that_says_where():
     [m] = compared([row("A_Floor", 1000.0, box(0, 0, 10, 100))],
                    [unit("A_Floor", 1000.0, box(0, 0, 10.5, 100))])["mismatches"]
@@ -721,6 +729,7 @@ def test_the_report_says_how_far_apart_the_paired_files_are(tmp_path):
     assert measured["bbox_max_dev"]["max"] == pytest.approx(0.1)
     assert measured["area_rel"]["max"] == pytest.approx(0.005) and measured["area_rel"]["min"] == 0.0
     assert measured["area_more_in_backup"] == 1
+    assert (measured["tris_backup"], measured["tris_export"], measured["tris_diff"]) == (16, 4, 12)
 
 
 def test_the_sdk_facts_are_carried_into_the_report(tmp_path):
@@ -784,6 +793,7 @@ def test_the_summary_gives_the_counts_and_the_five_worst_mismatches_worst_first(
     table = [line for line in text.splitlines() if line.startswith("| F")]
     assert [line.split("|")[1].strip() for line in table] == [f"F{i}_Floor" for i in (7, 6, 5, 4, 3)]
     assert "Lost_Floor" in text and "M - CHECKPOINT-17.skp" in text and sha(b"skp-bytes")[:12] in text
+    assert "the export has 32 triangles fewer" in text             # 8 paired floors x 4 more in the backup
     assert len(text.splitlines()) < 80                              # short, as asked
 
 

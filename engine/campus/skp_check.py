@@ -190,9 +190,10 @@ def _entry(row: dict, unit: dict, paired_by: str, bbox_tol: float, area_tol: flo
         reasons.append(f"area: the backup has {unit['area']:,.1f} sq in and the export "
                        f"{row['area']:,.1f}, {area_rel * 100:+.3f}% (tolerance {area_tol * 100:g}%)")
     return {"name": row["name"], "file": row["file"], "paired_by": paired_by,
-            "unit": {k: unit[k] for k in ("key", "path", "faces", "area", "bbox")},
+            "unit": {k: unit[k] for k in ("key", "path", "faces", "tris", "area", "bbox")},
             "export": {k: row[k] for k in ("tris", "area", "bbox")},
             "bbox_dev": dev, "bbox_max_dev": abs(dev[worst]), "area_rel": area_rel,
+            "tris_diff": unit["tris"] - row["tris"],
             "severity": max(abs(dev[worst]) / bbox_tol, abs(area_rel) / area_tol),
             "reasons": reasons}
 
@@ -269,7 +270,7 @@ def compare(rows: list[dict], units: list[dict], *, bbox_tol: float, area_tol: f
         if not frows:
             for u in funits:
                 result["sdk_only"].append({
-                    **{k: u[k] for k in ("key", "path", "faces", "area", "bbox")},
+                    **{k: u[k] for k in ("key", "path", "faces", "tris", "area", "bbox")},
                     "reason": "the backup has faces here and the export has no file for them"})
             continue
         if len(frows) == 1 and len(funits) == 1:
@@ -530,7 +531,10 @@ def check_source(source_json, backup_dir, out_dir, *, name: str | None = None, s
         "measured": ({"paired": len(paired),
                       "bbox_max_dev": _spread([e["bbox_max_dev"] for e in paired]),
                       "area_rel": _spread([e["area_rel"] for e in paired]),
-                      "area_more_in_backup": sum(1 for e in paired if e["area_rel"] > 0)}
+                      "area_more_in_backup": sum(1 for e in paired if e["area_rel"] > 0),
+                      "tris_backup": sum(e["unit"]["tris"] for e in paired),
+                      "tris_export": sum(e["export"]["tris"] for e in paired),
+                      "tris_diff": sum(e["tris_diff"] for e in paired)}
                      if paired else {"paired": 0}),
         **result,
     }
@@ -571,6 +575,14 @@ def render_markdown(report: dict) -> str:
         f"{hidden['hidden_faces']} faces, and as on a tag that is off: {hidden['layer_hidden_nodes']} "
         f"and {hidden['layer_hidden_faces']}" + ("" if hidden["layers_bound"] else
                                                  " (this DLL cannot tell tags: not applied)"))
+    measured = report["measured"]
+    if measured["paired"]:
+        diff = measured["tris_diff"]
+        extra.append(
+            f"triangles of the paired files (a face of v corners and h holes counts v + 2h - 2): the "
+            f"backup {measured['tris_backup']:,}, the export {measured['tris_export']:,}; the export has "
+            f"{abs(diff):,} triangles {'fewer' if diff >= 0 else 'more'} "
+            f"({abs(diff) / max(measured['tris_backup'], 1) * 100:.1f} %)")
     lines += [f"- {e}" for e in extra] + [""]
     mismatches = report["mismatches"]
     if mismatches:

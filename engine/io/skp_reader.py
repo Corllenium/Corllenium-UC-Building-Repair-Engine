@@ -16,9 +16,11 @@ THE WALK (`walk_skp`). A tree of plain dicts, JSON-ready:
   coordinates; `children` are the groups and instances inside it, `skipped` the ones that were
   not walked and why.
 * `faces`, `tris`, `area`, `bbox` (`[[x, y, z], [x, y, z]]`, `None` without faces),
-  `hidden_faces`, `layer_hidden_faces`. A face counts as `tris` triangles, the number any
-  triangulation of it without added points needs: its vertices over all loops, plus two for each
-  hole, minus two.
+  `hidden_faces`, `layer_hidden_faces`. A face counts as `tris` triangles: the number a
+  triangulation that uses every vertex and adds none needs -- its vertices over all loops, plus
+  two for each hole, minus two. Measured against SketchUp's own OBJ export of CHECKPOINT-17 this
+  is exact wherever the export has every face of a group (many material groups agree to the
+  triangle), and larger by the triangles the export lacks where it does not.
 * `area` scales each face's own area by the world transform: for a linear part `A` and a face
   with unit normal `n`, the area is multiplied by `|det A| * |A^-T n|`, which is `s^2` for a
   uniform scale `s` and depends on the face's plane for any other transform.
