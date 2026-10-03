@@ -1,22 +1,65 @@
 # HERMES Agent — Project Memory: UC MODEL FIXER
 
-## 0. START HERE (updated 2026-09-25)
+## 0. START HERE (updated 2026-10-03)
 
-This file is the entry point. The work is shared between Claude sessions and Hermes: when Claude
-reaches its usage limit, Hermes continues from the same records.
+This file is the entry point. The work is shared between Claude sessions and you, Hermes.
+- Claude lays the foundation: the rules, the plan, a brief per job, the failing tests for build jobs.
+- You execute queued jobs.
+- Claude reviews every branch you hand in and merges it, or sends it back with notes.
+- You never merge.
 
-1. Read `docs/superpowers/records/HANDOFF.md` completely (current state, running jobs, the queue,
-   the rules, how to verify, how to hand back).
-2. Check `docs/superpowers/records/WORK-CLAIMS.md`. Never work a job someone else holds; claim a job
-   before starting it, release it when you stop.
-3. Take the next job's brief from `docs/superpowers/records/briefs/` (numbered in order).
-4. Background, history and the map of which engine file handles which error:
-   `docs/superpowers/records/2026-09-24-session-record.md`.
-5. Every ruling and measurement in order (the ledger):
-   `.superpowers/sdd/2026-09-21-phase2e-fix-pipeline/progress.md` (tracked with `git add -f`).
-6. If you were started by `tools/auto_continue.py` (your prompt says "This run is automatic"), that
-   prompt's rules come first: work only in the worktree it made, never edit `WORK-CLAIMS.md` or
-   `HANDOFF.md` (the runner and Claude keep them), and write the report it names.
+### When the owner says: "Read HERMES.md and do the next job"
+
+1. **Read [`AGENTS.md`](AGENTS.md) completely.** It holds the rules, the blocked operations, the owner's
+   decisions and the owner's validation rule, and it wins over anything else.
+2. **Claim your job** from the MAIN checkout (`D:\PROJECTS\UC MODEL FIXER`):
+   ```bash
+   "D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe" tools/jobs.py next --for hermes --as Hermes
+   ```
+   - It prints `<id>  <brief>  hermes/<id>`.
+   - Exit code 3 means no job is ready for you now: tell the owner, and stop.
+   - `tools/jobs.py list` shows the whole queue; `docs/superpowers/records/QUEUE.md` is the same,
+     rendered.
+3. **Make your worktree** from the phase's integration branch (P0: `feat/repair-p0`):
+   ```bash
+   git -C "D:/PROJECTS/UC MODEL FIXER" worktree add -b hermes/<id> ".hermes/worktrees/<id>" feat/repair-p0
+   ```
+   Work only inside `D:\PROJECTS\UC MODEL FIXER\.hermes\worktrees\<id>`.
+4. **Open the brief the queue printed.**
+   - A path ending `#task-N` means that task of the plan.
+   - Do the items in order, **test first**: write the named test, run it and see it fail, implement,
+     see it pass.
+   - Each item says when it is done.
+   - Run Python from the worktree root, as `AGENTS.md` §8 shows.
+5. **Run every acceptance command of the brief** and paste the **real output** into
+   `docs/superpowers/records/hermes/<id>-report.md` (format: `docs/superpowers/records/hermes/README.md`).
+   - Never write "fixed" or "passed" without that output.
+   - If something did not work, say so plainly in the report.
+6. **Commit** in your worktree, staging files by name, never `git add -A`. End every message with the
+   line `Hermes-Job: <id>`.
+7. **Hand in:**
+   ```bash
+   "D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe" tools/jobs.py done <id> --branch hermes/<id>
+   ```
+   Then tell the owner the job is waiting for Claude's review, and stop. If Claude asks for changes,
+   the job shows `changes-requested` with notes; the next session continues on the same branch.
+8. **Never:**
+   - merge or push;
+   - edit `engine/guard/**`, `FixProfile` thresholds or any existing test (unless the brief says so);
+   - touch the live database, the containers, the export folder (except through the snapshot
+     functions), the CHECKPOINT-17 master or backup (except as the brief says);
+   - use a blocked operation (`AGENTS.md` §4);
+   - write outside your worktree, except `data/` and your report.
+
+   `delegate_task` children may only read: they never edit files or run commits.
+
+### Background
+
+- History and the map of which engine file handles which error:
+  `docs/superpowers/records/2026-09-24-session-record.md`.
+- The current state: `docs/superpowers/records/HANDOFF.md` §2.
+- If you were started by `tools/auto_continue.py` (your prompt says "This run is automatic"), that
+  prompt's rules come first. That runner is switched off until phase P5 of the repair engine.
 
 **Project Directory:** `D:\PROJECTS\UC MODEL FIXER`
 **Source model:** `UC-campus-FIXED-v2026-07-11 - CHECKPOINT-17.skp`; the engine works on its OBJ
