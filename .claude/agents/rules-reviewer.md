@@ -1,6 +1,6 @@
 ---
 name: rules-reviewer
-description: Reviews a UC repair-engine diff against its brief and against AGENTS.md's binding rules, blocked operations, owner decisions and validation rule. Read-only; returns findings with severity and file:line.
+description: Reviews a UC repair-engine diff against its brief and against AGENTS.md's binding rules, blocked operations, owner decisions and validation rule. Read-only; returns findings with severity and file:line. For a branch Hermes handed in, use hermes-reviewer instead.
 tools: Read, Grep, Glob, Bash
 model: sonnet
 ---

@@ -1,0 +1,204 @@
+# Prompt audit, full surface, 2026-10-03: the proposed diff (Step 6). Nothing is applied.
+# Report: docs/superpowers/records/prompt-audit/2026-10-03-full-surface-report.md
+# Made from HEAD 0d2f15e (feat-dashboard) in git's LF form. `git apply --check` passes on the
+# working tree and `git apply --cached --check` on the index. One finding per hunk; take hunks
+# selectively. D10 and D11 edit AGENTS.md and need the owner's OK (AGENTS.md:5, report F5).
+#
+#   D1   .claude/agents/census-analyst.md:23       F13  numeric output cap, rewritten as audience framing
+#   D2   .claude/agents/engine-builder.md:15       F10  skill named without a path
+#   D3   .claude/agents/hermes-reviewer.md:3       F11  "jobs.py status" is not a jobs.py subcommand
+#   D4   .claude/agents/hermes-reviewer.md:21      F10  rules-reviewer checklist named without a path
+#   D5   .claude/agents/prompt-auditor.md:12       F9   "fetch and index it" with no fetch or index tool
+#   D6   .claude/agents/rules-reviewer.md:3        F12  no boundary with hermes-reviewer
+#   D7   .claude/agents/unit-runner.md:11          F10  skill named without a path
+#   D8   .claude/skills/uc-handoff/SKILL.md:3      F1   frontmatter is not valid YAML
+#   D9   .claude/skills/uc-handoff/SKILL.md:18-19  F8   base branch for records-only jobs
+#   D10  AGENTS.md:63-64                           F2   "section 2 of this page" means HANDOFF §2 (owner's OK)
+#   D11  AGENTS.md:127                             F8   base branch for records-only jobs (owner's OK)
+#   D12  CLAUDE.md:11,14                           F3   roster lacks prompt-auditor and uc-prompt-audit
+#   D13  HERMES.md:27-29                           F8   base branch for records-only jobs
+#   D14  HERMES.md:130-134                         F4   stale "Current Progress" snapshot
+#   D15  docs/superpowers/records/hermes/README.md:12  F8  base branch in the report format
+#
+diff --git a/.claude/agents/census-analyst.md b/.claude/agents/census-analyst.md
+--- a/.claude/agents/census-analyst.md
++++ b/.claude/agents/census-analyst.md
+@@ -20,4 +20,5 @@
+ 3. Use small Python one-liners over the JSON when that helps (`AGENTS.md` §8 shows the interpreter).
+    Never edit any file.
+ 4. **Never dispatch sub-agents.**
+-5. **Output:** a markdown summary under about 500 words, with exact numbers taken from the file.
++5. **Output:** a markdown summary the owner can scan: tables for the per-building and per-unit numbers,
++   every number exact and taken from the file, and a few sentences for the proposed order.
+diff --git a/.claude/agents/engine-builder.md b/.claude/agents/engine-builder.md
+--- a/.claude/agents/engine-builder.md
++++ b/.claude/agents/engine-builder.md
+@@ -12,7 +12,7 @@
+ 2. **Work only in the job's worktree** (the dispatch names it). Never `cd` in a way that persists: use
+    subshells, `( cd "<worktree>" && … )`. Run Python as `AGENTS.md` §8 shows, from the worktree root
+    with `PYTHONPATH` set.
+-3. **Before the first line of code,** follow the skill `uc-repair-rules`.
++3. **Before the first line of code,** read and follow the skill file `.claude/skills/uc-repair-rules/SKILL.md`.
+ 4. **Test-first:** for every item, write the named test, run it and see it fail for the right reason,
+    implement the smallest code that passes, run the area's whole suite, and commit, staging files by
+    name.
+diff --git a/.claude/agents/hermes-reviewer.md b/.claude/agents/hermes-reviewer.md
+--- a/.claude/agents/hermes-reviewer.md
++++ b/.claude/agents/hermes-reviewer.md
+@@ -1,6 +1,6 @@
+ ---
+ name: hermes-reviewer
+-description: Reviews a branch Hermes handed in (tools/jobs.py status awaiting-review) against its brief, its report and AGENTS.md, and re-runs the brief's acceptance commands. Read-only; returns PASS or CHANGES with notes the controller can paste into jobs.py review.
++description: Reviews a branch Hermes handed in (a tools/jobs.py job in status awaiting-review) against its brief, its report and AGENTS.md, and re-runs the brief's acceptance commands. Read-only; returns PASS or CHANGES with notes the controller can paste into jobs.py review.
+ tools: Read, Grep, Glob, Bash
+ model: sonnet
+ ---
+@@ -18,7 +18,8 @@
+    - a blocked operation;
+    - a write outside the worktree, except `data/` and the report;
+    - a commit without `Hermes-Job: <id>`.
+-4. **Check spec compliance item by item,** and the rules as the `rules-reviewer` role does.
++4. **Check spec compliance item by item,** and the rules as step 2 of `.claude/agents/rules-reviewer.md`
++   lists them.
+ 5. **Clean up:** `git worktree remove --force <scratch path>`.
+ 6. **Never dispatch sub-agents.** Never merge, never edit, never run `jobs.py review` yourself.
+ 7. **Output:**
+diff --git a/.claude/agents/prompt-auditor.md b/.claude/agents/prompt-auditor.md
+--- a/.claude/agents/prompt-auditor.md
++++ b/.claude/agents/prompt-auditor.md
+@@ -9,7 +9,8 @@
+ 
+ 1. **Fetch and follow the procedure exactly.** It is
+    `https://raw.githubusercontent.com/anthropics/skills/main/skills/claude-api/shared/prompt-audit.md`
+-   (fetch and index it; read `shared/model-migration.md` from the same folder when a step points there).
++   (your tools have no web-fetch or index tool: fetch the raw file through Bash, e.g. `curl -sL <url>`;
++   read `shared/model-migration.md` from the same folder when a step points there).
+    Run Steps 0-6 in order, non-interactively: state the scope and target assumptions, and do not pause to
+    ask.
+ 2. **Scope:** the files the dispatch names. With no list, take this repo's prompt surface:
+diff --git a/.claude/agents/rules-reviewer.md b/.claude/agents/rules-reviewer.md
+--- a/.claude/agents/rules-reviewer.md
++++ b/.claude/agents/rules-reviewer.md
+@@ -1,6 +1,6 @@
+ ---
+ name: rules-reviewer
+-description: Reviews a UC repair-engine diff against its brief and against AGENTS.md's binding rules, blocked operations, owner decisions and validation rule. Read-only; returns findings with severity and file:line.
++description: Reviews a UC repair-engine diff against its brief and against AGENTS.md's binding rules, blocked operations, owner decisions and validation rule. Read-only; returns findings with severity and file:line. For a branch Hermes handed in, use hermes-reviewer instead.
+ tools: Read, Grep, Glob, Bash
+ model: sonnet
+ ---
+diff --git a/.claude/agents/unit-runner.md b/.claude/agents/unit-runner.md
+--- a/.claude/agents/unit-runner.md
++++ b/.claude/agents/unit-runner.md
+@@ -8,7 +8,7 @@
+ You run commands; you do not write code.
+ 
+ 1. **Read the rules first:** `AGENTS.md` §2 (what is read-only and where outputs go) and §8, then the
+-   skill `uc-run-unit`, then the brief.
++   skill file `.claude/skills/uc-run-unit/SKILL.md`, then the brief.
+ 2. **Run the brief's commands exactly as written**, from the worktree root it names, in subshells. If a
+    command fails, run nothing else in its place: report the failure with the real error text.
+ 3. **Write outputs only where the brief says** (always under `data/`). Never write into
+diff --git a/.claude/skills/uc-handoff/SKILL.md b/.claude/skills/uc-handoff/SKILL.md
+--- a/.claude/skills/uc-handoff/SKILL.md
++++ b/.claude/skills/uc-handoff/SKILL.md
+@@ -1,6 +1,6 @@
+ ---
+ name: uc-handoff
+-description: Use when taking, doing, handing in or reviewing a queued job in UC MODEL FIXER (tools/jobs.py) — for Claude and Hermes alike: claim, worktree, brief, report, done, review, merge, records.
++description: "Use when taking, doing, handing in or reviewing a queued job in UC MODEL FIXER (tools/jobs.py) — for Claude and Hermes alike: claim, worktree, brief, report, done, review, merge, records."
+ ---
+ 
+ # Taking and handing over queued jobs
+@@ -15,8 +15,9 @@
+ 1. `"$PY" tools/jobs.py next --for <claude|hermes> --as <your name>`
+    - It prints `<id>  <brief>  <branch>`.
+    - Exit code 3 means nothing is eligible for you now.
+-2. `git -C "D:/PROJECTS/UC MODEL FIXER" worktree add -b <branch> <.claude|.hermes>/worktrees/<id> <integration branch>`.
+-   P0's integration branch is `feat/repair-p0`.
++2. `git -C "D:/PROJECTS/UC MODEL FIXER" worktree add -b <branch> <.claude|.hermes>/worktrees/<id> <base>`.
++   The base is the branch the brief names; if it names none, the phase's integration branch for code
++   (P0: `feat/repair-p0`) and `feat-dashboard` for a records-only job.
+ 3. Read `AGENTS.md`, then the brief. A path ending `#task-N` means that task of the plan.
+ 
+ ## Doing it
+diff --git a/AGENTS.md b/AGENTS.md
+--- a/AGENTS.md
++++ b/AGENTS.md
+@@ -60,8 +60,8 @@
+ - **Visual pass every round**: read `data/output/<name>/qa/*.png` and render the `.skp` with
+   `docs/superpowers/records/scripts/render_skp.py`, audit it with `skp_edge_audit.py`, and say what
+   you see. A log line is not evidence.
+-- **Records**: after every step append to the ledger, update section 2 of this page and the session
+-  record's history, and commit them (`git add -f` for files under `.superpowers/sdd/`).
++- **Records**: after every step append to the ledger, update HANDOFF §2 and the session record's
++  history, and commit them (`git add -f` for files under `.superpowers/sdd/`).
+ 
+ (The references to "section 2" and "section 8" in this list point to `docs/superpowers/records/HANDOFF.md`.)
+ 
+@@ -124,7 +124,8 @@
+    - Never work a job you have not claimed; never take a job someone else holds.
+ 2. **One job is one brief, one branch and one worktree.**
+    - Claude: `claude/<id>` in `.claude/worktrees/<id>`. Hermes: `hermes/<id>` in `.hermes/worktrees/<id>`.
+-   - Branches are made from the phase's integration branch (P0: `feat/repair-p0`).
++   - Branches are made from the branch the brief names; if it names none, from the phase's
++     integration branch for code (P0: `feat/repair-p0`) and from `feat-dashboard` for a records-only job.
+ 3. **Follow the brief item by item, test first.** Each item says when it is done and names its tests.
+ 4. **The report carries real output.**
+    - Hermes writes `docs/superpowers/records/hermes/<id>-report.md`; Claude writes its ledger.
+diff --git a/CLAUDE.md b/CLAUDE.md
+--- a/CLAUDE.md
++++ b/CLAUDE.md
+@@ -8,10 +8,10 @@
+   - The ledger is `.superpowers/sdd/<plan>/progress.md` (git-ignored, so `git add -f` it with the records).
+   - The briefs come from the SDD `task-brief` script; reviews come from its `review-package` script. Pass absolute plan paths, and run the scripts from the main checkout.
+ - **Sub-agents** (`.claude/agents/`):
+-  - `engine-builder`, `unit-runner`, `rules-reviewer`, `hermes-reviewer`, `census-analyst`;
++  - `engine-builder`, `unit-runner`, `rules-reviewer`, `hermes-reviewer`, `census-analyst`, `prompt-auditor`;
+   - later: `floor-validator`, `skp-builder`.
+   - A sub-agent never dispatches sub-agents and never merges.
+-- **Skills** (`.claude/skills/`): `uc-repair-rules`, `uc-handoff`, `uc-run-unit`, and later `uc-validate-floor` and `uc-comparison-skp`.
++- **Skills** (`.claude/skills/`): `uc-repair-rules`, `uc-handoff`, `uc-run-unit`, `uc-prompt-audit`, and later `uc-validate-floor` and `uc-comparison-skp`.
+ - **Hermes:** when the owner runs Hermes on the queue, its branches arrive as `awaiting-review` jobs.
+   - Review each with `hermes-reviewer` and re-run its acceptance commands.
+   - Then `tools/jobs.py review <id> --pass` and merge, or `--changes "<note>"` with a fix brief.
+diff --git a/HERMES.md b/HERMES.md
+--- a/HERMES.md
++++ b/HERMES.md
+@@ -24,9 +24,10 @@
+      none, use `feat-dashboard` for a records-only job and `feat/repair-p0` for code.
+    - `tools/jobs.py list` shows the whole queue; `docs/superpowers/records/QUEUE.md` is the same,
+      rendered.
+-3. **Make your worktree** from the phase's integration branch (P0: `feat/repair-p0`):
++3. **Make your worktree** from the job's base: the branch its brief names; if it names none, the
++   phase's integration branch for code (P0: `feat/repair-p0`) and `feat-dashboard` for a records-only job:
+    ```bash
+-   git -C "D:/PROJECTS/UC MODEL FIXER" worktree add -b hermes/<id> ".hermes/worktrees/<id>" feat/repair-p0
++   git -C "D:/PROJECTS/UC MODEL FIXER" worktree add -b hermes/<id> ".hermes/worktrees/<id>" <base>
+    ```
+    Work only inside `D:\PROJECTS\UC MODEL FIXER\.hermes\worktrees\<id>`.
+ 4. **Open the brief the queue printed.**
+@@ -127,8 +128,6 @@
+ 
+ ---
+ 
+-## 4. Current Progress (see HANDOFF.md section 2 for the live state)
+-- Phases 0, 1A, 2E and the SketchUp export: complete and verified on both real files.
+-- Latest measured (2026-09-24 14:38): file A 4,692 -> 1,013 triangles, file B 7,227 -> 601, both passed, `.skp` files in `OBJ FIXED RESULT/`.
+-- In progress: T-junction repair (brief 01) and the side rebuild of broken slab sides (brief 02).
+-- Queued: reconcile + verify (03), review (04), dashboard fix wave (05), leftovers (06).
++## 4. Current Progress
++The live state is `docs/superpowers/records/HANDOFF.md` §2 and the job queue (`tools/jobs.py list`,
++rendered as `docs/superpowers/records/QUEUE.md`).
+diff --git a/docs/superpowers/records/hermes/README.md b/docs/superpowers/records/hermes/README.md
+--- a/docs/superpowers/records/hermes/README.md
++++ b/docs/superpowers/records/hermes/README.md
+@@ -9,7 +9,7 @@
+ ```markdown
+ # <job id> — <title>
+ 
+-- Branch: hermes/<job id>   Base: <sha of feat/repair-p0 when the worktree was made>
++- Branch: hermes/<job id>   Base: <sha of the base branch when the worktree was made> (<base branch>)
+ - Commits: <sha> <subject>, one per line
+ - Brief: <path or plan#task-N>
+ 
