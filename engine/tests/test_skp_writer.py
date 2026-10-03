@@ -115,12 +115,14 @@ def test_a_dll_without_the_sketchup_symbols_is_unavailable_and_says_which():
         skp_writer.load_api(kernel32)
 
 
-def test_ctypes_is_imported_only_by_the_skp_writer():
+def test_ctypes_is_imported_only_by_the_sketchup_binding_modules():
+    """The SketchUp C API is bound in the writer and in the read-only reader, which must bind its
+    own tables so that no save call is reachable from it (`engine/io/skp_reader.py`, job P0-11)."""
     engine_root = Path(skp_writer.__file__).resolve().parents[1]
     users = sorted(p.relative_to(engine_root).as_posix() for p in engine_root.rglob("*.py")
                    if re.search(r"^\s*(import ctypes|from ctypes)", p.read_text(encoding="utf-8"),
                                 re.M))
-    assert users == ["io/skp_writer.py"]
+    assert users == ["io/skp_reader.py", "io/skp_writer.py"]
 
 
 # --------------------------------------------------------------------------------- faces
