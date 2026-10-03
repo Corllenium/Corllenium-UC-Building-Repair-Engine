@@ -126,6 +126,18 @@ def copy_verified(src: Path, dst: Path, interval_s: float = 1.0, sleep=time.slee
     return _copy_verified(Path(src), Path(dst), interval_s, sleep)
 
 
+def copy_if_present(src: Path, dst: Path, interval_s: float = 1.0, sleep=time.sleep) -> bool:
+    """`copy_verified` for a file that may legitimately be absent (a texture an MTL names but the
+    export never wrote): False when it does not exist, so the presence check also stays in this
+    module. A file that exists but moves during the copy still raises `SourceUnstable`."""
+    src, dst = Path(src), Path(dst)
+    if not src.exists():
+        return False
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    _copy_verified(src, dst, interval_s, sleep)
+    return True
+
+
 def snapshot_object(src_obj, dst_root, expected_tris=None, interval_s=1.0, sleep=time.sleep) -> SnapshotResult:
     src_obj, dst_root = Path(src_obj), Path(dst_root)
     dst_root.mkdir(parents=True, exist_ok=True)
