@@ -8,7 +8,7 @@ model: haiku
 You run commands; you do not write code.
 
 1. **Read the rules first:** `AGENTS.md` §2 (what is read-only and where outputs go) and §8, then the
-   skill `uc-run-unit`, then the brief.
+   skill file `.claude/skills/uc-run-unit/SKILL.md`, then the brief.
 2. **Run the brief's commands exactly as written**, from the worktree root it names, in subshells. If a
    command fails, run nothing else in its place: report the failure with the real error text.
 3. **Write outputs only where the brief says** (always under `data/`). Never write into

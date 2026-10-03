@@ -107,6 +107,13 @@
   - the time and peak memory of each stage, plus the machine load;
   - flicker split by look and by winding.
 - Output: `data/campus/census.json`, the baseline for "problems solved" and for the speed budget.
+- **Owner order (2026-10-03):** every floor of every building gets its error map first, as CHTM 5th did;
+  fixing starts only after. The census therefore keeps each unit's whole error file
+  (`data/campus/errors/<unit>.json`, the format the dashboard's 3D error filter draws). Those files are the
+  engines' record of what to fix ("not perfect, but it captures all errors we need to fix"). The owner does
+  not colour or review them now; after the fix the owner may use the dashboard's filters per floor.
+- Each unit also gets a **fix plan**: the engines its error kinds need, in the pipeline's order (§4). The
+  per-floor workflow (§6) runs exactly those steps.
 
 ### 3. Validator, before any engine (P0b)
 `engine/validate/` is its own module, float64, and not built on `compare_views`, so it is independent in
@@ -174,6 +181,12 @@ code as well as in agent. `engine.cli validate <unit>` writes `validation.json` 
 
 ### 6. Runner, outputs, comparison (P3)
 - `engine.cli repair-unit | repair-building`: a resumable queue of unit jobs. There is no campus command.
+- **One engine flow for every floor of every building, run as an n8n workflow** (the owner, 2026-10-03).
+  Per floor the workflow takes the unit's fix plan from the census (§2) and runs its steps in order:
+  snapshot → each engine the plan lists → validate → evidence → owner review → publish. Each step names the
+  script or CLI command it ran and its result, so the workflow shows, floor by floor, which step fixed what.
+  n8n runs on the Corllenium VPS; the heavy compute stays on this PC. How the two talk (a runner on the PC
+  that pulls the workflow's jobs, so the PC opens no inbound port) is part of the hosting design (H2).
 - Work in progress goes to `data/fixing_scratch/`.
 - **The owner's `05-FIXING\` holds committed-code results only.** They are published from
   `.claude/worktrees/verified` (created then), with a per-floor `manifest.json` giving the commit and the
@@ -241,6 +254,75 @@ code as well as in agent. `engine.cli validate <unit>` writes `validation.json` 
   - one run at a time until P5 proves two are safe;
   - job templates for unit snapshots;
   - a Windows scheduled task.
+
+### 9. Decision hooks and Jev (approved by the owner 2026-10-03: the pilot and this hook design, as written)
+
+**What Jev is.** TypeSafe's Jev answers typed questions about a text "state", each with a confidence:
+- `Noul`: true or false;
+- `Choice`: one of the given criteria, with probabilities;
+- `Score`: an ordinal criterion.
+
+Many questions go in one call. Python SDK `typesafe-sdk`, key `TYPESAFE_API_KEY`, model `jev-latest`.
+
+**Principle.** The rules decide whatever they can. Jev answers what they cannot, as a **suggestion** with a
+confidence. The owner confirms. Jev **never** decides:
+- whether to delete or keep geometry;
+- a guard tolerance;
+- a Validator verdict (`AGENTS.md` §3, §6).
+
+Only text leaves the machine: names, material names and categories, small numeric facts (area, height,
+counts). Never meshes, textures or the model.
+
+**One hook for every engine** (`engine/decide/`):
+- An engine declares its **question types**. Each one has:
+  - a typed schema (Noul, Choice or Score, with its criteria);
+  - a `state` builder that turns a site into short text: the two materials and their categories, the
+    areas, which side faces a viewer, the neighbours' looks, the position on the floor.
+- The `Decider` asks the providers in order, and the first confident answer wins:
+  1. **rules** (deterministic);
+  2. **Jev**, in SUGGEST mode;
+  3. **the owner's queue** in the floor review.
+- **Every answer is logged** to `data/decide/log.jsonl`: question type, state hash, provider, answer,
+  confidence, latency, tokens. The owner's later decision is joined to it.
+
+**The questions, per engine:**
+
+| Engine | Question type | Jev's job |
+|---|---|---|
+| E5 flicker, different look | `e5.winner` (Choice over the two looks) | "Which texture should show at this spot?", only when the patch and continuity rules both fail |
+| E4 flicker, same look | `e4.same_look` (Noul) | "Do these tinted materials look the same to a player?" (53 tint groups) |
+| E8 holes | `e8.opening_kind` (Choice: door, window, vent, missing piece, other) | Decides keep-open against the fill or modelling queue, for holes the flat-fill rule cannot place |
+| E1 visible debris | `e1.decor_or_junk` (Choice) | Review order only; visible debris always stays (strict rule) |
+| Inventory | `inv.building`, `inv.unit_type`, `inv.floor` | Pre-fills `campus_map.json` for messy group names; the owner confirms |
+| Materials | `mat.category` (Choice: glass, concrete, metal, wood, stone, plant, fabric, paint, other), `mat.trim` (Noul) | Feeds E5's rules and the Unity material hints |
+| Review triage | `review.priority` (Score 0-3) | Orders the owner's floor review before the ML has labels |
+| Orchestration | `ops.claims_have_output` (Noul) | Pre-screens a Hermes report before `hermes-reviewer`, never instead of it |
+| E2, E3, E6, E7, Validator | none | Pure geometry: rays, planes, adjacency |
+
+**Modes per question type:**
+- **OFF**;
+- **SUGGEST** (the default): Jev's answer is pre-selected in the floor review, and the owner confirms or
+  changes it;
+- **AUTO**, only after promotion.
+
+**Promotion and demotion:**
+- A question type is promoted to AUTO only when Jev agrees with the owner on **at least 95 % of at least
+  50 decisions**, and only at confidences where the agreement was **98 % or more**.
+- It is demoted back to SUGGEST if agreement falls below 90 % over the last 30 decisions.
+- Even AUTO answers still pass the Validator, so a wrong one can never delete anything visible.
+
+**Speed and cost:**
+- All of a floor's questions go in batched calls (Jev's fan-out pattern).
+- Answers are cached by state hash: the same material pair gets the same answer, with no new call.
+- A daily cost cap.
+- No key or no network means rules plus the owner's queue only; the pipeline never waits on Jev.
+
+**Order:**
+1. **P0 task 17** pilot: names and materials, accuracy and coverage at confidence ≥ 0.8, latency, cost.
+2. **P1:** the `Decider` protocol in the kernel, rules only.
+3. **P2:** each engine declares its question types, with Jev in SUGGEST mode.
+4. **P4:** the floor review shows Jev's suggestions and records agreement, then promotion runs per
+   question type.
 
 ## Phases
 Each phase gets its own spec, its own plan, subagent-driven execution, reviews and records.

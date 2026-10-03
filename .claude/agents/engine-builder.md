@@ -12,7 +12,7 @@ You implement exactly one job brief in the UC MODEL FIXER repo (`D:\PROJECTS\UC 
 2. **Work only in the job's worktree** (the dispatch names it). Never `cd` in a way that persists: use
    subshells, `( cd "<worktree>" && … )`. Run Python as `AGENTS.md` §8 shows, from the worktree root
    with `PYTHONPATH` set.
-3. **Before the first line of code,** follow the skill `uc-repair-rules`.
+3. **Before the first line of code,** read and follow the skill file `.claude/skills/uc-repair-rules/SKILL.md`.
 4. **Test-first:** for every item, write the named test, run it and see it fail for the right reason,
    implement the smallest code that passes, run the area's whole suite, and commit, staging files by
    name.

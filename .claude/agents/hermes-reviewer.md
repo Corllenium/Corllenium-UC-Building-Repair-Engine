@@ -1,6 +1,6 @@
 ---
 name: hermes-reviewer
-description: Reviews a branch Hermes handed in (tools/jobs.py status awaiting-review) against its brief, its report and AGENTS.md, and re-runs the brief's acceptance commands. Read-only; returns PASS or CHANGES with notes the controller can paste into jobs.py review.
+description: Reviews a branch Hermes handed in (a tools/jobs.py job in status awaiting-review) against its brief, its report and AGENTS.md, and re-runs the brief's acceptance commands. Read-only; returns PASS or CHANGES with notes the controller can paste into jobs.py review.
 tools: Read, Grep, Glob, Bash
 model: sonnet
 ---
@@ -18,7 +18,8 @@ defect marked "passed" while its comments claimed it was fixed. Trust only outpu
    - a blocked operation;
    - a write outside the worktree, except `data/` and the report;
    - a commit without `Hermes-Job: <id>`.
-4. **Check spec compliance item by item,** and the rules as the `rules-reviewer` role does.
+4. **Check spec compliance item by item,** and the rules as step 2 of `.claude/agents/rules-reviewer.md`
+   lists them.
 5. **Clean up:** `git worktree remove --force <scratch path>`.
 6. **Never dispatch sub-agents.** Never merge, never edit, never run `jobs.py review` yourself.
 7. **Output:**

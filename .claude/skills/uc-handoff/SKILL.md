@@ -1,6 +1,6 @@
 ---
 name: uc-handoff
-description: Use when taking, doing, handing in or reviewing a queued job in UC MODEL FIXER (tools/jobs.py) — for Claude and Hermes alike: claim, worktree, brief, report, done, review, merge, records.
+description: "Use when taking, doing, handing in or reviewing a queued job in UC MODEL FIXER (tools/jobs.py) — for Claude and Hermes alike: claim, worktree, brief, report, done, review, merge, records."
 ---
 
 # Taking and handing over queued jobs
@@ -15,8 +15,9 @@ The workflow rules are `AGENTS.md` §7. These are the exact steps.
 1. `"$PY" tools/jobs.py next --for <claude|hermes> --as <your name>`
    - It prints `<id>  <brief>  <branch>`.
    - Exit code 3 means nothing is eligible for you now.
-2. `git -C "D:/PROJECTS/UC MODEL FIXER" worktree add -b <branch> <.claude|.hermes>/worktrees/<id> <integration branch>`.
-   P0's integration branch is `feat/repair-p0`.
+2. `git -C "D:/PROJECTS/UC MODEL FIXER" worktree add -b <branch> <.claude|.hermes>/worktrees/<id> <base>`.
+   The base is the branch the brief names; if it names none, the phase's integration branch for code
+   (P0: `feat/repair-p0`) and `feat-dashboard` for a records-only job.
 3. Read `AGENTS.md`, then the brief. A path ending `#task-N` means that task of the plan.
 
 ## Doing it

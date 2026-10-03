@@ -9,7 +9,7 @@ Format:
 ```markdown
 # <job id> — <title>
 
-- Branch: hermes/<job id>   Base: <sha of feat/repair-p0 when the worktree was made>
+- Branch: hermes/<job id>   Base: <sha of the base branch when the worktree was made> (<base branch>)
 - Commits: <sha> <subject>, one per line
 - Brief: <path or plan#task-N>
 

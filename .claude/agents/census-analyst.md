@@ -20,4 +20,5 @@ You summarise; you change nothing.
 3. Use small Python one-liners over the JSON when that helps (`AGENTS.md` §8 shows the interpreter).
    Never edit any file.
 4. **Never dispatch sub-agents.**
-5. **Output:** a markdown summary under about 500 words, with exact numbers taken from the file.
+5. **Output:** a markdown summary the owner can scan: tables for the per-building and per-unit numbers,
+   every number exact and taken from the file, and a few sentences for the proposed order.

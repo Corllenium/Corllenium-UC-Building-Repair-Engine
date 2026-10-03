@@ -18,11 +18,16 @@ This file is the entry point. The work is shared between Claude sessions and you
    ```
    - It prints `<id>  <brief>  hermes/<id>`.
    - Exit code 3 means no job is ready for you now: tell the owner, and stop.
+   - **If the owner names a job** ("do job H1"), claim that one instead:
+     `"D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe" tools/jobs.py claim <id> --as Hermes`. It is refused
+     unless the job is `ready`. Then make the worktree from the branch the job's brief names; if it names
+     none, use `feat-dashboard` for a records-only job and `feat/repair-p0` for code.
    - `tools/jobs.py list` shows the whole queue; `docs/superpowers/records/QUEUE.md` is the same,
      rendered.
-3. **Make your worktree** from the phase's integration branch (P0: `feat/repair-p0`):
+3. **Make your worktree** from the job's base: the branch its brief names; if it names none, the
+   phase's integration branch for code (P0: `feat/repair-p0`) and `feat-dashboard` for a records-only job:
    ```bash
-   git -C "D:/PROJECTS/UC MODEL FIXER" worktree add -b hermes/<id> ".hermes/worktrees/<id>" feat/repair-p0
+   git -C "D:/PROJECTS/UC MODEL FIXER" worktree add -b hermes/<id> ".hermes/worktrees/<id>" <base>
    ```
    Work only inside `D:\PROJECTS\UC MODEL FIXER\.hermes\worktrees\<id>`.
 4. **Open the brief the queue printed.**
@@ -123,8 +128,6 @@ docs/superpowers/records/   Session record, HANDOFF, WORK-CLAIMS, briefs/, diagn
 
 ---
 
-## 4. Current Progress (see HANDOFF.md section 2 for the live state)
-- Phases 0, 1A, 2E and the SketchUp export: complete and verified on both real files.
-- Latest measured (2026-09-24 14:38): file A 4,692 -> 1,013 triangles, file B 7,227 -> 601, both passed, `.skp` files in `OBJ FIXED RESULT/`.
-- In progress: T-junction repair (brief 01) and the side rebuild of broken slab sides (brief 02).
-- Queued: reconcile + verify (03), review (04), dashboard fix wave (05), leftovers (06).
+## 4. Current Progress
+The live state is `docs/superpowers/records/HANDOFF.md` §2 and the job queue (`tools/jobs.py list`,
+rendered as `docs/superpowers/records/QUEUE.md`).
