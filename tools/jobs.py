@@ -19,6 +19,7 @@ fails while another process has the file open. Standard library only.
     python tools/jobs.py render                                 writes docs/superpowers/records/QUEUE.md
 
 Exit codes: 0 done, 1 the request was refused (the reason is on stderr), 2 bad usage, 3 `next` found no job.
+Output is UTF-8 with LF line ends, whatever the console's default, so a piped line parses the same everywhere.
 
 Statuses and the only moves between them (anything else raises ``JobError``):
 
@@ -156,7 +157,8 @@ class Locked:
     """``with Locked(root):`` holds ``data/jobs/queue.lock`` for the block.
 
     The lock is a file made with ``O_CREAT | O_EXCL``: exactly one process can make it. A process that
-    finds it taken tries again until ``LOCK_WAIT_S`` is up, then raises ``JobError``. A lock older than
+    finds it taken tries again until ``LOCK_WAIT_S`` is up, then raises ``JobError``; the same goes when the
+    OS refuses to make the file at all, and the error then names what the OS said. A lock older than
     ``LOCK_STALE_S`` belongs to a process that died, and is broken. The lock holds a token that only its
     owner recognises, so a process never removes a lock that someone else has since taken over. It is not
     re-entrant: taking it twice in one process waits, then gives up.
@@ -173,17 +175,17 @@ class Locked:
         token = f"{os.getpid()}-{uuid.uuid4().hex}"
         flags = os.O_CREAT | os.O_EXCL | os.O_WRONLY | getattr(os, "O_BINARY", 0)
         deadline = time.monotonic() + self.wait
-        last: OSError | None = None
         while True:
             try:
                 fd = os.open(self.path, flags)
             except (FileExistsError, PermissionError) as e:
                 # PermissionError too: on Windows a lock file that is being deleted refuses O_EXCL this way.
-                last = e
-                if self._break_if_stale():
-                    continue
+                # Every refusal takes the same three steps, in this order, and none may be skipped: give up
+                # at the deadline, clear a stale lock, pause. (A `continue` that skipped them once made a
+                # refusal with no lock file on disk spin here at full speed, forever.)
                 if time.monotonic() >= deadline:
-                    raise JobError(self._gave_up(last)) from None
+                    raise JobError(self._gave_up(e)) from None
+                self._break_if_stale()
                 time.sleep(random.uniform(0.01, 0.04))
                 continue
             try:
@@ -207,47 +209,44 @@ class Locked:
             print(f"jobs: could not remove {self.path} ({e}); it will be broken after "
                   f"{self.stale:g} s", file=sys.stderr)
 
-    def _break_if_stale(self) -> bool:
-        """Remove the lock if it is stale. True means the lock file is gone, so try to take it again at once."""
+    def _break_if_stale(self) -> None:
+        """Remove the lock if it is older than the stale limit, which means its holder died. Never raises."""
         try:
             first = os.stat(self.path)
-        except FileNotFoundError:
-            return True  # released between our attempt and now
         except OSError:
-            return False
+            return  # no lock file to judge: it was released since our attempt, or the refusal had another cause
         if time.time() - first.st_mtime <= self.stale:
-            return False
+            return
         # Look again: if the file changed, someone else broke it and made a fresh one, which is not ours
         # to remove. (Two waiters can still judge one dead lock at the same moment; this shrinks that window
         # to microseconds, and it can only ever matter after a holder has crashed.)
         try:
             again = os.stat(self.path)
-        except FileNotFoundError:
-            return True
         except OSError:
-            return False
+            return
         if (again.st_mtime_ns, again.st_ino) != (first.st_mtime_ns, first.st_ino):
-            return True
+            return
         try:
             _retry_busy(os.unlink, self.path)
-        except FileNotFoundError:
-            pass  # someone else broke it first
         except OSError:
-            return False
-        return True
+            pass  # someone else broke it first, or something holds it open: the next attempt shows which
 
-    def _gave_up(self, last: OSError | None) -> str:
-        who = ""
+    def _gave_up(self, last: OSError) -> str:
+        """Why the wait ended: who holds the lock or, if there is no lock file, what the OS said."""
         try:
             age = time.time() - os.stat(self.path).st_mtime
-            holder = self.path.read_bytes().decode("ascii", "replace").split("-")[0]
-            who = f" (held for {age:.0f} s by process {holder})"
         except OSError:
-            pass
-        why = f"; last error: {last}" if last is not None and not isinstance(last, FileExistsError) else ""
-        return (f"could not lock the job queue within {self.wait:g} s: {self.path} is taken{who}{why}. "
-                f"A lock older than {self.stale:g} s is broken automatically; if no jobs.py is running, "
-                "delete the file.")
+            # Nothing to wait for and nothing to delete: the system would not let us make the lock file.
+            return (f"could not lock the job queue: no lock file exists at {self.path}, but it could not be "
+                    f"created within {self.wait:g} s (last error: {last})")
+        try:
+            holder = self.path.read_bytes().decode("ascii", "replace").split("-")[0]
+        except OSError:
+            holder = "?"
+        why = "" if isinstance(last, FileExistsError) else f"; last error: {last}"
+        return (f"could not lock the job queue within {self.wait:g} s: {self.path} is taken (held for "
+                f"{age:.0f} s by process {holder}){why}. A lock older than {self.stale:g} s is broken "
+                "automatically; if no jobs.py is running, delete the file.")
 
 
 # ------------------------------------------------------------------ load and save
@@ -275,12 +274,16 @@ def save(root: Path | str, data: dict) -> None:
 
 # ------------------------------------------------------------------ jobs
 
-def _text(job: dict, key: str) -> str:
-    value = job[key]
+def _one_line(label: str, value: Any) -> str:
+    """``value`` as a stripped, non-empty, single-line string, or a ``JobError`` naming ``label``.
+
+    Ids, titles, briefs and holder names are printed in tab-separated lines and in table cells, so a tab or
+    a newline in one of them would split a line or a row.
+    """
     if not isinstance(value, str) or not value.strip():
-        raise JobError(f"{key} must be a non-empty string")
+        raise JobError(f"{label} must be a non-empty string")
     if any(ord(c) < 32 for c in value):
-        raise JobError(f"{key} must be on one line, with no tabs or other control characters")
+        raise JobError(f"{label} must be on one line, with no tabs or other control characters")
     return value.strip()
 
 
@@ -294,7 +297,7 @@ def _new_job(job: Any) -> dict:
     extra = sorted(set(job) - set(_NEW_FIELDS))
     if extra:
         raise JobError(f"unknown field(s): {', '.join(extra)}; a new job takes only {', '.join(_NEW_FIELDS)}")
-    jid, title, brief = _text(job, "id"), _text(job, "title"), _text(job, "brief")
+    jid, title, brief = (_one_line(key, job[key]) for key in ("id", "title", "brief"))
     if not _ID.match(jid):
         raise JobError(f"id {jid!r} must be letters, digits, '.', '_' or '-', starting with a letter or digit")
     if job["type"] not in TYPES:
@@ -335,10 +338,7 @@ def _note(job: dict, text: str) -> None:
 
 
 def _holder_name(name: str) -> str:
-    name = (name or "").strip()
-    if not name:
-        raise JobError("a holder name is required (--as NAME)")
-    return name
+    return _one_line("the holder name (--as NAME)", name)
 
 
 def _check_taker(who: str) -> None:
@@ -622,7 +622,22 @@ def _run(a: argparse.Namespace) -> int:
     return 0
 
 
+def _console_utf8_lf() -> None:
+    """Make stdout and stderr UTF-8 with LF line ends, whatever the console default.
+
+    Windows gives a pipe the ANSI code page and turns every LF into CRLF, so a piped ``next`` would end its
+    branch with a CR and turn an accent in a path into '?'. Hermes reads those lines.
+    """
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8", errors="replace", newline="\n")
+        except (AttributeError, TypeError, ValueError, OSError):
+            pass  # not a text stream that can be reconfigured, or no stream at all: leave it as it is
+
+
 def main(argv: list[str] | None = None) -> int:
+    if argv is None:  # run as the command (script, -m, entry point): the streams are ours to set up
+        _console_utf8_lf()
     try:
         args = _parser().parse_args(argv)
     except SystemExit as e:  # argparse has printed the usage error or the help; give the code back
@@ -635,9 +650,4 @@ def main(argv: list[str] | None = None) -> int:
 
 
 if __name__ == "__main__":
-    for _stream in (sys.stdout, sys.stderr):
-        try:  # a title with a character this console cannot show must not crash a command
-            _stream.reconfigure(errors="replace")
-        except (AttributeError, ValueError):
-            pass
     sys.exit(main())

@@ -1,12 +1,16 @@
 """What tools/jobs.py promises beyond the nine tests in test_jobs.py.
 
 The brief's nine tests cover the happy paths. These cover the rest of what the brief specifies and
-what Hermes will depend on: the CLI's output and exit codes, block/unblock, the lock's two time
-limits (10 s wait, 120 s stale), atomic writes, input validation, and no lost update under real
-contention. Every test works in tmp_path through UC_JOBS_ROOT; none touches the real queue.
+what Hermes will depend on: the CLI's output (UTF-8, LF) and exit codes, block/unblock, the lock's two
+time limits (10 s wait, 120 s stale) and what it does when the OS refuses it, atomic writes and the
+Windows retries around them, input validation, and no lost update under real contention. Every test
+works in tmp_path through UC_JOBS_ROOT; none touches the real queue.
 """
+import codecs
+import io
 import json
 import os
+import shutil
 import subprocess
 import sys
 import threading
@@ -95,18 +99,65 @@ def test_cli_job_error_exits_1_and_says_why(root, capsys):
     assert "ready" in capsys.readouterr().err                             # the message names the status
 
 
-def test_cli_runs_as_a_script_and_survives_a_console_that_cannot_encode_a_title(root):
+def test_the_script_writes_utf8_with_lf_endings_whatever_the_console_default(root):
+    """Hermes reads a piped `next`: a CR on the branch, or a '?' in a path, would break it. Windows gives a
+    pipe the ANSI code page and turns each LF into CRLF, so this checks bytes, under a hostile default."""
     env = {**os.environ, "UC_JOBS_ROOT": str(root), "PYTHONIOENCODING": "ascii"}
-    script = [sys.executable, str(Path(jobs.__file__)), ]
-    empty = subprocess.run(script + ["next", "--for", "hermes", "--as", "H"], env=env,
-                           capture_output=True, text=True)
-    assert empty.returncode == 3 and empty.stdout == ""
-    _add(root, "A", who="hermes", title="Fix → ✓ café")
-    listed = subprocess.run(script + ["list"], env=env, capture_output=True, text=True)
-    assert listed.returncode == 0 and listed.stdout.startswith("A\tready\thermes\t")
-    taken = subprocess.run(script + ["next", "--for", "hermes", "--as", "H"], env=env,
-                           capture_output=True, text=True)
-    assert taken.returncode == 0 and taken.stdout == "A\tb/A.md\thermes/A\n"
+    env.pop("PYTHONUTF8", None)
+    arrow, tick, e_acute = chr(0x2192), chr(0x2713), chr(0xE9)
+    title, brief = f"Fix {arrow} {tick}", f"docs/caf{e_acute}/{tick}-plan.md"
+    script = [sys.executable, str(Path(jobs.__file__))]
+    cr = bytes([13])
+
+    def run(*args):
+        return subprocess.run(script + list(args), env=env, capture_output=True)   # bytes: nothing translates
+
+    empty = run("next", "--for", "hermes", "--as", "H")
+    assert empty.returncode == 3 and empty.stdout == b""
+    assert empty.stderr.endswith(b"\n") and cr not in empty.stderr
+    added = run("add", "A", "--title", title, "--brief", brief, "--type", "build", "--who", "hermes")
+    assert added.returncode == 0 and added.stdout == b"A\tready\n"
+    listed = run("list")
+    assert listed.stdout == f"A\tready\thermes\t-\t{title}\n".encode("utf-8")
+    taken = run("next", "--for", "hermes", "--as", "H")
+    assert taken.returncode == 0
+    assert taken.stdout == f"A\t{brief}\thermes/A\n".encode("utf-8")      # LF only; accent and tick intact
+    refused = run("done", "NOPE")
+    assert refused.returncode == 1 and refused.stderr.endswith(b"\n") and cr not in refused.stderr
+
+
+def test_main_sets_up_its_streams_only_when_it_is_the_command(root, monkeypatch):
+    """main() with no argv is the command (script, -m, entry point): it makes stdout and stderr UTF-8 with
+    LF. A caller that passes argv, such as a test or another tool, keeps the streams it has."""
+    calls = []
+
+    class Stream(io.StringIO):
+        def reconfigure(self, **kwargs):
+            calls.append(kwargs)
+
+    monkeypatch.setattr(sys, "stdout", Stream())
+    monkeypatch.setattr(sys, "stderr", Stream())
+    assert jobs.main(["list"]) == 0
+    assert calls == []
+    monkeypatch.setattr(sys, "argv", ["jobs.py", "list"])
+    assert jobs.main() == 0
+    assert calls == [{"encoding": "utf-8", "errors": "replace", "newline": "\n"}] * 2   # stdout, stderr
+
+
+def test_main_copes_with_a_stream_that_cannot_be_reconfigured(root, monkeypatch):
+    class Plain:                                   # no reconfigure(), like a file-like wrapper
+        def __init__(self):
+            self.text = []
+
+        def write(self, s):
+            self.text.append(s)
+
+        def flush(self):
+            pass
+
+    monkeypatch.setattr(sys, "stderr", Plain())
+    monkeypatch.setattr(sys, "argv", ["jobs.py", "list"])
+    assert jobs.main() == 0
 
 
 # ---------------------------------------------------------------- block / unblock / release
@@ -182,6 +233,49 @@ def test_lock_wait_gives_up_instead_of_hanging(root, monkeypatch):
             _add(root, "A")                       # same process: the lock is not re-entrant
         assert 0.25 <= time.monotonic() - t0 < 5
     _add(root, "A")                               # released on exit, so this works now
+
+
+def test_a_lock_the_os_keeps_refusing_to_make_ends_in_a_job_error_and_does_not_spin(root, monkeypatch):
+    """Regression. os.open refusing with PermissionError while no lock file exists used to loop at once, with
+    no deadline check and no pause: full CPU, forever, instead of a JobError after the wait."""
+    monkeypatch.setattr(jobs, "LOCK_WAIT_S", 0.3)
+    real_open, attempts = os.open, []
+
+    def refuse(path, flags, *args, **kwargs):
+        if str(path).endswith("queue.lock"):
+            attempts.append(1)
+            if len(attempts) > 2000:               # a loop that never pauses gets here within milliseconds
+                raise RuntimeError(f"spinning: {len(attempts)} attempts without a pause")
+            raise PermissionError(13, "simulated: access is denied")
+        return real_open(path, flags, *args, **kwargs)
+
+    monkeypatch.setattr(os, "open", refuse)
+    t0 = time.monotonic()
+    with pytest.raises(jobs.JobError, match="simulated: access is denied") as why:   # names the last OS error
+        _add(root, "A")
+    assert 0.25 <= time.monotonic() - t0 < 2       # the wait was 0.3 s: not a spin, and not a hang
+    assert len(attempts) < 200                     # it paused between tries: 0.3 s at 10-40 ms is 10-30 tries
+    assert "delete the file" not in str(why.value)  # there is no lock file, so do not tell anyone to delete one
+    monkeypatch.undo()
+    assert not _lock(root).exists() and jobs.list_jobs(root) == []
+
+
+def test_a_refusal_that_clears_up_is_waited_out(root, monkeypatch):
+    """A lock file that is mid-delete refuses O_EXCL with PermissionError on Windows for a moment."""
+    real_open, attempts = os.open, []
+
+    def refuse_three_times(path, flags, *args, **kwargs):
+        if str(path).endswith("queue.lock"):
+            attempts.append(1)
+            if len(attempts) <= 3:
+                raise PermissionError(13, "simulated: access is denied")
+        return real_open(path, flags, *args, **kwargs)
+
+    monkeypatch.setattr(os, "open", refuse_three_times)
+    _add(root, "A")
+    assert len(attempts) == 4                      # three refusals, then the lock was made
+    monkeypatch.undo()
+    assert jobs.get(root, "A")["status"] == "ready"
 
 
 def test_a_fresh_lock_is_never_broken_and_a_stale_one_always_is(root, monkeypatch):
@@ -267,6 +361,86 @@ def test_a_corrupt_queue_file_is_a_job_error_and_is_never_overwritten(root):
     assert not _lock(root).exists()
 
 
+def test_save_waits_out_windows_saying_the_file_is_in_use(root, monkeypatch):
+    _add(root, "A")
+    real_replace, calls = os.replace, []
+
+    def busy_twice(src, dst):
+        calls.append(1)
+        if len(calls) <= 2:
+            raise PermissionError(32, "simulated: the file is in use by another process")
+        return real_replace(src, dst)
+
+    monkeypatch.setattr(os, "replace", busy_twice)
+    _add(root, "B")                                # two refusals, then the replace goes through
+    assert len(calls) == 3
+    monkeypatch.undo()
+    assert [j["id"] for j in jobs.list_jobs(root)] == ["A", "B"]
+    assert sorted(p.name for p in _queue(root).parent.iterdir()) == ["queue.json"]
+
+
+def test_save_gives_up_when_the_file_stays_in_use_and_keeps_the_old_queue(root, monkeypatch):
+    _add(root, "A")
+    before = _queue(root).read_bytes()
+    monkeypatch.setattr(jobs.time, "sleep", lambda seconds: None)    # do not really wait out the retries
+    calls = []
+
+    def always_busy(src, dst):
+        calls.append(1)
+        raise PermissionError(32, "simulated: the file is in use by another process")
+
+    monkeypatch.setattr(os, "replace", always_busy)
+    with pytest.raises(PermissionError, match="simulated"):
+        _add(root, "B")
+    monkeypatch.undo()
+    assert 1 < len(calls) < 1000                   # it retried, and it stopped
+    assert _queue(root).read_bytes() == before
+    assert sorted(p.name for p in _queue(root).parent.iterdir()) == ["queue.json"]   # no .tmp, no .lock
+
+
+def test_the_lock_release_retries_when_the_file_is_in_use(root, monkeypatch):
+    real_unlink, calls = os.unlink, []
+
+    def busy_twice(path, *args, **kwargs):
+        if str(path).endswith("queue.lock"):
+            calls.append(1)
+            if len(calls) <= 2:
+                raise PermissionError(32, "simulated: the file is in use by another process")
+        return real_unlink(path, *args, **kwargs)
+
+    monkeypatch.setattr(os, "unlink", busy_twice)
+    _add(root, "A")
+    assert len(calls) == 3 and not _lock(root).exists()
+
+
+def test_a_lock_that_cannot_be_removed_is_reported_and_does_not_fail_the_work(root, monkeypatch, capsys):
+    real_unlink = os.unlink
+
+    def stuck(path, *args, **kwargs):
+        if str(path).endswith("queue.lock"):
+            raise PermissionError(32, "simulated: the file is in use by another process")
+        return real_unlink(path, *args, **kwargs)
+
+    monkeypatch.setattr(jobs.time, "sleep", lambda seconds: None)
+    monkeypatch.setattr(os, "unlink", stuck)
+    _add(root, "A")                                # the job is saved: no exception
+    err = capsys.readouterr().err
+    monkeypatch.undo()
+    assert "could not remove" in err and "queue.lock" in err and "simulated" in err
+    assert _lock(root).exists()                    # left behind; it is broken once it is 120 s old
+    _lock(root).unlink()
+    assert jobs.get(root, "A")["status"] == "ready"
+
+
+def test_a_queue_file_with_a_byte_order_mark_still_loads(root):
+    _add(root, "A")
+    _queue(root).write_bytes(codecs.BOM_UTF8 + _queue(root).read_bytes())   # what Notepad adds on save
+    assert jobs.get(root, "A")["status"] == "ready"
+    _add(root, "B")                                # the next write is fine, and carries no mark
+    assert not _queue(root).read_bytes().startswith(codecs.BOM_UTF8)
+    assert [j["id"] for j in jobs.list_jobs(root)] == ["A", "B"]
+
+
 # ---------------------------------------------------------------- the jobs themselves
 
 def test_a_new_job_starts_ready_and_empty(root):
@@ -319,6 +493,19 @@ def test_next_checks_who_and_the_caller_name(root):
         jobs.next_job(root, "hermes", "  ")                               # a holder name is required
 
 
+@pytest.mark.parametrize("name", ["a\tb", "a\nb", "tab\t", "a" + chr(13) + "b", "x" + chr(0)])
+def test_a_holder_name_must_be_one_line(root, name, capsys):
+    """--as NAME is stored, and printed in lines that other tools split on tabs."""
+    _add(root, "A", who="hermes")
+    with pytest.raises(jobs.JobError, match="holder name"):
+        jobs.next_job(root, "hermes", name)
+    with pytest.raises(jobs.JobError, match="holder name"):
+        jobs.claim(root, "A", name)
+    assert jobs.main(["next", "--for", "hermes", "--as", name]) == 1
+    assert "holder name" in capsys.readouterr().err
+    assert jobs.get(root, "A")["status"] == "ready" and jobs.get(root, "A")["holder"] is None
+
+
 # ---------------------------------------------------------------- render, main_root
 
 def test_render_escapes_cells_and_flags_a_dependency_that_is_not_in_the_queue(root):
@@ -329,12 +516,39 @@ def test_render_escapes_cells_and_flags_a_dependency_that_is_not_in_the_queue(ro
     assert "generated" in md.lower()
 
 
-def test_main_root_prefers_the_environment_then_asks_git_for_the_main_checkout(monkeypatch, tmp_path):
+def test_main_root_prefers_the_environment(monkeypatch, tmp_path):
     monkeypatch.setenv("UC_JOBS_ROOT", str(tmp_path))
     assert jobs.main_root() == tmp_path
-    monkeypatch.delenv("UC_JOBS_ROOT")
-    try:
-        top = jobs.main_root()
-    except jobs.JobError:
-        pytest.skip("not inside a git checkout")
-    assert (top / ".git").is_dir()               # the main checkout, even when run from a worktree
+
+
+def _git(cwd, *args):
+    subprocess.run(["git", "-c", "user.name=test", "-c", "user.email=test@example.invalid", *args],
+                   cwd=cwd, check=True, capture_output=True)
+
+
+def test_main_root_from_a_linked_worktree_is_the_main_checkout_not_the_worktree(tmp_path, monkeypatch):
+    """The queue must be one file for every worktree, so asked from inside a linked worktree main_root has
+    to name the MAIN checkout. A wrong answer (--show-toplevel, or the folder of the worktree's own git
+    directory) is still right when asked from the main checkout, so it needs a real linked worktree."""
+    if shutil.which("git") is None:
+        pytest.skip("git is not installed")
+    for name in [k for k in os.environ if k.startswith("GIT_")]:     # a git hook's variables redirect git
+        monkeypatch.delenv(name)
+    monkeypatch.delenv("UC_JOBS_ROOT", raising=False)
+    nothing = tmp_path / "empty-gitconfig"                          # keep the machine's git settings out
+    nothing.write_text("")                                          # of the fixture: signing, hooks, ...
+    monkeypatch.setenv("GIT_CONFIG_GLOBAL", str(nothing))
+    monkeypatch.setenv("GIT_CONFIG_NOSYSTEM", "1")
+    main = tmp_path / "main checkout"                               # with a space, like the real folder
+    main.mkdir()
+    _git(main, "init", "-q")
+    _git(main, "commit", "-q", "--allow-empty", "-m", "first")
+    linked = tmp_path / "linked worktree"
+    _git(main, "worktree", "add", "-q", "--detach", str(linked))
+    (linked / "tools").mkdir()
+
+    monkeypatch.setattr(jobs, "HERE", linked / "tools")             # as if jobs.py lived in the worktree
+    assert jobs.main_root().samefile(main)
+    assert not jobs.main_root().samefile(linked)
+    monkeypatch.setattr(jobs, "HERE", main)                         # and in the main checkout itself
+    assert jobs.main_root().samefile(main)
