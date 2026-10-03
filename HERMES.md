@@ -18,6 +18,10 @@ This file is the entry point. The work is shared between Claude sessions and you
    ```
    - It prints `<id>  <brief>  hermes/<id>`.
    - Exit code 3 means no job is ready for you now: tell the owner, and stop.
+   - **If the owner names a job** ("do job H1"), claim that one instead:
+     `"D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe" tools/jobs.py claim <id> --as Hermes`. It is refused
+     unless the job is `ready`. Then make the worktree from the branch the job's brief names; if it names
+     none, use `feat-dashboard` for a records-only job and `feat/repair-p0` for code.
    - `tools/jobs.py list` shows the whole queue; `docs/superpowers/records/QUEUE.md` is the same,
      rendered.
 3. **Make your worktree** from the phase's integration branch (P0: `feat/repair-p0`):
