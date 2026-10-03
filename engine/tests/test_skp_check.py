@@ -17,6 +17,8 @@ import pytest
 
 from engine.campus import skp_check
 from engine.io import skp_reader
+from engine.io.skp_writer import SketchUpUnavailable
+from engine.tests.skp_scene import build_scene, square, translation
 
 # ------------------------------------------------------------------------------- the walk
 
@@ -423,7 +425,7 @@ def sha(data: bytes) -> str:
 
 def backup_folder(tmp_path, skp=b"skp-bytes", skb=b"skb-bytes"):
     folder = tmp_path / "BACKUP"
-    folder.mkdir()
+    folder.mkdir(parents=True)
     (folder / "M - CHECKPOINT-17.skp").write_bytes(skp)
     (folder / "M - CHECKPOINT-17.skb").write_bytes(skb)
     return folder
@@ -572,3 +574,335 @@ def test_the_walk_is_not_started_when_the_machine_has_too_little_memory_to_give(
 def test_the_default_child_is_the_readers_own_command_line():
     argv = skp_check.walk_argv()
     assert argv[:3] == [sys.executable, "-m", "engine.io.skp_reader"]
+
+
+# ----------------------------------------------------------------- the whole check, no SketchUp
+
+
+def floor_walk(*floors):
+    """A walk with one top-level floor group per `(name, faces, area, bbox)`, its faces two levels down."""
+    return walk_of(*(node(name, children=[node("minecraft_a_-1", children=[
+        node("", faces=faces, area=area, bbox=bbox)])]) for name, faces, area, bbox in floors))
+
+
+def freeze(tmp_path, rows, backup=None):
+    """A `source.json` for `rows` -- `(group, x0, y0, x1, y1)` -- with the snapshots it points to."""
+    backup = backup or backup_folder(tmp_path)
+    manifest, snapshots = [], []
+    for group, x0, y0, x1, y1 in rows:
+        folder = write_obj(tmp_path / "snapshots" / group, group, x0, y0, x1, y1)
+        manifest.append({"file": f"{group}.obj", "tris": 2, "group": group})
+        snapshots.append({"file": f"{group}.obj", "group": group, "tris": 2, "dir": str(folder),
+                          "sha256": "0" * 64})
+    source = {"created": "2026-10-03T19:12:52+08:00", "manifest": manifest, "snapshots": snapshots,
+              **frozen(), "totals": {"files": len(rows), "tris": 2 * len(rows)}}
+    path = tmp_path / "campus" / "source.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(source), encoding="utf-8")
+    return path, backup
+
+
+class Walker:
+    """A stand-in for the child process: remembers which model it was given, returns `walk`."""
+
+    def __init__(self, walk):
+        self.walk, self.models = walk, []
+
+    def __call__(self, skp, out_json):
+        self.models.append(Path(skp))
+        return self.walk
+
+
+def run_check(tmp_path, rows, walk, **kw):
+    source, backup = freeze(tmp_path, rows)
+    walker = Walker(walk)
+    report = skp_check.check_source(source, backup, tmp_path / "campus", walker=walker,
+                                    interval_s=0, sleep=lambda s: None, **kw)
+    return report, walker, backup
+
+
+def test_the_check_opens_only_the_verified_copy_and_writes_the_report(tmp_path):
+    rows = [("A_Floor", 0, 0, 30, 10), ("B_Floor", 100, 0, 120, 10)]
+    walk = floor_walk(("A Floor", 5, 300.0, box(0, 0, 30, 10)), ("B Floor", 3, 200.4, box(100, 0, 120, 10)))
+    backup = backup_folder(tmp_path)
+    source, _ = freeze(tmp_path, rows, backup)
+    before = listing(backup)
+    walker = Walker(walk)
+    report = skp_check.check_source(source, backup, tmp_path / "campus", walker=walker, interval_s=0,
+                                    sleep=lambda s: None)
+    copy = tmp_path / "campus" / "skp_copy" / "M - CHECKPOINT-17.skp"
+    assert walker.models == [copy]                                  # never the backup itself
+    assert listing(backup) == before
+    assert report["counts"] == {"files": 2, "matches": 2, "mismatches": 0, "ambiguous_files": 0,
+                                "misses": 0, "sdk_only_units": 0, "paired_by_geometry": 0}
+    on_disk = json.loads((tmp_path / "campus" / "skp_check.json").read_text(encoding="utf-8"))
+    assert on_disk == json.loads(json.dumps(report))                # what was returned is what was written
+    assert report["source"]["backup"] == "M - CHECKPOINT-17.skp"
+    assert report["source"]["backup_sha256"] == sha(b"skp-bytes")
+    assert report["source"]["created"] == "2026-10-03T19:12:52+08:00"
+    assert report["source"]["copy"] == str(copy)
+    assert [m["name"] for m in report["matches"]] == ["A_Floor", "B_Floor"]
+
+
+def test_mismatches_missing_files_and_extra_groups_are_all_in_the_report(tmp_path):
+    rows = [("A_Floor", 0, 0, 30, 10), ("B_Floor", 100, 0, 120, 10), ("C_Floor", 200, 0, 210, 10)]
+    walk = floor_walk(("A Floor", 5, 300.0, box(0, 0, 30, 10)),
+                      ("B Floor", 3, 215.0, box(100, 0, 120, 10)),          # 7.5 % too big
+                      ("D Floor", 1, 9.0, box(0, 0, 3, 3)))
+    report, _, _ = run_check(tmp_path, rows, walk)
+    assert [m["name"] for m in report["matches"]] == ["A_Floor"]
+    assert [m["name"] for m in report["mismatches"]] == ["B_Floor"]
+    assert "area" in report["mismatches"][0]["reasons"][0]
+    assert [m["name"] for m in report["misses"]] == ["C_Floor"]
+    assert [u["key"] for u in report["sdk_only"]] == ["D_Floor"]
+    assert (report["counts"]["matches"], report["counts"]["mismatches"], report["counts"]["misses"],
+            report["counts"]["sdk_only_units"]) == (1, 1, 1, 1)
+
+
+def test_the_bounding_box_tolerance_is_twice_the_print_step_measured_in_the_export(tmp_path):
+    rows = [("A_Floor", 0, 24000, 30, 24244.2)]
+    walk = floor_walk(("A Floor", 5, 30 * 244.2, box(0, 24000, 30, 24244.2)))
+    report, _, _ = run_check(tmp_path, rows, walk)
+    tolerance = report["tolerance"]
+    assert tolerance["print_step_in"] == pytest.approx(0.1)
+    assert tolerance["bbox_in"] == pytest.approx(0.2) and tolerance["area_fraction"] == 0.005
+    assert tolerance["max_abs_coordinate"] == 24244.2
+    small, _, _ = run_check(tmp_path / "small", [("A_Floor", 0, 0, 12.3456, 10)],
+                            floor_walk(("A Floor", 5, 123.456, box(0, 0, 12.3456, 10))))
+    assert small["tolerance"]["bbox_in"] == pytest.approx(0.0002)       # 12.3456: six digits, 0.0001
+    pinned, _, _ = run_check(tmp_path / "pinned", [("A_Floor", 0, 0, 30, 10)],
+                             floor_walk(("A Floor", 5, 300.0, box(0, 0, 30, 10))), bbox_tol=0.5)
+    assert pinned["tolerance"]["bbox_in"] == 0.5
+
+
+def test_what_the_sdk_left_out_as_hidden_is_counted_in_the_report(tmp_path):
+    rows = [("A_Floor", 0, 0, 30, 10)]
+    walk = floor_walk(("A Floor", 5, 300.0, box(0, 0, 30, 10)))
+    walk["totals"].update(hidden_nodes=2, layer_hidden_nodes=1, hidden_faces=7, layer_hidden_faces=3)
+    walk["root"]["skipped"] = [{"kind": "group", "name": "Old", "definition": None, "reason": "hidden"}]
+    walk["root"]["children"][0]["skipped"] = [
+        {"kind": "instance", "name": "Tree", "definition": "Tree#1", "reason": "layer"}]
+    report, _, _ = run_check(tmp_path, rows, walk)
+    hidden = report["hidden"]
+    assert (hidden["hidden_nodes"], hidden["layer_hidden_nodes"], hidden["hidden_faces"],
+            hidden["layer_hidden_faces"]) == (2, 1, 7, 3)
+    assert hidden["layers_bound"] is True
+    assert hidden["skipped"] == [
+        {"path": "", "kind": "group", "name": "Old", "reason": "hidden"},
+        {"path": "A Floor", "kind": "instance", "name": "Tree", "reason": "layer"}]
+
+
+def test_the_report_says_how_far_apart_the_paired_files_are(tmp_path):
+    rows = [("A_Floor", 0, 0, 30, 10), ("B_Floor", 100, 0, 120, 10)]
+    walk = floor_walk(("A Floor", 5, 301.5, box(0, 0, 30.1, 10)), ("B Floor", 3, 200.0, box(100, 0, 120, 10)))
+    report, _, _ = run_check(tmp_path, rows, walk)
+    measured = report["measured"]
+    assert measured["paired"] == 2
+    assert measured["bbox_max_dev"]["max"] == pytest.approx(0.1)
+    assert measured["area_rel"]["max"] == pytest.approx(0.005) and measured["area_rel"]["min"] == 0.0
+    assert measured["area_more_in_backup"] == 1
+
+
+def test_the_sdk_facts_are_carried_into_the_report(tmp_path):
+    rows = [("A_Floor", 0, 0, 30, 10)]
+    walk = floor_walk(("A Floor", 5, 300.0, box(0, 0, 30, 10)))
+    walk.update(peak_working_set_mb=1949.3, peak_commit_mb=2525.8)
+    walk["totals"].update(groups=3, instances=1, faces=5)
+    report, _, _ = run_check(tmp_path, rows, walk)
+    sdk = report["sdk"]
+    assert (sdk["api_version"], sdk["elapsed_s"], sdk["peak_working_set_mb"], sdk["peak_commit_mb"]) == (
+        "14.2", 1.0, 1949.3, 2525.8)
+    assert (sdk["totals"]["groups"], sdk["totals"]["faces"], sdk["units"]) == (3, 5, 1)
+
+
+def test_the_check_refuses_the_master_and_an_output_folder_beside_the_backup(tmp_path):
+    rows = [("A_Floor", 0, 0, 30, 10)]
+    master = tmp_path / "UC" / "02-SKETCHUP" / "current"
+    master.mkdir(parents=True)
+    (master / "M - CHECKPOINT-17.skp").write_bytes(b"skp-bytes")
+    source, backup = freeze(tmp_path, rows)
+    walker = Walker(floor_walk(("A Floor", 5, 300.0, box(0, 0, 30, 10))))
+    with pytest.raises(ValueError, match="master"):
+        skp_check.check_source(source, master, tmp_path / "campus", walker=walker, interval_s=0,
+                               sleep=lambda s: None)
+    with pytest.raises(ValueError, match="inside the backup"):
+        skp_check.check_source(source, backup, backup / "out", walker=walker, interval_s=0,
+                               sleep=lambda s: None)
+    assert walker.models == [] and not (backup / "out").exists()
+
+
+def test_a_backup_that_changed_since_the_freeze_stops_the_check_before_anything_is_opened(tmp_path):
+    rows = [("A_Floor", 0, 0, 30, 10)]
+    source, backup = freeze(tmp_path, rows, backup_folder(tmp_path, skp=b"changed"))
+    walker = Walker(floor_walk(("A Floor", 5, 300.0, box(0, 0, 30, 10))))
+    with pytest.raises(skp_check.BackupMismatch):
+        skp_check.check_source(source, backup, tmp_path / "campus", walker=walker, interval_s=0,
+                               sleep=lambda s: None)
+    assert walker.models == [] and not (tmp_path / "campus" / "skp_check.json").exists()
+
+
+def test_an_old_report_is_not_left_behind_when_the_check_fails(tmp_path):
+    rows = [("A_Floor", 0, 0, 30, 10)]
+    source, backup = freeze(tmp_path, rows, backup_folder(tmp_path, skp=b"changed"))
+    (tmp_path / "campus" / "skp_check.json").write_text('{"old": true}', encoding="utf-8")
+    with pytest.raises(skp_check.BackupMismatch):
+        skp_check.check_source(source, backup, tmp_path / "campus", walker=Walker({}), interval_s=0,
+                               sleep=lambda s: None)
+    assert not (tmp_path / "campus" / "skp_check.json").exists()
+
+
+# --------------------------------------------------------------------------- the summary page
+
+
+def test_the_summary_gives_the_counts_and_the_five_worst_mismatches_worst_first(tmp_path):
+    rows = [(f"F{i}_Floor", 100 * i, 0, 100 * i + 20, 10) for i in range(8)] + [("Lost_Floor", 0, 50, 5, 55)]
+    walk = floor_walk(*[(f"F{i} Floor", 3, 200.0 * (1 + 0.01 * i), box(100 * i, 0, 100 * i + 20, 10))
+                        for i in range(8)])
+    report, _, _ = run_check(tmp_path, rows, walk)
+    text = skp_check.render_markdown(report)
+    assert "| match | 1 |" in text and "| mismatch | 7 |" in text and "| miss | 1 |" in text
+    table = [line for line in text.splitlines() if line.startswith("| F")]
+    assert [line.split("|")[1].strip() for line in table] == [f"F{i}_Floor" for i in (7, 6, 5, 4, 3)]
+    assert "Lost_Floor" in text and "M - CHECKPOINT-17.skp" in text and sha(b"skp-bytes")[:12] in text
+    assert len(text.splitlines()) < 80                              # short, as asked
+
+
+# ------------------------------------------------------------------------------ the command
+
+
+def fake_report(**counts):
+    base = {"files": 85, "matches": 56, "mismatches": 20, "ambiguous_files": 3, "misses": 1,
+            "sdk_only_units": 0, "paired_by_geometry": 0}
+    return {"counts": {**base, **counts}, "source": {"backup": "M.skp"}}
+
+
+def test_campus_skp_check_hands_its_arguments_to_the_check_and_prints_the_counts(tmp_path, monkeypatch, capsys):
+    from engine import cli
+    seen = {}
+
+    def check(source, backup, out, **kw):
+        seen.update(source=source, backup=backup, out=out, **kw)
+        return fake_report()
+
+    monkeypatch.setattr(skp_check, "check_source", check)
+    code = cli.main(["campus-skp-check", "--source", str(tmp_path / "s.json"), "--backup", str(tmp_path / "B"),
+                     "--out", str(tmp_path / "out"), "--summary", str(tmp_path / "s.md"),
+                     "--timeout-min", "5", "--min-free-commit-mb", "1000", "--name", "M.skp"])
+    assert code == 0
+    assert (seen["source"], seen["backup"], seen["out"]) == (
+        tmp_path / "s.json", tmp_path / "B", tmp_path / "out")
+    assert (seen["summary"], seen["name"], seen["timeout_s"], seen["min_free_commit_mb"]) == (
+        tmp_path / "s.md", "M.skp", 300.0, 1000.0)
+    printed = capsys.readouterr().out
+    assert "85 files" in printed and "56 match" in printed and "20 mismatch" in printed
+    assert "3 ambiguous" in printed and "1 miss" in printed and str(tmp_path / "out" / "skp_check.json") in printed
+
+
+def test_campus_skp_check_defaults_follow_campus_freeze(monkeypatch):
+    from engine import cli
+    seen = {}
+    monkeypatch.setattr(skp_check, "check_source", lambda source, backup, out, **kw: (
+        seen.update(source=source, out=out, kw=kw), fake_report())[1])
+    assert cli.main(["campus-skp-check", "--backup", "B"]) == 0
+    assert (seen["source"], seen["out"]) == (Path("data/campus/source.json"), Path("data/campus"))
+    assert seen["kw"].get("summary") is None and "timeout_s" not in seen["kw"]
+
+
+@pytest.mark.parametrize("error", [skp_check.BackupMismatch("the copy changed"),
+                                   skp_check.WalkFailed("it timed out"),
+                                   skp_check.NotEnoughMemory("no commit left"),
+                                   ValueError("refusing to open the master"),
+                                   FileNotFoundError("no such backup")])
+def test_campus_skp_check_reports_a_refusal_in_a_line_and_exits_2(monkeypatch, capsys, error):
+    from engine import cli
+
+    def check(*args, **kw):
+        raise error
+
+    monkeypatch.setattr(skp_check, "check_source", check)
+    assert cli.main(["campus-skp-check", "--backup", "B"]) == 2
+    err = capsys.readouterr().err
+    assert err.startswith("error: ") and str(error) in err and "Traceback" not in err
+
+
+def test_campus_skp_check_needs_the_backup_folder(capsys):
+    from engine import cli
+    with pytest.raises(SystemExit) as raised:
+        cli.main(["campus-skp-check"])
+    assert raised.value.code == 2 and "--backup" in capsys.readouterr().err
+
+
+def test_the_summary_is_written_where_it_was_asked_for(tmp_path):
+    rows = [("A_Floor", 0, 0, 30, 10)]
+    walk = floor_walk(("A Floor", 5, 300.0, box(0, 0, 30, 10)))
+    out = tmp_path / "records" / "campus" / "skp-check.md"
+    run_check(tmp_path, rows, walk, summary=out)
+    assert out.read_text(encoding="utf-8").startswith("# SDK cross-check")
+
+
+# ------------------------------------------------- a real model, a real child process (needs SketchUp)
+
+
+@pytest.fixture
+def sketchup():
+    """Skip, saying why, when this machine has no usable SketchUp C API."""
+    try:
+        skp_reader.load_api()
+    except SketchUpUnavailable as exc:
+        pytest.skip(f"SketchUp C API unavailable: {exc}")
+
+
+def floor_group(name, x, size, **extra):
+    """A top-level group `name` with a `size` x `size` floor at `x`, two groups down like the real ones."""
+    return {"name": name, "transform": translation(x, 0, 0), **extra, "groups": [
+        {"name": "minecraft_concrete_white_-1", "groups": [{"faces": [square(0, 0, 0, size)]}]}]}
+
+
+def freeze_real(tmp_path, scene, rows):
+    """A backup folder holding a real `.skp` built from `scene`, and the freeze that describes it."""
+    backup = tmp_path / "BACKUP"
+    backup.mkdir()
+    skp = backup / "M - CHECKPOINT-17.skp"
+    build_scene(skp, scene)
+    source, _ = freeze(tmp_path, rows, backup)
+    data = json.loads(source.read_text(encoding="utf-8"))
+    data["backup"] = {skp.name: {"sha256": sha(skp.read_bytes()), "size": skp.stat().st_size, "mtime": "x"}}
+    source.write_text(json.dumps(data), encoding="utf-8")
+    return source, backup
+
+
+def test_a_real_model_is_walked_in_a_child_process_and_compared_with_the_export(tmp_path, sketchup):
+    scene = {"groups": [floor_group("EDS 2nd Floor.obj", 100, 10),
+                        floor_group("Main 3RD Floor.obj", 200, 40),
+                        floor_group("Main 3RD Floor.obj", 300, 5)]}
+    rows = [("EDS_2nd_Floor_obj", 100, 0, 110, 10), ("Main_3RD_Floor_obj", 200, 0, 240, 40),
+            ("Main_3RD_Floor_obj1", 300, 0, 305, 5)]
+    source, backup = freeze_real(tmp_path, scene, rows)
+    before = listing(backup)
+    report = skp_check.check_source(source, backup, tmp_path / "campus", min_free_commit_mb=0,
+                                    interval_s=0, sleep=lambda s: None)
+    assert listing(backup) == before
+    assert report["counts"] == {"files": 3, "matches": 3, "mismatches": 0, "ambiguous_files": 0,
+                                "misses": 0, "sdk_only_units": 0, "paired_by_geometry": 2}
+    paired = {m["name"]: m["paired_by"] for m in report["matches"]}
+    assert paired == {"EDS_2nd_Floor_obj": "name", "Main_3RD_Floor_obj": "geometry",
+                      "Main_3RD_Floor_obj1": "geometry"}
+    assert report["ambiguities"][0]["family"] == "Main_3RD_Floor_obj" and report["ambiguities"][0]["resolved"]
+    assert report["sdk"]["totals"]["groups"] == 9 and report["sdk"]["peak_commit_mb"] > 1
+    assert (tmp_path / "campus" / "skp_walk.json").is_file()
+
+
+def test_what_is_hidden_in_a_real_model_is_left_out_and_counted(tmp_path, sketchup):
+    scene = {"layers": {"Off": False}, "groups": [
+        floor_group("EDS 2nd Floor.obj", 100, 10),
+        floor_group("Old Floor.obj", 500, 99, hidden=True),
+        floor_group("Tagged Floor.obj", 600, 99, layer="Off")]}
+    rows = [("EDS_2nd_Floor_obj", 100, 0, 110, 10)]
+    source, backup = freeze_real(tmp_path, scene, rows)
+    report = skp_check.check_source(source, backup, tmp_path / "campus", min_free_commit_mb=0,
+                                    interval_s=0, sleep=lambda s: None)
+    assert report["counts"]["matches"] == 1 and report["counts"]["sdk_only_units"] == 0
+    hidden = report["hidden"]
+    assert (hidden["hidden_nodes"], hidden["layer_hidden_nodes"], hidden["layers_bound"]) == (1, 1, True)
+    assert sorted((s["name"], s["reason"]) for s in hidden["skipped"]) == [
+        ("Old Floor.obj", "hidden"), ("Tagged Floor.obj", "layer")]

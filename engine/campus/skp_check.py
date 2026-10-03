@@ -35,6 +35,7 @@ import re
 import subprocess
 import sys
 import time
+from datetime import datetime
 from pathlib import Path
 
 import numpy as np
@@ -430,3 +431,166 @@ def run_walk(skp, out_json, *, timeout_s: float = WALK_TIMEOUT_S, dll_path=None,
     if not out_json.is_file():
         raise WalkFailed("the SketchUp walk finished but wrote no walk file")
     return json.loads(out_json.read_text(encoding="utf-8"))
+
+
+# ------------------------------------------------------------------------------ the whole check
+
+
+def _write_atomic(path: Path, text: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(f".{path.name}.tmp")
+    tmp.write_text(text, encoding="utf-8")
+    os.replace(tmp, path)
+
+
+def _skipped(walk: dict, limit: int = 50) -> tuple[list[dict], int]:
+    """The hidden and tag-off groups and instances the walk left out, with where each sat."""
+    found: list[dict] = []
+
+    def visit(node: dict, path: list[str]) -> None:
+        for s in node["skipped"]:
+            found.append({"path": " > ".join(path), "kind": s["kind"], "name": s["name"],
+                          "reason": s["reason"]})
+        for child in node["children"]:
+            visit(child, path + [child["name"] or token(child)])
+
+    visit(walk["root"], [])
+    return found[:limit], len(found)
+
+
+def _spread(values: list[float]) -> dict:
+    v = sorted(values)
+    return {"median": v[len(v) // 2] if len(v) % 2 else (v[len(v) // 2 - 1] + v[len(v) // 2]) / 2,
+            "min": v[0], "max": v[-1]}
+
+
+def check_source(source_json, backup_dir, out_dir, *, name: str | None = None, summary=None,
+                 bbox_tol: float | None = None, area_tol: float = AREA_TOL,
+                 timeout_s: float = WALK_TIMEOUT_S, dll_path=None,
+                 min_free_commit_mb: float = MIN_FREE_COMMIT_MB, walker=None,
+                 interval_s: float = 1.0, sleep=time.sleep) -> dict:
+    """The whole check: copy the backup `.skp` named in `source_json` into `<out_dir>/skp_copy/`
+    (`verified_copy`: refused if its sha256 is not the frozen one), walk that copy in a child
+    process (`<out_dir>/skp_walk.json`), compare every split file `source_json` froze with what the
+    backup holds for it, and write `<out_dir>/skp_check.json` -- and `summary`, a short page, when
+    given. Returns the report. Nothing is written beside the backup and the master is never opened.
+
+    `bbox_tol` defaults to twice the export's print step, measured on its largest coordinate.
+    `walker(skp, out_json) -> walk` replaces the child process (the tests' stand-in)."""
+    source_json, backup_dir, out_dir = Path(source_json), Path(backup_dir), Path(out_dir)
+    refuse_master(backup_dir)
+    refuse_inside(out_dir, backup_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    (out_dir / "skp_check.json").unlink(missing_ok=True)       # a failed run leaves no report that looks current
+    source = json.loads(source_json.read_text(encoding="utf-8"))
+    copy = verified_copy(source, backup_dir, out_dir / "skp_copy", name, interval_s=interval_s,
+                         sleep=sleep)
+    walk_json = out_dir / "skp_walk.json"
+    if walker is None:
+        walk = run_walk(copy, walk_json, timeout_s=timeout_s, dll_path=dll_path,
+                        min_free_commit_mb=min_free_commit_mb)
+    else:
+        walk = walker(copy, walk_json)
+
+    snapshots = {s["file"]: s["dir"] for s in source["snapshots"]}
+    rows = []
+    for m in source["manifest"]:
+        stats = export_stats(snapshots[m["file"]])
+        rows.append({"name": m["group"], "file": m["file"], **stats})
+    max_abs = max(r["max_abs_coordinate"] for r in rows)
+    step = print_step(max_abs, rows[0]["sig_digits"])
+    tolerance = 2 * step if bbox_tol is None else bbox_tol
+    units = sdk_units(walk)
+    result = compare(rows, units, bbox_tol=tolerance, area_tol=area_tol)
+
+    paired = result["matches"] + result["mismatches"]
+    ambiguous_files = sum(len(a["rows"]) for a in result["ambiguities"] if not a["resolved"])
+    skipped, skipped_total = _skipped(walk)
+    report = {
+        "created": datetime.now().astimezone().isoformat(timespec="seconds"),
+        "source": {"json": str(source_json), "created": source.get("created"),
+                   "backup": copy.name, "backup_sha256": source["backup"][copy.name]["sha256"],
+                   "copy": str(copy)},
+        "tolerance": {"bbox_in": tolerance, "area_fraction": area_tol, "print_step_in": step,
+                      "max_abs_coordinate": max_abs, "sig_digits": rows[0]["sig_digits"]},
+        "sdk": {"api_version": walk.get("api_version"), "elapsed_s": walk.get("elapsed_s"),
+                "peak_working_set_mb": walk.get("peak_working_set_mb"),
+                "peak_commit_mb": walk.get("peak_commit_mb"), "totals": walk.get("totals"),
+                "layers_bound": walk.get("layers_bound"), "units": len(units),
+                "walk_json": str(walk_json)},
+        "hidden": {**{k: walk["totals"][k] for k in ("hidden_nodes", "layer_hidden_nodes",
+                                                     "hidden_faces", "layer_hidden_faces")},
+                   "layers_bound": walk.get("layers_bound"), "skipped": skipped,
+                   "skipped_total": skipped_total},
+        "counts": {"files": len(rows), "matches": len(result["matches"]),
+                   "mismatches": len(result["mismatches"]), "ambiguous_files": ambiguous_files,
+                   "misses": len(result["misses"]), "sdk_only_units": len(result["sdk_only"]),
+                   "paired_by_geometry": sum(1 for e in paired if e["paired_by"] == "geometry")},
+        "measured": ({"paired": len(paired),
+                      "bbox_max_dev": _spread([e["bbox_max_dev"] for e in paired]),
+                      "area_rel": _spread([e["area_rel"] for e in paired]),
+                      "area_more_in_backup": sum(1 for e in paired if e["area_rel"] > 0)}
+                     if paired else {"paired": 0}),
+        **result,
+    }
+    _write_atomic(out_dir / "skp_check.json", json.dumps(report, indent=1))
+    if summary is not None:
+        _write_atomic(Path(summary), render_markdown(report))
+    return report
+
+
+def render_markdown(report: dict) -> str:
+    """A short page about `report`: what was compared, the counts, the five worst mismatches."""
+    c, t, s, src = report["counts"], report["tolerance"], report["sdk"], report["source"]
+    lines = [
+        "# SDK cross-check: the CHECKPOINT-17 export against its backup", "",
+        f"Run {report['created']}. Backup `{src['backup']}` (sha256 `{src['backup_sha256'][:12]}`, "
+        f"read through a verified copy), export frozen in `source.json` of {src['created']} "
+        f"({c['files']} files).",
+        f"Tolerance: bounding box {_num(t['bbox_in'])} in (twice the export's print step of "
+        f"{_num(t['print_step_in'])} in, measured on its largest coordinate {_num(t['max_abs_coordinate'])}), "
+        f"area {t['area_fraction'] * 100:g} %.", "",
+        "| result | files |", "|---|---:|",
+        f"| match | {c['matches']} |", f"| mismatch | {c['mismatches']} |",
+        f"| ambiguous | {c['ambiguous_files']} |", f"| miss | {c['misses']} |", "",
+        "Ambiguous: several groups or files of one name that their shapes could not tell apart. "
+        "Miss: no group of that name in the backup.", ""]
+    extra = []
+    if c["sdk_only_units"]:
+        extra.append(f"{c['sdk_only_units']} groups of the backup hold faces that no file has")
+    if c["paired_by_geometry"]:
+        extra.append(f"{c['paired_by_geometry']} files were paired with their group by shape, because "
+                     "the name does not say which is which")
+    totals = s.get("totals") or {}
+    hidden = report["hidden"]
+    extra.append(
+        f"the SketchUp walk saw {totals.get('groups', 0):,} groups, {totals.get('instances', 0):,} instances "
+        f"and {totals.get('faces', 0):,} faces in {s.get('elapsed_s')} s (peak {s.get('peak_commit_mb')} MB "
+        f"of commit); left out as hidden: {hidden['hidden_nodes']} groups or instances and "
+        f"{hidden['hidden_faces']} faces, and as on a tag that is off: {hidden['layer_hidden_nodes']} "
+        f"and {hidden['layer_hidden_faces']}" + ("" if hidden["layers_bound"] else
+                                                 " (this DLL cannot tell tags: not applied)"))
+    lines += [f"- {e}" for e in extra] + [""]
+    mismatches = report["mismatches"]
+    if mismatches:
+        more = report["measured"]["area_more_in_backup"]
+        lines += [f"## Worst mismatches ({min(5, len(mismatches))} of {len(mismatches)})", "",
+                  "| file | paired by | box, max off (in) | area: backup vs export | difference |",
+                  "|---|---|---:|---|---:|"]
+        for m in mismatches[:5]:
+            lines.append(f"| {m['name']} | {m['paired_by']} | {_num(m['bbox_max_dev'])} | "
+                         f"{m['unit']['area']:,.0f} vs {m['export']['area']:,.0f} sq in | "
+                         f"{m['area_rel'] * 100:+.2f} % |")
+        lines += ["", f"The reason for every mismatch, in words, is in `skp_check.json`. In {more} of the "
+                  f"{report['measured']['paired']} paired files the backup has MORE area than the export.", ""]
+    for amb in (a for a in report["ambiguities"] if not a["resolved"]):
+        lines.append(f"- ambiguous `{amb['family']}` ({', '.join(amb['rows'])}): {amb['reason']}")
+    for miss in report["misses"]:
+        lines.append(f"- miss `{miss['name']}`: {miss['reason']}")
+    for only in report["sdk_only"][:10]:
+        lines.append(f"- SDK only `{only['key']}` ({only['path']}): {only['faces']} faces, "
+                     f"{only['area']:,.0f} sq in")
+    lines += ["", "Each export file holds the faces SketchUp's exporter gave it, and the owner's split "
+              "rule decides which file that is (`engine/campus/skp_check.py`), so a file is compared "
+              "with the faces that went into it, not with a whole group."]
+    return "\n".join(lines) + "\n"
