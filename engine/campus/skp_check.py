@@ -577,6 +577,11 @@ def render_markdown(report: dict) -> str:
                                                  " (this DLL cannot tell tags: not applied)"))
     measured = report["measured"]
     if measured["paired"]:
+        spread = measured["bbox_max_dev"]
+        extra.append(
+            f"bounding boxes of the {measured['paired']} paired files differ by at most "
+            f"{_num(spread['max'])} in (median {_num(spread['median'])} in; the tolerance is "
+            f"{_num(t['bbox_in'])} in)")
         diff = measured["tris_diff"]
         extra.append(
             f"triangles of the paired files (a face of v corners and h holes counts v + 2h - 2): the "
