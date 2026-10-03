@@ -853,6 +853,13 @@ def build_parser() -> argparse.ArgumentParser:
     errors_p.add_argument("snapshot", type=Path)
     errors_p.add_argument("--out", type=Path, required=True)
 
+    freeze_p = sub.add_parser("campus-freeze",
+                              help="freeze the CHECKPOINT-17 export (stable copies + sha256) and hash the backup")
+    freeze_p.add_argument("--export", type=Path, required=True, help="the CKPT17 export folder (read only)")
+    freeze_p.add_argument("--backup", type=Path, required=True, help="the CHECKPOINT-17 backup folder (hashed only)")
+    freeze_p.add_argument("--out", type=Path, default=Path("data/campus"))
+    freeze_p.add_argument("--snapshots", type=Path, default=Path("data/snapshots"))
+
     return parser
 
 
@@ -867,6 +874,12 @@ def main(argv: list[str] | None = None) -> int:
                                 solidify=args.solidify)
     elif args.command == "errors":
         cmd_errors(args.snapshot, args.out)
+        return 0
+    elif args.command == "campus-freeze":
+        from engine.campus.source import freeze_source
+        res = freeze_source(args.export, args.backup, args.out, args.snapshots)
+        totals = json.loads(res.json_path.read_text(encoding="utf-8"))["totals"]
+        print(f"froze {totals['files']} files, {totals['tris']} triangles -> {res.json_path}")
         return 0
     return 1
 

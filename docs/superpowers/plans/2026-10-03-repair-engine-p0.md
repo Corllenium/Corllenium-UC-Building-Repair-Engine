@@ -90,6 +90,7 @@ Nothing in P0 changes how any model is fixed.
 | 14 Validator core | P0-14 | claude | P0-09 |
 | 15 Validator checks + CLI | P0-15 | claude | P0-14 |
 | 16 Mutation proof, real verdicts, agent | P0-16 | claude | P0-15 |
+| 17 Jev decision helper, pilot (owner OK 2026-10-03) | P0-17 | claude | P0-07, P0-09 |
 
 **Order:** 1, 2 and 5 → 3 and 4 → 6 → 7 → (8 ∥ 9 ∥ 11) → (10 ∥ 12 ∥ 14) → 13 and 15 → 16.
 
@@ -450,7 +451,7 @@ def _export(tmp: Path, alpha_tris=1):
     exp = tmp / "CKPT17"; split = exp / "split"; tex = exp / "SRC-TEX"
     split.mkdir(parents=True); tex.mkdir()
     (exp / "X.mtl").write_text("newmtl m0\nKd 1 1 1\nmap_Kd SRC-TEX/a.png\n")
-    (tex / "a.png").write_bytes(b"png-a")
+    Image.new("RGB", (2, 2), (200, 30, 30)).save(tex / "a.png")   # the importer opens textures with Pillow (from PIL import Image)
     for name in ("Alpha", "Beta"):
         (split / f"{name}.obj").write_text(OBJ.format(name=name))
     (split / "_MANIFEST.txt").write_text(
@@ -762,6 +763,71 @@ Rays use `EmbreeCaster` on positions re-centred on the bounding-box centre (floa
   - never edits code or outputs;
   - never validates work it built.
 - [ ] **Step 7: Commit.** `test(validate): mutations prove the Validator catches every break of the owner's rule; v0 verdicts on CHTM 5th, A and B`.
+
+### Task 17: Jev decision helper — pilot (claude; owner OK 2026-10-03)
+
+**Why.** The owner wants TypeSafe's Jev for fast decisions. Jev takes text plus typed questions:
+- `Noul` (true or false);
+- `Choice` (one of the given criteria, with probabilities);
+- `Score` (an ordinal criterion).
+
+Each answer comes with a confidence. Many questions go in one call (`TypeSafeClient().system_one(state=…, questions=…)`, package `typesafe-sdk`, key `TYPESAFE_API_KEY`, model `jev-latest`).
+
+**Where it may be used:** soft, typed questions only, gated by confidence. A confident answer pre-fills; an uncertain one goes to the owner or the deterministic path.
+- **Never** for deleting or keeping geometry, guard tolerances, or a Validator verdict (`AGENTS.md` §3, §6).
+- Only text leaves the machine: group names, material names, report text. Never geometry.
+
+**Files:**
+- Create: `engine/decide/__init__.py`, `engine/decide/jev.py`, `engine/tests/test_decide_jev.py`.
+- Modify: `pyproject.toml`, adding the optional group `decide = ["typesafe-sdk"]`.
+- Add the CLI `decide-pilot`.
+
+**Interface:**
+```python
+@dataclass
+class Decision:
+    answer: str | float | bool | None
+    confidence: float
+    probabilities: dict
+    source: str            # "jev" | "none" (no key / no SDK) | "error"
+    accepted: bool         # confidence >= the decider's min_confidence
+
+class JevDecider:
+    def __init__(self, client=None, min_confidence: float = 0.8, batch: int = 20): ...
+    available: bool        # SDK importable and TYPESAFE_API_KEY set (or a client injected)
+    def ask(self, state: str, questions: dict) -> dict[str, Decision]: ...
+
+def classify_group_names(rows: list[dict], decider) -> list[dict]
+#   rows: {"name", "tris", "z_min", "z_max", "footprint_building"}
+#   asks: building (Choice over the AGENTS.md list + SITE), unit type (Choice: floor, stair, roof, shell,
+#   road, landscape, bridge, other), floor number (Score 0-15), duplicate copy (Noul)
+def classify_materials(names: list[str], decider) -> list[dict]
+#   asks: category (Choice: glass, concrete, metal, wood, stone, plant, fabric, paint, other),
+#   trim or patch material (Noul)
+```
+
+- [ ] **Step 1: Write the failing tests** (with a fake client: no network, no key):
+  - `ask` maps a canned `system_one` response into `Decision`s;
+  - `accepted` follows `min_confidence`;
+  - 45 questions with `batch = 20` make 3 calls;
+  - without a key or the SDK, `available` is False and every function returns `source = "none"`, `accepted = False`, with no network;
+  - an SDK exception becomes `source = "error"` for that batch only;
+  - the key never appears in any `repr`, log or exception text (assert on the captured output).
+- [ ] **Steps 2-4:**
+  - see the tests fail;
+  - implement;
+  - install `typesafe-sdk` into the project venv (`"$PY" -m pip install typesafe-sdk`; the owner approved it);
+  - see the tests pass.
+- [ ] **Step 5: Pilot measurement** (needs the owner's key in the environment of the process that runs it). `decide-pilot --source data/campus/source.json --materials data/campus/materials.json --out data/campus/jev_pilot.json` reports:
+  - on the 85 group names, against the inventory's deterministic answers (Task 10; until then, the name-table truth) for building, type and floor:
+    - the accuracy;
+    - the coverage at confidence ≥ 0.8;
+    - the accuracy within that coverage;
+  - on the 391 materials: the category histogram and a 30-material spot check read by Claude;
+  - the latency per call and the token usage.
+- [ ] **Step 6:** report and commit `feat(decide): a confidence-gated Jev helper for soft typed decisions, piloted on group names and materials`.
+
+**Done when** the pilot numbers are in the ledger and the owner decides where Jev stays: the inventory pre-fill, the material categories for E5, the tie-break suggestions in the floor review, or the review triage.
 
 ---
 

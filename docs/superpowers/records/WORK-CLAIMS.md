@@ -1,5 +1,9 @@
 # WORK CLAIMS — who is working on what
 
+**Since 2026-10-03, new jobs (the repair engine, from P0 on) live in the job queue `tools/jobs.py`,
+rendered as `QUEUE.md`; see `AGENTS.md` §7 and `HERMES.md` §0.** This file stays for the older briefs
+(01-15) and for the automatic runner `tools/auto_continue.py`, which moves to the queue in phase P5.
+
 One row per job. Before starting a job, add or update its row with your name and the time, and
 commit this file (or at least save it; it is read in the MAIN checkout by absolute path
 `D:\PROJECTS\UC MODEL FIXER\docs\superpowers\records\WORK-CLAIMS.md`, also by workers in worktrees).

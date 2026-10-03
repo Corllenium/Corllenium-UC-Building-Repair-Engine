@@ -182,6 +182,10 @@ work in progress: finish it, test it, commit it; never discard it.
 
 ## 4. Rules (each one cost time when broken)
 
+**Since 2026-10-03 the binding rules live in [`AGENTS.md`](../../../AGENTS.md) §3, with the blocked
+operations in §4, the owner's decisions in §5 and the owner's validation rule in §6.** The list below is
+the same text, kept for history. If the two ever differ, `AGENTS.md` wins.
+
 - **Python**: always `.venv/Scripts/python.exe` from the repo root, run modules with `-m`
   (`-m pytest`, `-m engine.cli`). In a worktree use the main checkout's interpreter
   `"/d/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe"` from the worktree root, and set
