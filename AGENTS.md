@@ -135,6 +135,10 @@ Validator's `validation.json` together with its evidence images.
    - Changes that touch `engine/guard/**`, `FixProfile` thresholds or existing tests are rejected unless
      the brief asked for them.
 6. **Records after every step:** the ledger, HANDOFF §2, the session record, `QUEUE.md`.
+7. **Prompt audit:** when an agent prompt file changes (this file, `CLAUDE.md`, `HERMES.md`,
+   `.claude/agents`, `.claude/skills`, brief templates, Hermes or Jev prompts), Claude runs the
+   `prompt-auditor` subagent on it (skill `uc-prompt-audit`; the owner asked 2026-10-03). Its diff is only
+   proposed; changes to §3-6 need the owner.
 
 ## 8. Commands
 

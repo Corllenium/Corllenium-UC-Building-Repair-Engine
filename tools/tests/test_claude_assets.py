@@ -3,8 +3,9 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
-SKILLS = ["uc-repair-rules", "uc-handoff", "uc-run-unit"]
-AGENTS = ["engine-builder", "unit-runner", "rules-reviewer", "hermes-reviewer", "census-analyst"]
+SKILLS = ["uc-repair-rules", "uc-handoff", "uc-run-unit", "uc-prompt-audit"]
+AGENTS = ["engine-builder", "unit-runner", "rules-reviewer", "hermes-reviewer", "census-analyst",
+          "prompt-auditor"]
 
 
 def _front(path: Path) -> tuple[dict, str]:
