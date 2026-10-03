@@ -5,6 +5,13 @@ when the API cannot be loaded here. The static checks (no save call is bound) ne
 run everywhere."""
 from __future__ import annotations
 
+import hashlib
+import json
+import os
+import re
+import stat
+import subprocess
+import sys
 from pathlib import Path
 
 import numpy as np
@@ -196,6 +203,225 @@ def test_one_definition_walked_twice_gives_each_instance_its_own_numbers(tmp_pat
     root = skp_reader.walk_skp(path)["root"]
     assert _child(root, "A")["area"] == pytest.approx(100.0)
     assert _child(root, "B")["area"] == pytest.approx(400.0)
+
+
+# ----------------------------------------------------------------- hidden things are left out
+
+
+def test_a_hidden_group_is_skipped_and_counted(tmp_path, sketchup):
+    path = tmp_path / "h.skp"
+    build_scene(path, {"groups": [{"name": "Shown", "faces": [square(0, 0, 0, 10)]},
+                                  {"name": "Hidden", "hidden": True,
+                                   "faces": [square(0, 0, 0, 10)]}]})
+    walk = skp_reader.walk_skp(path)
+    root = walk["root"]
+    assert [c["name"] for c in root["children"]] == ["Shown"]
+    assert root["skipped"] == [{"kind": "group", "name": "Hidden", "definition": None,
+                                "reason": "hidden"}]
+    assert walk["totals"] == {"groups": 1, "instances": 0, "faces": 1, "tris": 2,
+                              "hidden_nodes": 1, "layer_hidden_nodes": 0, "hidden_faces": 0,
+                              "layer_hidden_faces": 0}
+
+
+def test_a_group_on_a_tag_that_is_off_is_skipped_and_counted(tmp_path, sketchup):
+    path = tmp_path / "t.skp"
+    build_scene(path, {"layers": {"Off": False, "On": True}, "groups": [
+        {"name": "A", "layer": "Off", "faces": [square(0, 0, 0, 10)]},
+        {"name": "B", "layer": "On", "faces": [square(0, 0, 0, 10)]}]})
+    walk = skp_reader.walk_skp(path)
+    root = walk["root"]
+    assert [c["name"] for c in root["children"]] == ["B"]
+    assert root["skipped"] == [{"kind": "group", "name": "A", "definition": None,
+                                "reason": "layer"}]
+    assert (walk["totals"]["layer_hidden_nodes"], walk["totals"]["hidden_nodes"]) == (1, 0)
+    assert walk["layers_bound"] is True
+
+
+def test_the_contents_of_a_hidden_group_are_not_walked(tmp_path, sketchup):
+    path = tmp_path / "hi.skp"
+    build_scene(path, {"groups": [{"name": "H", "hidden": True, "groups": [
+        {"name": "Inner", "faces": [square(0, 0, 0, 10)]}]}]})
+    walk = skp_reader.walk_skp(path)
+    assert walk["root"]["children"] == []
+    assert (walk["totals"]["groups"], walk["totals"]["faces"], walk["totals"]["hidden_nodes"]) == (
+        0, 0, 1)
+
+
+def test_a_hidden_instance_is_skipped_and_named_with_its_definition(tmp_path, sketchup):
+    path = tmp_path / "hinst.skp"
+    build_scene(path, {"definitions": {"Def": {"faces": [square(0, 0, 0, 10)]}}, "instances": [
+        {"definition": "Def", "name": "I", "hidden": True}]})
+    root = skp_reader.walk_skp(path)["root"]
+    assert root["children"] == []
+    assert root["skipped"] == [{"kind": "instance", "name": "I", "definition": "Def",
+                                "reason": "hidden"}]
+
+
+def test_a_hidden_face_is_left_out_of_every_number(tmp_path, sketchup):
+    path = tmp_path / "hf.skp"
+    build_scene(path, {"groups": [{"name": "G", "faces": [
+        {"points": square(100, 100, 100, 50), "hidden": True}, square(0, 0, 0, 10)]}]})
+    g = _child(skp_reader.walk_skp(path)["root"], "G")
+    assert (g["faces"], g["hidden_faces"], g["tris"]) == (1, 1, 2)
+    assert g["area"] == pytest.approx(100.0)
+    np.testing.assert_allclose(g["bbox"], [[0, 0, 0], [10, 10, 0]], atol=1e-9)
+
+
+def test_a_face_on_a_tag_that_is_off_is_left_out_of_every_number(tmp_path, sketchup):
+    path = tmp_path / "tf.skp"
+    build_scene(path, {"layers": {"Off": False}, "groups": [{"name": "G", "faces": [
+        {"points": square(100, 100, 100, 50), "layer": "Off"}, square(0, 0, 0, 10)]}]})
+    walk = skp_reader.walk_skp(path)
+    g = _child(walk["root"], "G")
+    assert (g["faces"], g["layer_hidden_faces"], g["hidden_faces"]) == (1, 1, 0)
+    assert g["area"] == pytest.approx(100.0)
+    np.testing.assert_allclose(g["bbox"], [[0, 0, 0], [10, 10, 0]], atol=1e-9)
+    assert walk["totals"]["layer_hidden_faces"] == 1
+
+
+def test_tags_are_not_applied_when_the_dll_lacks_the_calls(tmp_path, sketchup, monkeypatch):
+    path = tmp_path / "nl.skp"
+    build_scene(path, {"layers": {"Off": False}, "groups": [
+        {"name": "A", "layer": "Off", "faces": [square(0, 0, 0, 10)]}]})
+    api = skp_reader.load_api()
+    for name in ("SUDrawingElementGetLayer", "SULayerGetVisibility"):
+        monkeypatch.delitem(api._fn, name)
+    walk = skp_reader.walk_skp(path)
+    assert walk["layers_bound"] is False
+    assert [c["name"] for c in walk["root"]["children"]] == ["A"]      # not skipped, and says so
+
+
+# ----------------------------------------------------- names, the file, and what is released
+
+
+def test_names_are_read_as_utf8_text(tmp_path, sketchup):
+    path = tmp_path / "u8.skp"
+    build_scene(path, {"groups": [{"name": "Étage 2 – plan.obj", "faces": [square(0, 0, 0, 1)]}]})
+    assert [c["name"] for c in skp_reader.walk_skp(path)["root"]["children"]] == [
+        "Étage 2 – plan.obj"]
+
+
+def _counted(monkeypatch, api, *names):
+    """Wrap the bound calls `names` so each call is counted; returns `{name: calls}`."""
+    calls = dict.fromkeys(names, 0)
+
+    def wrap(name, real):
+        def counted(*args):
+            calls[name] += 1
+            return real(*args)
+        return counted
+
+    for name in names:
+        monkeypatch.setitem(api._fn, name, wrap(name, api._fn[name]))
+    return calls
+
+
+_PAIRS = ("SUStringCreate", "SUStringRelease", "SUModelCreateFromFile", "SUModelRelease")
+
+
+def test_every_string_and_the_model_are_released(tmp_path, sketchup, monkeypatch):
+    path = tmp_path / "rel.skp"
+    build_scene(path, {"definitions": {"Def": {"faces": [square(0, 0, 0, 1)]}}, "groups": [
+        {"name": "G", "groups": [{"name": "H", "faces": [square(0, 0, 0, 1)]}],
+         "instances": [{"definition": "Def", "name": "I"}]}]})
+    calls = _counted(monkeypatch, skp_reader.load_api(), *_PAIRS)
+    skp_reader.walk_skp(path)
+    assert calls["SUModelCreateFromFile"] == calls["SUModelRelease"] == 1
+    assert calls["SUStringCreate"] == calls["SUStringRelease"] > 0
+
+
+def test_a_walk_that_fails_half_way_still_releases_everything(tmp_path, sketchup, monkeypatch):
+    path = tmp_path / "boom.skp"
+    build_scene(path, {"groups": [{"name": "G", "faces": [square(0, 0, 0, 1)]}]})
+    api = skp_reader.load_api()
+    calls = _counted(monkeypatch, api, *_PAIRS)
+
+    def boom(*args):
+        raise skp_reader.SketchUpError("boom")
+
+    monkeypatch.setitem(api._fn, "SUGroupGetTransform", boom)
+    with pytest.raises(skp_reader.SketchUpError, match="boom"):
+        skp_reader.walk_skp(path)
+    assert calls["SUModelCreateFromFile"] == calls["SUModelRelease"] == 1
+    assert calls["SUStringCreate"] == calls["SUStringRelease"]
+
+
+def test_a_string_that_cannot_be_read_is_still_released(tmp_path, sketchup, monkeypatch):
+    path = tmp_path / "str.skp"
+    build_scene(path, {"groups": [{"name": "G", "faces": [square(0, 0, 0, 1)]}]})
+    api = skp_reader.load_api()
+    calls = _counted(monkeypatch, api, *_PAIRS)
+
+    def boom(*args):
+        raise skp_reader.SketchUpError("boom")
+
+    monkeypatch.setitem(api._fn, "SUStringGetUTF8Length", boom)
+    with pytest.raises(skp_reader.SketchUpError, match="boom"):
+        skp_reader.walk_skp(path)
+    assert calls["SUStringCreate"] == calls["SUStringRelease"] > 0
+    assert calls["SUModelCreateFromFile"] == calls["SUModelRelease"] == 1
+
+
+def test_the_file_is_only_read(tmp_path, sketchup):
+    path = tmp_path / "ro.skp"
+    build_scene(path, {"groups": [{"name": "G", "faces": [square(0, 0, 0, 1)]}]})
+    before = (hashlib.sha256(path.read_bytes()).hexdigest(), path.stat().st_mtime_ns)
+    path.chmod(stat.S_IREAD)                    # a read-only file opens, so nothing is written to it
+    try:
+        skp_reader.walk_skp(path)
+    finally:
+        path.chmod(stat.S_IREAD | stat.S_IWRITE)
+    assert (hashlib.sha256(path.read_bytes()).hexdigest(), path.stat().st_mtime_ns) == before
+
+
+def test_a_missing_file_and_a_file_that_is_not_a_model_are_errors(tmp_path, sketchup):
+    with pytest.raises(FileNotFoundError):
+        skp_reader.walk_skp(tmp_path / "nope.skp")
+    junk = tmp_path / "junk.skp"
+    junk.write_bytes(b"this is not a SketchUp model")
+    with pytest.raises(skp_reader.SketchUpError, match="SUModelCreateFromFile"):
+        skp_reader.walk_skp(junk)
+
+
+def test_a_missing_dll_is_unavailable_and_says_where(tmp_path):
+    missing = tmp_path / "nowhere" / "SketchUpAPI.dll"
+    with pytest.raises(SketchUpUnavailable, match=re.escape(str(missing))):
+        skp_reader.walk_skp(tmp_path / "x.skp", dll_path=missing)
+
+
+# ---------------------------------------------------------------- the command that walks a file
+
+
+def test_main_writes_the_walk_as_json(tmp_path, sketchup):
+    path, out = tmp_path / "m.skp", tmp_path / "walk.json"
+    build_scene(path, {"groups": [{"name": "G", "faces": [square(0, 0, 0, 10)]}]})
+    assert skp_reader.main([str(path), "--out", str(out)]) == 0
+    walk = json.loads(out.read_text(encoding="utf-8"))
+    assert walk["root"]["children"][0]["name"] == "G"
+    assert walk["totals"]["faces"] == 1 and walk["layers_bound"] is True
+    assert walk["path"] == str(path)
+    if sys.platform == "win32":
+        assert walk["peak_working_set_mb"] > 1 and walk["peak_commit_mb"] > 1
+
+
+def test_run_as_a_module_in_a_child_process(tmp_path, sketchup):
+    """The way `engine.campus.skp_check` runs it: the SDK in a process that can be killed."""
+    path, out = tmp_path / "c.skp", tmp_path / "walk.json"
+    build_scene(path, {"groups": [{"name": "G", "faces": [square(0, 0, 0, 10)]}]})
+    repo = Path(skp_reader.__file__).resolve().parents[2]
+    done = subprocess.run([sys.executable, "-m", "engine.io.skp_reader", str(path), "--out", str(out)],
+                          cwd=repo, env={**os.environ, "PYTHONPATH": str(repo)}, capture_output=True,
+                          text=True, timeout=120)
+    assert done.returncode == 0, done.stderr
+    assert json.loads(out.read_text(encoding="utf-8"))["root"]["children"][0]["faces"] == 1
+
+
+def test_main_reports_a_bad_file_without_a_traceback(tmp_path, sketchup, capsys):
+    junk, out = tmp_path / "junk.skp", tmp_path / "walk.json"
+    junk.write_bytes(b"this is not a SketchUp model")
+    assert skp_reader.main([str(junk), "--out", str(out)]) == 2
+    assert "SUModelCreateFromFile" in capsys.readouterr().err
+    assert not out.exists()
 
 
 # ------------------------------------------------------------- the transform maths, no SketchUp

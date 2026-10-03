@@ -37,8 +37,12 @@ checked with ctypes before it is bound, and anything missing raises `SketchUpUna
 """
 from __future__ import annotations
 
+import argparse
 import ctypes
+import json
 import os
+import sys
+import tempfile
 import time
 from contextlib import contextmanager
 from ctypes import POINTER, Structure, byref, c_bool, c_char_p, c_double, c_int, c_size_t, c_void_p
@@ -105,6 +109,8 @@ _REQUIRED = {
     "SUFaceGetVertices": ([_Ref, c_size_t, _RP, _SP], c_int),
     "SUFaceGetNumInnerLoops": ([_Ref, _SP], c_int),
     "SUFaceToDrawingElement": ([_Ref], _Ref),
+    "SUGroupToDrawingElement": ([_Ref], _Ref),
+    "SUComponentInstanceToDrawingElement": ([_Ref], _Ref),
     "SUVertexGetPosition": ([_Ref, POINTER(_Point3D)], c_int),
     "SUDrawingElementGetHidden": ([_Ref, _BP], c_int),
     "SUStringCreate": ([_RP], c_int),
@@ -112,8 +118,12 @@ _REQUIRED = {
     "SUStringGetUTF8Length": ([_Ref, _SP], c_int),
     "SUStringGetUTF8": ([_Ref, c_size_t, c_char_p, _SP], c_int),
 }
-#: Bound when present; each has a documented fallback when it is not.
-_OPTIONAL: dict = {}
+#: Bound when present; each has a documented fallback when it is not: without the two tag calls
+#: a tag that is switched off cannot be told, and `walk_skp` says so (`layers_bound`).
+_OPTIONAL = {
+    "SUDrawingElementGetLayer": ([_Ref, _RP], c_int),
+    "SULayerGetVisibility": ([_Ref, _BP], c_int),
+}
 
 
 def _result_name(code: int) -> str:
@@ -209,11 +219,38 @@ def _open(api: _Api, path: Path):
         api.raw("SUModelRelease", byref(model))
 
 
+class _Visibility:
+    """Would a viewer see this entity? `reason` says why not: `"hidden"` (the entity itself is
+    hidden) or `"layer"` (its tag is switched off -- only when this DLL has the two tag calls,
+    `tags`)."""
+
+    def __init__(self, api: _Api):
+        self.api = api
+        self.tags = "SUDrawingElementGetLayer" in api._fn and "SULayerGetVisibility" in api._fn
+        self._visible: dict[int, bool] = {}
+
+    def reason(self, element: _Ref) -> str | None:
+        api = self.api
+        flag = c_bool()
+        api.ok("SUDrawingElementGetHidden", element, byref(flag))
+        if flag.value:
+            return "hidden"
+        if self.tags:
+            layer = _Ref()
+            if api.raw("SUDrawingElementGetLayer", element, byref(layer)) == 0 and layer.ptr:
+                if layer.ptr not in self._visible:
+                    api.ok("SULayerGetVisibility", layer, byref(flag))
+                    self._visible[layer.ptr] = bool(flag.value)
+                if not self._visible[layer.ptr]:
+                    return "layer"
+        return None
+
+
 class _Faces:
     """The faces directly in one entities collection that a viewer sees, in the collection's own
     coordinates: per face its area and unit normal, plus the distinct vertex positions."""
 
-    def __init__(self, api: _Api, entities: _Ref):
+    def __init__(self, api: _Api, entities: _Ref, visibility: _Visibility):
         self.hidden = 0
         self.layer_hidden = 0
         areas, normals = [], []
@@ -221,11 +258,13 @@ class _Faces:
         self.tris = 0
         area, normal, point = c_double(), _Point3D(), _Point3D()
         count, got = c_size_t(), c_size_t()
-        flag = c_bool()
         for face in _refs(api, "SUEntitiesGetNumFaces", "SUEntitiesGetFaces", entities):
-            api.ok("SUDrawingElementGetHidden", api.raw("SUFaceToDrawingElement", face), byref(flag))
-            if flag.value:
-                self.hidden += 1
+            reason = visibility.reason(api.raw("SUFaceToDrawingElement", face))
+            if reason is not None:
+                if reason == "hidden":
+                    self.hidden += 1
+                else:
+                    self.layer_hidden += 1
                 continue
             api.ok("SUFaceGetArea", face, byref(area))
             api.ok("SUFaceGetNormal", face, byref(normal))
@@ -284,30 +323,39 @@ def _matrix(transformation: _Transformation) -> np.ndarray:
 class _Walker:
     def __init__(self, api: _Api):
         self.api = api
+        self.visibility = _Visibility(api)
         self._faces: dict[int, _Faces] = {}
+        self.totals = dict.fromkeys(("groups", "instances", "faces", "tris", "hidden_nodes",
+                                     "layer_hidden_nodes", "hidden_faces", "layer_hidden_faces"), 0)
 
     def faces(self, entities: _Ref) -> _Faces:
         """The faces of `entities`, read once however many instances share them."""
         if entities.ptr not in self._faces:
-            self._faces[entities.ptr] = _Faces(self.api, entities)
+            self._faces[entities.ptr] = _Faces(self.api, entities, self.visibility)
         return self._faces[entities.ptr]
 
     def children(self, entities: _Ref):
-        """`(kind, name, definition, local transform, entities)` of each group, then each
-        component instance, directly in `entities`."""
+        """`(kind, name, definition, reason, local transform, entities)` of each group, then each
+        component instance, directly in `entities`; `reason` is why a viewer does not see it
+        (`None` when it does)."""
         api = self.api
         for group in _refs(api, "SUEntitiesGetNumGroups", "SUEntitiesGetGroups", entities):
             inner, local = _Ref(), _Transformation()
             api.ok("SUGroupGetEntities", group, byref(inner))
             api.ok("SUGroupGetTransform", group, byref(local))
-            yield "group", _string(api, "SUGroupGetName", group), None, _matrix(local), inner
+            reason = self.visibility.reason(api.raw("SUGroupToDrawingElement", group))
+            yield ("group", _string(api, "SUGroupGetName", group), None, reason, _matrix(local),
+                   inner)
         for instance in _refs(api, "SUEntitiesGetNumInstances", "SUEntitiesGetInstances", entities):
             definition, inner, local = _Ref(), _Ref(), _Transformation()
             api.ok("SUComponentInstanceGetDefinition", instance, byref(definition))
             api.ok("SUComponentDefinitionGetEntities", definition, byref(inner))
             api.ok("SUComponentInstanceGetTransform", instance, byref(local))
+            reason = self.visibility.reason(
+                api.raw("SUComponentInstanceToDrawingElement", instance))
             yield ("instance", _string(api, "SUComponentInstanceGetName", instance),
-                   _string(api, "SUComponentDefinitionGetName", definition), _matrix(local), inner)
+                   _string(api, "SUComponentDefinitionGetName", definition), reason,
+                   _matrix(local), inner)
 
     def walk(self, kind: str, name: str, definition: str | None, entities: _Ref,
              world: np.ndarray) -> dict:
@@ -316,7 +364,18 @@ class _Walker:
         node = {"kind": kind, "name": name, "definition": definition, "faces": faces.count,
                 "tris": faces.tris, "area": area, "bbox": bbox, "hidden_faces": faces.hidden,
                 "layer_hidden_faces": faces.layer_hidden, "children": [], "skipped": []}
-        for child_kind, child_name, child_definition, local, inner in self.children(entities):
+        totals = self.totals
+        totals["faces"] += faces.count
+        totals["tris"] += faces.tris
+        totals["hidden_faces"] += faces.hidden
+        totals["layer_hidden_faces"] += faces.layer_hidden
+        for child_kind, child_name, child_definition, reason, local, inner in self.children(entities):
+            if reason is not None:
+                node["skipped"].append({"kind": child_kind, "name": child_name,
+                                        "definition": child_definition, "reason": reason})
+                totals["hidden_nodes" if reason == "hidden" else "layer_hidden_nodes"] += 1
+                continue
+            totals["groups" if child_kind == "group" else "instances"] += 1
             node["children"].append(
                 self.walk(child_kind, child_name, child_definition, inner, world @ local))
         return node
@@ -324,14 +383,79 @@ class _Walker:
 
 def walk_skp(path, *, dll_path=None) -> dict:
     """The model at `path` as the tree described in the module docstring:
-    `{"path", "api_version", "elapsed_s", "root"}`. The file is only read."""
+    `{"path", "api_version", "elapsed_s", "layers_bound", "totals", "root"}`. `totals` counts what
+    was walked (a component definition shared by several instances counts once for each) and
+    what was left out; `layers_bound` says whether this DLL has the tag calls, without which a
+    tag that is switched off cannot be told. The file is only read."""
     api = load_api(dll_path)
     path = Path(path)
     started = time.perf_counter()
     with api.session(), _open(api, path) as model:
         entities = _Ref()
         api.ok("SUModelGetEntities", model, byref(entities))
-        root = _Walker(api).walk("model", "", None, entities, np.eye(4))
+        walker = _Walker(api)
+        root = walker.walk("model", "", None, entities, np.eye(4))
         version = api.version()
     return {"path": str(path), "api_version": version,
-            "elapsed_s": round(time.perf_counter() - started, 3), "root": root}
+            "elapsed_s": round(time.perf_counter() - started, 3),
+            "layers_bound": walker.visibility.tags, "totals": walker.totals, "root": root}
+
+
+# -------------------------------------------------------------------- the command, in a child
+
+
+def _peak_memory_mb() -> tuple[float | None, float | None]:
+    """`(peak working set, peak commit)` of this process in MB; `(None, None)` off Windows."""
+    if os.name != "nt":
+        return None, None
+    from ctypes import wintypes
+
+    class Counters(Structure):
+        _fields_ = [("cb", wintypes.DWORD), ("PageFaultCount", wintypes.DWORD),
+                    ("PeakWorkingSetSize", c_size_t), ("WorkingSetSize", c_size_t),
+                    ("QuotaPeakPagedPoolUsage", c_size_t), ("QuotaPagedPoolUsage", c_size_t),
+                    ("QuotaPeakNonPagedPoolUsage", c_size_t), ("QuotaNonPagedPoolUsage", c_size_t),
+                    ("PagefileUsage", c_size_t), ("PeakPagefileUsage", c_size_t)]
+
+    kernel32, psapi = ctypes.WinDLL("kernel32"), ctypes.WinDLL("psapi")
+    kernel32.GetCurrentProcess.restype = wintypes.HANDLE
+    psapi.GetProcessMemoryInfo.argtypes = [wintypes.HANDLE, POINTER(Counters), wintypes.DWORD]
+    psapi.GetProcessMemoryInfo.restype = wintypes.BOOL
+    counters = Counters()
+    counters.cb = ctypes.sizeof(Counters)
+    if not psapi.GetProcessMemoryInfo(kernel32.GetCurrentProcess(), byref(counters), counters.cb):
+        return None, None
+    return (round(counters.PeakWorkingSetSize / 2 ** 20, 1),
+            round(counters.PeakPagefileUsage / 2 ** 20, 1))
+
+
+def main(argv: list[str] | None = None) -> int:
+    """`python -m engine.io.skp_reader <model.skp> --out <walk.json> [--dll <SketchUpAPI.dll>]`:
+    walk the model (`walk_skp`) and write the tree, plus this process's peak memory, as JSON.
+    This is how `engine.campus.skp_check` reads the 150 MB backup: in a child process that a
+    timeout can kill. Exit code 0, or 2 with the reason on stderr when the model cannot be read."""
+    parser = argparse.ArgumentParser(prog="python -m engine.io.skp_reader", description=main.__doc__)
+    parser.add_argument("skp", type=Path)
+    parser.add_argument("--out", type=Path, required=True)
+    parser.add_argument("--dll", type=Path, default=None)
+    args = parser.parse_args(argv)
+    try:
+        walk = walk_skp(args.skp, dll_path=args.dll)
+    except (SketchUpError, FileNotFoundError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+    walk["peak_working_set_mb"], walk["peak_commit_mb"] = _peak_memory_mb()
+    args.out.parent.mkdir(parents=True, exist_ok=True)
+    fd, tmp = tempfile.mkstemp(prefix=".walk-", suffix=".json.tmp", dir=args.out.parent)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as fh:
+            json.dump(walk, fh)
+        os.replace(tmp, args.out)
+    finally:
+        if os.path.exists(tmp):
+            os.unlink(tmp)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
