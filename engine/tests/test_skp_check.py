@@ -226,6 +226,12 @@ def test_the_tolerance_is_per_bound_and_inclusive_of_the_limit():
     [m] = compared([row("A_Floor", 1000.0, box(0, 0, 10, 100))],
                    [unit("A_Floor", 1000.0, box(0, 0, 10.19, 100))])["matches"]
     assert m["bbox_max_dev"] == pytest.approx(0.19)
+    [n] = compared([row("A_Floor", 1000.0, box(0, 0, 10, 100))],
+                   [unit("A_Floor", 1000.0, box(0, 0, 10.21, 100))])["mismatches"]
+    assert n["bbox_max_dev"] == pytest.approx(0.21)
+    [low] = compared([row("A_Floor", 1000.0, box(0, 0, 10, 100))],
+                     [unit("A_Floor", 1000.0, box(-0.3, 0, 10, 100))])["mismatches"]
+    assert low["bbox_dev"][0] == pytest.approx(-0.3) and "min x" in low["reasons"][0]
 
 
 def test_an_area_off_by_more_than_half_a_percent_is_a_mismatch_with_the_sign_and_the_numbers():
@@ -318,6 +324,10 @@ def test_twins_that_look_alike_cannot_be_told_apart_and_are_left_as_ambiguous():
     [amb] = result["ambiguities"]
     assert amb["resolved"] is False and amb["rows"] == [r["name"] for r in rows]
     assert "alike" in amb["reason"]
+    # what a person needs to see why: the files' own numbers beside the groups'
+    assert [(f["name"], f["tris"], f["area"]) for f in amb["files"]] == [
+        ("Sciene_A_Floor_plan_2_obj", 2, 5000.0), ("Sciene_A_Floor_plan_2_obj1", 2, 5010.0)]
+    assert [u["area"] for u in amb["units"]] == [5005.0, 5006.0]
 
 
 def test_a_pairing_that_is_nowhere_close_is_not_made():
@@ -462,6 +472,16 @@ def test_a_copy_whose_hash_is_not_the_frozen_one_is_refused_and_leaves_nothing(t
         skp_check.verified_copy(frozen(), backup, dest, **NO_SLEEP)
     assert sha(b"skp-bytes") in str(raised.value) and sha(b"changed since the freeze") in str(raised.value)
     assert list(dest.iterdir()) == []                              # not even a partial file
+
+
+def test_a_wrong_copy_left_in_the_folder_is_deleted_even_when_the_backup_fails_too(tmp_path):
+    backup = backup_folder(tmp_path, skp=b"changed since the freeze")
+    dest = tmp_path / "skp_copy"
+    dest.mkdir()
+    (dest / "M - CHECKPOINT-17.skp").write_bytes(b"an old copy")
+    with pytest.raises(skp_check.BackupMismatch):
+        skp_check.verified_copy(frozen(), backup, dest, **NO_SLEEP)
+    assert list(dest.iterdir()) == []                              # nothing unverified left to be opened
 
 
 def test_a_good_copy_is_reused_without_touching_the_backup(tmp_path):

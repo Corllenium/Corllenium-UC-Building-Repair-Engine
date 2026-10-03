@@ -278,8 +278,9 @@ def compare(rows: list[dict], units: list[dict], *, bbox_tol: float, area_tol: f
             continue
         counts = f"{_plural(len(funits), 'group')} of the backup are called like this and the export " \
                  f"has {_plural(len(frows), 'file')} for them"
-        ambiguity = {"family": family, "rows": [r["name"] for r in frows], "units": funits,
-                     "resolved": False, "reason": counts}
+        ambiguity = {"family": family, "rows": [r["name"] for r in frows],
+                     "files": [{k: r[k] for k in ("name", "file", "tris", "area", "bbox")} for r in frows],
+                     "units": funits, "resolved": False, "reason": counts}
         result["ambiguities"].append(ambiguity)
         if len(frows) != len(funits):
             continue
