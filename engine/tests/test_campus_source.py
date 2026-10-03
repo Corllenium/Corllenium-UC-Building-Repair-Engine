@@ -122,6 +122,15 @@ def test_texture_outside_the_export_is_rejected(tmp_path):
     assert not (tmp_path / "campus" / "source" / "outside").exists()
 
 
+@pytest.mark.parametrize("bad", ["C:foo.png", "C:../x.png", "/abs/x.png", "D:\\x\\y.png"])
+def test_drive_relative_and_absolute_texture_paths_are_rejected(tmp_path, bad):
+    exp, backup = _export(tmp_path, clean_mtl=f"newmtl m0\nmap_Kd {bad}\n")
+    res = _freeze(tmp_path, exp, backup)
+    data = json.loads(res.json_path.read_text())
+    assert data["rejected_textures"] == [bad.replace("\\", "/")] and data["textures"] == {}
+    assert sorted(p.name for p in (tmp_path / "campus" / "source").iterdir()) == [res.clean_obj.parent.name]
+
+
 def test_no_backup_files_raises(tmp_path):
     exp, backup = _export(tmp_path)
     for f in backup.iterdir():
@@ -153,6 +162,7 @@ def test_live_export_is_opened_only_through_the_snapshot_module(tmp_path, monkey
     exp, backup = _export(tmp_path)
     root = str(exp.resolve()).lower()
     offenders: list[str] = []
+    seen_from_snapshot: list[str] = []          # positive control: the audit must see real accesses
 
     def caller_module():
         for frame in inspect.stack()[2:]:
@@ -169,14 +179,19 @@ def test_live_export_is_opened_only_through_the_snapshot_module(tmp_path, monkey
                 p = None
             if isinstance(p, str) and os.path.abspath(p).lower().startswith(root):
                 mod = caller_module()
-                if mod != "io/snapshot.py":
+                if mod == "io/snapshot.py":
+                    seen_from_snapshot.append(fn.__name__)
+                else:
                     offenders.append(f"{fn.__name__} {p} from {mod}")
             return fn(path, *args, **kwargs)
-        wrapper.__name__ = fn.__name__
+        wrapper.__name__ = getattr(fn, "__name__", "fn")
         return wrapper
 
-    for name in ("stat", "scandir", "listdir"):
+    import io
+    for name in ("stat", "lstat", "scandir", "listdir", "open", "access"):
         monkeypatch.setattr(os, name, audited(getattr(os, name)))
     monkeypatch.setattr(builtins, "open", audited(builtins.open))
+    monkeypatch.setattr(io, "open", audited(io.open))       # Path.read_text/read_bytes/open go here
     _freeze(tmp_path, exp, backup)
     assert not offenders, offenders
+    assert len(seen_from_snapshot) > 10, seen_from_snapshot  # the audit really watched the copies

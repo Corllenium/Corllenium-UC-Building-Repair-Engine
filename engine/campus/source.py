@@ -47,7 +47,8 @@ class _Clean:
 def _texture_rel(map_kd: str) -> PurePosixPath | None:
     """The MTL-relative path of a texture, or None when it would leave the export folder."""
     rel = PurePosixPath(map_kd.replace("\\", "/"))
-    if rel.is_absolute() or ".." in rel.parts or (rel.parts and rel.parts[0].endswith(":")):
+    # any ":" means a drive (C:foo.png is drive-relative on Windows), never a file under the export
+    if rel.is_absolute() or ".." in rel.parts or any(":" in part for part in rel.parts):
         return None
     return rel
 
