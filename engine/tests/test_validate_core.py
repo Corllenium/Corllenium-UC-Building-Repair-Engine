@@ -926,6 +926,74 @@ def test_face_ids_must_be_integers_inside_the_mesh():
 
 
 # ---------------------------------------------------------------------------------------------
+# Item 5: two mutants the P0-14 tests let live
+# ---------------------------------------------------------------------------------------------
+
+def test_a_blocker_half_an_inch_before_a_camera_or_probe_still_blocks_the_segment():
+    floor = grid_slab(4, 4)                                   # 40 x 40 in at z = 0, faces +z: faces 0-31
+    ceiling = _lifted(grid_slab(4, 4), 10.0)                  # the same, 10 in above it: faces 32-63
+    m = _merged(floor, ceiling)
+    s = face_samples(m, area_per_sample=500.0)
+    caster = build_caster(m)
+    low, high = s.face < 32, s.face >= 32
+    below = np.array([[20.0, 20.0, 9.5]])                     # 0.5 in under it
+    for kind in ("camera", "probe"):
+        def look(spot):
+            if kind == "camera":
+                return visible_samples(m, s, _no_points(), spot, _no_points(), caster)
+            return visible_samples(m, s, _no_points(), _no_points(), spot, caster)
+        for gap in (0.5, 0.1):                                # the plate this far in front of the viewpoint
+            up = look(np.array([[20.0, 20.0, 10.0 + gap]]))
+            assert not up.seen[low].any(), f"the plate, {gap} in in front of the {kind}, hides the whole floor"
+            assert up.front[high].all(), "the plate itself is seen, from the front"
+        down = look(below)
+        assert down.seen[low].all() and down.front[low].all(), f"a {kind} just under the plate sees the floor"
+        assert down.seen[high].all() and not down.front[high].any(), "and the plate's back"
+        touching = look(np.array([[20.0, 20.0, 10.001]]))     # 0.003 in along the slantiest ray: inside EPS_ORIGIN
+        assert touching.seen[low].all(), f"a plate within 0.02 in of the {kind} does not hide what is behind it"
+
+
+def _ring_of_walls(radius, z0, z1, sides=64):
+    """A tower of `sides` wall panels round the z axis from z0 up to z1, wound OUTWARD and with no floor or roof.
+    From inside, every ray that meets a panel meets its BACK, and the panels are not ground, so a tile standing in
+    the tower is the only candidate probe there is. Standing at height h, the ray with elevation e meets the wall
+    at h + radius * tan(e): the top and bottom of the tower decide how many of the 26 vote rays meet a back."""
+    angle = 2.0 * np.pi * np.arange(sides) / sides
+    low = np.stack([radius * np.cos(angle), radius * np.sin(angle), np.full(sides, float(z0))], axis=1)
+    high = low.copy()
+    high[:, 2] = z1
+    faces = []
+    for k in range(sides):
+        b0, b1, t0, t1 = k, (k + 1) % sides, sides + k, sides + (k + 1) % sides
+        faces += [[b0, b1, t1], [b0, t1, t0]]
+    faces = np.array(faces, dtype=np.int64)
+    n = len(faces)
+    return dataclasses.replace(
+        cube(), positions=np.vstack([low, high]), uvs=np.zeros((1, 2)), face_v=faces,
+        face_vt=np.zeros((n, 3), dtype=np.int64), face_vn=np.full((n, 3), -1, dtype=np.int64),
+        face_material=np.zeros(n, dtype=np.int64), face_line=np.arange(1, n + 1, dtype=np.int64))
+
+
+def test_a_candidate_probe_with_14_to_20_back_votes_is_dropped():
+    tile = grid_slab(1, 1, cell=1.0)                          # 1 in tile: its two centroids are the candidates
+    eyes = np.array([[2.0 / 3.0, 1.0 / 3.0, 63.0], [1.0 / 3.0, 2.0 / 3.0, 63.0]])
+    # (how far above the eye the tower reaches, how far below it, the backs the 26 rays meet): the rays that
+    # point up and down meet the wall 19, 58, 98, 140, 184, 234, 289, 353, 432, 535 ... in away from the eye height
+    scenes = [(320.0, 250.0, 13), (400.0, 250.0, 14), (450.0, 400.0, 17), (600.0, 600.0, 20)]
+    for up, down, backs in scenes:
+        m = _merged(tile, _ring_of_walls(500.0, 63.0 - down, 63.0 + up))
+        votes = _back_rays(m, eyes)
+        assert (votes == backs).all(), f"premise: {votes}, wanted {backs}"
+        _, t = build_caster(m).first_hit(eyes - [0.0, 0.0, 62.5], np.tile([0.0, 0.0, 1.0], (2, 1)))
+        assert np.isinf(t).all(), "premise: nothing overhead, so the headroom rule lets the candidates through"
+        probes = interior_probes(m)
+        if backs <= 13:
+            assert probes.shape == (1, 3) and np.isclose(probes[0, 2], 63.0), "13 backs is exactly half: it stays"
+        else:
+            assert probes.shape == (0, 3), f"{backs} backs is a majority: the candidate must be dropped"
+
+
+# ---------------------------------------------------------------------------------------------
 # Item 6: the limits the `interior_probes` docstring names are the measured ones
 # ---------------------------------------------------------------------------------------------
 
