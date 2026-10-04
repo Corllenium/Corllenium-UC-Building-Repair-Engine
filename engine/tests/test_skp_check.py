@@ -181,9 +181,10 @@ def test_a_group_with_no_faces_makes_no_unit():
 # ------------------------------------------------------------------ comparing a file with a unit
 
 
-def row(name, area, bbox, tris=2):
+def row(name, area, bbox, tris=2, zero_area_tris=0):
     """One file of the export: what `export_stats` says about it."""
-    return {"name": name, "file": f"{name}.obj", "tris": tris, "area": float(area), "bbox": bbox}
+    return {"name": name, "file": f"{name}.obj", "tris": tris, "area": float(area), "bbox": bbox,
+            "zero_area_tris": zero_area_tris}
 
 
 def unit(key, area, bbox, path=None, faces=1):
@@ -206,7 +207,7 @@ def test_a_unit_that_agrees_with_its_file_is_a_match():
     assert (m["name"], m["paired_by"], m["reasons"]) == ("EDS_2nd_Floor_obj", "name", [])
     assert m["bbox_max_dev"] == pytest.approx(0.1)
     assert m["area_rel"] == pytest.approx(0.0004)
-    assert m["export"] == {"tris": 2, "area": 1000.0, "bbox": box(0, 0, 10, 100)}
+    assert m["export"] == {"tris": 2, "area": 1000.0, "bbox": box(0, 0, 10, 100), "zero_area_tris": 0}
     assert m["unit"]["path"] == "EDS_2nd_Floor_obj" and m["unit"]["area"] == 1000.4
     assert (result["mismatches"], result["ambiguities"], result["misses"], result["sdk_only"]) == (
         [], [], [], [])
@@ -272,7 +273,7 @@ def test_a_file_with_no_group_of_that_name_in_the_backup_is_a_miss():
     [miss] = result["misses"]
     assert miss["name"] == "Lost_Floor" and miss["file"] == "Lost_Floor.obj"
     assert miss["reason"] == "the backup has no group called Lost_Floor (nor one numbered like it)"
-    assert miss["export"]["area"] == 1000.0
+    assert miss["export"]["area"] == 1000.0 and miss["export"]["zero_area_tris"] == 0
     assert result["matches"] == result["mismatches"] == []
 
 
@@ -895,6 +896,24 @@ def test_what_the_sdk_left_out_as_hidden_is_counted_in_the_report(tmp_path):
     assert hidden["skipped"] == [
         {"path": "", "kind": "group", "name": "Old", "reason": "hidden"},
         {"path": "A Floor", "kind": "instance", "name": "Tree", "reason": "layer"}]
+
+
+def test_the_triangles_the_print_step_collapsed_are_reported_not_just_computed(tmp_path):
+    rows = [("A_Floor", 0, 0, 30, 10), ("B_Floor", 100, 0, 120, 10)]
+    walk = floor_walk(("A Floor", 5, 300.0, box(0, 0, 30, 10)), ("B Floor", 3, 200.0, box(100, 0, 120, 10)))
+    source, backup = freeze(tmp_path, rows)
+    obj = tmp_path / "snapshots" / "A_Floor" / "A_Floor.obj"
+    collapsed = "v 5 5 0\nv 6 5 0\nv 7 5 0\nf 5 6 7\n"         # a triangle on one line, as the print step makes
+    obj.write_text(obj.read_text(encoding="utf-8").replace("f 1 2 3\n", collapsed + "f 1 2 3\n"),
+                   encoding="utf-8")
+    report = skp_check.check_source(source, backup, tmp_path / "campus", walker=Walker(walk), interval_s=0,
+                                    sleep=lambda s: None)
+    assert report["export"] == {"files": 2, "tris": 5, "zero_area_tris": 1}
+    by_name = {m["name"]: m for m in report["matches"] + report["mismatches"]}
+    assert (by_name["A_Floor"]["export"]["zero_area_tris"], by_name["B_Floor"]["export"]["zero_area_tris"]) == (1, 0)
+    text = skp_check.render_markdown(report)
+    assert ("the export holds 5 triangles in 2 files; 1 of them has no area, the print step having "
+            "collapsed it to a line") in text
 
 
 def test_the_report_says_how_far_apart_the_paired_files_are(tmp_path):

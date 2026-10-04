@@ -197,7 +197,7 @@ def _entry(row: dict, unit: dict, paired_by: str, bbox_tol: float, area_tol: flo
                        f"{row['area']:,.1f}, {area_rel * 100:+.3f}% (tolerance {area_tol * 100:g}%)")
     return {"name": row["name"], "file": row["file"], "paired_by": paired_by, "candidates": candidates,
             "unit": {k: unit[k] for k in ("key", "path", "faces", "tris", "area", "bbox")},
-            "export": {k: row[k] for k in ("tris", "area", "bbox")},
+            "export": {k: row[k] for k in ("tris", "area", "bbox", "zero_area_tris")},
             "bbox_dev": dev, "bbox_max_dev": abs(dev[worst]), "area_rel": area_rel,
             "tris_diff": unit["tris"] - row["tris"],
             "severity": max(abs(dev[worst]) / bbox_tol, abs(area_rel) / area_tol),
@@ -311,7 +311,7 @@ def compare(rows: list[dict], units: list[dict], *, bbox_tol: float, area_tol: f
                 result["misses"].append({
                     "name": r["name"], "file": r["file"],
                     "reason": f"the backup has no group called {r['name']} (nor one numbered like it)",
-                    "export": {k: r[k] for k in ("tris", "area", "bbox")}})
+                    "export": {k: r[k] for k in ("tris", "area", "bbox", "zero_area_tris")}})
             continue
         if not frows:
             for u in funits:
@@ -580,6 +580,8 @@ def check_source(source_json, backup_dir, out_dir, *, name: str | None = None, s
                    "copy": str(copy)},
         "tolerance": {"bbox_in": tolerance, "area_fraction": area_tol, "print_step_in": step,
                       "max_abs_coordinate": max_abs, "sig_digits": sig_digits},
+        "export": {"files": len(rows), "tris": sum(r["tris"] for r in rows),
+                   "zero_area_tris": sum(r["zero_area_tris"] for r in rows)},
         "sdk": {"api_version": walk.get("api_version"), "elapsed_s": walk.get("elapsed_s"),
                 "peak_working_set_mb": walk.get("peak_working_set_mb"),
                 "peak_commit_mb": walk.get("peak_commit_mb"), "totals": walk.get("totals"),
@@ -650,6 +652,11 @@ def render_markdown(report: dict) -> str:
         f"{hidden['hidden_faces']} faces, and as on a tag that is off: {hidden['layer_hidden_nodes']} "
         f"and {hidden['layer_hidden_faces']}" + ("" if hidden["layers_bound"] else
                                                  " (this DLL cannot tell tags: not applied)"))
+    export = report["export"]
+    extra.append(
+        f"the export holds {export['tris']:,} triangles in {export['files']} files; "
+        f"{export['zero_area_tris']:,} of them {'has' if export['zero_area_tris'] == 1 else 'have'} no area, "
+        f"the print step having collapsed {'it' if export['zero_area_tris'] == 1 else 'them'} to a line")
     measured = report["measured"]
     if measured["paired"]:
         spread = measured["bbox_max_dev"]
