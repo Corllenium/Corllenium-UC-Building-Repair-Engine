@@ -322,3 +322,22 @@ def test_pairs_peak_stays_at_or_under_block_size():
     assert 0 < s["pairs_peak"] <= 500
 
 
+# ------------------------------------------------------------------------------- P1-S3b Item 2
+
+def test_reviewer_tie_repro_scene_equals_oracle():
+    """The reviewer's minimal 2-face tie scene (tie_repro.py): faces 1 and 28 of soup seed 34,
+    exactly depth_tol apart on a skew plane."""
+    P2 = np.array([[33.14082910962477, -9.341890741976815, 21.849326146774427],
+                   [29.766264566980414, -8.201513750739696, 23.73661374154753],
+                   [26.813520592166597, -5.242533557055613, 24.749401593264775],
+                   [31.92080977043708, -8.10422383536609, 22.18497185459921],
+                   [30.792490115655674, -3.134607530744976, 21.32195907660981],
+                   [26.816818606669013, -6.6412051150961116, 25.124716771534654]], dtype=np.float64)
+    F2 = np.array([[0, 2, 1], [3, 5, 4]], dtype=np.int64)
+    tol = 0.0625
+    old, new = _both(P2, F2, tol)
+    assert new == old
+    assert old["count"] == 0
+
+
+
