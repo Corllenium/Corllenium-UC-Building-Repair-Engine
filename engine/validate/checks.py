@@ -11,7 +11,9 @@ looks like, never a `usemtl` number. A face's look is `looks.key[mesh.materials[
 HOW A FLOOR IS JUDGED. The BEFORE is sampled (`sampling.face_samples`) and every sample is looked at
 from 128 directions, a ring of cameras and the eye-height probes (`visibility.visible_samples`). Each
 sample some viewpoint sees is then asked of AFTER from ONE viewpoint, the best conditioned (the one
-least edge-on to its face; one that sees its front, when any does):
+least edge-on to its face; one that sees its front, when any does). For the covers (check 1 `covered`,
+check 3) the test is also replayed from the best eye-height probe that sees the sample (AGENTS.md section 5), so
+a cover only a probe sees is not missed because an outside direction won (at most twice the cover casts):
 
 * check 1, textures there: AFTER shows, at that depth (within `max(2 print steps, 0.05 in)`), a
   surface with the same look key, the same UV (mod 1, within one texel of that texture), seen from its
