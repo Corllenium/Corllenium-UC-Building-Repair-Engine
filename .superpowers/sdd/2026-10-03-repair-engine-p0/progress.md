@@ -275,3 +275,7 @@ Spec: docs/superpowers/specs/2026-10-03-uc-repair-engine-design.md (2a748d4, app
   - Minors: the diagonal test has no T-vertex; chunk_pairs < 1 gives a cryptic error.
   - Notes queued; Hermes fix run launched.
   - Not on the census path: S1 itself is merged and correct.
+- P0-12 fix round (Hermes 51accbc merge + 8 commits to 955fb78, 3.06 USD): all 7 notes.
+  - Smoke "3 units (3 ok, 0 timeout, 0 error) ... 43.92 s wall (51.60 s unit sum)"; CHTM 5th E4 6,966 / E5 6,981 pairs by look.
+  - Census tests 13; engine 982 + 1 xfail; tools 121.
+  - Scoped re-review dispatched (hermes-reviewer, sonnet) on review-51accbc..955fb78.diff.
