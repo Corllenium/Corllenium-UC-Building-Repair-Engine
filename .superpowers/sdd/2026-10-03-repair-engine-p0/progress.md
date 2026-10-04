@@ -279,3 +279,7 @@ Spec: docs/superpowers/specs/2026-10-03-uc-repair-engine-design.md (2a748d4, app
   - Smoke "3 units (3 ok, 0 timeout, 0 error) ... 43.92 s wall (51.60 s unit sum)"; CHTM 5th E4 6,966 / E5 6,981 pairs by look.
   - Census tests 13; engine 982 + 1 xfail; tools 121.
   - Scoped re-review dispatched (hermes-reviewer, sonnet) on review-51accbc..955fb78.diff.
+- P0-12 re-review (hermes-reviewer, sonnet): CHANGES on note 1 only.
+  - Notes 2-7 and the merge are addressed: building_of on all 85 stems, ERROR/TIMEOUT rows and exit codes, the winprobe allow-list exact, atomic writes survive a kill, E4/E5 6,966/6,981.
+  - Left: _run_worker (census.py:313-325) falls back to the snapshot's materials.mtl and swallows errors, so a missing or empty --materials still reports ok.
+  - Notes queued; Hermes fix round 2 launched.
