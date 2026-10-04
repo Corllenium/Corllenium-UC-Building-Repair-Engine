@@ -691,6 +691,20 @@ def test_the_walk_runs_in_a_child_process_that_is_given_the_copy_and_an_output_p
     assert json.loads((tmp_path / "walk.json").read_text(encoding="utf-8")) == walk | {}
 
 
+def test_the_child_gets_absolute_paths_because_it_runs_in_the_checkout_not_where_the_caller_is(
+        tmp_path, monkeypatch):
+    """The child's working folder is the checkout the module came from; a relative path from a caller
+    elsewhere would mean one file to the caller and another to the child."""
+    monkeypatch.chdir(tmp_path)
+    code = ("import json, os, sys; skp, flag, out = sys.argv[1:4]; "
+            "assert os.path.isabs(skp) and os.path.isabs(out), sys.argv; "
+            "json.dump({'path': skp}, open(out, 'w'))")
+    walk = skp_check.run_walk(Path("m.skp"), Path("out") / "walk.json", argv=child(code),
+                              min_free_commit_mb=0)
+    assert Path(walk["path"]).resolve() == (tmp_path / "m.skp").resolve()
+    assert (tmp_path / "out" / "walk.json").is_file()                  # where the caller said, not in the checkout
+
+
 def test_a_child_that_fails_is_reported_with_what_it_said(tmp_path):
     code = "import sys; print('SketchUp could not open it', file=sys.stderr); sys.exit(2)"
     with pytest.raises(skp_check.WalkFailed, match=r"exit code 2.*SketchUp could not open it"):

@@ -477,7 +477,8 @@ def run_walk(skp, out_json, *, timeout_s: float = WALK_TIMEOUT_S, dll_path=None,
             f"only {free:,.0f} MB of commit memory are free, and the walk of the backup is not started "
             f"with less than {min_free_commit_mb:,.0f} MB (it peaks at about 2.5 GB): close something "
             "or wait, then run it again")
-    out_json = Path(out_json)
+    # absolute: the child runs in the checkout this module came from, not where the caller is
+    skp, out_json = Path(skp).resolve(), Path(out_json).resolve()
     out_json.parent.mkdir(parents=True, exist_ok=True)
     out_json.unlink(missing_ok=True)                    # a file left by an earlier run is not this one's
     command = [*(walk_argv() if argv is None else argv), str(skp), "--out", str(out_json)]
