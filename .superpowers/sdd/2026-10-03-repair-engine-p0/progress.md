@@ -195,3 +195,10 @@ Spec: docs/superpowers/specs/2026-10-03-uc-repair-engine-design.md (2a748d4, app
 - P0-11b review (hermes-reviewer, sonnet): PASS. compare() on the saved walk hashes identically on base and branch (65/20/0/0); split_path is a two-line adapter; the pin skips cleanly without the index. Merged into feat/repair-p0.
   - Parked Minors, for the end-of-P0 review: split_path is test-only code (drop it, use key(*reversed(p))); the pin covers this index, not the regexes (also assert AUTO/KEY pattern and flags equal); the module docstring and the definition wording miss "no more files than groups".
 - Ruling: P0-12 goes to Hermes now, Steps 1-4 plus a 3-unit smoke run into data/census_smoke/. Step 5 (all 85) is held for Claude until S1 and S3 merge -- the census real run must use the fast code, or the 92-142 k units time out -- costs a separate run step later.
+- P1-S1 review (hermes-reviewer, sonnet): PASS.
+  - Identical on 81 of 87 real units, 3,600 fuzz scenes, tol 0-10 in and degenerate tables.
+  - 142,234-tri unit: old 865 s, new 3.25 s (266x), 5.2 M pairs, 522 MB tracemalloc peak.
+  - Important follow-up: pair lists are unbounded Python lists (~37 B/pair).
+  - Minors: the report text ("bounded cell", "pure NumPy") is inaccurate; no docstring; a dead branch; 3-D diagonals cost (extent/cell)^3 lookups; t differs in the last bit (no decision flips in 210 M pairs).
+  - review --pass; merged into feat/repair-p0 (89098ee); 31 topo tests pass; full engine suite running on the integration branch.
+  - Ruling: merge now, with follow-up P1-S1b (memory bound + clean-ups) for Hermes -- real units peak at 522 MB, fine for the census at --jobs 4 -- costs a later small change.
