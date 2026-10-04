@@ -607,7 +607,7 @@ def double_layers(positions_c: np.ndarray, faces: np.ndarray, depth_tol: float,
     sz = tri[ids].max(axis=1) - tri[ids].min(axis=1)
     diag = np.linalg.norm(sz, axis=1)
     med = float(np.median(diag))
-    cell_size = max(med * 1.5, 2.0 * depth_tol, 1e-6)
+    cell_size = max(med * 1.0, 2.0 * depth_tol, 1e-6)
 
     c_lo = np.floor(lo[ids] / cell_size).astype(np.int64)
     c_hi = np.floor(hi[ids] / cell_size).astype(np.int64)
@@ -705,16 +705,29 @@ def double_layers(positions_c: np.ndarray, faces: np.ndarray, depth_tol: float,
     pts_i = np.stack([(tri_i_rel * e1[:, None, :]).sum(axis=-1), (tri_i_rel * e2[:, None, :]).sum(axis=-1)], axis=-1)
     pts_j = np.stack([(tri_j_rel * e1[:, None, :]).sum(axis=-1), (tri_j_rel * e2[:, None, :]).sum(axis=-1)], axis=-1)
 
-    polys_i = shapely.polygons(np.concatenate([pts_i, pts_i[:, :1]], axis=1))
-    polys_j = shapely.polygons(np.concatenate([pts_j, pts_j[:, :1]], axis=1))
+    # 2D bounding box intersection area upper-bound prefilter
+    inter_min = np.maximum(pts_i.min(axis=1), pts_j.min(axis=1))
+    inter_max = np.minimum(pts_i.max(axis=1), pts_j.max(axis=1))
+    inter_dim = np.maximum(inter_max - inter_min, 0.0)
+    box2d_ok = (inter_dim[:, 0] * inter_dim[:, 1]) > min_area
+    if not box2d_ok.any():
+        return empty
+
+    i_box2d = i_surv[box2d_ok]
+    j_box2d = j_surv[box2d_ok]
+    pts_i_sub = pts_i[box2d_ok]
+    pts_j_sub = pts_j[box2d_ok]
+
+    polys_i = shapely.polygons(np.concatenate([pts_i_sub, pts_i_sub[:, :1]], axis=1))
+    polys_j = shapely.polygons(np.concatenate([pts_j_sub, pts_j_sub[:, :1]], axis=1))
     shared = np.asarray(shapely.area(shapely.intersection(polys_i, polys_j)))
 
     keep = shared > min_area
     if not keep.any():
         return empty
 
-    i_keep = i_surv[keep]
-    j_keep = j_surv[keep]
+    i_keep = i_box2d[keep]
+    j_keep = j_box2d[keep]
     shared_keep = shared[keep]
     opp_keep = (normal[i_keep] * normal[j_keep]).sum(axis=1) < 0.0
 
@@ -729,14 +742,32 @@ def double_layers(positions_c: np.ndarray, faces: np.ndarray, depth_tol: float,
         return n, float(tri[f][0] @ n)
 
     planes: list[dict] = []
+    plane_n = np.zeros((max(len(pairs_final) // 4, 32), 3), dtype=np.float64)
+    plane_d = np.zeros(len(plane_n), dtype=np.float64)
+    num_p = 0
+
     for i, j, s_val, opposite in pairs_final:
         n, d = plane_of(i)
-        for p in planes:
-            if abs(float(p["_n"] @ n)) > PLANE_PARALLEL_DOT and abs(p["_d"] - d) <= depth_tol:
-                break
+        matched_idx = -1
+        if num_p > 0:
+            dots = np.abs(plane_n[:num_p] @ n) > PLANE_PARALLEL_DOT
+            d_ok = np.abs(plane_d[:num_p] - d) <= depth_tol
+            matches = dots & d_ok
+            if matches.any():
+                matched_idx = int(np.argmax(matches))
+
+        if matched_idx >= 0:
+            p = planes[matched_idx]
         else:
             p = {"_n": n, "_d": d, "_faces": set(), "_pairs": [], "_c": []}
             planes.append(p)
+            if num_p == len(plane_n):
+                plane_n = np.resize(plane_n, (num_p * 2, 3))
+                plane_d = np.resize(plane_d, num_p * 2)
+            plane_n[num_p] = n
+            plane_d[num_p] = d
+            num_p += 1
+
         p["_faces"].update((i, j))
         p["_pairs"].append((i, j, s_val, opposite))
         p["_c"].append((tri[i].mean(axis=0) + tri[j].mean(axis=0)) / 2.0)
@@ -764,11 +795,13 @@ def double_layers(positions_c: np.ndarray, faces: np.ndarray, depth_tol: float,
     for f, k in plane_index.items():
         plane_of_face[f] = k
     watched = np.array(sorted(partners), dtype=np.int64)
+    is_watched = np.zeros(len(faces), dtype=bool)
+    is_watched[watched] = True
 
     max_batch = 0
     for view in views:
         buf = ortho_first_hit(positions_c, faces, ids_all, view, positions_c, size, reusable)
-        mask = (buf.tri >= 0) & np.isin(buf.tri, watched)
+        mask = (buf.tri >= 0) & is_watched[np.maximum(buf.tri, 0)]
         if not mask.any():
             continue
         rows, cols = np.nonzero(mask)
