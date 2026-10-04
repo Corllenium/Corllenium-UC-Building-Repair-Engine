@@ -340,16 +340,18 @@ class _Witnesses:
     reach: np.ndarray
     is_dir: np.ndarray
 
+    def take(self, which) -> "_Witnesses":
+        """The witnesses of some of the samples (`which`: a mask or an index array)."""
+        return _Witnesses(self.col[which], self.need_front[which], self.toward[which], self.origin[which],
+                          self.dirn[which], self.reach[which], self.is_dir[which])
 
-def _witnesses(vs: VisibleSet, rows: np.ndarray, points: np.ndarray, normals: np.ndarray) -> _Witnesses:
-    """For each sample `rows` of the chunk `vs` was cast for: the best-conditioned viewpoint that sees it
-    (the largest |cos| between the line of sight and the face's normal, so the one least edge-on),
-    among those that see its FRONT when any does, else among those that see it at all."""
+
+def _scores(vs: VisibleSet, rows: np.ndarray, points: np.ndarray, normals: np.ndarray) -> np.ndarray:
+    """(len(rows), V) |cos| between each sample's normal and its line to every viewpoint: how square the view is."""
     p, n = points[rows], normals[rows]
-    seen, front = vs.seen[rows], vs.front[rows]
     n_dir = len(vs.dirs)
     viewpoints = np.vstack([vs.cams, vs.probes])
-    abs_cos = np.zeros(seen.shape)
+    abs_cos = np.zeros((len(rows), vs.seen.shape[1]))
     if n_dir:
         abs_cos[:, :n_dir] = np.abs(n @ (-vs.dirs).T)
     if len(viewpoints):
@@ -357,6 +359,26 @@ def _witnesses(vs: VisibleSet, rows: np.ndarray, points: np.ndarray, normals: np
         dist = np.linalg.norm(v, axis=2)
         with np.errstate(divide="ignore", invalid="ignore"):
             abs_cos[:, n_dir:] = np.abs(np.einsum("nk,nqk->nq", n, v)) / dist
+    return abs_cos
+
+
+def _witnesses(vs: VisibleSet, rows: np.ndarray, points: np.ndarray, normals: np.ndarray,
+               scores: np.ndarray | None = None, columns: np.ndarray | None = None):
+    """For each sample `rows` of the chunk `vs` was cast for: the best-conditioned viewpoint that sees it
+    (the largest |cos| between the line of sight and the face's normal, so the one least edge-on),
+    among those that see its FRONT when any does, else among those that see it at all. `columns`, a bool
+    mask over the viewpoints, limits who may speak (the probes, say). Returns `(witnesses, sel)`: the
+    witnesses of the samples `sel` (indices into `rows`) that an allowed viewpoint sees, and which they are."""
+    if scores is None:
+        scores = _scores(vs, rows, points, normals)
+    seen, front = vs.seen[rows], vs.front[rows]
+    if columns is not None:
+        seen, front = seen & columns, front & columns
+    sel = np.flatnonzero(seen.any(axis=1))
+    seen, front, abs_cos = seen[sel], front[sel], scores[sel]
+    p, n = points[rows][sel], normals[rows][sel]
+    n_dir = len(vs.dirs)
+    viewpoints = np.vstack([vs.cams, vs.probes])
     need_front = front.any(axis=1)
     score = np.where(need_front[:, None], np.where(front, abs_cos, -1.0), np.where(seen, abs_cos, -1.0))
     col = score.argmax(axis=1)
@@ -383,7 +405,7 @@ def _witnesses(vs: VisibleSet, rows: np.ndarray, points: np.ndarray, normals: np
         dirn[pi] = to / np.maximum(r, 1e-9)[:, None]
         toward[pi] = v / dist[:, None]
     return _Witnesses(col=col, need_front=need_front, toward=toward, origin=origin, dirn=dirn, reach=reach,
-                      is_dir=is_dir)
+                      is_dir=is_dir), sel
 
 
 class _Judge:
@@ -868,7 +890,8 @@ def validate(before: MeshData, after: MeshData, looks: Looks, *, errors=None, ta
 
     Both meshes are in the model's own coordinates; they are shifted into the Validator's frame here, by
     BEFORE's bounding-box centre for both. The viewpoints (`dirs`, `cams`, `probes`, `extra_dirs`) are
-    BEFORE's and are made once, here, unless given; the probes are never recomputed for AFTER.
+    BEFORE's and are made once, here, unless given (the cameras and probes a caller gives are positions in the
+    model's own coordinates, like the meshes; directions need no frame); the probes are never recomputed for AFTER.
     `errors` is the `(before, after)` pair of `find_errors` results for check 2, run here when None.
     `progress(done, total)` is called after each chunk of samples.
 
@@ -904,11 +927,14 @@ def validate(before: MeshData, after: MeshData, looks: Looks, *, errors=None, ta
 
     lo, hi = used_bbox(b)
     dirs = _points(outside_directions(settings.n_directions) if dirs is None else dirs)
-    cams = _points(pedestrian_ring((lo, hi), eye_z=lo[2] + settings.eye, n=settings.n_cameras,
-                                   margin=settings.camera_margin) if cams is None else cams)
+    # made here, they are already in the Validator's frame; given, they are positions in the model's own
+    # coordinates (like the meshes) and are shifted into it
+    cams = (_points(pedestrian_ring((lo, hi), eye_z=lo[2] + settings.eye, n=settings.n_cameras,
+                                    margin=settings.camera_margin)) if cams is None else _points(cams) - centre)
     if probes is None:
-        probes = interior_probes(b, eye=settings.eye, caster=caster_b) if b.n_faces else np.zeros((0, 3))
-    probes = _points(probes)
+        probes = _points(interior_probes(b, eye=settings.eye, caster=caster_b)) if b.n_faces else np.zeros((0, 3))
+    else:
+        probes = _points(probes) - centre
     extra_dirs = _points(outside_directions(settings.n_extra_directions) if extra_dirs is None else extra_dirs)
     nothing = np.zeros((0, 3))
 
@@ -944,13 +970,29 @@ def validate(before: MeshData, after: MeshData, looks: Looks, *, errors=None, ta
         rows = np.flatnonzero(vs.visible)
         if not len(rows):
             return
-        w = _witnesses(vs, rows, sub.points, normals_b[sub.face])
+        face_normal = normals_b[sub.face]
+        scores = _scores(vs, rows, sub.points, face_normal)
+        w, _ = _witnesses(vs, rows, sub.points, face_normal, scores)          # every row is seen by some viewpoint
         p, face = sub.points[rows], sub.face[rows]
         lb = look_b[face]
         g = idx[rows]
-        covered[g] = judge.covered(p, w)
+        cover, col = judge.covered(p, w), w.col.copy()
+        if len(vs.probes) and not is_extra:
+            # AGENTS.md section 5 asks for eye height: where a probe sees the sample, the cover test is replayed
+            # from the best probe too (at most twice the casts), so a cover only a probe sees is not missed
+            # because an outside direction won. The crop of such a site is drawn from that probe.
+            probes_only = np.zeros(vs.seen.shape[1], dtype=bool)
+            probes_only[len(vs.dirs) + len(vs.cams):] = True
+            w2, sel = _witnesses(vs, rows, sub.points, face_normal, scores, probes_only)
+            other = w2.col != w.col[sel]                                   # a probe that is not the witness already
+            if other.any():
+                w2, sel = w2.take(other), sel[other]
+                found = judge.covered(p[sel], w2) & ~cover[sel]
+                cover[sel[found]] = True
+                col[sel[found]] = w2.col[found]
+        covered[g] = cover
         present[g] = judge.present(p, w, lb, uv_at(b, face, sub.bary[rows]), tex_w[lb], tex_h[lb])
-        tested[g], extra[g], wit_col[g], wit_extra[g], toward_all[g] = True, is_extra, w.col, is_extra, w.toward
+        tested[g], extra[g], wit_col[g], wit_extra[g], toward_all[g] = True, is_extra, col, is_extra, w.toward
 
     chunk = max(1, int(settings.chunk))
     for start in range(0, n, chunk):

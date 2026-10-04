@@ -21,6 +21,7 @@ from engine.validate.checks import (Looks, LookTable, Settings, _barycentric, ch
                                     png_size, print_step, validate)
 from engine.validate.evidence import BACK_TINT, BACKGROUND, _basis, render_crop, write_evidence
 from engine.validate.sampling import face_normals, face_samples
+from engine.validate.viewpoints import outside_directions
 from engine.validate.visibility import build_caster
 
 
@@ -901,7 +902,10 @@ def test_a_new_face_over_a_visible_face_at_the_chtm_tolerance_and_beyond_it():
     before, after = _plated(0.19, y=24000.0)                       # print step 0.1 in: the tolerance is 0.2 in
     v = _check(before, after, _looks("m0", "m1"))
     assert v.report["depth_tolerance_in"] == pytest.approx(0.2)
-    assert v.report["verdict"] == "FAIL" and _checks(v)[1]["overlaid"] == 128
+    gone = _checks(v)[1]
+    # the depth tolerance is measured along the line of sight, so from the oblique line to a far probe 0.19 in of
+    # height is more than 0.2 in along it: those few samples are `covered`, the rest `overlaid`; all fail
+    assert v.report["verdict"] == "FAIL" and gone["overlaid"] + gone["covered"] == 128 and gone["overlaid"] >= 100
     before, after = _plated(0.3, y=24000.0)                        # further in front than that it COVERS
     textures, gone = _checks(_check(before, after, _looks("m0", "m1")))
     assert gone["covered"] == 128 and gone["overlaid"] == 0 and textures["reasons"]["covered"] == 128
@@ -1060,3 +1064,83 @@ def test_validate_command_compares_the_uv_of_a_material_missing_from_materials_j
     assert cli.main(_validate_args(before, before / "cube.obj", tmp_path / "materials.json", same)) == 0
     assert any("not in materials.json" in note for note in json.loads((same / "validation.json").read_text(
         encoding="utf-8"))["notes"])
+
+
+# ---------------------------------------------------------------------------------------------
+# Fix round 1, IMPORTANT: the cover test was replayed from the best viewpoint only. A cover that only an
+# eye-height probe sees was missed whenever an outside direction won (AGENTS.md section 5: eye height)
+# ---------------------------------------------------------------------------------------------
+
+def _vertical_panel(x, y0, y1, z0, z1):
+    """A rectangle in the plane x = `x` (two triangles), one material, no UVs."""
+    corners = np.array([[x, y0, z0], [x, y1, z0], [x, y1, z1], [x, y0, z1]], dtype=float)
+    faces = np.array([[0, 1, 2], [0, 2, 3]], dtype=np.int64)
+    return dataclasses.replace(
+        cube(), positions=corners, uvs=np.zeros((1, 2)), face_v=faces, face_vt=np.zeros((2, 3), dtype=np.int64),
+        face_vn=np.full((2, 3), -1, dtype=np.int64), face_material=np.zeros(2, dtype=np.int64),
+        face_line=np.arange(1, 3, dtype=np.int64), materials=["m0"], name="panel")
+
+
+def test_a_cover_only_an_eye_height_probe_sees_is_found_and_the_crop_is_drawn_from_the_probe(tmp_path):
+    floor = grid_slab(10, 10, cell=10.0)                               # 100 x 100 in at z = 0 facing +z: 800 samples
+    after = _with_plate(floor, _vertical_panel(30.0, 0.0, 40.0, 10.0, 60.0))
+    probe = np.array([[20.0, 20.0, 63.0]])                             # the only probe, 63 in above (20, 20)
+    none = np.zeros((0, 3))
+    sky = np.array([[0.0, 0.0, -1.0]])                                 # one look direction: straight down, square to the floor
+
+    # from outside nothing is wrong: straight down on the floor the panel (a sheet at x = 30) covers nothing
+    assert _check(floor, after, _looks("m0"), dirs=sky, cams=none, probes=none).report["verdict"] == "PASS"
+
+    v = _check(floor, after, _looks("m0"), dirs=sky, cams=none, probes=probe)
+    textures, gone = _checks(v)
+    assert v.report["verdict"] == "FAIL" and gone["status"] == "FAIL" and textures["status"] == "FAIL"
+    # exactly the samples whose line to the probe crosses the panel, worked out here from scratch
+    s = face_samples(floor)
+    o = s.points + [0.0, 0.0, 0.02]                                    # BEFORE's ray starts 0.02 in above the face
+    lam = (30.0 - o[:, 0]) / (probe[0, 0] - o[:, 0])                   # where along the segment it meets x = 30
+    y, z = o[:, 1] + lam * (probe[0, 1] - o[:, 1]), o[:, 2] + lam * (probe[0, 2] - o[:, 2])
+    hidden = (o[:, 0] > 30.0) & (lam > 0.0) & (lam < 1.0) & (y >= 0.0) & (y <= 40.0) & (z >= 10.0) & (z <= 60.0)
+    assert 0 < hidden.sum() < len(s)
+    assert gone["covered"] == int(hidden.sum()) and textures["reasons"]["covered"] == int(hidden.sum())
+    # the crop of that site is drawn from the probe that saw the cover (column 1: after the one direction)
+    assert set(v.wit_col[np.concatenate(v.members)].tolist()) == {1}
+    write_evidence(v, tmp_path)
+    before, after_img = _crops(tmp_path, v.report["sites"][0])
+    assert (before != after_img).any(), "the panel shows in AFTER, in front of the floor"
+
+
+def test_the_cover_is_replayed_from_the_probe_only_where_it_is_not_already_the_best_viewpoint(monkeypatch):
+    from engine.validate import checks
+    calls = []
+    original = checks._Judge.covered
+    monkeypatch.setattr(checks._Judge, "covered", lambda self, p, w: (calls.append(len(p)), original(self, p, w))[1])
+    none, sky = np.zeros((0, 3)), outside_directions(128)
+
+    tile = grid_slab(1, 1, cell=10.0)                      # 8 samples, the probe right over the middle: the best of all
+    _check(tile, tile, _looks("m0"), dirs=sky, cams=none, probes=np.array([[5.0, 5.0, 63.0]]))
+    assert sum(calls) == 8, "one replay each: the probe is the witness already"
+
+    calls.clear()
+    floor = grid_slab(10, 10, cell=10.0)                   # most samples have a direction straight above as the best
+    _check(floor, floor, _looks("m0"), dirs=sky, cams=none, probes=np.array([[20.0, 20.0, 63.0]]))
+    assert 800 < sum(calls) <= 1600, "at most twice the casts"
+    calls.clear()
+    _check(floor, floor, _looks("m0"), dirs=sky, cams=none, probes=none)
+    assert sum(calls) == 800, "no probe, no second replay"
+
+
+def test_given_cameras_and_probes_are_positions_in_the_models_own_coordinates():
+    """Meshes come in the model's coordinates and are shifted into the Validator's frame inside `validate`; the cameras
+    and probes a caller hands it are positions too, in the SAME coordinates (directions need no frame)."""
+    none = np.zeros((0, 3))
+    sky = np.array([[0.0, 0.0, -1.0]])
+    near = grid_slab(10, 10, cell=10.0)
+    far = _moved(near, [24000.0, 24000.0, 0.0])
+    panel = _vertical_panel(30.0, 0.0, 40.0, 10.0, 60.0)
+    counts = []
+    for shift in ([0.0, 0.0, 0.0], [24000.0, 24000.0, 0.0]):
+        before = _moved(near, shift)
+        after = _with_plate(before, _moved(panel, shift))
+        v = _check(before, after, _looks("m0"), dirs=sky, cams=none, probes=np.array([[20.0, 20.0, 63.0]]) + shift)
+        counts.append(v.report["checks"]["nothing_deleted"]["covered"])
+    assert counts[0] == counts[1] > 0, counts
