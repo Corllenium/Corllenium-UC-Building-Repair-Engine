@@ -126,6 +126,16 @@ def test_ctypes_is_imported_only_by_the_sketchup_binding_modules():
     assert users == ["io/skp_reader.py", "io/skp_writer.py", "tests/skp_scene.py"]
 
 
+def test_the_writers_docstring_names_every_module_that_binds_a_save():
+    """The writer's docstring said it was the only module in `engine/` that binds a call that saves, while
+    the test helper that builds the models the reader's tests walk binds `SUModelSaveToFile` too (P0-11)."""
+    engine_root = Path(skp_writer.__file__).resolve().parents[1]
+    binders = sorted(p.relative_to(engine_root).as_posix() for p in engine_root.rglob("*.py")
+                     if re.search(r"""["']SU\w*Save\w*["']""", p.read_text(encoding="utf-8")))
+    assert binders == ["io/skp_writer.py", "tests/skp_scene.py"]      # the reader binds none
+    assert "tests/skp_scene.py" in skp_writer.__doc__
+
+
 # --------------------------------------------------------------------------------- faces
 
 

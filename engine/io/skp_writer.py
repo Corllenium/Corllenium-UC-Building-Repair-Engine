@@ -1,6 +1,7 @@
 """The fixed mesh as a SketchUp model (`.skp`), written and read back through SketchUp's own C API
-(`SketchUpAPI.dll`, bound with ctypes -- the only module in `engine/` that binds a call that
-saves; `engine/io/skp_reader.py` binds the read-only calls on their own).
+(`SketchUpAPI.dll`, bound with ctypes -- the only module outside the tests that binds a call that
+saves; `tests/skp_scene.py`, which builds the models the reader's tests walk, binds
+`SUModelSaveToFile` as well; `engine/io/skp_reader.py` binds the read-only calls on their own).
 
 WHY. After every fix run the owner opens the latest SketchUp file of each model in SketchUp 2026 to
 check it. An OBJ cannot carry a hole and SketchUp's OBJ importer shows every triangle edge, so the
