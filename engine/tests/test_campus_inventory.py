@@ -287,3 +287,67 @@ def test_every_group_lands_in_exactly_one_unit_or_proposal():
     cov = inv.build_inventory(groups)["coverage"]
     assert cov["groups"] == 5 and cov["whole"] == 4 and cov["split"] == 1
     assert cov["tris"] == cov["unit_tris"] == sum(g.tris for g in groups) and cov["ok"] is True
+
+
+# ------------------------------------------------------------------------------------------ files and the CLI
+
+def write_obj(path, *pieces):
+    verts, faces = [], []
+    for v, f in pieces:
+        base = len(verts)
+        verts += list(v)
+        faces += [tuple(base + i + 1 for i in tri) for tri in f]
+    lines = ["mtllib x.mtl", "o piece"] + [f"v {x:.2f} {y:.2f} {z:.2f}" for x, y, z in verts] + ["usemtl m0"]
+    lines += [f"f {a} {b} {c}" for a, b, c in faces]
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def tiny_campus(tmp_path, tris_in_index=None):
+    """Three CHTM floors named 2nd, 3rd, 4th (so L01 is missing) as split snapshots plus the three JSON inputs."""
+    import json
+    snaps, split = [], {}
+    for k, (name, z) in enumerate((("CHTM_2nd_floor", 0), ("CHTM_3rd_floor", 200), ("CHTM_4th_floor", 400))):
+        d = tmp_path / "snaps" / f"s{k}"
+        d.mkdir(parents=True)
+        write_obj(d / f"{name}.obj", slab(z))
+        snaps.append({"file": f"{name}.obj", "group": name, "tris": 12, "dir": str(d), "sha256": f"sha{k}"})
+        split[name] = {"tris": (tris_in_index or {}).get(name, 12), "paths": [k, k + 10]}
+    src = tmp_path / "source.json"
+    src.write_text(json.dumps({"created": "t", "snapshots": snaps, "clean_obj": {"sha256": "abc"}}), encoding="utf-8")
+    idx = tmp_path / "group_index.json"
+    idx.write_text(json.dumps({"paths": [], "faces": [], "split": split}), encoding="utf-8")
+    mat = tmp_path / "materials.json"
+    mat.write_text(json.dumps({"materials": {"m0": {"look": "look0"}}, "looks": {"look0": ["m0"]}, "stats": {}}),
+                   encoding="utf-8")
+    return src, idx, mat
+
+
+def test_the_cli_writes_the_draft_json_and_the_owner_readable_table(tmp_path, capsys):
+    import json
+    from engine.cli import main
+    src, idx, mat = tiny_campus(tmp_path)
+    out, md = tmp_path / "out" / "campus_map.draft.json", tmp_path / "rec" / "campus-map-draft.md"
+    assert main(["campus-inventory", "--source", str(src), "--index", str(idx), "--materials", str(mat),
+                 "--out", str(out), "--md", str(md)]) == 0
+    data = json.loads(out.read_text(encoding="utf-8"))
+    assert [u["unit"] for u in data["units"]] == ["CHTM-L02", "CHTM-L03", "CHTM-L04"]
+    u = data["units"][1]
+    assert u["members"] == [{"group": "CHTM_3rd_floor", "paths": [1, 11], "sha256": "sha1", "file": "CHTM_3rd_floor.obj",
+                             "tris": 12, "faces": "all"}]
+    assert (u["tris"], u["type"], u["level"], u["confirmed_by_owner"]) == (12, "floor", "L03", False)
+    assert u["base"] == pytest.approx(200, abs=0.5) and u["slab"]["top"] == pytest.approx(210, abs=0.5)
+    assert data["coverage"]["ok"] is True and data["source"]["splits"] == 3 and data["source"]["clean_obj_sha256"] == "abc"
+    text = md.read_text(encoding="utf-8")
+    assert "# Campus map draft" in text and "CHTM-L03" in text and "confirmed_by_owner" in text
+    assert "| CHTM | L01 | nothing: no group, no band |" in text             # the missing level is in the flag tables
+    printed = capsys.readouterr().out
+    assert "3 splits" in printed and "missing 1" in printed
+
+
+def test_the_cli_refuses_a_snapshot_whose_triangle_count_differs_from_the_index(tmp_path):
+    from engine.cli import main
+    src, idx, mat = tiny_campus(tmp_path, tris_in_index={"CHTM_3rd_floor": 99})
+    with pytest.raises(ValueError, match="CHTM_3rd_floor"):
+        main(["campus-inventory", "--source", str(src), "--index", str(idx), "--materials", str(mat),
+              "--out", str(tmp_path / "o.json"), "--md", str(tmp_path / "o.md")])
+    assert not (tmp_path / "o.json").exists()

@@ -32,6 +32,7 @@ confined to `engine/rays/` -- this module never imports them directly, only thro
 from __future__ import annotations
 
 import argparse
+import collections
 import json
 import shutil
 import sys
@@ -878,6 +879,23 @@ def build_parser() -> argparse.ArgumentParser:
     mat_p.add_argument("--tex-dir", type=Path, default=None,
                        help="optional explicit path to texture directory")
 
+    inv_p = sub.add_parser("campus-inventory",
+                           help="buildings, level tables, floor/element units, duplicates, misnamed and missing "
+                                "levels: the draft campus map for the owner to confirm")
+    inv_p.add_argument("--source", type=Path, default=Path("data/campus/source.json"),
+                       help="the source.json file from campus-freeze")
+    inv_p.add_argument("--index", type=Path, default=Path("data/campus/group_index.json"),
+                       help="the group_index.json file from campus-index")
+    inv_p.add_argument("--materials", type=Path, default=Path("data/campus/materials.json"),
+                       help="the materials.json file from campus-materials")
+    inv_p.add_argument("--out", type=Path, default=Path("data/campus/campus_map.draft.json"),
+                       help="the draft campus map (JSON)")
+    inv_p.add_argument("--md", type=Path, default=Path("docs/superpowers/records/campus/campus-map-draft.md"),
+                       help="the owner-readable table")
+    inv_p.add_argument("--literal", action="store_true",
+                       help="use the brief's constants as written (24 in slab window, nearest base, 20 in merge, "
+                            "print-step duplicates) instead of the measured ones")
+
     return parser
 
 
@@ -932,6 +950,25 @@ def main(argv: list[str] | None = None) -> int:
         for key, mats in sorted_looks[:10]:
             print(f"  {key} ({len(mats)} materials): {mats}")
         print(f"wrote materials to {out_path}")
+        return 0
+    elif args.command == "campus-inventory":
+        from engine.campus.inventory import BRIEF_PARAMS, cmd_campus_inventory
+        res = cmd_campus_inventory(args.source, args.index, args.materials, args.out, args.md,
+                                   BRIEF_PARAMS if args.literal else None)
+        by_type = collections.Counter(u["type"] for u in res["units"])
+        by_kind = collections.Counter(f["kind"] for f in res["flags"])
+        cov = res["coverage"]
+        print(f"campus inventory: {cov['groups']} splits, {cov['tris']:,} triangles -> {len(res['units'])} units "
+              f"(floor {by_type['floor']}, element {by_type['element']}, site {by_type['site']}), "
+              f"{len(res['proposals'])} split proposals")
+        for name, b in res["buildings"].items():
+            a = b["anchor"]
+            print(f"  {name}: {len(b['groups'])} groups, {len(b['levels'])} levels"
+                  + (f", numbered from L{1 + a['offset']:02d}" if a["offset"] else ""))
+        print("  flags: " + ", ".join(f"{k} {by_kind[k]}" for k in ("duplicate", "misnamed", "missing", "footprint", "split")))
+        print(f"  coverage: {cov['whole']} whole + {cov['split']} split = {cov['whole'] + cov['split']} of {cov['groups']} "
+              f"splits, {cov['unit_tris']:,} of {cov['tris']:,} triangles in units ({'ok' if cov['ok'] else 'NOT ok'})")
+        print(f"wrote {args.out} and {args.md}")
         return 0
     return 1
 

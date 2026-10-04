@@ -7,11 +7,16 @@ from __future__ import annotations
 import collections
 import hashlib
 import itertools
+import json
+import os
 import re
+import tempfile
 from dataclasses import asdict, dataclass
+from pathlib import Path
 
 import numpy as np
 
+from engine.io.obj_reader import read_obj
 from engine.model import MeshData
 
 # The brief's prefix table, verbatim. A name belongs to the building whose prefix it starts with, followed
@@ -630,3 +635,198 @@ def _attach_flags(units: list[dict], flags: list[dict]) -> None:
         f["units"] = sorted({uid for n in names for uid in units_of.get(n, [])})
         for uid in f["units"]:
             by_unit[uid]["flags"].append({"kind": f["kind"], "text": f["text"]})
+
+
+# ------------------------------------------------------------------------------------------ the owner's table
+
+def _fmt(x, digits: int = 1) -> str:
+    return "" if x is None else f"{x:,.{digits}f}"
+
+
+def _table(header: list[str], rows: list[list]) -> list[str]:
+    return (["| " + " | ".join(header) + " |", "|" + "|".join("---" for _ in header) + "|"]
+            + ["| " + " | ".join(str(c) for c in row) + " |" for row in rows])
+
+
+def _members_text(unit: dict) -> str:
+    return ", ".join(f"{m['group']} ({m['tris']:,}" + ("" if m["faces"] == "all" else f", {m['faces']}") + ")"
+                     for m in unit["members"])
+
+
+def render_markdown(inv: dict) -> str:
+    """The owner-readable draft: summary, level tables, units, splits, flags, and how it was made."""
+    src, cov, params = inv.get("source", {}), inv["coverage"], inv["params"]
+    units, flags = inv["units"], inv["flags"]
+    by_kind = {k: [f for f in flags if f["kind"] == k]
+               for k in ("duplicate", "misnamed", "missing", "footprint", "split")}
+    out = ["# Campus map draft (P0-10): buildings, levels and units for the owner to confirm", "",
+           f"Built by `python -m engine.cli campus-inventory` from the frozen CHECKPOINT-17 split snapshots "
+           f"({cov['groups']} files, {cov['tris']:,} triangles; clean OBJ sha256 "
+           f"`{str(src.get('clean_obj_sha256'))[:16]}`). **Nothing here is confirmed:** every unit has "
+           "`confirmed_by_owner: false`. The machine-readable twin is `data/campus/campus_map.draft.json` "
+           "(git-ignored; the command regenerates it). Heights are inches, Z up.", "",
+           "## What you confirm", "",
+           "1. Each building's **level table** (base, top, slab) in the tables below.",
+           "2. Each **flag**: which group of a duplicate pair stays, whether a misnamed group is renamed or its "
+           "level is accepted, whether a missing level is real, which building a group of another footprint "
+           "belongs to, and each proposed split.", "",
+           f"Coverage: every one of the {cov['groups']} splits is in exactly one unit ({cov['whole']}) or exactly "
+           f"one split proposal ({cov['split']}); the units hold {cov['unit_tris']:,} of {cov['tris']:,} triangles "
+           f"({'ok' if cov['ok'] else 'NOT ok'}).", "", "## Summary", ""]
+    rows = []
+    for name, b in inv["buildings"].items():
+        bu = [u for u in units if u["building"] == name]
+        nflags = sum(1 for f in flags if f.get("building") == name)
+        rows.append([name, len(b["groups"]), f"{sum(u['tris'] for u in bu):,}", len(b["levels"]),
+                     sum(1 for u in bu if u["type"] == "floor"), sum(1 for u in bu if u["type"] == "element"),
+                     nflags])
+    site = [u for u in units if u["type"] == "site"]
+    rows.append([SITE, len(site), f"{sum(u['tris'] for u in site):,}", "", "", "", ""])
+    out += _table(["Building", "Groups", "Triangles", "Levels", "Floor units", "Element units", "Flags"], rows)
+    out += ["", "Flags in total: " + ", ".join(f"{k} {len(v)}" for k, v in by_kind.items()) + ".", "",
+            "## Levels and floor units", ""]
+    for name, b in inv["buildings"].items():
+        a = b["anchor"]
+        if a["offset"]:
+            note = (f"Level numbers start at L{1 + a['offset']:02d}: {a['agree']} of {a['votes']} named floor "
+                    f"groups agree on an offset of +{a['offset']}.")
+        else:
+            note = (f"Level numbers count from the lowest band ({a['agree']} of {a['votes']} named floor groups "
+                    "agree).")
+        out += [f"### {name}", "", f"{len(b['groups'])} groups. {note}", ""]
+        floors = {u["level"]: u for u in units if u["building"] == name and u["type"] == "floor"}
+        out += _table(["Level", "Unit", "Base", "Top", "Slab bottom - top", "Triangles", "Groups (triangles)"],
+                      [[lv["level"], floors[lv["level"]]["unit"], _fmt(lv["base"]), _fmt(lv["top"]),
+                        f"{_fmt(lv['slab']['bottom'])} - {_fmt(lv['slab']['top'])}" if lv["slab"] else "no slab found",
+                        f"{lv['tris']:,}", _members_text(floors[lv["level"]])] for lv in b["levels"]])
+        out.append("")
+    out += ["## Element and site units", ""]
+    out += _table(["Unit", "Type", "Triangles", "Lowest z", "Highest z", "Spans", "Group"],
+                  [[u["unit"], u["type"], f"{u['tris']:,}", _fmt(u["base"]), _fmt(u["top"]),
+                    ", ".join(u.get("spans", [])), u["members"][0]["group"]]
+                   for u in units if u["type"] in ("element", "site")])
+    out += ["", "## Proposed splits (by face centre; no triangle is cut)", ""]
+    out += _table(["Group", "Level", "Triangles", "Share", "Faces with z from", "to (exclusive)"],
+                  [[pr["group"] if i == 0 else "", row["level"], f"{row['tris']:,}", f"{row['share'] * 100:.0f} %",
+                    _fmt(row["z_range"][0]) or "-inf", _fmt(row["z_range"][1]) or "+inf"]
+                   for pr in inv["proposals"] for i, row in enumerate(pr["parts"])])
+    out += ["", "## Flags", "",
+            f"### Duplicates (Jaccard similarity of the face fingerprints, flagged from {params['dup_flag']:g})", ""]
+    out += _table(["Building", "Group A", "Group B", "Similarity", "Exact at print step", "Faces A / B", "Shared",
+                   "Of the smaller", "Kind"],
+                  [[f["building"], f["groups"][0], f["groups"][1], f"{f['percent']:.1f} %",
+                    f"{f['exact_jaccard'] * 100:.1f} %", f"{f['faces'][0]:,} / {f['faces'][1]:,}", f"{f['shared']:,}",
+                    f"{f['of_smaller'] * 100:.1f} %", f["match"]] for f in by_kind["duplicate"]])
+    out += ["", "### Misnamed (the floor number in the name against the level its faces sit in)", ""]
+    out += _table(["Group", "Name says", "Sits in", "Level z (base - top)", "Building"],
+                  [[f["group"], f["named"], f["assigned"], f"{_fmt(f['band'][0])} - {_fmt(f['band'][1])}",
+                    f["building"]] for f in by_kind["misnamed"]])
+    out += ["", "### Missing levels (a floor number below the highest named one that no group is named for)", ""]
+    out += _table(["Building", "Level", "Held by"],
+                  [[f["building"], f["level"], ", ".join(f["occupied_by"]) or "nothing: no group, no band"]
+                   for f in by_kind["missing"]])
+    out += ["", "### Footprints (a group whose box lies mostly in another building)", ""]
+    out += _table(["Group", "Named for", "In its own building", "In", "That building's footprint"],
+                  [[f["group"], f["building"], f"{f['fraction_own'] * 100:.0f} %", f["other"],
+                    f"{f['fraction_other'] * 100:.0f} %"] for f in by_kind["footprint"]])
+    out += ["", "## How the draft was made", "",
+            "1. **Level table**, per building: area histograms of up-facing (`n_z > 0.9`) and down-facing "
+            f"(`n_z < -0.9`) triangles over z in {params['bin_in']:g} in bins. A peak is a local maximum of at "
+            f"least {params['peak_frac'] * 100:g} % of the largest; peaks within {params['merge_in']:g} in merge, "
+            "the strongest staying. A slab is an up-facing peak (its top) with a down-facing peak (its bottom, "
+            "the level's `base`) below it.",
+            f"2. **Bands and units**: a band runs from one base to the next; a face is in a band by its centre z. "
+            f"A group's *parts* are the fewest bands holding {params['part_coverage'] * 100:g} % of its "
+            "triangles. One part is a floor unit; several parts make an element unit when the name holds stair, "
+            "bridge, roof, zone, shell, ground, pathway or road, and a split proposal otherwise. A band no floor "
+            "group occupies is dropped. Groups without a building prefix are site units.",
+            "3. **Numbering**: from the lowest band (L01), unless a strict majority of the named floor groups "
+            "agree on a positive offset (Science A: floors 2 to 6), which then starts the numbers and leaves the "
+            "lower levels missing.",
+            "4. **Flags**: duplicates by fingerprint (a face is its three vertices sorted, its winding and its "
+            "look key, so a back-to-back pair never matches); misnamed by the number in the name against the "
+            "level; missing by the floor numbers the names skip; footprints by the XY boxes.", "",
+            "Constants where CHECKPOINT-17 showed the brief's value cannot work (measured on the frozen data):", ""]
+    out += _table(["Constant", "Brief", "Used", "Measured reason"], [
+        ["slab bottom window", f"{BRIEF_PARAMS.slab_window_in:g} in", f"{params['slab_window_in']:g} in",
+         "slabs are 19.7 in (half a block) or 39.4 in (a block) thick"],
+        ["slab bottom pick", "nearest down peak", f"{params['base_pick']} down peak in the window",
+         "stepped slabs have a second underside about 30 in above the real bottom (BRS 5th, EDS 3rd)"],
+        ["levels closer than", f"{BRIEF_PARAMS.min_storey_in:g} in (peak merge only)", f"{params['min_storey_in']:g} in",
+         "terraces and thin layers repeat every 39 in; the shortest storey measured is 157 in"],
+        ["duplicate vertex identity", "the print step", f"print step and {params['match_tol_in']:g} in",
+         "the obj1 copies sit 0.03 in (Science A) to 0.4 in (BRS 4th, 5th) off their originals, so nothing "
+         "coincides at the print step"],
+    ])
+    brief = inv.get("brief_levels", {})
+    if brief:
+        out += ["", "Levels per building with the brief's constants (what the draft would otherwise have): "
+                + ", ".join(f"{b} {n}" for b, n in brief.items()) + "."]
+    return "\n".join(out) + "\n"
+
+
+# ------------------------------------------------------------------------------------------ the command
+
+def _json_default(o):
+    if isinstance(o, np.generic):
+        return o.item()
+    raise TypeError(f"{type(o).__name__} is not JSON serialisable")
+
+
+def _write_atomic(path: Path, text: str) -> None:
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd, tmp = tempfile.mkstemp(prefix=".inventory-", suffix=".tmp", dir=path.parent)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as fh:
+            fh.write(text)
+        os.replace(tmp, path)
+    finally:
+        if os.path.exists(tmp):
+            os.unlink(tmp)
+
+
+def load_groups(source: dict, index: dict, materials: dict) -> list[GroupData]:
+    """Read every split snapshot and check it against source.json and the group index."""
+    split = index["split"]
+    names = [s["group"] for s in source["snapshots"]]
+    if set(names) != set(split):
+        raise ValueError("source.json and group_index.json disagree on the splits: "
+                         f"{sorted(set(names) ^ set(split))[:5]}")
+    looks = {name: m["look"] for name, m in materials["materials"].items()}
+    groups = []
+    for s in source["snapshots"]:
+        mesh = read_obj(Path(s["dir"]) / s["file"])
+        want = split[s["group"]]["tris"]
+        if not (mesh.n_faces == s["tris"] == want):
+            raise ValueError(f"{s['group']}: the snapshot has {mesh.n_faces} triangles, source.json says "
+                             f"{s['tris']}, group_index.json says {want}")
+        groups.append(load_group(s["group"], mesh, looks, split[s["group"]]["paths"], s["sha256"], s["file"]))
+    return groups
+
+
+def levels_with(groups: list[GroupData], params: InventoryParams) -> dict[str, int]:
+    """How many levels each building gets with `params` (shows what the brief's constants would give)."""
+    by_building: dict[str, list[GroupData]] = {}
+    for g in groups:
+        by_building.setdefault(g.building, []).append(g)
+    return {b: len(plan_building(b, gs, params).bands) for b, gs in sorted(by_building.items()) if b != SITE}
+
+
+def cmd_campus_inventory(source_json, index_json, materials_json, out_json, out_md,
+                         params: InventoryParams | None = None) -> dict:
+    """Build the draft campus map from the frozen snapshots and write the JSON and the owner's table."""
+    source = json.loads(Path(source_json).read_text(encoding="utf-8"))
+    index = json.loads(Path(index_json).read_text(encoding="utf-8"))
+    materials = json.loads(Path(materials_json).read_text(encoding="utf-8"))
+    groups = load_groups(source, index, materials)
+    result = build_inventory(groups, params)
+    result["source"] = {"source_json": str(source_json), "frozen": source.get("created"),
+                        "clean_obj_sha256": (source.get("clean_obj") or {}).get("sha256"),
+                        "splits": len(groups), "tris": sum(g.tris for g in groups)}
+    result["brief_levels"] = levels_with(groups, BRIEF_PARAMS)
+    if not result["coverage"]["ok"]:
+        raise RuntimeError(f"coverage check failed: {result['coverage']}")
+    _write_atomic(Path(out_json), json.dumps(result, indent=1, default=_json_default) + "\n")
+    _write_atomic(Path(out_md), render_markdown(result))
+    return result
