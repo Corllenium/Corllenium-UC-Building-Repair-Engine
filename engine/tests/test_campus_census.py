@@ -338,3 +338,52 @@ def test_census_wall_seconds_and_atomic_writes(tmp_path: Path, capsys):
     assert "wall_seconds" in data["totals"]
     assert isinstance(data["totals"]["wall_seconds"], (int, float))
 
+
+def test_census_worker_unit_with_mtl_missing_materials_map_fails(tmp_path: Path):
+    """A unit folder that HAS a materials.mtl, run with a missing map -> status 'error' and exit 1."""
+    from engine.cli import main
+    from engine.io.obj_writer import write_obj
+    from engine.tests.fixtures.build import two_sided_wall
+
+    snap = tmp_path / "unit_with_mtl"
+    snap.mkdir()
+    write_obj(two_sided_wall(), snap / "CHTM_unit.obj")
+    (snap / "materials.mtl").write_text(
+        "newmtl concrete\nKd 0.5 0.5 0.5\n\nnewmtl prismarine\nKd 0.2 0.8 0.6\n",
+        encoding="utf-8",
+    )
+
+    out_json = tmp_path / "out_missing.json"
+    missing_map = tmp_path / "nonexistent_materials.json"
+
+    ret = main(["census", str(snap), "--out", str(out_json), "--jobs", "1", "--materials", str(missing_map)])
+    assert ret == 1
+    assert out_json.is_file()
+    data = json.loads(out_json.read_text(encoding="utf-8"))
+    assert data["rows"][0]["status"] == "error"
+
+
+def test_census_worker_unit_with_mtl_empty_materials_map_fails(tmp_path: Path):
+    """A unit folder that HAS a materials.mtl, run with an empty map -> status 'error' and exit 1."""
+    from engine.cli import main
+    from engine.io.obj_writer import write_obj
+    from engine.tests.fixtures.build import two_sided_wall
+
+    snap = tmp_path / "unit_with_mtl"
+    snap.mkdir()
+    write_obj(two_sided_wall(), snap / "CHTM_unit.obj")
+    (snap / "materials.mtl").write_text(
+        "newmtl concrete\nKd 0.5 0.5 0.5\n\nnewmtl prismarine\nKd 0.2 0.8 0.6\n",
+        encoding="utf-8",
+    )
+
+    empty_map = tmp_path / "empty_materials.json"
+    empty_map.write_text(json.dumps({"materials": {}}), encoding="utf-8")
+    out_json = tmp_path / "out_empty.json"
+
+    ret = main(["census", str(snap), "--out", str(out_json), "--jobs", "1", "--materials", str(empty_map)])
+    assert ret == 1
+    assert out_json.is_file()
+    data = json.loads(out_json.read_text(encoding="utf-8"))
+    assert data["rows"][0]["status"] == "error"
+

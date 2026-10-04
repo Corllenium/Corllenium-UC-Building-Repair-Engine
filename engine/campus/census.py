@@ -109,6 +109,8 @@ def flicker_split(
 
     if not isinstance(materials_map, dict):
         raise ValueError("Materials map is not a dictionary")
+    if not materials_map:
+        raise ValueError("Materials map is empty")
 
     same_opp = 0
     same_same = 0
@@ -300,31 +302,7 @@ def _run_worker(snap_dir: Path, out_res: Path, out_err: Path, materials: Path | 
     out_err.parent.mkdir(parents=True, exist_ok=True)
     out_err.write_text(json.dumps(errors), encoding="utf-8")
 
-    # Resolve materials map, optionally augmented by snapshot MTL if present
-    mat_map: dict[str, Any] | None = None
-    mat_path = Path(materials) if materials is not None else DEFAULT_MATERIALS_PATH
-    if mat_path.is_file():
-        data = json.loads(mat_path.read_text(encoding="utf-8"))
-        mat_map = dict(data.get("materials", data))
-    elif not mat_path.is_absolute() and (Path("D:/PROJECTS/UC MODEL FIXER") / mat_path).is_file():
-        data = json.loads((Path("D:/PROJECTS/UC MODEL FIXER") / mat_path).read_text(encoding="utf-8"))
-        mat_map = dict(data.get("materials", data))
-
-    local_mtl = snap_dir / "materials.mtl"
-    if local_mtl.is_file():
-        from engine.campus.materials import build_materials
-        local_tex = snap_dir / "tex"
-        try:
-            local_res = build_materials(local_mtl, local_tex)
-            if mat_map is None:
-                mat_map = {}
-            for k, v in local_res["materials"].items():
-                if k not in mat_map:
-                    mat_map[k] = v
-        except Exception:
-            pass
-
-    split_res = flicker_split(mesh, errors.get("flicker_pairs", []), materials=mat_map if mat_map is not None else materials)
+    split_res = flicker_split(mesh, errors.get("flicker_pairs", []), materials=materials)
     plan = compute_fix_plan(errors["counts"], split_res, mesh.n_faces)
 
     peak_mb = get_process_peak_memory_mb()
