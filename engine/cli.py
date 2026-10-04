@@ -900,6 +900,15 @@ def build_parser() -> argparse.ArgumentParser:
                                   "(default 3500; the walk peaks at about 2.5 GB)")
     skp_check_p.add_argument("--dll", type=Path, default=None, help="SketchUpAPI.dll, if not the default")
 
+    census_p = sub.add_parser("census", help="run find_errors census over units with timings, peak memory and fix plan")
+    census_p.add_argument("units", nargs="*", default=None, help="snapshot directories (default: all snapshots in source.json)")
+    census_p.add_argument("--out", type=Path, default=Path("data/campus/census.json"), help="output census JSON path")
+    census_p.add_argument("--errors-dir", type=Path, default=None, help="output directory for per-unit error JSONs")
+    census_p.add_argument("--md", type=Path, default=None, help="output path for markdown census table")
+    census_p.add_argument("--jobs", type=int, default=4, help="number of parallel worker processes")
+    census_p.add_argument("--timeout", type=float, default=1800.0, help="timeout per unit in seconds")
+    census_p.add_argument("--materials", type=Path, default=Path("D:/PROJECTS/UC MODEL FIXER/data/campus/materials.json"), help="path to materials.json")
+
     inv_p = sub.add_parser("campus-inventory",
                            help="buildings, level tables, floor/element units, duplicates, misnamed and missing "
                                 "levels: the draft campus map for the owner to confirm")
@@ -991,6 +1000,18 @@ def main(argv: list[str] | None = None) -> int:
         print(f"checked {c['files']} files against {report['source']['backup']}: {c['matches']} match, "
               f"{c['mismatches']} mismatch, {c['ambiguous_files']} ambiguous, {c['misses']} miss "
               f"-> {args.out / 'skp_check.json'}")
+        return 0
+    elif args.command == "census":
+        from engine.campus.census import census
+        units = [Path(u) for u in args.units] if args.units else None
+        res = census(units=units, out_json=args.out, jobs=args.jobs, timeout_s=args.timeout,
+                     errors_dir=args.errors_dir, out_md=args.md, materials_path=args.materials)
+        totals = res["totals"]
+        wall_sec = totals.get("wall_seconds", totals["seconds"])
+        print(f"census completed: {totals['units']} units ({totals['ok']} ok, {totals['timeout']} timeout, {totals['error']} error), "
+              f"{totals['triangles']:,} triangles in {wall_sec:.2f} s wall ({totals['seconds']:.2f} s unit sum) -> {args.out}")
+        if totals.get("error", 0) > 0:
+            return 1
         return 0
     elif args.command == "campus-inventory":
         from engine.campus.inventory import BRIEF_PARAMS, cmd_campus_inventory
