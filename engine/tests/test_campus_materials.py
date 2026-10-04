@@ -194,20 +194,45 @@ def test_same_name_textures_two_folders(tmp_path):
     assert res["stats"]["images"] == 2
 
 
+def test_missing_exact_path_is_missing_texture(tmp_path):
+    # folder_b/tile.png is absent and folder_a/tile.png exists.
+    # A material whose map_Kd is folder_b/tile.png gets missing_texture: true,
+    # is not given folder_a's bytes, and does not share folder_a's look.
+    dir_a = tmp_path / "folder_a"
+    dir_a.mkdir()
+    (dir_a / "tile.png").write_bytes(b"content_A")
+    # folder_b/tile.png is absent
+
+    mtl = tmp_path / "missing_exact.mtl"
+    mtl.write_text(
+        "newmtl mat_a\nKd 1 1 1\nmap_Kd folder_a/tile.png\n\nnewmtl mat_b\nKd 1 1 1\nmap_Kd folder_b/tile.png\n",
+        encoding="utf-8",
+    )
+    res = build_materials(mtl, dir_a)
+    mat_a = res["materials"]["mat_a"]
+    mat_b = res["materials"]["mat_b"]
+    assert mat_b["missing_texture"] is True
+    assert mat_b["tex_sha256"] is None
+    assert mat_b["look"] != mat_a["look"]
+    assert mat_b["look"] == look_key("missing:folder_b/tile.png", (1.0, 1.0, 1.0), 1.0)
+
 
 def test_reject_invalid_texture_paths(tmp_path):
     # Reject absolute, drive-letter (any ":") and ".." map_Kd paths
-    escape_file = tmp_path.parent / "escape.png"
+    # Put the MTL in a subfolder so the ".." case stays inside tmp_path
+    sub = tmp_path / "sub"
+    sub.mkdir()
+    escape_file = tmp_path / "escape.png"
     escape_file.write_bytes(b"escaped")
 
-    mtl = tmp_path / "invalid_paths.mtl"
+    mtl = sub / "invalid_paths.mtl"
     mtl.write_text(
         "newmtl mat_drive\nKd 1 1 1\nmap_Kd C:foo.png\n\n"
         "newmtl mat_abs\nKd 1 1 1\nmap_Kd /root/foo.png\n\n"
         "newmtl mat_dotdot\nKd 1 1 1\nmap_Kd ../escape.png\n",
         encoding="utf-8",
     )
-    res = build_materials(mtl, tmp_path)
+    res = build_materials(mtl, sub)
     for name in ["mat_drive", "mat_abs", "mat_dotdot"]:
         m = res["materials"][name]
         assert m["missing_texture"] is True
@@ -234,27 +259,61 @@ def test_two_different_byte_textures_same_kd(tmp_path):
 
 
 def test_cli_fabricated_source_json(tmp_path, monkeypatch):
-    # a --source run on a fabricated source.json; relative --out stays relative to cwd
+    # a --source run on a fabricated source.json; relative --out stays relative to cwd.
+    # Runs from a cwd different from source.json's folder, with decoy SRC-TEX elsewhere,
+    # asserting that the sibling of the MTL is the one used.
+    import hashlib
     from engine.cli import main
-    tex_dir = tmp_path / "SRC-TEX"
-    tex_dir.mkdir(parents=True)
-    (tex_dir / "tile.png").write_bytes(b"fake_tile_data")
-    mtl = tmp_path / "clean.mtl"
-    mtl.write_text("newmtl mat1\nKd 1 1 1\nmap_Kd SRC-TEX/tile.png\n", encoding="utf-8")
 
-    source_json = tmp_path / "source.json"
+    models_dir = tmp_path / "models"
+    sibling_tex = models_dir / "SRC-TEX"
+    sibling_tex.mkdir(parents=True)
+    real_bytes = b"real_sibling_tile_data"
+    (sibling_tex / "tile.png").write_bytes(real_bytes)
+    mtl = models_dir / "clean.mtl"
+    mtl.write_text(
+        "newmtl mat1\nKd 1 1 1\nmap_Kd tile.png\n\n"
+        "newmtl mat2\nKd 1 1 1\nmap_Kd SRC-TEX/tile.png\n",
+        encoding="utf-8",
+    )
+
+    source_dir = tmp_path / "source_dir"
+    source_dir.mkdir(parents=True)
+    source_json = source_dir / "source.json"
     source_json.write_text(
         json.dumps({"clean_mtl": {"path": str(mtl)}}),
         encoding="utf-8",
     )
-    monkeypatch.chdir(tmp_path)
+    # Decoy SRC-TEX next to source.json
+    decoy_source_tex = source_dir / "SRC-TEX"
+    decoy_source_tex.mkdir(parents=True)
+    (decoy_source_tex / "tile.png").write_bytes(b"decoy_source_tile_data")
+
+    # Run from a different cwd (work_dir != source_dir != models_dir)
+    work_dir = tmp_path / "work"
+    work_dir.mkdir(parents=True)
+    # Decoy SRC-TEX in work_dir
+    decoy_work_tex = work_dir / "SRC-TEX"
+    decoy_work_tex.mkdir(parents=True)
+    (decoy_work_tex / "tile.png").write_bytes(b"decoy_work_tile_data")
+
+    monkeypatch.chdir(work_dir)
     ret = main(["campus-materials", "--source", str(source_json), "--out", "relative_out.json"])
     assert ret == 0
-    rel_out = tmp_path / "relative_out.json"
+
+    rel_out = work_dir / "relative_out.json"
     assert rel_out.is_file()
+    assert not (source_dir / "relative_out.json").exists()
+    assert not (models_dir / "relative_out.json").exists()
+
     data = json.loads(rel_out.read_text(encoding="utf-8"))
-    assert data["stats"]["materials"] == 1
+    assert data["stats"]["materials"] == 2
     assert data["stats"]["images"] == 1
+    real_sha = hashlib.sha256(real_bytes).hexdigest()
+    assert data["materials"]["mat1"]["tex_sha256"] == real_sha
+    assert data["materials"]["mat2"]["tex_sha256"] == real_sha
+    assert data["materials"]["mat1"]["missing_texture"] is False
+    assert data["materials"]["mat2"]["missing_texture"] is False
 
 
 def test_cli_largest_look_group_printed_first(tmp_path, capsys):

@@ -59,8 +59,7 @@ def look_key(tex_sha256: str | None, kd: Any, d: Any) -> str:
 def _find_texture_file(rel: PurePosixPath, mtl_path: Path, tex_dir: Path) -> Path | None:
     """Find texture file matching rel path.
 
-    Resolves exact MTL-relative path first, then tex_dir relative path,
-    and only as a last resort falls back to basename lookup.
+    Resolves exact MTL-relative path first, then tex_dir relative path.
     """
     # 1. Resolve exact MTL-relative posix path FIRST
     mtl_rel = mtl_path.parent / rel
@@ -71,14 +70,6 @@ def _find_texture_file(rel: PurePosixPath, mtl_path: Path, tex_dir: Path) -> Pat
     tex_rel = tex_dir / rel
     if tex_rel.is_file():
         return tex_rel
-
-    # 3. Basename only as a last resort fallback
-    tex_base = tex_dir / rel.name
-    if tex_base.is_file():
-        return tex_base
-    mtl_base = mtl_path.parent / rel.name
-    if mtl_base.is_file():
-        return mtl_base
 
     return None
 
