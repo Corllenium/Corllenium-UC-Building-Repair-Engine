@@ -421,41 +421,58 @@ def census(
     mat_arg = Path(materials_path).resolve() if materials_path is not None else None
 
     # Process units in parallel using ThreadPoolExecutor
+    import threading
+    from concurrent.futures import as_completed
+
+    t_start = time.perf_counter()
     rows: list[dict] = []
-    with ThreadPoolExecutor(max_workers=max(1, jobs)) as ex:
-        futures = [
-            ex.submit(_process_one_unit, p, errors_dir, timeout_s, mat_arg)
-            for p in unit_paths
-        ]
-        for f in futures:
-            rows.append(f.result())
-
-    # Build totals
     kinds = ["flicker_diff", "flicker_same", "reversed", "hidden", "loose", "open_edges", "cracks"]
-    ok_rows = [r for r in rows if r.get("status") == "ok"]
-    status_counts = collections.Counter(r.get("status", "unknown") for r in rows)
-    totals = {
-        "units": len(rows),
-        "ok": status_counts.get("ok", 0),
-        "timeout": status_counts.get("timeout", 0),
-        "error": status_counts.get("error", 0),
-        "triangles": sum(r.get("triangles", 0) for r in ok_rows),
-        "counts": {k: sum(r.get("counts", {}).get(k, 0) for r in ok_rows) for k in kinds},
-        "seconds": round(sum(r.get("seconds", 0.0) for r in ok_rows), 2),
-    }
+    write_lock = threading.Lock()
 
-    units_dict = {r["unit"]: r for r in rows if "unit" in r}
-    result_data = {
-        "units": units_dict,
-        "rows": rows,
-        "totals": totals,
-    }
+    def _save_atomic(current_rows: list[dict], wall_sec: float) -> dict:
+        sorted_rows = sorted(current_rows, key=lambda x: (x.get("building", ""), x.get("unit", "")))
+        ok_r = [r for r in sorted_rows if r.get("status") == "ok"]
+        st_counts = collections.Counter(r.get("status", "unknown") for r in sorted_rows)
+        curr_totals = {
+            "units": len(sorted_rows),
+            "ok": st_counts.get("ok", 0),
+            "timeout": st_counts.get("timeout", 0),
+            "error": st_counts.get("error", 0),
+            "triangles": sum(r.get("triangles", 0) for r in ok_r),
+            "counts": {k: sum(r.get("counts", {}).get(k, 0) for r in ok_r) for k in kinds},
+            "seconds": round(sum(r.get("seconds", 0.0) for r in ok_r), 2),
+            "wall_seconds": round(wall_sec, 2),
+        }
+        units_d = {r["unit"]: r for r in sorted_rows if "unit" in r}
+        res_data = {
+            "units": units_d,
+            "rows": sorted_rows,
+            "totals": curr_totals,
+        }
+        tmp_p = out_json.with_name(f".{out_json.name}.tmp")
+        tmp_p.write_text(json.dumps(res_data, indent=2), encoding="utf-8")
+        os.replace(tmp_p, out_json)
+        return res_data
 
     out_json.parent.mkdir(parents=True, exist_ok=True)
-    out_json.write_text(json.dumps(result_data, indent=2), encoding="utf-8")
+
+    with ThreadPoolExecutor(max_workers=max(1, jobs)) as ex:
+        future_map = {
+            ex.submit(_process_one_unit, p, errors_dir, timeout_s, mat_arg): p
+            for p in unit_paths
+        }
+        for f in as_completed(future_map):
+            res_unit = f.result()
+            with write_lock:
+                rows.append(res_unit)
+                _save_atomic(rows, time.perf_counter() - t_start)
+
+    wall_seconds = time.perf_counter() - t_start
+    result_data = _save_atomic(rows, wall_seconds)
+    totals = result_data["totals"]
 
     out_md.parent.mkdir(parents=True, exist_ok=True)
-    out_md.write_text(format_census_md(rows, totals), encoding="utf-8")
+    out_md.write_text(format_census_md(result_data["rows"], totals), encoding="utf-8")
 
     return result_data
 
@@ -494,8 +511,9 @@ def main(argv: list[str] | None = None) -> int:
         materials_path=args.materials,
     )
     totals = res["totals"]
+    wall_sec = totals.get("wall_seconds", totals["seconds"])
     print(f"census completed: {totals['units']} units ({totals['ok']} ok, {totals['timeout']} timeout, {totals['error']} error), "
-          f"{totals['triangles']} triangles, {totals['seconds']} s -> {args.out}")
+          f"{totals['triangles']:,} triangles in {wall_sec:.2f} s wall ({totals['seconds']:.2f} s unit sum) -> {args.out}")
     if totals.get("error", 0) > 0:
         return 1
     return 0

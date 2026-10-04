@@ -309,3 +309,32 @@ def test_cli_census_error_exit_code(tmp_path: Path):
     ret = main(["census", str(snap), "--out", str(out_json), "--jobs", "1"])
     assert ret != 0
 
+
+def test_census_wall_seconds_and_atomic_writes(tmp_path: Path, capsys):
+    from engine.cli import main
+    from engine.io.obj_writer import write_obj
+    from engine.tests.fixtures.build import two_sided_wall
+
+    mat_file = tmp_path / "materials.json"
+    mat_file.write_text(json.dumps({
+        "materials": {
+            "concrete": {"look": "l1"},
+            "prismarine": {"look": "l2"},
+        }
+    }), encoding="utf-8")
+
+    snap = tmp_path / "unit_smoke"
+    snap.mkdir()
+    write_obj(two_sided_wall(), snap / "CHTM_smoke.obj")
+
+    out_json = tmp_path / "out_smoke.json"
+    ret = main(["census", str(snap), "--out", str(out_json), "--jobs", "1", "--materials", str(mat_file)])
+    assert ret == 0
+    captured = capsys.readouterr().out
+    assert "wall" in captured
+    assert "unit sum" in captured
+
+    data = json.loads(out_json.read_text(encoding="utf-8"))
+    assert "wall_seconds" in data["totals"]
+    assert isinstance(data["totals"]["wall_seconds"], (int, float))
+

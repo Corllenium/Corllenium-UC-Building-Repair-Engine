@@ -1007,8 +1007,9 @@ def main(argv: list[str] | None = None) -> int:
         res = census(units=units, out_json=args.out, jobs=args.jobs, timeout_s=args.timeout,
                      errors_dir=args.errors_dir, out_md=args.md, materials_path=args.materials)
         totals = res["totals"]
+        wall_sec = totals.get("wall_seconds", totals["seconds"])
         print(f"census completed: {totals['units']} units ({totals['ok']} ok, {totals['timeout']} timeout, {totals['error']} error), "
-              f"{totals['triangles']} triangles, {totals['seconds']} s -> {args.out}")
+              f"{totals['triangles']:,} triangles in {wall_sec:.2f} s wall ({totals['seconds']:.2f} s unit sum) -> {args.out}")
         if totals.get("error", 0) > 0:
             return 1
         return 0
