@@ -314,7 +314,7 @@ def test_a_material_unknown_to_materials_json_is_listed_and_still_compares_by_it
     m = cube(10.0)
     v = _check(m, m, Looks(key={}))
     assert v.report["verdict"] == "PASS"
-    assert v.report["materials"] == {"unknown_before": ["m0"], "unknown_after": ["m0"]}
+    assert v.report["materials"]["unknown_before"] == ["m0"] and v.report["materials"]["unknown_after"] == ["m0"]
     other = _check(m, dataclasses.replace(m, materials=["m9"]), Looks(key={}))
     assert other.report["verdict"] == "FAIL" and _checks(other)[0]["reasons"]["look"] == 48
 
@@ -736,7 +736,7 @@ def test_validate_writes_validation_json_and_evidence_and_exits_2_on_a_failure(t
     assert data["viewpoints"]["directions"] == 128 and data["timings_s"]["total"] > 0
     if os.name == "nt":
         assert data["peak_working_set_mb"] > 10.0
-    assert data["materials"] == {"unknown_before": [], "unknown_after": []}
+    assert data["materials"] == {"unknown_before": [], "unknown_after": [], "no_texel": []}
 
 
 def test_validate_exits_0_on_a_pass_and_writes_no_evidence(tmp_path, capsys):
@@ -987,3 +987,76 @@ def test_the_face_grid_offers_every_face_that_passes_within_reach_of_a_point_exa
     assert wanted and wanted <= offered, "every face whose box, grown by the reach, holds the point is offered"
     assert len(offered) < len(points) * len(face_v) / 4, "and the grid really narrows it down"
     assert len(_FaceGrid(positions, face_v, np.zeros(0, dtype=np.int64), reach).lookup(points)[0]) == 0
+
+
+# ---------------------------------------------------------------------------------------------
+# Fix round 1, IMPORTANT: a material materials.json does not know used to get no texel size, so its UV was
+# silently never compared (sidewalk A's only material is such a one)
+# ---------------------------------------------------------------------------------------------
+
+def _unknown_material_snapshot(tmp_path, with_texture=True):
+    """A snapshot folder whose MTL has three materials materials.json does not list: one with a 32 x 16 texture, one flat,
+    and one whose texture file is not there; and a materials.json that lists a single other material."""
+    from engine.io.mtl import parse_mtl
+    snap = tmp_path / "snap"
+    (snap / "tex").mkdir(parents=True)
+    if with_texture:
+        _png(snap / "tex" / "walk.png", 32, 16, (100, 150, 200))
+    (snap / "materials.mtl").write_text(
+        "newmtl Sidewalk_x\nKd 0.5 1 1\nmap_Kd tex/walk.png\n\nnewmtl Plain_y\nKd 0.2 0.4 0.6\n\n"
+        "newmtl Ghost_z\nKd 1 1 1\nmap_Kd tex/not_there.png\n", encoding="utf-8")
+    materials = _materials_json(tmp_path, ["known"])
+    return parse_mtl(snap / "materials.mtl"), snap, materials
+
+
+def test_a_material_materials_json_does_not_know_gets_its_texture_size_and_colour_from_the_snapshot(tmp_path):
+    mtl, snap, materials = _unknown_material_snapshot(tmp_path)
+    looks = load_looks(materials, [(mtl, snap)])
+    assert looks.key == {"known": "look-known"}, "materials.json's own entries, and only those"
+    assert looks.key_of("Sidewalk_x") == "unknown:Sidewalk_x"
+    assert looks.texel == {"unknown:Sidewalk_x": (32, 16)}, "read from the snapshot's own PNG header"
+    assert looks.colour["unknown:Sidewalk_x"] == (50, 150, 200), "the texture's mean (100, 150, 200) times Kd (0.5, 1, 1)"
+    assert looks.colour["unknown:Plain_y"] == (51, 102, 153), "flat: its Kd"
+    assert "unknown:Plain_y" in looks.flat and "unknown:Ghost_z" not in looks.flat, "a texture that is missing is not flat"
+
+
+def test_the_uv_of_a_material_unknown_to_materials_json_is_compared(tmp_path):
+    mtl, snap, materials = _unknown_material_snapshot(tmp_path)
+    looks = load_looks(materials, [(mtl, snap)])
+    m = dataclasses.replace(cube(10.0), materials=["Sidewalk_x"])
+    assert _check(m, m, looks).report["verdict"] == "PASS"
+    v = _check(m, _with_shifted_uv(m, 2, 0.5), looks)
+    textures = v.report["checks"]["textures"]
+    assert textures["status"] == "FAIL" and textures["reasons"]["uv"] == 4, "it used to PASS: no texel size, no UV test"
+    assert v.report["materials"]["no_texel"] == [], "nothing is left unchecked"
+    assert any("not in materials.json" in note and "Sidewalk_x" in note for note in v.report["notes"]), v.report["notes"]
+
+
+def test_a_look_with_no_texture_size_is_listed_in_the_notes_and_never_skipped_silently():
+    m = _with_material(_two_looks(cube(10.0)), [2, 3], 1)            # the top is m1, the rest m0
+    looks = Looks(key={"m0": "A", "m1": "B"}, flat=frozenset({"B"}))   # no texel size for either; B is flat by design
+    v = _check(m, _with_shifted_uv(m, 2, 0.5), looks)
+    assert v.report["verdict"] == "PASS", "with no texture to show it, a UV shift cannot be seen: it is not a failure"
+    listed = {e["look"]: e for e in v.report["materials"]["no_texel"]}
+    assert listed == {"A": {"look": "A", "materials": ["m0"], "flat": False},
+                      "B": {"look": "B", "materials": ["m1"], "flat": True}}
+    notes = " | ".join(v.report["notes"])
+    assert "UV NOT COMPARED" in notes and "A (m0)" in notes, "the one whose texture size is simply unknown"
+    assert "flat" in notes and "B (m1)" in notes, "and the flat one, listed too"
+
+
+def test_validate_command_compares_the_uv_of_a_material_missing_from_materials_json_and_says_so(tmp_path):
+    m = cube(10.0)                                                    # its material m0 is NOT in the materials.json below
+    before = _snapshot(tmp_path, m, "before")
+    after = _snapshot(tmp_path, _with_shifted_uv(m, 2, 0.5), "after")
+    out = tmp_path / "out"
+    code = cli.main(_validate_args(before, after / "cube.obj", _materials_json(tmp_path, ["some_other_material"]), out))
+    data = json.loads((out / "validation.json").read_text(encoding="utf-8"))
+    assert code == 2 and data["checks"]["textures"]["reasons"]["uv"] == 4, "it used to exit 0"
+    assert data["materials"]["unknown_before"] == ["m0"] and data["materials"]["no_texel"] == []
+    assert any("not in materials.json" in note for note in data["notes"])
+    # and when nothing is wrong with the UV the same material passes, with the same note
+    same = tmp_path / "same"
+    assert cli.main(_validate_args(before, before / "cube.obj", tmp_path / "materials.json", same)) == 0
+    assert any("not in materials.json" in note for note in json.loads((same / "validation.json").read_text(
+        encoding="utf-8"))["notes"])

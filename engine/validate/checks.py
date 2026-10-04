@@ -110,10 +110,13 @@ class Looks:
 
     `key`: material name -> look key (`materials.json`); `texel`: look key -> (width, height) in
     pixels of its texture, only for a look whose texture file was found; `colour`: look key -> mean
-    RGB (texture mean times Kd), for the evidence crops."""
+    RGB (texture mean times Kd), for the evidence crops; `flat`: the look keys known to have no texture
+    at all, which have no UV to compare (a look in neither `texel` nor `flat` is one whose texture file
+    was not found: `validate` lists it in the report's notes, it never goes unmentioned)."""
     key: dict
     texel: dict = field(default_factory=dict)
     colour: dict = field(default_factory=dict)
+    flat: frozenset = field(default_factory=frozenset)
 
     def key_of(self, material: str) -> str:
         """The look key of a material; one `materials.json` does not know keeps its own name, so two
@@ -170,24 +173,45 @@ def _mean_rgb(path: Path) -> np.ndarray | None:
         return None
 
 
+def _mtl_kd(mat) -> np.ndarray:
+    """The `Kd` of an MTL material as 3 floats; white when it has none."""
+    for line in mat.lines:
+        parts = line.split()
+        if len(parts) >= 4 and parts[0] == "Kd":
+            try:
+                return np.array([float(v) for v in parts[1:4]], dtype=np.float64)
+            except ValueError:
+                break
+    return np.ones(3)
+
+
 def load_looks(materials_json, sources: Sequence[tuple[dict, Path]]) -> Looks:
     """`Looks` from `data/campus/materials.json` and the MTLs the textures are found through.
 
     `sources` is a list of `(parse_mtl(...) result, directory its map_Kd paths are relative to)`: the
     BEFORE snapshot, and the AFTER output when it has its own. A look's texel size and mean colour
     come from the first source that has its texture on disk; a look with no texture file is
-    coloured by its Kd, and has no texel size (its UV is then not compared: nothing shows it)."""
+    coloured by its Kd, and has no texel size (`validate` then says in its notes that the UV is not
+    compared: nothing shows it, or the file is missing).
+
+    A material the MTL has but materials.json does not list (sidewalk A's only one) is NOT left out: it
+    gets the look key `unknown:<name>` (`Looks.key_of`), and its texture size and mean colour are read
+    from the MTL and PNG it came with, so its UV is compared like any other."""
     materials = json.loads(Path(materials_json).read_text(encoding="utf-8"))["materials"]
     key = {name: entry["look"] for name, entry in materials.items()}
+    flat = {entry["look"] for entry in materials.values() if not entry.get("map_kd")}
     texel: dict = {}
     colour: dict = {}
     for mtl, base in sources:
         for name, mat in mtl.items():
             entry = materials.get(name)
             if entry is None:
-                continue
-            look = entry["look"]
-            kd = np.asarray(entry.get("kd") or (1.0, 1.0, 1.0), dtype=np.float64)
+                look, kd = f"unknown:{name}", _mtl_kd(mat)
+                if not mat.map_kd:
+                    flat.add(look)
+            else:
+                look = entry["look"]
+                kd = np.asarray(entry.get("kd") or (1.0, 1.0, 1.0), dtype=np.float64)
             texture = None
             if mat.map_kd:
                 candidate = Path(base) / mat.map_kd.replace("\\", "/")
@@ -201,7 +225,7 @@ def load_looks(materials_json, sources: Sequence[tuple[dict, Path]]) -> Looks:
                     colour[look] = tuple(int(round(min(255.0, c))) for c in mean * kd)
             if look not in colour:
                 colour[look] = tuple(int(round(min(255.0, c * 255.0))) for c in kd)
-    return Looks(key=key, texel=texel, colour=colour)
+    return Looks(key=key, texel=texel, colour=colour, flat=frozenset(flat))
 
 
 #: The UVs in a fingerprint are taken mod 1 (a whole-tile shift is no change) in steps of this much.
@@ -866,8 +890,10 @@ def validate(before: MeshData, after: MeshData, looks: Looks, *, errors=None, ta
     * `sites`: the failing samples grouped (`id` 1 is the worst), each with `centre` and `size` in the
       model's coordinates, `samples`, `area_in2`, `checks` it failed, `reasons`, `faces` (BEFORE's face
       numbers) and `evidence` (paths, once `evidence.write_evidence` has run); `sites_total` counts all.
-    * the rest: `viewpoints`, `settings`, `notes` (non-default settings), `frame.centre`, `print_step_in`,
-      `depth_tolerance_in`, `before` and `after` sizes, `materials` unknown to `materials.json`, `timings_s`."""
+    * the rest: `viewpoints`, `settings`, `frame.centre`, `print_step_in`, `depth_tolerance_in`, `before` and
+      `after` sizes (`after.new_faces`: faces BEFORE did not have), `timings_s`; `materials`: those unknown
+      to `materials.json` and, in `no_texel`, every look whose UV could not be compared (flat or no texture
+      file); and `notes`, which say so in words, with any non-default settings."""
     clock = {"start": time.perf_counter()}
     step = print_step(before)
     tol = depth_tolerance(step)
@@ -1007,6 +1033,29 @@ def validate(before: MeshData, after: MeshData, looks: Looks, *, errors=None, ta
                "area_per_sample", "eye")
     changed = {k: getattr(settings, k) for k in density if getattr(settings, k) != getattr(default, k)}
     notes = ([f"NON-DEFAULT SETTINGS {changed}: a development run, NOT AN OWNER VERDICT"] if changed else [])
+    # what BEFORE's looks leave unsaid: materials.json does not know a material, or a look has no texture size
+    used = {before.materials[i] for i in np.unique(before.face_material) if 0 <= i < len(before.materials)}
+    no_texel = []
+    for i in np.unique(look_b):
+        k = table.keys[int(i)]
+        if looks.texel.get(k) is None:
+            no_texel.append({"look": k, "materials": sorted(m for m in used if looks.key_of(m) == k),
+                             "flat": k in looks.flat or k == NO_MATERIAL})
+    no_texel.sort(key=lambda e: e["look"])
+    listed = lambda entries: ", ".join(f"{e['look']} ({', '.join(e['materials']) or 'no material'})" for e in entries)
+    unknown = [m for m in looks.unknown(before) if m in used]
+    if unknown:
+        notes.append(f"{len(unknown)} material(s) of BEFORE are not in materials.json and are compared by name "
+                     f"(their texture size and colour come from the snapshot's own MTL where it has them): "
+                     + ", ".join(unknown))
+    if any(not e["flat"] for e in no_texel):
+        missing = [e for e in no_texel if not e["flat"]]
+        notes.append(f"UV NOT COMPARED for {len(missing)} look(s) whose texture size is unknown (no texture file "
+                     f"was found): {listed(missing)}")
+    if any(e["flat"] for e in no_texel):
+        flats = [e for e in no_texel if e["flat"]]
+        notes.append(f"UV not compared for {len(flats)} flat look(s) (no texture, so there is no UV to see): "
+                     f"{listed(flats)}")
     report = {
         "version": 1, "verdict": "FAIL" if "FAIL" in statuses else "PASS", "notes": notes,
         "checks": {"textures": textures, "problems": problems, "nothing_deleted": nothing_deleted},
@@ -1017,7 +1066,8 @@ def validate(before: MeshData, after: MeshData, looks: Looks, *, errors=None, ta
         "print_step_in": step, "depth_tolerance_in": tol,
         "before": {"faces": before.n_faces, "samples": n},
         "after": {"faces": after.n_faces, "new_faces": int(new_after.sum())},
-        "materials": {"unknown_before": looks.unknown(before), "unknown_after": looks.unknown(after)},
+        "materials": {"unknown_before": looks.unknown(before), "unknown_after": looks.unknown(after),
+                      "no_texel": no_texel},
         "timings_s": {"prepare": round(clock["prepared"] - clock["start"], 2),
                       "visibility_and_casts": round(clock["cast"] - clock["prepared"], 2),
                       "extra_directions": round(clock["extra"] - clock["cast"], 2),
