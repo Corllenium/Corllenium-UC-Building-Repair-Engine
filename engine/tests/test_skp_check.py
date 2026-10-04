@@ -306,6 +306,7 @@ def test_two_groups_with_one_name_are_told_apart_by_their_shape_and_still_report
                           "BRS_4th_floor_obj1": ("geometry", "BRS 4th floor.obj")}
         [amb] = result["ambiguities"]
         assert amb["family"] == "BRS_4th_floor_obj" and amb["resolved"] is True
+        assert amb["undecided"] == [] and amb["decided"] == {}
         assert amb["rows"] == ["BRS_4th_floor_obj", "BRS_4th_floor_obj1"]
         assert sorted(u["path"] for u in amb["units"]) == ["BRS 4th floor.obj",
                                                            "BRS BUILDING > BRS 4th floor.obj"]
@@ -322,27 +323,103 @@ def test_a_pairing_by_shape_can_still_be_a_mismatch():
     assert (m["name"], m["paired_by"]) == ("BRS_4th_floor_obj1", "geometry")
 
 
-def test_twins_that_look_alike_cannot_be_told_apart_and_are_left_as_ambiguous():
+def test_twins_that_look_alike_cannot_be_paired_but_a_file_that_fits_both_matches_whichever_it_is():
     rows = [row("Sciene_A_Floor_plan_2_obj", 5000.0, box(0, 0, 50, 100)),
             row("Sciene_A_Floor_plan_2_obj1", 5010.0, box(0, 0, 50, 100))]
     units = [unit("Sciene_A_Floor_plan_2_obj", 5005.0, box(0, 0, 50, 100)),
              unit("Sciene_A_Floor_plan_2_obj", 5006.0, box(0, 0, 50, 100))]
     result = compared(rows, units)
-    assert result["matches"] == result["mismatches"] == result["misses"] == []
+    assert result["mismatches"] == result["misses"] == []
+    assert [(m["name"], m["paired_by"], m["candidates"]) for m in result["matches"]] == [
+        ("Sciene_A_Floor_plan_2_obj", "any_group", 2), ("Sciene_A_Floor_plan_2_obj1", "any_group", 2)]
     [amb] = result["ambiguities"]
     assert amb["resolved"] is False and amb["rows"] == [r["name"] for r in rows]
-    assert "alike" in amb["reason"]
+    assert amb["undecided"] == []
+    assert amb["decided"] == {"Sciene_A_Floor_plan_2_obj": "match", "Sciene_A_Floor_plan_2_obj1": "match"}
+    assert "alike" in amb["reason"] and "no pairing is needed for 2 of the 2 files" in amb["reason"]
     # what a person needs to see why: the files' own numbers beside the groups'
     assert [(f["name"], f["tris"], f["area"]) for f in amb["files"]] == [
         ("Sciene_A_Floor_plan_2_obj", 2, 5000.0), ("Sciene_A_Floor_plan_2_obj1", 2, 5010.0)]
     assert [u["area"] for u in amb["units"]] == [5005.0, 5006.0]
 
 
-def test_a_pairing_that_is_nowhere_close_is_not_made():
+def science_rows():
+    """The two Science A plan 2 files of the real export (area in sq in, box in inches)."""
+    return [row("Sciene_A_Floor_plan_2_obj", 5672886.5, [[-2787.4, 20787.9, 1503.9], [-1716.8, 22564.1, 1661.4]]),
+            row("Sciene_A_Floor_plan_2_obj1", 4703668.7, [[-2787.4, 20800.4, 1503.9], [-1716.7, 22564.1, 1661.4]])]
+
+
+def science_units():
+    """...and the two identical twins the backup holds for them."""
+    return [unit("Sciene_A_Floor_plan_2_obj", 5675639.7, [[-2787.5, 20787.9, 1503.9], [-1716.8, 22564.1, 1661.4]],
+                 path="twin A", faces=1594),
+            unit("Sciene_A_Floor_plan_2_obj", 5675639.7, [[-2787.4, 20787.9, 1503.9], [-1716.7, 22564.1, 1661.4]],
+                 path="twin B", faces=1594)]
+
+
+def test_a_file_outside_the_tolerances_of_every_group_of_its_family_is_a_mismatch_whatever_the_pairing():
+    result = compared(science_rows(), science_units())
+    [fits] = result["matches"]
+    assert (fits["name"], fits["paired_by"]) == ("Sciene_A_Floor_plan_2_obj", "any_group")
+    assert fits["reasons"] == [] and fits["area_rel"] == pytest.approx(0.000485, abs=1e-6)
+    [short] = result["mismatches"]
+    assert (short["name"], short["paired_by"], short["candidates"]) == ("Sciene_A_Floor_plan_2_obj1",
+                                                                       "nearest_group", 2)
+    assert short["unit"]["path"] in ("twin A", "twin B")             # the reasons are against the nearest
+    assert short["reasons"][0].startswith("bounding box: min y is 20787.9 in the backup and 20800.4 in "
+                                          "the export, 12.5 in apart")
+    assert short["reasons"][1] == ("area: the backup has 5,675,639.7 sq in and the export 4,703,668.7, "
+                                   "+20.664% (tolerance 0.5%)")
+    [amb] = result["ambiguities"]
+    assert amb["resolved"] is False and amb["undecided"] == []
+    assert amb["decided"] == {"Sciene_A_Floor_plan_2_obj": "match", "Sciene_A_Floor_plan_2_obj1": "mismatch"}
+    assert "1 match every group, 1 match none" in amb["reason"]
+
+
+def test_a_file_that_fits_some_groups_of_its_family_but_not_all_still_depends_on_the_pairing():
+    rows = [row("W_floor", 1000.0, box(0, 0, 10, 100)), row("W_floor1", 1000.0, box(0, 0, 10, 100))]
+    units = [unit("W_floor", 1000.0, box(0, 0, 10, 100), path="fits"),
+             unit("W_floor", 1020.0, box(0, 0, 10, 100), path="2 % over")]
+    result = compared(rows, units)
+    assert result["matches"] == result["mismatches"] == result["misses"] == []
+    [amb] = result["ambiguities"]
+    assert amb["resolved"] is False and amb["decided"] == {}
+    assert amb["undecided"] == ["W_floor", "W_floor1"]
+
+
+def test_only_the_files_whose_verdict_does_not_depend_on_the_pairing_are_decided():
+    rows = [row("V_floor", 1002.0, box(0, 0, 10, 100)), row("V_floor1", 997.5, box(0, 0, 10, 100))]
+    units = [unit("V_floor", 1000.0, box(0, 0, 10, 100)), unit("V_floor", 1004.0, box(0, 0, 10, 100))]
+    result = compared(rows, units)
+    assert [(m["name"], m["paired_by"]) for m in result["matches"]] == [("V_floor", "any_group")]
+    assert result["mismatches"] == []
+    [amb] = result["ambiguities"]
+    assert amb["resolved"] is False
+    assert amb["decided"] == {"V_floor": "match"} and amb["undecided"] == ["V_floor1"]
+    assert "the verdict of 1 file depends on it" in amb["reason"]
+
+
+def test_with_more_files_than_groups_only_a_file_that_fits_no_group_is_decided():
+    """One group for two files: whichever file has the group matches, the other has none, so a file that fits
+    the group is not decided; one that fits nothing is a mismatch under any pairing."""
+    rows = [row("Z_floor1", 100.0, box(0, 0, 1, 100)), row("Z_floor2", 500.0, box(0, 0, 5, 100))]
+    result = compared(rows, [unit("Z_floor", 100.0, box(0, 0, 1, 100))])
+    assert result["matches"] == []
+    assert [(m["name"], m["paired_by"]) for m in result["mismatches"]] == [("Z_floor2", "nearest_group")]
+    [amb] = result["ambiguities"]
+    assert amb["decided"] == {"Z_floor2": "mismatch"} and amb["undecided"] == ["Z_floor1"]
+
+
+def test_a_pairing_that_is_nowhere_close_is_not_made_but_a_file_that_fits_no_group_is_still_a_mismatch():
     rows = [row("X_floor", 1000.0, box(0, 0, 10, 100)), row("X_floor1", 4000.0, box(0, 0, 20, 200))]
     units = [unit("X_floor", 1000.0, box(0, 0, 10, 100)), unit("X_floor", 9000.0, box(0, 0, 90, 100))]
-    [amb] = compared(rows, units)["ambiguities"]
+    result = compared(rows, units)
+    [amb] = result["ambiguities"]
     assert amb["resolved"] is False and "close enough" in amb["reason"]
+    assert amb["undecided"] == ["X_floor"] and amb["decided"] == {"X_floor1": "mismatch"}
+    [m] = result["mismatches"]
+    assert (m["name"], m["paired_by"], m["unit"]["area"]) == ("X_floor1", "nearest_group", 1000.0)
+    assert result["matches"] == []
 
 
 def test_more_groups_than_files_or_the_other_way_round_is_an_ambiguity_with_every_candidate():
@@ -438,9 +515,10 @@ def test_every_row_ends_up_in_exactly_one_place():
     result = compared(rows, units)
     names = ([m["name"] for m in result["matches"]] + [m["name"] for m in result["mismatches"]]
              + [m["name"] for m in result["misses"]]
-             + [n for a in result["ambiguities"] if not a["resolved"] for n in a["rows"]])
+             + [n for a in result["ambiguities"] for n in a["undecided"]])
     assert sorted(names) == sorted(r["name"] for r in rows)
     assert [m["name"] for m in result["misses"]] == ["C_floor"]
+    assert [m["name"] for m in result["matches"] if m["paired_by"] == "any_group"] == ["T_floor", "T_floor1"]
     assert [u["key"] for u in result["sdk_only"]] == ["Z_floor"]
 
 
@@ -716,7 +794,8 @@ def test_the_check_opens_only_the_verified_copy_and_writes_the_report(tmp_path):
     assert walker.models == [copy]                                  # never the backup itself
     assert listing(backup) == before
     assert report["counts"] == {"files": 2, "matches": 2, "mismatches": 0, "ambiguous_files": 0,
-                                "misses": 0, "sdk_only_units": 0, "paired_by_geometry": 0}
+                                "misses": 0, "sdk_only_units": 0, "paired_by_geometry": 0,
+                                "decided_without_pairing": 0}
     on_disk = json.loads((tmp_path / "campus" / "skp_check.json").read_text(encoding="utf-8"))
     assert on_disk == json.loads(json.dumps(report))                # what was returned is what was written
     assert report["source"]["backup"] == "M - CHECKPOINT-17.skp"
@@ -739,6 +818,39 @@ def test_mismatches_missing_files_and_extra_groups_are_all_in_the_report(tmp_pat
     assert [u["key"] for u in report["sdk_only"]] == ["D_Floor"]
     assert (report["counts"]["matches"], report["counts"]["mismatches"], report["counts"]["misses"],
             report["counts"]["sdk_only_units"]) == (1, 1, 1, 1)
+
+
+def test_files_decided_without_a_pairing_are_counted_and_do_not_count_as_ambiguous(tmp_path):
+    """Two identical groups named Sci Floor.obj; the export's first file fits both, its second is short."""
+    rows = [("Sci_Floor_obj", 0, 0, 100, 50), ("Sci_Floor_obj1", 0, 0, 100, 40)]
+    walk = floor_walk(("Sci Floor.obj", 5, 5000.0, box(0, 0, 100, 50)),
+                      ("Sci Floor.obj", 5, 5000.0, box(0, 0, 100, 50)))
+    report, _, _ = run_check(tmp_path, rows, walk)
+    assert report["counts"] == {"files": 2, "matches": 1, "mismatches": 1, "ambiguous_files": 0,
+                                "misses": 0, "sdk_only_units": 0, "paired_by_geometry": 0,
+                                "decided_without_pairing": 2}
+    assert [(m["name"], m["paired_by"]) for m in report["matches"]] == [("Sci_Floor_obj", "any_group")]
+    assert [(m["name"], m["paired_by"]) for m in report["mismatches"]] == [("Sci_Floor_obj1", "nearest_group")]
+    [amb] = report["ambiguities"]
+    assert amb["resolved"] is False and amb["undecided"] == []
+    text = skp_check.render_markdown(report)
+    assert "| ambiguous | 0 |" in text and "| match | 1 |" in text and "| mismatch | 1 |" in text
+    assert "2 files were decided without a pairing" in text
+    assert "depends on a pairing the shapes cannot settle" in text and "could not tell apart" not in text
+    assert "| Sci_Floor_obj1 | nearest_group |" in text
+    assert "ambiguous `Sci_Floor_obj`" not in text                  # every file of it has a verdict
+    assert "- `Sci_Floor_obj`, several groups of one name, not paired: " in text
+
+
+def test_a_file_that_still_depends_on_a_pairing_is_the_only_one_counted_as_ambiguous(tmp_path):
+    rows = [("Sci_Floor_obj", 0, 0, 100, 50), ("Sci_Floor_obj1", 0, 0, 100, 50)]
+    walk = floor_walk(("Sci Floor.obj", 5, 5000.0, box(0, 0, 100, 50)),
+                      ("Sci Floor.obj", 5, 5100.0, box(0, 0, 100, 50)))        # the second group is 2 % over
+    report, _, _ = run_check(tmp_path, rows, walk)
+    assert report["counts"]["ambiguous_files"] == 2 and report["counts"]["matches"] == 0
+    assert report["counts"]["decided_without_pairing"] == 0
+    text = skp_check.render_markdown(report)
+    assert "| ambiguous | 2 |" in text and "ambiguous `Sci_Floor_obj`" in text
 
 
 def test_the_bounding_box_tolerance_is_twice_the_print_step_measured_in_the_export(tmp_path):
@@ -981,7 +1093,8 @@ def test_a_real_model_is_walked_in_a_child_process_and_compared_with_the_export(
                                     interval_s=0, sleep=lambda s: None)
     assert listing(backup) == before
     assert report["counts"] == {"files": 3, "matches": 3, "mismatches": 0, "ambiguous_files": 0,
-                                "misses": 0, "sdk_only_units": 0, "paired_by_geometry": 2}
+                                "misses": 0, "sdk_only_units": 0, "paired_by_geometry": 2,
+                                "decided_without_pairing": 0}
     paired = {m["name"]: m["paired_by"] for m in report["matches"]}
     assert paired == {"EDS_2nd_Floor_obj": "name", "Main_3RD_Floor_obj": "geometry",
                       "Main_3RD_Floor_obj1": "geometry"}

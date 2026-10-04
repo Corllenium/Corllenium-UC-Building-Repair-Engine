@@ -24,7 +24,10 @@ NAMES. SketchUp's exporter writes every character that is not a letter, digit or
 `_`, so the group `Eds 2nd Floor.obj` is the file `Eds_2nd_Floor_obj`. Two groups with one name
 get one key and two units (the exporter numbers the second file: `..._obj1`), and the number
 the exporter gives a nameless group (`Group137`) cannot be told from the backup; both are
-*families* of files and units, told apart only by their shape (see `compare`).
+*families* of files and units, told apart only by their shape (see `compare`). Where shape cannot
+pair a family, a file is still decided when every pairing would give it the same verdict: it is
+outside the tolerances of every group of its name (a mismatch, shown against the nearest), or inside
+those of every one of them (a match). Only a file that fits some groups and not others is ambiguous.
 """
 from __future__ import annotations
 
@@ -175,7 +178,10 @@ def _deviation(export_bbox: list, unit_bbox: list) -> list[float]:
     return [u - e for u, e in zip([*unit_bbox[0], *unit_bbox[1]], [*export_bbox[0], *export_bbox[1]])]
 
 
-def _entry(row: dict, unit: dict, paired_by: str, bbox_tol: float, area_tol: float) -> dict:
+def _entry(row: dict, unit: dict, paired_by: str, bbox_tol: float, area_tol: float,
+           candidates: int = 1) -> dict:
+    """One file against one group: the box deviations, the area difference and, when either is over
+    its tolerance, the `reasons`. `candidates` is how many groups the file was weighed against."""
     dev = _deviation(row["bbox"], unit["bbox"])
     worst = max(range(6), key=lambda i: abs(dev[i]))
     area_rel = (unit["area"] - row["area"]) / row["area"]
@@ -189,7 +195,7 @@ def _entry(row: dict, unit: dict, paired_by: str, bbox_tol: float, area_tol: flo
     if abs(area_rel) > area_tol:
         reasons.append(f"area: the backup has {unit['area']:,.1f} sq in and the export "
                        f"{row['area']:,.1f}, {area_rel * 100:+.3f}% (tolerance {area_tol * 100:g}%)")
-    return {"name": row["name"], "file": row["file"], "paired_by": paired_by,
+    return {"name": row["name"], "file": row["file"], "paired_by": paired_by, "candidates": candidates,
             "unit": {k: unit[k] for k in ("key", "path", "faces", "tris", "area", "bbox")},
             "export": {k: row[k] for k in ("tris", "area", "bbox")},
             "bbox_dev": dev, "bbox_max_dev": abs(dev[worst]), "area_rel": area_rel,
@@ -282,10 +288,14 @@ def compare(rows: list[dict], units: list[dict], *, bbox_tol: float, area_tol: f
     * `matches` and `mismatches`: a file and the unit it is paired with -- by `name` (same name),
       `name_family` (one file and one group whose names differ only by the exporter's number) or
       `geometry` (see below) -- with the box deviations, the area difference and, for a mismatch,
-      the `reasons`; mismatches worst first;
+      the `reasons`; mismatches worst first. A file of a family that could not be paired is still
+      decided when every pairing gives it one verdict: `nearest_group` (outside the tolerances of
+      EVERY group of the family: a mismatch, with the reasons against the nearest group) or
+      `any_group` (inside the tolerances of every group, and no more files than groups: a match);
     * `ambiguities`: every family of several groups or several files of one name, with `resolved`
-      true when the files could be paired with the groups by shape alone, and false (the files are
-      then in no other list) when they could not;
+      true when the files could be paired with the groups by shape alone, `decided` (file -> match
+      or mismatch) for the files of an unpaired family that need no pairing, and `undecided` for
+      those whose verdict depends on one -- the only files of such a family in no other list;
     * `misses`: files with no group in the backup, `sdk_only`: groups with no file.
 
     A family is the files and the groups whose names are the same or differ by the exporter's number
@@ -317,18 +327,36 @@ def compare(rows: list[dict], units: list[dict], *, bbox_tol: float, area_tol: f
                  f"has {_plural(len(frows), 'file')} for them"
         ambiguity = {"family": family, "rows": [r["name"] for r in frows],
                      "files": [{k: r[k] for k in ("name", "file", "tris", "area", "bbox")} for r in frows],
-                     "units": funits, "resolved": False, "reason": counts}
+                     "units": funits, "resolved": False, "decided": {}, "undecided": [],
+                     "reason": counts}
         result["ambiguities"].append(ambiguity)
-        if len(frows) != len(funits):
+        pairing, why = _pair_by_shape(frows, funits) if len(frows) == len(funits) else (None, "")
+        if pairing is not None:
+            ambiguity["resolved"] = True
+            ambiguity["reason"] = f"{counts}; paired by shape"
+            for i, j in enumerate(pairing):
+                entries[frows[i]["name"]] = _entry(frows[i], funits[j], "geometry", bbox_tol, area_tol)
             continue
-        pairing, why = _pair_by_shape(frows, funits)
-        if pairing is None:
-            ambiguity["reason"] = f"{counts}; {why}"
-            continue
-        ambiguity["resolved"] = True
-        ambiguity["reason"] = f"{counts}; paired by shape"
-        for i, j in enumerate(pairing):
-            entries[frows[i]["name"]] = _entry(frows[i], funits[j], "geometry", bbox_tol, area_tol)
+        # No pairing: a file is still decided when every pairing gives it the same verdict.
+        for r in frows:
+            fitting = sum(1 for u in funits if not _entry(r, u, "", bbox_tol, area_tol)["reasons"])
+            nearest = min(funits, key=lambda u: _distance(r, u))
+            if fitting == 0:                        # outside every group's tolerance: no pairing can match it
+                entries[r["name"]] = _entry(r, nearest, "nearest_group", bbox_tol, area_tol, len(funits))
+                ambiguity["decided"][r["name"]] = "mismatch"
+            elif fitting == len(funits) and len(frows) <= len(funits):     # inside every group's tolerance
+                entries[r["name"]] = _entry(r, nearest, "any_group", bbox_tol, area_tol, len(funits))
+                ambiguity["decided"][r["name"]] = "match"
+            else:
+                ambiguity["undecided"].append(r["name"])
+        parts = [counts, why]
+        if ambiguity["decided"]:
+            matching = sum(1 for v in ambiguity["decided"].values() if v == "match")
+            parts.append(f"no pairing is needed for {len(ambiguity['decided'])} of the {len(frows)} files "
+                         f"({matching} match every group, {len(ambiguity['decided']) - matching} match none)")
+        if ambiguity["undecided"]:
+            parts.append(f"the verdict of {_plural(len(ambiguity['undecided']), 'file')} depends on it")
+        ambiguity["reason"] = "; ".join(p for p in parts if p)
 
     for r in rows:
         entry = entries.get(r["name"])
@@ -543,7 +571,7 @@ def check_source(source_json, backup_dir, out_dir, *, name: str | None = None, s
     result = compare(rows, units, bbox_tol=tolerance, area_tol=area_tol)
 
     paired = result["matches"] + result["mismatches"]
-    ambiguous_files = sum(len(a["rows"]) for a in result["ambiguities"] if not a["resolved"])
+    ambiguous_files = sum(len(a["undecided"]) for a in result["ambiguities"])
     skipped, skipped_total = _skipped(walk)
     report = {
         "created": datetime.now().astimezone().isoformat(timespec="seconds"),
@@ -564,7 +592,9 @@ def check_source(source_json, backup_dir, out_dir, *, name: str | None = None, s
         "counts": {"files": len(rows), "matches": len(result["matches"]),
                    "mismatches": len(result["mismatches"]), "ambiguous_files": ambiguous_files,
                    "misses": len(result["misses"]), "sdk_only_units": len(result["sdk_only"]),
-                   "paired_by_geometry": sum(1 for e in paired if e["paired_by"] == "geometry")},
+                   "paired_by_geometry": sum(1 for e in paired if e["paired_by"] == "geometry"),
+                   "decided_without_pairing": sum(1 for e in paired
+                                                  if e["paired_by"] in ("any_group", "nearest_group"))},
         "measured": ({"paired": len(paired),
                       "bbox_max_dev": _spread([e["bbox_max_dev"] for e in paired]),
                       "area_rel": _spread([e["area_rel"] for e in paired]),
@@ -595,14 +625,22 @@ def render_markdown(report: dict) -> str:
         "| result | files |", "|---|---:|",
         f"| match | {c['matches']} |", f"| mismatch | {c['mismatches']} |",
         f"| ambiguous | {c['ambiguous_files']} |", f"| miss | {c['misses']} |", "",
-        "Ambiguous: several groups or files of one name that their shapes could not tell apart. "
-        "Miss: no group of that name in the backup.", ""]
+        "Ambiguous: a file that matches some of several groups of one name but not others, so its verdict "
+        "depends on a pairing the shapes cannot settle. Miss: no group of that name in the backup.", ""]
     extra = []
     if c["sdk_only_units"]:
         extra.append(f"{c['sdk_only_units']} groups of the backup hold faces that no file has")
     if c["paired_by_geometry"]:
         extra.append(f"{c['paired_by_geometry']} files were paired with their group by shape, because "
                      "the name does not say which is which")
+    if c["decided_without_pairing"]:
+        decided = [e for e in report["matches"] + report["mismatches"]
+                   if e["paired_by"] in ("any_group", "nearest_group")]
+        fits = sum(1 for e in decided if e["paired_by"] == "any_group")
+        extra.append(f"{c['decided_without_pairing']} files were decided without a pairing, because their "
+                     f"verdict is the same whichever group of their name they go with: {fits} match every "
+                     f"group (`any_group`), {len(decided) - fits} match none and are shown against the "
+                     "nearest (`nearest_group`)")
     totals = s.get("totals") or {}
     hidden = report["hidden"]
     extra.append(
@@ -644,7 +682,10 @@ def render_markdown(report: dict) -> str:
                          f"{m['area_rel'] * 100:+.2f} % |")
         lines += ["", f"The reason for every mismatch, in words, is in `skp_check.json`. {direction}", ""]
     for amb in (a for a in report["ambiguities"] if not a["resolved"]):
-        lines.append(f"- ambiguous `{amb['family']}` ({', '.join(amb['rows'])}): {amb['reason']}")
+        if amb["undecided"]:
+            lines.append(f"- ambiguous `{amb['family']}` ({', '.join(amb['undecided'])}): {amb['reason']}")
+        else:
+            lines.append(f"- `{amb['family']}`, several groups of one name, not paired: {amb['reason']}")
     for miss in report["misses"]:
         lines.append(f"- miss `{miss['name']}`: {miss['reason']}")
     for only in report["sdk_only"][:10]:
