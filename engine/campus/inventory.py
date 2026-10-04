@@ -382,10 +382,24 @@ def _components(n: int, ii: np.ndarray, jj: np.ndarray) -> np.ndarray:
     return lab
 
 
-def _face_sets(groups: list[GroupData], tol_in: float) -> dict[str, np.ndarray]:
-    """Per group, the ids of its distinct faces. A face is its three vertices, sorted, plus its winding and
-    its look key. A vertex is the position snapped to the print step; with `tol_in` > 0, vertices closer than
-    that also count as one (identity only: no geometry is touched)."""
+def _identity_extent(points: np.ndarray, label: np.ndarray) -> float:
+    """The largest bounding-box diagonal of the points that share a label: no two vertices of one identity are
+    further apart than this."""
+    if len(points) == 0:
+        return 0.0
+    order = np.argsort(label, kind="stable")
+    sorted_label, pts = label[order], points[order]
+    starts = np.flatnonzero(np.concatenate(([True], sorted_label[1:] != sorted_label[:-1])))
+    spread = np.maximum.reduceat(pts, starts, axis=0) - np.minimum.reduceat(pts, starts, axis=0)
+    return float(np.sqrt((spread ** 2).sum(axis=1)).max())
+
+
+def _face_sets(groups: list[GroupData], tol_in: float) -> tuple[dict[str, np.ndarray], float]:
+    """Per group, the ids of its distinct faces, and the largest extent of a vertex identity. A face is its
+    three vertices, sorted, plus its winding and its look key. A vertex is the position snapped to the print
+    step; with `tol_in` > 0, vertices within `tol_in` of each other also count as one, and that identity
+    chains (A near B and B near C make A, B and C one), so an identity can reach further than `tol_in`: the
+    returned extent says how far. Identity only: no geometry is touched."""
     dec = max(g.decimals for g in groups)
     scale = 10.0 ** dec
     snapped = np.concatenate([np.rint(g.pos * scale) for g in groups]).astype(np.int64)
@@ -393,8 +407,10 @@ def _face_sets(groups: list[GroupData], tol_in: float) -> dict[str, np.ndarray]:
     inverse = inverse.reshape(-1)
     if tol_in > 0:
         label = _components(len(uniq), *_link_pairs(uniq / scale, tol_in))
+        extent = _identity_extent(uniq / scale, label)
     else:
         label = np.arange(len(uniq))
+        extent = 0.0
     vid = label[inverse]
     keys, start = [], 0
     for g in groups:
@@ -411,7 +427,7 @@ def _face_sets(groups: list[GroupData], tol_in: float) -> dict[str, np.ndarray]:
     for g, k in zip(groups, keys):
         out[g.name] = np.unique(face_id[start:start + len(k)])
         start += len(k)
-    return out
+    return out, extent
 
 
 def _jaccard(a: np.ndarray, b: np.ndarray) -> tuple[float, int]:
@@ -420,14 +436,15 @@ def _jaccard(a: np.ndarray, b: np.ndarray) -> tuple[float, int]:
     return (shared / union if union else 0.0), shared
 
 
-def duplicate_flags(groups: list[GroupData], p: InventoryParams) -> list[dict]:
+def duplicate_flags(groups: list[GroupData], p: InventoryParams) -> tuple[list[dict], float]:
     """Pairs of groups of one building whose faces overlap: Jaccard similarity of the face fingerprints,
-    flagged from `dup_flag`. `exact_jaccard` is the same at the print step alone: the CKPT17 copies (Science A,
-    BRS obj1) sit 0.03-0.4 in off their originals, so they only match with a tolerance."""
+    flagged from `dup_flag`; and the largest extent of a vertex identity among these groups. `exact_jaccard` is
+    the same at the print step alone: the CKPT17 copies (Science A, BRS obj1) sit 0.03-0.4 in off their
+    originals, so they only match with a tolerance, and the tolerance chains (see `_face_sets`)."""
     if len(groups) < 2:
-        return []
-    tolerant = _face_sets(groups, p.match_tol_in)
-    exact = tolerant if p.match_tol_in <= 0 else _face_sets(groups, 0.0)
+        return [], 0.0
+    tolerant, extent = _face_sets(groups, p.match_tol_in)
+    exact = tolerant if p.match_tol_in <= 0 else _face_sets(groups, 0.0)[0]
     out = []
     for a, b in itertools.combinations(groups, 2):
         j, shared = _jaccard(tolerant[a.name], tolerant[b.name])
@@ -438,14 +455,15 @@ def duplicate_flags(groups: list[GroupData], p: InventoryParams) -> list[dict]:
         of_smaller = shared / min(sizes)
         match = "exact" if ex_j >= p.dup_flag else "shifted"
         how = ("coincident at the print step" if match == "exact"
-               else f"copies shifted by less than {p.match_tol_in:g} in (exact at the print step: {ex_j * 100:.0f} %)")
+               else f"vertices within {p.match_tol_in:g} in of each other count as one, and that chains (the "
+                    f"largest chain in {a.building} spans {extent:.2f} in); exact at the print step: {ex_j * 100:.0f} %")
         out.append({"kind": "duplicate", "building": a.building, "groups": [a.name, b.name],
                     "jaccard": round(j, 4), "percent": round(j * 100, 1), "exact_jaccard": round(ex_j, 4),
                     "match": match, "shared": shared, "faces": sizes, "of_smaller": round(of_smaller, 4),
-                    "tolerance_in": p.match_tol_in, "decision": None,
+                    "tolerance_in": p.match_tol_in, "identity_extent_in": round(extent, 2), "decision": None,
                     "text": f"{a.name} and {b.name} share {j * 100:.0f} % of their faces (Jaccard {j:.2f}; "
                             f"{shared} of {sizes[0]} and {sizes[1]} faces, {of_smaller * 100:.0f} % of the smaller); {how}"})
-    return out
+    return out, extent
 
 
 # ------------------------------------------------------------------------------------------ footprints
@@ -607,6 +625,17 @@ def build_inventory(groups: list[GroupData], params: InventoryParams | None = No
     units: list[dict] = []
     proposals: list[dict] = []
     flags: list[dict] = []
+    identity = {"tolerance_in": p.match_tol_in, "largest_extent_in": 0.0, "building": None}
+    widest = 0.0
+
+    def duplicates_of(building: str, gs: list[GroupData]) -> list[dict]:
+        nonlocal widest
+        found, extent = duplicate_flags(gs, p)
+        if extent > widest:
+            widest = extent
+            identity.update(largest_extent_in=round(extent, 2), building=building)
+        return found
+
     for name in sorted(by_building):
         if name == SITE:
             continue
@@ -619,13 +648,13 @@ def build_inventory(groups: list[GroupData], params: InventoryParams | None = No
                            "anchor": {"offset": offset, "votes": len(votes), "agree": agree}}
         units += b_units
         proposals += b_props
-        flags += b_flags + duplicate_flags(plan.groups, p)
+        flags += b_flags + duplicates_of(name, plan.groups)
     units += [_site_unit(g) for g in sorted(by_building.get(SITE, []), key=lambda g: g.name)]
-    flags += duplicate_flags(by_building.get(SITE, []), p)        # SITE has no level table, but copies still matter
+    flags += duplicates_of(SITE, by_building.get(SITE, []))     # SITE has no level table, but copies still matter
     flags += footprint_flags(by_building, p)
     _attach_flags(units, flags)
     return {"params": asdict(p), "buildings": buildings, "units": units, "proposals": proposals, "flags": flags,
-            "coverage": _coverage(groups, units, proposals)}
+            "identity": identity, "coverage": _coverage(groups, units, proposals)}
 
 
 def _coverage(groups: list[GroupData], units: list[dict], proposals: list[dict]) -> dict:
@@ -686,6 +715,20 @@ def _table(header: list[str], rows: list[list]) -> list[str]:
 def _members_text(unit: dict) -> str:
     return ", ".join(f"{m['group']} ({m['tris']:,}" + ("" if m["faces"] == "all" else f", {m['faces']}") + ")"
                      for m in unit["members"])
+
+
+def _identity_cells(params: dict, identity: dict) -> list[str]:
+    """The 'used' and 'measured reason' cells of the vertex identity row."""
+    tol = params["match_tol_in"]
+    if tol <= 0:
+        return ["the print step only", "the brief's rule as written: nothing is matched across a shift"]
+    reach = identity.get("largest_extent_in") or 0.0
+    where = f" ({identity['building']})" if identity.get("building") else ""
+    return [f"print step and {tol:g} in, chained",
+            "the obj1 copies sit 0.03 in (Science A) to 0.4 in (BRS 4th, 5th) off their originals, so nothing "
+            f"coincides at the print step. Vertices within {tol:g} in of each other form one identity and "
+            f"identities chain, so one can reach further than {tol:g} in: the largest spans {reach:.2f} in{where}, "
+            "measured as the bounding-box diagonal of its vertices"]
 
 
 def render_markdown(inv: dict) -> str:
@@ -793,9 +836,7 @@ def render_markdown(inv: dict) -> str:
          "stepped slabs have a second underside about 30 in above the real bottom (BRS 5th, EDS 3rd)"],
         ["levels closer than", f"{BRIEF_PARAMS.min_storey_in:g} in (peak merge only)", f"{params['min_storey_in']:g} in",
          "terraces and thin layers repeat every 39 in; the shortest storey measured is 157 in"],
-        ["duplicate vertex identity", "the print step", f"print step and {params['match_tol_in']:g} in",
-         "the obj1 copies sit 0.03 in (Science A) to 0.4 in (BRS 4th, 5th) off their originals, so nothing "
-         "coincides at the print step"],
+        ["duplicate vertex identity", "the print step", *_identity_cells(params, inv.get("identity") or {})],
     ])
     brief = inv.get("brief_levels", {})
     if brief:

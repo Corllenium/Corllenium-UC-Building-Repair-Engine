@@ -511,3 +511,36 @@ def test_site_groups_are_compared_for_duplicates_too():
     assert [f["kind"] for f in units["SITE-ROAD_front"]["flags"]] == ["duplicate"]
     assert [f["kind"] for f in units["SITE-Group137"]["flags"]] == ["duplicate"]
     assert duplicates(group("ROAD_front", strip(100)), group("Group137", strip(100, start=500))) == []
+
+
+def chained_copies():
+    """Three copies of one strip 0.4 in apart: neighbours are within the 0.5 in tolerance, the outer two are 0.8 in
+    apart, and all three count as one vertex identity (single linkage)."""
+    return [group("PE_1st_floor", strip(10)), group("PE_1st_floor_obj1", strip(10, dx=0.4)),
+            group("PE_1st_floor_obj2", strip(10, dx=0.8))]
+
+
+def test_vertex_identity_chains_and_the_flags_and_the_result_say_how_far_a_chain_reaches():
+    result = inv.build_inventory(chained_copies())
+    flags = [f for f in result["flags"] if f["kind"] == "duplicate"]
+    assert len(flags) == 3 and all(f["match"] == "shifted" and f["jaccard"] == 1.0 for f in flags)   # the outer pair too
+    assert result["identity"] == {"tolerance_in": 0.5, "largest_extent_in": pytest.approx(0.8, abs=0.01),
+                                  "building": "PE"}
+    for f in flags:
+        assert f["identity_extent_in"] == pytest.approx(0.8, abs=0.01)
+        assert "within 0.5 in" in f["text"] and "chain" in f["text"] and "0.80 in" in f["text"]
+        assert "shifted by less than" not in f["text"]          # the old wording overstated the bound
+
+
+def test_the_identity_extent_is_the_largest_over_buildings_and_zero_without_a_tolerance():
+    near = [group("PE_a_floor", strip(10)), group("PE_b_floor", strip(10, dx=0.1))]               # PE: 0.1 in chain
+    far = [group("BRS_a_floor", strip(10)), group("BRS_b_floor", strip(10, dx=0.3))]              # BRS: 0.3 in chain
+    result = inv.build_inventory(near + far)
+    assert result["identity"]["building"] == "BRS" and result["identity"]["largest_extent_in"] == pytest.approx(0.3, abs=0.01)
+    literal = inv.build_inventory(near + far, inv.BRIEF_PARAMS)           # the print step only: no chains at all
+    assert literal["identity"] == {"tolerance_in": 0.0, "largest_extent_in": 0.0, "building": None}
+
+
+def test_the_table_says_identities_chain_and_gives_the_largest_one():
+    text = inv.render_markdown(inv.build_inventory(chained_copies()))
+    assert "identities chain" in text and "0.80 in (PE)" in text
