@@ -488,6 +488,17 @@ def _building_units(plan: BuildingPlan, levels: list[dict], p: InventoryParams):
                           "text": f"{g.name} spans {len(rows)} levels; proposed split by face centre: "
                                   + ", ".join(f"{r['level']} {r['tris']} tris ({r['share'] * 100:.0f} %)"
                                               for r in rows)})
+    # a gap in the sequence: a floor number below the highest named one that no group is named for
+    named = {n for n in (floor_number(g.name) for g in plan.groups) if n is not None}
+    for number in range(1, max(named, default=0) + 1):
+        if number in named:
+            continue
+        level = f"L{number:02d}"
+        holders = sorted({m["group"] for m in floor_members.get(level, [])})
+        flags.append({"kind": "missing", "building": plan.name, "level": level, "occupied_by": holders,
+                      "text": (f"no group in {plan.name} is named floor {number}; {level} holds {', '.join(holders)}"
+                               if holders else
+                               f"{plan.name} has no {level}: no group is named floor {number} and no band carries it")})
     floors = [_unit(f"{plan.name}-{lv['level']}", plan.name, lv["level"], "floor", floor_members[lv["level"]],
                     lv["base"], lv["top"], lv["slab"]) for lv in levels]
     for i, u in enumerate(floors):
@@ -537,7 +548,7 @@ def _attach_flags(units: list[dict], flags: list[dict]) -> None:
             units_of.setdefault(m["group"], []).append(u["unit"])
     by_unit = {u["unit"]: u for u in units}
     for f in flags:
-        names = f.get("groups") or [f["group"]]
+        names = f.get("groups") or ([f["group"]] if "group" in f else f.get("occupied_by", []))
         f["units"] = sorted({uid for n in names for uid in units_of.get(n, [])})
         for uid in f["units"]:
             by_unit[uid]["flags"].append({"kind": f["kind"], "text": f["text"]})

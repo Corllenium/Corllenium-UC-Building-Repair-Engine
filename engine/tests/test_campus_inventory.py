@@ -228,3 +228,22 @@ def test_a_tie_between_offsets_keeps_the_numbering_from_the_lowest_band():
     result = inv.build_inventory(stack("CHTM", ["1st", "2nd", "4th", "5th"]))
     assert result["buildings"]["CHTM"]["anchor"]["offset"] == 0
     assert sorted(f["group"] for f in flags_of(result, "misnamed")) == ["CHTM_4th_floor", "CHTM_5th_floor"]
+
+
+# ------------------------------------------------------------------------------------------ missing levels
+
+def test_a_missing_middle_level_is_flagged_missing():
+    result = inv.build_inventory(stack("CHTM", ["1st", "2nd", "4th", "5th"]))      # nobody is named 3rd
+    (flag,) = flags_of(result, "missing")
+    assert (flag["building"], flag["level"]) == ("CHTM", "L03")
+    assert flag["occupied_by"] == ["CHTM_4th_floor"]      # the geometry has a band there, under another name
+
+
+def test_a_building_whose_floors_start_above_the_first_has_its_first_level_missing():
+    result = inv.build_inventory([group(f"Sciene_A_Floor_plan_{n}_obj", slab(i * 200)) for i, n in enumerate((2, 3, 4))])
+    (flag,) = flags_of(result, "missing")
+    assert (flag["building"], flag["level"], flag["occupied_by"]) == ("SCIENCE_A", "L01", [])
+
+
+def test_a_complete_stack_has_nothing_missing():
+    assert flags_of(inv.build_inventory(stack("CHTM", ["1st", "2nd", "3rd"])), "missing") == []
