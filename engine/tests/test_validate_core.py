@@ -816,3 +816,69 @@ def test_exactly_half_of_the_rays_meeting_backs_is_not_a_majority():
     probes = interior_probes(m)
     assert probes.shape == (1, 3) and np.isclose(probes[0, 2], 63.0)
     assert _back_rays(m, probes)[0] == VOTES // 2 == 13
+
+# ---------------------------------------------------------------------------------------------
+# Job P0-15, carried from the P0-14 review. Item 1: a floor wound DOWNWARD (a reversed face, which
+# the engine will flip) still gets its probes, so the Validator sees it from inside.
+# ---------------------------------------------------------------------------------------------
+
+def test_a_reversed_floor_keeps_its_probes_and_they_see_it_from_behind():
+    room = _flipped(closed_room(), [0, 1])                    # the inner floor now faces DOWN, into the void
+    assert np.allclose(face_normals(room)[0:2], [[0.0, 0.0, -1.0]] * 2)
+    probes = interior_probes(room)
+    inside = _inside_the_room(probes)
+    assert inside.sum() == 20 and len(probes) == 40, "the room's 20 and the roof's 20, as for the intact room"
+    assert (probes[inside, 2] == 63.0).all(), "1.6 m above the floor at z = 0, on the +z side of it"
+    s = face_samples(room, area_per_sample=500.0)
+    vs = visible_samples(room, s, _no_points(), _no_points(), probes[inside], build_caster(room))
+    walls = np.isin(s.face, np.arange(4, 12))
+    assert vs.seen[walls].all() and vs.front[walls].all(), "all 4 inner walls, from the front, from every probe"
+    floor = s.face < 2
+    assert vs.seen[floor].all() and not vs.front[floor].any(), "the reversed floor itself, from behind"
+
+
+def test_a_downward_face_is_ground_only_under_a_lid():
+    floor = _flipped(grid_slab(10, 10))                       # 100 x 100 in at z = 0, wound DOWN
+    assert interior_probes(floor).shape == (0, 3), "in the open it is an awning or a canopy, not a floor"
+    lid = _lifted(_flipped(grid_slab(10, 10)), 120.0)         # a ceiling 120 in above it, facing down
+    probes = interior_probes(_merged(floor, lid))
+    assert len(probes) == 9 and np.allclose(probes[:, 2], 63.0), "under a lid it is a reversed floor: 3 x 3"
+    assert not (probes[:, 2] > 120.0).any(), "and the lid's own top side, open to the sky, gets none"
+
+
+def test_a_floor_drawn_once_each_way_gets_one_probe_per_cell():
+    floor = grid_slab(10, 10)
+    lid = _lifted(_flipped(grid_slab(10, 10)), 120.0)
+    assert len(interior_probes(_merged(floor, lid))) == 9
+    both_ways = interior_probes(_merged(floor, _flipped(floor), lid))
+    assert len(both_ways) == 9, "the up layer and the down layer share every cell and height: one probe each"
+
+
+def test_a_downward_ceiling_of_a_solid_taller_than_the_headroom_adds_no_probe_inside_it():
+    floor = grid_slab(10, 10)                                           # 100 x 100 in at z = 0, faces +z
+    block = _wall(0.0, 100.0, 0.0, 100.0, 100.0, 400.0)                 # a closed solid, 300 in thick, 100 in up
+    m = _merged(floor, block)
+    assert np.allclose(face_normals(m)[floor.n_faces:floor.n_faces + 2], [[0.0, 0.0, -1.0]] * 2), \
+        "premise: the block's bottom is wound downward, like a true ceiling"
+    # premise: from half an inch above that bottom the headroom ray runs up INSIDE the block to its top
+    _, t = build_caster(m).first_hit(np.array([[50.0, 50.0, 100.5]]), np.array([[0.0, 0.0, 1.0]]))
+    assert t[0] > 83.0
+    probes = interior_probes(m)
+    assert not _in_the_box(probes, (0.0, 0.0, 100.0), (100.0, 100.0, 400.0)).any()
+    assert len(probes) == 18, "9 on the floor under it and 9 on the block's top, none from its bottom"
+
+
+# ---------------------------------------------------------------------------------------------
+# Item 6: the limits the `interior_probes` docstring names are the measured ones
+# ---------------------------------------------------------------------------------------------
+
+def test_the_limits_named_in_the_interior_probes_docstring_are_the_measured_ones():
+    def kept(*reversed_faces):
+        return int(_inside_the_room(interior_probes(_flipped(closed_room(), list(reversed_faces)))).sum())
+
+    assert kept(2, 3) == 20, "one reversed ceiling alone costs nothing"
+    assert kept(2, 3, 6, 7) == 18, "the reversed ceiling and the wall x = 200"
+    assert kept(2, 3, 6, 7, 10, 11) == 13, "the reversed ceiling and the walls x = 200 and x = 0"
+    assert kept(0, 1) == 20, "a reversed floor alone is fine (item 1)"
+    assert kept(0, 1, 2, 3) == 20, "so are a reversed floor and ceiling together: the walls still face the room"
+    assert kept(*range(12)) == 0, "every inner face reversed: the room reads as the inside of a solid"
