@@ -353,3 +353,11 @@ exit=1
   - 6 Minors: dead reason_all, a test point inside the sliver, docstring, the targets path, the winprobe peak helper, the evidence hash colour near purple.
   - Verified: 109 passed; mutants killed; sidewalk A identity PASS (143 s) and 5-deleted FAIL (2 sites).
   - Fix round 1 sent to the implementer: merge feat/repair-p0 first. Ruling on Important 2: an unknown look is read from the snapshot's MTL/PNG and noted, never skipped. Ruling on Important 3: also replay cover from the best probe.
+- P1-S3 code review (hermes-reviewer, sonnet): MERGE-SAFE for the census.
+  - Exact on 600 random and 360 rectangle scenes and all 87 units; the 142,234-face unit runs in 63.6 s at a 1.79 GB peak.
+  - Important: last-bit tie flips at depth_tol (9/150 synthetic; 0 on real data, 18 pairs within 1e-9, both reject). The report overclaims.
+  - Memory culprits: a Python pair set (10.76 M pairs, ~0.88 GB), a dict grid (6 M entries), one face spanning 56,166 cells.
+  - review --pass; merged into feat/repair-p0 (23bfb34); 70 tests pass after the merge.
+  - The controller's corrections were appended to P1-S3-report.md (13c0c1c).
+  - P1-S3b brief and queue entry: numpy index with canonical-cell pairs, big-face list, blocks, tie re-check, chunked pixels. Acceptance without the slow tracemalloc pass: digests compared with the controller's old digests.
+- Census Step 5 launched (claude): all 85 units from feat/repair-p0 at 13c0c1c (S1 + S1b + S3 inside), --jobs 2 (free commit 9.6 GB), timeout 1,800 s. Outputs: data/campus/census.json, data/campus/errors/, and census.md in the repair-p0 worktree.
