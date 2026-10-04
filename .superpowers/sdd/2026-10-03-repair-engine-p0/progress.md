@@ -220,3 +220,9 @@ Spec: docs/superpowers/specs/2026-10-03-uc-repair-engine-design.md (2a748d4, app
   - Ruling: fix before review (a correctness concern) with a majority back-face filter over 26 rays per candidate. A reversed ceiling then keeps its probes, because only the up ray sees a back face. Fix round 0 sent with tests (a)-(d) and a measurement. Costs one round if wrong.
   - Ruling: roof and terrace probes are kept (stricter is safe).
   - Concerns 3-12 carried to P0-15: the E5/E4 allowed-change class for the inward copy, the best-conditioned viewpoint, chunked casting, probes from BEFORE reused for AFTER.
+- P0-10 task review (rules-reviewer, opus): CHANGES. Spec ✅, rules ✅.
+  - Outputs verified: z_range parts partition MAIN_BUILDING and Main_Infra exactly; the md is byte-identical; the JSON is equal.
+  - Important 1: 4 rules untested (slab window, lowest base, 100 in storey collapse, look key in the fingerprint).
+  - Important 2: KeyError at inventory.py:543 for an element in band 0 below every floor.
+  - 5 Minors: the missing flag attaches to every unit of a group; chained 0.5 in identity (a 1.17 in cluster) and its wording; the footprint second condition not stated in the md; member sha256 copied, not hashed; SITE pairs never compared.
+  - Fix round 1 sent to the implementer (resumed) with all findings.
