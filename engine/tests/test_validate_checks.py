@@ -845,9 +845,21 @@ def test_barycentric_weights_on_a_thousand_to_one_sliver_are_exact():
     for w in ([1 / 6, 2 / 3, 1 / 6], [2 / 3, 1 / 6, 1 / 6], [1 / 6, 1 / 6, 2 / 3], [0.5, 0.25, 0.25]):
         q = (np.array(w) @ SLIVER)[None]
         assert np.abs(_barycentric(SLIVER, face, q)[0] - w).max() < 1e-9, w
-    # a point beside the sliver is outside it, however thin: by a hundredth of its width, not by 1e-4 of its length
-    off = (np.array([0.5, 0.25, 0.25]) @ SLIVER)[None] + [0.0, 0.0, 0.0]
-    assert _barycentric(SLIVER, face, off)[0].min() > 0.0
+    # a point INSIDE has three positive weights; a point just BESIDE the long edge A-B, away from C, has a negative
+    # weight for C: by a hundredth of the sliver's width that is -0.01, not off by 1e-4 of its length
+    inside = (np.array([0.5, 0.25, 0.25]) @ SLIVER)[None]
+    assert _barycentric(SLIVER, face, inside)[0].min() > 0.2
+    along = SLIVER[1] - SLIVER[0]
+    side = np.array([-along[1], along[0], 0.0]) / np.linalg.norm(along)
+    if side @ (SLIVER[2] - SLIVER[0]) > 0.0:
+        side = -side                                              # pointing away from C
+    width = 1.0 / np.linalg.norm(along)                           # C's distance from A-B: 2 x area / |A-B|
+    on_edge = (0.5 * SLIVER[0] + 0.5 * SLIVER[1])[None]
+    for fraction in (0.01, 0.6):
+        beside = on_edge + side * fraction * width
+        weights = _barycentric(SLIVER, face, beside)[0]
+        assert weights[2] == pytest.approx(-fraction, abs=1e-6) and weights.sum() == pytest.approx(1.0), fraction
+        assert weights.min() < 0.0, "outside the sliver"
 
 
 def test_identity_holds_on_a_sliver_whose_uvs_run_30_units_along_its_length():
