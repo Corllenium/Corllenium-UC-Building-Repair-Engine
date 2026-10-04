@@ -37,7 +37,7 @@ Results must stay exactly the oracle's. Spec §5.
 ### Item 2 — the exact tie re-check, and guard bands
 - Re-evaluate, with the oracle's own expressions (`@`), every candidate whose separation lies within 1e-9 of `depth_tol`,
   whose `|n·m|` lies within 1e-12 of `PLANE_PARALLEL_DOT`, or whose box area lies within 1e-9 of `min_area`.
-- **Test:** the reviewer's tie scene, `tie_repro.py` in the review notes (two skew-plane faces exactly `depth_tol` apart),
+- **Test:** the reviewer's tie scene, `D:/PROJECTS/UC MODEL FIXER/data/s3_check/tie_repro.py` (two skew-plane faces exactly `depth_tol` apart),
   equals the oracle.
 
 ### Item 3 — the pixel stage really bounded
