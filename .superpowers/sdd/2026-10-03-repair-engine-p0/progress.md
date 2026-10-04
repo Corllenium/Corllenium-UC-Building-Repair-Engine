@@ -335,3 +335,15 @@ FAILED engine/tests/test_campus_census.py::test_flicker_split_missing_map_or_mat
 ============================= 1 failed in 14.51s ==============================
 exit=1
 ```
+- P0-15 implementer: DONE_WITH_CONCERNS (10 commits to ef23d13).
+  - 109 validate tests; engine 945 + 1 xfail.
+  - Identity on CHTM 5th at the owner's density: PASS (275,918 visible samples, 0 failures, 634 s, 580 MB).
+  - A damaged CHTM 5th FAILs with 11 evidence sites.
+  - Identity sweeps on 84/87 snapshots: 0 failures after the barycentric (area-ratio) fix.
+  - Rulings in task-15-report.md:
+    - the lid rule for reversed floors is accepted;
+    - per-sample check 3 is accepted (stricter);
+    - the targets.json shape goes to P0-13;
+    - speed (10.6 min per floor) is noted for P3;
+    - the winprobe vs private helper question goes to the review.
+  - Task review dispatched (rules-reviewer, opus) on review-7211b82..ef23d13.diff.
