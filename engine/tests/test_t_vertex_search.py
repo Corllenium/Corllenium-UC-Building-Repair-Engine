@@ -281,3 +281,29 @@ def test_bounded_pairs_peak_matches_oracle():
     assert 0 < stats_chunked["pairs_peak"] <= 1000
     assert stats_default["pairs_peak"] <= 1_000_000
 
+
+def test_long_diagonal_edge_uses_full_scan_fallback():
+    """An edge whose bounding box would visit more cells than candidate vertices
+    falls back to testing all candidates directly, matching the reference oracle."""
+    P, F = _scene_raw(0, n_walls=4, depth=5)
+    min_p = P.min(axis=0)
+    max_p = P.max(axis=0)
+    b = len(P)
+    diag_triangle = np.array([
+        [min_p[0], min_p[1], min_p[2]],
+        [max_p[0], max_p[1], max_p[2]],
+        [min_p[0], max_p[1], min_p[2] + 10.0],
+    ])
+    P_diag = np.vstack([P, diag_triangle])
+    F_diag = np.vstack([F, [[b, b + 1, b + 2]]])
+    Pw, fw, ok, table = _prepared(P_diag, F_diag)
+
+    stats = {}
+    ref = find_t_vertices_reference(Pw, table, TOL)
+    res = find_t_vertices(Pw, table, TOL, stats=stats)
+
+    assert _same(ref, res)
+    assert "full_scan_edges" in stats
+    assert stats["full_scan_edges"] >= 1
+
+

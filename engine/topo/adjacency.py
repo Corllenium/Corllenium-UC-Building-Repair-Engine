@@ -110,19 +110,38 @@ def find_t_vertices(positions_w: np.ndarray, table: EdgeTable, tol: float,
                     face_w: np.ndarray | None = None, degenerate: np.ndarray | None = None,
                     stats: dict | None = None,
                     *, chunk_pairs: int = 1_000_000) -> dict[int, np.ndarray]:
+    """Find T-vertices on mesh edges using a spatial grid hash.
+
+    For each edge in `table`, finds candidate vertices whose perpendicular distance
+    to the open segment is at most `tol`, with parameter strictly between 0 and 1.
+    Evaluates candidate pairs in chunks of at most `chunk_pairs` to keep memory bounded.
+
+    Parameters:
+        positions_w: (V_all, 3) float array of welded vertex positions.
+        table: EdgeTable containing unique edges and connectivity.
+        tol: Distance tolerance for perpendicular proximity.
+        face_w: Optional welded face vertex indices for hint recovery.
+        degenerate: Optional boolean mask of degenerate faces for hint recovery.
+        stats: Optional dict populated with search statistics:
+            - "pairs_tested": total (edge, candidate) pairs evaluated.
+            - "pairs_peak": peak number of pairs held in memory simultaneously.
+            - "full_scan_edges": count of edges falling back to scanning all candidates.
+        chunk_pairs: Maximum number of (edge, candidate) pairs held and evaluated at once
+            (keyword-only, default 1,000,000).
+
+    Returns:
+        Dict mapping edge index `e` to an int64 array of T-vertex indices ordered
+        along the edge from `table.edges[e, 0]` to `table.edges[e, 1]`.
+    """
     n_edges = len(table.edges)
     if n_edges == 0:
         if stats is not None:
             stats["pairs_tested"] = 0
             stats["pairs_peak"] = 0
+            stats["full_scan_edges"] = 0
         return {}
 
     cand = np.unique(table.edges)
-    if len(cand) == 0:
-        if stats is not None:
-            stats["pairs_tested"] = 0
-            stats["pairs_peak"] = 0
-        return {}
     V = len(cand)
 
     p_a = positions_w[table.edges[:, 0]]
@@ -162,6 +181,7 @@ def find_t_vertices(positions_w: np.ndarray, table: EdgeTable, tol: float,
     hits: dict[int, set[int]] = {}
     pairs_tested = 0
     pairs_peak = 0
+    full_scan_edges = 0
 
     def eval_chunk(count: int) -> None:
         nonlocal pairs_tested, pairs_peak
@@ -220,9 +240,16 @@ def find_t_vertices(positions_w: np.ndarray, table: EdgeTable, tol: float,
                 else:
                     hits[e_val] = {v_val}
 
+    all_cand_indices = np.arange(V, dtype=np.int64)
+
     for e_idx, (x0, y0, z0, x1, y1, z1) in enumerate(zip(c_min0, c_min1, c_min2, c_max0, c_max1, c_max2)):
         x0, y0, z0, x1, y1, z1 = int(x0), int(y0), int(z0), int(x1), int(y1), int(z1)
-        if x0 == x1 and y0 == y1 and z0 == z1:
+        n_cells = (x1 - x0 + 1) * (y1 - y0 + 1) * (z1 - z0 + 1)
+        if n_cells > V:
+            full_scan_edges += 1
+            e_cands = all_cand_indices
+            k = V
+        elif x0 == x1 and y0 == y1 and z0 == z1:
             vs = grid.get((x0, y0, z0))
             if vs is None:
                 continue
@@ -274,6 +301,7 @@ def find_t_vertices(positions_w: np.ndarray, table: EdgeTable, tol: float,
     if stats is not None:
         stats["pairs_tested"] = int(pairs_tested)
         stats["pairs_peak"] = int(pairs_peak)
+        stats["full_scan_edges"] = int(full_scan_edges)
 
     if face_w is not None and degenerate is not None and degenerate.any():
         for e, verts in _t_vertex_hints(positions_w, table, face_w, degenerate, tol).items():
