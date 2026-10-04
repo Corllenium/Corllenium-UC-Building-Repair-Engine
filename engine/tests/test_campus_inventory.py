@@ -46,10 +46,11 @@ def mesh_of(name, pieces, material="m0", decimals=2):
 
 
 def group(name, *pieces, **kw):
-    """A GroupData for the inventory from boxes (default look "look0")."""
+    """A GroupData for the inventory from boxes (default material "m0", look "look0")."""
+    material = kw.pop("material", "m0")
     looks = kw.pop("looks", {"m0": "look0"})
-    return inv.load_group(name, mesh_of(name, pieces, decimals=kw.pop("decimals", 2)), looks=looks,
-                          paths=kw.pop("paths", [0]), sha256=kw.pop("sha256", "sha-" + name), **kw)
+    return inv.load_group(name, mesh_of(name, pieces, material=material, decimals=kw.pop("decimals", 2)),
+                          looks=looks, paths=kw.pop("paths", [0]), sha256=kw.pop("sha256", "sha-" + name), **kw)
 
 
 # ------------------------------------------------------------------------------------------ the brief's tests
@@ -384,3 +385,62 @@ def test_the_table_lists_shared_levels_next_to_the_other_flags():
     text = inv.render_markdown(inv.build_inventory(stack("CHTM", ["1st", "2nd", "3rd"]) + [columns]))
     assert "### Levels shared by groups named for different floors" in text
     assert "| CHTM | L03 | 3, 4 | CHTM_3rd_floor, CHTM_4th_floor |" in text
+
+
+# ------------------------------------------------------------------------------------------ the rules the real tables depend on
+# Each of these four was changed from the brief because the real CHECKPOINT-17 data needed it (the review of
+# P0-10 found that undoing any one of them left the suite green).
+
+def stack_of(thickness, bottoms=(0, 200, 400), prefix="CHTM"):
+    return [group(f"{prefix}_{n}_floor", slab(z, thickness=thickness))
+            for n, z in zip(("1st", "2nd", "3rd", "4th"), bottoms)]
+
+
+@pytest.mark.parametrize("thickness", [19.7, 39.4, 54.0])
+def test_slabs_as_thick_as_ckpt17_has_them_make_levels(thickness):
+    # half a block (19.7 in), a block (39.4 in: BRS, CHTM, EDS ...) and Science A plan_4's 54 in
+    levels = inv.build_inventory(stack_of(thickness))["buildings"]["CHTM"]["levels"]
+    assert [lv["base"] for lv in levels] == pytest.approx([0, 200, 400], abs=0.5)
+    assert [lv["slab"]["top"] for lv in levels] == pytest.approx([thickness, 200 + thickness, 400 + thickness], abs=0.5)
+
+
+def test_the_briefs_24_in_window_finds_no_slab_in_a_stack_of_block_thick_slabs():
+    # why the default is 60: a slab bottom must be found up to a slab's thickness below its top
+    assert len(inv.build_inventory(stack_of(39.4), inv.BRIEF_PARAMS)["buildings"]["CHTM"]["levels"]) == 1
+    assert len(inv.build_inventory(stack_of(39.4))["buildings"]["CHTM"]["levels"]) == 3
+
+
+def test_a_slab_with_a_second_underside_30_in_up_takes_the_lowest_underside_as_its_base():
+    # BRS 5th floor and EDS 3rd floor: part of the slab's underside sits 30 in above the real bottom, with more
+    # area than the real bottom has; the groups start at the lower one
+    stepped = group("CHTM_2nd_floor", slab(200, thickness=39.4), box(200, 0, 230, 300, 150, 239.4))
+    groups = [group("CHTM_1st_floor", slab(0, thickness=39.4)), stepped, group("CHTM_3rd_floor", slab(400, thickness=39.4))]
+    levels = inv.build_inventory(groups)["buildings"]["CHTM"]["levels"]
+    assert [lv["base"] for lv in levels] == pytest.approx([0, 200, 400], abs=0.5)
+    assert levels[1]["slab"]["top"] == pytest.approx(239.4, abs=0.5)
+
+
+def test_slab_pairs_39_in_apart_collapse_into_one_level_but_a_157_in_storey_stays_two():
+    # Architecture's terraces step up every 39 in; the shortest real storey in CKPT17 is 157.5 in
+    terraces = group("CHTM_1st_floor", box(0, 0, 0, 100, 100, 39), box(200, 0, 39, 300, 100, 78),
+                     box(400, 0, 78, 500, 100, 117))
+    groups = [terraces, group("CHTM_2nd_floor", slab(200)), group("CHTM_3rd_floor", slab(357.5))]
+    result = inv.build_inventory(groups)
+    levels = result["buildings"]["CHTM"]["levels"]
+    assert [lv["level"] for lv in levels] == ["L01", "L02", "L03"]
+    assert [lv["base"] for lv in levels] == pytest.approx([0, 200, 357.5], abs=0.5)
+    assert result["proposals"] == []                       # the terraces are one floor group, not a split
+
+
+def test_the_same_geometry_in_two_different_looks_is_not_a_duplicate():
+    a = group("PE_1st_floor", strip(100), material="m0", looks={"m0": "look0"})
+    b = group("PE_1st_floor_obj1", strip(100), material="m1", looks={"m1": "look1"})
+    assert duplicates(a, b) == []
+
+
+def test_two_material_names_with_one_look_key_are_one_look():
+    # the fingerprint uses the look key from materials.json, never the material name or number
+    a = group("PE_1st_floor", strip(100), material="m0", looks={"m0": "look0"})
+    b = group("PE_1st_floor_obj1", strip(100), material="m7", looks={"m7": "look0"})
+    (flag,) = duplicates(a, b)
+    assert flag["jaccard"] == 1.0 and flag["match"] == "exact"
