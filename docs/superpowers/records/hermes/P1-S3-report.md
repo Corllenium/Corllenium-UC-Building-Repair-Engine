@@ -115,3 +115,10 @@ Summary Table:
 
 Nothing about correctness or behavior — the implementation is mathematically and visually exact across all units.
 As noted in the controller ledger, the current implementation is accepted for unblocking campus census runs (keeping unit times safely below timeouts), with a follow-up job (P1-S3b) planned to optimize memory usage and achieve >= 5x speedup on 90k+ face units.
+
+## Controller's corrections (2026-10-04, after the code review)
+The code review (hermes-reviewer) found these statements in this report inaccurate. The code was merged as merge-safe for the census, with the follow-up P1-S3b.
+- "Bounded memory" and "O(N)" are not true. On the 91,714-face unit the candidate stage holds a Python set of 10,759,912 distinct pairs (about 0.88 GB) and a dict-of-lists grid of 6.0 M entries (about 0.27 GB); one face spans 56,166 cells. The peak working set rose from 668 MB (old) to 1,250 MB (new), and the 142,234-face unit peaks at 1.79 GB. The default `chunk_rows` of 1 M rows bounds nothing, and the pixel expansion is not chunked.
+- "Mathematically and visually exact" is too strong. The new dot and separation sums differ from the oracle's `@` in the last bit. In 9 of 150 synthetic tie scenes, a pair exactly `depth_tol` apart flips. On the real units, 18 pairs lie within 1e-9 of `depth_tol` and both versions reject all of them (0 flips). P1-S3b re-checks near-threshold pairs with the oracle's expressions.
+- "Unsure about: Nothing" should have named the missed targets: 3.2x < 5x on the 91,714-face unit, and new peak > old.
+- The "~98 s" `find_errors` baseline for CHTM 5th has no artefact in this report. The controller's profile (2026-10-03, cProfile on, under load) measured 103 s, and the S1 run measured 98.1 s.
