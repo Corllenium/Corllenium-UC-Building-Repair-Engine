@@ -32,6 +32,7 @@ from pathlib import Path
 import numpy as np
 
 from engine.io.obj_reader import read_obj
+from engine.io.snapshot import sha256_file
 from engine.model import MeshData
 
 # The brief's prefix table, verbatim. A name belongs to the building whose prefix it starts with, followed
@@ -740,7 +741,10 @@ def render_markdown(inv: dict) -> str:
     out = ["# Campus map draft (P0-10): buildings, levels and units for the owner to confirm", "",
            f"Built by `python -m engine.cli campus-inventory` from the frozen CHECKPOINT-17 split snapshots "
            f"({cov['groups']} files, {cov['tris']:,} triangles; clean OBJ sha256 "
-           f"`{str(src.get('clean_obj_sha256'))[:16]}`). **Nothing here is confirmed:** every unit has "
+           f"`{str(src.get('clean_obj_sha256'))[:16]}`"
+           + ("; each snapshot file was re-hashed and matches the sha256 in source.json" if src.get("snapshots_verified")
+              else "") +
+           "). **Nothing here is confirmed:** every unit has "
            "`confirmed_by_owner: false`. The machine-readable twin is `data/campus/campus_map.draft.json` "
            "(git-ignored; the command regenerates it). Heights are inches, Z up.", "",
            "## What you confirm", "",
@@ -882,7 +886,12 @@ def load_groups(source: dict, index: dict, materials: dict) -> list[GroupData]:
     looks = {name: m["look"] for name, m in materials["materials"].items()}
     groups = []
     for s in source["snapshots"]:
-        mesh = read_obj(Path(s["dir"]) / s["file"])
+        path = Path(s["dir"]) / s["file"]
+        actual = sha256_file(path)
+        if actual != s["sha256"]:
+            raise ValueError(f"{s['group']}: sha256 of {path} is {actual[:16]}..., source.json says "
+                             f"{s['sha256'][:16]}...: the snapshot is not the frozen file, refusing to inventory it")
+        mesh = read_obj(path)
         want = split[s["group"]]["tris"]
         if not (mesh.n_faces == s["tris"] == want):
             raise ValueError(f"{s['group']}: the snapshot has {mesh.n_faces} triangles, source.json says "
@@ -909,7 +918,8 @@ def cmd_campus_inventory(source_json, index_json, materials_json, out_json, out_
     result = build_inventory(groups, params)
     result["source"] = {"source_json": str(source_json), "frozen": source.get("created"),
                         "clean_obj_sha256": (source.get("clean_obj") or {}).get("sha256"),
-                        "splits": len(groups), "tris": sum(g.tris for g in groups)}
+                        "splits": len(groups), "tris": sum(g.tris for g in groups),
+                        "snapshots_verified": True}      # load_groups re-hashed every file and would have refused
     result["brief_levels"] = levels_with(groups, BRIEF_PARAMS)
     if not result["coverage"]["ok"]:
         raise RuntimeError(f"coverage check failed: {result['coverage']}")

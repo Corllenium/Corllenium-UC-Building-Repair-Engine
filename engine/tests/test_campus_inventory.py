@@ -304,14 +304,17 @@ def write_obj(path, *pieces):
 
 
 def tiny_campus(tmp_path, tris_in_index=None):
-    """Three CHTM floors named 2nd, 3rd, 4th (so L01 is missing) as split snapshots plus the three JSON inputs."""
+    """Three CHTM floors named 2nd, 3rd, 4th (so L01 is missing) as split snapshots plus the three JSON inputs;
+    source.json carries each snapshot's real sha256."""
     import json
+    from engine.io.snapshot import sha256_file
     snaps, split = [], {}
     for k, (name, z) in enumerate((("CHTM_2nd_floor", 0), ("CHTM_3rd_floor", 200), ("CHTM_4th_floor", 400))):
         d = tmp_path / "snaps" / f"s{k}"
         d.mkdir(parents=True)
         write_obj(d / f"{name}.obj", slab(z))
-        snaps.append({"file": f"{name}.obj", "group": name, "tris": 12, "dir": str(d), "sha256": f"sha{k}"})
+        snaps.append({"file": f"{name}.obj", "group": name, "tris": 12, "dir": str(d),
+                      "sha256": sha256_file(d / f"{name}.obj")})
         split[name] = {"tris": (tris_in_index or {}).get(name, 12), "paths": [k, k + 10]}
     src = tmp_path / "source.json"
     src.write_text(json.dumps({"created": "t", "snapshots": snaps, "clean_obj": {"sha256": "abc"}}), encoding="utf-8")
@@ -333,8 +336,9 @@ def test_the_cli_writes_the_draft_json_and_the_owner_readable_table(tmp_path, ca
     data = json.loads(out.read_text(encoding="utf-8"))
     assert [u["unit"] for u in data["units"]] == ["CHTM-L02", "CHTM-L03", "CHTM-L04"]
     u = data["units"][1]
-    assert u["members"] == [{"group": "CHTM_3rd_floor", "paths": [1, 11], "sha256": "sha1", "file": "CHTM_3rd_floor.obj",
-                             "tris": 12, "faces": "all"}]
+    from engine.io.snapshot import sha256_file
+    assert u["members"] == [{"group": "CHTM_3rd_floor", "paths": [1, 11], "file": "CHTM_3rd_floor.obj", "tris": 12,
+                             "sha256": sha256_file(tmp_path / "snaps" / "s1" / "CHTM_3rd_floor.obj"), "faces": "all"}]
     assert (u["tris"], u["type"], u["level"], u["confirmed_by_owner"]) == (12, "floor", "L03", False)
     assert u["base"] == pytest.approx(200, abs=0.5) and u["slab"]["top"] == pytest.approx(210, abs=0.5)
     assert data["coverage"]["ok"] is True and data["source"]["splits"] == 3 and data["source"]["clean_obj_sha256"] == "abc"
@@ -352,6 +356,26 @@ def test_the_cli_refuses_a_snapshot_whose_triangle_count_differs_from_the_index(
         main(["campus-inventory", "--source", str(src), "--index", str(idx), "--materials", str(mat),
               "--out", str(tmp_path / "o.json"), "--md", str(tmp_path / "o.md")])
     assert not (tmp_path / "o.json").exists()
+
+
+def test_the_cli_refuses_a_snapshot_whose_bytes_are_not_the_sha256_in_source_json(tmp_path):
+    from engine.cli import main
+    src, idx, mat = tiny_campus(tmp_path)
+    # same triangle count, one vertex moved: only the hash can tell
+    write_obj(tmp_path / "snaps" / "s1" / "CHTM_3rd_floor.obj", slab(201))
+    with pytest.raises(ValueError, match=r"CHTM_3rd_floor.*sha256"):
+        main(["campus-inventory", "--source", str(src), "--index", str(idx), "--materials", str(mat),
+              "--out", str(tmp_path / "o.json"), "--md", str(tmp_path / "o.md")])
+    assert not (tmp_path / "o.json").exists() and not (tmp_path / "o.md").exists()
+
+
+def test_the_table_says_every_snapshot_was_hashed_against_source_json(tmp_path):
+    from engine.cli import main
+    src, idx, mat = tiny_campus(tmp_path)
+    md = tmp_path / "rec.md"
+    main(["campus-inventory", "--source", str(src), "--index", str(idx), "--materials", str(mat),
+          "--out", str(tmp_path / "o.json"), "--md", str(md)])
+    assert "each snapshot file was re-hashed and matches the sha256 in source.json" in md.read_text(encoding="utf-8")
 
 
 def test_the_lowest_base_and_the_highest_top_are_the_lowest_and_highest_vertex_not_a_face_centre():
