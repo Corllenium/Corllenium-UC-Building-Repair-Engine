@@ -290,6 +290,11 @@ def find_t_vertices(positions_w: np.ndarray, table: EdgeTable, tol: float,
                         eval_chunk(sk)
                     continue
 
+                if k > len(buf_e):
+                    new_size = min(chunk_pairs, max(k, len(buf_e) * 2))
+                    buf_e.resize(new_size, refcheck=False)
+                    buf_v.resize(new_size, refcheck=False)
+
         buf_e[buf_pos : buf_pos + k] = e_idx
         buf_v[buf_pos : buf_pos + k] = e_cands
         buf_pos += k

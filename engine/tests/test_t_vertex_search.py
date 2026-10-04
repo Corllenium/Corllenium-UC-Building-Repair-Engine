@@ -307,3 +307,27 @@ def test_long_diagonal_edge_uses_full_scan_fallback():
     assert stats["full_scan_edges"] >= 1
 
 
+def test_grid_scene_buffer_resize_after_flush():
+    """A 270x270 grid (V=72,900) plus one long diagonal with chunk_pairs=80_000
+    resizes the buffer when a single edge's candidates exceed initial buffer capacity (65,536)
+    after a buffer flush."""
+    nx, ny = 270, 270
+    x, y = np.meshgrid(np.arange(nx, dtype=np.float64), np.arange(ny, dtype=np.float64))
+    P = np.column_stack([x.ravel(), y.ravel(), np.zeros(nx * ny, dtype=np.float64)])
+
+    i, j = np.meshgrid(np.arange(nx - 1), np.arange(ny - 1))
+    idx = j * nx + i
+    t1 = np.stack([idx, idx + 1, idx + 1 + nx], axis=-1).reshape(-1, 3)
+    t2 = np.stack([idx, idx + 1 + nx, idx + nx], axis=-1).reshape(-1, 3)
+    F = np.vstack([t1, t2])
+
+    F_diag = np.vstack([F, [[2000, 72899, 72898]]])
+    table = build_edge_table(F_diag, np.ones(len(F_diag), dtype=bool))
+
+    stats = {}
+    res = find_t_vertices(P, table, TOL, stats=stats, chunk_pairs=80_000)
+    assert isinstance(res, dict)
+    assert stats["pairs_tested"] > 0
+
+
+
