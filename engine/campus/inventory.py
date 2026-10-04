@@ -76,6 +76,8 @@ class InventoryParams:
     # duplicates
     dup_flag: float = 0.25            # flag a Jaccard similarity of at least 0.25 (the brief)
     match_tol_in: float = 0.5         # brief: the print step. The CKPT17 copies sit 0.03-0.4 in off (identity only)
+    # footprints
+    footprint_frac: float = 0.5       # "mostly" in another building: more than half the group's box (the brief)
 
 
 BRIEF_PARAMS = InventoryParams(slab_window_in=24.0, base_pick="nearest", min_storey_in=20.0, match_tol_in=0.0)
@@ -425,6 +427,56 @@ def duplicate_flags(groups: list[GroupData], p: InventoryParams) -> list[dict]:
     return out
 
 
+# ------------------------------------------------------------------------------------------ footprints
+
+def _union_overlap(rect: tuple[float, float, float, float], others: list[tuple[float, float, float, float]]) -> float:
+    """Area of `rect` that lies inside the union of the rectangles `others` (coordinate compression)."""
+    x0, y0, x1, y1 = rect
+    clipped = [(max(x0, a), max(y0, b), min(x1, c), min(y1, d)) for a, b, c, d in others]
+    clipped = [r for r in clipped if r[0] < r[2] and r[1] < r[3]]
+    if not clipped:
+        return 0.0
+    xs = sorted({r[0] for r in clipped} | {r[2] for r in clipped})
+    area = 0.0
+    for xa, xb in zip(xs, xs[1:]):
+        length, reach = 0.0, None
+        for ya, yb in sorted((r[1], r[3]) for r in clipped if r[0] <= xa and r[2] >= xb):
+            if reach is None or ya > reach:
+                length += yb - ya
+                reach = yb
+            elif yb > reach:
+                length += yb - reach
+                reach = yb
+        area += length * (xb - xa)
+    return area
+
+
+def footprint_flags(by_building: dict[str, list[GroupData]], p: InventoryParams) -> list[dict]:
+    """Groups whose footprint (XY bounding box) lies mostly in another building's footprint (the union of
+    that building's group boxes), and more in it than in the rest of their own building."""
+    rect = {g.name: (float(g.bbox[0][0]), float(g.bbox[0][1]), float(g.bbox[1][0]), float(g.bbox[1][1]))
+            for gs in by_building.values() for g in gs}
+    out = []
+    for name, groups in by_building.items():
+        if name == SITE:
+            continue
+        for g in groups:
+            r = rect[g.name]
+            area = (r[2] - r[0]) * (r[3] - r[1])
+            if area <= 0:
+                continue
+            own = _union_overlap(r, [rect[o.name] for o in groups if o is not g]) / area
+            best, other = max(((_union_overlap(r, [rect[o.name] for o in gs]) / area, b)
+                               for b, gs in by_building.items() if b not in (name, SITE)), default=(0.0, None))
+            if other is None or best < p.footprint_frac or best <= own:
+                continue
+            out.append({"kind": "footprint", "building": name, "group": g.name, "other": other,
+                        "fraction_other": round(best, 4), "fraction_own": round(own, 4),
+                        "text": f"{g.name} ({name}): {best * 100:.0f} % of its footprint lies in {other}, "
+                                f"{own * 100:.0f} % in the rest of {name}"})
+    return out
+
+
 # ------------------------------------------------------------------------------------------ units
 
 def _member(g: GroupData, faces: str, tris: int, z_range=None) -> dict:
@@ -536,8 +588,34 @@ def build_inventory(groups: list[GroupData], params: InventoryParams | None = No
         proposals += b_props
         flags += b_flags + duplicate_flags(plan.groups, p)
     units += [_site_unit(g) for g in sorted(by_building.get(SITE, []), key=lambda g: g.name)]
+    flags += footprint_flags(by_building, p)
     _attach_flags(units, flags)
-    return {"params": asdict(p), "buildings": buildings, "units": units, "proposals": proposals, "flags": flags}
+    return {"params": asdict(p), "buildings": buildings, "units": units, "proposals": proposals, "flags": flags,
+            "coverage": _coverage(groups, units, proposals)}
+
+
+def _coverage(groups: list[GroupData], units: list[dict], proposals: list[dict]) -> dict:
+    """The proof that every group is in exactly one unit, or in exactly one proposal whose parts hold all its
+    triangles."""
+    seen: dict[str, list[tuple[str, int]]] = {}
+    for u in units:
+        for m in u["members"]:
+            seen.setdefault(m["group"], []).append((m["faces"], m["tris"]))
+    proposed = {pr["group"] for pr in proposals}
+    whole = split = 0
+    ok = True
+    for g in groups:
+        rows = seen.get(g.name, [])
+        if g.name in proposed:
+            split += 1
+            ok &= len(rows) >= 2 and all(f.startswith("band ") for f, _ in rows) and sum(t for _, t in rows) == g.tris
+        else:
+            whole += 1
+            ok &= rows == [("all", g.tris)]
+    total = sum(g.tris for g in groups)
+    unit_tris = sum(u["tris"] for u in units)
+    return {"groups": len(groups), "whole": whole, "split": split, "tris": total, "unit_tris": unit_tris,
+            "ok": bool(ok and unit_tris == total)}
 
 
 def _attach_flags(units: list[dict], flags: list[dict]) -> None:

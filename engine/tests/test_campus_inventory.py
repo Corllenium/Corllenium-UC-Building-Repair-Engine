@@ -247,3 +247,43 @@ def test_a_building_whose_floors_start_above_the_first_has_its_first_level_missi
 
 def test_a_complete_stack_has_nothing_missing():
     assert flags_of(inv.build_inventory(stack("CHTM", ["1st", "2nd", "3rd"])), "missing") == []
+
+
+# ------------------------------------------------------------------------------------------ levels, footprints, coverage
+
+def test_a_group_below_the_first_slab_is_the_ground_level_and_the_first_slab_starts_the_second():
+    columns = group("BRS_1st_floor", box(0, 0, 0, 5, 5, 190), box(50, 50, 0, 55, 55, 190))   # no slab: just columns
+    groups = [columns] + [group(f"BRS_{n}_floor", slab(200 * (i + 1))) for i, n in enumerate(("2nd", "3rd"))]
+    levels = inv.build_inventory(groups)["buildings"]["BRS"]["levels"]
+    assert [lv["level"] for lv in levels] == ["L01", "L02", "L03"]
+    assert [lv["base"] for lv in levels] == pytest.approx([0, 200, 400], abs=0.5)
+    assert levels[0]["slab"] is None and levels[1]["slab"]["bottom"] == pytest.approx(200, abs=0.5)
+
+
+def test_a_slab_whose_band_no_group_occupies_is_not_a_level():
+    # a mezzanine plate inside the 2nd-floor group: 12 of its 144 triangles, so the band above it holds none
+    walls = [box(0, 0, 410 + 2 * i, 3, 3, 411 + 2 * i) for i in range(10)]
+    second = group("BRS_2nd_floor", slab(400), slab(600), *walls)
+    groups = [group("BRS_1st_floor", slab(0)), second, group("BRS_3rd_floor", slab(800))]
+    levels = inv.build_inventory(groups)["buildings"]["BRS"]["levels"]
+    assert [lv["base"] for lv in levels] == pytest.approx([0, 400, 800], abs=0.5)      # no level at 600
+
+
+def test_a_group_lying_mostly_inside_another_building_is_flagged():
+    # Science A's floors sit inside the big box of the infrastructure group; the infrastructure's "1st floor"
+    # lies exactly in Science A (CHECKPOINT-17: Main_Infrustructure_1st_floor)
+    sci = [group(f"Sciene_A_Floor_plan_{n}_obj", slab(200 * i, size=300)) for i, n in enumerate((1, 2))]
+    infra = group("Main_Infrustructure_Building", slab(0, size=880, x=-600, y=-600))     # box -600..280 covers 87 %
+    wrong = group("Main_Infrustructure_1st_floor", slab(0, size=300))
+    (flag,) = flags_of(inv.build_inventory(sci + [infra, wrong]), "footprint")
+    assert (flag["group"], flag["building"], flag["other"]) == ("Main_Infrustructure_1st_floor", "MAIN_INFRA", "SCIENCE_A")
+    assert flag["fraction_other"] == pytest.approx(1.0) and flag["fraction_own"] == pytest.approx((280 / 300) ** 2, abs=0.01)
+
+
+def test_every_group_lands_in_exactly_one_unit_or_proposal():
+    groups = (stack("CHTM", ["1st", "2nd"]) + [group("CHTM_two_floors", slab(0), slab(200)),
+                                               group("CHTM_main_stairs", box(0, 0, 10, 5, 5, 60), box(0, 0, 210, 5, 5, 260)),
+                                               group("Group124", slab(0))])
+    cov = inv.build_inventory(groups)["coverage"]
+    assert cov["groups"] == 5 and cov["whole"] == 4 and cov["split"] == 1
+    assert cov["tris"] == cov["unit_tris"] == sum(g.tris for g in groups) and cov["ok"] is True
