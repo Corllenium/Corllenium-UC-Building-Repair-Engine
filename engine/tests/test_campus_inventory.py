@@ -575,3 +575,8 @@ def test_the_table_states_both_conditions_of_the_footprint_flag():
     # the brief's condition, and the one added for CKPT17 (Science A sits inside the infrastructure box)
     assert text.count("more of its box lies there than in the rest of its own building") == 2   # the flag list and the method
     assert "more than half" in text
+
+
+def test_the_table_says_site_groups_are_compared_for_duplicates_too():
+    text = inv.render_markdown(inv.build_inventory(stack("CHTM", ["1st", "2nd"])))
+    assert "within each building and among the SITE groups" in text

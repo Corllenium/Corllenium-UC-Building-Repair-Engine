@@ -1,6 +1,6 @@
 # Campus map draft (P0-10): buildings, levels and units for the owner to confirm
 
-Built by `python -m engine.cli campus-inventory` from the frozen CHECKPOINT-17 split snapshots (85 files, 1,766,906 triangles; clean OBJ sha256 `c1020bcf41f0503f`). **Nothing here is confirmed:** every unit has `confirmed_by_owner: false`. The machine-readable twin is `data/campus/campus_map.draft.json` (git-ignored; the command regenerates it). Heights are inches, Z up.
+Built by `python -m engine.cli campus-inventory` from the frozen CHECKPOINT-17 split snapshots (85 files, 1,766,906 triangles; clean OBJ sha256 `c1020bcf41f0503f`; each snapshot file was re-hashed and matches the sha256 in source.json). **Nothing here is confirmed:** every unit has `confirmed_by_owner: false`. The machine-readable twin is `data/campus/campus_map.draft.json` (git-ignored; the command regenerates it). Heights are inches, Z up.
 
 ## What you confirm
 
@@ -224,6 +224,8 @@ Flags in total: duplicate 3, misnamed 2, missing 4, shared 2, footprint 3, split
 
 ### Footprints (a group whose box lies mostly in another building)
 
+Listed when more than half of the group's XY box lies in another building's footprint (the union of that building's group boxes) and more of its box lies there than in the rest of its own building. The second condition is an addition to the brief's rule: without it, a group that sits inside its own building and merely overlaps a neighbouring building's box is listed too.
+
 | Group | Named for | In its own building | In | That building's footprint |
 |---|---|---|---|---|
 | Main_Infrustructure_1st_floor | MAIN_INFRA | 97 % | SCIENCE_A | 100 % |
@@ -235,7 +237,7 @@ Flags in total: duplicate 3, misnamed 2, missing 4, shared 2, footprint 3, split
 1. **Level table**, per building: area histograms of up-facing (`n_z > 0.9`) and down-facing (`n_z < -0.9`) triangles over z in 1 in bins. A peak is a local maximum of at least 15 % of the largest; peaks within 20 in merge, the strongest staying. A slab is an up-facing peak (its top) with a down-facing peak (its bottom, the level's `base`) below it.
 2. **Bands and units**: a band runs from one base to the next; a face is in a band by its centre z. A group's *parts* are the fewest bands holding 80 % of its triangles. One part is a floor unit; several parts make an element unit when the name holds stair, bridge, roof, zone, shell, ground, pathway or road, and a split proposal otherwise. A band no floor group occupies is dropped. Groups without a building prefix are site units.
 3. **Numbering**: from the lowest band (L01), unless a strict majority of the named floor groups agree on a positive offset (Science A: floors 2 to 6), which then starts the numbers and leaves the lower levels missing.
-4. **Flags**: duplicates by fingerprint (a face is its three vertices sorted, its winding and its look key, so a back-to-back pair never matches); misnamed by the number in the name against the level; missing by the floor numbers the names skip; footprints by the XY boxes.
+4. **Flags**: duplicates by fingerprint, compared within each building and among the SITE groups (a face is its three vertices sorted, its winding and its look key, so a back-to-back pair never matches); misnamed by the number in the name against the level; missing by the floor numbers the names skip; footprints by the XY boxes: a group is flagged when more than half of its box lies in another building's footprint and more of its box lies there than in the rest of its own building (the second condition is an addition to the brief's rule).
 
 Constants where CHECKPOINT-17 showed the brief's value cannot work (measured on the frozen data):
 
@@ -244,6 +246,6 @@ Constants where CHECKPOINT-17 showed the brief's value cannot work (measured on 
 | slab bottom window | 24 in | 60 in | slabs are 19.7 in (half a block), 39.4 in (a block) or, for Science A plan_4, 54 in thick |
 | slab bottom pick | nearest down peak | lowest down peak in the window | stepped slabs have a second underside about 30 in above the real bottom (BRS 5th, EDS 3rd) |
 | levels closer than | 20 in (peak merge only) | 100 in | terraces and thin layers repeat every 39 in; the shortest storey measured is 157 in |
-| duplicate vertex identity | the print step | print step and 0.5 in | the obj1 copies sit 0.03 in (Science A) to 0.4 in (BRS 4th, 5th) off their originals, so nothing coincides at the print step |
+| duplicate vertex identity | the print step | print step and 0.5 in, chained | the obj1 copies sit 0.03 in (Science A) to 0.4 in (BRS 4th, 5th) off their originals, so nothing coincides at the print step. Vertices within 0.5 in of each other form one identity and identities chain, so one can reach further than 0.5 in: the largest spans 1.24 in (MAIN_INFRA), measured as the bounding-box diagonal of its vertices |
 
 Levels per building with the brief's constants (what the draft would otherwise have): ARCHITECTURE 4, BRS 3, CHTM 2, EDS 2, GYMNASIUM 3, MAIN 2, MAIN_INFRA 2, PE 5, SCIENCE_A 5.

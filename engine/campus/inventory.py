@@ -833,8 +833,9 @@ def render_markdown(inv: dict) -> str:
             "3. **Numbering**: from the lowest band (L01), unless a strict majority of the named floor groups "
             "agree on a positive offset (Science A: floors 2 to 6), which then starts the numbers and leaves the "
             "lower levels missing.",
-            "4. **Flags**: duplicates by fingerprint (a face is its three vertices sorted, its winding and its "
-            "look key, so a back-to-back pair never matches); misnamed by the number in the name against the "
+            "4. **Flags**: duplicates by fingerprint, compared within each building and among the SITE groups (a "
+            "face is its three vertices sorted, its winding and its look key, so a back-to-back pair never "
+            "matches); misnamed by the number in the name against the "
             "level; missing by the floor numbers the names skip; footprints by the XY boxes: a group is flagged when "
             "more than half of its box lies in another building's footprint and more of its box lies there than in "
             "the rest of its own building (the second condition is an addition to the brief's rule).", "",
