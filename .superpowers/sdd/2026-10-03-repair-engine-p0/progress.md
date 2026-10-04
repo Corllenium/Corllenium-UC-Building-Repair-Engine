@@ -284,3 +284,9 @@ Spec: docs/superpowers/specs/2026-10-03-uc-repair-engine-design.md (2a748d4, app
   - Left: _run_worker (census.py:313-325) falls back to the snapshot's materials.mtl and swallows errors, so a missing or empty --materials still reports ok.
   - Notes queued; Hermes fix round 2 launched.
 - P1-S1b fix round (Hermes a800430..6a63975, 1.24 USD): all 4 notes; the grid test reproduced the ValueError on 32c8a86; 38 passed; tvertex identical x3 (CHTM 5th 30.8x); engine 843 + 1 xfail. Scoped re-review dispatched (hermes-reviewer, sonnet) on review-32c8a86..6a63975.diff.
+- P1-S3 finish run stopped at the 2 h maximum (11:24-13:24). The code was committed (9e34d77: cell size, 2D box pre-filter, plane clustering), with no report.
+  - Cause: the acceptance script's tracemalloc pass on the OLD function for the 91,714-tri unit is far too slow -- Claude's script design.
+  - No orphaned processes: Hermes.exe 25944 is the owner's desktop app; 60092 is the P0-12 fix2 run.
+  - Ruling: the controller runs the acceptance itself (AGENTS.md §7.5 requires a controller re-run anyway): each double_layers call in its own process, peak working set via GetProcessMemoryInfo, equality by digest; Item 0 after-runs on 9e34d77 into data/s3_check/after2.
+  - The S3 before-baselines equal S1's independent before-baselines (237ddd85, e724822f, ebeea4ed).
+  - Then a short Hermes run writes the report and runs the full suite.
