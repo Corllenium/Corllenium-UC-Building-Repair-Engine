@@ -213,3 +213,10 @@ Spec: docs/superpowers/specs/2026-10-03-uc-repair-engine-design.md (2a748d4, app
     - the constants are accepted;
     - Main_Infra 7, CHTM L12 and the weak tables go to the owner via P0-13.
   - Task review dispatched (rules-reviewer, opus) on review-478326b..2a86b40.diff.
+- P0-14 implementer: DONE_WITH_CONCERNS (ce5aa37, 9e4d3a6, 8f8ffee, ecbcb30).
+  - 40 tests; engine 851 + 1 xfail; mutation-checked per rule; independence enforced by an AST import test.
+  - Smoke on sidewalk A and CHTM 5th: 1.25-2.4 M sample-viewpoint pairs/s.
+  - Concern 1: 181 of 1,577 CHTM 5th probes (11.5 %) sit inside walls; the headroom ray cannot tell air from a solid taller than 83 in.
+  - Ruling: fix before review (a correctness concern) with a majority back-face filter over 26 rays per candidate. A reversed ceiling then keeps its probes, because only the up ray sees a back face. Fix round 0 sent with tests (a)-(d) and a measurement. Costs one round if wrong.
+  - Ruling: roof and terrace probes are kept (stricter is safe).
+  - Concerns 3-12 carried to P0-15: the E5/E4 allowed-change class for the inward copy, the best-conditioned viewpoint, chunked casting, probes from BEFORE reused for AFTER.
