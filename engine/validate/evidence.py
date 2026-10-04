@@ -20,7 +20,7 @@ from pathlib import Path
 import numpy as np
 from PIL import Image
 
-from engine.validate.checks import Validation
+from engine.validate.checks import BACK_TINT, Validation
 from engine.validate.sampling import face_normals, used_bbox
 from engine.validate.visibility import build_caster
 
@@ -30,7 +30,6 @@ WORST = 20
 MIN_WINDOW = 36.0
 MAX_WINDOW = 400.0
 BACKGROUND = (236, 238, 241)
-BACK_TINT = (150, 60, 160)
 MARK = (255, 220, 0)
 _TICK = 8
 

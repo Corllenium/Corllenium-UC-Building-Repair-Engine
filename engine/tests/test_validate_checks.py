@@ -1199,3 +1199,25 @@ def test_winprobe_gives_the_peak_working_set_and_the_peak_commit_and_the_reader_
     monkeypatch.setattr(os, "name", "posix")
     assert winprobe.peak_memory_mb() == (None, None)
     assert winprobe.get_process_peak_memory_mb() == 0.0 and skp_reader._peak_memory_mb() == (None, None)
+
+
+# ---------------------------------------------------------------------------------------------
+# Fix round 1, minor 9: the stand-in colour of a look nobody knows must not look like a face seen from behind
+# ---------------------------------------------------------------------------------------------
+
+def test_the_colour_of_a_look_nobody_knows_is_never_near_the_purple_of_a_face_seen_from_behind():
+    import colorsys
+    looks = Looks(key={})
+    tint = np.array(BACK_TINT, dtype=float)
+    tint_hue = colorsys.rgb_to_hsv(*(tint / 255.0))[0]
+    colours = set()
+    for i in range(3000):
+        colour = looks.colour_of(f"unknown:material-{i}")
+        assert colour == looks.colour_of(f"unknown:material-{i}"), "stable"
+        h, s, v = colorsys.rgb_to_hsv(*(np.array(colour) / 255.0))
+        gap = abs(h - tint_hue)
+        assert min(gap, 1.0 - gap) > 0.12, f"{colour} has the hue of the back tint {BACK_TINT}"
+        assert np.linalg.norm(np.array(colour) - tint) > 55.0, f"{colour} is near the back tint {BACK_TINT}"
+        assert v > 0.5, "and not dark"
+        colours.add(colour)
+    assert len(colours) > 2500, "different looks stay different"

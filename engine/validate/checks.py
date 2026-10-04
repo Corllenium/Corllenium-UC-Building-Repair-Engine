@@ -34,6 +34,7 @@ and passes.
 """
 from __future__ import annotations
 
+import colorsys
 import dataclasses
 import hashlib
 import json
@@ -58,6 +59,13 @@ _PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
 #: The depth tolerance is `max(DEPTH_STEPS print steps, MIN_DEPTH_TOL)`.
 DEPTH_STEPS = 2.0
 MIN_DEPTH_TOL = 0.05
+
+#: What a face seen from BEHIND is mixed with in the evidence crops (`engine.validate.evidence`): purple. The
+#: stand-in colour of a look nobody knows keeps this far (in hue, as a fraction of a turn) away from it, so a
+#: front face in such a look is never mistaken for a back face.
+BACK_TINT = (150, 60, 160)
+_TINT_HUE = colorsys.rgb_to_hsv(*(c / 255.0 for c in BACK_TINT))[0]
+_TINT_ARC = 0.15
 
 
 # ---------------------------------------------------------------------------------------------
@@ -129,12 +137,18 @@ class Looks:
 
     def colour_of(self, look_key: str) -> tuple[int, int, int]:
         """The evidence colour of a look: its mean texture colour when known, else a stable colour made
-        from the key, so different looks differ in the crops even when nothing is known about them."""
+        from the key, so different looks differ in the crops even when nothing is known about them. That
+        colour is bright and fairly saturated, and its hue runs round the whole circle except the arc of
+        `BACK_TINT`'s purple (`_TINT_ARC` of a turn each side), which a back face is mixed with."""
         known = self.colour.get(look_key)
         if known is not None:
             return tuple(int(c) for c in known)
         digest = hashlib.sha256(look_key.encode("utf-8")).digest()
-        return (64 + digest[0] % 160, 64 + digest[1] % 160, 64 + digest[2] % 160)
+        turn = int.from_bytes(digest[:4], "big") / 2.0 ** 32                      # [0, 1)
+        hue = (_TINT_HUE + _TINT_ARC + turn * (1.0 - 2.0 * _TINT_ARC)) % 1.0
+        sat, val = 0.45 + 0.45 * digest[4] / 255.0, 0.55 + 0.40 * digest[5] / 255.0
+        r, g, b = colorsys.hsv_to_rgb(hue, sat, val)
+        return (int(round(r * 255)), int(round(g * 255)), int(round(b * 255)))
 
 
 class LookTable:
