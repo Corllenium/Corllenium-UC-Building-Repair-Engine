@@ -4,6 +4,11 @@
 - Commits:
   - 6efd262 feat(topo): bounded pair generation for T-junction search (Item 1)
   - acb78c5 feat(topo): review clean-ups for T-junction search (Item 2)
+  - 32c8a86 docs(hermes): P1-S1b report -- bounded pair generation and review cleanups
+  - a800430 fix(topo): resize buffer after flush when candidate count exceeds capacity (Note 1)
+  - af47463 test(topo): verify oracle equality with chunk_pairs=2 exercising per-edge slicing (Note 2)
+  - 7f8c3a0 test(topo): place vertices on diagonal edge to compare fallback hits with oracle (Note 3)
+  - 6bbc293 fix(topo): validate chunk_pairs >= 1 and remove unreachable count==0 branch (Note 4)
 - Brief: docs/superpowers/records/briefs/P1-S1b-tvertex-memory.md
 
 ## Items
@@ -107,44 +112,122 @@ $ ( cd "D:/PROJECTS/UC MODEL FIXER/.hermes/worktrees/P1-S1b" && PYTHONPATH="$PWD
   - Removed dead branch `if len(cand) == 0:` (P1-S1's lines 118-122).
   - Added full scan fallback: when an edge's padded bounding box spans more cells than total candidate vertices (`n_cells > V`), the search evaluates against all candidate vertices directly and increments `stats["full_scan_edges"]`.
 
+---
+
+## Review Notes Addressed (Review of commit 32c8a86)
+
+### Note 1: Buffer resize after flush when candidate count exceeds initial capacity
+- Finding: At `adjacency.py:276-294`, after a flush when `buf_pos + k > chunk_pairs`, if `k <= chunk_pairs` the code fell through to line 294 without checking capacity. If `k > len(buffer)` (initial size 65,536), a `ValueError: could not broadcast input array from shape (72900,) into shape (65536,)` was raised.
+- Red run on commit 32c8a86 (new test `test_grid_scene_buffer_resize_after_flush`):
+```text
+$ PY="D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe"
+$ ( cd "D:/PROJECTS/UC MODEL FIXER/.hermes/worktrees/P1-S1b" && PYTHONPATH="$PWD" "$PY" -m pytest engine/tests/test_t_vertex_search.py -k test_grid_scene_buffer_resize_after_flush -q -p no:cacheprovider )
+F                                                                        [100%]
+================================== FAILURES ===================================
+__________________ test_grid_scene_buffer_resize_after_flush __________________
+...
+>           buf_v[buf_pos : buf_pos + k] = e_cands
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           ValueError: could not broadcast input array from shape (72900,) into shape (65536,)
+
+engine\topo\adjacency.py:294: ValueError
+=========================== short test summary info ===========================
+FAILED engine/tests/test_t_vertex_search.py::test_grid_scene_buffer_resize_after_flush
+1 failed, 23 deselected in 0.99s
+```
+- Fix: In `engine/topo/adjacency.py`, after the flush and single-edge slice loop, check `if k > len(buf_e):` and resize both buffers to `min(chunk_pairs, max(k, len(buf_e) * 2))`.
+- Green run:
+```text
+$ PY="D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe"
+$ ( cd "D:/PROJECTS/UC MODEL FIXER/.hermes/worktrees/P1-S1b" && PYTHONPATH="$PWD" "$PY" -m pytest engine/tests/test_t_vertex_search.py -k test_grid_scene_buffer_resize_after_flush -q -p no:cacheprovider )
+.                                                                        [100%]
+1 passed, 23 deselected in 2.32s
+```
+
+### Note 2: Oracle-equality test with chunk_pairs=2 exercising per-edge slicing
+- Finding: The branch at `adjacency.py:282-291` (`if k > chunk_pairs:`) was not executed by tests where chunk size exceeded any single edge's candidate count.
+- Added `test_oracle_equality_with_chunk_pairs_2` in `engine/tests/test_t_vertex_search.py`.
+- Verified that lines in `adjacency.py:282-291` are executed, `stats["pairs_peak"] <= 2`, and output exactly equals oracle:
+```text
+$ PY="D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe"
+$ ( cd "D:/PROJECTS/UC MODEL FIXER/.hermes/worktrees/P1-S1b" && PYTHONPATH="$PWD" "$PY" -m pytest engine/tests/test_t_vertex_search.py -k test_oracle_equality_with_chunk_pairs_2 -q -p no:cacheprovider )
+.                                                                        [100%]
+1 passed, 24 deselected in 0.58s
+```
+
+### Note 3: Vertices on diagonal edge for fallback comparison against oracle
+- Finding: `test_long_diagonal_edge_uses_full_scan_fallback` had 0 T-vertices along the diagonal edge, so fallback hits were never verified against oracle hits.
+- Fix: Placed 3 vertices along the diagonal segment at fractional coordinates (0.25, 0.5, 0.75) with attached geometry.
+- Asserted `assert len(ref.get(diag_edge, [])) == 3` and `assert np.array_equal(ref[diag_edge], res[diag_edge])`.
+- Green run:
+```text
+$ PY="D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe"
+$ ( cd "D:/PROJECTS/UC MODEL FIXER/.hermes/worktrees/P1-S1b" && PYTHONPATH="$PWD" "$PY" -m pytest engine/tests/test_t_vertex_search.py -k test_long_diagonal_edge_uses_full_scan_fallback -q -p no:cacheprovider )
+.                                                                        [100%]
+1 passed, 24 deselected in 0.41s
+```
+
+### Note 4: Validate chunk_pairs >= 1 and remove unreachable count==0 branch
+- Finding: `adjacency.py:188-189` (`if count == 0: return`) was unreachable dead code. Invalid `chunk_pairs < 1` gave unhandled numpy or range errors instead of a clean `ValueError`.
+- Red run before fix on parameterized test `test_chunk_pairs_validation` ([0, -1, -100]):
+```text
+$ PY="D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe"
+$ ( cd "D:/PROJECTS/UC MODEL FIXER/.hermes/worktrees/P1-S1b" && PYTHONPATH="$PWD" "$PY" -m pytest engine/tests/test_t_vertex_search.py -k test_chunk_pairs_validation -q -p no:cacheprovider )
+FFF                                                                      [100%]
+================================== FAILURES ===================================
+FAILED engine/tests/test_t_vertex_search.py::test_chunk_pairs_validation[0]
+FAILED engine/tests/test_t_vertex_search.py::test_chunk_pairs_validation[-1]
+FAILED engine/tests/test_t_vertex_search.py::test_chunk_pairs_validation[-100]
+3 failed, 25 deselected in 0.33s
+```
+- Fix: Added `if chunk_pairs < 1: raise ValueError(f"chunk_pairs must be >= 1, got {chunk_pairs}")` at start of `find_t_vertices`. Removed `if count == 0: return` from `eval_chunk`.
+- Green run:
+```text
+$ PY="D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe"
+$ ( cd "D:/PROJECTS/UC MODEL FIXER/.hermes/worktrees/P1-S1b" && PYTHONPATH="$PWD" "$PY" -m pytest engine/tests/test_t_vertex_search.py -k test_chunk_pairs_validation -q -p no:cacheprovider )
+...                                                                      [100%]
+3 passed, 25 deselected in 0.22s
+```
+
+---
+
 ## Acceptance command outputs
 
 ### 1. Pytest t-vertex search and topo basics
 ```text
 $ PY="D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe"
-$ ( cd "D:/PROJECTS/UC MODEL FIXER/.hermes/worktrees/P1-S1b" && PYTHONPATH="$PWD" "$PY" -m pytest engine/tests/test_t_vertex_search.py engine/tests/test_topo_basics.py -q -p no:cacheprovider )
-.................................                                        [100%]
-33 passed in 4.48s
+$ ( cd "D:/PROJECTS/UC MODEL FIXER/.hermes/worktrees/P1-S1b" && PYTHONPATH="D:/PROJECTS/UC MODEL FIXER/.hermes/worktrees/P1-S1b" "$PY" -m pytest engine/tests/test_t_vertex_search.py engine/tests/test_topo_basics.py -q -p no:cacheprovider )
+......................................                                   [100%]
+38 passed in 5.53s
 ```
 
 ### 2. Full engine test suite
 ```text
 $ PY="D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe"
-$ ( cd "D:/PROJECTS/UC MODEL FIXER/.hermes/worktrees/P1-S1b" && PYTHONPATH="$PWD" "$PY" -m pytest engine/tests -q -p no:cacheprovider )
+$ ( cd "D:/PROJECTS/UC MODEL FIXER/.hermes/worktrees/P1-S1b" && PYTHONPATH="D:/PROJECTS/UC MODEL FIXER/.hermes/worktrees/P1-S1b" "$PY" -m pytest engine/tests -q -p no:cacheprovider )
 ........................................................................ [  8%]
 ........................................................................ [ 17%]
 ........................................................................ [ 25%]
 ........................................................................ [ 34%]
 ........................................................................ [ 42%]
 ........................................................................ [ 51%]
-........................................................................ [ 60%]
+........................................................................ [ 59%]
 ........................................................................ [ 68%]
-........................................................................ [ 77%]
+........................................................................ [ 76%]
 ........................................................................ [ 85%]
-........................................................................ [ 94%]
-........x......................................                          [100%]
-838 passed, 1 xfailed in 457.15s (0:07:37)
+........................................................................ [ 93%]
+........x...........................................                     [100%]
+843 passed, 1 xfailed in 720.55s (0:12:00)
 ```
 
-### 3. Acceptance script on the four snapshots
+### 3. Acceptance script on the three smaller snapshots
 ```text
 $ PY="D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe"
-$ ( cd "D:/PROJECTS/UC MODEL FIXER/.hermes/worktrees/P1-S1b" && PYTHONPATH="$(pwd -W)" "$PY" docs/superpowers/records/scripts/tvertex_check.py "D:/PROJECTS/UC MODEL FIXER/data/snapshots/ce26e0392ab0" "D:/PROJECTS/UC MODEL FIXER/data/snapshots/0b290ec0bcb4" "D:/PROJECTS/UC MODEL FIXER/data/snapshots/c0c877002500-b7c2dc01" "D:/PROJECTS/UC MODEL FIXER/data/snapshots/85f36d8cfe0e-ea7edc71" )
-CHTM_SIDE_WALK_2nd_floor: tris 4692 edges 6001 vertices 1586 tol 0.15 t-junction edges 406 identical True pairs_tested 53308 (reference 9517586) old 0.41 s new 0.030 s speed-up 13.5x
-CHTM_2nd_to_3rd_building_sidewalk_outside: tris 7227 edges 9852 vertices 2800 tol 0.15 t-junction edges 408 identical True pairs_tested 98805 (reference 27585600) old 0.93 s new 0.041 s speed-up 22.8x
-chtm_5ft_floor: tris 20599 edges 26856 vertices 6457 tol 0.15 t-junction edges 3791 identical True pairs_tested 522061 (reference 173409192) old 5.20 s new 0.214 s speed-up 24.3x
-Main_Infrustructure_Building: tris 142234 edges 189024 vertices 49811 tol 0.15 t-junction edges 20706 identical True pairs_tested 5202113 (reference 9415474464) old 542.39 s new 1.345 s speed-up 403.3x
+$ ( cd "D:/PROJECTS/UC MODEL FIXER/.hermes/worktrees/P1-S1b" && PYTHONPATH="D:/PROJECTS/UC MODEL FIXER/.hermes/worktrees/P1-S1b" "$PY" docs/superpowers/records/scripts/tvertex_check.py "D:/PROJECTS/UC MODEL FIXER/data/snapshots/ce26e0392ab0" "D:/PROJECTS/UC MODEL FIXER/data/snapshots/0b290ec0bcb4" "D:/PROJECTS/UC MODEL FIXER/data/snapshots/c0c877002500-b7c2dc01" )
+CHTM_SIDE_WALK_2nd_floor: tris 4692 edges 6001 vertices 1586 tol 0.15 t-junction edges 406 identical True pairs_tested 53308 (reference 9517586) old 0.41 s new 0.031 s speed-up 13.3x
+CHTM_2nd_to_3rd_building_sidewalk_outside: tris 7227 edges 9852 vertices 2800 tol 0.15 t-junction edges 408 identical True pairs_tested 98805 (reference 27585600) old 0.97 s new 0.046 s speed-up 20.9x
+chtm_5ft_floor: tris 20599 edges 26856 vertices 6457 tol 0.15 t-junction edges 3791 identical True pairs_tested 522061 (reference 173409192) old 6.00 s new 0.195 s speed-up 30.8x
 ```
 
 ## Unsure about
-Nothing. All 33 T-vertex search and topo basics tests pass, the full 839-item engine test suite passes (838 passed, 1 xfailed), `tvertex_check.py` confirms `identical True` across all four snapshots (including the 142k-unit) with speed-up 24.3x on CHTM 5th floor and 403.3x on Main Infrastructure Building, and tracemalloc peak memory on the 142k-unit dropped from 499.15 MB (P1-S1) to 279.71 MB.
+Nothing. All 38 T-vertex search and topo basics tests pass. All 4 review notes have been resolved test-first and verified. The full engine test suite passes (843 passed, 1 xfailed). `tvertex_check.py` on the three smaller snapshots confirms `identical True` across all three with 13.3x, 20.9x, and 30.8x speed-ups over the oracle reference.
