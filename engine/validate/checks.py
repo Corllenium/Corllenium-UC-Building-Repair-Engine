@@ -256,16 +256,17 @@ _FALLBACK_PAIRS = 4_000_000
 
 def _barycentric(positions: np.ndarray, face_v: np.ndarray, q: np.ndarray) -> np.ndarray:
     """(m, 3) float64 barycentric weights of the points `q` (m, 3) in the triangles `face_v` (m, 3)
-    of `positions`, taken on the triangle's plane (a point off it is projected)."""
+    of `positions`, taken on the triangle's plane (a point off it is projected). Written with cross
+    products, as ratios of areas: the usual dot-product form subtracts two products of squared edge
+    lengths and loses all it has on a long thin face (a sliver 1,190 in long and 0.0008 in wide gave
+    weights wrong by 3e-4, which is 0.4 in along it and 2.5 texels of a 30 UV unit span)."""
     a, b, c = positions[face_v[:, 0]], positions[face_v[:, 1]], positions[face_v[:, 2]]
-    v0, v1, v2 = b - a, c - a, q - a
-    d00, d01, d11 = (v0 * v0).sum(1), (v0 * v1).sum(1), (v1 * v1).sum(1)
-    d20, d21 = (v2 * v0).sum(1), (v2 * v1).sum(1)
-    den = d00 * d11 - d01 * d01
-    ok = den != 0.0
-    safe = np.where(ok, den, 1.0)
-    wb = np.where(ok, (d11 * d20 - d01 * d21) / safe, np.nan)
-    wc = np.where(ok, (d00 * d21 - d01 * d20) / safe, np.nan)
+    n = np.cross(b - a, c - a)
+    nn = (n * n).sum(1)
+    ok = nn > 0.0
+    safe = np.where(ok, nn, 1.0)
+    wb = np.where(ok, (np.cross(q - a, c - a) * n).sum(1) / safe, np.nan)
+    wc = np.where(ok, (np.cross(b - a, q - a) * n).sum(1) / safe, np.nan)
     return np.stack([1.0 - wb - wc, wb, wc], axis=1)
 
 

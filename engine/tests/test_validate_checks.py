@@ -16,7 +16,7 @@ import engine.cli as cli
 from engine.io.obj_writer import write_obj
 from engine.io.snapshot import sha256_file
 from engine.tests.fixtures.build import closed_room, cube, grid_slab, two_sided_wall
-from engine.validate.checks import (Looks, LookTable, Settings, check_problems, default_targets_path,
+from engine.validate.checks import (Looks, LookTable, Settings, _barycentric, check_problems, default_targets_path,
                                     depth_tolerance, face_fingerprints, face_look_ids, load_looks, load_targets,
                                     png_size, print_step, validate)
 from engine.validate.evidence import BACK_TINT, BACKGROUND, _basis, render_crop, write_evidence
@@ -813,3 +813,40 @@ def test_v0_has_no_allowed_change_classes_so_removing_a_copy_of_a_back_to_back_p
     textures, gone = _checks(v)
     assert textures["status"] == "FAIL" and textures["reasons"]["side"] == 50, "expected until E4 exists"
     assert gone["status"] == "PASS", "nothing is deleted or covered: the surface and its look are still there"
+
+
+# ---------------------------------------------------------------------------------------------
+# Found by an identity sweep over the real snapshots: a sliver 1,190 in long and 0.0008 in wide
+# ---------------------------------------------------------------------------------------------
+
+#: Face 4847 of PE_1st_Floor, moved onto z = 0: 1,190 x 0.0008 in (area 0.5 sq in), its three UVs on one line
+#: (a 30 UV unit span along it), so 1 texel of a 256 px texture is 0.15 in of position along the face.
+SLIVER = np.array([[-40.47, -414.0, 0.0], [1089.37, -37.4, 0.0], [1014.37, -62.4, 0.0]])
+SLIVER_UV = np.array([[-275.485, -1.995], [-245.296, -1.995], [-247.3, -1.995]])
+
+
+def _sliver_mesh():
+    return dataclasses.replace(cube(), positions=SLIVER, uvs=SLIVER_UV, face_v=np.array([[0, 1, 2]], dtype=np.int64),
+                               face_vt=np.array([[0, 1, 2]], dtype=np.int64), face_vn=np.full((1, 3), -1, dtype=np.int64),
+                               face_material=np.zeros(1, dtype=np.int64), face_line=np.ones(1, dtype=np.int64),
+                               materials=["m0"], name="sliver")
+
+
+def test_barycentric_weights_on_a_thousand_to_one_sliver_are_exact():
+    face = np.array([[0, 1, 2]])
+    for w in ([1 / 6, 2 / 3, 1 / 6], [2 / 3, 1 / 6, 1 / 6], [1 / 6, 1 / 6, 2 / 3], [0.5, 0.25, 0.25]):
+        q = (np.array(w) @ SLIVER)[None]
+        assert np.abs(_barycentric(SLIVER, face, q)[0] - w).max() < 1e-9, w
+    # a point beside the sliver is outside it, however thin: by a hundredth of its width, not by 1e-4 of its length
+    off = (np.array([0.5, 0.25, 0.25]) @ SLIVER)[None] + [0.0, 0.0, 0.0]
+    assert _barycentric(SLIVER, face, off)[0].min() > 0.0
+
+
+def test_identity_holds_on_a_sliver_whose_uvs_run_30_units_along_its_length():
+    m = _sliver_mesh()
+    look = np.array([[-0.19301817, 0.09523481, 0.9765625]])             # the look direction that failed in the sweep
+    v = _check(m, m, _looks("m0", texel=(256, 256)), dirs=look / np.linalg.norm(look), cams=np.zeros((0, 3)),
+               probes=np.zeros((0, 3)))
+    textures = v.report["checks"]["textures"]
+    assert textures["samples"] == 4 and textures["samples_failed"] == 0, textures["reasons"]
+    assert v.report["verdict"] == "PASS"
