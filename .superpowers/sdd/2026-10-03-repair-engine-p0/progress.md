@@ -290,3 +290,4 @@ Spec: docs/superpowers/specs/2026-10-03-uc-repair-engine-design.md (2a748d4, app
   - Ruling: the controller runs the acceptance itself (AGENTS.md §7.5 requires a controller re-run anyway): each double_layers call in its own process, peak working set via GetProcessMemoryInfo, equality by digest; Item 0 after-runs on 9e34d77 into data/s3_check/after2.
   - The S3 before-baselines equal S1's independent before-baselines (237ddd85, e724822f, ebeea4ed).
   - Then a short Hermes run writes the report and runs the full suite.
+- P1-S1b re-review (hermes-reviewer, sonnet): PASS. All 4 notes; 630 resize combinations, 0 failures; exact on CHTM 5th and on the 270x270 grid (its oracle ran 1,895 s). Merged into feat/repair-p0.
