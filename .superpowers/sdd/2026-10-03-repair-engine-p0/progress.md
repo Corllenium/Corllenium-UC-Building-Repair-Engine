@@ -180,3 +180,10 @@ Spec: docs/superpowers/specs/2026-10-03-uc-repair-engine-design.md (2a748d4, app
   - Ruling: residuals plus parked concern 3 (pin skp_check's split rule to groups.py) go to follow-up P0-11b (hermes); brief and queue 8248566.
 - P0-14 claimed; worktree .claude/worktrees/P0-14 (claude/P0-14 from 76d74bb). Implementer dispatched (engine-builder, sonnet); the report comes back as text.
 - Hermes queue: P0-09b and P0-11b ready. They launch when the S1 and S3 runs end (two Hermes runs at a time).
+- P1-S1 handed in by Hermes (97ee358 code, e1863ee report; continuation run 0.58 USD).
+  - 31 passed; full engine 670 + 1 xfail.
+  - tvertex_check identical True x3: A 15.2x, B 23.3x, CHTM 5th 26.4x (pairs 522,061 vs 173,409,192).
+  - Before and after sha256 equal (base-code baselines): chtm5 errors 237ddd85, A e724822f, B ebeea4ed.
+  - find_errors on CHTM 5th: 98.1 s -> 76.2 s.
+  - Review dispatched (hermes-reviewer, sonnet) on .superpowers/sdd/2026-10-03-repair-engine-p1-p2/review-7ff3a4c..e1863ee.diff, including a run on the 142,234-tri unit.
+- Hermes runs launched: P0-09b and P0-11b (small, disjoint files), alongside P1-S3.
