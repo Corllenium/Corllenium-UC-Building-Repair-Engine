@@ -71,7 +71,7 @@ class InventoryParams:
     peak_frac: float = 0.15           # a peak is at least 15 % of the largest peak
     merge_in: float = 20.0            # peaks within 20 in merge (the strongest stays)
     # slab pairing
-    slab_window_in: float = 48.0      # brief: 24. CKPT17 slabs are 1 block (39.4 in) or half a block thick
+    slab_window_in: float = 60.0      # brief: 24. CKPT17 slabs are 20, 39 or (Science A plan_4) 54 in thick
     base_pick: str = "lowest"         # brief: "nearest". Stepped slabs have a second underside 30 in up
     min_slab_in: float = 1.0          # a slab is at least one bin thick (same-plane up and down are no slab)
     min_storey_in: float = 100.0      # brief: only the 20 in merge. 1 block terraces and thin layers sit 39 in apart
@@ -303,10 +303,11 @@ def level_records(plan: BuildingPlan, p: InventoryParams, offset: int = 0) -> li
                 tris[owner[j]] = tris.get(owner[j], 0) + int(c)
         bases = [s.base for s in plan.slabs]
         idx = np.searchsorted(np.asarray(bases, float) - p.band_slack_in, g.cz, side="right")
+        vz = g.pos[g.fv][:, :, 2]            # the open ends of the table are vertex heights, not face centres
         if 0 in plan.bands and (idx == 0).any():
-            lowest = min(lowest, float(g.cz[idx == 0].min()))
+            lowest = min(lowest, float(vz[idx == 0].min()))
         if (idx == nbands - 1).any():
-            highest = max(highest, float(g.cz[idx == nbands - 1].max()))
+            highest = max(highest, float(vz[idx == nbands - 1].max()))
     out = []
     for i, j in enumerate(plan.bands):
         slab = plan.slabs[j - 1] if j >= 1 else None
@@ -556,6 +557,16 @@ def _building_units(plan: BuildingPlan, levels: list[dict], p: InventoryParams):
                       "text": (f"no group in {plan.name} is named floor {number}; {level} holds {', '.join(holders)}"
                                if holders else
                                f"{plan.name} has no {level}: no group is named floor {number} and no band carries it")})
+    # two floor groups named for different floors in one level: the table may be missing a level there
+    for lv in levels:
+        members = floor_members[lv["level"]]
+        numbers = sorted({n for n in (floor_number(m["group"]) for m in members) if n is not None})
+        if len(numbers) > 1:
+            names = sorted({m["group"] for m in members if floor_number(m["group"]) is not None})
+            flags.append({"kind": "shared", "building": plan.name, "level": lv["level"], "numbers": numbers,
+                          "groups": names,
+                          "text": f"{lv['level']} of {plan.name} holds groups named for floors "
+                                  f"{', '.join(map(str, numbers))} ({', '.join(names)}): a level may be missing here"})
     floors = [_unit(f"{plan.name}-{lv['level']}", plan.name, lv["level"], "floor", floor_members[lv["level"]],
                     lv["base"], lv["top"], lv["slab"]) for lv in levels]
     for i, u in enumerate(floors):
@@ -658,7 +669,7 @@ def render_markdown(inv: dict) -> str:
     src, cov, params = inv.get("source", {}), inv["coverage"], inv["params"]
     units, flags = inv["units"], inv["flags"]
     by_kind = {k: [f for f in flags if f["kind"] == k]
-               for k in ("duplicate", "misnamed", "missing", "footprint", "split")}
+               for k in ("duplicate", "misnamed", "missing", "shared", "footprint", "split")}
     out = ["# Campus map draft (P0-10): buildings, levels and units for the owner to confirm", "",
            f"Built by `python -m engine.cli campus-inventory` from the frozen CHECKPOINT-17 split snapshots "
            f"({cov['groups']} files, {cov['tris']:,} triangles; clean OBJ sha256 "
@@ -725,6 +736,10 @@ def render_markdown(inv: dict) -> str:
     out += _table(["Building", "Level", "Held by"],
                   [[f["building"], f["level"], ", ".join(f["occupied_by"]) or "nothing: no group, no band"]
                    for f in by_kind["missing"]])
+    out += ["", "### Levels shared by groups named for different floors (a level may be missing there)", ""]
+    out += _table(["Building", "Level", "Floors named", "Groups"],
+                  [[f["building"], f["level"], ", ".join(map(str, f["numbers"])), ", ".join(f["groups"])]
+                   for f in by_kind["shared"]])
     out += ["", "### Footprints (a group whose box lies mostly in another building)", ""]
     out += _table(["Group", "Named for", "In its own building", "In", "That building's footprint"],
                   [[f["group"], f["building"], f"{f['fraction_own'] * 100:.0f} %", f["other"],
@@ -749,7 +764,7 @@ def render_markdown(inv: dict) -> str:
             "Constants where CHECKPOINT-17 showed the brief's value cannot work (measured on the frozen data):", ""]
     out += _table(["Constant", "Brief", "Used", "Measured reason"], [
         ["slab bottom window", f"{BRIEF_PARAMS.slab_window_in:g} in", f"{params['slab_window_in']:g} in",
-         "slabs are 19.7 in (half a block) or 39.4 in (a block) thick"],
+         "slabs are 19.7 in (half a block), 39.4 in (a block) or, for Science A plan_4, 54 in thick"],
         ["slab bottom pick", "nearest down peak", f"{params['base_pick']} down peak in the window",
          "stepped slabs have a second underside about 30 in above the real bottom (BRS 5th, EDS 3rd)"],
         ["levels closer than", f"{BRIEF_PARAMS.min_storey_in:g} in (peak merge only)", f"{params['min_storey_in']:g} in",

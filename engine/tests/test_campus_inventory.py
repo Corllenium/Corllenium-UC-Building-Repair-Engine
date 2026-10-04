@@ -351,3 +351,36 @@ def test_the_cli_refuses_a_snapshot_whose_triangle_count_differs_from_the_index(
         main(["campus-inventory", "--source", str(src), "--index", str(idx), "--materials", str(mat),
               "--out", str(tmp_path / "o.json"), "--md", str(tmp_path / "o.md")])
     assert not (tmp_path / "o.json").exists()
+
+
+def test_the_lowest_base_and_the_highest_top_are_the_lowest_and_highest_vertex_not_a_face_centre():
+    tips = ([(0, 0, 0), (10, 0, 100), (0, 10, 100)], [(0, 1, 2)])          # a slanted piece: lowest vertex z 0, centre 66.7
+    spire = ([(0, 0, 400), (10, 0, 500), (0, 10, 500)], [(0, 1, 2)])       # highest vertex z 500, centre 466.7
+    groups = [group("BRS_1st_floor", tips), group("BRS_2nd_floor", slab(200)), group("BRS_3rd_floor", slab(400), spire)]
+    levels = inv.build_inventory(groups)["buildings"]["BRS"]["levels"]
+    assert [lv["level"] for lv in levels] == ["L01", "L02", "L03"]
+    assert levels[0]["base"] == pytest.approx(0.0, abs=0.01)
+    assert levels[2]["top"] == pytest.approx(500.0, abs=0.01)
+
+
+def test_a_level_holding_floor_groups_with_different_numbers_is_flagged_as_shared():
+    # the 4th floor has no slab the table can see (columns only), so it falls into the 3rd floor's band:
+    # CHECKPOINT-17's CHTM_12th_floor_obj sits in the same level as CHTM_11th_floor_obj
+    columns = group("CHTM_4th_floor", box(0, 0, 410, 5, 5, 590), box(50, 50, 410, 55, 55, 590))
+    result = inv.build_inventory(stack("CHTM", ["1st", "2nd", "3rd"]) + [columns])
+    (flag,) = flags_of(result, "shared")
+    assert (flag["building"], flag["level"], flag["numbers"]) == ("CHTM", "L03", [3, 4])
+    assert flag["groups"] == ["CHTM_3rd_floor", "CHTM_4th_floor"] and flag["units"] == ["CHTM-L03"]
+    assert [f["group"] for f in flags_of(result, "misnamed")] == ["CHTM_4th_floor"]      # the same fact, seen from the group
+
+
+def test_groups_with_the_same_floor_number_in_one_level_are_not_shared():
+    result = inv.build_inventory(stack("BRS", ["1st", "2nd"]) + [group("BRS_2nd_floor_obj1", slab(200))])
+    assert flags_of(result, "shared") == []
+
+
+def test_the_table_lists_shared_levels_next_to_the_other_flags():
+    columns = group("CHTM_4th_floor", box(0, 0, 410, 5, 5, 590), box(50, 50, 410, 55, 55, 590))
+    text = inv.render_markdown(inv.build_inventory(stack("CHTM", ["1st", "2nd", "3rd"]) + [columns]))
+    assert "### Levels shared by groups named for different floors" in text
+    assert "| CHTM | L03 | 3, 4 | CHTM_3rd_floor, CHTM_4th_floor |" in text

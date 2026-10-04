@@ -965,7 +965,8 @@ def main(argv: list[str] | None = None) -> int:
             a = b["anchor"]
             print(f"  {name}: {len(b['groups'])} groups, {len(b['levels'])} levels"
                   + (f", numbered from L{1 + a['offset']:02d}" if a["offset"] else ""))
-        print("  flags: " + ", ".join(f"{k} {by_kind[k]}" for k in ("duplicate", "misnamed", "missing", "footprint", "split")))
+        print("  flags: " + ", ".join(f"{k} {by_kind[k]}"
+                                      for k in ("duplicate", "misnamed", "missing", "shared", "footprint", "split")))
         print(f"  coverage: {cov['whole']} whole + {cov['split']} split = {cov['whole'] + cov['split']} of {cov['groups']} "
               f"splits, {cov['unit_tris']:,} of {cov['tris']:,} triangles in units ({'ok' if cov['ok'] else 'NOT ok'})")
         print(f"wrote {args.out} and {args.md}")
