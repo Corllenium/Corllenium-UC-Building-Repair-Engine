@@ -237,3 +237,11 @@ Spec: docs/superpowers/specs/2026-10-03-uc-repair-engine-design.md (2a748d4, app
   - Engine 860 + 1 xfail.
   - The controller viewed chtm5_probes_after_vote.png: regular lattice kept, drops on wall lines.
   - Task review dispatched (rules-reviewer, opus) on review-76d74bb..2513c1e.diff; report in task-14-report.md.
+- P0-14 task review (rules-reviewer, opus): PASS.
+  - Visibility semantics verified with hand-built scenes; the vote keeps a reversed-ceiling room and drops probes inside walls.
+  - CHTM 5th: 1,397 probes, deterministic.
+  - Throughput 1.43 M pairs/s. The estimate for 500 k samples x 1,600 viewpoints is 1.6 GB and about 9.3 min per mesh.
+  - Important, carried to P0-15: reversed walkable floors get no probes (closed_room with a reversed floor: 0 of 20; CHTM 5th: 6 cells).
+  - 7 Minors carried: the step-off jumps < 0.02 in layers; check_caster faces equality; _rows shape; face id validation; LEVEL wording; 2 surviving mutants; trimesh near-parallel first_hit.
+  - done + review --pass; merged into feat/repair-p0 (7211b82); 49 tests pass after the merge.
+- P0-15 claimed; worktree .claude/worktrees/P0-15 (claude/P0-15 from 7211b82). Carried items in task-15-carried.md (6 required, plus design notes). Implementer dispatched (engine-builder, sonnet).
