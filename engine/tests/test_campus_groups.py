@@ -38,6 +38,15 @@ def test_parse_group_line_fuller_path():
     ) == ("minecraft_quartz_block_side__1_29", "Eds_2nd_Floor_obj")
 
 
+def test_parse_group_line_quoted():
+    # Quoted group names exercise the shlex branch (groups.py:51-52)
+    assert parse_group_line('g Mesh100 "Eds 2nd Floor" Model') == ("Eds 2nd Floor",)
+    assert parse_group_line('g Mesh101 "First Group" "Second Group" Model') == (
+        "First Group",
+        "Second Group",
+    )
+
+
 def test_parse_group_paths_missing_file_raises():
     # parse_group_paths must raise FileNotFoundError for missing path (str or Path)
     with pytest.raises(FileNotFoundError):

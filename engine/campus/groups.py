@@ -12,7 +12,7 @@ Each token on the `g` line represents a level in the SketchUp hierarchy:
 Three real example lines from CKPT17-CLEAN.obj:
 1. 7: g Mesh1 minecraft_quartz_block_side__1 BRS_3rd_floor_obj Model
 2. 302327: g Mesh967 Group10 minecraft_quartz_block_top__1_4 Eds_11th_Floor_obj Model
-3. 8296: g Mesh8296 BRIDGE BRIDGE_ZONE Model
+3. 2214652: g Mesh8296 BRIDGE BRIDGE_ZONE Model
 """
 from __future__ import annotations
 
@@ -103,6 +103,10 @@ def parse_group_paths(sample: Path | str | Iterable[str]) -> list[tuple[str, ...
 
 def split_name(path: tuple[str, ...], skip_owner_slot: bool = False) -> str:
     """Follow the naming rule to map a group path tuple to a split name.
+
+    skip_owner_slot defaults to False (note 1's naming tests need that) while
+    index_by_split passes True, so split_name(path) and idx["split"] differ for
+    30 of 1,346 paths. Consumers read idx["split"].
 
     - if skip_owner_slot is True, skips the slot after Mesh# (matching the owner's split_named.py);
     - ignore automatic names (Group###, Mesh###, minecraft_*, littletiles_*, etc.);

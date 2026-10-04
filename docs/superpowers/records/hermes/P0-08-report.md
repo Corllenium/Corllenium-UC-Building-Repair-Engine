@@ -1,12 +1,35 @@
 # P0-08 — face → group-path index
 
 - Branch: hermes/P0-08   Base: e7fac71031ca5160633acdbfffb6f41552ff566e (feat/repair-p0)
-- Previous commit: ac953f0 feat(campus): index every face of CKPT17-CLEAN.obj by its SketchUp group path
-- Current commit: 670aff5 fix(campus): address review feedback on face group-path indexing
-- Review of ac953f0: changes-requested (7 review notes resolved below)
+- Commits on branch:
+  - 608d6e5 fix(campus): address review feedback on face group-path indexing (review 1 notes 1-7 addressed)
+  - ac953f0 feat(campus): index every face of CKPT17-CLEAN.obj by its SketchUp group path
+- Reviews:
+  - Review 1 of ac953f0: changes-requested (7 notes resolved in 608d6e5)
+  - Review 2 of 608d6e5: changes-requested (5 doc/test notes resolved in this update)
 - Brief: docs/superpowers/plans/2026-10-03-repair-engine-p0.md#task-8
 
-## Items & Review Resolution
+## Review 2 Resolution (doc & test notes)
+
+### Review 2 Note 1 — Report commit hash: DONE
+- Replaced orphaned pre-amend commit hash `670aff5` with the real commit hash `608d6e5` as printed by `git log`.
+
+### Review 2 Note 2 — Commands and real outputs for stats counts: DONE
+- Executed inspection command for the three reported counts; command and verbatim output pasted in section below:
+  - max path depth: 19
+  - faces that gained a path: 1,899
+  - named-slot lines: 162
+
+### Review 2 Note 3 — Real line number in groups.py comment: DONE
+- Corrected `engine/campus/groups.py:15`: line number updated from 8296 (the Mesh id) to 2214652 (real line number in `CKPT17-CLEAN.obj` for `g Mesh8296 BRIDGE BRIDGE_ZONE Model`).
+
+### Review 2 Note 4 — split_name docstring: DONE
+- Documented in `split_name` docstring (`engine/campus/groups.py`) that `skip_owner_slot` defaults to `False` (needed by note 1's naming tests) while `index_by_split` passes `True`, so `split_name(path)` and `idx["split"]` differ for 30 of 1,346 paths. Consumers read `idx["split"]`.
+
+### Review 2 Note 5 — Quoted g lines test: DONE
+- Added `test_parse_group_line_quoted` in `engine/tests/test_campus_groups.py` testing the `shlex.split` branch on quoted `g` lines (`groups.py:51-52`). Retained the branch for robustness.
+
+## Review 1 Resolution (ac953f0 notes 1-7)
 
 ### Review Note 1 — Assert the naming rule exactly: DONE
 - Added explicit assertions in `test_campus_groups.py`:
@@ -156,16 +179,66 @@ platform win32 -- Python 3.12.10, pytest-9.1.1, pluggy-1.6.0 -- D:\PROJECTS\UC M
 rootdir: D:\PROJECTS\UC MODEL FIXER\.hermes\worktrees\P0-08
 configfile: pyproject.toml
 plugins: anyio-4.15.1
-collecting ... collected 6 items
+collecting ... collected 7 items
 
-engine/tests/test_campus_groups.py::test_parse_group_paths_clean_sample PASSED [ 16%]
-engine/tests/test_campus_groups.py::test_parse_group_line_fuller_path PASSED [ 33%]
-engine/tests/test_campus_groups.py::test_parse_group_paths_missing_file_raises PASSED [ 50%]
-engine/tests/test_campus_groups.py::test_split_name_rules PASSED         [ 66%]
-engine/tests/test_campus_groups.py::test_index_by_split PASSED           [ 83%]
+engine/tests/test_campus_groups.py::test_parse_group_paths_clean_sample PASSED [ 14%]
+engine/tests/test_campus_groups.py::test_parse_group_line_fuller_path PASSED [ 28%]
+engine/tests/test_campus_groups.py::test_parse_group_line_quoted PASSED  [ 42%]
+engine/tests/test_campus_groups.py::test_parse_group_paths_missing_file_raises PASSED [ 57%]
+engine/tests/test_campus_groups.py::test_split_name_rules PASSED         [ 71%]
+engine/tests/test_campus_groups.py::test_index_by_split PASSED           [ 85%]
 engine/tests/test_campus_groups.py::test_build_group_index_structure PASSED [100%]
 
-============================== 6 passed in 0.12s ==============================
+============================== 7 passed in 0.07s ==============================
+```
+
+### Review 2 Note 2: Counts verification command and real output
+
+```text
+PY="D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe"
+( cd "D:/PROJECTS/UC MODEL FIXER/.hermes/worktrees/P0-08" && "$PY" -c "
+import json
+from engine.campus.groups import AUTO
+
+with open('D:/PROJECTS/UC MODEL FIXER/data/campus/group_index.json') as f:
+    idx = json.load(f)
+
+max_depth = max(len(p) for p in idx['paths'])
+print('max_path_depth:', max_depth)
+
+with open('D:/PROJECTS/UC MODEL FIXER/data/campus/source.json') as f:
+    src = json.load(f)
+clean_obj = src['clean_obj']['path']
+
+named_slot_lines = 0
+faces_gained = 0
+cur_gained = False
+
+with open(clean_obj, 'r', encoding='utf-8', errors='replace') as fh:
+    for line in fh:
+        if line.startswith('g ') or line.startswith('g\t'):
+            tokens = line.strip().split()
+            body_tokens = tokens[1:]
+            if body_tokens and body_tokens[-1] == 'Model':
+                slot1 = body_tokens[1] if len(body_tokens) > 2 else None
+                if slot1 and not AUTO.match(slot1):
+                    named_slot_lines += 1
+                old_path = tuple(body_tokens[2:-1])
+                new_path = tuple(body_tokens[1:-1])
+                cur_gained = (len(old_path) == 0 and len(new_path) > 0)
+            else:
+                cur_gained = False
+        elif line.startswith('f ') or line.startswith('f\t'):
+            if cur_gained:
+                faces_gained += 1
+
+print('named_slot_lines:', named_slot_lines)
+print('faces_gained:', faces_gained)
+" )
+
+max_path_depth: 19
+named_slot_lines: 162
+faces_gained: 1899
 ```
 
 Regression test suite check (`test_campus_groups.py`, `test_campus_source.py`, `test_cli.py`):
