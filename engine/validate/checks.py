@@ -565,27 +565,34 @@ def _points(a) -> np.ndarray:
     return np.asarray(a, dtype=np.float64).reshape(-1, 3)
 
 
-#: The 13 neighbour offsets of a grid cell that come after it in lexicographic order: with their
-#: opposites, the 26 cells that touch it (faces, edges and corners).
-_HALF_NEIGHBOURS = np.array([(dx, dy, dz) for dx in (-1, 0, 1) for dy in (-1, 0, 1) for dz in (-1, 0, 1)
-                             if (dx, dy, dz) > (0, 0, 0)], dtype=np.int64)
+#: Cells joined into one site reach at most this many cells (of `Settings.cluster_cell`) away.
+_MAX_LINK = 4
 
 
-def _components(cells: np.ndarray) -> np.ndarray:
+def _half_neighbours(link: int) -> np.ndarray:
+    """The offsets within `link` cells in every axis that come after (0, 0, 0) in lexicographic order:
+    with their opposites, every other cell of the (2 link + 1) cube round a cell."""
+    span = range(-link, link + 1)
+    return np.array([(dx, dy, dz) for dx in span for dy in span for dz in span if (dx, dy, dz) > (0, 0, 0)],
+                    dtype=np.int64)
+
+
+def _components(cells: np.ndarray, link: int = 1) -> np.ndarray:
     """(k,) int64: the connected group (0 .. c-1) of each occupied grid cell of `cells` (k, 3), two cells
-    being connected when they touch (26 neighbours). Labels are propagated along the touching pairs,
-    each round followed by pointer jumping, until nothing changes."""
+    being connected when they are within `link` cells of each other in every axis (1: they touch, 26
+    neighbours). Labels are propagated along the connected pairs, each round followed by pointer
+    jumping, until nothing changes."""
     k = len(cells)
     if not k:
         return np.zeros(0, dtype=np.int64)
-    shifted = cells - cells.min(axis=0) + 1
-    shape = shifted.max(axis=0) + 2
+    shifted = cells - cells.min(axis=0) + link
+    shape = shifted.max(axis=0) + link + 1
     pack = lambda c: (c[:, 0] * shape[1] + c[:, 1]) * shape[2] + c[:, 2]
     packed = pack(shifted)
     order = np.argsort(packed)
     ordered = packed[order]
     ends_a, ends_b = [], []
-    for offset in _HALF_NEIGHBOURS:
+    for offset in _half_neighbours(link):
         wanted = pack(shifted + offset)
         at = np.minimum(np.searchsorted(ordered, wanted), k - 1)
         hit = ordered[at] == wanted
@@ -606,19 +613,23 @@ def _components(cells: np.ndarray) -> np.ndarray:
 
 
 def _cluster_sites(validation_points: np.ndarray, centre: np.ndarray, failing: np.ndarray, area: np.ndarray,
-                   face: np.ndarray, reason: np.ndarray, fail1: np.ndarray, fail3: np.ndarray, cell: float,
-                   limit: int):
+                   face: np.ndarray, reason: np.ndarray, fail1: np.ndarray, fail3: np.ndarray, spacing: np.ndarray,
+                   cell: float, limit: int):
     """The failing samples (`failing`, their indices) in groups: the `cell`-inch grid cells (in the
-    model's own coordinates) they fall in, with cells that touch joined, so one defect is one site
-    however it straddles the grid. Worst first (most area, then most samples). Returns `(sites,
-    members, total)`: the first `limit` sites as dicts, the sample indices of each, and how many
-    clusters there were."""
+    model's own coordinates) they fall in, with neighbouring cells joined, so one defect is one site
+    however it straddles the grid. Neighbouring means touching, or further when the samples are
+    further apart than a cell: the lattice of a long thin face has gaps of `spacing` (the face's
+    longest edge over the samples along it), and cells within the 90th percentile of the failing
+    samples' spacing (at most `_MAX_LINK` cells) are joined. Worst first (most area, then most
+    samples). Returns `(sites, members, total)`: the first `limit` sites as dicts, the sample indices
+    of each, and how many clusters there were."""
     if not len(failing):
         return [], [], 0
     pts = validation_points[failing] + centre
     keys = np.floor(pts / cell).astype(np.int64)
+    link = int(np.clip(np.ceil(np.percentile(spacing[failing], 90) / cell), 1, _MAX_LINK))
     cells, which = np.unique(keys, axis=0, return_inverse=True)
-    inverse = _components(cells)[which.reshape(-1)]
+    inverse = _components(cells, link)[which.reshape(-1)]
     n_clusters = int(inverse.max()) + 1
     cluster_area = np.bincount(inverse, weights=area[failing], minlength=n_clusters)
     cluster_count = np.bincount(inverse, minlength=n_clusters)
@@ -755,8 +766,11 @@ def validate(before: MeshData, after: MeshData, looks: Looks, *, errors=None, ta
     # ---- the sites: failing samples, clustered ----
     failing = np.flatnonzero(fail1 | fail3)
     reason_all = np.where(extra, np.where(covered, COVERED, present), reason1).astype(np.int8)
+    corners = b.positions[b.face_v]
+    longest = np.max([np.linalg.norm(corners[:, i] - corners[:, (i + 1) % 3], axis=1) for i in range(3)], axis=0)
+    spacing = (longest / np.sqrt(np.maximum(per_face_samples, 1)))[samples.face]       # n x n samples on a face
     sites, members, n_sites = _cluster_sites(samples.points, centre, failing, sample_area, samples.face, reason_all,
-                                             fail1, fail3, settings.cluster_cell, settings.max_sites)
+                                             fail1, fail3, spacing, settings.cluster_cell, settings.max_sites)
     clock["end"] = time.perf_counter()
 
     statuses = (textures["status"], problems["status"], nothing_deleted["status"])

@@ -16,7 +16,9 @@ from engine.tests.fixtures.build import closed_room, cube, grid_slab, two_sided_
 from engine.validate.checks import (Looks, LookTable, Settings, check_problems, default_targets_path,
                                     depth_tolerance, face_fingerprints, face_look_ids, load_looks, load_targets,
                                     png_size, print_step, validate)
-from engine.validate.sampling import face_samples
+from engine.validate.evidence import BACK_TINT, BACKGROUND, _basis, render_crop, write_evidence
+from engine.validate.sampling import face_normals, face_samples
+from engine.validate.visibility import build_caster
 
 
 # ---------------------------------------------------------------------------------------------
@@ -521,9 +523,149 @@ def test_loading_the_validator_does_not_load_the_code_it_judges():
     checks, the evidence and the rest of the Validator can be loaded without any of them."""
     import subprocess
     import sys
-    code = ("import sys, engine.validate.checks\n"
+    code = ("import sys, engine.validate.checks, engine.validate.evidence\n"
             "bad = sorted(m for m in sys.modules if m.split('.')[:2] in (['engine', 'guard'], ['engine', 'fixes'], "
             "['engine', 'vis'], ['engine', 'detectors']))\n"
             "print('LOADED', bad)\n")
     done = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, check=True)
     assert done.stdout.strip() == "LOADED []", done.stdout
+
+
+# ---------------------------------------------------------------------------------------------
+# Step 4: the evidence -- two 256 px orthographic crops, BEFORE and AFTER, for each of the 20 worst sites
+# ---------------------------------------------------------------------------------------------
+
+RED, BLUE = (200, 40, 40), (40, 60, 210)
+
+
+def _coloured(**colours):
+    """Looks for materials named like the keywords, each with its mean texture colour."""
+    return Looks(key={n: f"look-{n}" for n in colours}, texel={f"look-{n}": (16, 16) for n in colours},
+                 colour={f"look-{n}": c for n, c in colours.items()})
+
+
+def _crops(tmp_path, site):
+    return (np.asarray(Image.open(tmp_path / site["evidence"]["before"]).convert("RGB")),
+            np.asarray(Image.open(tmp_path / site["evidence"]["after"]).convert("RGB")))
+
+
+def test_a_failing_site_gets_two_aligned_256_px_crops_coloured_by_look(tmp_path):
+    m = _with_material(_two_looks(cube(10.0)), [2, 3], 1)             # the top is in look m1, blue; the rest red
+    looks = _coloured(m0=RED, m1=BLUE)
+    v = _check(m, _without_faces(m, [2, 3]), looks)                    # AFTER has lost the top
+    entries = write_evidence(v, tmp_path)
+
+    (site,) = v.report["sites"]
+    assert site["evidence"] == {"before": "evidence/site-01-before.png", "after": "evidence/site-01-after.png"}
+    assert entries == [site["evidence"]]
+    assert sorted(p.name for p in (tmp_path / "evidence").iterdir()) == ["site-01-after.png", "site-01-before.png"]
+    before, after = _crops(tmp_path, site)
+    assert before.shape == after.shape == (256, 256, 3)
+
+    # BEFORE: looking down at the top, which is look m1 (blue) in the middle of the crop
+    assert before[128, 128, 2] > before[128, 128, 0] + 100, f"blue at the centre, got {before[128, 128]}"
+    assert np.abs(before[128, 128].astype(int) - np.array(BLUE)).max() < 20, "the look's colour, lightly shaded"
+    # AFTER: through the hole, the inside of the bottom (look m0, red) seen from behind: another colour
+    assert after[128, 128, 0] > after[128, 128, 2], f"not blue any more, got {after[128, 128]}"
+    assert np.abs(after[128, 128].astype(int) - before[128, 128].astype(int)).max() > 60
+    # the same camera: what did not change is the same pixels, and what did is not all of them
+    same = (before == after).all(axis=2).mean()
+    assert 0.5 < same < 1.0, f"{same:.2f} of the pixels agree"
+    assert tuple(before[0, 128]) == tuple(after[0, 128]) == (255, 220, 0), "a tick marks the site at the top edge"
+    assert tuple(before[128, 0]) == (255, 220, 0), "and at the left edge"
+
+
+def test_a_site_only_a_probe_sees_is_drawn_from_where_the_probe_stood(tmp_path):
+    room = closed_room()
+    looks = _coloured(plaster=(230, 225, 200), brick=(150, 60, 40))
+    v = _check(room, _without_faces(room, [4, 5]), looks)             # the wall y = 0 of the room, gone
+    write_evidence(v, tmp_path)
+    before, after = _crops(tmp_path, v.report["sites"][0])
+    assert before[128, 128, 1] > 150 and before[128, 128, 0] > 150, f"plaster, got {before[128, 128]}"
+    assert after[128, 128, 1] < 110, f"through the gap, the brick skin seen from behind: {after[128, 128]}"
+
+
+def test_only_the_20_worst_sites_get_crops_and_the_worst_come_first(tmp_path):
+    slab = grid_slab(20, 20, cell=10.0)                               # 200 x 200 in, faces +z, 800 triangles
+    cells = [(i, j) for j in (1, 4, 7, 10, 13, 16, 19) for i in (1, 4, 7, 10, 13, 16, 19)]    # 49, 30 in apart
+    lost = [2 * (j * 20 + i) for i, j in cells]
+    lost += [2 * (19 * 20 + 19) + 1]                                   # the other triangle of the last cell: twice the area
+    v = _check(slab, _without_faces(slab, lost), _looks("m0"))
+    sites = v.report["sites"]
+    assert v.report["sites_total"] == 49 and len(sites) == 49
+    entries = write_evidence(v, tmp_path)
+    assert len(entries) == 20 and sum(s["evidence"] is not None for s in sites) == 20
+    assert [s["id"] for s in sites if s["evidence"] is not None] == list(range(1, 21)), "the 20 worst"
+    assert len(list((tmp_path / "evidence").glob("*.png"))) == 40
+    areas = [s["area_in2"] for s in sites]
+    assert areas == sorted(areas, reverse=True), "worst (most area lost) first"
+
+
+def test_one_defect_is_one_site_and_two_far_apart_are_two():
+    slab = grid_slab(10, 10, cell=10.0)                               # 100 x 100 in
+    # three triangles side by side near one corner, one triangle at the far corner
+    lost = [0, 1, 2, 2 * (9 * 10 + 9)]
+    v = _check(slab, _without_faces(slab, lost), _looks("m0"))
+    first, second = v.report["sites"]
+    assert v.report["sites_total"] == 2
+    assert first["faces"] == [0, 1, 2] and second["faces"] == [2 * (9 * 10 + 9)]
+    assert first["area_in2"] > second["area_in2"]
+    assert first["centre"][0] < 30.0 and second["centre"][0] > 70.0
+    assert Settings().cluster_cell == 6.0, "the brief's 6 in grid"
+
+
+def test_a_floor_with_no_failure_has_no_evidence(tmp_path):
+    m = cube(10.0)
+    v = _check(m, m, _looks("m0"))
+    assert write_evidence(v, tmp_path) == []
+    assert not (tmp_path / "evidence").exists()
+
+
+def test_a_wall_lost_whole_is_one_site_though_its_samples_are_further_apart_than_the_grid():
+    room = closed_room()
+    # the wall y = 0 is 200 x 120 in; its lattice has 19 samples along the long side: 10.5 in apart, more
+    # than one 6 in cell, so cells that merely touch would cut the wall into strips
+    v = _check(room, _without_faces(room, [4, 5]), _looks("plaster", "brick"))
+    assert v.report["sites_total"] == 1
+    (site,) = v.report["sites"]
+    assert site["faces"] == [4, 5] and site["samples"] == 722 and site["size"] > 200.0
+
+
+def test_a_face_seen_from_behind_is_drawn_half_and_half_with_purple(tmp_path):
+    m = _with_material(_two_looks(cube(10.0)), [2, 3], 1)
+    v = _check(m, _with_flipped(m, [2, 3]), _coloured(m0=RED, m1=BLUE))        # the top, now wound away from the viewer
+    write_evidence(v, tmp_path)
+    before, after = _crops(tmp_path, v.report["sites"][0])
+    mixed = 0.5 * before[128, 128].astype(float) + 0.5 * np.array(BACK_TINT)
+    assert np.abs(after[128, 128] - mixed).max() <= 1.0, f"{after[128, 128]} is not {mixed}"
+    assert np.abs(before[128, 128].astype(int) - np.array(BLUE)).max() < 20
+
+
+def test_the_after_crop_is_coloured_by_the_looks_of_the_after(tmp_path):
+    m = _with_material(_two_looks(cube(10.0)), [2, 3], 1)                       # the top is blue
+    v = _check(m, _with_material(m, [2, 3], 0), _coloured(m0=RED, m1=BLUE))     # AFTER has it red
+    write_evidence(v, tmp_path)
+    before, after = _crops(tmp_path, v.report["sites"][0])
+    assert np.abs(before[128, 128].astype(int) - np.array(BLUE)).max() < 20
+    assert np.abs(after[128, 128].astype(int) - np.array(RED)).max() < 20, f"red at the centre, got {after[128, 128]}"
+
+
+def test_render_crop_shades_by_how_squarely_a_face_is_seen_and_leaves_misses_pale():
+    slab = grid_slab(2, 2, cell=10.0)                                   # 20 x 20 in at z = 0, faces +z
+    caster, normals = build_caster(slab), face_normals(slab)
+    colours = np.tile([200.0, 100.0, 50.0], (slab.n_faces, 1))
+    centre = np.array([10.0, 10.0, 0.0])
+
+    def crop(u, window=10.0):
+        u = np.asarray(u, dtype=float) / np.linalg.norm(u)
+        right, up = _basis(u)
+        assert abs(right @ u) < 1e-12 and abs(up @ u) < 1e-12 and abs(right @ up) < 1e-12 and np.allclose(np.cross(right, up), -u)
+        return render_crop(caster, normals, colours, centre - u * 50.0, u, right, up, window, px=64)
+
+    assert tuple(crop([0.0, 0.0, -1.0])[32, 32]) == (200, 100, 50), "head on: the look's own colour"
+    sixty = np.radians(60.0)
+    tilted = crop([np.sin(sixty), 0.0, -np.cos(sixty)])[32, 32]
+    assert np.abs(tilted - np.array([200, 100, 50]) * (0.55 + 0.45 * 0.5)).max() <= 1, "|cos| 0.5: shade 0.775"
+    wide = crop([0.0, 0.0, -1.0], window=100.0)
+    assert tuple(wide[2, 2]) == BACKGROUND and tuple(wide[61, 61]) == BACKGROUND, "the window is wider than the slab"
+    assert tuple(wide[32, 32]) == (200, 100, 50)
