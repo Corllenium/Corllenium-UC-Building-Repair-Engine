@@ -1230,3 +1230,14 @@ def test_a_uv_a_hair_below_a_whole_tile_is_the_same_mark_as_the_uv_at_the_tile_e
     m = grid_slab(1, 1, cell=10.0)                                  # UVs 0 and 0.5
     nearly = dataclasses.replace(m, uvs=np.where(m.uvs == 0.0, 1.0 - 1e-7, m.uvs))
     assert np.array_equal(_fingerprints(nearly), _fingerprints(m))
+
+
+def test_validate_command_says_how_many_samples_a_new_layer_lies_over(tmp_path, capsys):
+    before, after = _plated(0.03)                                      # a slab, and the same with a layer in look m1 over it
+    out = tmp_path / "out"
+    code = cli.main(_validate_args(_snapshot(tmp_path, before, "before"), _snapshot(tmp_path, after, "after") / "grid_slab.obj",
+                                   _materials_json(tmp_path, ["m0", "m1"]), out))
+    said = capsys.readouterr().out
+    assert code == 2 and "128 overlaid" in said, said
+    data = json.loads((out / "validation.json").read_text(encoding="utf-8"))
+    assert data["checks"]["nothing_deleted"]["overlaid"] == 128 and data["after"]["new_faces"] == 32

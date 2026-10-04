@@ -897,7 +897,8 @@ def cmd_validate(before_dir: Path, after_path: Path, materials: Path, out_dir: P
     print(f"  textures        {t['status']:<11} {t['samples']} samples seen in BEFORE, {t['samples_failed']} failed {t['reasons']}")
     print(f"  problems        {p['status']:<11} " + ("targets signed" if p["signed"] else "targets unsigned: counts only")
           + "; before -> after: " + ", ".join(f"{k} {v['before']}->{v['after']}" for k, v in p["kinds"].items()))
-    print(f"  nothing_deleted {g['status']:<11} {g['deleted']} deleted, {g['replaced']} replaced, {g['covered']} covered "
+    print(f"  nothing_deleted {g['status']:<11} {g['deleted']} deleted, {g['replaced']} replaced, {g['covered']} covered, "
+          f"{g['overlaid']} overlaid "
           f"({g['samples_extra']} samples only the {report['viewpoints']['extra_directions']} extra directions saw)")
     print(f"  {report['sites_total']} sites, {sum(1 for s in report['sites'] if s['evidence'])} with evidence crops; "
           f"wrote {out_dir / 'validation.json'}")
