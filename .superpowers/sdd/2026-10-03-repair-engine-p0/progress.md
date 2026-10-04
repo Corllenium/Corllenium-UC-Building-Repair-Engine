@@ -226,3 +226,8 @@ Spec: docs/superpowers/specs/2026-10-03-uc-repair-engine-design.md (2a748d4, app
   - Important 2: KeyError at inventory.py:543 for an element in band 0 below every floor.
   - 5 Minors: the missing flag attaches to every unit of a group; chained 0.5 in identity (a 1.17 in cluster) and its wording; the footprint second condition not stated in the md; member sha256 copied, not hashed; SITE pairs never compared.
   - Fix round 1 sent to the implementer (resumed) with all findings.
+- P0-12 handed in by Hermes (1579a76 code, 16c6ba0 + e147fd2 report, 2.01 USD).
+  - 9 census tests; engine 824 + 1 xfail; tools 121.
+  - Smoke on 3 units into data/census_smoke/ in 76 s. CHTM 5th fix plan: E8 346, E3 12,870, E1 1,055, E2 29, E4 6,522 (pairs), E5 7,425 (pairs), E6 3,884, E7 null.
+  - Review dispatched (hermes-reviewer, sonnet) on review-39a1275..e147fd2.diff: the timings=None path is byte-identical, the errors file format is the CLI's, pair vs face units are labelled, and the child processes are robust.
+- Hermes run launched: P1-S1b (memory bound for the T-junction search), alongside P1-S3.
