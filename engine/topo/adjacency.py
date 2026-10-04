@@ -69,13 +69,11 @@ def _t_vertex_hints(positions_w: np.ndarray, table: EdgeTable, face_w: np.ndarra
     return hints
 
 
-def find_t_vertices(positions_w: np.ndarray, table: EdgeTable, tol: float,
-                    face_w: np.ndarray | None = None, degenerate: np.ndarray | None = None
-                    ) -> dict[int, np.ndarray]:
-    """Geometric search runs on every edge in the table (count >= 1); candidates are all welded
-    vertices referenced by faces included in the table. When `face_w`/`degenerate` are given,
-    zero-area faces contribute additional hints (see `_t_vertex_hints`), merged and de-duplicated
-    with the geometric hits, ordered from `edges[e][0]` to `edges[e][1]`."""
+def find_t_vertices_reference(positions_w: np.ndarray, table: EdgeTable, tol: float,
+                              face_w: np.ndarray | None = None, degenerate: np.ndarray | None = None
+                              ) -> dict[int, np.ndarray]:
+    """Test oracle: the O(E * V) search over every edge and candidate vertex, kept verbatim.
+    Do not modify."""
     n_edges = len(table.edges)
     if n_edges == 0:
         return {}
@@ -90,6 +88,121 @@ def find_t_vertices(positions_w: np.ndarray, table: EdgeTable, tol: float,
         hit = (t > 1e-9) & (t < 1 - 1e-9) & (d <= tol) & (cand != a) & (cand != b)
         if hit.any():
             hits[e] = {int(v) for v in cand[hit]}
+
+    if face_w is not None and degenerate is not None and degenerate.any():
+        for e, verts in _t_vertex_hints(positions_w, table, face_w, degenerate, tol).items():
+            hits.setdefault(e, set()).update(verts)
+
+    out = {}
+    for e, verts in hits.items():
+        a, b = table.edges[e]
+        remaining = verts - {int(a), int(b)}
+        if not remaining:
+            continue
+        ids = np.array(sorted(remaining), dtype=np.int64)
+        A, ab = positions_w[a], positions_w[b] - positions_w[a]
+        t = ((positions_w[ids] - A) @ ab) / (ab @ ab)
+        out[e] = ids[np.argsort(t)]
+    return out
+
+
+def find_t_vertices(positions_w: np.ndarray, table: EdgeTable, tol: float,
+                    face_w: np.ndarray | None = None, degenerate: np.ndarray | None = None,
+                    stats: dict | None = None) -> dict[int, np.ndarray]:
+    n_edges = len(table.edges)
+    if n_edges == 0:
+        if stats is not None:
+            stats["pairs_tested"] = 0
+        return {}
+
+    cand = np.unique(table.edges)
+    if len(cand) == 0:
+        if stats is not None:
+            stats["pairs_tested"] = 0
+        return {}
+
+    p_a = positions_w[table.edges[:, 0]]
+    p_b = positions_w[table.edges[:, 1]]
+    lens = np.linalg.norm(p_b - p_a, axis=1)
+    pos_lens = lens[lens > 1e-9]
+    typ_len = float(np.median(pos_lens)) if len(pos_lens) > 0 else 1.0
+    cell_size = max(typ_len, tol, 1e-4)
+
+    cand_pos = positions_w[cand]
+    cand_cells = np.floor(cand_pos / cell_size).astype(np.int64)
+
+    grid: dict[tuple[int, int, int], list[int]] = {}
+    for idx, c in enumerate(cand_cells.tolist()):
+        key = (c[0], c[1], c[2])
+        if key in grid:
+            grid[key].append(idx)
+        else:
+            grid[key] = [idx]
+
+    min_p = np.minimum(p_a, p_b) - tol
+    max_p = np.maximum(p_a, p_b) + tol
+    c_min = np.floor(min_p / cell_size).astype(np.int64).tolist()
+    c_max = np.floor(max_p / cell_size).astype(np.int64).tolist()
+
+    edge_cand_edges: list[int] = []
+    edge_cand_verts: list[int] = []
+
+    for e, ((x0, y0, z0), (x1, y1, z1)) in enumerate(zip(c_min, c_max)):
+        if x0 == x1 and y0 == y1 and z0 == z1:
+            vs = grid.get((x0, y0, z0))
+            if vs:
+                edge_cand_edges.extend([e] * len(vs))
+                edge_cand_verts.extend(vs)
+        else:
+            for x in range(x0, x1 + 1):
+                for y in range(y0, y1 + 1):
+                    for z in range(z0, z1 + 1):
+                        vs = grid.get((x, y, z))
+                        if vs:
+                            edge_cand_edges.extend([e] * len(vs))
+                            edge_cand_verts.extend(vs)
+
+    total_pairs = len(edge_cand_edges)
+    if stats is not None:
+        stats["pairs_tested"] = int(total_pairs)
+
+    hits: dict[int, set[int]] = {}
+
+    if total_pairs > 0:
+        e_arr = np.array(edge_cand_edges, dtype=np.int64)
+        v_idx = np.array(edge_cand_verts, dtype=np.int64)
+
+        chunk_size = 1_000_000
+        for chunk_start in range(0, total_pairs, chunk_size):
+            chunk_end = min(chunk_start + chunk_size, total_pairs)
+            sub_e = e_arr[chunk_start:chunk_end]
+            sub_v = v_idx[chunk_start:chunk_end]
+
+            sub_ea = table.edges[sub_e, 0]
+            sub_eb = table.edges[sub_e, 1]
+            sub_cv = cand[sub_v]
+
+            A = positions_w[sub_ea]
+            B = positions_w[sub_eb]
+            ab = B - A
+            denom = np.sum(ab * ab, axis=1)
+            safe_denom = np.where(denom == 0, 1.0, denom)
+
+            P_chunk = cand_pos[sub_v]
+            PA = P_chunk - A
+            t = np.sum(PA * ab, axis=1) / safe_denom
+            diff = PA - t[:, None] * ab
+            d = np.linalg.norm(diff, axis=1)
+
+            hit = (t > 1e-9) & (t < 1.0 - 1e-9) & (d <= tol) & (sub_cv != sub_ea) & (sub_cv != sub_eb)
+            if hit.any():
+                hit_e = sub_e[hit]
+                hit_v = sub_cv[hit]
+                for e_val, v_val in zip(hit_e.tolist(), hit_v.tolist()):
+                    if e_val in hits:
+                        hits[e_val].add(v_val)
+                    else:
+                        hits[e_val] = {v_val}
 
     if face_w is not None and degenerate is not None and degenerate.any():
         for e, verts in _t_vertex_hints(positions_w, table, face_w, degenerate, tol).items():
