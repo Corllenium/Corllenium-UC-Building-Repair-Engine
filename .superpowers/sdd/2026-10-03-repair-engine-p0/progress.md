@@ -166,3 +166,9 @@ Spec: docs/superpowers/specs/2026-10-03-uc-repair-engine-design.md (2a748d4, app
   - 5 mutants fail (offset buckets, all pairs per plane, unpadded cells, pairs by j first -- caught only after the chained three-layer test -- and pixels counted per chunk -- caught only with layers 0.05 apart).
   - Ruling: search by position, not by plane offset (the plan's wording), because tilted layers far from the origin defeat offset buckets -- costs nothing if wrong, since the tests decide.
   - Brief and queue e50d0fe; targets >= 3x CHTM 5th, >= 5x on the 91,714-tri unit, peak memory no higher. Hermes run launched in parallel with S1 (different files).
+- P0-09 round-2 re-review (hermes-reviewer, sonnet): CHANGES on note 1 only (the basename fallback is unflagged; the probe shows a material silently taking another folder's bytes). Notes 2-6 addressed; 11 mutants killed; full engine 668 + 1 xfail; sha 28a0e0d3 reproduced.
+  - Ruling: merge now and queue follow-up P0-09b (drop the fallback, plus two test-hygiene fixes) -- all 379 real textures resolve by exact path, so no data changes, while 4 jobs wait on P0-09 -- costs a later small materials.py change if wrong.
+  - Merged into feat/repair-p0 (478326b); cli.py conflict with campus-index resolved by keeping both. After the merge: 102 targeted tests pass; campus-materials and campus-index both reproduce their committed files byte for byte (28a0e0d3, 1e470740).
+  - P0-09b brief and queue entry: d396f5d, c8de489.
+- P0-10 claimed by Claude; worktree .claude/worktrees/P0-10 (claude/P0-10 from feat/repair-p0 478326b). Implementer dispatched (engine-builder, sonnet). Report: task-10-report.md. Carried from P0-08's review: assign by idx["split"], never by path tuple.
+- HERMES.md §2 and §3 wording fixed (5341a13, prompt audit F6, F17); handover tests 16 passed. To report to the owner.
