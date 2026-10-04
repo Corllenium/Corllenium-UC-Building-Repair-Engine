@@ -291,3 +291,8 @@ Spec: docs/superpowers/specs/2026-10-03-uc-repair-engine-design.md (2a748d4, app
   - The S3 before-baselines equal S1's independent before-baselines (237ddd85, e724822f, ebeea4ed).
   - Then a short Hermes run writes the report and runs the full suite.
 - P1-S1b re-review (hermes-reviewer, sonnet): PASS. All 4 notes; 630 resize combinations, 0 failures; exact on CHTM 5th and on the 270x270 grid (its oracle ran 1,895 s). Merged into feat/repair-p0.
+- P1-S3 controller acceptance, part 1 (on 9e34d77):
+  - S3 + overlap tests: 42 passed.
+  - Item 0 after-runs into data/s3_check/after2: sha256 EQUAL to before for chtm5 errors (237ddd85), A report (e724822f) and B report (ebeea4ed).
+  - find_errors on CHTM 5th: 55.7 s wall with S3 alone (98 s before).
+  - The per-call step failed first on Claude's own ctypes signature bug (argtypes missing for GetProcessMemoryInfo); fixed, tested on one call, and the 8 calls re-launched.
