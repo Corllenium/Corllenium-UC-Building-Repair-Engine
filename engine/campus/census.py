@@ -198,20 +198,29 @@ def flicker_split(
         errs = find_errors(mesh)
         pair_list = errs.get("flicker_pairs", [])
 
-    materials_map: dict[str, dict] = {}
+    materials_map: dict[str, Any]
     if isinstance(materials, dict):
         materials_map = materials.get("materials", materials)
     elif materials is not None:
         mat_path = Path(materials)
-        if mat_path.is_file():
-            data = json.loads(mat_path.read_text(encoding="utf-8"))
-            materials_map = data.get("materials", data)
+        if not mat_path.is_file():
+            raise FileNotFoundError(f"Materials map not found: {mat_path}")
+        data = json.loads(mat_path.read_text(encoding="utf-8"))
+        if not isinstance(data, dict):
+            raise ValueError(f"Invalid materials JSON in {mat_path}")
+        materials_map = data.get("materials", data)
     else:
         repo_root = Path(__file__).resolve().parents[2]
         mat_path = repo_root / "data" / "campus" / "materials.json"
-        if mat_path.is_file():
-            data = json.loads(mat_path.read_text(encoding="utf-8"))
-            materials_map = data.get("materials", data)
+        if not mat_path.is_file():
+            raise FileNotFoundError(f"Default materials map not found: {mat_path}")
+        data = json.loads(mat_path.read_text(encoding="utf-8"))
+        if not isinstance(data, dict):
+            raise ValueError(f"Invalid materials JSON in {mat_path}")
+        materials_map = data.get("materials", data)
+
+    if not isinstance(materials_map, dict):
+        raise ValueError("Materials map is not a dictionary")
 
     same_opp = 0
     same_same = 0
@@ -229,8 +238,20 @@ def flicker_split(
         name_i = mat_names[mat_idx_i] if mat_idx_i < len(mat_names) else str(mat_idx_i)
         name_j = mat_names[mat_idx_j] if mat_idx_j < len(mat_names) else str(mat_idx_j)
 
-        look_i = materials_map.get(name_i, {}).get("look", name_i)
-        look_j = materials_map.get(name_j, {}).get("look", name_j)
+        if name_i not in materials_map:
+            raise KeyError(f"Material {name_i!r} not found in materials map")
+        if name_j not in materials_map:
+            raise KeyError(f"Material {name_j!r} not found in materials map")
+
+        info_i = materials_map[name_i]
+        look_i = info_i.get("look") if isinstance(info_i, dict) else info_i
+        info_j = materials_map[name_j]
+        look_j = info_j.get("look") if isinstance(info_j, dict) else info_j
+
+        if not look_i:
+            raise ValueError(f"Material {name_i!r} has no 'look' in materials map")
+        if not look_j:
+            raise ValueError(f"Material {name_j!r} has no 'look' in materials map")
 
         same_look = (look_i == look_j)
 
@@ -483,7 +504,7 @@ def census(
     timeout_s: float = 1800.0,
     errors_dir: Path | str | None = None,
     out_md: Path | str | None = None,
-    materials_path: Path | str | None = None,
+    materials_path: Path | str | None = Path("data/campus/materials.json"),
 ) -> dict:
     """Run census over snapshot units."""
     repo_root = Path(__file__).resolve().parents[2]
@@ -558,7 +579,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--worker", type=Path, default=None, help=argparse.SUPPRESS)
     parser.add_argument("--out-res", type=Path, default=None, help=argparse.SUPPRESS)
     parser.add_argument("--out-err", type=Path, default=None, help=argparse.SUPPRESS)
-    parser.add_argument("--materials", type=Path, default=None, help="materials.json path")
+    parser.add_argument("--materials", type=Path, default=Path("data/campus/materials.json"), help="materials.json path")
     parser.add_argument("units", nargs="*", default=None, help="snapshot paths")
     parser.add_argument("--out", type=Path, default=Path("data/campus/census.json"), help="output json")
     parser.add_argument("--errors-dir", type=Path, default=None, help="errors dir")

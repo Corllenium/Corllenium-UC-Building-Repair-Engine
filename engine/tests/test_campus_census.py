@@ -38,7 +38,7 @@ def test_flicker_split_two_sided_wall_sums_to_total_pairs():
     assert len(pairs) == 2
 
     # Two-sided wall has different materials ("concrete", "prismarine") facing opposite directions
-    split = flicker_split(mesh, pairs)
+    split = flicker_split(mesh, pairs, materials={"concrete": {"look": "look1"}, "prismarine": {"look": "look2"}})
     assert sum(split.values()) == len(pairs)
     assert split["diff_look_opposite"] == len(pairs)
     assert split["same_look_opposite"] == 0
@@ -46,11 +46,58 @@ def test_flicker_split_two_sided_wall_sums_to_total_pairs():
     assert split["diff_look_same"] == 0
 
 
+def test_flicker_split_two_materials_share_one_look():
+    """Two material names that share one look produce same_look (E4), no diff_look (E5)."""
+    from engine.campus.census import flicker_split
+    from engine.detectors.errors import find_errors
+    from engine.tests.fixtures.build import two_sided_wall
+
+    mesh = two_sided_wall()
+    errs = find_errors(mesh)
+    pairs = errs["flicker_pairs"]
+    assert len(pairs) == 2
+
+    # concrete and prismarine share the SAME look -> E4, not E5
+    split = flicker_split(mesh, pairs, materials={"concrete": {"look": "shared_look"}, "prismarine": {"look": "shared_look"}})
+    assert split["same_look_opposite"] == 2
+    assert split["diff_look_opposite"] == 0
+    assert split["same_look"] == 2
+    assert split["diff_look"] == 0
+
+
+def test_flicker_split_missing_map_or_material_raises():
+    """A missing materials map or a material name not in the map raises."""
+    from engine.campus.census import flicker_split
+    from engine.detectors.errors import find_errors
+    from engine.tests.fixtures.build import two_sided_wall
+
+    mesh = two_sided_wall()
+    errs = find_errors(mesh)
+    pairs = errs["flicker_pairs"]
+
+    # Missing file path must raise FileNotFoundError
+    with pytest.raises(FileNotFoundError):
+        flicker_split(mesh, pairs, materials=Path("nonexistent_materials.json"))
+
+    # Material name missing from map must raise KeyError
+    with pytest.raises(KeyError):
+        flicker_split(mesh, pairs, materials={"concrete": {"look": "look1"}})  # missing "prismarine"
+
+
 def test_census_two_fixture_units_and_timeout(tmp_path: Path):
     """`census` on two fixture units writes both rows with `seconds` and `peak_mb`, and a `timeout_s` of 0.001 marks a unit as timeout."""
     from engine.campus.census import census
     from engine.io.obj_writer import write_obj
     from engine.tests.fixtures.build import two_sided_wall, cube
+
+    mat_file = tmp_path / "materials.json"
+    mat_file.write_text(json.dumps({
+        "materials": {
+            "concrete": {"look": "l1"},
+            "prismarine": {"look": "l2"},
+            "default": {"look": "l3"},
+        }
+    }), encoding="utf-8")
 
     snap1 = tmp_path / "unit_1"
     snap1.mkdir()
@@ -61,7 +108,7 @@ def test_census_two_fixture_units_and_timeout(tmp_path: Path):
     write_obj(cube(), snap2 / "CHTM_unit2.obj")
 
     out_json = tmp_path / "census.json"
-    result = census([snap1, snap2], out_json=out_json, jobs=2)
+    result = census([snap1, snap2], out_json=out_json, jobs=2, materials_path=mat_file)
 
     assert out_json.is_file()
     assert len(result["rows"]) == 2
@@ -74,7 +121,7 @@ def test_census_two_fixture_units_and_timeout(tmp_path: Path):
 
     # Test timeout with very small timeout_s
     out_timeout_json = tmp_path / "census_timeout.json"
-    timeout_res = census([snap1], out_json=out_timeout_json, jobs=1, timeout_s=0.0001)
+    timeout_res = census([snap1], out_json=out_timeout_json, jobs=1, timeout_s=0.0001, materials_path=mat_file)
     timeout_rows = timeout_res["rows"]
     assert len(timeout_rows) == 1
     assert timeout_rows[0]["status"] == "timeout"
@@ -87,13 +134,21 @@ def test_errors_json_equal_to_find_errors(tmp_path: Path):
     from engine.io.obj_writer import write_obj
     from engine.tests.fixtures.build import two_sided_wall
 
+    mat_file = tmp_path / "materials.json"
+    mat_file.write_text(json.dumps({
+        "materials": {
+            "concrete": {"look": "l1"},
+            "prismarine": {"look": "l2"},
+        }
+    }), encoding="utf-8")
+
     snap = tmp_path / "unit_a"
     snap.mkdir()
     mesh = two_sided_wall()
     write_obj(mesh, snap / "unit_a.obj")
 
     out_json = tmp_path / "census.json"
-    census([snap], out_json=out_json, jobs=1)
+    census([snap], out_json=out_json, jobs=1, materials_path=mat_file)
 
     errors_file = tmp_path / "errors" / "unit_a.json"
     assert errors_file.is_file()
@@ -211,12 +266,20 @@ def test_cli_census_subcommand(tmp_path: Path):
     from engine.io.obj_writer import write_obj
     from engine.tests.fixtures.build import two_sided_wall
 
+    mat_file = tmp_path / "materials.json"
+    mat_file.write_text(json.dumps({
+        "materials": {
+            "concrete": {"look": "l1"},
+            "prismarine": {"look": "l2"},
+        }
+    }), encoding="utf-8")
+
     snap = tmp_path / "unit_cli"
     snap.mkdir()
     write_obj(two_sided_wall(), snap / "CHTM_unit_cli.obj")
 
     out_json = tmp_path / "out_census.json"
-    ret = main(["census", str(snap), "--out", str(out_json), "--jobs", "1"])
+    ret = main(["census", str(snap), "--out", str(out_json), "--jobs", "1", "--materials", str(mat_file)])
     assert ret == 0
     assert out_json.is_file()
     data = json.loads(out_json.read_text(encoding="utf-8"))
