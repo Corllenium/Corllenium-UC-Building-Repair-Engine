@@ -2324,3 +2324,29 @@ def t_junction_strip_with_a_stray():
     fv = np.vstack([m.face_v, [[base, base + 1, base + 2]]])
     return _mesh("t_strip_with_stray", P.tolist(), (P[:, :2] * 0.05).tolist(), fv.tolist(),
                  fv.tolist())
+
+
+def closed_room(width=200.0, depth=160.0, height=120.0, wall=8.0):
+    """The Validator's room (job P0-14), built the way the real model builds one: a hollow SHELL of
+    two skins with the wall between them left empty. The inner skin is the room, every face wound
+    INTO it; the outer skin is the building's outside, wound outward. So the room's surfaces can be
+    seen only from inside it -- no outside viewpoint reaches them -- and a probe at eye height
+    standing on its floor sees all four walls.
+
+    The room is `0..width` in x, `0..depth` in y and `0..height` in z; the outer skin is the same
+    box grown by `wall` on every side. Two materials: 0 "plaster" (the inner skin), 1 "brick".
+
+    Faces (24, two triangles per quad; the tests index by this order):
+      0-1 the floor (z = 0, faces +z), 2-3 the ceiling (z = height, faces -z),
+      4-5 the wall y = 0 (faces +y), 6-7 the wall x = width (faces -x),
+      8-9 the wall y = depth (faces -y), 10-11 the wall x = 0 (faces +x);
+      12-23 the outer skin in `_closed_box`'s order: bottom, top, y0, x1, y1, x0."""
+    w, d, h = width, depth, height
+    P = [[0.0, 0.0, 0.0], [w, 0.0, 0.0], [w, d, 0.0], [0.0, d, 0.0],
+         [0.0, 0.0, h], [w, 0.0, h], [w, d, h], [0.0, d, h]]
+    uvs, fv, fvt, fm = [], [], [], []
+    # the loops of an outward-wound box (bottom, top, y0, x1, y1, x0), each reversed to face inward
+    outward = [(0, 3, 2, 1), (4, 5, 6, 7), (0, 1, 5, 4), (1, 2, 6, 5), (2, 3, 7, 6), (3, 0, 4, 7)]
+    _quads(P, uvs, fv, fvt, fm, [tuple(reversed(loop)) for loop in outward], material=0)
+    _closed_box(P, uvs, fv, fvt, fm, -wall, w + wall, -wall, d + wall, -wall, h + wall, material=1)
+    return _mesh("closed_room", P, uvs, fv, fvt, materials=("plaster", "brick"), face_material=fm)
