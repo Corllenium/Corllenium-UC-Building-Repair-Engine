@@ -5,6 +5,7 @@ here writes geometry.
 from __future__ import annotations
 
 import hashlib
+import itertools
 import re
 from dataclasses import asdict, dataclass
 
@@ -71,9 +72,12 @@ class InventoryParams:
     # bands and units
     band_slack_in: float = 1.0        # a band starts one bin below its base (the base is a bin's mean z)
     part_coverage: float = 0.80       # the fewest bands holding 80 % of a group's triangles are its parts
+    # duplicates
+    dup_flag: float = 0.25            # flag a Jaccard similarity of at least 0.25 (the brief)
+    match_tol_in: float = 0.5         # brief: the print step. The CKPT17 copies sit 0.03-0.4 in off (identity only)
 
 
-BRIEF_PARAMS = InventoryParams(slab_window_in=24.0, base_pick="nearest", min_storey_in=20.0)
+BRIEF_PARAMS = InventoryParams(slab_window_in=24.0, base_pick="nearest", min_storey_in=20.0, match_tol_in=0.0)
 
 
 # ------------------------------------------------------------------------------------------ groups
@@ -279,6 +283,120 @@ def level_records(plan: BuildingPlan, p: InventoryParams) -> list[dict]:
     return out
 
 
+# ------------------------------------------------------------------------------------------ duplicates
+
+def _link_pairs(pts: np.ndarray, eps: float) -> tuple[np.ndarray, np.ndarray]:
+    """Index pairs (i < j) of points at most `eps` apart, by a grid hash with cells of `eps`."""
+    cell = np.floor(pts / eps).astype(np.int64)
+    cell -= cell.min(axis=0)
+    dims = cell.max(axis=0) + 3
+
+    def flat(k: np.ndarray) -> np.ndarray:
+        return ((k[:, 0] + 1) * dims[1] + (k[:, 1] + 1)) * dims[2] + (k[:, 2] + 1)
+
+    key = flat(cell)
+    order = np.argsort(key, kind="stable")
+    sorted_key = key[order]
+    ii: list[np.ndarray] = [np.zeros(0, np.int64)]
+    jj: list[np.ndarray] = [np.zeros(0, np.int64)]
+    for dx in (-1, 0, 1):
+        for dy in (-1, 0, 1):
+            for dz in (-1, 0, 1):
+                tgt = flat(cell + np.array([dx, dy, dz]))
+                lo = np.searchsorted(sorted_key, tgt, "left")
+                hi = np.searchsorted(sorted_key, tgt, "right")
+                for k in range(int((hi - lo).max())):
+                    idx = np.nonzero(hi - lo > k)[0]
+                    j = order[lo[idx] + k]
+                    keep = idx < j
+                    idx, j = idx[keep], j[keep]
+                    near = ((pts[idx] - pts[j]) ** 2).sum(axis=1) <= eps * eps
+                    ii.append(idx[near])
+                    jj.append(j[near])
+    return np.concatenate(ii), np.concatenate(jj)
+
+
+def _components(n: int, ii: np.ndarray, jj: np.ndarray) -> np.ndarray:
+    """Connected-component label (the smallest member index) of every node."""
+    lab = np.arange(n)
+    while ii.size:
+        m = np.minimum(lab[ii], lab[jj])
+        new = lab.copy()
+        np.minimum.at(new, ii, m)
+        np.minimum.at(new, jj, m)
+        new = new[new]
+        if np.array_equal(new, lab):
+            break
+        lab = new
+    return lab
+
+
+def _face_sets(groups: list[GroupData], tol_in: float) -> dict[str, np.ndarray]:
+    """Per group, the ids of its distinct faces. A face is its three vertices, sorted, plus its winding and
+    its look key. A vertex is the position snapped to the print step; with `tol_in` > 0, vertices closer than
+    that also count as one (identity only: no geometry is touched)."""
+    dec = max(g.decimals for g in groups)
+    scale = 10.0 ** dec
+    snapped = np.concatenate([np.rint(g.pos * scale) for g in groups]).astype(np.int64)
+    uniq, inverse = np.unique(snapped, axis=0, return_inverse=True)
+    inverse = inverse.reshape(-1)
+    if tol_in > 0:
+        label = _components(len(uniq), *_link_pairs(uniq / scale, tol_in))
+    else:
+        label = np.arange(len(uniq))
+    vid = label[inverse]
+    keys, start = [], 0
+    for g in groups:
+        ids = vid[start:start + len(g.pos)][g.fv]
+        start += len(g.pos)
+        order = np.argsort(ids, axis=1, kind="stable")
+        sorted_ids = np.take_along_axis(ids, order, axis=1)
+        even = (((order[:, 0] == 0) & (order[:, 1] == 1)) | ((order[:, 0] == 1) & (order[:, 1] == 2))
+                | ((order[:, 0] == 2) & (order[:, 1] == 0)))
+        keys.append(np.column_stack([sorted_ids, (~even).astype(np.int64), g.look]))
+    _, face_id = np.unique(np.concatenate(keys), axis=0, return_inverse=True)
+    face_id = face_id.reshape(-1)
+    out, start = {}, 0
+    for g, k in zip(groups, keys):
+        out[g.name] = np.unique(face_id[start:start + len(k)])
+        start += len(k)
+    return out
+
+
+def _jaccard(a: np.ndarray, b: np.ndarray) -> tuple[float, int]:
+    shared = int(np.intersect1d(a, b, assume_unique=True).size)
+    union = a.size + b.size - shared
+    return (shared / union if union else 0.0), shared
+
+
+def duplicate_flags(groups: list[GroupData], p: InventoryParams) -> list[dict]:
+    """Pairs of groups of one building whose faces overlap: Jaccard similarity of the face fingerprints,
+    flagged from `dup_flag`. `exact_jaccard` is the same at the print step alone: the CKPT17 copies (Science A,
+    BRS obj1) sit 0.03-0.4 in off their originals, so they only match with a tolerance."""
+    if len(groups) < 2:
+        return []
+    tolerant = _face_sets(groups, p.match_tol_in)
+    exact = tolerant if p.match_tol_in <= 0 else _face_sets(groups, 0.0)
+    out = []
+    for a, b in itertools.combinations(groups, 2):
+        j, shared = _jaccard(tolerant[a.name], tolerant[b.name])
+        if j < p.dup_flag:
+            continue
+        ex_j, _ = _jaccard(exact[a.name], exact[b.name])
+        sizes = [int(tolerant[a.name].size), int(tolerant[b.name].size)]
+        of_smaller = shared / min(sizes)
+        match = "exact" if ex_j >= p.dup_flag else "shifted"
+        how = ("coincident at the print step" if match == "exact"
+               else f"copies shifted by less than {p.match_tol_in:g} in (exact at the print step: {ex_j * 100:.0f} %)")
+        out.append({"kind": "duplicate", "building": a.building, "groups": [a.name, b.name],
+                    "jaccard": round(j, 4), "percent": round(j * 100, 1), "exact_jaccard": round(ex_j, 4),
+                    "match": match, "shared": shared, "faces": sizes, "of_smaller": round(of_smaller, 4),
+                    "tolerance_in": p.match_tol_in, "decision": None,
+                    "text": f"{a.name} and {b.name} share {j * 100:.0f} % of their faces (Jaccard {j:.2f}; "
+                            f"{shared} of {sizes[0]} and {sizes[1]} faces, {of_smaller * 100:.0f} % of the smaller); {how}"})
+    return out
+
+
 # ------------------------------------------------------------------------------------------ units
 
 def _member(g: GroupData, faces: str, tris: int, z_range=None) -> dict:
@@ -365,10 +483,21 @@ def build_inventory(groups: list[GroupData], params: InventoryParams | None = No
         buildings[name] = {"groups": [g.name for g in plan.groups], "levels": levels}
         units += b_units
         proposals += b_props
-        flags += b_flags
+        flags += b_flags + duplicate_flags(plan.groups, p)
     units += [_site_unit(g) for g in sorted(by_building.get(SITE, []), key=lambda g: g.name)]
+    _attach_flags(units, flags)
+    return {"params": asdict(p), "buildings": buildings, "units": units, "proposals": proposals, "flags": flags}
+
+
+def _attach_flags(units: list[dict], flags: list[dict]) -> None:
+    """Give every flag the units of its groups, and every unit the flags that name it."""
+    units_of: dict[str, list[str]] = {}
+    for u in units:
+        for m in u["members"]:
+            units_of.setdefault(m["group"], []).append(u["unit"])
     by_unit = {u["unit"]: u for u in units}
     for f in flags:
-        for uid in f.get("units", []):
+        names = f.get("groups") or [f["group"]]
+        f["units"] = sorted({uid for n in names for uid in units_of.get(n, [])})
+        for uid in f["units"]:
             by_unit[uid]["flags"].append({"kind": f["kind"], "text": f["text"]})
-    return {"params": asdict(p), "buildings": buildings, "units": units, "proposals": proposals, "flags": flags}

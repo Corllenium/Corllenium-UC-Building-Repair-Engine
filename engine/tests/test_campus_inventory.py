@@ -135,3 +135,60 @@ def test_floor_units_know_their_neighbours_and_start_unconfirmed():
     assert all(u["confirmed_by_owner"] is False for u in units.values())
     m = units["CHTM-L01"]["members"][0]
     assert (m["group"], m["paths"], m["sha256"], m["faces"]) == ("CHTM_1st_floor", [0], "sha-CHTM_1st_floor", "all")
+
+
+# ------------------------------------------------------------------------------------------ duplicates
+
+def strip(n, z=0.0, dx=0.0, flip=False, start=0):
+    """n distinct flat triangles side by side (up-facing unless flipped); `start` skips the first triangles."""
+    verts, faces = [], []
+    for i in range(start, start + n):
+        a, b, c = (i * 10 + dx, 0.0, z), (i * 10 + 10 + dx, 0.0, z), (i * 10 + dx, 10.0, z)
+        k = len(verts)
+        verts += [a, b, c]
+        faces.append((k, k + 2, k + 1) if flip else (k, k + 1, k + 2))
+    return verts, faces
+
+
+def duplicates(*groups, **kw):
+    return [f for f in inv.build_inventory(list(groups), **kw)["flags"] if f["kind"] == "duplicate"]
+
+
+def test_two_groups_sharing_ninety_percent_of_their_faces_flag_a_duplicate_of_about_point_nine():
+    a = group("PE_1st_floor", strip(100))
+    b = group("PE_1st_floor_obj1", strip(90))                  # the same first 90 triangles, same look
+    (flag,) = duplicates(a, b)
+    assert set(flag["groups"]) == {"PE_1st_floor", "PE_1st_floor_obj1"}
+    assert flag["jaccard"] == pytest.approx(0.9, abs=0.01)
+    assert flag["percent"] == pytest.approx(90, abs=1)
+    assert flag["shared"] == 90 and sorted(flag["faces"]) == [90, 100]
+    assert flag["match"] == "exact" and flag["exact_jaccard"] == pytest.approx(0.9, abs=0.01)
+    assert flag["decision"] is None                            # the owner's call, later
+
+
+def test_the_flag_also_gives_the_share_of_the_smaller_group():
+    a = group("PE_1st_floor", strip(100))                      # 90 shared + 10 of its own
+    b = group("PE_1st_floor_obj1", strip(90), strip(10, start=500))
+    (flag,) = duplicates(a, b)
+    assert flag["jaccard"] == pytest.approx(90 / 110, abs=0.001)
+    assert flag["of_smaller"] == pytest.approx(0.9, abs=0.001)
+
+
+def test_a_copy_shifted_by_a_few_hundredths_of_an_inch_is_a_shifted_duplicate():
+    a = group("Sciene_A_Floor_plan_2_obj", strip(100))
+    b = group("Sciene_A_Floor_plan_2_obj1", strip(100, dx=0.03))   # Science A's obj1 copies sit 0.03 in off
+    (flag,) = duplicates(a, b)
+    assert flag["match"] == "shifted"
+    assert flag["exact_jaccard"] == 0.0                        # nothing coincides at the print step
+    assert flag["jaccard"] > 0.95
+
+
+def test_a_flipped_copy_is_not_a_duplicate():
+    # opposite-normal coincident faces are never duplicates (AGENTS.md section 4)
+    assert duplicates(group("PE_1st_floor", strip(100)), group("PE_1st_floor_obj1", strip(100, flip=True))) == []
+
+
+def test_groups_that_share_little_or_sit_in_different_buildings_are_not_flagged():
+    a = group("PE_1st_floor", strip(100))
+    assert duplicates(a, group("PE_1st_floor_obj1", strip(20), strip(80, start=500))) == []   # 20 / 180 = 0.11
+    assert duplicates(a, group("BRS_1st_floor", strip(100))) == []                              # other building
