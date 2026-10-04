@@ -231,3 +231,9 @@ Spec: docs/superpowers/specs/2026-10-03-uc-repair-engine-design.md (2a748d4, app
   - Smoke on 3 units into data/census_smoke/ in 76 s. CHTM 5th fix plan: E8 346, E3 12,870, E1 1,055, E2 29, E4 6,522 (pairs), E5 7,425 (pairs), E6 3,884, E7 null.
   - Review dispatched (hermes-reviewer, sonnet) on review-39a1275..e147fd2.diff: the timings=None path is byte-identical, the errors file format is the CLI's, pair vs face units are labelled, and the child processes are robust.
 - Hermes run launched: P1-S1b (memory bound for the T-junction search), alongside P1-S3.
+- P0-14 fix round 0: DONE (2513c1e).
+  - Majority back-face vote: CHTM 5th probes 1,577 -> 1,397; 177/181 flagged dropped, 4 on-plane ties kept.
+  - The open floor is untouched (all 1,386 zero-back probes kept); 4 other real floors are similar.
+  - Engine 860 + 1 xfail.
+  - The controller viewed chtm5_probes_after_vote.png: regular lattice kept, drops on wall lines.
+  - Task review dispatched (rules-reviewer, opus) on review-76d74bb..2513c1e.diff; report in task-14-report.md.
