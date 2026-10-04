@@ -316,3 +316,22 @@ Spec: docs/superpowers/specs/2026-10-03-uc-repair-engine-design.md (2a748d4, app
   - dict.setdefault 4.0 s (6.1 M): per (face, cell) entry;
   - shapely intersection 6.6 s (one vectorised call); renders ~12 s.
   - S3b direction: build (face, cell) entries with numpy, generate pairs per cell vectorised, and dedupe with np.unique on int64 keys (i*N + j). This also cuts the memory, since a Python set of millions of ints is the likely 1,250 MB peak.
+- P0-12 round-2 re-review (hermes-reviewer, sonnet): code mergeable.
+  - Note 1 addressed: the worker fallback is gone, nothing swallows, and a real unit with a missing map gives error, exit 1, and an ERROR row.
+  - Note 2 not addressed: the report's red run is not verbatim output.
+  - Ruling: merge; the reviewer's verbatim reproduction of note 1's red run on e147fd2 is recorded below; Hermes's report deviation is noted -- it costs report fidelity only.
+  - review --pass; merged into feat/repair-p0. Verbatim red run (tail):
+```
+        pairs = errs["flicker_pairs"]
+    
+        # Missing file path must raise FileNotFoundError
+>       with pytest.raises(FileNotFoundError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE FileNotFoundError
+
+engine\tests\test_campus_census.py:79: Failed
+=========================== short test summary info ===========================
+FAILED engine/tests/test_campus_census.py::test_flicker_split_missing_map_or_material_raises
+============================= 1 failed in 14.51s ==============================
+exit=1
+```
