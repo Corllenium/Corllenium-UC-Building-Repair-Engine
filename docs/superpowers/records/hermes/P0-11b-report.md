@@ -2,7 +2,7 @@
 
 - Branch: hermes/P0-11b   Base: 76d74bb (feat/repair-p0)
 - Commits:
-  - 779e751 fix(campus): SDK cross-check follow-ups (P0-11b)
+  - c8fcd35 fix(campus): SDK cross-check follow-ups (P0-11b)
 - Brief: docs/superpowers/records/briefs/P0-11b-skp-check-followups.md
 
 ## Items
