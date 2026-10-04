@@ -1156,3 +1156,28 @@ def test_given_cameras_and_probes_are_positions_in_the_models_own_coordinates():
         v = _check(before, after, _looks("m0"), dirs=sky, cams=none, probes=np.array([[20.0, 20.0, 63.0]]) + shift)
         counts.append(v.report["checks"]["nothing_deleted"]["covered"])
     assert counts[0] == counts[1] > 0, counts
+
+
+# ---------------------------------------------------------------------------------------------
+# Fix round 1, minor 7: `inputs.targets` named the file only when --targets was given
+# ---------------------------------------------------------------------------------------------
+
+def test_validate_records_the_default_targets_file_it_used_when_none_is_given(tmp_path, monkeypatch):
+    import engine.validate.checks as checks
+    default = tmp_path / "default_targets.json"
+    default.write_text(json.dumps({"signed": True, "kinds": {"hidden": 0}}), encoding="utf-8")
+    monkeypatch.setattr(checks, "default_targets_path", lambda: default)
+    room = closed_room()                                           # find_errors marks its 12 inner faces "hidden"
+    before = _snapshot(tmp_path, room, "before")
+    out = tmp_path / "out"
+    code = cli.main(_validate_args(before, before / "closed_room.obj",
+                                   _materials_json(tmp_path, ["plaster", "brick"]), out))      # no --targets
+    data = json.loads((out / "validation.json").read_text(encoding="utf-8"))
+    assert data["inputs"]["targets"] == str(default), "the file that was really used"
+    assert data["checks"]["problems"]["signed"] is True and data["checks"]["problems"]["status"] == "FAIL"
+    assert code == 2
+
+    monkeypatch.setattr(checks, "default_targets_path", lambda: tmp_path / "there_is_no_such_file.json")
+    cli.main(_validate_args(before, before / "closed_room.obj", tmp_path / "materials.json", tmp_path / "out2"))
+    none = json.loads((tmp_path / "out2" / "validation.json").read_text(encoding="utf-8"))
+    assert none["inputs"]["targets"] is None and none["checks"]["problems"]["signed"] is False

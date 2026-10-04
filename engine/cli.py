@@ -843,7 +843,7 @@ def cmd_validate(before_dir: Path, after_path: Path, materials: Path, out_dir: P
     # The process counters (peak memory) come from the reader's helper: only the SketchUp binding modules may
     # import ctypes (test_skp_writer.test_ctypes_is_imported_only_by_the_sketchup_binding_modules).
     from engine.io.skp_reader import _peak_memory_mb
-    from engine.validate.checks import Settings, load_looks, load_targets, validate
+    from engine.validate.checks import Settings, default_targets_path, load_looks, load_targets, validate
     from engine.validate.evidence import write_evidence
 
     started = time.perf_counter()
@@ -883,8 +883,9 @@ def cmd_validate(before_dir: Path, after_path: Path, materials: Path, out_dir: P
     write_evidence(result, out_dir)
     report = result.report
     peak, commit = _peak_memory_mb()
+    targets_used = Path(targets) if targets is not None else default_targets_path()     # what load_targets read
     report["inputs"] = {"before": str(before_obj), "after": str(after_path), "materials": str(materials),
-                        "targets": str(targets) if targets is not None and Path(targets).is_file() else None,
+                        "targets": str(targets_used) if targets_used.is_file() else None,
                         "before_sha256": sha256_file(before_obj), "after_sha256": sha256_file(after_path)}
     report["peak_working_set_mb"], report["peak_commit_mb"] = peak, commit
     report["wall_s"] = round(time.perf_counter() - started, 2)
