@@ -192,3 +192,39 @@ def test_groups_that_share_little_or_sit_in_different_buildings_are_not_flagged(
     a = group("PE_1st_floor", strip(100))
     assert duplicates(a, group("PE_1st_floor_obj1", strip(20), strip(80, start=500))) == []   # 20 / 180 = 0.11
     assert duplicates(a, group("BRS_1st_floor", strip(100))) == []                              # other building
+
+
+# ------------------------------------------------------------------------------------------ misnamed levels
+
+def stack(prefix, names, step=200):
+    """One single-slab group per name, bottom to top: `{prefix}_{name}_floor` at z = 0, step, 2 step, ..."""
+    return [group(f"{prefix}_{n}_floor", slab(i * step)) for i, n in enumerate(names)]
+
+
+def flags_of(result, kind):
+    return [f for f in result["flags"] if f["kind"] == kind]
+
+
+def test_a_group_named_ninth_that_sits_in_the_eighth_band_is_flagged_misnamed():
+    # the eighth band holds the group named 9th (BRS_9th_floor_obj1 in CHECKPOINT-17)
+    result = inv.build_inventory(stack("BRS", ["1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "9th"]))
+    (flag,) = flags_of(result, "misnamed")
+    assert flag["group"] == "BRS_9th_floor"
+    assert (flag["named"], flag["assigned"], flag["units"]) == (9, "L08", ["BRS-L08"])
+    assert flag["band"] == pytest.approx([1400, 1410], abs=0.5)          # the level's base and top
+    assert result["buildings"]["BRS"]["anchor"]["offset"] == 0           # one odd name does not move the numbering
+
+
+def test_names_that_all_agree_on_an_offset_number_the_levels_from_it_instead_of_flagging_every_group():
+    # Science A: the floors are named 2..6 and the first floor is not in these groups
+    result = inv.build_inventory([group(f"Sciene_A_Floor_plan_{n}_obj", slab(i * 200)) for i, n in enumerate((2, 3, 4))])
+    assert [lv["level"] for lv in result["buildings"]["SCIENCE_A"]["levels"]] == ["L02", "L03", "L04"]
+    assert result["buildings"]["SCIENCE_A"]["anchor"] == {"offset": 1, "votes": 3, "agree": 3}
+    assert flags_of(result, "misnamed") == []
+    assert [u["unit"] for u in result["units"]] == ["SCIENCE_A-L02", "SCIENCE_A-L03", "SCIENCE_A-L04"]
+
+
+def test_a_tie_between_offsets_keeps_the_numbering_from_the_lowest_band():
+    result = inv.build_inventory(stack("CHTM", ["1st", "2nd", "4th", "5th"]))
+    assert result["buildings"]["CHTM"]["anchor"]["offset"] == 0
+    assert sorted(f["group"] for f in flags_of(result, "misnamed")) == ["CHTM_4th_floor", "CHTM_5th_floor"]

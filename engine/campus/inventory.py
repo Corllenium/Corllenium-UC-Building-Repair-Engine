@@ -4,6 +4,7 @@ here writes geometry.
 """
 from __future__ import annotations
 
+import collections
 import hashlib
 import itertools
 import re
@@ -255,8 +256,35 @@ def _r(x: float) -> float:
     return round(float(x), 2)
 
 
-def level_records(plan: BuildingPlan, p: InventoryParams) -> list[dict]:
-    """One record per level, lowest first: its number, base, top, slab and triangles."""
+def name_votes(plan: BuildingPlan) -> list[int]:
+    """For every floor group that sits in one band and names a floor: the floor it names minus the ordinal
+    of its band (counted from the lowest level)."""
+    ordinal = {band: i + 1 for i, band in enumerate(plan.bands)}
+    votes = []
+    for g in plan.groups:
+        parts = plan.parts[g.name]
+        n = floor_number(g.name)
+        if n is not None and len(parts) == 1 and g.name not in plan.elements:
+            votes.append(n - ordinal[parts[0]])
+    return votes
+
+
+def anchor_offset(votes: list[int]) -> tuple[int, int]:
+    """(offset, groups agreeing). The level numbers start above 1 only when a strict majority of the named
+    floor groups agree on the same positive offset (Science A's floors are all named one above their band);
+    a tie, a minority or a negative offset leaves the numbering from the lowest band."""
+    if not votes:
+        return 0, 0
+    counts = collections.Counter(votes)
+    best, n = max(counts.items(), key=lambda kv: (kv[1], -abs(kv[0])))
+    if best > 0 and 2 * n > len(votes):
+        return best, n
+    return 0, counts.get(0, 0)
+
+
+def level_records(plan: BuildingPlan, p: InventoryParams, offset: int = 0) -> list[dict]:
+    """One record per level, lowest first: its number, base, top, slab and triangles. Level numbers count
+    from the lowest band, plus the anchoring `offset` the names agree on."""
     nbands = len(plan.slabs) + 1
     tris = dict.fromkeys(plan.bands, 0)
     lowest = np.inf
@@ -277,7 +305,7 @@ def level_records(plan: BuildingPlan, p: InventoryParams) -> list[dict]:
         slab = plan.slabs[j - 1] if j >= 1 else None
         base = slab.base if slab else lowest
         top = plan.slabs[j].base if j < len(plan.slabs) else highest
-        out.append({"level": f"L{i + 1:02d}", "band": j, "base": _r(base), "top": _r(top),
+        out.append({"level": f"L{i + 1 + offset:02d}", "band": j, "base": _r(base), "top": _r(top),
                     "slab": {"bottom": _r(slab.base), "top": _r(slab.top)} if slab else None,
                     "tris": tris[j]})
     return out
@@ -416,6 +444,7 @@ def _unit(unit: str, building: str, level, kind: str, members: list[dict], base,
 def _building_units(plan: BuildingPlan, levels: list[dict], p: InventoryParams):
     """The floor and element units of one building, the split proposals and their flags."""
     label = {lv["band"]: lv["level"] for lv in levels}
+    lv_of = {lv["level"]: lv for lv in levels}
     nbands = len(plan.slabs) + 1
     floor_members: dict[str, list[dict]] = {lv["level"]: [] for lv in levels}
     elements: list[dict] = []
@@ -426,7 +455,15 @@ def _building_units(plan: BuildingPlan, levels: list[dict], p: InventoryParams):
         counts = plan.counts[g.name]
         owner = band_owners(nbands, parts)
         if len(parts) == 1:
-            floor_members[label[parts[0]]].append(_member(g, "all", g.tris))
+            level = label[parts[0]]
+            floor_members[level].append(_member(g, "all", g.tris))
+            named = floor_number(g.name)
+            if named is not None and named != int(level[1:]):
+                lv = lv_of[level]
+                flags.append({"kind": "misnamed", "building": plan.name, "group": g.name, "named": named,
+                              "assigned": level, "band": [lv["base"], lv["top"]],
+                              "text": f"{g.name}: the name says floor {named}, but its faces sit in {level} "
+                                      f"(z {lv['base']:g} to {lv['top']:g} in)"})
         elif g.name in plan.elements:
             unit = _unit(f"{plan.name}-E-{g.name}", plan.name, None, "element", [_member(g, "all", g.tris)],
                          _r(g.bbox[0][2]), _r(g.bbox[1][2]), None)
@@ -478,9 +515,12 @@ def build_inventory(groups: list[GroupData], params: InventoryParams | None = No
         if name == SITE:
             continue
         plan = plan_building(name, by_building[name], p)
-        levels = level_records(plan, p)
+        votes = name_votes(plan)
+        offset, agree = anchor_offset(votes)
+        levels = level_records(plan, p, offset)
         b_units, b_props, b_flags = _building_units(plan, levels, p)
-        buildings[name] = {"groups": [g.name for g in plan.groups], "levels": levels}
+        buildings[name] = {"groups": [g.name for g in plan.groups], "levels": levels,
+                           "anchor": {"offset": offset, "votes": len(votes), "agree": agree}}
         units += b_units
         proposals += b_props
         flags += b_flags + duplicate_flags(plan.groups, p)
