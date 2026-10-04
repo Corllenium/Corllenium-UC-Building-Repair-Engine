@@ -9,6 +9,59 @@ import numpy as np
 import pytest
 
 from engine.campus import inventory as inv
+from engine.model import MeshData
+
+# ------------------------------------------------------------------------------------------ helpers
+
+# the 12 triangles of an axis-aligned box, outward normals (vertex order: 4 bottom, 4 top)
+_BOX_FACES = [(0, 2, 1), (0, 3, 2), (4, 5, 6), (4, 6, 7), (0, 1, 5), (0, 5, 4),
+              (1, 2, 6), (1, 6, 5), (2, 3, 7), (2, 7, 6), (3, 0, 4), (3, 4, 7)]
+
+
+def box(x0, y0, z0, x1, y1, z1):
+    verts = [(x0, y0, z0), (x1, y0, z0), (x1, y1, z0), (x0, y1, z0),
+             (x0, y0, z1), (x1, y0, z1), (x1, y1, z1), (x0, y1, z1)]
+    return verts, list(_BOX_FACES)
+
+
+def slab(z, thickness=10.0, size=100.0, x=0.0, y=0.0):
+    """A floor plate: bottom face at z, top face at z + thickness."""
+    return box(x, y, z, x + size, y + size, z + thickness)
+
+
+def mesh_of(name, pieces, material="m0", decimals=2):
+    """One MeshData from (verts, faces) pieces."""
+    verts, faces = [], []
+    for v, f in pieces:
+        base = len(verts)
+        verts += list(v)
+        faces += [tuple(base + i for i in tri) for tri in f]
+    n = len(faces)
+    return MeshData(
+        name=name, positions=np.array(verts, float).reshape(-1, 3), uvs=np.zeros((0, 2)), normals=np.zeros((0, 3)),
+        face_v=np.array(faces, np.int64).reshape(-1, 3), face_vt=np.full((n, 3), -1, np.int64),
+        face_vn=np.full((n, 3), -1, np.int64), face_material=np.zeros(n, np.int64),
+        face_line=np.arange(1, n + 1, dtype=np.int64), materials=[material], mtllib=None,
+        coord_decimals=decimals, sig_digits=6)
+
+
+def group(name, *pieces, **kw):
+    """A GroupData for the inventory from boxes (default look "look0")."""
+    looks = kw.pop("looks", {"m0": "look0"})
+    return inv.load_group(name, mesh_of(name, pieces, decimals=kw.pop("decimals", 2)), looks=looks,
+                          paths=kw.pop("paths", [0]), sha256=kw.pop("sha256", "sha-" + name), **kw)
+
+
+# ------------------------------------------------------------------------------------------ the brief's tests
+
+def test_three_stacked_slabs_make_three_levels_with_the_right_bases():
+    groups = [group(f"CHTM_{n}_floor", slab(z)) for n, z in (("1st", 0), ("2nd", 200), ("3rd", 400))]
+    levels = inv.build_inventory(groups)["buildings"]["CHTM"]["levels"]
+    assert [lv["level"] for lv in levels] == ["L01", "L02", "L03"]
+    assert [lv["base"] for lv in levels] == pytest.approx([0, 200, 400], abs=0.5)
+    assert [lv["slab"]["top"] for lv in levels] == pytest.approx([10, 210, 410], abs=0.5)
+    assert [lv["top"] for lv in levels] == pytest.approx([200, 400, 410], abs=0.5)   # next base; the roof's highest face
+    assert [lv["tris"] for lv in levels] == [12, 12, 12]
 
 
 @pytest.mark.parametrize("name, building", [
