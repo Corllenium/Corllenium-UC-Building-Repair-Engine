@@ -878,6 +878,27 @@ def build_parser() -> argparse.ArgumentParser:
     mat_p.add_argument("--tex-dir", type=Path, default=None,
                        help="optional explicit path to texture directory")
 
+    skp_check_p = sub.add_parser(
+        "campus-skp-check",
+        help="check the frozen export against the CHECKPOINT-17 backup through the SketchUp SDK "
+             "(read only: the SDK opens a sha256-verified copy of the backup and cannot save)")
+    skp_check_p.add_argument("--source", type=Path, default=Path("data/campus/source.json"),
+                             help="the freeze (campus-freeze) whose files are checked")
+    skp_check_p.add_argument("--backup", type=Path, required=True,
+                             help="the CHECKPOINT-17 backup folder (read only)")
+    skp_check_p.add_argument("--out", type=Path, default=Path("data/campus"),
+                             help="receives skp_copy/, skp_walk.json and skp_check.json")
+    skp_check_p.add_argument("--summary", type=Path, default=None,
+                             help="also write a short markdown summary here")
+    skp_check_p.add_argument("--name", default=None,
+                             help="the backup .skp, when source.json lists more than one")
+    skp_check_p.add_argument("--timeout-min", type=float, default=None,
+                             help="minutes the SketchUp walk may take before it is killed (default 30)")
+    skp_check_p.add_argument("--min-free-commit-mb", type=float, default=None,
+                             help="MB of commit memory that must be free to start the walk "
+                                  "(default 3500; the walk peaks at about 2.5 GB)")
+    skp_check_p.add_argument("--dll", type=Path, default=None, help="SketchUpAPI.dll, if not the default")
+
     return parser
 
 
@@ -932,6 +953,26 @@ def main(argv: list[str] | None = None) -> int:
         for key, mats in sorted_looks[:10]:
             print(f"  {key} ({len(mats)} materials): {mats}")
         print(f"wrote materials to {out_path}")
+        return 0
+    elif args.command == "campus-skp-check":
+        from engine.campus import skp_check
+        from engine.io.snapshot import SourceUnstable
+        extra = {}
+        if args.timeout_min is not None:
+            extra["timeout_s"] = args.timeout_min * 60.0
+        if args.min_free_commit_mb is not None:
+            extra["min_free_commit_mb"] = args.min_free_commit_mb
+        try:
+            report = skp_check.check_source(args.source, args.backup, args.out, summary=args.summary,
+                                            name=args.name, dll_path=args.dll, **extra)
+        except (skp_check.BackupMismatch, skp_check.WalkFailed, SourceUnstable, ValueError,
+                FileNotFoundError) as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            return 2
+        c = report["counts"]
+        print(f"checked {c['files']} files against {report['source']['backup']}: {c['matches']} match, "
+              f"{c['mismatches']} mismatch, {c['ambiguous_files']} ambiguous, {c['misses']} miss "
+              f"-> {args.out / 'skp_check.json'}")
         return 0
     return 1
 
