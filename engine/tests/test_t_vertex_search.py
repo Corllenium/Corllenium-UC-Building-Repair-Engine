@@ -284,18 +284,31 @@ def test_bounded_pairs_peak_matches_oracle():
 
 def test_long_diagonal_edge_uses_full_scan_fallback():
     """An edge whose bounding box would visit more cells than candidate vertices
-    falls back to testing all candidates directly, matching the reference oracle."""
+    falls back to testing all candidates directly, matching the reference oracle.
+    Vertices placed on the diagonal verify that the fallback's hits match the oracle."""
     P, F = _scene_raw(0, n_walls=4, depth=5)
     min_p = P.min(axis=0)
     max_p = P.max(axis=0)
+    p0 = min_p
+    p1 = max_p
+
+    # Add vertices on the diagonal edge so that the full-scan fallback's hits
+    # are compared directly against the reference oracle.
+    extra_pts = [p0, p1, p0 + [0.0, 0.0, 10.0]]
     b = len(P)
-    diag_triangle = np.array([
-        [min_p[0], min_p[1], min_p[2]],
-        [max_p[0], max_p[1], max_p[2]],
-        [min_p[0], max_p[1], min_p[2] + 10.0],
-    ])
-    P_diag = np.vstack([P, diag_triangle])
-    F_diag = np.vstack([F, [[b, b + 1, b + 2]]])
+    extra_faces = [[b, b + 1, b + 2]]
+    b_curr = b + 3
+
+    for frac in [0.25, 0.5, 0.75]:
+        pt = p0 + frac * (p1 - p0)
+        pt1 = pt + np.array([0.0, 5.0, 0.0])
+        pt2 = pt + np.array([0.0, 0.0, 5.0])
+        extra_pts.extend([pt, pt1, pt2])
+        extra_faces.append([b_curr, b_curr + 1, b_curr + 2])
+        b_curr += 3
+
+    P_diag = np.vstack([P, extra_pts])
+    F_diag = np.vstack([F, extra_faces])
     Pw, fw, ok, table = _prepared(P_diag, F_diag)
 
     stats = {}
@@ -305,6 +318,15 @@ def test_long_diagonal_edge_uses_full_scan_fallback():
     assert _same(ref, res)
     assert "full_scan_edges" in stats
     assert stats["full_scan_edges"] >= 1
+
+    diag_edge = None
+    for e, (v0, v1) in enumerate(table.edges):
+        if (np.allclose(Pw[v0], p0) and np.allclose(Pw[v1], p1)) or (np.allclose(Pw[v0], p1) and np.allclose(Pw[v1], p0)):
+            diag_edge = e
+            break
+    assert diag_edge is not None
+    assert len(ref.get(diag_edge, [])) == 3
+    assert np.array_equal(ref[diag_edge], res[diag_edge])
 
 
 def test_grid_scene_buffer_resize_after_flush():
