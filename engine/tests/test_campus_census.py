@@ -248,10 +248,16 @@ def test_format_census_md():
             "unit": "EDS_unit1",
             "building": "EDS",
             "status": "timeout",
-        }
+        },
+        {
+            "unit": "BRS_unit1",
+            "building": "BRS",
+            "status": "error",
+            "error": "some crash",
+        },
     ]
     totals = {
-        "units": 2,
+        "units": 3,
         "triangles": 100,
         "counts": {"open_edges": 2, "hidden": 1, "loose": 0, "reversed": 0, "flicker_diff": 0, "flicker_same": 0, "cracks": 0},
         "seconds": 1.23,
@@ -260,6 +266,7 @@ def test_format_census_md():
     assert "# Campus Error Census" in md
     assert "CHTM_unit1" in md
     assert "TIMEOUT" in md
+    assert "ERROR" in md
     assert "## Totals by Building" in md
     assert "**Total**" in md
 
@@ -288,4 +295,14 @@ def test_cli_census_subcommand(tmp_path: Path):
     data = json.loads(out_json.read_text(encoding="utf-8"))
     assert len(data["rows"]) == 1
     assert data["rows"][0]["unit"] == "CHTM_unit_cli"
+
+
+def test_cli_census_error_exit_code(tmp_path: Path):
+    from engine.cli import main
+    snap = tmp_path / "broken_snap"
+    snap.mkdir()
+    (snap / "broken.obj").write_text("not an obj", encoding="utf-8")
+    out_json = tmp_path / "out_broken.json"
+    ret = main(["census", str(snap), "--out", str(out_json), "--jobs", "1"])
+    assert ret != 0
 

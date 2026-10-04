@@ -1007,7 +1007,10 @@ def main(argv: list[str] | None = None) -> int:
         res = census(units=units, out_json=args.out, jobs=args.jobs, timeout_s=args.timeout,
                      errors_dir=args.errors_dir, out_md=args.md, materials_path=args.materials)
         totals = res["totals"]
-        print(f"census completed: {totals['units']} units, {totals['triangles']} triangles, {totals['seconds']} s -> {args.out}")
+        print(f"census completed: {totals['units']} units ({totals['ok']} ok, {totals['timeout']} timeout, {totals['error']} error), "
+              f"{totals['triangles']} triangles, {totals['seconds']} s -> {args.out}")
+        if totals.get("error", 0) > 0:
+            return 1
         return 0
     elif args.command == "campus-inventory":
         from engine.campus.inventory import BRIEF_PARAMS, cmd_campus_inventory

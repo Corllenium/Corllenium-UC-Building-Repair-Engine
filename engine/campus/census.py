@@ -333,6 +333,9 @@ def format_census_md(rows: list[dict], totals: dict) -> str:
         if r.get("status") == "timeout":
             lines.append(f"| {bldg} | {unit} | - | - | - | - | - | - | - | - | TIMEOUT | - |")
             continue
+        if r.get("status") == "error":
+            lines.append(f"| {bldg} | {unit} | - | - | - | - | - | - | - | - | ERROR | - |")
+            continue
         tris = f"{r.get('triangles', 0):,}"
         counts = r.get("counts", {})
         cnt_strs = [f"{counts.get(k, 0):,}" for k in kinds]
@@ -348,7 +351,7 @@ def format_census_md(rows: list[dict], totals: dict) -> str:
         "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
     ])
     for bldg in sorted(by_bldg.keys()):
-        bldg_rows = [r for r in by_bldg[bldg] if r.get("status") != "timeout"]
+        bldg_rows = [r for r in by_bldg[bldg] if r.get("status") == "ok"]
         b_units = len(by_bldg[bldg])
         b_tris = sum(r.get("triangles", 0) for r in bldg_rows)
         b_cnts = [sum(r.get("counts", {}).get(k, 0) for r in bldg_rows) for k in kinds]
@@ -530,8 +533,12 @@ def census(
     # Build totals
     kinds = ["flicker_diff", "flicker_same", "reversed", "hidden", "loose", "open_edges", "cracks"]
     ok_rows = [r for r in rows if r.get("status") == "ok"]
+    status_counts = collections.Counter(r.get("status", "unknown") for r in rows)
     totals = {
         "units": len(rows),
+        "ok": status_counts.get("ok", 0),
+        "timeout": status_counts.get("timeout", 0),
+        "error": status_counts.get("error", 0),
         "triangles": sum(r.get("triangles", 0) for r in ok_rows),
         "counts": {k: sum(r.get("counts", {}).get(k, 0) for r in ok_rows) for k in kinds},
         "seconds": round(sum(r.get("seconds", 0.0) for r in ok_rows), 2),
@@ -577,7 +584,7 @@ def main(argv: list[str] | None = None) -> int:
         return _run_worker(args.worker, args.out_res, args.out_err, args.materials)
 
     units = [Path(u) for u in args.units] if args.units else None
-    census(
+    res = census(
         units=units,
         out_json=args.out,
         jobs=args.jobs,
@@ -586,6 +593,11 @@ def main(argv: list[str] | None = None) -> int:
         out_md=args.md,
         materials_path=args.materials,
     )
+    totals = res["totals"]
+    print(f"census completed: {totals['units']} units ({totals['ok']} ok, {totals['timeout']} timeout, {totals['error']} error), "
+          f"{totals['triangles']} triangles, {totals['seconds']} s -> {args.out}")
+    if totals.get("error", 0) > 0:
+        return 1
     return 0
 
 
