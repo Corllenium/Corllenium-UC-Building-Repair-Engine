@@ -264,7 +264,8 @@ def face_fingerprints(mesh: MeshData, step: float, look_ids: np.ndarray) -> np.n
         uv[has_uv] = mesh.uvs[vt[has_uv]]
     uv = np.take_along_axis(uv, order[:, :, None], axis=1)
     frac = uv - np.floor(uv)
-    marks = np.where(np.isnan(frac), -1, np.round(frac / _UV_QUANTUM)).astype(np.int64).reshape(mesh.n_faces, 6)
+    turn = int(round(1.0 / _UV_QUANTUM))                          # a step count of a whole tile is the tile edge: 0
+    marks = np.where(np.isnan(frac), -1, np.round(frac / _UV_QUANTUM) % turn).astype(np.int64).reshape(mesh.n_faces, 6)
     return np.concatenate([rolled, np.asarray(look_ids, dtype=np.int64)[:, None], marks], axis=1)
 
 

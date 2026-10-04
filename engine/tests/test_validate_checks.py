@@ -1221,3 +1221,12 @@ def test_the_colour_of_a_look_nobody_knows_is_never_near_the_purple_of_a_face_se
         assert v > 0.5, "and not dark"
         colours.add(colour)
     assert len(colours) > 2500, "different looks stay different"
+
+
+def test_a_uv_a_hair_below_a_whole_tile_is_the_same_mark_as_the_uv_at_the_tile_edge():
+    """UVs sit on tile edges (0 and 1) all over a real export, with float noise either side; writing them out rounds
+    them. Taken mod 1 and in steps of 0.001, 0.9999999 and 0.0 must be the same mark, not a face that changed
+    (a real run flagged 148 of 4,692 faces as new for this alone)."""
+    m = grid_slab(1, 1, cell=10.0)                                  # UVs 0 and 0.5
+    nearly = dataclasses.replace(m, uvs=np.where(m.uvs == 0.0, 1.0 - 1e-7, m.uvs))
+    assert np.array_equal(_fingerprints(nearly), _fingerprints(m))
