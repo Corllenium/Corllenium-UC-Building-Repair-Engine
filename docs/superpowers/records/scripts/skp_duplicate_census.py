@@ -10,7 +10,9 @@ those faces that repeat an earlier face of the same file, and compares both with
 HOW. Read only, through `engine.io.skp_reader` (it cannot save): it opens the verified copy of the
 backup that `campus-skp-check` made, groups the faces by the same split rule `engine.campus.skp_check`
 uses, and prints a table. It uses the reader's PRIVATE helpers (`_Walker`, `_Visibility`, `_refs`, `_open`),
-so it is a probe, not an engine module. It needs about 2.7 GB of commit memory.
+so it is a probe, not an engine module. It needs about 2.7 GB of commit memory. It opens nothing else:
+`--skp` must be a file in a `data/campus/skp_copy/` folder whose sha256 is the one `--source` froze
+(`skp_check.require_verified_copy`, AGENTS.md section 2), or it prints an error and exits with 2.
 
     PYTHONPATH="<repo root>" .venv/Scripts/python.exe docs/superpowers/records/scripts/skp_duplicate_census.py \
         --source data/campus/source.json --skp "data/campus/skp_copy/<backup>.skp" [--out census.json]
@@ -126,11 +128,15 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--skp", type=Path, required=True, help="the verified copy of the backup")
     parser.add_argument("--out", type=Path, default=None)
     args = parser.parse_args(argv)
-    skp_check.refuse_master(args.skp)
     source = json.loads(args.source.read_text(encoding="utf-8"))
+    try:                                  # before the SDK is touched: only the verified copy is opened
+        skp = skp_check.require_verified_copy(source, args.skp)
+    except (skp_check.BackupMismatch, ValueError, FileNotFoundError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
     snapshots = {s["file"]: s["dir"] for s in source["snapshots"]}
     started = time.time()
-    result = census(args.skp)
+    result = census(skp)
     print(f"walked in {time.time() - started:.1f} s; {sum(len(v) for v in result.values())} groups give a file")
     rows = []
     for m in source["manifest"]:

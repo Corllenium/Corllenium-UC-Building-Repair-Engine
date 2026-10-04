@@ -663,6 +663,90 @@ def test_a_backup_file_that_is_not_there_is_an_error_not_a_guess(tmp_path):
         skp_check.verified_copy(frozen(), backup, tmp_path / "skp_copy", **NO_SLEEP)
 
 
+def verified_copy_folder(tmp_path, data=b"skp-bytes"):
+    folder = tmp_path / "data" / "campus" / "skp_copy"
+    folder.mkdir(parents=True)
+    (folder / "M - CHECKPOINT-17.skp").write_bytes(data)
+    return folder
+
+
+def test_a_probe_is_given_only_the_verified_copy_in_data_campus_skp_copy(tmp_path):
+    folder = verified_copy_folder(tmp_path)
+    copy = folder / "M - CHECKPOINT-17.skp"
+    assert skp_check.require_verified_copy(frozen(), copy) == copy
+    with pytest.raises(FileNotFoundError):
+        skp_check.require_verified_copy(frozen(), folder / "Missing.skp")
+    elsewhere = tmp_path / "elsewhere"
+    elsewhere.mkdir()
+    (elsewhere / copy.name).write_bytes(b"skp-bytes")                  # the right bytes, the wrong place
+    with pytest.raises(ValueError, match=r"data/campus/skp_copy"):
+        skp_check.require_verified_copy(frozen(), elsewhere / copy.name)
+    (folder / "Other.skp").write_bytes(b"skp-bytes")                   # a name source.json never froze
+    with pytest.raises(skp_check.BackupMismatch, match="not one of the .skp files"):
+        skp_check.require_verified_copy(frozen(), folder / "Other.skp")
+    (folder / "M - CHECKPOINT-17.skb").write_bytes(b"skb-bytes")       # frozen, right bytes, but not a model
+    with pytest.raises(skp_check.BackupMismatch, match="not one of the .skp files"):
+        skp_check.require_verified_copy(frozen(), folder / "M - CHECKPOINT-17.skb")
+    copy.write_bytes(b"changed since the freeze")
+    with pytest.raises(skp_check.BackupMismatch, match="sha256"):
+        skp_check.require_verified_copy(frozen(), copy)
+
+
+@pytest.mark.parametrize("parts", [("campus", "skp_copy"), ("data", "skp_copy"), ("data", "campus"),
+                                   ("data", "campus", "skp_copy", "deeper"),
+                                   ("data", "campus", "skp_copy_old")])
+def test_a_copy_is_accepted_only_directly_in_data_campus_skp_copy(tmp_path, parts):
+    folder = tmp_path.joinpath(*parts)
+    folder.mkdir(parents=True)
+    (folder / "M - CHECKPOINT-17.skp").write_bytes(b"skp-bytes")       # the right bytes, in the wrong folder
+    with pytest.raises(ValueError, match=r"data/campus/skp_copy"):
+        skp_check.require_verified_copy(frozen(), folder / "M - CHECKPOINT-17.skp")
+
+
+def test_a_probe_is_never_given_the_master(tmp_path):
+    master = tmp_path / "UC" / "02-SKETCHUP" / "current"
+    master.mkdir(parents=True)
+    (master / "M - CHECKPOINT-17.skp").write_bytes(b"skp-bytes")
+    with pytest.raises(ValueError, match="master"):
+        skp_check.require_verified_copy(frozen(), master / "M - CHECKPOINT-17.skp")
+
+
+def census_script():
+    """`docs/superpowers/records/scripts/skp_duplicate_census.py`, loaded by its path (it is a records script)."""
+    import importlib.util
+    path = (Path(__file__).resolve().parents[2] / "docs" / "superpowers" / "records" / "scripts"
+            / "skp_duplicate_census.py")
+    spec = importlib.util.spec_from_file_location("skp_duplicate_census", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_the_duplicate_census_probe_refuses_anything_but_the_verified_copy(tmp_path, monkeypatch, capsys):
+    module = census_script()
+    monkeypatch.setattr(module, "census", lambda skp: pytest.fail("the SDK was opened"))
+    source, _ = freeze(tmp_path, [("A_Floor", 0, 0, 30, 10)])
+    stray = tmp_path / "stray" / "M - CHECKPOINT-17.skp"
+    stray.parent.mkdir()
+    stray.write_bytes(b"skp-bytes")
+    assert module.main(["--source", str(source), "--skp", str(stray)]) == 2
+    assert "data/campus/skp_copy" in capsys.readouterr().err
+
+
+def test_the_duplicate_census_probe_prints_its_table_for_the_verified_copy(tmp_path, monkeypatch, capsys):
+    module = census_script()
+    source, _ = freeze(tmp_path, [("A_Floor", 0, 0, 30, 10), ("B_Floor", 100, 0, 120, 10)])
+    copy = verified_copy_folder(tmp_path) / "M - CHECKPOINT-17.skp"
+    seen = []
+    monkeypatch.setattr(module, "census", lambda skp: seen.append(skp) or {
+        "A_Floor": [{"faces": 4, "area": 330.0, "dups": 1, "dup_area": 30.0}],
+        "B_Floor": [{"faces": 2, "area": 200.0, "dups": 0, "dup_area": 0.0}]})
+    assert module.main(["--source", str(source), "--skp", str(copy)]) == 0
+    out = capsys.readouterr().out
+    assert seen == [copy] and "A_Floor" in out and "+10.000%" in out and "+0.000%" in out
+    assert "files with one group: 2; within 0.5 % as they stand: 1; after removing the duplicates: 2" in out
+
+
 def test_the_master_model_is_never_opened_and_no_output_goes_beside_the_backup(tmp_path):
     master = tmp_path / "UC" / "02-SKETCHUP" / "current"
     master.mkdir(parents=True)

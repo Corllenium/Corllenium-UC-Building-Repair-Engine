@@ -455,6 +455,33 @@ def verified_copy(source: dict, backup_dir, dest_dir, name: str | None = None, *
     return dest
 
 
+def require_verified_copy(source: dict, skp) -> Path:
+    """`skp` itself, once it is shown to be the verified copy and nothing else: a file directly in a
+    `data/campus/skp_copy/` folder, named like a `.skp` of `source["backup"]`, whose sha256 is the one
+    `source.json` froze (AGENTS.md section 2: the SDK opens only a verified copy and never saves).
+    For a probe that is handed a path (`docs/superpowers/records/scripts/skp_duplicate_census.py`);
+    `verified_copy` makes the copy that passes. `ValueError` for the master or a wrong folder,
+    `FileNotFoundError` for a missing file, `BackupMismatch` for a name that was not frozen or
+    different bytes."""
+    skp = Path(skp)
+    refuse_master(skp)
+    if _parts(skp)[-4:-1] != ["data", "campus", "skp_copy"]:
+        raise ValueError(f"refusing to open {skp}: the SDK is given only the verified copy of the "
+                         "backup, which lives in data/campus/skp_copy/ (campus-skp-check makes it)")
+    if not skp.is_file():
+        raise FileNotFoundError(skp)
+    names = [n for n in source["backup"] if n.lower().endswith(".skp")]
+    if skp.name not in names:
+        raise BackupMismatch(f"{skp.name} is not one of the .skp files source.json froze ({names}): "
+                             "refusing to open it")
+    got, expected = sha256_file(skp), source["backup"][skp.name]["sha256"]
+    if got != expected:
+        raise BackupMismatch(f"{skp.name}: sha256 {got} is not the {expected} that source.json froze, "
+                             "so it is not the backup: refusing to open it (delete it and run "
+                             "campus-skp-check to make a new verified copy)")
+    return skp
+
+
 # ------------------------------------------------------------------------ the walk, in a child
 
 
