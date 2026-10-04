@@ -208,6 +208,15 @@ def band_owners(nbands: int, parts: list[int]) -> list[int]:
     return [min(parts, key=lambda c: (abs(j - c), c)) for j in range(nbands)]
 
 
+# Groups with one of these words that span more than one band are elements (stairs, bridges, roofs, zones,
+# shells, ground pieces, pathways, roads), not floors.
+ELEMENT_WORDS = re.compile(r"stair|bridge|roof|zone|shell|ground|pathway|road", re.I)
+
+
+def is_element(name: str, parts: list[int]) -> bool:
+    return len(parts) > 1 and bool(ELEMENT_WORDS.search(name))
+
+
 @dataclass
 class BuildingPlan:
     """The level table of one building and how its groups sit in it."""
@@ -217,23 +226,25 @@ class BuildingPlan:
     counts: dict[str, np.ndarray]         # group -> triangles per band
     parts: dict[str, list[int]]           # group -> its part bands
     bands: list[int]                      # the bands that are levels, lowest first (band 0 only if occupied)
+    elements: set[str]                    # groups that are element units, not floors
 
 
 def plan_building(name: str, groups: list[GroupData], p: InventoryParams) -> BuildingPlan:
-    """Detect the slabs, then drop the slabs whose band no group occupies (a band nobody holds is no level;
-    it merges into the band below)."""
+    """Detect the slabs, then drop the slabs whose band no floor group occupies (a band nobody holds is no
+    level; it merges into the band below). Elements never make a level."""
     slabs = slab_table(groups, p)
     while True:
         bases = [s.base for s in slabs]
         counts = {g.name: band_counts(g.cz, bases, p) for g in groups}
         parts = {g.name: group_parts(counts[g.name], p.part_coverage) for g in groups}
-        occupied = {j for ps in parts.values() for j in ps}
+        elements = {n for n, ps in parts.items() if is_element(n, ps)}
+        occupied = {j for n, ps in parts.items() if n not in elements for j in ps}
         empty = [j for j in range(1, len(slabs) + 1) if j not in occupied]
         if not empty:
             break
         del slabs[empty[0] - 1]
     bands = ([0] if 0 in occupied else []) + list(range(1, len(slabs) + 1))
-    return BuildingPlan(name, groups, slabs, counts, parts, bands)
+    return BuildingPlan(name, groups, slabs, counts, parts, bands, elements)
 
 
 def _r(x: float) -> float:
@@ -249,7 +260,8 @@ def level_records(plan: BuildingPlan, p: InventoryParams) -> list[dict]:
     for g in plan.groups:
         owner = band_owners(nbands, plan.parts[g.name])
         for j, c in enumerate(plan.counts[g.name]):
-            tris[owner[j]] = tris.get(owner[j], 0) + int(c)
+            if g.name not in plan.elements:
+                tris[owner[j]] = tris.get(owner[j], 0) + int(c)
         bases = [s.base for s in plan.slabs]
         idx = np.searchsorted(np.asarray(bases, float) - p.band_slack_in, g.cz, side="right")
         if 0 in plan.bands and (idx == 0).any():
@@ -267,16 +279,96 @@ def level_records(plan: BuildingPlan, p: InventoryParams) -> list[dict]:
     return out
 
 
+# ------------------------------------------------------------------------------------------ units
+
+def _member(g: GroupData, faces: str, tris: int, z_range=None) -> dict:
+    m = {"group": g.name, "paths": list(g.paths), "sha256": g.sha256, "file": g.file, "tris": int(tris),
+         "faces": faces}
+    if z_range is not None:
+        m["z_range"] = [None if z is None else _r(z) for z in z_range]
+    return m
+
+
+def _unit(unit: str, building: str, level, kind: str, members: list[dict], base, top, slab) -> dict:
+    return {"unit": unit, "building": building, "level": level, "type": kind, "members": members,
+            "tris": sum(m["tris"] for m in members), "base": base, "top": top, "slab": slab,
+            "neighbours": {"below": None, "above": None}, "flags": [], "confirmed_by_owner": False}
+
+
+def _building_units(plan: BuildingPlan, levels: list[dict], p: InventoryParams):
+    """The floor and element units of one building, the split proposals and their flags."""
+    label = {lv["band"]: lv["level"] for lv in levels}
+    nbands = len(plan.slabs) + 1
+    floor_members: dict[str, list[dict]] = {lv["level"]: [] for lv in levels}
+    elements: list[dict] = []
+    proposals: list[dict] = []
+    flags: list[dict] = []
+    for g in plan.groups:
+        parts = plan.parts[g.name]
+        counts = plan.counts[g.name]
+        owner = band_owners(nbands, parts)
+        if len(parts) == 1:
+            floor_members[label[parts[0]]].append(_member(g, "all", g.tris))
+        elif g.name in plan.elements:
+            unit = _unit(f"{plan.name}-E-{g.name}", plan.name, None, "element", [_member(g, "all", g.tris)],
+                         _r(g.bbox[0][2]), _r(g.bbox[1][2]), None)
+            unit["spans"] = [label[b] for b in parts]
+            elements.append(unit)
+        else:
+            rows = []
+            for part in parts:
+                owned = [j for j in range(nbands) if owner[j] == part]
+                lo = None if owned[0] == 0 else plan.slabs[owned[0] - 1].base - p.band_slack_in
+                hi = None if owned[-1] == nbands - 1 else plan.slabs[owned[-1]].base - p.band_slack_in
+                tris = sum(int(counts[j]) for j in owned)
+                level = label[part]
+                floor_members[level].append(_member(g, f"band {int(level[1:])}", tris, (lo, hi)))
+                rows.append({"level": level, "band": int(level[1:]), "unit": f"{plan.name}-{level}", "tris": tris,
+                             "share": round(tris / g.tris, 4),
+                             "z_range": [None if z is None else _r(z) for z in (lo, hi)]})
+            proposals.append({"group": g.name, "building": plan.name, "tris": g.tris, "parts": rows})
+            flags.append({"kind": "split", "building": plan.name, "group": g.name, "parts": len(rows),
+                          "levels": [r["level"] for r in rows], "tris": [r["tris"] for r in rows],
+                          "units": [r["unit"] for r in rows],
+                          "text": f"{g.name} spans {len(rows)} levels; proposed split by face centre: "
+                                  + ", ".join(f"{r['level']} {r['tris']} tris ({r['share'] * 100:.0f} %)"
+                                              for r in rows)})
+    floors = [_unit(f"{plan.name}-{lv['level']}", plan.name, lv["level"], "floor", floor_members[lv["level"]],
+                    lv["base"], lv["top"], lv["slab"]) for lv in levels]
+    for i, u in enumerate(floors):
+        u["neighbours"] = {"below": floors[i - 1]["unit"] if i else None,
+                           "above": floors[i + 1]["unit"] if i + 1 < len(floors) else None}
+    return floors + sorted(elements, key=lambda u: u["unit"]), proposals, flags
+
+
+def _site_unit(g: GroupData) -> dict:
+    return _unit(f"{SITE}-{g.name}", SITE, None, "site", [_member(g, "all", g.tris)],
+                 _r(g.bbox[0][2]), _r(g.bbox[1][2]), None)
+
+
 def build_inventory(groups: list[GroupData], params: InventoryParams | None = None) -> dict:
     """The draft campus map from the loaded groups."""
     p = params or InventoryParams()
     by_building: dict[str, list[GroupData]] = {}
     for g in groups:
         by_building.setdefault(g.building, []).append(g)
-    buildings = {}
+    buildings: dict[str, dict] = {}
+    units: list[dict] = []
+    proposals: list[dict] = []
+    flags: list[dict] = []
     for name in sorted(by_building):
         if name == SITE:
             continue
         plan = plan_building(name, by_building[name], p)
-        buildings[name] = {"groups": [g.name for g in plan.groups], "levels": level_records(plan, p)}
-    return {"params": asdict(p), "buildings": buildings}
+        levels = level_records(plan, p)
+        b_units, b_props, b_flags = _building_units(plan, levels, p)
+        buildings[name] = {"groups": [g.name for g in plan.groups], "levels": levels}
+        units += b_units
+        proposals += b_props
+        flags += b_flags
+    units += [_site_unit(g) for g in sorted(by_building.get(SITE, []), key=lambda g: g.name)]
+    by_unit = {u["unit"]: u for u in units}
+    for f in flags:
+        for uid in f.get("units", []):
+            by_unit[uid]["flags"].append({"kind": f["kind"], "text": f["text"]})
+    return {"params": asdict(p), "buildings": buildings, "units": units, "proposals": proposals, "flags": flags}

@@ -91,3 +91,47 @@ def test_building_prefix_table(name, building):
 ])
 def test_floor_number_from_the_name(name, number):
     assert inv.floor_number(name) == number
+
+
+def test_a_group_holding_two_slabs_gets_a_split_proposal_with_face_counts_per_band():
+    both = group("CHTM_two_floors", slab(0), slab(200))
+    result = inv.build_inventory([both])
+    (proposal,) = result["proposals"]
+    assert proposal["group"] == "CHTM_two_floors"
+    assert [(part["level"], part["tris"]) for part in proposal["parts"]] == [("L01", 12), ("L02", 12)]
+    assert sum(part["tris"] for part in proposal["parts"]) == both.tris          # no triangle is cut
+    units = {u["unit"]: u for u in result["units"]}
+    assert [m["faces"] for m in units["CHTM-L01"]["members"]] == ["band 1"]       # "band k" is the level number
+    assert [m["faces"] for m in units["CHTM-L02"]["members"]] == ["band 2"]
+    assert units["CHTM-L02"]["members"][0]["tris"] == 12
+    assert units["CHTM-L02"]["members"][0]["z_range"][0] == pytest.approx(199, abs=1.5)   # faces with lo <= z < hi
+    assert units["CHTM-L02"]["members"][0]["z_range"][1] is None
+    assert any(f["kind"] == "split" and f["group"] == "CHTM_two_floors" and f["parts"] == 2
+               for f in result["flags"])
+
+
+def test_a_stairs_group_spanning_two_levels_is_an_element_unit_not_a_split():
+    floors = [group(f"CHTM_{n}_floor", slab(z)) for n, z in (("1st", 0), ("2nd", 200))]
+    stairs = group("CHTM_main_stairs", box(0, 0, 10, 5, 5, 60), box(0, 0, 210, 5, 5, 260))   # one flight per floor
+    result = inv.build_inventory(floors + [stairs])
+    unit = next(u for u in result["units"] if u["unit"] == "CHTM-E-CHTM_main_stairs")
+    assert (unit["type"], unit["level"], unit["spans"]) == ("element", None, ["L01", "L02"])
+    assert unit["members"][0]["faces"] == "all" and unit["tris"] == 24
+    assert result["proposals"] == []
+    assert [u["tris"] for u in result["units"] if u["type"] == "floor"] == [12, 12]   # the stairs add no floor tris
+
+
+def test_a_group_with_no_building_prefix_is_a_site_unit():
+    result = inv.build_inventory([group("ROAD_harrison_front", slab(0)), group("Group124", slab(0))])
+    assert {u["unit"]: u["type"] for u in result["units"]} == {"SITE-Group124": "site", "SITE-ROAD_harrison_front": "site"}
+    assert result["buildings"] == {}
+
+
+def test_floor_units_know_their_neighbours_and_start_unconfirmed():
+    groups = [group(f"CHTM_{n}_floor", slab(z)) for n, z in (("1st", 0), ("2nd", 200), ("3rd", 400))]
+    units = {u["unit"]: u for u in inv.build_inventory(groups)["units"]}
+    assert units["CHTM-L02"]["neighbours"] == {"below": "CHTM-L01", "above": "CHTM-L03"}
+    assert units["CHTM-L01"]["neighbours"]["below"] is None and units["CHTM-L03"]["neighbours"]["above"] is None
+    assert all(u["confirmed_by_owner"] is False for u in units.values())
+    m = units["CHTM-L01"]["members"][0]
+    assert (m["group"], m["paths"], m["sha256"], m["faces"]) == ("CHTM_1st_floor", [0], "sha-CHTM_1st_floor", "all")
