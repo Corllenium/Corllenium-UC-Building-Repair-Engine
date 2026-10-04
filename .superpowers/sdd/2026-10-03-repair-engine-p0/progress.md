@@ -297,3 +297,15 @@ Spec: docs/superpowers/specs/2026-10-03-uc-repair-engine-design.md (2a748d4, app
   - find_errors on CHTM 5th: 55.7 s wall with S3 alone (98 s before).
   - The per-call step failed first on Claude's own ctypes signature bug (argtypes missing for GetProcessMemoryInfo); fixed, tested on one call, and the 8 calls re-launched.
 - P0-12 fix round 2 (Hermes f87dd8e + 5c74d44, 2.03 USD): the worker fallback was deleted; two worker tests were red on 955fb78; census 15 passed; CHTM 5th E4/E5 6,966/6,981; engine 984 + 1 xfail. Re-review dispatched (hermes-reviewer, sonnet) on review-955fb78..5c74d44.diff.
+- P1-S3 controller acceptance, part 2 (9e34d77; each call in its own process, BLAS 1):
+
+  | Unit | Equal digest | Old | New | Speed-up | Peak WS old -> new |
+  |---|---|---|---|---|---|
+  | A | yes | 7.46 s | 4.84 s | 1.5x | 205 -> 219 MB |
+  | B | yes | 7.82 s | 4.16 s | 1.9x | 209 -> 233 MB |
+  | CHTM 5th | yes | 34.25 s | 10.13 s | 3.4x | 477 -> 497 MB |
+  | Gymnasium_5th_floor_and_roof (91,714 faces) | yes | 543 s | 168 s | 3.2x | 668 -> 1,250 MB |
+
+  - Targets: exactness met; CHTM 5th >= 3x met; 91 k >= 5x NOT met; new peak <= old NOT met.
+  - Ruling: merge for the census (exact and 3.2-3.4x faster; units stay far below the 1,800 s timeout), with a follow-up S3b for speed and memory -- the census runs at fewer jobs because of memory -- costs one follow-up job.
+  - In flight: Hermes writes the report and runs the full suite (no code); hermes-reviewer reviews the code (2b9b0a4..9e34d77) and the memory culprits; the controller profiles the new function on the 91 k unit for S3b.
