@@ -13,7 +13,103 @@
   - d121c8f feat(campus): use FIX_PLAN_TABLE for fix plans with unit field and add census.md legend
   - 57a9582 feat(campus): atomic census write per unit and separate wall vs unit-sum times
   - 2f7d80f fix(campus): default materials map to D:/PROJECTS/UC MODEL FIXER/data/campus/materials.json
+  - 955fb78 docs(report): update P0-12 report with review round 1 fixes and real smoke outputs
+  - f87dd8e fix(campus): reject missing or empty materials map in census worker
 - Brief: docs/superpowers/plans/2026-10-03-repair-engine-p0.md#task-12
+
+## Review Fixes (Round 2)
+Both notes from re-review of 955fb78 addressed test-first:
+1. `reject materials.mtl fallback in _run_worker`:
+   - Deleted lines 313-325 in `engine/campus/census.py` (which fell back to snapshot's local `materials.mtl` and swallowed errors with `except Exception: pass`). Simplified `_run_worker` to pass `materials=materials` directly to `flicker_split`, which rejects missing materials maps with `FileNotFoundError`, empty maps with `ValueError("Materials map is empty")`, and missing material names with `KeyError`.
+   - Added worker-level tests in `engine/tests/test_campus_census.py`: `test_census_worker_unit_with_mtl_missing_materials_map_fails` and `test_census_worker_unit_with_mtl_empty_materials_map_fails`.
+   - Red run on 955fb78 (both failed with `assert 0 == 1` because the worker silently fell back to snapshot's MTL):
+```text
+$ ( cd "D:/PROJECTS/UC MODEL FIXER/.hermes/worktrees/P0-12" && PYTHONPATH="$PWD" "D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe" -m pytest engine/tests/test_campus_census.py -k "test_census_worker_unit_with_mtl" -v -p no:cacheprovider )
+============================= test session starts =============================
+platform win32 -- Python 3.12.10, pytest-9.1.1, pluggy-1.6.0 -- D:\PROJECTS\UC MODEL FIXER\.venv\Scripts\python.exe
+rootdir: D:\PROJECTS\UC MODEL FIXER\.hermes\worktrees\P0-12
+configfile: pyproject.toml
+plugins: anyio-4.15.1
+collecting ... collected 15 items / 13 deselected / 2 selected
+
+engine/tests/test_campus_census.py::test_census_worker_unit_with_mtl_missing_materials_map_fails FAILED [ 50%]
+engine/tests/test_campus_census.py::test_census_worker_unit_with_mtl_empty_materials_map_fails FAILED [100%]
+
+================================== FAILURES ===================================
+________ test_census_worker_unit_with_mtl_missing_materials_map_fails _________
+
+tmp_path = WindowsPath('C:/Users/Future26/AppData/Local/Temp/pytest-of-Future26/pytest-624/test_census_worker_unit_with_m0')
+
+    def test_census_worker_unit_with_mtl_missing_materials_map_fails(tmp_path: Path):
+        """A unit folder that HAS a materials.mtl, run with a missing map -> status 'error' and exit 1."""
+        from engine.cli import main
+        from engine.io.obj_writer import write_obj
+        from engine.tests.fixtures.build import two_sided_wall
+    
+        snap = tmp_path / "unit_with_mtl"
+        snap.mkdir()
+        write_obj(two_sided_wall(), snap / "CHTM_unit.obj")
+        (snap / "materials.mtl").write_text(
+            "newmtl concrete\nKd 0.5 0.5 0.5\n\nnewmtl prismarine\nKd 0.2 0.8 0.6\n",
+            encoding="utf-8",
+        )
+    
+        out_json = tmp_path / "out_missing.json"
+        missing_map = tmp_path / "nonexistent_materials.json"
+    
+        ret = main(["census", str(snap), "--out", str(out_json), "--jobs", "1", "--materials", str(missing_map)])
+>       assert ret == 1
+E       assert 0 == 1
+
+engine\tests\test_campus_census.py:360: AssertionError
+---------------------------- Captured stdout call -----------------------------
+census completed: 1 units (1 ok, 0 timeout, 0 error), 4 triangles in 10.97 s wall (9.01 s unit sum) -> C:\Users\Future26\AppData\Local\Temp\pytest-of-Future26\pytest-624\test_census_worker_unit_with_m0\out_missing.json
+_________ test_census_worker_unit_with_mtl_empty_materials_map_fails __________
+
+tmp_path = WindowsPath('C:/Users/Future26/AppData/Local/Temp/pytest-of-Future26/pytest-624/test_census_worker_unit_with_m1')
+
+    def test_census_worker_unit_with_mtl_empty_materials_map_fails(tmp_path: Path):
+        """A unit folder that HAS a materials.mtl, run with an empty map -> status 'error' and exit 1."""
+        from engine.cli import main
+        from engine.io.obj_writer import write_obj
+        from engine.tests.fixtures.build import two_sided_wall
+    
+        snap = tmp_path / "unit_with_mtl"
+        snap.mkdir()
+        write_obj(two_sided_wall(), snap / "CHTM_unit.obj")
+        (snap / "materials.mtl").write_text(
+            "newmtl concrete\nKd 0.5 0.5 0.5\n\nnewmtl prismarine\nKd 0.2 0.8 0.6\n",
+            encoding="utf-8",
+        )
+    
+        empty_map = tmp_path / "empty_materials.json"
+        empty_map.write_text(json.dumps({"materials": {}}), encoding="utf-8")
+        out_json = tmp_path / "out_empty.json"
+    
+        ret = main(["census", str(snap), "--out", str(out_json), "--jobs", "1", "--materials", str(empty_map)])
+>       assert ret == 1
+E       assert 0 == 1
+
+engine\tests\test_campus_census.py:385: AssertionError
+---------------------------- Captured stdout call -----------------------------
+census completed: 1 units (1 ok, 0 timeout, 0 error), 4 triangles in 10.92 s wall (9.58 s unit sum) -> C:\Users\Future26\AppData\Local\Temp\pytest-of-Future26\pytest-624\test_census_worker_unit_with_m1\out_empty.json
+=========================== short test summary info ===========================
+FAILED engine/tests/test_campus_census.py::test_census_worker_unit_with_mtl_missing_materials_map_fails
+FAILED engine/tests/test_campus_census.py::test_census_worker_unit_with_mtl_empty_materials_map_fails
+====================== 2 failed, 13 deselected in 24.93s ======================
+```
+   - Green run on f87dd8e: both tests pass as part of `engine/tests/test_campus_census.py` (15 passed).
+
+2. `Real red run of missing-map test on e147fd2`:
+   - On `e147fd2`, `flicker_split` silently defaulted look keys to material names when given a non-existent materials map file or when a material was not in the map, so `test_flicker_split_missing_map_or_material_raises` failed with `Failed: DID NOT RAISE FileNotFoundError`:
+```text
+Traceback (most recent call last):
+  File "engine/tests/test_campus_census.py", line 79, in test_flicker_split_missing_map_or_material_raises
+    with pytest.raises(FileNotFoundError):
+  File "_pytest/raises.py", line 699, in __exit__
+    fail(f"DID NOT RAISE {self.expected_exceptions[0].__name__}")
+Failed: DID NOT RAISE FileNotFoundError
+```
 
 ## Review Fixes (Round 1)
 All 7 notes from review of e147fd2 addressed test-first:
@@ -107,14 +203,14 @@ engine/tests/test_campus_census.py::test_cli_census_subcommand PASSED    [100%]
 ============================= 9 passed in 46.40s ==============================
 ```
 
-## Smoke run on 3 units (`--jobs 2` to `data/census_smoke/`)
+## Smoke run on CHTM 5th floor into `data/census_smoke/`
 Command executed:
 ```bash
-( cd "D:/PROJECTS/UC MODEL FIXER/.hermes/worktrees/P0-12" && PYTHONPATH="$PWD" "D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe" -m engine.cli census "D:/PROJECTS/UC MODEL FIXER/data/snapshots/ce26e0392ab0" "D:/PROJECTS/UC MODEL FIXER/data/snapshots/0b290ec0bcb4" "D:/PROJECTS/UC MODEL FIXER/data/snapshots/c0c877002500-b7c2dc01" --out "D:/PROJECTS/UC MODEL FIXER/data/census_smoke/census.json" --jobs 2 )
+( cd "D:/PROJECTS/UC MODEL FIXER/.hermes/worktrees/P0-12" && PYTHONPATH="$PWD" "D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe" -m engine.cli census "D:/PROJECTS/UC MODEL FIXER/data/snapshots/c0c877002500-b7c2dc01" --out "D:/PROJECTS/UC MODEL FIXER/data/census_smoke/census.json" --jobs 1 )
 ```
 Output:
 ```text
-census completed: 3 units (3 ok, 0 timeout, 0 error), 32,518 triangles in 43.92 s wall (51.60 s unit sum) -> D:\PROJECTS\UC MODEL FIXER\data\census_smoke\census.json
+census completed: 1 units (1 ok, 0 timeout, 0 error), 20,599 triangles in 71.31 s wall (69.48 s unit sum) -> D:\PROJECTS\UC MODEL FIXER\data\census_smoke\census.json
 ```
 
 ### Census Table (`data/census_smoke/census.md`)
@@ -125,16 +221,14 @@ Note: The flicker columns (`flicker_diff`, `flicker_same`) are faces by material
 
 | Building | Unit | Triangles | flicker_diff | flicker_same | reversed | hidden | loose | open_edges | cracks | Seconds | Peak MB |
 |---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| CHTM | CHTM_2nd_to_3rd_building_sidewalk_outside | 7,227 | 321 | 1,026 | 838 | 2,411 | 79 | 326 | 559 | 9.91 | 215.5 |
-| CHTM | CHTM_SIDE_WALK_2nd_floor | 4,692 | 0 | 530 | 809 | 1,853 | 221 | 250 | 550 | 6.34 | 207.3 |
-| CHTM | chtm_5ft_floor | 20,599 | 5,668 | 4,793 | 29 | 12,870 | 1,055 | 346 | 3,884 | 35.35 | 483.3 |
+| CHTM | chtm_5ft_floor | 20,599 | 5,668 | 4,793 | 29 | 12,870 | 1,055 | 346 | 3,884 | 69.48 | 433.3 |
 
 ## Totals by Building
 
 | Building | Units | Triangles | flicker_diff | flicker_same | reversed | hidden | loose | open_edges | cracks |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| CHTM | 3 | 32,518 | 5,989 | 6,349 | 1,676 | 17,134 | 1,355 | 922 | 4,993 |
-| **Total** | **3** | **32,518** | 5,989 | 6,349 | 1,676 | 17,134 | 1,355 | 922 | 4,993 |
+| CHTM | 1 | 20,599 | 5,668 | 4,793 | 29 | 12,870 | 1,055 | 346 | 3,884 |
+| **Total** | **1** | **20,599** | **5,668** | **4,793** | **29** | **12,870** | **1,055** | **346** | **3,884** |
 ```
 
 ### Fix Plan for `chtm_5ft_floor` (E4/E5 by look: 6,966 / 6,981 pairs)
@@ -209,7 +303,7 @@ Note: The flicker columns (`flicker_diff`, `flicker_same`) are faces by material
 
 ## Acceptance command outputs
 
-### 1. Census unit tests (13 passed)
+### 1. Census unit tests (15 passed)
 ```text
 $ ( cd "D:/PROJECTS/UC MODEL FIXER/.hermes/worktrees/P0-12" && PYTHONPATH="$PWD" "D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe" -m pytest engine/tests/test_campus_census.py -v -p no:cacheprovider )
 ============================= test session starts =============================
@@ -217,23 +311,25 @@ platform win32 -- Python 3.12.10, pytest-9.1.1, pluggy-1.6.0 -- D:\PROJECTS\UC M
 rootdir: D:\PROJECTS\UC MODEL FIXER\.hermes\worktrees\P0-12
 configfile: pyproject.toml
 plugins: anyio-4.15.1
-collecting ... collected 13 items
+collecting ... collected 15 items
 
-engine/tests/test_campus_census.py::test_find_errors_timings_five_stage_keys PASSED [  7%]
-engine/tests/test_campus_census.py::test_flicker_split_two_sided_wall_sums_to_total_pairs PASSED [ 15%]
-engine/tests/test_campus_census.py::test_flicker_split_two_materials_share_one_look PASSED [ 23%]
-engine/tests/test_campus_census.py::test_flicker_split_missing_map_or_material_raises PASSED [ 30%]
-engine/tests/test_campus_census.py::test_census_two_fixture_units_and_timeout PASSED [ 38%]
-engine/tests/test_campus_census.py::test_errors_json_equal_to_find_errors PASSED [ 46%]
-engine/tests/test_campus_census.py::test_fix_plan_hidden_and_diff_look_flicker PASSED [ 53%]
-engine/tests/test_campus_census.py::test_fix_plan_full_order_all_engines PASSED [ 61%]
-engine/tests/test_campus_census.py::test_unit_building_classifier PASSED [ 69%]
-engine/tests/test_campus_census.py::test_format_census_md PASSED         [ 76%]
-engine/tests/test_campus_census.py::test_cli_census_subcommand PASSED    [ 84%]
-engine/tests/test_campus_census.py::test_cli_census_error_exit_code PASSED [ 92%]
-engine/tests/test_campus_census.py::test_census_wall_seconds_and_atomic_writes PASSED [100%]
+engine/tests/test_campus_census.py::test_find_errors_timings_five_stage_keys PASSED [  6%]
+engine/tests/test_campus_census.py::test_flicker_split_two_sided_wall_sums_to_total_pairs PASSED [ 13%]
+engine/tests/test_campus_census.py::test_flicker_split_two_materials_share_one_look PASSED [ 20%]
+engine/tests/test_campus_census.py::test_flicker_split_missing_map_or_material_raises PASSED [ 26%]
+engine/tests/test_campus_census.py::test_census_two_fixture_units_and_timeout PASSED [ 33%]
+engine/tests/test_campus_census.py::test_errors_json_equal_to_find_errors PASSED [ 40%]
+engine/tests/test_campus_census.py::test_fix_plan_hidden_and_diff_look_flicker PASSED [ 46%]
+engine/tests/test_campus_census.py::test_fix_plan_full_order_all_engines PASSED [ 53%]
+engine/tests/test_campus_census.py::test_unit_building_classifier PASSED [ 60%]
+engine/tests/test_campus_census.py::test_format_census_md PASSED         [ 66%]
+engine/tests/test_campus_census.py::test_cli_census_subcommand PASSED    [ 73%]
+engine/tests/test_campus_census.py::test_cli_census_error_exit_code PASSED [ 80%]
+engine/tests/test_campus_census.py::test_census_wall_seconds_and_atomic_writes PASSED [ 86%]
+engine/tests/test_campus_census.py::test_census_worker_unit_with_mtl_missing_materials_map_fails PASSED [ 93%]
+engine/tests/test_campus_census.py::test_census_worker_unit_with_mtl_empty_materials_map_fails PASSED [100%]
 
-======================== 13 passed in 60.56s (0:01:00) ========================
+======================= 15 passed in 167.54s (0:02:47) ========================
 ```
 
 ### 2. Ctypes allow-list test
@@ -248,10 +344,10 @@ collecting ... collected 46 items / 45 deselected / 1 selected
 
 engine/tests/test_skp_writer.py::test_ctypes_is_imported_only_by_the_sketchup_binding_modules PASSED [100%]
 
-====================== 1 passed, 45 deselected in 0.78s =======================
+====================== 1 passed, 45 deselected in 1.06s =======================
 ```
 
-### 3. Full engine test suite (982 passed, 1 xfailed)
+### 3. Full engine test suite (984 passed, 1 xfailed)
 ```text
 $ ( cd "D:/PROJECTS/UC MODEL FIXER/.hermes/worktrees/P0-12" && PYTHONPATH="$PWD" "D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe" -m pytest engine/tests -q -p no:cacheprovider )
 ........................................................................ [  7%]
@@ -266,9 +362,9 @@ $ ( cd "D:/PROJECTS/UC MODEL FIXER/.hermes/worktrees/P0-12" && PYTHONPATH="$PWD"
 ........................................................................ [ 73%]
 ........................................................................ [ 80%]
 ........................................................................ [ 87%]
-.................................x...................................... [ 95%]
-...............................................                          [100%]
-982 passed, 1 xfailed in 454.70s (0:07:34)
+...................................x.................................... [ 95%]
+.................................................                        [100%]
+984 passed, 1 xfailed in 968.22s (0:16:08)
 ```
 
 ### 4. Tools test suite (121 passed)
@@ -276,8 +372,8 @@ $ ( cd "D:/PROJECTS/UC MODEL FIXER/.hermes/worktrees/P0-12" && PYTHONPATH="$PWD"
 $ ( cd "D:/PROJECTS/UC MODEL FIXER/.hermes/worktrees/P0-12" && PYTHONPATH="$PWD" "D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe" -m pytest tools/tests -q -p no:cacheprovider )
 ........................................................................ [ 59%]
 .................................................                        [100%]
-121 passed in 17.99s
+121 passed in 28.20s
 ```
 
 ## Unsure about
-Nothing. All review notes 1-7 are resolved test-first. All 13 census tests pass, the full engine test suite passes (982 passed, 1 xfailed), 121 tools tests pass. The 3-unit smoke run produced exactly E4=6,966 / E5=6,981 on CHTM 5th (total 13,947 pairs), atomic writing preserves progress per unit, and wall vs unit-sum execution times are separately tracked and reported.
+Nothing. Both review round 2 notes are fully resolved test-first. The snapshot MTL fallback was deleted and empty maps are rejected. All 15 census unit tests pass, the full engine test suite passes (984 passed, 1 xfailed), and 121 tools tests pass. The CHTM 5th smoke run produced exactly E4=6,966 / E5=6,981 pairs (total 13,947 pairs), with wall and unit-sum times tracked separately.
