@@ -283,3 +283,4 @@ Spec: docs/superpowers/specs/2026-10-03-uc-repair-engine-design.md (2a748d4, app
   - Notes 2-7 and the merge are addressed: building_of on all 85 stems, ERROR/TIMEOUT rows and exit codes, the winprobe allow-list exact, atomic writes survive a kill, E4/E5 6,966/6,981.
   - Left: _run_worker (census.py:313-325) falls back to the snapshot's materials.mtl and swallows errors, so a missing or empty --materials still reports ok.
   - Notes queued; Hermes fix round 2 launched.
+- P1-S1b fix round (Hermes a800430..6a63975, 1.24 USD): all 4 notes; the grid test reproduced the ValueError on 32c8a86; 38 passed; tvertex identical x3 (CHTM 5th 30.8x); engine 843 + 1 xfail. Scoped re-review dispatched (hermes-reviewer, sonnet) on review-32c8a86..6a63975.diff.
