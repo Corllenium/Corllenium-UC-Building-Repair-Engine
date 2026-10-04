@@ -263,3 +263,21 @@ def test_pairs_tested_doubles_not_quadruples_when_the_scene_doubles():
         find_t_vertices(Pw, table, TOL, stats=stats)
         counts.append(stats["pairs_tested"])
     assert counts[1] <= 3 * counts[0]
+
+
+def test_bounded_pairs_peak_matches_oracle():
+    """stats['pairs_peak'] must be at most chunk_pairs, and chunk_pairs=1000 gives
+    identical results to default and oracle on a dense synthetic scene."""
+    Pw, fw, ok, table = _scene(0, n_walls=4, depth=5)
+    stats_chunked = {}
+    stats_default = {}
+    ref = find_t_vertices_reference(Pw, table, TOL)
+    res_chunked = find_t_vertices(Pw, table, TOL, stats=stats_chunked, chunk_pairs=1000)
+    res_default = find_t_vertices(Pw, table, TOL, stats=stats_default)
+    assert _same(ref, res_default)
+    assert _same(ref, res_chunked)
+    assert stats_chunked["pairs_tested"] == stats_default["pairs_tested"]
+    assert stats_chunked["pairs_tested"] > 1000
+    assert 0 < stats_chunked["pairs_peak"] <= 1000
+    assert stats_default["pairs_peak"] <= 1_000_000
+
