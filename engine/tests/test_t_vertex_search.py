@@ -263,3 +263,115 @@ def test_pairs_tested_doubles_not_quadruples_when_the_scene_doubles():
         find_t_vertices(Pw, table, TOL, stats=stats)
         counts.append(stats["pairs_tested"])
     assert counts[1] <= 3 * counts[0]
+
+
+def test_bounded_pairs_peak_matches_oracle():
+    """stats['pairs_peak'] must be at most chunk_pairs, and chunk_pairs=1000 gives
+    identical results to default and oracle on a dense synthetic scene."""
+    Pw, fw, ok, table = _scene(0, n_walls=4, depth=5)
+    stats_chunked = {}
+    stats_default = {}
+    ref = find_t_vertices_reference(Pw, table, TOL)
+    res_chunked = find_t_vertices(Pw, table, TOL, stats=stats_chunked, chunk_pairs=1000)
+    res_default = find_t_vertices(Pw, table, TOL, stats=stats_default)
+    assert _same(ref, res_default)
+    assert _same(ref, res_chunked)
+    assert stats_chunked["pairs_tested"] == stats_default["pairs_tested"]
+    assert stats_chunked["pairs_tested"] > 1000
+    assert 0 < stats_chunked["pairs_peak"] <= 1000
+    assert stats_default["pairs_peak"] <= 1_000_000
+
+
+def test_long_diagonal_edge_uses_full_scan_fallback():
+    """An edge whose bounding box would visit more cells than candidate vertices
+    falls back to testing all candidates directly, matching the reference oracle.
+    Vertices placed on the diagonal verify that the fallback's hits match the oracle."""
+    P, F = _scene_raw(0, n_walls=4, depth=5)
+    min_p = P.min(axis=0)
+    max_p = P.max(axis=0)
+    p0 = min_p
+    p1 = max_p
+
+    # Add vertices on the diagonal edge so that the full-scan fallback's hits
+    # are compared directly against the reference oracle.
+    extra_pts = [p0, p1, p0 + [0.0, 0.0, 10.0]]
+    b = len(P)
+    extra_faces = [[b, b + 1, b + 2]]
+    b_curr = b + 3
+
+    for frac in [0.25, 0.5, 0.75]:
+        pt = p0 + frac * (p1 - p0)
+        pt1 = pt + np.array([0.0, 5.0, 0.0])
+        pt2 = pt + np.array([0.0, 0.0, 5.0])
+        extra_pts.extend([pt, pt1, pt2])
+        extra_faces.append([b_curr, b_curr + 1, b_curr + 2])
+        b_curr += 3
+
+    P_diag = np.vstack([P, extra_pts])
+    F_diag = np.vstack([F, extra_faces])
+    Pw, fw, ok, table = _prepared(P_diag, F_diag)
+
+    stats = {}
+    ref = find_t_vertices_reference(Pw, table, TOL)
+    res = find_t_vertices(Pw, table, TOL, stats=stats)
+
+    assert _same(ref, res)
+    assert "full_scan_edges" in stats
+    assert stats["full_scan_edges"] >= 1
+
+    diag_edge = None
+    for e, (v0, v1) in enumerate(table.edges):
+        if (np.allclose(Pw[v0], p0) and np.allclose(Pw[v1], p1)) or (np.allclose(Pw[v0], p1) and np.allclose(Pw[v1], p0)):
+            diag_edge = e
+            break
+    assert diag_edge is not None
+    assert len(ref.get(diag_edge, [])) == 3
+    assert np.array_equal(ref[diag_edge], res[diag_edge])
+
+
+def test_grid_scene_buffer_resize_after_flush():
+    """A 270x270 grid (V=72,900) plus one long diagonal with chunk_pairs=80_000
+    resizes the buffer when a single edge's candidates exceed initial buffer capacity (65,536)
+    after a buffer flush."""
+    nx, ny = 270, 270
+    x, y = np.meshgrid(np.arange(nx, dtype=np.float64), np.arange(ny, dtype=np.float64))
+    P = np.column_stack([x.ravel(), y.ravel(), np.zeros(nx * ny, dtype=np.float64)])
+
+    i, j = np.meshgrid(np.arange(nx - 1), np.arange(ny - 1))
+    idx = j * nx + i
+    t1 = np.stack([idx, idx + 1, idx + 1 + nx], axis=-1).reshape(-1, 3)
+    t2 = np.stack([idx, idx + 1 + nx, idx + nx], axis=-1).reshape(-1, 3)
+    F = np.vstack([t1, t2])
+
+    F_diag = np.vstack([F, [[2000, 72899, 72898]]])
+    table = build_edge_table(F_diag, np.ones(len(F_diag), dtype=bool))
+
+    stats = {}
+    res = find_t_vertices(P, table, TOL, stats=stats, chunk_pairs=80_000)
+    assert isinstance(res, dict)
+    assert stats["pairs_tested"] > 0
+
+
+def test_oracle_equality_with_chunk_pairs_2():
+    """When chunk_pairs=2, edges with more candidates than chunk_pairs take the
+    per-edge slicing branch (adjacency.py:282-291) and match the reference oracle."""
+    Pw, fw, ok, table = _scene(0, n_walls=4, depth=5)
+    ref = find_t_vertices_reference(Pw, table, TOL)
+    stats = {}
+    res = find_t_vertices(Pw, table, TOL, stats=stats, chunk_pairs=2)
+    assert _same(ref, res)
+    assert stats["pairs_peak"] <= 2
+    assert stats["pairs_tested"] > 1000
+
+
+@pytest.mark.parametrize("bad_chunk", [0, -1, -100])
+def test_chunk_pairs_validation(bad_chunk):
+    """chunk_pairs < 1 must raise a clear ValueError."""
+    Pw, fw, ok, table = _scene(0, n_walls=1, depth=2)
+    with pytest.raises(ValueError, match=r"chunk_pairs must be >= 1"):
+        find_t_vertices(Pw, table, TOL, chunk_pairs=bad_chunk)
+
+
+
+
+
