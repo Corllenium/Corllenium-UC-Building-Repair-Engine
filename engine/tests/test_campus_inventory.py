@@ -444,3 +444,25 @@ def test_two_material_names_with_one_look_key_are_one_look():
     b = group("PE_1st_floor_obj1", strip(100), material="m7", looks={"m7": "look0"})
     (flag,) = duplicates(a, b)
     assert flag["jaccard"] == 1.0 and flag["match"] == "exact"
+
+
+# ------------------------------------------------------------------------------------------ review fixes
+
+def test_an_element_with_a_part_below_the_lowest_level_names_that_part_instead_of_crashing():
+    # the review's probe: floors at z 0 and 200, a stairs group in the band under the first slab (z -100..-50)
+    # and on the second floor (210..260); no floor group holds the band under the first slab
+    floors = [group(f"CHTM_{n}_floor", slab(z)) for n, z in (("1st", 0), ("2nd", 200))]
+    stairs = group("CHTM_basement_stairs", box(0, 0, -100, 5, 5, -50), box(0, 0, 210, 5, 5, 260))
+    result = inv.build_inventory(floors + [stairs])
+    unit = next(u for u in result["units"] if u["unit"] == "CHTM-E-CHTM_basement_stairs")
+    assert (unit["type"], unit["spans"]) == ("element", ["below L01", "L02"])
+    assert [lv["level"] for lv in result["buildings"]["CHTM"]["levels"]] == ["L01", "L02"]   # the stairs make no level
+    assert result["coverage"]["ok"] is True and result["proposals"] == []
+
+
+def test_below_the_lowest_level_follows_the_numbering_offset():
+    # Science A style: floors named 2 and 3 start the numbers at L02, so "below" means below L02
+    floors = [group(f"Sciene_A_Floor_plan_{n}_obj", slab(z)) for n, z in ((2, 0), (3, 200))]
+    stairs = group("Sciene_A_basement_stairs", box(0, 0, -100, 5, 5, -50), box(0, 0, 210, 5, 5, 260))
+    unit = next(u for u in inv.build_inventory(floors + [stairs])["units"] if u["type"] == "element")
+    assert unit["spans"] == ["below L02", "L03"]

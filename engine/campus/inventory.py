@@ -517,6 +517,8 @@ def _unit(unit: str, building: str, level, kind: str, members: list[dict], base,
 def _building_units(plan: BuildingPlan, levels: list[dict], p: InventoryParams):
     """The floor and element units of one building, the split proposals and their flags."""
     label = {lv["band"]: lv["level"] for lv in levels}
+    # band 0 is a level only when a floor group sits in it; an element can still reach into it
+    below = f"below {levels[0]['level']}" if levels else "below L01"
     lv_of = {lv["level"]: lv for lv in levels}
     nbands = len(plan.slabs) + 1
     floor_members: dict[str, list[dict]] = {lv["level"]: [] for lv in levels}
@@ -540,7 +542,7 @@ def _building_units(plan: BuildingPlan, levels: list[dict], p: InventoryParams):
         elif g.name in plan.elements:
             unit = _unit(f"{plan.name}-E-{g.name}", plan.name, None, "element", [_member(g, "all", g.tris)],
                          _r(g.bbox[0][2]), _r(g.bbox[1][2]), None)
-            unit["spans"] = [label[b] for b in parts]
+            unit["spans"] = [label.get(b, below) for b in parts]
             elements.append(unit)
         else:
             rows = []
