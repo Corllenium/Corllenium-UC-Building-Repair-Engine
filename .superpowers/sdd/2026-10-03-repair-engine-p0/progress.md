@@ -138,3 +138,20 @@ Spec: docs/superpowers/specs/2026-10-03-uc-repair-engine-design.md (2a748d4, app
   - Task 12 adds a per-unit fix plan (kinds -> engines in pipeline order; E4/E5 by the look split);
   - spec §6: one engine flow for every floor, run as an n8n workflow on the VPS; compute stays on the PC; the PC-side runner pulls jobs (H2 designs the link).
 - Profile, find_errors on CHTM 5th (20,599 tris, BLAS threads 1, cProfile on): 103.2 s total; double_layers 62.9 s (61 %), find_t_vertices 19.6 s over 2 calls, build_regions 12.5 s, detect_fragments 12.7 s (includes the 2nd find_t_vertices), rays 5.7 s. Both S1 and S3 should land before the census real run, or the 92-142 k units time out at 1,800 s.
+- 2026-10-04 08:16 (session idle overnight):
+  - P0-08 re-review: CHANGES, doc-only. Notes 1-6 addressed, code and data reproduce (6 red on ac953f0 then green; 82 + 119; full engine 655 + 1 xfail; campus-index byte-identical; 85/85). Left: stale hash 670aff5, unpasted output for depth 19 / 1,899 / 162, groups.py:15 line number, split_name default documented, shlex branch untested. 179 -> 1,346 paths is the expected effect of tokens[1:-1] (1,345 distinct slot names, 796 minecraft_*). Task 10 must assign by idx["split"], never by path tuple. Queued; Hermes doc round launched (data/hermes_runs/*-P0-08-fix2).
+  - P0-09 Hermes fix run (20:13) was stopped by the 30-minute background limit, with +210/-42 uncommitted edits and no report. Relaunched with a 2-hour limit; continues from the edits and commits before the full suite.
+  - P0-11 implementer: DONE_WITH_CONCERNS, HEAD 3ec7181, 12 commits.
+    - Real check: 63 match, 18 mismatch (area only, backup larger, +0.51 to +2.09 %), 4 ambiguous (Science A twins), 0 miss.
+    - The export lacks 90,391 tris (4.9 %), mostly backup duplicates; 5 files are unexplained.
+    - Full engine suite: 754 passed, 1 xfail.
+    - Rulings, in task-11-report.md: concern 1 (ctypes allow-list test widened) ACCEPTED; concern 2 (owner's split rule for matching) ACCEPTED; concern 3 (duplicated rule vs groups.py) PARKED to P0-08 merge; 04df3df committed red, noted.
+    - Task review dispatched (rules-reviewer, opus) on review-e7fac71..3ec7181.diff.
+- P0-08 round 2 (Hermes e2a4bd4, 0.47 USD): doc-only, as asked (report hashes, pasted output depth 19 / 162 / 1,899, groups.py:15 line 2214652, split_name docstring, a quoted-g-line test). Controller check: diff is comments, a docstring and one test; groups+source+cli 83 passed. review --pass; merged into feat/repair-p0 (5674331).
+- Merged feat-dashboard into feat/repair-p0 (bd35e53) so P0 worktrees carry the current rules, plans and the owner's order.
+- P1-S1 (Claude's tests, rolling-brief rule): 21 tests + docs/superpowers/records/scripts/tvertex_check.py on claude/P1-S1-tests (7ff3a4c, from feat/repair-p0 bd35e53). Validated before commit:
+  - a throwaway grid prototype passes all 21;
+  - 5 mutants fail (no tol pad -- caught only after adding the 600-height flat-edge test; huge cells; numpy int keys; all vertices as candidates; no hints);
+  - the acceptance script with the prototype: identical True on A, B, CHTM 5th; CHTM 5th 4.82 s -> 0.75 s (6.4x, a per-edge Python loop), so the brief asks for vectorised pairs to reach >= 10x.
+  - Brief docs/superpowers/records/briefs/P1-S1-tvertex-hash.md and the queue entry committed on feat-dashboard (b2803a8). Hermes run launched (data/hermes_runs/*-P1-S1).
+- Prompt-audit note: the new briefs and Hermes one-shot prompts count as Hermes prompts (AGENTS.md §7.7). They are batched into one scoped audit before the P0 phase merge, rather than one audit per brief.
