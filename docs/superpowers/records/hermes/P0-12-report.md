@@ -3,6 +3,7 @@
 - Branch: hermes/P0-12   Base: 39a127505de5d40cb40c6f0fb06ee38c73c5152f (feat/repair-p0)
 - Commits:
   - 1579a76 feat(campus): census of every unit with stage timings, peak memory and flicker split by look and winding
+  - 16c6ba0 docs(report): record P0-12 report with real output of all commands
 - Brief: docs/superpowers/plans/2026-10-03-repair-engine-p0.md#task-12
 
 ## Items
