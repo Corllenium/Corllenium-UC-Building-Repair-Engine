@@ -18,6 +18,7 @@ import pytest
 from engine.campus import skp_check
 from engine.io import skp_reader
 from engine.io.skp_writer import SketchUpUnavailable
+from engine.io.snapshot import SourceUnstable
 from engine.tests.skp_scene import build_scene, square, translation
 
 # ------------------------------------------------------------------------------- the walk
@@ -970,6 +971,17 @@ def test_the_check_refuses_the_master_and_an_output_folder_beside_the_backup(tmp
     assert walker.models == [] and not (backup / "out").exists()
 
 
+def test_the_summary_page_is_not_written_inside_the_backup_either(tmp_path):
+    rows = [("A_Floor", 0, 0, 30, 10)]
+    source, backup = freeze(tmp_path, rows)
+    walker = Walker(floor_walk(("A Floor", 5, 300.0, box(0, 0, 30, 10))))
+    with pytest.raises(ValueError, match="inside the backup"):
+        skp_check.check_source(source, backup, tmp_path / "results", summary=backup / "notes" / "skp-check.md",
+                               walker=walker, interval_s=0, sleep=lambda s: None)
+    assert walker.models == [] and not (backup / "notes").exists()
+    assert not (tmp_path / "results").exists()                          # refused before anything was done
+
+
 def test_a_backup_that_changed_since_the_freeze_stops_the_check_before_anything_is_opened(tmp_path):
     rows = [("A_Floor", 0, 0, 30, 10)]
     source, backup = freeze(tmp_path, rows, backup_folder(tmp_path, skp=b"changed"))
@@ -1055,7 +1067,8 @@ def test_campus_skp_check_defaults_follow_campus_freeze(monkeypatch):
                                    skp_check.WalkFailed("it timed out"),
                                    skp_check.NotEnoughMemory("no commit left"),
                                    ValueError("refusing to open the master"),
-                                   FileNotFoundError("no such backup")])
+                                   FileNotFoundError("no such backup"),
+                                   SourceUnstable("M.skp: changed during copy")])
 def test_campus_skp_check_reports_a_refusal_in_a_line_and_exits_2(monkeypatch, capsys, error):
     from engine import cli
 

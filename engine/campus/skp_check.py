@@ -547,6 +547,8 @@ def check_source(source_json, backup_dir, out_dir, *, name: str | None = None, s
     source_json, backup_dir, out_dir = Path(source_json), Path(backup_dir), Path(out_dir)
     refuse_master(backup_dir)
     refuse_inside(out_dir, backup_dir)
+    if summary is not None:
+        refuse_inside(Path(summary), backup_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / "skp_check.json").unlink(missing_ok=True)       # a failed run leaves no report that looks current
     source = json.loads(source_json.read_text(encoding="utf-8"))

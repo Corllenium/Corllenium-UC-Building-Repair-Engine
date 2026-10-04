@@ -904,6 +904,7 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     elif args.command == "campus-skp-check":
         from engine.campus import skp_check
+        from engine.io.snapshot import SourceUnstable
         extra = {}
         if args.timeout_min is not None:
             extra["timeout_s"] = args.timeout_min * 60.0
@@ -912,7 +913,8 @@ def main(argv: list[str] | None = None) -> int:
         try:
             report = skp_check.check_source(args.source, args.backup, args.out, summary=args.summary,
                                             name=args.name, dll_path=args.dll, **extra)
-        except (skp_check.BackupMismatch, skp_check.WalkFailed, ValueError, FileNotFoundError) as exc:
+        except (skp_check.BackupMismatch, skp_check.WalkFailed, SourceUnstable, ValueError,
+                FileNotFoundError) as exc:
             print(f"error: {exc}", file=sys.stderr)
             return 2
         c = report["counts"]
