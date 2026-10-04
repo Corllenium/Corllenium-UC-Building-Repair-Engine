@@ -140,15 +140,38 @@ def uv_at(mesh: MeshData, face: np.ndarray, bary: np.ndarray) -> np.ndarray:
     return uv
 
 
-def bbox_centre(mesh: MeshData) -> np.ndarray:
-    """(3,) centre of the bounding box of the vertices some face uses (a stray vertex nobody
-    uses does not move it)."""
+def used_bbox(mesh: MeshData) -> tuple[np.ndarray, np.ndarray]:
+    """`(lo, hi)`, the bounding box of the vertices some face uses: a stray vertex that nobody
+    uses (an OBJ can carry them) neither widens it nor moves its centre."""
     used = np.zeros(len(mesh.positions), dtype=bool)
     used[mesh.face_v.reshape(-1)] = True
     P = mesh.positions[used] if used.any() else mesh.positions
     if not len(P):
-        return np.zeros(3)
-    return (P.min(axis=0) + P.max(axis=0)) / 2.0
+        return np.zeros(3), np.zeros(3)
+    return P.min(axis=0), P.max(axis=0)
+
+
+def bbox_centre(mesh: MeshData) -> np.ndarray:
+    """(3,) centre of `used_bbox`."""
+    lo, hi = used_bbox(mesh)
+    return (lo + hi) / 2.0
+
+
+#: The largest |coordinate|, in inches, the Validator hands to Embree. Embree stores float32, whose
+#: spacing at 8192 is 2**-10 in (a twentieth of the 0.02 in the visibility pass steps off a face);
+#: the real models sit near 24,000 in, where it is 0.002 in. So the floors are recentred first.
+MAX_FRAME_COORD = 8192.0
+
+
+def check_frame(points: np.ndarray, what: str = "positions") -> None:
+    """Raise `ValueError` when `points` reach further than `MAX_FRAME_COORD` from the origin: they
+    were not put in the Validator's frame (`recentred`), and Embree would round them to float32
+    where the spacing is no longer small against the distances it compares."""
+    p = np.asarray(points, dtype=np.float64)
+    if p.size and np.abs(p).max() > MAX_FRAME_COORD:
+        raise ValueError(
+            f"{what} reach {np.abs(p).max():.0f} in from the origin (limit {MAX_FRAME_COORD:.0f}): "
+            "recentre them first (engine.validate.sampling.recentred); Embree stores float32")
 
 
 def recentred(mesh: MeshData, centre: np.ndarray | None = None) -> tuple[MeshData, np.ndarray]:

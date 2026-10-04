@@ -4,13 +4,48 @@ and what each viewpoint sees.
 `engine/validate/` judges the repair engine, so it is written from scratch: nothing in it may be
 built on `engine/guard/` (see `test_the_validator_imports_nothing_it_judges`).
 """
+import ast
 import dataclasses
+from pathlib import Path
 
 import numpy as np
+import pytest
 
-from engine.tests.fixtures.build import cube, grid_slab
-from engine.validate.sampling import (bbox_centre, face_areas, face_normals, face_samples,
-                                      recentred, uv_at)
+import engine.validate
+from engine.tests.fixtures.build import closed_room, cube, grid_slab, sloped_slab
+from engine.validate.sampling import (MAX_FRAME_COORD, bbox_centre, check_frame, face_areas,
+                                      face_normals, face_samples, recentred, used_bbox, uv_at)
+from engine.validate.viewpoints import interior_probes, outside_directions, pedestrian_ring
+from engine.validate.visibility import build_caster
+
+
+def _merged(*meshes):
+    """The meshes as ONE: vertex blocks stacked, face indices offset, the first one's materials."""
+    v_off = np.cumsum([0] + [len(m.positions) for m in meshes[:-1]])
+    t_off = np.cumsum([0] + [len(m.uvs) for m in meshes[:-1]])
+    n_faces = sum(m.n_faces for m in meshes)
+    return dataclasses.replace(
+        meshes[0],
+        positions=np.vstack([m.positions for m in meshes]),
+        uvs=np.vstack([m.uvs for m in meshes]),
+        face_v=np.vstack([m.face_v + o for m, o in zip(meshes, v_off)]),
+        face_vt=np.vstack([m.face_vt + o for m, o in zip(meshes, t_off)]),
+        face_vn=np.vstack([m.face_vn for m in meshes]),
+        face_material=np.concatenate([m.face_material for m in meshes]),
+        face_line=np.arange(1, n_faces + 1, dtype=np.int64))
+
+
+def _flipped(mesh, faces=None):
+    """A copy of `mesh` with the winding of `faces` (all by default) reversed, UV corners with it."""
+    which = np.arange(mesh.n_faces) if faces is None else np.asarray(faces)
+    fv, fvt = mesh.face_v.copy(), mesh.face_vt.copy()
+    fv[which] = fv[which][:, [0, 2, 1]]
+    fvt[which] = fvt[which][:, [0, 2, 1]]
+    return dataclasses.replace(mesh, face_v=fv, face_vt=fvt)
+
+
+def _lifted(mesh, dz):
+    return dataclasses.replace(mesh, positions=mesh.positions + [0.0, 0.0, dz])
 
 
 # ---------------------------------------------------------------------------------------------
@@ -173,3 +208,185 @@ def test_the_bbox_centre_ignores_vertices_no_face_uses():
     m = cube(10.0)
     stray = dataclasses.replace(m, positions=np.vstack([m.positions, [[9000.0, 9000.0, 9000.0]]]))
     assert np.allclose(bbox_centre(stray), [5.0, 5.0, 5.0])
+
+
+def test_used_bbox_is_the_box_of_the_vertices_some_face_uses():
+    m = cube(10.0)
+    lo, hi = used_bbox(m)
+    assert np.array_equal(lo, [0.0, 0.0, 0.0]) and np.array_equal(hi, [10.0, 10.0, 10.0])
+    stray = dataclasses.replace(m, positions=np.vstack([m.positions, [[9000.0, 9000.0, 9000.0]]]))
+    assert np.array_equal(used_bbox(stray)[1], [10.0, 10.0, 10.0])
+
+
+# ---------------------------------------------------------------------------------------------
+# Item 2: viewpoints -- outside directions, a pedestrian ring, probes at eye height inside
+# ---------------------------------------------------------------------------------------------
+
+def test_outside_directions_are_unit_fibonacci_vectors_spread_over_the_sphere():
+    d = outside_directions()
+    assert d.shape == (128, 3) and d.dtype == np.float64
+    assert np.allclose(np.linalg.norm(d, axis=1), 1.0, atol=1e-12)
+    assert np.array_equal(d, outside_directions()), "the same every call"
+    assert outside_directions(32).shape == (32, 3)
+
+    # a Fibonacci lattice: equal-height bands, so the heights are 1 - (2 i + 1) / n
+    assert np.allclose(d[:, 2], 1.0 - (2.0 * np.arange(128) + 1.0) / 128.0, atol=1e-12)
+    # evenly spread: no two within 12 degrees (measured 15.7), and no part of the sphere further
+    # than 16 degrees from one of them (measured 13.2); balanced: no hemisphere is favoured
+    gram = d @ d.T
+    np.fill_diagonal(gram, -1.0)
+    assert gram.max() < np.cos(np.radians(12.0))
+    fine = outside_directions(4000)
+    assert (fine @ d.T).max(axis=1).min() > np.cos(np.radians(16.0))
+    assert np.linalg.norm(d.mean(axis=0)) < 0.01
+
+
+def test_pedestrian_ring_stands_n_cameras_at_eye_height_a_margin_outside_the_bbox():
+    lo, hi = np.array([-8.0, -8.0, -8.0]), np.array([208.0, 168.0, 128.0])
+
+    def gap(points):                       # how far each point is from the box, in plan, Chebyshev
+        return np.maximum(np.maximum(lo[:2] - points[:, :2], points[:, :2] - hi[:2]), 0.0).max(axis=1)
+
+    ring = pedestrian_ring((lo, hi), eye_z=63.0)
+    assert ring.shape == (24, 3) and ring.dtype == np.float64
+    assert (ring[:, 2] == 63.0).all()
+    assert np.allclose(gap(ring), 240.0), "each exactly 240 in outside the box: none inside the building"
+    assert len(np.unique(ring.round(9), axis=0)) == 24
+    assert ring[:, 0].min() < lo[0] and ring[:, 0].max() > hi[0]
+    assert ring[:, 1].min() < lo[1] and ring[:, 1].max() > hi[1], "all four sides are covered"
+    assert np.array_equal(ring, pedestrian_ring((lo, hi), 63.0)), "the same every call"
+
+    # evenly spaced round the perimeter of the grown box (696 x 656 in): 2704 / 24 apart
+    bottom = ring[np.isclose(ring[:, 1], lo[1] - 240.0)]
+    assert len(bottom) == 6 and np.allclose(np.diff(bottom[:, 0]), 2.0 * (696.0 + 656.0) / 24.0)
+
+    assert pedestrian_ring((lo, hi), 63.0, n=7).shape == (7, 3)
+    assert pedestrian_ring((lo, hi), 63.0, n=0).shape == (0, 3)
+    assert np.allclose(gap(pedestrian_ring((lo, hi), 63.0, margin=500.0)), 500.0)
+    assert np.array_equal(pedestrian_ring(np.array([lo, hi]), 63.0), ring), "a (2, 3) array works too"
+
+
+ROOM = (200.0, 160.0, 120.0)           # the default inner size of `closed_room`
+
+
+def _inside_the_room(points, size=ROOM):
+    return ((points > 0.0) & (points < np.asarray(size))).all(axis=1)
+
+
+def test_the_closed_room_fixture_is_wound_as_documented():
+    m = closed_room()
+    assert m.n_faces == 24 and m.materials == ["plaster", "brick"]
+    assert (m.face_material[:12] == 0).all() and (m.face_material[12:] == 1).all()
+    n = face_normals(m)
+    into_the_room = [[0, 0, 1], [0, 0, -1], [0, 1, 0], [-1, 0, 0], [0, -1, 0], [1, 0, 0]]
+    outward = [[0, 0, -1], [0, 0, 1], [0, -1, 0], [1, 0, 0], [0, 1, 0], [-1, 0, 0]]
+    assert np.allclose(n[:12], np.repeat(into_the_room, 2, axis=0)), "floor, ceiling, y0, x1, y1, x0"
+    assert np.allclose(n[12:], np.repeat(outward, 2, axis=0)), "bottom, top, y0, x1, y1, x0"
+    lo, hi = m.bbox()
+    assert np.allclose(lo, [-8.0, -8.0, -8.0]) and np.allclose(hi, [208.0, 168.0, 128.0])
+
+
+def test_the_closed_room_has_probes_at_eye_height_standing_on_its_floor():
+    probes = interior_probes(closed_room())
+    assert probes.shape[1] == 3 and probes.dtype == np.float64
+    inside = _inside_the_room(probes)
+    # the lattice starts half a cell from the outer skin's corner (-8, -8): x = 11.7, 51.1, ... 169.2
+    # (5 columns) and y = 11.7 ... 129.8 (4 rows) fall on the 200 x 160 floor
+    assert inside.sum() == 20
+    assert (probes[inside, 2] == 63.0).all(), "1.6 m above the floor at z = 0"
+    xs = np.unique(probes[inside, 0].round(6))
+    assert len(xs) == 5 and np.allclose(np.diff(xs), 39.37)
+    assert np.isclose(xs[0], -8.0 + 39.37 / 2.0), "anchored half a cell in from the box corner"
+    # the roof is upward, open ground too: its probes stand 63 in above it, outside the room.
+    # Nothing is in the void between the skins and nothing under the floor.
+    roof = probes[~inside]
+    assert len(roof) == 20 and np.allclose(roof[:, 2], 128.0 + 63.0)
+
+
+def test_a_probe_needs_headroom_counted_from_half_an_inch_above_the_floor():
+    m = closed_room()                       # the ceiling is 119.5 in above the headroom ray's start
+    assert _inside_the_room(interior_probes(m, headroom=119.4)).sum() == 20
+    assert _inside_the_room(interior_probes(m, headroom=119.6)).sum() == 0
+
+    low = closed_room(height=70.0)          # a crawl space: the 83 in of headroom is not there
+    probes = interior_probes(low)
+    assert _inside_the_room(probes, (200.0, 160.0, 70.0)).sum() == 0
+    assert len(probes) == 20 and np.allclose(probes[:, 2], 70.0 + 8.0 + 63.0), "only the roof's"
+
+
+def test_probe_eye_height_and_grid_follow_their_parameters():
+    probes = interior_probes(closed_room(), eye=40.0, grid=80.0)
+    inside = _inside_the_room(probes)
+    assert (probes[inside, 2] == 40.0).all()
+    assert inside.sum() == 6                # x = 32, 112, 192; y = 32, 112
+
+
+def test_a_plate_overhead_takes_the_probes_beneath_it():
+    floor = grid_slab(10, 10)                                           # 100 x 100 in, z = 0, faces +z
+    plate = _lifted(_flipped(grid_slab(5, 10)), 60.0)                   # x 0..50 at z = 60, faces -z
+    assert len(interior_probes(floor)) == 9
+    both = interior_probes(_merged(floor, plate))
+    assert len(both) == 6 and (both[:, 0] > 50.0).all() and np.allclose(both[:, 2], 63.0)
+
+
+def test_only_upward_faces_get_probes_and_they_follow_the_surface():
+    steep = sloped_slab(length=80.0, rise=80.0)           # 45 degrees: n_z = 0.71, not walkable
+    assert interior_probes(steep).shape == (0, 3)
+    gentle = sloped_slab(length=80.0, rise=20.0)          # 14 degrees: n_z = 0.97
+    probes = interior_probes(gentle)
+    assert len(probes) == 2
+    assert np.allclose(probes[:, 2], 20.0 * probes[:, 0] / 80.0 + 63.0, atol=1e-6)
+
+
+def test_a_face_smaller_than_the_grid_still_gets_a_probe():
+    probes = interior_probes(cube(10.0))                  # the 10 in top holds no lattice point
+    assert probes.shape == (1, 3), "its two triangles share a cell: one probe, not two"
+    assert 0.0 < probes[0, 0] < 10.0 and 0.0 < probes[0, 1] < 10.0
+    assert np.isclose(probes[0, 2], 10.0 + 63.0)
+
+
+def test_a_finely_tessellated_floor_gets_one_probe_per_grid_cell_not_one_per_face():
+    probes = interior_probes(grid_slab(10, 10))           # 200 triangles of 10 in; cells of 39.37 in
+    assert len(probes) == 9
+    assert np.allclose(sorted(set(probes[:, 0].round(6))), [19.685, 59.055, 98.425])
+
+
+def test_interior_probes_repeat_exactly():
+    m = closed_room()
+    assert np.array_equal(interior_probes(m), interior_probes(m))
+
+
+def test_a_mesh_that_was_not_recentred_is_refused_before_embree_rounds_it_to_float32():
+    near = cube(10.0)
+    far = dataclasses.replace(near, positions=near.positions + [0.0, 24000.0, 0.0])
+    with pytest.raises(ValueError, match="recentre"):
+        build_caster(far)
+    with pytest.raises(ValueError, match="recentre"):
+        interior_probes(far)
+    centred, _ = recentred(far)
+    assert len(build_caster(centred).faces) == 12
+    check_frame(np.array([[MAX_FRAME_COORD, -MAX_FRAME_COORD, 0.0]]), "a point")
+    with pytest.raises(ValueError, match="recentre"):
+        check_frame(np.array([[0.0, 0.0, MAX_FRAME_COORD + 1.0]]), "a point")
+
+
+def test_the_validator_imports_nothing_it_judges():
+    """`engine/validate/` judges the guard and the fixes, so it is not built on them: the guard's
+    `compare_views` (or anything else in `engine/guard/`), the fixes, and `engine/vis/`, which the
+    hidden-face fix reuses."""
+    banned = ("engine.guard", "engine.fixes", "engine.vis")
+    package = Path(engine.validate.__file__).parent
+    sources = sorted(package.glob("*.py"))
+    assert {p.name for p in sources} >= {"__init__.py", "sampling.py", "viewpoints.py", "visibility.py"}
+    for path in sources:
+        for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
+            if isinstance(node, ast.Import):
+                names = [a.name for a in node.names]
+            elif isinstance(node, ast.ImportFrom):
+                assert node.level < 2, f"{path.name}: a relative import out of the package"
+                names = [node.module or ""]
+            else:
+                continue
+            for name in names:
+                assert not any(name == b or name.startswith(b + ".") for b in banned), \
+                    f"{path.name} imports {name}"
