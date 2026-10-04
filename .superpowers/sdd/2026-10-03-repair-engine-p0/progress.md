@@ -361,3 +361,10 @@ exit=1
   - The controller's corrections were appended to P1-S3-report.md (13c0c1c).
   - P1-S3b brief and queue entry: numpy index with canonical-cell pairs, big-face list, blocks, tie re-check, chunked pixels. Acceptance without the slow tracemalloc pass: digests compared with the controller's old digests.
 - Census Step 5 launched (claude): all 85 units from feat/repair-p0 at 13c0c1c (S1 + S1b + S3 inside), --jobs 2 (free commit 9.6 GB), timeout 1,800 s. Outputs: data/campus/census.json, data/campus/errors/, and census.md in the repair-p0 worktree.
+- Census Step 5 (claude), from feat/repair-p0 at 13c0c1c:
+  - first attempt: 85/85 errors in 46 s, because the unit paths ended in \r (bash mapfile kept the CRLF of Windows Python's output). The controller's invocation bug; the census correctly reported 85 errors and exit 1.
+  - re-run with tr -d '\r': 85 ok, 0 timeout, 0 error; 1,766,906 triangles; 2,136 s wall on 2 workers (4,001 s unit sum).
+  - Totals (faces): hidden 890,048; flicker_diff 423,340; flicker_same 272,063; cracks 285,638; loose 45,656; reversed 44,560; open_edges 39,531.
+  - Fix-plan pairs by look: E4 341,131, E5 514,573.
+  - Slowest: Gymnasium 5th 364 s, Main_Infra 344 s, Architecture dep 2nd 179 s. Highest peak: Gymnasium 1st 1,995 MB, Main_Infra 1,786 MB.
+  - census.md committed on feat/repair-p0. The owner's order (every floor's error map first) is met; P0-13 (decision sheet) is now unblocked.
