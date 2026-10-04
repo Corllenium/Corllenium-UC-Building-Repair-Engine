@@ -867,6 +867,17 @@ def build_parser() -> argparse.ArgumentParser:
     index_p.add_argument("--out", type=Path, default=Path("data/campus/group_index.json"),
                          help="output group_index.json")
 
+    mat_p = sub.add_parser("campus-materials",
+                           help="build material look keys for texture and color comparison")
+    mat_p.add_argument("--source", type=Path, default=Path("data/campus/source.json"),
+                       help="the campus source.json path")
+    mat_p.add_argument("--out", type=Path, default=Path("data/campus/materials.json"),
+                       help="destination path for materials.json")
+    mat_p.add_argument("--mtl", type=Path, default=None,
+                       help="optional explicit path to MTL file (overrides source.json)")
+    mat_p.add_argument("--tex-dir", type=Path, default=None,
+                       help="optional explicit path to texture directory")
+
     return parser
 
 
@@ -892,6 +903,35 @@ def main(argv: list[str] | None = None) -> int:
         from engine.campus.groups import cmd_campus_index
         res = cmd_campus_index(args.source, args.out)
         print(f"indexed {len(res['paths'])} paths, {len(res['faces'])} runs, {len(res['split'])} splits -> {args.out}")
+        return 0
+    elif args.command == "campus-materials":
+        from engine.campus.materials import build_materials
+        if args.mtl:
+            mtl_path = Path(args.mtl)
+            tex_dir = Path(args.tex_dir) if args.tex_dir else mtl_path.parent
+        else:
+            source_path = Path(args.source)
+            source_data = json.loads(source_path.read_text(encoding="utf-8"))
+            mtl_path = Path(source_data["clean_mtl"]["path"])
+            if args.tex_dir:
+                tex_dir = Path(args.tex_dir)
+            elif (mtl_path.parent / "SRC-TEX").is_dir():
+                tex_dir = mtl_path.parent / "SRC-TEX"
+            else:
+                tex_dir = mtl_path.parent
+
+        out_path = Path(args.out)
+
+        res = build_materials(mtl_path, tex_dir)
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        out_path.write_text(json.dumps(res, indent=2), encoding="utf-8")
+        stats = res["stats"]
+        print(f"materials: {stats['materials']}, textured: {stats['textured']}, images: {stats['images']}, looks: {stats['looks']}")
+        print(f"looks ({len(res['looks'])}):")
+        sorted_looks = sorted(res["looks"].items(), key=lambda kv: len(kv[1]), reverse=True)
+        for key, mats in sorted_looks[:10]:
+            print(f"  {key} ({len(mats)} materials): {mats}")
+        print(f"wrote materials to {out_path}")
         return 0
     return 1
 
