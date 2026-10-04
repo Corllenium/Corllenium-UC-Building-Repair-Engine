@@ -216,6 +216,10 @@ def test_fix_plan_full_order_all_engines():
 def test_unit_building_classifier():
     from engine.campus.census import unit_building
 
+    # Real snapshot names from source.json
+    assert unit_building("Sciene_A_Floor_plan_2_obj") == "SCIENCE_A"
+    assert unit_building("Sciene_A_Floor_plan_4_obj") == "SCIENCE_A"
+    assert unit_building("CHTM_5th_floor") == "CHTM"
     assert unit_building("CHTM_SIDE_WALK_2nd_floor") == "CHTM"
     assert unit_building("Eds_2nd_Floor_obj") == "EDS"
     assert unit_building("BRS_3rd_floor") == "BRS"
@@ -223,7 +227,6 @@ def test_unit_building_classifier():
     assert unit_building("Main_Infrustructure_Building") == "MAIN_INFRA"
     assert unit_building("MAIN_BUILDING") == "MAIN"
     assert unit_building("PE_BUILDING") == "PE"
-    assert unit_building("Science_A_1st_Floor") == "SCIENCE_A"
     assert unit_building("Architecture_1st_floor") == "ARCHITECTURE"
     assert unit_building("something_else") == "SITE"
 

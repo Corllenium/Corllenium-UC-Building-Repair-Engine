@@ -138,27 +138,9 @@ def get_process_peak_memory_mb() -> float:
 
 
 def unit_building(unit_name: str) -> str:
-    """Infer building name from unit or snapshot name."""
-    norm = unit_name.upper()
-    if norm.startswith("ARCHITECTURE"):
-        return "ARCHITECTURE"
-    if norm.startswith("BRS"):
-        return "BRS"
-    if norm.startswith("CHTM"):
-        return "CHTM"
-    if norm.startswith("EDS"):
-        return "EDS"
-    if norm.startswith("GYMNASIUM"):
-        return "GYMNASIUM"
-    if norm.startswith("MAIN_INFR") or norm.startswith("MAIN INFR"):
-        return "MAIN_INFRA"
-    if norm.startswith("MAIN"):
-        return "MAIN"
-    if norm.startswith("PE"):
-        return "PE"
-    if norm.startswith("SCIENCE"):
-        return "SCIENCE_A"
-    return "SITE"
+    """Infer building name from unit or snapshot name using inventory prefix table."""
+    from engine.campus.inventory import building_of
+    return building_of(unit_name)
 
 
 # ---------------------------------------------------------------------- Flicker Split
