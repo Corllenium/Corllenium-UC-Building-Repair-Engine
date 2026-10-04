@@ -652,15 +652,21 @@ def _coverage(groups: list[GroupData], units: list[dict], proposals: list[dict])
 
 
 def _attach_flags(units: list[dict], flags: list[dict]) -> None:
-    """Give every flag the units of its groups, and every unit the flags that name it."""
+    """Give every flag its units, and every unit the flags that name it. A flag about a level (missing, shared)
+    belongs to that level's unit alone, whichever groups hold its faces; the others belong to the units of
+    their groups."""
     units_of: dict[str, list[str]] = {}
     for u in units:
         for m in u["members"]:
             units_of.setdefault(m["group"], []).append(u["unit"])
     by_unit = {u["unit"]: u for u in units}
     for f in flags:
-        names = f.get("groups") or ([f["group"]] if "group" in f else f.get("occupied_by", []))
-        f["units"] = sorted({uid for n in names for uid in units_of.get(n, [])})
+        if "level" in f:
+            unit = f"{f['building']}-{f['level']}"
+            f["units"] = [unit] if unit in by_unit else []
+        else:
+            names = f.get("groups") or [f["group"]]
+            f["units"] = sorted({uid for n in names for uid in units_of.get(n, [])})
         for uid in f["units"]:
             by_unit[uid]["flags"].append({"kind": f["kind"], "text": f["text"]})
 

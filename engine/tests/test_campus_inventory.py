@@ -466,3 +466,37 @@ def test_below_the_lowest_level_follows_the_numbering_offset():
     stairs = group("Sciene_A_basement_stairs", box(0, 0, -100, 5, 5, -50), box(0, 0, 210, 5, 5, 260))
     unit = next(u for u in inv.build_inventory(floors + [stairs])["units"] if u["type"] == "element")
     assert unit["spans"] == ["below L02", "L03"]
+
+
+def test_a_missing_flag_sits_only_on_the_unit_of_its_own_level():
+    # MAIN_BUILDING holds L04 and L05 and nobody is named 4th or 5th: each level's flag belongs to its own unit
+    groups = [group("CHTM_1st_floor", slab(0)), group("CHTM_big_block", slab(200), slab(400)),
+              group("CHTM_4th_floor", slab(600))]
+    result = inv.build_inventory(groups)
+    units = {u["unit"]: u for u in result["units"]}
+    missing = {f["level"]: f for f in flags_of(result, "missing")}
+    assert sorted(missing) == ["L02", "L03"]
+    assert missing["L02"]["units"] == ["CHTM-L02"] and missing["L03"]["units"] == ["CHTM-L03"]
+    assert [f["text"] for f in units["CHTM-L02"]["flags"] if f["kind"] == "missing"] == [missing["L02"]["text"]]
+    assert [f["text"] for f in units["CHTM-L03"]["flags"] if f["kind"] == "missing"] == [missing["L03"]["text"]]
+    assert missing["L02"]["occupied_by"] == ["CHTM_big_block"]               # who holds it is still said
+
+
+def test_a_missing_level_that_no_unit_carries_has_no_unit_to_flag():
+    result = inv.build_inventory([group(f"Sciene_A_Floor_plan_{n}_obj", slab(i * 200)) for i, n in enumerate((2, 3))])
+    (flag,) = flags_of(result, "missing")
+    assert (flag["level"], flag["units"]) == ("L01", [])
+    assert all(f["kind"] != "missing" for u in result["units"] for f in u["flags"])
+
+
+def test_a_shared_flag_sits_only_on_the_unit_of_its_level():
+    # the group named 3rd has a quarter of its faces in L04, next to the group named 4th: only L04 is shared
+    third = group("CHTM_3rd_floor", slab(400), slab(400, x=200), slab(400, x=400), slab(600, x=600))
+    groups = [group("CHTM_1st_floor", slab(0)), group("CHTM_2nd_floor", slab(200)), third,
+              group("CHTM_4th_floor", slab(600))]
+    result = inv.build_inventory(groups)
+    (flag,) = flags_of(result, "shared")
+    assert (flag["level"], flag["numbers"], flag["units"]) == ("L04", [3, 4], ["CHTM-L04"])
+    units = {u["unit"]: u for u in result["units"]}
+    assert [f["kind"] for f in units["CHTM-L03"]["flags"]] == ["split"]       # the split, not the shared level
+    assert sorted(f["kind"] for f in units["CHTM-L04"]["flags"]) == ["shared", "split"]
