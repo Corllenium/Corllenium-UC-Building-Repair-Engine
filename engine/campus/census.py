@@ -159,54 +159,52 @@ def flicker_split(
 
 
 FIX_PLAN_TABLE = [
-    {"engine": "E8", "kinds": ["open_edges"]},
-    {"engine": "E3", "kinds": ["hidden"]},
-    {"engine": "E1", "kinds": ["loose"]},
-    {"engine": "E2", "kinds": ["reversed"]},
-    {"engine": "E4", "kinds": ["same_look"]},
-    {"engine": "E5", "kinds": ["diff_look"]},
-    {"engine": "E6", "kinds": ["cracks"]},
-    {"engine": "E7", "kinds": ["gridlines"]},
+    {"engine": "E8", "kinds": ["open_edges"], "unit": "edges"},
+    {"engine": "E3", "kinds": ["hidden"], "unit": "faces"},
+    {"engine": "E1", "kinds": ["loose"], "unit": "faces"},
+    {"engine": "E2", "kinds": ["reversed"], "unit": "faces"},
+    {"engine": "E4", "kinds": ["same_look"], "unit": "pairs"},
+    {"engine": "E5", "kinds": ["diff_look"], "unit": "pairs"},
+    {"engine": "E6", "kinds": ["cracks"], "unit": "points"},
+    {"engine": "E7", "kinds": ["gridlines"], "unit": "faces"},
 ]
 
 
 def compute_fix_plan(counts: dict, flicker_split_data: dict, n_faces: int) -> list[dict]:
-    """Compute fix plan per unit in order E8 -> E3 -> E1 -> E2 -> E4 -> E5 -> E6 -> E7."""
+    """Compute fix plan per unit through FIX_PLAN_TABLE in order E8 -> E3 -> E1 -> E2 -> E4 -> E5 -> E6 -> E7."""
     plan: list[dict] = []
+    same_look = int(flicker_split_data.get("same_look_opposite", 0) + flicker_split_data.get("same_look_same", 0))
+    diff_look = int(flicker_split_data.get("diff_look_opposite", 0) + flicker_split_data.get("diff_look_same", 0))
 
-    # 1. E8: open_edges
-    if counts.get("open_edges", 0) > 0:
-        plan.append({"engine": "E8", "kinds": ["open_edges"], "count": int(counts["open_edges"])})
+    engine_counts = {
+        "E8": int(counts.get("open_edges", 0)),
+        "E3": int(counts.get("hidden", 0)),
+        "E1": int(counts.get("loose", 0)),
+        "E2": int(counts.get("reversed", 0)),
+        "E4": same_look,
+        "E5": diff_look,
+        "E6": int(counts.get("cracks", 0)),
+        "E7": None if n_faces > 0 else 0,
+    }
 
-    # 2. E3: hidden
-    if counts.get("hidden", 0) > 0:
-        plan.append({"engine": "E3", "kinds": ["hidden"], "count": int(counts["hidden"])})
-
-    # 3. E1: loose
-    if counts.get("loose", 0) > 0:
-        plan.append({"engine": "E1", "kinds": ["loose"], "count": int(counts["loose"])})
-
-    # 4. E2: reversed
-    if counts.get("reversed", 0) > 0:
-        plan.append({"engine": "E2", "kinds": ["reversed"], "count": int(counts["reversed"])})
-
-    # 5. E4: flicker same look
-    same_look = flicker_split_data.get("same_look_opposite", 0) + flicker_split_data.get("same_look_same", 0)
-    if same_look > 0:
-        plan.append({"engine": "E4", "kinds": ["same_look"], "count": int(same_look)})
-
-    # 6. E5: flicker diff look
-    diff_look = flicker_split_data.get("diff_look_opposite", 0) + flicker_split_data.get("diff_look_same", 0)
-    if diff_look > 0:
-        plan.append({"engine": "E5", "kinds": ["diff_look"], "count": int(diff_look)})
-
-    # 7. E6: cracks
-    if counts.get("cracks", 0) > 0:
-        plan.append({"engine": "E6", "kinds": ["cracks"], "count": int(counts["cracks"])})
-
-    # 8. E7: gridlines (listed for every unit with faces, count null)
-    if n_faces > 0:
-        plan.append({"engine": "E7", "kinds": ["gridlines"], "count": None})
+    for entry in FIX_PLAN_TABLE:
+        eng = entry["engine"]
+        cnt = engine_counts.get(eng, 0)
+        if eng == "E7":
+            if cnt is None:
+                plan.append({
+                    "engine": eng,
+                    "kinds": list(entry["kinds"]),
+                    "count": None,
+                    "unit": entry["unit"],
+                })
+        elif cnt > 0:
+            plan.append({
+                "engine": eng,
+                "kinds": list(entry["kinds"]),
+                "count": cnt,
+                "unit": entry["unit"],
+            })
 
     return plan
 
@@ -218,6 +216,9 @@ def format_census_md(rows: list[dict], totals: dict) -> str:
     """Format census table as markdown."""
     lines = [
         "# Campus Error Census",
+        "",
+        "Note: The flicker columns (`flicker_diff`, `flicker_same`) are faces by material; "
+        "the fix plan's E4/E5 are pairs by look.",
         "",
         "| Building | Unit | Triangles | flicker_diff | flicker_same | reversed | hidden | loose | open_edges | cracks | Seconds | Peak MB |",
         "|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|",

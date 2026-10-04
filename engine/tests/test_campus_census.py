@@ -184,9 +184,9 @@ def test_fix_plan_hidden_and_diff_look_flicker():
     engines = [step["engine"] for step in plan]
     assert engines == ["E3", "E5", "E7"]
 
-    assert plan[0] == {"engine": "E3", "kinds": ["hidden"], "count": 12}
-    assert plan[1] == {"engine": "E5", "kinds": ["diff_look"], "count": 4}
-    assert plan[2] == {"engine": "E7", "kinds": ["gridlines"], "count": None}
+    assert plan[0] == {"engine": "E3", "kinds": ["hidden"], "count": 12, "unit": "faces"}
+    assert plan[1] == {"engine": "E5", "kinds": ["diff_look"], "count": 4, "unit": "pairs"}
+    assert plan[2] == {"engine": "E7", "kinds": ["gridlines"], "count": None, "unit": "faces"}
 
 
 def test_fix_plan_full_order_all_engines():
@@ -211,6 +211,8 @@ def test_fix_plan_full_order_all_engines():
     plan = compute_fix_plan(counts, flicker_split_data, n_faces=100)
     engines = [step["engine"] for step in plan]
     assert engines == ["E8", "E3", "E1", "E2", "E4", "E5", "E6", "E7"]
+    units = [step["unit"] for step in plan]
+    assert units == ["edges", "faces", "faces", "faces", "pairs", "pairs", "points", "faces"]
 
 
 def test_unit_building_classifier():
@@ -264,6 +266,7 @@ def test_format_census_md():
     }
     md = format_census_md(rows, totals)
     assert "# Campus Error Census" in md
+    assert "The flicker columns" in md or "flicker columns are faces by material" in md
     assert "CHTM_unit1" in md
     assert "TIMEOUT" in md
     assert "ERROR" in md
