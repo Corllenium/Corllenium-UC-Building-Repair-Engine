@@ -840,9 +840,9 @@ def cmd_validate(before_dir: Path, after_path: Path, materials: Path, out_dir: P
     """Judge `after_path` (an OBJ) against the snapshot `before_dir` by the owner's three checks and write
     `<out_dir>/validation.json` and `<out_dir>/evidence/*.png`. Returns 0 on PASS, 2 on FAIL or on an
     input that is missing or unreadable (a message on stderr, and no verdict written)."""
-    # The process counters (peak memory) come from the reader's helper: only the SketchUp binding modules may
+    # The process counters (peak memory) come from winprobe: only the SketchUp binding modules and winprobe may
     # import ctypes (test_skp_writer.test_ctypes_is_imported_only_by_the_sketchup_binding_modules).
-    from engine.io.skp_reader import _peak_memory_mb
+    from engine.campus.winprobe import peak_memory_mb
     from engine.validate.checks import Settings, default_targets_path, load_looks, load_targets, validate
     from engine.validate.evidence import write_evidence
 
@@ -882,7 +882,7 @@ def cmd_validate(before_dir: Path, after_path: Path, materials: Path, out_dir: P
     out_dir.mkdir(parents=True, exist_ok=True)
     write_evidence(result, out_dir)
     report = result.report
-    peak, commit = _peak_memory_mb()
+    peak, commit = peak_memory_mb()
     targets_used = Path(targets) if targets is not None else default_targets_path()     # what load_targets read
     report["inputs"] = {"before": str(before_obj), "after": str(after_path), "materials": str(materials),
                         "targets": str(targets_used) if targets_used.is_file() else None,

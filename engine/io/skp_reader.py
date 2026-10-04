@@ -419,28 +419,10 @@ def walk_skp(path, *, dll_path=None) -> dict:
 
 
 def _peak_memory_mb() -> tuple[float | None, float | None]:
-    """`(peak working set, peak commit)` of this process in MB; `(None, None)` off Windows."""
-    if os.name != "nt":
-        return None, None
-    from ctypes import wintypes
-
-    class Counters(Structure):
-        _fields_ = [("cb", wintypes.DWORD), ("PageFaultCount", wintypes.DWORD),
-                    ("PeakWorkingSetSize", c_size_t), ("WorkingSetSize", c_size_t),
-                    ("QuotaPeakPagedPoolUsage", c_size_t), ("QuotaPagedPoolUsage", c_size_t),
-                    ("QuotaPeakNonPagedPoolUsage", c_size_t), ("QuotaNonPagedPoolUsage", c_size_t),
-                    ("PagefileUsage", c_size_t), ("PeakPagefileUsage", c_size_t)]
-
-    kernel32, psapi = ctypes.WinDLL("kernel32"), ctypes.WinDLL("psapi")
-    kernel32.GetCurrentProcess.restype = wintypes.HANDLE
-    psapi.GetProcessMemoryInfo.argtypes = [wintypes.HANDLE, POINTER(Counters), wintypes.DWORD]
-    psapi.GetProcessMemoryInfo.restype = wintypes.BOOL
-    counters = Counters()
-    counters.cb = ctypes.sizeof(Counters)
-    if not psapi.GetProcessMemoryInfo(kernel32.GetCurrentProcess(), byref(counters), counters.cb):
-        return None, None
-    return (round(counters.PeakWorkingSetSize / 2 ** 20, 1),
-            round(counters.PeakPagefileUsage / 2 ** 20, 1))
+    """`(peak working set, peak commit)` of this process in MB; `(None, None)` off Windows. The probe is
+    `engine.campus.winprobe.peak_memory_mb`, shared with the census and the Validator's command."""
+    from engine.campus.winprobe import peak_memory_mb
+    return peak_memory_mb()
 
 
 def available_commit_mb() -> float | None:

@@ -1181,3 +1181,21 @@ def test_validate_records_the_default_targets_file_it_used_when_none_is_given(tm
     cli.main(_validate_args(before, before / "closed_room.obj", tmp_path / "materials.json", tmp_path / "out2"))
     none = json.loads((tmp_path / "out2" / "validation.json").read_text(encoding="utf-8"))
     assert none["inputs"]["targets"] is None and none["checks"]["problems"]["signed"] is False
+
+
+# ---------------------------------------------------------------------------------------------
+# Fix round 1, minor 8: the process peak-memory probe (working set and commit) lives in winprobe
+# ---------------------------------------------------------------------------------------------
+
+def test_winprobe_gives_the_peak_working_set_and_the_peak_commit_and_the_reader_uses_it(monkeypatch):
+    from engine.campus import winprobe
+    from engine.io import skp_reader
+    if os.name == "nt":
+        working_set, commit = winprobe.peak_memory_mb()
+        assert isinstance(working_set, float) and isinstance(commit, float) and working_set > 10.0 and commit > 10.0
+        assert abs(winprobe.get_process_peak_memory_mb() - working_set) < 50.0, "the older census probe is the first of them"
+        reader = skp_reader._peak_memory_mb()
+        assert abs(reader[0] - working_set) < 50.0 and abs(reader[1] - commit) < 50.0, "the SketchUp reader asks winprobe"
+    monkeypatch.setattr(os, "name", "posix")
+    assert winprobe.peak_memory_mb() == (None, None)
+    assert winprobe.get_process_peak_memory_mb() == 0.0 and skp_reader._peak_memory_mb() == (None, None)
