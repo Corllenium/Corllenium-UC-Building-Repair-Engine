@@ -123,10 +123,10 @@ def _fingerprints(mesh, step=0.1):
     return face_fingerprints(mesh, step, ids)
 
 
-def test_a_face_fingerprint_is_its_snapped_corners_in_winding_order_plus_its_look():
+def test_a_face_fingerprint_is_its_snapped_corners_in_winding_order_plus_its_look_and_uvs():
     m = grid_slab(2, 2, cell=10.0)
     base = _fingerprints(m)
-    assert base.shape == (m.n_faces, 10) and base.dtype == np.int64
+    assert base.shape == (m.n_faces, 16) and base.dtype == np.int64
     assert len({tuple(r) for r in base}) == m.n_faces, "every face of the slab is told apart"
 
     # the same corners starting at another corner: the same face
@@ -148,6 +148,13 @@ def test_a_face_fingerprint_is_its_snapped_corners_in_winding_order_plus_its_loo
                                 face_material=np.concatenate([[1], np.zeros(m.n_faces - 1, dtype=np.int64)]))
     changed = ~(_fingerprints(other) == base).all(axis=1)
     assert changed.tolist() == [True] + [False] * (m.n_faces - 1)
+    # the UVs count, mod 1: moved by whole tiles it is the same face, by 0.37 of a tile it is not
+    assert np.array_equal(_fingerprints(grid_slab(2, 2, cell=10.0, shift_cols=(0, 1))), base)
+    assert not (_fingerprints(grid_slab(2, 2, cell=10.0, break_col=0)) == base).all(axis=1).any()
+    # a face with no UVs has its own mark, the same in both meshes that have none
+    bare = dataclasses.replace(m, face_vt=np.where(np.arange(m.n_faces)[:, None] == 0, -1, m.face_vt))
+    assert (_fingerprints(bare) == base).all(axis=1).tolist() == [False] + [True] * (m.n_faces - 1)
+    assert np.array_equal(_fingerprints(bare), _fingerprints(bare))
 
 
 # ---------------------------------------------------------------------------------------------
@@ -278,7 +285,7 @@ def test_a_deleted_visible_face_is_deleted_for_check_1_and_check_3_and_has_a_sit
     textures, gone = _checks(v)
     assert (textures["status"], gone["status"], v.report["verdict"]) == ("FAIL", "FAIL", "FAIL")
     assert textures["samples_failed"] == 4 and textures["reasons"] == {
-        "covered": 0, "deleted": 4, "look": 0, "uv": 0, "side": 0}
+        "covered": 0, "overlaid": 0, "deleted": 4, "look": 0, "uv": 0, "side": 0}
     assert gone["deleted"] == 4 and gone["replaced"] == 0 and gone["covered"] == 0
     assert gone["faces_unmet"] == 1, "face 8 was visible and none of its samples is met any more"
     (site,) = v.report["sites"]
@@ -850,3 +857,133 @@ def test_identity_holds_on_a_sliver_whose_uvs_run_30_units_along_its_length():
     textures = v.report["checks"]["textures"]
     assert textures["samples"] == 4 and textures["samples_failed"] == 0, textures["reasons"]
     assert v.report["verdict"] == "PASS"
+
+
+# ---------------------------------------------------------------------------------------------
+# Fix round 1, CRITICAL: a NEW face in a look the place did not have, lying ON a visible face or IN FRONT of it
+# within the depth tolerance, hides its texture (or z-fights with it). It used to pass checks 1 and 3.
+# ---------------------------------------------------------------------------------------------
+
+def _plated(dz, look=1, y=0.0, plate=None, n=4):
+    """`(before, after)`: an n x n slab of 10 in cells at z = 0 facing +z in look m0, and the same slab with a
+    second layer `dz` above it, all of it, in `look` (0 is m0, 1 is m1). `y` moves both along y."""
+    slab = _two_looks(_moved(grid_slab(n, n, cell=10.0), [0.0, y, 0.0]))
+    layer = _moved(grid_slab(n, n, cell=10.0) if plate is None else plate, [0.0, y, dz])
+    layer = _with_material(_two_looks(layer), np.arange(layer.n_faces), look)
+    return slab, _with_plate(slab, layer)
+
+
+def _other_diagonal(mesh):
+    """`mesh`, a grid of quads each cut into the triangles 2k and 2k+1, with every quad cut along its OTHER
+    diagonal: the same surface, the same UVs, every face a new one."""
+    fv, fvt = mesh.face_v.copy(), mesh.face_vt.copy()
+    for a in (fv, fvt):
+        first, second = a[0::2].copy(), a[1::2].copy()
+        a[0::2] = np.stack([first[:, 0], first[:, 1], second[:, 2]], axis=1)
+        a[1::2] = np.stack([first[:, 1], first[:, 2], second[:, 2]], axis=1)
+    return dataclasses.replace(mesh, face_v=fv, face_vt=fvt)
+
+
+@pytest.mark.parametrize("dz", [0.0, 0.01, 0.03, 0.045])
+def test_a_new_face_in_another_look_on_or_just_over_a_visible_face_fails_checks_1_and_3(dz):
+    before, after = _plated(dz)
+    v = _check(before, after, _looks("m0", "m1"))
+    textures, gone = _checks(v)
+    assert v.report["verdict"] == "FAIL"
+    assert textures["status"] == "FAIL" and textures["reasons"]["overlaid"] == 128 == textures["samples_failed"], dz
+    assert gone["status"] == "FAIL" and gone["overlaid"] == 128 and gone["covered"] == 0 and gone["deleted"] == 0
+    assert v.report["after"]["new_faces"] == 32, "the 32 faces of the layer"
+    (site,) = v.report["sites"]
+    assert site["reasons"] == {"overlaid": 128} and site["checks"] == ["textures", "nothing_deleted"]
+
+
+def test_a_new_face_over_a_visible_face_at_the_chtm_tolerance_and_beyond_it():
+    before, after = _plated(0.19, y=24000.0)                       # print step 0.1 in: the tolerance is 0.2 in
+    v = _check(before, after, _looks("m0", "m1"))
+    assert v.report["depth_tolerance_in"] == pytest.approx(0.2)
+    assert v.report["verdict"] == "FAIL" and _checks(v)[1]["overlaid"] == 128
+    before, after = _plated(0.3, y=24000.0)                        # further in front than that it COVERS
+    textures, gone = _checks(_check(before, after, _looks("m0", "m1")))
+    assert gone["covered"] == 128 and gone["overlaid"] == 0 and textures["reasons"]["covered"] == 128
+
+
+def test_a_layer_a_hair_behind_a_visible_face_z_fights_and_one_further_behind_is_hidden():
+    looks = _looks("m0", "m1")
+    assert _check(*_plated(-0.01), looks).report["verdict"] == "FAIL", "within the 0.02 in that two layers z-fight"
+    assert _check(*_plated(-0.03), looks).report["verdict"] == "PASS", "behind the slab and hidden by it"
+
+
+def test_a_layer_on_only_part_of_a_visible_face_fails_only_the_samples_under_it():
+    slab = _two_looks(grid_slab(4, 4, cell=10.0))
+    half = _with_material(_two_looks(grid_slab(2, 4, cell=10.0)), np.arange(16), 1)     # x 0..20 of 0..40
+    v = _check(slab, _with_plate(slab, half), _looks("m0", "m1"))
+    assert _checks(v)[1]["overlaid"] == 64 and _checks(v)[0]["samples_failed"] == 64
+
+
+def test_adding_or_deleting_an_identical_coplanar_copy_is_not_a_change():
+    slab = _two_looks(grid_slab(4, 4, cell=10.0))
+    twice = _with_plate(slab, slab)                       # the same faces again: one place, two layers, one look
+    looks = _looks("m0", "m1")
+    assert _check(twice, slab, looks).report["verdict"] == "PASS", "the top copy deleted: allowed"
+    added = _check(slab, twice, looks)
+    assert added.report["verdict"] == "PASS" and added.report["after"]["new_faces"] == 0, "an identical copy is no new face"
+
+
+def test_a_new_layer_in_the_same_look_but_another_uv_fails_and_a_whole_tile_shift_does_not():
+    slab = _two_looks(grid_slab(4, 4, cell=10.0))
+    looks = _looks("m0", "m1")
+    other_uv = _two_looks(grid_slab(4, 4, cell=10.0, break_col=0))                     # +0.37 in U and V everywhere
+    v = _check(slab, _with_plate(slab, other_uv), looks)
+    assert v.report["verdict"] == "FAIL" and _checks(v)[1]["overlaid"] == 128
+    whole_tiles = _two_looks(grid_slab(4, 4, cell=10.0, shift_cols=range(4)))          # +3 and -2 whole tiles
+    assert _check(slab, _with_plate(slab, whole_tiles), looks).report["verdict"] == "PASS"
+
+
+def test_re_cutting_a_surface_into_new_faces_of_the_same_look_and_uv_is_not_overlaid():
+    slab = _two_looks(grid_slab(6, 6, cell=10.0))
+    v = _check(slab, _other_diagonal(slab), _looks("m0", "m1"))
+    assert v.report["verdict"] == "PASS", v.report["checks"]
+    assert v.report["after"]["new_faces"] == 72 and _checks(v)[0]["samples_failed"] == 0 and _checks(v)[0]["samples"] > 0
+
+
+def test_a_new_face_in_a_look_that_BEFOREs_own_window_already_had_is_not_foreign():
+    slab = _two_looks(grid_slab(4, 4, cell=10.0))
+    plate = _with_material(_two_looks(grid_slab(4, 4, cell=10.0)), np.arange(32), 1)
+    before = _with_plate(slab, plate)                     # a flicker pair: one place, the slab in m0 and a plate in m1
+    after = _with_plate(slab, _other_diagonal(plate))     # the plate re-cut: new faces, in look m1
+    v = _check(before, after, _looks("m0", "m1"))
+    assert v.report["verdict"] == "PASS", v.report["checks"]
+    assert v.report["after"]["new_faces"] == 32 and _checks(v)[0]["samples"] == 256
+
+
+def test_a_replaced_face_is_its_own_failure_and_not_an_overlay_on_top_of_it():
+    m = _two_looks(cube(10.0))
+    textures, gone = _checks(_check(m, _with_material(m, [3], 1), _looks("m0", "m1")))
+    assert textures["reasons"]["look"] == 4 and textures["reasons"]["overlaid"] == 0
+    assert gone["replaced"] == 4 and gone["overlaid"] == 0
+    textures, gone = _checks(_check(cube(10.0), _with_shifted_uv(cube(10.0), 2, 0.5), _looks("m0")))
+    assert textures["reasons"]["uv"] == 4 and textures["reasons"]["overlaid"] == 0 and gone["status"] == "PASS"
+
+
+def test_the_face_grid_offers_every_face_that_passes_within_reach_of_a_point_exactly_once():
+    from engine.validate.checks import _FaceGrid
+    rng = np.random.default_rng(7)
+    n = 300
+    corners = rng.uniform(0.0, 100.0, (n, 1, 3)) + rng.uniform(-15.0, 15.0, (n, 3, 3))
+    huge = np.array([[[0.0, 0.0, 50.0], [500.0, 0.0, 50.0], [0.0, 500.0, 50.0]],        # too wide for the grid's cap:
+                     [[-300.0, 20.0, -300.0], [300.0, 20.0, -300.0], [0.0, 20.0, 400.0]]])   # kept apart and offered to all
+    tri = np.concatenate([corners, huge])
+    positions = tri.reshape(-1, 3)
+    face_v = np.arange(len(positions)).reshape(-1, 3)
+    reach = 0.2
+    grid = _FaceGrid(positions, face_v, np.arange(len(face_v)), reach)
+    points = rng.uniform(-20.0, 120.0, (400, 3))
+    rows, faces = grid.lookup(points)
+    offered = set(zip(rows.tolist(), faces.tolist()))
+    assert len(offered) == len(rows), "no pair is offered twice"
+    lo, hi = tri.min(axis=1) - reach, tri.max(axis=1) + reach
+    near = ((points[:, None, :] >= lo[None]) & (points[:, None, :] <= hi[None])).all(axis=2)
+    wanted = set(zip(*[a.tolist() for a in np.nonzero(near)]))
+    assert wanted and wanted <= offered, "every face whose box, grown by the reach, holds the point is offered"
+    assert len(offered) < len(points) * len(face_v) / 4, "and the grid really narrows it down"
+    assert len(_FaceGrid(positions, face_v, np.zeros(0, dtype=np.int64), reach).lookup(points)[0]) == 0

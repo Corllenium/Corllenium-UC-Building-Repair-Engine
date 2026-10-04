@@ -15,15 +15,22 @@ least edge-on to its face; one that sees its front, when any does):
 
 * check 1, textures there: AFTER shows, at that depth (within `max(2 print steps, 0.05 in)`), a
   surface with the same look key, the same UV (mod 1, within one texel of that texture), seen from its
-  front where BEFORE's front was seen; and nothing covers it;
-* check 3, nothing deleted or covered: a surface of the same look is at that depth, and nothing is in
-  front of it. Faces whose fingerprint (snapped corners, winding, look) AFTER does not have are looked
-  at from 1,024 extra directions too; what only those see counts for check 3 alone;
+  front where BEFORE's front was seen; nothing covers it; and no NEW face lies on it or in front of it
+  within the tolerance in a look or UV that place did not have (`overlaid`: it hides the texture, or
+  z-fights with it; a layer up to 0.02 in behind z-fights too);
+* check 3, nothing deleted or covered: a surface of the same look is at that depth, nothing is in
+  front of it, and nothing new lies on it. Faces whose fingerprint (snapped corners, winding, look, UV
+  mod 1) AFTER does not have are looked at from 1,024 extra directions too; what only those see counts
+  for check 3 alone;
 * check 2, problems solved: `find_errors` on both, against the targets the owner signs (until then it
   only reports).
 
-v0 has NO allowed-change classes: removing an inward copy of a back-to-back pair, or cutting a loser
-along a winner's border, fails check 3, which is expected until those engines name their classes.
+v0 has NO allowed-change classes. Removing one copy of a back-to-back pair fails, which is expected until the
+E4 and E5 engines name their classes: in ANOTHER look it fails both checks (the look is gone from that place:
+check 1 `look`, check 3 `replaced`); in the SAME look it fails check 1 only (`side`: whoever saw the removed
+copy's front now sees the other copy's back) and passes check 3. Cutting a flicker loser along a winner's border
+fails check 3 the same way. Deleting or adding an identical coplanar copy (same look, UV and winding) is no change
+and passes.
 """
 from __future__ import annotations
 
@@ -197,17 +204,30 @@ def load_looks(materials_json, sources: Sequence[tuple[dict, Path]]) -> Looks:
     return Looks(key=key, texel=texel, colour=colour)
 
 
+#: The UVs in a fingerprint are taken mod 1 (a whole-tile shift is no change) in steps of this much.
+_UV_QUANTUM = 1e-3
+
+
 def face_fingerprints(mesh: MeshData, step: float, look_ids: np.ndarray) -> np.ndarray:
-    """(F, 10) int64, one row per face: its three corners snapped to the print grid (`round(x /
-    step)`), written from the smallest corner on and in winding order, then its look id. Two faces
-    with the same row are the same face for the Validator: the same place, wound the same way, the
-    same look. The opposite winding is another row, so a flipped face is looked at again."""
+    """(F, 16) int64, one row per face: its three corners snapped to the print grid (`round(x / step)`), written
+    from the smallest corner on and in winding order; its look id; and the UV of each of those corners mod 1 in
+    steps of `_UV_QUANTUM` (-1 for a face without UVs). Two faces with the same row are the same face for the
+    Validator: the same place, wound the same way, the same look, the same texture position. The opposite
+    winding is another row, so a flipped face is looked at again, and so is a copy with another UV."""
     q = step if step > 0.0 else 1e-6
     corners = np.round(mesh.positions[mesh.face_v] / q).astype(np.int64)          # (F, 3, 3)
     first = np.lexsort((corners[:, :, 2], corners[:, :, 1], corners[:, :, 0]), axis=-1)[:, 0]
     order = (first[:, None] + np.arange(3)[None, :]) % 3
     rolled = np.take_along_axis(corners, order[:, :, None], axis=1).reshape(mesh.n_faces, 9)
-    return np.concatenate([rolled, np.asarray(look_ids, dtype=np.int64)[:, None]], axis=1)
+    vt = mesh.face_vt
+    has_uv = (vt >= 0).all(axis=1) & (vt < len(mesh.uvs)).all(axis=1)
+    uv = np.full((mesh.n_faces, 3, 2), np.nan)
+    if has_uv.any():
+        uv[has_uv] = mesh.uvs[vt[has_uv]]
+    uv = np.take_along_axis(uv, order[:, :, None], axis=1)
+    frac = uv - np.floor(uv)
+    marks = np.where(np.isnan(frac), -1, np.round(frac / _UV_QUANTUM)).astype(np.int64).reshape(mesh.n_faces, 6)
+    return np.concatenate([rolled, np.asarray(look_ids, dtype=np.int64)[:, None], marks], axis=1)
 
 
 # ---------------------------------------------------------------------------------------------
@@ -467,6 +487,171 @@ class _Judge:
 
 
 # ---------------------------------------------------------------------------------------------
+# New faces over a sample: a face of a look (or a UV) that the place did not have, on it or in front of it
+# ---------------------------------------------------------------------------------------------
+
+#: Cells of the grid over faces, in inches. A face is registered in every cell its box, grown by the reach, touches.
+_GRID_CELL = 6.0
+#: A face whose grown box would fill more cells than this is not registered: it is offered to every point.
+_GRID_CAP = 2000
+#: How far BEHIND a sample's own surface another layer still z-fights with it, in inches: the very number
+#: `visibility` uses for "two layers this close are both drawn".
+_ZFIGHT = EPS_ORIGIN
+#: Tested samples looked at in one numpy block by the overlay pass.
+_OVERLAY_BLOCK = 16384
+
+
+class _FaceGrid:
+    """A uniform grid over some faces of a mesh, to ask "which faces could cross a short segment near this
+    point?" without testing every face. Each face (`faces`, indices into `face_v`) is registered in every
+    `cell`-inch cell its bounding box, grown by `reach` on every side, touches; so every face that passes within
+    `reach` of a point is registered in the point's own cell, and `lookup` reads one cell per point. A face whose
+    box would fill more than `cap` cells (a floor slab a thousand inches wide) is kept apart and offered to every
+    point instead. `lookup` gives candidates, a superset of the faces within reach: the caller tests them."""
+
+    def __init__(self, positions: np.ndarray, face_v: np.ndarray, faces: np.ndarray, reach: float,
+                 cell: float = _GRID_CELL, cap: int = _GRID_CAP):
+        faces = np.asarray(faces, dtype=np.int64)
+        self.cell = float(cell)
+        self.origin = np.zeros(3)
+        self.dims = np.ones(3, dtype=np.int64)
+        self.keys = self.first = self.count = self.face_sorted = np.zeros(0, dtype=np.int64)
+        self.big, self.big_lo, self.big_hi = np.zeros(0, dtype=np.int64), np.zeros((0, 3)), np.zeros((0, 3))
+        if not len(faces):
+            return
+        tri = positions[face_v[faces]]
+        lo, hi = tri.min(axis=1) - reach, tri.max(axis=1) + reach
+        self.origin = lo.min(axis=0)
+        a = np.floor((lo - self.origin) / self.cell).astype(np.int64)
+        b = np.floor((hi - self.origin) / self.cell).astype(np.int64)
+        n = b - a + 1
+        count = n.prod(axis=1)
+        small = count <= cap
+        self.big, self.big_lo, self.big_hi = faces[~small], lo[~small], hi[~small]
+        faces, a, n, count = faces[small], a[small], n[small], count[small]
+        if not len(faces):
+            return
+        self.dims = b[small].max(axis=0) + 1
+        owner = np.repeat(np.arange(len(faces)), count)
+        local = np.arange(int(count.sum())) - np.repeat(np.cumsum(count) - count, count)
+        nx, ny = n[owner, 0], n[owner, 1]
+        cx = a[owner, 0] + local % nx
+        cy = a[owner, 1] + (local // nx) % ny
+        cz = a[owner, 2] + local // (nx * ny)
+        keys = (cx * self.dims[1] + cy) * self.dims[2] + cz
+        order = np.argsort(keys, kind="stable")
+        self.keys, self.first, self.count = np.unique(keys[order], return_index=True, return_counts=True)
+        self.face_sorted = faces[owner[order]]
+
+    def lookup(self, points: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+        """`(rows, faces)`: for each point (`rows` indexes `points`) the candidate faces, each pair once."""
+        points = np.asarray(points, dtype=np.float64).reshape(-1, 3)
+        rows_out, faces_out = [np.zeros(0, dtype=np.int64)], [np.zeros(0, dtype=np.int64)]
+        if len(self.keys) and len(points):
+            cell = np.floor((points - self.origin) / self.cell).astype(np.int64)
+            inside = np.flatnonzero(((cell >= 0) & (cell < self.dims)).all(axis=1))
+            key = (cell[inside, 0] * self.dims[1] + cell[inside, 1]) * self.dims[2] + cell[inside, 2]
+            at = np.minimum(np.searchsorted(self.keys, key), len(self.keys) - 1)
+            hit = self.keys[at] == key
+            inside, at = inside[hit], at[hit]
+            cnt = self.count[at]
+            offset = (np.arange(int(cnt.sum())) - np.repeat(np.cumsum(cnt) - cnt, cnt)
+                      + np.repeat(self.first[at], cnt))
+            rows_out.append(np.repeat(inside, cnt))
+            faces_out.append(self.face_sorted[offset])
+        if len(self.big) and len(points):
+            block = max(1, 4_000_000 // len(self.big))
+            for k in range(0, len(points), block):
+                near = ((points[k:k + block, None, :] >= self.big_lo[None])
+                        & (points[k:k + block, None, :] <= self.big_hi[None])).all(axis=2)
+                r, f = np.nonzero(near)
+                rows_out.append(r + k)
+                faces_out.append(self.big[f])
+        return np.concatenate(rows_out), np.concatenate(faces_out)
+
+
+def _crossings(positions: np.ndarray, face_v: np.ndarray, points: np.ndarray, toward: np.ndarray,
+               rows: np.ndarray, faces: np.ndarray, x_lo: float, x_hi: float):
+    """Of the pairs (point `rows[i]`, face `faces[i]`): which have the face crossing the segment
+    `point + x toward[row]` for x from `x_lo` to `x_hi` (x > 0 is toward the viewer), in float64, with the
+    crossing inside the triangle. Returns `(inside, x, bary)` for every pair."""
+    face_rows = face_v[faces]
+    a = positions[face_rows[:, 0]]
+    n = np.cross(positions[face_rows[:, 1]] - a, positions[face_rows[:, 2]] - a)
+    p, w = points[rows], toward[rows]
+    den = (w * n).sum(1)
+    ok = den != 0.0
+    x = np.where(ok, ((a - p) * n).sum(1) / np.where(ok, den, 1.0), np.inf)
+    hit = ok & (x >= x_lo) & (x <= x_hi)
+    bary = _barycentric(positions, face_rows, p + np.where(hit, x, 0.0)[:, None] * w)
+    return hit & (bary >= -_INSIDE).all(axis=1), x, bary
+
+
+class _Overlay:
+    """Which samples have a NEW face of AFTER lying on them or in front of them, within the depth tolerance, that the
+    place did not already have.
+
+    Only a new face can be one: a face of AFTER that BEFORE has too (the same fingerprint: place, winding, look, UV)
+    lies where it lay, so it is in BEFORE's window along the same line of sight. So the new faces (`new_faces`)
+    are put in a grid, and for each sample the ones that cross its line of sight from `_ZFIGHT` behind it to the
+    tolerance in front of it are found, exactly, in float64. Such a face is EXPLAINED when the sample's own face has
+    its look and UV there, or else when some face of BEFORE's window along that line has them (a flicker pair's
+    other layer, an identical copy). A face nothing explains is a layer the place did not have: it hides the
+    sample's texture or z-fights with it. A sample no new face crosses costs one grid lookup; an identity run has
+    no new face at all and never gets here."""
+
+    def __init__(self, before: MeshData, after: MeshData, new_faces: np.ndarray, look_before: np.ndarray,
+                 look_after: np.ndarray, tex_w: np.ndarray, tex_h: np.ndarray, tol: float):
+        self.before, self.after, self.look_b, self.look_a = before, after, look_before, look_after
+        self.tex_w, self.tex_h, self.tol = tex_w, tex_h, tol
+        self.reach = tol + 1e-6
+        self.grid_new = _FaceGrid(after.positions, after.face_v, np.flatnonzero(new_faces), self.reach)
+        self._grid_before = None
+
+    def _explained_by_before(self, points, toward, rows, look, uv, tw, th) -> np.ndarray:
+        """For each pair (sample `rows[i]`, new face with `look[i]`, `uv[i]`): does a face of BEFORE's window along
+        that sample's line of sight have that look and a UV within a texel?"""
+        if self._grid_before is None:
+            self._grid_before = _FaceGrid(self.before.positions, self.before.face_v,
+                                          np.arange(self.before.n_faces), self.reach)
+        sample_rows = np.unique(rows)
+        r, f = self._grid_before.lookup(points[sample_rows])
+        r = sample_rows[r]
+        inside, _, bary = _crossings(self.before.positions, self.before.face_v, points, toward, r, f,
+                                     -_ZFIGHT, self.tol)
+        r, f, bary = r[inside], f[inside], bary[inside]
+        look_f, uv_f = self.look_b[f], uv_at(self.before, f, bary)
+        order = np.argsort(r, kind="stable")
+        r, look_f, uv_f = r[order], look_f[order], uv_f[order]
+        lo, hi = np.searchsorted(r, rows, side="left"), np.searchsorted(r, rows, side="right")
+        cnt = hi - lo
+        pair = np.repeat(np.arange(len(rows)), cnt)
+        other = np.arange(int(cnt.sum())) - np.repeat(np.cumsum(cnt) - cnt, cnt) + np.repeat(lo, cnt)
+        same = (look_f[other] == look[pair]) & _uv_equal(uv_f[other], uv[pair], tw[pair], th[pair])
+        return np.bincount(pair, weights=same, minlength=len(rows)) > 0
+
+    def overlaid(self, points: np.ndarray, toward: np.ndarray, own_look: np.ndarray, own_uv: np.ndarray) -> np.ndarray:
+        """(len(points),) bool for samples at `points` seen along `-toward`, whose own face has `own_look` and `own_uv`."""
+        result = np.zeros(len(points), dtype=bool)
+        rows, faces = self.grid_new.lookup(points)
+        if not len(rows):
+            return result
+        inside, _, bary = _crossings(self.after.positions, self.after.face_v, points, toward, rows, faces,
+                                     -_ZFIGHT, self.tol)
+        rows, faces, bary = rows[inside], faces[inside], bary[inside]
+        if not len(rows):
+            return result
+        look = self.look_a[faces]
+        uv = uv_at(self.after, faces, bary)
+        tw, th = self.tex_w[look], self.tex_h[look]
+        left = np.flatnonzero(~((look == own_look[rows]) & _uv_equal(uv, own_uv[rows], tw, th)))
+        if len(left):
+            explained = self._explained_by_before(points, toward, rows[left], look[left], uv[left], tw[left], th[left])
+            result[rows[left][~explained]] = True
+        return result
+
+
+# ---------------------------------------------------------------------------------------------
 # Check 2: problems solved
 # ---------------------------------------------------------------------------------------------
 
@@ -527,9 +712,10 @@ def check_problems(before_errors: dict, after_errors: dict, targets=None) -> dic
 # The run
 # ---------------------------------------------------------------------------------------------
 
-#: A sample covered by a face in front of it (a reason beside the `OK .. SIDE` codes of `_Judge.present`).
-COVERED = 5
-_REASON_NAMES = {COVERED: "covered", **_PRESENT_NAMES}
+#: A sample covered by a face in front of it, and one with a new face of another look on it or just in front of it
+#: (reasons beside the `OK .. SIDE` codes of `_Judge.present`).
+COVERED, OVERLAID = 5, 6
+_REASON_NAMES = {COVERED: "covered", OVERLAID: "overlaid", **_PRESENT_NAMES}
 
 
 @dataclass
@@ -668,12 +854,13 @@ def validate(before: MeshData, after: MeshData, looks: Looks, *, errors=None, ta
       are unsigned) does not fail the verdict; `checks.problems.signed` says whether it could have.
     * `checks.textures` (check 1): `status`, `samples` (the ones some standard viewpoint sees),
       `samples_failed`, `faces`, `faces_failed`, `area_failed_in2` and `reasons`, how many failed first
-      by `covered`, `deleted` (nothing at that depth), `look`, `uv` or `side` (BEFORE's front seen,
-      AFTER's back).
+      by `covered` (a face in front of it by more than the tolerance), `overlaid` (a new face on it or in
+      front of it within the tolerance, in a look or UV the place did not have), `deleted` (nothing at that
+      depth), `look`, `uv` or `side` (BEFORE's front seen, AFTER's back).
     * `checks.nothing_deleted` (check 3): `status`, `samples` (the above plus `samples_extra`, which only
       the extra directions of a face that is gone saw), `suspect_faces`, `deleted`, `replaced` (something
-      is there, in another look), `covered`, `faces_unmet` (every tested sample of the face), `faces_partly_unmet`,
-      `faces_covered` and the areas.
+      is there, in another look), `covered`, `overlaid`, `faces_unmet` (every tested sample of the face),
+      `faces_partly_unmet`, `faces_covered`, `faces_overlaid` and the areas.
     * `checks.problems` (check 2): per `find_errors` kind `before`, `after`, `target` ("unsigned",
       "listed" or the number), `status` and `residual` (AFTER's spots with their `centre`).
     * `sites`: the failing samples grouped (`id` 1 is the worst), each with `centre` and `size` in the
@@ -710,7 +897,9 @@ def validate(before: MeshData, after: MeshData, looks: Looks, *, errors=None, ta
     sizes = [looks.texel.get(k) or (0, 0) for k in table.keys]
     tex_w = np.array([s[0] for s in sizes], dtype=np.float64)
     tex_h = np.array([s[1] for s in sizes], dtype=np.float64)
-    suspect = ~_rows_in(face_fingerprints(before, step, look_b), face_fingerprints(after, step, look_a))
+    fp_before, fp_after = face_fingerprints(before, step, look_b), face_fingerprints(after, step, look_a)
+    suspect = ~_rows_in(fp_before, fp_after)                  # faces of BEFORE that AFTER no longer has
+    new_after = ~_rows_in(fp_after, fp_before)                # faces of AFTER that BEFORE did not have
     clock["prepared"] = time.perf_counter()
 
     tested = np.zeros(n, dtype=bool)
@@ -719,6 +908,7 @@ def validate(before: MeshData, after: MeshData, looks: Looks, *, errors=None, ta
     present = np.zeros(n, dtype=np.int8)
     wit_col = np.full(n, -1, dtype=np.int32)
     wit_extra = np.zeros(n, dtype=bool)
+    toward_all = np.zeros((n, 3))
     normals_b = face_normals(b)
     judge = _Judge(a, caster_a, look_a, tol)
 
@@ -734,7 +924,7 @@ def validate(before: MeshData, after: MeshData, looks: Looks, *, errors=None, ta
         g = idx[rows]
         covered[g] = judge.covered(p, w)
         present[g] = judge.present(p, w, lb, uv_at(b, face, sub.bary[rows]), tex_w[lb], tex_h[lb])
-        tested[g], extra[g], wit_col[g], wit_extra[g] = True, is_extra, w.col, is_extra
+        tested[g], extra[g], wit_col[g], wit_extra[g], toward_all[g] = True, is_extra, w.col, is_extra, w.toward
 
     chunk = max(1, int(settings.chunk))
     for start in range(0, n, chunk):
@@ -748,12 +938,27 @@ def validate(before: MeshData, after: MeshData, looks: Looks, *, errors=None, ta
         run(left[start:start + chunk], extra_dirs, nothing, nothing, True)
     clock["extra"] = time.perf_counter()
 
+    # new faces of AFTER on a sample or just in front of it, in a look or UV the place did not have. Only a sample
+    # whose own surface is met can have one laid over it: the others already fail as deleted, look, uv or side.
+    overlaid = np.zeros(n, dtype=bool)
+    if new_after.any():
+        overlay = _Overlay(b, a, new_after, look_b, look_a, tex_w, tex_h, tol)
+        met = np.flatnonzero(tested & (present == OK))
+        for start in range(0, len(met), _OVERLAY_BLOCK):
+            blk = met[start:start + _OVERLAY_BLOCK]
+            face = samples.face[blk]
+            overlaid[blk] = overlay.overlaid(samples.points[blk], toward_all[blk], look_b[face],
+                                             uv_at(b, face, samples.bary[blk]))
+    clock["overlay"] = time.perf_counter()
+
     # ---- check 1 and check 3 from what every tested sample turned out to be ----
     standard = tested & ~extra
-    reason1 = np.where(covered, COVERED, present).astype(np.int8)
+    reason1 = present.astype(np.int8)
+    reason1[overlaid] = OVERLAID
+    reason1[covered] = COVERED
     fail1 = standard & (reason1 != OK)
     unmet = tested & ((present == DELETED) | (present == LOOK))
-    fail3 = tested & (covered | unmet)
+    fail3 = tested & (covered | overlaid | unmet)
     n_faces = b.n_faces
     per_face = lambda mask: np.bincount(samples.face[mask], minlength=n_faces)
     tested_per_face, unmet_per_face = per_face(tested), per_face(unmet)
@@ -763,18 +968,21 @@ def validate(before: MeshData, after: MeshData, looks: Looks, *, errors=None, ta
         "samples_failed": int(fail1.sum()), "faces": int((per_face(standard) > 0).sum()),
         "faces_failed": int((per_face(fail1) > 0).sum()), "area_failed_in2": round(float(sample_area[fail1].sum()), 2),
         "reasons": {name: int((fail1 & (reason1 == code)).sum()) for code, name in
-                    ((COVERED, "covered"), (DELETED, "deleted"), (LOOK, "look"), (UV, "uv"), (SIDE, "side"))},
+                    ((COVERED, "covered"), (OVERLAID, "overlaid"), (DELETED, "deleted"), (LOOK, "look"),
+                     (UV, "uv"), (SIDE, "side"))},
         "depth_tolerance_in": round(tol, 4)}
     nothing_deleted = {
         "status": "FAIL" if fail3.any() else "PASS", "samples": int(tested.sum()), "samples_extra": int(extra.sum()),
         "suspect_faces": int(suspect.sum()), "deleted": int((tested & ~covered & (present == DELETED)).sum()),
         "replaced": int((tested & ~covered & (present == LOOK)).sum()), "covered": int((tested & covered).sum()),
-        "faces": int((tested_per_face > 0).sum()),
+        "overlaid": int((tested & ~covered & overlaid).sum()), "faces": int((tested_per_face > 0).sum()),
         "faces_unmet": int(((tested_per_face > 0) & (unmet_per_face == tested_per_face)).sum()),
         "faces_partly_unmet": int(((unmet_per_face > 0) & (unmet_per_face < tested_per_face)).sum()),
         "faces_covered": int((per_face(tested & covered) > 0).sum()),
+        "faces_overlaid": int((per_face(tested & overlaid) > 0).sum()),
         "area_lost_in2": round(float(sample_area[unmet].sum()), 2),
         "area_covered_in2": round(float(sample_area[tested & covered].sum()), 2),
+        "area_overlaid_in2": round(float(sample_area[tested & overlaid].sum()), 2),
         "depth_tolerance_in": round(tol, 4)}
 
     # ---- check 2 ----
@@ -786,11 +994,10 @@ def validate(before: MeshData, after: MeshData, looks: Looks, *, errors=None, ta
 
     # ---- the sites: failing samples, clustered ----
     failing = np.flatnonzero(fail1 | fail3)
-    reason_all = np.where(extra, np.where(covered, COVERED, present), reason1).astype(np.int8)
     corners = b.positions[b.face_v]
     longest = np.max([np.linalg.norm(corners[:, i] - corners[:, (i + 1) % 3], axis=1) for i in range(3)], axis=0)
     spacing = (longest / np.sqrt(np.maximum(per_face_samples, 1)))[samples.face]       # n x n samples on a face
-    sites, members, n_sites = _cluster_sites(samples.points, centre, failing, sample_area, samples.face, reason_all,
+    sites, members, n_sites = _cluster_sites(samples.points, centre, failing, sample_area, samples.face, reason1,
                                              fail1, fail3, spacing, settings.cluster_cell, settings.max_sites)
     clock["end"] = time.perf_counter()
 
@@ -808,12 +1015,14 @@ def validate(before: MeshData, after: MeshData, looks: Looks, *, errors=None, ta
                        "extra_directions": len(extra_dirs)},
         "settings": settings.as_dict(), "frame": {"centre": [round(float(v), 4) for v in centre]},
         "print_step_in": step, "depth_tolerance_in": tol,
-        "before": {"faces": before.n_faces, "samples": n}, "after": {"faces": after.n_faces},
+        "before": {"faces": before.n_faces, "samples": n},
+        "after": {"faces": after.n_faces, "new_faces": int(new_after.sum())},
         "materials": {"unknown_before": looks.unknown(before), "unknown_after": looks.unknown(after)},
         "timings_s": {"prepare": round(clock["prepared"] - clock["start"], 2),
                       "visibility_and_casts": round(clock["cast"] - clock["prepared"], 2),
                       "extra_directions": round(clock["extra"] - clock["cast"], 2),
-                      "problems": round(clock["problems"] - clock["extra"], 2),
+                      "overlay": round(clock["overlay"] - clock["extra"], 2),
+                      "problems": round(clock["problems"] - clock["overlay"], 2),
                       "sites": round(clock["end"] - clock["problems"], 2),
                       "total": round(clock["end"] - clock["start"], 2)}}
     return Validation(report=report, before=b, after=a, centre=centre, looks=looks, look_keys=table.keys,
