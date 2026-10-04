@@ -33,7 +33,7 @@ keys).
 ```bash
 PY="D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe"
 ( cd "D:/PROJECTS/UC MODEL FIXER/.hermes/worktrees/P0-09b" && PYTHONPATH="$PWD" "$PY" -m pytest engine/tests/test_campus_materials.py engine/tests/test_campus_source.py -q -p no:cacheprovider )
-( cd "D:/PROJECTS/UC MODEL FIXER/.hermes/worktrees/P0-09b" && PYTHONPATH="$PWD" "$PY" -m engine.cli campus-materials --source "D:/PROJECTS/UC MODEL FIXER/data/campus/source.json" --out "D:/PROJECTS/UC MODEL FIXER/data/s3_check/../p009b_materials.json" )
+( cd "D:/PROJECTS/UC MODEL FIXER/.hermes/worktrees/P0-09b" && PYTHONPATH="$PWD" "$PY" -m engine.cli campus-materials --source "D:/PROJECTS/UC MODEL FIXER/data/campus/source.json" --out "D:/PROJECTS/UC MODEL FIXER/data/p009b_check/materials.json" )
 ```
 Expected: green; the real output's sha256 is still `28a0e0d328e025246f4908cb5e5dcde61862daec5fca1ed051b58aaec38e06a5`. Do not
 overwrite `data/campus/materials.json`.
