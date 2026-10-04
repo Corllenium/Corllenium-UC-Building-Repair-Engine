@@ -319,8 +319,19 @@ def _string(api: _Api, getter: str, owner: _Ref) -> str:
 
 
 def _matrix(transformation: _Transformation) -> np.ndarray:
-    """`SUTransformation` (column-major) as a 4 x 4 matrix acting on column vectors."""
-    return np.array(transformation.values, float).reshape(4, 4, order="F")
+    """`SUTransformation` (column-major) as a 4 x 4 matrix acting on column vectors.
+
+    SketchUp keeps a uniform scale `s` in the last element, as `w = 1 / s`, and divides the whole map
+    by it (measured: with `w = 0.5` and a move of 10 a group is twice as big and moved 20). So the
+    matrix is divided by `w`, which leaves the last row `0 0 0 1`. Anything else in that row is not an
+    affine transformation, and is refused rather than misread."""
+    m = np.array(transformation.values, float).reshape(4, 4, order="F")
+    w = m[3, 3]
+    if np.any(m[3, :3] != 0.0) or w == 0.0 or not np.isfinite(w):
+        raise SketchUpError(f"not an affine transformation: its last row is {m[3].tolist()}")
+    m = m / w
+    m[3] = (0.0, 0.0, 0.0, 1.0)
+    return m
 
 
 class _Walker:

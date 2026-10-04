@@ -166,6 +166,63 @@ def test_a_mirrored_group_keeps_its_area_and_its_box_is_mirrored(tmp_path, sketc
     np.testing.assert_allclose(g["bbox"], built["bounds"]["M"], atol=1e-9)
 
 
+def _with_w(matrix, w):
+    """`matrix` with `w` in its last element: how SketchUp stores a uniform scale of `1 / w`."""
+    out = np.array(matrix, float)
+    out[3, 3] = w
+    return out
+
+
+def test_a_transform_that_keeps_its_scale_in_w_is_applied_as_sketchup_applies_it(tmp_path, sketchup):
+    """SketchUp divides the whole map by `w`: a group with `w = 0.5` and a move of 10 is twice as big and
+    moved 20, and so is an instance. SketchUp's own bounds are the oracle."""
+    path = tmp_path / "w.skp"
+    built = build_scene(path, {"definitions": {"Def": {"faces": [square(0, 0, 0, 10)]}}, "groups": [
+        {"name": "W", "transform": _with_w(translation(10, 0, 0), 0.5), "faces": [square(0, 0, 0, 10)]}],
+        "instances": [{"definition": "Def", "name": "I", "transform": _with_w(np.eye(4), 0.5)}]})
+    root = skp_reader.walk_skp(path)["root"]
+    group, instance = _child(root, "W"), _child(root, "I")
+    np.testing.assert_allclose(built["bounds"]["W"], [[20, 0, 0], [40, 20, 0]], atol=1e-9)    # the oracle
+    np.testing.assert_allclose(group["bbox"], built["bounds"]["W"], atol=1e-9)
+    assert group["area"] == pytest.approx(built["areas"]["W"]) == pytest.approx(400.0)
+    np.testing.assert_allclose(instance["bbox"], built["bounds"]["I"], atol=1e-9)
+    np.testing.assert_allclose(instance["bbox"], [[0, 0, 0], [20, 20, 0]], atol=1e-9)
+    assert instance["area"] == pytest.approx(400.0)
+
+
+def test_transforms_with_w_compose_like_the_scales_they_stand_for(tmp_path, sketchup):
+    """An outer scale of 2 (`w = 0.5`) around a group moved 5 and scaled 2 (`w = 0.5`): x becomes 4x + 20."""
+    path = tmp_path / "nw.skp"
+    built = build_scene(path, {"groups": [{"name": "Outer", "transform": _with_w(np.eye(4), 0.5), "groups": [
+        {"name": "Inner", "transform": _with_w(translation(5, 0, 0), 0.5), "faces": [square(0, 0, 0, 10)]}]}]})
+    inner = _child(_child(skp_reader.walk_skp(path)["root"], "Outer"), "Inner")
+    np.testing.assert_allclose(inner["bbox"], [[20, 0, 0], [60, 40, 0]], atol=1e-9)
+    np.testing.assert_allclose(inner["bbox"], built["bounds"]["Outer"], atol=1e-9)
+    assert inner["area"] == pytest.approx(16 * 100.0)
+
+
+def _transformation(values):
+    t = skp_reader._Transformation()
+    t.values[:] = values
+    return t
+
+
+def test_a_matrix_is_divided_by_its_w_and_left_with_a_last_row_of_0_0_0_1():
+    m = skp_reader._matrix(_transformation([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 10, 0, 0, 0.5]))
+    np.testing.assert_allclose(m, [[2, 0, 0, 20], [0, 2, 0, 0], [0, 0, 2, 0], [0, 0, 0, 1]])
+    plain = skp_reader._matrix(_transformation([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 10, 0, 0, 1]))
+    np.testing.assert_allclose(plain, [[1, 0, 0, 10], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
+
+
+@pytest.mark.parametrize("values, why", [
+    ([1, 0, 0, 0.001, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1], "a perspective part"),
+    ([1, 0, 0, 0, 0, 1, 0, 0.5, 0, 0, 1, 0, 0, 0, 0, 1], "a perspective part"),
+    ([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0], "w of zero")])
+def test_a_matrix_that_is_not_affine_is_refused_instead_of_misread(values, why):
+    with pytest.raises(skp_reader.SketchUpError, match="not an affine transformation"):
+        skp_reader._matrix(_transformation(values))
+
+
 # ------------------------------------------------------------------------ component instances
 
 
