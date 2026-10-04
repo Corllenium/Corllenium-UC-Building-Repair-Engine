@@ -203,3 +203,13 @@ Spec: docs/superpowers/specs/2026-10-03-uc-repair-engine-design.md (2a748d4, app
   - review --pass; merged into feat/repair-p0 (89098ee); 31 topo tests pass; full engine suite running on the integration branch.
   - Ruling: merge now, with follow-up P1-S1b (memory bound + clean-ups) for Hermes -- real units peak at 522 MB, fine for the census at --jobs 4 -- costs a later small change.
 - Full engine suite on feat/repair-p0 at 89098ee (P0-08, 09, 09b, 11, 11b, P1-S1 merged), BLAS threads 1: 836 passed, 1 xfailed in 610 s.
+- P0-10 implementer: DONE_WITH_CONCERNS (10 commits to 2a86b40).
+  - 79 units (69 floor, 3 element, 7 site), 4 split proposals, 85/85 splits covered, 1,766,906 tris.
+  - Known cases: 4 of 5 met. Main_Infra came out as 3 parts, not 7; the Science A duplicates appear only at a 0.5 in identity tolerance.
+  - The brief's constants failed on real slabs (19.7-54 in thick) and were changed, each measured.
+  - 738 + 1 xfail engine.
+  - Rulings in task-10-report.md:
+    - the 0.5 in identity is allowed (read-only comparison key, not a weld; both exact and tolerant numbers reported; never used to merge);
+    - the constants are accepted;
+    - Main_Infra 7, CHTM L12 and the weak tables go to the owner via P0-13.
+  - Task review dispatched (rules-reviewer, opus) on review-478326b..2a86b40.diff.
