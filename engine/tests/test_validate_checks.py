@@ -13,8 +13,10 @@ import pytest
 from PIL import Image
 
 from engine.tests.fixtures.build import closed_room, cube, grid_slab, two_sided_wall
-from engine.validate.checks import (Looks, LookTable, depth_tolerance, face_fingerprints, face_look_ids,
-                                    load_looks, png_size, print_step)
+from engine.validate.checks import (Looks, LookTable, Settings, check_problems, default_targets_path,
+                                    depth_tolerance, face_fingerprints, face_look_ids, load_looks, load_targets,
+                                    png_size, print_step, validate)
+from engine.validate.sampling import face_samples
 
 
 # ---------------------------------------------------------------------------------------------
@@ -141,3 +143,387 @@ def test_a_face_fingerprint_is_its_snapped_corners_in_winding_order_plus_its_loo
                                 face_material=np.concatenate([[1], np.zeros(m.n_faces - 1, dtype=np.int64)]))
     changed = ~(_fingerprints(other) == base).all(axis=1)
     assert changed.tolist() == [True] + [False] * (m.n_faces - 1)
+
+
+# ---------------------------------------------------------------------------------------------
+# Step 2: checks 1 and 3 -- identity passes, and each way AFTER can go wrong is named
+# ---------------------------------------------------------------------------------------------
+
+KINDS = ("flicker_diff", "flicker_same", "reversed", "hidden", "loose", "open_edges", "cracks")
+NO_ERRORS = {"counts": dict.fromkeys(KINDS, 0), "spots": {k: [] for k in KINDS}}
+
+
+def _looks(*names, texel=(16, 16)):
+    """Every material is its own look and every look has a 16 x 16 texture (1 texel = 0.0625 of the UV unit)."""
+    return Looks(key={n: f"look-{n}" for n in names}, texel={f"look-{n}": texel for n in names})
+
+
+def _check(before, after, looks, **kw):
+    """`validate` with check 2 given nothing to find, so these tests are about checks 1 and 3."""
+    return validate(before, after, looks, errors=(NO_ERRORS, NO_ERRORS), **kw)
+
+
+def _checks(v):
+    c = v.report["checks"]
+    return c["textures"], c["nothing_deleted"]
+
+
+def _without_faces(mesh, drop):
+    keep = np.ones(mesh.n_faces, dtype=bool)
+    keep[list(drop)] = False
+    return dataclasses.replace(
+        mesh, face_v=mesh.face_v[keep], face_vt=mesh.face_vt[keep], face_vn=mesh.face_vn[keep],
+        face_material=mesh.face_material[keep], face_line=np.arange(1, int(keep.sum()) + 1, dtype=np.int64))
+
+
+def _with_flipped(mesh, faces):
+    fv, fvt = mesh.face_v.copy(), mesh.face_vt.copy()
+    fv[faces] = fv[faces][:, [0, 2, 1]]
+    fvt[faces] = fvt[faces][:, [0, 2, 1]]
+    return dataclasses.replace(mesh, face_v=fv, face_vt=fvt)
+
+
+def _with_plate(mesh, plate):
+    """`mesh` with the faces of `plate` added (its vertices and UVs after the mesh's own)."""
+    n_v, n_t, n_f = len(mesh.positions), len(mesh.uvs), mesh.n_faces
+    return dataclasses.replace(
+        mesh, positions=np.vstack([mesh.positions, plate.positions]), uvs=np.vstack([mesh.uvs, plate.uvs]),
+        face_v=np.vstack([mesh.face_v, plate.face_v + n_v]), face_vt=np.vstack([mesh.face_vt, plate.face_vt + n_t]),
+        face_vn=np.vstack([mesh.face_vn, plate.face_vn]),
+        face_material=np.concatenate([mesh.face_material, plate.face_material]),
+        face_line=np.arange(1, n_f + plate.n_faces + 1, dtype=np.int64))
+
+
+def _moved(mesh, delta):
+    return dataclasses.replace(mesh, positions=mesh.positions + np.asarray(delta, dtype=np.float64))
+
+
+def _two_looks(mesh):
+    """`mesh` with a second material "m1" (a different look) that no face uses yet."""
+    return dataclasses.replace(mesh, materials=["m0", "m1"])
+
+
+def _with_material(mesh, faces, material):
+    fm = mesh.face_material.copy()
+    fm[faces] = material
+    return dataclasses.replace(mesh, face_material=fm)
+
+
+def _with_shifted_uv(mesh, face, shift):
+    """Face `face` gets its own copies of its three UVs, moved by `shift` in both U and V."""
+    base = len(mesh.uvs)
+    uvs = np.vstack([mesh.uvs, mesh.uvs[mesh.face_vt[face]] + shift])
+    fvt = mesh.face_vt.copy()
+    fvt[face] = [base, base + 1, base + 2]
+    return dataclasses.replace(mesh, uvs=uvs, face_vt=fvt)
+
+
+def test_identity_passes_every_check_on_a_cube():
+    m = cube(10.0)
+    v = _check(m, m, _looks("m0"))
+    textures, gone = _checks(v)
+    assert (textures["status"], gone["status"]) == ("PASS", "PASS")
+    assert v.report["checks"]["problems"]["status"] == "REPORT_ONLY"
+    assert v.report["verdict"] == "PASS" and v.passed
+    assert textures["samples"] == 48 and textures["faces"] == 12, "4 samples on each of 12 faces, all seen from outside"
+    assert textures["samples_failed"] == 0 and gone["samples"] == 48 and gone["deleted"] == gone["covered"] == 0
+    assert v.report["sites"] == []
+
+
+def test_identity_passes_every_check_on_a_two_sided_wall():
+    m = two_sided_wall()                    # two layers in ONE place, in two looks: whichever Embree returns first
+    v = _check(m, m, _looks("concrete", "prismarine"))
+    textures, gone = _checks(v)
+    assert (textures["status"], gone["status"], v.report["verdict"]) == ("PASS", "PASS", "PASS")
+    assert textures["faces"] == 4 and textures["samples"] == len(face_samples(m)) == 100
+    assert textures["samples_failed"] == 0 and gone["deleted"] == 0 and gone["replaced"] == 0
+
+
+def test_identity_passes_every_check_in_a_closed_room_whose_walls_only_the_probes_see():
+    m = closed_room()
+    v = _check(m, m, _looks("plaster", "brick"))
+    textures, gone = _checks(v)
+    assert (textures["status"], gone["status"], v.report["verdict"]) == ("PASS", "PASS", "PASS")
+    assert textures["faces"] == 24, "the inner skin from the probes, the outer skin from outside: every face"
+    assert v.report["viewpoints"] == {"directions": 128, "cameras": 24, "probes": 40, "extra_directions": 1024}
+    assert textures["samples_failed"] == 0 and gone["deleted"] == 0 and gone["covered"] == 0
+
+
+def test_identity_holds_when_the_model_sits_far_from_the_origin():
+    near = closed_room()
+    far = _moved(near, [24000.0, 24000.0, 0.0])
+    v = _check(far, far, _looks("plaster", "brick"))
+    assert v.report["verdict"] == "PASS"
+    assert np.allclose(v.report["frame"]["centre"], [24100.0, 24080.0, 60.0])
+    assert v.report["print_step_in"] == pytest.approx(0.1) and v.report["depth_tolerance_in"] == pytest.approx(0.2)
+
+
+def test_the_report_is_the_same_whatever_the_chunk_size():
+    m = closed_room()
+    a = _check(m, m, _looks("plaster", "brick"))
+    b = _check(m, m, _looks("plaster", "brick"), settings=Settings(chunk=7))
+    assert b.report["settings"]["chunk"] == 7
+    drop = lambda r: {k: v for k, v in r.items() if k not in ("timings_s", "settings")}
+    assert drop(a.report) == drop(b.report)
+
+
+def test_a_deleted_visible_face_is_deleted_for_check_1_and_check_3_and_has_a_site():
+    m = cube(10.0)
+    v = _check(m, _without_faces(m, [8]), _looks("m0"))           # one triangle of the x = 10 side
+    textures, gone = _checks(v)
+    assert (textures["status"], gone["status"], v.report["verdict"]) == ("FAIL", "FAIL", "FAIL")
+    assert textures["samples_failed"] == 4 and textures["reasons"] == {
+        "covered": 0, "deleted": 4, "look": 0, "uv": 0, "side": 0}
+    assert gone["deleted"] == 4 and gone["replaced"] == 0 and gone["covered"] == 0
+    assert gone["faces_unmet"] == 1, "face 8 was visible and none of its samples is met any more"
+    (site,) = v.report["sites"]
+    assert site["faces"] == [8] and site["samples"] == 4
+    assert site["checks"] == ["textures", "nothing_deleted"] and site["reasons"]["deleted"] == 4
+    assert 0.0 < site["centre"][1] < 10.0 and site["centre"][0] == pytest.approx(10.0, abs=0.01), "on the x = 10 face"
+
+
+def test_a_visible_face_in_another_look_is_replaced_for_check_3_and_a_look_failure_for_check_1():
+    m = _two_looks(cube(10.0))
+    v = _check(m, _with_material(m, [3], 1), _looks("m0", "m1"))   # the top, second triangle
+    textures, gone = _checks(v)
+    assert textures["status"] == "FAIL" and textures["reasons"]["look"] == 4 and textures["samples_failed"] == 4
+    assert gone["status"] == "FAIL" and gone["replaced"] == 4 and gone["deleted"] == 0
+    assert gone["faces_unmet"] == 1
+
+
+def test_a_look_under_another_material_name_is_the_same_look():
+    m = _two_looks(cube(10.0))
+    tinted = Looks(key={"m0": "L", "m1": "L"}, texel={"L": (16, 16)})    # two names, one look: a tint group
+    v = _check(m, _with_material(m, [3], 1), tinted)
+    assert v.report["verdict"] == "PASS" and _checks(v)[0]["samples_failed"] == 0
+
+
+def test_a_material_unknown_to_materials_json_is_listed_and_still_compares_by_its_name():
+    m = cube(10.0)
+    v = _check(m, m, Looks(key={}))
+    assert v.report["verdict"] == "PASS"
+    assert v.report["materials"] == {"unknown_before": ["m0"], "unknown_after": ["m0"]}
+    other = _check(m, dataclasses.replace(m, materials=["m9"]), Looks(key={}))
+    assert other.report["verdict"] == "FAIL" and _checks(other)[0]["reasons"]["look"] == 48
+
+
+def test_uvs_shifted_by_half_fail_check_1_and_only_check_1():
+    m = cube(10.0)
+    v = _check(m, _with_shifted_uv(m, 2, 0.5), _looks("m0"))
+    textures, gone = _checks(v)
+    assert textures["status"] == "FAIL" and textures["reasons"]["uv"] == 4 and textures["samples_failed"] == 4
+    assert gone["status"] == "PASS", "the surface and its look are still there at the same depth"
+    assert v.report["sites"][0]["checks"] == ["textures"]
+
+
+def test_uvs_may_move_by_a_whole_tile_and_by_less_than_a_texel_but_not_by_two():
+    m = cube(10.0)                                                  # a 16 x 16 texture: one texel is 0.0625
+    for shift, expected in ((1.0, "PASS"), (-2.0, "PASS"), (0.03, "PASS"), (0.0625, "PASS"), (0.1, "FAIL")):
+        v = _check(m, _with_shifted_uv(m, 2, shift), _looks("m0"))
+        assert v.report["checks"]["textures"]["status"] == expected, shift
+    wide = _looks("m0", texel=(1024, 1024))                         # on a 1024 px texture 0.03 is 30 texels
+    assert _check(m, _with_shifted_uv(m, 2, 0.03), wide).report["checks"]["textures"]["status"] == "FAIL"
+
+
+def test_no_texture_no_uv_test():
+    m = cube(10.0)
+    flat = Looks(key={"m0": "flat"})                                 # no texel size: no texture shows the UV
+    v = _check(m, _with_shifted_uv(m, 2, 0.5), flat)
+    assert v.report["verdict"] == "PASS"
+
+
+def test_a_face_without_uvs_in_both_is_fine_and_in_one_is_not():
+    m = cube(10.0)
+    bare = dataclasses.replace(m, face_vt=np.where(np.arange(12)[:, None] == 2, -1, m.face_vt))
+    assert _check(bare, bare, _looks("m0")).report["verdict"] == "PASS"
+    assert _check(m, bare, _looks("m0")).report["checks"]["textures"]["reasons"]["uv"] == 4
+
+
+def test_a_flipped_visible_face_is_seen_from_behind_and_fails_check_1_only():
+    m = cube(10.0)
+    v = _check(m, _with_flipped(m, [2]), _looks("m0"))
+    textures, gone = _checks(v)
+    assert textures["status"] == "FAIL" and textures["reasons"]["side"] == 4 and textures["samples_failed"] == 4
+    assert gone["status"] == "PASS"
+
+
+def test_a_face_one_inch_in_front_of_a_visible_face_covers_it():
+    m = cube(10.0)
+    plate = _moved(grid_slab(1, 1, cell=10.0), [0.0, 0.0, 11.0])      # 1 in over the top, same material
+    v = _check(m, _with_plate(m, plate), _looks("m0"))
+    textures, gone = _checks(v)
+    assert gone["status"] == "FAIL" and gone["covered"] == 8 and gone["deleted"] == 0, "the top's 2 faces x 4 samples"
+    assert gone["faces_covered"] == 2
+    assert textures["status"] == "FAIL" and textures["reasons"]["covered"] == 8
+    assert v.report["sites"][0]["faces"] == [2, 3] and v.report["sites"][0]["reasons"]["covered"] == 8
+
+
+def test_layers_within_the_tolerance_are_the_same_depth_and_layers_beyond_it_are_not():
+    slab = grid_slab(4, 4, cell=10.0)                                 # 40 x 40 in at z = 0, faces +z
+    looks = _looks("m0")
+    assert depth_tolerance(print_step(slab)) == 0.05
+    for dz, expected in ((0.015, "PASS"), (0.04, "PASS"), (-0.04, "PASS"), (0.06, "FAIL"), (-0.06, "FAIL"),
+                         (0.2, "FAIL"), (-0.2, "FAIL")):
+        moved = _check(slab, _moved(slab, [0.0, 0.0, dz]), looks)
+        assert moved.report["verdict"] == expected, f"the surface moved by {dz}"
+    # an EXTRA layer above the surface: 0.015 and 0.04 in up are z-fight layers, 0.06 and more cover it
+    above = lambda dz: _with_plate(slab, _moved(grid_slab(4, 4, cell=10.0), [0.0, 0.0, dz]))
+    for dz in (0.015, 0.04):
+        assert _check(slab, above(dz), looks).report["verdict"] == "PASS", dz
+    for dz in (0.06, 0.1, 0.3):
+        assert _check(slab, above(dz), looks).report["checks"]["nothing_deleted"]["covered"] > 0, dz
+
+
+def test_a_deleted_wall_that_only_a_probe_inside_the_room_sees_fails_check_3():
+    m = closed_room()
+    v = _check(m, _without_faces(m, [4, 5]), _looks("plaster", "brick"))     # the wall y = 0, facing into the room
+    textures, gone = _checks(v)
+    assert gone["status"] == "FAIL" and gone["faces_unmet"] == 2 and gone["deleted"] > 0
+    assert set(v.report["sites"][0]["faces"]) <= {4, 5}
+    assert all(set(s["faces"]) <= {4, 5} for s in v.report["sites"]), "nothing else of the room changed"
+    # the probes are the BEFORE's: with the wall gone, the probes of the lattice are still the same 40
+    assert v.report["viewpoints"]["probes"] == 40
+
+
+def test_an_after_with_no_faces_has_deleted_everything_without_crashing():
+    m = cube(10.0)
+    v = _check(m, _without_faces(m, range(12)), _looks("m0"))
+    textures, gone = _checks(v)
+    assert v.report["verdict"] == "FAIL" and gone["deleted"] == 48 and gone["faces_unmet"] == 12
+    assert textures["reasons"]["deleted"] == 48
+
+
+def test_a_before_with_no_faces_has_nothing_to_judge():
+    m = cube(10.0)
+    v = _check(_without_faces(m, range(12)), m, _looks("m0"))
+    assert v.report["verdict"] == "PASS" and _checks(v)[0]["samples"] == 0
+
+
+def test_faces_whose_fingerprint_is_absent_get_the_extra_directions_and_only_those_faces():
+    m = cube(10.0)
+    sides = np.array([[1.0, 0, 0], [-1.0, 0, 0], [0, 1.0, 0], [0, -1.0, 0]])      # the standard set sees no top
+    everywhere = np.vstack([sides, [[0, 0, 1.0], [0, 0, -1.0]]])
+    none = np.zeros((0, 3))
+    kw = dict(dirs=sides, cams=none, probes=none, extra_dirs=everywhere)
+
+    same = _check(m, m, _looks("m0"), **kw)
+    textures, gone = _checks(same)
+    assert same.report["verdict"] == "PASS" and textures["samples"] == 32, "the 8 side faces; top and bottom unseen"
+    assert gone["suspect_faces"] == 0 and gone["samples_extra"] == 0, "nothing changed: no extra directions at all"
+
+    top_gone = _check(m, _without_faces(m, [2, 3]), _looks("m0"), **kw)           # the top, seen only from above
+    textures, gone = _checks(top_gone)
+    assert textures["status"] == "PASS" and textures["samples"] == 32, "check 1 never saw the top"
+    assert gone["status"] == "FAIL" and gone["suspect_faces"] == 2 and gone["samples_extra"] == 8
+    assert gone["deleted"] == 8 and gone["faces_unmet"] == 2
+    assert top_gone.report["sites"][0]["checks"] == ["nothing_deleted"]
+
+    top_changed = _check(_two_looks(m), _with_material(_two_looks(m), [2, 3], 1), _looks("m0", "m1"), **kw)
+    textures, gone = _checks(top_changed)
+    assert textures["status"] == "PASS" and gone["status"] == "FAIL" and gone["replaced"] == 8, "its look is gone"
+
+
+# ---------------------------------------------------------------------------------------------
+# Step 3: check 2, problems solved -- find_errors before and after, against the targets the owner signs
+# ---------------------------------------------------------------------------------------------
+
+def _errors(counts=None, spots=None):
+    """What `engine.detectors.errors.find_errors` returns, as far as check 2 reads it."""
+    return {"counts": {**dict.fromkeys(KINDS, 0), **(counts or {})}, "spots": {**{k: [] for k in KINDS}, **(spots or {})}}
+
+
+def _spot(x):
+    return {"label": f"spot {x}", "centre": [float(x), 0.0, 5.0], "size": 2.0, "value": 3.0, "faces": [x, x + 1]}
+
+
+SIGNED = {"signed": True, "kinds": {"flicker_diff": 0, "flicker_same": 0, "reversed": 0, "hidden": 0, "loose": 0,
+                                    "open_edges": None, "cracks": 0}}
+
+
+def test_until_the_owner_signs_every_kind_is_unsigned_and_check_2_only_reports():
+    before = _errors({"flicker_diff": 12, "hidden": 40})
+    after = _errors({"flicker_diff": 3, "hidden": 40}, spots={"flicker_diff": [_spot(1), _spot(2), _spot(3)]})
+    for targets in (None, {"signed": False, "kinds": SIGNED["kinds"]}, {}):
+        result = check_problems(before, after, targets)
+        assert result["status"] == "REPORT_ONLY"
+        assert list(result["kinds"]) == list(KINDS), "all seven kinds, in the engine's order"
+        assert result["kinds"]["flicker_diff"] == {
+            "before": 12, "after": 3, "target": "unsigned", "status": "REPORT_ONLY",
+            "residual": [_spot(1), _spot(2), _spot(3)]}, "the counts and where the residue is"
+        assert result["kinds"]["hidden"]["before"] == result["kinds"]["hidden"]["after"] == 40
+        assert all(k["target"] == "unsigned" and k["status"] == "REPORT_ONLY" for k in result["kinds"].values())
+
+
+def test_signed_targets_pass_or_fail_each_kind_and_the_check_with_them():
+    before = _errors({"flicker_diff": 12, "hidden": 40, "open_edges": 90})
+    solved = _errors({"open_edges": 31})                              # open edges are only listed, and all else is 0
+    result = check_problems(before, solved, SIGNED)
+    assert result["status"] == "PASS"
+    assert result["kinds"]["flicker_diff"]["target"] == 0 and result["kinds"]["flicker_diff"]["status"] == "PASS"
+    assert result["kinds"]["open_edges"]["target"] == "listed" and result["kinds"]["open_edges"]["status"] == "REPORT_ONLY"
+
+    left = _errors({"flicker_diff": 3, "cracks": 1}, spots={"flicker_diff": [_spot(1)], "cracks": [_spot(9)]})
+    result = check_problems(before, left, SIGNED)
+    assert result["status"] == "FAIL"
+    assert result["kinds"]["flicker_diff"]["status"] == "FAIL" and result["kinds"]["cracks"]["status"] == "FAIL"
+    assert result["kinds"]["flicker_diff"]["residual"] == [_spot(1)], "every residual is listed with its location"
+    assert result["kinds"]["hidden"]["status"] == "PASS" and result["kinds"]["reversed"]["status"] == "PASS"
+
+    roomy = {"signed": True, "kinds": {**SIGNED["kinds"], "hidden": {"max": 5, "note": "protected faces"}}}
+    assert check_problems(before, _errors({"hidden": 5}), roomy)["kinds"]["hidden"]["status"] == "PASS"
+    assert check_problems(before, _errors({"hidden": 6}), roomy)["kinds"]["hidden"]["status"] == "FAIL"
+
+
+def test_signed_with_no_number_for_any_kind_is_still_only_a_report():
+    nobody = {"signed": True, "kinds": {k: None for k in KINDS}}
+    result = check_problems(_errors({"hidden": 4}), _errors({"hidden": 4}), nobody)
+    assert result["status"] == "REPORT_ONLY" and all(k["target"] == "listed" for k in result["kinds"].values())
+
+
+def test_the_targets_file_is_read_from_json_and_a_missing_one_means_unsigned(tmp_path):
+    assert load_targets(tmp_path / "targets.json") is None
+    path = tmp_path / "targets.json"
+    path.write_text(json.dumps(SIGNED), encoding="utf-8")
+    assert load_targets(path) == SIGNED
+    path.write_text("{not json", encoding="utf-8")
+    with pytest.raises(ValueError, match="targets"):
+        load_targets(path)
+    assert default_targets_path().name == "targets.json" and default_targets_path().parent.name == "validate"
+
+
+def test_check_2_is_in_the_report_and_a_signed_failure_fails_the_verdict():
+    m = cube(10.0)
+    ok = validate(m, m, _looks("m0"), errors=(_errors({"hidden": 2}), _errors()), targets=SIGNED)
+    assert ok.report["checks"]["problems"]["status"] == "PASS" and ok.report["verdict"] == "PASS"
+    bad = validate(m, m, _looks("m0"), errors=(_errors({"hidden": 2}), _errors({"hidden": 1})), targets=SIGNED)
+    problems = bad.report["checks"]["problems"]
+    assert problems["status"] == "FAIL" and problems["kinds"]["hidden"] == {
+        "before": 2, "after": 1, "target": 0, "status": "FAIL", "residual": []}
+    assert bad.report["verdict"] == "FAIL", "checks 1 and 3 pass; the signed target for check 2 does not"
+    assert bad.report["checks"]["textures"]["status"] == "PASS"
+    unsigned = validate(m, m, _looks("m0"), errors=(_errors({"hidden": 2}), _errors({"hidden": 1})))
+    assert unsigned.report["verdict"] == "PASS" and unsigned.report["checks"]["problems"]["status"] == "REPORT_ONLY"
+
+
+def test_without_errors_given_validate_runs_find_errors_on_both_meshes():
+    m = cube(10.0)
+    v = validate(m, m, _looks("m0"))                       # errors=None: the real detectors, imported lazily
+    problems = v.report["checks"]["problems"]
+    assert problems["status"] == "REPORT_ONLY" and list(problems["kinds"]) == list(KINDS)
+    assert all(k["before"] == k["after"] == 0 for k in problems["kinds"].values()), "a clean cube has nothing wrong"
+    room = closed_room()
+    v = validate(room, _without_faces(room, [4, 5]), _looks("plaster", "brick"))
+    assert v.report["checks"]["problems"]["kinds"]["hidden"]["before"] == 12, "find_errors really ran on the room"
+
+
+def test_loading_the_validator_does_not_load_the_code_it_judges():
+    """`find_errors` imports engine.fixes, engine.guard and engine.vis, so check 2 imports it lazily: the
+    checks, the evidence and the rest of the Validator can be loaded without any of them."""
+    import subprocess
+    import sys
+    code = ("import sys, engine.validate.checks\n"
+            "bad = sorted(m for m in sys.modules if m.split('.')[:2] in (['engine', 'guard'], ['engine', 'fixes'], "
+            "['engine', 'vis'], ['engine', 'detectors']))\n"
+            "print('LOADED', bad)\n")
+    done = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, check=True)
+    assert done.stdout.strip() == "LOADED []", done.stdout
