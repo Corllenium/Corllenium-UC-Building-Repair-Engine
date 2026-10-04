@@ -347,3 +347,9 @@ exit=1
     - speed (10.6 min per floor) is noted for P3;
     - the winprobe vs private helper question goes to the review.
   - Task review dispatched (rules-reviewer, opus) on review-7211b82..ef23d13.diff.
+- P0-15 task review (rules-reviewer, opus): CHANGES.
+  - CRITICAL: a NEW face in another look on, or within tolerance in front of, a visible face passes checks 1 and 3 (a plate at dz 0-0.045, and 0.19 at the CHTM tolerance, gives PASS). The Validator could pass damage.
+  - Important: materials missing from materials.json never get UV-compared (sidewalk A's only material; a 0.5 UV shift on 5 faces passed). The cover test is replayed from one viewpoint only (a probe-only cover of 117/800 samples passed).
+  - 6 Minors: dead reason_all, a test point inside the sliver, docstring, the targets path, the winprobe peak helper, the evidence hash colour near purple.
+  - Verified: 109 passed; mutants killed; sidewalk A identity PASS (143 s) and 5-deleted FAIL (2 sites).
+  - Fix round 1 sent to the implementer: merge feat/repair-p0 first. Ruling on Important 2: an unknown look is read from the snapshot's MTL/PNG and noted, never skipped. Ruling on Important 3: also replay cover from the best probe.
