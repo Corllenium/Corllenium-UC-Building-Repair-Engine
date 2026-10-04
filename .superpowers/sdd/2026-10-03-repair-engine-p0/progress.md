@@ -268,3 +268,10 @@ Spec: docs/superpowers/specs/2026-10-03-uc-repair-engine-design.md (2a748d4, app
   - 33 passed; engine 838 + 1 xfail.
   - tvertex_check identical True x4: CHTM 5th 24.3x, 142 k unit 403x.
   - Review dispatched (hermes-reviewer, sonnet) on review-89098ee..32c8a86.diff.
+- P1-S1b review (hermes-reviewer, sonnet): CHANGES.
+  - Exactness confirmed: 155 runs; the 142 k digest equals P1-S1's; peak memory follows the chunk size.
+  - Important: buffer overflow after a flush when an edge's candidates exceed the 65,536 buffer (a 270x270 grid + diagonal at chunk 80 k raises ValueError; the default is safe below ~500 k vertices, so every real unit is safe).
+  - Important: the many-candidates branch is untested.
+  - Minors: the diagonal test has no T-vertex; chunk_pairs < 1 gives a cryptic error.
+  - Notes queued; Hermes fix run launched.
+  - Not on the census path: S1 itself is merged and correct.
