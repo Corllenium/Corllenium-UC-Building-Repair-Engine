@@ -10,7 +10,7 @@ Tolerance: bounding box 0.2 in (twice the export's print step of 0.1 in, measure
 | ambiguous | 0 |
 | miss | 0 |
 
-Ambiguous: a file that matches some of several groups of one name but not others, so its verdict depends on a pairing the shapes cannot settle. Miss: no group of that name in the backup.
+Ambiguous: a file that matches some of several groups of one name but not others, or one where a family has more files than groups and every file fits every group, so its verdict depends on a pairing the shapes cannot settle. Miss: no group of that name in the backup.
 
 - 11 files were paired with their group by shape, because the name does not say which is which
 - 4 files were decided without a pairing, because their verdict is the same whichever group of their name they go with: 2 match every group (`any_group`), 2 match none and are shown against the nearest (`nearest_group`)
