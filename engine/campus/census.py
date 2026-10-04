@@ -45,6 +45,11 @@ def unit_building(unit_name: str) -> str:
 # ---------------------------------------------------------------------- Flicker Split
 
 
+DEFAULT_MATERIALS_PATH = Path("D:/PROJECTS/UC MODEL FIXER/data/campus/materials.json")
+if not DEFAULT_MATERIALS_PATH.is_file():
+    DEFAULT_MATERIALS_PATH = Path("data/campus/materials.json")
+
+
 class FlickerSplit(dict):
     """Flicker split counts by {same look, diff look} x {opposite, same facing}."""
 
@@ -85,14 +90,16 @@ def flicker_split(
     elif materials is not None:
         mat_path = Path(materials)
         if not mat_path.is_file():
-            raise FileNotFoundError(f"Materials map not found: {mat_path}")
+            if not mat_path.is_absolute() and (Path("D:/PROJECTS/UC MODEL FIXER") / mat_path).is_file():
+                mat_path = Path("D:/PROJECTS/UC MODEL FIXER") / mat_path
+            else:
+                raise FileNotFoundError(f"Materials map not found: {mat_path}")
         data = json.loads(mat_path.read_text(encoding="utf-8"))
         if not isinstance(data, dict):
             raise ValueError(f"Invalid materials JSON in {mat_path}")
         materials_map = data.get("materials", data)
     else:
-        repo_root = Path(__file__).resolve().parents[2]
-        mat_path = repo_root / "data" / "campus" / "materials.json"
+        mat_path = DEFAULT_MATERIALS_PATH
         if not mat_path.is_file():
             raise FileNotFoundError(f"Default materials map not found: {mat_path}")
         data = json.loads(mat_path.read_text(encoding="utf-8"))
@@ -293,7 +300,31 @@ def _run_worker(snap_dir: Path, out_res: Path, out_err: Path, materials: Path | 
     out_err.parent.mkdir(parents=True, exist_ok=True)
     out_err.write_text(json.dumps(errors), encoding="utf-8")
 
-    split_res = flicker_split(mesh, errors.get("flicker_pairs", []), materials=materials)
+    # Resolve materials map, optionally augmented by snapshot MTL if present
+    mat_map: dict[str, Any] | None = None
+    mat_path = Path(materials) if materials is not None else DEFAULT_MATERIALS_PATH
+    if mat_path.is_file():
+        data = json.loads(mat_path.read_text(encoding="utf-8"))
+        mat_map = dict(data.get("materials", data))
+    elif not mat_path.is_absolute() and (Path("D:/PROJECTS/UC MODEL FIXER") / mat_path).is_file():
+        data = json.loads((Path("D:/PROJECTS/UC MODEL FIXER") / mat_path).read_text(encoding="utf-8"))
+        mat_map = dict(data.get("materials", data))
+
+    local_mtl = snap_dir / "materials.mtl"
+    if local_mtl.is_file():
+        from engine.campus.materials import build_materials
+        local_tex = snap_dir / "tex"
+        try:
+            local_res = build_materials(local_mtl, local_tex)
+            if mat_map is None:
+                mat_map = {}
+            for k, v in local_res["materials"].items():
+                if k not in mat_map:
+                    mat_map[k] = v
+        except Exception:
+            pass
+
+    split_res = flicker_split(mesh, errors.get("flicker_pairs", []), materials=mat_map if mat_map is not None else materials)
     plan = compute_fix_plan(errors["counts"], split_res, mesh.n_faces)
 
     peak_mb = get_process_peak_memory_mb()
@@ -389,7 +420,7 @@ def census(
     timeout_s: float = 1800.0,
     errors_dir: Path | str | None = None,
     out_md: Path | str | None = None,
-    materials_path: Path | str | None = Path("data/campus/materials.json"),
+    materials_path: Path | str | None = DEFAULT_MATERIALS_PATH,
 ) -> dict:
     """Run census over snapshot units."""
     repo_root = Path(__file__).resolve().parents[2]
@@ -485,7 +516,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--worker", type=Path, default=None, help=argparse.SUPPRESS)
     parser.add_argument("--out-res", type=Path, default=None, help=argparse.SUPPRESS)
     parser.add_argument("--out-err", type=Path, default=None, help=argparse.SUPPRESS)
-    parser.add_argument("--materials", type=Path, default=Path("data/campus/materials.json"), help="materials.json path")
+    parser.add_argument("--materials", type=Path, default=DEFAULT_MATERIALS_PATH, help="materials.json path")
     parser.add_argument("units", nargs="*", default=None, help="snapshot paths")
     parser.add_argument("--out", type=Path, default=Path("data/campus/census.json"), help="output json")
     parser.add_argument("--errors-dir", type=Path, default=None, help="errors dir")
