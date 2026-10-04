@@ -263,3 +263,8 @@ Spec: docs/superpowers/specs/2026-10-03-uc-repair-engine-design.md (2a748d4, app
     - the Windows probes move to engine/campus/winprobe.py, allow-listed in test_skp_writer.py (an existing-test edit allowed by ruling);
     - census.json is written after every unit.
   - Notes queued; Hermes fix run launched (3 Hermes runs now: S3 finish, P1-S1b, P0-12 fix).
+- P1-S1b handed in by Hermes (6efd262, acb78c5, 32c8a86 report; 1.12 USD).
+  - Bounded numpy pair chunks: the 142 k unit peaks at 279.7 MB (was 499); full-scan fallback for long edges.
+  - 33 passed; engine 838 + 1 xfail.
+  - tvertex_check identical True x4: CHTM 5th 24.3x, 142 k unit 403x.
+  - Review dispatched (hermes-reviewer, sonnet) on review-89098ee..32c8a86.diff.
