@@ -330,4 +330,17 @@ def test_grid_scene_buffer_resize_after_flush():
     assert stats["pairs_tested"] > 0
 
 
+def test_oracle_equality_with_chunk_pairs_2():
+    """When chunk_pairs=2, edges with more candidates than chunk_pairs take the
+    per-edge slicing branch (adjacency.py:282-291) and match the reference oracle."""
+    Pw, fw, ok, table = _scene(0, n_walls=4, depth=5)
+    ref = find_t_vertices_reference(Pw, table, TOL)
+    stats = {}
+    res = find_t_vertices(Pw, table, TOL, stats=stats, chunk_pairs=2)
+    assert _same(ref, res)
+    assert stats["pairs_peak"] <= 2
+    assert stats["pairs_tested"] > 1000
+
+
+
 
