@@ -1,0 +1,150 @@
+# P1-S1b — Bound the T-junction search's memory, plus small clean-ups (P1-S1 follow-up)
+
+- Branch: hermes/P1-S1b   Base: 89098eebd287ff2cb40fa5b84ca96b1eab86a450 (feat/repair-p0)
+- Commits:
+  - 6efd262 feat(topo): bounded pair generation for T-junction search (Item 1)
+  - acb78c5 feat(topo): review clean-ups for T-junction search (Item 2)
+- Brief: docs/superpowers/records/briefs/P1-S1b-tvertex-memory.md
+
+## Items
+
+### Item 1 — Bounded pair generation: DONE
+- Tests added: `test_bounded_pairs_peak_matches_oracle` (appended to `engine/tests/test_t_vertex_search.py`).
+- Red run (before code changes):
+```text
+$ PY="D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe"
+$ ( cd "D:/PROJECTS/UC MODEL FIXER/.hermes/worktrees/P1-S1b" && PYTHONPATH="$PWD" "$PY" -m pytest engine/tests/test_t_vertex_search.py -k test_bounded_pairs_peak_matches_oracle -q -p no:cacheprovider )
+F                                                                        [100%]
+================================== FAILURES ===================================
+___________________ test_bounded_pairs_peak_matches_oracle ____________________
+
+    def test_bounded_pairs_peak_matches_oracle():
+        """stats['pairs_peak'] must be at most chunk_pairs, and chunk_pairs=1000 gives
+        identical results to default and oracle on a dense synthetic scene."""
+        Pw, fw, ok, table = _scene(0, n_walls=4, depth=5)
+        stats_chunked = {}
+        stats_default = {}
+        ref = find_t_vertices_reference(Pw, table, TOL)
+>       res_chunked = find_t_vertices(Pw, table, TOL, stats=stats_chunked, chunk_pairs=1000)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       TypeError: find_t_vertices() got an unexpected keyword argument 'chunk_pairs'
+
+engine\tests\test_t_vertex_search.py:275: TypeError
+=========================== short test summary info ===========================
+FAILED engine/tests/test_t_vertex_search.py::test_bounded_pairs_peak_matches_oracle
+1 failed, 21 deselected in 0.45s
+```
+- Green run (after Item 1 implementation):
+```text
+$ PY="D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe"
+$ ( cd "D:/PROJECTS/UC MODEL FIXER/.hermes/worktrees/P1-S1b" && PYTHONPATH="$PWD" "$PY" -m pytest engine/tests/test_t_vertex_search.py engine/tests/test_topo_basics.py -q -p no:cacheprovider )
+................................                                         [100%]
+32 passed in 3.49s
+```
+- Memory reduction:
+  Replaced unbounded Python lists with pre-allocated NumPy chunk buffers. Peak tracemalloc memory dropped significantly on the 142,234-triangle unit (`data/snapshots/85f36d8cfe0e-ea7edc71`).
+  - P1-S1 baseline:
+    ```text
+    Tris: 142234, Edges: 189024, Tol: 0.15000000000000002
+    Time: 17.923s, Peak memory: 499.15 MB, pairs_tested: 5202113, hits: 20706
+    ```
+  - P1-S1b:
+    ```text
+    Tris: 142234, Edges: 189024, Tol: 0.15
+    Time: 27.086 s, Peak: 279.71 MB, pairs_tested: 5202113, pairs_peak: 999997, full_scan_edges: 0, hits: 20706
+    ```
+- Notes:
+  `chunk_pairs: int = 1_000_000` is added as keyword-only argument. Memory stays strictly bounded by evaluating each buffer chunk up to `chunk_pairs` and keeping `pairs_peak <= chunk_pairs`.
+
+### Item 2 — Small clean-ups from the review: DONE
+- Tests added: `test_long_diagonal_edge_uses_full_scan_fallback` (appended to `engine/tests/test_t_vertex_search.py`).
+- Red run (before code changes):
+```text
+$ PY="D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe"
+$ ( cd "D:/PROJECTS/UC MODEL FIXER/.hermes/worktrees/P1-S1b" && PYTHONPATH="$PWD" "$PY" -m pytest engine/tests/test_t_vertex_search.py -k test_long_diagonal_edge_uses_full_scan_fallback -q -p no:cacheprovider )
+F                                                                        [100%]
+================================== FAILURES ===================================
+_______________ test_long_diagonal_edge_uses_full_scan_fallback _______________
+
+    def test_long_diagonal_edge_uses_full_scan_fallback():
+        """An edge whose bounding box would visit more cells than candidate vertices
+        falls back to testing all candidates directly, matching the reference oracle."""
+        P, F = _scene_raw(0, n_walls=4, depth=5)
+        min_p = P.min(axis=0)
+        max_p = P.max(axis=0)
+        b = len(P)
+        diag_triangle = np.array([
+            [min_p[0], min_p[1], min_p[2]],
+            [max_p[0], max_p[1], max_p[2]],
+            [min_p[0], max_p[1], min_p[2] + 10.0],
+        ])
+        P_diag = np.vstack([P, diag_triangle])
+        F_diag = np.vstack([F, [[b, b + 1, b + 2]]])
+        Pw, fw, ok, table = _prepared(P_diag, F_diag)
+    
+        stats = {}
+        ref = find_t_vertices_reference(Pw, table, TOL)
+        res = find_t_vertices(Pw, table, TOL, stats=stats)
+    
+        assert _same(ref, res)
+>       assert "full_scan_edges" in stats
+E       AssertionError: assert 'full_scan_edges' in {'pairs_tested': 12972, 'pairs_peak': 12972}
+
+engine\tests\test_t_vertex_search.py:306: AssertionError
+=========================== short test summary info ===========================
+FAILED engine/tests/test_t_vertex_search.py::test_long_diagonal_edge_uses_full_scan_fallback
+1 failed, 22 deselected in 0.45s
+```
+- Green run (after Item 2 implementation):
+```text
+$ PY="D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe"
+$ ( cd "D:/PROJECTS/UC MODEL FIXER/.hermes/worktrees/P1-S1b" && PYTHONPATH="$PWD" "$PY" -m pytest engine/tests/test_t_vertex_search.py engine/tests/test_topo_basics.py -q -p no:cacheprovider )
+.................................                                        [100%]
+33 passed in 3.79s
+```
+- Cleanups applied:
+  - Added comprehensive docstring to `find_t_vertices` detailing return structure, `stats` keys (`pairs_tested`, `pairs_peak`, `full_scan_edges`), and `chunk_pairs`.
+  - Removed dead branch `if len(cand) == 0:` (P1-S1's lines 118-122).
+  - Added full scan fallback: when an edge's padded bounding box spans more cells than total candidate vertices (`n_cells > V`), the search evaluates against all candidate vertices directly and increments `stats["full_scan_edges"]`.
+
+## Acceptance command outputs
+
+### 1. Pytest t-vertex search and topo basics
+```text
+$ PY="D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe"
+$ ( cd "D:/PROJECTS/UC MODEL FIXER/.hermes/worktrees/P1-S1b" && PYTHONPATH="$PWD" "$PY" -m pytest engine/tests/test_t_vertex_search.py engine/tests/test_topo_basics.py -q -p no:cacheprovider )
+.................................                                        [100%]
+33 passed in 4.48s
+```
+
+### 2. Full engine test suite
+```text
+$ PY="D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe"
+$ ( cd "D:/PROJECTS/UC MODEL FIXER/.hermes/worktrees/P1-S1b" && PYTHONPATH="$PWD" "$PY" -m pytest engine/tests -q -p no:cacheprovider )
+........................................................................ [  8%]
+........................................................................ [ 17%]
+........................................................................ [ 25%]
+........................................................................ [ 34%]
+........................................................................ [ 42%]
+........................................................................ [ 51%]
+........................................................................ [ 60%]
+........................................................................ [ 68%]
+........................................................................ [ 77%]
+........................................................................ [ 85%]
+........................................................................ [ 94%]
+........x......................................                          [100%]
+838 passed, 1 xfailed in 457.15s (0:07:37)
+```
+
+### 3. Acceptance script on the four snapshots
+```text
+$ PY="D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe"
+$ ( cd "D:/PROJECTS/UC MODEL FIXER/.hermes/worktrees/P1-S1b" && PYTHONPATH="$(pwd -W)" "$PY" docs/superpowers/records/scripts/tvertex_check.py "D:/PROJECTS/UC MODEL FIXER/data/snapshots/ce26e0392ab0" "D:/PROJECTS/UC MODEL FIXER/data/snapshots/0b290ec0bcb4" "D:/PROJECTS/UC MODEL FIXER/data/snapshots/c0c877002500-b7c2dc01" "D:/PROJECTS/UC MODEL FIXER/data/snapshots/85f36d8cfe0e-ea7edc71" )
+CHTM_SIDE_WALK_2nd_floor: tris 4692 edges 6001 vertices 1586 tol 0.15 t-junction edges 406 identical True pairs_tested 53308 (reference 9517586) old 0.41 s new 0.030 s speed-up 13.5x
+CHTM_2nd_to_3rd_building_sidewalk_outside: tris 7227 edges 9852 vertices 2800 tol 0.15 t-junction edges 408 identical True pairs_tested 98805 (reference 27585600) old 0.93 s new 0.041 s speed-up 22.8x
+chtm_5ft_floor: tris 20599 edges 26856 vertices 6457 tol 0.15 t-junction edges 3791 identical True pairs_tested 522061 (reference 173409192) old 5.20 s new 0.214 s speed-up 24.3x
+Main_Infrustructure_Building: tris 142234 edges 189024 vertices 49811 tol 0.15 t-junction edges 20706 identical True pairs_tested 5202113 (reference 9415474464) old 542.39 s new 1.345 s speed-up 403.3x
+```
+
+## Unsure about
+Nothing. All 33 T-vertex search and topo basics tests pass, the full 839-item engine test suite passes (838 passed, 1 xfailed), `tvertex_check.py` confirms `identical True` across all four snapshots (including the 142k-unit) with speed-up 24.3x on CHTM 5th floor and 403.3x on Main Infrastructure Building, and tracemalloc peak memory on the 142k-unit dropped from 499.15 MB (P1-S1) to 279.71 MB.
