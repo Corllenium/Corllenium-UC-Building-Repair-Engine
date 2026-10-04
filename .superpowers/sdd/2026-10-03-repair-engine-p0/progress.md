@@ -249,3 +249,17 @@ Spec: docs/superpowers/specs/2026-10-03-uc-repair-engine-design.md (2a748d4, app
   - done + review --pass; merged into feat/repair-p0 (a15c466). cli.py conflict resolved by keeping campus-skp-check and campus-inventory.
   - After the merge: 269 targeted tests pass, and the real run's md equals the committed blob (the working-tree copy is CRLF by autocrlf).
 - P1-S3 Hermes run stopped at the 2 h limit, with commit 276d3a9 (the grid) plus uncommitted optimisations (cell size, a 2D box pre-filter, plane clustering). The controller ran the S3 tests on that state: 19 passed. Relaunched to commit, then run Item 2 (acceptance on 4 snapshots, before/after sha, full suite) and the report, with no more optimisation unless a target fails.
+- P0-12 review (hermes-reviewer, sonnet): CHANGES.
+  - Verified: step-1 tests red on base; timings=None byte-identical; errors files byte-identical to the CLI; E4+E5 = 13,947 pairs; robust children.
+  - Important:
+    1. a missing materials map falls back silently to material names (CHTM 5th E4/E5 6,522/7,425 by name vs 6,966/6,981 by look);
+    2. Science A units are classified as SITE;
+    3. error units render as zero rows, and the run reports completed with exit 0;
+    4. __import__("ctypes") dodges the ctypes-confinement test.
+  - Minors: plan units unlabelled; FIX_PLAN_TABLE unused; summed time shown as wall time; census.json written only at the end.
+  - Rulings:
+    - the census uses inventory.py's prefix table (one rule) after merging feat/repair-p0 into its branch;
+    - a missing look map is an error;
+    - the Windows probes move to engine/campus/winprobe.py, allow-listed in test_skp_writer.py (an existing-test edit allowed by ruling);
+    - census.json is written after every unit.
+  - Notes queued; Hermes fix run launched (3 Hermes runs now: S3 finish, P1-S1b, P0-12 fix).
