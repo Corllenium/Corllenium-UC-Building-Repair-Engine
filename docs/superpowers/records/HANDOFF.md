@@ -25,7 +25,7 @@ run the latest `.skp` of each file must be in `OBJ FIXED RESULT/` for the owner 
 
 ## 2. Current state (2026-09-26 00:15, written by the Claude controller)
 
-**Update 2026-10-04 10:00: the UC Repair Engine program (P0) is under way.**
+**Update 2026-10-04 09:03: the UC Repair Engine program (P0) is under way.**
 - **What it is.** One repair engine per error kind, run over every floor of every building of CHECKPOINT-17.
   Each floor is validated by the owner's rule (`AGENTS.md` §6). Per building there is a comparison `.skp`
   in `MODEL FIXER ENGINE FILES\05-FIXING\`.
