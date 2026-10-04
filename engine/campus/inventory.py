@@ -1,6 +1,21 @@
 """Campus inventory (spec 2026-10-03, P0 task 10): buildings, a level table per building, floor and element
 units, duplicate groups, misnamed and missing levels. Everything is a draft for the owner to confirm; nothing
-here writes geometry.
+here writes geometry, and no mesh is changed or welded (the duplicate check's vertex identity is a comparison
+key only).
+
+Per building (the campus is never processed as one mesh):
+- `slab_table`: area histograms of up- and down-facing triangles -> slabs (a top peak with the bottom peak
+  under it); the bases are the level table.
+- `plan_building`: bands between the bases; a group's *parts* are the fewest bands holding 80 % of its
+  triangles; a band no floor group occupies is dropped.
+- `name_votes` / `anchor_offset`: the floor numbers in the names; when a strict majority sit one above their
+  band (Science A) the level numbers start there.
+- `duplicate_flags`, `footprint_flags`, and the misnamed / missing / shared / split flags of `_building_units`.
+
+The defaults of `InventoryParams` are the brief's, except where CHECKPOINT-17 showed the brief's value cannot
+work (24 in slab window, nearest base, 20 in level spacing, print-step duplicates): each says so, and
+`BRIEF_PARAMS` (CLI `--literal`) reproduces the brief as written for comparison. The real-run measurements
+behind the changes are in the P0-10 report and in `docs/superpowers/records/campus/campus-map-draft.md`.
 """
 from __future__ import annotations
 
