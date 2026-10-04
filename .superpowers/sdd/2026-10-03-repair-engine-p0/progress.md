@@ -155,3 +155,14 @@ Spec: docs/superpowers/specs/2026-10-03-uc-repair-engine-design.md (2a748d4, app
   - the acceptance script with the prototype: identical True on A, B, CHTM 5th; CHTM 5th 4.82 s -> 0.75 s (6.4x, a per-edge Python loop), so the brief asks for vectorised pairs to reach >= 10x.
   - Brief docs/superpowers/records/briefs/P1-S1-tvertex-hash.md and the queue entry committed on feat-dashboard (b2803a8). Hermes run launched (data/hermes_runs/*-P1-S1).
 - Prompt-audit note: the new briefs and Hermes one-shot prompts count as Hermes prompts (AGENTS.md §7.7). They are batched into one scoped audit before the P0 phase merge, rather than one audit per brief.
+- P0-11 task review (rules-reviewer, opus): CHANGES. Spec ✅, rules ✅, no save path reachable; 150 passed; 7 mutants killed; skp-check.md byte-identical to render_markdown(skp_check.json).
+  - IMPORTANT: unpairable families stay out of match/mismatch even when every candidate is outside tolerance. The Science A _obj1 files are ~17 % short and plan_2_obj1 is 12.5 in off in y; the summary's "ambiguous" definition is false.
+  - 8 Minors: transform w row ignored; census probe opens any --skp; SourceUnstable not caught in the CLI; summary path not refuse_inside; child paths relative; family_of strips digits; writer docstring; zero_area_tris unreported.
+  - Fix round 1 sent to the implementer (resumed) with all findings.
+- P0-09 fix round 2 (Hermes 0e0054f + 62541e8, 1.36 USD, relaunched with a 2 h limit): 4 new tests red on dc54986, then 19 green; materials+source 35, tools 119; real run sha 28a0e0d3 unchanged; full engine 668 + 1 xfail. Scoped re-review dispatched (hermes-reviewer, sonnet) on review-dc54986..62541e8.diff.
+- double_layers profile, CHTM 5th, 35 s: per-pair Python dominates (117,259 candidates, np.cross/plane_basis + shapely each; 13,947 kept); the all-pairs bbox stage is ~9 s and quadratic; renders 3.8 s.
+- P1-S3 (Claude's tests): 19 tests + docs/superpowers/records/scripts/double_layers_check.py on claude/P1-S3-tests (2b9b0a4, from feat/repair-p0 5674331). Validated:
+  - a throwaway grid prototype passes all 19 and is equal on sidewalks A and B (1.0-1.2x only, since its per-pair loop is still Python);
+  - 5 mutants fail (offset buckets, all pairs per plane, unpadded cells, pairs by j first -- caught only after the chained three-layer test -- and pixels counted per chunk -- caught only with layers 0.05 apart).
+  - Ruling: search by position, not by plane offset (the plan's wording), because tilted layers far from the origin defeat offset buckets -- costs nothing if wrong, since the tests decide.
+  - Brief and queue e50d0fe; targets >= 3x CHTM 5th, >= 5x on the 91,714-tri unit, peak memory no higher. Hermes run launched in parallel with S1 (different files).
