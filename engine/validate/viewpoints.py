@@ -25,6 +25,9 @@ LEVEL = 2.0
 #: Barycentric slack for "is this lattice point inside that triangle": a point exactly on an edge
 #: shared by two faces belongs to both, and the lattice cell dedupe keeps one.
 _EDGE = 1e-9
+#: How many directions vote on whether a candidate probe stands inside a solid (`outside_directions`).
+#: A candidate is rejected when MORE THAN HALF of them first meet a face from behind.
+INSIDE_VOTES = 26
 #: Candidate points (or rays) handled in one numpy block.
 _BATCH = 1 << 20
 
@@ -101,6 +104,25 @@ def _lattice_points_in(tri: np.ndarray, x0: float, y0: float, grid: float):
     return np.concatenate(faces), np.vstack(points)
 
 
+def _back_votes(caster, normals: np.ndarray, points: np.ndarray) -> np.ndarray:
+    """(len(points),) int: how many of the `INSIDE_VOTES` fixed directions, cast from each point,
+    FIRST meet a face from BEHIND, that is, run the way the face's normal points. Standing inside a
+    closed solid every ray does. Standing in air the rays that meet anything meet a front, so only
+    a stray reversed plane gives a few. A ray that escapes, one whose first hit is a front face and
+    one whose first hit is a face with no normal are not backs."""
+    directions = outside_directions(INSIDE_VOTES)
+    k = len(directions)
+    votes = np.zeros(len(points), dtype=np.int64)
+    step = max(1, _BATCH // k)
+    for s in range(0, len(points), step):
+        block = points[s:s + step]
+        rays = np.tile(directions, (len(block), 1))
+        tri, _ = caster.first_hit(np.repeat(block, k, axis=0), rays)
+        back = (tri >= 0) & (np.einsum("ij,ij->i", normals[np.maximum(tri, 0)], rays) > 0.0)
+        votes[s:s + len(block)] = back.reshape(len(block), k).sum(axis=1)
+    return votes
+
+
 def interior_probes(mesh: MeshData, eye: float = 63.0, headroom: float = 83.0,
                     grid: float = 39.37, caster=None) -> np.ndarray:
     """(K, 3) float64 eye-height probe positions, `eye` (63 in = 1.6 m) above ground someone could
@@ -119,17 +141,25 @@ def interior_probes(mesh: MeshData, eye: float = 63.0, headroom: float = 83.0,
     Reuse the `caster` of `visibility.build_caster(mesh)` when there is one; otherwise one is built.
     The mesh must be in the Validator's frame (`ValueError` if not).
 
-    KNOWN LIMIT, measured in job P0-14. The headroom ray cannot tell open air from the inside of a
-    solid taller than `headroom`: a floor under a standing wall passes (the ray runs up inside the
-    wall to its top), and its probe stands INSIDE the wall, where it sees the backs of the wall's own
-    faces. On the CHTM 5th floor snapshot 181 of 1,577 probes (11.5 %) start inside a solid (their
-    upward ray's first hit is seen from BEHIND, 88 to 127 in up); on sidewalk A, 0 of 838. This
-    function follows the brief and does not filter them. Whoever turns what a probe sees into a
-    verdict (the Validator's checks, E3) has to decide how to treat them."""
+    NOT INSIDE A SOLID. The headroom ray cannot tell open air from the inside of a solid taller than
+    `headroom`: a floor under a standing wall passes, because the ray runs up inside the wall to its
+    top, and its probe would stand in the wall and see the backs of the wall's own faces. So the
+    eye-height point of every candidate also casts `INSIDE_VOTES` (26) fixed rays
+    (`outside_directions(26)`), and the candidate is dropped when MORE THAN HALF of them (more than
+    13) FIRST meet a face from BEHIND, `dot(normal, ray) > 0`. A ray that escapes, meets a front, or
+    meets a face with no normal is air. The vote runs before the dedupe, so a cell whose lattice
+    point lies in a wall can still get the open floor beside it. Exactly half is not more than half:
+    a probe on the plane of a two-sided zero-thickness wall splits 13 to 13 and stays.
+
+    Measured on real snapshots (job P0-14): CHTM 5th floor 1,577 probes became 1,397: 177 of the 181
+    whose upward ray meets a back are gone, plus 10 more in enclosed pockets; 3 of the 4 flagged
+    ones that stay stand exactly on such a wall. Every probe with no back vote at all (1,386 there)
+    is kept, on every floor tried; sidewalk A is unchanged at 838."""
     if not grid > 0.0:
         raise ValueError(f"grid must be positive, got {grid!r}")
     check_frame(mesh.positions, "mesh positions")
-    up = np.flatnonzero(face_normals(mesh)[:, 2] > UP_NZ)
+    normals = face_normals(mesh)
+    up = np.flatnonzero(normals[:, 2] > UP_NZ)
     if not len(up):
         return np.zeros((0, 3))
     tri = mesh.positions[mesh.face_v[up]]
@@ -150,6 +180,16 @@ def interior_probes(mesh: MeshData, eye: float = 63.0, headroom: float = 83.0,
         _, t = caster.first_hit(origins, np.tile([0.0, 0.0, 1.0], (len(origins), 1)))
         free[s:s + len(origins)] = t > headroom                          # a miss is t = inf
     candidates = candidates[free]
+    if not len(candidates):
+        return np.zeros((0, 3))
+
+    # The headroom ray cannot tell open air from the inside of a solid taller than `headroom`: under
+    # a standing wall it runs up INSIDE the wall to its top. So the eye-height point also casts
+    # `INSIDE_VOTES` rays, and a candidate that more than half of them first meet from behind is
+    # inside something closed and is dropped. Before the dedupe, so a cell whose lattice point lies
+    # in a wall can still get the open floor beside it.
+    keep = 2 * _back_votes(caster, normals, candidates + [0.0, 0.0, eye]) <= INSIDE_VOTES
+    candidates = candidates[keep]
     if not len(candidates):
         return np.zeros((0, 3))
 

@@ -16,7 +16,8 @@ from engine.rays.caster import BruteCaster
 from engine.tests.fixtures.build import closed_room, cube, grid_slab, sloped_slab, two_sided_wall
 from engine.validate.sampling import (MAX_FRAME_COORD, bbox_centre, check_frame, face_areas,
                                       face_normals, face_samples, recentred, used_bbox, uv_at)
-from engine.validate.viewpoints import interior_probes, outside_directions, pedestrian_ring
+from engine.validate.viewpoints import (INSIDE_VOTES, _back_votes, interior_probes, outside_directions,
+                                        pedestrian_ring)
 from engine.validate.visibility import MIN_COS, build_caster, visible_samples
 
 
@@ -647,3 +648,171 @@ def test_nonsense_arguments_are_refused_not_guessed_at():
     with pytest.raises(ValueError, match="cams"):
         visible_samples(m, face_samples(m), outside_directions(4), np.zeros((2, 2)), _no_points(),
                         build_caster(m))
+
+
+# ---------------------------------------------------------------------------------------------
+# Fix round 0: no probe stands inside a solid. The headroom ray cannot tell open air from the
+# inside of a wall taller than the headroom (it runs up inside the wall to its top), so each
+# candidate probe also casts VOTES rays from eye height and is dropped when MORE THAN HALF of them
+# first meet a face from BEHIND -- the signature of standing inside something closed.
+# ---------------------------------------------------------------------------------------------
+
+VOTES = 26                                  # the rays each candidate probe casts; the majority is > 13
+
+
+def test_the_vote_casts_26_rays_and_needs_more_than_13_backs():
+    assert INSIDE_VOTES == VOTES == 26
+
+
+def _wall(x0, x1, y0, y1, z0, z1, bottom=True):
+    """A closed box, wound outward: `cube(1)` stretched to these extents (faces 0-1 are its bottom,
+    which `bottom=False` leaves off, like the skirts of a real slab)."""
+    unit = cube(1.0)
+    box = dataclasses.replace(unit, positions=unit.positions * [x1 - x0, y1 - y0, z1 - z0] + [x0, y0, z0])
+    if bottom:
+        return box
+    keep = np.arange(box.n_faces) >= 2
+    return dataclasses.replace(box, face_v=box.face_v[keep], face_vt=box.face_vt[keep],
+                               face_vn=box.face_vn[keep], face_material=box.face_material[keep],
+                               face_line=box.face_line[keep])
+
+
+def _back_rays(mesh, points):
+    """For each point, how many of the VOTES directions first meet a face from BEHIND. Worked out
+    with the float64 brute-force caster, so the test does not lean on the code under test."""
+    caster = BruteCaster(mesh.positions, mesh.face_v)
+    normals = face_normals(mesh)
+    dirs = outside_directions(VOTES)
+    counts = []
+    for p in np.atleast_2d(points):
+        tri, _ = caster.first_hit(np.tile(p, (VOTES, 1)), dirs)
+        hit = tri >= 0
+        counts.append(int((hit & (np.einsum("ij,ij->i", normals[np.maximum(tri, 0)], dirs) > 0.0)).sum()))
+    return np.array(counts)
+
+
+def _in_the_box(points, lo, hi):
+    return ((points > np.asarray(lo)) & (points < np.asarray(hi))).all(axis=1)
+
+
+def test_no_probe_stands_inside_a_wall_taller_than_the_headroom():
+    floor = grid_slab(10, 10)                                           # 100 x 100 in at z = 0, faces +z
+    m = _merged(floor, _wall(40.0, 60.0, 0.0, 100.0, 0.0, 120.0))        # a closed box standing on it, 120 in tall
+    # the premise: from half an inch above the floor under the wall, the headroom ray runs up INSIDE
+    # the wall to its top, 119.5 in away, which clears 83 in -- the headroom rule alone lets it through
+    _, t = build_caster(m).first_hit(np.array([[59.055, 59.055, 0.5]]), np.array([[0.0, 0.0, 1.0]]))
+    assert t[0] > 83.0
+
+    probes = interior_probes(m)
+    in_the_wall = _in_the_box(probes, (40.0, 0.0, 0.0), (60.0, 100.0, 120.0))
+    assert not in_the_wall.any(), f"{int(in_the_wall.sum())} probes inside the wall: {probes[in_the_wall]}"
+
+    # the open floor beside the wall keeps every probe it had without the wall, and the strip of
+    # floor in the wall's own grid cell still gets one
+    bare = interior_probes(floor)
+    beside = bare[(bare[:, 0] < 40.0) | (bare[:, 0] > 60.0)]
+    assert len(beside) == 6
+    for p in beside:
+        assert np.isclose(probes, p).all(axis=1).any(), f"lost the open-floor probe at {p}"
+    on_the_floor = probes[np.isclose(probes[:, 2], 63.0)]
+    assert ((on_the_floor[:, 0] < 40.0) | (on_the_floor[:, 0] > 60.0)).all()
+    assert len(on_the_floor) == 9, "3 rows x (the strip west of the wall, the strip beside it, the strip east)"
+    # the top of the wall is open air and keeps its probes, 63 in above it
+    top = probes[probes[:, 2] > 120.0]
+    assert len(top) == 3 and np.allclose(top[:, 2], 183.0)
+
+
+def test_no_probe_stands_inside_a_wall_whose_bottom_is_missing():
+    # the skirts of a real slab have no bottom: the rays DOWN from inside escape through it onto the floor
+    # and count as air, so only the sides and the top vote, and they are still the majority
+    floor = grid_slab(10, 10)
+    m = _merged(floor, _wall(40.0, 60.0, 0.0, 100.0, 0.0, 120.0, bottom=False))
+    _, t = build_caster(m).first_hit(np.array([[59.055, 59.055, 0.5]]), np.array([[0.0, 0.0, 1.0]]))
+    assert t[0] > 83.0
+    inside = np.array([[59.055, 59.055, 63.0], [59.055, 19.685, 63.0], [59.055, 98.425, 63.0]])
+    assert (_back_rays(m, inside) > VOTES // 2).all(), "the premise: a probe in there sees mostly backs"
+    probes = interior_probes(m)
+    assert not _in_the_box(probes, (40.0, 0.0, 0.0), (60.0, 100.0, 120.0)).any()
+    assert len(probes[np.isclose(probes[:, 2], 63.0)]) == 9
+
+
+def test_the_vote_keeps_every_probe_in_a_closed_room_and_they_still_see_all_four_walls():
+    m = closed_room()
+    probes = interior_probes(m)
+    inside = _inside_the_room(probes)
+    assert inside.sum() == 20 and len(probes) == 40, "the room's 20 and the roof's 20, none dropped"
+    assert (_back_rays(m, probes) <= VOTES // 2).all(), "no probe is anywhere near a majority of backs"
+    s = face_samples(m, area_per_sample=500.0)
+    vs = visible_samples(m, s, _no_points(), _no_points(), probes[inside], build_caster(m))
+    assert vs.seen.shape[1] == 20
+    walls = np.isin(s.face, np.arange(4, 12))
+    assert vs.seen[walls].all() and vs.front[walls].all(), "all 4 inner walls, from the front, from every probe"
+
+
+def test_a_room_with_a_reversed_ceiling_keeps_its_probes():
+    room = _flipped(closed_room(), [2, 3])                    # the inner ceiling now faces UP, away from the room
+    assert np.allclose(face_normals(room)[2:4], [[0.0, 0.0, 1.0]] * 2)
+    probes = interior_probes(room)
+    inside = _inside_the_room(probes)
+    assert inside.sum() == 20 and len(probes) == 40
+    # only the rays that reach the ceiling meet a back, and they are never more than the 13 that point
+    # up, so they can never be a majority: the vote cannot mistake a room for a solid over one reversed plane
+    back = _back_rays(room, probes[inside])
+    assert back.min() >= 1, "the reversed ceiling really does give backs"
+    assert back.max() <= VOTES // 2
+
+
+def test_the_probes_of_a_floor_with_a_wall_repeat_exactly():
+    m = _merged(grid_slab(10, 10), _wall(40.0, 60.0, 0.0, 100.0, 0.0, 120.0))
+    assert np.array_equal(interior_probes(m), interior_probes(m))
+    room = closed_room()
+    assert np.array_equal(interior_probes(room), interior_probes(room))
+
+
+def test_the_votes_equal_an_independent_brute_force_count_and_repeat_exactly():
+    wall = _merged(grid_slab(10, 10), _wall(40.0, 60.0, 0.0, 100.0, 0.0, 120.0))
+    open_bottom = _merged(grid_slab(10, 10), _wall(40.0, 60.0, 0.0, 100.0, 0.0, 120.0, bottom=False))
+    reversed_ceiling = _flipped(closed_room(), [2, 3])
+    inside_wall = np.array([[59.055, 59.055, 63.0], [59.055, 19.685, 63.0]])
+    beside_wall = np.array([[19.685, 59.055, 63.0], [98.425, 98.425, 63.0]])
+    above_wall = np.array([[59.055, 59.055, 183.0]])
+    scenes = {
+        "wall": (wall, np.vstack([inside_wall, beside_wall, above_wall])),
+        "open-bottom wall": (open_bottom, np.vstack([inside_wall, beside_wall])),
+        "reversed ceiling": (reversed_ceiling, interior_probes(reversed_ceiling)),
+        "closed room": (closed_room(), interior_probes(closed_room())),
+    }
+    for name, (mesh, points) in scenes.items():
+        caster, normals = build_caster(mesh), face_normals(mesh)
+        votes = _back_votes(caster, normals, points)
+        assert np.array_equal(votes, _back_rays(mesh, points)), name
+        assert np.array_equal(votes, _back_votes(caster, normals, points)), f"{name}: not repeatable"
+    caster, normals = build_caster(wall), face_normals(wall)
+    assert (_back_votes(caster, normals, inside_wall) == VOTES).all(), "inside the wall: every ray a back"
+    assert (_back_votes(caster, normals, beside_wall) == 0).all(), "in the open beside it: none"
+    assert (_back_votes(caster, normals, above_wall) == 0).all(), "above it: none"
+
+
+def test_a_probe_low_in_a_wall_is_a_majority_of_backs_whichever_way_a_coincident_pair_ties():
+    # 10 in above the floor, inside the wall: the rays down meet the floor's top (a front) and the wall's
+    # bottom (a back) at ONE depth, and Embree and the brute-force caster break that tie differently
+    # (23 and 21 backs here). At most 13 rays point down, so the 13 up and the sides settle it either way.
+    m = _merged(grid_slab(10, 10), _wall(40.0, 60.0, 0.0, 100.0, 0.0, 120.0))
+    low = np.array([[50.0, 50.0, 10.0]])
+    embree = _back_votes(build_caster(m), face_normals(m), low)[0]
+    brute = _back_rays(m, low)[0]
+    assert embree > VOTES // 2 and brute > VOTES // 2
+    assert abs(int(embree) - int(brute)) <= 13, "they can differ only by the rays that go down"
+
+
+def test_exactly_half_of_the_rays_meeting_backs_is_not_a_majority():
+    # A 1 in tile facing up (no one of the 26 rays can hit it) over a huge plate facing DOWN, 0.5 in
+    # below: the 13 rays that point down all meet the plate's back, the 13 that point up escape. 13 is
+    # exactly half, which is not more than half: the probe stays.
+    tile = grid_slab(1, 1, cell=1.0)
+    big = grid_slab(1, 1, cell=6000.0)
+    below = _flipped(dataclasses.replace(big, positions=big.positions + [-3000.0, -3000.0, -0.5]))
+    m = _merged(tile, below)
+    probes = interior_probes(m)
+    assert probes.shape == (1, 3) and np.isclose(probes[0, 2], 63.0)
+    assert _back_rays(m, probes)[0] == VOTES // 2 == 13
