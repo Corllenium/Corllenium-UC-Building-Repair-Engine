@@ -309,3 +309,10 @@ Spec: docs/superpowers/specs/2026-10-03-uc-repair-engine-design.md (2a748d4, app
   - Targets: exactness met; CHTM 5th >= 3x met; 91 k >= 5x NOT met; new peak <= old NOT met.
   - Ruling: merge for the census (exact and 3.2-3.4x faster; units stay far below the 1,800 s timeout), with a follow-up S3b for speed and memory -- the census runs at fewer jobs because of memory -- costs one follow-up job.
   - In flight: Hermes writes the report and runs the full suite (no code); hermes-reviewer reviews the code (2b9b0a4..9e34d77) and the memory culprits; the controller profiles the new function on the 91 k unit for S3b.
+- S3 profile, new double_layers on Gymnasium_5th_floor_and_roof (91,714 faces), cProfile, 179 s:
+  - set.update 97.2 s (163,702 calls): candidate-pair dedupe in a Python set;
+  - double_layers' own Python 25.6 s;
+  - ndarray.tolist 9.6 s (122,943) and triu_indices 11.9 s (122,942): per-cell pair building;
+  - dict.setdefault 4.0 s (6.1 M): per (face, cell) entry;
+  - shapely intersection 6.6 s (one vectorised call); renders ~12 s.
+  - S3b direction: build (face, cell) entries with numpy, generate pairs per cell vectorised, and dedupe with np.unique on int64 keys (i*N + j). This also cuts the memory, since a Python set of millions of ints is the likely 1,250 MB peak.
