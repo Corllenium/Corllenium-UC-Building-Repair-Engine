@@ -659,7 +659,27 @@ def validate(before: MeshData, after: MeshData, looks: Looks, *, errors=None, ta
     BEFORE's bounding-box centre for both. The viewpoints (`dirs`, `cams`, `probes`, `extra_dirs`) are
     BEFORE's and are made once, here, unless given; the probes are never recomputed for AFTER.
     `errors` is the `(before, after)` pair of `find_errors` results for check 2, run here when None.
-    `progress(done, total)` is called after each chunk of samples."""
+    `progress(done, total)` is called after each chunk of samples.
+
+    The report (`Validation.report`, which the `validate` command writes as `validation.json`):
+
+    * `verdict`: "FAIL" if any check is FAIL, else "PASS". A check 2 that is REPORT_ONLY (the targets
+      are unsigned) does not fail the verdict; `checks.problems.signed` says whether it could have.
+    * `checks.textures` (check 1): `status`, `samples` (the ones some standard viewpoint sees),
+      `samples_failed`, `faces`, `faces_failed`, `area_failed_in2` and `reasons`, how many failed first
+      by `covered`, `deleted` (nothing at that depth), `look`, `uv` or `side` (BEFORE's front seen,
+      AFTER's back).
+    * `checks.nothing_deleted` (check 3): `status`, `samples` (the above plus `samples_extra`, which only
+      the extra directions of a face that is gone saw), `suspect_faces`, `deleted`, `replaced` (something
+      is there, in another look), `covered`, `faces_unmet` (every tested sample of the face), `faces_partly_unmet`,
+      `faces_covered` and the areas.
+    * `checks.problems` (check 2): per `find_errors` kind `before`, `after`, `target` ("unsigned",
+      "listed" or the number), `status` and `residual` (AFTER's spots with their `centre`).
+    * `sites`: the failing samples grouped (`id` 1 is the worst), each with `centre` and `size` in the
+      model's coordinates, `samples`, `area_in2`, `checks` it failed, `reasons`, `faces` (BEFORE's face
+      numbers) and `evidence` (paths, once `evidence.write_evidence` has run); `sites_total` counts all.
+    * the rest: `viewpoints`, `settings`, `notes` (non-default settings), `frame.centre`, `print_step_in`,
+      `depth_tolerance_in`, `before` and `after` sizes, `materials` unknown to `materials.json`, `timings_s`."""
     clock = {"start": time.perf_counter()}
     step = print_step(before)
     tol = depth_tolerance(step)
