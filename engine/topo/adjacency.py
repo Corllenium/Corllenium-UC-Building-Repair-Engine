@@ -133,6 +133,9 @@ def find_t_vertices(positions_w: np.ndarray, table: EdgeTable, tol: float,
         Dict mapping edge index `e` to an int64 array of T-vertex indices ordered
         along the edge from `table.edges[e, 0]` to `table.edges[e, 1]`.
     """
+    if chunk_pairs < 1:
+        raise ValueError(f"chunk_pairs must be >= 1, got {chunk_pairs}")
+
     n_edges = len(table.edges)
     if n_edges == 0:
         if stats is not None:
@@ -185,8 +188,6 @@ def find_t_vertices(positions_w: np.ndarray, table: EdgeTable, tol: float,
 
     def eval_chunk(count: int) -> None:
         nonlocal pairs_tested, pairs_peak
-        if count == 0:
-            return
         pairs_tested += count
         if count > pairs_peak:
             pairs_peak = count

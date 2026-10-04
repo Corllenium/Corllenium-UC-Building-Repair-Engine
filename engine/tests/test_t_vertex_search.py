@@ -364,5 +364,14 @@ def test_oracle_equality_with_chunk_pairs_2():
     assert stats["pairs_tested"] > 1000
 
 
+@pytest.mark.parametrize("bad_chunk", [0, -1, -100])
+def test_chunk_pairs_validation(bad_chunk):
+    """chunk_pairs < 1 must raise a clear ValueError."""
+    Pw, fw, ok, table = _scene(0, n_walls=1, depth=2)
+    with pytest.raises(ValueError, match=r"chunk_pairs must be >= 1"):
+        find_t_vertices(Pw, table, TOL, chunk_pairs=bad_chunk)
+
+
+
 
 
