@@ -407,11 +407,13 @@ def remove_overlaps(mesh: MeshData, topo: Topology, positions_c: np.ndarray, fla
 DOUBLE_LAYER_MIN_AREA = 1.0
 
 
-def double_layers(positions_c: np.ndarray, faces: np.ndarray, depth_tol: float,
-                  views=None, size: tuple[int, int] = (900, 600), caster_factory=EmbreeCaster,
-                  min_area: float = DOUBLE_LAYER_MIN_AREA,
-                  centre: np.ndarray | None = None) -> dict:
-    """Brief 15 item 1 -- brief 14's measurement of what can still flicker in Unity, cheap enough
+def double_layers_reference(positions_c: np.ndarray, faces: np.ndarray, depth_tol: float,
+                            views=None, size: tuple[int, int] = (900, 600), caster_factory=EmbreeCaster,
+                            min_area: float = DOUBLE_LAYER_MIN_AREA,
+                            centre: np.ndarray | None = None) -> dict:
+    """Test oracle: the original double_layers implementation. Kept verbatim and must not change.
+
+    Brief 15 item 1 -- brief 14's measurement of what can still flicker in Unity, cheap enough
     for every run. A DOUBLE LAYER is two of `faces` whose outlines share more than `min_area` sq in
     within ONE plane: parallel (`|n . m| > PLANE_PARALLEL_DOT`), every corner of each within
     `depth_tol` of the other's plane -- the band the guard itself calls one surface. Any winding,
@@ -563,3 +565,305 @@ def double_layers(positions_c: np.ndarray, faces: np.ndarray, depth_tol: float,
                        key=lambda p: (-p[2], p[0], p[1]))
     return {"count": len(pairs), "area": round(sum(s for _i, _j, s, _o in pairs), 3),
             "px": int(sum(px_plane)), "planes": out_planes, "pair_list": pair_list}
+
+
+def double_layers(positions_c: np.ndarray, faces: np.ndarray, depth_tol: float,
+                  views=None, size: tuple[int, int] = (900, 600), caster_factory=EmbreeCaster,
+                  min_area: float = DOUBLE_LAYER_MIN_AREA,
+                  centre: np.ndarray | None = None, *,
+                  stats: dict | None = None,
+                  chunk_rows: int = 1_000_000) -> dict:
+    """Brief 15 item 1 / P1-S3: double layers detection, made sub-quadratic.
+    Returns identical results to double_layers_reference with bounded memory and
+    spatial candidate search.
+    """
+    from engine.guard.views import VIEWS_26, ortho_first_hit
+    from engine.rays.caster import ReusableCaster
+
+    if stats is not None:
+        stats["bbox_pairs"] = 0
+        stats["pairs_tested"] = 0
+        stats["pixel_rows_max"] = 0
+
+    views = VIEWS_26 if views is None else views
+    positions_c = np.asarray(positions_c, dtype=np.float64)
+    faces = np.asarray(faces, dtype=np.int64)
+    empty = {"count": 0, "area": 0.0, "px": 0, "planes": [], "pair_list": []}
+    if not len(faces):
+        return empty
+
+    tri = positions_c[faces]
+    cross = np.cross(tri[:, 1] - tri[:, 0], tri[:, 2] - tri[:, 0])
+    length = np.linalg.norm(cross, axis=1)
+    ok = length > 1e-12
+    normal = np.zeros_like(cross)
+    normal[ok] = cross[ok] / length[ok, None]
+    lo, hi = tri.min(axis=1) - depth_tol, tri.max(axis=1) + depth_tol
+    ids = np.nonzero(ok)[0]
+    if len(ids) < 2:
+        return empty
+
+    # Cell size tied to typical face size, never largest face or whole scene
+    sz = tri[ids].max(axis=1) - tri[ids].min(axis=1)
+    diag = np.linalg.norm(sz, axis=1)
+    med = float(np.median(diag))
+    cell_size = max(med * 1.0, 2.0 * depth_tol, 1e-6)
+
+    c_lo = np.floor(lo[ids] / cell_size).astype(np.int64)
+    c_hi = np.floor(hi[ids] / cell_size).astype(np.int64)
+
+    grid: dict[tuple[int, int, int], list[int]] = {}
+    for idx, k in enumerate(ids):
+        for x in range(c_lo[idx, 0], c_hi[idx, 0] + 1):
+            for y in range(c_lo[idx, 1], c_hi[idx, 1] + 1):
+                for z in range(c_lo[idx, 2], c_hi[idx, 2] + 1):
+                    grid.setdefault((x, y, z), []).append(int(k))
+
+    pairs: set[int] = set()
+    for c_faces in grid.values():
+        n = len(c_faces)
+        if n == 2:
+            pairs.add((c_faces[0] << 32) | c_faces[1])
+        elif n == 3:
+            pairs.add((c_faces[0] << 32) | c_faces[1])
+            pairs.add((c_faces[0] << 32) | c_faces[2])
+            pairs.add((c_faces[1] << 32) | c_faces[2])
+        elif n > 3 and n <= 10:
+            for i in range(n):
+                pref = c_faces[i] << 32
+                for j in range(i + 1, n):
+                    pairs.add(pref | c_faces[j])
+        elif n > 10:
+            f = np.asarray(c_faces, dtype=np.uint64)
+            ii, jj = np.triu_indices(n, k=1)
+            pairs.update(((f[ii] << np.uint64(32)) | f[jj]).tolist())
+
+    del grid
+    if stats is not None:
+        stats["bbox_pairs"] = len(pairs)
+    if not pairs:
+        return empty
+
+    pairs_arr = np.fromiter(pairs, dtype=np.uint64, count=len(pairs))
+    del pairs
+    pairs_arr.sort()
+    i_arr = (pairs_arr >> np.uint64(32)).astype(np.int64)
+    j_arr = (pairs_arr & np.uint64(0xFFFFFFFF)).astype(np.int64)
+    del pairs_arr
+
+    # Box test & parallel test vectorized
+    box_ok = (lo[i_arr, 0] <= hi[j_arr, 0]) & (hi[i_arr, 0] >= lo[j_arr, 0])
+    box_ok &= (lo[i_arr, 1] <= hi[j_arr, 1]) & (hi[i_arr, 1] >= lo[j_arr, 1])
+    box_ok &= (lo[i_arr, 2] <= hi[j_arr, 2]) & (hi[i_arr, 2] >= lo[j_arr, 2])
+    dot = (normal[i_arr] * normal[j_arr]).sum(axis=1)
+    cand = box_ok & (np.abs(dot) > PLANE_PARALLEL_DOT)
+    if stats is not None:
+        stats["pairs_tested"] = int(cand.sum())
+    if not cand.any():
+        return empty
+
+    i_cand = i_arr[cand]
+    j_cand = j_arr[cand]
+    del i_arr, j_arr, box_ok, dot, cand
+
+    # Separation test vectorized
+    v0_i = tri[i_cand, 0]
+    v0_j = tri[j_cand, 0]
+    n_i = normal[i_cand]
+    n_j = normal[j_cand]
+
+    diff_j = tri[j_cand] - v0_i[:, None, :]
+    dist_j = np.abs(diff_j[:, :, 0] * n_i[:, None, 0] + diff_j[:, :, 1] * n_i[:, None, 1] + diff_j[:, :, 2] * n_i[:, None, 2])
+    sep_j = dist_j.max(axis=1)
+
+    diff_i = tri[i_cand] - v0_j[:, None, :]
+    dist_i = np.abs(diff_i[:, :, 0] * n_j[:, None, 0] + diff_i[:, :, 1] * n_j[:, None, 1] + diff_i[:, :, 2] * n_j[:, None, 2])
+    sep_i = dist_i.max(axis=1)
+
+    sep_ok = np.maximum(sep_j, sep_i) <= depth_tol
+    if not sep_ok.any():
+        return empty
+
+    i_surv = i_cand[sep_ok]
+    j_surv = j_cand[sep_ok]
+    del diff_j, dist_j, sep_j, diff_i, dist_i, sep_i, sep_ok, i_cand, j_cand, v0_j, n_j
+
+    # Vectorized plane_basis and shared area
+    n_surv = normal[i_surv]
+    a = np.zeros_like(n_surv)
+    use_x = np.abs(n_surv[:, 0]) < 0.9
+    a[use_x, 0] = 1.0
+    a[~use_x, 1] = 1.0
+    e1 = np.cross(n_surv, a)
+    e1 /= np.linalg.norm(e1, axis=1, keepdims=True)
+    e2 = np.cross(n_surv, e1)
+
+    v0_surv = tri[i_surv, 0]
+    tri_i_rel = tri[i_surv] - v0_surv[:, None, :]
+    tri_j_rel = tri[j_surv] - v0_surv[:, None, :]
+
+    pts_i = np.stack([(tri_i_rel * e1[:, None, :]).sum(axis=-1), (tri_i_rel * e2[:, None, :]).sum(axis=-1)], axis=-1)
+    pts_j = np.stack([(tri_j_rel * e1[:, None, :]).sum(axis=-1), (tri_j_rel * e2[:, None, :]).sum(axis=-1)], axis=-1)
+
+    # 2D bounding box intersection area upper-bound prefilter
+    inter_min = np.maximum(pts_i.min(axis=1), pts_j.min(axis=1))
+    inter_max = np.minimum(pts_i.max(axis=1), pts_j.max(axis=1))
+    inter_dim = np.maximum(inter_max - inter_min, 0.0)
+    box2d_ok = (inter_dim[:, 0] * inter_dim[:, 1]) > min_area
+    if not box2d_ok.any():
+        return empty
+
+    i_box2d = i_surv[box2d_ok]
+    j_box2d = j_surv[box2d_ok]
+    pts_i_sub = pts_i[box2d_ok]
+    pts_j_sub = pts_j[box2d_ok]
+
+    polys_i = shapely.polygons(np.concatenate([pts_i_sub, pts_i_sub[:, :1]], axis=1))
+    polys_j = shapely.polygons(np.concatenate([pts_j_sub, pts_j_sub[:, :1]], axis=1))
+    shared = np.asarray(shapely.area(shapely.intersection(polys_i, polys_j)))
+
+    keep = shared > min_area
+    if not keep.any():
+        return empty
+
+    i_keep = i_box2d[keep]
+    j_keep = j_box2d[keep]
+    shared_keep = shared[keep]
+    opp_keep = (normal[i_keep] * normal[j_keep]).sum(axis=1) < 0.0
+
+    pairs_final = [(int(i_keep[k]), int(j_keep[k]), float(shared_keep[k]), bool(opp_keep[k]))
+                   for k in range(len(i_keep))]
+
+    # The planes: pairs whose faces share a plane (parallel, offsets within tolerance)
+    def plane_of(f):
+        n = normal[f].copy()
+        if n[int(np.argmax(np.abs(n)))] < 0.0:
+            n = -n
+        return n, float(tri[f][0] @ n)
+
+    planes: list[dict] = []
+    plane_n = np.zeros((max(len(pairs_final) // 4, 32), 3), dtype=np.float64)
+    plane_d = np.zeros(len(plane_n), dtype=np.float64)
+    num_p = 0
+
+    for i, j, s_val, opposite in pairs_final:
+        n, d = plane_of(i)
+        matched_idx = -1
+        if num_p > 0:
+            dots = np.abs(plane_n[:num_p] @ n) > PLANE_PARALLEL_DOT
+            d_ok = np.abs(plane_d[:num_p] - d) <= depth_tol
+            matches = dots & d_ok
+            if matches.any():
+                matched_idx = int(np.argmax(matches))
+
+        if matched_idx >= 0:
+            p = planes[matched_idx]
+        else:
+            p = {"_n": n, "_d": d, "_faces": set(), "_pairs": [], "_c": []}
+            planes.append(p)
+            if num_p == len(plane_n):
+                plane_n = np.resize(plane_n, (num_p * 2, 3))
+                plane_d = np.resize(plane_d, num_p * 2)
+            plane_n[num_p] = n
+            plane_d[num_p] = d
+            num_p += 1
+
+        p["_faces"].update((i, j))
+        p["_pairs"].append((i, j, s_val, opposite))
+        p["_c"].append((tri[i].mean(axis=0) + tri[j].mean(axis=0)) / 2.0)
+
+    # The pixels: first hit on a face of a pair, ray meets partner within depth_tol
+    partners: dict[int, set] = {}
+    plane_index: dict[int, int] = {}
+    for k, p in enumerate(planes):
+        for i, j, _s, _o in p["_pairs"]:
+            partners.setdefault(i, set()).add(j)
+            partners.setdefault(j, set()).add(i)
+            plane_index[i] = plane_index[j] = k
+    ids_all = np.arange(len(faces), dtype=np.int64)
+    reusable = ReusableCaster(caster_factory)
+    px_plane = np.zeros(len(planes), dtype=np.int64)
+
+    ptr = np.zeros(len(faces) + 1, dtype=np.int64)
+    for f, ps in partners.items():
+        ptr[f + 1] = len(ps)
+    ptr = np.cumsum(ptr)
+    idx = np.zeros(int(ptr[-1]), dtype=np.int64)
+    for f, ps in partners.items():
+        idx[ptr[f]:ptr[f + 1]] = sorted(ps)
+    plane_of_face = np.full(len(faces), -1, dtype=np.int64)
+    for f, k in plane_index.items():
+        plane_of_face[f] = k
+    watched = np.array(sorted(partners), dtype=np.int64)
+    is_watched = np.zeros(len(faces), dtype=bool)
+    is_watched[watched] = True
+
+    max_batch = 0
+    for view in views:
+        buf = ortho_first_hit(positions_c, faces, ids_all, view, positions_c, size, reusable)
+        mask = (buf.tri >= 0) & is_watched[np.maximum(buf.tri, 0)]
+        if not mask.any():
+            continue
+        rows, cols = np.nonzero(mask)
+        first_f = buf.tri[rows, cols].astype(np.int64)
+        first_t = buf.depth[rows, cols]
+        origins = buf.xs[cols][:, None] * buf.right + buf.ys[rows][:, None] * buf.up + buf.standoff
+        direction = np.asarray(buf.direction, dtype=np.float64)
+
+        counts = ptr[first_f + 1] - ptr[first_f]
+        pix = np.repeat(np.arange(len(first_f)), counts)
+        starts = np.repeat(ptr[first_f] - np.concatenate(([0], np.cumsum(counts)[:-1])), counts)
+        partner = idx[starts + np.arange(len(pix))]
+
+        total_rows = len(pix)
+        pixel_met = np.zeros(len(first_f), dtype=bool)
+
+        for ch_start in range(0, total_rows, chunk_rows):
+            ch_end = min(ch_start + chunk_rows, total_rows)
+            batch_len = ch_end - ch_start
+            if batch_len > max_batch:
+                max_batch = batch_len
+            ch_pix = pix[ch_start:ch_end]
+            ch_partner = partner[ch_start:ch_end]
+
+            v0 = tri[ch_partner, 0]
+            e1 = tri[ch_partner, 1] - v0
+            e2 = tri[ch_partner, 2] - v0
+            pvec = np.cross(np.broadcast_to(direction, e2.shape), e2)
+            det = np.einsum("ij,ij->i", e1, pvec)
+            usable = np.abs(det) > 1e-12
+            inv = np.where(usable, 1.0 / np.where(usable, det, 1.0), 0.0)
+            s_vec = origins[ch_pix] - v0
+            u = np.einsum("ij,ij->i", s_vec, pvec) * inv
+            qvec = np.cross(s_vec, e1)
+            v = (qvec @ direction) * inv
+            t = np.einsum("ij,ij->i", e2, qvec) * inv
+            eps = 1e-6
+            met = usable & (u >= -eps) & (v >= -eps) & (u + v <= 1.0 + eps) & (np.abs(t - first_t[ch_pix]) <= depth_tol)
+            pixel_met[ch_pix[met]] = True
+
+        counted = np.nonzero(pixel_met)[0]
+        np.add.at(px_plane, plane_of_face[first_f[counted]], 1)
+
+    if stats is not None:
+        stats["pixel_rows_max"] = max_batch
+    px_plane = px_plane.tolist()
+
+    shift = np.zeros(3) if centre is None else np.asarray(centre, dtype=np.float64)
+    out_planes = []
+    for k, p in enumerate(planes):
+        out_planes.append({
+            "normal": [round(float(v), 4) for v in p["_n"]],
+            "offset": round(p["_d"] + float(p["_n"] @ shift), 4),
+            "centroid": [round(float(v), 2) for v in np.mean(p["_c"], axis=0) + shift],
+            "faces": sorted(int(f) for f in p["_faces"]),
+            "pairs": len(p["_pairs"]),
+            "opposite": sum(1 for _i, _j, _s, o in p["_pairs"] if o),
+            "area": round(sum(s for _i, _j, s, _o in p["_pairs"]), 3),
+            "px": px_plane[k]})
+    out_planes.sort(key=lambda p: (-p["area"], p["faces"]))
+    pair_list = sorted(([int(i), int(j), round(float(s), 3), bool(o)] for i, j, s, o in pairs_final),
+                       key=lambda p: (-p[2], p[0], p[1]))
+    return {"count": len(pairs_final), "area": round(sum(s for _i, _j, s, _o in pairs_final), 3),
+            "px": int(sum(px_plane)), "planes": out_planes, "pair_list": pair_list}
+
