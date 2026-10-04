@@ -245,3 +245,7 @@ Spec: docs/superpowers/specs/2026-10-03-uc-repair-engine-design.md (2a748d4, app
   - 7 Minors carried: the step-off jumps < 0.02 in layers; check_caster faces equality; _rows shape; face id validation; LEVEL wording; 2 surviving mutants; trimesh near-parallel first_hit.
   - done + review --pass; merged into feat/repair-p0 (7211b82); 49 tests pass after the merge.
 - P0-15 claimed; worktree .claude/worktrees/P0-15 (claude/P0-15 from 7211b82). Carried items in task-15-carried.md (6 required, plus design notes). Implementer dispatched (engine-builder, sonnet).
+- P0-10 re-review (rules-reviewer, sonnet): PASS. All 7 findings addressed; reverts and the probe verified; the md is byte-identical and the JSON has 0 differing leaves.
+  - done + review --pass; merged into feat/repair-p0 (a15c466). cli.py conflict resolved by keeping campus-skp-check and campus-inventory.
+  - After the merge: 269 targeted tests pass, and the real run's md equals the committed blob (the working-tree copy is CRLF by autocrlf).
+- P1-S3 Hermes run stopped at the 2 h limit, with commit 276d3a9 (the grid) plus uncommitted optimisations (cell size, a 2D box pre-filter, plane clustering). The controller ran the S3 tests on that state: 19 passed. Relaunched to commit, then run Item 2 (acceptance on 4 snapshots, before/after sha, full suite) and the report, with no more optimisation unless a target fails.
