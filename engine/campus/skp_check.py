@@ -198,10 +198,51 @@ def _entry(row: dict, unit: dict, paired_by: str, bbox_tol: float, area_tol: flo
             "reasons": reasons}
 
 
-def family_of(name: str) -> str:
-    """`name` without the number the exporter puts on the second of two groups of one name
-    (`BRS_4th_floor_obj1`), or on a nameless group (`Group137`)."""
-    return re.sub(r"\d+$", "", name) or name
+def _numbered(name: str, key: str) -> bool:
+    """Is `name` the file of the group called `key`, or that name with the number the exporter adds to
+    the second of two groups of one name (`BRS_4th_floor_obj1`) or to a nameless group (`Group137`)?"""
+    return name == key or (name.startswith(key) and name[len(key):].isdigit())
+
+
+def _clusters(rows: list[dict], units: list[dict]) -> list[tuple[list[dict], list[dict]]]:
+    """`(files, groups)` clusters that can only be paired among themselves: the files' own, exact ones
+    first, then the families and the lone files in the order of their first file, then the groups no file
+    wants in the order of the walk.
+
+    Names are matched exactly first: a file and a group of one name that no other file or group of that
+    name shares are a cluster of their own (so `Level_2` and `Level_3`, two real names, never borrow each
+    other's group). What is left is joined by the exporter's numbering (`_numbered`): the files and
+    groups of one name and of that name with digits after it are one cluster -- a family. A file with no
+    group, or a group with no file, is a cluster of one."""
+    by_name: dict[str, list[dict]] = {}
+    by_key: dict[str, list[dict]] = {}
+    for r in rows:
+        by_name.setdefault(r["name"], []).append(r)
+    for u in units:
+        by_key.setdefault(u["key"], []).append(u)
+    exact = {n for n, rs in by_name.items() if len(rs) == 1 and len(by_key.get(n, ())) == 1}
+    clusters = [([r], [by_key[r["name"]][0]]) for r in rows if r["name"] in exact]
+    rest_rows = [r for r in rows if r["name"] not in exact]
+    rest_units = [u for u in units if u["key"] not in exact]
+
+    parent = list(range(len(rest_rows) + len(rest_units)))
+
+    def find(i: int) -> int:
+        while parent[i] != i:
+            parent[i] = parent[parent[i]]
+            i = parent[i]
+        return i
+
+    for i, r in enumerate(rest_rows):
+        for j, u in enumerate(rest_units):
+            if _numbered(r["name"], u["key"]):
+                parent[find(i)] = find(len(rest_rows) + j)
+    joined: dict[int, tuple[list[dict], list[dict]]] = {}
+    for i, r in enumerate(rest_rows):
+        joined.setdefault(find(i), ([], []))[0].append(r)
+    for j, u in enumerate(rest_units):
+        joined.setdefault(find(len(rest_rows) + j), ([], []))[1].append(u)
+    return clusters + list(joined.values())      # files first, then groups no file wants, each in order
 
 
 def _distance(row: dict, unit: dict) -> float:
@@ -247,19 +288,14 @@ def compare(rows: list[dict], units: list[dict], *, bbox_tol: float, area_tol: f
       then in no other list) when they could not;
     * `misses`: files with no group in the backup, `sdk_only`: groups with no file.
 
-    A family is the files and the units whose names differ at most by trailing digits. When it has
-    as many files as groups, and exactly one way to pair them is close and clearly better than every
-    other, the files are paired that way (`geometry`), since the name cannot say which is which."""
-    families: dict[str, dict] = {}
-    for r in rows:
-        families.setdefault(family_of(r["name"]), {"rows": [], "units": []})["rows"].append(r)
-    for u in units:
-        families.setdefault(family_of(u["key"]), {"rows": [], "units": []})["units"].append(u)
-
+    A family is the files and the groups whose names are the same or differ by the exporter's number
+    (`_clusters`; a file and a group that share a name nobody else has are paired by name first). When
+    it has as many files as groups, and exactly one way to pair them is close and clearly better than
+    every other, the files are paired that way (`geometry`), since the name cannot say which is which."""
     entries: dict[str, dict] = {}
     result = {"matches": [], "mismatches": [], "ambiguities": [], "misses": [], "sdk_only": []}
-    for family, members in families.items():
-        frows, funits = members["rows"], members["units"]
+    for frows, funits in _clusters(rows, units):
+        family = min((u["key"] for u in funits), key=len, default="")
         if not funits:
             for r in frows:
                 result["misses"].append({

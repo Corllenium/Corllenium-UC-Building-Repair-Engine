@@ -374,6 +374,60 @@ def test_one_unit_and_one_file_with_a_number_on_the_name_are_paired_by_the_famil
     assert m["paired_by"] == "name_family"
 
 
+def test_names_that_differ_by_a_number_but_are_both_real_are_paired_by_name_not_by_shape():
+    """Level_2 and Level_3 are two groups someone named, not the exporter's numbering: each file goes to the
+    group of its own name, and shapes that happen to be swapped make two mismatches, not a better pairing."""
+    rows = [row("Level_2", 1000.0, box(0, 0, 10, 100)), row("Level_3", 4000.0, box(200, 0, 240, 100))]
+    units = [unit("Level_2", 4000.0, box(200, 0, 240, 100)), unit("Level_3", 1000.0, box(0, 0, 10, 100))]
+    result = compared(rows, units)
+    assert result["ambiguities"] == [] and result["matches"] == []
+    assert sorted((m["name"], m["paired_by"]) for m in result["mismatches"]) == [
+        ("Level_2", "name"), ("Level_3", "name")]
+
+
+def test_the_exporters_number_is_only_taken_off_a_name_when_what_is_left_is_a_group():
+    """Floor_10 is the exporter's number on Floor_1 only if no group of its own name is missing: here the
+    backup has Floor_1 and no Floor_10, so Floor_1 is matched by name and Floor_10 is a miss."""
+    rows = [row("Floor_1", 100.0, box(0, 0, 1, 100)), row("Floor_10", 100.0, box(5, 0, 6, 100))]
+    result = compared(rows, [unit("Floor_1", 100.0, box(0, 0, 1, 100))])
+    assert [(m["name"], m["paired_by"]) for m in result["matches"]] == [("Floor_1", "name")]
+    assert [m["name"] for m in result["misses"]] == ["Floor_10"]
+    assert result["ambiguities"] == [] and result["mismatches"] == []
+
+
+def test_a_name_with_more_than_digits_added_is_not_the_exporters_number():
+    result = compared([row("Floor_1_extra", 100.0, box(0, 0, 1, 100))],
+                      [unit("Floor_1", 100.0, box(0, 0, 1, 100))])
+    assert result["matches"] == result["ambiguities"] == []
+    assert [m["name"] for m in result["misses"]] == ["Floor_1_extra"]
+    assert [u["key"] for u in result["sdk_only"]] == ["Floor_1"]
+
+
+def test_ambiguities_misses_and_sdk_only_groups_are_listed_in_the_order_they_came():
+    rows = [row("Z_floor", 100.0, box(0, 0, 1, 100)), row("Z_floor1", 100.0, box(0, 0, 1, 100)),
+            row("Lost_b", 1.0, box(0, 0, 1, 1)), row("A_floor", 100.0, box(0, 0, 1, 100)),
+            row("A_floor1", 100.0, box(0, 0, 1, 100)), row("Lost_a", 1.0, box(0, 0, 1, 1))]
+    units = [unit("A_floor", 100.0, box(0, 0, 1, 100)), unit("A_floor", 100.0, box(0, 0, 1, 100)),
+             unit("Y_floor", 1.0, box(0, 0, 1, 1)), unit("Z_floor", 100.0, box(0, 0, 1, 100)),
+             unit("Z_floor", 100.0, box(0, 0, 1, 100)), unit("X_floor", 1.0, box(0, 0, 1, 1))]
+    result = compared(rows, units)
+    assert [a["family"] for a in result["ambiguities"]] == ["Z_floor", "A_floor"]     # by the first file
+    assert [m["name"] for m in result["misses"]] == ["Lost_b", "Lost_a"]
+    assert [u["key"] for u in result["sdk_only"]] == ["Y_floor", "X_floor"]           # as the walk met them
+
+
+def test_a_family_does_not_pull_a_neighbouring_exact_name_into_its_pairing():
+    rows = [row("A_floor", 1000.0, box(0, 0, 10, 100)), row("A_floor1", 4000.0, box(200, 0, 240, 100)),
+            row("B_floor", 500.0, box(500, 0, 505, 100))]
+    units = [unit("A_floor", 4000.0, box(200, 0, 240, 100)), unit("A_floor", 1000.0, box(0, 0, 10, 100)),
+             unit("B_floor", 500.0, box(500, 0, 505, 100))]
+    result = compared(rows, units)
+    assert {m["name"]: m["paired_by"] for m in result["matches"]} == {
+        "A_floor": "geometry", "A_floor1": "geometry", "B_floor": "name"}
+    [amb] = result["ambiguities"]
+    assert amb["family"] == "A_floor" and amb["rows"] == ["A_floor", "A_floor1"]
+
+
 def test_every_row_ends_up_in_exactly_one_place():
     rows = [row("A_floor", 100.0, box(0, 0, 1, 100)), row("B_floor", 100.0, box(0, 0, 1, 100)),
             row("C_floor", 100.0, box(0, 0, 1, 100)), row("D_floor", 100.0, box(0, 0, 1, 100)),
