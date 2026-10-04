@@ -18,7 +18,7 @@ from engine.validate.sampling import (MAX_FRAME_COORD, bbox_centre, check_frame,
                                       face_normals, face_samples, recentred, used_bbox, uv_at)
 from engine.validate.viewpoints import (INSIDE_VOTES, _back_votes, interior_probes, outside_directions,
                                         pedestrian_ring)
-from engine.validate.visibility import MIN_COS, build_caster, visible_samples
+from engine.validate.visibility import MIN_COS, build_caster, check_caster, visible_samples
 
 
 def _merged(*meshes):
@@ -817,6 +817,7 @@ def test_exactly_half_of_the_rays_meeting_backs_is_not_a_majority():
     assert probes.shape == (1, 3) and np.isclose(probes[0, 2], 63.0)
     assert _back_rays(m, probes)[0] == VOTES // 2 == 13
 
+
 # ---------------------------------------------------------------------------------------------
 # Job P0-15, carried from the P0-14 review. Item 1: a floor wound DOWNWARD (a reversed face, which
 # the engine will flip) still gets its probes, so the Validator sees it from inside.
@@ -866,6 +867,62 @@ def test_a_downward_ceiling_of_a_solid_taller_than_the_headroom_adds_no_probe_in
     probes = interior_probes(m)
     assert not _in_the_box(probes, (0.0, 0.0, 100.0), (100.0, 100.0, 400.0)).any()
     assert len(probes) == 18, "9 on the floor under it and 9 on the block's top, none from its bottom"
+
+
+# ---------------------------------------------------------------------------------------------
+# Items 2-4: nonsense arguments the core used to accept
+# ---------------------------------------------------------------------------------------------
+
+def test_check_caster_refuses_a_caster_of_another_mesh_with_the_same_number_of_faces():
+    m = cube(10.0)
+    other = _flipped(m)                         # 12 faces too, but every one wound the other way: another `face_v`
+    assert other.n_faces == m.n_faces and not np.array_equal(other.face_v, m.face_v)
+    caster = build_caster(other)
+    with pytest.raises(ValueError, match="caster"):
+        check_caster(m, caster)
+    with pytest.raises(ValueError, match="caster"):
+        visible_samples(m, face_samples(m), outside_directions(8), _no_points(), _no_points(), caster)
+    with pytest.raises(ValueError, match="caster"):
+        interior_probes(m, caster=caster)
+    check_caster(m, build_caster(m))            # its own caster is accepted
+
+
+def test_viewpoints_must_be_rows_of_three_numbers_and_an_array_of_six_is_not_reshaped():
+    m = cube(10.0)
+    s = face_samples(m)
+    caster = build_caster(m)
+    dirs = outside_directions(4)
+    six = np.arange(6.0).reshape(3, 2)
+    with pytest.raises(ValueError, match="cams"):
+        visible_samples(m, s, dirs, six, _no_points(), caster)
+    with pytest.raises(ValueError, match="probes"):
+        visible_samples(m, s, dirs, _no_points(), six, caster)
+    with pytest.raises(ValueError, match="dirs"):
+        visible_samples(m, s, six + 1.0, _no_points(), _no_points(), caster)
+    with pytest.raises(ValueError, match="cams"):
+        visible_samples(m, s, dirs, np.array([20.0, 20.0, 30.0]), _no_points(), caster)    # one flat point
+    ok = visible_samples(m, s, dirs, np.array([[20.0, 20.0, 30.0]]), [], caster)           # (k, 3) and an empty list
+    assert ok.seen.shape == (len(s), 4 + 1)
+
+
+def test_face_ids_must_be_integers_inside_the_mesh():
+    m = cube(10.0)
+    with pytest.raises(ValueError, match="integer"):
+        face_samples(m, faces=np.array([1.5]))
+    with pytest.raises(ValueError, match="integer"):
+        face_samples(m, faces=np.array([1.0, 2.0]))
+    with pytest.raises(ValueError, match="face ids"):
+        face_samples(m, faces=np.array([-1]))
+    with pytest.raises(ValueError, match="face ids"):
+        face_samples(m, faces=np.array([m.n_faces]))
+    with pytest.raises(ValueError, match="face ids"):
+        face_samples(m, faces=[0, 3, 99])
+    with pytest.raises(ValueError, match="face ids"):
+        face_samples(m, faces=np.array([2 ** 63], dtype=np.uint64))     # would wrap to a negative id if cast first
+    assert len(face_samples(m, faces=[])) == 0 and len(face_samples(m, faces=np.zeros(0))) == 0
+    last = np.array([m.n_faces - 1, 0], dtype=np.int32)
+    assert sorted(set(face_samples(m, faces=last).face.tolist())) == [0, m.n_faces - 1]
+    assert sorted(set(face_samples(m, faces=np.array([5], dtype=np.uint8)).face.tolist())) == [5]
 
 
 # ---------------------------------------------------------------------------------------------

@@ -53,11 +53,16 @@ def build_caster(mesh: MeshData) -> EmbreeCaster:
 
 
 def check_caster(mesh: MeshData, caster) -> None:
-    """Raise `ValueError` unless `caster` has one face per face of `mesh`: it was built from some
-    other mesh, and its `first_hit` indices would mean nothing here."""
+    """Raise `ValueError` unless `caster` was built from the faces of `mesh`: as many of them, with
+    the same vertex indices in the same order. Otherwise it came from some other mesh, and its
+    `first_hit` indices would mean nothing here. (The vertex POSITIONS cannot be compared: a caster
+    does not give them back, so one built from the same faces over moved vertices is not caught.)"""
     if len(caster.faces) != mesh.n_faces:
         raise ValueError(f"the caster has {len(caster.faces)} faces but the mesh has {mesh.n_faces}: "
                          "build it from this mesh with build_caster")
+    if not np.array_equal(caster.faces, mesh.face_v):
+        raise ValueError("the caster has as many faces as the mesh but not the same ones (other vertex "
+                         "indices or another order): build it from this mesh with build_caster")
 
 
 @dataclass(frozen=True, eq=False)
@@ -111,10 +116,14 @@ class VisibleSet:
 
 
 def _rows(a, what: str) -> np.ndarray:
+    """`a` as (k, 3) float64. Only that shape, or nothing at all (an empty list or array, which
+    means k = 0), is accepted: an array of six numbers is not reshaped into two points."""
     a = np.asarray(a, dtype=np.float64)
-    if a.size % 3:
-        raise ValueError(f"{what} must be rows of 3 numbers, got shape {a.shape}")
-    return a.reshape(-1, 3)
+    if a.size == 0 and a.ndim <= 1:
+        return np.zeros((0, 3))
+    if a.ndim != 2 or a.shape[1] != 3:
+        raise ValueError(f"{what} must be rows of 3 numbers, shape (k, 3), got shape {a.shape}")
+    return a
 
 
 def _side(cos: np.ndarray) -> np.ndarray:
