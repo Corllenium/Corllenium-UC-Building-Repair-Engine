@@ -13,7 +13,7 @@ import numpy as np
 
 from engine.model import MeshData
 from engine.validate.sampling import check_frame, face_normals, used_bbox
-from engine.validate.visibility import build_caster
+from engine.validate.visibility import build_caster, check_caster
 
 #: A face is ground to stand on when its normal's z is above this: a slope under about 26 degrees.
 UP_NZ = 0.9
@@ -135,6 +135,7 @@ def interior_probes(mesh: MeshData, eye: float = 63.0, headroom: float = 83.0,
 
     if caster is None:
         caster = build_caster(mesh)
+    check_caster(mesh, caster)
     free = np.zeros(len(candidates), dtype=bool)
     for s in range(0, len(candidates), _BATCH):
         origins = candidates[s:s + _BATCH] + [0.0, 0.0, HEADROOM_START]

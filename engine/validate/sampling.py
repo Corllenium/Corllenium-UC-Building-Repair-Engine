@@ -23,7 +23,7 @@ from engine.model import MeshData
 _NO_AREA = 1e-9
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, eq=False)       # eq=False: `==` on array fields would be ambiguous, not a bool
 class Samples:
     """Points on faces. Row `i` is the point `bary[i] @ corners(face[i])`."""
     points: np.ndarray   #: (N, 3) float64, on the faces, in the mesh's own frame

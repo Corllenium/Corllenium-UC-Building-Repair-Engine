@@ -12,11 +12,12 @@ import numpy as np
 import pytest
 
 import engine.validate
-from engine.tests.fixtures.build import closed_room, cube, grid_slab, sloped_slab
+from engine.rays.caster import BruteCaster
+from engine.tests.fixtures.build import closed_room, cube, grid_slab, sloped_slab, two_sided_wall
 from engine.validate.sampling import (MAX_FRAME_COORD, bbox_centre, check_frame, face_areas,
                                       face_normals, face_samples, recentred, used_bbox, uv_at)
 from engine.validate.viewpoints import interior_probes, outside_directions, pedestrian_ring
-from engine.validate.visibility import build_caster
+from engine.validate.visibility import MIN_COS, build_caster, visible_samples
 
 
 def _merged(*meshes):
@@ -390,3 +391,246 @@ def test_the_validator_imports_nothing_it_judges():
             for name in names:
                 assert not any(name == b or name.startswith(b + ".") for b in banned), \
                     f"{path.name} imports {name}"
+
+
+# ---------------------------------------------------------------------------------------------
+# Item 3: what each viewpoint sees -- escape toward -dir for a direction, a clear segment for a
+# camera or a probe, and whether the viewer is on the FRONT or the BACK of the face
+# ---------------------------------------------------------------------------------------------
+
+def _no_points():
+    return np.zeros((0, 3))
+
+
+def _outside_views(mesh):
+    """128 directions and the ring of 24 cameras at the box's mid-height."""
+    lo, hi = mesh.bbox()
+    return outside_directions(128), pedestrian_ring((lo, hi), eye_z=(lo[2] + hi[2]) / 2.0)
+
+
+def _cos_to(points, normals, viewpoints):
+    """cos of the angle between each face normal and the line from each sample to each viewpoint."""
+    v = viewpoints[None, :, :] - points[:, None, :]
+    return np.einsum("nk,nck->nc", normals, v) / np.linalg.norm(v, axis=2)
+
+
+def test_on_a_convex_solid_a_sample_is_seen_exactly_by_the_viewpoints_its_face_looks_at():
+    m = cube(10.0)
+    s = face_samples(m)
+    dirs, cams = _outside_views(m)
+    vs = visible_samples(m, s, dirs, cams, _no_points(), build_caster(m))
+    assert vs.seen.shape == vs.front.shape == (len(s), 128 + 24)
+    assert vs.seen.dtype == vs.front.dtype == np.bool_
+
+    n = face_normals(m)[s.face]
+    # nothing in the way of a convex solid, so a viewpoint sees a sample iff it is on the face's front side
+    assert np.array_equal(vs.seen[:, vs.dir_cols], (n @ (-dirs).T) > MIN_COS)
+    assert np.array_equal(vs.seen[:, vs.cam_cols], _cos_to(s.points, n, cams) > MIN_COS)
+    assert np.array_equal(vs.front, vs.seen), "and what it sees is a front, never a back"
+
+    assert vs.visible.all(), "every outside face is visible from some direction"
+    assert vs.front_seen.all() and not vs.back_seen.any(), "the inside of a closed box is seen by nobody"
+    side = s.face >= 4                                        # faces 4-11, the four sides
+    assert vs.seen[side][:, vs.cam_cols].any(axis=1).all()
+    assert not vs.seen[~side][:, vs.cam_cols].any(), "the ring at mid-height never sees the top or bottom"
+
+
+def test_an_opening_lets_the_outside_see_the_inside():
+    m = cube(10.0)
+    keep = np.ones(m.n_faces, bool)
+    keep[[8, 9]] = False                                      # the x = 10 face
+    open_box = dataclasses.replace(
+        m, face_v=m.face_v[keep], face_vt=m.face_vt[keep], face_vn=m.face_vn[keep],
+        face_material=m.face_material[keep], face_line=m.face_line[keep])
+    s = face_samples(open_box)
+    dirs, cams = _outside_views(open_box)
+    vs = visible_samples(open_box, s, dirs, cams, _no_points(), build_caster(open_box))
+    far_wall = np.isin(s.face, [8, 9])                        # the x = 0 wall, now faces 8-9
+    assert vs.back_seen[far_wall].any(), "its inside, through the opening"
+    assert vs.seen[far_wall][:, vs.dir_cols].any() and vs.seen[far_wall][:, vs.cam_cols].any()
+    assert vs.front_seen.all(), "the outsides are still seen from the front"
+
+
+def test_a_closed_room_is_seen_inside_by_the_probes_standing_in_it_and_never_from_outside():
+    m = closed_room()
+    s = face_samples(m, area_per_sample=500.0)
+    probes = interior_probes(m)
+    inside = _inside_the_room(probes)
+    dirs, cams = _outside_views(m)
+    vs = visible_samples(m, s, dirs, cams, probes, build_caster(m))
+    assert vs.seen.shape == (len(s), 128 + 24 + len(probes))
+
+    all_cols = np.arange(vs.seen.shape[1])
+    room = all_cols[vs.probe_cols][inside]                    # the probes standing in the room
+    elsewhere = np.setdiff1d(all_cols, room)                  # directions, cameras, roof probes
+    inner = s.face < 12
+    wall = np.isin(s.face, np.arange(4, 12))                  # the four inner walls
+
+    assert vs.seen[np.ix_(wall, room)].all(), "all 4 inner walls, from every probe in the room"
+    assert vs.front[np.ix_(wall, room)].all(), "from the front: they face the room"
+    assert vs.seen[np.ix_(inner, room)].any(axis=1).all(), "the floor and the ceiling too"
+    assert not vs.seen[np.ix_(inner, elsewhere)].any(), "no direction, camera or roof probe reaches in"
+    assert vs.seen_inside[inner].all() and not vs.seen_outside[inner].any()
+
+    outer = ~inner                                            # the mirror image: the building's outside
+    assert not vs.seen[np.ix_(outer, room)].any(), "the probes in the room cannot see out"
+    assert vs.seen_outside[outer].all()
+
+
+def test_a_wall_whose_front_points_away_from_every_viewpoint_is_back_seen():
+    room = _flipped(closed_room(), [6, 7])                    # the wall x = 200 now faces out, into the void
+    s = face_samples(room, area_per_sample=500.0)
+    probes = interior_probes(room)
+    dirs, cams = _outside_views(room)
+    vs = visible_samples(room, s, dirs, cams, probes, build_caster(room))
+    wall = np.isin(s.face, [6, 7])
+    assert vs.visible[wall].all(), "the probes in the room still see it"
+    assert vs.back_seen[wall].all() and not vs.front_seen[wall].any()
+    assert vs.front_seen[~wall].all() and not vs.back_seen[~wall].any(), "every other face still faces its viewers"
+
+    box = _flipped(cube(10.0), [8, 9])                        # the x = 10 face turned to look into the cube
+    s = face_samples(box)
+    dirs, cams = _outside_views(box)
+    vs = visible_samples(box, s, dirs, cams, _no_points(), build_caster(box))
+    face = np.isin(s.face, [8, 9])
+    assert vs.back_seen[face].all() and not vs.front_seen[face].any()
+    from_the_x_side = np.tile(-dirs[:, 0] > MIN_COS, (int(face.sum()), 1))
+    assert np.array_equal(vs.seen[face][:, vs.dir_cols], from_the_x_side), "seen from the half-space behind it"
+    assert not vs.front[face].any()
+
+
+def test_both_layers_of_a_two_sided_wall_are_seen_from_both_sides():
+    m = two_sided_wall()               # faces 0-1 face -y, faces 2-3 face +y: one place, two layers
+    s = face_samples(m)
+    dirs = outside_directions(128)
+    vs = visible_samples(m, s, dirs, _no_points(), _no_points(), build_caster(m))
+    u_y = -dirs[:, 1]                  # toward the viewer
+    both_layers = np.tile(np.abs(u_y) > MIN_COS, (len(s), 1))
+    assert np.array_equal(vs.seen, both_layers), "Unity draws both sides: all four faces, from every side"
+    layer_a = (s.face < 2)[:, None]
+    front = np.where(layer_a, u_y[None, :] < 0.0, u_y[None, :] > 0.0)
+    assert np.array_equal(vs.front, both_layers & front), "each layer's front is on its own side"
+    assert vs.front_seen.all() and vs.back_seen.all()
+
+
+def test_a_camera_or_probe_sees_a_sample_only_along_a_clear_segment():
+    floor = grid_slab(4, 4)                                   # 40 x 40 in at z = 0, faces +z: faces 0-31
+    ceiling = _lifted(grid_slab(4, 4), 10.0)                  # the same, 10 in above it: faces 32-63
+    m = _merged(floor, ceiling)
+    s = face_samples(m, area_per_sample=500.0)
+    spots = np.array([[20.0, 20.0, 5.0],                      # between the two
+                      [20.0, 20.0, 30.0],                     # above both
+                      [20.0, 20.0, -5.0],                     # below both
+                      [100.0, 20.0, 0.0]])                    # level with the floor, beside it
+    caster = build_caster(m)
+    as_cams = visible_samples(m, s, _no_points(), spots, _no_points(), caster)
+    as_probes = visible_samples(m, s, _no_points(), _no_points(), spots, caster)
+    assert np.array_equal(as_cams.seen, as_probes.seen) and np.array_equal(as_cams.front, as_probes.front)
+
+    low, high = s.face < 32, s.face >= 32
+
+    def rows(mask, row):
+        return np.tile(row, (int(mask.sum()), 1))
+
+    # the floor: its front from between the plates, its back from below; not from above (the
+    # ceiling is in the way) and not from level with it (edge-on). The ceiling that lies BEYOND the
+    # camera between the plates does not hide it.
+    assert np.array_equal(as_cams.seen[low], rows(low, [True, False, True, False]))
+    assert np.array_equal(as_cams.front[low], rows(low, [True, False, False, False]))
+    # the ceiling: its back from between and from beside, its front from above; not from below
+    assert np.array_equal(as_cams.seen[high], rows(high, [True, True, False, True]))
+    assert np.array_equal(as_cams.front[high], rows(high, [False, True, False, False]))
+
+
+def test_the_embree_visibility_agrees_with_a_float64_brute_force_oracle():
+    ground = grid_slab(4, 4)                                  # 40 x 40 in
+    block = dataclasses.replace(cube(10.0), positions=cube(10.0).positions + [15.0, 15.0, 0.0])   # on it
+    m = _merged(ground, block)
+    s = face_samples(m)
+    dirs, cams = _outside_views(m)
+    probes = interior_probes(m)
+    assert len(probes) > 0
+
+    e = visible_samples(m, s, dirs, cams, probes, build_caster(m))
+    b = visible_samples(m, s, dirs, cams, probes, BruteCaster(m.positions, m.face_v))
+    assert (e.seen == b.seen).mean() >= 0.999
+    assert (e.front == b.front).mean() >= 0.999
+    facing = (face_normals(m)[s.face] @ (-dirs).T) > MIN_COS
+    assert (facing & ~b.seen[:, b.dir_cols]).any(), "the block really does throw shadows"
+    assert b.seen[:, b.dir_cols].any()
+
+
+def test_visibility_repeats_exactly():
+    m = closed_room()
+    s = face_samples(m, area_per_sample=500.0)
+    probes = interior_probes(m)
+    dirs, cams = _outside_views(m)
+    caster = build_caster(m)
+    first = visible_samples(m, s, dirs, cams, probes, caster)
+    again = visible_samples(m, s, dirs, cams, probes, caster)
+    assert np.array_equal(first.seen, again.seen) and np.array_equal(first.front, again.front)
+
+
+def test_a_face_with_no_area_is_never_visible():
+    m = grid_slab(1, 1, cell=10.0)
+    m.face_v[1] = [0, 0, 3]
+    s = face_samples(m)
+    vs = visible_samples(m, s, outside_directions(64), _no_points(), _no_points(), build_caster(m))
+    assert vs.visible[s.face == 0].all() and not vs.visible[s.face == 1].any()
+
+
+def test_no_samples_give_empty_matrices_and_no_viewpoints_give_no_columns():
+    m = cube(10.0)
+    ring = pedestrian_ring(m.bbox(), 5.0, n=3)
+    empty = visible_samples(m, face_samples(m, faces=[]), outside_directions(8), ring, _no_points(),
+                            build_caster(m))
+    assert empty.seen.shape == empty.front.shape == (0, 11) and len(empty.visible) == 0
+    bare = visible_samples(m, face_samples(m), _no_points(), _no_points(), _no_points(), build_caster(m))
+    assert bare.seen.shape == (m.n_faces * 4, 0) and not bare.visible.any()
+
+
+def test_visible_samples_refuses_a_caster_of_another_mesh_and_points_outside_the_frame():
+    m = cube(10.0)
+    s = face_samples(m)
+    dirs = outside_directions(8)
+    with pytest.raises(ValueError, match="caster"):
+        visible_samples(m, s, dirs, _no_points(), _no_points(), build_caster(closed_room()))
+    far = dataclasses.replace(s, points=s.points + 24000.0)
+    with pytest.raises(ValueError, match="recentre"):
+        visible_samples(m, far, dirs, _no_points(), _no_points(), build_caster(m))
+    with pytest.raises(ValueError, match="recentre"):
+        visible_samples(m, s, dirs, np.array([[0.0, 24000.0, 0.0]]), _no_points(), build_caster(m))
+    with pytest.raises(ValueError, match="direction"):
+        visible_samples(m, s, np.zeros((1, 3)), _no_points(), _no_points(), build_caster(m))
+
+
+def test_the_whole_flow_works_on_a_model_far_from_the_origin_once_it_is_recentred():
+    near = closed_room()
+    far = dataclasses.replace(near, positions=near.positions + [24000.0, 24000.0, 0.0])
+    centred, _ = recentred(far)
+    runs = []
+    for m in (near, centred):
+        s = face_samples(m, area_per_sample=500.0)
+        dirs, cams = _outside_views(m)
+        runs.append(visible_samples(m, s, dirs, cams, interior_probes(m), build_caster(m)))
+    a, b = runs
+    assert a.seen.shape == b.seen.shape
+    assert (a.seen == b.seen).mean() >= 0.999 and (a.front == b.front).mean() >= 0.999
+
+
+def test_a_grazing_view_across_a_tessellated_floor_is_not_blocked_by_its_own_neighbours():
+    m = grid_slab(10, 10)                                     # 200 coplanar triangles, faces +z
+    s = face_samples(m)
+    caster = build_caster(m)
+    for elevation in (5.0, 1.0, 0.1):                         # degrees above the floor, looking down across it
+        el, az = np.radians(elevation), np.radians(np.arange(16) * 22.5 + 3.0)
+        look = np.stack([np.cos(az) * np.cos(el), np.sin(az) * np.cos(el), -np.sin(el) * np.ones(16)], axis=1)
+        vs = visible_samples(m, s, look, _no_points(), _no_points(), caster)
+        assert vs.seen.all() and vs.front.all(), f"at {elevation} degrees"
+
+
+def test_interior_probes_refuses_a_caster_of_another_mesh_and_reusing_one_changes_nothing():
+    room = closed_room()
+    with pytest.raises(ValueError, match="caster"):
+        interior_probes(room, caster=build_caster(cube(10.0)))
+    assert np.array_equal(interior_probes(room, caster=build_caster(room)), interior_probes(room))

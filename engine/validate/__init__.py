@@ -8,6 +8,14 @@ built on the code it judges: no `engine.guard` (not `compare_views`, not `render
 `piece_rays`), no `engine.fixes`, no `engine.vis`. The only engine modules it may use are
 `engine.model` (the mesh), `engine.rays.caster` (the ray caster) and its own siblings.
 
+The modules:
+
+* `sampling`: where to look and what texture is there (`face_samples`, `uv_at`), face normals
+  and areas, and the frame (`recentred`, `check_frame`);
+* `viewpoints`: where to look from (`outside_directions`, `pedestrian_ring`, `interior_probes`);
+* `visibility`: what each viewpoint sees, and which side of the face (`visible_samples`,
+  `VisibleSet`, `build_caster`).
+
 Conventions, shared by every module here:
 
 * Units are inches, Z is up.
