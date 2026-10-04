@@ -25,6 +25,33 @@ run the latest `.skp` of each file must be in `OBJ FIXED RESULT/` for the owner 
 
 ## 2. Current state (2026-09-26 00:15, written by the Claude controller)
 
+**Update 2026-10-04 10:00: the UC Repair Engine program (P0) is under way.**
+- **What it is.** One repair engine per error kind, run over every floor of every building of CHECKPOINT-17.
+  Each floor is validated by the owner's rule (`AGENTS.md` §6). Per building there is a comparison `.skp`
+  in `MODEL FIXER ENGINE FILES\05-FIXING\`.
+  - Spec: `docs/superpowers/specs/2026-10-03-uc-repair-engine-design.md`.
+  - Plans: `docs/superpowers/plans/2026-10-03-repair-engine-p0.md` and `...-p1-p2.md`.
+  - Ledger: `.superpowers/sdd/2026-10-03-repair-engine-p0/progress.md` (every ruling is there).
+- **Rules and roles.**
+  - `AGENTS.md` is the one rules source.
+  - Every job is in the queue (`tools/jobs.py list`; `docs/superpowers/records/QUEUE.md`).
+  - Hermes takes `hermes`/`either` jobs, with Claude laying out the briefs and failing tests, reviewing and
+    merging.
+  - Integration branch for P0: `feat/repair-p0` (worktree `.claude/worktrees/repair-p0`).
+- **Owner order (10-03):** the error map of every floor comes first. It is the engines' record of what to fix,
+  with a fix plan per unit, and the per-floor flow runs as an n8n workflow. Fix runs on real buildings start
+  only after that.
+- **Done:** P0-01..09 and H1 merged. Data in `data/campus/`: `source.json` (85 splits, 1,766,906 tris),
+  `group_index.json`, `materials.json` (97 looks).
+- **In flight:**
+  - P0-10 inventory (Claude);
+  - P0-11 SDK cross-check, fix round 1. It found that the export lacks 90,391 tris against the backup, mostly
+    backup duplicates, with 5 files unexplained; this goes to the owner's decision sheet P0-13;
+  - S1 and S3 speed jobs (Hermes, against Claude's committed tests);
+  - P0-09b queued.
+- **Measured:** `find_errors` on CHTM 5th takes 103 s; `double_layers` is 61 % of it and `find_t_vertices`
+  19 %. S1 and S3 must land before the census (P0-12), or the 92-142 k-tri units time out.
+
 **Update 2026-09-26 23:30: the 3D error filter is merged and live.**
 - **Merge.** `feat/error-filter` was merged into feat-dashboard as 0bfd433. The branch is on GitHub too.
 - **The live images run 0bfd433** (API and web), rebuilt at 23:27.
