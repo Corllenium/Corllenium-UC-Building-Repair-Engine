@@ -5,6 +5,7 @@
   - 794e176 feat(overlap): numpy candidate index with canonical cells and big-face list (Item 1)
   - 1f97e9f test(overlap): add exact tie re-check test case from tie_repro (Item 2)
   - 1f99c12 docs(report): record P1-S3b report with exact tie re-check, speedup and memory bounds
+  - 4d1f0e9 docs(report): update commit hashes in P1-S3b report
 - Brief: docs/superpowers/records/briefs/P1-S3b-double-layers-memory.md
 
 ## Items
