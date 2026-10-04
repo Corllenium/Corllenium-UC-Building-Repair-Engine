@@ -1,19 +1,22 @@
 from __future__ import annotations
 
 import hashlib
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any
 
+from engine.campus.source import _texture_rel
 from engine.io.mtl import MtlMaterial, parse_mtl
 
 
 def parse_kd_d(mat: MtlMaterial) -> tuple[tuple[float, float, float], float]:
     """Parse Kd (diffuse colour) and d (dissolve/opacity) from mat.lines.
 
+    If d is absent and Tr is present, use d = 1 - Tr.
     Defaults to (1.0, 1.0, 1.0) and 1.0 if not present or unparseable.
     """
     kd = (1.0, 1.0, 1.0)
-    d = 1.0
+    d: float | None = None
+    tr: float | None = None
     for line in mat.lines:
         tokens = line.strip().split()
         if not tokens:
@@ -28,7 +31,20 @@ def parse_kd_d(mat: MtlMaterial) -> tuple[tuple[float, float, float], float]:
                 d = float(tokens[1])
             except ValueError:
                 pass
-    return kd, d
+        elif tokens[0] == "Tr" and len(tokens) >= 2:
+            try:
+                tr = float(tokens[1])
+            except ValueError:
+                pass
+
+    if d is not None:
+        final_d = d
+    elif tr is not None:
+        final_d = 1.0 - tr
+    else:
+        final_d = 1.0
+
+    return kd, final_d
 
 
 def look_key(tex_sha256: str | None, kd: Any, d: Any) -> str:
@@ -40,19 +56,30 @@ def look_key(tex_sha256: str | None, kd: Any, d: Any) -> str:
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:16]
 
 
-def _find_texture_file(map_kd: str, mtl_path: Path, tex_dir: Path) -> Path | None:
-    norm = map_kd.replace("\\", "/")
-    p = Path(norm)
-    candidates = [
-        tex_dir / p,
-        tex_dir / p.name,
-        tex_dir.parent / p,
-        mtl_path.parent / p,
-        mtl_path.parent / p.name,
-    ]
-    for c in candidates:
-        if c.is_file():
-            return c
+def _find_texture_file(rel: PurePosixPath, mtl_path: Path, tex_dir: Path) -> Path | None:
+    """Find texture file matching rel path.
+
+    Resolves exact MTL-relative path first, then tex_dir relative path,
+    and only as a last resort falls back to basename lookup.
+    """
+    # 1. Resolve exact MTL-relative posix path FIRST
+    mtl_rel = mtl_path.parent / rel
+    if mtl_rel.is_file():
+        return mtl_rel
+
+    # 2. Resolve relative to tex_dir
+    tex_rel = tex_dir / rel
+    if tex_rel.is_file():
+        return tex_rel
+
+    # 3. Basename only as a last resort fallback
+    tex_base = tex_dir / rel.name
+    if tex_base.is_file():
+        return tex_base
+    mtl_base = mtl_path.parent / rel.name
+    if mtl_base.is_file():
+        return mtl_base
+
     return None
 
 
@@ -77,15 +104,22 @@ def build_materials(mtl_path: Path, tex_dir: Path) -> dict:
             key = look_key(None, kd_tup, d_val)
         else:
             map_kd_norm = mat.map_kd.replace("\\", "/")
-            tex_file = _find_texture_file(map_kd_norm, mtl_path, tex_dir)
-            if tex_file is not None:
-                tex_sha = hashlib.sha256(tex_file.read_bytes()).hexdigest()
-                missing = False
-                key = look_key(tex_sha, kd_tup, d_val)
-            else:
+            rel = _texture_rel(mat.map_kd)
+            if rel is None:
+                # Rejected path (absolute, drive letter, or '..')
                 tex_sha = None
                 missing = True
                 key = look_key(f"missing:{map_kd_norm}", kd_tup, d_val)
+            else:
+                tex_file = _find_texture_file(rel, mtl_path, tex_dir)
+                if tex_file is not None:
+                    tex_sha = hashlib.sha256(tex_file.read_bytes()).hexdigest()
+                    missing = False
+                    key = look_key(tex_sha, kd_tup, d_val)
+                else:
+                    tex_sha = None
+                    missing = True
+                    key = look_key(f"missing:{map_kd_norm}", kd_tup, d_val)
 
         materials[name] = {
             "map_kd": map_kd_norm,

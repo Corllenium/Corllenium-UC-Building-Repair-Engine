@@ -132,3 +132,152 @@ def test_cli_campus_materials(tmp_path, capsys):
     assert "materials: 4" in captured.out
     assert "wrote materials to" in captured.out
 
+
+def test_parse_kd_d_tr_support():
+    # Tr: use d = 1 - Tr when d is absent
+    mat_tr = MtlMaterial("tr_only", lines=["Tr 0.2"])
+    kd, d = parse_kd_d(mat_tr)
+    assert d == pytest.approx(0.8)
+
+    # When d is present, d wins
+    mat_both = MtlMaterial("both", lines=["d 0.5", "Tr 0.2"])
+    kd2, d2 = parse_kd_d(mat_both)
+    assert d2 == 0.5
+
+
+def test_kd_rounding_mutant():
+    # Kd 0.80001 == 0.8 but 0.8001 != 0.8
+    assert look_key(None, (0.80001, 0.8, 0.8), 1.0) == look_key(None, (0.8, 0.8, 0.8), 1.0)
+    assert look_key(None, (0.8001, 0.8, 0.8), 1.0) != look_key(None, (0.8, 0.8, 0.8), 1.0)
+
+
+def test_d_opacity_mutant():
+    # d 0.9 != 1.0
+    assert look_key(None, (1.0, 1.0, 1.0), 0.9) != look_key(None, (1.0, 1.0, 1.0), 1.0)
+
+
+def test_backslash_map_kd_equals_slash(tmp_path):
+    # "SRC-TEX\a.png" equals the slash form
+    tex_dir = tmp_path / "SRC-TEX"
+    tex_dir.mkdir(parents=True)
+    (tex_dir / "a.png").write_bytes(b"image_a")
+
+    mtl = tmp_path / "backslash.mtl"
+    mtl.write_text(
+        "newmtl slash\nKd 1 1 1\nmap_Kd SRC-TEX/a.png\n\nnewmtl backslash\nKd 1 1 1\nmap_Kd SRC-TEX\\a.png\n",
+        encoding="utf-8",
+    )
+    res = build_materials(mtl, tex_dir)
+    assert res["materials"]["slash"]["look"] == res["materials"]["backslash"]["look"]
+    assert res["materials"]["backslash"]["map_kd"] == "SRC-TEX/a.png"
+    assert res["stats"]["images"] == 1
+
+
+def test_same_name_textures_two_folders(tmp_path):
+    # same-name textures in two folders must stay apart (images must count 2)
+    # even when tex_dir points to folder_a (which contains tile.png)
+    dir_a = tmp_path / "folder_a"
+    dir_b = tmp_path / "folder_b"
+    dir_a.mkdir()
+    dir_b.mkdir()
+    (dir_a / "tile.png").write_bytes(b"content_A")
+    (dir_b / "tile.png").write_bytes(b"content_B")
+
+    mtl = tmp_path / "two_folders.mtl"
+    mtl.write_text(
+        "newmtl mat_a\nKd 1 1 1\nmap_Kd folder_a/tile.png\n\nnewmtl mat_b\nKd 1 1 1\nmap_Kd folder_b/tile.png\n",
+        encoding="utf-8",
+    )
+    # tex_dir is passed as folder_a: under the old code, mat_b resolves to folder_a/tile.png by basename!
+    res = build_materials(mtl, dir_a)
+    assert res["materials"]["mat_a"]["look"] != res["materials"]["mat_b"]["look"]
+    assert res["stats"]["images"] == 2
+
+
+
+def test_reject_invalid_texture_paths(tmp_path):
+    # Reject absolute, drive-letter (any ":") and ".." map_Kd paths
+    escape_file = tmp_path.parent / "escape.png"
+    escape_file.write_bytes(b"escaped")
+
+    mtl = tmp_path / "invalid_paths.mtl"
+    mtl.write_text(
+        "newmtl mat_drive\nKd 1 1 1\nmap_Kd C:foo.png\n\n"
+        "newmtl mat_abs\nKd 1 1 1\nmap_Kd /root/foo.png\n\n"
+        "newmtl mat_dotdot\nKd 1 1 1\nmap_Kd ../escape.png\n",
+        encoding="utf-8",
+    )
+    res = build_materials(mtl, tmp_path)
+    for name in ["mat_drive", "mat_abs", "mat_dotdot"]:
+        m = res["materials"][name]
+        assert m["missing_texture"] is True
+        assert m["tex_sha256"] is None
+        assert m["look"] == look_key(f"missing:{m['map_kd']}", (1.0, 1.0, 1.0), 1.0)
+
+
+def test_two_different_byte_textures_same_kd(tmp_path):
+    # two different-byte textures with the same Kd give different looks and images == 2
+    tex_dir = tmp_path / "SRC-TEX"
+    tex_dir.mkdir(parents=True)
+    (tex_dir / "tex1.png").write_bytes(b"texture_one_unique_bytes")
+    (tex_dir / "tex2.png").write_bytes(b"texture_two_different_bytes")
+
+    mtl = tmp_path / "diff_textures.mtl"
+    mtl.write_text(
+        "newmtl mat1\nKd 0.7 0.7 0.7\nmap_Kd SRC-TEX/tex1.png\n\n"
+        "newmtl mat2\nKd 0.7 0.7 0.7\nmap_Kd SRC-TEX/tex2.png\n",
+        encoding="utf-8",
+    )
+    res = build_materials(mtl, tex_dir)
+    assert res["materials"]["mat1"]["look"] != res["materials"]["mat2"]["look"]
+    assert res["stats"]["images"] == 2
+
+
+def test_cli_fabricated_source_json(tmp_path, monkeypatch):
+    # a --source run on a fabricated source.json; relative --out stays relative to cwd
+    from engine.cli import main
+    tex_dir = tmp_path / "SRC-TEX"
+    tex_dir.mkdir(parents=True)
+    (tex_dir / "tile.png").write_bytes(b"fake_tile_data")
+    mtl = tmp_path / "clean.mtl"
+    mtl.write_text("newmtl mat1\nKd 1 1 1\nmap_Kd SRC-TEX/tile.png\n", encoding="utf-8")
+
+    source_json = tmp_path / "source.json"
+    source_json.write_text(
+        json.dumps({"clean_mtl": {"path": str(mtl)}}),
+        encoding="utf-8",
+    )
+    monkeypatch.chdir(tmp_path)
+    ret = main(["campus-materials", "--source", str(source_json), "--out", "relative_out.json"])
+    assert ret == 0
+    rel_out = tmp_path / "relative_out.json"
+    assert rel_out.is_file()
+    data = json.loads(rel_out.read_text(encoding="utf-8"))
+    assert data["stats"]["materials"] == 1
+    assert data["stats"]["images"] == 1
+
+
+def test_cli_largest_look_group_printed_first(tmp_path, capsys):
+    # the largest look group printed first
+    from engine.cli import main
+    mtl = tmp_path / "groups.mtl"
+    lines = [
+        "newmtl a1\nKd 0.1 0.1 0.1",
+        "newmtl a2\nKd 0.1 0.1 0.1",
+        "newmtl a3\nKd 0.1 0.1 0.1",
+        "newmtl b1\nKd 0.2 0.2 0.2",
+        "newmtl c1\nKd 0.3 0.3 0.3",
+        "newmtl c2\nKd 0.3 0.3 0.3",
+    ]
+    mtl.write_text("\n\n".join(lines), encoding="utf-8")
+    out_json = tmp_path / "out.json"
+    ret = main(["campus-materials", "--mtl", str(mtl), "--tex-dir", str(tmp_path), "--out", str(out_json)])
+    assert ret == 0
+    captured = capsys.readouterr()
+    lines = [line.strip() for line in captured.out.splitlines() if "materials):" in line]
+    assert len(lines) == 3
+    assert "(3 materials):" in lines[0]
+    assert "(2 materials):" in lines[1]
+    assert "(1 materials):" in lines[2]
+
+

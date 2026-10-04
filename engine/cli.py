@@ -894,35 +894,21 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     elif args.command == "campus-materials":
         from engine.campus.materials import build_materials
-        source_path = args.source
-        if not source_path.is_file():
-            fallback = Path("D:/PROJECTS/UC MODEL FIXER") / source_path
-            if fallback.is_file():
-                source_path = fallback
         if args.mtl:
-            mtl_path = args.mtl
-            tex_dir = args.tex_dir if args.tex_dir else mtl_path.parent
+            mtl_path = Path(args.mtl)
+            tex_dir = Path(args.tex_dir) if args.tex_dir else mtl_path.parent
         else:
+            source_path = Path(args.source)
             source_data = json.loads(source_path.read_text(encoding="utf-8"))
-            raw_mtl = Path(source_data["clean_mtl"]["path"])
-            if raw_mtl.is_file():
-                mtl_path = raw_mtl
-            elif (source_path.parent / raw_mtl).is_file():
-                mtl_path = source_path.parent / raw_mtl
-            elif (source_path.parent / "source" / raw_mtl.parent.name / raw_mtl.name).is_file():
-                mtl_path = source_path.parent / "source" / raw_mtl.parent.name / raw_mtl.name
-            else:
-                mtl_path = raw_mtl
+            mtl_path = Path(source_data["clean_mtl"]["path"])
             if args.tex_dir:
-                tex_dir = args.tex_dir
+                tex_dir = Path(args.tex_dir)
             elif (mtl_path.parent / "SRC-TEX").is_dir():
                 tex_dir = mtl_path.parent / "SRC-TEX"
             else:
                 tex_dir = mtl_path.parent
 
-        out_path = args.out
-        if not out_path.is_absolute() and not Path("data").exists() and Path("D:/PROJECTS/UC MODEL FIXER/data").exists():
-            out_path = Path("D:/PROJECTS/UC MODEL FIXER") / out_path
+        out_path = Path(args.out)
 
         res = build_materials(mtl_path, tex_dir)
         out_path.parent.mkdir(parents=True, exist_ok=True)
