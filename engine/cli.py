@@ -834,40 +834,14 @@ def cmd_errors(snapshot_dir: Path, out_file: Path, profile: FixProfile | None = 
 # -------------------------------------------------------------------------------------- validate
 
 
-def _peak_memory_mb() -> tuple[float | None, float | None]:
-    """`(peak working set, peak commit)` of this process in MB, from the Windows API (psutil is not
-    installed); `(None, None)` elsewhere or when the call fails."""
-    if os.name != "nt":
-        return None, None
-    import ctypes
-    from ctypes import POINTER, Structure, byref, c_size_t, wintypes
-
-    class Counters(Structure):
-        _fields_ = [("cb", wintypes.DWORD), ("PageFaultCount", wintypes.DWORD),
-                    ("PeakWorkingSetSize", c_size_t), ("WorkingSetSize", c_size_t),
-                    ("QuotaPeakPagedPoolUsage", c_size_t), ("QuotaPagedPoolUsage", c_size_t),
-                    ("QuotaPeakNonPagedPoolUsage", c_size_t), ("QuotaNonPagedPoolUsage", c_size_t),
-                    ("PagefileUsage", c_size_t), ("PeakPagefileUsage", c_size_t)]
-
-    try:
-        kernel32, psapi = ctypes.WinDLL("kernel32"), ctypes.WinDLL("psapi")
-        kernel32.GetCurrentProcess.restype = wintypes.HANDLE
-        psapi.GetProcessMemoryInfo.argtypes = [wintypes.HANDLE, POINTER(Counters), wintypes.DWORD]
-        psapi.GetProcessMemoryInfo.restype = wintypes.BOOL
-        counters = Counters()
-        counters.cb = ctypes.sizeof(Counters)
-        if not psapi.GetProcessMemoryInfo(kernel32.GetCurrentProcess(), byref(counters), counters.cb):
-            return None, None
-        return (round(counters.PeakWorkingSetSize / 2 ** 20, 1), round(counters.PeakPagefileUsage / 2 ** 20, 1))
-    except (OSError, AttributeError):
-        return None, None
-
-
 def cmd_validate(before_dir: Path, after_path: Path, materials: Path, out_dir: Path,
                  targets: Path | None = None, settings=None) -> int:
     """Judge `after_path` (an OBJ) against the snapshot `before_dir` by the owner's three checks and write
     `<out_dir>/validation.json` and `<out_dir>/evidence/*.png`. Returns 0 on PASS, 2 on FAIL or on an
     input that is missing or unreadable (a message on stderr, and no verdict written)."""
+    # The process counters (peak memory) come from the reader's helper: only the SketchUp binding modules may
+    # import ctypes (test_skp_writer.test_ctypes_is_imported_only_by_the_sketchup_binding_modules).
+    from engine.io.skp_reader import _peak_memory_mb
     from engine.validate.checks import Settings, load_looks, load_targets, validate
     from engine.validate.evidence import write_evidence
 

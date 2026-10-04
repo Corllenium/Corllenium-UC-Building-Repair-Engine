@@ -7,7 +7,6 @@ notice and why. Job P0-16 proves the whole Validator with mutations on top of th
 import dataclasses
 import json
 import os
-import struct
 
 import numpy as np
 import pytest
@@ -793,3 +792,24 @@ def test_validate_parser_defaults_are_the_owners():
     args = cli.build_parser().parse_args(["validate", "--before", "b", "--after", "a.obj", "--out", "o"])
     assert args.command == "validate" and str(args.materials).replace("\\", "/") == "data/campus/materials.json"
     assert args.area_per_sample == 36.0 and args.min_per_face == 4 and args.targets is None
+
+
+# ---------------------------------------------------------------------------------------------
+# What v0 does NOT allow: no allowed-change classes yet (the E4 and E5 engines will name theirs)
+# ---------------------------------------------------------------------------------------------
+
+def test_v0_has_no_allowed_change_classes_so_removing_a_copy_of_a_back_to_back_pair_fails():
+    wall = two_sided_wall()        # faces 0-1 face -y (concrete), faces 2-3 face +y (prismarine): one place, 2 layers
+    # a pair in two looks (flicker): take away the second layer and its look is gone from that place
+    v = _check(wall, _without_faces(wall, [2, 3]), _looks("concrete", "prismarine"))
+    textures, gone = _checks(v)
+    assert textures["status"] == "FAIL" and textures["reasons"]["look"] == 50
+    assert gone["status"] == "FAIL" and gone["replaced"] == 50 and gone["faces_unmet"] == 2, "expected until E5 exists"
+
+    # a pair in ONE look (what E4 will remove): the look survives on the other layer, but the viewer who saw the
+    # removed layer's FRONT now sees the other one's back
+    same = Looks(key={"concrete": "L", "prismarine": "L"}, texel={"L": (16, 16)})
+    v = _check(wall, _without_faces(wall, [2, 3]), same)
+    textures, gone = _checks(v)
+    assert textures["status"] == "FAIL" and textures["reasons"]["side"] == 50, "expected until E4 exists"
+    assert gone["status"] == "PASS", "nothing is deleted or covered: the surface and its look are still there"
