@@ -135,3 +135,38 @@ The brief's constants as written break the real tables: BRS gets 3 levels, CHTM 
   - `campus_map` is owner-confirmed by design (`confirmed_by_owner: false`).
   - The 3-part proposal and the interleaved slab series go to the P0-13 decision sheet, along with CHTM L12, SCIENCE_A L05/L01, and the weak MAIN_INFRA and SCIENCE_A tables.
 - The chained commit: noted; no history rewrite.
+
+## Fix round 1 (implementer's hand-back, recorded by the controller)
+**Commits on 2a86b40:**
+- c6e7827 the four rules tested (IMPORTANT 1);
+- d7808f9 an element below the lowest level, no KeyError (IMPORTANT 2);
+- 140ac97 missing and shared flags only on their own level's unit (MINOR 3);
+- 524d476 SITE groups compared (MINOR 7);
+- 133d38b the 0.5 in identity chains: the flags and md say so and report the reach (MINOR 4);
+- ca2d471 the md states both footprint conditions (MINOR 5);
+- 5d579b1 each snapshot hashed against source.json; refuse on mismatch (MINOR 6);
+- c246a5a the md regenerated;
+- 040815a a comment.
+
+Same 4 files.
+
+**Evidence:**
+
+| Item | Red | Green |
+|---|---|---|
+| IMPORTANT 1 | 8 new tests pin existing behaviour; reverting each rule gives: window 60→24 4 failed; 60→48 1; base nearest 1; storey 20 1; storey 200 20; look dropped 1 | restored: 71 passed. The reviewer's probe gives 1 level at the brief's constants and 3 at the defaults |
+| IMPORTANT 2 | KeyError: 0 | `label.get(b, "below <lowest>")`; the probe gives ["below L01", "L02"] |
+| MINOR 3 | 2 failed | flags carrying `level` go only to `{building}-{level}` |
+| MINOR 4 | — | reworded, not capped: largest identity extent per building 0.58-1.24 in (MAIN_INFRA 1.24); Jaccards insensitive (0.803 vs 0.804 at 1.0 in) |
+| MINOR 5 | `0 == 2` | — |
+| MINOR 6 | DID NOT RAISE | `sha256_file`; all 85 match in 0.3 s |
+| MINOR 7 | — | 21 SITE pairs, all Jaccard 0.0000, so no flag |
+
+**Real run:** identical counts, levels and coverage. Changes:
+- new keys `identity` and `source.snapshots_verified`;
+- duplicate flag text and `identity_extent_in`;
+- placements:
+  - MAIN L04 and L05 missing: each now only on its own unit;
+  - the SCIENCE_A L05 shared flag is no longer on L04 (the same defect, fixed beyond the list).
+
+**Tests:** inventory 84 passed (+21); engine 759 passed, 1 xfailed on c246a5a.
