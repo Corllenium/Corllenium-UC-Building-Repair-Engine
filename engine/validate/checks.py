@@ -774,8 +774,13 @@ def validate(before: MeshData, after: MeshData, looks: Looks, *, errors=None, ta
     clock["end"] = time.perf_counter()
 
     statuses = (textures["status"], problems["status"], nothing_deleted["status"])
+    default = Settings()
+    density = ("n_directions", "n_cameras", "camera_margin", "n_extra_directions", "min_per_face",
+               "area_per_sample", "eye")
+    changed = {k: getattr(settings, k) for k in density if getattr(settings, k) != getattr(default, k)}
+    notes = ([f"NON-DEFAULT SETTINGS {changed}: a development run, NOT AN OWNER VERDICT"] if changed else [])
     report = {
-        "version": 1, "verdict": "FAIL" if "FAIL" in statuses else "PASS",
+        "version": 1, "verdict": "FAIL" if "FAIL" in statuses else "PASS", "notes": notes,
         "checks": {"textures": textures, "problems": problems, "nothing_deleted": nothing_deleted},
         "sites": sites, "sites_total": n_sites,
         "viewpoints": {"directions": len(dirs), "cameras": len(cams), "probes": len(probes),

@@ -6,12 +6,16 @@ notice and why. Job P0-16 proves the whole Validator with mutations on top of th
 """
 import dataclasses
 import json
+import os
 import struct
 
 import numpy as np
 import pytest
 from PIL import Image
 
+import engine.cli as cli
+from engine.io.obj_writer import write_obj
+from engine.io.snapshot import sha256_file
 from engine.tests.fixtures.build import closed_room, cube, grid_slab, two_sided_wall
 from engine.validate.checks import (Looks, LookTable, Settings, check_problems, default_targets_path,
                                     depth_tolerance, face_fingerprints, face_look_ids, load_looks, load_targets,
@@ -669,3 +673,123 @@ def test_render_crop_shades_by_how_squarely_a_face_is_seen_and_leaves_misses_pal
     wide = crop([0.0, 0.0, -1.0], window=100.0)
     assert tuple(wide[2, 2]) == BACKGROUND and tuple(wide[61, 61]) == BACKGROUND, "the window is wider than the slab"
     assert tuple(wide[32, 32]) == (200, 100, 50)
+
+
+# ---------------------------------------------------------------------------------------------
+# Step 5: the `validate` command
+# ---------------------------------------------------------------------------------------------
+
+def _snapshot(tmp_path, mesh, name):
+    """A directory laid out like `engine.io.snapshot` makes one: `<mesh name>.obj`, `materials.mtl` and a
+    16 x 16 PNG in `tex/` for each material. Returns the directory."""
+    d = tmp_path / name
+    (d / "tex").mkdir(parents=True)
+    write_obj(dataclasses.replace(mesh, mtllib="materials.mtl"), d / f"{mesh.name}.obj")
+    lines = []
+    for i, material in enumerate(mesh.materials):
+        _png(d / "tex" / f"{material}.png", 16, 16, (200 - 90 * i, 40 + 70 * i, 40))
+        lines += [f"newmtl {material}", "Kd 1 1 1", f"map_Kd tex/{material}.png", ""]
+    (d / "materials.mtl").write_text("\n".join(lines), encoding="utf-8")
+    return d
+
+
+def _materials_json(tmp_path, names):
+    path = tmp_path / "materials.json"
+    path.write_text(json.dumps({"materials": {n: {"map_kd": f"SRC-TEX/{n}.png", "kd": [1.0, 1.0, 1.0],
+                                                  "look": f"look-{n}"} for n in names},
+                                "looks": {}, "stats": {}}), encoding="utf-8")
+    return path
+
+
+def _validate_args(before, after, materials, out, *more):
+    return ["validate", "--before", str(before), "--after", str(after), "--materials", str(materials),
+            "--out", str(out), *more]
+
+
+def test_validate_writes_validation_json_and_evidence_and_exits_2_on_a_failure(tmp_path):
+    m = _with_material(_two_looks(cube(10.0)), [2, 3], 1)
+    before = _snapshot(tmp_path, m, "before")
+    after = _snapshot(tmp_path, _without_faces(m, [2, 3]), "after")
+    out = tmp_path / "out"
+    code = cli.main(_validate_args(before, after / "cube.obj", _materials_json(tmp_path, ["m0", "m1"]), out))
+    assert code == 2
+
+    data = json.loads((out / "validation.json").read_text(encoding="utf-8"))
+    assert data["verdict"] == "FAIL" and set(data["checks"]) == {"textures", "problems", "nothing_deleted"}
+    assert data["checks"]["textures"]["status"] == "FAIL" and data["checks"]["nothing_deleted"]["status"] == "FAIL"
+    assert data["checks"]["problems"]["status"] == "REPORT_ONLY", "no signed targets: check 2 only reports"
+    assert set(data["checks"]["problems"]["kinds"]) == set(KINDS)
+    (site,) = data["sites"]
+    assert site["faces"] == [2, 3] and site["checks"] == ["textures", "nothing_deleted"]
+    for name in site["evidence"].values():
+        assert Image.open(out / name).size == (256, 256)
+    # what the run was made from and what it cost
+    assert data["inputs"]["before_sha256"] == sha256_file(before / "cube.obj")
+    assert data["inputs"]["after_sha256"] == sha256_file(after / "cube.obj")
+    assert data["inputs"]["materials"] == str(tmp_path / "materials.json")
+    assert data["viewpoints"]["directions"] == 128 and data["timings_s"]["total"] > 0
+    if os.name == "nt":
+        assert data["peak_working_set_mb"] > 10.0
+    assert data["materials"] == {"unknown_before": [], "unknown_after": []}
+
+
+def test_validate_exits_0_on_a_pass_and_writes_no_evidence(tmp_path, capsys):
+    m = _with_material(_two_looks(cube(10.0)), [2, 3], 1)
+    before = _snapshot(tmp_path, m, "before")
+    out = tmp_path / "out"
+    code = cli.main(_validate_args(before, before / "cube.obj", _materials_json(tmp_path, ["m0", "m1"]), out))
+    assert code == 0
+    data = json.loads((out / "validation.json").read_text(encoding="utf-8"))
+    assert data["verdict"] == "PASS" and data["sites"] == [] and not (out / "evidence").exists()
+    said = capsys.readouterr().out
+    assert "PASS" in said and "textures" in said and "nothing_deleted" in said and "REPORT_ONLY" in said
+
+
+def test_validate_reads_the_signed_targets_and_a_missed_one_fails_the_run(tmp_path):
+    room = closed_room()                                   # find_errors marks its 12 inner faces "hidden"
+    before = _snapshot(tmp_path, room, "before")
+    out = tmp_path / "out"
+    targets = tmp_path / "targets.json"
+    targets.write_text(json.dumps({"signed": True, "kinds": {"hidden": 0}}), encoding="utf-8")
+    code = cli.main(_validate_args(before, before / "closed_room.obj", _materials_json(tmp_path, ["plaster", "brick"]),
+                                   out, "--targets", str(targets)))
+    data = json.loads((out / "validation.json").read_text(encoding="utf-8"))
+    assert data["checks"]["textures"]["status"] == data["checks"]["nothing_deleted"]["status"] == "PASS"
+    assert data["checks"]["problems"]["status"] == "FAIL" and data["checks"]["problems"]["kinds"]["hidden"] == {
+        "before": 12, "after": 12, "target": 0, "status": "FAIL", "residual": data["checks"]["problems"]["kinds"][
+            "hidden"]["residual"]}
+    assert data["checks"]["problems"]["kinds"]["hidden"]["residual"], "the places that still have it"
+    assert data["verdict"] == "FAIL" and code == 2 and data["inputs"]["targets"] == str(targets)
+
+
+def test_validate_says_when_it_was_run_at_a_lower_density_than_the_owners(tmp_path):
+    m = cube(10.0)
+    before = _snapshot(tmp_path, m, "before")
+    out = tmp_path / "out"
+    code = cli.main(_validate_args(before, before / "cube.obj", _materials_json(tmp_path, ["m0"]), out,
+                                   "--area-per-sample", "100", "--min-per-face", "2"))
+    data = json.loads((out / "validation.json").read_text(encoding="utf-8"))
+    assert code == 0 and data["settings"]["area_per_sample"] == 100.0 and data["settings"]["min_per_face"] == 2
+    assert any("NOT AN OWNER VERDICT" in note for note in data["notes"])
+    default = tmp_path / "default"
+    cli.main(_validate_args(before, before / "cube.obj", _materials_json(tmp_path, ["m0"]), default))
+    assert json.loads((default / "validation.json").read_text(encoding="utf-8"))["notes"] == []
+
+
+def test_validate_refuses_missing_inputs_with_a_message_and_exit_2(tmp_path, capsys):
+    m = cube(10.0)
+    before = _snapshot(tmp_path, m, "before")
+    mats = _materials_json(tmp_path, ["m0"])
+    assert cli.main(_validate_args(before, tmp_path / "nope.obj", mats, tmp_path / "o1")) == 2
+    assert "nope.obj" in capsys.readouterr().err
+    assert cli.main(_validate_args(before, before / "cube.obj", tmp_path / "nope.json", tmp_path / "o2")) == 2
+    assert "nope.json" in capsys.readouterr().err
+    assert cli.main(_validate_args(tmp_path / "nowhere", before / "cube.obj", mats, tmp_path / "o3")) == 2
+    assert "nowhere" in capsys.readouterr().err
+    assert not (tmp_path / "o1" / "validation.json").exists(), "no verdict is written for a run that did not happen"
+
+
+def test_validate_parser_defaults_are_the_owners():
+    args = cli.build_parser().parse_args(["validate", "--before", "b", "--after", "a.obj", "--out", "o"])
+    assert args.command == "validate" and str(args.materials).replace("\\", "/") == "data/campus/materials.json"
+    assert args.area_per_sample == 36.0 and args.min_per_face == 4 and args.targets is None

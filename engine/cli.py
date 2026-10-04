@@ -22,6 +22,14 @@
     `stats` extended with the new counts (flipped, thin_sheets, one_sided_holes_before/after,
     outline_edges_after, unavoidable_diagonals_after, guard_passed).
 
+`python -m engine.cli validate --before <snapshot_dir> --after <obj> --materials <materials.json> --out <dir>`
+    Judges a repaired floor by the owner's rule (AGENTS.md section 6, `engine.validate`): are the facade
+    textures still there, are the problems solved, was nothing visible deleted or covered. Writes
+    `<dir>/validation.json` (`{"checks": {"textures", "problems", "nothing_deleted"}, "verdict": "PASS" or
+    "FAIL", "sites": [...]}` and everything the run was made from) and `<dir>/evidence/*.png`, two
+    256 px crops (BEFORE, AFTER) of each of the 20 worst failing sites. Exit code 0 on PASS, 2 on FAIL
+    or when an input is missing. Nothing is changed or fixed; the inputs are only read.
+
 A snapshot directory is the layout `engine.io.snapshot.snapshot_object` produces: one `<name>.obj`,
 `materials.mtl`, and a `tex/` folder of the textures it references.
 
@@ -33,8 +41,10 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import shutil
 import sys
+import time
 from dataclasses import replace
 from pathlib import Path
 
@@ -821,6 +831,106 @@ def cmd_errors(snapshot_dir: Path, out_file: Path, profile: FixProfile | None = 
     return result
 
 
+# -------------------------------------------------------------------------------------- validate
+
+
+def _peak_memory_mb() -> tuple[float | None, float | None]:
+    """`(peak working set, peak commit)` of this process in MB, from the Windows API (psutil is not
+    installed); `(None, None)` elsewhere or when the call fails."""
+    if os.name != "nt":
+        return None, None
+    import ctypes
+    from ctypes import POINTER, Structure, byref, c_size_t, wintypes
+
+    class Counters(Structure):
+        _fields_ = [("cb", wintypes.DWORD), ("PageFaultCount", wintypes.DWORD),
+                    ("PeakWorkingSetSize", c_size_t), ("WorkingSetSize", c_size_t),
+                    ("QuotaPeakPagedPoolUsage", c_size_t), ("QuotaPagedPoolUsage", c_size_t),
+                    ("QuotaPeakNonPagedPoolUsage", c_size_t), ("QuotaNonPagedPoolUsage", c_size_t),
+                    ("PagefileUsage", c_size_t), ("PeakPagefileUsage", c_size_t)]
+
+    try:
+        kernel32, psapi = ctypes.WinDLL("kernel32"), ctypes.WinDLL("psapi")
+        kernel32.GetCurrentProcess.restype = wintypes.HANDLE
+        psapi.GetProcessMemoryInfo.argtypes = [wintypes.HANDLE, POINTER(Counters), wintypes.DWORD]
+        psapi.GetProcessMemoryInfo.restype = wintypes.BOOL
+        counters = Counters()
+        counters.cb = ctypes.sizeof(Counters)
+        if not psapi.GetProcessMemoryInfo(kernel32.GetCurrentProcess(), byref(counters), counters.cb):
+            return None, None
+        return (round(counters.PeakWorkingSetSize / 2 ** 20, 1), round(counters.PeakPagefileUsage / 2 ** 20, 1))
+    except (OSError, AttributeError):
+        return None, None
+
+
+def cmd_validate(before_dir: Path, after_path: Path, materials: Path, out_dir: Path,
+                 targets: Path | None = None, settings=None) -> int:
+    """Judge `after_path` (an OBJ) against the snapshot `before_dir` by the owner's three checks and write
+    `<out_dir>/validation.json` and `<out_dir>/evidence/*.png`. Returns 0 on PASS, 2 on FAIL or on an
+    input that is missing or unreadable (a message on stderr, and no verdict written)."""
+    from engine.validate.checks import Settings, load_looks, load_targets, validate
+    from engine.validate.evidence import write_evidence
+
+    started = time.perf_counter()
+    settings = settings or Settings()
+    before_dir, after_path, materials, out_dir = Path(before_dir), Path(after_path), Path(materials), Path(out_dir)
+    try:
+        if not after_path.is_file():
+            raise FileNotFoundError(f"--after {after_path} is not a file")
+        if not materials.is_file():
+            raise FileNotFoundError(f"--materials {materials} is not a file")
+        before_obj, before, _flatness, before_mtl = _load_snapshot(before_dir)
+        after = read_obj(after_path)
+        sources = [(before_mtl, before_dir)]
+        after_mtl = after_path.parent / after.mtllib if after.mtllib else None
+        if after_mtl is not None and after_mtl.is_file():
+            sources.append((parse_mtl(after_mtl), after_path.parent))
+        looks = load_looks(materials, sources)
+        signed = load_targets(targets)
+    except (FileNotFoundError, ValueError, OSError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+
+    shown = {"tenth": -1}
+
+    def progress(done: int, total: int) -> None:
+        tenth = int(10 * done / max(total, 1))
+        if tenth != shown["tenth"]:
+            shown["tenth"] = tenth
+            print(f"  {done}/{total} samples cast", file=sys.stderr, flush=True)
+
+    try:
+        result = validate(before, after, looks, targets=signed, settings=settings, progress=progress)
+    except ValueError as exc:                              # e.g. a mesh too far from the origin to cast rays at
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+    out_dir.mkdir(parents=True, exist_ok=True)
+    write_evidence(result, out_dir)
+    report = result.report
+    peak, commit = _peak_memory_mb()
+    report["inputs"] = {"before": str(before_obj), "after": str(after_path), "materials": str(materials),
+                        "targets": str(targets) if targets is not None and Path(targets).is_file() else None,
+                        "before_sha256": sha256_file(before_obj), "after_sha256": sha256_file(after_path)}
+    report["peak_working_set_mb"], report["peak_commit_mb"] = peak, commit
+    report["wall_s"] = round(time.perf_counter() - started, 2)
+    (out_dir / "validation.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
+
+    checks = report["checks"]
+    t, p, g = checks["textures"], checks["problems"], checks["nothing_deleted"]
+    print(f"validate {before.name}: verdict {report['verdict']}")
+    print(f"  textures        {t['status']:<11} {t['samples']} samples seen in BEFORE, {t['samples_failed']} failed {t['reasons']}")
+    print(f"  problems        {p['status']:<11} " + ("targets signed" if p["signed"] else "targets unsigned: counts only")
+          + "; before -> after: " + ", ".join(f"{k} {v['before']}->{v['after']}" for k, v in p["kinds"].items()))
+    print(f"  nothing_deleted {g['status']:<11} {g['deleted']} deleted, {g['replaced']} replaced, {g['covered']} covered "
+          f"({g['samples_extra']} samples only the {report['viewpoints']['extra_directions']} extra directions saw)")
+    print(f"  {report['sites_total']} sites, {sum(1 for s in report['sites'] if s['evidence'])} with evidence crops; "
+          f"wrote {out_dir / 'validation.json'}")
+    for note in report["notes"]:
+        print(f"  note: {note}")
+    print(f"  time {report['wall_s']} s, peak working set {peak} MB, peak commit {commit} MB")
+    return 0 if result.passed else 2
+
+
 # ------------------------------------------------------------------------------------------ main
 
 
@@ -899,6 +1009,26 @@ def build_parser() -> argparse.ArgumentParser:
                                   "(default 3500; the walk peaks at about 2.5 GB)")
     skp_check_p.add_argument("--dll", type=Path, default=None, help="SketchUpAPI.dll, if not the default")
 
+    validate_p = sub.add_parser(
+        "validate",
+        help="judge a repaired floor by the owner's rule: textures there, problems solved, nothing visible "
+             "deleted or covered")
+    validate_p.add_argument("--before", type=Path, required=True,
+                            help="BEFORE: a snapshot directory (one .obj, materials.mtl, tex/)")
+    validate_p.add_argument("--after", type=Path, required=True, help="AFTER: an OBJ file")
+    validate_p.add_argument("--materials", type=Path, default=Path("data/campus/materials.json"),
+                            help="the campus look keys (default data/campus/materials.json)")
+    validate_p.add_argument("--out", type=Path, required=True,
+                            help="receives validation.json and evidence/*.png")
+    validate_p.add_argument("--targets", type=Path, default=None,
+                            help="the owner's signed targets (default engine/validate/targets.json when it exists; "
+                                 "without it check 2 only reports)")
+    validate_p.add_argument("--area-per-sample", type=float, default=36.0,
+                            help="one sample per this many sq in of face (owner's value 36). Any other value is a "
+                                 "development run and the report says it is not an owner verdict")
+    validate_p.add_argument("--min-per-face", type=int, default=4,
+                            help="at least this many samples on every face (owner's value 4; see --area-per-sample)")
+
     return parser
 
 
@@ -914,6 +1044,10 @@ def main(argv: list[str] | None = None) -> int:
     elif args.command == "errors":
         cmd_errors(args.snapshot, args.out)
         return 0
+    elif args.command == "validate":
+        from engine.validate.checks import Settings
+        return cmd_validate(args.before, args.after, args.materials, args.out, targets=args.targets,
+                            settings=Settings(area_per_sample=args.area_per_sample, min_per_face=args.min_per_face))
     elif args.command == "campus-freeze":
         from engine.campus.source import freeze_source
         res = freeze_source(args.export, args.backup, args.out, args.snapshots)

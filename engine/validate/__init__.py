@@ -14,7 +14,14 @@ The modules:
   and areas, and the frame (`recentred`, `check_frame`);
 * `viewpoints`: where to look from (`outside_directions`, `pedestrian_ring`, `interior_probes`);
 * `visibility`: what each viewpoint sees, and which side of the face (`visible_samples`,
-  `VisibleSet`, `build_caster`).
+  `VisibleSet`, `build_caster`);
+* `checks`: the three checks on a BEFORE and an AFTER (`validate`): textures there, problems solved
+  (`find_errors` against the owner's signed targets, imported lazily because it imports
+  `engine.fixes`, `engine.guard` and `engine.vis`), nothing visible deleted or covered;
+* `evidence`: two 256 px orthographic crops of each of the 20 worst failing sites.
+
+The command is `python -m engine.cli validate` (see `engine/cli.py`); it writes `validation.json` and
+the evidence PNGs.
 
 Conventions, shared by every module here:
 
