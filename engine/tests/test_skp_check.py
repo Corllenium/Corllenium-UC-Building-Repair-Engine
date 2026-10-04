@@ -132,6 +132,28 @@ def test_a_component_instance_is_named_by_its_own_name_else_by_its_definition():
     assert skp_check.token(node("")) == "Group"                 # an unnamed group
 
 
+def test_skp_check_and_campus_groups_give_the_same_split_name_for_every_path_in_group_index():
+    from engine.campus import groups
+    candidates = [
+        Path("data/campus/group_index.json"),
+        *[p / "data" / "campus" / "group_index.json" for p in Path(__file__).resolve().parents],
+    ]
+    index_path = next((p for p in candidates if p.is_file()), None)
+    if index_path is None:
+        pytest.skip("data/campus/group_index.json is not present")
+    assert index_path is not None
+    data = json.loads(index_path.read_text(encoding="utf-8"))
+    paths = data.get("paths", [])
+    assert len(paths) > 0
+    diffs = []
+    for p in paths:
+        name_groups = groups.split_name(tuple(p), skip_owner_slot=True)
+        name_skp = skp_check.split_path(p)
+        if name_groups != name_skp:
+            diffs.append((p, name_groups, name_skp))
+    assert not diffs, f"Split names differed for {len(diffs)} paths: {diffs[:5]}"
+
+
 # --------------------------------------------------------------- units: what each file holds
 
 
@@ -790,6 +812,18 @@ def test_the_child_gets_absolute_paths_because_it_runs_in_the_checkout_not_where
     assert (tmp_path / "out" / "walk.json").is_file()                  # where the caller said, not in the checkout
 
 
+def test_a_relative_dll_path_reaches_the_child_as_an_absolute_path(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    code = ("import json, os, sys; "
+            "dll_idx = sys.argv.index('--dll') + 1; dll = sys.argv[dll_idx]; "
+            "assert os.path.isabs(dll), sys.argv; "
+            "out = sys.argv[sys.argv.index('--out') + 1]; "
+            "json.dump({'dll': dll}, open(out, 'w'))")
+    walk = skp_check.run_walk(tmp_path / "m.skp", tmp_path / "walk.json", dll_path=Path("my_relative.dll"),
+                              argv=child(code), min_free_commit_mb=0)
+    assert Path(walk["dll"]).resolve() == (tmp_path / "my_relative.dll").resolve()
+
+
 def test_a_child_that_fails_is_reported_with_what_it_said(tmp_path):
     code = "import sys; print('SketchUp could not open it', file=sys.stderr); sys.exit(2)"
     with pytest.raises(skp_check.WalkFailed, match=r"exit code 2.*SketchUp could not open it"):
@@ -937,6 +971,9 @@ def test_files_decided_without_a_pairing_are_counted_and_do_not_count_as_ambiguo
     assert "| ambiguous | 0 |" in text and "| match | 1 |" in text and "| mismatch | 1 |" in text
     assert "2 files were decided without a pairing" in text
     assert "depends on a pairing the shapes cannot settle" in text and "could not tell apart" not in text
+    assert ("Ambiguous: a file that matches some of several groups of one name but not others, or one where "
+            "a family has more files than groups and every file fits every group, so its verdict depends on "
+            "a pairing the shapes cannot settle. Miss: no group of that name in the backup.") in text
     assert "| Sci_Floor_obj1 | nearest_group |" in text
     assert "ambiguous `Sci_Floor_obj`" not in text                  # every file of it has a verdict
     assert "- `Sci_Floor_obj`, several groups of one name, not paired: " in text
@@ -951,6 +988,19 @@ def test_a_file_that_still_depends_on_a_pairing_is_the_only_one_counted_as_ambig
     assert report["counts"]["decided_without_pairing"] == 0
     text = skp_check.render_markdown(report)
     assert "| ambiguous | 2 |" in text and "ambiguous `Sci_Floor_obj`" in text
+
+
+def test_a_family_with_more_files_than_groups_where_every_file_fits_every_group_stays_undecided(tmp_path):
+    rows = [("Sci_Floor_obj", 0, 0, 100, 50), ("Sci_Floor_obj1", 0, 0, 100, 50), ("Sci_Floor_obj2", 0, 0, 100, 50)]
+    walk = floor_walk(("Sci Floor.obj", 5, 5000.0, box(0, 0, 100, 50)),
+                      ("Sci Floor.obj", 5, 5000.0, box(0, 0, 100, 50)))
+    report, _, _ = run_check(tmp_path, rows, walk)
+    assert report["counts"]["ambiguous_files"] == 3 and report["counts"]["matches"] == 0
+    assert report["counts"]["decided_without_pairing"] == 0
+    [amb] = report["ambiguities"]
+    assert amb["resolved"] is False and sorted(amb["undecided"]) == ["Sci_Floor_obj", "Sci_Floor_obj1", "Sci_Floor_obj2"]
+    text = skp_check.render_markdown(report)
+    assert "| ambiguous | 3 |" in text and "ambiguous `Sci_Floor_obj`" in text
 
 
 def test_the_bounding_box_tolerance_is_twice_the_print_step_measured_in_the_export(tmp_path):

@@ -116,6 +116,13 @@ def split_key(chain: list[dict]) -> tuple[str, dict | None]:
     return floorlike[-1] if floorlike else named[-1]
 
 
+def split_path(path: tuple[str, ...] | list[str]) -> str:
+    """The split name for an OBJ group-path (tokens between Mesh<N> and Model, inner to outer),
+    using the backup walk's `split_key` rule (matching `engine.campus.groups.split_name(path, skip_owner_slot=True)`)."""
+    chain = [{"name": t, "kind": "group", "definition": None} for t in reversed(path)]
+    return split_key(chain)[0]
+
+
 def _union(a: list | None, b: list | None) -> list | None:
     if a is None or b is None:
         return a or b
@@ -506,11 +513,12 @@ def run_walk(skp, out_json, *, timeout_s: float = WALK_TIMEOUT_S, dll_path=None,
             "or wait, then run it again")
     # absolute: the child runs in the checkout this module came from, not where the caller is
     skp, out_json = Path(skp).resolve(), Path(out_json).resolve()
+    dll = Path(dll_path).resolve() if dll_path is not None else None
     out_json.parent.mkdir(parents=True, exist_ok=True)
     out_json.unlink(missing_ok=True)                    # a file left by an earlier run is not this one's
     command = [*(walk_argv() if argv is None else argv), str(skp), "--out", str(out_json)]
-    if dll_path is not None:
-        command += ["--dll", str(dll_path)]
+    if dll is not None:
+        command += ["--dll", str(dll)]
     repo = Path(__file__).resolve().parents[2]          # the checkout this module was imported from
     env = {**os.environ, "PYTHONPATH": os.pathsep.join(filter(None, [str(repo), os.environ.get("PYTHONPATH")]))}
     try:
@@ -657,8 +665,9 @@ def render_markdown(report: dict) -> str:
         "| result | files |", "|---|---:|",
         f"| match | {c['matches']} |", f"| mismatch | {c['mismatches']} |",
         f"| ambiguous | {c['ambiguous_files']} |", f"| miss | {c['misses']} |", "",
-        "Ambiguous: a file that matches some of several groups of one name but not others, so its verdict "
-        "depends on a pairing the shapes cannot settle. Miss: no group of that name in the backup.", ""]
+        "Ambiguous: a file that matches some of several groups of one name but not others, or one where "
+        "a family has more files than groups and every file fits every group, so its verdict depends on "
+        "a pairing the shapes cannot settle. Miss: no group of that name in the backup.", ""]
     extra = []
     if c["sdk_only_units"]:
         extra.append(f"{c['sdk_only_units']} groups of the backup hold faces that no file has")
