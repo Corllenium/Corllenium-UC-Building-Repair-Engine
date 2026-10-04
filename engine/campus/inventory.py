@@ -96,7 +96,8 @@ class InventoryParams:
     part_coverage: float = 0.80       # the fewest bands holding 80 % of a group's triangles are its parts
     # duplicates
     dup_flag: float = 0.25            # flag a Jaccard similarity of at least 0.25 (the brief)
-    match_tol_in: float = 0.5         # brief: the print step. The CKPT17 copies sit 0.03-0.4 in off (identity only)
+    match_tol_in: float = 0.5         # brief: the print step. CKPT17 copies sit 0.03-0.4 in off; vertices within this
+    #                                   count as one identity (identity only, and it chains: see `_face_sets`)
     # footprints
     footprint_frac: float = 0.5       # "mostly" in another building: more than half the group's box (the brief)
 
