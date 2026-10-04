@@ -897,7 +897,7 @@ def _other_diagonal(mesh):
     return dataclasses.replace(mesh, face_v=fv, face_vt=fvt)
 
 
-@pytest.mark.parametrize("dz", [0.0, 0.01, 0.03, 0.045])
+@pytest.mark.parametrize("dz", [0.0, 0.01, 0.03, 0.04, 0.045])
 def test_a_new_face_in_another_look_on_or_just_over_a_visible_face_fails_checks_1_and_3(dz):
     before, after = _plated(dz)
     v = _check(before, after, _looks("m0", "m1"))
