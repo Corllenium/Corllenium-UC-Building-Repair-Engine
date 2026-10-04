@@ -117,7 +117,15 @@ def interior_probes(mesh: MeshData, eye: float = 63.0, headroom: float = 83.0,
 
     Probes are not limited to the inside of rooms: an open roof is upward ground with headroom too.
     Reuse the `caster` of `visibility.build_caster(mesh)` when there is one; otherwise one is built.
-    The mesh must be in the Validator's frame (`ValueError` if not)."""
+    The mesh must be in the Validator's frame (`ValueError` if not).
+
+    KNOWN LIMIT, measured in job P0-14. The headroom ray cannot tell open air from the inside of a
+    solid taller than `headroom`: a floor under a standing wall passes (the ray runs up inside the
+    wall to its top), and its probe stands INSIDE the wall, where it sees the backs of the wall's own
+    faces. On the CHTM 5th floor snapshot 181 of 1,577 probes (11.5 %) start inside a solid (their
+    upward ray's first hit is seen from BEHIND, 88 to 127 in up); on sidewalk A, 0 of 838. This
+    function follows the brief and does not filter them. Whoever turns what a probe sees into a
+    verdict (the Validator's checks, E3) has to decide how to treat them."""
     if not grid > 0.0:
         raise ValueError(f"grid must be positive, got {grid!r}")
     check_frame(mesh.positions, "mesh positions")

@@ -634,3 +634,16 @@ def test_interior_probes_refuses_a_caster_of_another_mesh_and_reusing_one_change
     with pytest.raises(ValueError, match="caster"):
         interior_probes(room, caster=build_caster(cube(10.0)))
     assert np.array_equal(interior_probes(room, caster=build_caster(room)), interior_probes(room))
+
+
+def test_nonsense_arguments_are_refused_not_guessed_at():
+    m = cube(10.0)
+    with pytest.raises(ValueError, match="area_per_sample"):
+        face_samples(m, area_per_sample=0.0)
+    with pytest.raises(ValueError, match="one entry per face"):
+        face_samples(m, faces=np.ones(3, dtype=bool))
+    with pytest.raises(ValueError, match="grid"):
+        interior_probes(m, grid=0.0)
+    with pytest.raises(ValueError, match="cams"):
+        visible_samples(m, face_samples(m), outside_directions(4), np.zeros((2, 2)), _no_points(),
+                        build_caster(m))
