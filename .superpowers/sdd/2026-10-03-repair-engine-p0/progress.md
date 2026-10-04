@@ -187,3 +187,4 @@ Spec: docs/superpowers/specs/2026-10-03-uc-repair-engine-design.md (2a748d4, app
   - find_errors on CHTM 5th: 98.1 s -> 76.2 s.
   - Review dispatched (hermes-reviewer, sonnet) on .superpowers/sdd/2026-10-03-repair-engine-p1-p2/review-7ff3a4c..e1863ee.diff, including a run on the 142,234-tri unit.
 - Hermes runs launched: P0-09b and P0-11b (small, disjoint files), alongside P1-S3.
+- P0-09b handed in by Hermes (d5f4132, 0.85 USD): the basename fallback is removed and the new test was red on the base; two tests are tightened, with both mutants shown failing; materials+source 36 passed; the real output sha is 28a0e0d3. Review dispatched (hermes-reviewer, sonnet) on review-76d74bb..d5f4132.diff.
