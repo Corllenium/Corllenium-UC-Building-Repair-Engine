@@ -202,3 +202,4 @@ Spec: docs/superpowers/specs/2026-10-03-uc-repair-engine-design.md (2a748d4, app
   - Minors: the report text ("bounded cell", "pure NumPy") is inaccurate; no docstring; a dead branch; 3-D diagonals cost (extent/cell)^3 lookups; t differs in the last bit (no decision flips in 210 M pairs).
   - review --pass; merged into feat/repair-p0 (89098ee); 31 topo tests pass; full engine suite running on the integration branch.
   - Ruling: merge now, with follow-up P1-S1b (memory bound + clean-ups) for Hermes -- real units peak at 522 MB, fine for the census at --jobs 4 -- costs a later small change.
+- Full engine suite on feat/repair-p0 at 89098ee (P0-08, 09, 09b, 11, 11b, P1-S1 merged), BLAS threads 1: 836 passed, 1 xfailed in 610 s.
