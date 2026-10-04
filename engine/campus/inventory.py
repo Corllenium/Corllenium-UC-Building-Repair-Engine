@@ -621,6 +621,7 @@ def build_inventory(groups: list[GroupData], params: InventoryParams | None = No
         proposals += b_props
         flags += b_flags + duplicate_flags(plan.groups, p)
     units += [_site_unit(g) for g in sorted(by_building.get(SITE, []), key=lambda g: g.name)]
+    flags += duplicate_flags(by_building.get(SITE, []), p)        # SITE has no level table, but copies still matter
     flags += footprint_flags(by_building, p)
     _attach_flags(units, flags)
     return {"params": asdict(p), "buildings": buildings, "units": units, "proposals": proposals, "flags": flags,

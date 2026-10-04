@@ -500,3 +500,14 @@ def test_a_shared_flag_sits_only_on_the_unit_of_its_level():
     units = {u["unit"]: u for u in result["units"]}
     assert [f["kind"] for f in units["CHTM-L03"]["flags"]] == ["split"]       # the split, not the shared level
     assert sorted(f["kind"] for f in units["CHTM-L04"]["flags"]) == ["shared", "split"]
+
+
+def test_site_groups_are_compared_for_duplicates_too():
+    a, b = group("ROAD_front", strip(100)), group("Group137", strip(90))          # both SITE: no building prefix
+    (flag,) = duplicates(a, b)
+    assert flag["building"] == "SITE" and sorted(flag["groups"]) == ["Group137", "ROAD_front"]
+    assert flag["jaccard"] == pytest.approx(0.9, abs=0.01)
+    units = {u["unit"]: u for u in inv.build_inventory([a, b])["units"]}
+    assert [f["kind"] for f in units["SITE-ROAD_front"]["flags"]] == ["duplicate"]
+    assert [f["kind"] for f in units["SITE-Group137"]["flags"]] == ["duplicate"]
+    assert duplicates(group("ROAD_front", strip(100)), group("Group137", strip(100, start=500))) == []
