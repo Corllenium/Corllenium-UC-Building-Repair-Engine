@@ -296,3 +296,4 @@ Spec: docs/superpowers/specs/2026-10-03-uc-repair-engine-design.md (2a748d4, app
   - Item 0 after-runs into data/s3_check/after2: sha256 EQUAL to before for chtm5 errors (237ddd85), A report (e724822f) and B report (ebeea4ed).
   - find_errors on CHTM 5th: 55.7 s wall with S3 alone (98 s before).
   - The per-call step failed first on Claude's own ctypes signature bug (argtypes missing for GetProcessMemoryInfo); fixed, tested on one call, and the 8 calls re-launched.
+- P0-12 fix round 2 (Hermes f87dd8e + 5c74d44, 2.03 USD): the worker fallback was deleted; two worker tests were red on 955fb78; census 15 passed; CHTM 5th E4/E5 6,966/6,981; engine 984 + 1 xfail. Re-review dispatched (hermes-reviewer, sonnet) on review-955fb78..5c74d44.diff.
