@@ -807,7 +807,11 @@ def render_markdown(inv: dict) -> str:
     out += _table(["Building", "Level", "Floors named", "Groups"],
                   [[f["building"], f["level"], ", ".join(map(str, f["numbers"])), ", ".join(f["groups"])]
                    for f in by_kind["shared"]])
-    out += ["", "### Footprints (a group whose box lies mostly in another building)", ""]
+    out += ["", "### Footprints (a group whose box lies mostly in another building)", "",
+            "Listed when more than half of the group's XY box lies in another building's footprint (the union of "
+            "that building's group boxes) and more of its box lies there than in the rest of its own building. The "
+            "second condition is an addition to the brief's rule: without it, a group that sits inside its own "
+            "building and merely overlaps a neighbouring building's box is listed too.", ""]
     out += _table(["Group", "Named for", "In its own building", "In", "That building's footprint"],
                   [[f["group"], f["building"], f"{f['fraction_own'] * 100:.0f} %", f["other"],
                     f"{f['fraction_other'] * 100:.0f} %"] for f in by_kind["footprint"]])
@@ -827,7 +831,9 @@ def render_markdown(inv: dict) -> str:
             "lower levels missing.",
             "4. **Flags**: duplicates by fingerprint (a face is its three vertices sorted, its winding and its "
             "look key, so a back-to-back pair never matches); misnamed by the number in the name against the "
-            "level; missing by the floor numbers the names skip; footprints by the XY boxes.", "",
+            "level; missing by the floor numbers the names skip; footprints by the XY boxes: a group is flagged when "
+            "more than half of its box lies in another building's footprint and more of its box lies there than in "
+            "the rest of its own building (the second condition is an addition to the brief's rule).", "",
             "Constants where CHECKPOINT-17 showed the brief's value cannot work (measured on the frozen data):", ""]
     out += _table(["Constant", "Brief", "Used", "Measured reason"], [
         ["slab bottom window", f"{BRIEF_PARAMS.slab_window_in:g} in", f"{params['slab_window_in']:g} in",

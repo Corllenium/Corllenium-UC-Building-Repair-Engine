@@ -544,3 +544,10 @@ def test_the_identity_extent_is_the_largest_over_buildings_and_zero_without_a_to
 def test_the_table_says_identities_chain_and_gives_the_largest_one():
     text = inv.render_markdown(inv.build_inventory(chained_copies()))
     assert "identities chain" in text and "0.80 in (PE)" in text
+
+
+def test_the_table_states_both_conditions_of_the_footprint_flag():
+    text = inv.render_markdown(inv.build_inventory(stack("CHTM", ["1st", "2nd"])))
+    # the brief's condition, and the one added for CKPT17 (Science A sits inside the infrastructure box)
+    assert text.count("more of its box lies there than in the rest of its own building") == 2   # the flag list and the method
+    assert "more than half" in text
