@@ -123,7 +123,7 @@ def test_ctypes_is_imported_only_by_the_sketchup_binding_modules():
     users = sorted(p.relative_to(engine_root).as_posix() for p in engine_root.rglob("*.py")
                    if re.search(r"^\s*(import ctypes|from ctypes)", p.read_text(encoding="utf-8"),
                                 re.M))
-    assert users == ["io/skp_reader.py", "io/skp_writer.py", "tests/skp_scene.py"]
+    assert users == ["campus/winprobe.py", "io/skp_reader.py", "io/skp_writer.py", "tests/skp_scene.py"]
 
 
 def test_the_writers_docstring_names_every_module_that_binds_a_save():

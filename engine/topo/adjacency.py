@@ -108,18 +108,44 @@ def find_t_vertices_reference(positions_w: np.ndarray, table: EdgeTable, tol: fl
 
 def find_t_vertices(positions_w: np.ndarray, table: EdgeTable, tol: float,
                     face_w: np.ndarray | None = None, degenerate: np.ndarray | None = None,
-                    stats: dict | None = None) -> dict[int, np.ndarray]:
+                    stats: dict | None = None,
+                    *, chunk_pairs: int = 1_000_000) -> dict[int, np.ndarray]:
+    """Find T-vertices on mesh edges using a spatial grid hash.
+
+    For each edge in `table`, finds candidate vertices whose perpendicular distance
+    to the open segment is at most `tol`, with parameter strictly between 0 and 1.
+    Evaluates candidate pairs in chunks of at most `chunk_pairs` to keep memory bounded.
+
+    Parameters:
+        positions_w: (V_all, 3) float array of welded vertex positions.
+        table: EdgeTable containing unique edges and connectivity.
+        tol: Distance tolerance for perpendicular proximity.
+        face_w: Optional welded face vertex indices for hint recovery.
+        degenerate: Optional boolean mask of degenerate faces for hint recovery.
+        stats: Optional dict populated with search statistics:
+            - "pairs_tested": total (edge, candidate) pairs evaluated.
+            - "pairs_peak": peak number of pairs held in memory simultaneously.
+            - "full_scan_edges": count of edges falling back to scanning all candidates.
+        chunk_pairs: Maximum number of (edge, candidate) pairs held and evaluated at once
+            (keyword-only, default 1,000,000).
+
+    Returns:
+        Dict mapping edge index `e` to an int64 array of T-vertex indices ordered
+        along the edge from `table.edges[e, 0]` to `table.edges[e, 1]`.
+    """
+    if chunk_pairs < 1:
+        raise ValueError(f"chunk_pairs must be >= 1, got {chunk_pairs}")
+
     n_edges = len(table.edges)
     if n_edges == 0:
         if stats is not None:
             stats["pairs_tested"] = 0
+            stats["pairs_peak"] = 0
+            stats["full_scan_edges"] = 0
         return {}
 
     cand = np.unique(table.edges)
-    if len(cand) == 0:
-        if stats is not None:
-            stats["pairs_tested"] = 0
-        return {}
+    V = len(cand)
 
     p_a = positions_w[table.edges[:, 0]]
     p_b = positions_w[table.edges[:, 1]]
@@ -131,78 +157,157 @@ def find_t_vertices(positions_w: np.ndarray, table: EdgeTable, tol: float,
     cand_pos = positions_w[cand]
     cand_cells = np.floor(cand_pos / cell_size).astype(np.int64)
 
-    grid: dict[tuple[int, int, int], list[int]] = {}
-    for idx, c in enumerate(cand_cells.tolist()):
-        key = (c[0], c[1], c[2])
-        if key in grid:
-            grid[key].append(idx)
-        else:
-            grid[key] = [idx]
+    order = np.lexsort((cand_cells[:, 2], cand_cells[:, 1], cand_cells[:, 0]))
+    sorted_cells = cand_cells[order]
+    diff = np.any(sorted_cells[1:] != sorted_cells[:-1], axis=1)
+    split_indices = np.flatnonzero(diff) + 1
+    starts = np.r_[0, split_indices]
+    ends = np.r_[split_indices, V]
+    unique_cells = sorted_cells[starts]
+
+    grid: dict[tuple[int, int, int], np.ndarray] = {}
+    for cell, s, e in zip(unique_cells.tolist(), starts.tolist(), ends.tolist()):
+        grid[(cell[0], cell[1], cell[2])] = order[s:e]
 
     min_p = np.minimum(p_a, p_b) - tol
     max_p = np.maximum(p_a, p_b) + tol
-    c_min = np.floor(min_p / cell_size).astype(np.int64).tolist()
-    c_max = np.floor(max_p / cell_size).astype(np.int64).tolist()
+    c_min = np.floor(min_p / cell_size).astype(np.int64)
+    c_max = np.floor(max_p / cell_size).astype(np.int64)
+    c_min0, c_min1, c_min2 = c_min[:, 0], c_min[:, 1], c_min[:, 2]
+    c_max0, c_max1, c_max2 = c_max[:, 0], c_max[:, 1], c_max[:, 2]
 
-    edge_cand_edges: list[int] = []
-    edge_cand_verts: list[int] = []
+    buf_size = min(chunk_pairs, 65536)
+    buf_e = np.empty(buf_size, dtype=np.int64)
+    buf_v = np.empty(buf_size, dtype=np.int64)
+    buf_pos = 0
 
-    for e, ((x0, y0, z0), (x1, y1, z1)) in enumerate(zip(c_min, c_max)):
-        if x0 == x1 and y0 == y1 and z0 == z1:
+    hits: dict[int, set[int]] = {}
+    pairs_tested = 0
+    pairs_peak = 0
+    full_scan_edges = 0
+
+    def eval_chunk(count: int) -> None:
+        nonlocal pairs_tested, pairs_peak
+        pairs_tested += count
+        if count > pairs_peak:
+            pairs_peak = count
+
+        sub_e = buf_e[:count]
+        sub_v = buf_v[:count]
+
+        sub_ea = table.edges[sub_e, 0]
+        sub_eb = table.edges[sub_e, 1]
+        sub_cv = cand[sub_v]
+
+        cand_mask = (sub_cv != sub_ea) & (sub_cv != sub_eb)
+        if not cand_mask.any():
+            return
+
+        cand_idx = np.flatnonzero(cand_mask)
+        m_e = sub_e[cand_idx]
+        m_ea = sub_ea[cand_idx]
+        m_eb = sub_eb[cand_idx]
+        m_cv = sub_cv[cand_idx]
+        m_v = sub_v[cand_idx]
+
+        A = positions_w[m_ea]
+        B = positions_w[m_eb]
+        ab = B - A
+        denom = np.sum(ab * ab, axis=1)
+        safe_denom = np.where(denom == 0, 1.0, denom)
+
+        PA = cand_pos[m_v] - A
+        t = np.sum(PA * ab, axis=1) / safe_denom
+        t_mask = (t > 1e-9) & (t < 1.0 - 1e-9)
+        if not t_mask.any():
+            return
+
+        t_idx = np.flatnonzero(t_mask)
+        t_sel = t[t_idx]
+        PA_sel = PA[t_idx]
+        ab_sel = ab[t_idx]
+
+        diff = PA_sel - t_sel[:, None] * ab_sel
+        d = np.linalg.norm(diff, axis=1)
+
+        d_mask = d <= tol
+        if d_mask.any():
+            final_idx = t_idx[d_mask]
+            hit_e = m_e[final_idx]
+            hit_v = m_cv[final_idx]
+            for e_val, v_val in zip(hit_e.tolist(), hit_v.tolist()):
+                if e_val in hits:
+                    hits[e_val].add(v_val)
+                else:
+                    hits[e_val] = {v_val}
+
+    all_cand_indices = np.arange(V, dtype=np.int64)
+
+    for e_idx, (x0, y0, z0, x1, y1, z1) in enumerate(zip(c_min0, c_min1, c_min2, c_max0, c_max1, c_max2)):
+        x0, y0, z0, x1, y1, z1 = int(x0), int(y0), int(z0), int(x1), int(y1), int(z1)
+        n_cells = (x1 - x0 + 1) * (y1 - y0 + 1) * (z1 - z0 + 1)
+        if n_cells > V:
+            full_scan_edges += 1
+            e_cands = all_cand_indices
+            k = V
+        elif x0 == x1 and y0 == y1 and z0 == z1:
             vs = grid.get((x0, y0, z0))
-            if vs:
-                edge_cand_edges.extend([e] * len(vs))
-                edge_cand_verts.extend(vs)
+            if vs is None:
+                continue
+            e_cands = vs
+            k = len(vs)
         else:
+            cell_lists = []
             for x in range(x0, x1 + 1):
                 for y in range(y0, y1 + 1):
                     for z in range(z0, z1 + 1):
                         vs = grid.get((x, y, z))
-                        if vs:
-                            edge_cand_edges.extend([e] * len(vs))
-                            edge_cand_verts.extend(vs)
+                        if vs is not None:
+                            cell_lists.append(vs)
+            if not cell_lists:
+                continue
+            e_cands = cell_lists[0] if len(cell_lists) == 1 else np.concatenate(cell_lists)
+            k = len(e_cands)
 
-    total_pairs = len(edge_cand_edges)
+        if buf_pos + k > len(buf_e):
+            if buf_pos + k <= chunk_pairs:
+                new_size = min(chunk_pairs, max(buf_pos + k, len(buf_e) * 2))
+                buf_e.resize(new_size, refcheck=False)
+                buf_v.resize(new_size, refcheck=False)
+            else:
+                if buf_pos > 0:
+                    eval_chunk(buf_pos)
+                    buf_pos = 0
+
+                if k > chunk_pairs:
+                    if len(buf_e) < chunk_pairs:
+                        buf_e.resize(chunk_pairs, refcheck=False)
+                        buf_v.resize(chunk_pairs, refcheck=False)
+                    for off in range(0, k, chunk_pairs):
+                        chunk_slice = e_cands[off : off + chunk_pairs]
+                        sk = len(chunk_slice)
+                        buf_e[:sk] = e_idx
+                        buf_v[:sk] = chunk_slice
+                        eval_chunk(sk)
+                    continue
+
+                if k > len(buf_e):
+                    new_size = min(chunk_pairs, max(k, len(buf_e) * 2))
+                    buf_e.resize(new_size, refcheck=False)
+                    buf_v.resize(new_size, refcheck=False)
+
+        buf_e[buf_pos : buf_pos + k] = e_idx
+        buf_v[buf_pos : buf_pos + k] = e_cands
+        buf_pos += k
+
+    if buf_pos > 0:
+        eval_chunk(buf_pos)
+        buf_pos = 0
+
     if stats is not None:
-        stats["pairs_tested"] = int(total_pairs)
-
-    hits: dict[int, set[int]] = {}
-
-    if total_pairs > 0:
-        e_arr = np.array(edge_cand_edges, dtype=np.int64)
-        v_idx = np.array(edge_cand_verts, dtype=np.int64)
-
-        chunk_size = 1_000_000
-        for chunk_start in range(0, total_pairs, chunk_size):
-            chunk_end = min(chunk_start + chunk_size, total_pairs)
-            sub_e = e_arr[chunk_start:chunk_end]
-            sub_v = v_idx[chunk_start:chunk_end]
-
-            sub_ea = table.edges[sub_e, 0]
-            sub_eb = table.edges[sub_e, 1]
-            sub_cv = cand[sub_v]
-
-            A = positions_w[sub_ea]
-            B = positions_w[sub_eb]
-            ab = B - A
-            denom = np.sum(ab * ab, axis=1)
-            safe_denom = np.where(denom == 0, 1.0, denom)
-
-            P_chunk = cand_pos[sub_v]
-            PA = P_chunk - A
-            t = np.sum(PA * ab, axis=1) / safe_denom
-            diff = PA - t[:, None] * ab
-            d = np.linalg.norm(diff, axis=1)
-
-            hit = (t > 1e-9) & (t < 1.0 - 1e-9) & (d <= tol) & (sub_cv != sub_ea) & (sub_cv != sub_eb)
-            if hit.any():
-                hit_e = sub_e[hit]
-                hit_v = sub_cv[hit]
-                for e_val, v_val in zip(hit_e.tolist(), hit_v.tolist()):
-                    if e_val in hits:
-                        hits[e_val].add(v_val)
-                    else:
-                        hits[e_val] = {v_val}
+        stats["pairs_tested"] = int(pairs_tested)
+        stats["pairs_peak"] = int(pairs_peak)
+        stats["full_scan_edges"] = int(full_scan_edges)
 
     if face_w is not None and degenerate is not None and degenerate.any():
         for e, verts in _t_vertex_hints(positions_w, table, face_w, degenerate, tol).items():

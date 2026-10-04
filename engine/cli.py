@@ -40,6 +40,7 @@ confined to `engine/rays/` -- this module never imports them directly, only thro
 from __future__ import annotations
 
 import argparse
+import collections
 import json
 import os
 import shutil
@@ -1003,6 +1004,32 @@ def build_parser() -> argparse.ArgumentParser:
     validate_p.add_argument("--min-per-face", type=int, default=4,
                             help="at least this many samples on every face (owner's value 4; see --area-per-sample)")
 
+    census_p = sub.add_parser("census", help="run find_errors census over units with timings, peak memory and fix plan")
+    census_p.add_argument("units", nargs="*", default=None, help="snapshot directories (default: all snapshots in source.json)")
+    census_p.add_argument("--out", type=Path, default=Path("data/campus/census.json"), help="output census JSON path")
+    census_p.add_argument("--errors-dir", type=Path, default=None, help="output directory for per-unit error JSONs")
+    census_p.add_argument("--md", type=Path, default=None, help="output path for markdown census table")
+    census_p.add_argument("--jobs", type=int, default=4, help="number of parallel worker processes")
+    census_p.add_argument("--timeout", type=float, default=1800.0, help="timeout per unit in seconds")
+    census_p.add_argument("--materials", type=Path, default=Path("D:/PROJECTS/UC MODEL FIXER/data/campus/materials.json"), help="path to materials.json")
+
+    inv_p = sub.add_parser("campus-inventory",
+                           help="buildings, level tables, floor/element units, duplicates, misnamed and missing "
+                                "levels: the draft campus map for the owner to confirm")
+    inv_p.add_argument("--source", type=Path, default=Path("data/campus/source.json"),
+                       help="the source.json file from campus-freeze")
+    inv_p.add_argument("--index", type=Path, default=Path("data/campus/group_index.json"),
+                       help="the group_index.json file from campus-index")
+    inv_p.add_argument("--materials", type=Path, default=Path("data/campus/materials.json"),
+                       help="the materials.json file from campus-materials")
+    inv_p.add_argument("--out", type=Path, default=Path("data/campus/campus_map.draft.json"),
+                       help="the draft campus map (JSON)")
+    inv_p.add_argument("--md", type=Path, default=Path("docs/superpowers/records/campus/campus-map-draft.md"),
+                       help="the owner-readable table")
+    inv_p.add_argument("--literal", action="store_true",
+                       help="use the brief's constants as written (24 in slab window, nearest base, 20 in merge, "
+                            "print-step duplicates) instead of the measured ones")
+
     return parser
 
 
@@ -1081,6 +1108,38 @@ def main(argv: list[str] | None = None) -> int:
         print(f"checked {c['files']} files against {report['source']['backup']}: {c['matches']} match, "
               f"{c['mismatches']} mismatch, {c['ambiguous_files']} ambiguous, {c['misses']} miss "
               f"-> {args.out / 'skp_check.json'}")
+        return 0
+    elif args.command == "census":
+        from engine.campus.census import census
+        units = [Path(u) for u in args.units] if args.units else None
+        res = census(units=units, out_json=args.out, jobs=args.jobs, timeout_s=args.timeout,
+                     errors_dir=args.errors_dir, out_md=args.md, materials_path=args.materials)
+        totals = res["totals"]
+        wall_sec = totals.get("wall_seconds", totals["seconds"])
+        print(f"census completed: {totals['units']} units ({totals['ok']} ok, {totals['timeout']} timeout, {totals['error']} error), "
+              f"{totals['triangles']:,} triangles in {wall_sec:.2f} s wall ({totals['seconds']:.2f} s unit sum) -> {args.out}")
+        if totals.get("error", 0) > 0:
+            return 1
+        return 0
+    elif args.command == "campus-inventory":
+        from engine.campus.inventory import BRIEF_PARAMS, cmd_campus_inventory
+        res = cmd_campus_inventory(args.source, args.index, args.materials, args.out, args.md,
+                                   BRIEF_PARAMS if args.literal else None)
+        by_type = collections.Counter(u["type"] for u in res["units"])
+        by_kind = collections.Counter(f["kind"] for f in res["flags"])
+        cov = res["coverage"]
+        print(f"campus inventory: {cov['groups']} splits, {cov['tris']:,} triangles -> {len(res['units'])} units "
+              f"(floor {by_type['floor']}, element {by_type['element']}, site {by_type['site']}), "
+              f"{len(res['proposals'])} split proposals")
+        for name, b in res["buildings"].items():
+            a = b["anchor"]
+            print(f"  {name}: {len(b['groups'])} groups, {len(b['levels'])} levels"
+                  + (f", numbered from L{1 + a['offset']:02d}" if a["offset"] else ""))
+        print("  flags: " + ", ".join(f"{k} {by_kind[k]}"
+                                      for k in ("duplicate", "misnamed", "missing", "shared", "footprint", "split")))
+        print(f"  coverage: {cov['whole']} whole + {cov['split']} split = {cov['whole'] + cov['split']} of {cov['groups']} "
+              f"splits, {cov['unit_tris']:,} of {cov['tris']:,} triangles in units ({'ok' if cov['ok'] else 'NOT ok'})")
+        print(f"wrote {args.out} and {args.md}")
         return 0
     return 1
 

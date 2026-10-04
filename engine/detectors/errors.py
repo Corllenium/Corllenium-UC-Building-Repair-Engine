@@ -15,6 +15,7 @@ something it must not.
 """
 from __future__ import annotations
 
+import time
 import numpy as np
 
 from engine.detectors.fragments import detect_fragments
@@ -57,7 +58,9 @@ def _face_group_spots(kind: str, pos: np.ndarray, faces: np.ndarray, members: np
             for fs in ranked[:SPOTS_PER_KIND]]
 
 
-def find_errors(mesh: MeshData, profile: FixProfile = FixProfile()) -> dict:
+def find_errors(mesh: MeshData, profile: FixProfile = FixProfile(),
+                timings: dict | None = None) -> dict:
+    t_start = time.perf_counter()
     topo = analyse_topology(mesh, frozenset(), coplanar_angle=profile.coplanar_angle,
                             soft_angle=profile.soft_angle)
     pos, faces, ok = topo.positions_w, topo.face_w, topo.ok
@@ -65,17 +68,23 @@ def find_errors(mesh: MeshData, profile: FixProfile = FixProfile()) -> dict:
     positions_c = pos - centre
     tri = pos[faces]
     area = 0.5 * np.linalg.norm(np.cross(tri[:, 1] - tri[:, 0], tri[:, 2] - tri[:, 0]), axis=1)
+    if timings is not None:
+        timings["topology"] = time.perf_counter() - t_start
 
     # hidden and reversed: the pipeline's own exposure and orientation verdicts
+    t_start = time.perf_counter()
     front, back = compute_side_exposure(positions_c, faces, ok, n_dirs=profile.n_dirs)
     exposure_class = classify_exposure(front + back, ok, profile.slit_threshold)
     hidden = np.nonzero((exposure_class == EXP_HIDDEN) & ok)[0]
     facade = np.nonzero((exposure_class == EXP_OUTSIDE) & ok)[0]
     reversed_ = np.nonzero((classify_orientation(front, back, ok) == ORIENT_FLIP) & ok)[0]
+    if timings is not None:
+        timings["exposure"] = time.perf_counter() - t_start
 
     # loose: the zero-area faces, and the stray-fragment and sliver candidates among the rest, at
     # the tolerances fix_object uses (contact within its T-junction tolerance, no sliver wider
     # than the merge's own border tolerance)
+    t_start = time.perf_counter()
     ok_ids = np.nonzero(ok)[0]
     fr = detect_fragments(positions_c, faces[ok_ids], profile,
                           contact_tol=1.5 * float(topo.quanta.max()),
@@ -84,8 +93,11 @@ def find_errors(mesh: MeshData, profile: FixProfile = FixProfile()) -> dict:
     loose = np.union1d(zero_area, ok_ids[fr.fragments | fr.slivers])
     loose_parts = {"zero_area": int(len(zero_area)), "fragments": int(fr.fragments.sum()),
                    "slivers": int(fr.slivers.sum())}
+    if timings is not None:
+        timings["fragments"] = time.perf_counter() - t_start
 
     # flicker: two layers of one plane, split by whether the two materials differ
+    t_start = time.perf_counter()
     depth_tol = guard_depth_tol(topo.quanta, profile)
     dl = double_layers(positions_c, faces, depth_tol, VIEWS_26, profile.guard_size, centre=centre)
     diff: set[int] = set()
@@ -94,8 +106,11 @@ def find_errors(mesh: MeshData, profile: FixProfile = FixProfile()) -> dict:
         target = same if mesh.face_material[i] == mesh.face_material[j] else diff
         target.update((i, j))
     same -= diff
+    if timings is not None:
+        timings["double_layers"] = time.perf_counter() - t_start
 
     # open edges and cracks from the same edge table the pipeline builds
+    t_start = time.perf_counter()
     open_rows = np.nonzero(np.asarray(topo.edge_class) == EDGE_OPEN)[0]
     open_edges = pos[topo.table.edges[open_rows]].reshape(-1, 6)
     t_ids = sorted({int(v) for vs in topo.t_vertices.values() for v in np.atleast_1d(vs)})
@@ -126,6 +141,8 @@ def find_errors(mesh: MeshData, profile: FixProfile = FixProfile()) -> dict:
     counts = {k: len(face_lists[k]) for k in face_lists}
     counts["open_edges"] = int(len(open_edges))
     counts["cracks"] = int(len(cracks))
+    if timings is not None:
+        timings["assemble"] = time.perf_counter() - t_start
     return {"version": ERRORS_VERSION, "n_faces": int(mesh.n_faces),
             "counts": {k: counts[k] for k in KINDS},
             "loose_parts": loose_parts,
