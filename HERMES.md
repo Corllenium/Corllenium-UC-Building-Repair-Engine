@@ -41,7 +41,9 @@ This file is the entry point. The work is shared between Claude sessions and you
    - Never write "fixed" or "passed" without that output.
    - If something did not work, say so plainly in the report.
 6. **Commit** in your worktree, staging files by name, never `git add -A`. End every message with the
-   line `Hermes-Job: <id>`.
+   line `Hermes-Job: <id>`. Never amend or rebase: make a new commit. In the report, copy commit hashes
+   from `git log --oneline` after your last code commit. An amended commit's old hash no longer exists,
+   and two reports cited such hashes.
 7. **Hand in:**
    ```bash
    "D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe" tools/jobs.py done <id> --branch hermes/<id>
