@@ -386,3 +386,4 @@ exit=1
 - Owner asked to host the fixer dashboard on the VPS beside UC-BCF.
   - Facts: srv1866850.hstgr.cloud = 187.127.213.243; UC-BCF = container corllenium-web at http://187.127.213.243:8081 (06-DASHBOARD repo; deploy = build+stage, then the owner runs promote-vps.ps1).
   - Options A (Traefik HTTPS subdomain) and B (IP:8083) are put to the owner, with basic auth and a view-only VPS; awaiting the owner's choice.
+- Controller CHTM 5th identity on 3fc009b: PASS (275,918 samples, 0 failed incl. overlaid; 570 s; peak WS 599 MB, commit 1,232 MB). P0-15 done + review --pass; merged into feat/repair-p0 (4247f5e); validate/skp_writer/cli/census tests 256 passed after the merge.
