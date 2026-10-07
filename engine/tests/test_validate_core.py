@@ -18,7 +18,7 @@ from engine.validate.sampling import (MAX_FRAME_COORD, bbox_centre, check_frame,
                                       face_normals, face_samples, recentred, used_bbox, uv_at)
 from engine.validate.viewpoints import (INSIDE_VOTES, _back_votes, interior_probes, outside_directions,
                                         pedestrian_ring)
-from engine.validate.visibility import MIN_COS, build_caster, visible_samples
+from engine.validate.visibility import MIN_COS, build_caster, check_caster, visible_samples
 
 
 def _merged(*meshes):
@@ -816,3 +816,194 @@ def test_exactly_half_of_the_rays_meeting_backs_is_not_a_majority():
     probes = interior_probes(m)
     assert probes.shape == (1, 3) and np.isclose(probes[0, 2], 63.0)
     assert _back_rays(m, probes)[0] == VOTES // 2 == 13
+
+
+# ---------------------------------------------------------------------------------------------
+# Job P0-15, carried from the P0-14 review. Item 1: a floor wound DOWNWARD (a reversed face, which
+# the engine will flip) still gets its probes, so the Validator sees it from inside.
+# ---------------------------------------------------------------------------------------------
+
+def test_a_reversed_floor_keeps_its_probes_and_they_see_it_from_behind():
+    room = _flipped(closed_room(), [0, 1])                    # the inner floor now faces DOWN, into the void
+    assert np.allclose(face_normals(room)[0:2], [[0.0, 0.0, -1.0]] * 2)
+    probes = interior_probes(room)
+    inside = _inside_the_room(probes)
+    assert inside.sum() == 20 and len(probes) == 40, "the room's 20 and the roof's 20, as for the intact room"
+    assert (probes[inside, 2] == 63.0).all(), "1.6 m above the floor at z = 0, on the +z side of it"
+    s = face_samples(room, area_per_sample=500.0)
+    vs = visible_samples(room, s, _no_points(), _no_points(), probes[inside], build_caster(room))
+    walls = np.isin(s.face, np.arange(4, 12))
+    assert vs.seen[walls].all() and vs.front[walls].all(), "all 4 inner walls, from the front, from every probe"
+    floor = s.face < 2
+    assert vs.seen[floor].all() and not vs.front[floor].any(), "the reversed floor itself, from behind"
+
+
+def test_a_downward_face_is_ground_only_under_a_lid():
+    floor = _flipped(grid_slab(10, 10))                       # 100 x 100 in at z = 0, wound DOWN
+    assert interior_probes(floor).shape == (0, 3), "in the open it is an awning or a canopy, not a floor"
+    lid = _lifted(_flipped(grid_slab(10, 10)), 120.0)         # a ceiling 120 in above it, facing down
+    probes = interior_probes(_merged(floor, lid))
+    assert len(probes) == 9 and np.allclose(probes[:, 2], 63.0), "under a lid it is a reversed floor: 3 x 3"
+    assert not (probes[:, 2] > 120.0).any(), "and the lid's own top side, open to the sky, gets none"
+
+
+def test_a_floor_drawn_once_each_way_gets_one_probe_per_cell():
+    floor = grid_slab(10, 10)
+    lid = _lifted(_flipped(grid_slab(10, 10)), 120.0)
+    assert len(interior_probes(_merged(floor, lid))) == 9
+    both_ways = interior_probes(_merged(floor, _flipped(floor), lid))
+    assert len(both_ways) == 9, "the up layer and the down layer share every cell and height: one probe each"
+
+
+def test_a_downward_ceiling_of_a_solid_taller_than_the_headroom_adds_no_probe_inside_it():
+    floor = grid_slab(10, 10)                                           # 100 x 100 in at z = 0, faces +z
+    block = _wall(0.0, 100.0, 0.0, 100.0, 100.0, 400.0)                 # a closed solid, 300 in thick, 100 in up
+    m = _merged(floor, block)
+    assert np.allclose(face_normals(m)[floor.n_faces:floor.n_faces + 2], [[0.0, 0.0, -1.0]] * 2), \
+        "premise: the block's bottom is wound downward, like a true ceiling"
+    # premise: from half an inch above that bottom the headroom ray runs up INSIDE the block to its top
+    _, t = build_caster(m).first_hit(np.array([[50.0, 50.0, 100.5]]), np.array([[0.0, 0.0, 1.0]]))
+    assert t[0] > 83.0
+    probes = interior_probes(m)
+    assert not _in_the_box(probes, (0.0, 0.0, 100.0), (100.0, 100.0, 400.0)).any()
+    assert len(probes) == 18, "9 on the floor under it and 9 on the block's top, none from its bottom"
+
+
+# ---------------------------------------------------------------------------------------------
+# Items 2-4: nonsense arguments the core used to accept
+# ---------------------------------------------------------------------------------------------
+
+def test_check_caster_refuses_a_caster_of_another_mesh_with_the_same_number_of_faces():
+    m = cube(10.0)
+    other = _flipped(m)                         # 12 faces too, but every one wound the other way: another `face_v`
+    assert other.n_faces == m.n_faces and not np.array_equal(other.face_v, m.face_v)
+    caster = build_caster(other)
+    with pytest.raises(ValueError, match="caster"):
+        check_caster(m, caster)
+    with pytest.raises(ValueError, match="caster"):
+        visible_samples(m, face_samples(m), outside_directions(8), _no_points(), _no_points(), caster)
+    with pytest.raises(ValueError, match="caster"):
+        interior_probes(m, caster=caster)
+    check_caster(m, build_caster(m))            # its own caster is accepted
+
+
+def test_viewpoints_must_be_rows_of_three_numbers_and_an_array_of_six_is_not_reshaped():
+    m = cube(10.0)
+    s = face_samples(m)
+    caster = build_caster(m)
+    dirs = outside_directions(4)
+    six = np.arange(6.0).reshape(3, 2)
+    with pytest.raises(ValueError, match="cams"):
+        visible_samples(m, s, dirs, six, _no_points(), caster)
+    with pytest.raises(ValueError, match="probes"):
+        visible_samples(m, s, dirs, _no_points(), six, caster)
+    with pytest.raises(ValueError, match="dirs"):
+        visible_samples(m, s, six + 1.0, _no_points(), _no_points(), caster)
+    with pytest.raises(ValueError, match="cams"):
+        visible_samples(m, s, dirs, np.array([20.0, 20.0, 30.0]), _no_points(), caster)    # one flat point
+    ok = visible_samples(m, s, dirs, np.array([[20.0, 20.0, 30.0]]), [], caster)           # (k, 3) and an empty list
+    assert ok.seen.shape == (len(s), 4 + 1)
+
+
+def test_face_ids_must_be_integers_inside_the_mesh():
+    m = cube(10.0)
+    with pytest.raises(ValueError, match="integer"):
+        face_samples(m, faces=np.array([1.5]))
+    with pytest.raises(ValueError, match="integer"):
+        face_samples(m, faces=np.array([1.0, 2.0]))
+    with pytest.raises(ValueError, match="face ids"):
+        face_samples(m, faces=np.array([-1]))
+    with pytest.raises(ValueError, match="face ids"):
+        face_samples(m, faces=np.array([m.n_faces]))
+    with pytest.raises(ValueError, match="face ids"):
+        face_samples(m, faces=[0, 3, 99])
+    with pytest.raises(ValueError, match="face ids"):
+        face_samples(m, faces=np.array([2 ** 63], dtype=np.uint64))     # would wrap to a negative id if cast first
+    assert len(face_samples(m, faces=[])) == 0 and len(face_samples(m, faces=np.zeros(0))) == 0
+    last = np.array([m.n_faces - 1, 0], dtype=np.int32)
+    assert sorted(set(face_samples(m, faces=last).face.tolist())) == [0, m.n_faces - 1]
+    assert sorted(set(face_samples(m, faces=np.array([5], dtype=np.uint8)).face.tolist())) == [5]
+
+
+# ---------------------------------------------------------------------------------------------
+# Item 5: two mutants the P0-14 tests let live
+# ---------------------------------------------------------------------------------------------
+
+def test_a_blocker_half_an_inch_before_a_camera_or_probe_still_blocks_the_segment():
+    floor = grid_slab(4, 4)                                   # 40 x 40 in at z = 0, faces +z: faces 0-31
+    ceiling = _lifted(grid_slab(4, 4), 10.0)                  # the same, 10 in above it: faces 32-63
+    m = _merged(floor, ceiling)
+    s = face_samples(m, area_per_sample=500.0)
+    caster = build_caster(m)
+    low, high = s.face < 32, s.face >= 32
+    below = np.array([[20.0, 20.0, 9.5]])                     # 0.5 in under it
+    for kind in ("camera", "probe"):
+        def look(spot):
+            if kind == "camera":
+                return visible_samples(m, s, _no_points(), spot, _no_points(), caster)
+            return visible_samples(m, s, _no_points(), _no_points(), spot, caster)
+        for gap in (0.5, 0.1):                                # the plate this far in front of the viewpoint
+            up = look(np.array([[20.0, 20.0, 10.0 + gap]]))
+            assert not up.seen[low].any(), f"the plate, {gap} in in front of the {kind}, hides the whole floor"
+            assert up.front[high].all(), "the plate itself is seen, from the front"
+        down = look(below)
+        assert down.seen[low].all() and down.front[low].all(), f"a {kind} just under the plate sees the floor"
+        assert down.seen[high].all() and not down.front[high].any(), "and the plate's back"
+        touching = look(np.array([[20.0, 20.0, 10.001]]))     # 0.003 in along the slantiest ray: inside EPS_ORIGIN
+        assert touching.seen[low].all(), f"a plate within 0.02 in of the {kind} does not hide what is behind it"
+
+
+def _ring_of_walls(radius, z0, z1, sides=64):
+    """A tower of `sides` wall panels round the z axis from z0 up to z1, wound OUTWARD and with no floor or roof.
+    From inside, every ray that meets a panel meets its BACK, and the panels are not ground, so a tile standing in
+    the tower is the only candidate probe there is. Standing at height h, the ray with elevation e meets the wall
+    at h + radius * tan(e): the top and bottom of the tower decide how many of the 26 vote rays meet a back."""
+    angle = 2.0 * np.pi * np.arange(sides) / sides
+    low = np.stack([radius * np.cos(angle), radius * np.sin(angle), np.full(sides, float(z0))], axis=1)
+    high = low.copy()
+    high[:, 2] = z1
+    faces = []
+    for k in range(sides):
+        b0, b1, t0, t1 = k, (k + 1) % sides, sides + k, sides + (k + 1) % sides
+        faces += [[b0, b1, t1], [b0, t1, t0]]
+    faces = np.array(faces, dtype=np.int64)
+    n = len(faces)
+    return dataclasses.replace(
+        cube(), positions=np.vstack([low, high]), uvs=np.zeros((1, 2)), face_v=faces,
+        face_vt=np.zeros((n, 3), dtype=np.int64), face_vn=np.full((n, 3), -1, dtype=np.int64),
+        face_material=np.zeros(n, dtype=np.int64), face_line=np.arange(1, n + 1, dtype=np.int64))
+
+
+def test_a_candidate_probe_with_14_to_20_back_votes_is_dropped():
+    tile = grid_slab(1, 1, cell=1.0)                          # 1 in tile: its two centroids are the candidates
+    eyes = np.array([[2.0 / 3.0, 1.0 / 3.0, 63.0], [1.0 / 3.0, 2.0 / 3.0, 63.0]])
+    # (how far above the eye the tower reaches, how far below it, the backs the 26 rays meet): the rays that
+    # point up and down meet the wall 19, 58, 98, 140, 184, 234, 289, 353, 432, 535 ... in away from the eye height
+    scenes = [(320.0, 250.0, 13), (400.0, 250.0, 14), (450.0, 400.0, 17), (600.0, 600.0, 20)]
+    for up, down, backs in scenes:
+        m = _merged(tile, _ring_of_walls(500.0, 63.0 - down, 63.0 + up))
+        votes = _back_rays(m, eyes)
+        assert (votes == backs).all(), f"premise: {votes}, wanted {backs}"
+        _, t = build_caster(m).first_hit(eyes - [0.0, 0.0, 62.5], np.tile([0.0, 0.0, 1.0], (2, 1)))
+        assert np.isinf(t).all(), "premise: nothing overhead, so the headroom rule lets the candidates through"
+        probes = interior_probes(m)
+        if backs <= 13:
+            assert probes.shape == (1, 3) and np.isclose(probes[0, 2], 63.0), "13 backs is exactly half: it stays"
+        else:
+            assert probes.shape == (0, 3), f"{backs} backs is a majority: the candidate must be dropped"
+
+
+# ---------------------------------------------------------------------------------------------
+# Item 6: the limits the `interior_probes` docstring names are the measured ones
+# ---------------------------------------------------------------------------------------------
+
+def test_the_limits_named_in_the_interior_probes_docstring_are_the_measured_ones():
+    def kept(*reversed_faces):
+        return int(_inside_the_room(interior_probes(_flipped(closed_room(), list(reversed_faces)))).sum())
+
+    assert kept(2, 3) == 20, "one reversed ceiling alone costs nothing"
+    assert kept(2, 3, 6, 7) == 18, "the reversed ceiling and the wall x = 200"
+    assert kept(2, 3, 6, 7, 10, 11) == 13, "the reversed ceiling and the walls x = 200 and x = 0"
+    assert kept(0, 1) == 20, "a reversed floor alone is fine (item 1)"
+    assert kept(0, 1, 2, 3) == 20, "so are a reversed floor and ceiling together: the walls still face the room"
+    assert kept(*range(12)) == 0, "every inner face reversed: the room reads as the inside of a solid"

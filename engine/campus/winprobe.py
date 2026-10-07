@@ -74,10 +74,12 @@ def get_machine_load() -> dict[str, Any]:
     return {"python_processes": 0, "msedge_processes": 0, "system_times": {}}
 
 
-def get_process_peak_memory_mb() -> float:
-    """Current process's peak working set size in MB via Windows GetProcessMemoryInfo."""
+def peak_memory_mb() -> tuple[float | None, float | None]:
+    """`(peak working set, peak commit)` of this process in MB via Windows GetProcessMemoryInfo (`PeakWorkingSetSize`
+    and `PeakPagefileUsage`); `(None, None)` off Windows or when the call fails. The one place the engine reads
+    them: the census, the SketchUp reader and the Validator's `validate` command all ask here."""
     if os.name != "nt":
-        return 0.0
+        return None, None
 
     class Counters(ctypes.Structure):
         _fields_ = [
@@ -95,5 +97,12 @@ def get_process_peak_memory_mb() -> float:
     counters = Counters()
     counters.cb = ctypes.sizeof(Counters)
     if psapi.GetProcessMemoryInfo(kernel32.GetCurrentProcess(), ctypes.byref(counters), counters.cb):
-        return round(counters.PeakWorkingSetSize / (1024 * 1024), 1)
-    return 0.0
+        return (round(counters.PeakWorkingSetSize / (1024 * 1024), 1),
+                round(counters.PeakPagefileUsage / (1024 * 1024), 1))
+    return None, None
+
+
+def get_process_peak_memory_mb() -> float:
+    """Current process's peak working set size in MB via Windows GetProcessMemoryInfo; 0.0 off Windows."""
+    peak, _ = peak_memory_mb()
+    return peak if peak is not None else 0.0

@@ -15,12 +15,16 @@ from engine.model import MeshData
 from engine.validate.sampling import check_frame, face_normals, used_bbox
 from engine.validate.visibility import build_caster, check_caster
 
-#: A face is ground to stand on when its normal's z is above this: a slope under about 26 degrees.
+#: A face is ground to stand on when the ABSOLUTE value of its normal's z is above this: a slope under
+#: about 26 degrees, wound upward or downward (a downward one is a reversed floor, or a ceiling: see
+#: `interior_probes`).
 UP_NZ = 0.9
 #: The headroom ray starts this far above the surface, which steps it over a floor's own thin layers.
 HEADROOM_START = 0.5
-#: Two candidate probes in one lattice cell are the same probe when their surfaces are within this
-#: height band, so a stack of coincident floor layers gives one probe and a staircase gives one per tread.
+#: Two candidate probes in one lattice cell are the same probe when their surfaces fall in the same
+#: FIXED height bin, `round(z / LEVEL)`, so a stack of coincident floor layers gives one probe and a
+#: staircase gives one per tread. It is a bin, not a band: two surfaces closer than this can straddle
+#: the edge between two bins (z = 0.9 and z = 1.1 do) and keep a probe each.
 LEVEL = 2.0
 #: Barycentric slack for "is this lattice point inside that triangle": a point exactly on an edge
 #: shared by two faces belongs to both, and the lattice cell dedupe keeps one.
@@ -126,18 +130,24 @@ def _back_votes(caster, normals: np.ndarray, points: np.ndarray) -> np.ndarray:
 def interior_probes(mesh: MeshData, eye: float = 63.0, headroom: float = 83.0,
                     grid: float = 39.37, caster=None) -> np.ndarray:
     """(K, 3) float64 eye-height probe positions, `eye` (63 in = 1.6 m) above ground someone could
-    stand on: every upward face (`n_z > 0.9`) whose UPWARD ray from half an inch above it meets
-    nothing within `headroom` (83 in = 2.1 m). So a room gets probes and a crawl space does not,
-    and nothing is placed under a table, a low slab or a stair above it.
+    stand on: every face within about 26 degrees of horizontal (`|n_z| > 0.9`) whose UPWARD ray from
+    half an inch above it meets nothing within `headroom` (83 in = 2.1 m). So a room gets probes and a
+    crawl space does not, and nothing is placed under a table, a low slab or a stair above it.
 
     The ground is sampled on a plan lattice `grid` (39.37 in = 1 m) apart, anchored half a cell in
     from the lower-left corner of the vertices the faces use: the lattice points inside each
-    upward face, at the face's height there. A face too small to hold one gets one at its centroid,
-    so no upward face with headroom goes without a probe above it. Then one probe is kept per
+    ground face, at the face's height there. A face too small to hold one gets one at its centroid,
+    so no ground face with headroom goes without a probe above it. Then one probe is kept per
     lattice cell and `LEVEL` of height (lattice points first), so a floor cut into thousands of
-    tiny triangles, or drawn twice, still gets about one probe a metre.
+    tiny triangles, or drawn twice (once each way too), still gets about one probe a metre.
 
-    Probes are not limited to the inside of rooms: an open roof is upward ground with headroom too.
+    UPWARD AND DOWNWARD FACES. A floor wound DOWNWARD is a reversed face (an error kind the engine
+    flips), and players walk on it all the same, so the Validator must see from standing on it: the
+    probe stands on the +z side of the face, wherever its winding puts its front. A downward face is
+    read as ground only UNDER A LID, though: its headroom ray must END on a surface beyond `headroom`.
+    A downward plane with open sky above it is an awning, a canopy or a ceiling seen from below, and
+    nobody stands on top of it; outside viewpoints see an open-air reversed floor from above anyway.
+    Upward faces need no lid: an open roof is ground too, so probes are not limited to rooms.
     Reuse the `caster` of `visibility.build_caster(mesh)` when there is one; otherwise one is built.
     The mesh must be in the Validator's frame (`ValueError` if not).
 
@@ -154,22 +164,36 @@ def interior_probes(mesh: MeshData, eye: float = 63.0, headroom: float = 83.0,
     Measured on real snapshots (job P0-14): CHTM 5th floor 1,577 probes became 1,397: 177 of the 181
     whose upward ray meets a back are gone, plus 10 more in enclosed pockets; 3 of the 4 flagged
     ones that stay stand exactly on such a wall. Every probe with no back vote at all (1,386 there)
-    is kept, on every floor tried; sidewalk A is unchanged at 838."""
+    is kept, on every floor tried; sidewalk A is unchanged at 838. Taking the downward faces too
+    (job P0-15) added the 6 lattice cells of CHTM 5th that had no probe: 1,397 became 1,403.
+
+    KNOWN LIMITS, measured on `closed_room` (the P0-14 review and job P0-15):
+    * a floor wound downward used to get no probe at all, because only `n_z > 0.9` counted. Fixed
+      by `|n_z|` and the lid rule above. Still open: a reversed floor with NO lid (open sky above
+      it) gets none.
+    * a reversed ceiling together with reversed walls can drop open-air probes: the vote reads the
+      backs of those faces as the inside of a solid. With the ceiling and the wall x = 200 reversed,
+      18 of the room's 20 probes stay; with the walls x = 200 and x = 0 both, 13 of 20 (other walls:
+      16 to 19 with one, 6 to 13 with two). A reversed floor and ceiling alone cost nothing (20 of 20),
+      and every wall reversed on top of them costs more; a room with every inner face reversed reads
+      as the inside of a solid and gets none.
+    """
     if not grid > 0.0:
         raise ValueError(f"grid must be positive, got {grid!r}")
     check_frame(mesh.positions, "mesh positions")
     normals = face_normals(mesh)
-    up = np.flatnonzero(normals[:, 2] > UP_NZ)
-    if not len(up):
+    ground = np.flatnonzero(np.abs(normals[:, 2]) > UP_NZ)              # wound up or down: see the docstring
+    if not len(ground):
         return np.zeros((0, 3))
-    tri = mesh.positions[mesh.face_v[up]]
+    tri = mesh.positions[mesh.face_v[ground]]
     x0, y0 = used_bbox(mesh)[0][:2]
 
     on_face, on_lattice = _lattice_points_in(tri, x0, y0, grid)
-    too_small = np.setdiff1d(np.arange(len(up)), on_face)               # no lattice point inside
+    too_small = np.setdiff1d(np.arange(len(ground)), on_face)           # no lattice point inside
     candidates = np.vstack([on_lattice, tri[too_small].mean(axis=1)])
     if not len(candidates):
         return np.zeros((0, 3))
+    downward = normals[np.concatenate([ground[on_face], ground[too_small]]), 2] < 0.0
 
     if caster is None:
         caster = build_caster(mesh)
@@ -178,7 +202,8 @@ def interior_probes(mesh: MeshData, eye: float = 63.0, headroom: float = 83.0,
     for s in range(0, len(candidates), _BATCH):
         origins = candidates[s:s + _BATCH] + [0.0, 0.0, HEADROOM_START]
         _, t = caster.first_hit(origins, np.tile([0.0, 0.0, 1.0], (len(origins), 1)))
-        free[s:s + len(origins)] = t > headroom                          # a miss is t = inf
+        # a miss is t = inf: open sky, which an upward face may have above it and a downward one may not
+        free[s:s + len(origins)] = (t > headroom) & ~(downward[s:s + len(origins)] & np.isinf(t))
     candidates = candidates[free]
     if not len(candidates):
         return np.zeros((0, 3))

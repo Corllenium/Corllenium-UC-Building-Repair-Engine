@@ -81,8 +81,8 @@ def _lattice(n: int) -> np.ndarray:
 
 def face_samples(mesh: MeshData, faces=None, min_per_face: int = 4,
                  area_per_sample: float = 36.0) -> Samples:
-    """Samples on `faces` (all of them by default; an index array in the order wanted, or a
-    boolean mask): at least `min_per_face` on every face and about one per `area_per_sample` sq
+    """Samples on `faces` (all of them by default; an array of integer face ids in the order wanted
+    and inside the mesh, or a boolean mask): at least `min_per_face` on every face and about one per `area_per_sample` sq
     in, as the smallest `n * n` lattice (see `_lattice`) that reaches that count. So a 10 in
     triangle gets 4 and a 120 in one gets 225.
 
@@ -101,6 +101,11 @@ def face_samples(mesh: MeshData, faces=None, min_per_face: int = 4,
                 raise ValueError("a boolean `faces` mask needs one entry per face")
             ids = np.flatnonzero(faces).astype(np.int64)
         else:
+            if faces.size and faces.dtype.kind not in "iu":
+                raise ValueError(f"face ids must be integers, got dtype {faces.dtype}")
+            if faces.size and (faces.min() < 0 or faces.max() >= mesh.n_faces):
+                raise ValueError(f"face ids must lie in 0..{mesh.n_faces - 1}, "
+                                 f"got {faces.min()}..{faces.max()}")
             ids = faces.astype(np.int64).reshape(-1)
 
     cross, _ = _cross_and_longest_edge2(mesh, ids)
