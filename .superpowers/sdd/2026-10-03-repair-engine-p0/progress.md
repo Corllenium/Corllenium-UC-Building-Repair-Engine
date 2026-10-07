@@ -375,3 +375,14 @@ exit=1
   - P0-15 fix round 1: 11 commits fc2277c..3fc009b cover CRITICAL 1, IMPORTANT 2-3 and minors 4-9; worktree clean; validate + cli tests 195 passed.
     - Re-review dispatched (rules-reviewer, opus) with the reviewer's three scenes; CHTM 5th identity run started by the controller.
   - P1-S3b (Hermes, awaiting-review; Items 1-2 committed, no Item 3 commit seen): review dispatched (hermes-reviewer, sonnet) with per-call digests against controller_calls.out.
+- P0-15 fix-round re-review (rules-reviewer, opus): PASS. All 4 findings addressed.
+  - The overlay pass flags new faces in a new look or UV in the line of sight.
+  - Plate scenes FAIL; duplicate delete/add PASS; fixture identities PASS.
+  - Unknown material read from the snapshot MTL; probe replay present.
+  - Mutants: 10 and 3 tests fail.
+  - 181 passed; sidewalk A identity PASS (41 s).
+  - New Minor, parked: a foreign-look face moved by less than one print step keeps its fingerprint, so the overlay never checks it (not reachable today, since the merge never moves vertices).
+  - Merge waits on the controller's CHTM 5th identity run.
+- Owner asked to host the fixer dashboard on the VPS beside UC-BCF.
+  - Facts: srv1866850.hstgr.cloud = 187.127.213.243; UC-BCF = container corllenium-web at http://187.127.213.243:8081 (06-DASHBOARD repo; deploy = build+stage, then the owner runs promote-vps.ps1).
+  - Options A (Traefik HTTPS subdomain) and B (IP:8083) are put to the owner, with basic auth and a view-only VPS; awaiting the owner's choice.
