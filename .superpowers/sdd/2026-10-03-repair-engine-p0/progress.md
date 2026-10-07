@@ -387,3 +387,7 @@ exit=1
   - Facts: srv1866850.hstgr.cloud = 187.127.213.243; UC-BCF = container corllenium-web at http://187.127.213.243:8081 (06-DASHBOARD repo; deploy = build+stage, then the owner runs promote-vps.ps1).
   - Options A (Traefik HTTPS subdomain) and B (IP:8083) are put to the owner, with basic auth and a view-only VPS; awaiting the owner's choice.
 - Controller CHTM 5th identity on 3fc009b: PASS (275,918 samples, 0 failed incl. overlaid; 570 s; peak WS 599 MB, commit 1,232 MB). P0-15 done + review --pass; merged into feat/repair-p0 (4247f5e); validate/skp_writer/cli/census tests 256 passed after the merge.
+- P1-S3b review (hermes-reviewer, sonnet): exact on 4 units; targets met.
+  - 91 k unit 25.8 s / 437 MB; CHTM 5th 8.3 s / 288 MB; 46 tests.
+  - Ruling: PASS and merge (exact, all targets met).
+  - Parked for a later small job: dense-cell triu_indices is O(n^2) (a 10 k-face cell is about 800 MB; no real unit hits it); the report's 10.95 s "MET" claim and "unsure: nothing"; no pixel_rows_max <= chunk_rows test; Item 3 bundled into the Item 1 commit.
