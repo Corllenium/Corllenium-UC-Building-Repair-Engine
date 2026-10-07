@@ -391,3 +391,16 @@ exit=1
   - 91 k unit 25.8 s / 437 MB; CHTM 5th 8.3 s / 288 MB; 46 tests.
   - Ruling: PASS and merge (exact, all targets met).
   - Parked for a later small job: dense-cell triu_indices is O(n^2) (a 10 k-face cell is about 800 MB; no real unit hits it); the report's 10.95 s "MET" claim and "unsure: nothing"; no pixel_rows_max <= chunk_rows test; Item 3 bundled into the Item 1 commit.
+- VPS deploy, at the owner's OK ("yes okay deploy"):
+  - stack /docker/uc-fixer (uc-fixer-db, uc-fixer-api, uc-fixer-web); images ucmodelfixer-*:vps from the PC's live images; DB restored from pg_dump (6 versions, 30 assets); data subset 95 MB.
+  - https://uc-fixer.srv1866850.hstgr.cloud has a Let's Encrypt certificate until 2027-01-05; 401 everywhere while users.htpasswd is empty; POST 403 (the API is GET only); UC-BCF :8081 still 200.
+  - Deploy files and runbook: deploy/vps/ (3d102c8). The owner sets the login with the htpasswd command (prompted, never in chat).
+  - The owner pasted a password in chat; it was not used, and the owner was told to treat it as exposed.
+- Supabase: the connector sees only "HierArch24's Project" (xgjdwgjesehohyqkagcr, org "UC project"; UC-BCF's tables).
+  - Schema deploy/supabase/0001_uc_fixer_schema.sql: a dedicated uc_fixer schema, 10 tables, RLS on and no policies. Tested on a throwaway local DB (10 tables, 10 with RLS), then dropped. Commit 1ed0e88.
+  - NOT applied: awaiting the owner's confirmation that this is the right project.
+- Code-only repo: orphan branch export/repair-system (1aa7132, 269 files) in worktree .claude/worktrees/export-repair-system.
+  - Contents: engine, api, web, tools, deploy, docs/superpowers/records/scripts, the 2 workflow templates, AGENTS/CLAUDE/HERMES and a README.
+  - One test edit: HANDOFF test skips when the file is absent.
+  - Secret scan clean; engine 1,092 passed, 8 skipped, 1 xfail; tools 120 + 1 skip.
+  - HierArch24 is not in the Corllenium org, so the owner or Hermes creates the empty private repo Corllenium/Corllenium-UC-Building-Repair-System and pushes export/repair-system:main.
