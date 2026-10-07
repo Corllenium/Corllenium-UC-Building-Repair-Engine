@@ -368,3 +368,10 @@ exit=1
   - Fix-plan pairs by look: E4 341,131, E5 514,573.
   - Slowest: Gymnasium 5th 364 s, Main_Infra 344 s, Architecture dep 2nd 179 s. Highest peak: Gymnasium 1st 1,995 MB, Main_Infra 1,786 MB.
   - census.md committed on feat/repair-p0. The owner's order (every floor's error map first) is met; P0-13 (decision sheet) is now unblocked.
+- 2026-10-08 04:25, new session. The previous session ended with the P0-15 fix-round agent stopped (no report) and the P0-13 AskUserQuestion rejected by the owner, so it is not re-asked unprompted.
+  - Dashboard: all 3 containers had exited 35 h earlier (code 255, reboot). Started at the owner's request ("run and check the dashboard"), db first:
+    - fixer-db healthy; api /api/health {"status":"ok","db":true}; web 5190 200; preview 5180 200;
+    - the browser shows the home page with the CKPT17 export list, workspace/2 (CHTM 5th 3D with error layers, counts 5,668 / 4,793 / 29 / 12,870 / 1,055 / 346 / 3,884 / facade 5,765) and /errors; 0 console errors.
+  - P0-15 fix round 1: 11 commits fc2277c..3fc009b cover CRITICAL 1, IMPORTANT 2-3 and minors 4-9; worktree clean; validate + cli tests 195 passed.
+    - Re-review dispatched (rules-reviewer, opus) with the reviewer's three scenes; CHTM 5th identity run started by the controller.
+  - P1-S3b (Hermes, awaiting-review; Items 1-2 committed, no Item 3 commit seen): review dispatched (hermes-reviewer, sonnet) with per-call digests against controller_calls.out.
