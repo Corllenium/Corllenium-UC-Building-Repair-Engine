@@ -118,6 +118,20 @@ def test_never_more_than_one_retry(monkeypatch):
     assert len(attempts) == 2
 
 
+@needs_db
+def test_timestamps_are_utc_even_when_the_session_zone_is_not(pg):
+    from .test_store_contract import k, make_row
+    pg._connection().execute("set time zone 'Asia/Manila'")
+    assert pg._fetch("show timezone", one=True)["TimeZone"] == "Asia/Manila"
+    sid = pg.add_suggestion(make_row(key=k(1), created_at=None))
+    pg.update_suggestion(sid, status="accepted", owner_answer="glass", reviewed_at="2026-10-08T10:00:00+00:00",
+                         reviewed_by="gab")
+    row = pg.get(sid)
+    assert row["created_at"].endswith("+00:00"), row["created_at"]
+    assert row["reviewed_at"].endswith("+00:00"), row["reviewed_at"]
+    assert row["reviewed_at"] == "2026-10-08T10:00:00+00:00"
+
+
 class FakeClient:
     def system_one(self, state, questions):
         answers = {qid: SimpleNamespace(type="choice", choice=next(iter(spec.criteria)), confidence=0.95,
