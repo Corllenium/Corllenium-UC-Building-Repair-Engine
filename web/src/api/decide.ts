@@ -44,7 +44,12 @@ export async function reviewSuggestion(id: number, body: ReviewBody): Promise<Su
 
 export async function reaskSuggestion(id: number): Promise<Suggestion> {
   const res = await checkResponse(
-    await fetch(`${DECIDE_BASE}/reask/${id}`, { method: 'POST' }),
+    // A JSON body is required: the service answers 422 to a post without one, so a form cannot trigger a re-ask.
+    await fetch(`${DECIDE_BASE}/reask/${id}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: '{}',
+    }),
     'Re-ask failed'
   )
   return res.json()

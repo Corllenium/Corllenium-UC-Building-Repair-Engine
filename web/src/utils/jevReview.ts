@@ -67,8 +67,8 @@ export const TABS: Tab[] = [
     qtypes: ['inv.building', 'inv.type', 'inv.floor', 'inv.duplicate'], available: true,
   },
   { key: 'next_step', label: 'Next repair step', qtypes: ['repair.next_step'], available: false },
-  { key: 'review_order', label: 'Review order', qtypes: ['repair.review_order'], available: false },
-  { key: 'tie_breaks', label: 'Fix tie-breaks', qtypes: ['repair.tie_break'], available: false },
+  { key: 'review_order', label: 'Review order', qtypes: ['review.priority'], available: false },
+  { key: 'tie_breaks', label: 'Fix tie-breaks', qtypes: ['e5.winner', 'e4.same_look', 'e8.opening_kind'], available: false },
 ]
 
 export interface RowFilter {
@@ -181,9 +181,21 @@ export function textureName(row: Suggestion): string | null {
   return m && m[1] ? m[1] : null
 }
 
-/** A 404 or 502 means the Jev service is not reachable from this dashboard: it runs on the VPS. */
+/** A 404 means this dashboard has no Jev service behind it: it runs on the VPS. */
 export function isServiceMissing(err: unknown): boolean {
-  return err instanceof ApiError && (err.status === 404 || err.status === 502)
+  return err instanceof ApiError && err.status === 404
+}
+
+/** A 502 means the dashboard's proxy could not reach the Jev service (the decide container is down). */
+export function isServiceUnreachable(err: unknown): boolean {
+  return err instanceof ApiError && err.status === 502
+}
+
+/** The banner text for a service-level failure, or null when the error is not one. */
+export function serviceNote(err: unknown): string | null {
+  if (isServiceUnreachable(err)) return 'Jev service unreachable'
+  if (isServiceMissing(err)) return 'Jev service runs on the VPS'
+  return null
 }
 
 /** Several per-type replies (one tab covers several question types) as one. */

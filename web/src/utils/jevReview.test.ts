@@ -7,6 +7,8 @@ import {
   errorText,
   filterRows,
   isServiceMissing,
+  isServiceUnreachable,
+  serviceNote,
   mergeResults,
   optionLabels,
   optionValues,
@@ -47,6 +49,11 @@ describe('TABS', () => {
     ])
     expect(TABS[0].qtypes).toEqual(['mat.category', 'mat.trim'])
     expect(TABS[1].qtypes).toEqual(['inv.building', 'inv.type', 'inv.floor', 'inv.duplicate'])
+  })
+  it('keeps the reserved qtypes of the three tabs that are not live yet', () => {
+    expect(TABS.find((t) => t.key === 'next_step')!.qtypes).toEqual(['repair.next_step'])
+    expect(TABS.find((t) => t.key === 'review_order')!.qtypes).toEqual(['review.priority'])
+    expect(TABS.find((t) => t.key === 'tie_breaks')!.qtypes).toEqual(['e5.winner', 'e4.same_look', 'e8.opening_kind'])
   })
 })
 
@@ -157,12 +164,24 @@ describe('textureName', () => {
   })
 })
 
-describe('isServiceMissing', () => {
-  it('is true for a 404 or 502 ApiError only', () => {
+describe('isServiceMissing and isServiceUnreachable', () => {
+  it('a 404 ApiError means the service runs on the VPS, nothing else does', () => {
     expect(isServiceMissing(new ApiError('x', 404))).toBe(true)
-    expect(isServiceMissing(new ApiError('x', 502))).toBe(true)
+    expect(isServiceMissing(new ApiError('x', 502))).toBe(false)
     expect(isServiceMissing(new ApiError('x', 403))).toBe(false)
     expect(isServiceMissing(new Error('x'))).toBe(false)
+  })
+  it('a 502 ApiError means the service is unreachable, nothing else does', () => {
+    expect(isServiceUnreachable(new ApiError('x', 502))).toBe(true)
+    expect(isServiceUnreachable(new ApiError('x', 404))).toBe(false)
+    expect(isServiceUnreachable(new ApiError('x', 500))).toBe(false)
+    expect(isServiceUnreachable(new Error('x'))).toBe(false)
+  })
+  it('serviceNote gives the banner text: 502 unreachable, only 404 runs on the VPS, else none', () => {
+    expect(serviceNote(new ApiError('x', 502))).toBe('Jev service unreachable')
+    expect(serviceNote(new ApiError('x', 404))).toBe('Jev service runs on the VPS')
+    expect(serviceNote(new ApiError('x', 403))).toBeNull()
+    expect(serviceNote(new Error('x'))).toBeNull()
   })
 })
 
