@@ -590,3 +590,74 @@ def read_back(path, dll_path=None) -> dict:
         api.ok("SUModelGetEntities", model, byref(root))
         walk(root, "untagged")
     return {"tags": tags, "faces_by_tag": dict(sorted(faces.items())), "group_names": names}
+
+
+# ------------------------------------------------------------------------------------------ the command
+
+def _sha256(path) -> str:
+    import hashlib
+    h = hashlib.sha256()
+    with open(path, "rb") as fh:
+        for block in iter(lambda: fh.read(1 << 20), b""):
+            h.update(block)
+    return h.hexdigest()
+
+
+def _engine_commit() -> str:
+    import subprocess
+    from pathlib import Path
+    try:
+        out = subprocess.run(["git", "rev-parse", "HEAD"], cwd=Path(__file__).resolve().parent,
+                             capture_output=True, text=True, timeout=30)
+        dirty = subprocess.run(["git", "status", "--porcelain", "--", "."], cwd=Path(__file__).resolve().parents[1],
+                               capture_output=True, text=True, timeout=30)
+        return out.stdout.strip() + ("-dirty" if dirty.stdout.strip() else "") if out.returncode == 0 else "unknown"
+    except (OSError, subprocess.SubprocessError):
+        return "unknown"
+
+
+def cmd_campus_errors_skp(campus_map, source, errors_dir, skp_check, out_dir, buildings=None,
+                          dll_path=None) -> list[dict]:
+    """Write `<out_dir>/<BUILDING>/<BUILDING>-errors.skp` and `-errors.json` for each building."""
+    import json
+    from pathlib import Path
+    from engine.campus.census import _load_snapshot_mesh
+    from engine.campus.inventory import building_of
+    out_dir, errors_dir = Path(out_dir), Path(errors_dir)
+    _check_out(out_dir)
+    cmap = json.loads(Path(campus_map).read_text(encoding="utf-8"))
+    snaps = {s["group"]: Path(s["dir"]) for s in json.loads(Path(source).read_text(encoding="utf-8"))["snapshots"]}
+    mismatches = {m["file"]: m for m in json.loads(Path(skp_check).read_text(encoding="utf-8"))["mismatches"]}
+    names = sorted({u["building"] for u in cmap["units"]} | {building_of(e["group"]) for e in cmap.get("excluded", [])})
+    commit = _engine_commit()
+    used: dict[str, str] = {}
+
+    def load_member(group: str):
+        _, mesh = _load_snapshot_mesh(snaps[group])
+        path = errors_dir / f"{group}.json"
+        used[group] = _sha256(path)
+        return mesh.positions, mesh.face_v, json.loads(path.read_text(encoding="utf-8"))
+
+    reports = []
+    for name in buildings or names:
+        plan = plan_building(name, cmap, load_member, mismatches=mismatches, building_of=building_of)
+        skp = out_dir / name / f"{name}-errors.skp"
+        written = write_building_skp(plan, skp, dll_path)
+        back = read_back(skp, dll_path)
+        report = {
+            "building": name, "skp": str(skp), "skp_sha256": _sha256(skp), "engine_commit": commit,
+            "counts": plan.counts,
+            "columns": [{"unit": c.unit, "label": c.label, "type": c.type, "counts": c.counts,
+                         "flags": [{"kind": f["kind"], "label": f["label"], "text": f.get("text", "")}
+                                   for f in c.flags],
+                         "skipped_degenerate_base": sum(m.skipped_degenerate_base for m in c.members)}
+                        for c in plan.columns],
+            "written": written, "read_back": {"faces_by_tag": back["faces_by_tag"], "tags": back["tags"]},
+            "inputs": {"campus_map": _sha256(campus_map), "skp_check": _sha256(skp_check),
+                       "errors": {g: used[g] for g in sorted(used)}},
+            "draw_rule": "each face in the first kind listing it: " + ", ".join(ERROR_KINDS) + "; else base",
+        }
+        (out_dir / name / f"{name}-errors.json").write_text(json.dumps(report, indent=1), encoding="utf-8")
+        reports.append(report)
+        used.clear()
+    return reports

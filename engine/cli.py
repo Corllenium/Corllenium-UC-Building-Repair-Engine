@@ -1032,6 +1032,22 @@ def build_parser() -> argparse.ArgumentParser:
                        help="use the brief's constants as written (24 in slab window, nearest base, 20 in merge, "
                             "print-step duplicates) instead of the measured ones")
 
+    col_p = sub.add_parser("campus-errors-skp",
+                           help="one colour-coded SketchUp file per building: every error kind and grouping "
+                                "problem on its own tag (read-only export)")
+    col_p.add_argument("--map", type=Path, default=Path("data/campus/campus_map.json"),
+                       help="the owner-confirmed campus map")
+    col_p.add_argument("--source", type=Path, default=Path("data/campus/source.json"),
+                       help="the source.json file from campus-freeze (snapshot folders)")
+    col_p.add_argument("--errors", type=Path, default=Path("data/campus/errors"),
+                       help="the census error maps, one <group>.json per split")
+    col_p.add_argument("--skp-check", type=Path, default=Path("data/campus/skp_check.json"),
+                       help="the export-vs-backup check (mismatches become grouping flags)")
+    col_p.add_argument("--out", type=Path, default=Path("data/coloring_scratch"),
+                       help="writes <out>/<BUILDING>/<BUILDING>-errors.skp and .json")
+    col_p.add_argument("--buildings", nargs="*", default=None, help="only these buildings (default: all)")
+    col_p.add_argument("--dll", default=None, help="SketchUpAPI.dll (default: $FIXER_SKETCHUP_DLL or SketchUp 2026)")
+
     return parser
 
 
@@ -1142,6 +1158,15 @@ def main(argv: list[str] | None = None) -> int:
         print(f"  coverage: {cov['whole']} whole + {cov['split']} split = {cov['whole'] + cov['split']} of {cov['groups']} "
               f"splits, {cov['unit_tris']:,} of {cov['tris']:,} triangles in units ({'ok' if cov['ok'] else 'NOT ok'})")
         print(f"wrote {args.out} and {args.md}")
+        return 0
+    elif args.command == "campus-errors-skp":
+        from engine.campus.error_export import cmd_campus_errors_skp
+        for r in cmd_campus_errors_skp(args.map, args.source, args.errors, args.skp_check, args.out,
+                                       args.buildings, args.dll):
+            back = r["read_back"]["faces_by_tag"]
+            same = "same as written" if back == r["written"]["faces_by_tag"] else "DIFFERS from written"
+            print(f"{r['building']}: {len(r['columns'])} columns, {sum(back.values()):,} faces read back "
+                  f"({same}), {r['written']['rejected_faces']} refused -> {r['skp']}")
         return 0
     return 1
 
