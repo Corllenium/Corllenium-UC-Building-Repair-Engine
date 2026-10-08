@@ -64,8 +64,9 @@ ssh -i $env:USERPROFILE\.ssh\uc_vps_ed25519 root@187.127.213.243 "docker load -i
    (`docker save | ssh` through the PowerShell pipeline corrupts the binary stream, so the tar goes by `scp`.)
 4. Copy the new `docker-compose.yml` and `nginx.conf` to `/docker/uc-fixer/`, then on the box, in this order:
    - `cd /docker/uc-fixer && docker compose up -d decide` (starts `uc-fixer-decide`, creates the schema `decide`);
-   - `docker exec uc-fixer-web nginx -s reload` (the route needs the decide container to exist first; reload again
-     after any recreate of `uc-fixer-decide`, because nginx keeps the address it resolved).
+   - `docker exec uc-fixer-web nginx -s reload` (once, to load the new `nginx.conf`). nginx resolves
+     `uc-fixer-decide` at request time, so no reload is needed after a recreate of the decide container, and nginx
+     still starts when that container is absent (the decide routes answer 502 meanwhile).
 5. Check: `curl -u gab https://uc-fixer.srv1866850.hstgr.cloud/api/decide/health` prompts for the password and
    should answer `{"ok":true,"jev_enabled":false,...}`.
 
@@ -73,14 +74,15 @@ ssh -i $env:USERPROFILE\.ssh\uc_vps_ed25519 root@187.127.213.243 "docker load -i
 This is the owner's decision, for when the repair engine is ready, and each step needs the owner's OK at that moment.
 Add the line `DECIDE_JEV_ENABLED=true` to `/docker/uc-fixer/decide.env` (append it; do not retype the key), then
 `cd /docker/uc-fixer && docker compose up -d --force-recreate decide` (forced, so the new env file is certainly read).
-Then reload nginx as in step 4. The daily cap is
+The daily cap is
 1,000,000 tokens (`DECIDE_DAILY_TOKEN_CAP`); a minimum confidence of 0.8 gates what is accepted without review.
 To switch it off again, remove that line and recreate the same way.
 
 ### Rollback
-`cd /docker/uc-fixer && docker compose rm -sf decide`. Then take the `/api/decide/` locations out of `nginx.conf` and
-reload nginx (or leave them: they answer 502 while the service is down and touch nothing else). The schema `decide`
-stays in the database, with its answers, unless the owner asks for it to be dropped.
+`cd /docker/uc-fixer && docker compose rm -sf decide`. The `/api/decide/` locations then answer 502 and touch
+nothing else (nginx resolves the upstream per request, so the dashboard keeps working). Taking the two locations out
+of `nginx.conf` and reloading nginx stays optional but is recommended. The schema `decide` stays in the database,
+with its answers, unless the owner asks for it to be dropped.
 
 ## Rollback
 `cd /docker/uc-fixer && docker compose down -v`, then `rm -rf /docker/uc-fixer`. No other stack is touched.
