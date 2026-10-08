@@ -1267,12 +1267,16 @@ def main(argv: list[str] | None = None) -> int:
         from engine.decide import pilot_import
         read = lambda p: json.loads(Path(p).read_text(encoding="utf-8"))
         try:
-            items = pilot_import.build_import_items(read(args.source), read(args.materials), read(args.pilot))
+            items, unreproducible = pilot_import.build_import_report(read(args.source), read(args.materials),
+                                                                     read(args.pilot))
         except (OSError, ValueError, KeyError) as exc:
             print(f"error: could not build the pilot questions: {type(exc).__name__}: {exc}", file=sys.stderr)
             return 2
-        n = pilot_import.counts(items)
-        print(f"groups: {n['groups']} items ({n['group_rows']} x 4), materials: {n['materials']} items")
+        n = pilot_import.counts(items, unreproducible)
+        print(f"groups: {n['groups']} items from {n['group_rows']} groups, materials: {n['materials']} items from "
+              f"{n['material_names']} spot-check materials, unreproducible: {n['unreproducible']}")
+        if unreproducible:
+            print(f"skipped, not reproducible from today's snapshots: {', '.join(unreproducible)}")
         if args.dry_run:
             print("dry run: nothing sent")
             return 0
@@ -1285,7 +1289,8 @@ def main(argv: list[str] | None = None) -> int:
         except (ValueError, RuntimeError) as exc:      # their texts carry no secret
             print(f"error: {exc}", file=sys.stderr)
             return 2
-        print(f"imported: added {total['added']}, skipped {total['skipped']}, invalid {total['invalid']}")
+        print(f"imported: added {total['added']}, skipped {total['skipped']}, invalid {total['invalid']}, "
+              f"unreproducible {n['unreproducible']}")
         return 0
     return 1
 

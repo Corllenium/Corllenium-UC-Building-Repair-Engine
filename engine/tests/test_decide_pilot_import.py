@@ -206,6 +206,58 @@ def test_a_material_key_matches_the_live_ask_the_pilot_makes_from_materials_json
         assert wire.question_key(it["state"], q) == live.keys[("mat.category", q.subject)]
 
 
+def test_a_group_whose_footprint_differs_from_the_paid_one_is_skipped_and_counted(tmp_path):
+    source, materials, pil = _inputs(tmp_path)
+    pil["groups"]["rows"][0]["footprint_building"] = "EDS"          # the paid question named another building
+    items, unreproducible = pilot_import.build_import_report(source, materials, pil)
+    assert unreproducible == ["CHTM_5th_floor"]
+    assert "CHTM_5th_floor" not in {it["question"]["subject"] for it in items}
+    assert len(items) == 12 + 2
+    assert pilot_import.build_import_items(source, materials, pil) == items
+
+
+def test_a_group_with_a_missing_snapshot_is_skipped_and_counted(tmp_path):
+    source, materials, pil = _inputs(tmp_path)
+    source["snapshots"] = [s for s in source["snapshots"] if s["group"] != "ROAD_front"]   # no z: OBJ is missing
+    items, unreproducible = pilot_import.build_import_report(source, materials, pil)
+    assert unreproducible == ["ROAD_front"]
+    assert "ROAD_front" not in {it["question"]["subject"] for it in items}
+    assert len(items) == 12 + 2
+
+
+def test_a_clean_run_has_no_unreproducible_group(tmp_path):
+    source, materials, pil = _inputs(tmp_path)
+    assert pilot_import.build_import_report(source, materials, pil)[1] == []
+
+
+def test_the_cli_reports_the_unreproducible_count_in_dry_run_and_real_output(serve, tmp_path, monkeypatch, capsys):
+    paths = _files(tmp_path)
+    pil = json.loads((tmp_path / "pilot.json").read_text(encoding="utf-8"))
+    pil["groups"]["rows"][0]["footprint_building"] = "EDS"
+    (tmp_path / "pilot.json").write_text(json.dumps(pil), encoding="utf-8")
+    assert cli.main(_argv(paths, "--url", "http://unused", "--dry-run")) == 0
+    out = capsys.readouterr().out
+    assert "groups: 12 items from 3 groups" in out and "unreproducible: 1" in out
+    s = serve(lambda req: (200, {"added": 14, "skipped": 0, "invalid": 0}))
+    monkeypatch.setenv("UC_DECIDE_PASSWORD", PW)
+    assert cli.main(_argv(paths, "--url", s.url)) == 0
+    out = capsys.readouterr().out
+    assert "unreproducible: 1" in out and "added 14" in out
+
+
+def test_a_spot_check_name_missing_from_materials_json_takes_texture_and_kd_from_the_pilot(tmp_path):
+    source, materials, pil = _inputs(tmp_path)
+    del materials["materials"]["Mat_01"]
+    pil["materials"]["spot_check"][0].update(texture="From_Pilot.png", kd=[0.1, 0.2, 0.3])
+    items = pilot_import.build_import_items(source, materials, pil)
+    got = _by(items, "mat.category")["Mat_01"]
+    live = _Recorder()
+    classify_materials([{"name": "Mat_01", "texture": "From_Pilot.png", "kd": [0.1, 0.2, 0.3]}], live)
+    q = wire.question_from_json(got["question"])
+    assert "From_Pilot.png" in q.instructions and "0.10, 0.20, 0.30" in q.instructions
+    assert wire.question_key(got["state"], q) == live.keys[("mat.category", "Mat_01")]
+
+
 def test_the_inputs_are_not_changed(tmp_path):
     source, materials, pil = _inputs(tmp_path)
     before = copy.deepcopy((source, materials, pil))
@@ -237,7 +289,9 @@ def test_dry_run_prints_the_counts_and_sends_nothing(serve, tmp_path, monkeypatc
     paths = _files(tmp_path)
     assert cli.main(_argv(paths, "--url", s.url, "--dry-run")) == 0
     out = capsys.readouterr().out
-    assert "groups: 16 items (4 x 4)" in out and "materials: 2 items" in out
+    assert "groups: 16 items from 4 groups" in out
+    assert "materials: 2 items from 2 spot-check materials" in out
+    assert "unreproducible: 0" in out
     assert s.requests == []
     assert PW not in out
 
@@ -245,7 +299,7 @@ def test_dry_run_prints_the_counts_and_sends_nothing(serve, tmp_path, monkeypatc
 def test_dry_run_needs_neither_a_password_nor_an_https_url(tmp_path, capsys):
     paths = _files(tmp_path)
     assert cli.main(_argv(paths, "--url", "http://unused", "--dry-run")) == 0
-    assert "materials: 2 items" in capsys.readouterr().out
+    assert "materials: 2 items from 2 spot-check materials" in capsys.readouterr().out
 
 
 def test_the_run_posts_chunks_of_200_with_the_engine_login_and_sums_the_counts(serve, tmp_path, monkeypatch, capsys):

@@ -79,10 +79,19 @@ def _item(state: dict, question, answer, confidence, model: str) -> dict | None:
 
 
 def build_import_items(source: dict, materials: dict, pilot: dict) -> list[dict]:
-    """`{state, question, answer, confidence, probabilities, model}` per pilot answer that can be imported.
-    `materials` is the content of `materials.json` (or its inner `{name: {...}}` dict)."""
+    """The items of `build_import_report`, without the unreproducible names."""
+    return build_import_report(source, materials, pilot)[0]
+
+
+def build_import_report(source: dict, materials: dict, pilot: dict) -> tuple[list[dict], list[str]]:
+    """`(items, unreproducible)`. An item is `{state, question, answer, confidence, probabilities, model}` per
+    pilot answer that can be imported. `materials` is the content of `materials.json` (or its inner
+    `{name: {...}}` dict). A group whose rebuilt row cannot reproduce the paid question is skipped, never
+    imported under a wrong key, and its name is listed in `unreproducible`: its rebuilt `footprint_building`
+    differs from the pilot row's, or its z range is None (the snapshot OBJ is missing)."""
     model = _pilot_model(pilot)
     items: list[dict] = []
+    unreproducible: list[str] = []
 
     # ---- groups
     rows = group_rows(source)
@@ -92,6 +101,10 @@ def build_import_items(source: dict, materials: dict, pilot: dict) -> list[dict]
     for i, row in enumerate(rows):
         prow = pilot_rows.get(row["name"])
         if prow is None:
+            continue
+        if (row["z_min"] is None or row["z_max"] is None
+                or row["footprint_building"] != prow.get("footprint_building")):
+            unreproducible.append(row["name"])
             continue
         for field in _GROUP_FIELDS:
             decision = prow.get(field)
@@ -123,14 +136,16 @@ def build_import_items(source: dict, materials: dict, pilot: dict) -> list[dict]
         item = _item(cap.state, cap.questions[f"{i}:category"], decision["answer"], decision["confidence"], model)
         if item is not None:
             items.append(item)
-    return items
+    return items, unreproducible
 
 
-def counts(items: list[dict]) -> dict:
-    """`{"groups": n, "group_rows": distinct group names, "materials": n}`."""
+def counts(items: list[dict], unreproducible: list[str] | None = None) -> dict:
+    """Items and distinct subjects per kind, and the number of unreproducible groups."""
     groups = [it for it in items if it["question"]["qtype"].startswith("inv.")]
+    mats = [it for it in items if it["question"]["qtype"].startswith("mat.")]
     return {"groups": len(groups), "group_rows": len({it["question"]["subject"] for it in groups}),
-            "materials": sum(1 for it in items if it["question"]["qtype"].startswith("mat."))}
+            "materials": len(mats), "material_names": len({it["question"]["subject"] for it in mats}),
+            "unreproducible": len(unreproducible or [])}
 
 
 def import_items(items: list[dict], url: str, *, user: str | None = None, password: str | None = None,
