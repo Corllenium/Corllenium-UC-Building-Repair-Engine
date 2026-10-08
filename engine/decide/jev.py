@@ -34,6 +34,15 @@ log = logging.getLogger(__name__)
 MODEL = "jev-latest"
 ENV_VAR = "TYPESAFE_API_KEY"
 
+#: The TypeSafe API rejects a Score with more levels than this. Measured 2026-10-08 with the real API:
+#: HTTP 400 `{'detail': 'Too many score levels. Must have at most 10 levels.'}` (a 16-level floor Score
+#: failed every group-name batch). A longer ordinal scale must be asked as a Choice.
+MAX_SCORE_LEVELS = 10
+#: The most options a Choice may have. The 255 cap is from job P0-17b and was NOT measured against the API.
+#: What is verified: on 2026-10-08 the controller's real pilot run sent the 16-option floor Choice and all 57
+#: calls succeeded, 0 failed (jev-1.13.0).
+MAX_CHOICE_OPTIONS = 255
+
 
 # ------------------------------------------------------------------------------------- questions
 
@@ -127,6 +136,17 @@ def sdk_importable() -> bool:
     return True
 
 
+def check_question_limits(questions) -> None:
+    """Fail before any network call when a question is past what the API accepts (raises ValueError)."""
+    for qid, q in questions.items():
+        if isinstance(q, ScoreQ) and len(q.criteria) > MAX_SCORE_LEVELS:
+            raise ValueError(f"question {str(qid)[:60]!r}: a Score may have at most {MAX_SCORE_LEVELS} levels "
+                             f"(the API rejects more); got {len(q.criteria)}. Ask it as a Choice instead.")
+        if isinstance(q, ChoiceQ) and len(q.criteria) > MAX_CHOICE_OPTIONS:
+            raise ValueError(f"question {str(qid)[:60]!r}: a Choice may have at most {MAX_CHOICE_OPTIONS} "
+                             f"options; got {len(q.criteria)}.")
+
+
 class _SdkAdapter:
     """Wraps `typesafe_sdk.TypeSafeClient`: turns the neutral questions into the SDK's own."""
 
@@ -134,6 +154,7 @@ class _SdkAdapter:
         self._client = client
 
     def system_one(self, state, questions):
+        check_question_limits(questions)
         import typesafe_sdk as sdk
         sdk_questions: dict[str, Any] = {}
         for qid, q in questions.items():
@@ -195,6 +216,7 @@ class JevDecider:
     # ---------------------------------------------------------------------------------- ask
 
     def ask(self, state: str | dict, questions: dict) -> dict[str, Decision]:
+        check_question_limits(questions)      # a malformed question is a bug: raise to the caller, never batch it
         if not self.available:
             return {qid: _none() for qid in questions}
         state_dict = {"text": state} if isinstance(state, str) else state
@@ -296,11 +318,28 @@ def _num(x) -> str:
     return "unknown" if x is None else f"{float(x):.1f}"
 
 
+def _floor_to_int(d: Decision) -> Decision:
+    """The floor Choice answers a key "0".."15"; turn the answer and the probability keys into ints. An
+    answer that is not a level key is not trusted: it becomes an "error" decision (never accepted)."""
+    if d.answer is None:
+        return d
+    try:
+        level = int(str(d.answer))
+        probabilities = {int(str(k)): v for k, v in d.probabilities.items()}
+        if not 0 <= level <= FLOOR_MAX:
+            raise ValueError
+    except ValueError:
+        return _failed("UnmappedFloorKey")
+    d.answer, d.probabilities = level, probabilities
+    return d
+
+
 def classify_group_names(rows: list[dict], decider) -> list[dict]:
     """rows: {"name", "tris", "z_min", "z_max", "footprint_building"}. Per row, four typed questions: the
-    building (Choice), the unit type (Choice), the floor number (Score 0-15) and whether it is a duplicate
-    copy of another group (Noul). Returns `{"name", "building", "type", "floor", "duplicate"}` per row; the
-    building answer is the campus-map key (`MAIN_INFRA`, `SCIENCE_A`)."""
+    building (Choice), the unit type (Choice), the floor number (a 16-option Choice keyed "0".."15": the API
+    allows a Score at most MAX_SCORE_LEVELS levels) and whether it is a duplicate copy of another group
+    (Noul). Returns `{"name", "building", "type", "floor", "duplicate"}` per row; the building answer is the
+    campus-map key (`MAIN_INFRA`, `SCIENCE_A`) and the floor answer and probability keys are ints 0-15."""
     questions: dict[str, Any] = {}
     for i, row in enumerate(rows):
         fact = (f"The SketchUp group named '{row['name']}' has {row.get('tris', 'an unknown number of')} triangles, "
@@ -315,9 +354,9 @@ def classify_group_names(rows: list[dict], decider) -> list[dict]:
              "roof": "a roof", "shell": "a facade or outer shell piece", "road": "a road or sidewalk",
              "landscape": "ground, trees, plants or terrain", "bridge": "a bridge or walkway",
              "other": "anything else"})
-        questions[f"{i}:floor"] = ScoreQ(
+        questions[f"{i}:floor"] = ChoiceQ(
             f"{fact} Which floor number does the name say? 0 if it names no floor.",
-            [f"floor {n}" if n else "no floor / ground level" for n in range(FLOOR_MAX + 1)])
+            {str(n): (f"floor {n}" if n else "no floor / ground level") for n in range(FLOOR_MAX + 1)})
         questions[f"{i}:duplicate"] = NoulQ(
             f"{fact} Is this group a duplicate copy of another group, judging by the name (a trailing digit, "
             f"'copy', 'obj1', '#1')?")
@@ -328,8 +367,9 @@ def classify_group_names(rows: list[dict], decider) -> list[dict]:
         if building.answer is not None:
             building.answer = BUILDING_LABELS.get(building.answer, building.answer)
             building.probabilities = {BUILDING_LABELS.get(k, k): v for k, v in building.probabilities.items()}
+        floor = _floor_to_int(decisions[f"{i}:floor"])
         out.append({"name": row["name"], "building": building, "type": decisions[f"{i}:type"],
-                    "floor": decisions[f"{i}:floor"], "duplicate": decisions[f"{i}:duplicate"]})
+                    "floor": floor, "duplicate": decisions[f"{i}:duplicate"]})
     return out
 
 

@@ -299,7 +299,7 @@ def _group_answers(qid, spec):
     if label == "type":
         return _choice("floor", 0.9)
     if label == "floor":
-        return _score(4.8, 0.85, {5: 0.85, 4: 0.15})
+        return _choice("5", 0.85, {"5": 0.85, "4": 0.15})
     return _noul(0.1)
 
 
@@ -311,14 +311,29 @@ def test_classify_group_names_asks_four_typed_questions_per_row(tmp_path):
     b = qs["0:building"]
     assert isinstance(b, ChoiceQ) and "MAIN INFRASTRUCTURE" in b.criteria and "SITE" in b.criteria
     assert set(qs["0:type"].criteria) == {"floor", "stair", "roof", "shell", "road", "landscape", "bridge", "other"}
-    assert isinstance(qs["0:floor"], ScoreQ) and len(qs["0:floor"].criteria) == 16
+    assert isinstance(qs["0:floor"], ChoiceQ) and len(qs["0:floor"].criteria) == 16
+    assert list(qs["0:floor"].criteria) == [str(n) for n in range(16)]
+    assert qs["0:floor"].criteria["0"].startswith("no floor") and qs["0:floor"].criteria["15"] == "floor 15"
     assert isinstance(qs["0:duplicate"], NoulQ)
     assert "Main_Infrustructure_Building" in b.instructions  # self-contained: ids are not sent to the model
     assert out[0]["name"] == "Main_Infrustructure_Building"
     assert out[0]["building"].answer == "MAIN_INFRA" and out[0]["building"].accepted
     assert out[1]["building"].answer == "CHTM" and out[1]["building"].accepted is False
-    assert out[0]["type"].answer == "floor" and out[0]["floor"].answer == 4.8
+    assert out[0]["type"].answer == "floor" and out[0]["floor"].answer == 5
+    assert out[0]["floor"].probabilities == {5: 0.85, 4: 0.15}
+    assert all(type(k) is int for k in out[0]["floor"].probabilities) and type(out[0]["floor"].answer) is int
     assert out[0]["duplicate"].answer is False
+
+
+def test_classify_group_names_floor_answer_maps_to_int_and_an_unmappable_one_is_not_accepted(tmp_path):
+    def ans(qid, spec):
+        if qid.endswith(":floor"):
+            return _choice("0", 0.99) if qid.startswith("0:") else _choice("seventh", 0.99)
+        return _group_answers(qid, spec)
+    out = classify_group_names(ROWS, _decider(FakeClient(answer=ans), tmp_path))
+    assert out[0]["floor"].answer == 0 and out[0]["floor"].accepted is True      # "0" is no floor, not missing
+    assert out[1]["floor"].answer is None and out[1]["floor"].accepted is False  # not a level key: never accepted
+    assert out[1]["floor"].source == "error" and "seventh" not in out[1]["floor"].error
 
 
 def test_classify_group_names_without_a_key_is_all_none(tmp_path):
@@ -391,3 +406,43 @@ def test_with_several_key_lines_the_last_one_wins(tmp_path):
     assert jev.read_env_key(p) == "second"
     p.write_text("TYPESAFE_API_KEY=first\nTYPESAFE_API_KEY=\n", encoding="utf-8")
     assert jev.read_env_key(p) is None
+
+
+# ------------------------------------------------------------------ API limits, checked before any call
+
+
+def test_the_adapter_refuses_a_score_over_ten_levels_before_calling_the_client():
+    client = FakeClient()
+    adapter = jev._SdkAdapter(client)
+    assert jev.MAX_SCORE_LEVELS == 10 and jev.MAX_CHOICE_OPTIONS == 255
+    with pytest.raises(ValueError, match="10"):
+        adapter.system_one(state={}, questions={"s": ScoreQ("rate", [f"l{i}" for i in range(11)])})
+    assert client.calls == []
+
+
+def test_the_adapter_refuses_a_choice_over_255_options_before_calling_the_client():
+    client = FakeClient()
+    adapter = jev._SdkAdapter(client)
+    with pytest.raises(ValueError, match="255"):
+        adapter.system_one(state={}, questions={
+            "ok": NoulQ("fine?"), "c": ChoiceQ("pick", {f"o{i}": None for i in range(256)})})
+    assert client.calls == []
+
+
+def test_the_adapter_lets_ten_levels_and_255_options_through():
+    pytest.importorskip("typesafe_sdk")
+    client = FakeClient()
+    jev._SdkAdapter(client).system_one(state={}, questions={
+        "s": ScoreQ("rate", [f"l{i}" for i in range(10)]),
+        "c": ChoiceQ("pick", {f"o{i}": None for i in range(255)})})
+    assert len(client.calls) == 1
+
+
+def test_ask_raises_the_limit_error_to_the_caller_before_any_call(tmp_path):
+    client = FakeClient()
+    decider = _decider(client, tmp_path)
+    with pytest.raises(ValueError, match="at most 10 levels"):
+        decider.ask("text", {"ok": NoulQ("fine?"), "s": ScoreQ("rate", [f"l{i}" for i in range(11)])})
+    with pytest.raises(ValueError, match="at most 255 options"):
+        decider.ask("text", {"c": ChoiceQ("pick", {f"o{i}": None for i in range(256)})})
+    assert client.calls == [] and decider.calls == []
