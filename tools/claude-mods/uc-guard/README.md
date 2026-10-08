@@ -18,7 +18,10 @@ Queue job M1, plan `docs/superpowers/plans/2026-10-08-jev-and-claude-mods.md` (T
 
 The shell checks are heuristics that catch the mistakes earlier sessions made. They don't fully parse the shell:
 a script that writes a file from inside `python -c` is not seen. The guard is a backstop, and AGENTS.md is still the rule.
-It is also not the outermost layer: a managed-settings hook, or another plugin's `tool.call` hook that answers without
+The `--env-file` exemption (M1b) trusts whichever `engine.cli` runs, from any checkout, including a worktree whose
+engine code an agent has just edited. What keeps the key out of view there is the engine's own tests
+(`engine/tests/test_decide_*`: the key never reaches a repr, a log, an exception or the output) and a review of every
+change to `engine/decide/`. It is also not the outermost layer: a managed-settings hook, or another plugin's `tool.call` hook that answers without
 calling `next`, runs outside it.
 
 ## Load it
