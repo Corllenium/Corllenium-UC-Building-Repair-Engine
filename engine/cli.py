@@ -16,6 +16,10 @@
     names another folder, `--no-skp` skips it. Without SketchUp the run still succeeds and
     report.json's `skp` says why no file was written.
 
+    `--kernel` runs the same fix through the observe-only repair kernel
+    (`engine.repair.kernel.repair_unit`): the same files, byte for byte, plus `edit_log.jsonl` next to
+    report.json -- one line per edit each stage was observed to make.
+
 `python -m engine.cli preview-data <snapshot_dir> --out preview/data`
     Writes the JSON `preview/index.html` reads (see `spike/12_export_preview.py` for the shape
     this mirrors), with AFTER built from the REAL fixed mesh and the REAL guard numbers, and
@@ -453,9 +457,11 @@ def _write_skp(result: FixResult, name: str, out_dir: Path, flat_materials: froz
 
 def cmd_fix(snapshot_dir: Path, out_root: Path, accept_slit: bool,
             profile: FixProfile | None = None, solidify: bool = True,
-            fragments: bool = True, skp: bool = True, skp_dir: Path | None = None) -> int:
+            fragments: bool = True, skp: bool = True, skp_dir: Path | None = None,
+            kernel: bool = False) -> int:
     """`skp_dir` receives a copy of the `.skp`; `None` (the default here) copies it nowhere --
-    `main` passes `default_skp_dir()` unless `--skp-dir` names another folder."""
+    `main` passes `default_skp_dir()` unless `--skp-dir` names another folder. `kernel` runs the
+    fix through `engine.repair.kernel.repair_unit` and also writes `edit_log.jsonl`."""
     obj_path, mesh, flatness, _mtl_materials = _load_snapshot(snapshot_dir)
     if profile is None:
         profile = FixProfile(accept_slit=accept_slit, solidify=solidify,
@@ -464,12 +470,23 @@ def cmd_fix(snapshot_dir: Path, out_root: Path, accept_slit: bool,
         profile = replace(profile, accept_slit=accept_slit, solidify=solidify,
                           accept_fragments=fragments)
 
-    result = fix_object(mesh, flatness, profile)
+    kernel_result = None
+    if kernel:
+        from engine.repair.kernel import repair_unit, write_edit_log
+        from engine.repair.types import RepairContext, UnitState
+        kernel_result = repair_unit(UnitState(mesh=mesh, topo=None, looks={}, viewpoints=None),
+                                    RepairContext(profile=profile, decider=None, validator=None),
+                                    flatness=flatness, obj_path=obj_path)
+        result = kernel_result.result
+    else:
+        result = fix_object(mesh, flatness, profile)
 
     name = mesh.name
     out_dir = Path(out_root) / name
     out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / "report.json").unlink(missing_ok=True)
+    if kernel_result is not None:
+        write_edit_log(out_dir / "edit_log.jsonl", kernel_result.edits)
 
     write_obj(result.mesh, out_dir / f"{name}.fixed.obj")
     write_obj_polygons(result.mesh, result.rings, out_dir / f"{name}.fixed.ngon.obj")
@@ -504,7 +521,8 @@ def cmd_fix(snapshot_dir: Path, out_root: Path, accept_slit: bool,
 
     skp_report = _write_skp(result, name, out_dir, flat_materials, profile, skp, skp_dir)
 
-    report = _build_report(name, obj_path, mesh, result, profile)
+    report = (_build_report(name, obj_path, mesh, result, profile) if kernel_result is None
+              else kernel_result.report)
     report["qa"] = qa_report
     report["skp"] = skp_report
     (out_dir / "report.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
@@ -928,6 +946,9 @@ def build_parser() -> argparse.ArgumentParser:
     fix_p.add_argument("--skp-dir", default=None,
                        help="folder that receives a copy of the latest .skp "
                             "(default: <repo root>/OBJ FIXED RESULT)")
+    fix_p.add_argument("--kernel", action="store_true",
+                       help="run through the observe-only repair kernel; the same files, plus "
+                            "edit_log.jsonl next to report.json")
 
     preview_p = sub.add_parser("preview-data", help="write the JSON preview/index.html reads")
     preview_p.add_argument("snapshot_dir")
@@ -1069,7 +1090,8 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "fix":
         return cmd_fix(Path(args.snapshot_dir), Path(args.out), args.accept_slit,
                        solidify=args.solidify, fragments=args.fragments, skp=args.skp,
-                       skp_dir=Path(args.skp_dir) if args.skp_dir else default_skp_dir())
+                       skp_dir=Path(args.skp_dir) if args.skp_dir else default_skp_dir(),
+                       kernel=args.kernel)
     if args.command == "preview-data":
         return cmd_preview_data(Path(args.snapshot_dir), Path(args.out),
                                 solidify=args.solidify)

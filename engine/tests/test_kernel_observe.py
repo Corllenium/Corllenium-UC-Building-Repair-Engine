@@ -364,3 +364,46 @@ def test_write_edit_log_of_no_edits_is_an_empty_file(tmp_path):
     path = tmp_path / "edit_log.jsonl"
     write_edit_log(path, [])
     assert path.read_bytes() == b""
+
+
+# ------------------------------------------------------------------- item 3: `fix --kernel`
+
+from engine import cli
+
+_CLI = FixProfile(guard_size=(120, 80), n_dirs=32, qa_size=(160, 100))
+
+
+def test_build_parser_fix_kernel_flag_defaults_off():
+    assert cli.build_parser().parse_args(["fix", "somedir"]).kernel is False
+    assert cli.build_parser().parse_args(["fix", "somedir", "--kernel"]).kernel is True
+
+
+def test_main_passes_the_kernel_flag_to_cmd_fix(monkeypatch):
+    calls = []
+    monkeypatch.setattr(cli, "cmd_fix", lambda *a, kernel=False, **k: calls.append(kernel) or 0)
+    assert cli.main(["fix", "snapdir"]) == 0
+    assert cli.main(["fix", "snapdir", "--kernel"]) == 0
+    assert calls == [False, True]
+
+
+@pytest.mark.parametrize("build", [box_with_partition, slab_with_two_depths])
+def test_cmd_fix_kernel_writes_the_same_report_and_obj_and_an_edit_log(tmp_path, build):
+    from engine.tests.test_cli import _write_snapshot
+    mesh = build()
+    snap = _write_snapshot(tmp_path, mesh)
+    plain_root, kernel_root = tmp_path / "plain", tmp_path / "kernel"
+
+    code_plain = cli.cmd_fix(snap, plain_root, accept_slit=False, profile=_CLI, skp=False)
+    code_kernel = cli.cmd_fix(snap, kernel_root, accept_slit=False, profile=_CLI, skp=False,
+                              kernel=True)
+
+    plain, kernel = plain_root / mesh.name, kernel_root / mesh.name
+    assert code_plain == code_kernel
+    assert (plain / "report.json").read_bytes() == (kernel / "report.json").read_bytes()
+    for name in (f"{mesh.name}.fixed.obj", f"{mesh.name}.fixed.ngon.obj"):
+        assert (plain / name).read_bytes() == (kernel / name).read_bytes()
+    assert not (plain / "edit_log.jsonl").exists()
+    lines = (kernel / "edit_log.jsonl").read_text(encoding="utf-8").splitlines()
+    assert lines and all(json.loads(line)["engine"] in {"E1", "E2", "E3", "E4", "E7", "E8"}
+                         for line in lines)
+    assert str(tmp_path) not in (kernel / "edit_log.jsonl").read_text(encoding="utf-8")
