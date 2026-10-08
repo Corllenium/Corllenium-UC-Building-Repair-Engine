@@ -26,8 +26,9 @@ keys).
 - The fabricated-`source.json` CLI test runs from the source.json folder, so a mutant that resolves `--out`
   against that folder survives. Run it from a different cwd. Add a decoy `SRC-TEX` elsewhere, and assert that
   the sibling of the MTL is the one used.
-- **Done when:** both tests pass. Reverting P0-09's `--out` handling, or its sibling `SRC-TEX` rule, makes a
-  test fail; show that.
+- **Done when:** both tests pass. Show that each catches its mutant: revert P0-09's `--out` handling, then its sibling
+  `SRC-TEX` rule, one at a time in your worktree, paste the failing output, and restore the file (`git checkout -- <file>`)
+  before you commit. A mutant is never committed.
 
 ## Acceptance commands
 ```bash

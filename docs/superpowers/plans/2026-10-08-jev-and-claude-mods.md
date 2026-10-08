@@ -32,15 +32,17 @@ Follow-ups: `docs/superpowers/plans/2026-10-03-repair-engine-p1-p2.md` rows **P1
 - **Prompt audit:** a mod that injects text into the system prompt (`prompt.compose`) counts as an agent prompt.
   Run `prompt-auditor` on it (AGENTS.md §7).
 
-## State on 2026-10-08 (measured, not remembered)
+## State (re-measure at the start; last updated 2026-10-08)
+
+`tools/jobs.py list` and the ledger `.superpowers/sdd/2026-10-08-jev-and-claude-mods/progress.md` are the truth; this
+table only says where the plan stood.
 
 | Fact | Value |
 |---|---|
-| `typesafe-sdk` in `.venv` | **not installed** (the owner approved installing it, plan Task 17 step 4) |
-| `TYPESAFE_API_KEY` in the user environment | **not set** |
-| Queue | `P0-17` **ready** (claude). New jobs `M1`–`M3` added with this plan |
-| Held by the previous session, do not touch | `P0-16` (Validator proof, in review), `P0-18` (error export, merging); worktrees `.claude/worktrees/P0-16`, `P0-18` |
-| `feat/repair-p0` | includes P0-13 (signed `engine/validate/targets.json`, merged 0e80141) |
+| Part A | merged: `P0-17` and `P0-17b` (`engine/decide/`, the `decide-pilot` command). Pilot run 2 is in the ledger |
+| Part B | `M1` `uc-guard` and `M1b` merged; `M2` `uc-status` approved, waits for the owner's on-screen check; `M3` waits for owner decision 4 |
+| `typesafe-sdk` and the key | installed, and the pilot ran against the real API (ledger). How the key is read: "The secret" above |
+| `feat/repair-p0` | holds P0-13 (signed `engine/validate/targets.json`), P0-16, P0-17, P0-17b and P0-18; checked out in `.claude/worktrees/repair-p0` by the P0 session |
 
 ## Owner actions (only the owner can do these; the session asks and waits)
 
@@ -56,32 +58,23 @@ Follow-ups: `docs/superpowers/plans/2026-10-03-repair-engine-p1-p2.md` rows **P1
 
 ## Part A — Jev
 
-### Task A1 = queue job P0-17: the pilot (claude, `engine-builder`)
+### Task A1 = queue jobs P0-17 and P0-17b: the pilot (done; owner decision 4 is open)
 
-The full text is in the P0 plan Task 17. Hand the implementer that task text, which has the exact interface,
-tests and pilot outputs. In short:
-- **Files:**
-  - create `engine/decide/__init__.py`, `engine/decide/jev.py`, `engine/tests/test_decide_jev.py`;
-  - in `pyproject.toml`, add the optional group `decide = ["typesafe-sdk"]`;
-  - add the CLI `decide-pilot`.
-- **Interface:** `Decision` (answer, confidence, probabilities, source, accepted); `JevDecider(client=None,
-  min_confidence=0.8, batch=20)` with `.available` and `.ask(state, questions)`; `classify_group_names`,
-  `classify_materials`.
-- **Tests (fake client, no network):**
-  - the response mapping;
-  - the confidence gate;
-  - batching: 45 questions make 3 calls;
-  - no key → `none`;
-  - an SDK error → `error` for that batch only;
-  - the key never appears in output.
-- **Pilot (only after owner actions 1 and 2):**
-  - `decide-pilot --source data/campus/source.json --materials data/campus/materials.json --out data/campus/jev_pilot.json`;
-  - on the 85 group names, against the confirmed `data/campus/campus_map.json`: accuracy, coverage at
-    confidence ≥ 0.8, and accuracy within that coverage;
-  - on the 391 materials: a category histogram plus a 30-material spot check that Claude reads;
-  - the latency and tokens per call.
-- **Done when:** the numbers are in the ledger and the owner has made decision 4. If the key is still missing,
-  merge the wrapper with its tests (they need no key) and leave the pilot step open.
+Merged into `feat/repair-p0`. The code is the interface: read `engine/decide/jev.py` (`Decision`, `JevDecider`,
+`NoulQ`/`ChoiceQ`/`ScoreQ`, `classify_group_names`, `classify_materials`) and `engine/decide/pilot.py`, not the P0 plan's
+Task 17 text. That text differed from the live API in four places, so a later Jev job checks its interface against the
+SDK's documentation or a measured call before it is dispatched:
+- a `Noul` answer carries no confidence: the wrapper maps the probability p to `confidence = max(p, 1 - p)`;
+- the state sent with the questions is a dict, not a string;
+- a `Score` takes at most 10 levels and a `Choice` at most 255 options; `JevDecider.ask` checks both before any call. A
+  16-level floor `Score` made 17 of the first 57 pilot calls fail with HTTP 400, so the floor is a 16-option `Choice`;
+- the pilot's truth is the confirmed `data/campus/campus_map.json`, not the Task 10 inventory.
+
+Pilot command: `decide-pilot` with `--source`, `--materials`, `--map` and `--out` (`engine/cli.py`). `data/` is
+git-ignored and absent from worktrees, so a run from a worktree names the main checkout's `data/campus/` files.
+
+**Open:** owner decision 4 (where Jev stays: inventory pre-fill, material categories for E5, tie-break suggestions in the
+floor review, or review triage). The numbers are in the ledger.
 
 ### Task A2 = P1-D1 then P1-D2 (later; not in this session unless P1-K1 has landed)
 
@@ -170,20 +163,22 @@ owner wants both. That decision is the owner's, so ask him before building B3.
 
 ## Order and orchestration
 
-1. **Start:** run `tools/jobs.py list` and read this plan's "State" table again: re-measure it (the SDK, the key,
-   the queue).
-2. **B1 `uc-guard` first.** It protects everything after it. The controller builds it with `plugin-authoring`,
-   then `rules-reviewer` reviews it.
-3. **A1 (P0-17):**
-   - claim it, then create the worktree `claude/P0-17` from `feat/repair-p0`;
-   - dispatch `engine-builder` (sonnet) with Task 17's text and the constraints above;
-   - review it with `rules-reviewer`, then merge `--no-ff` into `feat/repair-p0`;
-   - run the pilot when the key is present.
-4. **B2 `uc-status`.**
+1. **Start:** run `tools/jobs.py list` and read the ledger; re-measure the "State" table.
+2. **B1 `uc-guard`:** done (M1, M1b merged). The controller builds a mod with `plugin-authoring`, then `rules-reviewer`
+   reviews it.
+3. **A1 (P0-17, P0-17b):** done. For a later engine job:
+   - claim it, then create the worktree `claude/<id>` from `feat/repair-p0`;
+   - dispatch `engine-builder` (sonnet) with the brief's text inline and the constraints above;
+   - review it with `rules-reviewer`.
+4. **B2 `uc-status`:** approved by review; after the owner's on-screen check, merge it.
 5. **Stop and report to the owner:**
    - the pilot numbers;
    - mods B1 and B2 live;
    - ask decision 4 (where Jev stays) and whether to build B3.
+
+**Merging into `feat/repair-p0`:** that branch is checked out in `.claude/worktrees/repair-p0` by the P0 session, so
+git refuses a merge from anywhere else. Ask that session for the `--no-ff` merge and for its engine and tools suites;
+every merge so far waited for its "go".
 
 **Agents:** at most two concurrent (rate limit). Describe the work inline in each dispatch, not only by pointing at
 a file.

@@ -29,8 +29,9 @@ change. Spec §1 (export-vs-backup check).
 - `engine/campus/skp_check.py` copies the owner's split rule (AUTO, KEY and the 2-token skip). `engine/campus/groups.py`
   (P0-08) implements it too (`split_name(..., skip_owner_slot=True)`, as `index_by_split` uses it).
 - **Test first:** a test that loads every path of `data/campus/group_index.json` (skip the test if the file is
-  absent) and asserts that both implementations give the same split name for every path. If they differ, report
-  the differing paths in the report before changing anything; do not change either rule without saying why.
+  absent) and asserts that both implementations give the same split name for every path. If they differ, change
+  neither rule: list the differing paths in the report and stop at this item. The split rule is the owner's, and the
+  controller decides.
 - **Done when:** the test passes on the real index.
 
 ## Acceptance commands
