@@ -4,7 +4,9 @@
 A fake decider object (no network) except the last section, which talks to a stdlib `http.server` on 127.0.0.1.
 """
 import json
+import socket
 import threading
+import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 import pytest
@@ -148,7 +150,7 @@ def test_owner_none_and_error_sources_and_an_exception_are_all_unavailable():
     assert not any(a is None for a in out)
 
 
-def test_an_exception_in_ask_gives_unavailable_with_the_class_name_only_for_that_state_group():
+def test_an_exception_in_ask_gives_unavailable_with_the_class_name_only():
     class Boom(FakeAsk):
         def ask(self, state, questions):
             if state.get("bad"):
@@ -157,8 +159,11 @@ def test_an_exception_in_ask_gives_unavailable_with_the_class_name_only_for_that
 
     fake = Boom(_jev_reply)
     out = AskProvider("jev", fake).answer(T_FLOOR, [_fq("A", bad=True), _fq("B", ok=1), _fq("C", bad=True)])
-    assert out[0] == Unavailable("ConnectionError") and out[2] == Unavailable("ConnectionError")
-    assert out[1].answer == "5"
+    # the first group raised: the breaker trips, so the other groups are not asked either
+    assert out == [Unavailable("ConnectionError")] * 3
+    assert fake.asked == []
+    ok = AskProvider("jev", Boom(_jev_reply)).answer(T_FLOOR, [_fq("B", ok=1)])
+    assert ok[0].answer == "5"
     assert "secret" not in repr(out) and "pw@" not in repr(out)
 
 
@@ -319,6 +324,21 @@ def test_a_file_for_an_unknown_type_or_not_a_mapping_is_skipped_without_error(tm
     assert sync_confirmed(d, conf) == 0
 
 
+def test_score_answers_are_checked_strictly(tmp_path):
+    d = _decider(tmp_path, [])
+    conf = tmp_path / "confirmed"
+    _write_confirmed(conf, "review.priority", {
+        "U1": 2, "U2": 2.0, "U3": "abc", "U4": 99, "U5": True, "U6": 1.5, "U7": -1, "U8": 0})
+    n = sync_confirmed(d, conf)
+    assert n == 3 and n.skipped == 5  # 2, 2.0 (stored as int 2) and 0 are recorded
+    assert d.owner_answer("review.priority", "U1") == 2
+    assert d.owner_answer("review.priority", "U2") == 2 and type(d.owner_answer("review.priority", "U2")) is int
+    assert d.owner_answer("review.priority", "U8") == 0
+    for subject in ("U3", "U4", "U5", "U6", "U7"):
+        assert d.owner_answer("review.priority", subject) is None
+    assert sync_confirmed(d, conf) == 0  # 2.0 and 2 are the same stored answer: nothing new
+
+
 def test_a_missing_folder_gives_zero(tmp_path):
     d = _decider(tmp_path, [])
     assert sync_confirmed(d, tmp_path / "nowhere") == 0
@@ -441,3 +461,117 @@ def test_remote_decider_without_a_password_is_unavailable(serve):
     out = AskProvider("jev", RemoteDecider(s.url, password=None)).answer(T_FLOOR, [_fq("G1")])
     assert out == [Unavailable("none")]
     assert s.requests == []
+
+
+# ------------------------------------------------------------------------------------- circuit breaker
+
+
+class _BlackHole:
+    """A local socket that accepts connections and never replies; counts the connections."""
+
+    def __init__(self):
+        self.sock = socket.socket()
+        self.sock.bind(("127.0.0.1", 0))
+        self.sock.listen(16)
+        self.url = f"http://127.0.0.1:{self.sock.getsockname()[1]}"
+        self.accepted = []
+        self._stop = False
+        threading.Thread(target=self._loop, daemon=True).start()
+
+    def _loop(self):
+        self.sock.settimeout(0.05)
+        while not self._stop:
+            try:
+                self.accepted.append(self.sock.accept()[0])
+            except OSError:
+                pass
+
+    def close(self):
+        self._stop = True
+        for c in self.accepted:
+            c.close()
+        self.sock.close()
+
+
+def _remote_to(url, **kw):
+    return RemoteDecider(url, password="pw-FAKE-do-not-leak", **kw)
+
+
+def test_a_hung_server_costs_one_timeout_for_many_states_and_one_request():
+    hole = _BlackHole()
+    try:
+        p = AskProvider("jev", _remote_to(hole.url, timeout=0.5))
+        qs = [_fq(f"G{i}", site=i) for i in range(5)]
+        t0 = time.perf_counter()
+        out = p.answer(T_FLOOR, qs)
+        took = time.perf_counter() - t0
+        time.sleep(0.2)
+        assert took < 0.5 + 0.6  # about one timeout, not five
+        assert out == [Unavailable("TimeoutError")] * 5
+        assert len(hole.accepted) == 1
+        assert p.down == "TimeoutError"
+        # a later answer() on the tripped instance makes no request and returns at once
+        t0 = time.perf_counter()
+        again = p.answer(T_FLOOR, [_fq("H", site="new")])
+        assert time.perf_counter() - t0 < 0.1
+        assert again == [Unavailable("TimeoutError")]
+        time.sleep(0.2)
+        assert len(hole.accepted) == 1
+    finally:
+        hole.close()
+
+
+def test_jev_off_on_one_group_does_not_stop_a_later_group_returning_a_pilot_import_hit():
+    def reply(qid, q):
+        if q.subject == "A":
+            return Decision(None, 0.0, {}, "none", False, "jev off")
+        return Decision("2", 0.9, {"2": 0.9}, "pilot-import", True)
+    fake = FakeAsk(reply)
+    p = AskProvider("jev", fake)
+    out = p.answer(T_FLOOR, [_fq("A", s=1), _fq("B", s=2), _fq("C", s=3)])
+    assert len(fake.asked) == 3 and p.down is None
+    assert out[0] == Unavailable("jev off") and out[1].answer == "2" and out[2].answer == "2"
+    fake2 = FakeAsk(lambda qid, q: Decision(None, 0.0, {}, "none", False, ""))  # a none with no error
+    p2 = AskProvider("jev", fake2)
+    p2.answer(T_FLOOR, [_fq("A", s=1), _fq("B", s=2)])
+    assert len(fake2.asked) == 2 and p2.down is None
+    fake3 = FakeAsk(lambda qid, q: Decision(None, 0.0, {}, "none", False, "daily cap"))
+    p3 = AskProvider("jev", fake3)
+    p3.answer(T_FLOOR, [_fq("A", s=1), _fq("B", s=2)])
+    assert len(fake3.asked) == 2 and p3.down is None
+
+
+@pytest.mark.parametrize("source,error", [("none", "URLError"), ("none", "TimeoutError"), ("error", "HTTP 503"),
+                                          ("error", "HTTP 409")])
+def test_a_transport_failure_trips_the_breaker_for_the_rest_of_the_call_and_later_calls(source, error):
+    fake = FakeAsk(lambda qid, q: Decision(None, 0.0, {}, source, False, error))
+    p = AskProvider("jev", fake)
+    out = p.answer(T_FLOOR, [_fq("A", s=1), _fq("B", s=2), _fq("C", s=3)])
+    assert len(fake.asked) == 1 and p.down == error
+    assert out == [Unavailable(error)] * 3
+    p.answer(T_FLOOR, [_fq("D", s=4)])
+    assert len(fake.asked) == 1
+
+
+def test_an_exception_in_ask_trips_the_breaker_with_the_class_name():
+    class Boom(FakeAsk):
+        def ask(self, state, questions):
+            self.asked.append((state, questions))
+            raise ConnectionError("https://user:pw@host/secret")
+
+    fake = Boom()
+    p = AskProvider("jev", fake)
+    out = p.answer(T_FLOOR, [_fq("A", s=1), _fq("B", s=2)])
+    assert len(fake.asked) == 1 and p.down == "ConnectionError"
+    assert out == [Unavailable("ConnectionError")] * 2
+
+
+def test_a_group_with_a_mix_of_answers_and_errors_does_not_trip():
+    def reply(qid, q):
+        if q.subject == "A":
+            return Decision(None, 0.0, {}, "error", False, "HTTP 500")
+        return Decision("1", 0.9, {"1": 0.9}, "jev", True)
+    fake = FakeAsk(reply)
+    p = AskProvider("jev", fake)
+    p.answer(T_FLOOR, [_fq("A", s=1), _fq("B", s=1), _fq("C", s=2)])
+    assert len(fake.asked) == 2 and p.down is None

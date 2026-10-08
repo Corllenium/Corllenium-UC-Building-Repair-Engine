@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from pathlib import Path
 
 from engine.decide import decider as decider_module
@@ -34,6 +35,23 @@ from engine.decide.decider import (
 log = logging.getLogger(__name__)
 
 _JEV_SOURCES = ("jev", "pilot-import")
+_TRANSPORT_ERROR = re.compile(r"^(?:[A-Za-z_][A-Za-z0-9_]*|HTTP \d{3})$")  # a class name or "HTTP <status>"
+
+
+def _transport_failure(decisions, ids: list[str]) -> str | None:
+    """The tripping reason when EVERY decision of a state group is a "none"/"error" whose error is an exception
+    class name or `HTTP <status>`: the service was not reached or answered with a failure. "jev off", "daily
+    cap" and a "none" with no error are fast service answers (other groups may still hold stored hits): None."""
+    if not isinstance(decisions, dict) or not ids:
+        return None
+    reason = None
+    for qid in ids:
+        d = decisions.get(qid)
+        error = getattr(d, "error", "") or ""
+        if getattr(d, "source", None) not in ("none", "error") or not _TRANSPORT_ERROR.match(error):
+            return None
+        reason = reason or error
+    return reason
 
 
 def _jev_question(qt: QuestionType, q: Question):
@@ -63,11 +81,21 @@ def _token_total(calls: list[dict]) -> int | None:
 
 
 class AskProvider:
-    """A Decider provider backed by a Jev decider (`JevDecider` or `RemoteDecider`)."""
+    """A Decider provider backed by a Jev decider (`JevDecider` or `RemoteDecider`).
+
+    The pipeline never waits on the VPS: a circuit breaker lives on the instance. When a state group comes back
+    as a transport failure (`decider.ask` raised, or every decision is a "none"/"error" whose error is an
+    exception class name or `HTTP <status>`), `.down` is set to that reason; the remaining groups of the call and
+    every later `answer()` on this instance return `Unavailable(.down)` at once, with no request. The caller
+    makes a fresh provider per pipeline run. "jev off", "daily cap" and a "none" without an error do not trip it.
+
+    Tokens: the sum of `input_tokens + output_tokens` of the `decider.calls` entries added during one `answer()`
+    call is split over that call's answers by integer division; the remainder is dropped."""
 
     def __init__(self, name: str, decider):
         self.name = name
         self.decider = decider
+        self.down: str | None = None  # the tripping reason once the breaker has tripped
 
     def answer(self, qt: QuestionType, questions: list[Question]) -> "list[Answer | None | Unavailable]":
         groups: dict[str, list[int]] = {}
@@ -77,13 +105,19 @@ class AskProvider:
         before = len(calls) if isinstance(calls, list) else 0
         out: "list[Answer | Unavailable | None]" = [None] * len(questions)
         for idxs in groups.values():
+            if self.down is not None:
+                for i in idxs:
+                    out[i] = Unavailable(self.down)
+                continue
             asked = {str(i): _jev_question(qt, questions[i]) for i in idxs}
             try:
                 decisions = self.decider.ask(questions[idxs[0]].state, asked)
             except Exception as exc:  # noqa: BLE001 -- it should not raise; never keep the message
+                self.down = type(exc).__name__
                 for i in idxs:
-                    out[i] = Unavailable(type(exc).__name__)
+                    out[i] = Unavailable(self.down)
                 continue
+            self.down = _transport_failure(decisions, list(asked))
             for i in idxs:
                 out[i] = self._map(qt, questions[i], decisions.get(str(i)) if isinstance(decisions, dict) else None)
         answered = [a for a in out if isinstance(a, Answer)]
@@ -109,6 +143,19 @@ class AskProvider:
             return Unavailable(type(exc).__name__)
 
 
+def _strict_score(qt: QuestionType, answer):
+    """A score answer is an int (or a whole float, stored as int) in range(len(criteria)); never a bool."""
+    if isinstance(answer, bool) or not isinstance(answer, (int, float)):
+        raise ValueError(f"{qt.qtype}: a score answer is a level number")
+    if isinstance(answer, float):
+        if not answer.is_integer():
+            raise ValueError(f"{qt.qtype}: a score answer is a whole level number")
+        answer = int(answer)
+    if not 0 <= answer < len(qt.criteria):
+        raise ValueError(f"{qt.qtype}: level {answer} is out of range")
+    return answer
+
+
 class SyncCount(int):
     """What `sync_confirmed` returns: the number of owner answers recorded (an int), with `.skipped` = the
     answers that were not an option (or a bad entry) and `.skipped_files` = files that could not be used."""
@@ -117,7 +164,7 @@ class SyncCount(int):
     skipped_files: int
 
 
-def sync_confirmed(decider: Decider, confirmed_dir: Path, qtypes: list[str] | None = None) -> int:
+def sync_confirmed(decider: Decider, confirmed_dir: Path, qtypes: list[str] | None = None) -> SyncCount:
     """Record the owner-confirmed answers in `confirmed_dir` as owner answers. Only a new or changed answer is
     recorded, so a second sync records nothing. A missing folder or file is not an error."""
     folder = Path(confirmed_dir)
@@ -131,7 +178,8 @@ def sync_confirmed(decider: Decider, confirmed_dir: Path, qtypes: list[str] | No
         if not path.is_file():
             continue
         try:
-            qt = decider._type(qtype)
+            decider.mode_of(qtype)  # public: raises KeyError for an unknown qtype
+            qt = decider._type(qtype)  # the Decider has no public QuestionType lookup
             data = json.loads(path.read_text(encoding="utf-8"))
             if not isinstance(data, dict):
                 raise ValueError("not a mapping")
@@ -141,7 +189,7 @@ def sync_confirmed(decider: Decider, confirmed_dir: Path, qtypes: list[str] | No
             continue
         for subject, answer in data.items():
             try:
-                value = _normalise(qt, answer)
+                value = _strict_score(qt, answer) if qt.kind == "score" else _normalise(qt, answer)
             except ValueError:
                 skipped += 1
                 log.warning("sync_confirmed: %s: an answer for %r is not an option, skipped", qtype, str(subject)[:60])

@@ -461,7 +461,7 @@ class Decider:
                                  "key": keys[i], "provider": name, "error": "Unavailable",
                                  "reason": ans.reason, "latency_s": latency})
                     continue
-                rec: dict ={"key": keys[i], "provider": name, "hit": False, "answer": None,
+                rec: dict = {"key": keys[i], "provider": name, "hit": False, "answer": None,
                              "confidence": 0.0, "probabilities": {}, "tokens": None}
                 if ans is not None:
                     try:
