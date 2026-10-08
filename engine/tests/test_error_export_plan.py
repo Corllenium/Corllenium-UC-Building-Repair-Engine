@@ -128,12 +128,17 @@ def test_columns_are_floors_in_level_order_then_excluded(campus):
     assert [c.type for c in plan.columns] == ["floor", "floor", "excluded"]
 
 
+def _label_width(col):
+    from engine.campus.pixfont import text_width
+    return max([text_width(col.label, ee.UNIT_CELL_IN)] + [text_width(f["label"], ee.FLAG_CELL_IN) for f in col.flags])
+
+
 def test_columns_sit_side_by_side_at_the_origin_with_their_base_at_zero(campus):
     plan = _plan(campus)
     c1, c2, c3 = plan.columns
     assert c1.x0 == 0.0
-    assert c2.x0 == pytest.approx(c1.x0 + c1.width + ee.GAP_IN)
-    assert c3.x0 == pytest.approx(c2.x0 + c2.width + ee.GAP_IN)
+    assert c2.x0 == pytest.approx(c1.x0 + max(c1.width, _label_width(c1)) + ee.GAP_IN)
+    assert c3.x0 == pytest.approx(c2.x0 + max(c2.width, _label_width(c2)) + ee.GAP_IN)
     for c in plan.columns:
         pts = np.vstack([t.reshape(-1, 3) for m in c.members for t in m.tris.values() if len(t)]
                         + [m.markers[k] for m in c.members for k in m.markers if len(m.markers[k])])
@@ -197,3 +202,13 @@ def test_exact_duplicates_counts_triangles_repeating_an_earlier_one_in_any_verte
                   [[0, 0, 0], [1, 0, 0], [0, 2, 0]]], float)
     assert ee.exact_duplicates(t) == 2
     assert ee.exact_duplicates(np.zeros((0, 3, 3))) == 0
+
+
+def test_columns_leave_room_for_their_longest_label(campus):
+    from engine.campus.pixfont import text_width
+    plan = _plan(campus)
+    for a, b in zip(plan.columns, plan.columns[1:]):
+        widest = max([text_width(a.label, ee.UNIT_CELL_IN)] +
+                     [text_width(f["label"], ee.FLAG_CELL_IN) for f in a.flags])
+        assert b.x0 >= a.x0 + max(a.width, widest) + ee.GAP_IN - 1e-9
+    assert plan.columns[1].x0 > plan.columns[0].x0 + plan.columns[0].width + ee.GAP_IN   # labels are wider here

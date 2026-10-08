@@ -15,7 +15,7 @@ from typing import Callable
 
 import numpy as np
 
-from engine.campus.pixfont import GLYPHS
+from engine.campus.pixfont import GLYPHS, text_width
 
 #: face kinds, in drawing priority: a face listed under several kinds is drawn in the first
 ERROR_KINDS = ("flicker_diff", "flicker_same", "reversed", "loose", "hidden")
@@ -50,6 +50,8 @@ GAP_IN = 315.0              # 8 m between columns
 CELL_IN = 6.0               # one crack / degenerate marker per 6 in cell
 DEGENERATE_AREA = 1e-4      # sq in: below this a triangle is drawn as a marker (or skipped in base)
 LABEL_MAX = 40
+LINE_PITCH = 9              # text lines, in cells
+UNIT_CELL_IN, FLAG_CELL_IN, LEGEND_CELL_IN = 12.0, 8.0, 10.0   # pixel-font cell sizes
 
 #: the drawing order of columns by unit type
 _TYPE_ORDER = {"floor": 0, "element": 1, "site": 2}
@@ -288,7 +290,8 @@ def plan_building(building: str, campus_map: dict, load_member: Callable[[str], 
         if not is_excluded:
             for k in totals:
                 totals[k] += counts[k]
-        x0 += width + GAP_IN
+        widest = max([text_width(label, UNIT_CELL_IN)] + [text_width(f["label"], FLAG_CELL_IN) for f in flags])
+        x0 += max(width, widest) + GAP_IN
     return BuildingPlan(building, columns, totals)
 
 
@@ -491,10 +494,6 @@ class _Writer:
                 self.faces_by_tag[tag] = self.faces_by_tag.get(tag, 0) + added
             finally:
                 api.raw("SUGeometryInputRelease", byref(geom))
-
-
-LINE_PITCH = 9              # text lines, in cells
-UNIT_CELL_IN, FLAG_CELL_IN, LEGEND_CELL_IN = 12.0, 8.0, 10.0
 
 
 def _draw_column(w: _Writer, col: ColumnPlan) -> None:
