@@ -58,7 +58,7 @@ export class ApiError extends Error {
 
 const API_BASE = '/api'
 
-async function checkResponse(res: Response, fallbackMsg: string): Promise<Response> {
+export async function checkResponse(res: Response, fallbackMsg: string): Promise<Response> {
   if (!res.ok) {
     let detail = fallbackMsg
     try {
