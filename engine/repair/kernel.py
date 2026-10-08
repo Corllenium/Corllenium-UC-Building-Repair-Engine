@@ -12,6 +12,16 @@ nothing here applies them or changes what a stage produced. K3 starts applying t
 material`. `faces` are input face ids of the stage's own input face set; `removed` / `added` are
 the K1 face keys the edit takes away and brings (a flip takes the old winding's key and brings
 the reversed one). No path and no timestamp, so two runs of the same unit write the same bytes.
+
+SITE CHECKS (P1-K3b, `validate_sites=True`). After each stage the site judge in `ctx.validator`
+(`engine.site_judge.SiteJudge`, handed in by `engine.cli`; this package never imports it) runs ONE
+focus run of the Validator on the union of the stage's sites (`Edit.site`), charges each failing
+sample to the sites that could have caused it, rolls those back and confirms with one more run
+(`_check_stage`); the next stage runs on `apply_edits(stage_input, kept_edits)`. Legacy stages are
+one site each and are logged, not rolled back (ruling K3-R2). The edit log then also carries a
+`{"check": {...}}` line after each stage's edits and `"rolled_back": true` on every dropped edit;
+the check lines hold run DURATIONS (seconds), so unlike the edit lines they differ between runs.
+Without `validate_sites` the kernel is exactly P1-K2's.
 """
 from __future__ import annotations
 
