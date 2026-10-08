@@ -262,3 +262,11 @@ def test_a_missing_snapshot_or_errors_file_names_the_group(campus):
         raise FileNotFoundError("nope")
     with pytest.raises(ValueError, match="A_1st_floor"):
         ee.plan_building("B", cmap, load, building_of=lambda g: "B")
+
+
+def test_flicker_labels_say_material_because_find_errors_splits_by_material_index():
+    """find_errors' flicker_diff / flicker_same split pairs by material index, not by look (final P0 review):
+    the owner-facing names must not say "look"."""
+    assert ee.KIND_NAMES["flicker_diff"] == "FLICKER DIFFERENT MATERIAL"
+    assert ee.KIND_NAMES["flicker_same"] == "FLICKER SAME MATERIAL"
+    assert not any("LOOK" in v for v in ee.KIND_NAMES.values())

@@ -42,7 +42,6 @@ from __future__ import annotations
 import argparse
 import collections
 import json
-import os
 import shutil
 import sys
 import time
@@ -1013,7 +1012,7 @@ def build_parser() -> argparse.ArgumentParser:
     census_p.add_argument("--md", type=Path, default=None, help="output path for markdown census table")
     census_p.add_argument("--jobs", type=int, default=4, help="number of parallel worker processes")
     census_p.add_argument("--timeout", type=float, default=1800.0, help="timeout per unit in seconds")
-    census_p.add_argument("--materials", type=Path, default=Path("D:/PROJECTS/UC MODEL FIXER/data/campus/materials.json"), help="path to materials.json")
+    census_p.add_argument("--materials", type=Path, default=Path("data/campus/materials.json"), help="path to materials.json")
 
     inv_p = sub.add_parser("campus-inventory",
                            help="buildings, level tables, floor/element units, duplicates, misnamed and missing "

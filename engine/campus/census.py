@@ -45,9 +45,9 @@ def unit_building(unit_name: str) -> str:
 # ---------------------------------------------------------------------- Flicker Split
 
 
-DEFAULT_MATERIALS_PATH = Path("D:/PROJECTS/UC MODEL FIXER/data/campus/materials.json")
-if not DEFAULT_MATERIALS_PATH.is_file():
-    DEFAULT_MATERIALS_PATH = Path("data/campus/materials.json")
+#: relative to the working directory, as every other campus command's defaults (run from the main checkout,
+#: which holds data/; from a worktree pass --materials)
+DEFAULT_MATERIALS_PATH = Path("data/campus/materials.json")
 
 
 class FlickerSplit(dict):
@@ -90,10 +90,7 @@ def flicker_split(
     elif materials is not None:
         mat_path = Path(materials)
         if not mat_path.is_file():
-            if not mat_path.is_absolute() and (Path("D:/PROJECTS/UC MODEL FIXER") / mat_path).is_file():
-                mat_path = Path("D:/PROJECTS/UC MODEL FIXER") / mat_path
-            else:
-                raise FileNotFoundError(f"Materials map not found: {mat_path}")
+            raise FileNotFoundError(f"Materials map not found: {mat_path.resolve()} (pass --materials)")
         data = json.loads(mat_path.read_text(encoding="utf-8"))
         if not isinstance(data, dict):
             raise ValueError(f"Invalid materials JSON in {mat_path}")

@@ -735,9 +735,14 @@ def load_targets(path=None) -> dict | None:
     if not path.is_file():
         return None
     try:
-        return json.loads(path.read_text(encoding="utf-8"))
+        targets = json.loads(path.read_text(encoding="utf-8"))
     except json.JSONDecodeError as exc:
         raise ValueError(f"targets file {path} is not valid JSON: {exc}") from exc
+    from engine.detectors.errors import KINDS        # lazy: check 2 is the only use of find_errors here
+    unknown = sorted(set((targets or {}).get("kinds") or {}) - set(KINDS))
+    if unknown:
+        raise ValueError(f"targets file {path} names unknown kinds {unknown}: a misspelled kind would never gate")
+    return targets
 
 
 def _target_of(targets, kind: str):

@@ -328,7 +328,7 @@ MARKER_R_IN = 3.0           # crack / degenerate-face marker radius
 PLATE_Z_IN = -2.0
 CHUNK = 20000               # faces per SUGeometryInput
 
-KIND_NAMES = {"base": "NO ERROR", "flicker_diff": "FLICKER DIFFERENT LOOK", "flicker_same": "FLICKER SAME LOOK",
+KIND_NAMES = {"base": "NO ERROR", "flicker_diff": "FLICKER DIFFERENT MATERIAL", "flicker_same": "FLICKER SAME MATERIAL",
               "reversed": "REVERSED", "loose": "LOOSE BITS", "hidden": "HIDDEN", "open_edges": "OPEN EDGES",
               "cracks": "CRACKS", "excluded": "EXCLUDED COPY", "skp_mismatch": "EXPORT VS BACKUP"}
 
