@@ -92,6 +92,17 @@ def grid_dedup(points: np.ndarray, cell: float) -> np.ndarray:
     return points[np.sort(first)]
 
 
+def exact_duplicates(tris: np.ndarray) -> int:
+    """Triangles that repeat an earlier one exactly (same three points, any order). SketchUp keeps one face for
+    them when they share a group, so the read-back count is lower by this much."""
+    tris = np.asarray(tris, float).reshape(-1, 3, 3)
+    if not len(tris):
+        return 0
+    order = np.lexsort((tris[:, :, 2], tris[:, :, 1], tris[:, :, 0]), axis=1)
+    canon = np.take_along_axis(tris, order[:, :, None], axis=1).reshape(len(tris), 9)
+    return int(len(tris) - len(np.unique(canon, axis=0)))
+
+
 def _drawable(text: str) -> str:
     text = " ".join(text.upper().split())
     return "".join(ch if ch in GLYPHS else " " for ch in text)[:LABEL_MAX].rstrip()
@@ -644,6 +655,15 @@ def cmd_campus_errors_skp(campus_map, source, errors_dir, skp_check, out_dir, bu
         skp = out_dir / name / f"{name}-errors.skp"
         written = write_building_skp(plan, skp, dll_path)
         back = read_back(skp, dll_path)
+        dups: dict[str, int] = {}
+        for c in plan.columns:
+            for m in c.members:
+                for kind, tris in m.tris.items():
+                    if n := exact_duplicates(tris):
+                        dups[tag_of(kind)] = dups.get(tag_of(kind), 0) + n
+        tags = set(written["faces_by_tag"]) | set(back["faces_by_tag"])
+        unexplained = {t: back["faces_by_tag"].get(t, 0) - (written["faces_by_tag"].get(t, 0) - dups.get(t, 0))
+                       for t in sorted(tags)}
         report = {
             "building": name, "skp": str(skp), "skp_sha256": _sha256(skp), "engine_commit": commit,
             "counts": plan.counts,
@@ -653,6 +673,8 @@ def cmd_campus_errors_skp(campus_map, source, errors_dir, skp_check, out_dir, bu
                          "skipped_degenerate_base": sum(m.skipped_degenerate_base for m in c.members)}
                         for c in plan.columns],
             "written": written, "read_back": {"faces_by_tag": back["faces_by_tag"], "tags": back["tags"]},
+            "duplicates_by_tag": dups,
+            "unexplained_by_tag": {t: d for t, d in unexplained.items() if d},
             "inputs": {"campus_map": _sha256(campus_map), "skp_check": _sha256(skp_check),
                        "errors": {g: used[g] for g in sorted(used)}},
             "draw_rule": "each face in the first kind listing it: " + ", ".join(ERROR_KINDS) + "; else base",

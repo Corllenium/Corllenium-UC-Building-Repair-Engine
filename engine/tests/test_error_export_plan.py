@@ -188,3 +188,12 @@ def test_a_building_without_units_is_refused(campus):
     cmap, meshes, _ = campus
     with pytest.raises(ValueError):
         ee.plan_building("NOPE", cmap, lambda g: meshes[g])
+
+
+def test_exact_duplicates_counts_triangles_repeating_an_earlier_one_in_any_vertex_order():
+    t = np.array([[[0, 0, 0], [1, 0, 0], [0, 1, 0]],
+                  [[1, 0, 0], [0, 1, 0], [0, 0, 0]],      # same triangle, rotated
+                  [[0, 0, 0], [0, 1, 0], [1, 0, 0]],      # same, reversed winding
+                  [[0, 0, 0], [1, 0, 0], [0, 2, 0]]], float)
+    assert ee.exact_duplicates(t) == 2
+    assert ee.exact_duplicates(np.zeros((0, 3, 3))) == 0

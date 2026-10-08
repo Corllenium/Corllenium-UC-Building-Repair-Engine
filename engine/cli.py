@@ -1164,9 +1164,11 @@ def main(argv: list[str] | None = None) -> int:
         for r in cmd_campus_errors_skp(args.map, args.source, args.errors, args.skp_check, args.out,
                                        args.buildings, args.dll):
             back = r["read_back"]["faces_by_tag"]
-            same = "same as written" if back == r["written"]["faces_by_tag"] else "DIFFERS from written"
+            dups, odd = sum(r["duplicates_by_tag"].values()), r["unexplained_by_tag"]
+            same = "as written" if not odd else f"UNEXPLAINED {odd}"
             print(f"{r['building']}: {len(r['columns'])} columns, {sum(back.values()):,} faces read back "
-                  f"({same}), {r['written']['rejected_faces']} refused -> {r['skp']}")
+                  f"({same}; {dups:,} exact duplicate triangles kept once), "
+                  f"{r['written']['rejected_faces']} refused -> {r['skp']}")
         return 0
     return 1
 

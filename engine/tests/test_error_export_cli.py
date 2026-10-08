@@ -61,6 +61,7 @@ def test_the_cli_writes_one_file_and_report_per_building(tmp_path, capsys):
     assert report["read_back"]["faces_by_tag"]["base"] == 1
     assert report["read_back"]["faces_by_tag"]["error_reversed"] == 1
     assert report["written"]["faces_by_tag"] == report["read_back"]["faces_by_tag"]
+    assert report["duplicates_by_tag"] == {} and report["unexplained_by_tag"] == {}
     assert report["columns"][0]["unit"] == "BRS-L01"
     assert set(report["inputs"]) == {"campus_map", "skp_check", "errors"}
     assert "BRS" in capsys.readouterr().out
