@@ -7,14 +7,22 @@ shipped mesh's arrays).
 from __future__ import annotations
 
 import json
+from collections import Counter
+from dataclasses import replace
 
 import numpy as np
 import pytest
 
 import engine.fixes.pipeline as fix_pipeline
+from engine import cli
+from engine.fixes.merge import MergeResult
 from engine.fixes.pipeline import FixProfile, fix_object
-from engine.tests.fixtures.build import (box_with_partition, box_with_partition_and_stitch,
-                                         gridded_box, printed, slab_with_sawtooth_side,
+from engine.repair.engines.legacy import STAGE_ENGINES, FaceView, observe
+from engine.repair.kernel import repair_unit, write_edit_log
+from engine.repair.types import RepairContext, UnitState, apply_edits, face_keys
+from engine.tests.fixtures.build import (box_with_partition, box_with_partition_and_stitch, cube,
+                                         gridded_box, open_box_with_cells, printed,
+                                         slab_with_sawtooth_side,
                                          slab_with_strays, slab_with_three_skirts,
                                          slab_with_two_depths,
                                          stacked_duplicate_slab)
@@ -40,7 +48,36 @@ FIXTURES = [
     ("slab_with_sawtooth_side", slab_with_sawtooth_side, _FAST),  # ...and replaces broken side pieces
     ("slab_with_two_depths", slab_with_two_depths, _FAST),      # ...and invents points
     ("box_with_partition_and_stitch", box_with_partition_and_stitch, _FAST),  # E3 + E1 in pass 1
+    # pass 2: the two deep-partition triangles are slit faces, removed under the colour-tolerant
+    # guard and observed through pass 1's subset view
+    ("open_box_with_cells_slit", open_box_with_cells,
+     FixProfile(guard_size=(120, 80), n_dirs=32, accept_slit=True, solidify=False)),
+    # the fragment pass switched off: the strays stay, the stage observes nothing
+    ("slab_with_strays_kept", lambda: printed(slab_with_strays()),
+     FixProfile(guard_size=(120, 80), n_dirs=32, solidify=False, fragment_removed_cap=5e-3,
+                accept_fragments=False)),
+    # the merge rolled back (`not_converged`, as in test_pipeline.py): the shipped mesh is the
+    # unmerged one and the merge stage observes nothing
+    ("gridded_box_merge_rolled_back", lambda: gridded_box(4, 2.5), _FAST),
 ]
+
+
+def _not_converged_merge(monkeypatch):
+    real_merge_regions = fix_pipeline.merge_regions
+
+    def not_converged(mesh, topo, flat_materials=frozenset(), **kw):
+        real = real_merge_regions(mesh, topo, flat_materials, **kw)
+        report = dict(real.report)
+        report["converged"] = False
+        return MergeResult(mesh=real.mesh, source_faces=real.source_faces, report=report)
+
+    monkeypatch.setattr(fix_pipeline, "merge_regions", not_converged)
+
+
+def _prepare(name, monkeypatch):
+    """Patches a FIXTURES case needs before it runs."""
+    if name == "gridded_box_merge_rolled_back":
+        _not_converged_merge(monkeypatch)
 
 
 def _report_bytes(tmp_path, mesh, result, profile) -> bytes:
@@ -66,7 +103,11 @@ def test_fix_object_is_the_seven_stages_in_order():
 
 
 @pytest.mark.parametrize("name, build, profile", FIXTURES, ids=[f[0] for f in FIXTURES])
-def test_running_the_stages_by_hand_gives_fix_objects_result(tmp_path, name, build, profile):
+def test_fix_stages_compose_into_fix_objects_result(tmp_path, monkeypatch, name, build, profile):
+    """`FIX_STAGES`, `start_fix` and `finish_fix` compose: running them by hand gives
+    `fix_object`'s result. `fix_object` IS this loop, so this is NOT the proof that splitting it
+    changed nothing -- that proof is the unchanged engine suite and the golden units' sha256s."""
+    _prepare(name, monkeypatch)
     mesh = build()
     expected = fix_object(mesh, {}, profile)
 
@@ -82,14 +123,6 @@ def test_running_the_stages_by_hand_gives_fix_objects_result(tmp_path, name, bui
 
 
 # --------------------------------------------- item 2: observed edits, legacy engines, kernel
-
-from collections import Counter
-from dataclasses import replace
-
-from engine.repair.engines.legacy import STAGE_ENGINES, FaceView, observe
-from engine.repair.kernel import repair_unit, write_edit_log
-from engine.repair.types import RepairContext, UnitState, apply_edits, face_keys
-from engine.tests.fixtures.build import cube
 
 def _keys(mesh):
     return face_keys(mesh, {})
@@ -203,7 +236,8 @@ def _kernel(mesh, profile, **kw):
 
 
 @pytest.mark.parametrize("name, build, profile", FIXTURES, ids=[f[0] for f in FIXTURES])
-def test_the_kernel_gives_fix_objects_report_and_mesh(tmp_path, name, build, profile):
+def test_the_kernel_gives_fix_objects_report_and_mesh(tmp_path, monkeypatch, name, build, profile):
+    _prepare(name, monkeypatch)
     mesh = build()
     expected = fix_object(mesh, {}, profile)
     got, ctx = _kernel(build(), profile)
@@ -215,7 +249,8 @@ def test_the_kernel_gives_fix_objects_report_and_mesh(tmp_path, name, build, pro
 
 
 @pytest.mark.parametrize("name, build, profile", FIXTURES, ids=[f[0] for f in FIXTURES])
-def test_every_stage_accounts_for_every_face(name, build, profile):
+def test_every_stage_accounts_for_every_face(monkeypatch, name, build, profile):
+    _prepare(name, monkeypatch)
     mesh = build()
     got, _ = _kernel(mesh, profile)
 
@@ -252,7 +287,8 @@ ALLOWED = {"solidify": ({"E8"}, {"add", "remove", "flip"}), "hidden": ({"E3", "E
 
 
 @pytest.mark.parametrize("name, build, profile", FIXTURES, ids=[f[0] for f in FIXTURES])
-def test_each_stage_logs_under_its_engine(name, build, profile):
+def test_each_stage_logs_under_its_engine(monkeypatch, name, build, profile):
+    _prepare(name, monkeypatch)
     got, _ = _kernel(build(), profile)
     assert dict(STAGE_ENGINES) == {"solidify": "E8", "hidden": "E3+E1", "slit": "E3",
                                    "fragments": "E1", "orientation": "E2", "overlap": "E4",
@@ -313,6 +349,38 @@ def test_the_flip_overlap_fragment_and_solidify_stages_show_what_they_did():
         assert (replaced == 4) == (build is slab_with_sawtooth_side)  # its broken side pieces
 
 
+def test_the_slit_stage_logs_e3_removes_named_in_pass_ones_subset_view():
+    profile = FixProfile(guard_size=(120, 80), n_dirs=32, accept_slit=True, solidify=False)
+    got, _ = _kernel(open_box_with_cells(), profile)
+    slit = _stage(got, "slit")
+
+    assert got.result.n_removed_slit == 2
+    assert [(e.engine, e.kind) for e in slit.edits] == [("E3", "remove")]
+    assert slit.before.ids is not None                        # pass 1's subset of the reference
+    removed_reference = slit.before.mesh_ids(slit.edits[0].faces)
+    assert sorted(removed_reference.tolist()) == np.flatnonzero(got.result.removed_slit).tolist()
+    ref_keys = _keys(got.result.reference_mesh)
+    assert Counter(slit.edits[0].evidence["removed_keys"]) == Counter(
+        ref_keys[i] for i in np.flatnonzero(got.result.removed_slit))
+
+
+def test_with_the_fragment_pass_off_the_fragment_stage_logs_nothing():
+    profile = FixProfile(guard_size=(120, 80), n_dirs=32, solidify=False,
+                         fragment_removed_cap=5e-3, accept_fragments=False)
+    got, _ = _kernel(printed(slab_with_strays()), profile)
+    assert not got.result.removed_fragments.any()
+    assert _stage(got, "fragments").edits == []
+
+
+def test_a_rolled_back_merge_logs_no_e7_edit(monkeypatch):
+    _not_converged_merge(monkeypatch)
+    m = gridded_box(4, 2.5)
+    got, _ = _kernel(m, _FAST)
+    assert got.result.merge_report["rolled_back_reason"] == "not_converged"
+    assert _stage(got, "merge").edits == []
+    assert got.mesh.n_faces == m.n_faces == 192
+
+
 def test_the_edit_log_is_one_json_line_per_edit_with_no_path_or_timestamp(tmp_path):
     log = tmp_path / "edit_log.jsonl"
     got, _ = _kernel(slab_with_three_skirts(), _FAST, edit_log=log)
@@ -332,7 +400,8 @@ def test_the_edit_log_is_one_json_line_per_edit_with_no_path_or_timestamp(tmp_pa
 
 
 @pytest.mark.parametrize("name, build, profile", FIXTURES, ids=[f[0] for f in FIXTURES])
-def test_the_edit_log_alone_accounts_for_the_unit(tmp_path, name, build, profile):
+def test_the_edit_log_alone_accounts_for_the_unit(tmp_path, monkeypatch, name, build, profile):
+    _prepare(name, monkeypatch)
     mesh = build()
     log = tmp_path / "edit_log.jsonl"
     got, _ = _kernel(mesh, profile, edit_log=log)
@@ -369,8 +438,6 @@ def test_write_edit_log_of_no_edits_is_an_empty_file(tmp_path):
 
 
 # ------------------------------------------------------------------- item 3: `fix --kernel`
-
-from engine import cli
 
 _CLI = FixProfile(guard_size=(120, 80), n_dirs=32, qa_size=(160, 100))
 
