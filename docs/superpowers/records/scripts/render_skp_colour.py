@@ -14,7 +14,7 @@ from pathlib import Path
 import numpy as np
 from PIL import Image, ImageDraw
 
-from engine.campus.error_export import _bind
+from engine.io.skp_writer import bind_group_calls as _bind
 from engine.io.skp_writer import _face_triangles, _open, _read_material, _Ref, _refs, _string, load_api
 
 

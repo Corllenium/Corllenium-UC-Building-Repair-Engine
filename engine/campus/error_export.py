@@ -416,103 +416,8 @@ def _text(text: str, x: float, y: float, cell: float, z: float = 0.0) -> np.ndar
     return np.stack(rects) if rects else np.zeros((0, 4, 3))
 
 
-def _bind(api) -> None:
-    from ctypes import c_char_p, c_int, c_size_t
-    from engine.io.skp_writer import _RP, _SP, _Ref
-    api.bind({
-        "SUGroupCreate": ([_RP], c_int), "SUEntitiesAddGroup": ([_Ref, _Ref], c_int),
-        "SUGroupSetName": ([_Ref, c_char_p], c_int), "SUGroupGetName": ([_Ref, _RP], c_int),
-        "SUGroupGetEntities": ([_Ref, _RP], c_int), "SUGroupToDrawingElement": ([_Ref], _Ref),
-        "SULayerCreate": ([_RP], c_int), "SULayerSetName": ([_Ref, c_char_p], c_int),
-        "SULayerGetName": ([_Ref, _RP], c_int), "SUModelAddLayers": ([_Ref, c_size_t, _RP], c_int),
-        "SUModelGetNumLayers": ([_Ref, _SP], c_int), "SUModelGetLayers": ([_Ref, c_size_t, _RP, _SP], c_int),
-        "SUDrawingElementSetLayer": ([_Ref, _Ref], c_int), "SUDrawingElementGetLayer": ([_Ref, _RP], c_int),
-        "SUEntitiesGetNumGroups": ([_Ref, _SP], c_int),
-        "SUEntitiesGetGroups": ([_Ref, c_size_t, _RP, _SP], c_int),
-    })
-
-
-class _Writer:
-    def __init__(self, api, model):
-        from ctypes import byref
-        from engine.io.skp_writer import _Color, _Ref
-        self.api, self.model = api, model
-        self.faces_by_tag: dict[str, int] = {}
-        self.rejected = 0
-        self.groups = 0
-        self.materials, self.layers = {}, {}
-        mats = []
-        for key, rgb in COLOURS.items():
-            m = _Ref()
-            api.ok("SUMaterialCreate", byref(m))
-            api.ok("SUMaterialSetName", m, f"UC_{key}".encode("utf-8"))
-            api.ok("SUMaterialSetColor", m, byref(_Color(*rgb, 255)))
-            self.materials[key] = m
-            mats.append(m)
-        api.ok("SUModelAddMaterials", model, len(mats), (_Ref * len(mats))(*mats))
-        lays = []
-        for name in TAGS:
-            lay = _Ref()
-            api.ok("SULayerCreate", byref(lay))
-            api.ok("SULayerSetName", lay, name.encode("utf-8"))
-            self.layers[name] = lay
-            lays.append(lay)
-        api.ok("SUModelAddLayers", model, len(lays), (_Ref * len(lays))(*lays))
-        self.root = _Ref()
-        api.ok("SUModelGetEntities", model, byref(self.root))
-
-    def group(self, parent, name: str, tag: str | None = None):
-        from ctypes import byref
-        from engine.io.skp_writer import _Ref
-        g, ents = _Ref(), _Ref()
-        self.api.ok("SUGroupCreate", byref(g))
-        self.api.ok("SUEntitiesAddGroup", parent, g)
-        self.api.ok("SUGroupSetName", g, name.encode("utf-8"))
-        if tag is not None:
-            self.api.ok("SUDrawingElementSetLayer", self.api.raw("SUGroupToDrawingElement", g), self.layers[tag])
-        self.api.ok("SUGroupGetEntities", g, byref(ents))
-        self.groups += 1
-        return ents
-
-    def fill(self, ents, polys: np.ndarray, colour: str, tag: str) -> None:
-        """Add (k, n, 3) polygons, each one face, both sides in `colour`."""
-        from ctypes import byref, c_size_t
-        from engine.io.skp_writer import _MaterialInput, _Point3D, _Ref
-        polys = np.asarray(polys, float)
-        if not len(polys):
-            return
-        api, n = self.api, polys.shape[1]
-        mi = _MaterialInput()
-        mi.material = self.materials[colour]
-        for start in range(0, len(polys), CHUNK):
-            part = np.ascontiguousarray(polys[start:start + CHUNK].reshape(-1, 3), dtype=np.float64)
-            geom = _Ref()
-            api.ok("SUGeometryInputCreate", byref(geom))
-            try:
-                api.ok("SUGeometryInputSetVertices", geom, len(part),
-                       (_Point3D * len(part)).from_buffer_copy(part.tobytes()))
-                added = 0
-                for f in range(len(part) // n):
-                    loop = _Ref()
-                    api.ok("SULoopInputCreate", byref(loop))
-                    for i in range(n):
-                        api.ok("SULoopInputAddVertexIndex", loop, f * n + i)
-                    index = c_size_t()
-                    if api.raw("SUGeometryInputAddFace", geom, byref(loop), byref(index)) != 0:
-                        api.raw("SULoopInputRelease", byref(loop))
-                        self.rejected += 1
-                        continue
-                    api.ok("SUGeometryInputFaceSetFrontMaterial", geom, index.value, byref(mi))
-                    api.ok("SUGeometryInputFaceSetBackMaterial", geom, index.value, byref(mi))
-                    added += 1
-                api.ok("SUEntitiesFill", ents, geom, True)
-                self.faces_by_tag[tag] = self.faces_by_tag.get(tag, 0) + added
-            finally:
-                api.raw("SUGeometryInputRelease", byref(geom))
-
-
-def _draw_column(w: _Writer, col: ColumnPlan) -> None:
-    ents = w.group(w.root, f"UNIT | {col.label}")
+def _draw_column(w, col: ColumnPlan) -> None:
+    ents = w.group(None, f"UNIT | {col.label}")
     for mp in col.members:
         ments = w.group(ents, f"MEMBER | {mp.group}")
         for kind in ("base",) + ERROR_KINDS + ("excluded",):
@@ -541,8 +446,8 @@ def _draw_column(w: _Writer, col: ColumnPlan) -> None:
                flag["kind"], tag)
 
 
-def _draw_legend(w: _Writer, plan: BuildingPlan) -> None:
-    ents = w.group(w.root, f"LEGEND | {plan.building}", "labels")
+def _draw_legend(w, plan: BuildingPlan) -> None:
+    ents = w.group(None, f"LEGEND | {plan.building}", "labels")
     x = -GAP_IN - 2400.0
     pitch = LINE_PITCH * LEGEND_CELL_IN
     rows = [(k, plan.counts.get(k)) for k in ("base",) + ERROR_KINDS + LINE_KINDS]
@@ -558,61 +463,26 @@ def _draw_legend(w: _Writer, plan: BuildingPlan) -> None:
 
 
 def write_building_skp(plan: BuildingPlan, out, dll_path=None) -> dict:
-    """Draw `plan` into a new SketchUp file at `out`. Returns the faces added per tag and the faces SketchUp
-    refused."""
-    from ctypes import byref
+    """Draw `plan` into a new SketchUp file at `out` (through `engine.io.skp_writer.TaggedModel`, the only place
+    that binds SketchUp's save). Returns the faces added per tag and the faces SketchUp refused."""
     from pathlib import Path
-    from engine.io.skp_writer import _Ref, load_api
+    from engine.io.skp_writer import TaggedModel
     out = Path(out)
     _check_out(out)
-    api = load_api(dll_path)
-    _bind(api)
     out.parent.mkdir(parents=True, exist_ok=True)
-    with api.session():
-        model = _Ref()
-        api.ok("SUModelCreate", byref(model))
-        try:
-            w = _Writer(api, model)
-            _draw_legend(w, plan)
-            for col in plan.columns:
-                _draw_column(w, col)
-            api.ok("SUModelSaveToFile", model, str(out).encode("utf-8"))
-        finally:
-            api.raw("SUModelRelease", byref(model))
+    with TaggedModel(COLOURS, TAGS, dll_path, chunk=CHUNK) as w:
+        _draw_legend(w, plan)
+        for col in plan.columns:
+            _draw_column(w, col)
+        w.save(out)
     return {"out": str(out), "faces_by_tag": dict(sorted(w.faces_by_tag.items())), "rejected_faces": w.rejected,
             "groups": w.groups}
 
 
 def read_back(path, dll_path=None) -> dict:
     """Tags, faces per tag (a face counts under the nearest tagged group above it) and group names of a file."""
-    from ctypes import byref
-    from pathlib import Path
-    from engine.io.skp_writer import _Ref, _open, _refs, _string, load_api
-    api = load_api(dll_path)
-    _bind(api)
-    faces: dict[str, int] = {}
-    names: list[str] = []
-    with api.session(), _open(api, Path(path)) as model:
-        tags = [_string(api, "SULayerGetName", lay)
-                for lay in _refs(api, "SUModelGetNumLayers", "SUModelGetLayers", model)]
-
-        def walk(ents, tag):
-            n = len(_refs(api, "SUEntitiesGetNumFaces", "SUEntitiesGetFaces", ents))
-            if n:
-                faces[tag] = faces.get(tag, 0) + n
-            for g in _refs(api, "SUEntitiesGetNumGroups", "SUEntitiesGetGroups", ents):
-                names.append(_string(api, "SUGroupGetName", g))
-                lay = _Ref()
-                api.ok("SUDrawingElementGetLayer", api.raw("SUGroupToDrawingElement", g), byref(lay))
-                name = _string(api, "SULayerGetName", lay)
-                sub = _Ref()
-                api.ok("SUGroupGetEntities", g, byref(sub))
-                walk(sub, tag if name in ("Layer0", "Untagged") else name)
-
-        root = _Ref()
-        api.ok("SUModelGetEntities", model, byref(root))
-        walk(root, "untagged")
-    return {"tags": tags, "faces_by_tag": dict(sorted(faces.items())), "group_names": names}
+    from engine.io.skp_writer import read_tagged
+    return read_tagged(path, dll_path=dll_path)
 
 
 # ------------------------------------------------------------------------------------------ the command
