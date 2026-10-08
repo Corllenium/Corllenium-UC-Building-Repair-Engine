@@ -293,7 +293,10 @@ def test_reask_refreshes_jev_fields_and_keeps_the_owner_answer():
     r = c.post(f"/api/decide/reask/{sid}", headers=OWNER)
     assert r.status_code == 200 and len(client.calls) == 2
     row = r.json()
-    assert row["answer"] == "glass" and row["status"] == "changed" and row["owner_answer"] == "wood"
+    # the fake answers the first option it is sent; Postgres jsonb stores the options in its own key order
+    # (reported as a J3 finding), so compare with the stored question rather than a fixed label
+    assert row["answer"] in CATS and row["answer"] == next(iter(row["question"]["criteria"]))
+    assert row["status"] == "changed" and row["owner_answer"] == "wood"
 
 
 def test_reask_unknown_id_is_404():
