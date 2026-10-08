@@ -1,8 +1,8 @@
 """The Validator, wired for the repair kernel's site checks (job P1-K3).
 
-After each repair stage the kernel (`engine.repair.kernel.repair_unit(..., validate_sites=True)`) asks, for a few
-of the stage's edits at a time, "did these break anything?". This module answers with the Validator itself
-(`engine.validate.checks.validate` in its focus mode), so the kernel never judges its own work:
+After each repair stage the kernel (`engine.repair.kernel.repair_unit(..., validate_sites=True)`) asks "did these
+sites break anything, and which?". This module answers with the Validator itself (`engine.validate.checks.validate`
+in its focus mode), so the kernel never judges its own work:
 
 * `SiteJudge.begin(before)` takes a stage's input (the BEFORE of every check of that stage) once: its frame, the
   Validator's standard viewpoints (directions, the pedestrian ring and the eye-height probes) and the faces' boxes;
@@ -10,9 +10,13 @@ of the stage's edits at a time, "did these break anything?". This module answers
   replace (`touched`), every face within their bounding box grown by `margin`, and the COVER CANDIDATES -- every
   face that could lie behind one of their new faces, or within the depth tolerance of one, from some standard
   viewpoint or probe (what the Validator's own "covered" and "overlaid" tests look at); in AFTER, the new faces
-  (`new`: added, cut or flipped);
+  (`new`: added, cut or flipped). `site_focus` keeps those parts apart (a `SiteFocus`), `union` joins sites;
 * `SiteJudge.check(after, focus)` runs the focus validation and returns a `SiteVerdict`: the failing samples
-  (so a check can be compared with a baseline) and the Validator's reasons, for the edit log.
+  (so a check can be compared with a baseline), each with its point and the viewpoint that judged it, and the
+  Validator's reasons, for the edit log;
+* `SiteJudge.attribute(verdict, sites)` (P1-K3b) charges each failing sample to the sites that could have caused
+  it; one charged to none is unknown. The kernel runs ONE focus run per stage on the union of its sites, rolls the
+  charged sites back and confirms, instead of bisecting by repeated runs (ruling K3-R2).
 
 Why this module is here, outside both packages: the Validator must import nothing it judges (`engine.repair`,
 `engine.fixes`, `engine.guard`), and the repair package computes its own measures and never imports the
@@ -47,7 +51,8 @@ WHAT THE COVER STEP LEAVES OUT, AND WHY THAT IS SAFE. It uses the standard viewp
 directions: the Validator casts those only for samples of SUSPECT faces (faces of BEFORE that AFTER no longer has),
 and while AFTER is the stage input plus THIS site's edits, the suspect faces are exactly the site's touched faces,
 which are in the focus already. When AFTER also carries other edits (another site's, kept earlier), their touched
-faces are suspect too and are NOT in this focus: a cover of such a face is not looked at here.
+faces are suspect too and are NOT in this focus: a cover of such a face is not looked at here. The kernel's union
+focus (P1-K3b) holds every site's touched faces, and a failing sample of one is charged to the site that touched it.
 """
 from __future__ import annotations
 
