@@ -42,6 +42,7 @@ from __future__ import annotations
 import argparse
 import collections
 import json
+import os
 import shutil
 import sys
 import time
@@ -69,6 +70,16 @@ from engine.rays.caster import ReusableCaster
 from engine.topo.adjacency import build_edge_table, edge_face_lists
 from engine.topo.edges import EDGE_SOFT
 from engine.topo.weld import weld_exact
+
+
+def _repo_root() -> Path:
+    """The directory that holds this engine's pyproject.toml (the repo or worktree root)."""
+    here = Path(__file__).resolve()
+    return next((p for p in here.parents if (p / "pyproject.toml").is_file()), here.parents[1])
+
+
+#: decide-pull writes only inside this folder (tests point it at a tmp folder).
+DATA_DIR: Path = _repo_root() / "data"
 
 #: The 6 axis-aligned views (of the 26 the guard itself uses) reported as before/after/diff PNGs.
 _AXIS_VIEWS = [v for v in VIEWS_26 if sum(1 for c in (round(x) for x in v) if c != 0) == 1]
@@ -1065,9 +1076,12 @@ def build_parser() -> argparse.ArgumentParser:
                             help="fetch the owner-confirmed answers of one question type from the VPS decide "
                                  "service and write <out>/<type>.json as {subject: answer} (needs "
                                  "UC_DECIDE_PASSWORD)")
-    pull_p.add_argument("--url", required=True, help="the service base URL, e.g. https://host (https unless localhost)")
+    pull_p.add_argument("--url", default=None,
+                        help="the service base URL, e.g. https://host (https unless localhost); "
+                             "default: the environment variable UC_DECIDE_URL")
     pull_p.add_argument("--type", required=True, dest="qtype", help="the question type, e.g. mat.category")
-    pull_p.add_argument("--out", type=Path, default=Path("data/decide/confirmed"))
+    pull_p.add_argument("--out", type=Path, default=None,
+                        help="a folder inside <repo>/data (default: <repo>/data/decide/confirmed)")
     pull_p.add_argument("--env-file", type=Path, default=None,
                         help="read UC_DECIDE_PASSWORD from this file when the environment has none "
                              "(default: the repo-root .env; only that one line is read)")
@@ -1218,8 +1232,17 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     elif args.command == "decide-pull":
         from engine.decide.remote import pull_confirmed
+        url = args.url or os.environ.get("UC_DECIDE_URL")
+        if not url:
+            print("error: no service URL: pass --url or set UC_DECIDE_URL", file=sys.stderr)
+            return 2
+        out = DATA_DIR / "decide" / "confirmed" if args.out is None else Path(args.out)
+        if not out.resolve().is_relative_to(DATA_DIR.resolve()):
+            print(f"error: --out must be inside {DATA_DIR} (decide-pull writes to data/ only), got {out}",
+                  file=sys.stderr)
+            return 2
         try:
-            path = pull_confirmed(args.url, args.qtype, args.out, env_file=args.env_file)
+            path = pull_confirmed(url, args.qtype, out, env_file=args.env_file)
         except (ValueError, RuntimeError) as exc:      # their texts carry no secret
             print(f"error: {exc}", file=sys.stderr)
             return 2

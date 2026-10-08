@@ -9,6 +9,7 @@ import json
 import logging
 import threading
 import time
+from pathlib import Path
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 import pytest
@@ -352,6 +353,30 @@ def test_the_password_never_appears_in_repr_logs_exceptions_or_calls(serve, capl
     assert base64.b64encode(f"uc-engine:{PW}".encode()).decode() not in "".join(seen)
 
 
+def test_a_url_with_userinfo_is_refused_without_echoing_it():
+    for url in (f"https://uc-engine:{PW}@example.com", "https://someone@example.com", f"http://:{PW}@127.0.0.1:1"):
+        with pytest.raises(ValueError) as ei:
+            RemoteDecider(url, password=PW)
+        assert PW not in str(ei.value) and "someone" not in str(ei.value)
+
+
+def test_calls_record_the_real_2xx_status(serve):
+    s = serve(lambda req: (201, _answers_for(req)[1]))
+    dec = _decider(s.url)
+    out = dec.ask({}, {"a": QUESTIONS["a"]})
+    assert out["a"].accepted is True
+    assert dec.calls[0]["status"] == 201 and dec.calls[0]["ok"] is True
+
+
+def test_accepted_is_true_only_for_the_json_true(serve):
+    base = wire.decision_to_json(Decision(True, 0.9, {}, "jev", True))
+    for value in ("false", "true", "False", 1, "yes", None, 0):
+        assert wire.decision_from_json({**base, "accepted": value}).accepted is False
+    assert wire.decision_from_json({**base, "accepted": True}).accepted is True
+    s = serve(lambda req: (200, {"answers": {"a": {**base, "accepted": "true"}}}))
+    assert _decider(s.url).ask({}, {"a": QUESTIONS["a"]})["a"].accepted is False
+
+
 def test_basic_auth_is_refused_over_plain_http_to_a_remote_host():
     with pytest.raises(ValueError):
         RemoteDecider("http://example.com", password=PW)
@@ -418,34 +443,80 @@ def test_classify_materials_with_a_failing_server_gives_error_rows(serve):
 # ------------------------------------------------------------------------------------- the CLI
 
 
-def test_cli_decide_pull_writes_the_file(serve, tmp_path, monkeypatch, capsys):
+@pytest.fixture
+def data_dir(tmp_path, monkeypatch):
+    """The folder decide-pull may write to: a tmp one, never the repo's data/."""
+    from engine import cli
+    d = tmp_path / "repo" / "data"
+    d.mkdir(parents=True)
+    monkeypatch.setattr(cli, "DATA_DIR", d)
+    monkeypatch.delenv("UC_DECIDE_URL", raising=False)
+    return d
+
+
+def test_cli_decide_pull_writes_the_file(serve, data_dir, monkeypatch, capsys):
     from engine.cli import main
     s = serve(lambda req: (200, {"type": "mat.category", "answers": {"oak": "wood"}}))
     monkeypatch.setenv("UC_DECIDE_PASSWORD", PW)
-    out = tmp_path / "c"
+    out = data_dir / "c"
     assert main(["decide-pull", "--url", s.url, "--type", "mat.category", "--out", str(out)]) == 0
     assert json.loads((out / "mat.category.json").read_text(encoding="utf-8")) == {"oak": "wood"}
     assert PW not in capsys.readouterr().out
 
 
-def test_cli_decide_pull_reads_the_password_line_of_the_env_file(serve, tmp_path):
+def test_cli_decide_pull_default_out_is_anchored_at_the_repo_data_dir(serve, data_dir, monkeypatch, tmp_path):
+    from engine.cli import main
+    s = serve(lambda req: (200, {"type": "t", "answers": {"k": "v"}}))
+    monkeypatch.setenv("UC_DECIDE_PASSWORD", PW)
+    monkeypatch.chdir(tmp_path)                                   # the working directory must not matter
+    assert main(["decide-pull", "--url", s.url, "--type", "t"]) == 0
+    assert json.loads((data_dir / "decide" / "confirmed" / "t.json").read_text(encoding="utf-8")) == {"k": "v"}
+    assert not (tmp_path / "data").exists()
+
+
+def test_cli_decide_pull_refuses_an_out_outside_the_repo_data_dir(serve, data_dir, monkeypatch, tmp_path, capsys):
+    from engine.cli import main
+    s = serve(lambda req: (200, {"type": "t", "answers": {}}))
+    monkeypatch.setenv("UC_DECIDE_PASSWORD", PW)
+    for bad in (tmp_path / "elsewhere", data_dir / ".." / "other", data_dir.parent, Path("/")):
+        assert main(["decide-pull", "--url", s.url, "--type", "t", "--out", str(bad)]) == 2
+        err = capsys.readouterr().err
+        assert "error:" in err and "data" in err
+    assert s.requests == [] and not (tmp_path / "elsewhere").exists()
+    assert main(["decide-pull", "--url", s.url, "--type", "t", "--out", str(data_dir / "ok" / "deeper")]) == 0
+
+
+def test_cli_decide_pull_url_falls_back_to_uc_decide_url_and_else_errors(serve, data_dir, monkeypatch, capsys):
+    from engine.cli import main
+    s = serve(lambda req: (200, {"type": "t", "answers": {}}))
+    monkeypatch.setenv("UC_DECIDE_PASSWORD", PW)
+    assert main(["decide-pull", "--type", "t"]) == 2
+    assert "UC_DECIDE_URL" in capsys.readouterr().err and s.requests == []
+    monkeypatch.setenv("UC_DECIDE_URL", s.url)
+    assert main(["decide-pull", "--type", "t"]) == 0
+    assert len(s.requests) == 1
+    other = serve(lambda req: (200, {"type": "t", "answers": {}}))
+    assert main(["decide-pull", "--type", "t", "--url", other.url]) == 0     # the flag wins
+    assert len(other.requests) == 1 and len(s.requests) == 1
+
+
+def test_cli_decide_pull_reads_the_password_line_of_the_env_file(serve, data_dir, tmp_path):
     from engine.cli import main
     s = serve(lambda req: (200, {"type": "t", "answers": {}}))
     env = tmp_path / "e.env"
     env.write_text("UC_DECIDE_PASSWORD=file-pw\n", encoding="utf-8")
-    assert main(["decide-pull", "--url", s.url, "--type", "t", "--out", str(tmp_path / "o"),
+    assert main(["decide-pull", "--url", s.url, "--type", "t", "--out", str(data_dir / "o"),
                  "--env-file", str(env)]) == 0
-    assert s.requests[0]["headers"]["Authorization"] == \
-        "Basic " + base64.b64encode(b"uc-engine:file-pw").decode()
+    assert s.requests[0]["headers"]["Authorization"] ==         "Basic " + base64.b64encode(b"uc-engine:file-pw").decode()
 
 
-def test_cli_decide_pull_failure_returns_2_and_prints_no_secret(serve, tmp_path, monkeypatch, capsys):
+def test_cli_decide_pull_failure_returns_2_and_prints_no_secret(serve, data_dir, tmp_path, monkeypatch, capsys):
     from engine.cli import main
     s = serve(lambda req: (401, {"detail": PW}))
     monkeypatch.setenv("UC_DECIDE_PASSWORD", PW)
-    assert main(["decide-pull", "--url", s.url, "--type", "t", "--out", str(tmp_path / "o")]) == 2
+    assert main(["decide-pull", "--url", s.url, "--type", "t", "--out", str(data_dir / "o")]) == 2
     cap = capsys.readouterr()
     assert "HTTP 401" in cap.err and PW not in cap.out + cap.err
     monkeypatch.delenv("UC_DECIDE_PASSWORD")
-    assert main(["decide-pull", "--url", s.url, "--type", "t", "--out", str(tmp_path / "o"),
+    assert main(["decide-pull", "--url", s.url, "--type", "t", "--out", str(data_dir / "o"),
                  "--env-file", str(tmp_path / "absent.env")]) == 2

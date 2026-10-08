@@ -61,7 +61,11 @@ class _Status(Exception):
 
 
 class _BadReply(Exception):
-    """A 2xx reply that is too large or not JSON."""
+    """A 2xx reply that is too large or not JSON. Carries the status it came with."""
+
+    def __init__(self, status: int):
+        super().__init__("BadReply")
+        self.status = status
 
 
 def _error_name(exc: BaseException) -> str:
@@ -84,6 +88,8 @@ class RemoteDecider:
         parts = urllib.parse.urlsplit(url)
         if parts.scheme not in ("http", "https") or not parts.hostname:
             raise ValueError("RemoteDecider needs an http(s) URL with a host")
+        if parts.username is not None or parts.password is not None:
+            raise ValueError("RemoteDecider takes no user or password in the URL")
         if parts.scheme == "http" and parts.hostname not in _LOOPBACK:
             raise ValueError("RemoteDecider sends a password: use https (plain http only for localhost)")
         if timeout <= 0:
@@ -111,7 +117,7 @@ class RemoteDecider:
         return "Basic " + base64.b64encode(f"{self.user}:{self._password}".encode("utf-8")).decode("ascii")
 
     def _send(self, method: str, path: str, payload: bytes | None):
-        """One HTTP call. Returns the parsed JSON of a 2xx reply; raises `_Status` for any other status."""
+        """One HTTP call. Returns `(status, parsed JSON)` of a 2xx reply; raises `_Status` for any other status."""
         headers = {"Authorization": self._auth(), "Accept": "application/json"}
         if payload is not None:
             headers["Content-Type"] = "application/json"
@@ -119,17 +125,18 @@ class RemoteDecider:
         opener = urllib.request.build_opener(_NoRedirect)
         try:
             with opener.open(req, timeout=self.timeout) as resp:
+                status = resp.status
                 raw = resp.read(MAX_REPLY_BYTES + 1)
         except urllib.error.HTTPError as exc:
-            status = exc.code
+            code = exc.code
             exc.close()
-            raise _Status(status) from None
+            raise _Status(code) from None
         if len(raw) > MAX_REPLY_BYTES:
-            raise _BadReply
+            raise _BadReply(status)
         try:
-            return json.loads(raw)
+            return status, json.loads(raw)
         except ValueError:
-            raise _BadReply from None
+            raise _BadReply(status) from None
 
     def _call(self, method: str, path: str, body: dict | None, questions: int = 0):
         """`_send` under a whole-call deadline, recorded in `.calls`. Returns `(reply, error)`; `error` is ""
@@ -141,7 +148,7 @@ class RemoteDecider:
 
         def run():
             try:
-                box["reply"] = self._send(method, path, None if body is None else json.dumps(body).encode("utf-8"))
+                box["status"], box["reply"] = self._send(method, path, None if body is None else json.dumps(body).encode("utf-8"))
             except BaseException as exc:  # noqa: BLE001 -- handed to the caller's thread below
                 box["exc"] = exc
 
@@ -150,15 +157,17 @@ class RemoteDecider:
         worker.join(self.timeout + 0.25)
         reply, error = None, ""
         if worker.is_alive():
-            error = "TimeoutError"                    # the thread is a daemon: it dies with its socket
+            # The worker is a daemon and cannot be killed: it keeps its socket until the server ends the
+            # response (behind nginx its proxy_read_timeout of 60 s bounds that). It never blocks the pipeline.
+            error = "TimeoutError"
         elif "exc" in box:
             exc = box["exc"]
             error = _error_name(exc)
-            if isinstance(exc, _Status):
+            if isinstance(exc, (_Status, _BadReply)):
                 entry["status"] = exc.status
         else:
             reply = box["reply"]
-            entry["status"], entry["ok"] = 200, True
+            entry["status"], entry["ok"] = box["status"], True
         entry["latency_s"] = round(time.perf_counter() - t0, 4)
         entry["error"] = error
         self.calls.append(entry)
