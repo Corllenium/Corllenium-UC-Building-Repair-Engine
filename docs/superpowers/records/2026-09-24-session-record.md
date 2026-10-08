@@ -126,6 +126,15 @@ lies on pixel centres from real damage, so the guard now measures the displaceme
 - **P0-17:** the Jev wrapper is approved and in a minor-fix round. The real pilot waits for the key.
 - **M2 `uc-status`:** built and tested; the screenshot check is next.
 
+### 2026-10-08 evening: P0 closed
+- **Final review and fixes:** the end-of-P0 review found the branch ready to merge. The fix round covered the
+  flicker labels (MATERIAL, not LOOK), refused unknown target kinds, removed the machine path, and guarded the
+  double_layers chunk sizes.
+- **Prompt audit** of the briefs applied.
+- **Phase merge** 8163bb0. Suites 1320 passed, 1 xfailed.
+- **Colour export** republished from 8163bb0.
+- **Follow-ups** are queued as P1-H1.
+
 ## 5. Measured state of the SketchUp files
 
 Audit of every edge SketchUp draws, read back through the C API (`scripts/skp_edge_audit.py`).

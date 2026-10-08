@@ -25,6 +25,24 @@ run the latest `.skp` of each file must be in `OBJ FIXED RESULT/` for the owner 
 
 ## 2. Current state (2026-09-26 00:15, written by the Claude controller)
 
+**Update 2026-10-08 evening (the repair-engine controller session): phase P0 is complete and merged.**
+- **`feat-dashboard` = 8163bb0 + records:** `feat/repair-p0` was merged after the end-of-P0 final review.
+  - The review (opus) found the branch ready to merge. A fix round followed and was re-reviewed PASS.
+  - A scoped prompt audit of the briefs was applied.
+  - Suites on the merged tree: 1320 passed, 1 xfailed.
+  - P0 delivered: source freeze, group index, material looks, inventory, SDK check, census, Validator v0 with
+    signed targets, agents/skills/queue, colour export, Jev helper with its pilot, and speed jobs S1/S3.
+- **Correction recorded:** the census `flicker_diff` / `flicker_same` split pairs by material, not by look. The
+  colour export now says MATERIAL. E5's different-look work is the census `flicker_split`, 514,573 pairs. P1-H1
+  pins the look-based E4/E5 definition before the engines use it.
+- **Jev pilot** (`data/campus/jev_pilot.json`):
+  - when confident, building right 97.5 %, floor-or-not 98.6 %, floor number 95.3 %;
+  - materials 74 % confident.
+  - Owner deck: https://claude.ai/artifact/Fzc6Pu5W6iRnkndxBFimqV (private).
+  - Owner decision open: where Jev helps first.
+- **Parked:** four untracked Hermes report copies are on the branch `wip/main-untracked-hermes-reports`.
+- **Next:** P1. Kernel K1 onward per `docs/superpowers/plans/2026-10-03-repair-engine-p1-p2.md`, plus P1-H1.
+
 **Update 2026-10-08, end (the Jev + mods controller session): the Jev pilot is complete; the plan is done except the owner's answers.**
 - **`feat/repair-p0` = 430f397** (P0-17b merged by the repair-engine session): engine + tools 1314 passed, 1 xfailed.
 - **The full pilot** (from P0-17b, `python -m engine.cli decide-pilot --env-file`): 57 calls, 0 failed, 20.9 s.
