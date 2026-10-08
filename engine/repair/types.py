@@ -22,8 +22,16 @@ Conventions for `apply_edits`
 - `new_faces` of an edit index the vertices of the INPUT mesh; ids `n .. n + m - 1` (n = rows of
   `mesh.positions`, m = rows of that edit's own `new_points`) name the edit's own new points, so
   every edit counts its points from n. `apply_edits` appends the points in edit order and renumbers.
-- Appended faces have no UVs and no normals (`face_vt` / `face_vn` = -1; no vertex or UV is ever
-  invented here). A "cut" inherits the material (and the lowest source line) of the faces it
+- Appended faces take the UVs and normals their edit brings in `new_face_uv` (k, 3, 2) and
+  `new_face_normal` (k, 3, 3), one row per corner of `new_faces` (K1b). `apply_edits` appends those
+  rows to `mesh.uvs` / `mesh.normals`, identical rows sharing one index (first occurrence keeps the
+  lowest index, so the result is deterministic), and points `face_vt` / `face_vn` at them; no
+  existing face or row changes. An edit without them (`None`), and any face whose rows are the
+  placeholder below, gets `face_vt` / `face_vn` = -1 as before; no vertex or UV is ever invented
+  here. PLACEHOLDER: a face that has no UV (or no normal) in an edit that carries some for its other
+  faces is written as an all-NaN face; this is the only NaN `Edit` accepts, a partly NaN face or
+  an inf raises, and NaN never reaches a `MeshData`. A face counts as carrying UVs only when all
+  three corners had one. A "cut" inherits the material (and the lowest source line) of the faces it
   replaces, and raises if those faces do not all have one material; an "add" has no source face and must say its material: `evidence["material"]` (int
   index into `mesh.materials`).
 """
@@ -59,6 +67,8 @@ class Edit:
     reason: str
     evidence: dict                 # the numbers behind it: exposure, coverage, areas, look keys
     decision: dict | None = None   # {"question", "provider", "answer", "confidence"} when the Decider was asked
+    new_face_uv: np.ndarray | None = None      # (k, 3, 2) UV at each corner of new_faces; None: face_vt = -1
+    new_face_normal: np.ndarray | None = None  # (k, 3, 3) normal at each corner of new_faces; None: face_vn = -1
 
     def __post_init__(self) -> None:
         if self.engine not in ENGINES:
@@ -99,6 +109,29 @@ class Edit:
                     raise ValueError("new_points must be finite (no NaN or inf)")
             new_points.flags.writeable = False
             object.__setattr__(self, "new_points", new_points)
+
+        for name, width in (("new_face_uv", 2), ("new_face_normal", 3)):
+            object.__setattr__(self, name, self._corner_values(name, width))
+
+    def _corner_values(self, name: str, width: int) -> np.ndarray | None:
+        """`name` as a read-only float64 copy of shape (k, 3, width), checked against `new_faces`.
+        A face of all NaN is the "this face has none" placeholder; no other NaN or inf is allowed."""
+        given = getattr(self, name)
+        if given is None:
+            return None
+        if self.new_faces is None or not len(self.new_faces):
+            raise ValueError(f"{name} needs new_faces to describe")
+        values = np.array(given, np.float64, copy=True)
+        expected = (len(self.new_faces), 3, width)
+        if values.shape != expected:
+            raise ValueError(f"{name} must be {expected} (one row per corner of new_faces), "
+                             f"got {values.shape}")
+        blank = np.isnan(values).all(axis=(1, 2))
+        if not np.isfinite(values[~blank]).all():
+            raise ValueError(f"{name} must be finite (only a whole face of NaN is allowed, "
+                             f"as the 'no value' placeholder)")
+        values.flags.writeable = False
+        return values
 
 
 @dataclass
@@ -169,6 +202,30 @@ def face_keys(mesh: MeshData, looks: dict[int, str]) -> list[FaceKey]:
     return out
 
 
+def _corner_block(values: np.ndarray | None, k: int, width: int) -> np.ndarray:
+    """An edit's (k, 3, width) corner values, or all-NaN placeholders when it brings none."""
+    return np.full((k, 3, width), np.nan) if values is None else values
+
+
+def _append_corner_rows(table: np.ndarray, blocks: list[np.ndarray], width: int):
+    """`(new table, (F, 3) indices)` for the appended faces whose corner values are `blocks`
+    (concatenated over the edits, in order). Faces of all NaN get -1. Identical rows share one
+    index, numbered in order of first occurrence, after the rows `table` already has."""
+    block = np.concatenate(blocks)
+    has = ~np.isnan(block).all(axis=(1, 2))
+    index = np.full((len(block), 3), -1, np.int64)
+    if not has.any():
+        return table.copy(), index
+    rows = block[has].reshape(-1, width)
+    unique, first, inverse = np.unique(rows, axis=0, return_index=True, return_inverse=True)
+    order = np.argsort(first, kind="stable")
+    rank = np.empty(len(order), np.int64)
+    rank[order] = np.arange(len(order))
+    index[has] = (len(table) + rank[inverse.reshape(-1)]).reshape(-1, 3)
+    grown = np.vstack([table.reshape(-1, width), unique[order]]).astype(table.dtype, copy=False)
+    return grown, index
+
+
 def apply_edits(mesh: MeshData, edits: list[Edit]) -> tuple[MeshData, np.ndarray]:
     """Perform approved `edits` on `mesh`: returns the new mesh and the new->old face map (see the
     module docstring for the conventions). `mesh` is never modified; no edits gives an equal copy and
@@ -200,6 +257,8 @@ def apply_edits(mesh: MeshData, edits: list[Edit]) -> tuple[MeshData, np.ndarray
     added_material: list[np.ndarray] = []
     added_line: list[np.ndarray] = []
     added_points: list[np.ndarray] = []
+    added_uv: list[np.ndarray] = []
+    added_normal: list[np.ndarray] = []
     next_point = n_points
     for index, edit in enumerate(edits):
         if edit.kind not in ("add", "cut"):
@@ -211,6 +270,8 @@ def apply_edits(mesh: MeshData, edits: list[Edit]) -> tuple[MeshData, np.ndarray
                              f"0..{n_points + len(local) - 1}")
         added_v.append(np.where(new_faces >= n_points, new_faces - n_points + next_point, new_faces))
         added_points.append(local)
+        added_uv.append(_corner_block(edit.new_face_uv, len(new_faces), 2))
+        added_normal.append(_corner_block(edit.new_face_normal, len(new_faces), 3))
         next_point += len(local)
 
         if edit.kind == "cut":
@@ -247,17 +308,21 @@ def apply_edits(mesh: MeshData, edits: list[Edit]) -> tuple[MeshData, np.ndarray
     if added_v:
         extra = sum(len(a) for a in added_v)
         face_v = np.vstack([face_v, *added_v]).astype(mesh.face_v.dtype)
-        face_vt = np.vstack([face_vt, np.full((extra, 3), -1, mesh.face_vt.dtype)])
-        face_vn = np.vstack([face_vn, np.full((extra, 3), -1, mesh.face_vn.dtype)])
+        uvs, new_vt = _append_corner_rows(mesh.uvs, added_uv, 2)
+        normals, new_vn = _append_corner_rows(mesh.normals, added_normal, 3)
+        face_vt = np.vstack([face_vt, new_vt.astype(mesh.face_vt.dtype)])
+        face_vn = np.vstack([face_vn, new_vn.astype(mesh.face_vn.dtype)])
         face_material = np.concatenate([face_material, *added_material]).astype(mesh.face_material.dtype)
         face_line = np.concatenate([face_line, *added_line]).astype(mesh.face_line.dtype)
         new_to_old = np.concatenate([new_to_old, np.full(extra, -1, np.int64)])
 
+    if not added_v:
+        uvs, normals = mesh.uvs.copy(), mesh.normals.copy()
     positions = mesh.positions.copy()
     if next_point > n_points:
         positions = np.vstack([positions, *added_points])
 
-    out = replace(mesh, positions=positions, uvs=mesh.uvs.copy(), normals=mesh.normals.copy(),
+    out = replace(mesh, positions=positions, uvs=uvs, normals=normals,
                   face_v=face_v, face_vt=face_vt, face_vn=face_vn, face_material=face_material,
                   face_line=face_line, materials=list(mesh.materials))
     return out, new_to_old
