@@ -1048,6 +1048,20 @@ def build_parser() -> argparse.ArgumentParser:
     col_p.add_argument("--buildings", nargs="*", default=None, help="only these buildings (default: all)")
     col_p.add_argument("--dll", default=None, help="SketchUpAPI.dll (default: $FIXER_SKETCHUP_DLL or SketchUp 2026)")
 
+    pilot_p = sub.add_parser("decide-pilot",
+                             help="measure TypeSafe's Jev on the 85 group names and 391 materials (suggest-only; "
+                                  "needs TYPESAFE_API_KEY, runs without a key and reports source none)")
+    pilot_p.add_argument("--source", type=Path, default=Path("data/campus/source.json"))
+    pilot_p.add_argument("--materials", type=Path, default=Path("data/campus/materials.json"))
+    pilot_p.add_argument("--map", type=Path, default=Path("data/campus/campus_map.json"),
+                         help="the owner-confirmed campus map: the ground truth")
+    pilot_p.add_argument("--out", type=Path, default=Path("data/campus/jev_pilot.json"))
+    pilot_p.add_argument("--env-file", type=Path, default=None,
+                         help="read TYPESAFE_API_KEY from this file when the environment has none "
+                              "(default: the repo-root .env; only that one line is read)")
+    pilot_p.add_argument("--min-confidence", type=float, default=0.8)
+    pilot_p.add_argument("--batch", type=int, default=20, help="questions per Jev call")
+
     return parser
 
 
@@ -1169,6 +1183,28 @@ def main(argv: list[str] | None = None) -> int:
             print(f"{r['building']}: {len(r['columns'])} columns, {sum(back.values()):,} faces read back "
                   f"({same}; {dups:,} exact duplicate triangles kept once), "
                   f"{r['written']['rejected_faces']} refused -> {r['skp']}")
+        return 0
+    elif args.command == "decide-pilot":
+        from engine.decide.jev import JevDecider
+        from engine.decide.pilot import run_pilot
+        decider = JevDecider(min_confidence=args.min_confidence, batch=args.batch, env_file=args.env_file)
+        if not decider.available:
+            print("Jev is not available (no TYPESAFE_API_KEY or no typesafe-sdk): every answer is source none, "
+                  "nothing is sent")
+        rep = run_pilot(args.source, args.materials, args.map, args.out, decider)
+        g, m, c = rep["groups"], rep["materials"], rep["calls"]
+        print(f"group names: {g['n']}, sources {g['sources']}")
+
+        def fmt(v):
+            return "n/a" if v is None else f"{v:.3f}"
+        for k in ("building", "type", "type_strict", "floor"):
+            s = g[k]
+            print(f"  {k}: accuracy {fmt(s['accuracy'])}, coverage {fmt(s['coverage'])} at confidence >= "
+                  f"{rep['min_confidence']}, accuracy within coverage {fmt(s['accuracy_within_coverage'])} "
+                  f"({s['n_truth']} with truth, {s['unknown_truth']} unknown)")
+        print(f"materials: {m['n']}, sources {m['sources']}, categories {m['histogram']}")
+        print(f"calls: {c['n']} ({c['failed']} failed), tokens in/out {c['input_tokens']}/{c['output_tokens']}")
+        print(f"wrote {args.out}")
         return 0
     return 1
 
