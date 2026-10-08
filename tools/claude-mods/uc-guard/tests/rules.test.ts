@@ -150,6 +150,27 @@ describe('rule 5: secret files', () => {
     expect(check('Monitor', { command: 'tail -f .env' })).toBe(REASONS.secret)
     expect(bash('cat \\.env')).toBe(REASONS.secret)
   })
+  test('the engine may be handed the key file: python -m engine.cli ... --env-file (M1b)', () => {
+    expect(bash(`"$PY" -m engine.cli decide-pilot --env-file "${ROOT}/.env" --out data/campus/jev_pilot.json`)).toBeUndefined()
+    expect(bash(`( cd "${WT}" && PYTHONPATH="$PWD" "$PY" -m engine.cli decide-pilot --env-file="${ROOT}/.env" )`)).toBeUndefined()
+    expect(bash(`"$PY" -m engine.cli decide-pilot --source "${ROOT}/.env"`)).toBe(REASONS.secret)
+    expect(bash(`"$PY" -m other.tool --env-file "${ROOT}/.env"`)).toBe(REASONS.secret)
+    expect(bash(`"$PY" -m engine.cli decide-pilot --env-file "${ROOT}/.env"; cat "${ROOT}/.env"`)).toBe(REASONS.secret)
+  })
+  test('only a Python interpreter running -m engine.cli as its module gets the exemption (M1b review)', () => {
+    expect(bash(`"$PY" -u -m engine.cli decide-pilot --env-file "${ROOT}/.env"`)).toBeUndefined()
+    expect(ps(`& "D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe" -m engine.cli decide-pilot --env-file "${ROOT}/.env"`)).toBeUndefined()
+    for (const c of [
+      `docker run --rm --env-file "${ROOT}/.env" alpine sh -c env -m engine.cli`,
+      `"$PY" dump.py --env-file "${ROOT}/.env" -m engine.cli`,
+      `"$PY" -c "import sys; print(open(sys.argv[2]).read())" --env-file "${ROOT}/.env" -m engine.cli`,
+      `"$PY" -c"import sys; print(open(sys.argv[4]).read())" -m engine.cli --env-file "${ROOT}/.env"`,
+      `"$PY" - -m engine.cli --env-file "${ROOT}/.env" < dump.py`,
+      `"$PY" - -m engine.cli --env-file "${ROOT}/.env" <<'EOF'\nprint(open(__import__('sys').argv[4]).read())\nEOF`,
+      `"$PY" -X dev -m engine.cli --env-file "${ROOT}/.env"`,
+    ]) expect(bash(c)).toBe(REASONS.secret)
+    expect(bash(`py -3.12 -B -m engine.cli decide-pilot --env-file "${ROOT}/.env"`)).toBeUndefined()
+  })
   test('allows .env.example, .venv, ordinary files and prose that mentions .env (review finding 5)', () => {
     expect(check('Read', { file_path: `${ROOT}/.env.example` })).toBeUndefined()
     expect(check('Read', { file_path: `${ROOT}/engine/decide/jev.py` })).toBeUndefined()
