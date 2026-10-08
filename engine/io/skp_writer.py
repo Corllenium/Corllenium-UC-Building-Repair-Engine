@@ -305,6 +305,18 @@ class _Api:
         self.has_position_material = "SUFacePositionMaterial" in self._fn
         self.has_fix_errors = "SUModelFixErrors" in self._fn
 
+    def bind(self, table: dict) -> None:
+        """Bind more calls (name -> (argtypes, restype)) for a caller that needs more of the C API.
+        Raises `SketchUpUnavailable` naming any the DLL lacks."""
+        missing = [name for name in table if not hasattr(self._dll, name)]
+        if missing:
+            raise SketchUpUnavailable(f"{self.path} lacks SketchUp C API symbol(s): {', '.join(missing)}")
+        for name, (argtypes, restype) in table.items():
+            if name not in self._fn:
+                fn = getattr(self._dll, name)
+                fn.argtypes, fn.restype = argtypes, restype
+                self._fn[name] = fn
+
     def raw(self, name: str, *args) -> int:
         return self._fn[name](*args)
 
@@ -1425,3 +1437,170 @@ def check_skp_validity(path, *, dll_path=None) -> dict:
         api.ok("SUModelFixErrors", model)
         after = _fingerprint(api, model)
     return {"changed": before != after, "before": before, "after": after}
+
+
+# -------------------------------------------------------------------------------- tagged models (P0-18)
+
+#: the group and tag (layer) calls a `TaggedModel` and `read_tagged` need, bound on demand
+_GROUP_CALLS = {
+    "SUGroupCreate": ([_RP], c_int), "SUEntitiesAddGroup": ([_Ref, _Ref], c_int),
+    "SUGroupSetName": ([_Ref, c_char_p], c_int), "SUGroupGetName": ([_Ref, _RP], c_int),
+    "SUGroupGetEntities": ([_Ref, _RP], c_int), "SUGroupToDrawingElement": ([_Ref], _Ref),
+    "SULayerCreate": ([_RP], c_int), "SULayerSetName": ([_Ref, c_char_p], c_int),
+    "SULayerGetName": ([_Ref, _RP], c_int), "SUModelAddLayers": ([_Ref, c_size_t, _RP], c_int),
+    "SUModelGetNumLayers": ([_Ref, _SP], c_int), "SUModelGetLayers": ([_Ref, c_size_t, _RP, _SP], c_int),
+    "SUDrawingElementSetLayer": ([_Ref, _Ref], c_int), "SUDrawingElementGetLayer": ([_Ref, _RP], c_int),
+    "SUEntitiesGetNumGroups": ([_Ref, _SP], c_int), "SUEntitiesGetGroups": ([_Ref, c_size_t, _RP, _SP], c_int),
+}
+_UNTAGGED = ("Layer0", "Untagged")
+
+
+def bind_group_calls(api: _Api) -> None:
+    """Bind the group and tag calls (`SketchUpUnavailable` if the DLL lacks one)."""
+    api.bind(_GROUP_CALLS)
+
+
+class TaggedModel:
+    """A NEW SketchUp model of solid-colour faces in named groups, each group optionally on a tag, saved once to
+    a new file (the colour-coded error export, `engine/campus/error_export.py`). It never opens an existing
+    model. Use as a context manager:
+
+        with TaggedModel({"base": (205, 205, 205)}, ["base"]) as m:
+            g = m.group(None, "UNIT | L01", "base")
+            m.fill(g, triangles, "base", "base")
+            m.save(path)
+
+    `faces_by_tag` counts the faces handed to SketchUp per tag, `rejected` the ones it refused."""
+
+    def __init__(self, colours: dict, tags: list, dll_path=None, chunk: int = 20000):
+        self.colours, self.tags, self.dll_path, self.chunk = dict(colours), list(tags), dll_path, chunk
+        self.faces_by_tag: dict[str, int] = {}
+        self.rejected = 0
+        self.groups = 0
+
+    def __enter__(self):
+        self.api = load_api(self.dll_path)
+        bind_group_calls(self.api)
+        self._session = self.api.session()
+        self._session.__enter__()
+        self.model = _Ref()
+        try:
+            self.api.ok("SUModelCreate", byref(self.model))
+            self._materials()
+            self._layers()
+            self.root = _Ref()
+            self.api.ok("SUModelGetEntities", self.model, byref(self.root))
+        except BaseException:
+            self.__exit__(None, None, None)
+            raise
+        return self
+
+    def __exit__(self, *exc):
+        if self.model.ptr:
+            self.api.raw("SUModelRelease", byref(self.model))
+        self._session.__exit__(None, None, None)
+        return False
+
+    def _materials(self) -> None:
+        api, mats = self.api, []
+        self.materials = {}
+        for key, rgb in self.colours.items():
+            m = _Ref()
+            api.ok("SUMaterialCreate", byref(m))
+            mats.append(m)
+            api.ok("SUMaterialSetName", m, f"UC_{key}".encode("utf-8"))
+            api.ok("SUMaterialSetColor", m, byref(_Color(*rgb, 255)))
+            self.materials[key] = m
+        if mats:
+            api.ok("SUModelAddMaterials", self.model, len(mats), (_Ref * len(mats))(*mats))
+
+    def _layers(self) -> None:
+        api, lays = self.api, []
+        self.layers = {}
+        for name in self.tags:
+            lay = _Ref()
+            api.ok("SULayerCreate", byref(lay))
+            lays.append(lay)
+            api.ok("SULayerSetName", lay, name.encode("utf-8"))
+            self.layers[name] = lay
+        if lays:
+            api.ok("SUModelAddLayers", self.model, len(lays), (_Ref * len(lays))(*lays))
+
+    def group(self, parent, name: str, tag: str | None = None):
+        """A new group named `name` inside `parent` (None: the model's top level), on `tag` if given. Returns
+        the group's entities, to fill or to nest groups in."""
+        api = self.api
+        g, ents = _Ref(), _Ref()
+        api.ok("SUGroupCreate", byref(g))
+        api.ok("SUEntitiesAddGroup", self.root if parent is None else parent, g)
+        api.ok("SUGroupSetName", g, name.encode("utf-8"))
+        if tag is not None:
+            api.ok("SUDrawingElementSetLayer", api.raw("SUGroupToDrawingElement", g), self.layers[tag])
+        api.ok("SUGroupGetEntities", g, byref(ents))
+        self.groups += 1
+        return ents
+
+    def fill(self, ents, polys: np.ndarray, colour: str, tag: str) -> None:
+        """Add (k, n, 3) polygons to `ents`, each one face, both sides in `colour`; counted under `tag`."""
+        polys = np.asarray(polys, float)
+        if not len(polys):
+            return
+        api, n = self.api, polys.shape[1]
+        mi = _MaterialInput()
+        mi.material = self.materials[colour]
+        for start in range(0, len(polys), self.chunk):
+            part = np.ascontiguousarray(polys[start:start + self.chunk].reshape(-1, 3), dtype=np.float64)
+            geom = _Ref()
+            api.ok("SUGeometryInputCreate", byref(geom))
+            try:
+                api.ok("SUGeometryInputSetVertices", geom, len(part),
+                       (_Point3D * len(part)).from_buffer_copy(part.tobytes()))
+                added = 0
+                for f in range(len(part) // n):
+                    loop = _loop_input(api, list(range(f * n, f * n + n)))
+                    index = c_size_t()
+                    if loop is None or api.raw("SUGeometryInputAddFace", geom, byref(loop), byref(index)) != 0:
+                        if loop is not None:
+                            api.raw("SULoopInputRelease", byref(loop))
+                        self.rejected += 1
+                        continue
+                    api.ok("SUGeometryInputFaceSetFrontMaterial", geom, index.value, byref(mi))
+                    api.ok("SUGeometryInputFaceSetBackMaterial", geom, index.value, byref(mi))
+                    added += 1
+                api.ok("SUEntitiesFill", ents, geom, True)
+                self.faces_by_tag[tag] = self.faces_by_tag.get(tag, 0) + added
+            finally:
+                api.raw("SUGeometryInputRelease", byref(geom))
+
+    def save(self, path) -> None:
+        self.api.ok("SUModelSaveToFile", self.model, str(path).encode("utf-8"))
+
+
+def read_tagged(path, *, dll_path=None) -> dict:
+    """Tags, faces per tag (a face counts under the nearest tagged group above it; "untagged" at the top) and
+    group names of the SketchUp file at `path`, read through `SUModelCreateFromFile` -- never written."""
+    api = load_api(dll_path)
+    bind_group_calls(api)
+    faces: dict[str, int] = {}
+    names: list[str] = []
+    with api.session(), _open(api, Path(path)) as model:
+        tags = [_string(api, "SULayerGetName", lay)
+                for lay in _refs(api, "SUModelGetNumLayers", "SUModelGetLayers", model)]
+
+        def walk(ents, tag):
+            n = len(_refs(api, "SUEntitiesGetNumFaces", "SUEntitiesGetFaces", ents))
+            if n:
+                faces[tag] = faces.get(tag, 0) + n
+            for g in _refs(api, "SUEntitiesGetNumGroups", "SUEntitiesGetGroups", ents):
+                names.append(_string(api, "SUGroupGetName", g))
+                lay = _Ref()
+                api.ok("SUDrawingElementGetLayer", api.raw("SUGroupToDrawingElement", g), byref(lay))
+                name = _string(api, "SULayerGetName", lay)
+                sub = _Ref()
+                api.ok("SUGroupGetEntities", g, byref(sub))
+                walk(sub, tag if name in _UNTAGGED else name)
+
+        root = _Ref()
+        api.ok("SUModelGetEntities", model, byref(root))
+        walk(root, "untagged")
+    return {"tags": tags, "faces_by_tag": dict(sorted(faces.items())), "group_names": names}
