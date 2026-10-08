@@ -224,10 +224,29 @@ def test_returned_rows_are_copies(store):
     assert store.get(sid)["answer"] == "glass"
 
 
-def test_a_duplicate_key_is_refused(store):
-    if isinstance(store, MemoryStore):
-        pytest.skip("the memory store does not enforce unique keys; logic.answer dedupes before adding")
-    store.add_suggestion(make_row(key=k(1)))
-    with pytest.raises(Exception):
-        store.add_suggestion(make_row(key=k(1), subject="Other"))
-    assert len(store.list()) == 1
+def test_a_duplicate_key_returns_the_existing_id_and_leaves_one_row(store):
+    first = store.add_suggestion(make_row(key=k(1)))
+    second = store.add_suggestion(make_row(key=k(1), subject="Other", answer="metal"))
+    assert second == first
+    rows = store.list()
+    assert len(rows) == 1 and rows[0]["subject"] == "Glass Door" and rows[0]["answer"] == "glass"
+    third = store.add_suggestion(make_row(key=k(2)))
+    assert third != first
+
+
+def test_q_matches_the_subject_only_in_any_case(store):
+    store.add_suggestion(make_row(key=k(1), subject="Glass Door", state='{"text": "only-in-state"}'))
+    store.add_suggestion(make_row(key=k(2), subject="Steel Beam", state='{"text": "plain"}'))
+    assert store.list(q="only-in-state") == []
+    assert store.list(q="plain") == []
+    assert [r["subject"] for r in store.list(q="gLaSs dOOr")] == ["Glass Door"]
+    assert [r["subject"] for r in store.list(q="STEEL")] == ["Steel Beam"]
+
+
+def test_timestamps_come_back_as_utc_iso_strings(store):
+    sid = store.add_suggestion(make_row(key=k(1)))
+    review(store, sid, "accepted", "glass", 5)
+    row = store.get(sid)
+    for column in ("created_at", "reviewed_at"):
+        assert isinstance(row[column], str) and row[column].endswith("+00:00"), (column, row[column])
+    assert store.list()[0]["reviewed_at"].endswith("+00:00")

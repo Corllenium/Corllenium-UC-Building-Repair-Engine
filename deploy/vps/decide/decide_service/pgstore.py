@@ -16,7 +16,6 @@ from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
 
 SCHEMA_FILE = Path(__file__).resolve().parent.parent / "schema.sql"
-REVIEWED = ("accepted", "changed")
 
 _JSON_COLUMNS = {"state_json", "question", "answer", "probabilities", "owner_answer"}
 _TIME_COLUMNS = {"reviewed_at", "created_at"}
@@ -50,7 +49,7 @@ def _out(row: dict | None) -> dict | None:
         return None
     for column in _TIME_COLUMNS:
         if row.get(column) is not None:
-            row[column] = row[column].isoformat()
+            row[column] = row[column].astimezone(dt.timezone.utc).isoformat()
     return row
 
 
@@ -78,20 +77,37 @@ class PostgresStore:
         return self._conn
 
     def _fetch(self, query, params=None, one=False):
+        """Runs a query. A lost connection (psycopg.OperationalError) gets exactly one reconnect and one retry."""
         with self._lock:
-            cur = self._connection().execute(query, params)
-            return cur.fetchone() if one else cur.fetchall()
+            for attempt in (1, 2):
+                try:
+                    cur = self._connection().execute(query, params)
+                    return cur.fetchone() if one else cur.fetchall()
+                except psycopg.OperationalError:
+                    if attempt == 2:
+                        raise
+                    self.close()
 
     def close(self) -> None:
         with self._lock:
-            if self._conn is not None:
-                self._conn.close()
-                self._conn = None
+            conn, self._conn = self._conn, None
+            if conn is not None:
+                try:
+                    conn.close()
+                except psycopg.Error:
+                    pass
 
     def ensure_schema(self) -> None:
         script = SCHEMA_FILE.read_text(encoding="utf-8")
         with self._lock:
-            self._connection().execute(script)
+            for attempt in (1, 2):
+                try:
+                    self._connection().execute(script)
+                    return
+                except psycopg.OperationalError:
+                    if attempt == 2:
+                        raise
+                    self.close()
 
     # -- suggestions ------------------------------------------------------------------------------------------
     def find_by_key(self, key):
@@ -113,8 +129,11 @@ class PostgresStore:
             " probabilities, model, source, status, owner_answer, reviewed_at, reviewed_by, created_at)"
             " values (%(qtype)s, %(subject)s, %(key)s, %(state)s, %(state_json)s, %(question)s, %(answer)s,"
             " %(confidence)s, %(probabilities)s, %(model)s, %(source)s, %(status)s, %(owner_answer)s,"
-            " %(reviewed_at)s, %(reviewed_by)s, coalesce(%(created_at)s, now())) returning id",
+            " %(reviewed_at)s, %(reviewed_by)s, coalesce(%(created_at)s, now()))"
+            " on conflict (key) do nothing returning id",
             params, one=True)
+        if out is None:           # the key exists already (a race, or a repeat): return the row that won
+            out = self._fetch("select id from decide.suggestions where key = %s", (row["key"],), one=True)
         return out["id"]
 
     def update_suggestion(self, id, **fields):
@@ -160,9 +179,9 @@ class PostgresStore:
         if min_conf is not None:
             where.append("confidence >= %s")
             params.append(min_conf)
-        if q:    # a plain, case-insensitive substring of the subject or the state text (as MemoryStore does)
-            where.append("(strpos(lower(subject), lower(%s)) > 0 or strpos(lower(state), lower(%s)) > 0)")
-            params.extend([q, q])
+        if q:    # a plain, case-insensitive substring of the subject (no pattern characters)
+            where.append("strpos(lower(subject), lower(%s)) > 0")
+            params.append(q)
         query = "select * from decide.suggestions"
         if where:
             query += " where " + " and ".join(where)     # fixed fragments only; every value is a parameter

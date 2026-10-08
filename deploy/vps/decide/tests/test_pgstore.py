@@ -75,6 +75,49 @@ def test_call_entries_from_the_decider_map_to_the_columns(pg):
             row["error_class"]) == (4, 1200, 10, "m", False, "TimeoutError")
 
 
+@needs_db
+def test_one_reconnect_after_the_connection_is_closed(pg):
+    from .test_store_contract import k, make_row
+    sid = pg.add_suggestion(make_row(key=k(1)))
+    pg._conn.close()
+    assert pg.get(sid)["key"] == k(1)
+    pg._conn.close()
+    assert pg.add_suggestion(make_row(key=k(2))) != sid
+    assert pg.tokens_today() == 0
+
+
+@needs_db
+def test_one_retry_after_the_server_drops_the_connection(pg):
+    import psycopg
+    from .test_store_contract import k, make_row
+    sid = pg.add_suggestion(make_row(key=k(1)))
+    with psycopg.connect(TEST_URL, autocommit=True) as admin:
+        admin.execute("select pg_terminate_backend(%s)", (pg._conn.info.backend_pid,))
+    assert pg.get(sid)["key"] == k(1)
+
+
+def test_never_more_than_one_retry(monkeypatch):
+    import psycopg
+    store = PostgresStore(f"postgresql://u:{SECRET}@127.0.0.1:1/db")
+    attempts = []
+
+    class Broken:
+        closed = False
+        broken = False
+
+        def execute(self, *a, **kw):
+            attempts.append(1)
+            raise psycopg.OperationalError("lost")
+
+        def close(self):
+            pass
+
+    monkeypatch.setattr(psycopg, "connect", lambda *a, **kw: Broken())
+    with pytest.raises(psycopg.OperationalError):
+        store.find_by_key("a" * 64)
+    assert len(attempts) == 2
+
+
 class FakeClient:
     def system_one(self, state, questions):
         answers = {qid: SimpleNamespace(type="choice", choice=next(iter(spec.criteria)), confidence=0.95,

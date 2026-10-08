@@ -30,6 +30,9 @@ class MemoryStore:
         return next((dict(r) for r in self.rows if r["key"] == key), None)
 
     def add_suggestion(self, row):
+        existing = next((r for r in self.rows if r["key"] == row["key"]), None)
+        if existing is not None:          # same key twice: one row, the first id (as the Postgres store does)
+            return existing["id"]
         new = {**row, "id": self._next}
         self._next += 1
         self.rows.append(new)
@@ -63,7 +66,7 @@ class MemoryStore:
                 if (status is None or r["status"] == status)
                 and (qtype is None or r["qtype"] == qtype)
                 and (min_conf is None or r["confidence"] >= min_conf)
-                and (needle is None or needle in (r["subject"] or "").lower() or needle in (r["state"] or "").lower())]
+                and (needle is None or needle in (r["subject"] or "").lower())]
         return [dict(r) for r in rows[offset:offset + limit]]
 
     def counts(self, qtype=None):
