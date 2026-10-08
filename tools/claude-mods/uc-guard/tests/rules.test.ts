@@ -104,6 +104,14 @@ describe('rule 4: live containers and database', () => {
       'psql postgresql://u@localhost:5490/fixer',
     ]) expect(bash(c)).toBe(REASONS.live)
   })
+  test('psql -d and --dbname values in URI or conninfo form name the live database (re-review 1)', () => {
+    for (const c of [
+      'psql -d "postgresql://fixer:fixer@localhost:5490/fixer" -c "delete from x"',
+      'psql --dbname=postgresql://fixer:fixer@localhost:5490/fixer',
+      'psql -d "host=localhost dbname=fixer"',
+    ]) expect(bash(c)).toBe(REASONS.live)
+    expect(bash('psql -d "postgresql://fixer:fixer@localhost:5490/fixer_test_1_a" -c "select 1"')).toBeUndefined()
+  })
   test('compose global options do not hide the subcommand (review finding 1, HANDOFF.md:351)', () => {
     for (const c of [
       'docker compose -p ucmodelfixer up -d --no-build api web',
@@ -140,6 +148,7 @@ describe('rule 5: secret files', () => {
     expect(bash('ls "D:/PROJECTS/Corllenium-Phone-session-Config"')).toBe(REASONS.secret)
     expect(bash(`python -c "print(open('.env').read())"`)).toBe(REASONS.secret)
     expect(check('Monitor', { command: 'tail -f .env' })).toBe(REASONS.secret)
+    expect(bash('cat \\.env')).toBe(REASONS.secret)
   })
   test('allows .env.example, .venv, ordinary files and prose that mentions .env (review finding 5)', () => {
     expect(check('Read', { file_path: `${ROOT}/.env.example` })).toBeUndefined()
@@ -164,6 +173,13 @@ describe('rule 6: the owner result folders take only verified output', () => {
   test('naming the verified folder elsewhere in the command does not exempt a copy', () => {
     expect(bash(`ls .claude/worktrees/verified; cp data/out/a.obj "${ROOT}/OBJ FIXED RESULT/"`)).toBe(REASONS.results)
     expect(bash(`( cd "${ROOT}/.claude/worktrees/verified-old" && cp a.obj "${ROOT}/OBJ FIXED RESULT/" )`)).toBe(REASONS.results)
+    expect(bash(`( cd "${VERIFIED}" && ls ); cp data/x.obj "${ROOT}/OBJ FIXED RESULT/"`)).toBe(REASONS.results)
+  })
+  test('cp -t / mv -t and --out= into the result folders are writes (re-review 2)', () => {
+    expect(bash(`cp -t "${ROOT}/OBJ FIXED RESULT/CHTM" data/output/a.obj`)).toBe(REASONS.results)
+    expect(bash(`mv -t "${ROOT}/MODEL FIXER ENGINE FILES/05-FIXING" a.skp`)).toBe(REASONS.results)
+    expect(bash('"$PY" -m engine.cli export --out="OBJ FIXED RESULT"')).toBe(REASONS.results)
+    expect(bash(`cp -t "D:/PROJECTS/UC ENVIRONMENT BUILDING/x" a.obj`)).toBe(REASONS.source)
   })
   test('allows publishing from the verified worktree, listing, and prose (review finding 4)', () => {
     expect(bash(`( cd "${VERIFIED}" && "$PY" -m engine.cli export --out "${ROOT}/MODEL FIXER ENGINE FILES/04-COLORING" )`)).toBeUndefined()

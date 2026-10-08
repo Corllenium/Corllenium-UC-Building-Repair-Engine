@@ -41,6 +41,7 @@ const READ_VERBS = new Set([
   'rg', 'select-string', 'ii', 'invoke-item', 'start', 'explorer', 'echo', 'printf', 'write-output', 'write-host',
 ])
 const GIT_READS = new Set(['log', 'show', 'diff', 'status', 'blame', 'ls-files', 'ls-tree', 'grep', 'check-ignore', 'shortlog'])
+const PATTERN_VERBS = new Set(['grep', 'egrep', 'rg', 'sed', 'awk', 'select-string', 'sls'])
 const FIND_WRITES = new Set(['-delete', '-exec', '-execdir', '-ok', '-okdir'])
 const CD_BASH = new Set(['cd', 'pushd', 'popd'])
 const CD_PS = new Set(['cd', 'chdir', 'set-location', 'sl', 'push-location', 'pushd', 'pop-location', 'popd'])
@@ -179,8 +180,11 @@ function commandWords(words: string[]): string[] {
   return i < 0 ? [] : words.slice(i)
 }
 
-// Words that may name files: message values (-m "...") are prose, not paths.
+// Words that may name files: a git or gh message value (-m "...") is prose, not a path.
+// Other commands keep every word (cp -t and mv -t take a directory).
 function fileWords(words: string[]): string[] {
+  const v = verb(words[0])
+  if (v !== 'git' && v !== 'gh') return words
   const out: string[] = []
   for (let k = 0; k < words.length; k++) {
     const w = words[k] ?? ''
@@ -209,8 +213,10 @@ const redirectTargets = (words: string[]) => {
 const positional = (args: string[]) => args.filter(a => !a.startsWith('-'))
 
 function copyDestination(v: string, args: string[]): string | undefined {
-  const d = args.findIndex(a => /^-destination$/i.test(a))
+  const d = args.findIndex(a => /^-destination$/i.test(a) || a === '-t' || a === '--target-directory')
   if (d >= 0) return args[d + 1]
+  const eq = args.find(a => a.startsWith('--target-directory='))
+  if (eq !== undefined) return eq.slice('--target-directory='.length)
   const p = positional(args)
   return v === 'robocopy' || v === 'xcopy' ? p[1] : p[p.length - 1]
 }
@@ -231,12 +237,13 @@ function writesTo(seg: string[], markers: string[]): boolean {
   return false
 }
 
-// A result-folder word: a path, or the folder's own name.
-const namesResult = (w: string) => {
-  if (!has(w, RESULT_MARKERS)) return false
-  const n = norm(w)
-  return pathLike(w) || RESULT_MARKERS.some(m => n === m || n.startsWith(`${m}/`))
-}
+// A result-folder word: a path, or the folder's own name, also as an option value (--out=...).
+const namesResult = (word: string): boolean =>
+  [word, word.split('=').pop() ?? ''].some(w => {
+    if (!has(w, RESULT_MARKERS)) return false
+    const n = norm(w)
+    return pathLike(w) || RESULT_MARKERS.some(m => n === m || n.startsWith(`${m}/`))
+  })
 
 function gitSub(args: string[]): { sub: string | undefined; rest: string[] } {
   let i = 0
@@ -286,12 +293,16 @@ function composeSub(args: string[]): string | undefined {
   return undefined
 }
 
+// A psql database argument that names the live database: the bare name, a URI, or conninfo.
+const isLiveDb = (a: string) =>
+  a === 'fixer' || /^postgres(ql)?:\/\/.*\/fixer(\?.*)?$/.test(a) || /(^|\s)dbname=fixer(\s|$)/.test(a)
+
 function psqlTargetsLive(args: string[]): boolean {
   let firstPositional: string | undefined
   for (let k = 0; k < args.length; k++) {
     const a = args[k] ?? ''
     if (a === '-d' || a === '--dbname') {
-      if (args[k + 1] === 'fixer') return true
+      if (isLiveDb(args[k + 1] ?? '')) return true
       k++
       continue
     }
@@ -299,11 +310,11 @@ function psqlTargetsLive(args: string[]): boolean {
       k++
       continue
     }
-    if (a === '-dfixer' || a === '--dbname=fixer') return true
-    if (/(^|\s)dbname=fixer(\s|$)/.test(a) || /^postgres(ql)?:\/\/.*\/fixer(\?.*)?$/.test(a)) return true
+    if (a.startsWith('--dbname=') && isLiveDb(a.slice('--dbname='.length))) return true
+    if (/^-d./.test(a) && isLiveDb(a.slice(2))) return true
     if (!a.startsWith('-') && firstPositional === undefined) firstPositional = a
   }
-  return firstPositional === 'fixer'
+  return firstPositional !== undefined && isLiveDb(firstPositional)
 }
 
 function liveReason(seg: string[]): string | undefined {
@@ -328,12 +339,15 @@ function liveReason(seg: string[]): string | undefined {
 }
 
 function resultsReason(segs: Segment[]): string | undefined {
-  let inVerified = false
+  // the depth of the subshell that did `cd <verified>`; the exemption ends when that subshell closes
+  let verifiedDepth: number | undefined
   for (const s of segs) {
     const seg = commandWords(s.words)
     const v = verb(seg[0])
     const args = seg.slice(1)
-    if (v !== undefined && (CD_BASH.has(v) || CD_PS.has(v)) && VERIFIED.test(norm(args[0] ?? ''))) inVerified = true
+    if (verifiedDepth !== undefined && s.depth < verifiedDepth) verifiedDepth = undefined
+    if (v !== undefined && (CD_BASH.has(v) || CD_PS.has(v)) && VERIFIED.test(norm(args[0] ?? ''))) verifiedDepth = s.depth
+    const inVerified = verifiedDepth !== undefined
     const words = fileWords(seg)
     const touched = words.some(namesResult) || redirectTargets(seg).some(t => has(t, RESULT_MARKERS))
     if (!touched || inVerified) continue
@@ -354,8 +368,15 @@ function shellReason(command: string, shell: Shell): string | undefined {
   const segs = segments(command, shell)
 
   for (const s of segs) {
-    const words = fileWords(commandWords(s.words))
-    if (words.some(w => isSecretPath(w) || isSecretPath(w.split('=').pop() ?? '') || isSecretPath(w.replace(/^\d*[<>]+/, ''))))
+    const seg = commandWords(s.words)
+    const words = fileWords(seg)
+    // `\.env` is a regex escape for a pattern tool, but to cat it is just .env
+    const unescape = PATTERN_VERBS.has(verb(seg[0]) ?? '') ? (w: string) => w : (w: string) => w.replace(/^\\(?=\.)/, '')
+    if (
+      words
+        .map(unescape)
+        .some(w => isSecretPath(w) || isSecretPath(w.split('=').pop() ?? '') || isSecretPath(w.replace(/^\d*[<>]+/, '')))
+    )
       return REASONS.secret
     // a path inside code passed to an interpreter, e.g. python -c "open('.env')"
     if (words.some(w => /['"]([^'"\s]*[/\\])?\.env(\.local)?['"]/.test(w) && /\(/.test(w))) return REASONS.secret
