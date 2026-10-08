@@ -1086,6 +1086,21 @@ def build_parser() -> argparse.ArgumentParser:
                         help="read UC_DECIDE_PASSWORD from this file when the environment has none "
                              "(default: the repo-root .env; only that one line is read)")
 
+    imp_p = sub.add_parser("decide-import-pilot",
+                           help="load the paid Jev pilot answers (jev_pilot.json) into the VPS decide service as "
+                                "pending suggestions, with the exact questions the classifiers ask (needs "
+                                "UC_DECIDE_PASSWORD; --dry-run sends nothing)")
+    imp_p.add_argument("--url", default=None,
+                       help="the service base URL, e.g. https://host (https unless localhost); "
+                            "default: the environment variable UC_DECIDE_URL")
+    imp_p.add_argument("--source", type=Path, default=Path("data/campus/source.json"))
+    imp_p.add_argument("--materials", type=Path, default=Path("data/campus/materials.json"))
+    imp_p.add_argument("--pilot", type=Path, default=Path("data/campus/jev_pilot.json"))
+    imp_p.add_argument("--env-file", type=Path, default=None,
+                       help="read UC_DECIDE_PASSWORD from this file when the environment has none "
+                            "(default: the repo-root .env; only that one line is read)")
+    imp_p.add_argument("--dry-run", action="store_true", help="print the counts and send nothing")
+
     return parser
 
 
@@ -1247,6 +1262,30 @@ def main(argv: list[str] | None = None) -> int:
             print(f"error: {exc}", file=sys.stderr)
             return 2
         print(f"wrote {len(json.loads(path.read_text(encoding='utf-8')))} confirmed answers -> {path}")
+        return 0
+    elif args.command == "decide-import-pilot":
+        from engine.decide import pilot_import
+        read = lambda p: json.loads(Path(p).read_text(encoding="utf-8"))
+        try:
+            items = pilot_import.build_import_items(read(args.source), read(args.materials), read(args.pilot))
+        except (OSError, ValueError, KeyError) as exc:
+            print(f"error: could not build the pilot questions: {type(exc).__name__}: {exc}", file=sys.stderr)
+            return 2
+        n = pilot_import.counts(items)
+        print(f"groups: {n['groups']} items ({n['group_rows']} x 4), materials: {n['materials']} items")
+        if args.dry_run:
+            print("dry run: nothing sent")
+            return 0
+        url = args.url or os.environ.get("UC_DECIDE_URL")
+        if not url:
+            print("error: no service URL: pass --url or set UC_DECIDE_URL", file=sys.stderr)
+            return 2
+        try:
+            total = pilot_import.import_items(items, url, env_file=args.env_file)
+        except (ValueError, RuntimeError) as exc:      # their texts carry no secret
+            print(f"error: {exc}", file=sys.stderr)
+            return 2
+        print(f"imported: added {total['added']}, skipped {total['skipped']}, invalid {total['invalid']}")
         return 0
     return 1
 
