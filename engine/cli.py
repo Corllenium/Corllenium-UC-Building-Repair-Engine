@@ -42,6 +42,7 @@ from __future__ import annotations
 import argparse
 import collections
 import json
+import os
 import shutil
 import sys
 import time
@@ -69,6 +70,16 @@ from engine.rays.caster import ReusableCaster
 from engine.topo.adjacency import build_edge_table, edge_face_lists
 from engine.topo.edges import EDGE_SOFT
 from engine.topo.weld import weld_exact
+
+
+def _repo_root() -> Path:
+    """The directory that holds this engine's pyproject.toml (the repo or worktree root)."""
+    here = Path(__file__).resolve()
+    return next((p for p in here.parents if (p / "pyproject.toml").is_file()), here.parents[1])
+
+
+#: decide-pull writes only inside this folder (tests point it at a tmp folder).
+DATA_DIR: Path = _repo_root() / "data"
 
 #: The 6 axis-aligned views (of the 26 the guard itself uses) reported as before/after/diff PNGs.
 _AXIS_VIEWS = [v for v in VIEWS_26 if sum(1 for c in (round(x) for x in v) if c != 0) == 1]
@@ -1061,6 +1072,35 @@ def build_parser() -> argparse.ArgumentParser:
     pilot_p.add_argument("--min-confidence", type=float, default=0.8)
     pilot_p.add_argument("--batch", type=int, default=20, help="questions per Jev call")
 
+    pull_p = sub.add_parser("decide-pull",
+                            help="fetch the owner-confirmed answers of one question type from the VPS decide "
+                                 "service and write <out>/<type>.json as {subject: answer} (needs "
+                                 "UC_DECIDE_PASSWORD)")
+    pull_p.add_argument("--url", default=None,
+                        help="the service base URL, e.g. https://host (https unless localhost); "
+                             "default: the environment variable UC_DECIDE_URL")
+    pull_p.add_argument("--type", required=True, dest="qtype", help="the question type, e.g. mat.category")
+    pull_p.add_argument("--out", type=Path, default=None,
+                        help="a folder inside <repo>/data (default: <repo>/data/decide/confirmed)")
+    pull_p.add_argument("--env-file", type=Path, default=None,
+                        help="read UC_DECIDE_PASSWORD from this file when the environment has none "
+                             "(default: the repo-root .env; only that one line is read)")
+
+    imp_p = sub.add_parser("decide-import-pilot",
+                           help="load the paid Jev pilot answers (jev_pilot.json) into the VPS decide service as "
+                                "pending suggestions, with the exact questions the classifiers ask (needs "
+                                "UC_DECIDE_PASSWORD; --dry-run sends nothing)")
+    imp_p.add_argument("--url", default=None,
+                       help="the service base URL, e.g. https://host (https unless localhost); "
+                            "default: the environment variable UC_DECIDE_URL")
+    imp_p.add_argument("--source", type=Path, default=Path("data/campus/source.json"))
+    imp_p.add_argument("--materials", type=Path, default=Path("data/campus/materials.json"))
+    imp_p.add_argument("--pilot", type=Path, default=Path("data/campus/jev_pilot.json"))
+    imp_p.add_argument("--env-file", type=Path, default=None,
+                       help="read UC_DECIDE_PASSWORD from this file when the environment has none "
+                            "(default: the repo-root .env; only that one line is read)")
+    imp_p.add_argument("--dry-run", action="store_true", help="print the counts and send nothing")
+
     return parser
 
 
@@ -1204,6 +1244,53 @@ def main(argv: list[str] | None = None) -> int:
         print(f"materials: {m['n']}, sources {m['sources']}, categories {m['histogram']}")
         print(f"calls: {c['n']} ({c['failed']} failed), tokens in/out {c['input_tokens']}/{c['output_tokens']}")
         print(f"wrote {args.out}")
+        return 0
+    elif args.command == "decide-pull":
+        from engine.decide.remote import pull_confirmed
+        url = args.url or os.environ.get("UC_DECIDE_URL")
+        if not url:
+            print("error: no service URL: pass --url or set UC_DECIDE_URL", file=sys.stderr)
+            return 2
+        out = DATA_DIR / "decide" / "confirmed" if args.out is None else Path(args.out)
+        if not out.resolve().is_relative_to(DATA_DIR.resolve()):
+            print(f"error: --out must be inside {DATA_DIR} (decide-pull writes to data/ only), got {out}",
+                  file=sys.stderr)
+            return 2
+        try:
+            path = pull_confirmed(url, args.qtype, out, env_file=args.env_file)
+        except (ValueError, RuntimeError) as exc:      # their texts carry no secret
+            print(f"error: {exc}", file=sys.stderr)
+            return 2
+        print(f"wrote {len(json.loads(path.read_text(encoding='utf-8')))} confirmed answers -> {path}")
+        return 0
+    elif args.command == "decide-import-pilot":
+        from engine.decide import pilot_import
+        read = lambda p: json.loads(Path(p).read_text(encoding="utf-8"))
+        try:
+            items, unreproducible = pilot_import.build_import_report(read(args.source), read(args.materials),
+                                                                     read(args.pilot))
+        except (OSError, ValueError, KeyError) as exc:
+            print(f"error: could not build the pilot questions: {type(exc).__name__}: {exc}", file=sys.stderr)
+            return 2
+        n = pilot_import.counts(items, unreproducible)
+        print(f"groups: {n['groups']} items from {n['group_rows']} groups, materials: {n['materials']} items from "
+              f"{n['material_names']} spot-check materials, unreproducible: {n['unreproducible']}")
+        if unreproducible:
+            print(f"skipped, not reproducible from today's snapshots: {', '.join(unreproducible)}")
+        if args.dry_run:
+            print("dry run: nothing sent")
+            return 0
+        url = args.url or os.environ.get("UC_DECIDE_URL")
+        if not url:
+            print("error: no service URL: pass --url or set UC_DECIDE_URL", file=sys.stderr)
+            return 2
+        try:
+            total = pilot_import.import_items(items, url, env_file=args.env_file)
+        except (ValueError, RuntimeError) as exc:      # their texts carry no secret
+            print(f"error: {exc}", file=sys.stderr)
+            return 2
+        print(f"imported: added {total['added']}, skipped {total['skipped']}, invalid {total['invalid']}, "
+              f"unreproducible {n['unreproducible']}")
         return 0
     return 1
 

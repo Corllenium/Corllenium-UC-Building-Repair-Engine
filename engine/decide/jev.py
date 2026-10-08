@@ -51,6 +51,8 @@ MAX_CHOICE_OPTIONS = 255
 class NoulQ:
     """A yes/no question. Its instructions must be self-contained: ids are not sent to the model."""
     instructions: str
+    qtype: str = ""
+    subject: str = ""
 
 
 @dataclass(frozen=True)
@@ -58,6 +60,8 @@ class ChoiceQ:
     """A pick among labels: `criteria` maps each label to an optional description."""
     instructions: str
     criteria: Mapping[str, str | None]
+    qtype: str = ""
+    subject: str = ""
 
 
 @dataclass(frozen=True)
@@ -65,6 +69,8 @@ class ScoreQ:
     """An ordinal score: `criteria[i]` describes level `i`."""
     instructions: str
     criteria: list[str]
+    qtype: str = ""
+    subject: str = ""
 
 
 # ------------------------------------------------------------------------------------- decisions
@@ -103,17 +109,16 @@ def _repo_root_env() -> Path:
 #: Tests point this at a file that does not exist; nothing else should change it.
 DEFAULT_ENV_FILE: Path = _repo_root_env()
 
-_KEY_LINE = re.compile(r"^\s*(?:export\s+)?" + ENV_VAR + r"\s*=\s*(.*?)\s*$")
 
-
-def read_env_key(path: Path) -> str | None:
-    """The `TYPESAFE_API_KEY=` value in `path`, or None. Every other line is skipped unread. With several
-    key lines the last one wins, as dotenv does (an empty last one means no key)."""
+def read_env_var(path: Path, name: str) -> str | None:
+    """The `NAME=` value in `path`, or None. Every other line is skipped unread. With several lines for the
+    name the last one wins, as dotenv does (an empty last one means no value)."""
+    line_re = re.compile(r"^\s*(?:export\s+)?" + re.escape(name) + r"\s*=\s*(.*?)\s*$")
     found: str | None = None
     try:
         with open(path, "r", encoding="utf-8") as fh:
             for line in fh:
-                m = _KEY_LINE.match(line)
+                m = line_re.match(line)
                 if not m:
                     continue
                 value = m.group(1)
@@ -126,6 +131,11 @@ def read_env_key(path: Path) -> str | None:
     except OSError:
         return None
     return found
+
+
+def read_env_key(path: Path) -> str | None:
+    """The `TYPESAFE_API_KEY=` value in `path`, or None (see `read_env_var`)."""
+    return read_env_var(path, ENV_VAR)
 
 
 def sdk_importable() -> bool:
@@ -347,19 +357,23 @@ def classify_group_names(rows: list[dict], decider) -> list[dict]:
                 f"mostly in the footprint of {_LABEL_OF.get(row.get('footprint_building'), row.get('footprint_building')) or 'no building'}.")
         questions[f"{i}:building"] = ChoiceQ(
             f"{fact} Which building does this group belong to?",
-            {label: _BUILDING_HELP.get(label) for label in BUILDING_LABELS})
+            {label: _BUILDING_HELP.get(label) for label in BUILDING_LABELS},
+            qtype="inv.building", subject=row["name"])
         questions[f"{i}:type"] = ChoiceQ(
             f"{fact} What kind of piece is this group?",
             {"floor": "one storey of a building (slab, walls, rooms)", "stair": "a staircase or emergency stairs",
              "roof": "a roof", "shell": "a facade or outer shell piece", "road": "a road or sidewalk",
              "landscape": "ground, trees, plants or terrain", "bridge": "a bridge or walkway",
-             "other": "anything else"})
+             "other": "anything else"},
+            qtype="inv.type", subject=row["name"])
         questions[f"{i}:floor"] = ChoiceQ(
             f"{fact} Which floor number does the name say? 0 if it names no floor.",
-            {str(n): (f"floor {n}" if n else "no floor / ground level") for n in range(FLOOR_MAX + 1)})
+            {str(n): (f"floor {n}" if n else "no floor / ground level") for n in range(FLOOR_MAX + 1)},
+            qtype="inv.floor", subject=row["name"])
         questions[f"{i}:duplicate"] = NoulQ(
             f"{fact} Is this group a duplicate copy of another group, judging by the name (a trailing digit, "
-            f"'copy', 'obj1', '#1')?")
+            f"'copy', 'obj1', '#1')?",
+            qtype="inv.duplicate", subject=row["name"])
     decisions = decider.ask(_GROUP_STATE, questions)
     out = []
     for i, row in enumerate(rows):
@@ -391,10 +405,12 @@ def classify_materials(names: list, decider) -> list[dict]:
             fact += " Its base colour (RGB 0-1) is " + ", ".join(f"{float(c):.2f}" for c in info["kd"]) + "."
         questions[f"{i}:category"] = ChoiceQ(
             f"{fact} Which kind of surface is this material?",
-            {c: None for c in MATERIAL_CATEGORIES})
+            {c: None for c in MATERIAL_CATEGORIES},
+            qtype="mat.category", subject=info["name"])
         questions[f"{i}:trim"] = NoulQ(
             f"{fact} Is it a trim or patch material, a small accent used for edges, borders, frames or fixes, "
-            f"rather than a main surface?")
+            f"rather than a main surface?",
+            qtype="mat.trim", subject=info["name"])
     decisions = decider.ask(_MATERIAL_STATE, questions)
     return [{"name": name, "category": decisions[f"{i}:category"], "trim": decisions[f"{i}:trim"]}
             for i, name in enumerate(resolved)]

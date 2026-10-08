@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import ModelsView from './views/ModelsView.vue'
 import WorkspaceView from './views/WorkspaceView.vue'
 import ErrorsView from './views/ErrorsView.vue'
+import JevView from './views/JevView.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -9,6 +10,7 @@ const router = createRouter({
     { path: '/', name: 'models', component: ModelsView },
     { path: '/workspace/:id', name: 'workspace', component: WorkspaceView },
     { path: '/errors', name: 'errors', component: ErrorsView },
+    { path: '/jev', name: 'jev', component: JevView },
   ],
 })
 
