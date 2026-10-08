@@ -25,6 +25,35 @@ run the latest `.skp` of each file must be in `OBJ FIXED RESULT/` for the owner 
 
 ## 2. Current state (2026-09-26 00:15, written by the Claude controller)
 
+**Update 2026-10-08 night (the Jev + mods controller session): "Jev on the VPS" is built and merged; Jev stays off.**
+- **`feat-dashboard` = e2a37ee:** `feat/jev-vps` is merged.
+  - Spec: `docs/superpowers/specs/2026-10-08-jev-vps-service-design.md`.
+  - Plan: `docs/superpowers/plans/2026-10-08-jev-vps-service.md`.
+  - Ledger: `.superpowers/sdd/2026-10-08-jev-vps-service/progress.md`.
+- **Built (J1-J8, each reviewed, plus a final whole-branch review):**
+  - the `uc-fixer-decide` service (`deploy/vps/decide/`) with Postgres schema `decide`;
+  - `RemoteDecider`, `decide-pull` and `decide-import-pilot` in `engine/decide/`;
+  - the `/jev` review page;
+  - the VPS compose service, nginx routes and runbook (`deploy/vps/README.md`).
+- **Tests:** engine 1275 passed, 1 xfailed; service 153 + 114 skipped (Postgres pass 267); web 151.
+- **End-to-end check, local and throwaway:** the import added 370 rows (85 groups × 4 + 30 materials), with no
+  mismatch against the pilot. The cache hit from the real classifiers. Roles are enforced: nginx refuses
+  `uc-engine` outside `/api/decide/`.
+- **Browser check:** the `/jev` page at 375 and 800 px, with accept and change working.
+- **Jev is OFF** (`DECIDE_JEV_ENABLED` unset). It is switched on only when the repair engine is ready, with the first
+  live question `repair.next_step`, by the owner's decision.
+- **Owner, open:**
+  - **the VPS deploy:** the runbook steps, with the owner's explicit OK; he types the `uc-engine` password and the
+    TypeSafe key himself;
+  - **spec §3/§4 review:** the text was updated to match the build (uc-engine may also call import and health; the key
+    and state_json definitions; `accepted` = owner-confirmed only);
+  - **M2 `uc-status`:** check its status line;
+  - **M3:** yes or no;
+  - **an empty test Docker volume** (12f52767…) to remove;
+  - **untracked files:** `Dockerfile.web` and the root `nginx.conf` are untracked, and the web-image step uses them.
+- **Next:** P1-D2 (`AskProvider` behind the Decider, reserved for this session), once `feat-dashboard` reaches
+  `feat/repair-p1p2`.
+
 **Update 2026-10-08 evening (the repair-engine controller session): phase P0 is complete and merged.**
 - **`feat-dashboard` = 8163bb0 + records:** `feat/repair-p0` was merged after the end-of-P0 final review.
   - The review (opus) found the branch ready to merge. A fix round followed and was re-reviewed PASS.

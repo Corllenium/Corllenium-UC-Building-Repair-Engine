@@ -126,6 +126,18 @@ lies on pixel centres from real damage, so the guard now measures the displaceme
 - **P0-17:** the Jev wrapper is approved and in a minor-fix round. The real pilot waits for the key.
 - **M2 `uc-status`:** built and tested; the screenshot check is next.
 
+### 2026-10-08 night: Jev on the VPS (second controller session)
+- **Merged:** `feat/jev-vps` → `feat-dashboard` (e2a37ee). Eight tasks went through 13 fix rounds in all.
+- **Defects the reviews caught:**
+  - Choice option order lost, both in the cache key and in jsonb storage;
+  - owner answers shadowed by cached Jev answers;
+  - loose answer types;
+  - nginx crashing when the decide container is absent;
+  - a root container;
+  - the `uc-engine` login reaching the whole dashboard;
+  - a phone layout with the row buttons off-screen (found in the browser check).
+- **Jev stays off** until the repair engine is ready. The deploy waits for the owner's OK.
+
 ### 2026-10-08 evening: P0 closed
 - **Final review and fixes:** the end-of-P0 review found the branch ready to merge. The fix round covered the
   flicker labels (MATERIAL, not LOOK), refused unknown target kinds, removed the machine path, and guarded the
