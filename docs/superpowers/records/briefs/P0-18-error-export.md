@@ -37,17 +37,39 @@ Read-only export. Nothing here changes the model or any repair rule: it draws th
   can switch each kind on and off.
 
 ## Items (test first, each committed)
-1. `engine/campus/pixfont.py`: moved from the owner's scripts folder, with `% + _ / : ( )` added. Tests: every glyph
+1. `engine/campus/pixfont.py`: moved from the owner's `COMPARISON-MODELS/scripts` folder (read it; never edit the
+   original), with `% + _ / : ( )` added. Tests: every glyph
    7 rows of 5; `text_rects` of "L05" covers the expected cells; unknown characters are spaces.
 2. `engine/campus/error_export.py` planning (no SDK): `face_kinds`, `member_mask`, `grid_dedup`, `flag_label`,
    `plan_building`. Tests on a synthetic two-unit building: priority, split bands, dedup, column offsets, flags and
    excluded columns, counts.
-3. SDK writer `write_building_skp(plan, out)`: groups, tags, materials, faces, tubes, markers, plates, labels. Test
+3. SDK writer `write_building_skp(plan, out)`: groups, tags, materials, faces, tubes, markers, plates, labels. It
+   creates new files only; it never opens or saves CHECKPOINT-17, its backup or the master. Test
    (skipped without the SDK): a tiny plan round-trips; read back, the face count per tag matches the plan.
 4. CLI `campus-errors-skp [--buildings ...] --out <dir>`; writes `<BUILDING>/<BUILDING>-errors.skp` and
-   `<BUILDING>-errors.json` (counts, skipped degenerate faces, sha256 of the inputs, engine commit).
+   `<BUILDING>-errors.json` (counts, skipped degenerate faces, sha256 of the inputs, engine commit). Tests: the CLI
+   refuses an `--out` inside the live export, the master or the backup; with a fake plan it writes one `.skp` and one
+   report per building.
+
+## Acceptance commands
+`data/` is git-ignored and absent from worktrees, so the inputs name the main checkout:
+```bash
+PY="D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe"
+M="D:/PROJECTS/UC MODEL FIXER/data"
+( cd "<worktree>" && PYTHONPATH="$PWD" "$PY" -m pytest engine/tests/test_pixfont.py engine/tests/test_error_export_plan.py engine/tests/test_error_export_skp.py engine/tests/test_error_export_cli.py -q -p no:cacheprovider )
+( cd "<worktree>" && PYTHONPATH="$PWD" "$PY" -m engine.cli campus-errors-skp --map "$M/campus/campus_map.json" --source "$M/campus/source.json" --errors "$M/campus/errors" --skp-check "$M/campus/skp_check.json" --out "$M/coloring_scratch" )
+```
+Expected: tests green (the SDK test skips without the SDK); 10 folders under `data/coloring_scratch/`, each with its `.skp`
+and `-errors.json`, and the CLI line per building showing the faces read back "as written".
 
 ## Done when
-- Engine tests green; the 10 files written to scratch (`data/coloring_scratch/`), each read back with
-  `read_skp_summary`; one render per building read and described.
-- Published to `04-COLORING` only from the committed code, from `.claude/worktrees/verified`.
+- The acceptance commands show that output; one render per building is read and described.
+- Published to `04-COLORING` only from the committed code, from `.claude/worktrees/verified`, after the controller has merged.
+
+## Rules for this job
+- Read-only inputs: `data/campus/**` and the snapshots. Write only under `data/coloring_scratch/` until the publish step.
+- Never open or save CHECKPOINT-17, its backup or the master (`AGENTS.md` §2).
+
+## Report
+- Claude: the plan's SDD ledger, with the real output of both acceptance commands.
+- Hand in with `tools/jobs.py done P0-18 --branch claude/P0-18`.
