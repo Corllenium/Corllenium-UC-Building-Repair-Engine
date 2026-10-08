@@ -6,7 +6,9 @@ and refuses a plan that contradicts itself.
 
 Rules that live in this file (AGENTS.md section 3-4):
 - Only the E5 cut and the E8 flat fill may bring `new_points`; an `Edit` from any other engine that
-  carries some raises `ValueError` at construction.
+  carries some raises `ValueError` at construction. E5 may bring them only in a "cut", E8 only in an
+  "add" or "cut", never in a "remove" or "flip"; they must be finite. `new_faces` / `new_points` are
+  copied on construction and read-only afterwards.
 - This package computes its own print step from the OBJ's printed precision
   (`10 ** -mesh.coord_decimals`) and never imports `engine/validate`: the validator is the
   independent judge and does not import this package either.
@@ -22,7 +24,7 @@ Conventions for `apply_edits`
   every edit counts its points from n. `apply_edits` appends the points in edit order and renumbers.
 - Appended faces have no UVs and no normals (`face_vt` / `face_vn` = -1; no vertex or UV is ever
   invented here). A "cut" inherits the material (and the lowest source line) of the faces it
-  replaces; an "add" has no source face and must say its material: `evidence["material"]` (int
+  replaces, and raises if those faces do not all have one material; an "add" has no source face and must say its material: `evidence["material"]` (int
   index into `mesh.materials`).
 """
 from __future__ import annotations
@@ -43,6 +45,7 @@ FaceKey = str  # sha256 hex of the 3 snapped vertices (winding kept, start verte
 ENGINES = tuple(f"E{i}" for i in range(1, 9))
 KINDS = ("remove", "flip", "add", "cut")
 POINT_ENGINES = ("E5", "E8")  # the E5 cut (points on the winner's border) and E8 solidify only
+POINT_KINDS = {"E5": ("cut",), "E8": ("add", "cut")}  # the kinds in which those engines may bring points
 
 
 @dataclass(frozen=True, eq=False)  # ndarray fields: equality is never used (controller ruling K1-R1)
@@ -69,9 +72,10 @@ class Edit:
             raise ValueError("an 'add' edit replaces no input faces")
 
         if self.new_faces is not None:
-            new_faces = np.asarray(self.new_faces, np.int64)
+            new_faces = np.array(self.new_faces, np.int64, copy=True)
             if new_faces.ndim != 2 or new_faces.shape[1] != 3:
                 raise ValueError(f"new_faces must be (k, 3), got {new_faces.shape}")
+            new_faces.flags.writeable = False
             object.__setattr__(self, "new_faces", new_faces)
         if self.kind in ("add", "cut") and (self.new_faces is None or not len(self.new_faces)):
             raise ValueError(f"a {self.kind!r} edit needs new_faces")
@@ -79,13 +83,21 @@ class Edit:
             raise ValueError(f"a {self.kind!r} edit takes no new_faces")
 
         if self.new_points is not None:
-            new_points = np.asarray(self.new_points, np.float64)
+            new_points = np.array(self.new_points, np.float64, copy=True)
             if new_points.ndim != 2 or new_points.shape[1] != 3:
                 raise ValueError(f"new_points must be (m, 3), got {new_points.shape}")
-            if len(new_points) and self.engine not in POINT_ENGINES:
-                raise ValueError(
-                    f"engine {self.engine} may not add new_points; only {POINT_ENGINES} may "
-                    f"(AGENTS.md: only solidify and the E5 cut invent vertices)")
+            if len(new_points):
+                if self.engine not in POINT_ENGINES:
+                    raise ValueError(
+                        f"engine {self.engine} may not add new_points; only {POINT_ENGINES} may "
+                        f"(AGENTS.md: only solidify and the E5 cut invent vertices)")
+                if self.kind not in POINT_KINDS[self.engine]:
+                    raise ValueError(
+                        f"engine {self.engine} may bring new_points only in a {POINT_KINDS[self.engine]} "
+                        f"edit, not {self.kind!r} (E5: points on the winner's border; E8: solidify)")
+                if not np.isfinite(new_points).all():
+                    raise ValueError("new_points must be finite (no NaN or inf)")
+            new_points.flags.writeable = False
             object.__setattr__(self, "new_points", new_points)
 
 
@@ -202,7 +214,11 @@ def apply_edits(mesh: MeshData, edits: list[Edit]) -> tuple[MeshData, np.ndarray
         next_point += len(local)
 
         if edit.kind == "cut":
-            material = int(mesh.face_material[edit.faces[0]])
+            materials = np.unique(mesh.face_material[list(edit.faces)])
+            if len(materials) != 1:
+                raise ValueError(f"edit {index} ({edit.engine} cut) replaces faces of different "
+                                 f"materials {materials.tolist()}; a cut covers one material only")
+            material = int(materials[0])
             line = int(mesh.face_line[list(edit.faces)].min())
         else:
             material = edit.evidence.get("material")

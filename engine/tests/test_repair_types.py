@@ -247,3 +247,66 @@ def test_protocol_and_state_types_exist():
     unit = UnitState(mesh=cube(), topo=None, looks={0: "t"}, viewpoints=None, neighbours=[])
     ctx = RepairContext(profile=None, decider=None, validator=None, log=[])
     assert engine.plan(unit, ctx) == []
+
+
+# --- fix round 1 -------------------------------------------------------------------------------
+
+@pytest.mark.parametrize("engine,kind", [("E5", "remove"), ("E5", "flip"), ("E8", "remove"), ("E8", "flip")])
+def test_new_points_with_remove_or_flip_raise(engine, kind):
+    with pytest.raises(ValueError, match="new_points"):
+        _edit(engine=engine, kind=kind, faces=(0,), new_points=POINTS)
+
+
+def test_e5_new_points_only_with_a_cut_and_e8_with_add_or_cut():
+    faces = np.array([[0, 1, 2]])
+    with pytest.raises(ValueError, match="new_points"):
+        _edit(engine="E5", kind="add", faces=(), new_faces=faces, new_points=POINTS)
+    for kind, face_ids in (("add", ()), ("cut", (0,))):
+        assert _edit(engine="E8", kind=kind, faces=face_ids, new_faces=faces, new_points=POINTS) is not None
+    assert _edit(engine="E5", kind="cut", faces=(0,), new_faces=faces, new_points=POINTS) is not None
+
+
+@pytest.mark.parametrize("bad", [np.nan, np.inf, -np.inf])
+def test_non_finite_new_points_raise(bad):
+    with pytest.raises(ValueError, match="finite"):
+        _edit(engine="E8", kind="add", faces=(), new_faces=np.array([[0, 1, 2]]),
+              new_points=np.array([[1.0, bad, 0.0]]))
+
+
+def test_edit_copies_its_arrays_and_makes_them_read_only():
+    faces, points = np.array([[0, 1, 2]]), np.array([[1.0, 2.0, 3.0]])
+    edit = _edit(engine="E8", kind="add", faces=(), new_faces=faces, new_points=points)
+    faces[0, 0], points[0, 0] = 9, 9.0
+    assert edit.new_faces[0, 0] == 0 and edit.new_points[0, 0] == 1.0
+    assert not edit.new_faces.flags.writeable and not edit.new_points.flags.writeable
+    with pytest.raises(ValueError):
+        edit.new_points[0, 0] = 5.0
+
+
+def test_apply_edits_cut_with_mixed_materials_raises():
+    mesh = grid_slab(2, 2)
+    mesh = replace(mesh, materials=["m0", "m1"], face_material=np.where(np.arange(mesh.n_faces) == 2, 1, 0))
+    cut = _edit(engine="E5", kind="cut", faces=(1, 2), new_faces=np.array([[0, 1, 2]]))
+    with pytest.raises(ValueError, match="material"):
+        apply_edits(mesh, [cut])
+
+
+def test_apply_edits_multi_face_cut_inherits_lowest_face_line_and_add_has_none():
+    mesh = grid_slab(2, 2)
+    mesh = replace(mesh, face_line=np.arange(100, 100 + mesh.n_faces))
+    cut = _edit(engine="E5", kind="cut", faces=(6, 3, 5), new_faces=np.array([[0, 1, 2], [1, 2, 4]]))
+    add = _edit(engine="E8", kind="add", faces=(), new_faces=np.array([[0, 1, 4]]), evidence={"material": 0})
+    out, m = apply_edits(mesh, [cut, add])
+    keep = np.setdiff1d(np.arange(mesh.n_faces), [3, 5, 6])
+    assert out.n_faces == len(keep) + 3
+    assert np.array_equal(m, np.concatenate([keep, [-1, -1, -1]]))
+    assert np.array_equal(out.face_line[-3:], [103, 103, -1])
+    assert np.array_equal(out.face_line[:len(keep)], mesh.face_line[keep])
+    assert np.array_equal(out.face_v[-3:], [[0, 1, 2], [1, 2, 4], [0, 1, 4]])
+
+
+def test_face_keys_on_an_empty_mesh_is_empty():
+    mesh = cube()
+    empty = replace(mesh, face_v=mesh.face_v[:0], face_vt=mesh.face_vt[:0], face_vn=mesh.face_vn[:0],
+                    face_material=mesh.face_material[:0], face_line=mesh.face_line[:0])
+    assert face_keys(empty, {0: "t"}) == []
