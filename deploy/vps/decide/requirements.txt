@@ -1,5 +1,6 @@
-fastapi>=0.115
-uvicorn[standard]>=0.30
-psycopg[binary]>=3.2
-typesafe-sdk>=0.7.2,<0.8
-pydantic>=2
+# Direct dependencies, pinned to the versions the image was built and smoke-tested with (pip freeze of that image).
+fastapi==0.142.4
+uvicorn[standard]==0.54.0
+psycopg[binary]==3.3.6
+typesafe-sdk==0.7.2
+pydantic==2.13.5
