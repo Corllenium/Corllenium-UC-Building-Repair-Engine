@@ -275,14 +275,14 @@ def test_reask_jev_off_is_409():
     c, store, _ = _app(enabled=True)
     sid = _seed(c)
     off, _, _ = _app(enabled=False, store=store)
-    r = off.post(f"/api/decide/reask/{sid}", headers=OWNER)
+    r = off.post(f"/api/decide/reask/{sid}", headers=OWNER, json={})
     assert r.status_code == 409 and r.json() == {"detail": "jev off"}
 
 
 def test_reask_daily_cap_is_409():
     c, store, _ = _app(enabled=True, daily_token_cap=1)
     sid = _seed(c)                                          # the call used 107 tokens: over the cap of 1
-    r = c.post(f"/api/decide/reask/{sid}", headers=OWNER)
+    r = c.post(f"/api/decide/reask/{sid}", headers=OWNER, json={})
     assert r.status_code == 409 and r.json() == {"detail": "daily cap"}
 
 
@@ -290,23 +290,36 @@ def test_reask_refreshes_jev_fields_and_keeps_the_owner_answer():
     c, store, client = _app(enabled=True)
     sid = _seed(c)
     c.post(f"/api/decide/review/{sid}", headers=OWNER, json={"answer": "wood"})
-    r = c.post(f"/api/decide/reask/{sid}", headers=OWNER)
+    r = c.post(f"/api/decide/reask/{sid}", headers=OWNER, json={})
     assert r.status_code == 200 and len(client.calls) == 2
     row = r.json()
     assert row["answer"] == "glass"       # the fake answers the first option it is sent: the original order
     assert row["status"] == "changed" and row["owner_answer"] == "wood"
 
 
+def test_reask_needs_a_json_body_a_form_or_empty_post_is_422():
+    # Blocks a cross-site trigger: a plain HTML form cannot send application/json, and {} is enough.
+    c, store, client = _app(enabled=True)
+    sid = _seed(c)
+    calls = len(client.calls)
+    assert c.post(f"/api/decide/reask/{sid}", headers=OWNER).status_code == 422                       # no body
+    assert c.post(f"/api/decide/reask/{sid}", headers=OWNER, data={"x": "1"}).status_code == 422     # a form post
+    assert c.post(f"/api/decide/reask/{sid}", headers={**OWNER, "Content-Type": "text/plain"},
+                  content="{}").status_code == 422
+    assert len(client.calls) == calls                                  # Jev was never called
+    assert c.post(f"/api/decide/reask/{sid}", headers=OWNER, json={}).status_code == 200
+
+
 def test_reask_unknown_id_is_404():
     c, _, _ = _app(enabled=True)
-    assert c.post("/api/decide/reask/999", headers=OWNER).status_code == 404
+    assert c.post("/api/decide/reask/999", headers=OWNER, json={}).status_code == 404
 
 
 def test_reask_failed_call_is_502_with_only_the_class_name():
     c, store, client = _app(enabled=True)
     sid = _seed(c)
     client.error = RuntimeError(f"401 bad key {FAKE_KEY}")
-    r = c.post(f"/api/decide/reask/{sid}", headers=OWNER)
+    r = c.post(f"/api/decide/reask/{sid}", headers=OWNER, json={})
     assert r.status_code == 502 and r.json() == {"detail": "jev call failed: RuntimeError"}
 
 
@@ -381,7 +394,7 @@ def test_a_failing_jev_call_leaks_no_key_in_bodies_or_logs(caplog):
     client.error = None
     sid = _seed(c)                                           # a real suggestion to reask against
     client.error = RuntimeError(f"401 bad key {FAKE_KEY}")
-    for resp in (c.post(f"/api/decide/reask/{sid}", headers=OWNER),
+    for resp in (c.post(f"/api/decide/reask/{sid}", headers=OWNER, json={}),
                  c.get("/api/decide/suggestions", headers=OWNER),
                  c.get("/api/decide/health", headers=OWNER),
                  c.get("/api/decide/confirmed?type=mat.category", headers=OWNER)):
@@ -489,7 +502,7 @@ def test_502_text_is_whitelisted(monkeypatch, raised, detail):
 
     monkeypatch.setattr(logic, "reask", boom)
     c, _, _ = _app(enabled=True)
-    r = c.post("/api/decide/reask/1", headers=OWNER)
+    r = c.post("/api/decide/reask/1", headers=OWNER, json={})
     assert r.status_code == 502 and r.json() == {"detail": detail} and FAKE_KEY not in r.text
 
 
@@ -576,7 +589,7 @@ def test_reask_sends_the_options_in_the_original_order():
     sid = c.get("/api/decide/suggestions", headers=OWNER).json()["items"][0]["id"]
     assert list(c.get("/api/decide/suggestions", headers=OWNER).json()["items"][0]["question"]["criteria"]) ==         ["metal", "wood", "glass"]
     client.calls.clear()
-    r = c.post(f"/api/decide/reask/{sid}", headers=OWNER)
+    r = c.post(f"/api/decide/reask/{sid}", headers=OWNER, json={})
     assert r.status_code == 200 and r.json()["answer"] == "metal"
     sent = client.calls[0]["questions"]["q"]
     assert list(sent.criteria) == ["metal", "wood", "glass"]

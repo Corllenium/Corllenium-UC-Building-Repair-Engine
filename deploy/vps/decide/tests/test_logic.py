@@ -17,8 +17,9 @@ CATS = {"glass": None, "metal": None, "wood": None}
 class FakeClient:
     """Answers every Choice with its first label (confidence 0.95); records each call."""
 
-    def __init__(self, error=None):
+    def __init__(self, error=None, confidence=0.95):
         self.error = error
+        self.confidence = confidence
         self.calls = []
 
     def system_one(self, state, questions):
@@ -28,13 +29,14 @@ class FakeClient:
         answers = {}
         for qid, spec in questions.items():
             label = next(iter(spec.criteria))
-            answers[qid] = SimpleNamespace(type="choice", choice=label, confidence=0.95, probabilities={label: 0.95})
+            answers[qid] = SimpleNamespace(type="choice", choice=label, confidence=self.confidence,
+                                      probabilities={label: self.confidence})
         return SimpleNamespace(answers=answers, model="jev-fake",
                                usage=SimpleNamespace(input_tokens=100, output_tokens=7))
 
 
-def _setup(enabled=True, error=None, **cfg):
-    client = FakeClient(error)
+def _setup(enabled=True, error=None, confidence=0.95, **cfg):
+    client = FakeClient(error, confidence)
     store = MemoryStore()
     settings = Settings(jev_enabled=enabled, **cfg)
     return client, store, settings, lambda: JevDecider(client=client)
@@ -169,13 +171,36 @@ def test_same_question_twice_in_one_call_asks_once():
     assert out["a"]["answer"] == out["b"]["answer"] == "glass"
 
 
-def test_accepted_follows_the_service_min_confidence_fresh_and_cached():
-    client, store, cfg, make = _setup(min_confidence=0.99)
+def test_accepted_is_never_set_by_confidence_fresh_or_cached():
+    # The final review's ruling: `accepted` is true only for the owner's own answer; confidence is still returned.
+    client, store, cfg, make = _setup(min_confidence=0.9)             # 0.95 is over the display threshold
     fresh = logic.answer(store, cfg, make, {"name": "x"}, {"a": _q()})
     cached = logic.answer(store, cfg, make, {"name": "x"}, {"a": _q()})
-    assert fresh["a"]["accepted"] is False and cached["a"]["accepted"] is False and fresh["a"]["confidence"] == 0.95
-    _, store2, cfg2, make2 = _setup(min_confidence=0.9)
-    assert logic.answer(store2, cfg2, make2, {"name": "x"}, {"a": _q()})["a"]["accepted"] is True
+    assert fresh["a"]["accepted"] is False and cached["a"]["accepted"] is False
+    assert fresh["a"]["confidence"] == cached["a"]["confidence"] == 0.95
+
+
+def test_a_099_confidence_jev_answer_is_not_accepted():
+    client, store, cfg, make = _setup(confidence=0.99)
+    out = logic.answer(store, cfg, make, {"name": "x"}, {"a": _q()})["a"]
+    assert out["source"] == "jev" and out["confidence"] == 0.99 and out["accepted"] is False
+
+
+def test_pilot_import_answer_is_not_accepted_and_keeps_its_confidence():
+    client, store, cfg, make = _setup()
+    item = {"state": {"name": "x"}, "question": wire.question_to_json(_q()), "answer": "metal", "confidence": 0.97}
+    assert logic.import_items(store, [item]) == {"added": 1, "skipped": 0, "invalid": 0}
+    out = logic.answer(store, cfg, make, {"name": "x"}, {"a": _q()})["a"]
+    assert out["source"] == "pilot-import" and out["confidence"] == 0.97 and out["accepted"] is False
+    assert client.calls == []
+
+
+def test_only_the_owners_answer_is_accepted():
+    client, store, cfg, make = _setup()
+    sid = logic.answer(store, cfg, make, {"name": "x"}, {"a": _q()})["a"]["suggestion_id"]
+    logic.review(store, sid, "gab", accept=True)
+    out = logic.answer(store, cfg, make, {"name": "x"}, {"a": _q()})["a"]
+    assert out["source"] == "owner" and out["accepted"] is True
 
 
 def test_cached_row_reviewed_by_the_owner_returns_the_owner_answer():

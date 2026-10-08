@@ -59,6 +59,11 @@ class ReviewBody(BaseModel):
     answer: Any = None
 
 
+class ReaskBody(BaseModel):
+    """Nothing to send, but the body must be JSON (`{}`): a form post or an empty post is a 422, which blocks a
+    cross-site trigger."""
+
+
 class ImportItem(BaseModel):
     state: dict | str
     question: QuestionIn
@@ -167,7 +172,7 @@ def create_app(store, cfg, make_decider) -> FastAPI:
         return _public(row)
 
     @app.post("/api/decide/reask/{id}")
-    def reask(id: int, _: str = Depends(owner)):
+    def reask(id: int, body: ReaskBody, _: str = Depends(owner)):
         try:
             row = logic.reask(store, cfg, make_decider, id)
         except PermissionError as exc:                  # "jev off" | "daily cap"
