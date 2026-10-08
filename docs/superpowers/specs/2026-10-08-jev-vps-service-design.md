@@ -18,6 +18,7 @@ Materials: 74 % answered confidently; 23 of 23 correct in a spot check.
 | Shape | Approach A: a separate container `uc-fixer-decide` in the existing VPS stack |
 | Calls | Live: the engine on the PC calls the service over HTTPS |
 | Cost | Each distinct question goes to Jev **once** and is stored for good; it is asked again only when the owner presses "re-ask". Safety cap: **1,000,000 tokens per day** |
+| When Jev is used (owner, 2026-10-08, after the design) | **Build now with Jev switched off.** The service, the page and the engine link are built and tested now with zero new Jev calls; the pilot answers already paid for are loaded for review. Jev is switched on **once the repair engine (P2) is ready**, with a new question, **"what is the next repair step for this floor?"**, as a suggestion the owner confirms |
 
 ## 2. Rules that do not change (spec §9, AGENTS.md)
 
@@ -74,6 +75,11 @@ dashboard's `api/`.
 **Limits, before any call:** Score at most 10 levels and Choice at most 255 options (`check_question_limits`). A
 breach answers HTTP 400 naming the limit.
 
+**Jev switch:** `DECIDE_JEV_ENABLED`, which is `false` until the repair engine is ready. While it is off, steps 1 and 2
+still answer (owner answers, stored suggestions, pilot imports), and a question that would need step 3 comes back
+`none` with the reason `jev off`. No call is made, so no tokens are spent. The owner's "re-ask" button is hidden.
+Switching it on is an owner decision, made when P2 is ready; it changes one line in `decide.env`.
+
 **Safety cap:** 1,000,000 tokens per day, summed from `decide.calls`. Over the cap, uncached questions come back as
 `none`, with the reason `daily cap`; cached and owner answers still come back.
 
@@ -93,13 +99,15 @@ it from the environment.
 | `POST /api/decide/review/<id>` | owner | `{"accept": true}`, or `{"answer": …}`, which must be one of the question's options |
 | `POST /api/decide/reask/<id>` | owner | ask Jev again for this one suggestion, counted against the cap |
 | `GET /api/decide/confirmed?type=` | both | the confirmed answers: `subject → answer` |
-| `GET /api/decide/health` | both | ok, the model, today's tokens against the cap |
+| `POST /api/decide/import` | `uc-engine` | stores already-answered questions (`pilot-import`) as `pending` suggestions, skipping any already stored |
+| `GET /api/decide/health` | both | ok, the model, today's tokens against the cap, and whether Jev is on |
 
 ## 5. The page `/jev`
 
 - A new page in the existing dashboard (`web/`), behind the same login, usable on a phone.
-- **Tabs:** Materials and Campus map are live. Review order and Fix tie-breaks show "not available yet" until P4 and
-  P2 add their question types.
+- **Tabs:** Materials and Campus map show the pilot answers. Next repair step, Review order and Fix tie-breaks
+  show "not available yet" until P2 and P4 add their question types. A banner says "Jev is off until the repair
+  engine is ready" while the switch is off.
 - **Each row shows:**
   - the subject, with the texture thumbnail when the file is on the VPS;
   - Jev's answer and its confidence as a bar;
@@ -122,9 +130,14 @@ it from the environment.
   `GET /api/decide/confirmed`. These files are the only Jev input the engine uses.
 - **P1-D2** (reserved for this session) registers `RemoteDecider` as the Jev provider behind the rules, once P1-D1's
   Decider protocol is merged. Until then the classifiers use it directly.
-- **`engine.cli decide-import-pilot`** stores the 2026-10-08 pilot answers (85 groups and 391 materials,
-  `data/campus/jev_pilot.json`) as `pending` suggestions with source `pilot-import`. They use the same question text and
-  state hash as live calls, so later asks hit the cache. Nothing is paid twice.
+- **`engine.cli decide-import-pilot`** stores the 2026-10-08 pilot answers that `data/campus/jev_pilot.json`
+  actually holds as `pending` suggestions with source `pilot-import`. That is all 85 groups (4 questions each) and the
+  30 spot-checked materials; the file keeps only totals for the other 361 materials. The suggestions are built with the
+  same question text and state hash as live calls, so later asks hit the cache and nothing is paid twice. The 361
+  materials are asked once when Jev is switched on, for about 100,000 tokens (measured: 40 material calls in the pilot).
+  The pilot file has no probabilities, so imported rows show the answer and its confidence only.
+  It sends them through `POST /api/decide/import` (`uc-engine` only), which stores a row only if its question is not
+  already stored.
 
 ## 7. Safety
 
@@ -138,13 +151,17 @@ it from the environment.
 - **Service, unit:** a fake Jev client covers:
   - the order of answers (owner > cache > Jev) and the cache hit;
   - the limits refused before any call, and the daily cap;
+  - with `DECIDE_JEV_ENABLED=false`, the fake client is never called and uncached questions come back `none` /
+    `jev off`;
   - the roles from `X-Remote-User`;
   - review validation, where the answer must be one of the options;
   - the key never appearing in a response, a log or an exception.
 - **Service, API:** the endpoints against a throwaway Postgres 16 in its own Docker Compose project.
 - **`RemoteDecider`:** a fake HTTP server checks the mapping, that the timeout gives `none`, that a 401 or 500 gives
   `error`, that the password never shows, and `decide-pull`'s file.
-- **The page:** Vitest component tests for the row actions, the filters and the accept-all confirmation.
+- **The page:** the page's logic (the API client, filters, counts and the accept-all selection) lives in plain
+  TypeScript modules and is tested with Vitest, as the dashboard's existing tests are. The `.vue` file stays thin.
+  No component-test library is added (global rule 6).
 - **After deploy, against the real URL:** health, one `ask` as `uc-engine`, one review as the owner, one
   `confirmed` fetch, and one refusal per role (`uc-engine` cannot review; the owner login cannot `ask`).
 
@@ -161,8 +178,13 @@ it from the environment.
    - the owner adds the `uc-engine` login and writes `decide.env` himself, by the prompted SSH commands;
    - run the post-deploy checks.
 6. Import the pilot answers, then the owner reviews the first suggestions on `/jev`.
-7. Later: P1-D2 (provider behind the Decider), then the P4/P2 question types (`review.priority`, `e5.winner`,
-   `e4.same_look`, `e8.opening_kind`).
+7. Later: P1-D2 (provider behind the Decider).
+8. When the repair engine (P2) is ready, with the owner's OK, Jev is switched on with its first live question
+   type: `repair.next_step`, "what is the next repair step for this floor?". It is a Choice over the repair steps P2
+   defines; its state is the floor's error counts by kind, the steps already run and their Validator results (text
+   and small numbers only). Jev suggests and the owner confirms; the engine runs only the confirmed step. Its exact
+   options are fixed when P2 names its steps.
+9. After that: the P4/P2 question types (`review.priority`, `e5.winner`, `e4.same_look`, `e8.opening_kind`).
 
 ## 10. Out of scope
 
