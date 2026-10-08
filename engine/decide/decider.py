@@ -281,6 +281,10 @@ class Decider:
                      "confidence": 1.0, "accepted": True, "mode": self._modes[qtype],
                      "latency_s": 0.0, "tokens": None})
 
+    def owner_answer(self, qtype: str, subject: str) -> Any:
+        """The owner's current answer (raw option form) for this question, or None when there is none."""
+        return self._owner.get((qtype, subject))
+
     def stats(self, qtype: str) -> dict:
         """Provider answers joined with the owner's later decisions, from the log. Decisions are the owner
         decisions that had a non-rule provider answer waiting (the best one, by confidence). Reports whether
