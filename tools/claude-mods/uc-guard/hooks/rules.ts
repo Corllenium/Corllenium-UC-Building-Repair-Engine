@@ -370,10 +370,15 @@ function resultsReason(segs: Segment[]): string | undefined {
 
 // The engine reads only the TYPESAFE_API_KEY line of the file given to `python -m engine.cli ... --env-file`
 // (owner decision 2026-10-08: code reads keys at run time), so that one value is not an agent reading a secret.
+// Only when the command itself is a Python interpreter whose module is engine.cli: options such as -u may come
+// first, but no -c and no script.
+const PYTHONS = new Set(['python', 'python3', 'py', '$py'])
 function engineKeyFileDropped(words: string[]): string[] {
-  const m = words.indexOf('-m')
-  if (m < 0 || words[m + 1] !== 'engine.cli') return words
-  return words.filter((w, i) => !w.startsWith('--env-file=') && words[i - 1] !== '--env-file')
+  if (!PYTHONS.has(verb(words[0]) ?? '')) return words
+  let i = 1
+  for (let w = words[i]; w !== undefined && w.startsWith('-') && w !== '-m' && w !== '-c'; w = words[i]) i++
+  if (words[i] !== '-m' || words[i + 1] !== 'engine.cli') return words
+  return words.filter((w, k) => !(k > i + 1 && (w.startsWith('--env-file=') || words[k - 1] === '--env-file')))
 }
 
 function shellReason(command: string, shell: Shell): string | undefined {

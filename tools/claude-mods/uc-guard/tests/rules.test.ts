@@ -157,6 +157,15 @@ describe('rule 5: secret files', () => {
     expect(bash(`"$PY" -m other.tool --env-file "${ROOT}/.env"`)).toBe(REASONS.secret)
     expect(bash(`"$PY" -m engine.cli decide-pilot --env-file "${ROOT}/.env"; cat "${ROOT}/.env"`)).toBe(REASONS.secret)
   })
+  test('only a Python interpreter running -m engine.cli as its module gets the exemption (M1b review)', () => {
+    expect(bash(`"$PY" -u -m engine.cli decide-pilot --env-file "${ROOT}/.env"`)).toBeUndefined()
+    expect(ps(`& "D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe" -m engine.cli decide-pilot --env-file "${ROOT}/.env"`)).toBeUndefined()
+    for (const c of [
+      `docker run --rm --env-file "${ROOT}/.env" alpine sh -c env -m engine.cli`,
+      `"$PY" dump.py --env-file "${ROOT}/.env" -m engine.cli`,
+      `"$PY" -c "import sys; print(open(sys.argv[2]).read())" --env-file "${ROOT}/.env" -m engine.cli`,
+    ]) expect(bash(c)).toBe(REASONS.secret)
+  })
   test('allows .env.example, .venv, ordinary files and prose that mentions .env (review finding 5)', () => {
     expect(check('Read', { file_path: `${ROOT}/.env.example` })).toBeUndefined()
     expect(check('Read', { file_path: `${ROOT}/engine/decide/jev.py` })).toBeUndefined()
