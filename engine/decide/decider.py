@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import re
 import time
 from dataclasses import dataclass
@@ -96,6 +97,15 @@ class Answer:
     tokens: int | None = None  # provider-reported, for the log; None for rules and the owner
 
 
+# Promotion and demotion (spec section 9). Nothing here applies a mode: `stats` only reports, and only an
+# explicit Decider.promote / Decider.demote call writes the new mode to the log.
+PROMOTE_MIN_DECISIONS = 50  # a provider must have been checked against the owner this often ...
+PROMOTE_MIN_AGREEMENT = 0.95  # ... and agreed on at least this share to become eligible for AUTO
+BAND_MIN_AGREEMENT = 0.98  # AUTO accepts an answer only in a confidence band that measured this much
+BAND_MIN_DECISIONS = 10  # a band needs this many owner decisions before its agreement counts as measured
+DEMOTE_WINDOW = 30  # AUTO falls back to SUGGEST when the last 30 decisions ...
+DEMOTE_BELOW = 0.90  # ... agree on less than this
+
 DEFAULT_LOG_PATH = Path("data/decide/log.jsonl")  # cwd-relative
 DEFAULT_CACHE_PATH = Path("data/decide/cache.jsonl")
 
@@ -109,6 +119,16 @@ class Provider(Protocol):
 def _pkey(value: Any) -> str:
     """The string key a raw answer takes in a probabilities object."""
     return ("true" if value else "false") if isinstance(value, bool) else str(value)
+
+
+def _band(confidence: float) -> str:
+    """The 0.1-wide confidence band an answer falls in: '0.9-1.0' for 0.9 up to and including 1.0."""
+    lo = min(math.floor(confidence * 10 + 1e-9), 9)
+    return f"{lo / 10:.1f}-{(lo + 1) / 10:.1f}"
+
+
+def _share(agreed: int, decisions: int) -> float | None:
+    return agreed / decisions if decisions else None
 
 
 def _normalise(qt: QuestionType, value: Any) -> Any:
@@ -174,6 +194,7 @@ class Decider:
         self._pending: dict[tuple[str, str], Answer] = {}
         self._records: list[dict] = []
         self._cache: dict[tuple[str, str], dict] = {}
+        self._bands: dict[str, set[str]] = {}  # per ask() call: qtype -> bands AUTO may accept
         self._replay()
         self._load_cache()
 
@@ -241,7 +262,74 @@ class Decider:
                      "confidence": 1.0, "accepted": True, "mode": self._modes[qtype],
                      "latency_s": 0.0, "tokens": None})
 
+    def stats(self, qtype: str) -> dict:
+        """Provider answers joined with the owner's later decisions, from the log. Decisions are the owner
+        decisions that had a non-rule provider answer waiting (the best one, by confidence). Reports whether
+        SUGGEST is eligible for AUTO and whether AUTO should fall back; changes nothing."""
+        self._type(qtype)
+        latest: dict[str, dict[str, dict]] = {}  # subject -> provider -> its latest unjudged answer
+        joined: list[tuple[float, bool]] = []  # (confidence, agreed), in log order
+        for rec in self._records:
+            if rec.get("qtype") != qtype:
+                continue
+            subject = rec.get("subject")
+            if rec["event"] == "provider":
+                latest.setdefault(subject, {})[rec["provider"]] = rec
+            elif rec["event"] == "owner":
+                waiting = latest.pop(subject, None)
+                if waiting:
+                    best = max(waiting.values(), key=lambda r: r["confidence"])
+                    joined.append((best["confidence"], best["answer"] == rec["answer"]))
+        by_band: dict[str, list[int]] = {}
+        for conf, agreed in joined:
+            row = by_band.setdefault(_band(conf), [0, 0])
+            row[0] += 1
+            row[1] += agreed
+        decisions, agreed = len(joined), sum(a for _, a in joined)
+        recent = joined[-DEMOTE_WINDOW:]
+        recent_agreed = sum(a for _, a in recent)
+        mode = self._modes[qtype]
+        agreement = _share(agreed, decisions)
+        last30 = _share(recent_agreed, len(recent))
+        return {
+            "qtype": qtype, "mode": mode,
+            "decisions": decisions, "agreed": agreed, "agreement": agreement,
+            "by_confidence": {
+                b: {"decisions": n, "agreed": k, "agreement": k / n} for b, (n, k) in sorted(by_band.items())},
+            "last30_decisions": len(recent), "last30_agreement": last30,
+            "eligible_for_auto": (mode == "suggest" and decisions >= PROMOTE_MIN_DECISIONS
+                                  and agreement >= PROMOTE_MIN_AGREEMENT),
+            "auto_bands": [b for b, (n, k) in sorted(by_band.items())
+                           if n >= BAND_MIN_DECISIONS and k / n >= BAND_MIN_AGREEMENT],
+            "should_demote": (mode == "auto" and len(recent) >= DEMOTE_WINDOW and last30 < DEMOTE_BELOW),
+        }
+
+    def promote(self, qtype: str) -> Mode:
+        """SUGGEST -> AUTO, only when `stats` says eligible. The one place a mode is raised; it is logged."""
+        st = self.stats(qtype)
+        if st["mode"] != "suggest":
+            raise ValueError(f"{qtype} is in mode {st['mode']!r}; only a suggest type can be promoted")
+        if not st["eligible_for_auto"]:
+            raise ValueError(
+                f"{qtype} is not eligible: needs >= {PROMOTE_MIN_DECISIONS} decisions at >= "
+                f"{PROMOTE_MIN_AGREEMENT:.0%} agreement, has {st['decisions']} at {st['agreement']}")
+        return self._set_mode(qtype, "auto", "promote", st)
+
+    def demote(self, qtype: str) -> Mode:
+        """AUTO -> SUGGEST on an explicit call (the owner's, or the controller's when `should_demote`)."""
+        st = self.stats(qtype)
+        if st["mode"] != "auto":
+            raise ValueError(f"{qtype} is in mode {st['mode']!r}; only an auto type can be demoted")
+        return self._set_mode(qtype, "suggest", "demote", st)
+
+    def _set_mode(self, qtype: str, to: str, action: str, st: dict) -> Mode:
+        self._write({"event": "mode", "qtype": qtype, "action": action, "from": st["mode"], "to": to,
+                     "decisions": st["decisions"], "agreement": st["agreement"],
+                     "last30_agreement": st["last30_agreement"]})
+        return self._modes[qtype]  # type: ignore[return-value]
+
     def ask(self, questions: list[Question]) -> list[Answer]:
+        self._bands = {}
         results: list[Answer | None] = [None] * len(questions)
         types = [self._type(q.qtype) for q in questions]
         keys = [question_key(t, q) for t, q in zip(types, questions)]
@@ -303,10 +391,17 @@ class Decider:
         return ans
 
     def _decide(self, q: Question, key: str, candidates: list[Answer]) -> Answer:
-        """Providers other than the rules only ever SUGGEST here: the best one rides on the queued answer."""
+        """SUGGEST: the best provider answer rides on the queued answer, never accepted. AUTO: it is accepted
+        only in a confidence band where promotion measured >= 98 % agreement; otherwise it is a suggestion."""
         suggestion = None
         if candidates:
             best = max(candidates, key=lambda a: a.confidence)
+            if self._modes[q.qtype] == "auto":
+                if q.qtype not in self._bands:
+                    self._bands[q.qtype] = set(self.stats(q.qtype)["auto_bands"])
+                if _band(best.confidence) in self._bands[q.qtype]:
+                    return Answer(q.qtype, q.subject, key, best.answer, best.confidence, best.provider,
+                                  best.probabilities, True, None, best.tokens)
             suggestion = {"provider": best.provider, "answer": best.answer,
                           "confidence": best.confidence, "probabilities": best.probabilities}
         return self._queued(q, key, suggestion)

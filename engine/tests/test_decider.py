@@ -392,3 +392,175 @@ def test_provider_noul_answer_keeps_its_raw_form(tmp_path):
     d = _decider(tmp_path, [jev])
     (a,) = d.ask([Question("inv.duplicate", "G", {"n": 1})])
     assert a.suggestion["answer"] is False and a.suggestion["probabilities"] == {"False": 0.8}
+
+
+# ---------------------------------------------------------------- statistics, promotion, demotion, AUTO
+
+
+def _history(d, jev, spec, start=0):
+    """For each (confidence, agrees) in `spec`: the provider answers a fresh subject with that confidence, then
+    the owner decides, agreeing or not. Returns the next free subject number."""
+    n = start
+    for conf, agrees in spec:
+        subject = f"S{n}"
+        n += 1
+        jev.table[subject] = ("CHTM", conf)
+        d.ask([Question("inv.building", subject, {"name": subject})])
+        d.record_owner("inv.building", subject, "CHTM" if agrees else "BRS")
+    return n
+
+
+def _fresh(tmp_path, **kw):
+    jev = FakeProvider()
+    return _decider(tmp_path, [_rules(**{}), jev], **kw), jev
+
+
+def test_stats_join_provider_answers_with_the_owner_decisions_that_follow(tmp_path):
+    d, jev = _fresh(tmp_path)
+    _history(d, jev, [(0.95, True)] * 3 + [(0.95, False)] + [(0.55, True), (0.55, False)])
+    d.ask([_q("RuleOnly")])  # no provider answer; the owner decides: not a provider decision
+    d.record_owner("inv.building", "RuleOnly", "MAIN")
+    st = d.stats("inv.building")
+    assert (st["decisions"], st["agreed"]) == (6, 4)
+    assert st["agreement"] == pytest.approx(4 / 6)
+    assert st["by_confidence"]["0.9-1.0"] == {"decisions": 4, "agreed": 3, "agreement": 0.75}
+    assert st["by_confidence"]["0.5-0.6"] == {"decisions": 2, "agreed": 1, "agreement": 0.5}
+    assert st["mode"] == "suggest" and st["eligible_for_auto"] is False
+    assert d.stats("inv.duplicate")["decisions"] == 0 and d.stats("inv.duplicate")["agreement"] is None
+
+
+def test_rule_answers_do_not_count_as_provider_agreement(tmp_path):
+    d = _decider(tmp_path, [_rules(**{"inv.building": _chtm_rule})])
+    d.ask([_q("CHTM_a")])
+    d.record_owner("inv.building", "CHTM_a", "CHTM")
+    assert d.stats("inv.building")["decisions"] == 0
+
+
+def test_promotion_stays_off_below_50_decisions(tmp_path):
+    d, jev = _fresh(tmp_path)
+    _history(d, jev, [(0.95, True)] * 49)
+    st = d.stats("inv.building")
+    assert (st["decisions"], st["agreement"], st["eligible_for_auto"]) == (49, 1.0, False)
+    with pytest.raises(ValueError):
+        d.promote("inv.building")
+    assert d.mode_of("inv.building") == "suggest"
+
+
+def test_promotion_stays_off_below_95_percent(tmp_path):
+    d, jev = _fresh(tmp_path)
+    n = _history(d, jev, [(0.95, True)] * 47 + [(0.95, False)] * 3)  # 94 %
+    st = d.stats("inv.building")
+    assert (st["decisions"], st["eligible_for_auto"]) == (50, False)
+    with pytest.raises(ValueError):
+        d.promote("inv.building")
+    n = _history(d, jev, [(0.95, True)] * 4, start=n)  # 51/54 = 94.4 %: still no
+    assert d.stats("inv.building")["eligible_for_auto"] is False
+    _history(d, jev, [(0.95, True)] * 10, start=n)  # 61/64 = 95.3 %
+    assert d.stats("inv.building")["eligible_for_auto"] is True
+
+
+def test_eligibility_is_reported_but_the_mode_changes_only_on_an_explicit_call(tmp_path):
+    d, jev = _fresh(tmp_path)
+    _history(d, jev, [(0.95, True)] * 50)
+    assert d.stats("inv.building")["eligible_for_auto"] is True
+    assert d.mode_of("inv.building") == "suggest"  # nothing promoted itself
+    assert [r for r in _log(tmp_path) if r["event"] == "mode"] == []
+    assert d.promote("inv.building") == "auto"
+    assert d.mode_of("inv.building") == "auto"
+    (rec,) = [r for r in _log(tmp_path) if r["event"] == "mode"]
+    assert (rec["qtype"], rec["from"], rec["to"]) == ("inv.building", "suggest", "auto")
+    assert rec["decisions"] == 50 and rec["agreement"] == 1.0
+    assert _decider(tmp_path).mode_of("inv.building") == "auto"  # the log carries the mode
+    with pytest.raises(ValueError):
+        d.promote("inv.building")  # already auto
+
+
+def test_only_a_suggest_type_can_be_promoted(tmp_path):
+    off = QuestionType("inv.building", "choice", T_BUILDING.instructions, BUILDINGS, mode="off")
+    d = _decider(tmp_path, [], types=[off])
+    with pytest.raises(ValueError):
+        d.promote("inv.building")
+
+
+def test_auto_accepts_only_in_the_measured_band(tmp_path):
+    d, jev = _fresh(tmp_path)
+    spec = (
+        [(0.95, True)] * 58                         # band 0.9-1.0: 58/58
+        + [(0.65, True)] * 7 + [(0.65, False)] * 3  # band 0.6-0.7: 7/10 = 70 %
+        + [(0.75, True)] * 5                        # band 0.7-0.8: 100 % but only 5 decisions
+    )
+    _history(d, jev, spec)
+    st = d.stats("inv.building")
+    assert st["eligible_for_auto"] is True and st["auto_bands"] == ["0.9-1.0"]
+    d.promote("inv.building")
+    jev.table.update({"hi": ("MAIN", 0.93), "mid": ("MAIN", 0.65), "thin": ("MAIN", 0.75),
+                      "unseen": ("MAIN", 0.35)})
+    answers = {a.subject: a for a in d.ask([_q(s) for s in ("hi", "mid", "thin", "unseen")])}
+    assert (answers["hi"].provider, answers["hi"].accepted, answers["hi"].answer) == ("jev", True, "MAIN")
+    assert answers["hi"].confidence == 0.93
+    for s in ("mid", "thin", "unseen"):
+        assert (answers[s].provider, answers[s].accepted, answers[s].answer) == ("queue", False, None)
+        assert answers[s].suggestion["answer"] == "MAIN"
+    assert sorted(a.subject for a in d.owner_queue()) == ["mid", "thin", "unseen"]
+    acc = [r for r in _log(tmp_path) if r["event"] == "answer" and r["subject"] == "hi"][-1]
+    assert (acc["provider"], acc["accepted"], acc["mode"], acc["tokens"]) == ("jev", True, "auto", 7)
+
+
+def test_auto_still_lets_the_owner_and_the_rules_come_first(tmp_path):
+    jev = FakeProvider()
+    d = _decider(tmp_path, [_rules(**{"inv.building": _chtm_rule}), jev])
+    _history(d, jev, [(0.95, True)] * 50)
+    d.promote("inv.building")
+    jev.table.update({"CHTM_x": ("MAIN", 0.99), "owned": ("MAIN", 0.99)})
+    d.record_owner("inv.building", "owned", "BRS")
+    a, b = d.ask([_q("CHTM_x"), _q("owned")])
+    assert (a.provider, a.answer) == ("rules", "CHTM") and (b.provider, b.answer) == ("owner", "BRS")
+
+
+def test_demotion_is_reported_below_90_percent_of_the_last_30_and_applied_only_on_call(tmp_path):
+    d, jev = _fresh(tmp_path)
+    n = _history(d, jev, [(0.95, True)] * 50)
+    d.promote("inv.building")
+    _history(d, jev, [(0.95, True)] * 26 + [(0.95, False)] * 4, start=n)  # last 30: 26/30 = 86.7 %
+    st = d.stats("inv.building")
+    assert st["last30_decisions"] == 30 and st["last30_agreement"] == pytest.approx(26 / 30)
+    assert st["agreement"] >= 0.95  # overall still fine: only the recent window matters
+    assert st["should_demote"] is True
+    assert d.mode_of("inv.building") == "auto"  # nothing demoted itself
+    assert d.demote("inv.building") == "suggest"
+    assert d.mode_of("inv.building") == "suggest"
+    rec = [r for r in _log(tmp_path) if r["event"] == "mode"][-1]
+    assert (rec["from"], rec["to"]) == ("auto", "suggest") and rec["last30_agreement"] == pytest.approx(26 / 30)
+    assert _decider(tmp_path).mode_of("inv.building") == "suggest"
+    # and in suggest mode the confident answer is a suggestion again
+    jev.table["again"] = ("MAIN", 0.99)
+    assert d.ask([_q("again")])[0].accepted is False
+
+
+def test_no_demotion_at_exactly_90_percent(tmp_path):
+    d, jev = _fresh(tmp_path)
+    n = _history(d, jev, [(0.95, True)] * 50)
+    d.promote("inv.building")
+    _history(d, jev, [(0.95, True)] * 27 + [(0.95, False)] * 3, start=n)  # 27/30 = 90 %
+    assert d.stats("inv.building")["should_demote"] is False
+
+
+def test_no_demotion_before_30_decisions_or_outside_auto(tmp_path):
+    d, jev = _fresh(tmp_path)
+    _history(d, jev, [(0.95, False)] * 5)
+    st = d.stats("inv.building")
+    assert st["last30_decisions"] == 5 and st["should_demote"] is False
+
+
+def test_demote_needs_an_auto_type(tmp_path):
+    d, _ = _fresh(tmp_path)
+    with pytest.raises(ValueError):
+        d.demote("inv.building")
+
+
+def test_stats_survive_a_restart(tmp_path):
+    d, jev = _fresh(tmp_path)
+    _history(d, jev, [(0.95, True)] * 50)
+    d2 = _decider(tmp_path)
+    assert d2.stats("inv.building")["decisions"] == 50
+    assert d2.stats("inv.building")["eligible_for_auto"] is True
