@@ -17,7 +17,9 @@ export interface SuggestionParams {
 export async function fetchSuggestions(params: SuggestionParams = {}): Promise<SuggestionsReply> {
   const query = new URLSearchParams()
   for (const [key, value] of Object.entries(params)) {
-    if (value !== undefined && value !== null && value !== '') query.set(key, String(value))
+    if (value === undefined || value === null || value === '') continue
+    if (typeof value === 'number' && !Number.isFinite(value)) continue
+    query.set(key, String(value))
   }
   const qs = query.toString()
   const res = await checkResponse(

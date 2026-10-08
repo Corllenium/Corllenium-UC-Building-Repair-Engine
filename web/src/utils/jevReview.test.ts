@@ -4,11 +4,14 @@ import {
   TABS,
   acceptAllSelection,
   answerLabel,
+  errorText,
   filterRows,
   isServiceMissing,
   mergeResults,
   optionLabels,
   optionValues,
+  runAcceptAll,
+  suggestionParams,
   textureName,
   topAlternatives,
   type Question,
@@ -171,5 +174,105 @@ describe('mergeResults', () => {
     ])
     expect(merged.items.map((r) => r.id)).toEqual([1, 2])
     expect(merged.counts).toEqual({ pending: 4, accepted: 2, changed: 1 })
+  })
+})
+
+describe('threshold validation', () => {
+  const rows = [row({ id: 1, status: 'pending', confidence: 0.95 }), row({ id: 2, status: 'pending', confidence: 0.1 })]
+  it('acceptAllSelection selects nothing for an empty, NaN or non-finite threshold', () => {
+    expect(acceptAllSelection(rows, '' as unknown as number)).toEqual([])
+    expect(acceptAllSelection(rows, NaN)).toEqual([])
+    expect(acceptAllSelection(rows, Infinity)).toEqual([])
+    expect(acceptAllSelection(rows, undefined as unknown as number)).toEqual([])
+    expect(acceptAllSelection(rows, 0)).toEqual([1, 2])
+  })
+  it('filterRows shows nothing for an empty or NaN minimum confidence', () => {
+    expect(filterRows(rows, { status: 'all', minConf: '' as unknown as number, text: '' })).toEqual([])
+    expect(filterRows(rows, { status: 'all', minConf: NaN, text: '' })).toEqual([])
+    expect(filterRows(rows, { status: 'all', minConf: 0, text: '' }).length).toBe(2)
+  })
+})
+
+describe('suggestionParams', () => {
+  it('sends status, min_conf and q to the server, trimmed, with the question type', () => {
+    expect(suggestionParams({ status: 'pending', minConf: 0.5, text: ' wood ' }, 'mat.trim', 500)).toEqual({
+      type: 'mat.trim', status: 'pending', min_conf: 0.5, q: 'wood', limit: 500,
+    })
+  })
+  it('leaves status out for all and q out when empty, but keeps min_conf 0', () => {
+    expect(suggestionParams({ status: 'all', minConf: 0, text: '  ' }, 'inv.floor', 500)).toEqual({
+      type: 'inv.floor', min_conf: 0, limit: 500,
+    })
+  })
+  it('is null when the minimum confidence is not a number', () => {
+    expect(suggestionParams({ status: 'all', minConf: '' as unknown as number, text: '' }, 'x', 500)).toBeNull()
+    expect(suggestionParams({ status: 'all', minConf: NaN, text: '' }, 'x', 500)).toBeNull()
+  })
+})
+
+describe('runAcceptAll', () => {
+  const ok = async () => undefined
+  it('accepts every id and reports nothing stopped', async () => {
+    const calls: number[] = []
+    const res = await runAcceptAll([1, 2, 3], async (id) => { calls.push(id) })
+    expect(calls).toEqual([1, 2, 3])
+    expect(res).toEqual({ done: [1, 2, 3], failed: [], stoppedAfter: null })
+  })
+  it('clears the errors of every id at the start, through onStart', async () => {
+    let started: number[] = []
+    await runAcceptAll([4, 5], ok, { onStart: (ids) => { started = ids } })
+    expect(started).toEqual([4, 5])
+  })
+  it('continues on a per-row 404 (unknown suggestion), 422 and 409', async () => {
+    const errors: Record<number, ApiError> = {
+      1: new ApiError('unknown suggestion', 404),
+      2: new ApiError('answer must be one of', 422),
+      3: new ApiError('conflict', 409),
+    }
+    const res = await runAcceptAll([1, 2, 3, 4], async (id) => { if (errors[id]) throw errors[id] })
+    expect(res.done).toEqual([4])
+    expect(res.failed.map((f) => f.id)).toEqual([1, 2, 3])
+    expect(res.stoppedAfter).toBeNull()
+  })
+  it('stops at the first service-missing 404 or 502, 401, 403 or non-ApiError error', async () => {
+    const stoppers: unknown[] = [
+      new ApiError('Not Found', 404), new ApiError('bad gateway', 502), new ApiError('no user', 401),
+      new ApiError('owner only', 403), new ApiError('boom', 500), new TypeError('Failed to fetch'),
+    ]
+    for (const err of stoppers) {
+      const calls: number[] = []
+      const res = await runAcceptAll([1, 2, 3, 4], async (id) => {
+        calls.push(id)
+        if (id === 3) throw err
+      })
+      expect(calls).toEqual([1, 2, 3])
+      expect(res.done).toEqual([1, 2])
+      expect(res.failed.map((f) => f.id)).toEqual([3])
+      expect(res.stoppedAfter).toBe(2)
+    }
+  })
+  it('reports the failure per id with its error', async () => {
+    const err = new ApiError('unknown suggestion', 404)
+    const res = await runAcceptAll([9], async () => { throw err })
+    expect(res.failed).toEqual([{ id: 9, error: err }])
+  })
+})
+
+describe('errorText', () => {
+  it('gives a plain message as it is', () => {
+    expect(errorText(new ApiError('jev off', 409))).toBe('jev off')
+    expect(errorText(new Error('x'))).toBe('x')
+  })
+  it('reads the 422 list form of detail (a JSON list of {loc, msg, type})', () => {
+    const detail = JSON.stringify([
+      { loc: ['body', 'accept'], msg: 'Input should be a valid boolean', type: 'bool_type' },
+      { loc: ['path', 'id'], msg: 'Input should be a valid integer', type: 'int_parsing' },
+    ])
+    expect(errorText(new ApiError(detail, 422)))
+      .toBe('body.accept: Input should be a valid boolean; path.id: Input should be a valid integer')
+  })
+  it('keeps a message that merely looks like JSON but is not a detail list', () => {
+    expect(errorText(new ApiError('[not json', 422))).toBe('[not json')
+    expect(errorText(new ApiError('[1,2]', 422))).toBe('[1,2]')
   })
 })

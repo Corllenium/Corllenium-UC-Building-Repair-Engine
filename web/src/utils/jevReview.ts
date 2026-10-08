@@ -78,7 +78,31 @@ export interface RowFilter {
   text: string
 }
 
+/** A usable confidence threshold: a real, finite number. '' (an emptied input), NaN and Infinity are not. */
+export function isValidThreshold(x: unknown): x is number {
+  return typeof x === 'number' && Number.isFinite(x)
+}
+
+/** The query for one question type, from the page filters. Null when the minimum confidence is not a number. */
+export function suggestionParams(f: RowFilter, type: string, limit: number): SuggestionQuery | null {
+  if (!isValidThreshold(f.minConf)) return null
+  const params: SuggestionQuery = { type, min_conf: f.minConf, limit }
+  if (f.status !== 'all' && f.status !== '') params.status = f.status
+  const q = f.text.trim()
+  if (q !== '') params.q = q
+  return params
+}
+
+export interface SuggestionQuery {
+  type: string
+  status?: string
+  min_conf: number
+  q?: string
+  limit: number
+}
+
 export function filterRows(rows: Suggestion[], f: RowFilter): Suggestion[] {
+  if (!isValidThreshold(f.minConf)) return []
   const needle = f.text.trim().toLowerCase()
   return rows.filter(
     (r) =>
@@ -147,6 +171,7 @@ export function topAlternatives(row: Suggestion, n = 2): Alternative[] {
 
 /** The ids "Accept all shown" would accept: pending rows at or above `minConf`. */
 export function acceptAllSelection(rows: Suggestion[], minConf: number): number[] {
+  if (!isValidThreshold(minConf)) return []
   return rows.filter((r) => r.status === 'pending' && r.confidence >= minConf).map((r) => r.id)
 }
 
@@ -172,4 +197,60 @@ export function mergeResults(replies: SuggestionsReply[]): { items: Suggestion[]
     counts.changed += r.counts.changed ?? 0
   }
   return { items, counts }
+}
+
+export interface AcceptAllResult {
+  done: number[]
+  failed: Array<{ id: number; error: unknown }>
+  /** Null when the loop ran to the end; else the number of ids finished before the one that stopped it. */
+  stoppedAfter: number | null
+}
+
+/** Only these errors are about one row, so the loop goes on: its 404 "unknown suggestion", 422 and 409.
+ *  Anything else (a service 404 or 502, 401, 403, 500, a network error) is systemic and ends the loop. */
+function isPerRowError(err: unknown): boolean {
+  if (!(err instanceof ApiError)) return false
+  if (err.status === 404) return err.message === 'unknown suggestion'
+  return err.status === 422 || err.status === 409
+}
+
+/** "Accept all shown": one `accept` per id, in order. Stops at the first systemic failure. */
+export async function runAcceptAll(
+  ids: number[],
+  accept: (id: number) => Promise<unknown>,
+  hooks: { onStart?: (ids: number[]) => void } = {}
+): Promise<AcceptAllResult> {
+  hooks.onStart?.(ids)
+  const result: AcceptAllResult = { done: [], failed: [], stoppedAfter: null }
+  for (let i = 0; i < ids.length; i++) {
+    try {
+      await accept(ids[i])
+      result.done.push(ids[i])
+    } catch (error) {
+      result.failed.push({ id: ids[i], error })
+      if (!isPerRowError(error)) {
+        result.stoppedAfter = i
+        break
+      }
+    }
+  }
+  return result
+}
+
+/** The message for an error: a FastAPI 422 sends `detail` as a list, which the client keeps as JSON text. */
+export function errorText(err: unknown): string {
+  const message = err instanceof Error ? err.message : String(err)
+  if (err instanceof ApiError && message.startsWith('[')) {
+    try {
+      const list = JSON.parse(message)
+      if (Array.isArray(list) && list.length && list.every((e) => e && typeof e.msg === 'string')) {
+        return list
+          .map((e) => (Array.isArray(e.loc) && e.loc.length ? `${e.loc.join('.')}: ${e.msg}` : e.msg))
+          .join('; ')
+      }
+    } catch {
+      // not JSON: keep the text
+    }
+  }
+  return message
 }
