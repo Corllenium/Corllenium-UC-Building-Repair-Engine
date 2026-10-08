@@ -20,6 +20,13 @@
     (`engine.repair.kernel.repair_unit`): the same files, byte for byte, plus `edit_log.jsonl` next to
     report.json -- one line per edit each stage was observed to make.
 
+    `--kernel --validate-sites [--materials data/campus/materials.json]` also checks every stage with
+    the Validator's focus mode (`engine.site_judge.SiteJudge`, the owner's settings; job P1-K3b): one
+    focus run per stage, each failing sample charged to the stage's sites. The legacy stages are one
+    site each and are NOT rolled back (ruling K3-R2), so the files are the `--kernel` run's, and
+    `edit_log.jsonl` gains one `{"check": {...}}` line per stage: its verdict, the failing counts by
+    reason and the run times. It prints each stage's verdict and the total time.
+
 `python -m engine.cli preview-data <snapshot_dir> --out preview/data`
     Writes the JSON `preview/index.html` reads (see `spike/12_export_preview.py` for the shape
     this mirrors), with AFTER built from the REAL fixed mesh and the REAL guard numbers, and
@@ -466,14 +473,35 @@ def _write_skp(result: FixResult, name: str, out_dir: Path, flat_materials: froz
 # --------------------------------------------------------------------------------- fix command
 
 
+def _print_checks(name: str, checks: list[dict], seconds: float) -> None:
+    """One line per checked stage: its verdict, the failing samples by reason, what was rolled back."""
+    for c in checks:
+        if "skipped" in c:
+            print(f"{name}: check {c['stage']}: skipped ({c['skipped']})")
+            continue
+        runs = c["runs"]
+        first = runs[0] if runs else None
+        reasons = {} if first is None else {k: v for k, v in {**first["textures"], **first["nothing_deleted"]}.items() if v}
+        took = sum(r["seconds"] + r["focus_seconds"] + r["cover_seconds"] for r in runs)
+        print(f"{name}: check {c['stage']} ({c['engine']}, {c['edits']} edits, {c['sites']} sites): "
+              f"{c['first']} -> {c['final']}; failing {0 if first is None else first['failing']} {reasons}; "
+              f"unknown {c['unknown']['samples']}; rolled back {[r['site'] for r in c['rolled_back']]}; "
+              f"{len(runs)} run(s), {took:.1f} s")
+    print(f"{name}: site checks done in {seconds:.1f} s (the whole kernel run)")
+
+
 def cmd_fix(snapshot_dir: Path, out_root: Path, accept_slit: bool,
             profile: FixProfile | None = None, solidify: bool = True,
             fragments: bool = True, skp: bool = True, skp_dir: Path | None = None,
-            kernel: bool = False) -> int:
+            kernel: bool = False, validate_sites: bool = False, materials: Path | None = None) -> int:
     """`skp_dir` receives a copy of the `.skp`; `None` (the default here) copies it nowhere --
     `main` passes `default_skp_dir()` unless `--skp-dir` names another folder. `kernel` runs the
-    fix through `engine.repair.kernel.repair_unit` and also writes `edit_log.jsonl`."""
-    obj_path, mesh, flatness, _mtl_materials = _load_snapshot(snapshot_dir)
+    fix through `engine.repair.kernel.repair_unit` and also writes `edit_log.jsonl`;
+    `validate_sites` (with `kernel`) checks each stage with the Validator's looks from `materials`
+    (materials.json) and the snapshot's own MTL, and logs the checks in `edit_log.jsonl`."""
+    obj_path, mesh, flatness, mtl_materials = _load_snapshot(snapshot_dir)
+    if validate_sites and not kernel:
+        raise ValueError("validate_sites needs kernel")
     if profile is None:
         profile = FixProfile(accept_slit=accept_slit, solidify=solidify,
                              accept_fragments=fragments)
@@ -483,12 +511,22 @@ def cmd_fix(snapshot_dir: Path, out_root: Path, accept_slit: bool,
 
     kernel_result = None
     if kernel:
-        from engine.repair.kernel import repair_unit, write_edit_log
+        from engine.repair.kernel import repair_unit, write_edit_log, write_records
         from engine.repair.types import RepairContext, UnitState
+        judge = None
+        if validate_sites:
+            from engine.site_judge import SiteJudge
+            from engine.validate.checks import load_looks
+            judge = SiteJudge(load_looks(Path(materials or "data/campus/materials.json"),
+                                         [(mtl_materials, Path(snapshot_dir))]))
+        started = time.perf_counter()
         kernel_result = repair_unit(UnitState(mesh=mesh, topo=None, looks={}, viewpoints=None),
-                                    RepairContext(profile=profile, decider=None, validator=None),
-                                    flatness=flatness, obj_path=obj_path)
+                                    RepairContext(profile=profile, decider=None, validator=judge),
+                                    flatness=flatness, obj_path=obj_path,
+                                    validate_sites=validate_sites)
         result = kernel_result.result
+        if validate_sites:
+            _print_checks(mesh.name, kernel_result.checks, time.perf_counter() - started)
     else:
         result = fix_object(mesh, flatness, profile)
 
@@ -496,7 +534,9 @@ def cmd_fix(snapshot_dir: Path, out_root: Path, accept_slit: bool,
     out_dir = Path(out_root) / name
     out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / "report.json").unlink(missing_ok=True)
-    if kernel_result is not None:
+    if kernel_result is not None and validate_sites:
+        write_records(out_dir / "edit_log.jsonl", kernel_result.records)
+    elif kernel_result is not None:
         write_edit_log(out_dir / "edit_log.jsonl", kernel_result.edits)
 
     write_obj(result.mesh, out_dir / f"{name}.fixed.obj")
@@ -960,6 +1000,11 @@ def build_parser() -> argparse.ArgumentParser:
     fix_p.add_argument("--kernel", action="store_true",
                        help="run through the observe-only repair kernel; the same files, plus "
                             "edit_log.jsonl next to report.json")
+    fix_p.add_argument("--validate-sites", dest="validate_sites", action="store_true",
+                       help="with --kernel: check every stage with the Validator's focus mode and log "
+                            "the checks in edit_log.jsonl (legacy stages are not rolled back)")
+    fix_p.add_argument("--materials", type=Path, default=Path("data/campus/materials.json"),
+                       help="materials.json for --validate-sites")
 
     preview_p = sub.add_parser("preview-data", help="write the JSON preview/index.html reads")
     preview_p.add_argument("snapshot_dir")
@@ -1126,12 +1171,16 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
-    args = build_parser().parse_args(argv)
+    parser = build_parser()
+    args = parser.parse_args(argv)
     if args.command == "fix":
+        if args.validate_sites and not args.kernel:
+            parser.error("--validate-sites needs --kernel")
         return cmd_fix(Path(args.snapshot_dir), Path(args.out), args.accept_slit,
                        solidify=args.solidify, fragments=args.fragments, skp=args.skp,
                        skp_dir=Path(args.skp_dir) if args.skp_dir else default_skp_dir(),
-                       kernel=args.kernel)
+                       kernel=args.kernel, validate_sites=args.validate_sites,
+                       materials=args.materials)
     if args.command == "preview-data":
         return cmd_preview_data(Path(args.snapshot_dir), Path(args.out),
                                 solidify=args.solidify)
