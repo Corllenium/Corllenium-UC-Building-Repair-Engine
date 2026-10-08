@@ -1144,6 +1144,8 @@ def validate(before: MeshData, after: MeshData, looks: Looks, *, errors=None, ta
                "area_per_sample", "eye")
     changed = {k: getattr(settings, k) for k in density if getattr(settings, k) != getattr(default, k)}
     notes = ([f"NON-DEFAULT SETTINGS {changed}: a development run, NOT AN OWNER VERDICT"] if changed else [])
+    if focus is not None:
+        notes.append(f"FOCUS RUN on {len(focus_before)}/{before.n_faces} faces: NOT A FLOOR VERDICT")
     # what BEFORE's looks leave unsaid: materials.json does not know a material, or a look has no texture size
     used = {before.materials[i] for i in np.unique(before.face_material) if 0 <= i < len(before.materials)}
     no_texel = []

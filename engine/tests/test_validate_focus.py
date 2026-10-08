@@ -25,10 +25,11 @@ def _every_face(before, after):
 
 
 def _cube_with_three_defects():
-    """The two-look cube with a deleted side face, a top face in shifted UVs and a plate 1 in over the top."""
+    """The two-look cube with a deleted side face, a y = 0 side face in shifted UVs and a plate 1 in over the top (a
+    UV shift under the plate would fail as `covered`, which comes first, and leave `uv` untested)."""
     m = two_look_cube()
     plate = dataclasses.replace(_moved(grid_slab(1, 1, cell=SIZE), [0.0, 0.0, SIZE + 1.0]), materials=["wall"])
-    after = _with_plate(_with_shifted_uv(_without_faces(m, [8]), 2, 0.5), plate)
+    after = _with_plate(_with_shifted_uv(_without_faces(m, [8]), 4, 0.5), plate)
     return m, after, LOOKS
 
 
@@ -38,12 +39,31 @@ def _room_with_two_defects():
     return m, _with_flipped(_without_faces(m, [4, 5]), [6]), ROOM_LOOKS
 
 
-@pytest.mark.parametrize("build", [_cube_with_three_defects, _room_with_two_defects], ids=["cube", "room"])
-def test_a_focus_on_every_face_gives_checks_1_and_3_and_the_sites_exactly_as_no_focus(build):
+def _slab_overlaid():
+    """A layer in another look lying ON a slab: the overlay pass's case."""
+    before, after = _plated(0.0)
+    return before, after, _looks("m0", "m1")
+
+
+#: (fixture, the failure reasons it must show: (check, reason) pairs), so no proof passes on an empty failure set
+PROOF = [(_cube_with_three_defects, [("nothing_deleted", "deleted"), ("textures", "uv"), ("nothing_deleted", "covered")]),
+         (_room_with_two_defects, [("nothing_deleted", "deleted"), ("textures", "side")]),
+         (_slab_overlaid, [("nothing_deleted", "overlaid"), ("textures", "overlaid")])]
+
+
+def _reason(report, check, reason):
+    c = report["checks"][check]
+    return c["reasons"][reason] if check == "textures" else c[reason]
+
+
+@pytest.mark.parametrize("build, reasons", PROOF, ids=["cube", "room", "overlaid"])
+def test_a_focus_on_every_face_gives_checks_1_and_3_and_the_sites_exactly_as_no_focus(build, reasons):
     before, after, looks = build()
     full = _check(before, after, looks)
     focus = _check(before, after, looks, focus=_every_face(before, after))
     assert full.report["verdict"] == "FAIL", "the fixture must have something to find"
+    for check, reason in reasons:
+        assert _reason(full.report, check, reason) > 0, (check, reason, "the fixture must show this failure")
     for key in ("textures", "nothing_deleted"):
         assert focus.report["checks"][key] == full.report["checks"][key], key
     assert focus.report["sites"] == full.report["sites"] and focus.report["sites_total"] == full.report["sites_total"]
@@ -68,6 +88,14 @@ def test_a_focus_run_skips_check_2_gives_no_floor_verdict_and_says_whether_its_f
     same = validate(m, m, LOOKS, focus=Focus(before_faces=np.array([8, 9]), after_faces=np.zeros(0, np.int64)))
     assert same.report["focus"] == {"before_faces": 2, "after_faces": 0, "status": "PASS"}
     assert same.report["verdict"] is None
+
+
+def test_a_focus_run_says_in_its_notes_that_it_is_not_a_floor_verdict():
+    m = two_look_cube()
+    focused = validate(m, m, LOOKS, focus=Focus(before_faces=np.array([8, 9]), after_faces=np.zeros(0, np.int64)))
+    assert "FOCUS RUN on 2/12 faces: NOT A FLOOR VERDICT" in focused.report["notes"]
+    plain = _check(m, m, LOOKS)
+    assert not any("FOCUS" in note for note in plain.report["notes"])
 
 
 def test_a_focus_samples_only_its_before_faces_and_finds_a_defect_inside_it_as_the_full_run_does():
