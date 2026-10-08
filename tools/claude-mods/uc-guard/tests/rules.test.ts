@@ -164,7 +164,12 @@ describe('rule 5: secret files', () => {
       `docker run --rm --env-file "${ROOT}/.env" alpine sh -c env -m engine.cli`,
       `"$PY" dump.py --env-file "${ROOT}/.env" -m engine.cli`,
       `"$PY" -c "import sys; print(open(sys.argv[2]).read())" --env-file "${ROOT}/.env" -m engine.cli`,
+      `"$PY" -c"import sys; print(open(sys.argv[4]).read())" -m engine.cli --env-file "${ROOT}/.env"`,
+      `"$PY" - -m engine.cli --env-file "${ROOT}/.env" < dump.py`,
+      `"$PY" - -m engine.cli --env-file "${ROOT}/.env" <<'EOF'\nprint(open(__import__('sys').argv[4]).read())\nEOF`,
+      `"$PY" -X dev -m engine.cli --env-file "${ROOT}/.env"`,
     ]) expect(bash(c)).toBe(REASONS.secret)
+    expect(bash(`py -3.12 -B -m engine.cli decide-pilot --env-file "${ROOT}/.env"`)).toBeUndefined()
   })
   test('allows .env.example, .venv, ordinary files and prose that mentions .env (review finding 5)', () => {
     expect(check('Read', { file_path: `${ROOT}/.env.example` })).toBeUndefined()

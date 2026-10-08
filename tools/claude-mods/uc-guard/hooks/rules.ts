@@ -370,13 +370,15 @@ function resultsReason(segs: Segment[]): string | undefined {
 
 // The engine reads only the TYPESAFE_API_KEY line of the file given to `python -m engine.cli ... --env-file`
 // (owner decision 2026-10-08: code reads keys at run time), so that one value is not an agent reading a secret.
-// Only when the command itself is a Python interpreter whose module is engine.cli: options such as -u may come
-// first, but no -c and no script.
+// Only when the command itself is a Python interpreter whose module is engine.cli. Only flag-only options may
+// come first (and the py launcher's version, -3.12): anything else, such as -cCODE, a lone `-` (program from
+// stdin) or -X with its value, ends Python's own options or takes a value, so there is no exemption.
 const PYTHONS = new Set(['python', 'python3', 'py', '$py'])
+const PYTHON_FLAGS = new Set(['-u', '-B', '-O', '-OO', '-E', '-s', '-S', '-I', '-q', '-b', '-bb', '-d', '-R', '-P', '-v'])
 function engineKeyFileDropped(words: string[]): string[] {
   if (!PYTHONS.has(verb(words[0]) ?? '')) return words
   let i = 1
-  for (let w = words[i]; w !== undefined && w.startsWith('-') && w !== '-m' && w !== '-c'; w = words[i]) i++
+  for (let w = words[i]; w !== undefined && (PYTHON_FLAGS.has(w) || /^-\d+(\.\d+)?(-(32|64))?$/.test(w)); w = words[i]) i++
   if (words[i] !== '-m' || words[i + 1] !== 'engine.cli') return words
   return words.filter((w, k) => !(k > i + 1 && (w.startsWith('--env-file=') || words[k - 1] === '--env-file')))
 }
