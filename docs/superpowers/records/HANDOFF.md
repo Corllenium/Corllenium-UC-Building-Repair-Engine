@@ -25,6 +25,18 @@ run the latest `.skp` of each file must be in `OBJ FIXED RESULT/` for the owner 
 
 ## 2. Current state (2026-09-26 00:15, written by the Claude controller)
 
+**Update 2026-10-08 late night (the Jev + mods controller session): P1-D2 merged; Jev sits behind the Decider.**
+- **P1-D2 is merged into `feat/repair-p1p2` (3a2421b, by the repair-engine session):** engine + tools 1602 passed,
+  1 xfailed.
+- **`engine/decide/providers.py`:**
+  - `AskProvider("jev", RemoteDecider(url) | JevDecider())` is a Decider provider. It returns SUGGEST answers only, and
+    sends the owner source to `UNAVAILABLE`.
+  - A per-run circuit breaker trips on a call-level failure, so a hung VPS costs one timeout.
+  - `sync_confirmed(decider, data/decide/confirmed)` turns `decide-pull` files into `record_owner`.
+- **`decider.py`:** an `Unavailable` marker, owner-approved. A temporary "cannot answer" (Jev off, unreachable) is
+  logged and never cached, so switching Jev on takes effect at once. There is also a read-only `owner_answer`.
+- The Decider chain is complete on P1: owner > rules > Jev (SUGGEST) > owner queue.
+
 **Update 2026-10-08 night (the Jev + mods controller session): "Jev on the VPS" is built and merged; Jev stays off.**
 - **`feat-dashboard` = e2a37ee:** `feat/jev-vps` is merged.
   - Spec: `docs/superpowers/specs/2026-10-08-jev-vps-service-design.md`.

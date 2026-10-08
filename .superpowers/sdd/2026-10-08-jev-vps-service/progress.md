@@ -171,3 +171,26 @@ Ruling: Dockerfile.web and the root nginx.conf are untracked foreign files (AGEN
 Final review: clean (READY TO MERGE). Branch feat/jev-vps complete; next: ask the peer, then merge into feat-dashboard.
 - MERGED feat/jev-vps → feat-dashboard: e2a37ee (peer "go"; the peer verified merge-tree clean, no existing test modified, guard/validate/api untouched). Main checkout: service 153 + 114 skipped; decide engine 119. Integration worktree removed.
 Ruling: this plan's SDD workspace is kept and committed (repo convention: ledgers are records, `git add -f`), not deleted as the generic SDD finish says — if wrong, the folder can be removed later.
+- P1-D2: claimed; worktree .claude/worktrees/P1-D2 (claude/P1-D2) from feat/repair-p1p2 e55c768 (the peer merged feat-dashboard 47bd5f1 there; 1555 passed). Do not touch engine/repair/kernel.py or engine/validate (P1-K3 paused, peer).
+- D2 design issue found by the controller before briefing:
+  - Decider._provider_answers caches a None as a permanent miss;
+  - the Jev provider's Nones are often transient (jev off, daily cap, unreachable, no password, 5xx);
+  - raising loses per-question hits (pilot-import).
+  - Proposed to the peer: an UNAVAILABLE sentinel (logged, not cached), option (a) peer or (b) D2 with OK.
+  - Also: owner answers enter via record_owner from the decide-pull files (sync_confirmed), not as provider answers.
+- Peer chose option (b): the Unavailable marker inside D2, decider.py's _provider_answers + marker + tests only, with exact rules (reason ≤ 200 chars, no secrets; error event; not cached; no stats; mixed batch keeps the real answers); the peer reviews that part before merge.
+- P1-D2 brief written (task-P1-D2-brief.md): Part 1 Unavailable; Part 2 AskProvider (owner → UNAVAILABLE, none/error → Unavailable(reason), never None) + sync_confirmed (record_owner from the decide-pull files). engine-builder dispatched, BASE e55c768.
+- P1-D2 implementer: DONE_WITH_CONCERNS; Part 1 16b41f6, Part 2 1c2e4d5; 6 + 26 new tests; decide area 186; engine + tools 1587 passed, 1 xfailed. Added Decider.owner_answer. Reviews dispatched (ours: whole; peer: Part 1).
+- P1-D2 review (opus): Spec ✅ Rules ✅; Part 1 APPROVED (nit: spacing at decider.py:464); Part 2 CHANGES.
+  - Important: per-state blocking asks make the pipeline wait on a hung VPS (5 states = 2.64 s at a 0.5 s timeout; ~1000 s at 10 s × 100 subjects); Unavailable is not cached, so every ask pays again.
+  - Minors: score answers not checked in sync_confirmed; token remainder dropped (document it).
+Ruling: a circuit breaker per AskProvider instance (one pipeline run) — it trips on a transport failure (exception / class-name error / HTTP status) and then answers Unavailable with no request; it does not trip on "jev off" / "daily cap" / a bare none (fast service answers; pilot hits stay reachable) — if wrong, one extra fast request per group while Jev is off.
+- P1-D2 fix round 1/5 dispatched (resume implementer).
+- P1-D2 fix round 1: 0ca6362 (circuit breaker .down; spacing restored; strict score sync; docs; mode_of). D2 + D1 + decide 201; engine + tools 1596 passed, 1 xfailed. The peer approved Part 1 (47 passed on its side).
+- P1-D2 re-review of 0ca6362: all ADDRESSED except a new Important — the identifier regex trips the breaker on per-question content errors (UnmappedFloorKey / MissingAnswer / BadReply) from a reachable Jev (reproduced: 1 bad group → all 4 Unavailable).
+Ruling: the breaker trips only on a call-level failure (ask raised, or a calls entry added during this ask has ok False); never on a per-decision error string — if wrong, a sick service that answers 2xx with errors costs one fast request per group.
+- P1-D2 fix round 2/5 dispatched (resume implementer).
+- P1-D2 fix round 2: 83d0111 (breaker trips only on a call-level failure); RED 5 → GREEN; D2 + D1 + decide 207; engine + tools 1602 passed, 1 xfailed.
+- P1-D2 round-2 re-review: ADDRESSED; APPROVED (88 passed; this commit touches only providers.py + its test).
+Task P1-D2: complete (commits e55c768..83d0111: Part 1 16b41f6 [peer-approved], Part 2 1c2e4d5, fix rounds 0ca6362, 83d0111). Queue: done → pass. Merge into feat/repair-p1p2: requested from the peer (option a).
+- P1-D2 merged by the peer into feat/repair-p1p2: 3a2421b; engine + tools 1602 passed, 1 xfailed. Decider chain complete on P1 (owner > rules > Jev SUGGEST). Worktree removed.
