@@ -115,12 +115,26 @@ def test_a_dll_without_the_sketchup_symbols_is_unavailable_and_says_which():
         skp_writer.load_api(kernel32)
 
 
-def test_ctypes_is_imported_only_by_the_skp_writer():
+def test_ctypes_is_imported_only_by_the_sketchup_binding_modules():
+    """The SketchUp C API is bound in the writer and in the read-only reader, which must bind its
+    own tables so that no save call is reachable from it (`engine/io/skp_reader.py`, job P0-11),
+    in the one test helper that builds SketchUp models with groups for the reader's tests, and in
+    `engine/campus/winprobe.py`, which reads the process's peak memory through ctypes (census, P0-12)."""
     engine_root = Path(skp_writer.__file__).resolve().parents[1]
     users = sorted(p.relative_to(engine_root).as_posix() for p in engine_root.rglob("*.py")
                    if re.search(r"^\s*(import ctypes|from ctypes)", p.read_text(encoding="utf-8"),
                                 re.M))
-    assert users == ["io/skp_writer.py"]
+    assert users == ["campus/winprobe.py", "io/skp_reader.py", "io/skp_writer.py", "tests/skp_scene.py"]
+
+
+def test_the_writers_docstring_names_every_module_that_binds_a_save():
+    """The writer's docstring said it was the only module in `engine/` that binds a call that saves, while
+    the test helper that builds the models the reader's tests walk binds `SUModelSaveToFile` too (P0-11)."""
+    engine_root = Path(skp_writer.__file__).resolve().parents[1]
+    binders = sorted(p.relative_to(engine_root).as_posix() for p in engine_root.rglob("*.py")
+                     if re.search(r"""["']SU\w*Save\w*["']""", p.read_text(encoding="utf-8")))
+    assert binders == ["io/skp_writer.py", "tests/skp_scene.py"]      # the reader binds none
+    assert "tests/skp_scene.py" in skp_writer.__doc__
 
 
 # --------------------------------------------------------------------------------- faces

@@ -407,11 +407,13 @@ def remove_overlaps(mesh: MeshData, topo: Topology, positions_c: np.ndarray, fla
 DOUBLE_LAYER_MIN_AREA = 1.0
 
 
-def double_layers(positions_c: np.ndarray, faces: np.ndarray, depth_tol: float,
-                  views=None, size: tuple[int, int] = (900, 600), caster_factory=EmbreeCaster,
-                  min_area: float = DOUBLE_LAYER_MIN_AREA,
-                  centre: np.ndarray | None = None) -> dict:
-    """Brief 15 item 1 -- brief 14's measurement of what can still flicker in Unity, cheap enough
+def double_layers_reference(positions_c: np.ndarray, faces: np.ndarray, depth_tol: float,
+                            views=None, size: tuple[int, int] = (900, 600), caster_factory=EmbreeCaster,
+                            min_area: float = DOUBLE_LAYER_MIN_AREA,
+                            centre: np.ndarray | None = None) -> dict:
+    """Test oracle: the original double_layers implementation. Kept verbatim and must not change.
+
+    Brief 15 item 1 -- brief 14's measurement of what can still flicker in Unity, cheap enough
     for every run. A DOUBLE LAYER is two of `faces` whose outlines share more than `min_area` sq in
     within ONE plane: parallel (`|n . m| > PLANE_PARALLEL_DOT`), every corner of each within
     `depth_tol` of the other's plane -- the band the guard itself calls one surface. Any winding,
@@ -563,3 +565,500 @@ def double_layers(positions_c: np.ndarray, faces: np.ndarray, depth_tol: float,
                        key=lambda p: (-p[2], p[0], p[1]))
     return {"count": len(pairs), "area": round(sum(s for _i, _j, s, _o in pairs), 3),
             "px": int(sum(px_plane)), "planes": out_planes, "pair_list": pair_list}
+
+
+def double_layers(positions_c: np.ndarray, faces: np.ndarray, depth_tol: float,
+                  views=None, size: tuple[int, int] = (900, 600), caster_factory=EmbreeCaster,
+                  min_area: float = DOUBLE_LAYER_MIN_AREA,
+                  centre: np.ndarray | None = None, *,
+                  stats: dict | None = None,
+                  chunk_rows: int = 200_000,
+                  block_pairs: int = 2_000_000) -> dict:
+    """Brief 15 item 1 / P1-S3 / P1-S3b: double layers detection, made sub-quadratic.
+    Returns identical results to double_layers_reference with bounded memory and
+    spatial candidate search.
+
+    A DOUBLE LAYER is two of `faces` whose outlines share more than `min_area` sq in
+    within ONE plane: parallel (`|n . m| > PLANE_PARALLEL_DOT`), every corner of each within
+    `depth_tol` of the other's plane -- the band the guard itself calls one surface. Any winding,
+    any material: two layers of one colour still trade places in a depth test whenever their
+    lighting or texture mapping differ, and the guard's `zfight_tie` sees none of them, because it
+    only counts pixels whose winning face CHANGED between two meshes.
+
+    Its PIXELS are those of the renders over `views` (`VIEWS_26` by default) whose first hit is
+    one of the two and whose ray meets the other within `depth_tol` -- where the two can trade
+    places. Each pixel is counted once.
+
+    Returns `{"count": pairs, "area": their shared sq in, "px": pixels, "planes": [...], "pair_list": [...]}`,
+    the planes largest first, each `{"normal", "offset", "centroid", "faces", "pairs", "opposite",
+    "area", "px"}` (`faces` index `faces`; `offset` is `n . p` on the plane, `n` pointing to the
+    positive side of its largest component). `pair_list` is every pair `[i, j, shared, opposite]`
+    with `i < j` indexing the input `faces`, sorted by descending shared area, then by `i` and `j`.
+    `positions_c` is the recentred frame the guard renders in; with `centre`, the planes' centroid
+    and offset are given in world coordinates. No double layer: no render at all.
+    """
+    if chunk_rows < 1 or block_pairs < 1:
+        raise ValueError(f"chunk_rows and block_pairs must be at least 1 (got {chunk_rows}, {block_pairs})")
+    from engine.guard.views import VIEWS_26, ortho_first_hit
+    from engine.rays.caster import ReusableCaster
+
+    if stats is not None:
+        stats["bbox_pairs"] = 0
+        stats["pairs_tested"] = 0
+        stats["pairs_peak"] = 0
+        stats["big_faces"] = 0
+        stats["big_face_pairs"] = 0
+        stats["pixel_rows_max"] = 0
+
+    views = VIEWS_26 if views is None else views
+    positions_c = np.asarray(positions_c, dtype=np.float64)
+    faces = np.asarray(faces, dtype=np.int64)
+    empty = {"count": 0, "area": 0.0, "px": 0, "planes": [], "pair_list": []}
+    if not len(faces):
+        return empty
+
+    tri = positions_c[faces]
+    cross = np.cross(tri[:, 1] - tri[:, 0], tri[:, 2] - tri[:, 0])
+    length = np.linalg.norm(cross, axis=1)
+    ok = length > 1e-12
+    normal = np.zeros_like(cross)
+    normal[ok] = cross[ok] / length[ok, None]
+    lo, hi = tri.min(axis=1) - depth_tol, tri.max(axis=1) + depth_tol
+    ids = np.nonzero(ok)[0]
+    if len(ids) < 2:
+        return empty
+
+    # Cell size tied to typical face size, never largest face or whole scene
+    sz = tri[ids].max(axis=1) - tri[ids].min(axis=1)
+    diag = np.linalg.norm(sz, axis=1)
+    med = float(np.median(diag))
+    cell_size = max(med * 1.0, 2.0 * depth_tol, 1e-6)
+
+    c_lo = np.floor(lo / cell_size).astype(np.int64)
+    c_hi = np.floor(hi / cell_size).astype(np.int64)
+    span = c_hi[ids] - c_lo[ids] + 1
+    n_cells = span[:, 0] * span[:, 1] * span[:, 2]
+
+    # Faces spanning more than 64 cells go to big-faces list
+    BIG_FACE_CELLS = 64
+    is_big_arr = n_cells > BIG_FACE_CELLS
+    ids_big = ids[is_big_arr]
+    ids_small = ids[~is_big_arr]
+    is_big_map = np.zeros(len(faces), dtype=bool)
+    is_big_map[ids_big] = True
+
+    if stats is not None:
+        stats["big_faces"] = int(len(ids_big))
+
+    survivors: list[tuple[int, int, float, bool]] = []
+    PAIR_CHUNK = 200_000
+
+    def process_block(cand_i: np.ndarray, cand_j: np.ndarray):
+        if not len(cand_i):
+            return
+        if stats is not None:
+            stats["pairs_peak"] = max(stats["pairs_peak"], len(cand_i))
+
+        n_pairs = len(cand_i)
+        for s in range(0, n_pairs, PAIR_CHUNK):
+            e = min(s + PAIR_CHUNK, n_pairs)
+            sub_i = cand_i[s:e]
+            sub_j = cand_j[s:e]
+
+            if stats is not None:
+                stats["bbox_pairs"] += len(sub_i)
+
+            # Box test & parallel test
+            box_ok = (lo[sub_i, 0] <= hi[sub_j, 0]) & (hi[sub_i, 0] >= lo[sub_j, 0])
+            box_ok &= (lo[sub_i, 1] <= hi[sub_j, 1]) & (hi[sub_i, 1] >= lo[sub_j, 1])
+            box_ok &= (lo[sub_i, 2] <= hi[sub_j, 2]) & (hi[sub_i, 2] >= lo[sub_j, 2])
+
+            dot = (normal[sub_i] * normal[sub_j]).sum(axis=1)
+            abs_dot = np.abs(dot)
+            tie_dot = np.abs(abs_dot - PLANE_PARALLEL_DOT) <= 1e-12
+            if tie_dot.any():
+                for tidx in np.nonzero(tie_dot)[0]:
+                    abs_dot[tidx] = abs(float(normal[sub_i[tidx]] @ normal[sub_j[tidx]]))
+
+            cand = box_ok & (abs_dot > PLANE_PARALLEL_DOT)
+            if stats is not None:
+                stats["pairs_tested"] += int(cand.sum())
+            if not cand.any():
+                continue
+
+            i_cand = sub_i[cand]
+            j_cand = sub_j[cand]
+
+            # Separation test
+            v0_i = tri[i_cand, 0]
+            v0_j = tri[j_cand, 0]
+            n_i = normal[i_cand]
+            n_j = normal[j_cand]
+
+            diff_j = tri[j_cand] - v0_i[:, None, :]
+            dist_j = np.abs(diff_j[:, :, 0] * n_i[:, None, 0] + diff_j[:, :, 1] * n_i[:, None, 1] + diff_j[:, :, 2] * n_i[:, None, 2])
+            sep_j = dist_j.max(axis=1)
+
+            diff_i = tri[i_cand] - v0_j[:, None, :]
+            dist_i = np.abs(diff_i[:, :, 0] * n_j[:, None, 0] + diff_i[:, :, 1] * n_j[:, None, 1] + diff_i[:, :, 2] * n_j[:, None, 2])
+            sep_i = dist_i.max(axis=1)
+
+            sep = np.maximum(sep_j, sep_i)
+            tie_sep = np.abs(sep - depth_tol) <= 1e-9
+            if tie_sep.any():
+                for tidx in np.nonzero(tie_sep)[0]:
+                    ii, jj = int(i_cand[tidx]), int(j_cand[tidx])
+                    s_j = float(np.abs((tri[jj] - tri[ii][0]) @ normal[ii]).max())
+                    s_i = float(np.abs((tri[ii] - tri[jj][0]) @ normal[jj]).max())
+                    sep[tidx] = max(s_j, s_i)
+
+            sep_ok = sep <= depth_tol
+            if not sep_ok.any():
+                continue
+
+            i_surv = i_cand[sep_ok]
+            j_surv = j_cand[sep_ok]
+
+            # Vectorized plane_basis and shared area
+            n_surv = normal[i_surv]
+            a = np.zeros_like(n_surv)
+            use_x = np.abs(n_surv[:, 0]) < 0.9
+            a[use_x, 0] = 1.0
+            a[~use_x, 1] = 1.0
+            e1 = np.cross(n_surv, a)
+            e1 /= np.linalg.norm(e1, axis=1, keepdims=True)
+            e2 = np.cross(n_surv, e1)
+
+            v0_surv = tri[i_surv, 0]
+            tri_i_rel = tri[i_surv] - v0_surv[:, None, :]
+            tri_j_rel = tri[j_surv] - v0_surv[:, None, :]
+
+            pts_i = np.stack([(tri_i_rel * e1[:, None, :]).sum(axis=-1), (tri_i_rel * e2[:, None, :]).sum(axis=-1)], axis=-1)
+            pts_j = np.stack([(tri_j_rel * e1[:, None, :]).sum(axis=-1), (tri_j_rel * e2[:, None, :]).sum(axis=-1)], axis=-1)
+
+            inter_min = np.maximum(pts_i.min(axis=1), pts_j.min(axis=1))
+            inter_max = np.minimum(pts_i.max(axis=1), pts_j.max(axis=1))
+            inter_dim = np.maximum(inter_max - inter_min, 0.0)
+            box_area = inter_dim[:, 0] * inter_dim[:, 1]
+            box2d_ok = (box_area > min_area) | (np.abs(box_area - min_area) <= 1e-9)
+            if not box2d_ok.any():
+                continue
+
+            i_box2d = i_surv[box2d_ok]
+            j_box2d = j_surv[box2d_ok]
+            pts_i_sub = pts_i[box2d_ok]
+            pts_j_sub = pts_j[box2d_ok]
+
+            polys_i = shapely.polygons(np.concatenate([pts_i_sub, pts_i_sub[:, :1]], axis=1))
+            polys_j = shapely.polygons(np.concatenate([pts_j_sub, pts_j_sub[:, :1]], axis=1))
+            shared = np.asarray(shapely.area(shapely.intersection(polys_i, polys_j)))
+
+            tie_shared = np.abs(shared - min_area) <= 1e-9
+            if tie_shared.any():
+                for tidx in np.nonzero(tie_shared)[0]:
+                    ii, jj = int(i_box2d[tidx]), int(j_box2d[tidx])
+                    e1_exact, e2_exact = plane_basis(normal[ii])
+                    basis_exact = np.stack([e1_exact, e2_exact], axis=1)
+                    shared[tidx] = float(shapely.area(shapely.intersection(
+                        shapely.Polygon((tri[ii] - tri[ii][0]) @ basis_exact),
+                        shapely.Polygon((tri[jj] - tri[ii][0]) @ basis_exact))))
+
+            keep = shared > min_area
+            if not keep.any():
+                continue
+
+            i_keep = i_box2d[keep]
+            j_keep = j_box2d[keep]
+            shared_keep = shared[keep]
+            opp_keep = (normal[i_keep] * normal[j_keep]).sum(axis=1) < 0.0
+
+            for k in range(len(i_keep)):
+                survivors.append((int(i_keep[k]), int(j_keep[k]), float(shared_keep[k]), bool(opp_keep[k])))
+
+    # Helper to accumulate and flush candidate pairs in strict block_pairs limits
+    block_i_parts, block_j_parts = [], []
+    curr_block_len = 0
+
+    def add_pairs(pa: np.ndarray, pb: np.ndarray):
+        nonlocal curr_block_len, block_i_parts, block_j_parts
+        if not len(pa):
+            return
+        idx = 0
+        total = len(pa)
+        while idx < total:
+            room = block_pairs - curr_block_len
+            take = min(room, total - idx)
+            block_i_parts.append(pa[idx : idx + take])
+            block_j_parts.append(pb[idx : idx + take])
+            curr_block_len += take
+            idx += take
+            if curr_block_len >= block_pairs:
+                process_block(np.concatenate(block_i_parts), np.concatenate(block_j_parts))
+                block_i_parts, block_j_parts = [], []
+                curr_block_len = 0
+
+    def flush_pairs():
+        nonlocal curr_block_len, block_i_parts, block_j_parts
+        if block_i_parts:
+            process_block(np.concatenate(block_i_parts), np.concatenate(block_j_parts))
+            block_i_parts, block_j_parts = [], []
+            curr_block_len = 0
+
+    # 1. Big faces: candidate pairs involving big faces
+    if len(ids_big) > 0:
+        K = 200
+        for s in range(0, len(ids_big), K):
+            b_sub = ids_big[s : s + K]
+            x_ok = (lo[b_sub, 0, None] <= hi[ids, 0]) & (hi[b_sub, 0, None] >= lo[ids, 0])
+            y_ok = x_ok & (lo[b_sub, 1, None] <= hi[ids, 1]) & (hi[b_sub, 1, None] >= lo[ids, 1])
+            box_ok = y_ok & (lo[b_sub, 2, None] <= hi[ids, 2]) & (hi[b_sub, 2, None] >= lo[ids, 2])
+            rows, cols = np.nonzero(box_ok)
+            if not len(rows):
+                continue
+            b_r = b_sub[rows]
+            c_c = ids[cols]
+            pair_keep = (c_c > b_r) | ((c_c < b_r) & (~is_big_map[c_c]))
+            if not pair_keep.any():
+                continue
+            b_r_k = b_r[pair_keep]
+            c_c_k = c_c[pair_keep]
+            fa = np.minimum(b_r_k, c_c_k)
+            fb = np.maximum(b_r_k, c_c_k)
+            if stats is not None:
+                stats["big_face_pairs"] += len(fa)
+            add_pairs(fa, fb)
+
+        flush_pairs()
+
+    # 2. Small faces: canonical cell pair indexing
+    if len(ids_small) > 1:
+        small_span = span[~is_big_arr]
+        c_lo_small = c_lo[ids_small]
+        shape_code = (small_span[:, 0] << 16) | (small_span[:, 1] << 8) | small_span[:, 2]
+        unq_shapes, inv = np.unique(shape_code, return_inverse=True)
+        face_parts, cell_parts = [], []
+        for u in range(len(unq_shapes)):
+            u_idx = np.nonzero(inv == u)[0]
+            dx = int((unq_shapes[u] >> 16) & 0xff)
+            dy = int((unq_shapes[u] >> 8) & 0xff)
+            dz = int(unq_shapes[u] & 0xff)
+            offsets = np.indices((dx, dy, dz), dtype=np.int64).reshape(3, -1).T
+            V = len(offsets)
+            c = c_lo_small[u_idx, None, :] + offsets[None, :, :]
+            cell_parts.append(c.reshape(-1, 3))
+            face_parts.append(np.repeat(ids_small[u_idx], V))
+
+        all_f = np.concatenate(face_parts)
+        all_c = np.concatenate(cell_parts)
+        del face_parts, cell_parts
+
+        c_min = all_c.min(axis=0)
+        c_shifted = all_c - c_min
+        c_span = c_shifted.max(axis=0) + 1
+        if float(c_span[0]) * float(c_span[1]) * float(c_span[2]) < 2**62:
+            cell_key = (c_shifted[:, 0].astype(np.int64) * c_span[1] + c_shifted[:, 1].astype(np.int64)) * c_span[2] + c_shifted[:, 2].astype(np.int64)
+            order = np.argsort(cell_key)
+            sorted_k = cell_key[order]
+            diff = sorted_k[1:] != sorted_k[:-1]
+            del cell_key, sorted_k
+        else:
+            order = np.lexsort((all_c[:, 2], all_c[:, 1], all_c[:, 0]))
+            sorted_c_tmp = all_c[order]
+            diff = (sorted_c_tmp[1:] != sorted_c_tmp[:-1]).any(axis=1)
+            del sorted_c_tmp
+
+        sorted_f = all_f[order]
+        sorted_c = all_c[order]
+        del all_f, all_c, order
+
+        split_idx = np.nonzero(diff)[0] + 1
+        cell_starts = np.concatenate(([0], split_idx))
+        cell_ends = np.concatenate((split_idx, [len(sorted_f)]))
+        cell_counts = cell_ends - cell_starts
+        del diff, split_idx
+
+        multi_mask = cell_counts > 1
+        multi_starts = cell_starts[multi_mask]
+        multi_counts = cell_counts[multi_mask]
+        del cell_starts, cell_ends, cell_counts, multi_mask
+
+        # Vectorized generation for cells with exactly 2 faces
+        m2 = multi_counts == 2
+        if m2.any():
+            st2 = multi_starts[m2]
+            f0 = sorted_f[st2]
+            f1 = sorted_f[st2 + 1]
+            C2 = sorted_c[st2]
+            fa = np.minimum(f0, f1)
+            fb = np.maximum(f0, f1)
+            canon2 = (np.maximum(c_lo[fa], c_lo[fb]) == C2).all(axis=1)
+            if canon2.any():
+                add_pairs(fa[canon2], fb[canon2])
+
+        # Cells with > 2 faces
+        other_cells = np.nonzero(multi_counts > 2)[0]
+        for cidx in other_cells:
+            st = multi_starts[cidx]
+            cnt = int(multi_counts[cidx])
+            f = sorted_f[st : st + cnt]
+            C = sorted_c[st]
+            ii, jj = np.triu_indices(cnt, k=1)
+            fa = np.minimum(f[ii], f[jj])
+            fb = np.maximum(f[ii], f[jj])
+            canon = (np.maximum(c_lo[fa], c_lo[fb]) == C).all(axis=1)
+            if canon.any():
+                add_pairs(fa[canon], fb[canon])
+
+        flush_pairs()
+
+    if not survivors:
+        return empty
+
+    # Sort survivors by (i, j) before plane clustering
+    survivors.sort(key=lambda p: (p[0], p[1]))
+    pairs_final = survivors
+
+    # The planes: pairs whose faces share a plane (parallel, offsets within tolerance)
+    def plane_of(f):
+        n = normal[f].copy()
+        if n[int(np.argmax(np.abs(n)))] < 0.0:
+            n = -n
+        return n, float(tri[f][0] @ n)
+
+    planes: list[dict] = []
+    plane_n = np.zeros((max(len(pairs_final) // 4, 32), 3), dtype=np.float64)
+    plane_d = np.zeros(len(plane_n), dtype=np.float64)
+    num_p = 0
+
+    for i, j, s_val, opposite in pairs_final:
+        n, d = plane_of(i)
+        matched_idx = -1
+        if num_p > 0:
+            dots = np.abs(plane_n[:num_p] @ n) > PLANE_PARALLEL_DOT
+            d_ok = np.abs(plane_d[:num_p] - d) <= depth_tol
+            matches = dots & d_ok
+            if matches.any():
+                matched_idx = int(np.argmax(matches))
+
+        if matched_idx >= 0:
+            p = planes[matched_idx]
+        else:
+            p = {"_n": n, "_d": d, "_faces": set(), "_pairs": [], "_c": []}
+            planes.append(p)
+            if num_p == len(plane_n):
+                plane_n = np.resize(plane_n, (num_p * 2, 3))
+                plane_d = np.resize(plane_d, num_p * 2)
+            plane_n[num_p] = n
+            plane_d[num_p] = d
+            num_p += 1
+
+        p["_faces"].update((i, j))
+        p["_pairs"].append((i, j, s_val, opposite))
+        p["_c"].append((tri[i].mean(axis=0) + tri[j].mean(axis=0)) / 2.0)
+
+    # The pixels: first hit on a face of a pair, ray meets partner within depth_tol
+    partners: dict[int, set] = {}
+    plane_index: dict[int, int] = {}
+    for k, p in enumerate(planes):
+        for i, j, _s, _o in p["_pairs"]:
+            partners.setdefault(i, set()).add(j)
+            partners.setdefault(j, set()).add(i)
+            plane_index[i] = plane_index[j] = k
+    ids_all = np.arange(len(faces), dtype=np.int64)
+    reusable = ReusableCaster(caster_factory)
+    px_plane = np.zeros(len(planes), dtype=np.int64)
+
+    ptr = np.zeros(len(faces) + 1, dtype=np.int64)
+    for f, ps in partners.items():
+        ptr[f + 1] = len(ps)
+    ptr = np.cumsum(ptr)
+    idx = np.zeros(int(ptr[-1]), dtype=np.int64)
+    for f, ps in partners.items():
+        idx[ptr[f]:ptr[f + 1]] = sorted(ps)
+    plane_of_face = np.full(len(faces), -1, dtype=np.int64)
+    for f, k in plane_index.items():
+        plane_of_face[f] = k
+    watched = np.array(sorted(partners), dtype=np.int64)
+    is_watched = np.zeros(len(faces), dtype=bool)
+    is_watched[watched] = True
+
+    max_batch = 0
+    for view in views:
+        buf = ortho_first_hit(positions_c, faces, ids_all, view, positions_c, size, reusable)
+        mask = (buf.tri >= 0) & is_watched[np.maximum(buf.tri, 0)]
+        if not mask.any():
+            continue
+        rows, cols = np.nonzero(mask)
+        first_f = buf.tri[rows, cols].astype(np.int64)
+        first_t = buf.depth[rows, cols]
+        origins = buf.xs[cols][:, None] * buf.right + buf.ys[rows][:, None] * buf.up + buf.standoff
+        direction = np.asarray(buf.direction, dtype=np.float64)
+
+        counts = ptr[first_f + 1] - ptr[first_f]
+        cum = np.cumsum(counts)
+        total_rows = int(cum[-1]) if len(cum) else 0
+        if total_rows == 0:
+            continue
+
+        pixel_met = np.zeros(len(first_f), dtype=bool)
+        for r_start in range(0, total_rows, chunk_rows):
+            r_end = min(r_start + chunk_rows, total_rows)
+            batch_len = r_end - r_start
+            if batch_len > max_batch:
+                max_batch = batch_len
+
+            p_start = int(np.searchsorted(cum, r_start, side='right'))
+            p_end = min(int(np.searchsorted(cum, r_end, side='left')) + 1, len(first_f))
+
+            sub_f = first_f[p_start:p_end]
+            sub_counts = counts[p_start:p_end]
+            sub_pix = np.repeat(np.arange(p_start, p_end), sub_counts)
+            sub_starts = np.repeat(ptr[sub_f] - np.concatenate(([0], np.cumsum(sub_counts)[:-1])), sub_counts)
+            sub_partner = idx[sub_starts + np.arange(len(sub_pix))]
+
+            offset = r_start - (cum[p_start - 1] if p_start > 0 else 0)
+            ch_pix = sub_pix[offset : offset + batch_len]
+            ch_partner = sub_partner[offset : offset + batch_len]
+
+            v0 = tri[ch_partner, 0]
+            e1 = tri[ch_partner, 1] - v0
+            e2 = tri[ch_partner, 2] - v0
+            pvec = np.cross(np.broadcast_to(direction, e2.shape), e2)
+            det = np.einsum("ij,ij->i", e1, pvec)
+            usable = np.abs(det) > 1e-12
+            inv = np.where(usable, 1.0 / np.where(usable, det, 1.0), 0.0)
+            s_vec = origins[ch_pix] - v0
+            u = np.einsum("ij,ij->i", s_vec, pvec) * inv
+            qvec = np.cross(s_vec, e1)
+            v = (qvec @ direction) * inv
+            t = np.einsum("ij,ij->i", e2, qvec) * inv
+            eps = 1e-6
+            met = usable & (u >= -eps) & (v >= -eps) & (u + v <= 1.0 + eps) & (np.abs(t - first_t[ch_pix]) <= depth_tol)
+            pixel_met[ch_pix[met]] = True
+
+        counted = np.nonzero(pixel_met)[0]
+        np.add.at(px_plane, plane_of_face[first_f[counted]], 1)
+
+    if stats is not None:
+        stats["pixel_rows_max"] = max_batch
+    px_plane = px_plane.tolist()
+
+    shift = np.zeros(3) if centre is None else np.asarray(centre, dtype=np.float64)
+    out_planes = []
+    for k, p in enumerate(planes):
+        out_planes.append({
+            "normal": [round(float(v), 4) for v in p["_n"]],
+            "offset": round(p["_d"] + float(p["_n"] @ shift), 4),
+            "centroid": [round(float(v), 2) for v in np.mean(p["_c"], axis=0) + shift],
+            "faces": sorted(int(f) for f in p["_faces"]),
+            "pairs": len(p["_pairs"]),
+            "opposite": sum(1 for _i, _j, _s, o in p["_pairs"] if o),
+            "area": round(sum(s for _i, _j, s, _o in p["_pairs"]), 3),
+            "px": px_plane[k]})
+    out_planes.sort(key=lambda p: (-p["area"], p["faces"]))
+    pair_list = sorted(([int(i), int(j), round(float(s), 3), bool(o)] for i, j, s, o in pairs_final),
+                       key=lambda p: (-p[2], p[0], p[1]))
+    return {"count": len(pairs_final), "area": round(sum(s for _i, _j, s, _o in pairs_final), 3),
+            "px": int(sum(px_plane)), "planes": out_planes, "pair_list": pair_list}
+
+

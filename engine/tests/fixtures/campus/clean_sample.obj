@@ -1,0 +1,41 @@
+# Alias OBJ Model File
+# Exported from SketchUp, (c) 2000-2012 Trimble Navigation Limited
+# File units = inches
+
+mtllib CKPT17-CLEAN.mtl
+
+v 0.0 0.0 0.0
+v 1.0 0.0 0.0
+v 1.0 1.0 0.0
+v 0.0 1.0 0.0
+v 2.0 0.0 0.0
+v 2.0 1.0 0.0
+vt 0.0 0.0
+vt 1.0 0.0
+vt 1.0 1.0
+vt 0.0 1.0
+vn 0.0 0.0 1.0
+
+# Face 0: before any g line (path () and split "unnamed")
+f 1/1/1 2/2/1 3/3/1
+
+# Group 1: 2 faces under one g line (Mesh7587)
+g Mesh7587 minecraft_quartz_block_side__1_29 Eds_2nd_Floor_obj Model
+usemtl minecraft_quartz_block_side_-98
+f 1/1/1 3/3/1 4/4/1
+f 2/2/1 3/3/1 4/4/1
+
+# Group 2: automatic name Group124
+g Mesh7588 minecraft_quartz_block_side__1_29 Group124 Model
+usemtl minecraft_quartz_block_side_-98
+f 1/1/1 2/2/1 4/4/1
+
+# Group 3: nested 3 deep
+g Mesh7589 minecraft_quartz_block_side__1_29 SubGroup MiddleGroup Outer_Level Model
+usemtl minecraft_quartz_block_side_-98
+f 1/1/1 2/2/1 3/3/1
+
+# Group 1 again: return to an earlier path (Mesh7587)
+g Mesh7587 minecraft_quartz_block_side__1_29 Eds_2nd_Floor_obj Model
+usemtl minecraft_quartz_block_side_-98
+f 1/1/1 3/3/1 4/4/1
