@@ -38,8 +38,9 @@ ENV_VAR = "TYPESAFE_API_KEY"
 #: HTTP 400 `{'detail': 'Too many score levels. Must have at most 10 levels.'}` (a 16-level floor Score
 #: failed every group-name batch). A longer ordinal scale must be asked as a Choice.
 MAX_SCORE_LEVELS = 10
-#: The most options a Choice may have (the cap given in job P0-17b; not itself measured against the API, which
-#: accepted the 16-option floor Choice and the 10-option building Choice).
+#: The most options a Choice may have. The 255 cap is from job P0-17b and was NOT measured against the API.
+#: What is verified: on 2026-10-08 the controller's real pilot run sent the 16-option floor Choice and all 57
+#: calls succeeded, 0 failed (jev-1.13.0).
 MAX_CHOICE_OPTIONS = 255
 
 
@@ -135,25 +136,25 @@ def sdk_importable() -> bool:
     return True
 
 
+def check_question_limits(questions) -> None:
+    """Fail before any network call when a question is past what the API accepts (raises ValueError)."""
+    for qid, q in questions.items():
+        if isinstance(q, ScoreQ) and len(q.criteria) > MAX_SCORE_LEVELS:
+            raise ValueError(f"question {str(qid)[:60]!r}: a Score may have at most {MAX_SCORE_LEVELS} levels "
+                             f"(the API rejects more); got {len(q.criteria)}. Ask it as a Choice instead.")
+        if isinstance(q, ChoiceQ) and len(q.criteria) > MAX_CHOICE_OPTIONS:
+            raise ValueError(f"question {str(qid)[:60]!r}: a Choice may have at most {MAX_CHOICE_OPTIONS} "
+                             f"options; got {len(q.criteria)}.")
+
+
 class _SdkAdapter:
     """Wraps `typesafe_sdk.TypeSafeClient`: turns the neutral questions into the SDK's own."""
 
     def __init__(self, client):
         self._client = client
 
-    @staticmethod
-    def _check_limits(questions) -> None:
-        """Fail before any network call when a question is past what the API accepts."""
-        for qid, q in questions.items():
-            if isinstance(q, ScoreQ) and len(q.criteria) > MAX_SCORE_LEVELS:
-                raise ValueError(f"question {str(qid)[:60]!r}: a Score may have at most {MAX_SCORE_LEVELS} levels "
-                                 f"(the API rejects more); got {len(q.criteria)}. Ask it as a Choice instead.")
-            if isinstance(q, ChoiceQ) and len(q.criteria) > MAX_CHOICE_OPTIONS:
-                raise ValueError(f"question {str(qid)[:60]!r}: a Choice may have at most {MAX_CHOICE_OPTIONS} "
-                                 f"options; got {len(q.criteria)}.")
-
     def system_one(self, state, questions):
-        self._check_limits(questions)
+        check_question_limits(questions)
         import typesafe_sdk as sdk
         sdk_questions: dict[str, Any] = {}
         for qid, q in questions.items():
@@ -215,6 +216,7 @@ class JevDecider:
     # ---------------------------------------------------------------------------------- ask
 
     def ask(self, state: str | dict, questions: dict) -> dict[str, Decision]:
+        check_question_limits(questions)      # a malformed question is a bug: raise to the caller, never batch it
         if not self.available:
             return {qid: _none() for qid in questions}
         state_dict = {"text": state} if isinstance(state, str) else state

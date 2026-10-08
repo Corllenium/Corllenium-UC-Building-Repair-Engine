@@ -436,3 +436,13 @@ def test_the_adapter_lets_ten_levels_and_255_options_through():
         "s": ScoreQ("rate", [f"l{i}" for i in range(10)]),
         "c": ChoiceQ("pick", {f"o{i}": None for i in range(255)})})
     assert len(client.calls) == 1
+
+
+def test_ask_raises_the_limit_error_to_the_caller_before_any_call(tmp_path):
+    client = FakeClient()
+    decider = _decider(client, tmp_path)
+    with pytest.raises(ValueError, match="at most 10 levels"):
+        decider.ask("text", {"ok": NoulQ("fine?"), "s": ScoreQ("rate", [f"l{i}" for i in range(11)])})
+    with pytest.raises(ValueError, match="at most 255 options"):
+        decider.ask("text", {"c": ChoiceQ("pick", {f"o{i}": None for i in range(256)})})
+    assert client.calls == [] and decider.calls == []
