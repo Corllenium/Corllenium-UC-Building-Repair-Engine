@@ -316,11 +316,28 @@ def _num(x) -> str:
     return "unknown" if x is None else f"{float(x):.1f}"
 
 
+def _floor_to_int(d: Decision) -> Decision:
+    """The floor Choice answers a key "0".."15"; turn the answer and the probability keys into ints. An
+    answer that is not a level key is not trusted: it becomes an "error" decision (never accepted)."""
+    if d.answer is None:
+        return d
+    try:
+        level = int(str(d.answer))
+        probabilities = {int(str(k)): v for k, v in d.probabilities.items()}
+        if not 0 <= level <= FLOOR_MAX:
+            raise ValueError
+    except ValueError:
+        return _failed("UnmappedFloorKey")
+    d.answer, d.probabilities = level, probabilities
+    return d
+
+
 def classify_group_names(rows: list[dict], decider) -> list[dict]:
     """rows: {"name", "tris", "z_min", "z_max", "footprint_building"}. Per row, four typed questions: the
-    building (Choice), the unit type (Choice), the floor number (Score 0-15) and whether it is a duplicate
-    copy of another group (Noul). Returns `{"name", "building", "type", "floor", "duplicate"}` per row; the
-    building answer is the campus-map key (`MAIN_INFRA`, `SCIENCE_A`)."""
+    building (Choice), the unit type (Choice), the floor number (a 16-option Choice keyed "0".."15": the API
+    allows a Score at most MAX_SCORE_LEVELS levels) and whether it is a duplicate copy of another group
+    (Noul). Returns `{"name", "building", "type", "floor", "duplicate"}` per row; the building answer is the
+    campus-map key (`MAIN_INFRA`, `SCIENCE_A`) and the floor answer and probability keys are ints 0-15."""
     questions: dict[str, Any] = {}
     for i, row in enumerate(rows):
         fact = (f"The SketchUp group named '{row['name']}' has {row.get('tris', 'an unknown number of')} triangles, "
@@ -335,9 +352,9 @@ def classify_group_names(rows: list[dict], decider) -> list[dict]:
              "roof": "a roof", "shell": "a facade or outer shell piece", "road": "a road or sidewalk",
              "landscape": "ground, trees, plants or terrain", "bridge": "a bridge or walkway",
              "other": "anything else"})
-        questions[f"{i}:floor"] = ScoreQ(
+        questions[f"{i}:floor"] = ChoiceQ(
             f"{fact} Which floor number does the name say? 0 if it names no floor.",
-            [f"floor {n}" if n else "no floor / ground level" for n in range(FLOOR_MAX + 1)])
+            {str(n): (f"floor {n}" if n else "no floor / ground level") for n in range(FLOOR_MAX + 1)})
         questions[f"{i}:duplicate"] = NoulQ(
             f"{fact} Is this group a duplicate copy of another group, judging by the name (a trailing digit, "
             f"'copy', 'obj1', '#1')?")
@@ -348,8 +365,9 @@ def classify_group_names(rows: list[dict], decider) -> list[dict]:
         if building.answer is not None:
             building.answer = BUILDING_LABELS.get(building.answer, building.answer)
             building.probabilities = {BUILDING_LABELS.get(k, k): v for k, v in building.probabilities.items()}
+        floor = _floor_to_int(decisions[f"{i}:floor"])
         out.append({"name": row["name"], "building": building, "type": decisions[f"{i}:type"],
-                    "floor": decisions[f"{i}:floor"], "duplicate": decisions[f"{i}:duplicate"]})
+                    "floor": floor, "duplicate": decisions[f"{i}:duplicate"]})
     return out
 
 

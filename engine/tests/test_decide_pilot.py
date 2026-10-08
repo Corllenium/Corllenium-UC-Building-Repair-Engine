@@ -176,7 +176,8 @@ def _answering_client(type_label, building_label="CHTM"):
             if isinstance(q, NoulQ):
                 answers[qid] = SimpleNamespace(noul=0.1)
             elif isinstance(q, ChoiceQ):
-                label = building_label if qid.endswith(":building") else type_label
+                label = ("5" if qid.endswith(":floor")           # the floor question is a Choice keyed "0".."15"
+                         else building_label if qid.endswith(":building") else type_label)
                 answers[qid] = SimpleNamespace(choice=label, confidence=0.9, probabilities={label: 0.9})
             else:
                 answers[qid] = SimpleNamespace(score=5.0, confidence=0.9, probabilities={5: 0.9})
@@ -200,6 +201,16 @@ def test_a_strict_floor_vs_non_floor_accuracy_sits_next_to_the_lenient_one(tmp_p
     g3 = pilot.run_pilot(source, mats, cmap, tmp_path / "o3.json", stair)["groups"]
     assert g3["type"]["correct"] == 1 and g3["type_strict"]["correct"] == 2   # stair is right for element only
     assert "other" in g["type_note"] and "lenient" in g["type_note"]
+
+
+def test_the_floor_choice_answer_scores_as_an_int_against_the_unit_level(tmp_path):
+    source, cmap, mats = _campus(tmp_path)
+    decider = JevDecider(client=_answering_client("floor"), env_file=tmp_path / "absent.env")
+    g = pilot.run_pilot(source, mats, cmap, tmp_path / "o.json", decider)["groups"]
+    assert g["floor"]["n_truth"] == 2                     # CHTM_5th_floor (L05) and CHTM_6th_floor (L06)
+    assert g["floor"]["correct"] == 1                     # every floor is answered "5": right for L05 only
+    assert g["floor"]["coverage"] == 1.0
+    assert g["sources"] == {"jev": 24}                    # no floor answer fell out as an error
 
 
 def test_each_row_carries_its_footprint_hint_and_agreement_is_counted(tmp_path):
