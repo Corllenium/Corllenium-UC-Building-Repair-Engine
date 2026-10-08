@@ -9,15 +9,17 @@ Queue job M1, plan `docs/superpowers/plans/2026-10-08-jev-and-claude-mods.md` (T
 
 | # | Denied | Tools | Rule |
 |---|---|---|---|
-| 1 | Writing or deleting under the CHECKPOINT-17 export `D:\PROJECTS\UC ENVIRONMENT BUILDING\`, the master `D:\PROJECTS\UC\02-SKETCHUP\current\`, or `...\CHECKPOINT-17-BACKUP\` (write verbs `rm`, `mv`, `Remove-Item`, `Set-Content`, ...; a copy or redirect that lands there). Reads and engine commands that read the export pass. | Bash, PowerShell, Write, Edit | AGENTS.md §3 "Never touch" and the §2 table |
+| 1 | Writing or deleting under the CHECKPOINT-17 export `D:\PROJECTS\UC ENVIRONMENT BUILDING\`, the master `D:\PROJECTS\UC\02-SKETCHUP\current\`, or `...\CHECKPOINT-17-BACKUP\` (write verbs `rm`, `mv`, `Remove-Item`, `Set-Content`, ...; `find -delete`/`-exec`; a copy or redirect that lands there). Reads and engine commands that read the export pass. | Bash, PowerShell, Write, Edit | AGENTS.md §3 "Never touch" and the §2 table |
 | 2 | A bare `cd`, `pushd` or `popd` at the top level of a Bash command; `cd`/`Set-Location`/`Push-Location` anywhere in PowerShell, where parentheses don't scope it. `( cd "<dir>" && ... )` and `git -C` pass. | Bash, PowerShell | AGENTS.md §8 |
 | 3 | `git add -A` / `.` / `--all` / `-u`, `git commit -a`, `git stash` without `push -m`, `git stash save` or `clear`, and `git push --force` / `-f` / `+ref`. Staging by name passes. | Bash, PowerShell | AGENTS.md §3 "Shared working tree" |
-| 4 | `docker restart|stop|rm|kill|start|pause` on `fixer-api`, `fixer-web` or `fixer-db`; `docker compose up|down|restart|stop|rm|kill|start|pause`; `psql` on the live database `fixer`. `docker ps/logs` and `fixer_test_*` databases pass. | Bash, PowerShell | AGENTS.md §3 "Never touch" (HANDOFF §8) |
-| 5 | Reading or writing `.env`, `.env.local`, `auth.json`, or anything under `Corllenium-Phone-session-Config`. `.env.example` passes. | Read, Write, Edit, Grep, Bash, PowerShell | Owner rule 2026-10-08 (Jev plan, "The secret"); code reads keys at run time |
-| 6 | Writing into `OBJ FIXED RESULT\` or `MODEL FIXER ENGINE FILES\04-COLORING\` / `\05-FIXING\`, unless the command runs from `.claude/worktrees/verified`. Read-only commands (`ls`, `cat`, `Get-ChildItem`, ...) pass. | Bash, PowerShell, Write, Edit | AGENTS.md §3 (the owner's folders take only committed code) |
+| 4 | `docker restart|stop|rm|kill|start|pause` on `fixer-api`, `fixer-web` or `fixer-db`; `docker compose up|down|restart|stop|rm|kill|start|pause` (global options such as `-p`/`-f` included); `psql` on the live database `fixer` (`-d`, `dbname=`, a URI, or the first positional). `docker ps/logs`, `fixer_test_*` databases and the `fixer` role (`-U fixer`) pass. | Bash, PowerShell | AGENTS.md §3 "Never touch" (HANDOFF §8) |
+| 5 | Reading `.env*` (`.env`, `.env.local`, `.env.production`, ...), `auth.json`, or a path under `Corllenium-Phone-session-Config`; writing `.env*` too (controller ruling). `.env.example`/`.sample`/`.template`, commit messages, heredoc bodies and grep patterns that mention them pass. | Read, Write, Edit, Grep, Glob, Bash, PowerShell, Monitor | Jev plan 2026-10-08, "The secret" (never read `.env*`); code reads keys at run time |
+| 6 | Writing into `OBJ FIXED RESULT\` or `MODEL FIXER ENGINE FILES\04-COLORING\` / `\05-FIXING\`, unless the command first does `cd` into `.claude/worktrees/verified` or copies from it. Read-only commands (`ls`, `cat`, `Get-ChildItem`, `git log`, ...) and prose that names the folders (commit messages, records) pass. | Bash, PowerShell, Write, Edit | AGENTS.md §3 (the owner's folders take only committed code) |
 
 The shell checks are heuristics that catch the mistakes earlier sessions made. They don't fully parse the shell:
 a script that writes a file from inside `python -c` is not seen. The guard is a backstop, and AGENTS.md is still the rule.
+It is also not the outermost layer: a managed-settings hook, or another plugin's `tool.call` hook that answers without
+calling `next`, runs outside it.
 
 ## Load it
 
