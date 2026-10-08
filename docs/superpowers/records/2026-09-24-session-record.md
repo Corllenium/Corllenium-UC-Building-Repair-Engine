@@ -120,6 +120,12 @@ lies on pixel centres from real damage, so the guard now measures the displaceme
 - **Full suite on the merged branch:** 1273 passed, 1 xfailed.
 - **The Jev + mods plan** was handed to a second controller session.
 
+### 2026-10-08: Jev + Claude Code mods (second controller session)
+- **M1 `uc-guard` merged** (c22c952): it denies tool calls that break AGENTS.md. rules-reviewer needed 3 fix rounds;
+  the first review found a `docker compose -p ... up` bypass (HANDOFF.md:351). 27 tests.
+- **P0-17:** the Jev wrapper is approved and in a minor-fix round. The real pilot waits for the key.
+- **M2 `uc-status`:** built and tested; the screenshot check is next.
+
 ## 5. Measured state of the SketchUp files
 
 Audit of every edge SketchUp draws, read back through the C API (`scripts/skp_edge_audit.py`).

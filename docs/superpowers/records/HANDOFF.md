@@ -25,6 +25,25 @@ run the latest `.skp` of each file must be in `OBJ FIXED RESULT/` for the owner 
 
 ## 2. Current state (2026-09-26 00:15, written by the Claude controller)
 
+**Update 2026-10-08 (the Jev + mods controller session): M1 `uc-guard` merged; P0-17 under fix; M2 built.**
+- Plan: `docs/superpowers/plans/2026-10-08-jev-and-claude-mods.md`; ledger `.superpowers/sdd/2026-10-08-jev-and-claude-mods/progress.md`.
+- **M1 merged into `feat-dashboard` (c22c952):** `tools/claude-mods/uc-guard/`, a Claude Code mod. It denies:
+  - writes to the CKPT17 export, master or backup;
+  - a bare `cd`;
+  - `git add -A` / `.`, `commit -a`, a bare `stash`, a force push;
+  - compose/docker restarts of `fixer-*`, and `psql` on the live `fixer`;
+  - reading `.env*`;
+  - writes to the result folders outside `verified`.
+
+  rules-reviewer approved it after 3 fix rounds; 27 tests. Load it with
+  `claude --plugin-dir "D:/PROJECTS/UC MODEL FIXER/tools/claude-mods/uc-guard"`. It is live in this session through hot reload.
+- **P0-17 (Jev wrapper) on `claude/P0-17`:** rules-reviewer approved it, minors in fix. `typesafe-sdk` 0.7.2 is in
+  `.venv`. The `decide-pilot` run without a key works on the real data (85 groups, 391 materials, source "none").
+  The real pilot waits for the owner's key in the repo-root `.env`.
+- **M2 `uc-status`:** built (status line plus band, 10 tests); the screenshot check and review are next.
+- **Owner, open:** the key line in `.env` (then say "key in"); after the pilot, decision 4 (where Jev stays) and
+  whether to build M3.
+
 **Update 2026-10-08 (the repair-engine controller session): P0-13, P0-16 and P0-18 merged; colour export published.**
 - **`feat/repair-p0` = 83b89a8**, engine + tools suites 1273 passed, 1 xfailed.
   - P0-13: the owner's answers (`docs/superpowers/records/campus/decision-sheet-p0.md` §8) and the signed

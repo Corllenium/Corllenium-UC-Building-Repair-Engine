@@ -39,7 +39,7 @@
 | Review | **Per floor**: accept or reject, plus "this spot is wrong" marks |
 | ML | Rules first; learns from the owner's verdicts; never bypasses rules |
 | Hermes | **Owner-started sessions**: "Read HERMES.md and do the next job". Claude lays the foundation and reviews; Hermes executes; only Claude merges. Automatic takeover comes later (P5) |
-| External tools | **DREX and TypeSafe are not used.** Both are small decision and scoring models for finance and ops, with no geometry or code; our gates are deterministic and measured |
+| External tools | **DREX is not used.** **TypeSafe's Jev is a suggest-only helper** for soft typed questions (§9, owner-approved 2026-10-03); it never decides geometry, guard tolerances or Validator verdicts. Every gate stays deterministic and measured |
 
 ## Measured facts (2026-10-03, read only)
 
