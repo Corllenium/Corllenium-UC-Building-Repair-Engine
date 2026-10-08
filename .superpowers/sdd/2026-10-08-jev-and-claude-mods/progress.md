@@ -113,3 +113,28 @@ Ruling: PowerShell/bash `-c "git commit"` strings are not parsed (rare; a miss o
 - M1b round 1 re-review: ADDRESSED; new Important: the option loop skipped any `-x` word, so `-cCODE` / a lone `-` (stdin program) let arbitrary code take the key file.
 - M1b fix round 2/5: only flag-only Python options (and py's -3.12) may precede -m engine.cli. RED 1 fail → GREEN 29; tsc 0; validate passed.
 - Peer: feat/repair-p0 green after the P0-17 merge — b1c66a2, engine + tools 1308 passed, 1 xfailed (984 s). The peer built a slide deck for the owner from the materials numbers. P0-17b merge: ask the peer (option a) once reviewed.
+- M1b round 2 re-review: ADDRESSED, APPROVED (23 probes match; flag allowlist fails safe).
+Task M1b: complete (commits 30b4476..d3505cb, review clean after 2 fix rounds). Queue: done → pass. Merge into feat-dashboard waits for the peer's go.
+- M1b merged into feat-dashboard: b8df4ce (no-ff) after the peer's go. Before the merge, the peer's residual-risk note went into the README (9a21e3c): the exemption trusts engine.cli from any checkout, so it rests on P0-17's key-leak tests and review of engine/decide. Tests on the merged tree: 29 pass. Worktree removed.
+- P0-17b implementer: DONE. def55a5, 8c2c6d9 on claude/P0-17b (base b1c66a2). Covering tests: 4 fail / 35 pass (red) → 40 pass; engine suite 1190 passed, 1 xfailed. Review dispatched to the P0-17 reviewer.
+- PILOT RUN 2 (the full pilot, from the P0-17b worktree, via `python -m engine.cli decide-pilot --env-file`, allowed by M1b; run 1 kept as data/campus/jev_pilot_run1_groups_400.json):
+  - 57 calls, 0 failed; mean latency 0.32 s (max 1.03); wall 20.9 s; tokens 187196 in / 68859 out. Group calls ~4.8k in / 1.7k out each (20 questions).
+  - The real API accepts the 16-option floor Choice.
+  - Group names (85; truth = campus_map.json), at confidence >= 0.8:
+    - building: accuracy 0.965, coverage 0.953, within coverage 0.975 (85 with truth);
+    - type (coarse): 0.937 / 0.899 / 0.972 (79 with truth, 6 unknown);
+    - type_strict (floor vs non-floor): 0.962 / 0.899 / 0.986;
+    - floor: 0.928 / 0.928 / 0.953 (69 with truth, 16 unknown).
+  - Footprint hint: given for 82 groups; the hint itself is right for 74 (90 %); Jev agrees with it on 76; Jev's building accuracy 96.5 % beats the hint alone.
+  - Materials (run 2): 289/391 accepted (74 %); histogram as run 1 within ±1.
+- P0-17b review (P0-17 reviewer): Spec ✅ Rules ✅ APPROVED, 2 minors.
+  - (1) The limit ValueError is swallowed into a batch "ValueError" error.
+  - (2) The comment claimed API acceptance before it was verified; the pilot run 2 now verifies it.
+  - Concern rulings 1-4 accepted.
+Ruling: fix both P0-17b minors before merge — a swallowed limit error would hide the next such failure exactly like this one — if wrong, one short builder round.
+- P0-17b fix round 1/5 dispatched (resume implementer).
+- P0-17b fix round 1: 87f6abb. Limits checked in ask() before batching (ValueError reaches the caller); comment records the verified 16-option Choice. Covering tests re-run by the controller: 41 passed.
+Ruling: ask() raising on an over-limit question even without a key is accepted — such a question is a bug in our own question definitions, not a runtime condition, and must fail loudly — if wrong, a no-key run of a bad question errors instead of returning "none".
+- P0-17b round 1 re-review: both minors ADDRESSED, APPROVED (41 covering tests).
+Task P0-17b: complete (commits b1c66a2..87f6abb, review clean after 1 fix round). Queue: done → pass. Merge into feat/repair-p0: asked the peer (option a).
+Task P0-17 (pilot step): complete. Pilot run 2 numbers are above, sent to the peer for the owner's deck. Waiting: owner decision 4 (where Jev stays) and whether to build M3.
