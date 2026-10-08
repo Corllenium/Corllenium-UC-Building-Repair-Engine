@@ -18,6 +18,7 @@ class Settings:
     min_confidence: float = 0.8
     owner_users: frozenset[str] = frozenset({"gab"})
     engine_user: str = "uc-engine"
+    batch: int = 20
     database_url: str = ""
 
     @classmethod
