@@ -59,7 +59,19 @@ ssh -t -i $env:USERPROFILE\.ssh\uc_vps_ed25519 root@187.127.213.243 "umask 077; 
    - **Re-running this step rewrites `decide.env` from scratch and drops a `DECIDE_JEV_ENABLED=true` line.** To rotate
      the key while Jev is on, run it, then add the `DECIDE_JEV_ENABLED=true` line again (see "Switching Jev on"),
      then force-recreate the service.
-3. The image, built on the PC from the repo root, then loaded on the box:
+3. The web image, because the `/jev` page is part of the dashboard bundle and the VPS web image predates it. It is
+   built on the PC from the repo root (the owner's OK at that moment; it is the `:vps` tag, not the local
+   `fixer-web`), then loaded on the box:
+```powershell
+( cd web; npm run build )
+docker build -f Dockerfile.web -t ucmodelfixer-web:vps .
+docker save ucmodelfixer-web:vps -o web.tar
+scp -i $env:USERPROFILE\.ssh\uc_vps_ed25519 web.tar root@187.127.213.243:/docker/uc-fixer/
+ssh -i $env:USERPROFILE\.ssh\uc_vps_ed25519 root@187.127.213.243 "docker load -i /docker/uc-fixer/web.tar && rm /docker/uc-fixer/web.tar"
+```
+   (`Dockerfile.web` copies `web/dist` and `preview` into an nginx image; the box's `nginx.conf` is mounted over the
+   image's, see step 5.)
+4. The decide image, built on the PC from the repo root, then loaded on the box:
 ```powershell
 docker build -f deploy/vps/decide/Dockerfile -t ucmodelfixer-decide:vps .
 docker save ucmodelfixer-decide:vps -o decide.tar
@@ -67,22 +79,54 @@ scp -i $env:USERPROFILE\.ssh\uc_vps_ed25519 decide.tar root@187.127.213.243:/doc
 ssh -i $env:USERPROFILE\.ssh\uc_vps_ed25519 root@187.127.213.243 "docker load -i /docker/uc-fixer/decide.tar && rm /docker/uc-fixer/decide.tar"
 ```
    (`docker save | ssh` through the PowerShell pipeline corrupts the binary stream, so the tar goes by `scp`.)
-4. Copy the new `docker-compose.yml` and `nginx.conf` to `/docker/uc-fixer/`, then on the box, in this order:
-   - `cd /docker/uc-fixer && docker compose up -d decide` (starts `uc-fixer-decide`, creates the schema `decide`);
-   - `docker exec uc-fixer-web nginx -s reload` (once, to load the new `nginx.conf`). nginx resolves
-     `uc-fixer-decide` at request time, so no reload is needed after a recreate of the decide container, and nginx
-     still starts when that container is absent (the decide routes answer 502 meanwhile).
-5. Check: `curl -u gab https://uc-fixer.srv1866850.hstgr.cloud/api/decide/health` prompts for the password and
+5. Copy the new `docker-compose.yml` and `nginx.conf` to `/docker/uc-fixer/`, then on the box, in this order:
+   - `cd /docker/uc-fixer && docker compose up -d --force-recreate web` (starts the new web image, which also loads
+     the new `nginx.conf`; no separate `nginx -s reload` is needed). nginx resolves `uc-fixer-decide` at request
+     time, so it starts even while that container is absent (the decide routes answer 502 meanwhile), and it needs no
+     reload after a later recreate of the decide container;
+   - `docker compose up -d decide` (starts `uc-fixer-decide`, creates the schema `decide`).
+6. Check: `curl -u gab https://uc-fixer.srv1866850.hstgr.cloud/api/decide/health` prompts for the password and
    should answer `{"ok":true,"jev_enabled":false,...}`.
 
-The controller runs steps 3-5 only with the owner's explicit OK at that moment.
+The controller runs steps 3-6 only with the owner's explicit OK at that moment.
+
+### On the PC after the deploy (the owner's `.env`, then two commands)
+1. Set the service URL for the shell, and let the owner add the password line to the git-ignored repo-root `.env`
+   himself (an agent never types it):
+   - `UC_DECIDE_URL=https://uc-fixer.srv1866850.hstgr.cloud` (an environment variable, or `--url` on each command);
+   - `UC_DECIDE_PASSWORD=<the uc-engine password>` as one line in `.env`.
+2. Load the pilot answers as pending suggestions, first as a dry run (it builds the questions, prints the counts and
+   sends nothing):
+```bash
+PY="D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe"
+"$PY" -m engine.cli decide-import-pilot --source data/campus/source.json --materials data/campus/materials.json --pilot data/campus/jev_pilot.json --dry-run
+"$PY" -m engine.cli decide-import-pilot --source data/campus/source.json --materials data/campus/materials.json --pilot data/campus/jev_pilot.json
+```
+3. Once the owner has confirmed answers on `/jev`, fetch them (writes `data/decide/confirmed/mat.category.json`):
+```bash
+"$PY" -m engine.cli decide-pull --type mat.category
+```
+
+### Post-deploy checks (spec section 8)
+Against the real URL, in this order. Passwords are typed at the prompt (`curl -u name`), never on a command line:
+1. Health: `curl -u gab https://uc-fixer.srv1866850.hstgr.cloud/api/decide/health` answers `ok: true`.
+2. One `ask` as `uc-engine` (for example `decide-import-pilot` above, or a one-question POST to `/api/decide/ask`)
+   answers 200 with an answer or `none / jev off`.
+3. One review as the owner: open `/jev` as `gab`, accept one pending suggestion.
+4. One confirmed fetch: `decide-pull --type mat.category` writes the file with that answer.
+5. One refusal per role:
+   - `uc-engine` on `/` (the dashboard) gives 403;
+   - `uc-engine` on review (`POST /api/decide/review/<id>`) gives 403;
+   - the owner (`gab`) on `ask` (`POST /api/decide/ask`) gives 403.
 
 ### Switching Jev on (later)
 This is the owner's decision, for when the repair engine is ready, and each step needs the owner's OK at that moment.
 Add the line `DECIDE_JEV_ENABLED=true` to `/docker/uc-fixer/decide.env` (append it; do not retype the key), then
 `cd /docker/uc-fixer && docker compose up -d --force-recreate decide` (forced, so the new env file is certainly read).
 The daily cap is
-1,000,000 tokens (`DECIDE_DAILY_TOKEN_CAP`); a minimum confidence of 0.8 gates what is accepted without review.
+1,000,000 tokens (`DECIDE_DAILY_TOKEN_CAP`). The confidence of 0.8 (`DECIDE_MIN_CONFIDENCE`) is only a display
+threshold, for the confidence bar and the "Accept all >=" default on `/jev`. Nothing is used by the engine until the
+owner confirms it (source `owner`, or the files `decide-pull` writes).
 To switch it off again, remove that line and recreate the same way.
 
 ### Rollback
