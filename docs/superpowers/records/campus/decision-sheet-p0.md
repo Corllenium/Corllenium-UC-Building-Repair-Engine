@@ -81,3 +81,21 @@ floors are fixed.
 
 ## 8. Answers
 (filled in from the owner's replies)
+
+**Answers, 2026-10-08 (the owner, two rounds of four questions):**
+1. **Science A copies:** keep `_obj`, drop `_obj1` from the fix scope (plan_2 and plan_3).
+2. **Check-2 targets:** accepted as proposed. Written to `engine/validate/targets.json`:
+   - flicker (both kinds), reversed and cracks: 0;
+   - hidden, loose and open edges: listed, each with the owner's note. Hidden gets a number once E3's interior-aware count
+     exists.
+3. **Same look = one material:** identical-look flicker goes to E4, not E5.
+4. **Main_Infrustructure_Building:** 3 floors accepted for now (L02, L03, L04).
+5. **CHTM_12th:** its own level, CHTM-L12.
+6. **BRS_5th_floor_obj1 and BRS_9th_floor_obj1:** the owner asked for pictures first. These units are not yet
+   confirmed.
+7. **Science A L01:** Main_Infrustructure_1st_floor becomes SCIENCE_A-L01.
+8. **Source:** keep the export. The 5 unexplained files are shown with export-vs-backup pictures before their floors
+   are fixed.
+
+The confirmed map is `data/campus/campus_map.json`: 80 units, 78 confirmed by the owner. BRS-L05 and BRS-L08 wait for
+the pictures.
