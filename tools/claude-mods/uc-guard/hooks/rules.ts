@@ -368,12 +368,20 @@ function resultsReason(segs: Segment[]): string | undefined {
   return undefined
 }
 
+// The engine reads only the TYPESAFE_API_KEY line of the file given to `python -m engine.cli ... --env-file`
+// (owner decision 2026-10-08: code reads keys at run time), so that one value is not an agent reading a secret.
+function engineKeyFileDropped(words: string[]): string[] {
+  const m = words.indexOf('-m')
+  if (m < 0 || words[m + 1] !== 'engine.cli') return words
+  return words.filter((w, i) => !w.startsWith('--env-file=') && words[i - 1] !== '--env-file')
+}
+
 function shellReason(command: string, shell: Shell): string | undefined {
   const segs = segments(command, shell)
 
   for (const s of segs) {
     const seg = commandWords(s.words)
-    const words = fileWords(seg)
+    const words = engineKeyFileDropped(fileWords(seg))
     // `\.env` is a regex escape for a pattern tool, but to cat it is just .env
     const unescape = PATTERN_VERBS.has(verb(seg[0]) ?? '') ? (w: string) => w : (w: string) => w.replace(/^\\(?=\.)/, '')
     if (
