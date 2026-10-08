@@ -173,7 +173,9 @@ class Decider:
         self._owner: dict[tuple[str, str], Any] = {}
         self._pending: dict[tuple[str, str], Answer] = {}
         self._records: list[dict] = []
+        self._cache: dict[tuple[str, str], dict] = {}
         self._replay()
+        self._load_cache()
 
     # ------------------------------------------------------------------ files
 
@@ -188,6 +190,16 @@ class Decider:
             if isinstance(rec, dict):
                 self._records.append(rec)
                 self._apply(rec)
+
+    def _load_cache(self) -> None:
+        if not self._cache_path.exists():
+            return
+        for line in self._cache_path.read_text(encoding="utf-8").splitlines():
+            try:
+                rec = json.loads(line)
+                self._cache[(rec["key"], rec["provider"])] = rec
+            except (ValueError, KeyError, TypeError):
+                continue  # a truncated or foreign line
 
     def _apply(self, rec: dict) -> None:
         ev = rec.get("event")
@@ -251,8 +263,14 @@ class Decider:
                     results[i] = ans
                     todo.remove(i)
                     break
+        candidates: dict[int, list[Answer]] = {i: [] for i in todo}
+        for provider in (p for p in self._providers if p.name != "rules"):
+            for qtype in dict.fromkeys(questions[i].qtype for i in todo):
+                idxs = [i for i in todo if questions[i].qtype == qtype]
+                for i, ans in self._provider_answers(provider, self._types[qtype], idxs, questions, keys):
+                    candidates[i].append(ans)
         for i in todo:
-            results[i] = self._queued(questions[i], keys[i], None)
+            results[i] = self._decide(questions[i], keys[i], candidates[i])
         for ans in results:
             assert ans is not None
             self._log_answer(ans)
@@ -283,6 +301,74 @@ class Decider:
                          "latency_s": round(time.perf_counter() - t0, 6)})
             return None
         return ans
+
+    def _decide(self, q: Question, key: str, candidates: list[Answer]) -> Answer:
+        """Providers other than the rules only ever SUGGEST here: the best one rides on the queued answer."""
+        suggestion = None
+        if candidates:
+            best = max(candidates, key=lambda a: a.confidence)
+            suggestion = {"provider": best.provider, "answer": best.answer,
+                          "confidence": best.confidence, "probabilities": best.probabilities}
+        return self._queued(q, key, suggestion)
+
+    def _error(self, provider: str, qtype: str, subject: str | None, exc: Exception, t0: float) -> None:
+        self._write({"event": "error", "qtype": qtype, "subject": subject, "provider": provider,
+                     "error": f"{type(exc).__name__}: {exc}"[:300],
+                     "latency_s": round(time.perf_counter() - t0, 6)})
+
+    def _provider_answers(self, provider: Provider, qt: QuestionType, idxs: list[int],
+                          questions: list[Question], keys: list[str]) -> list[tuple[int, Answer]]:
+        """One provider, one question type: ask it only for keys it has not answered before, remember its
+        answers (and its misses) in the cache, and return what it knows for each question."""
+        name = provider.name
+        missing: dict[str, int] = {}
+        for i in idxs:
+            if (keys[i], name) not in self._cache:
+                missing.setdefault(keys[i], i)
+        fresh: dict[str, float] = {}  # key -> latency of the call that just answered it
+        if missing:
+            order = list(missing.values())
+            t0 = time.perf_counter()
+            try:
+                got = provider.answer(qt, [questions[i] for i in order])
+                if len(got) != len(order):
+                    raise ValueError(f"{name} returned {len(got)} answers for {len(order)} questions")
+            except Exception as exc:  # a provider never fails the pipeline
+                self._error(name, qt.qtype, None, exc, t0)
+                got = []
+            latency = round((time.perf_counter() - t0) / max(len(order), 1), 6)
+            for i, ans in zip(order, got):
+                rec: dict = {"key": keys[i], "provider": name, "hit": False, "answer": None,
+                             "confidence": 0.0, "probabilities": {}, "tokens": None}
+                if ans is not None:
+                    try:
+                        conf = float(ans.confidence)
+                        if not 0.0 <= conf <= 1.0:
+                            raise ValueError(f"confidence {conf} outside 0..1")
+                        rec.update(hit=True, answer=_normalise(qt, ans.answer), confidence=conf,
+                                   probabilities=dict(ans.probabilities or {}), tokens=ans.tokens)
+                    except Exception as exc:
+                        self._error(name, qt.qtype, questions[i].subject, exc, t0)
+                        continue  # not cached: a bad answer may be better next time
+                self._cache[(keys[i], name)] = rec
+                _append_line(self._cache_path, rec)
+                fresh[keys[i]] = latency
+        out: list[tuple[int, Answer]] = []
+        for i in idxs:
+            rec = self._cache.get((keys[i], name))
+            if rec is None or not rec["hit"]:
+                continue
+            q = questions[i]
+            ans = Answer(q.qtype, q.subject, keys[i], rec["answer"], rec["confidence"], name,
+                         rec["probabilities"], False, None, rec["tokens"])
+            self._write({"event": "provider", "qtype": q.qtype, "subject": q.subject, "key": keys[i],
+                         "provider": name, "answer": ans.answer, "confidence": ans.confidence,
+                         "accepted": False, "mode": self._modes[q.qtype],
+                         "latency_s": fresh.get(keys[i], 0.0),
+                         "tokens": rec["tokens"] if keys[i] in fresh else 0,
+                         "probabilities": ans.probabilities})
+            out.append((i, ans))
+        return out
 
     def _log_answer(self, ans: Answer) -> None:
         self._write({"event": "answer", "qtype": ans.qtype, "subject": ans.subject, "key": ans.key,

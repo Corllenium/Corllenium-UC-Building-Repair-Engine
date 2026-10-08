@@ -247,3 +247,148 @@ def test_default_paths_are_cwd_relative_under_data_decide(tmp_path, monkeypatch)
     d = Decider([T_BUILDING], [])
     d.ask([_q("G")])
     assert (tmp_path / "data" / "decide" / "log.jsonl").exists()
+
+
+# ---------------------------------------------------------------- other providers, SUGGEST, cache
+
+
+class FakeProvider:
+    """Answers from a table {subject: (answer, confidence)}; records every question it was given."""
+
+    def __init__(self, name="jev", table=None, tokens=7):
+        self.name = name
+        self.table = table or {}
+        self.tokens = tokens
+        self.calls = []  # one list of subjects per answer() call
+
+    def answer(self, qt, questions):
+        self.calls.append([q.subject for q in questions])
+        out = []
+        for q in questions:
+            hit = self.table.get(q.subject)
+            if hit is None:
+                out.append(None)
+                continue
+            value, conf = hit
+            out.append(Answer(q.qtype, q.subject, question_key(qt, q), value, conf, self.name,
+                              {str(value): conf}, False, None, self.tokens))
+        return out
+
+
+class RaisingProvider:
+    name = "flaky"
+
+    def __init__(self):
+        self.calls = 0
+
+    def answer(self, qt, questions):
+        self.calls += 1
+        raise TimeoutError("network down")
+
+
+def test_suggest_mode_never_accepts_a_provider_answer(tmp_path):
+    jev = FakeProvider(table={"G": ("CHTM", 0.999)})
+    d = _decider(tmp_path, [_rules(**{}), jev])
+    (a,) = d.ask([_q("G")])
+    assert (a.provider, a.accepted, a.answer) == ("queue", False, None)
+    assert a.suggestion["provider"] == "jev" and a.suggestion["answer"] == "CHTM"
+    assert a.suggestion["confidence"] == 0.999 and a.suggestion["probabilities"] == {"CHTM": 0.999}
+    (queued,) = d.owner_queue()
+    assert queued.suggestion == a.suggestion
+
+
+def test_the_best_suggestion_is_the_most_confident_one(tmp_path):
+    p1 = FakeProvider("low", {"G": ("BRS", 0.4)})
+    p2 = FakeProvider("high", {"G": ("MAIN", 0.8)})
+    d = _decider(tmp_path, [p1, p2])
+    (a,) = d.ask([_q("G")])
+    assert (a.suggestion["provider"], a.suggestion["answer"]) == ("high", "MAIN")
+
+
+def test_rules_and_owner_beat_providers_which_are_then_not_called(tmp_path):
+    jev = FakeProvider(table={"CHTM_a": ("BRS", 0.99), "G": ("BRS", 0.99)})
+    d = _decider(tmp_path, [jev, _rules(**{"inv.building": _chtm_rule})])  # rules given last, still first
+    d.record_owner("inv.building", "G", "MAIN")
+    answers = d.ask([_q("CHTM_a"), _q("G")])
+    assert [(a.provider, a.answer) for a in answers] == [("rules", "CHTM"), ("owner", "MAIN")]
+    assert jev.calls == []
+
+
+def test_one_provider_call_per_question_type_with_unique_keys(tmp_path):
+    jev = FakeProvider(table={"A": ("BRS", 0.5), "B": ("BRS", 0.5)})
+    d = _decider(tmp_path, [jev])
+    same_state = {"name": "same"}
+    d.ask([Question("inv.building", "A", same_state), Question("inv.building", "B", same_state),
+           Question("inv.building", "C", {"name": "other"})])
+    assert jev.calls == [["A", "C"]]  # A and B share a key: one question; C is another
+    # B, with the same key, still gets A's answer, under its own subject
+    qs = {a.subject: a for a in d.owner_queue()}
+    assert qs["B"].suggestion["answer"] == "BRS" and qs["C"].suggestion is None
+
+
+def test_the_cache_prevents_a_second_provider_call(tmp_path):
+    jev = FakeProvider(table={"G": ("CHTM", 0.9)})
+    d = _decider(tmp_path, [jev])
+    d.ask([_q("G")])
+    d.ask([_q("G")])
+    assert jev.calls == [["G"]]
+    # a fresh Decider on the same cache file does not call either, and the misses are cached too
+    jev2 = FakeProvider(table={"G": ("BRS", 0.1)})
+    d2 = _decider(tmp_path, [jev2])
+    assert d2.ask([_q("G")])[0].suggestion["answer"] == "CHTM"
+    d2.ask([_q("Nobody")])  # a miss
+    d2.ask([_q("Nobody")])
+    assert jev2.calls == [["Nobody"]]
+    rows = [json.loads(x) for x in (tmp_path / "cache.jsonl").read_text(encoding="utf-8").splitlines()]
+    assert {(r["key"], r["provider"]) for r in rows} == {
+        (question_key(T_BUILDING, _q("G")), "jev"), (question_key(T_BUILDING, _q("Nobody")), "jev")}
+
+
+def test_cache_is_per_provider(tmp_path):
+    a, b = FakeProvider("a", {"G": ("BRS", 0.5)}), FakeProvider("b", {"G": ("MAIN", 0.6)})
+    d = _decider(tmp_path, [a])
+    d.ask([_q("G")])
+    d2 = _decider(tmp_path, [a, b])
+    (ans,) = d2.ask([_q("G")])
+    assert a.calls == [["G"]] and b.calls == [["G"]]
+    assert ans.suggestion["provider"] == "b"
+
+
+def test_a_provider_that_raises_is_logged_and_the_question_falls_through(tmp_path):
+    bad = RaisingProvider()
+    jev = FakeProvider(table={"G": ("BRS", 0.7)})
+    d = _decider(tmp_path, [bad, jev])
+    (a,) = d.ask([_q("G")])
+    assert (a.provider, a.accepted) == ("queue", False)
+    assert a.suggestion["provider"] == "jev"  # the next provider still ran
+    errs = [r for r in _log(tmp_path) if r.get("event") == "error"]
+    assert len(errs) == 1 and errs[0]["provider"] == "flaky" and "TimeoutError" in errs[0]["error"]
+    # a failure is not cached: the next ask tries again
+    d.ask([_q("G")])
+    assert bad.calls == 2
+
+
+def test_a_provider_that_answers_badly_is_logged_and_ignored(tmp_path):
+    wrong_length = FakeProvider("short")
+    wrong_length.answer = lambda qt, questions: []
+    invalid = FakeProvider("invalid", {"G": ("ATLANTIS", 0.9)})
+    d = _decider(tmp_path, [wrong_length, invalid])
+    (a,) = d.ask([_q("G")])
+    assert (a.provider, a.suggestion) == ("queue", None)
+    assert sorted(r["provider"] for r in _log(tmp_path) if r.get("event") == "error") == ["invalid", "short"]
+
+
+def test_provider_answers_are_logged_with_latency_and_tokens(tmp_path):
+    d = _decider(tmp_path, [FakeProvider(table={"G": ("CHTM", 0.9)}, tokens=11)])
+    d.ask([_q("G")])
+    (rec,) = [r for r in _log(tmp_path) if r.get("event") == "provider"]
+    assert (rec["provider"], rec["answer"], rec["confidence"], rec["accepted"], rec["tokens"]) == (
+        "jev", "CHTM", 0.9, False, 11)
+    assert isinstance(rec["latency_s"], float) and rec["mode"] == "suggest"
+
+
+def test_provider_noul_answer_keeps_its_raw_form(tmp_path):
+    jev = FakeProvider(table={"G": (False, 0.8)})
+    d = _decider(tmp_path, [jev])
+    (a,) = d.ask([Question("inv.duplicate", "G", {"n": 1})])
+    assert a.suggestion["answer"] is False and a.suggestion["probabilities"] == {"False": 0.8}
