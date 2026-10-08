@@ -17,7 +17,6 @@ from __future__ import annotations
 
 import json
 import logging
-import re
 from pathlib import Path
 
 from engine.decide import decider as decider_module
@@ -35,23 +34,6 @@ from engine.decide.decider import (
 log = logging.getLogger(__name__)
 
 _JEV_SOURCES = ("jev", "pilot-import")
-_TRANSPORT_ERROR = re.compile(r"^(?:[A-Za-z_][A-Za-z0-9_]*|HTTP \d{3})$")  # a class name or "HTTP <status>"
-
-
-def _transport_failure(decisions, ids: list[str]) -> str | None:
-    """The tripping reason when EVERY decision of a state group is a "none"/"error" whose error is an exception
-    class name or `HTTP <status>`: the service was not reached or answered with a failure. "jev off", "daily
-    cap" and a "none" with no error are fast service answers (other groups may still hold stored hits): None."""
-    if not isinstance(decisions, dict) or not ids:
-        return None
-    reason = None
-    for qid in ids:
-        d = decisions.get(qid)
-        error = getattr(d, "error", "") or ""
-        if getattr(d, "source", None) not in ("none", "error") or not _TRANSPORT_ERROR.match(error):
-            return None
-        reason = reason or error
-    return reason
 
 
 def _jev_question(qt: QuestionType, q: Question):
@@ -83,11 +65,13 @@ def _token_total(calls: list[dict]) -> int | None:
 class AskProvider:
     """A Decider provider backed by a Jev decider (`JevDecider` or `RemoteDecider`).
 
-    The pipeline never waits on the VPS: a circuit breaker lives on the instance. When a state group comes back
-    as a transport failure (`decider.ask` raised, or every decision is a "none"/"error" whose error is an
-    exception class name or `HTTP <status>`), `.down` is set to that reason; the remaining groups of the call and
-    every later `answer()` on this instance return `Unavailable(.down)` at once, with no request. The caller
-    makes a fresh provider per pipeline run. "jev off", "daily cap" and a "none" without an error do not trip it.
+    The pipeline never waits on the VPS: a circuit breaker lives on the instance. It trips only on a call-level
+    failure: `decider.ask` raised, or a `decider.calls` entry added during that ask has `ok` False
+    (`RemoteDecider` sets `ok` True only for a 2xx reply with a valid body; `JevDecider` sets it False when the SDK
+    call failed). `.down` is then the reason (the exception class name or the entry's error); the remaining groups
+    of the call and every later `answer()` on this instance return `Unavailable(.down)` at once, with no request.
+    The caller makes a fresh provider per pipeline run. A per-decision error under an ok call (UnmappedFloorKey,
+    MissingAnswer, BadReply), "jev off", "daily cap" and a call that added no entry (no key) never trip it.
 
     Tokens: the sum of `input_tokens + output_tokens` of the `decider.calls` entries added during one `answer()`
     call is split over that call's answers by integer division; the remainder is dropped."""
@@ -110,6 +94,7 @@ class AskProvider:
                     out[i] = Unavailable(self.down)
                 continue
             asked = {str(i): _jev_question(qt, questions[i]) for i in idxs}
+            before_group = len(calls) if isinstance(calls, list) else 0
             try:
                 decisions = self.decider.ask(questions[idxs[0]].state, asked)
             except Exception as exc:  # noqa: BLE001 -- it should not raise; never keep the message
@@ -117,7 +102,10 @@ class AskProvider:
                 for i in idxs:
                     out[i] = Unavailable(self.down)
                 continue
-            self.down = _transport_failure(decisions, list(asked))
+            if isinstance(calls, list):
+                failed = [e for e in calls[before_group:] if isinstance(e, dict) and e.get("ok") is False]
+                if failed:
+                    self.down = str(failed[0].get("error") or "CallFailed")[:200]
             for i in idxs:
                 out[i] = self._map(qt, questions[i], decisions.get(str(i)) if isinstance(decisions, dict) else None)
         answered = [a for a in out if isinstance(a, Answer)]

@@ -41,7 +41,8 @@ def _no_real_env(tmp_path_factory, monkeypatch):
 class FakeAsk:
     """Stands in for JevDecider / RemoteDecider: `.ask(state, questions) -> {qid: Decision}` and `.calls`."""
 
-    def __init__(self, reply=None, tokens=None):
+    def __init__(self, reply=None, tokens=None, ok=True, call_error=""):
+        self.ok, self.call_error = ok, call_error  # the `ok`/`error` of the .calls entry each ask adds
         self.reply = reply or (lambda qid, q: Decision(None, 0.0, {}, "none", False, "jev off"))
         self.tokens = tokens  # (input, output) added to .calls on every ask, or None for no token data
         self.calls = []
@@ -49,7 +50,9 @@ class FakeAsk:
 
     def ask(self, state, questions):
         self.asked.append((state, dict(questions)))
-        entry = {"questions": len(questions), "ok": True}
+        entry = {"questions": len(questions), "ok": self.ok}
+        if not self.ok:
+            entry["error"] = self.call_error
         if self.tokens:
             entry["input_tokens"], entry["output_tokens"] = self.tokens
         self.calls.append(entry)
@@ -543,14 +546,44 @@ def test_jev_off_on_one_group_does_not_stop_a_later_group_returning_a_pilot_impo
 
 @pytest.mark.parametrize("source,error", [("none", "URLError"), ("none", "TimeoutError"), ("error", "HTTP 503"),
                                           ("error", "HTTP 409")])
-def test_a_transport_failure_trips_the_breaker_for_the_rest_of_the_call_and_later_calls(source, error):
-    fake = FakeAsk(lambda qid, q: Decision(None, 0.0, {}, source, False, error))
+def test_a_failed_call_entry_trips_the_breaker_for_the_rest_of_the_call_and_later_calls(source, error):
+    fake = FakeAsk(lambda qid, q: Decision(None, 0.0, {}, source, False, error), ok=False, call_error=error)
     p = AskProvider("jev", fake)
     out = p.answer(T_FLOOR, [_fq("A", s=1), _fq("B", s=2), _fq("C", s=3)])
     assert len(fake.asked) == 1 and p.down == error
     assert out == [Unavailable(error)] * 3
     p.answer(T_FLOOR, [_fq("D", s=4)])
     assert len(fake.asked) == 1
+
+
+@pytest.mark.parametrize("error", ["UnmappedFloorKey", "MissingAnswer", "BadReply", "URLError"])
+def test_a_per_decision_error_under_an_ok_call_never_trips_the_breaker(error):
+    def reply(qid, q):
+        if q.subject == "A":
+            return Decision(None, 0.0, {}, "error", False, error)
+        return Decision("2", 0.9, {"2": 0.9}, "jev", True)
+    fake = FakeAsk(reply)  # every call entry is ok
+    p = AskProvider("jev", fake)
+    out = p.answer(T_FLOOR, [_fq("A", s=1), _fq("B", s=2), _fq("C", s=3), _fq("D", s=4)])
+    assert p.down is None and len(fake.asked) == 4
+    assert out[0] == Unavailable(error) and [a.answer for a in out[1:]] == ["2", "2", "2"]
+
+
+def test_a_decider_with_no_new_call_entries_does_not_trip():
+    fake = FakeAsk(lambda qid, q: Decision(None, 0.0, {}, "none", False, "URLError"))
+    fake.ask = lambda state, questions: {qid: Decision(None, 0.0, {}, "none", False, "URLError")
+                                         for qid in questions}  # adds nothing to .calls (no key, jev unavailable)
+    p = AskProvider("jev", fake)
+    out = p.answer(T_FLOOR, [_fq("A", s=1), _fq("B", s=2)])
+    assert p.down is None and out == [Unavailable("URLError")] * 2
+
+
+def test_a_real_http_5xx_trips_after_one_request(serve):
+    s = serve(lambda req, srv: (503, {"detail": "no"}))
+    p = AskProvider("jev", _remote(s))
+    out = p.answer(T_FLOOR, [_fq(f"G{i}", site=i) for i in range(4)])
+    assert len(s.requests) == 1 and p.down == "HTTP 503"
+    assert out == [Unavailable("HTTP 503")] * 4
 
 
 def test_an_exception_in_ask_trips_the_breaker_with_the_class_name():
