@@ -1,4 +1,9 @@
-"""The order of answers: the owner's confirmed answer, then a stored suggestion, then Jev (if on and under the cap)."""
+"""The order of answers: the owner's confirmed answer, then a stored suggestion, then Jev (if on and under the cap).
+
+`accepted` is true only for an answer whose source is "owner". Jev, cached and pilot-import answers always come back
+`accepted = False` (their confidence is returned unchanged): nothing is used by the engine until the owner confirms it.
+(The final review's ruling; `min_confidence` is only a display threshold of the /jev page.)
+"""
 from __future__ import annotations
 
 import dataclasses
@@ -78,8 +83,7 @@ def answer(store, cfg, make_decider, state, questions: dict) -> dict:
             if row["status"] in REVIEWED:
                 d = Decision(row["owner_answer"], 1.0, {}, "owner", True)
             else:
-                d = Decision(row["answer"], row["confidence"], row["probabilities"] or {}, row["source"],
-                             row["confidence"] >= cfg.min_confidence)
+                d = Decision(row["answer"], row["confidence"], row["probabilities"] or {}, row["source"], False)
             out[qid] = wire.decision_to_json(d, row["id"])
             continue
         if key in todo:
@@ -111,7 +115,7 @@ def answer(store, cfg, make_decider, state, questions: dict) -> dict:
             d = decisions[qids[0]]
             sid = None
             if d.source == "jev":
-                d = dataclasses.replace(d, accepted=d.confidence >= cfg.min_confidence)
+                d = dataclasses.replace(d, accepted=False)
                 sid = store.add_suggestion(_row(q, key, state, d, decider.model, "jev"))
             for qid in qids:
                 out[qid] = wire.decision_to_json(d, sid)

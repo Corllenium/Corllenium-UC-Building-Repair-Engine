@@ -6,7 +6,7 @@
     </header>
 
     <main class="page-content">
-      <div v-if="serviceMissing" class="banner banner-info" role="status">Jev service runs on the VPS</div>
+      <div v-if="serviceBanner" class="banner banner-info" role="status">{{ serviceBanner }}</div>
 
       <template v-else>
         <div v-if="loadError" class="banner banner-error" role="alert">{{ loadError }}</div>
@@ -165,7 +165,7 @@ import {
   answerLabel,
   errorText,
   filterRows,
-  isServiceMissing,
+  serviceNote,
   isValidThreshold,
   mergeResults,
   optionLabels,
@@ -183,7 +183,7 @@ const PAGE_LIMIT = 500
 const DEBOUNCE_MS = 300
 
 const health = ref<DecideHealth | null>(null)
-const serviceMissing = ref(false)
+const serviceBanner = ref('')
 const loadError = ref('')
 const tabKey = ref(TABS[0].key)
 const qtype = ref('')
@@ -235,7 +235,8 @@ async function load() {
     truncated.value = replies.some((r) => r.items.length >= PAGE_LIMIT)
   } catch (err) {
     if (mine !== loadSeq) return
-    if (isServiceMissing(err)) serviceMissing.value = true
+    const note = serviceNote(err)
+    if (note) serviceBanner.value = note
     else loadError.value = errorText(err)
   } finally {
     if (mine === loadSeq) loading.value = false
@@ -338,8 +339,9 @@ onMounted(async () => {
   try {
     health.value = await fetchHealth()
   } catch (err) {
-    if (isServiceMissing(err)) {
-      serviceMissing.value = true
+    const note = serviceNote(err)
+    if (note) {
+      serviceBanner.value = note
       return
     }
     loadError.value = errorText(err)

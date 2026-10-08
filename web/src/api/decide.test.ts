@@ -94,6 +94,15 @@ describe('decide API', () => {
     expect(spy.mock.calls[0][0]).toBe('/api/decide/reask/3')
     expect(spy.mock.calls[0][1].method).toBe('POST')
   })
+
+  it('reaskSuggestion sends a JSON body {} (the service refuses a post without one)', async () => {
+    const spy = vi.fn().mockResolvedValue(json({ id: 3 }))
+    globalThis.fetch = spy
+    await reaskSuggestion(3)
+    const init = spy.mock.calls[0][1]
+    expect(init.headers).toEqual({ 'Content-Type': 'application/json' })
+    expect(init.body).toBe('{}')
+  })
 })
 
 describe('decide API filters and 422 detail', () => {

@@ -47,9 +47,11 @@ engine.cli decide-pull ──HTTPS──▶                GET  /api/decide/conf
 
 - The existing `uc-fixer-api` stays **read-only** (nginx `limit_except GET`). nginx routes only `/api/decide/` to the
   new container.
-- **Two logins in the same `users.htpasswd`:** `uc-engine` may only call `ask` and `confirmed`; the owner's login
-  may read suggestions, review them and fetch confirmed answers. nginx enforces this by `$remote_user` and passes the
-  user name on as `X-Remote-User`; the service checks it again.
+- **Two logins in the same `users.htpasswd`:** `uc-engine` may call `ask`, `import`, `confirmed` and `health`, and
+  nginx refuses it everywhere else (403 on `/` and on every `/api/` route outside the decide routes; on the owner's
+  decide routes the service refuses it). The owner's login may read suggestions, review them, re-ask and fetch
+  confirmed answers, and is refused on `ask` by nginx and on `ask` and `import` by the service. nginx enforces this by
+  `$remote_user` and passes the user name on as `X-Remote-User`; the service checks it again.
 - **Who counts as the owner:** the logins named in `DECIDE_OWNER_USERS` in the service's environment, `gab` by
   default. Any other login, `uc-engine` included, is refused on the owner's endpoints with 403.
 
@@ -64,12 +66,12 @@ dashboard's `api/`.
 
 | Table | Columns |
 |---|---|
-| `decide.suggestions` | id; `qtype` (e.g. `mat.category`); `subject` (material or group name); `state_hash`; `state` (text, at most 2,000 characters); `question` (kind, instructions, criteria as JSON); `answer`; `confidence`; `probabilities`; `model`; `source` (`jev`, `pilot-import`, `owner`); `status` (`pending`, `accepted`, `changed`); `owner_answer`; `reviewed_at`; `reviewed_by`; `created_at` |
+| `decide.suggestions` | id; `qtype` (e.g. `mat.category`); `subject` (material or group name); `key` (unique; sha256 of the state + kind + instructions + the ordered criteria, with `qtype` and `subject` not in it, so the same question about the same state is one row); `state` (text, at most 2,000 characters, for display); `state_json` (the full state, jsonb); `question` (json, not jsonb, because jsonb reorders keys and a Choice's option order matters: kind, instructions, criteria, qtype, subject); `answer`; `confidence`; `probabilities`; `model`; `source` (`jev`, `pilot-import`, `owner`); `status` (`pending`, `accepted`, `changed`); `owner_answer`; `reviewed_at`; `reviewed_by`; `created_at` |
 | `decide.calls` | id; `at`; `questions`; `latency_ms`; `input_tokens`; `output_tokens`; `model`; `ok`; `error_class`. Never the key, never state text |
 
 **Order of answers, per question:**
 1. The owner has confirmed this `qtype` + `subject`: return the owner's answer as source `owner`. No Jev call.
-2. A suggestion exists for this `qtype` + `state_hash` + question: return it. No Jev call.
+2. A suggestion exists with this `key` (the lookup is by key, see the table): return it. No Jev call.
 3. Otherwise ask Jev in batches of 20, and store each answer as a `pending` suggestion.
 
 **Limits, before any call:** Score at most 10 levels and Choice at most 255 options (`check_question_limits`). A
@@ -94,36 +96,46 @@ it from the environment.
 
 | Method and path | Who | What |
 |---|---|---|
-| `POST /api/decide/ask` | `uc-engine` | `{state, questions}` → `{answers: {qid: Decision + suggestion_id}}` |
-| `GET /api/decide/suggestions?status=&type=&min_conf=&q=` | owner | the review list, paged |
-| `POST /api/decide/review/<id>` | owner | `{"accept": true}`, or `{"answer": …}`, which must be one of the question's options |
-| `POST /api/decide/reask/<id>` | owner | ask Jev again for this one suggestion, counted against the cap |
+| `POST /api/decide/ask` | `uc-engine` | `{state, questions}` → `{answers: {qid: Decision + suggestion_id}}`; every answer carries `suggestion_id` (the stored row it came from, or null when none) |
+| `GET /api/decide/suggestions?status=&type=&min_conf=&q=&limit=&offset=` | owner | the review list, paged by `limit` and `offset`; returns `{items, counts}` |
+| `POST /api/decide/review/<id>` | owner | `{"accept": true}`, or `{"answer": …}`, which must be one of the question's options; a bad answer gets 422 |
+| `POST /api/decide/reask/<id>` | owner | ask Jev again for this one suggestion, counted against the cap. It needs a JSON body (`{}` is enough; a form post or an empty body gets 422, which blocks a cross-site trigger). 409 when Jev is off or the daily cap is reached; 502 when the Jev call fails |
 | `GET /api/decide/confirmed?type=` | both | the confirmed answers: `subject → answer` |
-| `POST /api/decide/import` | `uc-engine` | stores already-answered questions (`pilot-import`) as `pending` suggestions, skipping any already stored |
+| `POST /api/decide/import` | `uc-engine` | stores already-answered questions (`pilot-import`) as `pending` suggestions, skipping any already stored; returns `{added, skipped, invalid}` |
 | `GET /api/decide/health` | both | ok, the model, today's tokens against the cap, and whether Jev is on |
+
+**`accepted`:** in every answer the service returns, `accepted` is true only when the source is `owner`. Cached,
+fresh Jev and pilot-import answers always come back `accepted: false`, with their `confidence` unchanged. The
+confidence threshold (`DECIDE_MIN_CONFIDENCE`, 0.8) is a display threshold of the `/jev` page only; nothing is used by
+the engine until the owner confirms it. `RemoteDecider` passes the flag through unchanged.
 
 ## 5. The page `/jev`
 
 - A new page in the existing dashboard (`web/`), behind the same login, usable on a phone.
 - **Tabs:** Materials and Campus map show the pilot answers. Next repair step, Review order and Fix tie-breaks
-  show "not available yet" until P2 and P4 add their question types. A banner says "Jev is off until the repair
+  show "not available yet" until P2 and P4 add their question types. Their reserved question types are
+  `repair.next_step` (Next repair step), `review.priority` (Review order), and `e5.winner`, `e4.same_look` and
+  `e8.opening_kind` (Fix tie-breaks). A banner says "Jev is off until the repair
   engine is ready" while the switch is off.
 - **Each row shows:**
-  - the subject, with the texture thumbnail when the file is on the VPS;
+  - the subject and, for a material, its texture file name as text (no thumbnail: the VPS holds no texture files);
   - Jev's answer and its confidence as a bar;
   - the next 2 options with their probabilities;
   - **Accept**, and **Change**, which offers only the question's allowed options.
-- **Filters:** status (Pending, Confirmed, All), minimum confidence, text search. The counts are shown at the top.
+- **Filters:** status (Pending, Accepted, Changed, All), minimum confidence, text search. The counts are shown at the top.
 - **Accept all shown** asks first ("Accept 143 suggestions?"). Every review records the owner's login and the time.
   A confirmed row can be changed again; the latest answer counts.
-- **On the PC's local dashboard** (localhost:5190) the page says "Jev service runs on the VPS".
+- **On the PC's local dashboard** (localhost:5190) the page says "Jev service runs on the VPS" (a 404). On the VPS,
+  a 502 (the decide container is down) says "Jev service unreachable".
 
 ## 6. The PC side
 
 - **`RemoteDecider`** (`engine/decide/remote.py`) has the same `.ask(state, questions)` as `JevDecider`, so
   `classify_materials` and `classify_group_names` take it unchanged.
-  - Timeout 10 s; no retries inside a pipeline run. Unreachable, timeout or HTTP error makes every answer `none` or
-    `error`, never accepted.
+  - Timeout 10 s, which is a deadline for the whole call (not per socket operation); no retries inside a pipeline
+    run. Unreachable, timeout or HTTP error makes every answer `none` or `error`, never accepted.
+  - Plain `http` is allowed for localhost only (any other host needs `https`, because the call carries a password).
+    Redirects are not followed.
   - The URL comes from `UC_DECIDE_URL`. The `uc-engine` password comes from the environment variable
     `UC_DECIDE_PASSWORD`, else only that one line of the git-ignored repo-root `.env`. It is never printed or logged.
 - **`engine.cli decide-pull --type <qtype>`** writes `data/decide/confirmed/<qtype>.json` (subject → answer) from
@@ -142,7 +154,7 @@ it from the environment.
 ## 7. Safety
 
 - Two logins with separate roles. The key exists only on the VPS. The service never returns or logs it.
-- Every test database is throwaway, in its own Docker project. Never the live `fixer`, never `uc-fixer-db`.
+- Every test database is throwaway, in a throwaway container (`decide-test-pg`, `--rm`). Never the live `fixer`, never `uc-fixer-db`.
 - `uc-guard` follow-up, M1c: also deny printing the key from the environment (`printenv`,
   `echo $TYPESAFE_API_KEY`, `Get-ChildItem Env:`). The repair-engine session found this gap.
 
@@ -156,7 +168,8 @@ it from the environment.
   - the roles from `X-Remote-User`;
   - review validation, where the answer must be one of the options;
   - the key never appearing in a response, a log or an exception.
-- **Service, API:** the endpoints against a throwaway Postgres 16 in its own Docker Compose project.
+- **Service, API:** the endpoints against a throwaway Postgres 16 container (`decide-test-pg`, port 55432,
+  `docker run --rm`; the tests refuse any other port). Never compose, never `uc-fixer-db`.
 - **`RemoteDecider`:** a fake HTTP server checks the mapping, that the timeout gives `none`, that a 401 or 500 gives
   `error`, that the password never shows, and `decide-pull`'s file.
 - **The page:** the page's logic (the API client, filters, counts and the accept-all selection) lives in plain
@@ -172,7 +185,9 @@ it from the environment.
 3. The `/jev` page (web, test first).
 4. Build the images on the PC. The local live containers are rebuilt only with the owner's OK.
 5. **Deploy, with the owner's explicit OK at that moment:**
-   - load the image;
+   - load the decide image;
+   - rebuild and load the web image `ucmodelfixer-web:vps` (the `/jev` page is part of the bundle), then
+     `docker compose up -d --force-recreate web`, which also loads the new `nginx.conf`;
    - add the container to `/docker/uc-fixer/docker-compose.yml`;
    - add the nginx route `/api/decide/`;
    - the owner adds the `uc-engine` login and writes `decide.env` himself, by the prompted SSH commands;
