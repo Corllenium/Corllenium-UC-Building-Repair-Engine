@@ -212,3 +212,8 @@ def test_columns_leave_room_for_their_longest_label(campus):
                      [text_width(f["label"], ee.FLAG_CELL_IN) for f in a.flags])
         assert b.x0 >= a.x0 + max(a.width, widest) + ee.GAP_IN - 1e-9
     assert plan.columns[1].x0 > plan.columns[0].x0 + plan.columns[0].width + ee.GAP_IN   # labels are wider here
+
+
+def test_the_longest_campus_duplicate_label_keeps_its_percent():
+    flag = {"kind": "duplicate", "text": "Sciene_A_Floor_plan_2_obj and Sciene_A_Floor_plan_2_obj1 share 80 % of"}
+    assert ee.flag_label(flag) == "DUPLICATE: SCIENE_A_FLOOR_PLAN_2_OBJ1 80%"

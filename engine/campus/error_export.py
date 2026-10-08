@@ -49,7 +49,7 @@ COLOURS = {
 GAP_IN = 315.0              # 8 m between columns
 CELL_IN = 6.0               # one crack / degenerate marker per 6 in cell
 DEGENERATE_AREA = 1e-4      # sq in: below this a triangle is drawn as a marker (or skipped in base)
-LABEL_MAX = 40
+LABEL_MAX = 48
 LINE_PITCH = 9              # text lines, in cells
 UNIT_CELL_IN, FLAG_CELL_IN, LEGEND_CELL_IN = 12.0, 8.0, 10.0   # pixel-font cell sizes
 
