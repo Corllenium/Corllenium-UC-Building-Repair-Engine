@@ -71,6 +71,11 @@ ssh -i $env:USERPROFILE\.ssh\uc_vps_ed25519 root@187.127.213.243 "docker load -i
 ```
    (`Dockerfile.web` copies `web/dist` and `preview` into an nginx image; the box's `nginx.conf` is mounted over the
    image's, see step 5.)
+   **Note:** `Dockerfile.web` and the root `nginx.conf` it copies are UNTRACKED in the main checkout (not in git). The
+   build uses those files as they exist on the owner's PC; committing them is a separate owner decision. Which
+   `nginx.conf` the box uses: `deploy/vps/docker-compose.yml` mounts `./nginx.conf` (relative to `/docker/uc-fixer`)
+   over `/etc/nginx/conf.d/default.conf`, and step 5 copies `deploy/vps/nginx.conf` of this branch there. So the box
+   runs `deploy/vps/nginx.conf`, never the root one baked into the image.
 4. The decide image, built on the PC from the repo root, then loaded on the box:
 ```powershell
 docker build -f deploy/vps/decide/Dockerfile -t ucmodelfixer-decide:vps .

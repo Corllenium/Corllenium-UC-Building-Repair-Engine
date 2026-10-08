@@ -154,7 +154,7 @@ the engine until the owner confirms it. `RemoteDecider` passes the flag through 
 ## 7. Safety
 
 - Two logins with separate roles. The key exists only on the VPS. The service never returns or logs it.
-- Every test database is throwaway, in its own Docker project. Never the live `fixer`, never `uc-fixer-db`.
+- Every test database is throwaway, in a throwaway container (`decide-test-pg`, `--rm`). Never the live `fixer`, never `uc-fixer-db`.
 - `uc-guard` follow-up, M1c: also deny printing the key from the environment (`printenv`,
   `echo $TYPESAFE_API_KEY`, `Get-ChildItem Env:`). The repair-engine session found this gap.
 
