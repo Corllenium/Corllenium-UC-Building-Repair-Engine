@@ -109,17 +109,16 @@ def _repo_root_env() -> Path:
 #: Tests point this at a file that does not exist; nothing else should change it.
 DEFAULT_ENV_FILE: Path = _repo_root_env()
 
-_KEY_LINE = re.compile(r"^\s*(?:export\s+)?" + ENV_VAR + r"\s*=\s*(.*?)\s*$")
 
-
-def read_env_key(path: Path) -> str | None:
-    """The `TYPESAFE_API_KEY=` value in `path`, or None. Every other line is skipped unread. With several
-    key lines the last one wins, as dotenv does (an empty last one means no key)."""
+def read_env_var(path: Path, name: str) -> str | None:
+    """The `NAME=` value in `path`, or None. Every other line is skipped unread. With several lines for the
+    name the last one wins, as dotenv does (an empty last one means no value)."""
+    line_re = re.compile(r"^\s*(?:export\s+)?" + re.escape(name) + r"\s*=\s*(.*?)\s*$")
     found: str | None = None
     try:
         with open(path, "r", encoding="utf-8") as fh:
             for line in fh:
-                m = _KEY_LINE.match(line)
+                m = line_re.match(line)
                 if not m:
                     continue
                 value = m.group(1)
@@ -132,6 +131,11 @@ def read_env_key(path: Path) -> str | None:
     except OSError:
         return None
     return found
+
+
+def read_env_key(path: Path) -> str | None:
+    """The `TYPESAFE_API_KEY=` value in `path`, or None (see `read_env_var`)."""
+    return read_env_var(path, ENV_VAR)
 
 
 def sdk_importable() -> bool:

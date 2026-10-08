@@ -49,7 +49,7 @@ def decision_from_json(d: dict) -> Decision:
     """Probabilities are string-keyed on the wire; consumers normalise (the floor classifier does via
     _floor_to_int)."""
     return Decision(d.get("answer"), float(d.get("confidence") or 0.0), dict(d.get("probabilities") or {}),
-                    d.get("source") or "error", bool(d.get("accepted")), d.get("error") or "")
+                    d.get("source") or "error", d.get("accepted") is True, d.get("error") or "")
 
 
 def options_of(q) -> list:
