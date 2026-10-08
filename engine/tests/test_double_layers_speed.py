@@ -262,3 +262,82 @@ def test_bbox_pairs_double_not_quadruple_when_the_scene_doubles():
         _call(double_layers, P, F, 0.15, stats=s)
         counts.append(s["bbox_pairs"])
     assert counts[1] <= 3 * counts[0]
+
+
+# ------------------------------------------------------------------------------- P1-S3b Item 1
+
+def test_dense_cell_fan_gives_oracle_answer():
+    """A 2,000-face cone fan where all faces meet at the apex (one dense cell, ~2 M pairs)."""
+    n_tri = 1000
+    angles = np.linspace(0, 2 * np.pi, n_tri, endpoint=False)
+    d_theta = 2 * np.pi / n_tri
+    P, F = [], []
+    apex = [0.0, 0.0, 10.0]
+    for layer, dz in enumerate([0.0, 0.05]):
+        origin_idx = len(P)
+        P.append([apex[0], apex[1], apex[2] + dz])
+        base = len(P)
+        for i, th in enumerate(angles):
+            P.append([20.0 * np.cos(th), 20.0 * np.sin(th), dz])
+            P.append([20.0 * np.cos(th + d_theta), 20.0 * np.sin(th + d_theta), dz])
+            F.append([origin_idx, base + 2 * i, base + 2 * i + 1])
+    P = np.array(P, dtype=np.float64)
+    F = np.array(F, dtype=np.int64)
+    s = {}
+    old = _call(double_layers_reference, P, F, 0.15)
+    new = _call(double_layers, P, F, 0.15, stats=s)
+    assert new == old
+    assert old["count"] == 1000
+    assert "pairs_peak" in s
+    assert 0 < s["pairs_peak"] <= 2_000_000
+
+
+def test_giant_face_spanning_many_cells_takes_big_face_path():
+    """One giant face spanning more than 10,000 cells next to small faces."""
+    # Small triangles of size ~2x2 ensure cell_size is small (~2.8)
+    P = [[-250.0, -250.0, 0.0], [250.0, -250.0, 0.0], [0.0, 250.0, 0.0]]  # giant face 0
+    F = [[0, 1, 2]]
+    # 6 small faces inside the giant face at dz = 0.05
+    for k in range(6):
+        x, y = -10.0 + k * 4.0, 0.0
+        b = len(P)
+        P += [[x, y, 0.05], [x + 2.0, y, 0.05], [x, y + 2.0, 0.05]]
+        F.append([b, b + 1, b + 2])
+    P = np.array(P, dtype=np.float64)
+    F = np.array(F, dtype=np.int64)
+    s = {}
+    old = _call(double_layers_reference, P, F, 0.15)
+    new = _call(double_layers, P, F, 0.15, stats=s)
+    assert new == old
+    assert old["count"] == 6
+    assert s.get("big_faces", 0) >= 1
+
+
+def test_pairs_peak_stays_at_or_under_block_size():
+    """stats['pairs_peak'] stays at or under custom block_pairs."""
+    P, F = _layered(0, n_walls=4)
+    s = {}
+    _call(double_layers, P, F, 0.15, block_pairs=500, stats=s)
+    assert "pairs_peak" in s
+    assert 0 < s["pairs_peak"] <= 500
+
+
+# ------------------------------------------------------------------------------- P1-S3b Item 2
+
+def test_reviewer_tie_repro_scene_equals_oracle():
+    """The reviewer's minimal 2-face tie scene (tie_repro.py): faces 1 and 28 of soup seed 34,
+    exactly depth_tol apart on a skew plane."""
+    P2 = np.array([[33.14082910962477, -9.341890741976815, 21.849326146774427],
+                   [29.766264566980414, -8.201513750739696, 23.73661374154753],
+                   [26.813520592166597, -5.242533557055613, 24.749401593264775],
+                   [31.92080977043708, -8.10422383536609, 22.18497185459921],
+                   [30.792490115655674, -3.134607530744976, 21.32195907660981],
+                   [26.816818606669013, -6.6412051150961116, 25.124716771534654]], dtype=np.float64)
+    F2 = np.array([[0, 2, 1], [3, 5, 4]], dtype=np.int64)
+    tol = 0.0625
+    old, new = _both(P2, F2, tol)
+    assert new == old
+    assert old["count"] == 0
+
+
+
