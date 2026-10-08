@@ -8,7 +8,7 @@ create table if not exists decide.suggestions (
   key char(64) not null unique,
   state text not null,                       -- display text, cut to 2,000 characters
   state_json jsonb not null,                 -- the full canonical state
-  question jsonb not null,
+  question json not null,                    -- json, not jsonb: jsonb reorders keys, and a Choice's option order matters
   answer jsonb,                              -- jsonb: a bool stays a bool, an int an int, a str a str
   confidence double precision not null default 0,
   probabilities jsonb not null default '{}', -- string-keyed

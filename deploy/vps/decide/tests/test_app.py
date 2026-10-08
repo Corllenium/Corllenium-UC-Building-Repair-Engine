@@ -293,9 +293,7 @@ def test_reask_refreshes_jev_fields_and_keeps_the_owner_answer():
     r = c.post(f"/api/decide/reask/{sid}", headers=OWNER)
     assert r.status_code == 200 and len(client.calls) == 2
     row = r.json()
-    # the fake answers the first option it is sent; Postgres jsonb stores the options in its own key order
-    # (reported as a J3 finding), so compare with the stored question rather than a fixed label
-    assert row["answer"] in CATS and row["answer"] == next(iter(row["question"]["criteria"]))
+    assert row["answer"] == "glass"       # the fake answers the first option it is sent: the original order
     assert row["status"] == "changed" and row["owner_answer"] == "wood"
 
 
@@ -568,3 +566,17 @@ def test_key_in_requests_does_not_come_back_through_import_review_or_ask(caplog)
         bodies.append(r.text)
         assert r.status_code == 422
     assert FAKE_KEY not in "".join(bodies) and FAKE_KEY not in caplog.text
+
+
+def test_reask_sends_the_options_in_the_original_order():
+    c, store, client = _app(enabled=True)
+    ordered = {"metal": None, "wood": None, "glass": None}          # not the order a jsonb column would give back
+    q = wire.question_to_json(ChoiceQ("Which material?", ordered, qtype="mat.category", subject="m1"))
+    assert _ask(c, questions={"a": q}).json()["answers"]["a"]["answer"] == "metal"
+    sid = c.get("/api/decide/suggestions", headers=OWNER).json()["items"][0]["id"]
+    assert list(c.get("/api/decide/suggestions", headers=OWNER).json()["items"][0]["question"]["criteria"]) ==         ["metal", "wood", "glass"]
+    client.calls.clear()
+    r = c.post(f"/api/decide/reask/{sid}", headers=OWNER)
+    assert r.status_code == 200 and r.json()["answer"] == "metal"
+    sent = client.calls[0]["questions"]["q"]
+    assert list(sent.criteria) == ["metal", "wood", "glass"]

@@ -250,3 +250,16 @@ def test_timestamps_come_back_as_utc_iso_strings(store):
     for column in ("created_at", "reviewed_at"):
         assert isinstance(row[column], str) and row[column].endswith("+00:00"), (column, row[column])
     assert store.list()[0]["reviewed_at"].endswith("+00:00")
+
+
+def test_a_choice_question_keeps_its_option_order(store):
+    """The option order is part of the question key and is what Jev is sent: it must survive the store.
+    (Postgres jsonb would reorder these keys to wood, glass, metal: shortest first, then alphabetical.)"""
+    options = {"metal": "hard", "wood": None, "glass": "clear"}
+    question = {"kind": "choice", "instructions": "Which?", "criteria": options, "qtype": "t", "subject": "s"}
+    sid = store.add_suggestion(make_row(key=k(1), question=question))
+    assert list(store.get(sid)["question"]["criteria"]) == ["metal", "wood", "glass"]
+    assert list(store.find_by_key(k(1))["question"]["criteria"]) == ["metal", "wood", "glass"]
+    assert list(store.list()[0]["question"]["criteria"]) == ["metal", "wood", "glass"]
+    store.update_suggestion(sid, question={**question, "criteria": {"zinc": None, "oak": None, "ash": None}})
+    assert list(store.get(sid)["question"]["criteria"]) == ["zinc", "oak", "ash"]

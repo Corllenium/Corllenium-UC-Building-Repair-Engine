@@ -13,7 +13,7 @@ from pathlib import Path
 import psycopg
 from psycopg import sql
 from psycopg.rows import dict_row
-from psycopg.types.json import Jsonb
+from psycopg.types.json import Json, Jsonb
 
 SCHEMA_FILE = Path(__file__).resolve().parent.parent / "schema.sql"
 
@@ -36,6 +36,8 @@ def _when(value):
 
 def _param(column: str, value):
     """A column value as a query parameter: JSON columns through Jsonb (SQL NULL for None), times as datetimes."""
+    if column == "question":      # a json column (not jsonb): the option order of a Choice must survive
+        return None if value is None else Json(value)
     if column in _JSON_COLUMNS:
         return None if value is None else Jsonb(value)
     if column in _TIME_COLUMNS:
