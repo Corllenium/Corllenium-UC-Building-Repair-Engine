@@ -6,12 +6,13 @@ strict rule (AGENTS.md section 5 and 6), and v0 has no allowed change classes, s
 the list of what P2's engines must stop doing, or must show with a picture.
 
 - Commands: `python -m engine.cli validate --before <snapshot> --after <fixed.obj> --materials data/campus/materials.json --out <dir>`,
-  default density (area per sample 36, at least 4 per face; no development-run note), targets unsigned.
+  default density (area per sample 36, at least 4 per face; no development-run note), run before the owner signed the check-2 targets (2026-10-08).
 - Outputs (not committed, in the temp folder): `C:\Users\Future26\AppData\Local\Temp\claude\p016\{chtm5,sideA,sideB}\validation.json`
   and `evidence\site-NN-{before,after}.png`.
 - The CHTM 5th floor BEFORE is the very file the AFTER was made from: `report.json` `input_sha256` equals the
   sha256 of `data/snapshots/c0c877002500-b7c2dc01/chtm_5ft_floor.obj` (c0c877002500...).
-- Check 2 (problems) is REPORT_ONLY until the owner signs targets, so every verdict comes from checks 1 and 3.
+- Check 2 (problems) was REPORT_ONLY at run time (targets not yet signed), so these verdicts come from checks 1 and 3.
+  Under the signed targets check 2 would also FAIL (flicker, reversed and cracks must reach 0); not re-run.
 - Reading the crops: they are coloured by LOOK (grey, brown, dark teal ...), a face seen from behind is PURPLE.
   A UV failure changes no colour, so no crop can show it; the counts carry it.
 
@@ -31,7 +32,7 @@ Check 2, before to after (reported, not judged):
 | Sidewalk A | 0 to 0 | 530 to 40 | 809 to 24 | 1853 to 66 | 221 to 13 | 250 to **378** | 550 to 32 |
 | Sidewalk B | 321 to 0 | 1026 to 4 | 838 to 0 | 2411 to 27 | 79 to 4 | 326 to 134 | 559 to 25 |
 
-Open edges rise on CHTM 5th and Sidewalk A: the fix opened borders where it removed faces.
+Open edges rise on CHTM 5th and Sidewalk A. Inference, not traced: the fix opened borders where it removed faces.
 
 Notes the Validator wrote: Sidewalk A has one material not in `materials.json`
 (`mumi_littletiles_ltstone_-7`), compared by name with its texture size and colour from the snapshot's own MTL
