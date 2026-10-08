@@ -138,3 +138,6 @@ Ruling: ask() raising on an over-limit question even without a key is accepted �
 - P0-17b round 1 re-review: both minors ADDRESSED, APPROVED (41 covering tests).
 Task P0-17b: complete (commits b1c66a2..87f6abb, review clean after 1 fix round). Queue: done → pass. Merge into feat/repair-p0: asked the peer (option a).
 Task P0-17 (pilot step): complete. Pilot run 2 numbers are above, sent to the peer for the owner's deck. Waiting: owner decision 4 (where Jev stays) and whether to build M3.
+- P0-17b merged into feat/repair-p0 by the peer: 430f397 (no-ff). Its engine + tools suites are running (~16 min); the peer reports green or red. Queue already shows P0-17b merged (review --pass ran before the git merge — same order as M1). Keep out of .claude/worktrees/repair-p0 until green.
+- feat/repair-p0 green after P0-17b: 430f397, engine + tools 1314 passed, 1 xfailed (peer). Worktrees P0-17 and P0-17b were clean; both removed.
+- Plan status: Part A done (A1 = P0-17 + P0-17b, pilot numbers in). Part B: M1 + M1b merged; M2 approved, waiting on the owner's screen check; M3 waits on the owner's decision. Plan step 5 (stop and report) reached.

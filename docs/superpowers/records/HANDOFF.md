@@ -25,6 +25,27 @@ run the latest `.skp` of each file must be in `OBJ FIXED RESULT/` for the owner 
 
 ## 2. Current state (2026-09-26 00:15, written by the Claude controller)
 
+**Update 2026-10-08, end (the Jev + mods controller session): the Jev pilot is complete; the plan is done except the owner's answers.**
+- **`feat/repair-p0` = 430f397** (P0-17b merged by the repair-engine session): engine + tools 1314 passed, 1 xfailed.
+- **The full pilot** (from P0-17b, `python -m engine.cli decide-pilot --env-file`): 57 calls, 0 failed, 20.9 s.
+  At confidence ≥ 0.8, against the owner-confirmed campus map:
+
+  | Question | Accuracy | Coverage | Accuracy when accepted |
+  |---|---|---|---|
+  | Building | 96.5 % | 95.3 % | 97.5 % |
+  | Type | 93.7 % | 89.9 % | 97.2 % |
+  | Floor | 92.8 % | 92.8 % | 95.3 % |
+
+  Materials: 289 of 391 accepted (74 %). The footprint hint alone is right 90 % of the time; Jev reaches 96.5 %.
+  Output: `data/campus/jev_pilot.json`.
+- **Merged into `feat-dashboard`:** M1 `uc-guard` (c22c952) and M1b, the `--env-file` exemption (b8df4ce).
+- **M2 `uc-status`:** approved on `claude/M2` (90eeb6d); it merges after the owner's on-screen check.
+- **Owner, open:**
+  - decision 4, where Jev stays: map pre-fill, material categories for E5, review tie-breaks, review order;
+  - M3, yes or no;
+  - the M2 status-line check;
+  - rotate the TypeSafe key, which was pasted in chat once.
+
 **Update 2026-10-08, later (the Jev + mods controller session): P0-17 merged; the first real Jev pilot ran.**
 - **P0-17 merged into `feat/repair-p0` (b1c66a2, by the repair-engine session):** engine + tools 1308 passed, 1 xfailed.
 - **Key:** the owner's `.env` line was named `typesafe=`. It was renamed to `TYPESAFE_API_KEY=` by a script that printed
