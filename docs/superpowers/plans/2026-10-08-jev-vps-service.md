@@ -422,7 +422,8 @@ create schema if not exists decide;
 create table if not exists decide.suggestions (
   id bigserial primary key,
   qtype text not null default '', subject text not null default '',
-  key char(64) not null unique, state text not null, question jsonb not null,
+  key char(64) not null unique, state text not null, state_json jsonb not null,
+  question json not null,  -- json, not jsonb: jsonb reorders keys, and a Choice's option order matters
   answer jsonb, confidence double precision not null default 0, probabilities jsonb not null default '{}',
   model text not null default '', source text not null,
   status text not null default 'pending' check (status in ('pending','accepted','changed')),
@@ -451,7 +452,8 @@ create table if not exists decide.calls (
   - then `( cd "<wt>" && DECIDE_TEST_DATABASE_URL=postgresql://postgres:test@localhost:55432/postgres PYTHONPATH="$PWD;$PWD/deploy/vps/decide" "$PY" -m pytest deploy/vps/decide/tests/test_store_contract.py -q -p no:cacheprovider )`
   - Expected: the memory half passes; the Postgres half fails with an ImportError on `pgstore`.
 - [ ] **Step 4: Implement `PostgresStore`** with psycopg 3 (`psycopg.connect(dsn, autocommit=True)`, a
-  `dict_row` row factory). JSON columns go in through `psycopg.types.json.Jsonb`. Every query has parameters only,
+  `dict_row` row factory). `question` goes in through `psycopg.types.json.Json` (its column is `json`, which keeps the key order); the other
+  JSON columns (`state_json`, `answer`, `probabilities`, `owner_answer`) go in through `Jsonb`. Every query has parameters only,
   never f-strings. Run until both halves pass.
 - [ ] **Step 5: Stop the database** (`docker stop decide-test-pg`) and **commit**:
   `feat(decide-service): Postgres store, schema decide, contract tests shared with the memory store`.
@@ -544,8 +546,9 @@ def _role(cfg):
   min_confidence=cfg.min_confidence)`, so the key comes from the environment only. Assert that its `available` follows
   `TYPESAFE_API_KEY` set or unset, using a fake value, and that `repr` never shows it.
 - [ ] **Step 2: Implement `main.py`** (`build_app`, `make_decider`, and `app = build_app()` guarded by
-  `if os.environ.get("DECIDE_DATABASE_URL")`), `requirements.txt` (`fastapi>=0.115`, `uvicorn[standard]>=0.30`,
-  `psycopg[binary]>=3.2`, `typesafe-sdk>=0.7.2,<0.8`) and the `Dockerfile`, built from the repo root:
+  `if os.environ.get("DECIDE_DATABASE_URL")`), `requirements.txt`, with the direct dependencies pinned to the versions the image was
+  built and smoke-tested with (`fastapi==0.142.4`, `uvicorn[standard]==0.54.0`, `psycopg[binary]==3.3.6`,
+  `typesafe-sdk==0.7.2`, `pydantic==2.13.5`) and the `Dockerfile`, built from the repo root:
 
 ```dockerfile
 FROM python:3.12-slim
@@ -557,6 +560,9 @@ COPY engine/decide /app/engine/decide
 COPY deploy/vps/decide/decide_service /app/decide_service
 COPY deploy/vps/decide/schema.sql /app/schema.sql
 ENV PYTHONPATH=/app
+# Not root: the service needs no write access to anything.
+RUN useradd --system --no-create-home decide
+USER decide
 EXPOSE 8200
 CMD ["uvicorn", "decide_service.main:app", "--host", "0.0.0.0", "--port", "8200"]
 ```
@@ -565,35 +571,54 @@ CMD ["uvicorn", "decide_service.main:app", "--host", "0.0.0.0", "--port", "8200"
 - [ ] **Step 3: The stack files.**
   - `docker-compose.yml`: add the service `decide`. It uses `image: ucmodelfixer-decide:vps`,
     `container_name: uc-fixer-decide` and `env_file: ./decide.env`, with this `environment`:
-    `DECIDE_DATABASE_URL: postgresql://fixer:fixer@uc-fixer-db:5432/fixer`, `DECIDE_JEV_ENABLED: "false"`,
-    `DECIDE_OWNER_USERS: gab`. It has `depends_on: db: condition: service_healthy`, `networks: [internal]`,
+    `DECIDE_DATABASE_URL: postgresql://fixer:fixer@uc-fixer-db:5432/fixer` and `DECIDE_OWNER_USERS: gab`.
+    `DECIDE_JEV_ENABLED` is deliberately NOT under `environment`: in Compose, `environment` beats `env_file`, so a
+    `"false"` there would silently ignore the switch the owner later adds to `decide.env`. The service's own default
+    is false. It has `depends_on: db: condition: service_healthy`, `networks: [internal]`,
     `restart: unless-stopped`, and no published ports.
-  - `nginx.conf`: put this before `location /api/`:
+  - `nginx.conf`: put this before `location /api/`. The upstream is resolved at request time (Docker's DNS) through a
+    variable, so nginx still starts when the decide container is absent (the decide routes then answer 502). With a
+    variable and no URI part, `proxy_pass` passes the request URI through unchanged. `^~` makes the whole prefix
+    `/api/decide/ask` the `uc-engine` login's only.
 
 ```nginx
+    resolver 127.0.0.11 valid=10s ipv6=off;
+
     location /api/decide/ {
-        proxy_pass http://uc-fixer-decide:8200;
+        set $decide_up http://uc-fixer-decide:8200;
+        proxy_pass $decide_up;
         proxy_read_timeout 60s;
         proxy_set_header Host $host;
         proxy_set_header X-Remote-User $remote_user;
         proxy_set_header X-Real-IP $remote_addr;
     }
-    location = /api/decide/ask {
+    location ^~ /api/decide/ask {
         if ($remote_user != "uc-engine") { return 403; }
-        proxy_pass http://uc-fixer-decide:8200;
+        set $decide_up http://uc-fixer-decide:8200;
+        proxy_pass $decide_up;
+        proxy_read_timeout 60s;
+        proxy_set_header Host $host;
         proxy_set_header X-Remote-User $remote_user;
+        proxy_set_header X-Real-IP $remote_addr;
     }
 ```
+
+    The `uc-engine` login may pass nginx for the decide routes only: add `if ($remote_user = "uc-engine") { return 403; }`
+    as the first line of `location /` and of `location /api/`.
 
   - `README.md`: a section **"Jev service (uc-fixer-decide)"**. It holds:
     - what the service does;
     - that Jev is off by default;
     - the owner's prompted commands: the `uc-engine` login (the same `htpasswd -B` command without `-c`, user
       `uc-engine`), and `decide.env`, written by
-      `ssh -t … "read -rs -p 'TypeSafe key: ' K; umask 077; printf 'TYPESAFE_API_KEY=%s\n' \"\$K\" > /docker/uc-fixer/decide.env"`;
-    - the image load (`docker save ucmodelfixer-decide:vps | ssh … docker load`);
-    - how to switch Jev on later (add `DECIDE_JEV_ENABLED=true` to `decide.env`, then `docker compose up -d decide`,
-      each with the owner's OK);
+      `ssh -t … "umask 077; read -rs -p 'TypeSafe key: ' K; echo; set -f; IFS=; printf 'TYPESAFE_API_KEY=%s\n' \"\$K\" > /docker/uc-fixer/decide.env; chmod 600 /docker/uc-fixer/decide.env"`
+      (`set -f; IFS=` keep the key from being split or globbed; `chmod 600` sets the mode explicitly), and a one-time
+      check that root's login shell on the box is bash, because `read -s` is a bash feature
+      (`getent passwd root` must end in `/bin/bash`);
+    - the image load: `docker save ucmodelfixer-decide:vps -o decide.tar`, then `scp` it to the box, then
+      `docker load -i` there (`docker save | ssh` through a PowerShell pipeline corrupts the binary stream);
+    - how to switch Jev on later (add `DECIDE_JEV_ENABLED=true` to `decide.env`, then
+      `docker compose up -d --force-recreate decide`, so the new env file is certainly read; each with the owner's OK);
     - the rollback (`docker compose rm -sf decide`; the schema `decide` stays unless the owner asks for it to be
       dropped).
 - [ ] **Step 4: Build and smoke-run on the PC**, never touching the `fixer-*` containers:
@@ -719,12 +744,11 @@ CMD ["uvicorn", "decide_service.main:app", "--host", "0.0.0.0", "--port", "8200"
 - [ ] **Step 3: Implement** the two modules, then `JevView.vue`:
   - the tabs; a banner "Jev is off until the repair engine is ready" when `health.jev_enabled` is false;
   - the counts; the filters;
-  - rows with the texture thumbnail at `/api/assets/texture/<name>`, if the dashboard API serves one, otherwise no
-    image; check `api/routers` and use only an existing route;
+  - rows show the texture file name as text, with no thumbnail (ruling: the VPS holds no texture files);
   - the confidence bar and the top-2 alternatives;
   - Accept, and Change (a `<select>` of `optionLabels`);
   - "Accept all shown ≥ X", using `window.confirm` with the count;
-  - on a fetch failure with status 404 or 502, "Jev service runs on the VPS".
+  - on a fetch failure with status 404, "Jev service runs on the VPS"; with status 502, "Jev service unreachable".
 - [ ] **Step 4: Run the tests and the build** (`npx vitest run` and `npx vite build`). Expected: the tests pass and
   the build succeeds.
 - [ ] **Step 5: Commit:** `feat(web): /jev review page for Jev suggestions (accept, change, accept-all with confirm)`.
