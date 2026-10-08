@@ -1061,6 +1061,17 @@ def build_parser() -> argparse.ArgumentParser:
     pilot_p.add_argument("--min-confidence", type=float, default=0.8)
     pilot_p.add_argument("--batch", type=int, default=20, help="questions per Jev call")
 
+    pull_p = sub.add_parser("decide-pull",
+                            help="fetch the owner-confirmed answers of one question type from the VPS decide "
+                                 "service and write <out>/<type>.json as {subject: answer} (needs "
+                                 "UC_DECIDE_PASSWORD)")
+    pull_p.add_argument("--url", required=True, help="the service base URL, e.g. https://host (https unless localhost)")
+    pull_p.add_argument("--type", required=True, dest="qtype", help="the question type, e.g. mat.category")
+    pull_p.add_argument("--out", type=Path, default=Path("data/decide/confirmed"))
+    pull_p.add_argument("--env-file", type=Path, default=None,
+                        help="read UC_DECIDE_PASSWORD from this file when the environment has none "
+                             "(default: the repo-root .env; only that one line is read)")
+
     return parser
 
 
@@ -1204,6 +1215,15 @@ def main(argv: list[str] | None = None) -> int:
         print(f"materials: {m['n']}, sources {m['sources']}, categories {m['histogram']}")
         print(f"calls: {c['n']} ({c['failed']} failed), tokens in/out {c['input_tokens']}/{c['output_tokens']}")
         print(f"wrote {args.out}")
+        return 0
+    elif args.command == "decide-pull":
+        from engine.decide.remote import pull_confirmed
+        try:
+            path = pull_confirmed(args.url, args.qtype, args.out, env_file=args.env_file)
+        except (ValueError, RuntimeError) as exc:      # their texts carry no secret
+            print(f"error: {exc}", file=sys.stderr)
+            return 2
+        print(f"wrote {len(json.loads(path.read_text(encoding='utf-8')))} confirmed answers -> {path}")
         return 0
     return 1
 
