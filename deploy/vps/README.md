@@ -52,8 +52,13 @@ ssh -t -i $env:USERPROFILE\.ssh\uc_vps_ed25519 root@187.127.213.243 "docker run 
 2. The key file `decide.env` (mode 600). It prompts for the TypeSafe key without echo. The file must exist before the
    service starts, because the compose file reads it:
 ```powershell
-ssh -t -i $env:USERPROFILE\.ssh\uc_vps_ed25519 root@187.127.213.243 "umask 077; read -rs -p 'TypeSafe key: ' K; echo; printf 'TYPESAFE_API_KEY=%s\n' `$K > /docker/uc-fixer/decide.env; chmod 600 /docker/uc-fixer/decide.env"
+ssh -t -i $env:USERPROFILE\.ssh\uc_vps_ed25519 root@187.127.213.243 "umask 077; read -rs -p 'TypeSafe key: ' K; echo; set -f; IFS=; printf 'TYPESAFE_API_KEY=%s\n' `$K > /docker/uc-fixer/decide.env; chmod 600 /docker/uc-fixer/decide.env"
 ```
+   - The command needs root's login shell on the box to be bash (`read -s` is a bash feature). Check once:
+     `ssh -i $env:USERPROFILE\.ssh\uc_vps_ed25519 root@187.127.213.243 "getent passwd root"` must end in `/bin/bash`.
+   - **Re-running this step rewrites `decide.env` from scratch and drops a `DECIDE_JEV_ENABLED=true` line.** To rotate
+     the key while Jev is on, run it, then add the `DECIDE_JEV_ENABLED=true` line again (see "Switching Jev on"),
+     then force-recreate the service.
 3. The image, built on the PC from the repo root, then loaded on the box:
 ```powershell
 docker build -f deploy/vps/decide/Dockerfile -t ucmodelfixer-decide:vps .
@@ -69,6 +74,8 @@ ssh -i $env:USERPROFILE\.ssh\uc_vps_ed25519 root@187.127.213.243 "docker load -i
      still starts when that container is absent (the decide routes answer 502 meanwhile).
 5. Check: `curl -u gab https://uc-fixer.srv1866850.hstgr.cloud/api/decide/health` prompts for the password and
    should answer `{"ok":true,"jev_enabled":false,...}`.
+
+The controller runs steps 3-5 only with the owner's explicit OK at that moment.
 
 ### Switching Jev on (later)
 This is the owner's decision, for when the repair engine is ready, and each step needs the owner's OK at that moment.
