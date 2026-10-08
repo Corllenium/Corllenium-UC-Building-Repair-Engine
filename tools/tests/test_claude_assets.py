@@ -4,9 +4,9 @@ import pytest
 import yaml
 
 ROOT = Path(__file__).resolve().parents[2]
-SKILLS = ["uc-repair-rules", "uc-handoff", "uc-run-unit", "uc-prompt-audit"]
+SKILLS = ["uc-repair-rules", "uc-handoff", "uc-run-unit", "uc-prompt-audit", "uc-validate-floor"]
 AGENTS = ["engine-builder", "unit-runner", "rules-reviewer", "hermes-reviewer", "census-analyst",
-          "prompt-auditor"]
+          "prompt-auditor", "floor-validator"]
 
 
 def _front(path: Path) -> tuple[dict, str]:
