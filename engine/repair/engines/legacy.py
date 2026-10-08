@@ -32,7 +32,10 @@ its own vertices and material, so the subset's keys are exactly the keys of thos
 
 Every `Edit.faces` id indexes the stage's INPUT face set (the previous stage's output view), and
 every `new_faces` vertex id the input mesh's positions, ids from `n` up naming the edit's own
-`new_points` (K1's `apply_edits` convention). `Edit.evidence` holds the stage, the removed and added
+`new_points` (K1's `apply_edits` convention). Every add and cut also carries, from the stage's
+OUTPUT mesh, the UV and normal VALUES at each corner of its new faces (`new_face_uv`,
+`new_face_normal`, K1b), so `apply_edits(stage_input, stage_edits)` reproduces the output's
+per-corner values; a face whose output has no `vt` (or `vn`) stays without one. `Edit.evidence` holds the stage, the removed and added
 keys and, for an add or cut, the material.
 """
 from __future__ import annotations
@@ -150,6 +153,26 @@ def _new_faces(before: FaceView, after: FaceView, after_ids: list[int], stage: s
     return renumbered, after_p[local]
 
 
+def _corner_values(after: FaceView, after_ids: list[int]):
+    """`(uv, normal)` of the after-view faces `after_ids`: (k, 3, 2) and (k, 3, 3) arrays of the
+    values their corners hold in the stage's OUTPUT, for `Edit.new_face_uv` / `new_face_normal`.
+
+    A face counts as having them only when all three corners index a row; any other face (an OBJ
+    face without `vt` / `vn` has -1 at every corner) is written as the all-NaN placeholder `Edit`
+    documents, so `apply_edits` gives it -1 again. When no face has any, that array is None."""
+    mesh, ids = after.mesh, after.mesh_ids(after_ids)
+
+    def gather(index: np.ndarray, table: np.ndarray, width: int) -> np.ndarray | None:
+        has = (index >= 0).all(axis=1)
+        if not has.any():
+            return None
+        out = np.full((len(index), 3, width), np.nan)
+        out[has] = np.asarray(table, np.float64).reshape(-1, width)[index[has]]
+        return out
+
+    return (gather(mesh.face_vt[ids], mesh.uvs, 2), gather(mesh.face_vn[ids], mesh.normals, 3))
+
+
 def observe(before: FaceView, after: FaceView, *, stage: str, site: int, engine: str,
             mode: str = "plain", label: Callable[[int], str] | None = None,
             reason: str | None = None) -> list[Edit]:
@@ -218,9 +241,11 @@ def observe(before: FaceView, after: FaceView, *, stage: str, site: int, engine:
 
     def add_edit(kind: str, material: int, faces: list[int], ids: list[int]) -> None:
         new_faces, new_points = _new_faces(before, after, ids, stage)
+        uv, normal = _corner_values(after, ids)
         edits.append(Edit(engine=engine, kind=kind, faces=tuple(faces), new_faces=new_faces,
                           new_points=new_points, site=site, reason=reason,
-                          evidence=evidence([kb[i] for i in faces], [ka[j] for j in ids], material)))
+                          evidence=evidence([kb[i] for i in faces], [ka[j] for j in ids], material),
+                          new_face_uv=uv, new_face_normal=normal))
 
     if mode == "cut":
         leftover = []
