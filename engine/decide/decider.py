@@ -97,6 +97,25 @@ class Answer:
     tokens: int | None = None  # provider-reported, for the log; None for rules and the owner
 
 
+UNAVAILABLE_REASON_MAX = 200
+
+
+@dataclass(frozen=True)
+class Unavailable:
+    """A provider's per-question "I could not answer now" (jev off, unreachable, daily cap). Unlike `None`, which
+    is a real and cacheable "no answer", it is never cached, so the question is asked again on the next `ask`.
+    `reason` is stored as given, cut to 200 characters: a provider passes only class names, `HTTP <status>`,
+    "jev off" or "daily cap", never a URL, a password or a message."""
+
+    reason: str = ""
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "reason", str(self.reason or "")[:UNAVAILABLE_REASON_MAX])
+
+
+UNAVAILABLE = Unavailable()  # the marker with no reason
+
+
 # Promotion and demotion (spec section 9). Nothing here applies a mode: `stats` only reports, and only an
 # explicit Decider.promote / Decider.demote call writes the new mode to the log.
 PROMOTE_MIN_DECISIONS = 50  # a provider must have been checked against the owner this often ...
@@ -113,7 +132,7 @@ DEFAULT_CACHE_PATH = Path("data/decide/cache.jsonl")
 class Provider(Protocol):
     name: str
 
-    def answer(self, qt: QuestionType, questions: list[Question]) -> "list[Answer | None]": ...
+    def answer(self, qt: QuestionType, questions: list[Question]) -> "list[Answer | None | Unavailable]": ...
 
 
 def _pkey(value: Any) -> str:
@@ -433,7 +452,12 @@ class Decider:
                 got = []
             latency = round((time.perf_counter() - t0) / max(len(order), 1), 6)
             for i, ans in zip(order, got):
-                rec: dict = {"key": keys[i], "provider": name, "hit": False, "answer": None,
+                if isinstance(ans, Unavailable):  # a temporary failure: logged, never cached, asked again later
+                    self._write({"event": "error", "qtype": questions[i].qtype, "subject": questions[i].subject,
+                                 "key": keys[i], "provider": name, "error": "Unavailable",
+                                 "reason": ans.reason, "latency_s": latency})
+                    continue
+                rec: dict ={"key": keys[i], "provider": name, "hit": False, "answer": None,
                              "confidence": 0.0, "probabilities": {}, "tokens": None}
                 if ans is not None:
                     try:
