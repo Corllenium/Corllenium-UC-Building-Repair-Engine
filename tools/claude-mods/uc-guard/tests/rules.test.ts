@@ -158,6 +158,8 @@ describe('rule 5: secret files', () => {
     expect(bash(`git commit -m "uc-guard: deny reading '.env'"`)).toBeUndefined()
     expect(bash("cat > t.ts <<'EOF2'\nconst f = '.env'\nopen('.env')\nEOF2")).toBeUndefined()
     expect(bash('grep -rn "\\.env" engine api')).toBeUndefined()
+    expect(bash("git grep -n '\\.env' api")).toBeUndefined()
+    expect(bash("git log -G '\\.env' --oneline")).toBeUndefined()
     expect(bash('git log --format=%B | grep -c Corllenium-Phone-session-Config')).toBeUndefined()
     expect(bash('echo $HOME && node -e "console.log(process.env.HOME)"')).toBeUndefined()
   })
@@ -174,6 +176,10 @@ describe('rule 6: the owner result folders take only verified output', () => {
     expect(bash(`ls .claude/worktrees/verified; cp data/out/a.obj "${ROOT}/OBJ FIXED RESULT/"`)).toBe(REASONS.results)
     expect(bash(`( cd "${ROOT}/.claude/worktrees/verified-old" && cp a.obj "${ROOT}/OBJ FIXED RESULT/" )`)).toBe(REASONS.results)
     expect(bash(`( cd "${VERIFIED}" && ls ); cp data/x.obj "${ROOT}/OBJ FIXED RESULT/"`)).toBe(REASONS.results)
+    expect(bash(`( cd "${VERIFIED}" && ls ); ( cp data/x.obj "${ROOT}/OBJ FIXED RESULT/" )`)).toBe(REASONS.results)
+  })
+  test('rsync -t keeps times, it names no target (re-review round 2)', () => {
+    expect(bash('rsync -t a.obj "/d/PROJECTS/UC ENVIRONMENT BUILDING/x/"')).toBe(REASONS.source)
   })
   test('cp -t / mv -t and --out= into the result folders are writes (re-review 2)', () => {
     expect(bash(`cp -t "${ROOT}/OBJ FIXED RESULT/CHTM" data/output/a.obj`)).toBe(REASONS.results)

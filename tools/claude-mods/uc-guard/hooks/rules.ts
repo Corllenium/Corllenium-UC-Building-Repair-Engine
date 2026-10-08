@@ -3,7 +3,8 @@
 // mistakes past sessions made, not a full shell parser.
 
 type Shell = 'bash' | 'ps'
-type Segment = { words: string[]; depth: number }
+// depth: how many parentheses enclose the segment; scopes: their ids, outermost first (each `(` gets a new id)
+type Segment = { words: string[]; depth: number; scopes: number[] }
 
 export const REASONS = {
   source:
@@ -41,7 +42,7 @@ const READ_VERBS = new Set([
   'rg', 'select-string', 'ii', 'invoke-item', 'start', 'explorer', 'echo', 'printf', 'write-output', 'write-host',
 ])
 const GIT_READS = new Set(['log', 'show', 'diff', 'status', 'blame', 'ls-files', 'ls-tree', 'grep', 'check-ignore', 'shortlog'])
-const PATTERN_VERBS = new Set(['grep', 'egrep', 'rg', 'sed', 'awk', 'select-string', 'sls'])
+const PATTERN_VERBS = new Set(['grep', 'egrep', 'rg', 'sed', 'awk', 'select-string', 'sls', 'findstr', 'git'])
 const FIND_WRITES = new Set(['-delete', '-exec', '-execdir', '-ok', '-okdir'])
 const CD_BASH = new Set(['cd', 'pushd', 'popd'])
 const CD_PS = new Set(['cd', 'chdir', 'set-location', 'sl', 'push-location', 'pushd', 'pop-location', 'popd'])
@@ -104,7 +105,8 @@ function segments(command: string, shell: Shell): Segment[] {
   let words: string[] = []
   let word = ''
   let inWord = false
-  let depth = 0
+  const scopes: number[] = []
+  let opened = 0
   let quote: string | null = null
   const endWord = () => {
     if (inWord) words.push(word)
@@ -113,7 +115,7 @@ function segments(command: string, shell: Shell): Segment[] {
   }
   const endSegment = () => {
     endWord()
-    if (words.length) out.push({ words, depth })
+    if (words.length) out.push({ words, depth: scopes.length, scopes: [...scopes] })
     words = []
   }
   for (let i = 0; i < cmd.length; i++) {
@@ -145,12 +147,12 @@ function segments(command: string, shell: Shell): Segment[] {
     }
     if (c === '(') {
       endSegment()
-      depth++
+      scopes.push(++opened)
       continue
     }
     if (c === ')') {
       endSegment()
-      depth = Math.max(0, depth - 1)
+      scopes.pop()
       continue
     }
     const prev = cmd[i - 1] ?? ''
@@ -213,7 +215,9 @@ const redirectTargets = (words: string[]) => {
 const positional = (args: string[]) => args.filter(a => !a.startsWith('-'))
 
 function copyDestination(v: string, args: string[]): string | undefined {
-  const d = args.findIndex(a => /^-destination$/i.test(a) || a === '-t' || a === '--target-directory')
+  // -t names the target for cp, mv and install only (rsync -t keeps modification times)
+  const targetFlag = (a: string) => a === '--target-directory' || (a === '-t' && ['cp', 'mv', 'install'].includes(v))
+  const d = args.findIndex(a => /^-destination$/i.test(a) || targetFlag(a))
   if (d >= 0) return args[d + 1]
   const eq = args.find(a => a.startsWith('--target-directory='))
   if (eq !== undefined) return eq.slice('--target-directory='.length)
@@ -339,15 +343,15 @@ function liveReason(seg: string[]): string | undefined {
 }
 
 function resultsReason(segs: Segment[]): string | undefined {
-  // the depth of the subshell that did `cd <verified>`; the exemption ends when that subshell closes
-  let verifiedDepth: number | undefined
+  // the subshell that did `cd <verified>` (0: top level); the exemption holds only inside it
+  let verifiedScope: number | undefined
   for (const s of segs) {
     const seg = commandWords(s.words)
     const v = verb(seg[0])
     const args = seg.slice(1)
-    if (verifiedDepth !== undefined && s.depth < verifiedDepth) verifiedDepth = undefined
-    if (v !== undefined && (CD_BASH.has(v) || CD_PS.has(v)) && VERIFIED.test(norm(args[0] ?? ''))) verifiedDepth = s.depth
-    const inVerified = verifiedDepth !== undefined
+    if (v !== undefined && (CD_BASH.has(v) || CD_PS.has(v)) && VERIFIED.test(norm(args[0] ?? '')))
+      verifiedScope = s.scopes[s.scopes.length - 1] ?? 0
+    const inVerified = verifiedScope !== undefined && (verifiedScope === 0 || s.scopes.includes(verifiedScope))
     const words = fileWords(seg)
     const touched = words.some(namesResult) || redirectTargets(seg).some(t => has(t, RESULT_MARKERS))
     if (!touched || inVerified) continue
