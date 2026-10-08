@@ -391,3 +391,33 @@ def test_with_several_key_lines_the_last_one_wins(tmp_path):
     assert jev.read_env_key(p) == "second"
     p.write_text("TYPESAFE_API_KEY=first\nTYPESAFE_API_KEY=\n", encoding="utf-8")
     assert jev.read_env_key(p) is None
+
+
+# ------------------------------------------------------------------ API limits, checked before any call
+
+
+def test_the_adapter_refuses_a_score_over_ten_levels_before_calling_the_client():
+    client = FakeClient()
+    adapter = jev._SdkAdapter(client)
+    assert jev.MAX_SCORE_LEVELS == 10 and jev.MAX_CHOICE_OPTIONS == 255
+    with pytest.raises(ValueError, match="10"):
+        adapter.system_one(state={}, questions={"s": ScoreQ("rate", [f"l{i}" for i in range(11)])})
+    assert client.calls == []
+
+
+def test_the_adapter_refuses_a_choice_over_255_options_before_calling_the_client():
+    client = FakeClient()
+    adapter = jev._SdkAdapter(client)
+    with pytest.raises(ValueError, match="255"):
+        adapter.system_one(state={}, questions={
+            "ok": NoulQ("fine?"), "c": ChoiceQ("pick", {f"o{i}": None for i in range(256)})})
+    assert client.calls == []
+
+
+def test_the_adapter_lets_ten_levels_and_255_options_through():
+    pytest.importorskip("typesafe_sdk")
+    client = FakeClient()
+    jev._SdkAdapter(client).system_one(state={}, questions={
+        "s": ScoreQ("rate", [f"l{i}" for i in range(10)]),
+        "c": ChoiceQ("pick", {f"o{i}": None for i in range(255)})})
+    assert len(client.calls) == 1
