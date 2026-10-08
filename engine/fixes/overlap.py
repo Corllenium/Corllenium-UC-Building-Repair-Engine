@@ -597,6 +597,8 @@ def double_layers(positions_c: np.ndarray, faces: np.ndarray, depth_tol: float,
     `positions_c` is the recentred frame the guard renders in; with `centre`, the planes' centroid
     and offset are given in world coordinates. No double layer: no render at all.
     """
+    if chunk_rows < 1 or block_pairs < 1:
+        raise ValueError(f"chunk_rows and block_pairs must be at least 1 (got {chunk_rows}, {block_pairs})")
     from engine.guard.views import VIEWS_26, ortho_first_hit
     from engine.rays.caster import ReusableCaster
 

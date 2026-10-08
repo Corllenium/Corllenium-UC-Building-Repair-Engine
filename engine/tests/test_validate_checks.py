@@ -1263,3 +1263,11 @@ def test_the_shipped_targets_file_is_the_owners_signed_answer():
         assert _target_of(t, kind)[0] == 0, kind
     for kind in ("hidden", "loose", "open_edges"):
         assert _target_of(t, kind) == (None, "listed"), kind
+
+
+def test_a_signed_targets_file_with_an_unknown_kind_is_refused(tmp_path):
+    """A misspelled kind would silently become "listed" and stop gating (final P0 review)."""
+    p = tmp_path / "targets.json"
+    p.write_text(json.dumps({"signed": True, "kinds": {"craks": 0, "reversed": 0}}), encoding="utf-8")
+    with pytest.raises(ValueError, match="craks"):
+        load_targets(p)

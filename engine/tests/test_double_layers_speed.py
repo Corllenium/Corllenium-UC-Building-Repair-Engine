@@ -341,3 +341,13 @@ def test_reviewer_tie_repro_scene_equals_oracle():
 
 
 
+
+
+@pytest.mark.parametrize("kw", [{"block_pairs": 0}, {"block_pairs": -1}, {"chunk_rows": 0}])
+def test_double_layers_refuses_chunk_sizes_below_one(kw):
+    """block_pairs < 1 made the pair blocking loop forever (final P0 review)."""
+    import numpy as np
+    P = np.array([[0, 0, 0], [1, 0, 0], [0, 1, 0]], float)
+    F = np.array([[0, 1, 2]])
+    with pytest.raises(ValueError):
+        double_layers(P, F, 0.15, **kw)

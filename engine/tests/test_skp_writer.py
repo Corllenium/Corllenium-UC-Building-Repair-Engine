@@ -118,7 +118,8 @@ def test_a_dll_without_the_sketchup_symbols_is_unavailable_and_says_which():
 def test_ctypes_is_imported_only_by_the_sketchup_binding_modules():
     """The SketchUp C API is bound in the writer and in the read-only reader, which must bind its
     own tables so that no save call is reachable from it (`engine/io/skp_reader.py`, job P0-11),
-    and in the one test helper that builds SketchUp models with groups for the reader's tests."""
+    in the one test helper that builds SketchUp models with groups for the reader's tests, and in
+    `engine/campus/winprobe.py`, which reads the process's peak memory through ctypes (census, P0-12)."""
     engine_root = Path(skp_writer.__file__).resolve().parents[1]
     users = sorted(p.relative_to(engine_root).as_posix() for p in engine_root.rglob("*.py")
                    if re.search(r"^\s*(import ctypes|from ctypes)", p.read_text(encoding="utf-8"),

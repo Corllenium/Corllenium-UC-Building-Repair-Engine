@@ -387,3 +387,12 @@ def test_census_worker_unit_with_mtl_empty_materials_map_fails(tmp_path: Path):
     data = json.loads(out_json.read_text(encoding="utf-8"))
     assert data["rows"][0]["status"] == "error"
 
+
+
+def test_census_holds_no_machine_specific_path():
+    """The materials default was the main checkout's absolute path (final P0 review): one repo-relative rule."""
+    import inspect
+    import engine.campus.census as census_mod
+    import engine.cli as cli_mod
+    for mod in (census_mod, cli_mod):
+        assert "D:/PROJECTS" not in inspect.getsource(mod), mod.__name__
