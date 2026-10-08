@@ -131,7 +131,12 @@ def _last_copies(keys: list[FaceKey], surplus: Counter) -> list[int]:
 
 def _new_faces(before: FaceView, after: FaceView, after_ids: list[int], stage: str):
     """`(new_faces, new_points)` of the after-view faces `after_ids`, in K1's convention: vertex ids
-    of the BEFORE mesh, and ids from `n` up naming this edit's own new points (None when none)."""
+    of the BEFORE mesh, and ids from `n` up naming this edit's own new points (None when none).
+
+    New points are numbered PER EDIT (K1: every edit counts its points from `n`). A point solidify
+    invented that faces of two materials share -- so two E8 add edits -- is carried by each of
+    them, and the sum of `n_new_points` over a run can exceed solidify's `invented_vertices`.
+    K3 de-duplicates such points when it applies the edits."""
     n = len(before.mesh.positions)
     before_p, after_p = before.mesh.positions, after.mesh.positions
     if len(after_p) < n or not (after_p is before_p or np.array_equal(after_p[:n], before_p)):
@@ -154,7 +159,14 @@ def observe(before: FaceView, after: FaceView, *, stage: str, site: int, engine:
     engine. `mode="cut"` groups each material's removed and added faces into one cut (the merge);
     `"plain"` gives removes, flips and per-material adds. Order: `"plain"`: removes (by engine, in
     order of first appearance), flips, adds by material; `"cut"`: cuts (or a lone add) by material,
-    the removes of materials that gained nothing, then flips."""
+    the removes of materials that gained nothing, then flips.
+
+    Observe-only limits (for K3, which will apply edits instead of recording them):
+    - Flipping BOTH members of an opposite-winding coincident pair leaves the key multiset as it
+      was, so such a change is invisible here and logs nothing.
+    - Keys ignore UVs and normals (K1 `face_keys`: snapped positions, winding and look). When a
+      stacked duplicate loses a copy, the copy named removed (the last one) may differ in UV from
+      the copy the stage really removed; the multiset is right, the UV of that face may not be."""
     if mode not in ("cut", "plain"):
         raise ValueError(f"unknown mode {mode!r}")
     if before.mesh.materials != after.mesh.materials:
@@ -277,7 +289,11 @@ class LegacyRun:
 
 @dataclass
 class LegacyEngine:
-    """A `RepairEngine` that runs one `fix_object` stage unchanged and returns the edits observed."""
+    """A `RepairEngine` that runs one `fix_object` stage unchanged and returns the edits observed.
+
+    `plan()` RUNS the stage as a side effect: it advances the shared `LegacyRun` state, so calling
+    it twice runs the stage twice. That is the observe-only kernel's shortcut, not the protocol's
+    meaning (an engine plans; `apply_edits` performs). K3 must split running from planning."""
     name: str
     stage: str
     site: int
