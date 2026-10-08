@@ -63,7 +63,7 @@ ssh -t -i $env:USERPROFILE\.ssh\uc_vps_ed25519 root@187.127.213.243 "umask 077; 
    built on the PC from the repo root (the owner's OK at that moment; it is the `:vps` tag, not the local
    `fixer-web`), then loaded on the box:
 ```powershell
-( cd web; npm run build )
+npm --prefix web run build
 docker build -f Dockerfile.web -t ucmodelfixer-web:vps .
 docker save ucmodelfixer-web:vps -o web.tar
 scp -i $env:USERPROFILE\.ssh\uc_vps_ed25519 web.tar root@187.127.213.243:/docker/uc-fixer/
@@ -115,8 +115,16 @@ PY="D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe"
 ### Post-deploy checks (spec section 8)
 Against the real URL, in this order. Passwords are typed at the prompt (`curl -u name`), never on a command line:
 1. Health: `curl -u gab https://uc-fixer.srv1866850.hstgr.cloud/api/decide/health` answers `ok: true`.
-2. One `ask` as `uc-engine` (for example `decide-import-pilot` above, or a one-question POST to `/api/decide/ask`)
-   answers 200 with an answer or `none / jev off`.
+2. One `ask` as `uc-engine`: a one-question POST to `/api/decide/ask` (not `decide-import-pilot`, which calls
+   `/import`). Run it from the repo root with `UC_DECIDE_URL` set. `RemoteDecider` takes the password from
+   `UC_DECIDE_PASSWORD` or the repo-root `.env`; if neither has it, the command prompts without echo, so the password
+   is never on the command line or in the shell history:
+```bash
+"$PY" -c "import os,getpass;from engine.decide.remote import RemoteDecider;from engine.decide.jev import ChoiceQ;u=os.environ['UC_DECIDE_URL'];d=RemoteDecider(u);d=d if d.available else RemoteDecider(u,password=getpass.getpass('uc-engine password: '));a=d.ask({'check':'post-deploy'},{'q':ChoiceQ('Which one?',{'a':None,'b':None},qtype='check.ask',subject='post-deploy')})['q'];print('source',a.source,'error',repr(a.error))"
+```
+   With Jev off the expected output is `source none error 'jev off'`. (With Jev on it would make a real Jev call and
+   store one pending suggestion, so run it before switching Jev on.) A connection problem prints
+   `source none error 'URLError'`, and a wrong password prints `source error error 'HTTP 401'`.
 3. One review as the owner: open `/jev` as `gab`, accept one pending suggestion.
 4. One confirmed fetch: `decide-pull --type mat.category` writes the file with that answer.
 5. One refusal per role:
