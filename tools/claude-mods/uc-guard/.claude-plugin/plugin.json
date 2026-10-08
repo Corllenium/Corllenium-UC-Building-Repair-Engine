@@ -1,0 +1,6 @@
+{
+  "name": "uc-guard",
+  "version": "0.1.0",
+  "description": "UC MODEL FIXER: denies tool calls that break AGENTS.md rules (protected folders, bare cd, git add -A, live containers and DB, secret files)",
+  "author": { "name": "Gabriel Alvin Aquino" }
+}
