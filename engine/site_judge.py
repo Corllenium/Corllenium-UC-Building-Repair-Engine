@@ -29,6 +29,20 @@ boxes contain the faces, so a face some witness ray of the Validator could find 
 is never left out (`_meets_shadow`). It over-approximates instead: the bottom of a box under a new plate is a
 candidate though the box's top hides it. The ray peel this replaces (and its `_PEEL` cut-off) is gone.
 
+THE CANDIDATE SET IS DELIBERATELY LARGE: that is the price of being conservative. From 128 directions and a ring of
+cameras, and from every eye-height probe inside the floor, the shadows of even a few small boxes reach most of a
+floor (on CHTM 5th a 10-face site has all 20,599 faces as candidates). A focus run is then about as costly as a full
+run, and that is accepted (ruling K3-R2); what keeps a failure from being blamed on the wrong site is not this set
+but `SiteJudge.attribute`, which charges a cover candidate to a site only when one of the site's new faces lies on
+the line from the sample to the viewpoint that judged it.
+
+THE CULL (P1-K3b). The per-viewpoint test is exact and cheap per pair, but every BEFORE face against every
+viewpoint is a lot of pairs (about 700 s and 900 MB on the largest unit, 142k faces and 3,953 viewpoints). Two
+culls cut it without changing the result: BEFORE's faces are sorted into a grid of cells, each cell's box the union
+of its faces' boxes (grown a hair), and a face is tested against a viewpoint only when its cell's box meets that
+viewpoint's shadow (a cell box holds its faces' boxes, so a face whose box meets the shadow is in a cell whose box
+does); and a face already found is never tested again. Every block of work is sized to `_BLOCK_BYTES`.
+
 WHAT THE COVER STEP LEAVES OUT, AND WHY THAT IS SAFE. It uses the standard viewpoints only, not the 1,024 extra
 directions: the Validator casts those only for samples of SUSPECT faces (faces of BEFORE that AFTER no longer has),
 and while AFTER is the stage input plus THIS site's edits, the suspect faces are exactly the site's touched faces,
@@ -52,8 +66,14 @@ from engine.validate.visibility import EPS_ORIGIN, build_caster
 _SLACK = 0.01
 #: The new faces are held in at most this many boxes (a split along the longest axis at the median, twice).
 _MAX_BOXES = 4
-#: Viewpoints tested against every BEFORE face at once (memory: viewpoints x faces x 6 floats).
-_VIEW_BLOCK = 32
+#: Memory one block of the cover step may take, in bytes (P1-K3b: at most 500 MB per block).
+_BLOCK_BYTES = 256 * 2**20
+#: Arrays of a block's (pairs x 6) float64 size alive at once in `_shadow_core`, for sizing the blocks.
+_LIVE = 8
+#: The cull's grid holds about this many BEFORE faces per cell.
+_PER_CELL = 32
+#: Each cell's box is grown by this much (inches) so float rounding can never cull a face the exact test keeps.
+_CELL_GROW = 1e-6
 
 #: No failing samples, judged nothing: the baseline of a check against an unchanged BEFORE.
 NO_FAILURES: frozenset = frozenset()
@@ -141,7 +161,41 @@ class _Stage:
     face_lo: np.ndarray
     face_hi: np.ndarray
     tol: float
+    grid: "_Grid | None" = None
     timings: dict = field(default_factory=dict)
+
+
+@dataclass
+class _Grid:
+    """BEFORE's faces sorted into cells: `order[start[c]:start[c] + count[c]]` are cell `c`'s faces, `cell[f]` is
+    face `f`'s cell, and `[lo[c], hi[c]]` holds the boxes of all of them (grown by `_CELL_GROW`)."""
+    order: np.ndarray
+    start: np.ndarray
+    count: np.ndarray
+    cell: np.ndarray
+    lo: np.ndarray
+    hi: np.ndarray
+
+
+def _face_grid(face_lo: np.ndarray, face_hi: np.ndarray) -> _Grid:
+    """About `_PER_CELL` faces per cell, the cells as near cubes over the spread of the faces' centres."""
+    n = len(face_lo)
+    centre = (face_lo + face_hi) / 2.0
+    low, span = centre.min(axis=0), np.ptp(centre, axis=0)
+    size = (np.prod(np.maximum(span, 1e-9)) / max(n / _PER_CELL, 1.0)) ** (1.0 / 3.0)
+    dims = np.clip(np.ceil(span / max(size, 1e-9)), 1, 256).astype(np.int64)
+    ijk = np.minimum(((centre - low) / np.maximum(span, 1e-12) * dims).astype(np.int64), dims - 1)
+    key = (ijk[:, 0] * dims[1] + ijk[:, 1]) * dims[2] + ijk[:, 2]
+    _, cell = np.unique(key, return_inverse=True)
+    cell = cell.reshape(-1).astype(np.int64)
+    count = np.bincount(cell)
+    order = np.argsort(cell, kind="stable").astype(np.int64)
+    start = np.concatenate([[0], np.cumsum(count)[:-1]]).astype(np.int64)
+    lo = np.full((len(count), 3), np.inf)
+    hi = np.full((len(count), 3), -np.inf)
+    np.minimum.at(lo, cell, face_lo)
+    np.maximum.at(hi, cell, face_hi)
+    return _Grid(order=order, start=start, count=count, cell=cell, lo=lo - _CELL_GROW, hi=hi + _CELL_GROW)
 
 
 class SiteJudge:
@@ -172,6 +226,8 @@ class SiteJudge:
                              dirs=outside_directions(s.n_directions),
                              face_lo=tri.min(axis=1), face_hi=tri.max(axis=1),
                              tol=depth_tolerance(print_step(before)))
+        if before.n_faces:
+            self._stage.grid = _face_grid(self._stage.face_lo, self._stage.face_hi)
         self.seconds["begin"] += time.perf_counter() - t0
 
     @property
@@ -184,7 +240,8 @@ class SiteJudge:
     def cover_candidates(self, after: MeshData, new: np.ndarray) -> np.ndarray:
         """Sorted BEFORE face ids that could lie behind one of the AFTER faces `new`, or within the depth tolerance
         of one, from some standard direction, camera or probe: every face whose bounding box meets the shadow of a
-        box holding new faces (see the module docstring). A superset of the faces those new faces can cover."""
+        box holding new faces (see the module docstring). A superset of the faces those new faces can cover --
+        deliberately a large one, the price of being conservative (most of a floor, as a rule)."""
         st = self.stage
         new = np.unique(np.asarray(new, dtype=np.int64))
         if not len(new) or not st.before.n_faces:
@@ -193,11 +250,8 @@ class SiteJudge:
         grow = st.tol + EPS_ORIGIN + _SLACK
         found = np.zeros(st.before.n_faces, dtype=bool)
         for lo, hi in _boxes(after.positions[after.face_v[new]], _MAX_BOXES):
-            lo, hi = lo - grow, hi + grow
-            for k in range(0, len(st.dirs), _VIEW_BLOCK):
-                found |= _meets_shadow(st.face_lo, st.face_hi, lo, hi, dirs=st.dirs[k:k + _VIEW_BLOCK])
-            for k in range(0, len(st.viewpoints), _VIEW_BLOCK):
-                found |= _meets_shadow(st.face_lo, st.face_hi, lo, hi, eyes=st.viewpoints[k:k + _VIEW_BLOCK])
+            for which, views in (("dirs", st.dirs), ("eyes", st.viewpoints)):
+                _cover_pass(st, found, lo - grow, hi + grow, which, np.asarray(views, dtype=np.float64))
         self.seconds["cover"] += time.perf_counter() - t0
         return np.flatnonzero(found).astype(np.int64)
 
@@ -375,6 +429,83 @@ def _boxes(tri: np.ndarray, most: int) -> list[tuple[np.ndarray, np.ndarray]]:
     return [(tri[g].reshape(-1, 3).min(axis=0), tri[g].reshape(-1, 3).max(axis=0)) for g in groups if len(g)]
 
 
+def _cover_pass(st: _Stage, found: np.ndarray, lo: np.ndarray, hi: np.ndarray, which: str, views: np.ndarray) -> None:
+    """`found |=` every BEFORE face whose box meets the shadow of `[lo, hi]` from some viewpoint of `views`
+    (`which`: "dirs" or "eyes"), testing a (viewpoint, face) pair only when the face is not found yet and its
+    cell's box meets that viewpoint's shadow. Exactly `_meets_shadow` over every face and viewpoint."""
+    g = st.grid
+    if not len(views) or g is None:
+        return
+    pair_bytes = 6 * 8 * _LIVE
+    per_block = max(1, _BLOCK_BYTES // (pair_bytes * len(g.count)))       # viewpoints x cells in one cell pass
+    chunk = max(1, _BLOCK_BYTES // (pair_bytes + 8 * 6))                   # (viewpoint, face) pairs in one test
+    for k in range(0, len(views), per_block):
+        cells = np.flatnonzero(np.bincount(g.cell[~found], minlength=len(g.count)) > 0)
+        if not len(cells):
+            return
+        block = views[k:k + per_block]
+        meet = _shadow_matrix(g.lo[cells], g.hi[cells], lo, hi, **{which: block})          # (views, cells)
+        v_of, c_of = np.nonzero(meet)
+        c_of = cells[c_of]
+        sizes = g.count[c_of]
+        ends = np.cumsum(sizes)
+        first = 0
+        while first < len(c_of):
+            last = max(first + 1, int(np.searchsorted(ends, (ends[first - 1] if first else 0) + chunk, side="right")))
+            v, c, n = v_of[first:last], c_of[first:last], sizes[first:last]
+            offset = np.arange(int(n.sum())) - np.repeat(np.cumsum(n) - n, n)
+            faces = g.order[np.repeat(g.start[c], n) + offset]
+            views_of = np.repeat(v, n)
+            todo = ~found[faces]
+            faces, views_of = faces[todo], views_of[todo]
+            if len(faces):
+                hit = _shadow_pairs(st.face_lo[faces], st.face_hi[faces], lo, hi, which, block[views_of])
+                found[faces[hit]] = True
+            first = last
+
+
+def _shadow_core(c: np.ndarray, r: np.ndarray, t_lo: float, t_hi: float) -> np.ndarray:
+    """The interval test over the last axis (six linear conditions `c t <= r` on one parameter `t` in
+    `[t_lo, t_hi]`), with a relative slack on `r` so float rounding never drops a face."""
+    r = r + 1e-9 * (1.0 + np.abs(r))
+    with np.errstate(divide="ignore", invalid="ignore"):
+        bound = r / c
+    upper = np.where(c > 0.0, bound, np.inf).min(axis=-1)
+    lower = np.where(c < 0.0, bound, -np.inf).max(axis=-1)
+    impossible = ((c == 0.0) & (r < 0.0)).any(axis=-1)
+    return ~impossible & (np.maximum(lower, t_lo) <= np.minimum(upper, t_hi))
+
+
+def _shadow_pairs(face_lo: np.ndarray, face_hi: np.ndarray, lo: np.ndarray, hi: np.ndarray, which: str,
+                  views: np.ndarray) -> np.ndarray:
+    """(P,) bool: face box `[face_lo[i], face_hi[i]]` meets the shadow of `[lo, hi]` from viewpoint `views[i]`; the
+    same conditions as `_shadow_matrix`, one pair per row."""
+    if which == "dirs":
+        c = np.concatenate([-views, views], axis=1)
+        r = np.concatenate([hi - face_lo, face_hi - lo], axis=1)
+        return _shadow_core(c, r, 0.0, np.inf)
+    c = np.concatenate([face_lo - views, -(face_hi - views)], axis=1)
+    r = np.concatenate([hi - views, views - lo], axis=1)
+    return _shadow_core(c, r, 0.0, 1.0)
+
+
+def _shadow_matrix(face_lo: np.ndarray, face_hi: np.ndarray, lo: np.ndarray, hi: np.ndarray, *,
+                   dirs: np.ndarray | None = None, eyes: np.ndarray | None = None) -> np.ndarray:
+    """(V, F) bool: `_meets_shadow` for each viewpoint of the block separately."""
+    n_faces = len(face_lo)
+    if dirs is not None:
+        v = np.asarray(dirs, dtype=np.float64)[:, None, :]                            # (V, 1, 3)
+        shape = (v.shape[0], n_faces, 3)
+        c = np.concatenate([np.broadcast_to(-v, shape), np.broadcast_to(v, shape)], axis=2)
+        r = np.concatenate([np.broadcast_to(hi - face_lo, shape), np.broadcast_to(face_hi - lo, shape)], axis=2)
+        return _shadow_core(c, r, 0.0, np.inf)
+    e = np.asarray(eyes, dtype=np.float64)[:, None, :]                                 # (V, 1, 3)
+    shape = (e.shape[0], n_faces, 3)
+    c = np.concatenate([face_lo[None] - e, -(face_hi[None] - e)], axis=2)
+    r = np.concatenate([np.broadcast_to(hi - e, shape), np.broadcast_to(e - lo, shape)], axis=2)
+    return _shadow_core(c, r, 0.0, 1.0)
+
+
 def _meets_shadow(face_lo: np.ndarray, face_hi: np.ndarray, lo: np.ndarray, hi: np.ndarray, *,
                   dirs: np.ndarray | None = None, eyes: np.ndarray | None = None) -> np.ndarray:
     """(F,) bool: the box `[face_lo, face_hi]` of each face meets the shadow of the box `[lo, hi]` for SOME viewpoint
@@ -386,27 +517,10 @@ def _meets_shadow(face_lo: np.ndarray, face_hi: np.ndarray, lo: np.ndarray, hi: 
       A face box A meets it when the box `e + u (A - e)` meets the box for some `u` in `[0, 1]` (`u = 1 / s`; at
       `u = 0`, an eye inside the box, every face is a candidate).
 
-    Either way each axis gives two linear conditions `c t <= r` on the one parameter, solved as an interval; a
-    relative slack on `r` keeps float rounding from ever dropping a face."""
-    n_faces = len(face_lo)
-    if dirs is not None:
-        v = np.asarray(dirs, dtype=np.float64)[:, None, :]                            # (V, 1, 3)
-        shape = (v.shape[0], n_faces, 3)
-        # A.lo - t d <= hi  ->  -d t <= hi - A.lo ;   A.hi - t d >= lo  ->  d t <= A.hi - lo
-        c = np.concatenate([np.broadcast_to(-v, shape), np.broadcast_to(v, shape)], axis=2)
-        r = np.concatenate([np.broadcast_to(hi - face_lo, shape), np.broadcast_to(face_hi - lo, shape)], axis=2)
-        t_lo, t_hi = 0.0, np.inf
-    else:
-        e = np.asarray(eyes, dtype=np.float64)[:, None, :]                             # (V, 1, 3)
-        shape = (e.shape[0], n_faces, 3)
-        # e + u (A.lo - e) <= hi  ->  (A.lo - e) u <= hi - e ;   e + u (A.hi - e) >= lo  ->  -(A.hi - e) u <= e - lo
-        c = np.concatenate([face_lo[None] - e, -(face_hi[None] - e)], axis=2)
-        r = np.concatenate([np.broadcast_to(hi - e, shape), np.broadcast_to(e - lo, shape)], axis=2)
-        t_lo, t_hi = 0.0, 1.0
-    r = r + 1e-9 * (1.0 + np.abs(r))
-    with np.errstate(divide="ignore", invalid="ignore"):
-        bound = r / c
-    upper = np.where(c > 0.0, bound, np.inf).min(axis=2)
-    lower = np.where(c < 0.0, bound, -np.inf).max(axis=2)
-    impossible = ((c == 0.0) & (r < 0.0)).any(axis=2)
-    return (~impossible & (np.maximum(lower, t_lo) <= np.minimum(upper, t_hi))).any(axis=0)
+    Either way each axis gives two linear conditions `c t <= r` on the one parameter, solved as an interval
+    (`_shadow_core`); a relative slack on `r` keeps float rounding from ever dropping a face.
+
+    Directions: `A.lo - t d <= hi` -> `-d t <= hi - A.lo`; `A.hi - t d >= lo` -> `d t <= A.hi - lo`.
+    Eyes: `e + u (A.lo - e) <= hi` -> `(A.lo - e) u <= hi - e`; `e + u (A.hi - e) >= lo` -> `-(A.hi - e) u <= e - lo`.
+    """
+    return _shadow_matrix(face_lo, face_hi, lo, hi, dirs=dirs, eyes=eyes).any(axis=0)
