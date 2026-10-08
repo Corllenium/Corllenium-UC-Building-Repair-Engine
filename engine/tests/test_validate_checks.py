@@ -1249,3 +1249,17 @@ def test_validate_command_says_how_many_samples_a_new_layer_lies_over(tmp_path, 
     assert code == 2 and "128 overlaid" in said, said
     data = json.loads((out / "validation.json").read_text(encoding="utf-8"))
     assert data["checks"]["nothing_deleted"]["overlaid"] == 128 and data["after"]["new_faces"] == 32
+
+
+def test_the_shipped_targets_file_is_the_owners_signed_answer():
+    """engine/validate/targets.json as signed on 2026-10-08 (decision sheet P0, answer 2): a typo in a kind name
+    would silently never gate, so the keys and values are pinned here."""
+    from engine.detectors.errors import KINDS as DETECTOR_KINDS
+    from engine.validate.checks import _target_of
+    t = load_targets()
+    assert t["signed"] is True and t["signed_by"] == "owner" and t["signed_at"] == "2026-10-08"
+    assert set(t["kinds"]) == set(DETECTOR_KINDS)
+    for kind in ("flicker_diff", "flicker_same", "reversed", "cracks"):
+        assert _target_of(t, kind)[0] == 0, kind
+    for kind in ("hidden", "loose", "open_edges"):
+        assert _target_of(t, kind) == (None, "listed"), kind

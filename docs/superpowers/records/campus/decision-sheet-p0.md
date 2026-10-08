@@ -22,7 +22,7 @@ Each question shows Claude's proposal and, after the owner answers, **the answer
 | PE | 6 | 1386, 1583, 1799, 1976, 2193, 2370 |
 | SCIENCE_A | 5, numbered L02-L06 | 1504, 1661, 1858, 1996, 2291 |
 
-The inventory gives 79 units: 69 floors, 3 elements (stairs and pathways spanning floors) and 7 site pieces. Every one of
+The inventory gives 79 units (80 after answer 5, which makes CHTM-L12 its own level): 69 floors, 3 elements (stairs and pathways spanning floors) and 7 site pieces. Every one of
 the 85 files is covered.
 
 ## 2. Files that hold several floors (proposed splits by face centre; no triangle is cut)
@@ -80,7 +80,6 @@ The census totals for all 85 floors are counted in faces; E4/E5 are pairs, by lo
 floors are fixed.
 
 ## 8. Answers
-(filled in from the owner's replies)
 
 **Answers, 2026-10-08 (the owner, two rounds of four questions):**
 1. **Science A copies:** keep `_obj`, drop `_obj1` from the fix scope (plan_2 and plan_3).
