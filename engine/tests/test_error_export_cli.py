@@ -23,7 +23,7 @@ def _campus(tmp_path):
     (snap / "B_1st_floor.obj").write_text(OBJ, encoding="utf-8")
     source = tmp_path / "source.json"
     source.write_text(json.dumps({"snapshots": [{"group": "B_1st_floor", "file": "B_1st_floor.obj",
-                                                 "dir": str(snap), "tris": 2}]}), encoding="utf-8")
+                                                 "dir": str(snap), "tris": 2, "sha256": "s" * 64}]}), encoding="utf-8")
     errors = tmp_path / "errors"
     errors.mkdir()
     (errors / "B_1st_floor.json").write_text(json.dumps({
@@ -63,5 +63,7 @@ def test_the_cli_writes_one_file_and_report_per_building(tmp_path, capsys):
     assert report["written"]["faces_by_tag"] == report["read_back"]["faces_by_tag"]
     assert report["duplicates_by_tag"] == {} and report["unexplained_by_tag"] == {}
     assert report["columns"][0]["unit"] == "BRS-L01"
-    assert set(report["inputs"]) == {"campus_map", "skp_check", "errors"}
+    assert set(report["inputs"]) == {"campus_map", "skp_check", "errors", "source", "snapshots"}
+    assert report["inputs"]["snapshots"] == {"B_1st_floor": "s" * 64}
+    assert report["legend"] == list(("base",) + ee.ERROR_KINDS + ee.LINE_KINDS + ee.GROUPING_KINDS)
     assert "BRS" in capsys.readouterr().out

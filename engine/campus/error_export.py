@@ -107,7 +107,10 @@ def exact_duplicates(tris: np.ndarray) -> int:
 
 def _drawable(text: str) -> str:
     text = " ".join(text.upper().split())
-    return "".join(ch if ch in GLYPHS else " " for ch in text)[:LABEL_MAX].rstrip()
+    text = "".join(ch if ch in GLYPHS else " " for ch in text)
+    if len(text) > LABEL_MAX:
+        text = text[:LABEL_MAX + 1].rsplit(" ", 1)[0]
+    return text.rstrip()
 
 
 def flag_label(flag: dict) -> str:
@@ -128,7 +131,7 @@ def flag_label(flag: dict) -> str:
     elif kind == "footprint" and (m := re.search(r"(\d+) % of its footprint lies in ([A-Za-z0-9_]+)", text)):
         label = f"FOOTPRINT: {m.group(1)}% IN {m.group(2)}"
     elif kind == "owner":
-        label = head
+        label = "OWNER: " + text.split(":", 1)[-1]
     elif kind in ("skp_mismatch", "pending", "excluded"):
         label = flag["label"] if "label" in flag else text
     if label is None:
@@ -196,7 +199,10 @@ class _Loaded:
 
 def _load(group: str, load_member, cache: dict) -> _Loaded:
     if group not in cache:
-        pos, fv, errors = load_member(group)
+        try:
+            pos, fv, errors = load_member(group)
+        except (KeyError, OSError) as exc:
+            raise ValueError(f"{group}: its snapshot or errors file could not be read ({exc!r})") from exc
         pos = np.asarray(pos, float).reshape(-1, 3)
         fv = np.asarray(fv, np.int64).reshape(-1, 3)
         if int(errors.get("n_faces", len(fv))) != len(fv):
@@ -206,10 +212,6 @@ def _load(group: str, load_member, cache: dict) -> _Loaded:
         cache[group] = _Loaded(pos, fv, errors, tri, tri[:, :, 2].mean(axis=1), area < DEGENERATE_AREA,
                                face_kinds(len(fv), errors.get("faces", {})))
     return cache[group]
-
-
-def _in_range(z: np.ndarray, member: dict) -> np.ndarray:
-    return member_mask(member, z)
 
 
 def _member_plan(group: str, member: dict, data: _Loaded, offset: np.ndarray, excluded: bool,
@@ -232,12 +234,12 @@ def _member_plan(group: str, member: dict, data: _Loaded, offset: np.ndarray, ex
         counts[kind] += int(keep[listed].sum()) if listed.size else 0
     seg = np.asarray(data.errors.get("open_edges", ()), float).reshape(-1, 2, 3)
     if len(seg):
-        seg = seg[_in_range(seg[:, :, 2].mean(axis=1), member)]
+        seg = seg[member_mask(member, seg[:, :, 2].mean(axis=1))]    # a segment goes by its mid-point z
     mp.segments = seg + offset
     counts["open_edges"] += len(seg)
     cracks = np.asarray(data.errors.get("cracks", ()), float).reshape(-1, 3)
     if len(cracks):
-        cracks = cracks[_in_range(cracks[:, 2], member)]
+        cracks = cracks[member_mask(member, cracks[:, 2])]
     counts["cracks"] += len(cracks)
     mp.cracks = grid_dedup(cracks, CELL_IN) + offset
     return mp
@@ -307,8 +309,8 @@ def _column_flags(unit: dict, is_excluded: bool, known: set[str], mismatches: di
             if mm is not None:
                 rel = float(mm["area_rel"])
                 flags.append({"kind": "skp_mismatch",
-                              "text": f"{m['group']}: the CHECKPOINT-17 backup has {rel * 100:+.2f} % more area "
-                                      f"than the export",
+                              "text": f"{m['group']}: the CHECKPOINT-17 backup has {abs(rel) * 100:.2f} % "
+                                      f"{'more' if rel >= 0 else 'less'} area than the export",
                               "label": f"BACKUP {rel * 100:+.2f}% AREA: {m['group']}"})
         if not unit.get("confirmed_by_owner", True):
             flags.append({"kind": "pending", "text": "not yet confirmed by the owner",
@@ -343,7 +345,10 @@ TAGS = ["base"] + [tag_of(k) for k in ERROR_KINDS + LINE_KINDS] + [tag_of(k) for
 
 
 def _check_out(out) -> None:
-    text = str(out).replace("/", "\\").upper()
+    """Refuse an output in the backup, master or export folders, judged on the resolved absolute path (so `..`,
+    a relative path or a junction cannot get round it)."""
+    import os
+    text = os.path.normcase(os.path.realpath(os.path.abspath(str(out)))).replace("/", "\\").upper()
     for p in PROTECTED:
         if p.upper() in text:
             raise ValueError(f"refusing to write {out}: it lies in a protected folder ({p})")
@@ -385,6 +390,16 @@ def _markers(points: np.ndarray, r: float = MARKER_R_IN) -> np.ndarray:
 
 def _rect(x: float, y: float, w: float, h: float, z: float = 0.0) -> np.ndarray:
     return np.array([[x, y, z], [x + w, y, z], [x + w, y + h, z], [x, y + h, z]], float)
+
+
+RING_FIRST_IN, RING_STEP_IN, RING_WIDTH_IN = 30.0, 12.0, 10.0
+
+
+def ring_margins(j: int) -> tuple[float, float]:
+    """Inner and outer margin of the j-th grouping ring around a column: rings stack outward and stay inside half
+    the column gap (the brief's "plate" became a frame, so it never hides the floor)."""
+    m0 = RING_FIRST_IN + j * RING_STEP_IN
+    return m0, m0 + RING_WIDTH_IN
 
 
 def _ring(x0: float, y0: float, x1: float, y1: float, m0: float, m1: float, z: float) -> np.ndarray:
@@ -521,8 +536,7 @@ def _draw_column(w: _Writer, col: ColumnPlan) -> None:
     for j, flag in enumerate(col.flags):
         tag = tag_of(flag["kind"])
         gents = w.group(ents, f"GROUPING | {flag['kind']} | {flag.get('text', '')}"[:1000], tag)
-        m0 = 40.0 + j * 50.0
-        w.fill(gents, _ring(x0, 0.0, x1, y1, m0, m0 + 40.0, PLATE_Z_IN), flag["kind"], tag)
+        w.fill(gents, _ring(x0, 0.0, x1, y1, *ring_margins(j), PLATE_Z_IN), flag["kind"], tag)
         w.fill(gents, _text(flag["label"], x0, y - (j + 1) * LINE_PITCH * FLAG_CELL_IN, FLAG_CELL_IN),
                flag["kind"], tag)
 
@@ -532,8 +546,7 @@ def _draw_legend(w: _Writer, plan: BuildingPlan) -> None:
     x = -GAP_IN - 2400.0
     pitch = LINE_PITCH * LEGEND_CELL_IN
     rows = [(k, plan.counts.get(k)) for k in ("base",) + ERROR_KINDS + LINE_KINDS]
-    used = sorted({f["kind"] for c in plan.columns for f in c.flags}, key=GROUPING_KINDS.index)
-    rows += [(k, sum(f["kind"] == k for c in plan.columns for f in c.flags)) for k in used]
+    rows += [(k, sum(f["kind"] == k for c in plan.columns for f in c.flags)) for k in GROUPING_KINDS]
     top = len(rows) * pitch
     w.fill(ents, _text(f"{plan.building} ERRORS", x, top + pitch, 2 * LEGEND_CELL_IN), "labels", "labels")
     for i, (kind, count) in enumerate(rows):
@@ -636,7 +649,9 @@ def cmd_campus_errors_skp(campus_map, source, errors_dir, skp_check, out_dir, bu
     out_dir, errors_dir = Path(out_dir), Path(errors_dir)
     _check_out(out_dir)
     cmap = json.loads(Path(campus_map).read_text(encoding="utf-8"))
-    snaps = {s["group"]: Path(s["dir"]) for s in json.loads(Path(source).read_text(encoding="utf-8"))["snapshots"]}
+    snapshots = json.loads(Path(source).read_text(encoding="utf-8"))["snapshots"]
+    snaps = {s["group"]: Path(s["dir"]) for s in snapshots}
+    snap_sha = {s["group"]: s.get("sha256") for s in snapshots}
     mismatches = {m["file"]: m for m in json.loads(Path(skp_check).read_text(encoding="utf-8"))["mismatches"]}
     names = sorted({u["building"] for u in cmap["units"]} | {building_of(e["group"]) for e in cmap.get("excluded", [])})
     commit = _engine_commit()
@@ -675,7 +690,9 @@ def cmd_campus_errors_skp(campus_map, source, errors_dir, skp_check, out_dir, bu
             "duplicates_by_tag": dups,
             "unexplained_by_tag": {t: d for t, d in unexplained.items() if d},
             "inputs": {"campus_map": _sha256(campus_map), "skp_check": _sha256(skp_check),
-                       "errors": {g: used[g] for g in sorted(used)}},
+                       "source": _sha256(source), "errors": {g: used[g] for g in sorted(used)},
+                       "snapshots": {g: snap_sha[g] for g in sorted(used)}},
+            "legend": list(("base",) + ERROR_KINDS + LINE_KINDS + GROUPING_KINDS),
             "draw_rule": "each face in the first kind listing it: " + ", ".join(ERROR_KINDS) + "; else base",
         }
         (out_dir / name / f"{name}-errors.json").write_text(json.dumps(report, indent=1), encoding="utf-8")

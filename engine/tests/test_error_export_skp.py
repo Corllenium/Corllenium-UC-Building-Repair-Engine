@@ -20,6 +20,9 @@ def sketchup():
     r"D:\PROJECTS\UC MODEL FIXER\MODEL FIXER ENGINE FILES\02-SKETCHUP-MODELS\CHECKPOINT-17-BACKUP\x.skp",
     r"D:\PROJECTS\UC\02-SKETCHUP\current\x.skp",
     r"D:\PROJECTS\UC ENVIRONMENT BUILDING\REQUIREMENTS\x.skp",
+    r"D:\PROJECTS\UC MODEL FIXER\..\UC\02-SKETCHUP\current\x.skp",
+    "D:/PROJECTS/UC MODEL FIXER/../UC/02-SKETCHUP/current/x.skp",
+    "d:/projects/uc/02-sketchup/current/sub/../x.skp",
 ])
 def test_outputs_inside_the_protected_folders_are_refused(campus, bad):
     with pytest.raises(ValueError, match="protected"):
@@ -47,3 +50,26 @@ def test_the_written_file_reads_back_with_every_kind_on_its_own_tag(campus, sket
     assert report["faces_by_tag"] == {k: v for k, v in faces.items() if v}
     assert "UNIT | L01 B-L01" in back["group_names"]
     assert "MEMBER | S_building" in back["group_names"]
+
+
+def test_a_relative_output_inside_a_protected_folder_is_refused(campus, tmp_path, monkeypatch):
+    inside = tmp_path / "CHECKPOINT-17-BACKUP"
+    inside.mkdir()
+    monkeypatch.chdir(inside)
+    with pytest.raises(ValueError, match="protected"):
+        ee.write_building_skp(_plan(campus), Path("x.skp"))
+
+
+def test_identical_triangles_in_one_group_read_back_once(sketchup, tmp_path):
+    import numpy as np
+    tri = np.array([[[0, 0, 0], [10, 0, 0], [0, 10, 0]]], float)
+    tris = np.concatenate([tri, tri[:, ::-1], tri + [20, 0, 0]])
+    member = ee.MemberPlan(group="G", tris={"base": tris})
+    col = ee.ColumnPlan("U", "L01 U", "floor", 0.0, 30.0, 10.0, [member], [], {})
+    plan = ee.BuildingPlan("B", [col], {k: 0 for k in ee.ERROR_KINDS + ee.LINE_KINDS})
+    out = tmp_path / "dup.skp"
+    written = ee.write_building_skp(plan, out)
+    back = ee.read_back(out)
+    assert written["faces_by_tag"]["base"] == 3
+    assert ee.exact_duplicates(tris) == 1
+    assert back["faces_by_tag"]["base"] == 3 - ee.exact_duplicates(tris)

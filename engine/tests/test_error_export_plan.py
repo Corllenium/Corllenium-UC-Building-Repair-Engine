@@ -45,7 +45,7 @@ FLAGS = [
     ({"kind": "footprint", "text": "Sciene_A_Floor_plan_6_obj (SCIENCE_A): 91 % of its footprint lies in MAIN_INFRA"},
      "FOOTPRINT: 91% IN MAIN_INFRA"),
     ({"kind": "owner", "text": "owner 2026-10-08: CHTM_12th is its own level (its slab is single-sided)"},
-     "OWNER 2026-10-08"),
+     "OWNER: CHTM_12TH IS ITS OWN LEVEL (ITS SLAB IS"),
 ]
 
 
@@ -217,3 +217,48 @@ def test_columns_leave_room_for_their_longest_label(campus):
 def test_the_longest_campus_duplicate_label_keeps_its_percent():
     flag = {"kind": "duplicate", "text": "Sciene_A_Floor_plan_2_obj and Sciene_A_Floor_plan_2_obj1 share 80 % of"}
     assert ee.flag_label(flag) == "DUPLICATE: SCIENE_A_FLOOR_PLAN_2_OBJ1 80%"
+
+
+def test_tubes_are_three_quads_per_segment_around_it_and_skip_zero_length():
+    seg = np.array([[[0, 0, 0], [10, 0, 0]], [[0, 0, 0], [0, 0, 10]], [[5, 5, 5], [5, 5, 5]]], float)
+    q = ee._tubes(seg, r=1.0)
+    assert q.shape == (6, 4, 3)
+    horiz = q[[0, 2, 4]].reshape(-1, 3)                    # every corner sits r from its segment's axis
+    assert np.allclose(np.hypot(horiz[:, 1], horiz[:, 2]), 1.0)
+    vert = q[[1, 3, 5]].reshape(-1, 3)                     # vertical segment: the helper axis switches
+    assert np.allclose(np.hypot(vert[:, 0], vert[:, 1]), 1.0)
+
+
+def test_markers_are_octahedra_of_the_given_radius():
+    m = ee._markers(np.array([[1.0, 2.0, 3.0]]), r=2.0)
+    assert m.shape == (8, 3, 3)
+    assert np.allclose(np.linalg.norm(m.reshape(-1, 3) - [1, 2, 3], axis=1), 2.0)
+
+
+def test_ring_frames_the_rectangle_between_its_margins():
+    r = ee._ring(0, 0, 100, 50, 10, 30, -2)
+    assert r.shape == (4, 4, 3)
+    pts = r.reshape(-1, 3)
+    assert pts[:, 0].min() == -30 and pts[:, 0].max() == 130 and pts[:, 1].min() == -30 and pts[:, 1].max() == 80
+    assert np.all(pts[:, 2] == -2)
+
+
+def test_grouping_rings_stay_inside_half_the_column_gap():
+    assert ee.ring_margins(len(ee.GROUPING_KINDS) - 1)[1] < ee.GAP_IN / 2
+
+
+def test_mismatch_text_says_less_for_a_negative_area_difference(campus):
+    cmap, meshes, _ = campus
+    plan = ee.plan_building("B", cmap, lambda g: meshes[g], mismatches={"A_1st_floor.obj": {"area_rel": -0.03}},
+                            building_of=lambda g: "B")
+    flag = plan.columns[0].flags[0]
+    assert "3.00 % less area" in flag["text"] and flag["label"] == "BACKUP -3.00% AREA: A_1ST_FLOOR"
+
+
+def test_a_missing_snapshot_or_errors_file_names_the_group(campus):
+    cmap, meshes, _ = campus
+
+    def load(group):
+        raise FileNotFoundError("nope")
+    with pytest.raises(ValueError, match="A_1st_floor"):
+        ee.plan_building("B", cmap, load, building_of=lambda g: "B")

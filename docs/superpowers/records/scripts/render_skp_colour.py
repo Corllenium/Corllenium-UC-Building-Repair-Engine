@@ -4,7 +4,8 @@ Walks every group of the file through the SketchUp C API, takes SketchUp's own t
 the colour of its front material, and paints them with a painter's algorithm (far first) from a top view and an
 oblique view. Tags can be switched off with --hide (as the owner would in SketchUp).
 
-Usage: render_skp_colour.py <file.skp> <out dir> [--hide tag ...] [--only-unit NAME] [--size 2400x1400]
+Usage: render_skp_colour.py <file.skp> <out dir> [--hide tag ...] [--only-unit LABEL] [--only-member GROUP ...]
+       [--size 2400x1400] [--prefix NAME]
 """
 import argparse
 from ctypes import byref
@@ -17,7 +18,7 @@ from engine.campus.error_export import _bind
 from engine.io.skp_writer import _face_triangles, _open, _read_material, _Ref, _refs, _string, load_api
 
 
-def read_faces(path, hide=(), only_unit=None):
+def read_faces(path, hide=(), only_unit=None, only_member=None):
     api = load_api()
     _bind(api)
     tris, cols = [], []
@@ -32,8 +33,9 @@ def read_faces(path, hide=(), only_unit=None):
                 mats[m.ptr] = (128, 128, 128) if c is None else tuple(c[:3])
             return mats[m.ptr]
 
-        def walk(ents, tag, unit):
-            if tag not in hide and (only_unit is None or unit == only_unit or unit is None and only_unit == "*"):
+        def walk(ents, tag, unit, member):
+            if tag not in hide and (only_unit is None or unit == only_unit) and (
+                    only_member is None or member in only_member):
                 for f in _refs(api, "SUEntitiesGetNumFaces", "SUEntitiesGetFaces", ents):
                     t = _face_triangles(api, f)
                     if len(t):
@@ -47,11 +49,12 @@ def read_faces(path, hide=(), only_unit=None):
                 sub = _Ref()
                 api.ok("SUGroupGetEntities", g, byref(sub))
                 u = name.split(" | ", 1)[1] if name.startswith("UNIT | ") else unit
-                walk(sub, tag if lname in ("Layer0", "Untagged") else lname, u)
+                m = name.split(" | ", 1)[1] if name.startswith("MEMBER | ") else member
+                walk(sub, tag if lname in ("Layer0", "Untagged") else lname, u, m)
 
         root = _Ref()
         api.ok("SUModelGetEntities", model, byref(root))
-        walk(root, "untagged", None)
+        walk(root, "untagged", None, None)
     return np.concatenate(tris) if tris else np.zeros((0, 3, 3)), np.array(cols, np.uint8)
 
 
@@ -92,11 +95,12 @@ def main():
     ap.add_argument("out")
     ap.add_argument("--hide", nargs="*", default=[])
     ap.add_argument("--only-unit", default=None)
+    ap.add_argument("--only-member", nargs="*", default=None)
     ap.add_argument("--size", default="2400x1400")
     ap.add_argument("--prefix", default="")
     a = ap.parse_args()
     size = tuple(int(v) for v in a.size.split("x"))
-    tris, cols = read_faces(a.skp, set(a.hide), a.only_unit)
+    tris, cols = read_faces(a.skp, set(a.hide), a.only_unit, set(a.only_member) if a.only_member else None)
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
     stem = a.prefix or Path(a.skp).stem
