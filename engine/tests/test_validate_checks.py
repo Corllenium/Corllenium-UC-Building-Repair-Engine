@@ -713,12 +713,20 @@ def _validate_args(before, after, materials, out, *more):
             "--out", str(out), *more]
 
 
+def _unsigned_targets(tmp_path):
+    """An explicit unsigned targets file: the repo's own engine/validate/targets.json is signed by the
+    owner (2026-10-08), so a test about the unsigned case must say so itself."""
+    path = tmp_path / "unsigned_targets.json"
+    path.write_text('{"signed": false, "kinds": {}}', encoding="utf-8")
+    return str(path)
+
+
 def test_validate_writes_validation_json_and_evidence_and_exits_2_on_a_failure(tmp_path):
     m = _with_material(_two_looks(cube(10.0)), [2, 3], 1)
     before = _snapshot(tmp_path, m, "before")
     after = _snapshot(tmp_path, _without_faces(m, [2, 3]), "after")
     out = tmp_path / "out"
-    code = cli.main(_validate_args(before, after / "cube.obj", _materials_json(tmp_path, ["m0", "m1"]), out))
+    code = cli.main(_validate_args(before, after / "cube.obj", _materials_json(tmp_path, ["m0", "m1"]), out, "--targets", _unsigned_targets(tmp_path)))
     assert code == 2
 
     data = json.loads((out / "validation.json").read_text(encoding="utf-8"))
@@ -744,7 +752,7 @@ def test_validate_exits_0_on_a_pass_and_writes_no_evidence(tmp_path, capsys):
     m = _with_material(_two_looks(cube(10.0)), [2, 3], 1)
     before = _snapshot(tmp_path, m, "before")
     out = tmp_path / "out"
-    code = cli.main(_validate_args(before, before / "cube.obj", _materials_json(tmp_path, ["m0", "m1"]), out))
+    code = cli.main(_validate_args(before, before / "cube.obj", _materials_json(tmp_path, ["m0", "m1"]), out, "--targets", _unsigned_targets(tmp_path)))
     assert code == 0
     data = json.loads((out / "validation.json").read_text(encoding="utf-8"))
     assert data["verdict"] == "PASS" and data["sites"] == [] and not (out / "evidence").exists()
@@ -1241,3 +1249,17 @@ def test_validate_command_says_how_many_samples_a_new_layer_lies_over(tmp_path, 
     assert code == 2 and "128 overlaid" in said, said
     data = json.loads((out / "validation.json").read_text(encoding="utf-8"))
     assert data["checks"]["nothing_deleted"]["overlaid"] == 128 and data["after"]["new_faces"] == 32
+
+
+def test_the_shipped_targets_file_is_the_owners_signed_answer():
+    """engine/validate/targets.json as signed on 2026-10-08 (decision sheet P0, answer 2): a typo in a kind name
+    would silently never gate, so the keys and values are pinned here."""
+    from engine.detectors.errors import KINDS as DETECTOR_KINDS
+    from engine.validate.checks import _target_of
+    t = load_targets()
+    assert t["signed"] is True and t["signed_by"] == "owner" and t["signed_at"] == "2026-10-08"
+    assert set(t["kinds"]) == set(DETECTOR_KINDS)
+    for kind in ("flicker_diff", "flicker_same", "reversed", "cracks"):
+        assert _target_of(t, kind)[0] == 0, kind
+    for kind in ("hidden", "loose", "open_edges"):
+        assert _target_of(t, kind) == (None, "listed"), kind
