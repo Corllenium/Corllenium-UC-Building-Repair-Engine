@@ -33,6 +33,11 @@ rulings in the P0 ledger. None changes a result today. Each item is test-first a
    are multi-member and band-split. Add a tool that builds a unit's BEFORE OBJ from its members (bands by
    face-centre z) for `validate --before`. Update `floor-validator.md` to use it.
 
+10. **targets.json shape.** `load_targets` raises `ValueError` (the CLI's exit 2) when the file's JSON is not an
+    object or its `kinds` is not an object; today a list raises `AttributeError` (re-review of bb5a81e).
+11. **One missing-materials message.** `census.py`'s two "Materials map not found" messages both show the resolved
+    path and say to pass `--materials`.
+
 ## Rules
 AGENTS.md §3-§7. Nothing in `engine/guard/**` or the FixProfile thresholds. No existing test changes unless an
 item names it.
