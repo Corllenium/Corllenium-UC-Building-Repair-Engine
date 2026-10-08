@@ -20,9 +20,10 @@ Follow-ups: `docs/superpowers/plans/2026-10-03-repair-engine-p1-p2.md` rows **P1
   suggests: answers are pre-filled, and the owner or the deterministic rules confirm them.
 - **Only text leaves the machine:** group names, material names and categories, small numbers. Never meshes,
   textures or the model.
-- **The secret:** `TYPESAFE_API_KEY` is read from the process environment only. Never read `.env*` files, never
-  print, log or commit the key, and never ask for it in chat. A test asserts that the key appears in no `repr`,
-  log or exception text.
+- **The secret:** the engine reads `TYPESAFE_API_KEY` at run time, from the process environment first, else only
+  that one line of the git-ignored repo-root `.env` (owner decision 2026-10-08; `engine/decide/jev.py::read_env_key`,
+  `engine.cli decide-pilot --env-file <path>`). Agents never open, print, grep, write or commit `.env*`, and never
+  ask for the key in chat. A test asserts that the key appears in no `repr`, log or exception text.
 - **No key or no SDK** means `source = "none"`, and the pipeline never waits on Jev.
 - **Worktrees:** one job = one brief, one branch, one worktree. Use `claude/<id>` in `.claude/worktrees/<id>`,
   from `feat/repair-p0` for engine code. Never a bare `cd`: use subshells or `git -C`. Stage files by name.
@@ -46,8 +47,7 @@ table only says where the plan stood.
 
 ## Owner actions (only the owner can do these; the session asks and waits)
 
-1. **Set the key himself.** He sets `TYPESAFE_API_KEY` as a Windows *user* environment variable (System
-   Properties → Environment Variables), then restarts the Claude app so new processes see it. Claude never
+1. **Put the key in the repo-root `.env` himself** as the line `TYPESAFE_API_KEY=...` (done 2026-10-08). Claude never
    handles the value.
 2. **OK the install** of `typesafe-sdk` into `.venv` (already approved 2026-10-03; confirm once in chat).
 3. **Approve hot reloading** when Claude Code asks "Enable hot reloading for this session?" (needed for part B).
