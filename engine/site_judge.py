@@ -57,19 +57,79 @@ _VIEW_BLOCK = 32
 
 #: No failing samples, judged nothing: the baseline of a check against an unchanged BEFORE.
 NO_FAILURES: frozenset = frozenset()
+#: (sample, new face) pairs tested at once when a failing sample's line of sight is checked against new faces.
+_SEGMENT_PAIRS = 2_000_000
+
+
+@dataclass
+class FailingSamples:
+    """Every failing sample of a focus run, one row each (P1-K3b). `face`: its BEFORE face; `index`: its index
+    within the face (so `(face, index)` is a member of `SiteVerdict.failing`); `point`: where it is, in the
+    model's own coordinates; `witness` and `is_dir`: the viewpoint whose line of sight judged it -- for a far-off
+    direction (`is_dir`) the unit vector from the sample toward the viewer, else the camera or probe position, in
+    model coordinates; `cluster`: which of the Validator's sites holds it, an index into `clusters`, the reasons of
+    each of those sites (the Validator reports reasons per site, not per sample)."""
+    face: np.ndarray
+    index: np.ndarray
+    point: np.ndarray
+    witness: np.ndarray
+    is_dir: np.ndarray
+    cluster: np.ndarray
+    clusters: list
+
+    def __len__(self) -> int:
+        return len(self.face)
+
+
+def _no_samples() -> FailingSamples:
+    empty = np.zeros(0, dtype=np.int64)
+    return FailingSamples(face=empty, index=empty, point=np.zeros((0, 3)), witness=np.zeros((0, 3)),
+                          is_dir=np.zeros(0, dtype=bool), cluster=empty, clusters=[])
 
 
 @dataclass
 class SiteVerdict:
     """What one focus validation found. `failing`: the failing samples, each `(BEFORE face, sample index within
-    the face)`; `summary`: the Validator's counts, reasons and worst sites, for `edit_log.jsonl`."""
+    the face)`; `summary`: the Validator's counts, reasons and worst sites, for `edit_log.jsonl`; `samples`: the
+    same failing samples with their points and judging viewpoints, for `SiteJudge.attribute`."""
     failing: frozenset
     summary: dict
     seconds: float = 0.0
+    samples: FailingSamples = field(default_factory=_no_samples)
 
     @property
     def failed(self) -> bool:
         return bool(self.failing)
+
+
+@dataclass
+class SiteFocus:
+    """The focus of one site, in parts (P1-K3b), so a failing sample can be charged to the site by the part that
+    holds its face. In BEFORE: `touched` (the faces its edits remove, flip or replace), `near` (every face within
+    its bounding box grown by the margin) and `cover` (its cover candidates); in AFTER: `new` (its added, cut or
+    flipped faces), and `new_lo` / `new_hi`, the bounding box of each of those faces in model coordinates."""
+    touched: np.ndarray
+    near: np.ndarray
+    cover: np.ndarray
+    new: np.ndarray
+    new_lo: np.ndarray
+    new_hi: np.ndarray
+
+    def focus(self) -> Focus:
+        return Focus(before_faces=np.unique(np.concatenate([self.touched, self.near, self.cover])).astype(np.int64),
+                     after_faces=self.new)
+
+
+@dataclass
+class Attribution:
+    """Which sites could have caused which failing samples. `charged`: site -> indices (into `SiteVerdict.samples`)
+    of the samples charged to it, only for sites with at least one; `how`: site -> how many of those were charged
+    because the sample's face is one the site touched, lies within its grown box, or is a cover candidate with one
+    of its new faces between the sample and its viewpoint (each sample counted once, by the first that holds);
+    `unknown`: the samples charged to no site -- a legacy or unknown failure, reported, never dropped."""
+    charged: dict
+    how: dict
+    unknown: np.ndarray
 
 
 @dataclass
@@ -145,21 +205,62 @@ class SiteJudge:
         """The focus of a set of edits: BEFORE faces `touched` (removed, flipped or replaced), those within their
         bounding box (with the AFTER faces `new`) grown by `margin`, and the cover candidates of `new`; AFTER faces
         `new`."""
+        return self.site_focus(after, touched, new).focus()
+
+    def site_focus(self, after: MeshData, touched: np.ndarray, new: np.ndarray) -> SiteFocus:
+        """`focus`, kept in its parts (see `SiteFocus`)."""
         st = self.stage
         t0 = time.perf_counter()
         touched = np.unique(np.asarray(touched, dtype=np.int64))
         new = np.unique(np.asarray(new, dtype=np.int64))
-        corners = [st.before.positions[st.before.face_v[touched]].reshape(-1, 3),
-                   after.positions[after.face_v[new]].reshape(-1, 3)]
-        corners = np.concatenate(corners)
-        parts = [touched]
+        tri = after.positions[after.face_v[new]] if len(new) else np.zeros((0, 3, 3))
+        corners = np.concatenate([st.before.positions[st.before.face_v[touched]].reshape(-1, 3), tri.reshape(-1, 3)])
+        near = np.zeros(0, dtype=np.int64)
         if len(corners):
             lo, hi = corners.min(axis=0) - self.margin, corners.max(axis=0) + self.margin
-            near = ((st.face_lo <= hi) & (st.face_hi >= lo)).all(axis=1)
-            parts.append(np.flatnonzero(near))
+            near = np.flatnonzero(((st.face_lo <= hi) & (st.face_hi >= lo)).all(axis=1)).astype(np.int64)
         self.seconds["focus"] += time.perf_counter() - t0
-        parts.append(self.cover_candidates(after, new))
-        return Focus(before_faces=np.unique(np.concatenate(parts)).astype(np.int64), after_faces=new)
+        return SiteFocus(touched=touched, near=near, cover=self.cover_candidates(after, new), new=new,
+                         new_lo=tri.min(axis=1), new_hi=tri.max(axis=1))
+
+    @staticmethod
+    def union(foci) -> Focus:
+        """One focus for several sites: the union of their BEFORE faces and of their AFTER faces."""
+        foci = [f.focus() for f in foci]
+        empty = np.zeros(0, dtype=np.int64)
+        return Focus(before_faces=np.unique(np.concatenate([empty, *[f.before_faces for f in foci]])),
+                     after_faces=np.unique(np.concatenate([empty, *[f.after_faces for f in foci]])))
+
+    # -- attribution -------------------------------------------------------------------------------------------
+    def attribute(self, verdict: SiteVerdict, sites: dict) -> Attribution:
+        """Charge each failing sample of `verdict` to every site of `sites` (id -> `SiteFocus`, built against the
+        AFTER that was checked) that could have caused it: its face is one the site touched; or lies within the
+        site's grown box; or is one of the site's cover candidates and one of the site's new faces lies between the
+        sample and the viewpoint that judged it. "Between" is a box test, so it can only over-charge: the line of
+        sight from the sample (from the depth tolerance behind it, for a layer on it) to the viewpoint (to infinity
+        for a direction) meets the box of a new face grown by the depth tolerance, `EPS_ORIGIN` (the Validator's
+        rays start that far off the face) and a little slack."""
+        s = verdict.samples
+        grow = self.stage.tol + EPS_ORIGIN + _SLACK
+        charged, how = {}, {}
+        hit_any = np.zeros(len(s), dtype=bool)
+        for site in sorted(sites):
+            f = sites[site]
+            by_touch = np.isin(s.face, f.touched)
+            by_box = ~by_touch & np.isin(s.face, f.near)
+            by_cover = ~by_touch & ~by_box & np.isin(s.face, f.cover)
+            if by_cover.any() and len(f.new_lo):
+                rows = np.flatnonzero(by_cover)
+                by_cover[rows] = _segments_meet_boxes(s.point[rows], s.witness[rows], s.is_dir[rows],
+                                                      f.new_lo - grow, f.new_hi + grow, back=grow)
+            else:
+                by_cover[:] = False
+            mine = by_touch | by_box | by_cover
+            if mine.any():
+                charged[site] = np.flatnonzero(mine)
+                how[site] = {"touched": int(by_touch.sum()), "box": int(by_box.sum()), "cover": int(by_cover.sum())}
+                hit_any |= mine
+        return Attribution(charged=charged, how=how, unknown=np.flatnonzero(~hit_any))
 
     # -- the check ---------------------------------------------------------------------------------------------
     def check(self, after: MeshData, focus: Focus) -> SiteVerdict:
@@ -190,7 +291,66 @@ class SiteJudge:
         seconds = time.perf_counter() - t0
         self.seconds["check"] += seconds
         self.calls += 1
-        return SiteVerdict(failing=frozenset(failing), summary=summary, seconds=seconds)
+        return SiteVerdict(failing=frozenset(failing), summary=summary, seconds=seconds,
+                           samples=_failing_samples(v, first))
+
+
+def _failing_samples(v, first: dict) -> FailingSamples:
+    """The failing samples of the Validation `v` (all of them are in its sites: `max_sites` is unbounded), with the
+    viewpoint that judged each (`Validation.wit_col`: a column of the standard directions, cameras and probes, or
+    of the extra directions when `wit_extra`)."""
+    if not v.members:
+        return _no_samples()
+    idx = np.concatenate([np.asarray(m, dtype=np.int64) for m in v.members])
+    cluster = np.concatenate([np.full(len(m), k, dtype=np.int64) for k, m in enumerate(v.members)])
+    face = v.samples.face[idx].astype(np.int64)
+    index = idx - np.array([first[int(f)] for f in face.tolist()], dtype=np.int64)
+    point = v.samples.points[idx] + v.centre
+    col, extra = v.wit_col[idx].astype(np.int64), v.wit_extra[idx].astype(bool)
+    vp = v.viewpoints
+    dirs, extra_dirs = np.asarray(vp["dirs"], float).reshape(-1, 3), np.asarray(vp["extra_dirs"], float).reshape(-1, 3)
+    eyes = np.vstack([np.asarray(vp["cams"], float).reshape(-1, 3), np.asarray(vp["probes"], float).reshape(-1, 3)])
+    if (col < 0).any():
+        raise RuntimeError("a failing sample without a judging viewpoint: the Validator tests every sample it fails")
+    is_dir = extra | (col < len(dirs))
+    witness = np.empty((len(idx), 3))
+    witness[extra] = -extra_dirs[col[extra]]
+    std = ~extra & is_dir
+    witness[std] = -dirs[col[std]]
+    eye = ~is_dir
+    witness[eye] = eyes[col[eye] - len(dirs)] + v.centre
+    clusters = [dict(s["reasons"]) for s in v.report["sites"]]
+    return FailingSamples(face=face, index=index, point=point, witness=witness, is_dir=is_dir, cluster=cluster,
+                          clusters=clusters)
+
+
+def _segments_meet_boxes(points: np.ndarray, witness: np.ndarray, is_dir: np.ndarray, lo: np.ndarray,
+                         hi: np.ndarray, *, back: float) -> np.ndarray:
+    """(n,) bool: the line of sight of each sample meets some box `[lo, hi]` (k, 3). The line runs from `back`
+    behind the sample (away from its viewer) to the viewer: for a direction (`is_dir`, `witness` the unit vector
+    toward the viewer) without end, for a camera or probe (`witness` its position) up to it, plus `back`. A slab
+    test per axis, exact for the boxes, with a relative slack so float rounding never drops a pair."""
+    n, k = len(points), len(lo)
+    out = np.zeros(n, dtype=bool)
+    if not n or not k:
+        return out
+    u = np.where(is_dir[:, None], witness, witness - points)
+    reach = np.where(is_dir, np.inf, np.linalg.norm(u, axis=1))
+    u = u / np.maximum(np.linalg.norm(u, axis=1), 1e-12)[:, None]
+    step = max(1, _SEGMENT_PAIRS // k)
+    for a in range(0, n, step):
+        p, d = points[a:a + step, None, :], u[a:a + step, None, :]               # (m, 1, 3)
+        with np.errstate(divide="ignore", invalid="ignore"):
+            t1, t2 = (lo[None] - p) / d, (hi[None] - p) / d                         # (m, k, 3)
+        flat = d == 0.0
+        inside = (p >= lo[None] - 1e-9) & (p <= hi[None] + 1e-9)
+        t_in = np.where(flat, np.where(inside, -np.inf, np.inf), np.minimum(t1, t2)).max(axis=2)
+        t_out = np.where(flat, np.where(inside, np.inf, -np.inf), np.maximum(t1, t2)).min(axis=2)
+        slack = 1e-9 * (1.0 + np.abs(np.where(np.isfinite(t_in), t_in, 0.0)))
+        start = np.maximum(t_in, -back)
+        end = np.minimum(t_out, (reach[a:a + step] + back)[:, None])
+        out[a:a + step] = (start <= end + slack).any(axis=1)
+    return out
 
 
 def _boxes(tri: np.ndarray, most: int) -> list[tuple[np.ndarray, np.ndarray]]:
