@@ -25,6 +25,30 @@ run the latest `.skp` of each file must be in `OBJ FIXED RESULT/` for the owner 
 
 ## 2. Current state (2026-09-26 00:15, written by the Claude controller)
 
+**Update 2026-10-08 (the repair-engine controller session): P0-13, P0-16 and P0-18 merged; colour export published.**
+- **`feat/repair-p0` = 83b89a8**, engine + tools suites 1273 passed, 1 xfailed.
+  - P0-13: the owner's answers (`docs/superpowers/records/campus/decision-sheet-p0.md` §8) and the signed
+    `engine/validate/targets.json`. Check 2 now gates: flicker x2, reversed and cracks must be 0; hidden, loose
+    and open edges are listed.
+  - P0-16: Validator mutation proof, the `floor-validator` agent and the `uc-validate-floor` skill
+    (prompt-audited). Real v0 verdicts: CHTM 5th and sidewalks A and B all FAIL; record
+    `docs/superpowers/records/campus/validator-v0-verdicts.md`.
+  - P0-18: `engine.cli campus-errors-skp`. One colour-coded `.skp` per building plus SITE, with every error
+    kind and grouping problem on its own tag.
+- **Published (from `.claude/worktrees/verified` at 83b89a8):** `MODEL FIXER ENGINE FILES\04-COLORING\<BUILDING>\`
+  holds `<BUILDING>-errors.skp` and its `.json` report, 10 files in 143 s with 0 faces refused. `_renders\` holds
+  an all-buildings sheet and the decision-6 pictures (BRS-L05 obj vs obj1, BRS-L08).
+- **Owner, open:**
+  - decision 6 (BRS_5th obj1, BRS_9th obj1), with the pictures now in `_renders\`;
+  - UV tolerance by texture contrast (P0-16 record);
+  - the Supabase project; the GitHub repo creation; the htpasswd login.
+- **Another controller session ("3d uc building repair engine (jev implementation)")** runs
+  `docs/superpowers/plans/2026-10-08-jev-and-claude-mods.md`. It takes P0-17, M1, M2 and M3, keeps its own
+  ledger and its own dated block here, and asks before merging into `feat/repair-p0`.
+  - The owner's TypeSafe key goes in the git-ignored repo-root `.env`; agents never open `.env`.
+- **Next for this session:** the end-of-P0 final review, then `feat/repair-p0` into `feat-dashboard`, then the P1
+  kernel K1.
+
 **Update 2026-10-04 09:03: the UC Repair Engine program (P0) is under way.**
 - **What it is.** One repair engine per error kind, run over every floor of every building of CHECKPOINT-17.
   Each floor is validated by the owner's rule (`AGENTS.md` §6). Per building there is a comparison `.skp`

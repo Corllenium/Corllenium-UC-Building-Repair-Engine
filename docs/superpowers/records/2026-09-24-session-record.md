@@ -110,6 +110,16 @@ border by 0.15 in), no surface missing. A pixel count cannot tell a 0.013 in shi
 lies on pixel centres from real damage, so the guard now measures the displacement instead
 (022a67b); anything farther than 0.15 in still fails.
 
+### 2026-10-08: owner decisions, Validator proof, colour-coded error export
+- **P0-13 merged:** the owner's answers; the signed check-2 targets; campus map of 80 units, 78 confirmed.
+- **P0-16 merged:** 7 mutation rows, each caught; real verdicts all FAIL; the floor-validator agent.
+- **P0-18 merged and published:** `04-COLORING`, 10 files built from 83b89a8.
+  - Each face is drawn once, in the first kind that lists it.
+  - Read-back equals written minus the exact duplicate triangles, with residuals of at most 23 faces per file
+    (unexplained, listed in each report).
+- **Full suite on the merged branch:** 1273 passed, 1 xfailed.
+- **The Jev + mods plan** was handed to a second controller session.
+
 ## 5. Measured state of the SketchUp files
 
 Audit of every edge SketchUp draws, read back through the C API (`scripts/skp_edge_audit.py`).
