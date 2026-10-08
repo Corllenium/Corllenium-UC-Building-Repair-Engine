@@ -347,3 +347,47 @@ def test_classify_materials_without_a_key_is_all_none(tmp_path):
     out = classify_materials(["a", "b"], JevDecider(env_file=tmp_path / "absent.env"))
     assert [r["category"].source for r in out] == ["none", "none"]
     assert [r["trim"].accepted for r in out] == [False, False]
+
+
+# ------------------------------------------------------------------------------- review fix round
+
+
+def test_the_footprint_hint_is_shown_with_the_option_label_not_the_inventory_key(tmp_path):
+    client = FakeClient()
+    rows = [{"name": "G", "tris": 1, "z_min": 0.0, "z_max": 1.0, "footprint_building": "MAIN_INFRA"},
+            {"name": "H", "tris": 1, "z_min": 0.0, "z_max": 1.0, "footprint_building": "SCIENCE_A"},
+            {"name": "I", "tris": 1, "z_min": 0.0, "z_max": 1.0, "footprint_building": "CHTM"}]
+    classify_group_names(rows, _decider(client, tmp_path))
+    qs = client.calls[0]["questions"]
+    assert "MAIN INFRASTRUCTURE" in qs["0:building"].instructions and "MAIN_INFRA" not in qs["0:building"].instructions
+    assert "SCIENCE A" in qs["1:building"].instructions and "SCIENCE_A" not in qs["1:building"].instructions
+    assert "footprint of CHTM" in qs["2:building"].instructions
+
+
+def test_a_client_that_cannot_be_made_fails_every_batch_at_once_after_one_attempt(tmp_path, monkeypatch, caplog):
+    made = []
+    monkeypatch.setattr(jev, "sdk_importable", lambda: True)
+
+    def bad_make(key, model):
+        made.append(1)
+        raise RuntimeError(f"bad key {key}")
+    monkeypatch.setattr(jev, "_make_sdk_client", bad_make)
+    env = tmp_path / ".env"
+    env.write_text(f"TYPESAFE_API_KEY={FAKE_KEY}\n", encoding="utf-8")
+    dec = JevDecider(env_file=env, batch=5)
+    with caplog.at_level(logging.DEBUG):
+        out = dec.ask("t", {f"q{i}": NoulQ("x") for i in range(45)})
+    assert len(made) == 1
+    assert all(d.source == "error" and not d.accepted for d in out.values())
+    assert len([r for r in caplog.records if r.levelno >= logging.WARNING]) == 1
+    assert FAKE_KEY not in caplog.text and FAKE_KEY not in repr(out)
+    out2 = dec.ask("t", {"again": NoulQ("x")})          # still remembered
+    assert len(made) == 1 and out2["again"].source == "error"
+
+
+def test_with_several_key_lines_the_last_one_wins(tmp_path):
+    p = tmp_path / ".env"
+    p.write_text("TYPESAFE_API_KEY=first\nOTHER=1\nTYPESAFE_API_KEY=second\n", encoding="utf-8")
+    assert jev.read_env_key(p) == "second"
+    p.write_text("TYPESAFE_API_KEY=first\nTYPESAFE_API_KEY=\n", encoding="utf-8")
+    assert jev.read_env_key(p) is None

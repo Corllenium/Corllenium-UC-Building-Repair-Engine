@@ -98,7 +98,9 @@ _KEY_LINE = re.compile(r"^\s*(?:export\s+)?" + ENV_VAR + r"\s*=\s*(.*?)\s*$")
 
 
 def read_env_key(path: Path) -> str | None:
-    """The `TYPESAFE_API_KEY=` value in `path`, or None. Every other line is skipped unread."""
+    """The `TYPESAFE_API_KEY=` value in `path`, or None. Every other line is skipped unread. With several
+    key lines the last one wins, as dotenv does (an empty last one means no key)."""
+    found: str | None = None
     try:
         with open(path, "r", encoding="utf-8") as fh:
             for line in fh:
@@ -111,11 +113,10 @@ def read_env_key(path: Path) -> str | None:
                     value = value[1:end] if end > 0 else value[1:]
                 else:
                     value = re.split(r"\s+#", value, maxsplit=1)[0].strip()
-                value = value.strip()
-                return value or None
+                found = value.strip() or None
     except OSError:
         return None
-    return None
+    return found
 
 
 def sdk_importable() -> bool:
@@ -174,6 +175,7 @@ class JevDecider:
         #: One entry per call: questions, latency_s, input_tokens, output_tokens, model, ok.
         self.calls: list[dict] = []
         self._client = client
+        self._client_error: str | None = None     # set once if the client cannot be made; never retried
         self._injected = client is not None
         self._key: str | None = None
         self._env_file = Path(env_file) if env_file is not None else DEFAULT_ENV_FILE
@@ -200,12 +202,21 @@ class JevDecider:
         ids = list(questions)
         for start in range(0, len(ids), self.batch):
             chunk = {qid: questions[qid] for qid in ids[start:start + self.batch]}
+            if self._client_error is not None:
+                out.update({qid: _failed(self._client_error) for qid in chunk})
+                continue
             out.update(self._call(state_dict, chunk))
         return out
 
-    def _client_or_none(self):
+    def _get_client(self):
+        """The client, made on first use. If making it fails, the failure is remembered (class name and
+        status only) so later batches fail at once instead of trying again."""
         if self._client is None:
-            self._client = _make_sdk_client(self._key, self.model)
+            try:
+                self._client = _make_sdk_client(self._key, self.model)
+            except Exception as exc:  # noqa: BLE001
+                self._client_error = _error_text(exc)
+                raise
         return self._client
 
     def _call(self, state: dict, chunk: dict) -> dict[str, Decision]:
@@ -213,7 +224,7 @@ class JevDecider:
         entry = {"questions": len(chunk), "latency_s": 0.0, "input_tokens": None, "output_tokens": None,
                  "model": None, "ok": False}
         try:
-            response = self._client_or_none().system_one(state=state, questions=chunk)
+            response = self._get_client().system_one(state=state, questions=chunk)
         except Exception as exc:  # noqa: BLE001 -- any SDK failure fails this batch only
             entry["latency_s"] = round(time.perf_counter() - t0, 4)
             entry["error"] = _error_text(exc)
@@ -258,6 +269,8 @@ BUILDING_LABELS: dict[str, str] = {
     "MAIN INFRASTRUCTURE": "MAIN_INFRA", "PE": "PE", "SCIENCE A": "SCIENCE_A", "ARCHITECTURE": "ARCHITECTURE",
     "SITE": "SITE",
 }
+#: The inverse: the campus-map key -> the label the options use (so a hint reads like an option).
+_LABEL_OF: dict[str, str] = {key: label for label, key in BUILDING_LABELS.items()}
 _BUILDING_HELP = {
     "MAIN": "the Main building", "MAIN INFRASTRUCTURE": "the Main Infrastructure building (names start with Main_Infrustructure)",
     "SCIENCE A": "the Science A building (names start with Sciene_A)", "GYMNASIUM": "the Gymnasium building",
@@ -292,7 +305,7 @@ def classify_group_names(rows: list[dict], decider) -> list[dict]:
     for i, row in enumerate(rows):
         fact = (f"The SketchUp group named '{row['name']}' has {row.get('tris', 'an unknown number of')} triangles, "
                 f"lowest point z={_num(row.get('z_min'))} in, highest z={_num(row.get('z_max'))} in, and its footprint lies "
-                f"mostly in the footprint of {row.get('footprint_building') or 'no building'}.")
+                f"mostly in the footprint of {_LABEL_OF.get(row.get('footprint_building'), row.get('footprint_building')) or 'no building'}.")
         questions[f"{i}:building"] = ChoiceQ(
             f"{fact} Which building does this group belong to?",
             {label: _BUILDING_HELP.get(label) for label in BUILDING_LABELS})
