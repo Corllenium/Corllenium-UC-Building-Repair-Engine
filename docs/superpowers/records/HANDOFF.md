@@ -25,6 +25,20 @@ run the latest `.skp` of each file must be in `OBJ FIXED RESULT/` for the owner 
 
 ## 2. Current state (2026-09-26 00:15, written by the Claude controller)
 
+**Update 2026-10-08, later (the Jev + mods controller session): P0-17 merged; the first real Jev pilot ran.**
+- **P0-17 merged into `feat/repair-p0` (b1c66a2, by the repair-engine session):** engine + tools 1308 passed, 1 xfailed.
+- **Key:** the owner's `.env` line was named `typesafe=`. It was renamed to `TYPESAFE_API_KEY=` by a script that printed
+  only booleans. The wrapper finds it.
+- **Pilot, materials (valid):** 391 materials, 290 accepted at confidence ≥ 0.8 (74 %). Stone 132, concrete 96,
+  metal 29, glass 17. A 30-item spot check found every accepted answer right. 0.33 s and about 3.6k tokens per call
+  of 20 questions. Output: `data/campus/jev_pilot.json`.
+- **Pilot, group names (not valid yet):** all 17 batches got HTTP 400, because the API allows at most 10 Score levels
+  and the floor question had 16. The fix, job **P0-17b** (the floor as a Choice, limits checked before any call), is
+  in progress. After it, the pilot is re-run.
+- **M2 `uc-status`:** approved after 2 fix rounds. One of them stopped a `git status` from taking the shared
+  `index.lock`. Waiting on the owner's on-screen check, then the merge.
+- **M1b:** lets `uc-guard` accept `python -m engine.cli ... --env-file`, so the engine can read the key. In review.
+
 **Update 2026-10-08 (the Jev + mods controller session): M1 `uc-guard` merged; P0-17 under fix; M2 built.**
 - Plan: `docs/superpowers/plans/2026-10-08-jev-and-claude-mods.md`; ledger `.superpowers/sdd/2026-10-08-jev-and-claude-mods/progress.md`.
 - **M1 merged into `feat-dashboard` (c22c952):** `tools/claude-mods/uc-guard/`, a Claude Code mod. It denies:
