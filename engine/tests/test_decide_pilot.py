@@ -163,3 +163,77 @@ def test_the_cli_runs_without_a_key_and_writes_the_report(tmp_path, capsys):
     printed = capsys.readouterr().out
     assert "no key" in printed.lower() or "not available" in printed.lower()
     assert json.loads(out.read_text(encoding="utf-8"))["groups"]["sources"] == {"none": 24}
+
+
+# ------------------------------------------------------------------------------- review fix round
+
+
+def _answering_client(type_label, building_label="CHTM"):
+    """A fake client that answers every building with `building_label` and every type with `type_label`."""
+    def system_one(state, questions):
+        answers = {}
+        for qid, q in questions.items():
+            if isinstance(q, NoulQ):
+                answers[qid] = SimpleNamespace(noul=0.1)
+            elif isinstance(q, ChoiceQ):
+                label = building_label if qid.endswith(":building") else type_label
+                answers[qid] = SimpleNamespace(choice=label, confidence=0.9, probabilities={label: 0.9})
+            else:
+                answers[qid] = SimpleNamespace(score=5.0, confidence=0.9, probabilities={5: 0.9})
+        return SimpleNamespace(answers=answers, model="m", usage=SimpleNamespace(input_tokens=1, output_tokens=1))
+    return SimpleNamespace(system_one=system_one)
+
+
+def test_a_strict_floor_vs_non_floor_accuracy_sits_next_to_the_lenient_one(tmp_path):
+    source, cmap, mats = _campus(tmp_path)
+    # "other" is right for element and site (lenient) but wrong for a floor; stairs/site truth are 4 groups
+    decider = JevDecider(client=_answering_client("other"), env_file=tmp_path / "absent.env")
+    g = pilot.run_pilot(source, mats, cmap, tmp_path / "o.json", decider)["groups"]
+    assert g["type"]["n_truth"] == 4                       # 2 floors, 1 element, 1 site (Main_Infra has two units)
+    assert g["type"]["correct"] == 2                       # lenient: "other" counts for element and site
+    assert g["type_strict"]["n_truth"] == 4
+    assert g["type_strict"]["correct"] == 2                # "other" is non-floor: right for the 2 non-floors
+    only_floor = JevDecider(client=_answering_client("floor"), env_file=tmp_path / "absent.env")
+    g2 = pilot.run_pilot(source, mats, cmap, tmp_path / "o2.json", only_floor)["groups"]
+    assert g2["type"]["correct"] == 2 and g2["type_strict"]["correct"] == 2   # the 2 floors
+    stair = JevDecider(client=_answering_client("stair"), env_file=tmp_path / "absent.env")
+    g3 = pilot.run_pilot(source, mats, cmap, tmp_path / "o3.json", stair)["groups"]
+    assert g3["type"]["correct"] == 1 and g3["type_strict"]["correct"] == 2   # stair is right for element only
+    assert "other" in g["type_note"] and "lenient" in g["type_note"]
+
+
+def test_each_row_carries_its_footprint_hint_and_agreement_is_counted(tmp_path):
+    source, cmap, mats = _campus(tmp_path)
+    decider = JevDecider(client=_answering_client("floor", building_label="CHTM"), env_file=tmp_path / "absent.env")
+    g = pilot.run_pilot(source, mats, cmap, tmp_path / "o.json", decider)["groups"]
+    rows = {r["name"]: r for r in g["rows"]}
+    assert rows["CHTM_5th_floor"]["footprint_building"] == "CHTM"
+    assert rows["ROAD_front"]["footprint_building"] is None
+    h = g["building_hint"]
+    assert h["with_hint"] == 3                       # the three CHTM groups share one XY box
+    assert h["jev_agrees"] == 3 and h["hint_correct"] == 3
+    assert "hint" in h["note"]
+
+
+def test_the_cli_never_leaks_a_key_through_a_failing_client(tmp_path, monkeypatch, capsys, caplog):
+    import logging
+    fake_key = "ts-FAKE-CLI-KEY-9876543210-do-not-leak"
+    source, cmap, mats = _campus(tmp_path)
+    env = tmp_path / ".env"
+    env.write_text(f"OTHER=1\nTYPESAFE_API_KEY={fake_key}\n", encoding="utf-8")
+    monkeypatch.setattr(jev, "sdk_importable", lambda: True)
+
+    class LeakyClient:
+        def system_one(self, state, questions):
+            raise RuntimeError(f"401 for key {fake_key} at https://x/?key={fake_key}")
+    monkeypatch.setattr(jev, "_make_sdk_client", lambda key, model: LeakyClient())
+    out = tmp_path / "jev_pilot.json"
+    with caplog.at_level(logging.DEBUG):
+        code = cli.main(["decide-pilot", "--source", str(source), "--materials", str(mats), "--map", str(cmap),
+                         "--out", str(out), "--env-file", str(env)])
+    captured = capsys.readouterr()
+    assert code == 0
+    report = json.loads(out.read_text(encoding="utf-8"))
+    assert report["groups"]["sources"] == {"error": 24} and report["calls"]["failed"] > 0
+    for text in (captured.out, captured.err, out.read_text(encoding="utf-8"), caplog.text):
+        assert fake_key not in text

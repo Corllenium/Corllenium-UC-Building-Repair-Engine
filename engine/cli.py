@@ -1197,7 +1197,7 @@ def main(argv: list[str] | None = None) -> int:
 
         def fmt(v):
             return "n/a" if v is None else f"{v:.3f}"
-        for k in ("building", "type", "floor"):
+        for k in ("building", "type", "type_strict", "floor"):
             s = g[k]
             print(f"  {k}: accuracy {fmt(s['accuracy'])}, coverage {fmt(s['coverage'])} at confidence >= "
                   f"{rep['min_confidence']}, accuracy within coverage {fmt(s['accuracy_within_coverage'])} "

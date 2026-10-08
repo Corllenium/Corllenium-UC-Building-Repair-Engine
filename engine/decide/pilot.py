@@ -21,6 +21,8 @@ from collections import Counter
 from pathlib import Path
 from typing import Callable
 
+# `_union_overlap` is private but is the inventory's own footprint measure; reusing it keeps the hint identical
+# to the inventory's "mostly in another building" test instead of a second, slightly different copy.
 from engine.campus.inventory import SITE, _union_overlap, building_of
 from engine.decide.jev import MODEL, JevDecider, classify_group_names, classify_materials
 
@@ -32,6 +34,14 @@ TYPE_CLASSES: dict[str, set[str]] = {
 }
 FOOTPRINT_FRAC = 0.5      # the inventory's own "mostly in another building" fraction
 SPOT_CHECK = 30
+
+
+TYPE_NOTE = ("type is the lenient figure: 'other' counts as right for both element and site, which inflates it. "
+             "type_strict is floor vs non-floor only (a floor must be answered 'floor', anything else must not be).")
+HINT_NOTE = ("footprint_building is a hint given to Jev in the building question (from the XY boxes of the other "
+             "groups, assigned by the inventory's name table); building accuracy is therefore 'Jev plus hint'. "
+             "jev_agrees counts answered rows where Jev's building equals the hint; hint_correct counts rows "
+             "where the hint itself equals the truth.")
 
 
 def type_matches(truth_class: str, answer: str | None) -> bool:
@@ -147,6 +157,18 @@ def score(pairs: list, matches: Callable) -> dict:
     }
 
 
+def hint_summary(rows: list[dict], results: list[dict], truth: dict) -> dict:
+    """How often a group has a footprint hint, how often Jev's building equals it, how often it is right."""
+    hint = {r["name"]: r["footprint_building"] for r in rows}
+    with_hint = [r for r in results if hint[r["name"]] is not None]
+    return {
+        "with_hint": len(with_hint),
+        "jev_agrees": sum(1 for r in with_hint if r["building"].source == "jev" and r["building"].answer == hint[r["name"]]),
+        "hint_correct": sum(1 for r in with_hint if hint[r["name"]] == truth[r["name"]]["building"]),
+        "note": HINT_NOTE,
+    }
+
+
 def _sources(decisions) -> dict:
     return dict(Counter(d.source for d in decisions))
 
@@ -167,15 +189,19 @@ def run_pilot(source_path, materials_path, map_path, out_path, decider: JevDecid
     rows = group_rows(source)
     truth = load_truth(campus_map, [r["name"] for r in rows])
     results = classify_group_names(rows, decider)
+    hints = {r["name"]: r["footprint_building"] for r in rows}
     pairs = {k: [(r[k], truth[r["name"]][k]) for r in results] for k in ("building", "type", "floor", "duplicate")}
     groups = {
         "n": len(rows),
         "sources": _sources(d for r in results for d in (r["building"], r["type"], r["floor"], r["duplicate"])),
         "building": score(pairs["building"], lambda a, t: a == t),
         "type": score(pairs["type"], lambda a, t: type_matches(t, a)),
+        "type_strict": score(pairs["type"], lambda a, t: (a == "floor") == (t == "floor")),
+        "type_note": TYPE_NOTE,
+        "building_hint": hint_summary(rows, results, truth),
         "floor": score(pairs["floor"], lambda a, t: a is not None and int(round(a)) == t),
         "duplicate": score(pairs["duplicate"], lambda a, t: a == t),
-        "rows": [{"name": r["name"], "truth": truth[r["name"]],
+        "rows": [{"name": r["name"], "footprint_building": hints[r["name"]], "truth": truth[r["name"]],
                   **{k: _dec(r[k]) for k in ("building", "type", "floor", "duplicate")}} for r in results],
     }
 
