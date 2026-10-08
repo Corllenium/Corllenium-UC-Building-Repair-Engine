@@ -47,6 +47,25 @@ services:
         condition: service_healthy
     networks: [internal]
 
+  # The Jev decision service. NO published port: only nginx (uc-fixer-web) reaches it on the internal network, and
+  # nginx sets X-Remote-User from the login and replaces any value the client sends. Jev is off by default.
+  # decide.env (mode 600, written by the owner on the box, not in git) holds TYPESAFE_API_KEY, and later
+  # DECIDE_JEV_ENABLED=true. DECIDE_JEV_ENABLED is deliberately NOT under `environment` below: in Compose,
+  # `environment` beats `env_file`, so a "false" there would silently ignore the switch in decide.env.
+  # The service's own default is false.
+  decide:
+    image: ucmodelfixer-decide:vps
+    container_name: uc-fixer-decide
+    restart: unless-stopped
+    env_file: ./decide.env
+    environment:
+      DECIDE_DATABASE_URL: postgresql://fixer:fixer@uc-fixer-db:5432/fixer
+      DECIDE_OWNER_USERS: gab
+    depends_on:
+      db:
+        condition: service_healthy
+    networks: [internal]
+
   web:
     image: ucmodelfixer-web:vps
     container_name: uc-fixer-web
