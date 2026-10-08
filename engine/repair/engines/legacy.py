@@ -14,7 +14,8 @@ of the faces before the stage with the faces after it.
 
 | stage       | engine | what its edits are                                                     |
 |-------------|--------|------------------------------------------------------------------------|
-| solidify    | E8     | add (per material, carrying the points solidify invented); remove      |
+| solidify    | E8     | add (per material, carrying the points solidify invented); remove;     |
+|             |        | flip, where a rebuilt side piece is an input face in reverse winding   |
 | hidden      | E3, E1 | pass 1: remove. Labelled per face: E1 for a zero-area face (`~topo.ok`, |
 |             |        | the mask pass 1 itself splits its counts by), E3 for a hidden one       |
 | slit        | E3     | pass 2: remove (slit faces; only with `accept_slit`)                   |
@@ -151,8 +152,9 @@ def observe(before: FaceView, after: FaceView, *, stage: str, site: int, engine:
 
     `engine` names every edit, except that `label(view id)` (when given) names each REMOVED face's
     engine. `mode="cut"` groups each material's removed and added faces into one cut (the merge);
-    `"plain"` gives removes, flips and per-material adds. Order: removes (by engine, in order of
-    first appearance), flips, then adds or cuts by material."""
+    `"plain"` gives removes, flips and per-material adds. Order: `"plain"`: removes (by engine, in
+    order of first appearance), flips, adds by material; `"cut"`: cuts (or a lone add) by material,
+    the removes of materials that gained nothing, then flips."""
     if mode not in ("cut", "plain"):
         raise ValueError(f"unknown mode {mode!r}")
     if before.mesh.materials != after.mesh.materials:

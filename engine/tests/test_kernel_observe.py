@@ -243,7 +243,9 @@ def test_every_stage_accounts_for_every_face(name, build, profile):
     assert keys == Counter(_keys(got.mesh)) and n == got.mesh.n_faces
 
 
-ALLOWED = {"solidify": ({"E8"}, {"add", "remove"}), "hidden": ({"E3", "E1"}, {"remove"}),
+#: solidify may also show a flip: on the real sidewalks and CHTM 5th a rebuilt side piece is
+#: sometimes an input face with its winding reversed (1-2 faces per unit)
+ALLOWED = {"solidify": ({"E8"}, {"add", "remove", "flip"}), "hidden": ({"E3", "E1"}, {"remove"}),
            "slit": ({"E3"}, {"remove"}), "fragments": ({"E1"}, {"remove"}),
            "orientation": ({"E2"}, {"flip"}), "overlap": ({"E4"}, {"remove"}),
            "merge": ({"E7"}, {"cut", "remove", "add"})}
