@@ -302,3 +302,291 @@ def _column_flags(unit: dict, is_excluded: bool, known: set[str], mismatches: di
     for f in flags:
         f["label"] = flag_label(f)
     return flags
+
+
+# ------------------------------------------------------------------------------------------ the SketchUp file
+
+PROTECTED = ("CHECKPOINT-17-BACKUP", r"PROJECTS\UC\02-SKETCHUP", "UC ENVIRONMENT BUILDING")
+TUBE_R_IN = 1.5             # open-edge tube radius
+MARKER_R_IN = 3.0           # crack / degenerate-face marker radius
+PLATE_Z_IN = -2.0
+CHUNK = 20000               # faces per SUGeometryInput
+
+KIND_NAMES = {"base": "NO ERROR", "flicker_diff": "FLICKER DIFFERENT LOOK", "flicker_same": "FLICKER SAME LOOK",
+              "reversed": "REVERSED", "loose": "LOOSE BITS", "hidden": "HIDDEN", "open_edges": "OPEN EDGES",
+              "cracks": "CRACKS", "excluded": "EXCLUDED COPY", "skp_mismatch": "EXPORT VS BACKUP"}
+
+
+def tag_of(kind: str) -> str:
+    if kind in ("base", "labels"):
+        return kind
+    if kind in ERROR_KINDS or kind in LINE_KINDS:
+        return f"error_{kind}"
+    return f"grouping_{kind}"
+
+
+TAGS = ["base"] + [tag_of(k) for k in ERROR_KINDS + LINE_KINDS] + [tag_of(k) for k in GROUPING_KINDS] + ["labels"]
+
+
+def _check_out(out) -> None:
+    text = str(out).replace("/", "\\").upper()
+    for p in PROTECTED:
+        if p.upper() in text:
+            raise ValueError(f"refusing to write {out}: it lies in a protected folder ({p})")
+
+
+def _tubes(seg: np.ndarray, r: float = TUBE_R_IN) -> np.ndarray:
+    """(s, 2, 3) segments -> (3s, 4, 3) quads of an open triangular tube around each."""
+    seg = np.asarray(seg, float).reshape(-1, 2, 3)
+    d = seg[:, 1] - seg[:, 0]
+    length = np.linalg.norm(d, axis=1)
+    keep = length > 0.01
+    seg, d = seg[keep], d[keep] / length[keep, None]
+    if not len(seg):
+        return np.zeros((0, 4, 3))
+    helper = np.where(np.abs(d[:, 2:3]) < 0.9, [[0.0, 0.0, 1.0]], [[1.0, 0.0, 0.0]])
+    u = np.cross(d, helper)
+    u /= np.linalg.norm(u, axis=1)[:, None]
+    v = np.cross(d, u)
+    ring = [r * (np.cos(a) * u + np.sin(a) * v) for a in (0.0, 2 * np.pi / 3, 4 * np.pi / 3)]
+    quads = []
+    for i in range(3):
+        a, b = ring[i], ring[(i + 1) % 3]
+        quads.append(np.stack([seg[:, 0] + a, seg[:, 0] + b, seg[:, 1] + b, seg[:, 1] + a], axis=1))
+    return np.concatenate(quads)
+
+
+_OCTA = np.array([[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]], float)
+_OCTA_F = np.array([[0, 2, 4], [2, 1, 4], [1, 3, 4], [3, 0, 4], [2, 0, 5], [1, 2, 5], [3, 1, 5], [0, 3, 5]])
+
+
+def _markers(points: np.ndarray, r: float = MARKER_R_IN) -> np.ndarray:
+    """(m, 3) points -> (8m, 3, 3) octahedron triangles."""
+    points = np.asarray(points, float).reshape(-1, 3)
+    if not len(points):
+        return np.zeros((0, 3, 3))
+    tri = _OCTA[_OCTA_F] * r                                   # (8, 3, 3)
+    return (points[:, None, None, :] + tri[None]).reshape(-1, 3, 3)
+
+
+def _rect(x: float, y: float, w: float, h: float, z: float = 0.0) -> np.ndarray:
+    return np.array([[x, y, z], [x + w, y, z], [x + w, y + h, z], [x, y + h, z]], float)
+
+
+def _ring(x0: float, y0: float, x1: float, y1: float, m0: float, m1: float, z: float) -> np.ndarray:
+    """Four quads framing [x0, x1] x [y0, y1] between margins m0 and m1."""
+    return np.stack([_rect(x0 - m1, y0 - m1, x1 - x0 + 2 * m1, m1 - m0, z),
+                     _rect(x0 - m1, y1 + m0, x1 - x0 + 2 * m1, m1 - m0, z),
+                     _rect(x0 - m1, y0 - m0, m1 - m0, y1 - y0 + 2 * m0, z),
+                     _rect(x1 + m0, y0 - m0, m1 - m0, y1 - y0 + 2 * m0, z)])
+
+
+def _text(text: str, x: float, y: float, cell: float, z: float = 0.0) -> np.ndarray:
+    from engine.campus.pixfont import text_rects
+    rects = [_rect(rx, ry, rw, rh, z) for rx, ry, rw, rh in text_rects(text, x, y, cell)]
+    return np.stack(rects) if rects else np.zeros((0, 4, 3))
+
+
+def _bind(api) -> None:
+    from ctypes import c_char_p, c_int, c_size_t
+    from engine.io.skp_writer import _RP, _SP, _Ref
+    api.bind({
+        "SUGroupCreate": ([_RP], c_int), "SUEntitiesAddGroup": ([_Ref, _Ref], c_int),
+        "SUGroupSetName": ([_Ref, c_char_p], c_int), "SUGroupGetName": ([_Ref, _RP], c_int),
+        "SUGroupGetEntities": ([_Ref, _RP], c_int), "SUGroupToDrawingElement": ([_Ref], _Ref),
+        "SULayerCreate": ([_RP], c_int), "SULayerSetName": ([_Ref, c_char_p], c_int),
+        "SULayerGetName": ([_Ref, _RP], c_int), "SUModelAddLayers": ([_Ref, c_size_t, _RP], c_int),
+        "SUModelGetNumLayers": ([_Ref, _SP], c_int), "SUModelGetLayers": ([_Ref, c_size_t, _RP, _SP], c_int),
+        "SUDrawingElementSetLayer": ([_Ref, _Ref], c_int), "SUDrawingElementGetLayer": ([_Ref, _RP], c_int),
+        "SUEntitiesGetNumGroups": ([_Ref, _SP], c_int),
+        "SUEntitiesGetGroups": ([_Ref, c_size_t, _RP, _SP], c_int),
+    })
+
+
+class _Writer:
+    def __init__(self, api, model):
+        from ctypes import byref
+        from engine.io.skp_writer import _Color, _Ref
+        self.api, self.model = api, model
+        self.faces_by_tag: dict[str, int] = {}
+        self.rejected = 0
+        self.groups = 0
+        self.materials, self.layers = {}, {}
+        mats = []
+        for key, rgb in COLOURS.items():
+            m = _Ref()
+            api.ok("SUMaterialCreate", byref(m))
+            api.ok("SUMaterialSetName", m, f"UC_{key}".encode("utf-8"))
+            api.ok("SUMaterialSetColor", m, byref(_Color(*rgb, 255)))
+            self.materials[key] = m
+            mats.append(m)
+        api.ok("SUModelAddMaterials", model, len(mats), (_Ref * len(mats))(*mats))
+        lays = []
+        for name in TAGS:
+            lay = _Ref()
+            api.ok("SULayerCreate", byref(lay))
+            api.ok("SULayerSetName", lay, name.encode("utf-8"))
+            self.layers[name] = lay
+            lays.append(lay)
+        api.ok("SUModelAddLayers", model, len(lays), (_Ref * len(lays))(*lays))
+        self.root = _Ref()
+        api.ok("SUModelGetEntities", model, byref(self.root))
+
+    def group(self, parent, name: str, tag: str | None = None):
+        from ctypes import byref
+        from engine.io.skp_writer import _Ref
+        g, ents = _Ref(), _Ref()
+        self.api.ok("SUGroupCreate", byref(g))
+        self.api.ok("SUEntitiesAddGroup", parent, g)
+        self.api.ok("SUGroupSetName", g, name.encode("utf-8"))
+        if tag is not None:
+            self.api.ok("SUDrawingElementSetLayer", self.api.raw("SUGroupToDrawingElement", g), self.layers[tag])
+        self.api.ok("SUGroupGetEntities", g, byref(ents))
+        self.groups += 1
+        return ents
+
+    def fill(self, ents, polys: np.ndarray, colour: str, tag: str) -> None:
+        """Add (k, n, 3) polygons, each one face, both sides in `colour`."""
+        from ctypes import byref, c_size_t
+        from engine.io.skp_writer import _MaterialInput, _Point3D, _Ref
+        polys = np.asarray(polys, float)
+        if not len(polys):
+            return
+        api, n = self.api, polys.shape[1]
+        mi = _MaterialInput()
+        mi.material = self.materials[colour]
+        for start in range(0, len(polys), CHUNK):
+            part = np.ascontiguousarray(polys[start:start + CHUNK].reshape(-1, 3), dtype=np.float64)
+            geom = _Ref()
+            api.ok("SUGeometryInputCreate", byref(geom))
+            try:
+                api.ok("SUGeometryInputSetVertices", geom, len(part),
+                       (_Point3D * len(part)).from_buffer_copy(part.tobytes()))
+                added = 0
+                for f in range(len(part) // n):
+                    loop = _Ref()
+                    api.ok("SULoopInputCreate", byref(loop))
+                    for i in range(n):
+                        api.ok("SULoopInputAddVertexIndex", loop, f * n + i)
+                    index = c_size_t()
+                    if api.raw("SUGeometryInputAddFace", geom, byref(loop), byref(index)) != 0:
+                        api.raw("SULoopInputRelease", byref(loop))
+                        self.rejected += 1
+                        continue
+                    api.ok("SUGeometryInputFaceSetFrontMaterial", geom, index.value, byref(mi))
+                    api.ok("SUGeometryInputFaceSetBackMaterial", geom, index.value, byref(mi))
+                    added += 1
+                api.ok("SUEntitiesFill", ents, geom, True)
+                self.faces_by_tag[tag] = self.faces_by_tag.get(tag, 0) + added
+            finally:
+                api.raw("SUGeometryInputRelease", byref(geom))
+
+
+LINE_PITCH = 9              # text lines, in cells
+UNIT_CELL_IN, FLAG_CELL_IN, LEGEND_CELL_IN = 12.0, 8.0, 10.0
+
+
+def _draw_column(w: _Writer, col: ColumnPlan) -> None:
+    ents = w.group(w.root, f"UNIT | {col.label}")
+    for mp in col.members:
+        ments = w.group(ents, f"MEMBER | {mp.group}")
+        for kind in ("base",) + ERROR_KINDS + ("excluded",):
+            tris = mp.tris.get(kind, np.zeros((0, 3, 3)))
+            marks = _markers(mp.markers.get(kind, np.zeros((0, 3))))
+            if not len(tris) and not len(marks):
+                continue
+            kents = w.group(ments, f"{KIND_NAMES.get(kind, kind.upper())} | {len(tris)} faces", tag_of(kind))
+            w.fill(kents, tris, kind, tag_of(kind))
+            w.fill(kents, marks, kind, tag_of(kind))
+        if len(mp.segments):
+            w.fill(w.group(ments, f"OPEN EDGES | {len(mp.segments)} edges", tag_of("open_edges")),
+                   _tubes(mp.segments), "open_edges", tag_of("open_edges"))
+        if len(mp.cracks):
+            w.fill(w.group(ments, f"CRACKS | {len(mp.cracks)} cells", tag_of("cracks")),
+                   _markers(mp.cracks), "cracks", tag_of("cracks"))
+    x0, x1, y1 = col.x0, col.x0 + col.width, col.depth
+    y = -120.0 - 7 * UNIT_CELL_IN
+    w.fill(w.group(ents, f"LABEL | {col.label}", "labels"), _text(col.label, x0, y, UNIT_CELL_IN), "labels",
+           "labels")
+    for j, flag in enumerate(col.flags):
+        tag = tag_of(flag["kind"])
+        gents = w.group(ents, f"GROUPING | {flag['kind']} | {flag.get('text', '')}"[:1000], tag)
+        m0 = 40.0 + j * 50.0
+        w.fill(gents, _ring(x0, 0.0, x1, y1, m0, m0 + 40.0, PLATE_Z_IN), flag["kind"], tag)
+        w.fill(gents, _text(flag["label"], x0, y - (j + 1) * LINE_PITCH * FLAG_CELL_IN, FLAG_CELL_IN),
+               flag["kind"], tag)
+
+
+def _draw_legend(w: _Writer, plan: BuildingPlan) -> None:
+    ents = w.group(w.root, f"LEGEND | {plan.building}", "labels")
+    x = -GAP_IN - 2400.0
+    pitch = LINE_PITCH * LEGEND_CELL_IN
+    rows = [(k, plan.counts.get(k)) for k in ("base",) + ERROR_KINDS + LINE_KINDS]
+    used = sorted({f["kind"] for c in plan.columns for f in c.flags}, key=GROUPING_KINDS.index)
+    rows += [(k, sum(f["kind"] == k for c in plan.columns for f in c.flags)) for k in used]
+    top = len(rows) * pitch
+    w.fill(ents, _text(f"{plan.building} ERRORS", x, top + pitch, 2 * LEGEND_CELL_IN), "labels", "labels")
+    for i, (kind, count) in enumerate(rows):
+        yy = top - i * pitch
+        w.fill(ents, _rect(x, yy, 7 * LEGEND_CELL_IN, 7 * LEGEND_CELL_IN)[None], kind, "labels")
+        name = KIND_NAMES.get(kind, kind.upper())
+        text = name if count is None else f"{name} {count}"
+        w.fill(ents, _text(text, x + 10 * LEGEND_CELL_IN, yy, LEGEND_CELL_IN), "labels", "labels")
+
+
+def write_building_skp(plan: BuildingPlan, out, dll_path=None) -> dict:
+    """Draw `plan` into a new SketchUp file at `out`. Returns the faces added per tag and the faces SketchUp
+    refused."""
+    from ctypes import byref
+    from pathlib import Path
+    from engine.io.skp_writer import _Ref, load_api
+    out = Path(out)
+    _check_out(out)
+    api = load_api(dll_path)
+    _bind(api)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    with api.session():
+        model = _Ref()
+        api.ok("SUModelCreate", byref(model))
+        try:
+            w = _Writer(api, model)
+            _draw_legend(w, plan)
+            for col in plan.columns:
+                _draw_column(w, col)
+            api.ok("SUModelSaveToFile", model, str(out).encode("utf-8"))
+        finally:
+            api.raw("SUModelRelease", byref(model))
+    return {"out": str(out), "faces_by_tag": dict(sorted(w.faces_by_tag.items())), "rejected_faces": w.rejected,
+            "groups": w.groups}
+
+
+def read_back(path, dll_path=None) -> dict:
+    """Tags, faces per tag (a face counts under the nearest tagged group above it) and group names of a file."""
+    from ctypes import byref
+    from pathlib import Path
+    from engine.io.skp_writer import _Ref, _open, _refs, _string, load_api
+    api = load_api(dll_path)
+    _bind(api)
+    faces: dict[str, int] = {}
+    names: list[str] = []
+    with api.session(), _open(api, Path(path)) as model:
+        tags = [_string(api, "SULayerGetName", lay)
+                for lay in _refs(api, "SUModelGetNumLayers", "SUModelGetLayers", model)]
+
+        def walk(ents, tag):
+            n = len(_refs(api, "SUEntitiesGetNumFaces", "SUEntitiesGetFaces", ents))
+            if n:
+                faces[tag] = faces.get(tag, 0) + n
+            for g in _refs(api, "SUEntitiesGetNumGroups", "SUEntitiesGetGroups", ents):
+                names.append(_string(api, "SUGroupGetName", g))
+                lay = _Ref()
+                api.ok("SUDrawingElementGetLayer", api.raw("SUGroupToDrawingElement", g), byref(lay))
+                name = _string(api, "SULayerGetName", lay)
+                sub = _Ref()
+                api.ok("SUGroupGetEntities", g, byref(sub))
+                walk(sub, tag if name in ("Layer0", "Untagged") else name)
+
+        root = _Ref()
+        api.ok("SUModelGetEntities", model, byref(root))
+        walk(root, "untagged")
+    return {"tags": tags, "faces_by_tag": dict(sorted(faces.items())), "group_names": names}

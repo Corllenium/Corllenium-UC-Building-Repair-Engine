@@ -305,6 +305,18 @@ class _Api:
         self.has_position_material = "SUFacePositionMaterial" in self._fn
         self.has_fix_errors = "SUModelFixErrors" in self._fn
 
+    def bind(self, table: dict) -> None:
+        """Bind more calls (name -> (argtypes, restype)) for a caller that needs more of the C API.
+        Raises `SketchUpUnavailable` naming any the DLL lacks."""
+        missing = [name for name in table if not hasattr(self._dll, name)]
+        if missing:
+            raise SketchUpUnavailable(f"{self.path} lacks SketchUp C API symbol(s): {', '.join(missing)}")
+        for name, (argtypes, restype) in table.items():
+            if name not in self._fn:
+                fn = getattr(self._dll, name)
+                fn.argtypes, fn.restype = argtypes, restype
+                self._fn[name] = fn
+
     def raw(self, name: str, *args) -> int:
         return self._fn[name](*args)
 
