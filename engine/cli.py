@@ -53,7 +53,8 @@
     piece of work is its own site and one that breaks anything visible -- a rebuilt side covering anything any
     viewpoint sees, eye-height probes included -- is rolled back. Writes `<unit>.fixed.obj`, `edit_log.jsonl` and
     `report.json` (pieces built, kept and rolled back by reason; the Validator's covered count after rollback;
-    times). No `.skp`. Exit 0 when the E8 stage passed, 1 when the unit's BEFORE differs from the campus map
+    times; for E8b `fills`, each kept fill with its BEFORE | AFTER crop in `fills/`, `not_filled`, every hole refused
+    with its rule, and `fill_stats`). No `.skp`. Exit 0 when the E8 stage passed, 1 when the unit's BEFORE differs from the campus map
     (nothing repaired), 2 on a refused input, 3 when the stage was rolled back whole or ended FAIL (every file is
     still written, and the mesh shipped is the BEFORE).
 
@@ -1151,6 +1152,10 @@ def cmd_repair_unit(out_dir: Path, *, unit: str | None = None, snapshot: Path | 
                                    {k: c for k, c in checks.items() if k == solid_stage})
     after = [dict(_after_rollback(c), stage=stage) for stage, c in checks.items()]
     sr = (solid.report if solid is not None else None) or {}
+    fills, not_filled, fill_stats = [], [], None
+    if fill is not None:
+        fills, not_filled, fill_stats = _fill_report(fill, by_stage.get(fill.name, []), result, checks.get(fill.name),
+                                                     mesh, judge.looks, out_dir)
     report = {
         "unit": unit, "snapshot": None if snapshot is None else str(snapshot), "engines": engines,
         "before": {"obj": str(obj_path), "sha256": sha256_file(obj_path), "faces": int(mesh.n_faces),
@@ -1167,6 +1172,9 @@ def cmd_repair_unit(out_dir: Path, *, unit: str | None = None, snapshot: Path | 
         "solidify": {k: sr.get(k) for k in ("skirts_added", "bottoms_added", "sides_rebuilt", "side_pieces_replaced",
                                             "invented_vertices", "cap_guard_removed", "cap_guard_passed",
                                             "walls_refused", "bottom_faces_refused", "runtime_s")},
+        "fills": fills,
+        "not_filled": not_filled,
+        "fill_stats": fill_stats,
         "seconds": {"before": round(built - started, 2), "kernel": round(repaired - built, 2),
                     "total": round(time.perf_counter() - started, 2)},
         "exit_code": _repair_exit_code(result.checks),
@@ -1179,12 +1187,64 @@ def cmd_repair_unit(out_dir: Path, *, unit: str | None = None, snapshot: Path | 
         print(f"{name}: E8 built {s['built']} pieces ({s['by_piece']['wall']['built']} walls, "
               f"{s['by_piece']['bottom']['built']} bottoms); kept {s['kept']}, rolled back {s['rolled_back']} "
               f"{s['rolled_back_by_reason']}")
+    if fill_stats is not None:
+        f = fill_stats
+        print(f"{name}: E8b found {f['loops']} closed loops ({f['outer_boundaries']} patch outer borders, {f['holes']} "
+              f"holes) among {f['components']} pieces of open edges; filled {f['kept']}, rolled back "
+              f"{f['rolled_back']}; not filled {f['not_filled_by_reason']}")
     print(f"{name}: covered after rollback {report['covered_after_rollback']}; "
           f"{mesh.n_faces} -> {result.mesh.n_faces} faces; {report['seconds']['total']} s; wrote {out_dir}")
     if report["exit_code"] == REPAIR_STAGE_FAILED:
         print(f"{name}: an engine stage was rolled back whole or did not end PASS: the BEFORE ships for it "
               f"(exit {REPAIR_STAGE_FAILED})", file=sys.stderr)
     return report["exit_code"]
+
+
+#: The inscribed-diameter histogram's bins in report.json's `fill_stats` (inches; ruling E8b-R3's cap is 39.37).
+FILL_DIAMETER_BINS = (0.0, 5.0, 10.0, 20.0, 39.37, 80.0, 160.0)
+
+
+def _fill_report(engine, edits: list, result, check: dict | None, before, looks, out_dir: Path):
+    """`(fills, not_filled, fill_stats)` of report.json (ruling E8b-R8). `fills`: one row per kept fill, with its
+    BEFORE | AFTER crop (`fills/fill-<site>.png`, `engine.fill_review`). `not_filled`: every hole E8b refused (its
+    rule and reason), then every fill the site check rolled back (rule E8b-R7, reason `charged` with the Validator's
+    reasons as `detail`, or `stage_rolled_back`). `fill_stats`: E8b's counts, patch outer borders included (counted,
+    never listed), kept and rolled back, refusals by reason and the inscribed-diameter histogram of every hole."""
+    from engine.fill_review import write_fill_crop
+
+    after = result.mesh
+    kept = {id(e) for e in result.kept}
+    rolled = {row["site"]: row for row in (check or {}).get("rolled_back", [])}
+    fills, not_filled = [], [dict(row) for row in engine.not_filled]
+    rnd = lambda v: [round(float(x), 3) for x in v]
+    for e in edits:
+        ev = e.evidence
+        loop = after.positions[np.asarray(ev["loop"], np.int64)]
+        if id(e) in kept:
+            crop = f"fills/fill-{e.site:04d}.png"
+            write_fill_crop(before, after, loop, ev["normal"], looks, Path(out_dir) / crop)
+            fills.append({"site": int(e.site), "loop": ev["loop_id"], "vertices": ev["vertices"], "area": ev["area"],
+                          "inscribed_diameter": ev["inscribed_diameter"], "look": ev["look"],
+                          "centroid": ev["centroid"], "normal": ev["normal"], "crop": crop})
+            continue
+        row = rolled.get(e.site, {})
+        whole = bool(row.get("stage_rolled_back"))
+        not_filled.append({"loop": ev["loop_id"], "site": int(e.site), "rule": "E8b-R7",
+                           "reason": "stage_rolled_back" if whole else "charged",
+                           "detail": {} if whole else dict(row.get("reasons", {})), "vertices": ev["vertices"],
+                           "centroid": ev["centroid"], "points": [rnd(p) for p in loop],
+                           "inscribed_diameter": ev["inscribed_diameter"], "area": ev["area"]})
+    report = engine.report or {}
+    diameters = np.asarray(report.get("diameters", []), dtype=np.float64)
+    edges = list(FILL_DIAMETER_BINS) + [np.inf]
+    counts = np.histogram(diameters, bins=edges)[0].tolist() if len(diameters) else [0] * (len(edges) - 1)
+    labels = [f"{a:g}-{b:g}" if np.isfinite(b) else f">{a:g}" for a, b in zip(edges[:-1], edges[1:])]
+    stats = {k: report.get(k) for k in ("open_edges", "components", "loops", "outer_boundaries", "holes", "planned",
+                                        "plane_tol", "max_diameter")}
+    stats.update(kept=len(fills), rolled_back=len(edits) - len(fills),
+                 not_filled_by_reason=dict(sorted(collections.Counter(r["reason"] for r in not_filled).items())),
+                 diameter_histogram={"bins_in": labels, "counts": counts})
+    return fills, not_filled, stats
 
 
 class _StageView:
