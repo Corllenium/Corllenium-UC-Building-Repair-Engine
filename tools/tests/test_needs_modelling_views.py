@@ -219,3 +219,14 @@ def test_a_variable_holding_the_model_is_caught(line):
 def test_the_scan_does_not_flag_the_scripts_own_model_method():
     assert not any(re.search(pattern, code_only("def self.model\n  Sketchup.active_model\nend\nmodel.bounds"))
                    for pattern in VARIABLE_HOLDING_THE_MODEL)
+
+
+# ------------------------------------------------------------------------------------ fix round: items 3 and 4
+
+def test_an_unordered_border_point_is_a_real_cross_of_two_gl_lines_strokes():
+    """Not `view.draw_points` (its style number is not relied on): two strokes per point, screen-sized."""
+    text = SCRIPT.read_text(encoding="utf-8")
+    code = _code()
+    assert "draw_points" not in code
+    assert "view.draw(GL_LINES" in code and "pixels_to_model" in code
+    assert "camera.xaxis" in code and "camera.yaxis" in code

@@ -27,6 +27,8 @@ module UCNeedsModelling
   MENU_TITLE = 'UC Needs Modelling'
   OUTLINE_COLOR = Sketchup::Color.new(255, 220, 0)
   OUTLINE_WIDTH = 4
+  # Half the width, in screen pixels, of the cross drawn on each point of an unordered border.
+  CROSS_PIXELS = 6
   # A spot farther than this (inches) outside the open model's bounds belongs to another floor or another file.
   FAR_OUTSIDE = 600.0
 
@@ -63,8 +65,16 @@ module UCNeedsModelling
       if @ordered && @points.size >= 2
         view.draw(GL_LINE_LOOP, @points)
       else
-        # an unordered set of open-edge points: a cross on each
-        view.draw_points(@points, 12, 2, OUTLINE_COLOR)
+        # an unordered set of open-edge points: a cross on each, two strokes CROSS_PIXELS wide on the screen
+        camera = view.camera
+        across = camera.xaxis
+        upward = camera.yaxis
+        strokes = []
+        @points.each do |p|
+          d = view.pixels_to_model(CROSS_PIXELS, p)
+          strokes << p.offset(across, -d) << p.offset(across, d) << p.offset(upward, -d) << p.offset(upward, d)
+        end
+        view.draw(GL_LINES, strokes)
       end
     end
   end
