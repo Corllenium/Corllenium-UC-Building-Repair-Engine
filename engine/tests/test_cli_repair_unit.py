@@ -63,8 +63,19 @@ def test_an_engine_that_is_not_e8_is_refused(capsys):
     assert "E3" in capsys.readouterr().err
 
 
-def test_repair_unit_refuses_a_protected_output():
-    assert cli._OUTPUT_ARGS["repair-unit"] == ("out",)
+def test_repair_unit_refuses_a_protected_output(tmp_path, capsys):
+    """Review finding 4: an --out in the live export folder is refused by main (exit 2) and by cmd_repair_unit
+    (ValueError), before anything is read or written."""
+    from pathlib import Path
+    protected = Path("D:/PROJECTS/UC ENVIRONMENT BUILDING/x")
+    existed = protected.exists()
+    assert cli.main(["repair-unit", "--unit", "U", "--engines", "E8", "--out", str(protected),
+                     "--map", str(tmp_path / "no_map.json")]) == 2
+    assert "protected" in capsys.readouterr().err
+    with pytest.raises(ValueError, match="protected"):
+        cli.cmd_repair_unit(protected, unit="U", engines=["E8"], campus_map=tmp_path / "no_map.json",
+                            source=tmp_path / "no_source.json", materials=tmp_path / "no_materials.json")
+    assert protected.exists() == existed, "nothing was created there"
 
 
 def test_repair_unit_writes_the_fixed_obj_the_edit_log_and_the_report(tmp_path):
