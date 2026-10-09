@@ -7,6 +7,10 @@ behind the hole and AFTER shows the fill in its neighbours' look. The two halves
 (`engine.validate.evidence.render_crop`: each face its look's colour, a back face mixed with purple, misses pale), with
 the hole's loop outlined in yellow on both, and a 4 px white gap between them.
 
+The needs-modelling queue (job P2-E8c) reuses the camera and the drawing for a single BEFORE picture of each spot
+(`write_spot_crop`): orthographic, standing at the entry's `suggested_view` and looking at its target, the spot's
+border outlined in yellow (a loop as a line, an unordered set of open-edge points as crosses).
+
 This module sits outside both packages, like `engine.site_judge`: the repair package never imports the Validator.
 """
 from __future__ import annotations
@@ -77,3 +81,59 @@ def write_fill_crop(before: MeshData, after: MeshData, loop: np.ndarray, normal,
     path.parent.mkdir(parents=True, exist_ok=True)
     canvas.save(path)
     return path
+
+
+#: The half size, in px, of the cross drawn on each point of an unordered border.
+_CROSS = 3
+
+
+class SpotCropper:
+    """Draws the BEFORE picture of each needs-modelling spot of one unit: the recentred BEFORE, its ray caster and its
+    face colours are made once, so a floor with hundreds of spots builds them once. `write` draws one spot."""
+
+    def __init__(self, before: MeshData, looks: Looks, px: int = PX):
+        self.px = px
+        self.mesh, self.centre = recentred(before)
+        self.caster = build_caster(self.mesh) if self.mesh.n_faces else None
+        table = LookTable()
+        ids = face_look_ids(self.mesh, looks, table)                 # fills the table first
+        per_look = np.array([looks.colour_of(k) for k in table.keys], dtype=np.float64).reshape(-1, 3)
+        self.colours = per_look[ids] if self.mesh.n_faces else np.zeros((0, 3))
+        self.normals = face_normals(self.mesh)
+
+    def write(self, border, ordered: bool, view: dict, path) -> Path:
+        """Write one spot to `path` (PNG, `px` x `px`). `border`: its points in the model's own coordinates;
+        `ordered`: they run round a loop; `view`: its `suggested_view` (`eye`, `target`). The camera is
+        orthographic: parallel rays from the plane through `eye`, along the line to `target`, so the picture is what a
+        viewer standing at `eye` looks at. The window is `WINDOW_SCALE` times the border's extent, within
+        [MIN_WINDOW, MAX_WINDOW] inches."""
+        px = self.px
+        pts = np.asarray(border, dtype=np.float64).reshape(-1, 3) - self.centre
+        eye = np.asarray(view["eye"], dtype=np.float64) - self.centre
+        target = np.asarray(view["target"], dtype=np.float64) - self.centre
+        u = target - eye
+        u = u / np.linalg.norm(u)
+        right, up = _basis(u)
+        window = float(np.clip(WINDOW_SCALE * float(np.ptp(pts, axis=0).max()), MIN_WINDOW, MAX_WINDOW))
+        image = Image.fromarray(render_crop(self.caster, self.normals, self.colours, eye, u, right, up, window, px),
+                                "RGB")
+        rel = pts - eye
+        xs = ((rel @ right) / window + 0.5) * px
+        ys = (0.5 - (rel @ up) / window) * px
+        ring = [(int(round(x)), int(round(y))) for x, y in zip(xs.tolist(), ys.tolist())]
+        draw = ImageDraw.Draw(image)
+        if ordered and len(ring) >= 2:
+            draw.line(ring + ring[:1], fill=OUTLINE, width=2)
+        else:
+            for x, y in ring:
+                draw.line([(x - _CROSS, y), (x + _CROSS, y)], fill=OUTLINE, width=2)
+                draw.line([(x, y - _CROSS), (x, y + _CROSS)], fill=OUTLINE, width=2)
+        path = Path(path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        image.save(path)
+        return path
+
+
+def write_spot_crop(before: MeshData, border, ordered: bool, view: dict, looks: Looks, path, px: int = PX) -> Path:
+    """`SpotCropper(before, looks, px).write(...)` for one spot."""
+    return SpotCropper(before, looks, px).write(border, ordered, view, path)
