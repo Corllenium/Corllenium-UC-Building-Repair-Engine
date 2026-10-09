@@ -1075,14 +1075,20 @@ _STALE_DIRS = ("fills", "needs_modelling")
 def _remove_stale_outputs(out_dir: Path, name: str | None, *, everything: bool = False) -> None:
     """Remove what an earlier `repair-unit` left in `out_dir`, so it cannot be mistaken for this run's. Always the
     needs-modelling file and its crops (this run rewrites them); with `everything` (the run stops at exit 1, before
-    it writes anything) also `report.json`, `edit_log.jsonl`, `<name>.fixed.obj` and the `fills/` crops. Files this tool
-    never writes stay."""
+    it writes anything) also `report.json`, `edit_log.jsonl`, `<name>.fixed.obj` and the `fills/` crops. In the crop
+    folders only the `*.png` files go, and the folder only when it is then empty. Files this tool never writes stay."""
     out_dir = Path(out_dir)
     names = ["needs_modelling.json"] + (["report.json", "edit_log.jsonl", f"{name}.fixed.obj"] if everything else [])
     for file in names:
         (out_dir / file).unlink(missing_ok=True)
     for folder in (_STALE_DIRS if everything else ("needs_modelling",)):
-        shutil.rmtree(out_dir / folder, ignore_errors=True)
+        # only this tool's own crops (*.png); the folder goes only when that leaves it empty
+        for crop in (out_dir / folder).glob("*.png"):
+            crop.unlink(missing_ok=True)
+        try:
+            (out_dir / folder).rmdir()
+        except OSError:
+            pass                      # not there, or it holds something that is not ours
 
 
 def _after_rollback(check: dict) -> dict:

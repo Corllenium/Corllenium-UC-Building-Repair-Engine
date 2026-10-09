@@ -181,3 +181,26 @@ def test_pieces_dropped_with_their_whole_stage_are_counted_not_listed(tmp_path, 
     report = json.loads((out / "report.json").read_text(encoding="utf-8"))
     assert doc["counts"]["stage_rolled_back_not_listed"] == report["sites"]["built"] > 0
     assert {e["kind"] for e in doc["entries"]} <= {"hole"}, "no slab piece is listed; E8b's refused holes still are"
+
+
+# ------------------------------------------------------------------------------- fix round, item 5
+
+def test_exit_1_deletes_only_the_crops_in_its_folders_and_a_foreign_file_survives(tmp_path, capsys):
+    mesh = slab_with_three_skirts()
+    paths, _snap = _campus(tmp_path, mesh)
+    out = tmp_path / "out"
+    for folder in ("needs_modelling", "fills", "empty_after"):
+        (out / folder).mkdir(parents=True)
+    (out / "needs_modelling" / "abc.png").write_bytes(b"x")
+    (out / "needs_modelling" / "my-notes.txt").write_text("keep", encoding="utf-8")
+    (out / "fills" / "fill-0001.png").write_bytes(b"x")                 # only crops: its folder is then empty
+    cmap = json.loads(paths["map"].read_text(encoding="utf-8"))
+    cmap["units"][0]["members"][0]["tris"] = mesh.n_faces + 1
+    paths["map"].write_text(json.dumps(cmap), encoding="utf-8")
+    code = cli.main(["repair-unit", "--unit", "T-L01", "--engines", "E8", "--out", str(out), "--map", str(paths["map"]),
+                     "--source", str(paths["source"]), "--materials", str(paths["materials"])])
+    assert code == 1
+    assert not (out / "needs_modelling" / "abc.png").exists() and not (out / "fills" / "fill-0001.png").exists()
+    assert (out / "needs_modelling" / "my-notes.txt").read_text(encoding="utf-8") == "keep"
+    assert not (out / "fills").exists(), "an empty folder of crops is removed"
+    assert (out / "empty_after").is_dir(), "a folder the tool never writes stays"
