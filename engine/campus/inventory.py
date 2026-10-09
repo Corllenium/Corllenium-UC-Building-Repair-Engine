@@ -210,10 +210,17 @@ def slab_table(groups: list[GroupData], p: InventoryParams) -> list[Slab]:
 
 # ------------------------------------------------------------------------------------------ bands and parts
 
+def band_edges(bases: list[float], p: InventoryParams) -> np.ndarray:
+    """The band edges: `band_slack_in` below each base, ROUNDED to the 0.01 in at which the campus map stores
+    `z_range`. The inventory splits on these same numbers, so the colour export and the unit BEFORE (which read
+    `z_range` back) put every face on the floor the inventory counted it for, however close to an edge it is."""
+    return np.array([_r(b - p.band_slack_in) for b in bases], float)
+
+
 def band_counts(cz: np.ndarray, bases: list[float], p: InventoryParams) -> np.ndarray:
     """Triangles per band by face-centre z. Band 0 lies below the first base; band j starts `band_slack_in`
-    below base j and runs to the next band; the last band is open above."""
-    edges = np.asarray(bases, float) - p.band_slack_in
+    below base j (`band_edges`) and runs to the next band; the last band is open above."""
+    edges = band_edges(bases, p)
     return np.bincount(np.searchsorted(edges, cz, side="right"), minlength=len(edges) + 1)
 
 
@@ -320,7 +327,7 @@ def level_records(plan: BuildingPlan, p: InventoryParams, offset: int = 0) -> li
             if g.name not in plan.elements:
                 tris[owner[j]] = tris.get(owner[j], 0) + int(c)
         bases = [s.base for s in plan.slabs]
-        idx = np.searchsorted(np.asarray(bases, float) - p.band_slack_in, g.cz, side="right")
+        idx = np.searchsorted(band_edges(bases, p), g.cz, side="right")
         vz = g.pos[g.fv][:, :, 2]            # the open ends of the table are vertex heights, not face centres
         if 0 in plan.bands and (idx == 0).any():
             lowest = min(lowest, float(vz[idx == 0].min()))
@@ -569,8 +576,8 @@ def _building_units(plan: BuildingPlan, levels: list[dict], p: InventoryParams):
             rows = []
             for part in parts:
                 owned = [j for j in range(nbands) if owner[j] == part]
-                lo = None if owned[0] == 0 else plan.slabs[owned[0] - 1].base - p.band_slack_in
-                hi = None if owned[-1] == nbands - 1 else plan.slabs[owned[-1]].base - p.band_slack_in
+                lo = None if owned[0] == 0 else _r(plan.slabs[owned[0] - 1].base - p.band_slack_in)
+                hi = None if owned[-1] == nbands - 1 else _r(plan.slabs[owned[-1]].base - p.band_slack_in)
                 tris = sum(int(counts[j]) for j in owned)
                 level = label[part]
                 floor_members[level].append(_member(g, f"band {int(level[1:])}", tris, (lo, hi)))
