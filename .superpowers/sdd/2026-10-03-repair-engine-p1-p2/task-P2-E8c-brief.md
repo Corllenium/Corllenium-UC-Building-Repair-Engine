@@ -58,6 +58,9 @@ opens a view at each spot.
      `<unit>.fixed.obj` and `needs_modelling.json` left in `--out` by an earlier run.
    - (b) The help test asserts the full phrase `3: the stage was rolled back whole`, not loose digits. These are
      the only existing-test edits allowed; name them.
+   - (c) From the P2-E8b re-review: `engine/cli.py` `fills_from_edit_log` refuses (exit 2) any `after_faces` id that
+     is not a new face. A new face's id is at least the BEFORE face count; an id below it names an existing BEFORE
+     face. Test it.
 
 ## Exit (real output)
 

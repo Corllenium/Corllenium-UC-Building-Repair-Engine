@@ -173,6 +173,13 @@ lies on pixel centres from real damage, so the guard now measures the displaceme
   closed pocket.
 - **E8b brief** (narrow flat fill, Validator class `fill_site`); implementer dispatched.
 
+### 2026-10-09: P2-E8b merged, E8c started
+- **E8b** (narrow flat fill): the measurement found 0 closed loops before E6 (271 of 393 chain ends on CHTM 5th
+  are T-junctions); ruling R9 kept the rule.
+- **Review:** APPROVED, with one fix round: rulings R10 and R11, and the Validator's independent re-measurement.
+- **Merged** as ed278b7.
+- **E8c brief and dispatch.**
+
 ## 5. Measured state of the SketchUp files
 
 Audit of every edge SketchUp draws, read back through the C API (`scripts/skp_edge_audit.py`).

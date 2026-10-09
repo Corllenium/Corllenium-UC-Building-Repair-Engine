@@ -30,7 +30,11 @@ run the latest `.skp` of each file must be in `OBJ FIXED RESULT/` for the owner 
   sidewalks A and B and CHTM 5th; most pieces rolled back (kept 4/66, 10/54, 8/209).
   - Owner questions open: (1) should the Validator judge every line of sight to a sample (both sides) instead of one?
     (2) may a kept piece be visible itself when it hides nothing?
-- **P2-E8b in progress:** the narrow flat fill, with the Validator's one named `fill_site` class.
+- **P2-E8b merged** (ed278b7): the narrow flat fill. No real hole qualifies before E6 joins the T-junctions (ruling
+  R9); the fill measurement and the pictures follow E6. The Validator's one named class `fill_site` re-measures
+  every limit itself; `validate --edit-log` gives it the fills.
+- **P2-E8c in progress:** `needs_modelling.json` per unit plus a read-only SketchUp helper that jumps the camera to
+  each spot.
 - **P2-K0 merged** into `feat/repair-p1p2` (b43d27f): kernel prep for the new engines.
   - A new engine's stage that does not PASS is rolled back whole.
   - The edit log works for any engine.
