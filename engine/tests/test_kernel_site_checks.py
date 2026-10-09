@@ -77,7 +77,7 @@ def _bad(kind, before):
     if kind == "2 a visible face in another look":
         return [Edit(engine="E5", kind="remove", faces=(8,), new_faces=None, new_points=None, site=BAD,
                      reason="bad", evidence=_ev()),
-                Edit(engine="E5", kind="add", faces=(), new_faces=tri(8), new_points=None, site=BAD, reason="bad",
+                Edit(engine="E8", kind="add", faces=(), new_faces=tri(8), new_points=None, site=BAD, reason="bad",
                      evidence=_ev(material=1), new_face_uv=uv(8))]
     if kind == "3 UVs shifted by half":
         return [Edit(engine="E7", kind="cut", faces=(2,), new_faces=tri(2), new_points=None, site=BAD,
@@ -173,16 +173,18 @@ class _NoisyJudge(SiteJudge):
         return SiteVerdict(failing=v.failing | {(0, 0)}, summary=v.summary, seconds=v.seconds, samples=samples)
 
 
-def test_a_failure_charged_to_no_site_is_logged_as_unknown_and_nothing_is_rolled_back():
+def test_a_failure_charged_to_no_site_is_logged_as_unknown_and_no_site_is_charged_but_the_stage_is_rolled_back():
+    # P2-K0 item 1: the stage no longer ships its edits after a failure no site explains (it used to keep them all).
     before, dup, cut = _cube_scene()
     good = _good_edits(before, dup, cut)
     got, _ = _run(before, LOOKS, [_Planned("fixture", good)], judge=_NoisyJudge(LOOKS, margin=2.0))
     (check,) = got.checks
-    assert check["first"] == "FAIL" and check["rolled_back"] == [] and got.kept == good
+    assert check["first"] == "FAIL" and got.kept == [] and got.rolled_back == good
+    assert all(r["stage_rolled_back"] and r["charged"] == 0 for r in check["rolled_back"])
     assert check["unknown"] == {"samples": 1, "faces": [0], "reasons": {"deleted": 1}}
     assert check["runs"][0]["unknown"] == 1 and check["runs"][0]["charged"] == 0
-    assert [r["kind"] for r in check["runs"]] == ["first"], "nothing rolled back: no confirming run is needed"
-    _same(got.mesh, apply_edits(before, good)[0])
+    assert [r["kind"] for r in check["runs"]] == ["first"], "no site was charged: no confirming run is needed"
+    _same(got.mesh, before)
 
 
 def _covered_then_unmasked():
@@ -192,7 +194,7 @@ def _covered_then_unmasked():
     before, dup, _ = _cube_scene()
     gone = int(dup[0]) - 8                                       # the first copy of the doubled slab's first face
     plate = _bad("5 a face one inch in front of a visible face", before)
-    copy = Edit(engine="E5", kind="add", faces=(), new_faces=before.face_v[gone][None], new_points=None, site=BAD,
+    copy = Edit(engine="E8", kind="add", faces=(), new_faces=before.face_v[gone][None], new_points=None, site=BAD,
                 reason="copy", evidence=_ev(material=0), new_face_uv=before.uvs[before.face_vt[gone]][None])
     remove = Edit(engine="E4", kind="remove", faces=(gone, gone + 8), new_faces=None, new_points=None, site=GOOD_DUP,
                   reason="both copies", evidence=_ev())
@@ -217,6 +219,19 @@ def test_when_the_rounds_run_out_what_is_still_charged_is_rolled_back_and_says_s
     assert [(r["site"], r["round"]) for r in check["rolled_back"]] == [(BAD, 1), (GOOD_DUP, 2)]
     assert check["rolled_back"][1]["rounds_exhausted"] is True and check["rounds_exhausted"] is True
     assert check["rounds"] == 1 and got.kept == []
+
+
+@pytest.mark.parametrize("validate_sites", [True, False])
+def test_a_non_legacy_engine_planning_a_legacy_marked_edit_is_refused(validate_sites):
+    # P2-K0 fix round 1: the legacy marker lifts the add refusal, so only the legacy observer may set it.
+    before, _, _ = _cube_scene()
+    sneaky = Edit(engine="E8", kind="add", faces=(), new_faces=before.face_v[0][None], new_points=None, site=BAD,
+                  reason="legacy marker from a P2 engine", evidence=_ev(material=0),
+                  new_face_uv=before.uvs[before.face_vt[0]][None], legacy=True)
+    unit = UnitState(mesh=before, topo=None, looks={}, viewpoints=None)
+    ctx = RepairContext(profile=FixProfile(), decider=None, validator=SiteJudge(LOOKS, margin=2.0))
+    with pytest.raises(ValueError, match="legacy"):
+        repair_unit(unit, ctx, engines=[_Planned("fixture", [sneaky])], validate_sites=validate_sites)
 
 
 def test_the_next_stage_runs_on_the_kept_result():

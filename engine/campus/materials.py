@@ -150,8 +150,11 @@ def look_of_material(name: str, materials: dict) -> Any:
 
 
 def material_name(mesh, face: int) -> str:
-    """The name of the material of `face`; a face with no entry is material 0, and an index with no name is its number."""
+    """The name of the material of `face`; a face with no entry is material 0, a face before any `usemtl` (a
+    negative index) is `"<none>"` (it is not the last material), and an index with no name is its number."""
     index = int(mesh.face_material[face]) if face < len(mesh.face_material) else 0
+    if index < 0:
+        return "<none>"
     return mesh.materials[index] if index < len(mesh.materials) else str(index)
 
 

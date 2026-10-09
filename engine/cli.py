@@ -517,7 +517,7 @@ def cmd_fix(snapshot_dir: Path, out_root: Path, accept_slit: bool,
 
     kernel_result = None
     if kernel:
-        from engine.repair.kernel import repair_unit, write_edit_log, write_records
+        from engine.repair.kernel import repair_unit, write_records
         from engine.repair.types import RepairContext, UnitState
         judge = None
         if validate_sites:
@@ -540,10 +540,8 @@ def cmd_fix(snapshot_dir: Path, out_root: Path, accept_slit: bool,
     out_dir = Path(out_root) / name
     out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / "report.json").unlink(missing_ok=True)
-    if kernel_result is not None and validate_sites:
+    if kernel_result is not None:
         write_records(out_dir / "edit_log.jsonl", kernel_result.records)
-    elif kernel_result is not None:
-        write_edit_log(out_dir / "edit_log.jsonl", kernel_result.edits)
 
     write_obj(result.mesh, out_dir / f"{name}.fixed.obj")
     write_obj_polygons(result.mesh, result.rings, out_dir / f"{name}.fixed.ngon.obj")
