@@ -153,3 +153,4 @@ Task P0-17 (pilot step): complete. Pilot run 2 numbers are above, sent to the pe
 - Parked (Minor, follow-up job if the owner wants it): a Get-Process not at the head of its segment — `foreach ($p in Get-Process python) { $p.Kill() }` — is not seen. Ruling: park — the guard is a backstop (README), the form is rare for agents, and another fix round re-opens a reviewed diff — cost if wrong: that one loop form kills by name unguarded.
 - Task M1c: complete (claude/M1c @ 66e5cd1; 37 tests; tsc 0; validate passed). Merge into feat-dashboard waits for the peer's OK.
 - M1c merged into feat-dashboard: ba11fb5 (no-ff, peer said go after checking the owner's yes is in this ledger). plugin test on the merged tree 37/37. Queue: M1c merged. Worktree .claude/worktrees/M1c removed.
+- M3 briefly claimed by the repair-engine session via jobs.py next (released within a minute, untouched). Blocked M3 pending the owner's decision so next never hands it out.
