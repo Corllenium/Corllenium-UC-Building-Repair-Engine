@@ -52,7 +52,9 @@ run the latest `.skp` of each file must be in `OBJ FIXED RESULT/` for the owner 
 - **Incident 2026-10-09 10:21:** a sub-agent ran `taskkill /IM python.exe`, which ended every Python process on the
   PC; the Jev session's windows-mcp server was lost.
   - Recorded as project memory: stop only your own processes, by PID.
-  - The uc-guard rule M1c waits for the owner's yes.
+  - The uc-guard rule M1c (kill only by PID) is merged into feat-dashboard: ba11fb5, 2026-10-09, owner OK, reviewed,
+    37/37. A session that loads uc-guard is denied `taskkill /IM`/`/FI`, pkill/killall, `Stop-Process -Name` and
+    by-name Get-Process stops.
 - **Reviewer launches:** some were refused by the permission check. The ledger names each review the controller did
   itself (K1 fix round, D1, K1b, K3b, S2).
 - **Next:** P2. E8 strict solidify comes first, then E3, E1, E2, E4, E5, E6/E7, and V1/R1.

@@ -155,6 +155,12 @@ lies on pixel centres from real damage, so the guard now measures the displaceme
 - **First per-stage Validator verdicts** on CHTM 5th recorded.
 - **A process-kill incident** recorded.
 
+### 2026-10-09: uc-guard rule 7 (M1c) merged
+- **Owner OK** after the 10:21 `taskkill /IM python.exe` incident. Merge ba11fb5 into feat-dashboard.
+- **Rule 7:** kill only by PID. Killing by name or by filter is denied, in Bash, PowerShell, and when nested.
+- **Review:** rules-reviewer, 2 fix rounds, then APPROVED; plugin test 37/37.
+- **Parked Minor:** `foreach ($p in Get-Process name) { ... }` is not seen.
+
 ## 5. Measured state of the SketchUp files
 
 Audit of every edge SketchUp draws, read back through the C API (`scripts/skp_edge_audit.py`).
