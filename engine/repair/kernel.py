@@ -11,7 +11,10 @@ nothing here applies them or changes what a stage produced. K3 starts applying t
 `stage, engine, kind, site, reason, faces, removed, added, n_removed, n_added, n_new_points,
 material`. `faces` are input face ids of the stage's own input face set; `removed` / `added` are
 the K1 face keys the edit takes away and brings (a flip takes the old winding's key and brings
-the reversed one). No path and no timestamp, so two runs of the same unit write the same bytes.
+the reversed one). The kernel computes `removed` / `added` / `material` itself for every engine, from the stage
+input and `apply_edits` (`edit_keys`), and takes `stage` from the engine (a legacy engine's stage, any other
+engine's `name`); no `Edit.evidence` is needed (P2-K0). No path and no timestamp, so two runs of the same unit
+write the same bytes.
 
 SITE CHECKS (P1-K3b, `validate_sites=True`). After each stage the site judge in `ctx.validator`
 (`engine.site_judge.SiteJudge`, handed in by `engine.cli`; this package never imports it) runs ONE
@@ -28,7 +31,7 @@ from __future__ import annotations
 
 import json
 from collections import Counter
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 
 import numpy as np
@@ -36,7 +39,7 @@ import numpy as np
 from engine.fixes.pipeline import FixResult, finish_fix
 from engine.model import MeshData
 from engine.repair.engines.legacy import LegacyEngine, LegacyRun, StageRecord, legacy_engines
-from engine.repair.types import Edit, RepairContext, UnitState, apply_edits
+from engine.repair.types import Edit, RepairContext, UnitState, apply_edits, face_keys
 
 #: Rounds of attribute, roll back and confirm per stage (P1-K3b); then what is still charged is rolled back.
 MAX_ROUNDS = 3
@@ -52,32 +55,79 @@ class KernelResult:
     kept: list[Edit] = field(default_factory=list)         # the edits the shipped mesh carries
     rolled_back: list[Edit] = field(default_factory=list)  # the edits the site checks dropped
     checks: list[dict] = field(default_factory=list)       # one record per stage, with `validate_sites`
-    records: list[dict] = field(default_factory=list)      # the lines of `edit_log.jsonl`, with `validate_sites`
+    records: list[dict] = field(default_factory=list)      # the lines of `edit_log.jsonl` (with `validate_sites`: and the checks)
 
 
-def edit_record(edit: Edit) -> dict:
-    """One line of `edit_log.jsonl`."""
-    evidence = edit.evidence
-    removed, added = list(evidence["removed_keys"]), list(evidence["added_keys"])
-    return {"stage": evidence["stage"], "engine": edit.engine, "kind": edit.kind,
+def _keys_of(mesh: MeshData, ids, looks: dict[int, str]) -> list[str]:
+    """The K1 face keys of the faces `ids` of `mesh` (only those faces are keyed)."""
+    ids = np.asarray(ids, np.int64)
+    if not len(ids):
+        return []
+    sub = replace(mesh, face_v=mesh.face_v[ids], face_vt=mesh.face_vt[ids], face_vn=mesh.face_vn[ids],
+                  face_material=mesh.face_material[ids], face_line=mesh.face_line[ids])
+    return face_keys(sub, looks)
+
+
+def edit_keys(stage_input: MeshData, edits: list[Edit], looks: dict[int, str]) -> list[dict]:
+    """Per edit, in order: the K1 face keys it takes away (`removed`: the stage input's faces it removes, flips or
+    replaces) and brings (`added`: for a flip the reversed winding's keys, for an add or cut the appended faces),
+    and the material index of what it brings (`material`, None for a remove or flip). Computed from `stage_input`
+    and `apply_edits(stage_input, edits)` alone, so it works for any engine, legacy or not."""
+    if not edits:
+        return []
+    after, new_to_old = apply_edits(stage_input, edits)
+    survived = new_to_old >= 0
+    at = np.full(stage_input.n_faces, -1, np.int64)
+    at[new_to_old[survived]] = np.flatnonzero(survived)
+    appended = int(survived.sum())
+    out = []
+    for edit in edits:
+        removed = [] if edit.kind == "add" else _keys_of(stage_input, list(edit.faces), looks)
+        added, material = [], None
+        if edit.kind == "flip":
+            added = _keys_of(after, at[list(edit.faces)], looks)
+        elif edit.kind in ("add", "cut"):
+            ids = np.arange(appended, appended + len(edit.new_faces))
+            appended += len(edit.new_faces)
+            added = _keys_of(after, ids, looks)
+            material = int(after.face_material[ids[0]])
+        out.append({"removed": removed, "added": added, "material": material})
+    return out
+
+
+def edit_record(edit: Edit, keys: dict | None = None, stage: str | None = None) -> dict:
+    """One line of `edit_log.jsonl`. `keys` is the edit's entry from `edit_keys` and `stage` the engine's stage
+    name (what the kernel passes, for every engine). Without them the line is read from the edit's own `evidence`,
+    which only the legacy observer's edits carry (`stage`, `removed_keys`, `added_keys`, `material`)."""
+    if keys is None:
+        evidence = edit.evidence
+        keys = {"removed": evidence["removed_keys"], "added": evidence["added_keys"],
+                "material": evidence.get("material")}
+        stage = evidence["stage"] if stage is None else stage
+    removed, added = list(keys["removed"]), list(keys["added"])
+    return {"stage": stage, "engine": edit.engine, "kind": edit.kind,
             "site": int(edit.site), "reason": edit.reason, "faces": [int(f) for f in edit.faces],
             "removed": removed, "added": added, "n_removed": len(removed), "n_added": len(added),
             "n_new_points": 0 if edit.new_points is None else int(len(edit.new_points)),
-            "material": evidence.get("material")}
+            "material": keys["material"]}
 
 
-def write_edit_log(path: Path, edits: list[Edit]) -> None:
-    with open(path, "w", encoding="utf-8", newline="\n") as fh:
-        for edit in edits:
-            fh.write(json.dumps(edit_record(edit)) + "\n")
+def stage_records(stage_input: MeshData, edits: list[Edit], looks: dict[int, str], stage: str) -> list[dict]:
+    """The `edit_log.jsonl` lines of one stage's `edits`, in order."""
+    return [edit_record(e, k, stage) for e, k in zip(edits, edit_keys(stage_input, edits, looks))]
 
 
 def write_records(path: Path, records: list[dict]) -> None:
-    """`edit_log.jsonl` of a checked run: the edit lines (a rolled-back one with `"rolled_back": true`), each
-    stage's followed by its `{"check": {...}}` line."""
+    """`edit_log.jsonl`: the edit lines in run order (a rolled-back one with `"rolled_back": true`), and, for a
+    checked run, each stage's followed by its `{"check": {...}}` line."""
     with open(path, "w", encoding="utf-8", newline="\n") as fh:
         for record in records:
             fh.write(json.dumps(record) + "\n")
+
+
+def write_edit_log(path: Path, records: list[dict]) -> None:
+    """`write_records` under its P1-K2 name (it used to take the edits; the lines now come from the kernel)."""
+    write_records(path, records)
 
 
 def repair_unit(unit: UnitState, ctx: RepairContext, *, flatness: dict[str, float] | None = None,
@@ -118,11 +168,12 @@ def repair_unit(unit: UnitState, ctx: RepairContext, *, flatness: dict[str, floa
     if obj_path is not None:
         from engine.cli import _build_report   # engine.cli imports this module lazily too
         report = _build_report(input_mesh.name, Path(obj_path), input_mesh, result, ctx.profile)
+    records = [r for st in run.stages for r in stage_records(st.before.as_mesh(), st.edits, unit.looks, st.stage)]
     if edit_log is not None:
-        write_edit_log(Path(edit_log), edits)
+        write_records(Path(edit_log), records)
     unit.mesh = result.mesh
     return KernelResult(mesh=result.mesh, result=result, edits=edits, stages=run.stages,
-                        report=report)
+                        report=report, records=records)
 
 
 # ------------------------------------------------------------------------------------ site checks
@@ -310,8 +361,8 @@ def _repair_checked(unit: UnitState, ctx: RepairContext, *, flatness, obj_path, 
         kept = [e for e in planned if e.site not in rolled]
         kept_all.extend(kept)
         rolled_all.extend(e for e in planned if e.site in rolled)
-        for e in planned:
-            records.append({**edit_record(e), "rolled_back": True} if e.site in rolled else edit_record(e))
+        for e, line in zip(planned, stage_records(stage_input, planned, unit.looks, stage)):
+            records.append({**line, "rolled_back": True} if e.site in rolled else line)
         if check is not None:
             checks.append(check)
             records.append({"check": check})
@@ -330,12 +381,8 @@ def _repair_checked(unit: UnitState, ctx: RepairContext, *, flatness, obj_path, 
             from engine.cli import _build_report   # engine.cli imports this module lazily too
             report = _build_report(input_mesh.name, Path(obj_path), input_mesh, result, ctx.profile)
     if edit_log is not None:
-        if validate_sites:
-            write_records(Path(edit_log), records)
-        else:
-            write_edit_log(Path(edit_log), edits)
+        write_records(Path(edit_log), records)
     unit.mesh = mesh
     return KernelResult(mesh=mesh, result=result, edits=edits,
                         stages=[] if run is None else run.stages, report=report, kept=kept_all,
-                        rolled_back=rolled_all, checks=checks,
-                        records=records if validate_sites else [])
+                        rolled_back=rolled_all, checks=checks, records=records)
