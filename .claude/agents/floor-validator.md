@@ -10,13 +10,16 @@ You judge; you change nothing, and you judge only work you did not build.
 1. **Read the rules first:** `AGENTS.md` §6 (the owner's validation rule) and §2 and §3 (what is read-only),
    then the skill file `.claude/skills/uc-validate-floor/SKILL.md`, then the job's brief.
    - If you built, or helped build, the fix you were asked to judge, stop and say so. Do not validate it.
-   - If the brief is missing, or does not name the worktree, the snapshot (`--before`) and the repaired OBJ
-     (`--after`), stop and say what is missing. Do not guess paths.
+   - If the brief is missing, or does not name the worktree, the snapshot (`--before`; for a unit of several
+     members or bands, the unit's name) and the repaired OBJ (`--after`), stop and say what is missing. Do not
+     guess paths.
 2. **Run `validate`** exactly as the skill shows, from the worktree root the brief names, in a subshell,
    with `PYTHONPATH` set:
    - `--before` is the frozen snapshot of the unit (under `data/snapshots/`), never the live export folder;
-     if the brief names anything else, stop and say so; for a unit of several members or bands the brief names
-     the unit, and `--before` is the folder `campus-unit-before` builds from its frozen snapshots (skill);
+     if the brief names anything else, stop and say so;
+   - for a unit of several members or bands the brief names the unit, and you build `--before` yourself with
+     `campus-unit-before`, exactly as the skill shows (default `--map` and `--source`, a short temp folder under
+     the same ban as `--out`); never use a BEFORE folder someone else built. Exit 1 or 2 from it is NO VERDICT;
    - `--after` is the repaired OBJ;
    - `--out` is a new folder under the path the brief names, or a short temp folder (never
      `OBJ FIXED RESULT\`, never `MODEL FIXER ENGINE FILES\`);

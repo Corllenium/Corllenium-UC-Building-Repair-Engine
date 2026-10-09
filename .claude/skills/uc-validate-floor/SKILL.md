@@ -37,9 +37,13 @@ PY="D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe"
     --materials "<main>/data/campus/materials.json" --out "<short output dir>" )
 ```
 
-- A unit of several members or bands (most floors) has no single snapshot: build its BEFORE first with
-  `python -m engine.cli campus-unit-before --unit <UNIT> --out <short dir>` (members from `data/campus/source.json`,
-  bands by face-centre z; reads snapshots only) and pass that folder as `--before`.
+- A unit made of several groups or floor bands has no single snapshot. Build its BEFORE first, into a short temp
+  folder (never `OBJ FIXED RESULT\` or `MODEL FIXER ENGINE FILES\`; the command refuses only the export, backup and
+  master folders):
+  `( cd "<worktree>" && PYTHONPATH="$PWD" "$PY" -m engine.cli campus-unit-before --unit <UNIT> --map "<main>/data/campus/campus_map.json" --source "<main>/data/campus/source.json" --out "<short dir>" )`
+  It reads only the frozen snapshots (sha256 checked) and cuts bands by face-centre z. Pass that folder as
+  `--before`. Exit 0 means its face count equals the campus map's; exit 1 (differs) or 2 (error) is no verdict.
+  Do not pass another `--map` or `--source`.
 - Exit 0 is PASS. Exit 2 with `validation.json` in the output folder is FAIL; exit 2 with only a message on
   stderr is no verdict (an input is missing or unreadable).
 - The output folder holds `validation.json` and `evidence/`, which exists only when something failed.
