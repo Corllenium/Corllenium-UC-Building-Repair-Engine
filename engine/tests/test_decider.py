@@ -564,3 +564,13 @@ def test_stats_survive_a_restart(tmp_path):
     d2 = _decider(tmp_path)
     assert d2.stats("inv.building")["decisions"] == 50
     assert d2.stats("inv.building")["eligible_for_auto"] is True
+
+
+def test_stats_ignores_a_log_line_without_an_event(tmp_path):
+    """End-of-P1 review, finding 7: a foreign log line with a qtype but no event must not break stats()."""
+    import json as _json
+    log = tmp_path / "log.jsonl"
+    log.write_text(_json.dumps({"qtype": "inv.building", "subject": "X"}) + "\n", encoding="utf-8")
+    qt = QuestionType("inv.building", "choice", "Which building?", (("BRS", "BRS"), ("CHTM", "CHTM")))
+    d = Decider([qt], [], log_path=log, cache_path=tmp_path / "cache.jsonl")
+    assert d.stats("inv.building")["decisions"] == 0

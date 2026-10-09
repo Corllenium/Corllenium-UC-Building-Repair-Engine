@@ -296,9 +296,10 @@ class Decider:
             if rec.get("qtype") != qtype:
                 continue
             subject = rec.get("subject")
-            if rec["event"] == "provider":
+            event = rec.get("event")
+            if event == "provider":
                 latest.setdefault(subject, {})[rec["provider"]] = rec
-            elif rec["event"] == "owner":
+            elif event == "owner":
                 waiting = latest.pop(subject, None)
                 if waiting:
                     best = max(waiting.values(), key=lambda r: r["confidence"])

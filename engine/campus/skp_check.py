@@ -483,6 +483,9 @@ def require_verified_copy(source: dict, skp, *, report=None) -> Path:
     different bytes."""
     skp = Path(skp)
     refuse_master(skp)
+    if "CHECKPOINT-17-BACKUP" in [p.upper() for p in skp.resolve().parts]:
+        raise ValueError(f"refusing to open {skp}: it lies in the CHECKPOINT-17 backup folder; the SDK opens only "
+                         "a verified copy of the backup, never the backup itself (AGENTS.md section 2)")
     if _parts(skp)[-4:-1] != ["data", "campus", "skp_copy"]:
         if report is None:
             report = skp.resolve().parent.parent / "skp_check.json"

@@ -139,7 +139,8 @@ def _new_faces(before: FaceView, after: FaceView, after_ids: list[int], stage: s
     New points are numbered PER EDIT (K1: every edit counts its points from `n`). A point solidify
     invented that faces of two materials share -- so two E8 add edits -- is carried by each of
     them, and the sum of `n_new_points` over a run can exceed solidify's `invented_vertices`.
-    K3 de-duplicates such points when it applies the edits."""
+    `apply_edits` appends each edit's points separately and does not de-duplicate them (end-of-P1 review);
+    a P2 E8 engine that shares points across edits must emit them once."""
     n = len(before.mesh.positions)
     before_p, after_p = before.mesh.positions, after.mesh.positions
     if len(after_p) < n or not (after_p is before_p or np.array_equal(after_p[:n], before_p)):
@@ -318,7 +319,8 @@ class LegacyEngine:
 
     `plan()` RUNS the stage as a side effect: it advances the shared `LegacyRun` state, so calling
     it twice runs the stage twice. That is the observe-only kernel's shortcut, not the protocol's
-    meaning (an engine plans; `apply_edits` performs). K3 must split running from planning."""
+    meaning (an engine plans; `apply_edits` performs). K3/K3b kept this shortcut for the legacy stages; the
+    P2 engines plan without running."""
     name: str
     stage: str
     site: int
