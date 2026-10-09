@@ -345,7 +345,7 @@ class SiteJudge:
                    "textures": {"samples": t["samples"], "samples_failed": t["samples_failed"],
                                 "reasons": t["reasons"]},
                    "nothing_deleted": {k: g[k] for k in ("samples", "samples_extra", "deleted", "replaced",
-                                                         "covered", "overlaid", "covered_by_fill")},
+                                                         "covered", "overlaid", "covered_by_fill") if k in g},
                    "sites": [{k: s[k] for k in ("centre", "size", "samples", "checks", "reasons", "faces")}
                              for s in r["sites"][:5]],
                    "sites_total": r["sites_total"], "fill_sites": r.get("fill_sites", [])}

@@ -1177,8 +1177,10 @@ def validate(before: MeshData, after: MeshData, looks: Looks, *, errors=None, ta
     The one named class of allowed change, `fill_site` (see `_FillSites`): a sample covered only by honest fills,
     each line of sight ending inside the fill's own loop, is `covered_by_fill` instead of `covered`, and fails neither
     check. `checks.textures.covered_by_fill` and `checks.nothing_deleted.covered_by_fill` count them (they are in
-    neither `reasons` nor `covered`), and `fill_sites` lists, per fill: `honest`, `why` not, its AFTER `faces`, the
-    `samples` it covers and the BEFORE faces those lie on (`before_faces`, at most 50). Without fills, nothing differs."""
+    neither `reasons` nor `covered`), and `fill_sites` (at the report's end) lists, per fill: `honest`, `why` not,
+    its AFTER `faces`, the `samples` it covers and the BEFORE faces those lie on (`before_faces`, at most 50).
+    Without fills (None or an empty list) nothing differs: those three keys are left out and `validation.json` is
+    byte for byte the Validator's of before the class."""
     clock = {"start": time.perf_counter()}
     if focus is not None:
         focus_before = _focus_ids(focus.before_faces, before.n_faces, "before_faces")
@@ -1317,7 +1319,6 @@ def validate(before: MeshData, after: MeshData, looks: Looks, *, errors=None, ta
         "reasons": {name: int((fail1 & (reason1 == code)).sum()) for code, name in
                     ((COVERED, "covered"), (OVERLAID, "overlaid"), (DELETED, "deleted"), (LOOK, "look"),
                      (UV, "uv"), (SIDE, "side"))},
-        "covered_by_fill": int((standard & by_fill).sum()),
         "depth_tolerance_in": round(tol, 4)}
     nothing_deleted = {
         "status": "FAIL" if fail3.any() else "PASS", "samples": int(tested.sum()), "samples_extra": int(extra.sum()),
@@ -1331,9 +1332,12 @@ def validate(before: MeshData, after: MeshData, looks: Looks, *, errors=None, ta
         "area_lost_in2": round(float(sample_area[unmet].sum()), 2),
         "area_covered_in2": round(float(sample_area[tested & covered].sum()), 2),
         "area_overlaid_in2": round(float(sample_area[tested & overlaid].sum()), 2),
-        "covered_by_fill": int((tested & by_fill).sum()),
         "depth_tolerance_in": round(tol, 4)}
     fill_report = []
+    if fill_sites is not None:
+        # only with fills: without them `validation.json` is exactly what it was before the fill_site class
+        textures["covered_by_fill"] = int((standard & by_fill).sum())
+        nothing_deleted["covered_by_fill"] = int((tested & by_fill).sum())
     for k, site in enumerate([] if fill_sites is None else fill_sites.sites):
         mine = tested & by_fill & (fill_of_sample == k)
         fill_report.append({"fill": k, "honest": site["honest"], "why": site["why"], "faces": int(len(site["faces"])),
@@ -1394,7 +1398,7 @@ def validate(before: MeshData, after: MeshData, looks: Looks, *, errors=None, ta
     report = {
         "version": 1, "verdict": verdict if focus is None else None, "notes": notes,
         "checks": {"textures": textures, "problems": problems, "nothing_deleted": nothing_deleted},
-        "sites": sites, "sites_total": n_sites, "fill_sites": fill_report,
+        "sites": sites, "sites_total": n_sites,
         "viewpoints": {"directions": len(dirs), "cameras": len(cams), "probes": len(probes),
                        "extra_directions": len(extra_dirs)},
         "settings": settings.as_dict(), "frame": {"centre": [round(float(v), 4) for v in centre]},
@@ -1410,6 +1414,8 @@ def validate(before: MeshData, after: MeshData, looks: Looks, *, errors=None, ta
                       "problems": round(clock["problems"] - clock["overlay"], 2),
                       "sites": round(clock["end"] - clock["problems"], 2),
                       "total": round(clock["end"] - clock["start"], 2)}}
+    if fill_sites is not None:
+        report["fill_sites"] = fill_report
     if focus is not None:
         report["focus"] = {"before_faces": int(len(focus_before)), "after_faces": int(len(focus_after)),
                            "status": "FAIL" if (fail1 | fail3).any() else "PASS"}

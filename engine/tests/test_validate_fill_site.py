@@ -65,7 +65,7 @@ def test_a_hole_shows_the_room_below_and_an_unmarked_cover_of_it_is_covered():
     after, _ = _with_fill(before, LOOP_A)
     _v, textures, gone = _run(before, after)
     assert gone["status"] == "FAIL" and gone["covered"] > 0, "the room below is seen through hole A, then covered"
-    assert gone["covered_by_fill"] == 0 and textures["covered_by_fill"] == 0
+    assert "covered_by_fill" not in gone and "covered_by_fill" not in textures, "no fills: no fill keys (fix round 1)"
 
 
 def test_a_marked_flat_fill_covers_the_room_only_as_covered_by_fill_and_check_3_passes():
@@ -80,10 +80,43 @@ def test_a_marked_flat_fill_covers_the_room_only_as_covered_by_fill_and_check_3_
     assert site["before_faces"], "the room's faces it covers are listed"
 
 
-def test_without_fills_the_report_says_none():
+def test_without_fills_the_report_has_no_fill_keys():
+    """Fix round 1: with no fills `validation.json` is exactly what it was before the class existed."""
     before = _scene()
-    v, textures, gone = _run(before, before)
-    assert v.report["fill_sites"] == [] and gone["covered_by_fill"] == 0 and textures["covered_by_fill"] == 0
+    for fills in (None, []):
+        v, textures, gone = _run(before, before, fills)
+        assert "fill_sites" not in v.report and "covered_by_fill" not in gone and "covered_by_fill" not in textures
+
+
+def test_without_fills_validation_json_is_byte_for_byte_the_76ca35a_validator_s():
+    """Fix round 1: the 76ca35a Validator (before the fill_site class), loaded from git, and this one give the same
+    validation.json bytes on an existing case (a cube with one visible face deleted), timings aside."""
+    import importlib.util
+    import json
+    import subprocess
+    import sys
+    from pathlib import Path
+
+    from engine.tests.fixtures.build import cube
+    from engine.tests.test_validate_checks import _without_faces
+
+    root = Path(__file__).resolve().parents[2]
+    shown = subprocess.run(["git", "-C", str(root), "show", "76ca35a:engine/validate/checks.py"],
+                           capture_output=True, text=True, encoding="utf-8")
+    if shown.returncode != 0:
+        pytest.skip(f"git cannot show the 76ca35a Validator here: {shown.stderr.strip()}")
+    old_path = Path(__file__).with_name("_old_checks_76ca35a.py")
+    spec = importlib.util.spec_from_loader("old_checks_76ca35a", loader=None)
+    old = importlib.util.module_from_spec(spec)
+    sys.modules["old_checks_76ca35a"] = old
+    exec(compile(shown.stdout, str(old_path), "exec"), old.__dict__)
+    m = cube(10.0)
+    after = _without_faces(m, [8])
+    dump = lambda r: json.dumps({k: v for k, v in r.items() if k != "timings_s"}, indent=2).encode("utf-8")
+    then = old.validate(m, after, _looks("m0"), errors=(NO_ERRORS, NO_ERRORS)).report
+    now = validate(m, after, _looks("m0"), errors=(NO_ERRORS, NO_ERRORS)).report
+    assert then["checks"]["nothing_deleted"]["status"] == "FAIL", "a case with failures, sites and counts"
+    assert dump(now) == dump(then)
 
 
 # ------------------------------------------------------------------------------- mutations that must still FAIL
@@ -101,7 +134,7 @@ def test_mutation_a_fill_the_edit_log_does_not_mark_fails_check_3():
     before = _scene()
     after, _faces = _with_fill(before, LOOP_A)
     _v, _t, gone = _run(before, after, fills=[])
-    assert gone["status"] == "FAIL" and gone["covered"] > 0 and gone["covered_by_fill"] == 0
+    assert gone["status"] == "FAIL" and gone["covered"] > 0 and "covered_by_fill" not in gone
 
 
 def test_mutation_a_fill_in_another_look_than_its_neighbours_fails_check_3():
