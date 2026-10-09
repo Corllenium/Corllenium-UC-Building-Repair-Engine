@@ -368,3 +368,171 @@ Not done: `repair-unit` writes no `.skp`, so `render_skp.py` and `skp_edge_audit
    - E3 site ids start at 0, like E8's. `needs_modelling`'s cross-check gathers rolled-back sites from every stage, so it is slightly more lenient with both stages present.
    - `_print_checks` prints every rolled-back site id, which is a long line for E3.
    - Time: CHTM 5th took 2,565 s on a shared machine; E3's plan is about 257 s of that and its two check runs about 1,008 s.
+
+## Fix round 1 (rulings E3-R7, E3-R8, E3-R9)
+
+**Status: DONE_WITH_CONCERNS.**
+- The three rulings are built, each test-first with its own commit. The suites pass, and the Validator's deleted count after rollback is 0 on all three units.
+- **Not met as stated:** "the 36-point dense check must find 0".
+  - With the pre-filter's own lattice it finds 0 on both sidewalks, and 1 pinhole on CHTM 5th that the OBJ write's rounding produces.
+  - With my original, independent 36-point lattice it still flags 14, 11 and 18 removed faces. Some of these are patches of 1-1.6 sq in.
+  - Denser lattices find more. This needs a ruling (end of section).
+
+### Items
+
+**Item 1, E3-R7: the dense pre-filter.** Commit 3ac532d.
+- `DENSE_POINTS_PER_FACE = 36` (e3_hidden.py). `SiteJudge.lattice_seen(mesh, faces, points_per_face)` places the points.
+  - The lattice is the Validator's own equal-area 6 x 6 one (`face_samples` with no area term): 36 cells of equal area per face, whatever its size.
+  - It is tested against every Validator viewpoint, from either side: the 128 and the 1,024 extra outside directions, the 24 ring cameras and the eye-height probes.
+- Every face still a candidate after the earlier rules is tested; one with any point seen is excluded.
+  - `report.json` `e3.dense_excluded` lists each, with points seen, outside or probes, area and centroid.
+  - `e3.excluded.dense` counts them; `dense_lattice` and `dense_tested` are recorded too.
+- **Test:** `test_a_face_seen_only_between_the_validators_samples_is_never_a_candidate`, with the synthetic fixture `_face_seen_down_a_shaft`, modelled on face 8480.
+  - F is a 142.8 sq in triangle in a sealed box, 0.05 in below a 2 in lid, with a 1.3 in shaft over its corner, away from every Validator sample and exposure sample. A box 3,000 in away keeps the legacy guard from resolving the shaft.
+  - The test asserts its preconditions first:
+    - no Validator viewpoint (extra directions included) sees any of F's 4 samples;
+    - a lattice point of F is seen;
+    - the legacy pass 1 removes F;
+    - with blind views, E3 plans F.
+  - Then: with the judge, F is not planned, `dense_excluded == [F]`, and the kernel run keeps F.
+  - Red: `AttributeError: 'SiteJudge' object has no attribute 'lattice_seen'`; the other tests failed with `TypeError ... unexpected keyword argument 'dense_view'` (9 failed, 4 passed). Green: 13 passed.
+  - No real-geometry crop was needed.
+- I also changed some of my own tests from this job (none on the base): those that run without a site judge now pass `dense_view=_blind`.
+  - The strict-rule test's views now miss the plate in both pre-filters, so the judge still has something to catch.
+
+**Item 2, E3-R8: remove-only sites, `site_judge.py`.** Commit f7df688.
+- In `SiteJudge.attribute`, a site with no new faces (every edit a `remove`) is no longer charged a `deleted` sample through its grown box. It is charged only for samples on faces it touched.
+- The Validator reports reasons per cluster of failing samples, not per sample. So a sample counts as `deleted` only when every reason of its cluster is `deleted`.
+- Mixed clusters, and every other kind, keep today's attribution, so the corner artefact still rolls back conservatively.
+- **Tests,** in the new `engine/tests/test_site_judge_remove_only.py`:
+  - two remove-only sites 2 in apart, with the owner's 24 in margin: only the one that deleted a seen sample is rolled back. Red: `assert {0, 1} == {0}`. Green.
+  - a `look` failure (another-look twin left behind) still charges the neighbour through the box. This passed before and after the change; it guards against going too far.
+
+**Item 3, E3-R9: zero-area faces are not E3 candidates.** Commit 8ff6a8a.
+- Zero-area faces are excluded first and counted in `e3.excluded.zero_area`.
+- **Test:** `test_a_zero_area_face_is_never_an_e3_candidate`: a collinear triangle inside a sealed cube. Red: `assert [12, 13, 14] == [12, 13]`. Green.
+
+**Item 4.** Concern 6 is accepted: `test_cli_repair_unit.py::test_an_engine_that_is_not_e8_is_refused` uses E5 instead of E3, the only edit to a test that was on the base.
+
+**Item 5.** Nothing done about the corner artefact, which gets its own job; `open_edges` is recorded for E6/E7.
+
+### Suites (from the worktree root, PYTHONPATH set)
+```
+engine/tests: 1850 passed, 1 xfailed in 957.95s (0:15:57)
+tools/tests:  180 passed in 16.39s
+```
+
+### Golden runs, `--engines E8a,E3`
+
+Outputs are in `C:/Temp/e3/r1/<unit>`. E8a is unchanged, so `C:/Temp/e3/<unit>_e8a` is still E3's stage input; the scripts check this by K1 key on every removed face.
+
+```
+CHTM_SIDE_WALK_2nd_floor: check E3 (E3, 155 edits, 155 sites): FAIL -> PASS; failing 3 {'deleted': 3}; unknown 0; rolled back [29, 56, 79]; 2 run(s), 37.8 s
+CHTM_SIDE_WALK_2nd_floor: E3 legacy candidates 2037 {'hidden': 1820, 'zero_area': 217}, left out {'zero_area': 217, 'invented': 0, 'side': 420, 'seen_through_shell': 0, 'probe': 4, 'dense': 130}; 1266 candidate faces in 155 groups (0 split) -> 155 sites; kept 152, rolled back 3 {'deleted': 3}; removed 1058 faces; deleted after rollback 0; disagreements 13
+CHTM_2nd_to_3rd_building_sidewalk_outside: check E3 (E3, 130 edits, 130 sites): FAIL -> PASS; failing 4 {'deleted': 3, 'uv': 1}; unknown 0; rolled back [27, 41]; 2 run(s), 107.8 s
+CHTM_2nd_to_3rd_building_sidewalk_outside: E3 legacy candidates 2471 {'hidden': 2392, 'zero_area': 79}, left out {'zero_area': 79, 'invented': 26, 'side': 476, 'seen_through_shell': 0, 'probe': 39, 'dense': 136}; 1715 candidate faces in 125 groups (1 split) -> 130 sites; kept 128, rolled back 2 {'deleted': 2, 'uv': 1}; removed 1610 faces; deleted after rollback 0; disagreements 42
+CHTM-L05: check E3 (E3, 524 edits, 524 sites): FAIL -> PASS; failing 5 {'covered': 4, 'deleted': 1}; unknown 0; rolled back [...]; 2 run(s), 879.1 s
+CHTM-L05: E3 legacy candidates 13738 {'hidden': 12681, 'zero_area': 1057}, left out {'zero_area': 1057, 'invented': 21, 'side': 2537, 'seen_through_shell': 0, 'probe': 1137, 'dense': 60}; 8926 candidate faces in 502 groups (2 split) -> 524 sites; kept 488, rolled back 36 {'covered': 35, 'deleted': 1}; removed 8470 faces; deleted after rollback 0; disagreements 1676
+```
+
+| | sidewalk A | sidewalk B | CHTM 5th |
+|---|---|---|---|
+| **Candidates** | | | |
+| legacy candidates (hidden + zero-area) | 2,037 (1,820 + 217) | 2,471 (2,392 + 79) | 13,738 (12,681 + 1,057) |
+| left out: zero-area / invented / side / through shell / probe / **dense** | 217 / 0 / 420 / 0 / 4 / **130** | 79 / 26 / 476 / 0 / 39 / **136** | 1,057 / 21 / 2,537 / 0 / 1,137 / **60** |
+| **dense_excluded** (area; points seen from outside / by probes) | 130 faces (17,544.6 sq in; 129 / 1) | 136 faces (28,940.8 sq in; 135 / 10) | 60 faces (14,802.3 sq in; 50 / 22) |
+| candidate faces | 1,266 | 1,715 | 8,926 |
+| groups (split) | 155 (0) | 125 (1) | 502 (2) |
+| sites | 155 | 130 | 524 |
+| **Outcome** | | | |
+| sites kept | 152 | 128 | 488 |
+| sites rolled back, by reason | 3: deleted 3 | 2: deleted 2, uv 1 | 36: covered 35, deleted 1 |
+| ...charged by their own samples / by the judge's box only | 3 (208 faces) / **0** | 2 (105) / **0** | 1 (1) / 35 (455): the corner-artefact `covered` samples, kept conservative by ruling |
+| faces removed | 1,058 (was 271) | 1,610 (was 789) | 8,470 (was 8,067) |
+| **The Validator after rollback** | | | |
+| Validator deleted after rollback | **0** | **0** | **0** |
+| full Validator, original BEFORE vs final: deleted / covered | 0 / 0, checks 1 and 3 PASS | 0 / 0, PASS | 0 / 0, PASS |
+| **find_errors hidden count** | | | |
+| BEFORE | 1,853 | 2,411 | 12,870 |
+| after E8a | 1,854 | 2,422 | 12,893 |
+| after E8a+E3 | **792** | **810** | **4,423** |
+| **Disagreements and time** | | | |
+| disagreements | 13 | 42 | 1,676 |
+| time, whole run | 183 s | 424 s | 2,836 s |
+| ...E3 plan (legacy / sides / probes / dense) | 83 s (18 / 28 / 4 / 34) | 138 s (21 / 35 / 13 / 69) | 635 s (46 / 53 / 146 / **390**) |
+| ...E3 check runs (first / confirm) | 19 / 19 s | 55 / 52 s | 440 / 439 s |
+
+Other find_errors counts after E8a+E3:
+
+| | sidewalk A | sidewalk B | CHTM 5th |
+|---|---|---|---|
+| open_edges | 256 → 617 | 353 → 734 | 373 → 2,076 |
+| cracks | 552 → 507 | 578 → 480 | 3,898 → 3,143 |
+| flicker_same | 530 → 293 | 1,021 → 359 | 4,789 → 1,499 |
+| flicker_diff | — | 321 → 107 | 5,668 → 2,751 |
+| loose | 221 → 222 | — | 1,057 → 1,061 |
+| reversed | 809 → 810 | 838 → 839 | 29 → 29 |
+
+### The dense check rerun on the removed faces
+
+Scripts: `C:/Temp/e3/gap_all.py`, `C:/Temp/e3/r1/crop_all.py`; output `C:/Temp/e3/r1/chtm.txt` and the console lines below.
+
+**1. The pre-filter's own lattice** (6 x 6 equal-area), on the stage input read back from the E8a-only `.fixed.obj`:
+```
+swA [validator lattice, k=6]: faces with a visible lattice point: 0 (0.0 sq in of face) ...
+swB [validator lattice, k=6]: faces with a visible lattice point: 0 ...
+chtm5 [validator lattice, k=6]: faces with a visible lattice point: 1 (97.0 sq in of face) ...; points seen by directions 0, cameras 0, probes 1
+  face 2681 (site 65, minecraft_prismarine_dark_-1): area 97.02, 1/36 points seen
+```
+- On the re-read mesh, the engine's own `lattice_seen` also sees that one probe point: `{'outside': [0], 'probes': [1], 'any': [1]}`. During the run, on the in-memory stage input, it saw none.
+- So the difference comes from writing the E8a output as an OBJ (3 decimals) and reading it back. The rounding moves invented points and probe positions slightly.
+- How visible it is: a view from that probe (705 in away), 12.3 in wide at 0.03 in/px, shows face 2681 at **0 px**. A pinhole line.
+
+**2. My original independent 36-point lattice** (centroids of the 36 upward cells of an 8-subdivision, a different point set):
+
+| unit | faces flagged | in sites |
+|---|---|---|
+| sidewalk A | 14 | 7 |
+| sidewalk B | 11 | 8 |
+| CHTM 5th | 18 | 10 |
+
+Each flagged face, cropped along its best seeing direction (4 in window, 0.02 in/px):
+- **CHTM 5th:** every crop shows 0-22 px (at most about 0.009 sq in). Pinholes.
+- **Sidewalk A:**
+  - face 3139: 723 px (0.29 sq in);
+  - face 4557: 479 px;
+  - the crops around faces 3409, 3410, 3720 and 3721, looking almost straight up from below: 3,599-3,905 px of removed faces, **about 1.4-1.6 sq in**;
+  - the rest: 0-47 px.
+- **Sidewalk B:**
+  - face 455: 3,426 px (**1.37 sq in**);
+  - face 2156: 2,488 px;
+  - face 2179: 2,522 px (4,587 px of removed faces in that crop);
+  - face 2184: 2,575 px (3,098);
+  - face 1533: 487 px;
+  - the rest: 0-3 px.
+
+**3. Denser lattices find more.** It does not converge, so a fixed point lattice cannot guarantee 0:
+
+| lattice | unit | removed faces with a seen point | estimated visible |
+|---|---|---|---|
+| area-based, at least 36 points and 1 per 4 sq in | sidewalk B | 6 | 55.8 sq in |
+| area-based, at least 36 points and 1 per sq in | sidewalk B | 16 | 106 sq in |
+| independent, 78 points per face | sidewalk A | 29 | 121 sq in |
+| independent, 136 points per face | sidewalk A | 46 | 135 sq in |
+
+- At 136 points per face, 304 of the 364 seen points lie within 0.25 in of their face's edge, where 36% of all points lie: mostly rays through hairline seam cracks.
+- At 36 points per face the seen points are spread over the faces: real openings missed between points.
+
+### Decision needed (ruling E3-R7 follow-up)
+
+The pre-filter as ruled (36 points per face) makes the dense check pass only on its own lattice. A 36-point lattice is coarse on big faces (sidewalk B's 455 is 581 sq in). Options:
+
+1. **Area-based density:** at least 36 points per face, plus 1 per N sq in. On sidewalk B, N = 1 still flags 16 faces that the coarser check does not. CHTM 5th at N = 1 would test about 2.3 M points, which by the 390 s / 305 k-point rate measured here is about 50 min more.
+2. **A stated visibility floor** for the acceptance. For example, "no removed face shows more than X px at 0.02 in/px from any Validator viewpoint", measured by crops like these.
+3. **A non-sampling test** of whether a face can be seen: an exact or conservative visibility method, a research job. The deferred winding-number check is unreliable here, because the model has thousands of cracks.
+
+### Rules touched in fix round 1
+
+- `engine/site_judge.py` only, for the attribution and `lattice_seen`.
+- Nothing in `engine/guard/**` or `engine/validate/**`, and no FixProfile change.
+- Removal only. Outputs only under `C:/Temp/e3/r1`. I started only pytest, the CLI and scratch scripts; all ended on their own, and nothing was killed.
