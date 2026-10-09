@@ -44,7 +44,7 @@ from pathlib import Path
 import numpy as np
 
 from engine.io import skp_reader
-from engine.io.protected import refuse_protected
+from engine.io.protected import refuse_master, refuse_protected
 from engine.io.obj_reader import read_obj
 from engine.io.snapshot import copy_verified, sha256_file
 
@@ -402,13 +402,6 @@ def export_stats(snapshot_dir) -> dict:
 
 def _parts(path) -> list[str]:
     return [p.lower() for p in Path(path).resolve().parts]
-
-
-def refuse_master(path) -> None:
-    """The owner's campus model, `...\\02-SKETCHUP\\current\\...skp`, is never opened (AGENTS.md)."""
-    parts = _parts(path)
-    if any(a == "02-sketchup" and b == "current" for a, b in zip(parts, parts[1:])):
-        raise ValueError(f"refusing to open the CHECKPOINT-17 master (under 02-SKETCHUP\\current): {path}")
 
 
 def refuse_inside(path, folder) -> None:

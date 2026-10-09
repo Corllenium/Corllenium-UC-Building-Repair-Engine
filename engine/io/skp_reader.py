@@ -53,6 +53,7 @@ from pathlib import Path
 
 import numpy as np
 
+from engine.io.protected import refuse_master
 from engine.io.skp_writer import SketchUpError, SketchUpUnavailable, resolve_dll_path
 
 _RESULT_NAMES = ("NONE", "NULL_POINTER_INPUT", "INVALID_INPUT", "NULL_POINTER_OUTPUT",
@@ -401,8 +402,9 @@ def walk_skp(path, *, dll_path=None) -> dict:
     was walked (a component definition shared by several instances counts once for each) and
     what was left out; `layers_bound` says whether this DLL has the tag calls, without which a
     tag that is switched off cannot be told. The file is only read."""
-    api = load_api(dll_path)
     path = Path(path)
+    refuse_master(path)
+    api = load_api(dll_path)
     started = time.perf_counter()
     with api.session(), _open(api, path) as model:
         entities = _Ref()
