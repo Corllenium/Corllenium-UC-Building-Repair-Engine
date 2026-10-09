@@ -150,7 +150,7 @@ def test_two_materials_of_one_look_come_out_as_same_look_flicker(tmp_path):
     report = json.loads((out / "BRS" / "BRS-errors.json").read_text(encoding="utf-8"))
     assert report["counts"]["flicker_same"] == 2 and report["counts"]["flicker_diff"] == 0
     assert report["read_back"]["faces_by_tag"]["error_flicker_same"] == 2
-    assert "error_flicker_diff" not in report["read_back"]["faces_by_tag"] or         report["read_back"]["faces_by_tag"]["error_flicker_diff"] == 0
+    assert report["read_back"]["faces_by_tag"].get("error_flicker_diff", 0) == 0
 
 
 def test_a_missing_materials_map_is_refused_and_named(tmp_path):

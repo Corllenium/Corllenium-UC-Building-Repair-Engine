@@ -565,8 +565,11 @@ def cmd_campus_errors_skp(campus_map, source, errors_dir, skp_check, out_dir, bu
     used: dict[str, str] = {}
 
     def load_member(group: str):
+        objs = sorted(Path(snaps[group]).glob("*.obj"))      # hash the snapshot BEFORE parsing it
+        if len(objs) != 1:
+            raise ValueError(f"{group}: expected exactly one .obj in {snaps[group]}, found {len(objs)}")
+        check_member_input(group, objs[0], map_sha.get(group), snap_sha.get(group), in_map=group in map_sha)
         obj, mesh = _load_snapshot_mesh(snaps[group])
-        check_member_input(group, obj, map_sha.get(group), snap_sha.get(group), in_map=group in map_sha)
         path = errors_dir / f"{group}.json"
         used[group] = _sha256(path)
         errors = look_split_errors(json.loads(path.read_text(encoding="utf-8")), mesh, looks)
