@@ -350,6 +350,10 @@ def _repair_checked(unit: UnitState, ctx: RepairContext, *, flatness, obj_path, 
         stage_input = engine.run.current.as_mesh() if is_legacy else current
         unit.mesh = stage_input
         planned = engine.plan(unit, ctx)
+        if not is_legacy and any(e.legacy for e in planned):
+            # The legacy marker lifts the add refusal in `Edit`; only the legacy observer may set it.
+            raise ValueError(f"engine {engine.name} is not the legacy observer, so none of its edits may carry "
+                             f"the legacy marker (Edit.legacy lifts the rule that only E8 adds faces)")
         edits.extend(planned)
         ctx.log.extend(planned)
         rolled: set = set()
