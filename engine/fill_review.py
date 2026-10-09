@@ -83,6 +83,9 @@ def write_fill_crop(before: MeshData, after: MeshData, loop: np.ndarray, normal,
     return path
 
 
+#: A needs-modelling crop's window is as wide as `WINDOW_SCALE` times the border's extent up to this many inches (a
+#: slab's bottom can be 40 ft across; the fill review's own cap is `MAX_WINDOW`).
+SPOT_MAX_WINDOW = 1200.0
 #: The half size, in px, of the cross drawn on each point of an unordered border.
 _CROSS = 3
 
@@ -106,7 +109,7 @@ class SpotCropper:
         `ordered`: they run round a loop; `view`: its `suggested_view` (`eye`, `target`). The camera is
         orthographic: parallel rays from the plane through `eye`, along the line to `target`, so the picture is what a
         viewer standing at `eye` looks at. The window is `WINDOW_SCALE` times the border's extent, within
-        [MIN_WINDOW, MAX_WINDOW] inches."""
+        [MIN_WINDOW, SPOT_MAX_WINDOW] inches."""
         px = self.px
         pts = np.asarray(border, dtype=np.float64).reshape(-1, 3) - self.centre
         eye = np.asarray(view["eye"], dtype=np.float64) - self.centre
@@ -114,7 +117,7 @@ class SpotCropper:
         u = target - eye
         u = u / np.linalg.norm(u)
         right, up = _basis(u)
-        window = float(np.clip(WINDOW_SCALE * float(np.ptp(pts, axis=0).max()), MIN_WINDOW, MAX_WINDOW))
+        window = float(np.clip(WINDOW_SCALE * float(np.ptp(pts, axis=0).max()), MIN_WINDOW, SPOT_MAX_WINDOW))
         image = Image.fromarray(render_crop(self.caster, self.normals, self.colours, eye, u, right, up, window, px),
                                 "RGB")
         rel = pts - eye

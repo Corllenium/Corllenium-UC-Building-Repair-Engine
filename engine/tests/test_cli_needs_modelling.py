@@ -146,3 +146,23 @@ def test_a_unit_whose_before_differs_from_the_map_removes_the_outputs_an_earlier
     assert code == 1 and "DIFFERS from the campus map" in capsys.readouterr().err
     assert [p for p in stale if p.exists()] == [], "nothing of the earlier run is left to be mistaken for this one"
     assert keep.read_text(encoding="utf-8") == "mine", "a file the tool never writes stays"
+
+
+def test_a_large_spot_is_not_cropped_by_the_fill_review_window(tmp_path):
+    """A slab bottom can be 40 ft across: the spot crop's window grows to 1200 in (the fill review's stops at 400),
+    so a 600 in border is a 128 px square in the 256 px picture, with the border all in view."""
+    from engine.fill_review import SPOT_MAX_WINDOW, SpotCropper
+    from engine.tests.fixtures.holes import holed_slab
+    from engine.validate.checks import Looks
+    mesh = holed_slab("big", nx=10, ny=10, cell=100.0)
+    border = [[200, 200, 0], [800, 200, 0], [800, 800, 0], [200, 800, 0]]
+    view = {"eye": [500, 500, 63], "target": [500, 500, 0]}
+    path = SpotCropper(mesh, Looks({})).write(border, True, view, tmp_path / "big.png")
+    image = np.asarray(Image.open(path).convert("RGB"))
+    mask = (image == np.array(OUTLINE)).all(axis=2)
+    mask[:8, :] = False                       # the crop's own tick marks (same yellow) on the top and left edge
+    mask[:, :8] = False
+    ys, xs = np.nonzero(mask)
+    assert SPOT_MAX_WINDOW == 1200.0
+    assert 120 <= xs.max() - xs.min() <= 136 and 120 <= ys.max() - ys.min() <= 136
+    assert xs.min() > 20 and xs.max() < 236 and ys.min() > 20 and ys.max() < 236
