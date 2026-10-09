@@ -30,6 +30,7 @@ from typing import Any, Sequence
 from engine.detectors.errors import find_errors
 from engine.io.obj_reader import read_obj
 from engine.model import MeshData
+from engine.io.protected import refuse_protected
 from engine.campus.materials import _material_name as _mat_name, split_flicker_pairs
 from engine.campus.winprobe import get_machine_load, get_process_peak_memory_mb
 
@@ -371,6 +372,9 @@ def census(
     """Run census over snapshot units."""
     repo_root = Path(__file__).resolve().parents[2]
     out_json = Path(out_json).resolve()
+    for written in (out_json, errors_dir, out_md):
+        if written is not None:
+            refuse_protected(written)
 
     if errors_dir is None:
         errors_dir = out_json.parent / "errors"

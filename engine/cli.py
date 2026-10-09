@@ -72,6 +72,7 @@ from engine.guard.views import VIEWS_26, ortho_first_hit
 from engine.io.mtl import MtlMaterial, parse_mtl, texture_flatness
 from engine.io.obj_reader import read_obj
 from engine.io.obj_writer import write_obj, write_obj_polygons
+from engine.io.protected import refuse_protected
 from engine.io.skp_writer import SketchUpError, check_skp_validity, write_skp
 from engine.io.snapshot import sha256_file
 from engine.model import MeshData
@@ -918,6 +919,7 @@ def cmd_validate(before_dir: Path, after_path: Path, materials: Path, out_dir: P
     settings = settings or Settings()
     before_dir, after_path, materials, out_dir = Path(before_dir), Path(after_path), Path(materials), Path(out_dir)
     try:
+        refuse_protected(out_dir)
         if not after_path.is_file():
             raise FileNotFoundError(f"--after {after_path} is not a file")
         if not materials.is_file():
@@ -1170,9 +1172,33 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+#: Where each writing command puts its files (argparse names); the commands that write nothing are not here.
+#: campus-errors-skp checks its own output (error_export raises, as its tests expect).
+_OUTPUT_ARGS = {"campus-skp-check": ("out", "summary"), "validate": ("out",),
+                "census": ("out", "md", "errors_dir"), "campus-freeze": ("out", "snapshots"),
+                "campus-index": ("out",), "campus-materials": ("out",), "campus-inventory": ("out", "md"),
+                "decide-pilot": ("out",)}
+
+
+def _refuse_protected_outputs(args) -> str | None:
+    """The refusal text when a writing command's output lies in a protected folder, else None; checked before
+    the command does anything."""
+    try:
+        for name in _OUTPUT_ARGS.get(args.command, ()):
+            if getattr(args, name, None) is not None:
+                refuse_protected(getattr(args, name))
+    except ValueError as exc:
+        return str(exc)
+    return None
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
+    refusal = _refuse_protected_outputs(args)
+    if refusal is not None:
+        print(f"error: {refusal}", file=sys.stderr)
+        return 2
     if args.command == "fix":
         if args.validate_sites and not args.kernel:
             parser.error("--validate-sites needs --kernel")
