@@ -1,0 +1,109 @@
+"""Job P2-E8a item 3: `engine.cli repair-unit --unit <UNIT> --engines E8 --out <dir>`.
+
+It builds the unit's BEFORE as `campus-unit-before` does, runs the repair kernel with E8 only and the site judge on
+(`validate_sites=True`), and writes `<unit>.fixed.obj`, `edit_log.jsonl` and `report.json` (sites kept and rolled
+back, by reason). `--snapshot <dir>` takes a snapshot folder as the BEFORE instead of a campus unit.
+"""
+from __future__ import annotations
+
+import json
+
+import pytest
+
+from engine import cli
+from engine.fixes.pipeline import FixProfile
+from engine.io.obj_reader import read_obj
+from engine.io.obj_writer import write_obj
+from engine.io.snapshot import sha256_file
+from engine.tests.fixtures.build import compartment_with_deep_wall, slab_with_three_skirts
+
+_FAST = FixProfile(guard_size=(120, 80), n_dirs=32)
+
+
+def _campus(tmp_path, mesh, unit="T-L01"):
+    """A one-member campus: `mesh` as a frozen snapshot, and its campus map and source.json written to files."""
+    snap = tmp_path / "snaps" / mesh.name
+    snap.mkdir(parents=True)
+    obj = snap / f"{mesh.name}.obj"
+    write_obj(mesh, obj)
+    (snap / "materials.mtl").write_text("".join(f"newmtl {m}\nKd 0.8 0.8 0.8\n\n" for m in mesh.materials),
+                                        encoding="utf-8")
+    row = {"file": obj.name, "group": mesh.name, "dir": str(snap), "sha256": sha256_file(obj)}
+    cmap = {"units": [{"unit": unit, "members": [{"group": mesh.name, "file": obj.name, "sha256": row["sha256"],
+                                                   "tris": mesh.n_faces, "faces": "all"}]}]}
+    paths = {}
+    for name, data in (("map", cmap), ("source", {"snapshots": [row]}), ("materials", {"materials": {}})):
+        paths[name] = tmp_path / f"{name}.json"
+        paths[name].write_text(json.dumps(data), encoding="utf-8")
+    return paths, snap
+
+
+def _run(tmp_path, mesh, **kw):
+    paths, snap = _campus(tmp_path, mesh)
+    out = tmp_path / "out"
+    code = cli.cmd_repair_unit(out, unit="T-L01", engines=["E8"], campus_map=paths["map"], source=paths["source"],
+                               materials=paths["materials"], profile=_FAST, **kw)
+    return code, out
+
+
+def test_the_parser_takes_a_unit_or_a_snapshot_and_the_engines():
+    args = cli.build_parser().parse_args(["repair-unit", "--unit", "CHTM-L05", "--engines", "E8", "--out", "o"])
+    assert args.unit == "CHTM-L05" and args.engines == ["E8"] and str(args.out) == "o" and args.snapshot is None
+    assert str(args.materials).replace("\\", "/") == "data/campus/materials.json"
+    assert str(args.map).replace("\\", "/") == "data/campus/campus_map.json"
+    args = cli.build_parser().parse_args(["repair-unit", "--snapshot", "snapdir", "--engines", "E8", "--out", "o"])
+    assert str(args.snapshot) == "snapdir" and args.unit is None
+    with pytest.raises(SystemExit):
+        cli.build_parser().parse_args(["repair-unit", "--unit", "U", "--snapshot", "s", "--engines", "E8",
+                                       "--out", "o"])
+
+
+def test_an_engine_that_is_not_e8_is_refused(capsys):
+    assert cli.main(["repair-unit", "--unit", "U", "--engines", "E3", "--out", "o"]) == 2
+    assert "E3" in capsys.readouterr().err
+
+
+def test_repair_unit_refuses_a_protected_output():
+    assert cli._OUTPUT_ARGS["repair-unit"] == ("out",)
+
+
+def test_repair_unit_writes_the_fixed_obj_the_edit_log_and_the_report(tmp_path):
+    mesh = slab_with_three_skirts()
+    code, out = _run(tmp_path, mesh)
+    assert code == 0
+    fixed = read_obj(out / "T-L01.fixed.obj")
+    report = json.loads((out / "report.json").read_text(encoding="utf-8"))
+    assert report["unit"] == "T-L01" and report["engines"] == ["E8"]
+    assert report["sites"]["built"] == 2 and report["sites"]["kept"] == 2 and report["sites"]["rolled_back"] == 0
+    assert report["sites"]["rolled_back_by_reason"] == {}
+    assert report["stages"][0]["final"] == "PASS" and report["covered_after_rollback"] == 0
+    assert report["before"]["faces"] == mesh.n_faces and report["after"]["faces"] == fixed.n_faces > mesh.n_faces
+    assert {p["piece"] for p in report["pieces"]} == {"wall", "bottom"} and all(p["kept"] for p in report["pieces"])
+    lines = [json.loads(line) for line in (out / "edit_log.jsonl").read_text(encoding="utf-8").splitlines()]
+    assert sum("check" in line for line in lines) == 1
+    assert {line["site"] for line in lines if "check" not in line} == {p["site"] for p in report["pieces"]}
+    assert (out / "before" / "T-L01.obj").is_file()
+
+
+def test_repair_unit_reports_a_rolled_back_piece_by_reason(tmp_path):
+    mesh = compartment_with_deep_wall()
+    code, out = _run(tmp_path, mesh)
+    assert code == 0
+    report = json.loads((out / "report.json").read_text(encoding="utf-8"))
+    assert report["sites"]["built"] == 1 and report["sites"]["kept"] == 0 and report["sites"]["rolled_back"] == 1
+    assert report["sites"]["rolled_back_by_reason"] == {"covered": 1}
+    (piece,) = report["pieces"]
+    assert piece["kept"] is False and set(piece["reasons"]) == {"covered"}
+    assert report["covered_after_rollback"] == 0
+    assert read_obj(out / "T-L01.fixed.obj").n_faces == mesh.n_faces, "nothing was kept: the BEFORE ships"
+
+
+def test_repair_unit_takes_a_snapshot_folder_as_the_before(tmp_path):
+    mesh = slab_with_three_skirts()
+    paths, snap = _campus(tmp_path, mesh)
+    out = tmp_path / "out_snap"
+    code = cli.cmd_repair_unit(out, snapshot=snap, engines=["E8"], materials=paths["materials"], profile=_FAST)
+    assert code == 0
+    report = json.loads((out / "report.json").read_text(encoding="utf-8"))
+    assert report["snapshot"] == str(snap) and report["sites"]["kept"] == 2
+    assert (out / f"{mesh.name}.fixed.obj").is_file()
