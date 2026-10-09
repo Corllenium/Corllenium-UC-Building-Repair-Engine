@@ -128,3 +128,19 @@ def test_a_snapshot_in_the_live_export_folder_is_refused_and_nothing_is_read(tmp
     with pytest.raises(ValueError, match="protected"):
         cli.cmd_repair_unit(out, snapshot=LIVE_EXPORT, engines=["E8"], materials=materials, profile=_FAST)
     assert reads == []
+
+
+def test_a_unit_whose_before_differs_from_the_campus_map_stops_with_exit_1(tmp_path, capsys):
+    """Finding 2: as campus-unit-before does, a BEFORE whose face count is not the campus map's stops the run."""
+    mesh = slab_with_three_skirts()
+    paths, _snap = _campus(tmp_path, mesh)
+    cmap = json.loads(paths["map"].read_text(encoding="utf-8"))
+    cmap["units"][0]["members"][0]["tris"] = mesh.n_faces + 1
+    paths["map"].write_text(json.dumps(cmap), encoding="utf-8")
+    out = tmp_path / "out"
+    code = cli.main(["repair-unit", "--unit", "T-L01", "--engines", "E8", "--out", str(out), "--map", str(paths["map"]),
+                     "--source", str(paths["source"]), "--materials", str(paths["materials"])])
+    assert code == 1
+    assert "DIFFERS from the campus map" in capsys.readouterr().err
+    assert not (out / "report.json").exists() and not (out / "T-L01.fixed.obj").exists()
+    assert not (out / "edit_log.jsonl").exists(), "the kernel never ran"

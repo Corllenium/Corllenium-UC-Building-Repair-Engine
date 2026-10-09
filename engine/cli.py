@@ -1092,6 +1092,13 @@ def cmd_repair_unit(out_dir: Path, *, unit: str | None = None, snapshot: Path | 
         src = json.loads(Path(source).read_text(encoding="utf-8"))
         before_dir = out_dir / "before"
         before_report = build_unit_before(cmap, src, unit, before_dir)
+        if not before_report["matches_campus_map"]:
+            # as campus-unit-before: a BEFORE that is not the campus map's unit is not repaired
+            parts = ", ".join(f"{m['group']} [{m['band']}] {m['faces']} (map {m['expected']})"
+                              for m in before_report["members"])
+            print(f"error: {unit}: the BEFORE built from the snapshots DIFFERS from the campus map's tris ({parts}); "
+                  f"nothing repaired -> {before_report['obj']}", file=sys.stderr)
+            return 1
     else:
         before_dir = Path(snapshot)
     obj_path, mesh, flatness, mtl_materials = _load_snapshot(before_dir)
