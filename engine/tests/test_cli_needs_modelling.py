@@ -166,3 +166,18 @@ def test_a_large_spot_is_not_cropped_by_the_fill_review_window(tmp_path):
     assert SPOT_MAX_WINDOW == 1200.0
     assert 120 <= xs.max() - xs.min() <= 136 and 120 <= ys.max() - ys.min() <= 136
     assert xs.min() > 20 and xs.max() < 236 and ys.min() > 20 and ys.max() < 236
+
+
+def test_pieces_dropped_with_their_whole_stage_are_counted_not_listed(tmp_path, monkeypatch):
+    """Exit 3: the stage was rolled back whole. Its pieces failed no check of their own, so they are not listed (the
+    brief: rolled back on its OWN charge), only counted; the file is still written."""
+    import engine.site_judge
+    from engine.tests.test_cli_repair_unit import _FarNoiseJudge
+    monkeypatch.setattr(engine.site_judge, "SiteJudge", _FarNoiseJudge)
+    code, out, _ = _run(tmp_path, slab_with_three_skirts())
+    assert code == 3
+    doc = _doc(out)
+    validate_document(doc)
+    report = json.loads((out / "report.json").read_text(encoding="utf-8"))
+    assert doc["counts"]["stage_rolled_back_not_listed"] == report["sites"]["built"] > 0
+    assert {e["kind"] for e in doc["entries"]} <= {"hole"}, "no slab piece is listed; E8b's refused holes still are"
