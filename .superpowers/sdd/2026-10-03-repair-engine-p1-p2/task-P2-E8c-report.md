@@ -95,3 +95,44 @@ The 15 largest entries are all slab bottoms and sides that E8a rolled back as co
    `seconds.total` includes the queue.
 
 Not touched: `engine/guard/**`, `engine/validate/**`, `FixProfile`. No mesh changes; writes go only under `--out`.
+
+## Fix round 1 (filed by the controller from the implementer's hand-back; HEAD fd9b60a)
+
+**Status: DONE.**
+
+```
+tools:  180 passed in 15.47s
+engine: 1834 passed, 1 xfailed in 763.33s (0:12:43)
+```
+
+No existing test was edited.
+
+1. **38e5c8a: Go links call `sketchup.go(N)`.** Red: the new static test failed. Green: 29 passed.
+2. **ddc7a56: the scan is hardened.**
+   - Added to FORBIDDEN:
+     - dynamic dispatch (`send`, `public_send`, `__send__`, `*_eval`, `define_method`, `const_get`, `method`);
+     - `Dir`, `Kernel`, `open`, `exit`;
+     - `.import`, `.close`, `.undo`, `.quit`, `.options`, `.rendering_options`, `.shadow_info`.
+   - Model access is an allow-list; no variable may hold the model.
+   - 17 bypass samples are scanner self-tests.
+   - The real script's `@dialog.close` was a genuine hit. Done now shows a "Done" page instead, and `set_on_closed`
+     still resets.
+   - Red: 1 failed (`.close`). Green: 55 passed.
+3. **fdceca4: real crosses**, two screen-sized GL_LINES strokes via `view.pixels_to_model`; `draw_points` is gone.
+4. **8e47029: JSON_PATH placeholder** `SET-ME/needs_modelling.json`. The loader says "set JSON_PATH..." and loads
+   nothing.
+5. **Exit-1 cleanup deletes only `*.png`** in `fills/` and `needs_modelling/`, then `rmdir` if empty. A foreign file
+   survives (tested).
+6. **`counts.no_border_not_listed`** counts a rolled-back piece with no border.
+7. **fd9b60a:** `write_spot_crop` removed; `_Viewer.n_dirs` and `n_cams` are set on the early return.
+
+**Sidewalk A re-run** (exit 0, out C:/Temp/e8c/swA2, 67.4 s total):
+
+```
+CHTM_SIDE_WALK_2nd_floor: needs modelling: 143 spots {'hole': 82, 'slab_bottom': 7, 'slab_side': 54} {'covered': 56, 'not_a_simple_loop': 82, 'uv': 5} (2 patch outer borders only counted); 5.25 s
+```
+
+**Concerns:**
+- The Ruby is still never run or parsed: `sketchup.go`, `view.pixels_to_model`, `camera.xaxis`/`yaxis` and
+  `Point3d#offset` are from memory.
+- The scan is not a proof. Heredocs, %-literals and regexp literals are refused by a separate test.
