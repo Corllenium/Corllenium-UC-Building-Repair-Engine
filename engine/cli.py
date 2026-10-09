@@ -46,6 +46,16 @@
     frozen snapshots, banded members cut by face-centre z, so `validate --before <dir>` takes a whole unit.
     Exit 0 when each member's face count is the campus map's, 1 when one differs, 2 on a refused input.
 
+`python -m engine.cli repair-unit (--unit <UNIT> | --snapshot <dir>) --engines E8 --out <dir>`
+    Repairs one unit with the P2 engines (E8, strict solidify, so far): builds its BEFORE as `campus-unit-before`
+    does (into `<dir>/before/`), runs the repair kernel with the site judge on (`validate_sites=True`), so each
+    piece of work is its own site and one that breaks anything visible -- a rebuilt side covering anything any
+    viewpoint sees, eye-height probes included -- is rolled back. Writes `<unit>.fixed.obj`, `edit_log.jsonl` and
+    `report.json` (pieces built, kept and rolled back by reason; the Validator's covered count after rollback;
+    times). No `.skp`. Exit 0 when the E8 stage passed, 1 when the unit's BEFORE differs from the campus map
+    (nothing repaired), 2 on a refused input, 3 when the stage was rolled back whole or ended FAIL (every file is
+    still written, and the mesh shipped is the BEFORE).
+
 A snapshot directory is the layout `engine.io.snapshot.snapshot_object` produces: one `<name>.obj`,
 `materials.mtl`, and a `tex/` folder of the textures it references.
 
@@ -981,6 +991,197 @@ def cmd_validate(before_dir: Path, after_path: Path, materials: Path, out_dir: P
     return 0 if result.passed else 2
 
 
+# ------------------------------------------------------------------------------------ repair-unit command
+
+#: The repair engines `repair-unit` runs (P2): only E8, strict solidify, so far.
+REPAIR_ENGINES = ("E8",)
+#: `repair-unit`'s exit code when an engine stage was rolled back whole or ended FAIL (its outputs are still written).
+REPAIR_STAGE_FAILED = 3
+#: `repair-unit`'s exit codes, as its help gives them.
+REPAIR_EXIT_CODES = ("exit 0: the E8 stage passed (its last check PASS, or every piece rolled back on its own charge); "
+                     "1: the unit's BEFORE differs from the campus map, nothing repaired; "
+                     "2: a refused input (unknown engine, protected folder, missing file); "
+                     "3: the stage was rolled back whole or ended FAIL - every file is still written and the "
+                     "mesh shipped is the BEFORE, the safe one")
+
+
+def _after_rollback(check: dict) -> dict:
+    """What the stage's LAST check says of the mesh it ships. When it kept sites, the last run judged exactly those
+    (the kernel rolls back the rest, and a stage whose last run is not PASS is rolled back whole); when it kept
+    none, the stage ships its input, which covers nothing by construction."""
+    runs = check.get("runs") or []
+    kept_any = check.get("sites", 0) > len(check.get("rolled_back", []))
+    if not runs or not kept_any:
+        return {"verdict": check.get("final", "PASS"), "covered": 0, "textures_covered": 0, "failing": 0,
+                "judged_by": "nothing kept: the stage ships its input"}
+    last = runs[-1]
+    return {"verdict": check["final"], "covered": int(last["nothing_deleted"]["covered"]),
+            "textures_covered": int(last["textures"].get("covered", 0)), "failing": int(last["failing"]),
+            "judged_by": f"the {last['kind']} run on the {last['sites']} kept site(s)"}
+
+
+def _repair_report(result, check_by_stage: dict) -> tuple[list[dict], dict]:
+    """`(pieces, sites)` of report.json: one row per site E8 planned, and the counts kept and rolled back, by
+    reason (a site counts once under each reason the Validator gave for the samples charged to it)."""
+    rolled = {}
+    for check in check_by_stage.values():
+        for row in check.get("rolled_back", []):
+            rolled[row["site"]] = row
+    kept_sites = {e.site for e in result.kept}
+    pieces, by_reason, samples_by_reason = [], collections.Counter(), collections.Counter()
+    for site in dict.fromkeys(e.site for e in result.edits):
+        mine = [e for e in result.edits if e.site == site]
+        build = next((e for e in mine if e.kind in ("add", "cut")), mine[0])
+        ev = build.evidence
+        row = rolled.get(site)
+        reasons = {} if row is None else dict(row["reasons"])
+        if row is not None and row.get("stage_rolled_back"):
+            reasons = {"stage_rolled_back": 0}
+        pieces.append({"site": int(site), "piece": ev.get("piece"), "region": ev.get("region"),
+                       "kinds": [e.kind for e in mine], "faces": int(sum(len(e.new_faces) for e in mine
+                                                                         if e.new_faces is not None)),
+                       "new_points": int(sum(0 if e.new_points is None else len(e.new_points) for e in mine)),
+                       "replaced": int(sum(len(e.faces) for e in mine)), "length": ev.get("length"),
+                       "thickness": ev.get("thickness"), "kept": site in kept_sites, "reasons": reasons,
+                       "charged": 0 if row is None else int(row["charged"]), "reason": build.reason})
+        if row is not None:
+            by_reason.update(reasons.keys())
+            samples_by_reason.update(reasons)
+    sites = {"built": len(pieces), "kept": sum(p["kept"] for p in pieces),
+             "rolled_back": sum(not p["kept"] for p in pieces),
+             "rolled_back_by_reason": dict(sorted(by_reason.items())),
+             "rolled_back_samples_by_reason": {k: int(v) for k, v in sorted(samples_by_reason.items()) if v},
+             "by_piece": {kind: {"built": sum(p["piece"] == kind for p in pieces),
+                                 "kept": sum(p["piece"] == kind and p["kept"] for p in pieces)}
+                          for kind in ("wall", "bottom")}}
+    return pieces, sites
+
+
+def cmd_repair_unit(out_dir: Path, *, unit: str | None = None, snapshot: Path | None = None,
+                    engines=REPAIR_ENGINES, campus_map: Path = Path("data/campus/campus_map.json"),
+                    source: Path = Path("data/campus/source.json"),
+                    materials: Path = Path("data/campus/materials.json"),
+                    profile: FixProfile | None = None) -> int:
+    """Repair one floor or element unit with the P2 engines, each piece of work checked by the Validator.
+
+    The BEFORE is the campus unit `unit`, built as `campus-unit-before` builds it (into `<out_dir>/before/`), or the
+    snapshot folder `snapshot`. The repair kernel runs `engines` (E8 only, so far) with the site judge on
+    (`validate_sites=True`, the owner's settings; looks from `materials` and the BEFORE's MTL): a site that broke
+    anything visible is rolled back. Writes `<out_dir>/<name>.fixed.obj` (with `materials.mtl` next to it),
+    `edit_log.jsonl` and `report.json`: the pieces built, kept and rolled back (by the Validator's reason), the
+    stage checks, the Validator's covered count after rollback, and the times. Writes no `.skp`.
+    Returns 0 when the E8 stage passed (its last check PASS, or NOTHING KEPT: every piece rolled back on its own
+    charge); 3 (`REPAIR_STAGE_FAILED`) when the stage was rolled back whole or ended FAIL -- every file is still
+    written, and the mesh shipped is the safe one (the stage's input); 1 when the unit's BEFORE differs from the
+    campus map (nothing repaired). Raises ValueError for an unknown engine, a unit or snapshot missing (or both
+    given), a protected `out_dir`, or a snapshot in a protected folder (`main` turns those into exit 2)."""
+    from engine.campus.unit_before import build_unit_before
+    from engine.repair.engines.e8_solidify import E8Solidify
+    from engine.repair.kernel import repair_unit
+    from engine.repair.types import RepairContext, UnitState
+    from engine.site_judge import SiteJudge
+    from engine.validate.checks import load_looks
+
+    engines = list(engines)
+    unknown = [e for e in engines if e not in REPAIR_ENGINES]
+    if unknown or not engines:
+        raise ValueError(f"repair-unit runs only {REPAIR_ENGINES}; not {unknown or 'no engine'}")
+    if (unit is None) == (snapshot is None):
+        raise ValueError("give exactly one of a unit and a snapshot")
+    out_dir = Path(out_dir)
+    refuse_protected(out_dir)
+    if snapshot is not None:
+        # the live export folder (and the backup and the master) are read only through engine/io/snapshot.py's
+        # stable copies (AGENTS.md section 3): a snapshot folder in one of them is refused before anything is read
+        try:
+            refuse_protected(snapshot)
+        except ValueError as exc:
+            raise ValueError(f"refusing to read {snapshot}: it lies in a protected folder, which is read only "
+                             f"through engine/io/snapshot.py (its frozen copies under data/snapshots) ({exc})") from exc
+    started = time.perf_counter()
+    before_report = None
+    if unit is not None:
+        cmap = json.loads(Path(campus_map).read_text(encoding="utf-8"))
+        src = json.loads(Path(source).read_text(encoding="utf-8"))
+        before_dir = out_dir / "before"
+        before_report = build_unit_before(cmap, src, unit, before_dir)
+        if not before_report["matches_campus_map"]:
+            # as campus-unit-before: a BEFORE that is not the campus map's unit is not repaired
+            parts = ", ".join(f"{m['group']} [{m['band']}] {m['faces']} (map {m['expected']})"
+                              for m in before_report["members"])
+            print(f"error: {unit}: the BEFORE built from the snapshots DIFFERS from the campus map's tris ({parts}); "
+                  f"nothing repaired -> {before_report['obj']}", file=sys.stderr)
+            return 1
+    else:
+        before_dir = Path(snapshot)
+    obj_path, mesh, flatness, mtl_materials = _load_snapshot(before_dir)
+    profile = profile or FixProfile()
+    judge = SiteJudge(load_looks(Path(materials), [(mtl_materials, before_dir)]))
+    engine = E8Solidify(flatness=flatness)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    (out_dir / "report.json").unlink(missing_ok=True)
+    built = time.perf_counter()
+    result = repair_unit(UnitState(mesh=mesh, topo=None, looks={}, viewpoints=None),
+                         RepairContext(profile=profile, decider=None, validator=judge),
+                         engines=[engine], validate_sites=True, edit_log=out_dir / "edit_log.jsonl")
+    repaired = time.perf_counter()
+
+    name = mesh.name
+    fixed = out_dir / f"{name}.fixed.obj"
+    write_obj(result.mesh, fixed)
+    if before_dir != out_dir:
+        if snapshot is not None:
+            _copy_assets(before_dir, out_dir)
+        elif (before_dir / "materials.mtl").is_file():
+            shutil.copyfile(before_dir / "materials.mtl", out_dir / "materials.mtl")
+
+    checks = {c["stage"]: c for c in result.checks}
+    pieces, sites = _repair_report(result, checks)
+    after = [dict(_after_rollback(c), stage=stage) for stage, c in checks.items()]
+    sr = engine.report or {}
+    report = {
+        "unit": unit, "snapshot": None if snapshot is None else str(snapshot), "engines": engines,
+        "before": {"obj": str(obj_path), "sha256": sha256_file(obj_path), "faces": int(mesh.n_faces),
+                   "unit_before": before_report},
+        "after": {"obj": str(fixed), "sha256": sha256_file(fixed), "faces": int(result.mesh.n_faces)},
+        "profile": _profile_dict(profile),
+        "sites": sites,
+        "pieces": pieces,
+        "covered_after_rollback": int(sum(a["covered"] for a in after)),
+        "after_rollback": after,
+        "stages": [{k: c.get(k) for k in ("stage", "engine", "sites", "edits", "first", "final", "rounds",
+                                           "rounds_exhausted", "stage_rolled_back", "unknown", "runs", "rolled_back")}
+                   for c in result.checks],
+        "solidify": {k: sr.get(k) for k in ("skirts_added", "bottoms_added", "sides_rebuilt", "side_pieces_replaced",
+                                            "invented_vertices", "cap_guard_removed", "cap_guard_passed",
+                                            "walls_refused", "bottom_faces_refused", "runtime_s")},
+        "seconds": {"before": round(built - started, 2), "kernel": round(repaired - built, 2),
+                    "total": round(time.perf_counter() - started, 2)},
+        "exit_code": _repair_exit_code(result.checks),
+    }
+    (out_dir / "report.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
+
+    _print_checks(name, result.checks, repaired - built)
+    s = sites
+    print(f"{name}: E8 built {s['built']} pieces ({s['by_piece']['wall']['built']} walls, "
+          f"{s['by_piece']['bottom']['built']} bottoms); kept {s['kept']}, rolled back {s['rolled_back']} "
+          f"{s['rolled_back_by_reason']}; covered after rollback {report['covered_after_rollback']}; "
+          f"{mesh.n_faces} -> {result.mesh.n_faces} faces; {report['seconds']['total']} s; wrote {out_dir}")
+    if report["exit_code"] == REPAIR_STAGE_FAILED:
+        print(f"{name}: an engine stage was rolled back whole or did not end PASS: the BEFORE ships for it "
+              f"(exit {REPAIR_STAGE_FAILED})", file=sys.stderr)
+    return report["exit_code"]
+
+
+def _repair_exit_code(checks: list[dict]) -> int:
+    """0 when every stage passed: its last check PASS, or NOTHING KEPT (each piece rolled back on its own charge,
+    the stage's input ships); `REPAIR_STAGE_FAILED` (3) when a stage was rolled back whole or ended any other way."""
+    for check in checks:
+        if check.get("stage_rolled_back") or check.get("final") not in ("PASS", "NOTHING KEPT"):
+            return REPAIR_STAGE_FAILED
+    return 0
+
+
 # ------------------------------------------------------------------------------------------ main
 
 
@@ -1101,6 +1302,26 @@ def build_parser() -> argparse.ArgumentParser:
     before_p.add_argument("--copy-textures", action="store_true",
                           help="copy the textures to <out>/tex (default: the MTL points at the snapshots')")
 
+    repair_p = sub.add_parser(
+        "repair-unit",
+        help="repair one floor or element unit with the P2 engines (E8 so far), every piece checked by the "
+             "Validator and rolled back if it breaks anything visible",
+        description="Repair one floor or element unit with the P2 engines (E8 so far); every piece is checked by "
+                    "the Validator and rolled back if it breaks anything visible. " + REPAIR_EXIT_CODES + ".")
+    where = repair_p.add_mutually_exclusive_group(required=True)
+    where.add_argument("--unit", default=None, help="the unit's name in the campus map, e.g. CHTM-L05")
+    where.add_argument("--snapshot", type=Path, default=None,
+                       help="a snapshot folder (one .obj, materials.mtl, tex/) as the BEFORE, instead of a unit")
+    repair_p.add_argument("--engines", nargs="+", required=True, help=f"the engines to run: {', '.join(REPAIR_ENGINES)}")
+    repair_p.add_argument("--out", type=Path, required=True,
+                          help="receives before/, <unit>.fixed.obj, edit_log.jsonl and report.json (a short temp folder)")
+    repair_p.add_argument("--map", type=Path, default=Path("data/campus/campus_map.json"),
+                          help="the owner-confirmed campus map")
+    repair_p.add_argument("--source", type=Path, default=Path("data/campus/source.json"),
+                          help="the source.json file from campus-freeze (snapshot folders)")
+    repair_p.add_argument("--materials", type=Path, default=Path("data/campus/materials.json"),
+                          help="the campus look keys the Validator judges by")
+
     census_p = sub.add_parser("census", help="run find_errors census over units with timings, peak memory and fix plan")
     census_p.add_argument("units", nargs="*", default=None, help="snapshot directories (default: all snapshots in source.json)")
     census_p.add_argument("--out", type=Path, default=Path("data/campus/census.json"), help="output census JSON path")
@@ -1198,7 +1419,7 @@ _OUTPUT_ARGS = {"fix": ("out", "skp_dir"), "preview-data": ("out",), "errors": (
                 "campus-skp-check": ("out", "summary"), "validate": ("out",),
                 "census": ("out", "md", "errors_dir"), "campus-freeze": ("out", "snapshots"),
                 "campus-index": ("out",), "campus-materials": ("out",), "campus-inventory": ("out", "md"),
-                "decide-pilot": ("out",), "campus-unit-before": ("out",)}
+                "decide-pilot": ("out",), "campus-unit-before": ("out",), "repair-unit": ("out",)}
 
 
 def _refuse_protected_outputs(args) -> str | None:
@@ -1292,6 +1513,13 @@ def main(argv: list[str] | None = None) -> int:
               + ("equals the campus map's tris" if report["matches_campus_map"]
                  else "DIFFERS from the campus map's tris") + f" -> {report['obj']}")
         return 0 if report["matches_campus_map"] else 1
+    elif args.command == "repair-unit":
+        try:
+            return cmd_repair_unit(args.out, unit=args.unit, snapshot=args.snapshot, engines=args.engines,
+                                   campus_map=args.map, source=args.source, materials=args.materials)
+        except (ValueError, OSError, KeyError) as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            return 2
     elif args.command == "campus-skp-check":
         from engine.campus import skp_check
         from engine.io.snapshot import SourceUnstable

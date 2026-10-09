@@ -172,6 +172,18 @@ class SolidifyResult:
     #: allowed a new face to cover only by its rule 6 (seen through a closed slab) in the returned
     #: state. The hidden pass never deletes one (`engine.fixes.pipeline`). None: not measured.
     seen_through_shell: np.ndarray | None = None
+    #: P2-E8a, READ ONLY (a record of what was built; nothing here changes it). Int over `mesh` faces: the
+    #: closing group -- the PIECE -- each invented face belongs to (one per wall, one per bottom), -1 for the
+    #: input's faces. The repair engine E8 makes each piece one site.
+    face_group: np.ndarray | None = None
+    #: P2-E8a, READ ONLY. Int over the INPUT mesh's faces: the piece whose kept closing face replaced the face
+    #: (`replaced`), -1 for every face not replaced.
+    replaced_group: np.ndarray | None = None
+    #: P2-E8a, READ ONLY. One dict per piece BUILT, indexed by its group id (before the cap guard judged it):
+    #: `{"group", "kind": "wall" | "bottom", "region", "material", "length"}` and, for a wall, `"edge"` (its top
+    #: edge's two end points), `"heights"` (its depth below each end) and `"measured"` (the edge's measured
+    #: height, None when it fell back); for a bottom, `"depth"` below its top.
+    pieces: list | None = None
 
 
 def _depth_tol(topo: Topology, profile) -> float:
@@ -1427,6 +1439,8 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
     group_region: list[int] = []
     group_kind: list[str] = []
     group_length: list[float] = []
+    # P2-E8a: a read-only record of each group (piece) built, for `SolidifyResult.pieces`
+    group_info: list[dict] = []
     volumes: dict[int, tuple] = {}
     report_thickness: dict[str, float] = {}
     report_bottom_depth: dict[str, float] = {}
@@ -1550,6 +1564,8 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
             group_region.append(region)
             group_kind.append("bottom")
             group_length.append(0.0)
+            group_info.append({"group": group, "kind": "bottom", "region": int(region),
+                               "material": int(material), "length": 0.0, "depth": float(depth)})
             for f in pieces:
                 replaced_group[f] = group
                 claimed.add(f)
@@ -1697,6 +1713,11 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
             group_kind.append("wall")
             length = float(np.linalg.norm(pb - pa))
             group_length.append(length)
+            group_info.append({"group": group, "kind": "wall", "region": int(region),
+                               "material": int(wall_material), "length": length,
+                               "edge": [np.asarray(pa, float).tolist(), np.asarray(pb, float).tolist()],
+                               "heights": [float(h_a), float(h_b)],
+                               "measured": None if measured is None else float(measured)})
             for triangle in triangles:
                 builder.face(triangle, wall_material, wall_uv, group)
             if found and wall_material != material:
@@ -1958,8 +1979,12 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
         "faces_newly_hidden": hidden_after - hidden_before,
         "runtime_s": round(time.perf_counter() - started, 3),
     }
+    # P2-E8a: the read-only piece record -- each shipped face's group, and the group that replaced each piece
+    face_group = np.where(out_new, new_group[keep], -1).astype(np.int64)
+    replaced_by = np.where(replaced, replaced_group, -1).astype(np.int64)
     return SolidifyResult(mesh=out, new_faces=out_new, report=report, replaced=replaced,
-                          seen_through_shell=seen_through)
+                          seen_through_shell=seen_through, face_group=face_group,
+                          replaced_group=replaced_by, pieces=group_info)
 
 
 def _relook_walls(out: MeshData, out_new: np.ndarray, out_group: np.ndarray, wall_looks: dict,
