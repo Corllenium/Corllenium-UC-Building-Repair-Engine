@@ -184,6 +184,12 @@ class SolidifyResult:
     #: edge's two end points), `"heights"` (its depth below each end) and `"measured"` (the edge's measured
     #: height, None when it fell back); for a bottom, `"depth"` below its top.
     pieces: list | None = None
+    #: P2-E3, READ ONLY (a record of what solidify measured; nothing here changes it). Bool over the INPUT mesh's
+    #: faces: the faces solidify takes as a SLAB SIDE -- an own side of a top it plans (`_own_side_rows`: a side
+    #: face, `|n_z| <= top_min_nz`, with an edge lying along the top's outline), or a piece it found in the side
+    #: band under one of that top's outline edges (`_wall_pieces`, whole side or broken). The hidden-face engine E3
+    #: never removes one (ruling E3-R3: never side meshes).
+    side_faces: np.ndarray | None = None
 
 
 def _depth_tol(topo: Topology, profile) -> float:
@@ -1309,6 +1315,7 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
     body_above = _BodyAbove(topo, sides, ok_ids, normals, tol, band, top_min_nz,
                             getattr(profile, "n_dirs", 128))
     continued_tops = 0
+    side_record: set[int] = set()       # P2-E3: read-only, input faces solidify takes as a slab side
     while queue:
         region = queue.pop(0)
         members = np.nonzero(topo.face_region == region)[0]
@@ -1368,6 +1375,8 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
         # how far this top's own sides hang below each outline edge (0 where none does)
         hang = [max((row_depth.get(r, 0.0) for r in along.get((int(a), int(b)), [])), default=0.0)
                 for a, b in edges]
+        # P2-E3: a read-only record -- this top's own sides are slab sides (`SolidifyResult.side_faces`)
+        side_record.update(int(sides[row]) for row in own)
         plans.append({"region": region, "members": members, "pieces": pieces, "normal": normal,
                       "origin": origin, "basis": basis, "foot": foot, "edges": edges,
                       "frames": frames, "continued": continued, "measured": measured,
@@ -1634,6 +1643,7 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
                                                   max_depth=max_h,
                                                   min_side=0.0 if rep is None else rep - tol,
                                                   h_ends=ends, touch=max(tol, EPS_IN))
+            side_record.update(int(f) for f in found)       # P2-E3: read-only, the pieces of a side
             if depth is not None:
                 side_runs.append((float(depth), float(np.linalg.norm((pb - pa)[:2]))))
             if coverage >= SIDE_WHOLE_FRACTION:
@@ -1982,9 +1992,11 @@ def solidify(mesh: MeshData, topo: Topology, profile) -> SolidifyResult:
     # P2-E8a: the read-only piece record -- each shipped face's group, and the group that replaced each piece
     face_group = np.where(out_new, new_group[keep], -1).astype(np.int64)
     replaced_by = np.where(replaced, replaced_group, -1).astype(np.int64)
+    side_faces = np.zeros(mesh.n_faces, bool)       # P2-E3: the read-only slab-side record
+    side_faces[sorted(side_record)] = True
     return SolidifyResult(mesh=out, new_faces=out_new, report=report, replaced=replaced,
                           seen_through_shell=seen_through, face_group=face_group,
-                          replaced_group=replaced_by, pieces=group_info)
+                          replaced_group=replaced_by, pieces=group_info, side_faces=side_faces)
 
 
 def _relook_walls(out: MeshData, out_new: np.ndarray, out_group: np.ndarray, wall_looks: dict,

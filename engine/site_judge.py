@@ -63,9 +63,9 @@ import numpy as np
 
 from engine.model import MeshData
 from engine.validate.checks import FillSite, Focus, Looks, Settings, depth_tolerance, print_step, validate
-from engine.validate.sampling import recentred, used_bbox
+from engine.validate.sampling import Samples, face_samples, recentred, used_bbox
 from engine.validate.viewpoints import interior_probes, outside_directions, pedestrian_ring
-from engine.validate.visibility import EPS_ORIGIN, build_caster
+from engine.validate.visibility import EPS_ORIGIN, build_caster, visible_samples
 
 #: Slack, in inches, on top of the depth tolerance and `EPS_ORIGIN` round the new faces' boxes.
 _SLACK = 0.01
@@ -320,6 +320,35 @@ class SiteJudge:
                 how[site] = {"touched": int(by_touch.sum()), "box": int(by_box.sum()), "cover": int(by_cover.sum())}
                 hit_any |= mine
         return Attribution(charged=charged, how=how, unknown=np.flatnonzero(~hit_any))
+
+    # -- what the eye-height probes see (P2-E3) -----------------------------------------------------------------
+    def probe_seen(self, mesh: MeshData, faces) -> np.ndarray:
+        """Per face of `faces` (ids of `mesh`): how many of its samples some eye-height probe sees, from its front or
+        its back. The hidden-face engine E3's pre-filter (ruling E3-R4: never room surfaces), with the Validator's own
+        means: the probes placed on `mesh` exactly as `begin` places them on a BEFORE (`interior_probes` at this
+        judge's settings), the samples at the Validator's density (`face_samples`), and "sees" as the Validator casts
+        it (`visible_samples`: the segment from the sample, stepped off its face toward the probe, is clear). It
+        changes nothing in the judge's state and never stands in for a check: the site checks still judge E3."""
+        faces = np.asarray(faces, dtype=np.int64)
+        out = np.zeros(len(faces), dtype=np.int64)
+        if not len(faces) or not mesh.n_faces:
+            return out
+        s = self.settings
+        b, _ = recentred(mesh)
+        caster = build_caster(b)
+        probes = interior_probes(b, eye=s.eye, caster=caster)
+        if not len(probes):
+            return out
+        samples = face_samples(b, faces=np.unique(faces), min_per_face=s.min_per_face,
+                               area_per_sample=s.area_per_sample)
+        none = np.zeros((0, 3))
+        seen = np.zeros(len(samples), dtype=bool)
+        chunk = max(1, int(s.chunk))
+        for start in range(0, len(samples), chunk):
+            part = slice(start, min(start + chunk, len(samples)))
+            sub = Samples(points=samples.points[part], face=samples.face[part], bary=samples.bary[part])
+            seen[part] = visible_samples(b, sub, none, none, probes, caster).seen.any(axis=1)
+        return np.bincount(samples.face[seen], minlength=mesh.n_faces)[faces].astype(np.int64)
 
     # -- the check ---------------------------------------------------------------------------------------------
     def check(self, after: MeshData, focus: Focus, fills=None) -> SiteVerdict:
