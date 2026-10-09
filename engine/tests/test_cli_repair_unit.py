@@ -211,4 +211,7 @@ def test_the_help_documents_the_exit_codes():
     import argparse
     sub = next(a for a in cli.build_parser()._actions if isinstance(a, argparse._SubParsersAction))
     text = " ".join(sub.choices["repair-unit"].format_help().split())
-    assert "exit 0" in text and "1" in text and "2" in text and "3" in text and "rolled back whole" in text
+    assert "exit 0: every E8 stage passed" in text
+    assert "1: the unit's BEFORE differs from the campus map" in text
+    assert "2: a refused input" in text
+    assert "3: the stage was rolled back whole" in text
