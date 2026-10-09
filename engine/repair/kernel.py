@@ -18,7 +18,8 @@ SITE CHECKS (P1-K3b, `validate_sites=True`). After each stage the site judge in 
 focus run of the Validator on the union of the stage's sites (`Edit.site`), charges each failing
 sample to the sites that could have caused it, rolls those back and confirms with one more run
 (`_check_stage`); the next stage runs on `apply_edits(stage_input, kept_edits)`. Legacy stages are
-one site each and are logged, not rolled back (ruling K3-R2). The edit log then also carries a
+one site each and are logged, not rolled back (ruling K3-R2). A non-legacy stage that does not end PASS is rolled
+back as a whole, and the next stage runs on the stage's input (P2-K0). The edit log then also carries a
 `{"check": {...}}` line after each stage's edits and `"rolled_back": true` on every dropped edit;
 the check lines hold run DURATIONS (seconds), so unlike the edit lines they differ between runs.
 Without `validate_sites` the kernel is exactly P1-K2's.
@@ -180,12 +181,15 @@ def _check_stage(judge, stage_input: MeshData, edits: list[Edit], *, stage: str,
     Validator's counts by reason, faces in focus and seconds), `rolled_back` (per site: the round,
     the samples charged, how, the reasons of the Validator's sites holding them, their faces and the
     site's edit count), `unknown` (distinct samples over all runs, their faces and reasons), `first`
-    and `final` (the stage's verdict before and after the rounds). Durations only, no timestamps."""
+    and `final` (the stage's verdict before and after the rounds). A NON-legacy stage whose `final` is not PASS
+    (a failure charged to no site, or rounds exhausted with sites still kept) is rolled back as a whole (P2-K0):
+    every kept site is added to `rolled_back` with `"stage_rolled_back": true` and the record's
+    `stage_rolled_back` says why (None otherwise). Durations only, no timestamps."""
     sites = list(dict.fromkeys(e.site for e in edits))
     record = {"stage": stage, "engine": engine, "legacy": legacy, "rollback": rollback,
               "sites": len(sites), "edits": len(edits), "first": "PASS", "final": "PASS",
               "runs": [], "rolled_back": [], "unknown": {"samples": 0, "faces": [], "reasons": {}},
-              "rounds": 0, "rounds_exhausted": False}
+              "rounds": 0, "rounds_exhausted": False, "stage_rolled_back": None}
     if not edits:
         return set(), record
     judge.begin(stage_input)
@@ -256,6 +260,17 @@ def _check_stage(judge, stage_input: MeshData, edits: list[Edit], *, stage: str,
         record["final"] = "FAIL (legacy stage kept, ruling K3-R2)"
     else:
         record["final"] = _status(verdict)
+    if not legacy and kept and record["final"] != "PASS":
+        # A non-legacy stage ships only when its last check passed: a failure charged to no site, or rounds that
+        # ran out with sites still kept and never re-checked, drops every edit of the stage.
+        for site in kept:
+            record["rolled_back"].append({
+                "site": int(site), "round": rounds + 1, "charged": 0, "how": {"touched": 0, "box": 0, "cover": 0},
+                "reasons": {}, "faces": [], "edits": sum(e.site == site for e in edits),
+                "rounds_exhausted": record["rounds_exhausted"], "stage_rolled_back": True})
+        rolled.update(kept)
+        record["stage_rolled_back"] = (f"final verdict {record['final']}: the stage's remaining edits were not "
+                                       f"confirmed by a passing check, so none of them ships")
     return rolled, record
 
 

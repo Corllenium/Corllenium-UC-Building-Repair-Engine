@@ -173,16 +173,18 @@ class _NoisyJudge(SiteJudge):
         return SiteVerdict(failing=v.failing | {(0, 0)}, summary=v.summary, seconds=v.seconds, samples=samples)
 
 
-def test_a_failure_charged_to_no_site_is_logged_as_unknown_and_nothing_is_rolled_back():
+def test_a_failure_charged_to_no_site_is_logged_as_unknown_and_no_site_is_charged_but_the_stage_is_rolled_back():
+    # P2-K0 item 1: the stage no longer ships its edits after a failure no site explains (it used to keep them all).
     before, dup, cut = _cube_scene()
     good = _good_edits(before, dup, cut)
     got, _ = _run(before, LOOKS, [_Planned("fixture", good)], judge=_NoisyJudge(LOOKS, margin=2.0))
     (check,) = got.checks
-    assert check["first"] == "FAIL" and check["rolled_back"] == [] and got.kept == good
+    assert check["first"] == "FAIL" and got.kept == [] and got.rolled_back == good
+    assert all(r["stage_rolled_back"] and r["charged"] == 0 for r in check["rolled_back"])
     assert check["unknown"] == {"samples": 1, "faces": [0], "reasons": {"deleted": 1}}
     assert check["runs"][0]["unknown"] == 1 and check["runs"][0]["charged"] == 0
-    assert [r["kind"] for r in check["runs"]] == ["first"], "nothing rolled back: no confirming run is needed"
-    _same(got.mesh, apply_edits(before, good)[0])
+    assert [r["kind"] for r in check["runs"]] == ["first"], "no site was charged: no confirming run is needed"
+    _same(got.mesh, before)
 
 
 def _covered_then_unmasked():
