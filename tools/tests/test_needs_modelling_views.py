@@ -230,3 +230,13 @@ def test_an_unordered_border_point_is_a_real_cross_of_two_gl_lines_strokes():
     assert "draw_points" not in code
     assert "view.draw(GL_LINES" in code and "pixels_to_model" in code
     assert "camera.xaxis" in code and "camera.yaxis" in code
+
+
+def test_json_path_is_a_placeholder_and_the_loader_says_so():
+    text = SCRIPT.read_text(encoding="utf-8")
+    assert re.search(r"^\s*JSON_PATH = 'SET-ME/needs_modelling\.json'\s*$", text, re.M)
+    assert re.search(r"PLACEHOLDER_PATH\s*=\s*'SET-ME/needs_modelling\.json'", text)
+    load = text.split("def self.load_entries", 1)[1].split("\n  def self.", 1)[0]
+    assert load.index("PLACEHOLDER_PATH") < load.index("File.file?"), "the placeholder is checked before any file is read"
+    assert "set JSON_PATH at the top of this script" in load
+    assert "return false" in load.split("File.file?", 1)[0]

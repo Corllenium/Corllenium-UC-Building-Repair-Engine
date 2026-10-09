@@ -22,7 +22,8 @@ require 'cgi'
 
 module UCNeedsModelling
   # >>> SET THIS to the needs_modelling.json of the floor you are working on <<<
-  JSON_PATH = 'C:/Temp/e8c/chtm5/needs_modelling.json'
+  JSON_PATH = 'SET-ME/needs_modelling.json'
+  PLACEHOLDER_PATH = 'SET-ME/needs_modelling.json'
 
   MENU_TITLE = 'UC Needs Modelling'
   OUTLINE_COLOR = Sketchup::Color.new(255, 220, 0)
@@ -88,8 +89,12 @@ module UCNeedsModelling
   end
 
   def self.load_entries
+    if JSON_PATH == PLACEHOLDER_PATH
+      UI.messagebox("UC Needs Modelling: set JSON_PATH at the top of this script to the floor's needs_modelling.json, "                     "then paste the script again. Nothing was loaded.")
+      return false
+    end
     unless File.file?(JSON_PATH)
-      UI.messagebox("UC Needs Modelling: no such file\n#{JSON_PATH}\nSet JSON_PATH at the top of the script.")
+      UI.messagebox("UC Needs Modelling: no such file\n#{JSON_PATH}\nSet JSON_PATH at the top of this script.")
       return false
     end
     doc = JSON.parse(File.read(JSON_PATH))
