@@ -743,6 +743,43 @@ class FillSite:
 
 #: (sample, viewpoint) lines of sight replayed at once by the fill_site class.
 _FILL_PAIRS = 200_000
+#: The owner's narrow flat fill, re-measured here and never taken from the engine (AGENTS.md section 6): the hole's
+#: largest inscribed circle is at most this many inches across (E8b-R3, one block), and every face round it is
+#: within this many degrees of the loop's plane, up to sign (E8b-R2).
+FILL_MAX_DIAMETER = 39.37
+FILL_NORMAL_TOL_DEG = 1.0
+#: How close `polylabel` gets to the inscribed circle's centre (in); counted AGAINST the hole: the diameter it finds
+#: plus twice this must stay within the cap.
+_FILL_POLYLABEL_TOL = 0.005
+
+
+def _fill_shape_refusal(before: MeshData, neighbours, loop: np.ndarray, c: np.ndarray, n: np.ndarray,
+                        poly: np.ndarray, tol: float) -> str | None:
+    """Why a marked fill is not the owner's narrow FLAT fill, re-measured on BEFORE (None when it is): a neighbour
+    more than `FILL_NORMAL_TOL_DEG` off the loop's plane, or with a corner more than `tol` out of it (E8b-R2); a loop
+    that crosses itself; or a hole whose largest inscribed circle, plus polylabel's own tolerance on both sides, is
+    wider than `FILL_MAX_DIAMETER` (E8b-R3)."""
+    from shapely import Polygon
+    from shapely.ops import polylabel
+
+    tri = before.positions[before.face_v[np.asarray(neighbours, dtype=np.int64)]]
+    normal = np.cross(tri[:, 1] - tri[:, 0], tri[:, 2] - tri[:, 0])
+    length = np.linalg.norm(normal, axis=1)
+    if (length <= 0.0).any():
+        return "a face round the hole has no area, so no normal to compare (E8b-R2)"
+    angle = float(np.degrees(np.arccos(np.clip(np.abs((normal / length[:, None]) @ n), 0.0, 1.0))).max())
+    offset = float(np.abs((tri - c) @ n).max())
+    if angle > FILL_NORMAL_TOL_DEG or offset > tol:
+        return (f"the faces round the hole are not coplanar with it: {angle:.3f} deg and {offset:.4f} in off its "
+                f"plane (at most {FILL_NORMAL_TOL_DEG} deg and {tol:.4f} in; E8b-R2)")
+    polygon = Polygon(poly)
+    if not polygon.is_valid:
+        return "the loop crosses itself in its plane (E8b-R1)"
+    diameter = 2.0 * float(polygon.exterior.distance(polylabel(polygon, tolerance=_FILL_POLYLABEL_TOL)))
+    if diameter + 2.0 * _FILL_POLYLABEL_TOL > FILL_MAX_DIAMETER:
+        return (f"the hole's largest inscribed circle is {diameter:.2f} in across (with polylabel's tolerance at most "
+                f"{FILL_MAX_DIAMETER} in; E8b-R3)")
+    return None
 
 
 def _in_polygon(poly: np.ndarray, xy: np.ndarray, tol: float) -> np.ndarray:
@@ -769,8 +806,10 @@ class _FillSites:
     and inside its polygon or within the tolerance of its border); a line that still reaches the sample is no loss.
 
     The mark is checked, never trusted: a fill is HONEST only when every edge of its loop is an edge of exactly one
-    face of BEFORE (a hole's border, open in BEFORE), those faces have one look, and every face of the fill has that
-    look. A dishonest fill explains nothing: what it covers stays `covered`."""
+    face of BEFORE (a hole's border, open in BEFORE), those faces have one look, every face of the fill has that
+    look, and the fill is the owner's narrow FLAT fill, re-measured here (`_fill_shape_refusal`): every face round the
+    hole coplanar with it within 1 degree (E8b-R2), and the hole at most 39.37 in across its inscribed circle
+    (E8b-R3). A dishonest fill explains nothing: what it covers stays `covered`."""
 
     def __init__(self, fills, before: MeshData, after: MeshData, centre: np.ndarray, look_b: np.ndarray,
                  look_a: np.ndarray, step: float, tol: float):
@@ -824,6 +863,9 @@ class _FillSites:
                     site["honest"], site["why"] = False, f"the hole's border faces have {len(around)} looks"
                 elif (look_a[faces] != around[0]).any():
                     site["honest"], site["why"] = False, "the fill is in another look than its neighbours"
+            if site["honest"]:
+                site["why"] = _fill_shape_refusal(before, site["neighbours"], loop, c, n, site["poly"], tol)
+                site["honest"] = site["why"] is None
             self.sites.append(site)
 
     def explain(self, judge: "_Judge", vs: VisibleSet, rows: np.ndarray, points: np.ndarray, normals: np.ndarray,

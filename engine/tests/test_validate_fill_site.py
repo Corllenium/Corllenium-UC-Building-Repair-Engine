@@ -128,3 +128,44 @@ def test_fill_site_rejects_a_bad_mark():
     with pytest.raises(ValueError):
         validate(before, before, _looks("m0", "m1"), errors=(NO_ERRORS, NO_ERRORS),
                  fills=[FillSite(faces=np.array([before.n_faces + 5]), loop=before.positions[LOOP_A])])
+
+
+# ------------------------------------------------------------- fix round 1: the honesty check re-measures R2 and R3
+
+
+def _open_box(size=30.0):
+    """A closed-topped box with no bottom: four walls and a lid (m0), floating, wound to face INTO the box (a room
+    seen through its open floor), its open bottom a 4-point loop of open edges whose neighbours are the walls, at 90
+    degrees to the loop's plane. The faces' fronts are seen only from below, through the opening."""
+    from engine.tests.fixtures.build import _mesh
+    s = size
+    P = [[0, 0, 0], [s, 0, 0], [s, s, 0], [0, s, 0], [0, 0, s], [s, 0, s], [s, s, s], [0, s, s]]
+    quads = [q[::-1] for q in [(0, 1, 5, 4), (1, 2, 6, 5), (2, 3, 7, 6), (3, 0, 4, 7), (4, 5, 6, 7)]]
+    uvs, fv, fvt = [], [], []
+    for q in quads:
+        base = len(uvs)
+        uvs += [[0, 0], [1, 0], [1, 1], [0, 1]]
+        fv += [[q[0], q[1], q[2]], [q[0], q[2], q[3]]]
+        fvt += [[base, base + 1, base + 2], [base, base + 2, base + 3]]
+    return _mesh("open_box", P, uvs, fv, fvt, materials=("m0", "m1"))
+
+
+def test_mutation_a_fill_over_a_box_s_open_bottom_with_walls_at_90_degrees_fails_check_3():
+    before = _open_box()
+    after, faces = _with_fill(before, [0, 3, 2, 1])           # wound to face down, out of the box
+    v, _t, gone = _run(before, after, [FillSite(faces=faces, loop=before.positions[[0, 3, 2, 1]])])
+    assert gone["status"] == "FAIL" and gone["covered"] > 0 and gone["covered_by_fill"] == 0
+    (site,) = v.report["fill_sites"]
+    assert site["honest"] is False and "coplanar" in site["why"]
+
+
+def test_mutation_a_fill_over_a_hole_1_5_m_wide_fails_check_3():
+    xs = [0.0, 20.0, 80.0, 100.0]                              # a 60 in (1.52 m) square hole over the room
+    before = holed_slab("wide_over_room", xs, xs, holes={(1, 1)}, closed=False, materials=("m0", "m1"),
+                        below=(100.0, 1))
+    loop = [1 * 4 + 1, 1 * 4 + 2, 2 * 4 + 2, 2 * 4 + 1]
+    after, faces = _with_fill(before, loop)
+    v, _t, gone = _run(before, after, [FillSite(faces=faces, loop=before.positions[loop])])
+    assert gone["status"] == "FAIL" and gone["covered"] > 0 and gone["covered_by_fill"] == 0
+    (site,) = v.report["fill_sites"]
+    assert site["honest"] is False and "inscribed" in site["why"]
