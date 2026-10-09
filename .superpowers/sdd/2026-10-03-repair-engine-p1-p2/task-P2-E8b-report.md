@@ -446,3 +446,168 @@ and 4 for the report fields. The worktree is clean.
    print step is 1 in (plane_tol 2 in). The real units have plane_tol 0.02 and 0.002 in.
 6. **Times (unverified).** The golden runs took longer than P2-E8a's, all inside E8a's unchanged focus runs; I believe
    that is machine load.
+
+---
+
+# Fix round 1 (review: Spec PASS, Quality APPROVED; rulings P2-E8b-R10 and R11)
+
+There is one commit per numbered item, each test first, on claude/P2-E8b.
+
+## 1. Every stage writes its check line (ruling R10), commit cae238c
+
+The kernel.py change that skipped the check line of a non-legacy stage that planned nothing is reverted. The edit log
+is the audit trail.
+
+**Edit to an existing test, sanctioned by R10:** `engine/tests/test_cli_repair_unit.py::
+test_repair_unit_writes_the_fixed_obj_the_edit_log_and_the_report` now asserts
+`sum("check" in line for line in lines) == 2` (one line per stage, since E8 runs E8a then E8b), where it was `== 1`.
+
+My own tests changed with it:
+- `test_a_stage_that_planned_nothing_still_writes_its_check_line` expects the E8b check line with `edits` 0.
+- `test_repair_unit_e8_on_a_slab_e8a_closes_writes_one_check_line_per_stage` expects the stages `["E8", "E8b"]`.
+
+```
+--- red (tests changed, kernel not yet reverted):
+FAILED engine/tests/test_e8_flat_fill_kernel.py::test_a_stage_that_planned_nothing_still_writes_its_check_line
+FAILED engine/tests/test_e8_flat_fill_kernel.py::test_repair_unit_e8_on_a_slab_e8a_closes_writes_one_check_line_per_stage
+FAILED engine/tests/test_cli_repair_unit.py::test_repair_unit_writes_the_fixed_obj_the_edit_log_and_the_report
+3 failed, 16 passed in 5.58s
+--- green (with the kernel's site-check, edit-log and rollback suites):
+47 passed in 13.34s
+```
+
+## 2. The floor Validator receives the fills (ruling R11), commit 43071bd
+
+Each flat-fill line of `edit_log.jsonl` now carries two more fields:
+- `loop_points`: the loop in model coordinates.
+- `after_faces`: the fill's face ids in the shipped AFTER.
+  - The kernel computes them from the stage's kept result and carries them through any later non-legacy stage.
+  - A rolled-back fill gets `[]`; a later legacy stage would make them `null`.
+  - The OBJ writer keeps face order, so the ids hold in the written OBJ.
+
+`engine.cli validate` gains `--edit-log <path>`:
+- `fills_from_edit_log` reads the kept fills and hands them to the Validator.
+- It refuses (exit 2, nothing written) a log whose fill faces are not, in the AFTER, faces with every corner on the
+  loop's points.
+- `validation.json`'s `inputs` names the edit log.
+
+```
+--- red:
+E       KeyError: 'loop_points'
+E       TypeError: cmd_validate() got an unexpected keyword argument 'edit_log'   (x2)
+E       SystemExit: 2                                                             (the parser has no --edit-log)
+4 failed in 1.67s
+--- green:
+5 passed in 2.34s     (with a fifth test: a rolled-back fill's line has after_faces [] and its loop_points)
+--- with the kernel, CLI and refuse-protected suites:
+215 passed in 119.61s (0:01:59)
+```
+
+The test the ruling asked for is `test_validate_with_the_edit_log_passes_check_3_by_fill_and_without_it_fails`. It
+repairs `floor_over_room` with E8b from a snapshot folder, then validates the fixed OBJ against the snapshot:
+- with `--edit-log`: check 3 PASS, covered 0, covered_by_fill > 0;
+- without it, the same pair: check 3 FAIL, covered > 0.
+
+## 3. The Validator re-measures R2 and R3 (AGENTS.md section 6), commit 5705df6
+
+`_fill_shape_refusal` adds to the honesty check. The Validator keeps its own constants (`FILL_MAX_DIAMETER = 39.37`,
+`FILL_NORMAL_TOL_DEG = 1.0`) and imports nothing from the engine. A marked fill is not honest when any of these holds:
+- a face round the hole has no area;
+- a face round the hole is more than 1° off the loop's plane, or has a corner more than the depth tolerance out of it;
+- the loop crosses itself;
+- the inscribed diameter plus 2 × polylabel's tolerance (0.005 in) is over 39.37 in.
+
+The two new mutations:
+- **A fill over a box's open bottom with walls at 90°.** The box is wound inward, so its inside's fronts are seen only
+  through the opening. A first version wound the box outward; it covered nothing, and check 3 passed whatever the
+  honesty check said.
+- **A fill over a 60 in (1.52 m) hole over the room.**
+
+```
+--- red, run with _fill_shape_refusal patched to return None (the round's starting point):
+FAILED engine/tests/test_validate_fill_site.py::test_mutation_a_fill_over_a_box_s_open_bottom_with_walls_at_90_degrees_fails_check_3
+FAILED engine/tests/test_validate_fill_site.py::test_mutation_a_fill_over_a_hole_1_5_m_wide_fails_check_3
+2 failed, 8 deselected in 0.54s     (both: assert ('PASS' == 'FAIL'))
+--- green:
+10 passed in 1.19s
+--- the Validator, site-judge and fill suites:
+219 passed in 29.94s
+```
+
+Measured on the box: the marked fill gives check 3 FAIL, covered 160, covered_by_fill 0, honest False. The reason
+reads "90.000 deg and 30.0000 in off its plane".
+
+## 4. Without fills, validation.json is unchanged, commit 267909b
+
+`fill_sites`, `checks.textures.covered_by_fill` and `checks.nothing_deleted.covered_by_fill` are written only when
+fills are given; None and an empty list write none of them. The site judge copies `covered_by_fill` only when it is
+there; the kernel already reads it with a default of 0.
+
+The new test `test_without_fills_validation_json_is_byte_for_byte_the_76ca35a_validator_s` loads the 76ca35a
+`engine/validate/checks.py` with `git show`. It compares `json.dumps(report, indent=2)` bytes, timings aside, on an
+existing case: a cube with one visible face deleted (check 3 FAIL, with sites). The test skips only when git cannot
+show 76ca35a.
+
+```
+--- red:
+E       AssertionError: no fills: no fill keys (fix round 1)
+E           AssertionError: assert ('fill_sites' not in {...})
+E       assert b'{\n  "versi...": []\n  }\n}' == b'{\n  "versi...": []\n  }\n}'
+E         At index 389 diff: b'c' != b'd'          <- the old report has no covered_by_fill there
+--- green (the Validator, site-judge, kernel-site-check and fill suites):
+236 passed in 35.12s
+```
+
+I also edited my own earlier tests in this file, which expected the keys to be present and zero; they now expect them
+absent.
+
+## 5. Small items, commit e98d3b1
+
+- `cli.fill_diameter_bins()` builds the histogram's edges from `e8_fill.FILL_MAX_DIAMETER`, read when called. It
+  replaces the `FILL_DIAMETER_BINS` constant.
+- A neighbour face with no area is refused as `neighbour_degenerate` (E8b-R2), and the report gets no NaN. Before the
+  fix such a face slipped past R2 as NaN and was refused later, as `neighbours_on_both_sides`.
+- R3 compares `diameter + 2 * _POLYLABEL_TOL` against the cap. A 39.37 in square hole is now refused; a 39.3 in one is
+  still filled.
+
+```
+--- red:
+E       AssertionError: a refused loop is left unfilled            (the 39.37 in hole was filled)
+E       AssertionError: assert ('E8b-R1', 'n...n_both_sides') == ('E8b-R2', 'n...r_degenerate')
+E       AttributeError: module 'engine.cli' has no attribute 'fill_diameter_bins'
+--- green (engine, fills CLI, kernel and edit-log fill suites):
+32 passed in 6.71s
+```
+
+The degenerate test monkeypatches the topology. `analyse_topology` leaves zero-area faces out, so the test flattens a
+neighbour only in the positions the engine measures.
+
+## Wiring check: sidewalk A, `repair-unit --engines E8`
+
+```
+CHTM_SIDE_WALK_2nd_floor: check E8 (E8, 66 edits, 66 sites): FAIL -> PASS; failing 3293 {'covered': 2937, 'overlaid': 2, 'uv': 354}; unknown 0; rolled back [...]; 2 run(s), 26.8 s
+CHTM_SIDE_WALK_2nd_floor: check E8b (E8b, 0 edits, 0 sites): PASS -> PASS; failing 0 {}; unknown 0; rolled back [...]; 0 run(s), 0.0 s
+CHTM_SIDE_WALK_2nd_floor: site checks done in 51.9 s (the whole kernel run)
+CHTM_SIDE_WALK_2nd_floor: E8 built 66 pieces (59 walls, 7 bottoms); kept 4, rolled back 62 {'covered': 57, 'overlaid': 6, 'uv': 54}
+CHTM_SIDE_WALK_2nd_floor: E8b found 2 closed loops (2 patch outer borders, 0 holes) among 84 pieces of open edges; filled 0, rolled back 0; not filled {'not_a_simple_loop': 82}
+CHTM_SIDE_WALK_2nd_floor: covered after rollback 0; 4692 -> 4696 faces; 52.11 s; wrote C:\Temp\e8b\fix1_swA
+swA exit 0 wall 53 s
+```
+
+The edit log has 2 check lines (E8 and E8b), as R10 requires.
+
+## Full suites on e98d3b1
+
+```
+engine/tests: 1803 passed, 1 xfailed in 720.95s (0:12:00)
+tools/tests:  123 passed in 14.17s
+```
+
+The worktree is clean.
+
+## Still open, said plainly
+
+- E8a's stage is named "E8" and E8b's "E8b". This is parked, as the coordinator asked.
+- `after_faces` relies on the OBJ writer keeping face order. It does today (one `f` line per face, in order).
+  `fills_from_edit_log` refuses a log whose ids do not land on the fill.
+- The byte-comparison test needs git history containing 76ca35a; it skips, rather than fails, without it.
