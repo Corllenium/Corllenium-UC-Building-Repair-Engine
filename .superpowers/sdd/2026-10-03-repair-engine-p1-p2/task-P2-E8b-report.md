@@ -1,6 +1,10 @@
-# Task P2-E8b report: the narrow flat fill — NEEDS_CONTEXT
+# Task P2-E8b report: the narrow flat fill
 
-**Status: NEEDS_CONTEXT.** Ruling E8b-R1 contradicts the data. On all three golden units, before and after E8a, **no
+**Current status: DONE_WITH_CONCERNS.** After ruling P2-E8b-R9 (keep R1 as written; the fill measurement moves to
+after E6), items 2-4 were built on fixtures: commits 62a3666, 4867c6b, f00a7f3. See "Continuation after ruling R9"
+at the end. The first round, kept as it was, follows.
+
+**First-round status: NEEDS_CONTEXT.** Ruling E8b-R1 contradicts the data. On all three golden units, before and after E8a, **no
 hole passes R1**: 0 candidate holes, so E8b would fill nothing, and the exit's six fill crops cannot exist. As the
 dispatch says, I stopped here instead of loosening the ruling. Item 1 (the engine, rulings R1-R5, with its tests) is
 committed. Items 2-4 (the Validator's `fill_site` class, the kernel wiring, and the CLI `fills` / `not_filled`) are
@@ -191,3 +195,254 @@ Before this job the engine suite had 1,760 tests; the 12 new ones are this job's
   open-edge and crack counts equal the figures P2-E8a reported.
 - The "broader R1" numbers come from a scratch script (`probe_r1c.py` / `probe_r1d.py` in my scratchpad), not from
   committed code. They are an upper bound to help the decision, not a result.
+
+---
+
+# Continuation after ruling R9 (items 2-4)
+
+The coordinator ruled (P2-E8b-R9):
+- R1 stays as written.
+- The flat fill runs last, after E6, which threads T-vertices into the long edges.
+- The four extra refusals are accepted.
+- Patch outer borders may stay counted rather than listed, but their count goes in report.json.
+
+Items 2-4 were built test first, one commit per item, in the same worktree and branch.
+
+## Item 2: the Validator's `fill_site` class, commit 62a3666
+
+Files: `engine/validate/checks.py` (the only change in `engine/validate/**`) and
+`engine/tests/test_validate_fill_site.py` (8 tests).
+
+The class:
+- `FillSite(faces, loop)` is the mark: the fill's AFTER face ids, and the hole's loop points in model coordinates.
+- `validate(..., fills=[FillSite])` makes a covered sample `covered_by_fill` instead of `covered` only when both hold:
+  - every line of sight that saw it in BEFORE and is blocked in AFTER ends on a marked fill's face;
+  - the hit point is inside that fill's own loop: in the loop's plane within the depth tolerance, and inside its
+    polygon or within the tolerance of its border.
+- A line that still reaches the sample is no loss.
+- `covered_by_fill` samples fail neither check. They are counted in `checks.textures.covered_by_fill` and
+  `checks.nothing_deleted.covered_by_fill` (outside `reasons` and `covered`), and listed per fill in `fill_sites`:
+  `honest`, `why`, `faces`, `samples`, `area_in2`, `before_faces`.
+- **The mark is checked, never trusted.** A fill is honest only when:
+  - every loop edge is an edge of exactly one BEFORE face (an open border of BEFORE);
+  - those faces have one look;
+  - the fill is in that look.
+
+  A dishonest fill explains nothing.
+- **A behaviour-preserving refactor** lets the class replay every line of sight:
+  - the ray building of `_witnesses` moved, unchanged, into `_witness_rays`;
+  - `_Judge.covered` became `_Judge.blocker`, which also returns the covering face and the hit point; `covered` calls
+    it.
+
+  Measured with no fills: the Validator and site-judge suites pass unchanged (213 passed in 28.50 s).
+
+**My reading of the R6 wording** "every viewpoint line that saw it in BEFORE now ends on a fill" is: every such line
+that AFTER BLOCKS must end on a fill. A line that still reaches the sample is not a loss, so it does not disqualify the
+sample. This interpretation is lenient only toward samples that stay visible.
+
+Red, then green:
+
+```
+E   ImportError: cannot import name 'FillSite' from 'engine.validate.checks'
+1 error in 1.08s
+--- after the change:
+8 passed in 1.24s
+```
+
+What each scene gives. The fixture is an open floor (m0) over a room floor (m1) 100 in below. Hole A is 10 x 10 in; a
+1 in strip of floor separates it from hole B.
+
+```
+proper           check3 PASS covered 0 by_fill 13 overlaid 0 | check1 PASS | sites [] | fill_sites [(True, 13, None)]
+one cell larger  check3 FAIL covered 18 by_fill 13 overlaid 0 | check1 FAIL | sites [([50.08, 28.33, -100.0], {'covered': 9}), ([50.42, 55.83, -100.0], {'covered': 8}), ([41.67, 76.67, -100.0], {'covered': 1})] | fill_sites [(True, 13, None)]
+unmarked         check3 FAIL covered 13 by_fill 0 overlaid 0 | check1 FAIL | sites [4 sites, all at z = -100, all 'covered'] | fill_sites []
+other look       check3 FAIL covered 13 by_fill 0 overlaid 0 | check1 FAIL | sites [the same 4 sites] | fill_sites [(False, 0, 'the fill is in another look than its neighbours')]
+```
+
+- The three mutations of the brief FAIL check 3, each by `covered` samples on the room floor (z = -100).
+- The one-cell-larger fill's extra 18 samples lie under hole B, outside loop A.
+- A fourth test makes the declared loop round hole A plus the strip. That loop is not an open border of BEFORE, so the
+  fill is not honest and the check FAILs.
+
+## Item 3: kernel wiring and the engine choice, commit 4867c6b
+
+Files:
+- `engine/repair/kernel.py`, `engine/site_judge.py`, `engine/cli.py`;
+- `engine/tests/fixtures/holes.py` (`floor_over_room`);
+- `engine/tests/test_e8_flat_fill_kernel.py` (8 tests).
+
+The kernel:
+- An E8 add whose evidence carries `flat_fill` and `loop` is a flat fill. Its edit-log line gets `flat_fill: true` and
+  `loop`.
+- `_site_parts` also returns the kept fills (AFTER face ids and loop points). Every check run hands them to
+  `judge.check(after, focus, fills=...)`, only when there are some, so the P1 fake judges still fit.
+- `SiteJudge.check` turns them into `FillSite`s.
+- The run record gets `covered_by_fill`.
+- Each fill is its own site, and a charged fill is rolled back by the existing rule.
+
+**One kernel behaviour change: a non-legacy stage that planned no edit writes no check line** to `edit_log.jsonl`. Its
+record stays in `KernelResult.checks` and in report.json's `stages`. This was needed because `--engines E8` is now two
+stages. The existing test `test_repair_unit_writes_the_fixed_obj_the_edit_log_and_the_report` asserts one check line;
+on that fixture E8b finds nothing left after E8a. No existing test was edited.
+
+The CLI:
+- `REPAIR_ENGINES = ("E8", "E8a", "E8b")`. `E8` runs E8a, then E8b; `E8a` or `E8b` runs one; the stages always run in
+  that order.
+- The E8a report (`sites`, `pieces`, `solidify`) is computed from E8a's own edits and check, because the site ids of
+  the two stages overlap.
+
+Red, then green:
+
+```
+E       ValueError: not enough values to unpack (expected 1, got 0)   <- the fill was rolled back: no mark reached the judge
+E       AssertionError: assert (0 == 0 and ['E8'] == ['E8', 'E8b']
+E           ValueError: repair-unit runs only ('E8',); not ['E8a']
+E       AssertionError: assert ('E8a' in 'usage: python -m engine.cli repair-unit ...
+5 failed, 3 passed in 3.57s
+--- after (with the existing repair-unit CLI tests):
+19 passed in 4.69s
+--- kernel, site judge, E8a, add-only-E8 and repair-types suites:
+231 passed in 122.76s (0:02:02)
+```
+
+Three tests passed before the change, and that was expected:
+- the dishonest fill and the unmarked fill are rolled back today too;
+- the three-skirts one-check-line test passed because E8 was one stage then.
+
+They guard the new behaviour.
+
+## Item 4: report.json `fills`, `not_filled` and `fill_stats`, commit f00a7f3
+
+Files:
+- `engine/cli.py`;
+- `engine/fill_review.py` (new; outside both packages, like `site_judge.py`);
+- `engine/tests/test_cli_repair_unit_fills.py` (4 tests).
+
+What report.json gets:
+- **`fills`:** one row per kept fill: `site`, `loop`, `vertices`, `area`, `inscribed_diameter`, `look`, `centroid`,
+  `normal`, and `crop` (`fills/fill-<site>.png`).
+- **The crop:** BEFORE | AFTER, 256 px each with a 4 px gap. It is orthographic, looking straight at the hole from the
+  side its neighbours face, so the view goes through the hole. It is drawn with the Validator's evidence renderer,
+  with the loop outlined in yellow.
+- **`not_filled`:**
+  - every hole E8b refused, with its rule and reason, the four accepted extra reasons included;
+  - every fill the site check rolled back: rule `E8b-R7`, reason `charged` with the Validator's reasons as `detail`,
+    or `stage_rolled_back`.
+- **`fill_stats`:**
+  - `open_edges`, `components`, `loops`, `outer_boundaries` (patch borders, counted only), `holes`, `planned`,
+    `kept`, `rolled_back`;
+  - `not_filled_by_reason`, `plane_tol`, `max_diameter`;
+  - `diameter_histogram` (bins 0-5, 5-10, 10-20, 20-39.37, 39.37-80, 80-160, >160 in).
+
+Red, then green:
+
+```
+E       KeyError: 'fills'   (x4)
+4 failed in 2.54s
+--- first green attempt: IndexError in fill_review._half (the look table was read before face_look_ids filled it); fixed
+4 passed in 2.77s
+--- CLI area (fills, repair-unit, the flat-fill kernel tests, test_cli.py):
+83 passed in 65.55s (0:01:05)
+```
+
+The brief's test 4 is `test_one_fillable_and_one_refused_hole_give_one_fill_and_one_not_filled_row`. On
+`floor_over_room`, `--engines E8` gives:
+- exit 0;
+- one fill: 8 points, area 400, diameter 20.0, look `material:m0`, normal (0, 0, 1);
+- one `not_filled` row: E8b-R3 `too_wide`, 24 points;
+- 2 outer borders counted;
+- the edit log has the fill as an `add` with `n_new_points` 0 and `flat_fill` true.
+
+**Visual check of the crop** (`C:/Temp/e8b/croptest/out/fills/fill-0002.png`, viewed). The left half (BEFORE) shows
+the room's blue floor through the square hole in the grey floor. The right half (AFTER) shows the hole closed in the
+floor's own grey, flush with it. The yellow outline marks the same square in both halves.
+
+The first version drew a 1 px outline, which vanished when the picture was viewed scaled down; it is now 2 px.
+
+## Golden-unit runs with `--engines E8` (wiring on real data; 0 fills expected)
+
+Commands, from the worktree root with `PYTHONPATH` set:
+
+```
+"$PY" -m engine.cli repair-unit --snapshot ".../data/snapshots/ce26e0392ab0" --engines E8 --out C:/Temp/e8b/swA --materials ".../data/campus/materials.json"
+"$PY" -m engine.cli repair-unit --snapshot ".../data/snapshots/0b290ec0bcb4" --engines E8 --out C:/Temp/e8b/swB --materials ".../data/campus/materials.json"
+"$PY" -m engine.cli repair-unit --unit CHTM-L05 --engines E8 --out C:/Temp/e8b/chtm5 --map ".../data/campus/campus_map.json" --source ".../data/campus/source.json" --materials ".../data/campus/materials.json"
+```
+
+Output (the rolled-back site lists are cut short):
+
+```
+CHTM_SIDE_WALK_2nd_floor: check E8 (E8, 66 edits, 66 sites): FAIL -> PASS; failing 3293 {'covered': 2937, 'overlaid': 2, 'uv': 354}; unknown 0; rolled back [...]; 2 run(s), 30.4 s
+CHTM_SIDE_WALK_2nd_floor: check E8b (E8b, 0 edits, 0 sites): PASS -> PASS; failing 0 {}; unknown 0; rolled back [...]; 0 run(s), 0.0 s
+CHTM_SIDE_WALK_2nd_floor: site checks done in 61.1 s (the whole kernel run)
+CHTM_SIDE_WALK_2nd_floor: E8 built 66 pieces (59 walls, 7 bottoms); kept 4, rolled back 62 {'covered': 57, 'overlaid': 6, 'uv': 54}
+CHTM_SIDE_WALK_2nd_floor: E8b found 2 closed loops (2 patch outer borders, 0 holes) among 84 pieces of open edges; filled 0, rolled back 0; not filled {'not_a_simple_loop': 82}
+CHTM_SIDE_WALK_2nd_floor: covered after rollback 0; 4692 -> 4696 faces; 61.16 s; wrote C:\Temp\e8b\swA
+swA exit 0 wall 63 s
+
+CHTM_2nd_to_3rd_building_sidewalk_outside: check E8 (E8, 56 edits, 54 sites): FAIL -> PASS; failing 8408 {'covered': 8118, 'uv': 290}; unknown 0; rolled back [...]; 2 run(s), 140.4 s
+CHTM_2nd_to_3rd_building_sidewalk_outside: check E8b (E8b, 0 edits, 0 sites): PASS -> PASS; failing 0 {}; unknown 0; rolled back [...]; 0 run(s), 0.0 s
+CHTM_2nd_to_3rd_building_sidewalk_outside: site checks done in 174.3 s (the whole kernel run)
+CHTM_2nd_to_3rd_building_sidewalk_outside: E8 built 54 pieces (40 walls, 14 bottoms); kept 10, rolled back 44 {'covered': 43, 'uv': 38}
+CHTM_2nd_to_3rd_building_sidewalk_outside: E8b found 7 closed loops (2 patch outer borders, 0 holes) among 100 pieces of open edges; filled 0, rolled back 0; not filled {'not_a_simple_loop': 93, 'self_crossing': 5}
+CHTM_2nd_to_3rd_building_sidewalk_outside: covered after rollback 0; 7227 -> 7241 faces; 174.42 s; wrote C:\Temp\e8b\swB
+swB exit 0 wall 175 s
+
+CHTM-L05: check E8 (E8, 216 edits, 209 sites): FAIL -> PASS; failing 16077 {'covered': 13350, 'overlaid': 41, 'deleted': 12, 'uv': 2674}; unknown 0; rolled back [...]; 2 run(s), 1030.1 s
+CHTM-L05: check E8b (E8b, 0 edits, 0 sites): PASS -> PASS; failing 0 {}; unknown 0; rolled back [...]; 0 run(s), 0.0 s
+CHTM-L05: site checks done in 1128.3 s (the whole kernel run)
+CHTM-L05: E8 built 209 pieces (97 walls, 112 bottoms); kept 8, rolled back 201 {'covered': 192, 'deleted': 69, 'overlaid': 154, 'uv': 187}
+CHTM-L05: E8b found 5 closed loops (4 patch outer borders, 0 holes) among 198 pieces of open edges; filled 0, rolled back 0; not filled {'neighbour_not_coplanar': 1, 'not_a_simple_loop': 193}
+CHTM-L05: covered after rollback 0; 20599 -> 20624 faces; 1128.85 s; wrote C:\Temp\e8b\chtm5
+chtm5 exit 0 wall 1130 s
+```
+
+`fill_stats` from each report.json:
+
+```
+swA exit 0 | fills 0 | not_filled rows 82 | stages [('E8', 66, 'PASS'), ('E8b', 0, 'PASS')] | seconds {'before': 0.03, 'kernel': 61.06, 'total': 61.16}
+   fill_stats {'open_edges': 256, 'components': 84, 'loops': 2, 'outer_boundaries': 2, 'holes': 0, 'planned': 0, 'kept': 0, 'rolled_back': 0, 'not_filled_by_reason': {'not_a_simple_loop': 82}, 'plane_tol': 0.02} histogram [0, 0, 0, 0, 0, 0, 0]
+swB exit 0 | fills 0 | not_filled rows 98 | stages [('E8', 56, 'PASS'), ('E8b', 0, 'PASS')] | seconds {'before': 0.05, 'kernel': 174.29, 'total': 174.42}
+   fill_stats {'open_edges': 353, 'components': 100, 'loops': 7, 'outer_boundaries': 2, 'holes': 0, 'planned': 0, 'kept': 0, 'rolled_back': 0, 'not_filled_by_reason': {'not_a_simple_loop': 93, 'self_crossing': 5}, 'plane_tol': 0.02} histogram [0, 0, 0, 0, 0, 0, 0]
+chtm5 exit 0 | fills 0 | not_filled rows 194 | stages [('E8', 216, 'PASS'), ('E8b', 0, 'PASS')] | seconds {'before': 0.35, 'kernel': 1128.34, 'total': 1128.85}
+   fill_stats {'open_edges': 373, 'components': 198, 'loops': 5, 'outer_boundaries': 4, 'holes': 0, 'planned': 0, 'kept': 0, 'rolled_back': 0, 'not_filled_by_reason': {'neighbour_not_coplanar': 1, 'not_a_simple_loop': 193}, 'plane_tol': 0.002} histogram [0, 0, 0, 0, 0, 0, 0]
+```
+
+What these show:
+- All three exit 0, with 0 fills, as expected.
+- The E8a stage gives P2-E8a's own figures exactly: kept 4/66, 10/54 and 8/209, with covered after rollback 0.
+- E8b runs on E8a's kept output: 256, 353 and 373 open edges, the P2-E8a after-figures.
+- The diameter histogram is empty because no loop reached R3: CHTM-L05's one hole is refused at R2 first.
+- E8b itself takes no measurable time (0 runs).
+
+Time: 63 s, 175 s and 1,130 s. That is longer than P2-E8a's 39, 112 and 858 s for the same E8a stage, and the extra
+time is all in E8a's focus runs (CHTM-L05: 1,030 s against 799 s). This is unverified; I believe it is load on the
+shared PC, since the E8a code path is unchanged.
+
+## Full suites on f00a7f3
+
+```
+engine/tests: 1792 passed, 1 xfailed in 789.05s (0:13:09)
+tools/tests:  123 passed in 13.99s
+```
+
+That is 1,760 before the job plus 32 new tests: 12 for the engine, 8 for `fill_site`, 8 for the kernel and CLI wiring,
+and 4 for the report fields. The worktree is clean.
+
+## Concerns, said plainly
+
+1. **A kernel behaviour change outside the brief's letter.** A non-legacy stage that planned no edit no longer writes a
+   check line to `edit_log.jsonl`; its record stays in `checks` and `stages`. Without it, the existing CLI test that
+   asserts one check line for `--engines E8` would have to change.
+2. **The R6 reading.** I read "every viewpoint line that saw it" as every line AFTER blocks; a line that still reaches
+   the sample does not disqualify it. On top of the brief, the Validator checks the mark itself: the loop must be an
+   open border of BEFORE in one look, and the fill must be in that look.
+3. **Refactors in the Validator.** `_witness_rays` and `_Judge.blocker` were factored out of `_witnesses` and
+   `_Judge.covered` with no change of behaviour (the Validator and site-judge suites passed unchanged). They are still
+   edits to `engine/validate/checks.py` beyond the new class, so a reviewer should look at them.
+4. **The fill path is proven on fixtures only.** On real data E8b found 0 holes, so `fill_site`, the crops and the
+   rolled-back rows have only run on fixtures until E6 lands.
+5. **Coarse print step in the CLI fixtures.** Those fixtures round-trip through OBJ with integer coordinates, so their
+   print step is 1 in (plane_tol 2 in). The real units have plane_tol 0.02 and 0.002 in.
+6. **Times (unverified).** The golden runs took longer than P2-E8a's, all inside E8a's unchanged focus runs; I believe
+   that is machine load.
