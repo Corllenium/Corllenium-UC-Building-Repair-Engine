@@ -16,7 +16,7 @@ import numpy as np
 
 from engine import cli
 from engine.fixes.pipeline import FixProfile
-from engine.repair.engines.e3_hidden import MAX_SITE_FACES, E3Hidden
+from engine.repair.engines.e3_hidden import DENSE_POINTS_PER_FACE, MAX_SITE_FACES, E3Hidden
 from engine.repair.engines.legacy import LegacyRun, legacy_engines
 from engine.repair.kernel import repair_unit
 from engine.repair.types import RepairContext, UnitState, apply_edits, face_keys
@@ -34,12 +34,13 @@ _FAST = FixProfile(guard_size=(120, 80), n_dirs=32)
 
 
 def _blind(mesh, faces):
-    """A probe view that sees nothing: the R4 pre-filter switched off, so only the judge stands guard."""
+    """A view that sees nothing: a pre-filter (R4's probes, or R7's dense lattice) switched off, so only the judge
+    stands guard."""
     return np.zeros(len(faces), np.int64)
 
 
-def _plan(mesh, *, probe_view=None, judge=None):
-    engine = E3Hidden(probe_view=probe_view)
+def _plan(mesh, *, probe_view=None, dense_view=None, judge=None):
+    engine = E3Hidden(probe_view=probe_view, dense_view=dense_view)
     unit = UnitState(mesh=mesh, topo=None, looks={}, viewpoints=None)
     edits = engine.plan(unit, RepairContext(profile=_FAST, decider=None, validator=judge))
     return engine, edits
@@ -123,7 +124,7 @@ def test_plan_leaves_the_unit_mesh_alone():
     mesh = B.box_with_partition()
     before = (mesh.positions.copy(), mesh.face_v.copy())
     unit = UnitState(mesh=mesh, topo=None, looks={}, viewpoints=None)
-    E3Hidden(probe_view=_blind).plan(unit, RepairContext(profile=_FAST, decider=None, validator=None))
+    E3Hidden(probe_view=_blind, dense_view=_blind).plan(unit, RepairContext(profile=_FAST, decider=None, validator=None))
     assert unit.mesh is mesh and np.array_equal(mesh.positions, before[0]) and np.array_equal(mesh.face_v, before[1])
 
 
@@ -156,16 +157,21 @@ def test_the_room_scene_plate_is_seen_only_from_eye_height():
 
 
 def test_a_group_holding_a_face_only_a_probe_sees_is_rolled_back_for_deleted(tmp_path):
-    """The pre-filter is told the plate's upper half is unseen (a miss it could make), so the plate's group is
-    planned: the judge sees the probe's samples deleted and rolls the group back; the partitions are kept."""
+    """Both pre-filters (R4's probes, R7's dense lattice) are told the plate's upper half is unseen (a miss they could
+    make), so the plate's group is planned: the judge sees the probe's samples deleted and rolls the group back; the
+    partitions are kept."""
     mesh = _room_scene()
 
     def missing_the_plate(m, faces):
         seen = SiteJudge(_looks(*m.materials)).probe_seen(m, faces)
         return np.where(np.isin(faces, PLATE_HIGH), 0, seen)
 
+    def dense_missing_the_plate(m, faces):
+        seen = SiteJudge(_looks(*m.materials)).lattice_seen(m, faces, DENSE_POINTS_PER_FACE)["any"]
+        return np.where(np.isin(faces, PLATE_HIGH), 0, seen)
+
     log = tmp_path / "edit_log.jsonl"
-    engine = E3Hidden(probe_view=missing_the_plate)
+    engine = E3Hidden(probe_view=missing_the_plate, dense_view=dense_missing_the_plate)
     result = _checked(mesh, engine, edit_log=log)
     by_site = {e.site: sorted(e.faces) for e in result.edits}
     plate_site = next(s for s, faces in by_site.items() if set(PLATE_HIGH) <= set(faces))
@@ -208,7 +214,7 @@ def test_a_slab_side_unseen_from_every_viewpoint_is_never_a_candidate():
     mesh = _slab_against_a_block()
     outside, inside = _seen(mesh)
     assert (outside[list(SIDE)] == 0).all() and (inside[list(SIDE)] == 0).all(), "no viewpoint sees the side"
-    engine, edits = _plan(mesh, probe_view=_blind)
+    engine, edits = _plan(mesh, probe_view=_blind, dense_view=_blind)
     assert set(SIDE) <= set(engine.report["legacy_removed"]), "the legacy hidden stage would delete it"
     planned = sorted(f for e in edits for f in e.faces)
     assert planned == list(SLAB_PARTITION), "the inside goes, the side stays"
@@ -225,7 +231,7 @@ def test_a_face_solidify_invented_is_never_a_candidate():
     plain = B.box_with_partition()
     line = plain.face_line.copy()
     line[[12, 13]] = -1
-    engine, edits = _plan(dataclasses.replace(plain, face_line=line), probe_view=_blind)
+    engine, edits = _plan(dataclasses.replace(plain, face_line=line), probe_view=_blind, dense_view=_blind)
     assert edits == [] and engine.report["excluded"]["invented"] == 2
 
 
@@ -242,6 +248,73 @@ def test_a_closed_room_seen_only_from_its_probe_keeps_every_face():
     assert engine.report["disagreements"]["faces"] == 12, "exposure calls them hidden, a probe sees them"
     result = _checked(mesh, E3Hidden())
     assert result.mesh.n_faces == mesh.n_faces
+
+
+# ------------------------------------------------------- E3-R7: the dense pre-filter, between the samples
+
+def _face_seen_down_a_shaft(L=16.9, lo=0.3, hi=1.6, top=2.0, under=0.05, far=3000.0):
+    """Modelled on CHTM-L05's face 8480 (fix round 1, ruling E3-R7): a large face whose few Validator samples are all
+    hidden, while a corner of it is seen through a narrow opening off those samples.
+
+    Face 0 is F, a right triangle (legs `L` = 16.9 in, 142.8 sq in: the Validator's minimum of 4 samples, none near
+    the corner at the origin), facing +z at z = 0, inside a sealed box (bottom at z = -1, four walls) whose lid is a
+    slab from z = `under` (0.05 in above F) to z = `top`, pierced by one square shaft (`lo`..`hi`, 1.3 in) over F's
+    corner. Only points of F under the shaft see out, straight up it; every Validator sample and every exposure
+    sample of F lies off it, with only 0.03 in of headroom between F and the lid's underside, so no line from them
+    reaches the shaft. A closed box `far` inches off widens the legacy guard's frame, so its renders cannot resolve
+    the shaft and pass 1 removes F."""
+    P = [[0.0, 0.0, 0.0], [L, 0.0, 0.0], [0.0, L, 0.0]]
+    uvs = [[0.0, 0.0], [L * 0.05, 0.0], [0.0, L * 0.05]]
+    fv, fvt, fm = [[0, 1, 2]], [[0, 1, 2]], [0]
+    a, b = -2.0, L + 2.0
+    o = len(P)
+    P += [[a, a, -1.0], [b, a, -1.0], [b, b, -1.0], [a, b, -1.0], [a, a, top], [b, a, top], [b, b, top], [a, b, top]]
+    _quads(P, uvs, fv, fvt, fm, [(o, o + 3, o + 2, o + 1), (o, o + 1, o + 5, o + 4), (o + 1, o + 2, o + 6, o + 5),
+                                 (o + 2, o + 3, o + 7, o + 6), (o + 3, o, o + 4, o + 7)])
+    xs = [a, lo, hi, b]
+    for z, up in ((top, True), (under, False)):             # the lid's top (+z) and its underside (-z), shaft left open
+        g = {}
+        for i, x in enumerate(xs):
+            for j, y in enumerate(xs):
+                g[i, j] = len(P)
+                P.append([x, y, z])
+        quads = [(g[i, j], g[i + 1, j], g[i + 1, j + 1], g[i, j + 1]) for i in range(3) for j in range(3)
+                 if (i, j) != (1, 1)]
+        _quads(P, uvs, fv, fvt, fm, quads if up else [q[::-1] for q in quads])
+    s = len(P)                                                  # the shaft's four walls, facing into it
+    P += [[lo, lo, under], [hi, lo, under], [hi, hi, under], [lo, hi, under],
+          [lo, lo, top], [hi, lo, top], [hi, hi, top], [lo, hi, top]]
+    _quads(P, uvs, fv, fvt, fm, [(s + 1, s, s + 4, s + 5), (s + 2, s + 1, s + 5, s + 6),
+                                 (s + 3, s + 2, s + 6, s + 7), (s, s + 3, s + 7, s + 4)])
+    _closed_box(P, uvs, fv, fvt, fm, far, far + 10.0, 0.0, 10.0, 0.0, 10.0)
+    return _mesh("face_seen_down_a_shaft", P, uvs, fv, fvt, face_material=fm)
+
+
+def test_a_face_seen_only_between_the_validators_samples_is_never_a_candidate():
+    mesh = _face_seen_down_a_shaft()
+    s = Settings()
+    b, _ = recentred(mesh)
+    caster = build_caster(b)
+    lo, hi = used_bbox(b)
+    cams = pedestrian_ring((lo, hi), eye_z=lo[2] + s.eye, n=s.n_cameras, margin=s.camera_margin)
+    probes = interior_probes(b, eye=s.eye, caster=caster)
+    every_dir = np.vstack([outside_directions(s.n_directions), outside_directions(s.n_extra_directions)])
+    samples = face_samples(b, faces=np.array([0]), min_per_face=s.min_per_face, area_per_sample=s.area_per_sample)
+    assert not visible_samples(b, samples, every_dir, cams, probes, caster).seen.any(), \
+        "no viewpoint of the Validator's, the 1,024 extra directions included, sees any of F's own samples"
+    judge = _judge(mesh)
+    assert judge.lattice_seen(mesh, np.array([0]), DENSE_POINTS_PER_FACE)["any"][0] > 0, "a point of F is seen"
+
+    blind, planned = _plan(mesh, probe_view=_blind, dense_view=_blind)
+    assert 0 in blind.report["legacy_removed"] and any(0 in e.faces for e in planned), \
+        "without the dense pre-filter E3 would remove F, and the judge could not tell"
+    engine, edits = _plan(mesh, judge=judge)
+    assert DENSE_POINTS_PER_FACE == 36 and engine.report["dense_lattice"] == 36
+    assert not any(0 in e.faces for e in edits)
+    assert [row["face"] for row in engine.report["dense_excluded"]] == [0]
+    assert engine.report["excluded"]["dense"] == 1
+    result = _checked(mesh, E3Hidden())
+    assert Counter(face_keys(result.mesh, {}))[face_keys(mesh, {})[0]] == 1, "F stays"
 
 
 # --------------------------------------------------------------------------------------- group splitting
@@ -268,7 +341,7 @@ def _box_with_a_fine_partition(n=32, size=100.0):
 
 def test_a_group_over_512_faces_is_split_by_a_spatial_grid():
     mesh = _box_with_a_fine_partition()
-    engine, edits = _plan(mesh, probe_view=_blind)
+    engine, edits = _plan(mesh, probe_view=_blind, dense_view=_blind)
     partition = set(range(12, mesh.n_faces))
     assert len(partition) == 2048 and engine.report["groups"] == 1
     sizes = Counter()

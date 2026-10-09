@@ -18,6 +18,13 @@ THEN TWO RULES TAKE FACES OUT, before the judge runs:
 - E3-R4, NEVER ROOM SURFACES. A face some eye-height probe sees, from its front or its back, is no candidate
   (`probe_view`; by default the site judge's `SiteJudge.probe_seen`, the Validator's own probes and visibility, so
   this package still imports nothing of `engine/validate`). The cheap pre-filter: the judge is the safety net.
+- E3-R7, THE DENSE PRE-FILTER (fix round 1). The judge samples a face at about one point per 36 sq in (at least 4),
+  and a part of a face seen through an opening between those samples passes it unseen (measured on CHTM 5th: face
+  8480, 290.87 sq in, 9 samples none of them seen, yet about 4.8 sq in of it seen from outside). So every face still a
+  candidate is tested on a lattice of `DENSE_POINTS_PER_FACE` (36) points spread evenly over its area against EVERY
+  viewpoint of the Validator's -- the standard and the extra outside directions, the ring cameras and the eye-height
+  probes, from either side (`dense_view`; by default the site judge's `SiteJudge.lattice_seen`). A face any point of
+  which is seen is no candidate; `report["dense_excluded"]` names each.
 
 ONE SITE PER EDGE-CONNECTED GROUP of what is left (faces sharing an edge of the welded topology, within the
 candidate set). A group over `MAX_SITE_FACES` (512) faces is split by a spatial grid over its faces' centroids
@@ -52,6 +59,7 @@ from engine.vis.exposure import EXP_HIDDEN
 
 #: The most faces one E3 site holds (ruling E3-R1): a bigger connected group is split by a spatial grid.
 MAX_SITE_FACES = 512
+DENSE_POINTS_PER_FACE = 36
 #: How many disagreeing faces `report["disagreements"]["list"]` names (all are counted).
 DISAGREEMENTS_LISTED = 1000
 #: The slab-side rule, in words, for the report (ruling E3-R3).
@@ -126,10 +134,13 @@ class E3Hidden:
     """The repair engine E3 (see the module docstring). `flatness` is the per-material texture std the pipeline reads
     its flat materials from; `solidify` the `E8Solidify` engine run before this one, if any (its `seen_through`
     record); `probe_view(mesh, faces)` gives per face how many of its samples an eye-height probe sees (None: the
-    site judge's `probe_seen`, from `ctx.validator`); `report` holds the last run's numbers."""
+    site judge's `probe_seen`, from `ctx.validator`); `dense_view(mesh, faces)` gives per face how many points of its
+    `DENSE_POINTS_PER_FACE` lattice some viewpoint sees, as an array or as `{"any", "outside", "probes"}` arrays (None:
+    the site judge's `lattice_seen`); `report` holds the last run's numbers."""
     flatness: dict = field(default_factory=dict)
     solidify: Any = None
     probe_view: Callable[[Any, np.ndarray], np.ndarray] | None = None
+    dense_view: Callable[[Any, np.ndarray], Any] | None = None
     max_site_faces: int = MAX_SITE_FACES
     name: str = "E3"
     legacy: bool = False
@@ -143,6 +154,15 @@ class E3Hidden:
             raise ValueError("E3 needs the eye-height probes (ruling E3-R4): give it a probe_view, or the site judge "
                              "in ctx.validator")
         return view
+
+    def _dense_view(self, ctx: RepairContext):
+        if self.dense_view is not None:
+            return self.dense_view
+        lattice = getattr(ctx.validator, "lattice_seen", None)
+        if lattice is None:
+            raise ValueError("E3 needs the dense pre-filter (ruling E3-R7): give it a dense_view, or the site judge in "
+                             "ctx.validator")
+        return lambda mesh, faces: lattice(mesh, faces, DENSE_POINTS_PER_FACE)
 
     def _through_shell(self, mesh, looks: dict) -> np.ndarray:
         """Bool over `mesh`'s faces: the faces E8a's cap guard let a new face cover only through rule 6, by key."""
@@ -160,6 +180,7 @@ class E3Hidden:
         started = time.perf_counter()
         mesh, profile = unit.mesh, ctx.profile
         view = self._probe_view(ctx)
+        dense_view = self._dense_view(ctx)
         seconds: dict[str, float] = {}
 
         # ---- the legacy candidates: stage_hidden, unchanged, on the stage input as the reference
@@ -203,6 +224,24 @@ class E3Hidden:
             hit = left & mask
             excluded[name] = int(hit.sum())
             left &= ~mask
+
+        # ---- E3-R7: the dense pre-filter -- a point of a DENSE lattice on the face that any viewpoint of the
+        # Validator's sees (outside directions, extra directions, ring cameras, eye-height probes, either side)
+        t0 = time.perf_counter()
+        tested = np.flatnonzero(left)
+        dense = {k: np.zeros(mesh.n_faces, np.int64) for k in ("any", "outside", "probes")}
+        if len(tested):
+            got = dense_view(mesh, tested)
+            got = got if isinstance(got, dict) else {"any": got}
+            for k, values in got.items():
+                values = np.asarray(values, np.int64)
+                if values.shape != tested.shape:
+                    raise ValueError(f"E3: dense_view gave {values.shape} values for {tested.shape} faces")
+                dense[k][tested] = values
+        dense_seen = left & (dense["any"] > 0)
+        excluded["dense"] = int(dense_seen.sum())
+        left &= ~dense_seen
+        seconds["dense"] = time.perf_counter() - t0
         candidates = np.flatnonzero(left)
 
         # ---- sites: edge-connected groups, a big one split by a spatial grid
@@ -234,8 +273,9 @@ class E3Hidden:
                     site=len(edits),
                     reason=(f"E3 hidden: {len(faces)} face(s) of connected group {g} ({len(members)} faces) that the "
                             f"legacy pass 1 removes ({len(faces) - n_zero} with exposure 0 from every outside "
-                            f"direction, {n_zero} of zero area, confirmed by its strict guard); none a slab side, "
-                            f"none seen by an eye-height probe"),
+                            f"direction, {n_zero} of zero area, confirmed by its strict guard); none a slab side, none "
+                            f"seen by an eye-height probe, none seen at any point of its {DENSE_POINTS_PER_FACE}-point "
+                            f"lattice"),
                     evidence=evidence))
 
         dis = np.flatnonzero(exposure_hidden & seen)
@@ -258,6 +298,13 @@ class E3Hidden:
             "largest_group": max((len(g) for g in groups), default=0),
             "sites": len(edits),
             "probes": {"faces_looked_at": int(len(looked)), "faces_seen": int(seen[looked].sum())},
+            "dense_lattice": DENSE_POINTS_PER_FACE,
+            "dense_tested": int(len(tested)),
+            "dense_excluded": [{"face": int(f), "points_seen": int(dense["any"][f]),
+                                "outside": int(dense["outside"][f]), "probes": int(dense["probes"][f]),
+                                "area": round(float(area[f]), 4),
+                                "centroid": [round(float(v), 3) for v in mesh.positions[mesh.face_v[f]].mean(axis=0)]}
+                               for f in np.flatnonzero(dense_seen).tolist()],
             "disagreements": {
                 "faces": int(len(dis)),
                 "removed_by_legacy": int(removed[dis].sum()),

@@ -350,6 +350,46 @@ class SiteJudge:
             seen[part] = visible_samples(b, sub, none, none, probes, caster).seen.any(axis=1)
         return np.bincount(samples.face[seen], minlength=mesh.n_faces)[faces].astype(np.int64)
 
+    def lattice_seen(self, mesh: MeshData, faces, points_per_face: int) -> dict:
+        """Per face of `faces` (ids of `mesh`): how many points of a DENSE lattice on it some viewpoint of the
+        Validator's sees, from its front or its back -- `"outside"` (the standard directions, the extra directions
+        and the ring of cameras), `"probes"` (the eye-height probes) and `"any"`. The hidden-face engine E3's dense
+        pre-filter (ruling E3-R7): the Validator samples a face at about one point per `area_per_sample` (at least
+        `min_per_face`), and a part of a face seen through an opening between those samples passes its check unseen
+        (measured on CHTM 5th, face 8480). The lattice is the Validator's own equal-area one (`face_samples`) with
+        `points_per_face` points on every face whatever its size (a square: 36 is the 6 x 6 lattice), so the points
+        are spread evenly over each face's area; the viewpoints are placed on `mesh` exactly as `begin` places them,
+        plus the extra directions the Validator casts for faces that are gone. Changes nothing in the judge's state."""
+        faces = np.asarray(faces, dtype=np.int64)
+        out = {k: np.zeros(len(faces), dtype=np.int64) for k in ("outside", "probes", "any")}
+        if not len(faces) or not mesh.n_faces:
+            return out
+        side = int(round(float(points_per_face) ** 0.5))
+        if side < 1 or side * side != int(points_per_face):
+            raise ValueError(f"points_per_face must be a square (the n x n lattice), got {points_per_face}")
+        s = self.settings
+        b, _ = recentred(mesh)
+        caster = build_caster(b)
+        lo, hi = used_bbox(b)
+        cams = pedestrian_ring((lo, hi), eye_z=lo[2] + s.eye, n=s.n_cameras, margin=s.camera_margin)
+        probes = interior_probes(b, eye=s.eye, caster=caster)
+        dirs = np.vstack([outside_directions(s.n_directions), outside_directions(s.n_extra_directions)])
+        ids = np.unique(faces)
+        # the smallest n x n lattice reaching `points_per_face` on every face: no area term (an infinite area per sample)
+        samples = face_samples(b, faces=ids, min_per_face=int(points_per_face), area_per_sample=float("inf"))
+        n_out = len(dirs) + len(cams)
+        seen = {k: np.zeros(len(samples), dtype=bool) for k in ("outside", "probes")}
+        chunk = max(1, int(s.chunk))
+        for start in range(0, len(samples), chunk):
+            part = slice(start, min(start + chunk, len(samples)))
+            sub = Samples(points=samples.points[part], face=samples.face[part], bary=samples.bary[part])
+            vs = visible_samples(b, sub, dirs, cams, probes, caster)
+            seen["outside"][part] = vs.seen[:, :n_out].any(axis=1)
+            seen["probes"][part] = vs.seen[:, n_out:].any(axis=1)
+        seen["any"] = seen["outside"] | seen["probes"]
+        return {k: np.bincount(samples.face[v], minlength=mesh.n_faces)[faces].astype(np.int64)
+                for k, v in seen.items()}
+
     # -- the check ---------------------------------------------------------------------------------------------
     def check(self, after: MeshData, focus: Focus, fills=None) -> SiteVerdict:
         """Run the Validator on `after` against the stage's BEFORE with `focus`. `fills` (P2-E8b): the flat fills
