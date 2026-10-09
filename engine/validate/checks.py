@@ -725,8 +725,8 @@ def default_targets_path() -> Path:
 
 def load_targets(path=None) -> dict | None:
     """The targets file, parsed; None when there is none (the owner has not signed yet). `path` defaults
-    to `default_targets_path()`. A file that is not JSON is a `ValueError`: an unreadable target must
-    not quietly turn into "unsigned".
+    to `default_targets_path()`. A file that is not JSON, whose JSON is not an object, or whose "kinds" is not an
+    object is a `ValueError`: an unreadable target must not quietly turn into "unsigned".
 
     The shape: `{"signed": true, "kinds": {"flicker_diff": 0, "hidden": {"max": 5, "note": "..."},
     "open_edges": null, ...}}`. A kind's target is the most `find_errors` may count of it after the fix
@@ -738,8 +738,12 @@ def load_targets(path=None) -> dict | None:
         targets = json.loads(path.read_text(encoding="utf-8"))
     except json.JSONDecodeError as exc:
         raise ValueError(f"targets file {path} is not valid JSON: {exc}") from exc
+    if not isinstance(targets, dict):
+        raise ValueError(f"targets file {path} must hold a JSON object, not {type(targets).__name__}")
+    if "kinds" in targets and not isinstance(targets["kinds"], dict):
+        raise ValueError(f"targets file {path}: \"kinds\" must be a JSON object, not {type(targets['kinds']).__name__}")
     from engine.detectors.errors import KINDS        # lazy: check 2 is the only use of find_errors here
-    unknown = sorted(set((targets or {}).get("kinds") or {}) - set(KINDS))
+    unknown = sorted(set(targets.get("kinds") or {}) - set(KINDS))
     if unknown:
         raise ValueError(f"targets file {path} names unknown kinds {unknown}: a misspelled kind would never gate")
     return targets
