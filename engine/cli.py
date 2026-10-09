@@ -1194,7 +1194,8 @@ def build_parser() -> argparse.ArgumentParser:
 
 #: Where each writing command puts its files (argparse names); the commands that write nothing are not here.
 #: campus-errors-skp checks its own output (error_export raises, as its tests expect).
-_OUTPUT_ARGS = {"campus-skp-check": ("out", "summary"), "validate": ("out",),
+_OUTPUT_ARGS = {"fix": ("out", "skp_dir"), "preview-data": ("out",), "errors": ("out",),
+                "campus-skp-check": ("out", "summary"), "validate": ("out",),
                 "census": ("out", "md", "errors_dir"), "campus-freeze": ("out", "snapshots"),
                 "campus-index": ("out",), "campus-materials": ("out",), "campus-inventory": ("out", "md"),
                 "decide-pilot": ("out",), "campus-unit-before": ("out",)}
