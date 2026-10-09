@@ -1238,8 +1238,11 @@ def cmd_repair_unit(out_dir: Path, *, unit: str | None = None, snapshot: Path | 
     return report["exit_code"]
 
 
-#: The inscribed-diameter histogram's bins in report.json's `fill_stats` (inches; ruling E8b-R3's cap is 39.37).
-FILL_DIAMETER_BINS = (0.0, 5.0, 10.0, 20.0, 39.37, 80.0, 160.0)
+def fill_diameter_bins() -> tuple:
+    """The inscribed-diameter histogram's bin edges in report.json's `fill_stats` (inches): one edge is E8b's own cap,
+    `engine.repair.engines.e8_fill.FILL_MAX_DIAMETER` (ruling E8b-R3), read when called."""
+    from engine.repair.engines import e8_fill
+    return (0.0, 5.0, 10.0, 20.0, float(e8_fill.FILL_MAX_DIAMETER), 80.0, 160.0)
 
 
 def _fill_report(engine, edits: list, result, check: dict | None, before, looks, out_dir: Path):
@@ -1274,7 +1277,7 @@ def _fill_report(engine, edits: list, result, check: dict | None, before, looks,
                            "inscribed_diameter": ev["inscribed_diameter"], "area": ev["area"]})
     report = engine.report or {}
     diameters = np.asarray(report.get("diameters", []), dtype=np.float64)
-    edges = list(FILL_DIAMETER_BINS) + [np.inf]
+    edges = sorted(fill_diameter_bins()) + [np.inf]
     counts = np.histogram(diameters, bins=edges)[0].tolist() if len(diameters) else [0] * (len(edges) - 1)
     labels = [f"{a:g}-{b:g}" if np.isfinite(b) else f">{a:g}" for a, b in zip(edges[:-1], edges[1:])]
     stats = {k: report.get(k) for k in ("open_edges", "components", "loops", "outer_boundaries", "holes", "planned",

@@ -80,3 +80,8 @@ def test_a_fill_the_check_charges_is_listed_in_not_filled(tmp_path, monkeypatch)
 def test_without_e8b_the_report_has_no_fills(tmp_path):
     _code, _out, report = _run(tmp_path, floor_over_room(), engines=("E8a",))
     assert report["fills"] == [] and report["not_filled"] == [] and report["fill_stats"] is None
+
+
+def test_the_diameter_histogram_bins_follow_the_engine_s_cap(monkeypatch):
+    monkeypatch.setattr(e8_fill, "FILL_MAX_DIAMETER", 30.0)
+    assert 30.0 in cli.fill_diameter_bins() and 39.37 not in cli.fill_diameter_bins()

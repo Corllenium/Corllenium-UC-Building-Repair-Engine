@@ -17,9 +17,9 @@ THE RULINGS, in the order a loop is tested (the first that fails names the refus
 - E8b-R2 every loop point lies within `plane_tol = 2 x print step` of the loop's least-squares plane
   (`not_planar`); every face that shares a loop edge has its normal within 1 degree of that plane's, up to sign,
   and all its corners within `plane_tol` of the plane (`neighbour_not_coplanar`: a wall meeting a floor at the
-  border disqualifies the loop).
+  border disqualifies the loop; a neighbour with no area, so no normal, is `neighbour_degenerate`).
 - E8b-R3 the hole's largest inscribed circle, measured in the plane, is at most `FILL_MAX_DIAMETER` (39.37 in, one
-  Minecraft block) across (`too_wide`). A named constant, not a FixProfile field.
+  Minecraft block) across, polylabel's tolerance counted against the hole (`too_wide`). A named constant, not a FixProfile field.
 - E8b-R4 the neighbours have one look (`face_keys`' look: `unit.looks`, else `material:<name>`; no material is the
   look `material:<none>`) (`two_looks`); they face one side (`neighbours_face_both_ways`); one affine map from the
   plane's xy to UV fits every neighbour corner with the largest residual at most `UV_RESIDUAL_MAX` (1e-3 UV units)
@@ -66,7 +66,7 @@ _POLYLABEL_TOL = 0.005
 
 _RULE = {"not_a_simple_loop": "E8b-R1", "self_crossing": "E8b-R1", "neighbours_on_both_sides": "E8b-R1",
          "inner_loop": "E8b-R1", "faces_inside": "E8b-R1", "not_planar": "E8b-R2",
-         "neighbour_not_coplanar": "E8b-R2", "too_wide": "E8b-R3", "two_looks": "E8b-R4",
+         "neighbour_not_coplanar": "E8b-R2", "neighbour_degenerate": "E8b-R2", "too_wide": "E8b-R3", "two_looks": "E8b-R4",
          "neighbours_face_both_ways": "E8b-R4", "uv_seam": "E8b-R4", "no_material": "E8b-R4",
          "triangulation_failed": "E8b-R5"}
 
@@ -276,7 +276,10 @@ class E8FlatFill:
         fv = mesh.face_v[faces]
         tri = mesh.positions[fv]
         fn = np.cross(tri[:, 1] - tri[:, 0], tri[:, 2] - tri[:, 0])
-        fn /= np.linalg.norm(fn, axis=1, keepdims=True)
+        length = np.linalg.norm(fn, axis=1)
+        if not (np.isfinite(length) & (length > 0.0)).all():
+            return refuse("neighbour_degenerate", "a face on the loop has no area, so no normal to compare")
+        fn /= length[:, None]
         dots = fn @ normal
         angle = float(np.degrees(np.arccos(np.clip(np.abs(dots), -1.0, 1.0))).max())
         offset = float(np.abs((tri - centre) @ normal).max())
@@ -322,7 +325,7 @@ class E8FlatFill:
                     return refuse("inner_loop", "another loop of open edges lies inside the hole")
             if _faces_inside(mesh, topo.ok, lo_all, hi_all, lo, hi, centre, normal, e1, e2, tol, interior):
                 return refuse("faces_inside", "a face passes through the hole (a post, a wall or a patch in it)")
-        if diameter > FILL_MAX_DIAMETER:
+        if diameter + 2.0 * _POLYLABEL_TOL > FILL_MAX_DIAMETER:     # polylabel's own tolerance counts against the hole
             return refuse("too_wide", f"its largest inscribed circle is {diameter:.2f} in across "
                                       f"(at most {FILL_MAX_DIAMETER} in)")
         # E8b-R4: one look, one side, one UV map

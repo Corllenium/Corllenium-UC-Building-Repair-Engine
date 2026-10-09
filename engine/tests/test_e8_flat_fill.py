@@ -179,3 +179,44 @@ def test_each_refused_row_carries_what_e8c_needs():
     row = _refused(holed_slab("wide", holes={(i, j) for i in range(2, 8) for j in range(2, 8)}))
     assert {"loop", "rule", "reason", "detail", "vertices", "centroid", "points"} <= set(row)
     assert len(row["points"]) == row["vertices"] == 24
+
+
+# ------------------------------------------------------------------------------------------- fix round 1, item 5
+
+
+def test_polylabel_s_tolerance_counts_against_the_hole_at_the_cap():
+    """A square hole exactly one block (39.37 in) across: polylabel may be 0.005 in off, so the hole is refused;
+    one 39.3 in across is still filled."""
+    at_cap = holed_slab("at_cap", [0.0, 20.0, 59.37, 80.0], [0.0, 20.0, 59.37, 80.0], holes={(1, 1)})
+    row = _refused(at_cap)
+    assert (row["rule"], row["reason"]) == ("E8b-R3", "too_wide")
+    under = holed_slab("under", [0.0, 20.0, 59.3, 80.0], [0.0, 20.0, 59.3, 80.0], holes={(1, 1)})
+    _, edits = _plan(under)
+    assert len(edits) == 1
+
+
+def test_a_degenerate_neighbour_is_refused_with_its_own_reason_and_no_nan(monkeypatch):
+    """A neighbour face with no area has no normal: refused as `neighbour_degenerate`, never compared as NaN. (The
+    topology leaves zero-area faces out, so the test flattens a neighbour in the positions the engine measures while
+    the topology stays the unflattened mesh's.)"""
+    import dataclasses
+    import json
+
+    from engine.repair.engines import e8_fill
+    mesh = square_hole_slab()
+    _, (fill,) = _plan(mesh)
+    loop = set(fill.evidence["loop"])
+    f = fill.evidence["neighbours"][0]
+    corners = mesh.face_v[f].tolist()
+    third = next(v for v in corners if v not in loop)
+    on_edge = [v for v in corners if v in loop]
+    positions = mesh.positions.copy()
+    positions[third] = positions[on_edge].mean(axis=0)          # the face's third corner on its loop edge: no area
+    flat = dataclasses.replace(mesh, positions=positions)
+    topo = analyse_topology(mesh)
+    monkeypatch.setattr(e8_fill, "analyse_topology_memo", lambda m: topo)
+    engine, edits = _plan(flat)
+    assert edits == []
+    (row,) = engine.not_filled
+    assert (row["rule"], row["reason"]) == ("E8b-R2", "neighbour_degenerate")
+    json.dumps(row, allow_nan=False)
