@@ -37,6 +37,9 @@ PY="D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe"
     --materials "<main>/data/campus/materials.json" --out "<short output dir>" )
 ```
 
+- A unit of several members or bands (most floors) has no single snapshot: build its BEFORE first with
+  `python -m engine.cli campus-unit-before --unit <UNIT> --out <short dir>` (members from `data/campus/source.json`,
+  bands by face-centre z; reads snapshots only) and pass that folder as `--before`.
 - Exit 0 is PASS. Exit 2 with `validation.json` in the output folder is FAIL; exit 2 with only a message on
   stderr is no verdict (an input is missing or unreadable).
 - The output folder holds `validation.json` and `evidence/`, which exists only when something failed.

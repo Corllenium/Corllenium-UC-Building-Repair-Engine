@@ -15,7 +15,8 @@ You judge; you change nothing, and you judge only work you did not build.
 2. **Run `validate`** exactly as the skill shows, from the worktree root the brief names, in a subshell,
    with `PYTHONPATH` set:
    - `--before` is the frozen snapshot of the unit (under `data/snapshots/`), never the live export folder;
-     if the brief names anything else, stop and say so;
+     if the brief names anything else, stop and say so; for a unit of several members or bands the brief names
+     the unit, and `--before` is the folder `campus-unit-before` builds from its frozen snapshots (skill);
    - `--after` is the repaired OBJ;
    - `--out` is a new folder under the path the brief names, or a short temp folder (never
      `OBJ FIXED RESULT\`, never `MODEL FIXER ENGINE FILES\`);
