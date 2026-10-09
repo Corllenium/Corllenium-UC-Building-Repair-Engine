@@ -499,6 +499,29 @@ def _engine_commit() -> str:
         return "unknown"
 
 
+def check_member_input(group: str, obj, map_sha, source_sha, *, in_map: bool = True) -> str:
+    """The snapshot OBJ `obj` of `group` must be the one the campus map was made from. A member of a unit: its
+    sha256 must equal the one `campus_map.json` gives it, and `source.json` must say the same. A group the map
+    holds only as an excluded duplicate (`in_map=False`) is checked against `source.json` alone. Raises
+    ValueError naming the group when a hash is missing or any of them differ; returns the file's sha256."""
+    actual = _sha256(obj)
+    if in_map:
+        if not map_sha:
+            raise ValueError(f"{group}: campus_map.json gives its member no sha256, so the snapshot cannot be "
+                             "checked against the map")
+        if actual != map_sha:
+            raise ValueError(f"{group}: the snapshot {obj} has sha256 {actual}, but campus_map.json was made "
+                             f"from {map_sha}: run campus-inventory again on this snapshot")
+        if source_sha != map_sha:
+            raise ValueError(f"{group}: source.json gives sha256 {source_sha}, campus_map.json gives {map_sha}")
+    else:
+        if not source_sha:
+            raise ValueError(f"{group}: source.json gives it no sha256, so the snapshot cannot be checked")
+        if actual != source_sha:
+            raise ValueError(f"{group}: the snapshot {obj} has sha256 {actual}, but source.json froze {source_sha}")
+    return actual
+
+
 def cmd_campus_errors_skp(campus_map, source, errors_dir, skp_check, out_dir, buildings=None,
                           dll_path=None) -> list[dict]:
     """Write `<out_dir>/<BUILDING>/<BUILDING>-errors.skp` and `-errors.json` for each building."""
@@ -512,13 +535,15 @@ def cmd_campus_errors_skp(campus_map, source, errors_dir, skp_check, out_dir, bu
     snapshots = json.loads(Path(source).read_text(encoding="utf-8"))["snapshots"]
     snaps = {s["group"]: Path(s["dir"]) for s in snapshots}
     snap_sha = {s["group"]: s.get("sha256") for s in snapshots}
+    map_sha = {m["group"]: m.get("sha256") for u in cmap["units"] for m in u["members"]}
     mismatches = {m["file"]: m for m in json.loads(Path(skp_check).read_text(encoding="utf-8"))["mismatches"]}
     names = sorted({u["building"] for u in cmap["units"]} | {building_of(e["group"]) for e in cmap.get("excluded", [])})
     commit = _engine_commit()
     used: dict[str, str] = {}
 
     def load_member(group: str):
-        _, mesh = _load_snapshot_mesh(snaps[group])
+        obj, mesh = _load_snapshot_mesh(snaps[group])
+        check_member_input(group, obj, map_sha.get(group), snap_sha.get(group), in_map=group in map_sha)
         path = errors_dir / f"{group}.json"
         used[group] = _sha256(path)
         return mesh.positions, mesh.face_v, json.loads(path.read_text(encoding="utf-8"))

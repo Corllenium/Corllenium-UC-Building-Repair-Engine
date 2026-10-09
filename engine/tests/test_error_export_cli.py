@@ -1,3 +1,4 @@
+import hashlib
 import json
 
 import pytest
@@ -17,13 +18,21 @@ f 1 3 4
 """
 
 
-def _campus(tmp_path):
+OBJ_SHA = hashlib.sha256(OBJ.encode("utf-8")).hexdigest()
+
+
+def _campus(tmp_path, source_sha=OBJ_SHA, map_sha=OBJ_SHA):
+    """`source_sha` / `map_sha`: the sha256 that source.json / campus_map.json give the member (None: leave it out).
+    P1-H1b item 8 edit: they used to be a made-up "s" * 64 in source.json and absent from the map; the export now
+    checks them against the snapshot file, so the fixture carries the real hash."""
     snap = tmp_path / "snap" / "abc"
     snap.mkdir(parents=True)
-    (snap / "B_1st_floor.obj").write_text(OBJ, encoding="utf-8")
+    (snap / "B_1st_floor.obj").write_bytes(OBJ.encode("utf-8"))      # bytes: write_text would add CRs on Windows
     source = tmp_path / "source.json"
-    source.write_text(json.dumps({"snapshots": [{"group": "B_1st_floor", "file": "B_1st_floor.obj",
-                                                 "dir": str(snap), "tris": 2, "sha256": "s" * 64}]}), encoding="utf-8")
+    row = {"group": "B_1st_floor", "file": "B_1st_floor.obj", "dir": str(snap), "tris": 2}
+    if source_sha is not None:
+        row["sha256"] = source_sha
+    source.write_text(json.dumps({"snapshots": [row]}), encoding="utf-8")
     errors = tmp_path / "errors"
     errors.mkdir()
     (errors / "B_1st_floor.json").write_text(json.dumps({
@@ -33,7 +42,8 @@ def _campus(tmp_path):
     cmap.write_text(json.dumps({"units": [{"unit": "BRS-L01", "building": "BRS", "level": "L01", "type": "floor",
                                            "base": 100.0, "flags": [], "confirmed_by_owner": True,
                                            "members": [{"group": "B_1st_floor", "file": "B_1st_floor.obj",
-                                                        "faces": "all"}]}],
+                                                        "faces": "all",
+                                                        **({} if map_sha is None else {"sha256": map_sha})}]}],
                                 "excluded": []}), encoding="utf-8")
     check = tmp_path / "skp_check.json"
     check.write_text(json.dumps({"mismatches": []}), encoding="utf-8")
@@ -64,6 +74,42 @@ def test_the_cli_writes_one_file_and_report_per_building(tmp_path, capsys):
     assert report["duplicates_by_tag"] == {} and report["unexplained_by_tag"] == {}
     assert report["columns"][0]["unit"] == "BRS-L01"
     assert set(report["inputs"]) == {"campus_map", "skp_check", "errors", "source", "snapshots"}
-    assert report["inputs"]["snapshots"] == {"B_1st_floor": "s" * 64}
+    assert report["inputs"]["snapshots"] == {"B_1st_floor": OBJ_SHA}
     assert report["legend"] == list(("base",) + ee.ERROR_KINDS + ee.LINE_KINDS + ee.GROUPING_KINDS)
     assert "BRS" in capsys.readouterr().out
+
+
+# --------------------------------------------------------- the export checks its inputs (P1-H1b item 8)
+
+
+def _refused(tmp_path, **kw):
+    args = _campus(tmp_path, **kw) + ["--out", str(tmp_path / "out")]
+    with pytest.raises(ValueError, match="B_1st_floor") as raised:
+        cli.main(["campus-errors-skp", *args])
+    assert not (tmp_path / "out" / "BRS").exists()                # nothing was written
+    return str(raised.value)
+
+
+def test_a_snapshot_whose_bytes_are_not_the_sha256_in_the_map_is_refused(tmp_path):
+    text = _refused(tmp_path, map_sha="m" * 64, source_sha="m" * 64)       # source and map agree, the file does not
+    assert "sha256" in text and "campus_map.json" in text
+
+
+def test_a_source_json_sha256_that_differs_from_the_map_is_refused(tmp_path):
+    text = _refused(tmp_path, source_sha="s" * 64)                         # the file matches the map, source.json not
+    assert "sha256" in text and "source.json" in text
+
+
+def test_a_member_without_a_sha256_in_the_map_is_refused(tmp_path):
+    text = _refused(tmp_path, map_sha=None)
+    assert "sha256" in text and "campus_map.json" in text
+
+
+def test_an_excluded_duplicate_is_checked_against_source_json_alone(tmp_path):
+    obj = tmp_path / "D.obj"
+    obj.write_bytes(OBJ.encode("utf-8"))
+    assert ee.check_member_input("D", obj, None, OBJ_SHA, in_map=False) == OBJ_SHA
+    with pytest.raises(ValueError, match="D: the snapshot .* source.json froze"):
+        ee.check_member_input("D", obj, None, "x" * 64, in_map=False)
+    with pytest.raises(ValueError, match="D: source.json gives it no sha256"):
+        ee.check_member_input("D", obj, None, None, in_map=False)
