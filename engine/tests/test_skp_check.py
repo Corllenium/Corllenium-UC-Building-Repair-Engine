@@ -1344,3 +1344,14 @@ def test_a_report_cannot_name_the_master(tmp_path):
     report = {"source": {"copy": str(master)}}
     with pytest.raises(ValueError, match="master"):
         skp_check.require_verified_copy(frozen(), master, report=report)
+
+
+def test_a_report_cannot_name_the_backup_itself(tmp_path):
+    """End-of-P1 review, finding 1: a report must not let the SDK open the CHECKPOINT-17 backup itself (AGENTS.md
+    section 2: only a verified COPY is opened)."""
+    backup = tmp_path / "MODEL FIXER ENGINE FILES" / "02-SKETCHUP-MODELS" / "CHECKPOINT-17-BACKUP" / "M - CHECKPOINT-17.skp"
+    backup.parent.mkdir(parents=True)
+    backup.write_bytes(b"skp-bytes")
+    report = {"source": {"copy": str(backup)}}
+    with pytest.raises(ValueError, match="backup"):
+        skp_check.require_verified_copy(frozen(), backup, report=report)
