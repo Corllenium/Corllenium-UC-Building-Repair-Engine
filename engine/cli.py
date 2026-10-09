@@ -1077,6 +1077,14 @@ def cmd_repair_unit(out_dir: Path, *, unit: str | None = None, snapshot: Path | 
         raise ValueError("give exactly one of a unit and a snapshot")
     out_dir = Path(out_dir)
     refuse_protected(out_dir)
+    if snapshot is not None:
+        # the live export folder (and the backup and the master) are read only through engine/io/snapshot.py's
+        # stable copies (AGENTS.md section 3): a snapshot folder in one of them is refused before anything is read
+        try:
+            refuse_protected(snapshot)
+        except ValueError as exc:
+            raise ValueError(f"refusing to read {snapshot}: it lies in a protected folder, which is read only "
+                             f"through engine/io/snapshot.py (its frozen copies under data/snapshots) ({exc})") from exc
     started = time.perf_counter()
     before_report = None
     if unit is not None:

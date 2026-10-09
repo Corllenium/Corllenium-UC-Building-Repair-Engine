@@ -107,3 +107,24 @@ def test_repair_unit_takes_a_snapshot_folder_as_the_before(tmp_path):
     report = json.loads((out / "report.json").read_text(encoding="utf-8"))
     assert report["snapshot"] == str(snap) and report["sites"]["kept"] == 2
     assert (out / f"{mesh.name}.fixed.obj").is_file()
+
+
+# ------------------------------------------------------------------------------- review fix round 1
+
+LIVE_EXPORT = "D:/PROJECTS/UC ENVIRONMENT BUILDING/REQUIREMENTS/01-MODEL-EXPORT/CKPT17"
+
+
+def test_a_snapshot_in_the_live_export_folder_is_refused_and_nothing_is_read(tmp_path, monkeypatch, capsys):
+    """Finding 1: the live export folder is read only through engine/io/snapshot.py (AGENTS.md section 3)."""
+    reads = []
+    monkeypatch.setattr(cli, "_load_snapshot", lambda d: reads.append(d) or (_ for _ in ()).throw(AssertionError))
+    materials = tmp_path / "materials.json"
+    materials.write_text(json.dumps({"materials": {}}), encoding="utf-8")
+    out = tmp_path / "out"
+    code = cli.main(["repair-unit", "--snapshot", LIVE_EXPORT, "--engines", "E8", "--out", str(out),
+                     "--materials", str(materials)])
+    assert code == 2 and reads == [] and not out.exists()
+    assert "engine/io/snapshot.py" in capsys.readouterr().err
+    with pytest.raises(ValueError, match="protected"):
+        cli.cmd_repair_unit(out, snapshot=LIVE_EXPORT, engines=["E8"], materials=materials, profile=_FAST)
+    assert reads == []
