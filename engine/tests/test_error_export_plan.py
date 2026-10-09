@@ -264,9 +264,54 @@ def test_a_missing_snapshot_or_errors_file_names_the_group(campus):
         ee.plan_building("B", cmap, load, building_of=lambda g: "B")
 
 
-def test_flicker_labels_say_material_because_find_errors_splits_by_material_index():
-    """find_errors' flicker_diff / flicker_same split pairs by material index, not by look (final P0 review):
-    the owner-facing names must not say "look"."""
-    assert ee.KIND_NAMES["flicker_diff"] == "FLICKER DIFFERENT MATERIAL"
-    assert ee.KIND_NAMES["flicker_same"] == "FLICKER SAME MATERIAL"
-    assert not any("LOOK" in v for v in ee.KIND_NAMES.values())
+def test_flicker_labels_say_look_because_the_export_splits_by_look():
+    """P1-H1b item 9 (an edit of the P0 final-review test `test_flicker_labels_say_material_because_find_errors_
+    splits_by_material_index`): the colour export now splits flicker with `materials.flicker_faces_by_look`, so
+    the owner-facing names say LOOK again, and this time it is true (see the look-split tests below)."""
+    assert ee.KIND_NAMES["flicker_diff"] == "FLICKER DIFFERENT LOOK"
+    assert ee.KIND_NAMES["flicker_same"] == "FLICKER SAME LOOK"
+    assert not any("MATERIAL" in v for v in ee.KIND_NAMES.values())
+
+
+# ----------------------------------------------------------- flicker split by look (P1-H1b item 9)
+
+def _look_scene():
+    """Faces 0-1 are a pair of two materials with ONE look (a, b), faces 2-3 a pair with two looks (c, a), and
+    face 4 is in a pair of both kinds. `find_errors` (material index) lists all of them as flicker_diff."""
+    import types
+    mesh = types.SimpleNamespace(face_material=np.array([0, 1, 2, 0, 1]), materials=["a", "b", "c"])
+    materials = {"materials": {"a": {"look": "L1"}, "b": {"look": "L1"}, "c": {"look": "L2"}}}
+    errors = _errors(5, {"flicker_diff": [0, 1, 2, 3, 4], "reversed": [4]})
+    errors["flicker_pairs"] = [[0, 1, 4.0, False], [2, 3, 4.0, True], [3, 4, 4.0, False]]
+    return mesh, materials, errors
+
+
+def test_two_materials_of_one_look_are_same_look_flicker_in_the_export():
+    mesh, materials, errors = _look_scene()
+    split = ee.look_split_errors(errors, mesh, materials)
+    assert split["faces"]["flicker_same"] == [0, 1, 4]               # a and b are one look (pairs 0-1 and 3-4) ...
+    assert split["faces"]["flicker_diff"] == [2, 3]                  # ... c against a is two; face 3 is in both: diff wins
+    assert split["faces"]["reversed"] == [4]                         # the other listings are kept as they were
+    assert errors["faces"]["flicker_diff"] == [0, 1, 2, 3, 4]        # the input is not changed
+
+
+def test_the_look_split_feeds_the_plan_and_the_counts():
+    mesh, materials, errors = _look_scene()
+    split = ee.look_split_errors(errors, mesh, materials)
+    pos = np.array([[0, 0, 1], [1, 0, 1], [0, 1, 1]] * 5, float)
+    fv = np.arange(15).reshape(5, 3)
+    cmap = {"units": [{"unit": "B-L01", "building": "B", "level": "L01", "type": "floor", "base": 0.0,
+                       "members": [{"group": "G", "faces": "all"}], "flags": [], "confirmed_by_owner": True}],
+            "excluded": []}
+    plan = ee.plan_building("B", cmap, lambda g: (pos, fv, split), building_of=lambda g: "B")
+    (column,) = plan.columns
+    assert (column.counts["flicker_same"], column.counts["flicker_diff"]) == (3, 2)
+
+
+def test_flicker_faces_without_their_pairs_cannot_be_split_by_look():
+    mesh, materials, errors = _look_scene()
+    del errors["flicker_pairs"]
+    with pytest.raises(ValueError, match="flicker_pairs"):
+        ee.look_split_errors(errors, mesh, materials)
+    no_flicker = _errors(5, {"reversed": [4]})                        # nothing to split: no pairs needed
+    assert ee.look_split_errors(no_flicker, mesh, materials)["faces"]["flicker_same"] == []

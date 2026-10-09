@@ -580,3 +580,23 @@ def test_the_table_states_both_conditions_of_the_footprint_flag():
 def test_the_table_says_site_groups_are_compared_for_duplicates_too():
     text = inv.render_markdown(inv.build_inventory(stack("CHTM", ["1st", "2nd"])))
     assert "within each building and among the SITE groups" in text
+
+
+# ------------------------------------------------------------------------------------------ band edges (P1-H1b item 5)
+
+def test_a_face_within_half_a_hundredth_of_a_band_edge_lands_in_the_same_band_in_the_inventory_and_the_export():
+    """The map stores z_range to 0.01 in; the inventory must split on those same edges, not on the unrounded
+    ones, or the colour export (which reads z_range) puts the face on another floor than the inventory counted."""
+    from engine.campus import error_export as ee
+    # the second slab's base is 200.0034, so the unrounded edge is 199.0034 and the stored one is 199.0;
+    # the box's top face has its centre at z = 199.003, between the two
+    both = group("CHTM_two_floors", slab(0), slab(200.0034), box(300, 0, 150, 305, 5, 199.003))
+    assert (np.abs(both.cz - 199.003) < 1e-9).sum() == 2                       # two triangles sit on the edge
+    result = inv.build_inventory([both])
+    members = [m for u in result["units"] for m in u["members"] if "z_range" in m]
+    assert len(members) == 2
+    for m in members:
+        assert int(ee.member_mask(m, both.cz).sum()) == m["tris"], m["faces"]
+    (proposal,) = result["proposals"]
+    assert [p["tris"] for p in proposal["parts"]] == [m["tris"] for m in members]
+    assert sum(m["tris"] for m in members) == both.tris

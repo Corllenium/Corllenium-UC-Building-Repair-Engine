@@ -236,6 +236,8 @@ def write_group_index_atomic(out_path: Path, data: dict) -> None:
 
 def cmd_campus_index(source_json_path: Path, out_path: Path) -> dict:
     """Load source.json, index the clean OBJ, write out_path, and return index dict."""
+    from engine.io.protected import refuse_protected
+    refuse_protected(out_path)
     with open(source_json_path, "r", encoding="utf-8") as fh:
         source_data = json.load(fh)
     clean_obj_path = Path(source_data["clean_obj"]["path"])

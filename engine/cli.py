@@ -16,6 +16,17 @@
     names another folder, `--no-skp` skips it. Without SketchUp the run still succeeds and
     report.json's `skp` says why no file was written.
 
+    `--kernel` runs the same fix through the observe-only repair kernel
+    (`engine.repair.kernel.repair_unit`): the same files, byte for byte, plus `edit_log.jsonl` next to
+    report.json -- one line per edit each stage was observed to make.
+
+    `--kernel --validate-sites [--materials data/campus/materials.json]` also checks every stage with
+    the Validator's focus mode (`engine.site_judge.SiteJudge`, the owner's settings; job P1-K3b): one
+    focus run per stage, each failing sample charged to the stage's sites. The legacy stages are one
+    site each and are NOT rolled back (ruling K3-R2), so the files are the `--kernel` run's, and
+    `edit_log.jsonl` gains one `{"check": {...}}` line per stage: its verdict, the failing counts by
+    reason and the run times. It prints each stage's verdict and the total time.
+
 `python -m engine.cli preview-data <snapshot_dir> --out preview/data`
     Writes the JSON `preview/index.html` reads (see `spike/12_export_preview.py` for the shape
     this mirrors), with AFTER built from the REAL fixed mesh and the REAL guard numbers, and
@@ -29,6 +40,11 @@
     "FAIL", "sites": [...]}` and everything the run was made from) and `<dir>/evidence/*.png`, two
     256 px crops (BEFORE, AFTER) of each of the 20 worst failing sites. Exit code 0 on PASS, 2 on FAIL
     or when an input is missing. Nothing is changed or fixed; the inputs are only read.
+
+`python -m engine.cli campus-unit-before --unit <UNIT> --out <dir>`
+    Writes a campus unit's BEFORE as a snapshot-shaped folder (`<UNIT>.obj`, `materials.mtl`) from its members'
+    frozen snapshots, banded members cut by face-centre z, so `validate --before <dir>` takes a whole unit.
+    Exit 0 when each member's face count is the campus map's, 1 when one differs, 2 on a refused input.
 
 A snapshot directory is the layout `engine.io.snapshot.snapshot_object` produces: one `<name>.obj`,
 `materials.mtl`, and a `tex/` folder of the textures it references.
@@ -61,11 +77,12 @@ from engine.guard.views import VIEWS_26, ortho_first_hit
 from engine.io.mtl import MtlMaterial, parse_mtl, texture_flatness
 from engine.io.obj_reader import read_obj
 from engine.io.obj_writer import write_obj, write_obj_polygons
+from engine.io.protected import refuse_protected
 from engine.io.skp_writer import SketchUpError, check_skp_validity, write_skp
 from engine.io.snapshot import sha256_file
 from engine.model import MeshData
-from engine.pipeline import (Topology, analyse_topology, coplanar_region_borders,
-                             flat_material_indices)
+from engine.pipeline import (Topology, analyse_topology, analyse_topology_memo,
+                             coplanar_region_borders, flat_material_indices)  # noqa: F401 -- analyse_topology stays importable from here
 from engine.rays.caster import ReusableCaster
 from engine.topo.adjacency import build_edge_table, edge_face_lists
 from engine.topo.edges import EDGE_SOFT
@@ -439,8 +456,8 @@ def _write_skp(result: FixResult, name: str, out_dir: Path, flat_materials: froz
     path = out_dir / f"{name}.fixed.skp"
     mtl_path = out_dir / "materials.mtl"
     # the hidden edges are decided on the shipped mesh's own topology, with the run's thresholds
-    topo = analyse_topology(result.mesh, flat_materials, coplanar_angle=profile.coplanar_angle,
-                            soft_angle=profile.soft_angle)
+    topo = analyse_topology_memo(result.mesh, flat_materials, coplanar_angle=profile.coplanar_angle,
+                                 soft_angle=profile.soft_angle)
     try:
         written = write_skp(result.mesh, result.rings, result.face_region_final, topo,
                             parse_mtl(mtl_path) if mtl_path.exists() else {}, path,
@@ -462,12 +479,35 @@ def _write_skp(result: FixResult, name: str, out_dir: Path, flat_materials: froz
 # --------------------------------------------------------------------------------- fix command
 
 
+def _print_checks(name: str, checks: list[dict], seconds: float) -> None:
+    """One line per checked stage: its verdict, the failing samples by reason, what was rolled back."""
+    for c in checks:
+        if "skipped" in c:
+            print(f"{name}: check {c['stage']}: skipped ({c['skipped']})")
+            continue
+        runs = c["runs"]
+        first = runs[0] if runs else None
+        reasons = {} if first is None else {k: v for k, v in {**first["textures"], **first["nothing_deleted"]}.items() if v}
+        took = sum(r["seconds"] + r["focus_seconds"] + r["cover_seconds"] for r in runs)
+        print(f"{name}: check {c['stage']} ({c['engine']}, {c['edits']} edits, {c['sites']} sites): "
+              f"{c['first']} -> {c['final']}; failing {0 if first is None else first['failing']} {reasons}; "
+              f"unknown {c['unknown']['samples']}; rolled back {[r['site'] for r in c['rolled_back']]}; "
+              f"{len(runs)} run(s), {took:.1f} s")
+    print(f"{name}: site checks done in {seconds:.1f} s (the whole kernel run)")
+
+
 def cmd_fix(snapshot_dir: Path, out_root: Path, accept_slit: bool,
             profile: FixProfile | None = None, solidify: bool = True,
-            fragments: bool = True, skp: bool = True, skp_dir: Path | None = None) -> int:
+            fragments: bool = True, skp: bool = True, skp_dir: Path | None = None,
+            kernel: bool = False, validate_sites: bool = False, materials: Path | None = None) -> int:
     """`skp_dir` receives a copy of the `.skp`; `None` (the default here) copies it nowhere --
-    `main` passes `default_skp_dir()` unless `--skp-dir` names another folder."""
-    obj_path, mesh, flatness, _mtl_materials = _load_snapshot(snapshot_dir)
+    `main` passes `default_skp_dir()` unless `--skp-dir` names another folder. `kernel` runs the
+    fix through `engine.repair.kernel.repair_unit` and also writes `edit_log.jsonl`;
+    `validate_sites` (with `kernel`) checks each stage with the Validator's looks from `materials`
+    (materials.json) and the snapshot's own MTL, and logs the checks in `edit_log.jsonl`."""
+    obj_path, mesh, flatness, mtl_materials = _load_snapshot(snapshot_dir)
+    if validate_sites and not kernel:
+        raise ValueError("validate_sites needs kernel")
     if profile is None:
         profile = FixProfile(accept_slit=accept_slit, solidify=solidify,
                              accept_fragments=fragments)
@@ -475,12 +515,35 @@ def cmd_fix(snapshot_dir: Path, out_root: Path, accept_slit: bool,
         profile = replace(profile, accept_slit=accept_slit, solidify=solidify,
                           accept_fragments=fragments)
 
-    result = fix_object(mesh, flatness, profile)
+    kernel_result = None
+    if kernel:
+        from engine.repair.kernel import repair_unit, write_edit_log, write_records
+        from engine.repair.types import RepairContext, UnitState
+        judge = None
+        if validate_sites:
+            from engine.site_judge import SiteJudge
+            from engine.validate.checks import load_looks
+            judge = SiteJudge(load_looks(Path(materials or "data/campus/materials.json"),
+                                         [(mtl_materials, Path(snapshot_dir))]))
+        started = time.perf_counter()
+        kernel_result = repair_unit(UnitState(mesh=mesh, topo=None, looks={}, viewpoints=None),
+                                    RepairContext(profile=profile, decider=None, validator=judge),
+                                    flatness=flatness, obj_path=obj_path,
+                                    validate_sites=validate_sites)
+        result = kernel_result.result
+        if validate_sites:
+            _print_checks(mesh.name, kernel_result.checks, time.perf_counter() - started)
+    else:
+        result = fix_object(mesh, flatness, profile)
 
     name = mesh.name
     out_dir = Path(out_root) / name
     out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / "report.json").unlink(missing_ok=True)
+    if kernel_result is not None and validate_sites:
+        write_records(out_dir / "edit_log.jsonl", kernel_result.records)
+    elif kernel_result is not None:
+        write_edit_log(out_dir / "edit_log.jsonl", kernel_result.edits)
 
     write_obj(result.mesh, out_dir / f"{name}.fixed.obj")
     write_obj_polygons(result.mesh, result.rings, out_dir / f"{name}.fixed.ngon.obj")
@@ -490,7 +553,7 @@ def cmd_fix(snapshot_dir: Path, out_root: Path, accept_slit: bool,
     # against: the solidified mesh when `profile.solidify` is on, the input otherwise.
     flat_materials = flat_material_indices(mesh, flatness, profile.flat_texture_std)
     reference = result.reference_mesh
-    topo = analyse_topology(reference, flat_materials)
+    topo = analyse_topology_memo(reference, flat_materials)
     centre = (topo.positions_w.min(axis=0) + topo.positions_w.max(axis=0)) / 2.0
     positions_c = topo.positions_w - centre
     _write_guard_images(reference, result, profile, flat_materials, topo, positions_c, out_dir)
@@ -515,7 +578,8 @@ def cmd_fix(snapshot_dir: Path, out_root: Path, accept_slit: bool,
 
     skp_report = _write_skp(result, name, out_dir, flat_materials, profile, skp, skp_dir)
 
-    report = _build_report(name, obj_path, mesh, result, profile)
+    report = (_build_report(name, obj_path, mesh, result, profile) if kernel_result is None
+              else kernel_result.report)
     report["qa"] = qa_report
     report["skp"] = skp_report
     (out_dir / "report.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
@@ -679,11 +743,11 @@ def cmd_preview_data(snapshot_dir: Path, out_dir: Path, profile: FixProfile | No
     # centre so the two panes stay registered.
     input_mesh, mesh = mesh, result.reference_mesh
     flat_materials = flat_material_indices(mesh, flatness, profile.flat_texture_std)
-    topo = analyse_topology(mesh, flat_materials)
+    topo = analyse_topology_memo(mesh, flat_materials)
     centre = (topo.positions_w.min(axis=0) + topo.positions_w.max(axis=0)) / 2.0
     positions_c_w = topo.positions_w - centre       # welded frame (topo.face_w indexes it)
     positions_c_o = mesh.positions - centre          # original frame: AFTER (result.mesh.face_v indexes it)
-    topo_input = analyse_topology(input_mesh, flat_materials)
+    topo_input = analyse_topology_memo(input_mesh, flat_materials)
 
     replaced = np.asarray(result.replaced_input, dtype=bool)
     n_kept = int((~replaced).sum())                  # reference rows below this are input faces
@@ -714,9 +778,9 @@ def cmd_preview_data(snapshot_dir: Path, out_dir: Path, profile: FixProfile | No
 
     # The SHIPPED mesh's own topology: `result.mesh.positions` IS `mesh.positions` (nothing in
     # the pipeline ever touches it), so it welds to the same frame `positions_c_w` is in.
-    topo_after = analyse_topology(result.mesh, flat_materials,
-                                  coplanar_angle=profile.coplanar_angle,
-                                  soft_angle=profile.soft_angle)
+    topo_after = analyse_topology_memo(result.mesh, flat_materials,
+                                       coplanar_angle=profile.coplanar_angle,
+                                       soft_angle=profile.soft_angle)
     soft_after = _soft_edges(topo_after, positions_c_w)
 
     guard_final = result.guard_final.totals
@@ -860,6 +924,7 @@ def cmd_validate(before_dir: Path, after_path: Path, materials: Path, out_dir: P
     settings = settings or Settings()
     before_dir, after_path, materials, out_dir = Path(before_dir), Path(after_path), Path(materials), Path(out_dir)
     try:
+        refuse_protected(out_dir)
         if not after_path.is_file():
             raise FileNotFoundError(f"--after {after_path} is not a file")
         if not materials.is_file():
@@ -939,6 +1004,14 @@ def build_parser() -> argparse.ArgumentParser:
     fix_p.add_argument("--skp-dir", default=None,
                        help="folder that receives a copy of the latest .skp "
                             "(default: <repo root>/OBJ FIXED RESULT)")
+    fix_p.add_argument("--kernel", action="store_true",
+                       help="run through the observe-only repair kernel; the same files, plus "
+                            "edit_log.jsonl next to report.json")
+    fix_p.add_argument("--validate-sites", dest="validate_sites", action="store_true",
+                       help="with --kernel: check every stage with the Validator's focus mode and log "
+                            "the checks in edit_log.jsonl (legacy stages are not rolled back)")
+    fix_p.add_argument("--materials", type=Path, default=Path("data/campus/materials.json"),
+                       help="materials.json for --validate-sites")
 
     preview_p = sub.add_parser("preview-data", help="write the JSON preview/index.html reads")
     preview_p.add_argument("snapshot_dir")
@@ -1016,6 +1089,20 @@ def build_parser() -> argparse.ArgumentParser:
     validate_p.add_argument("--min-per-face", type=int, default=4,
                             help="at least this many samples on every face (owner's value 4; see --area-per-sample)")
 
+    before_p = sub.add_parser(
+        "campus-unit-before",
+        help="write a campus unit's BEFORE (its members' frozen snapshots, bands cut by face-centre z) as a "
+             "folder that `validate --before` takes")
+    before_p.add_argument("--unit", required=True, help="the unit's name in the campus map, e.g. CHTM-L05")
+    before_p.add_argument("--map", type=Path, default=Path("data/campus/campus_map.json"),
+                          help="the owner-confirmed campus map")
+    before_p.add_argument("--source", type=Path, default=Path("data/campus/source.json"),
+                          help="the source.json file from campus-freeze (snapshot folders)")
+    before_p.add_argument("--out", type=Path, required=True,
+                          help="receives <unit>.obj and materials.mtl (a short temp folder)")
+    before_p.add_argument("--copy-textures", action="store_true",
+                          help="copy the textures to <out>/tex (default: the MTL points at the snapshots')")
+
     census_p = sub.add_parser("census", help="run find_errors census over units with timings, peak memory and fix plan")
     census_p.add_argument("units", nargs="*", default=None, help="snapshot directories (default: all snapshots in source.json)")
     census_p.add_argument("--out", type=Path, default=Path("data/campus/census.json"), help="output census JSON path")
@@ -1036,8 +1123,9 @@ def build_parser() -> argparse.ArgumentParser:
                        help="the materials.json file from campus-materials")
     inv_p.add_argument("--out", type=Path, default=Path("data/campus/campus_map.draft.json"),
                        help="the draft campus map (JSON)")
-    inv_p.add_argument("--md", type=Path, default=Path("docs/superpowers/records/campus/campus-map-draft.md"),
-                       help="the owner-readable table")
+    inv_p.add_argument("--md", type=Path, default=Path("data/campus/campus_map.draft.md"),
+                       help="the owner-readable table (under data/ by default; copying it into "
+                            "docs/superpowers/records/campus/ is a deliberate step)")
     inv_p.add_argument("--literal", action="store_true",
                        help="use the brief's constants as written (24 in slab window, nearest base, 20 in merge, "
                             "print-step duplicates) instead of the measured ones")
@@ -1055,6 +1143,8 @@ def build_parser() -> argparse.ArgumentParser:
                        help="the export-vs-backup check (mismatches become grouping flags)")
     col_p.add_argument("--out", type=Path, default=Path("data/coloring_scratch"),
                        help="writes <out>/<BUILDING>/<BUILDING>-errors.skp and .json")
+    col_p.add_argument("--materials", type=Path, default=Path("data/campus/materials.json"),
+                       help="the materials.json file from campus-materials (flicker is split by look)")
     col_p.add_argument("--buildings", nargs="*", default=None, help="only these buildings (default: all)")
     col_p.add_argument("--dll", default=None, help="SketchUpAPI.dll (default: $FIXER_SKETCHUP_DLL or SketchUp 2026)")
 
@@ -1104,12 +1194,42 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+#: Where each writing command puts its files (argparse names); the commands that write nothing are not here.
+#: campus-errors-skp checks its own output (error_export raises, as its tests expect).
+_OUTPUT_ARGS = {"fix": ("out", "skp_dir"), "preview-data": ("out",), "errors": ("out",),
+                "campus-skp-check": ("out", "summary"), "validate": ("out",),
+                "census": ("out", "md", "errors_dir"), "campus-freeze": ("out", "snapshots"),
+                "campus-index": ("out",), "campus-materials": ("out",), "campus-inventory": ("out", "md"),
+                "decide-pilot": ("out",), "campus-unit-before": ("out",)}
+
+
+def _refuse_protected_outputs(args) -> str | None:
+    """The refusal text when a writing command's output lies in a protected folder, else None; checked before
+    the command does anything."""
+    try:
+        for name in _OUTPUT_ARGS.get(args.command, ()):
+            if getattr(args, name, None) is not None:
+                refuse_protected(getattr(args, name))
+    except ValueError as exc:
+        return str(exc)
+    return None
+
+
 def main(argv: list[str] | None = None) -> int:
-    args = build_parser().parse_args(argv)
+    parser = build_parser()
+    args = parser.parse_args(argv)
+    refusal = _refuse_protected_outputs(args)
+    if refusal is not None:
+        print(f"error: {refusal}", file=sys.stderr)
+        return 2
     if args.command == "fix":
+        if args.validate_sites and not args.kernel:
+            parser.error("--validate-sites needs --kernel")
         return cmd_fix(Path(args.snapshot_dir), Path(args.out), args.accept_slit,
                        solidify=args.solidify, fragments=args.fragments, skp=args.skp,
-                       skp_dir=Path(args.skp_dir) if args.skp_dir else default_skp_dir())
+                       skp_dir=Path(args.skp_dir) if args.skp_dir else default_skp_dir(),
+                       kernel=args.kernel, validate_sites=args.validate_sites,
+                       materials=args.materials)
     if args.command == "preview-data":
         return cmd_preview_data(Path(args.snapshot_dir), Path(args.out),
                                 solidify=args.solidify)
@@ -1160,6 +1280,20 @@ def main(argv: list[str] | None = None) -> int:
             print(f"  {key} ({len(mats)} materials): {mats}")
         print(f"wrote materials to {out_path}")
         return 0
+    elif args.command == "campus-unit-before":
+        from engine.campus.unit_before import build_unit_before
+        try:
+            cmap = json.loads(Path(args.map).read_text(encoding="utf-8"))
+            source = json.loads(Path(args.source).read_text(encoding="utf-8"))
+            report = build_unit_before(cmap, source, args.unit, args.out, copy_textures=args.copy_textures)
+        except (ValueError, OSError, KeyError) as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            return 2
+        parts = ", ".join(f"{m['group']} [{m['band']}] {m['faces']}" for m in report["members"])
+        print(f"{report['unit']}: {report['faces']} faces from {len(report['members'])} members ({parts}); "
+              + ("equals the campus map's tris" if report["matches_campus_map"]
+                 else "DIFFERS from the campus map's tris") + f" -> {report['obj']}")
+        return 0 if report["matches_campus_map"] else 1
     elif args.command == "campus-skp-check":
         from engine.campus import skp_check
         from engine.io.snapshot import SourceUnstable
@@ -1215,7 +1349,7 @@ def main(argv: list[str] | None = None) -> int:
     elif args.command == "campus-errors-skp":
         from engine.campus.error_export import cmd_campus_errors_skp
         for r in cmd_campus_errors_skp(args.map, args.source, args.errors, args.skp_check, args.out,
-                                       args.buildings, args.dll):
+                                       args.buildings, args.dll, args.materials):
             back = r["read_back"]["faces_by_tag"]
             dups, odd = sum(r["duplicates_by_tag"].values()), r["unexplained_by_tag"]
             same = "as written" if not odd else f"UNEXPLAINED {odd}"

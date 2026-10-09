@@ -567,13 +567,57 @@ def double_layers_reference(positions_c: np.ndarray, faces: np.ndarray, depth_to
             "px": int(sum(px_plane)), "planes": out_planes, "pair_list": pair_list}
 
 
+#: The big-face pre-filter compares K big faces with all N faces by bounding box, which holds K x N booleans (several at
+#: once) and the index arrays of every hit. K x N is kept at or under this many cells: K shrinks as N grows (P1-H1b
+#: item 6; measured on the largest unit, 142,234 faces, in the report). 4 M cells is about 30 MB of temporaries.
+BIG_FACE_CELL_BUDGET = 4_000_000
+#: K never exceeds this (the block the pre-filter always used).
+BIG_FACE_MAX_ROWS = 200
+
+
+def big_face_block_rows(n_ids: int, budget: int = BIG_FACE_CELL_BUDGET) -> int:
+    """How many big faces the pre-filter compares with all `n_ids` faces at once: up to 200, fewer so that
+    rows x `n_ids` stays within `budget` cells, never fewer than one."""
+    if budget < 1:
+        raise ValueError(f"the big-face cell budget must be at least 1 (got {budget})")
+    return int(max(1, min(BIG_FACE_MAX_ROWS, budget // max(int(n_ids), 1))))
+
+
+def _big_face_pairs(lo: np.ndarray, hi: np.ndarray, ids: np.ndarray, ids_big: np.ndarray,
+                    is_big_map: np.ndarray, budget: int = BIG_FACE_CELL_BUDGET):
+    """Yield `(fa, fb)` arrays (fa < fb) of the face pairs whose boxes overlap and that have a big face in them,
+    each pair once: block by block of `big_face_block_rows(len(ids), budget)` big faces, so at most that many
+    x N cells are held. Big-big pairs come from the lower id; big-small pairs from the big face."""
+    rows_per_block = big_face_block_rows(len(ids), budget)
+    for s in range(0, len(ids_big), rows_per_block):
+        b_sub = ids_big[s: s + rows_per_block]
+        x_ok = (lo[b_sub, 0, None] <= hi[ids, 0]) & (hi[b_sub, 0, None] >= lo[ids, 0])
+        y_ok = x_ok & (lo[b_sub, 1, None] <= hi[ids, 1]) & (hi[b_sub, 1, None] >= lo[ids, 1])
+        box_ok = y_ok & (lo[b_sub, 2, None] <= hi[ids, 2]) & (hi[b_sub, 2, None] >= lo[ids, 2])
+        del x_ok, y_ok
+        rows, cols = np.nonzero(box_ok)
+        del box_ok
+        if not len(rows):
+            continue
+        b_r = b_sub[rows]
+        c_c = ids[cols]
+        del rows, cols
+        pair_keep = (c_c > b_r) | ((c_c < b_r) & (~is_big_map[c_c]))
+        if not pair_keep.any():
+            continue
+        b_r_k = b_r[pair_keep]
+        c_c_k = c_c[pair_keep]
+        yield np.minimum(b_r_k, c_c_k), np.maximum(b_r_k, c_c_k)
+
+
 def double_layers(positions_c: np.ndarray, faces: np.ndarray, depth_tol: float,
                   views=None, size: tuple[int, int] = (900, 600), caster_factory=EmbreeCaster,
                   min_area: float = DOUBLE_LAYER_MIN_AREA,
                   centre: np.ndarray | None = None, *,
                   stats: dict | None = None,
                   chunk_rows: int = 200_000,
-                  block_pairs: int = 2_000_000) -> dict:
+                  block_pairs: int = 2_000_000,
+                  big_face_budget: int = BIG_FACE_CELL_BUDGET) -> dict:
     """Brief 15 item 1 / P1-S3 / P1-S3b: double layers detection, made sub-quadratic.
     Returns identical results to double_layers_reference with bounded memory and
     spatial candidate search.
@@ -597,8 +641,9 @@ def double_layers(positions_c: np.ndarray, faces: np.ndarray, depth_tol: float,
     `positions_c` is the recentred frame the guard renders in; with `centre`, the planes' centroid
     and offset are given in world coordinates. No double layer: no render at all.
     """
-    if chunk_rows < 1 or block_pairs < 1:
-        raise ValueError(f"chunk_rows and block_pairs must be at least 1 (got {chunk_rows}, {block_pairs})")
+    if chunk_rows < 1 or block_pairs < 1 or big_face_budget < 1:
+        raise ValueError("chunk_rows, block_pairs and big_face_budget must be at least 1 "
+                         f"(got {chunk_rows}, {block_pairs}, {big_face_budget})")
     from engine.guard.views import VIEWS_26, ortho_first_hit
     from engine.rays.caster import ReusableCaster
 
@@ -804,26 +849,9 @@ def double_layers(positions_c: np.ndarray, faces: np.ndarray, depth_tol: float,
             block_i_parts, block_j_parts = [], []
             curr_block_len = 0
 
-    # 1. Big faces: candidate pairs involving big faces
+    # 1. Big faces: candidate pairs involving big faces (K x N boxes at a time, K bounded by the cell budget)
     if len(ids_big) > 0:
-        K = 200
-        for s in range(0, len(ids_big), K):
-            b_sub = ids_big[s : s + K]
-            x_ok = (lo[b_sub, 0, None] <= hi[ids, 0]) & (hi[b_sub, 0, None] >= lo[ids, 0])
-            y_ok = x_ok & (lo[b_sub, 1, None] <= hi[ids, 1]) & (hi[b_sub, 1, None] >= lo[ids, 1])
-            box_ok = y_ok & (lo[b_sub, 2, None] <= hi[ids, 2]) & (hi[b_sub, 2, None] >= lo[ids, 2])
-            rows, cols = np.nonzero(box_ok)
-            if not len(rows):
-                continue
-            b_r = b_sub[rows]
-            c_c = ids[cols]
-            pair_keep = (c_c > b_r) | ((c_c < b_r) & (~is_big_map[c_c]))
-            if not pair_keep.any():
-                continue
-            b_r_k = b_r[pair_keep]
-            c_c_k = c_c[pair_keep]
-            fa = np.minimum(b_r_k, c_c_k)
-            fb = np.maximum(b_r_k, c_c_k)
+        for fa, fb in _big_face_pairs(lo, hi, ids, ids_big, is_big_map, big_face_budget):
             if stats is not None:
                 stats["big_face_pairs"] += len(fa)
             add_pairs(fa, fb)

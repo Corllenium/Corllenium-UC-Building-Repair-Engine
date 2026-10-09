@@ -1297,3 +1297,61 @@ def test_what_is_hidden_in_a_real_model_is_left_out_and_counted(tmp_path, sketch
     assert (hidden["hidden_nodes"], hidden["layer_hidden_nodes"], hidden["layers_bound"]) == (1, 1, True)
     assert sorted((s["name"], s["reason"]) for s in hidden["skipped"]) == [
         ("Old Floor.obj", "hidden"), ("Tagged Floor.obj", "layer")]
+
+
+# ------------------------------------------- the verified copy follows --out (P1-H1b item 4)
+
+
+def test_the_verified_copy_made_under_out_is_accepted_through_its_report(tmp_path):
+    """`campus-skp-check --out X` makes `X/skp_copy/<name>` and `X/skp_check.json`; the probe may be given it."""
+    rows = [("A_Floor", 0, 0, 30, 10)]
+    out = tmp_path / "elsewhere" / "run"
+    source, backup = freeze(tmp_path, rows)
+    skp_check.check_source(source, backup, out, walker=Walker(floor_walk(("A Floor", 5, 300.0, box(0, 0, 30, 10)))),
+                           **NO_SLEEP)
+    copy = out / "skp_copy" / "M - CHECKPOINT-17.skp"
+    src = json.loads(source.read_text(encoding="utf-8"))
+    assert skp_check.require_verified_copy(src, copy) == copy                      # the report next to it names it
+    report = json.loads((out / "skp_check.json").read_text(encoding="utf-8"))
+    assert skp_check.require_verified_copy(src, copy, report=report) == copy       # a loaded report
+    assert skp_check.require_verified_copy(src, copy, report=out / "skp_check.json") == copy   # or its path
+
+
+def test_a_report_does_not_vouch_for_a_file_it_does_not_name_or_for_changed_bytes(tmp_path):
+    rows = [("A_Floor", 0, 0, 30, 10)]
+    out = tmp_path / "elsewhere" / "run"
+    source, backup = freeze(tmp_path, rows)
+    skp_check.check_source(source, backup, out, walker=Walker(floor_walk(("A Floor", 5, 300.0, box(0, 0, 30, 10)))),
+                           **NO_SLEEP)
+    src = json.loads(source.read_text(encoding="utf-8"))
+    copy = out / "skp_copy" / "M - CHECKPOINT-17.skp"
+    other = tmp_path / "elsewhere" / "other" / "skp_copy" / copy.name       # right bytes, no report names it
+    other.parent.mkdir(parents=True)
+    other.write_bytes(b"skp-bytes")
+    with pytest.raises(ValueError, match=r"data/campus/skp_copy"):
+        skp_check.require_verified_copy(src, other)
+    with pytest.raises(ValueError, match=r"data/campus/skp_copy"):
+        skp_check.require_verified_copy(src, other, report=out / "skp_check.json")
+    copy.write_bytes(b"changed since the freeze")                           # named by the report, wrong bytes
+    with pytest.raises(skp_check.BackupMismatch, match="sha256"):
+        skp_check.require_verified_copy(src, copy)
+
+
+def test_a_report_cannot_name_the_master(tmp_path):
+    master = tmp_path / "UC" / "02-SKETCHUP" / "current" / "M - CHECKPOINT-17.skp"
+    master.parent.mkdir(parents=True)
+    master.write_bytes(b"skp-bytes")
+    report = {"source": {"copy": str(master)}}
+    with pytest.raises(ValueError, match="master"):
+        skp_check.require_verified_copy(frozen(), master, report=report)
+
+
+def test_a_report_cannot_name_the_backup_itself(tmp_path):
+    """End-of-P1 review, finding 1: a report must not let the SDK open the CHECKPOINT-17 backup itself (AGENTS.md
+    section 2: only a verified COPY is opened)."""
+    backup = tmp_path / "MODEL FIXER ENGINE FILES" / "02-SKETCHUP-MODELS" / "CHECKPOINT-17-BACKUP" / "M - CHECKPOINT-17.skp"
+    backup.parent.mkdir(parents=True)
+    backup.write_bytes(b"skp-bytes")
+    report = {"source": {"copy": str(backup)}}
+    with pytest.raises(ValueError, match="backup"):
+        skp_check.require_verified_copy(frozen(), backup, report=report)

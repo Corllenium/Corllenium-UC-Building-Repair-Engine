@@ -134,3 +134,45 @@ def build_materials(mtl_path: Path, tex_dir: Path) -> dict:
         "looks": looks,
         "stats": stats,
     }
+
+
+# ----------------------------------------------------------------------- flicker by look
+
+
+def look_of_material(name: str, materials: dict) -> Any:
+    """The look key of material `name`: `materials` is `materials.json` (with or without its "materials" key)
+    or a plain {name: look}. A material missing from the map (or with no look) is its own look, so it equals no
+    other material's look."""
+    table = materials.get("materials", materials)
+    info = table.get(name)
+    look = info.get("look") if isinstance(info, dict) else info
+    return look if look else ("material", name)
+
+
+def material_name(mesh, face: int) -> str:
+    """The name of the material of `face`; a face with no entry is material 0, and an index with no name is its number."""
+    index = int(mesh.face_material[face]) if face < len(mesh.face_material) else 0
+    return mesh.materials[index] if index < len(mesh.materials) else str(index)
+
+
+def split_flicker_pairs(mesh, pairs, materials: dict) -> tuple[list, list]:
+    """The one definition of E4 against E5 (owner decision, decision-sheet answer 3): a flicker pair whose two
+    faces have one look (identical texture, colour and opacity, so possibly two material names) is
+    same-look (E4); two looks make it different-look (E5). Returns (same_look_pairs, diff_look_pairs), each
+    in the order of `pairs`. `find_errors`' own flicker_diff / flicker_same stay split by material index."""
+    same, diff = [], []
+    for pair in pairs:
+        i, j = int(pair[0]), int(pair[1])
+        a = look_of_material(material_name(mesh, i), materials)
+        b = look_of_material(material_name(mesh, j), materials)
+        (same if a == b else diff).append(pair)
+    return same, diff
+
+
+def flicker_faces_by_look(mesh, pairs, materials: dict) -> tuple[set[int], set[int]]:
+    """The faces of `split_flicker_pairs` as (same_look_faces, diff_look_faces); a face in pairs of both kinds
+    is in the different-look set only, as `find_errors` does for its material-index split."""
+    same, diff = split_flicker_pairs(mesh, pairs, materials)
+    faces = lambda ps: {int(f) for p in ps for f in (p[0], p[1])}
+    diff_faces = faces(diff)
+    return faces(same) - diff_faces, diff_faces

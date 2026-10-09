@@ -340,3 +340,17 @@ def test_cli_largest_look_group_printed_first(tmp_path, capsys):
     assert "(1 materials):" in lines[2]
 
 
+
+
+# ------------------------------------------------------------------ a public name (P1-H1b item 10)
+
+
+def test_material_name_is_public_and_census_uses_it():
+    import types
+
+    from engine.campus import census, materials
+    mesh = types.SimpleNamespace(face_material=[1, 0, 7], materials=["wood", "glass"])
+    assert [materials.material_name(mesh, f) for f in range(3)] == ["glass", "wood", "7"]
+    assert materials.material_name(mesh, 9) == "wood"          # no entry for the face: material 0, as before
+    assert not hasattr(materials, "_material_name")
+    assert census._mat_name is materials.material_name

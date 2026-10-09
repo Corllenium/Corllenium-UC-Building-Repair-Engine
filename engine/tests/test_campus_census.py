@@ -396,3 +396,25 @@ def test_census_holds_no_machine_specific_path():
     import engine.cli as cli_mod
     for mod in (census_mod, cli_mod):
         assert "D:/PROJECTS" not in inspect.getsource(mod), mod.__name__
+
+
+# ------------------------------------------------- defaults never overwrite tracked records (P1-H1b item 7)
+
+
+def test_census_md_default_is_beside_the_json_even_in_a_campus_folder(tmp_path: Path):
+    from engine.campus.census import census
+    records = Path(__file__).resolve().parents[2] / "docs" / "superpowers" / "records" / "campus" / "census.md"
+    before = records.read_bytes() if records.exists() else None
+    out = tmp_path / "campus" / "census.json"
+    census(units=[], out_json=out, jobs=1)
+    assert (tmp_path / "campus" / "census.md").is_file()
+    assert (records.read_bytes() if records.exists() else None) == before     # the tracked record is untouched
+
+
+def test_the_cli_defaults_write_under_data_not_under_the_tracked_records():
+    from engine.cli import build_parser
+    parser = build_parser()
+    for argv, attr in ((["campus-inventory"], "md"), (["campus-inventory"], "out"), (["census"], "out")):
+        value = Path(getattr(parser.parse_args(argv), attr))
+        assert value.parts[0] == "data", (argv, attr, value)
+    assert getattr(parser.parse_args(["census"]), "md") is None               # the census derives it from --out

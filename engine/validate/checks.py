@@ -725,8 +725,8 @@ def default_targets_path() -> Path:
 
 def load_targets(path=None) -> dict | None:
     """The targets file, parsed; None when there is none (the owner has not signed yet). `path` defaults
-    to `default_targets_path()`. A file that is not JSON is a `ValueError`: an unreadable target must
-    not quietly turn into "unsigned".
+    to `default_targets_path()`. A file that is not JSON, whose JSON is not an object, or whose "kinds" is not an
+    object is a `ValueError`: an unreadable target must not quietly turn into "unsigned".
 
     The shape: `{"signed": true, "kinds": {"flicker_diff": 0, "hidden": {"max": 5, "note": "..."},
     "open_edges": null, ...}}`. A kind's target is the most `find_errors` may count of it after the fix
@@ -738,8 +738,12 @@ def load_targets(path=None) -> dict | None:
         targets = json.loads(path.read_text(encoding="utf-8"))
     except json.JSONDecodeError as exc:
         raise ValueError(f"targets file {path} is not valid JSON: {exc}") from exc
+    if not isinstance(targets, dict):
+        raise ValueError(f"targets file {path} must hold a JSON object, not {type(targets).__name__}")
+    if "kinds" in targets and not isinstance(targets["kinds"], dict):
+        raise ValueError(f"targets file {path}: \"kinds\" must be a JSON object, not {type(targets['kinds']).__name__}")
     from engine.detectors.errors import KINDS        # lazy: check 2 is the only use of find_errors here
-    unknown = sorted(set((targets or {}).get("kinds") or {}) - set(KINDS))
+    unknown = sorted(set(targets.get("kinds") or {}) - set(KINDS))
     if unknown:
         raise ValueError(f"targets file {path} names unknown kinds {unknown}: a misspelled kind would never gate")
     return targets
@@ -784,6 +788,34 @@ def check_problems(before_errors: dict, after_errors: dict, targets=None) -> dic
 #: (reasons beside the `OK .. SIDE` codes of `_Judge.present`).
 COVERED, OVERLAID = 5, 6
 _REASON_NAMES = {COVERED: "covered", OVERLAID: "overlaid", **_PRESENT_NAMES}
+
+
+@dataclass(frozen=True, eq=False)       # eq=False: `==` on array fields would be ambiguous, not a bool
+class Focus:
+    """The faces a FOCUS run looks at (job P1-K3: the repair kernel asks "did these sites break anything?").
+
+    `before_faces`: the BEFORE faces sampled for checks 1 and 3, instead of every face. `after_faces`: the AFTER
+    faces the overlay pass may lay over those samples, instead of every new face (a face of AFTER that BEFORE has
+    too is never one, focus or not). Each is an array of face ids (a set: order and repeats do not matter) or a
+    boolean mask over the mesh's faces. Everything else -- the viewpoints, the tolerances, the casts into the WHOLE
+    of AFTER -- is the full run's, so a focus on every face is the full run's checks 1 and 3, and its sites."""
+    before_faces: np.ndarray
+    after_faces: np.ndarray
+
+
+def _focus_ids(faces, n_faces: int, what: str) -> np.ndarray:
+    """Sorted unique int64 face ids from an id array or a boolean mask; a `ValueError` for one outside 0..n-1."""
+    faces = np.asarray(faces)
+    if faces.dtype == np.bool_:
+        if faces.shape != (n_faces,):
+            raise ValueError(f"a boolean focus.{what} mask needs one entry per face ({n_faces})")
+        return np.flatnonzero(faces).astype(np.int64)
+    faces = faces.reshape(-1)
+    if faces.size and faces.dtype.kind not in "iu":
+        raise ValueError(f"focus.{what} must be integer face ids, got dtype {faces.dtype}")
+    if faces.size and (faces.min() < 0 or faces.max() >= n_faces):
+        raise ValueError(f"focus.{what} must lie in 0..{n_faces - 1}, got {faces.min()}..{faces.max()}")
+    return np.unique(faces.astype(np.int64))
 
 
 @dataclass
@@ -907,7 +939,7 @@ def _cluster_sites(validation_points: np.ndarray, centre: np.ndarray, failing: n
 
 def validate(before: MeshData, after: MeshData, looks: Looks, *, errors=None, targets=None,
              settings: Settings = Settings(), dirs=None, cams=None, probes=None, extra_dirs=None,
-             progress=None) -> Validation:
+             progress=None, focus: Focus | None = None) -> Validation:
     """Judge `after` against `before` by the owner's three checks.
 
     Both meshes are in the model's own coordinates; they are shifted into the Validator's frame here, by
@@ -938,8 +970,18 @@ def validate(before: MeshData, after: MeshData, looks: Looks, *, errors=None, ta
     * the rest: `viewpoints`, `settings`, `frame.centre`, `print_step_in`, `depth_tolerance_in`, `before` and
       `after` sizes (`after.new_faces`: faces BEFORE did not have), `timings_s`; `materials`: those unknown
       to `materials.json` and, in `no_texel`, every look whose UV could not be compared (flat or no texture
-      file); and `notes`, which say so in words, with any non-default settings."""
+      file); and `notes`, which say so in words, with any non-default settings.
+
+    FOCUS (`focus`, a `Focus`; job P1-K3). Checks 1 and 3 sample only `focus.before_faces`, and the overlay pass
+    lays only the new faces among `focus.after_faces` over them; nothing else changes. Check 2 is not run
+    (`checks.problems` is `{"status": "skipped (focus)"}`, `errors` is ignored) and there is NO floor verdict:
+    `verdict` is None (so `Validation.passed` is False). `focus` says `before_faces`, `after_faces` (how many) and
+    `status`, "FAIL" when check 1 or check 3 failed on those faces, else "PASS": whether these sites broke
+    anything, never whether the floor is good."""
     clock = {"start": time.perf_counter()}
+    if focus is not None:
+        focus_before = _focus_ids(focus.before_faces, before.n_faces, "before_faces")
+        focus_after = _focus_ids(focus.after_faces, after.n_faces, "after_faces")
     step = print_step(before)
     tol = depth_tolerance(step)
     b, centre = recentred(before)
@@ -960,7 +1002,8 @@ def validate(before: MeshData, after: MeshData, looks: Looks, *, errors=None, ta
     extra_dirs = _points(outside_directions(settings.n_extra_directions) if extra_dirs is None else extra_dirs)
     nothing = np.zeros((0, 3))
 
-    samples = face_samples(b, min_per_face=settings.min_per_face, area_per_sample=settings.area_per_sample)
+    samples = face_samples(b, faces=None if focus is None else focus_before, min_per_face=settings.min_per_face,
+                           area_per_sample=settings.area_per_sample)
     n = len(samples)
     per_face_samples = np.bincount(samples.face, minlength=b.n_faces)
     sample_area = face_areas(b)[samples.face] / np.maximum(per_face_samples[samples.face], 1)
@@ -974,6 +1017,11 @@ def validate(before: MeshData, after: MeshData, looks: Looks, *, errors=None, ta
     fp_before, fp_after = face_fingerprints(before, step, look_b), face_fingerprints(after, step, look_a)
     suspect = ~_rows_in(fp_before, fp_after)                  # faces of BEFORE that AFTER no longer has
     new_after = ~_rows_in(fp_after, fp_before)                # faces of AFTER that BEFORE did not have
+    overlay_new = new_after                                   # ...that the overlay pass lays over the samples
+    if focus is not None:
+        overlay_new = np.zeros(after.n_faces, dtype=bool)
+        overlay_new[focus_after] = True
+        overlay_new &= new_after
     clock["prepared"] = time.perf_counter()
 
     tested = np.zeros(n, dtype=bool)
@@ -1031,8 +1079,8 @@ def validate(before: MeshData, after: MeshData, looks: Looks, *, errors=None, ta
     # new faces of AFTER on a sample or just in front of it, in a look or UV the place did not have. Only a sample
     # whose own surface is met can have one laid over it: the others already fail as deleted, look, uv or side.
     overlaid = np.zeros(n, dtype=bool)
-    if new_after.any():
-        overlay = _Overlay(b, a, new_after, look_b, look_a, tex_w, tex_h, tol)
+    if overlay_new.any():
+        overlay = _Overlay(b, a, overlay_new, look_b, look_a, tex_w, tex_h, tol)
         met = np.flatnonzero(tested & (present == OK))
         for start in range(0, len(met), _OVERLAY_BLOCK):
             blk = met[start:start + _OVERLAY_BLOCK]
@@ -1075,11 +1123,14 @@ def validate(before: MeshData, after: MeshData, looks: Looks, *, errors=None, ta
         "area_overlaid_in2": round(float(sample_area[tested & overlaid].sum()), 2),
         "depth_tolerance_in": round(tol, 4)}
 
-    # ---- check 2 ----
-    if errors is None:
-        from engine.detectors.errors import find_errors    # lazy: it imports engine.fixes, .guard and .vis
-        errors = (find_errors(before), find_errors(after))
-    problems = check_problems(errors[0], errors[1], targets)
+    # ---- check 2 (never in a focus run: it judges the floor, and a focus run judges sites) ----
+    if focus is not None:
+        problems = {"status": "skipped (focus)"}
+    else:
+        if errors is None:
+            from engine.detectors.errors import find_errors    # lazy: it imports engine.fixes, .guard and .vis
+            errors = (find_errors(before), find_errors(after))
+        problems = check_problems(errors[0], errors[1], targets)
     clock["problems"] = time.perf_counter()
 
     # ---- the sites: failing samples, clustered ----
@@ -1097,6 +1148,8 @@ def validate(before: MeshData, after: MeshData, looks: Looks, *, errors=None, ta
                "area_per_sample", "eye")
     changed = {k: getattr(settings, k) for k in density if getattr(settings, k) != getattr(default, k)}
     notes = ([f"NON-DEFAULT SETTINGS {changed}: a development run, NOT AN OWNER VERDICT"] if changed else [])
+    if focus is not None:
+        notes.append(f"FOCUS RUN on {len(focus_before)}/{before.n_faces} faces: NOT A FLOOR VERDICT")
     # what BEFORE's looks leave unsaid: materials.json does not know a material, or a look has no texture size
     used = {before.materials[i] for i in np.unique(before.face_material) if 0 <= i < len(before.materials)}
     no_texel = []
@@ -1120,8 +1173,9 @@ def validate(before: MeshData, after: MeshData, looks: Looks, *, errors=None, ta
         flats = [e for e in no_texel if e["flat"]]
         notes.append(f"UV not compared for {len(flats)} flat look(s) (no texture, so there is no UV to see): "
                      f"{listed(flats)}")
+    verdict = "FAIL" if "FAIL" in statuses else "PASS"
     report = {
-        "version": 1, "verdict": "FAIL" if "FAIL" in statuses else "PASS", "notes": notes,
+        "version": 1, "verdict": verdict if focus is None else None, "notes": notes,
         "checks": {"textures": textures, "problems": problems, "nothing_deleted": nothing_deleted},
         "sites": sites, "sites_total": n_sites,
         "viewpoints": {"directions": len(dirs), "cameras": len(cams), "probes": len(probes),
@@ -1139,6 +1193,9 @@ def validate(before: MeshData, after: MeshData, looks: Looks, *, errors=None, ta
                       "problems": round(clock["problems"] - clock["overlay"], 2),
                       "sites": round(clock["end"] - clock["problems"], 2),
                       "total": round(clock["end"] - clock["start"], 2)}}
+    if focus is not None:
+        report["focus"] = {"before_faces": int(len(focus_before)), "after_faces": int(len(focus_after)),
+                           "status": "FAIL" if (fail1 | fail3).any() else "PASS"}
     return Validation(report=report, before=b, after=a, centre=centre, looks=looks, look_keys=table.keys,
                       look_before=look_b, look_after=look_a, samples=samples, members=members, wit_col=wit_col,
                       wit_extra=wit_extra, viewpoints={"dirs": dirs, "cams": cams, "probes": probes,

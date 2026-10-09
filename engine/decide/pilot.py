@@ -24,6 +24,7 @@ from typing import Callable
 # `_union_overlap` is private but is the inventory's own footprint measure; reusing it keeps the hint identical
 # to the inventory's "mostly in another building" test instead of a second, slightly different copy.
 from engine.campus.inventory import SITE, _union_overlap, building_of
+from engine.io.protected import refuse_protected
 from engine.decide.jev import MODEL, JevDecider, classify_group_names, classify_materials
 
 #: Which Jev unit types count as right for each campus-map unit type.
@@ -181,6 +182,7 @@ def _dec(d) -> dict:
 
 
 def run_pilot(source_path, materials_path, map_path, out_path, decider: JevDecider) -> dict:
+    refuse_protected(out_path)
     source = json.loads(Path(source_path).read_text(encoding="utf-8"))
     campus_map = json.loads(Path(map_path).read_text(encoding="utf-8"))
     materials = json.loads(Path(materials_path).read_text(encoding="utf-8"))["materials"]
