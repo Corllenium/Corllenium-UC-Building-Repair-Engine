@@ -19,6 +19,8 @@ export const REASONS = {
     'AGENTS.md §3 "Shared working tree": stage files by name; never git add -A / . / --all / -u, git commit -a, a git stash without push -m, or a force push.',
   live:
     'AGENTS.md §3 "Never touch": the live containers fixer-api, fixer-web and fixer-db and the live database fixer are the owner\'s; restarting them or writing to fixer needs his OK (HANDOFF §8).',
+  kill:
+    'stop only your own processes, by PID: killing by image name ends every matching process on the machine, other sessions and MCP servers included (2026-10-09: `taskkill /IM python.exe`). Use `taskkill /PID <n> /T /F` or `Stop-Process -Id <n>`.',
   secret:
     'the secret files: the Jev plan (2026-10-08, "The secret") says agents never read .env* files, and the controller\'s ruling adds never writing them; the same holds for auth.json and anything under Corllenium-Phone-session-Config. Code reads keys at run time.',
 } as const
@@ -370,6 +372,42 @@ function resultsReason(segs: Segment[]): string | undefined {
 
 // The engine reads only the TYPESAFE_API_KEY line of the file given to `python -m engine.cli ... --env-file`
 // (owner decision 2026-10-08: code reads keys at run time), so that one value is not an agent reading a secret.
+// Killing by image name ends every matching process on the machine, other sessions' included (M1c).
+// By PID (taskkill /PID, Stop-Process -Id, kill <pid>) stays allowed; so does listing processes.
+const NAME_KILLERS = new Set(['pkill', 'killall'])
+const PS_STOP = new Set(['stop-process', 'spps', 'kill'])
+const PS_GET = new Set(['get-process', 'gps', 'ps'])
+
+function killReason(segs: Segment[], shell: Shell): string | undefined {
+  let psGetWithoutId = false
+  let psStopWithoutId = false
+  for (const s of segs) {
+    const seg = commandWords(s.words)
+    const v = verb(seg[0])
+    if (v === undefined) continue
+    const args = seg.slice(1).map(a => a.toLowerCase())
+    if (NAME_KILLERS.has(v)) return REASONS.kill
+    if (v === 'taskkill') {
+      if (args.some(a => a === '/im' || a === '-im')) return REASONS.kill
+      const fi = args.findIndex(a => a === '/fi' || a === '-fi')
+      if (fi >= 0 && /imagename|windowtitle|username|modules|services/.test(args[fi + 1] ?? '')) return REASONS.kill
+    }
+    if (v === 'wmic' && args.includes('process') && args.some(a => a === 'delete' || a === 'terminate'))
+      return REASONS.kill
+    if (shell === 'ps') {
+      const byId = args.some(a => /^-(id|inputobject)(:|$)/.test(a))
+      const byName = args.some(a => /^-(name|processname|n)(:|$)/.test(a))
+      if (PS_STOP.has(v)) {
+        if (byName) return REASONS.kill
+        if (!byId) psStopWithoutId = true
+      }
+      if (PS_GET.has(v) && !byId) psGetWithoutId = true
+    }
+  }
+  // Get-Process <name or filter> | Stop-Process: the pipeline selects by name, not by PID
+  return psGetWithoutId && psStopWithoutId ? REASONS.kill : undefined
+}
+
 // Only when the command itself is a Python interpreter whose module is engine.cli. Only flag-only options may
 // come first (and the py launcher's version, -3.12): anything else, such as -cCODE, a lone `-` (program from
 // stdin) or -X with its value, ends Python's own options or takes a value, so there is no exemption.
@@ -407,6 +445,9 @@ function shellReason(command: string, shell: Shell): string | undefined {
 
   const results = resultsReason(segs)
   if (results) return results
+
+  const kill = killReason(segs, shell)
+  if (kill) return kill
 
   for (const s of segs) {
     const seg = commandWords(s.words)

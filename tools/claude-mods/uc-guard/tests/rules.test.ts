@@ -219,6 +219,41 @@ describe('rule 6: the owner result folders take only verified output', () => {
   })
 })
 
+describe('rule 7: stop only your own processes, by PID (M1c)', () => {
+  test('denies killing by image name in Bash and cmd forms', () => {
+    for (const c of [
+      'taskkill /F /T /IM python.exe',
+      'taskkill /im node.exe /f',
+      'taskkill -IM python.exe -F',
+      'taskkill /F /FI "IMAGENAME eq python.exe"',
+      'pkill -f uvicorn',
+      'killall python3',
+      'wmic process where name="python.exe" delete',
+      'wmic process where "name=\'python.exe\'" call terminate',
+    ]) expect(bash(c)).toBe(REASONS.kill)
+  })
+  test('denies killing by name in PowerShell', () => {
+    for (const c of [
+      'Stop-Process -Name python -Force',
+      'spps -n node',
+      'Stop-Process -ProcessName python',
+      'Get-Process python | Stop-Process -Force',
+      "Get-Process | Where-Object { $_.Name -eq 'python' } | Stop-Process",
+      'gps node | kill',
+    ]) expect(ps(c)).toBe(REASONS.kill)
+  })
+  test('allows stopping one process by its id, and listing processes', () => {
+    expect(bash('taskkill /PID 1234 /T /F')).toBeUndefined()
+    expect(bash('kill 1234')).toBeUndefined()
+    expect(bash('kill -9 1234 5678')).toBeUndefined()
+    expect(bash('ps aux | grep python')).toBeUndefined()
+    expect(bash('tasklist /FI "IMAGENAME eq python.exe"')).toBeUndefined()
+    expect(ps('Stop-Process -Id 1234 -Force')).toBeUndefined()
+    expect(ps('Get-Process -Id 1234 | Stop-Process')).toBeUndefined()
+    expect(ps('Get-Process python | Select-Object Id, CPU')).toBeUndefined()
+  })
+})
+
 describe('through the engine', () => {
   test('a denied call ends with the rule as its reason, and the tool never runs', async ($, on) => {
     let ran = false
