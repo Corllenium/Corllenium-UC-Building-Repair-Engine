@@ -383,10 +383,8 @@ def census(
     errors_dir.mkdir(parents=True, exist_ok=True)
 
     if out_md is None:
-        if out_json.parent.name == "campus":
-            out_md = repo_root / "docs" / "superpowers" / "records" / "campus" / "census.md"
-        else:
-            out_md = out_json.parent / "census.md"
+        out_md = out_json.parent / "census.md"      # beside the json (data/campus by default): copying a
+                                                    # census into docs/superpowers/records/ is a deliberate step
     else:
         out_md = Path(out_md).resolve()
 

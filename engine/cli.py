@@ -1123,8 +1123,9 @@ def build_parser() -> argparse.ArgumentParser:
                        help="the materials.json file from campus-materials")
     inv_p.add_argument("--out", type=Path, default=Path("data/campus/campus_map.draft.json"),
                        help="the draft campus map (JSON)")
-    inv_p.add_argument("--md", type=Path, default=Path("docs/superpowers/records/campus/campus-map-draft.md"),
-                       help="the owner-readable table")
+    inv_p.add_argument("--md", type=Path, default=Path("data/campus/campus_map.draft.md"),
+                       help="the owner-readable table (under data/ by default; copying it into "
+                            "docs/superpowers/records/campus/ is a deliberate step)")
     inv_p.add_argument("--literal", action="store_true",
                        help="use the brief's constants as written (24 in slab window, nearest base, 20 in merge, "
                             "print-step duplicates) instead of the measured ones")
