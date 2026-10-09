@@ -195,3 +195,11 @@ def test_the_input_report_is_not_changed():
     before = copy.deepcopy(report)
     _build(report)
     assert report == before
+
+
+def test_a_rolled_back_piece_with_no_border_is_counted_not_silently_dropped():
+    bare = _piece_row(site=5, border=[])
+    gone = {k: v for k, v in _piece_row(site=6).items() if k != "border"}
+    doc = _build(_report([], [_piece_row(), bare, gone]), _log(3, 5, 6))
+    assert len(doc["entries"]) == 1 and doc["counts"]["no_border_not_listed"] == 2
+    assert _build()["counts"]["no_border_not_listed"] == 0

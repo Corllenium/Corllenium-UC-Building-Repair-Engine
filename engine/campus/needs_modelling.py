@@ -11,7 +11,8 @@ before_mesh)` makes that list from one `repair-unit` run:
   bottom (kind `slab_bottom`) stays missing, so the hole stays open. Its border is the outline of the faces the piece
   would have built (report.json's `pieces[*].border`, written by `repair-unit`), its reason the Validator's reason
   that was charged most (all of them are in `detail`). A piece rolled back because its whole stage was rolled back
-  (`stage_rolled_back`) is counted, not listed: it failed no check of its own. The edit log is the audit trail: a
+  (`stage_rolled_back`) is counted, not listed; so is a rolled-back piece that has no border
+  (`counts.no_border_not_listed`), which cannot be outlined or aimed at: it failed no check of its own. The edit log is the audit trail: a
   listed piece must have its rolled-back line there, or the report and the log describe different runs (ValueError).
 
 Each entry (`ENTRY_KEYS`): `id` (the first 12 hex digits of the sha256 of the border's points, snapped to the OBJ's
@@ -314,7 +315,7 @@ def build_needs_modelling(report: dict, edit_log, before_mesh: MeshData | None) 
     rolled_lines = {line["site"] for line in _lines(edit_log)
                     if "check" not in line and line.get("rolled_back") and not line.get("flat_fill")}
     log_given = edit_log is not None
-    stage_rolled = 0
+    stage_rolled = no_border = 0
     for piece in report.get("pieces") or []:
         if piece.get("kept"):
             continue
@@ -327,6 +328,7 @@ def build_needs_modelling(report: dict, edit_log, before_mesh: MeshData | None) 
                              f"line for site {piece['site']}: they describe different runs")
         reason = (sorted(reasons.items(), key=lambda kv: (-kv[1], kv[0]))[0][0] if reasons else "charged")
         if not piece.get("border"):
+            no_border += 1            # nothing to outline or aim at: counted, never dropped silently
             continue
         entries.append(_entry(unit, _PIECE_KIND[piece["piece"]], reason, "E8-R1", reasons, int(piece["site"]), None,
                               piece["border"], piece.get("border_ordered", True), piece.get("area_in2"),
@@ -347,7 +349,8 @@ def build_needs_modelling(report: dict, edit_log, before_mesh: MeshData | None) 
     counts = {"entries": len(entries),
               "by_kind": dict(sorted(Counter(e["kind"] for e in entries).items())),
               "by_reason": dict(sorted(Counter(e["reason"] for e in entries).items())),
-              "outer_boundaries": outer, "stage_rolled_back_not_listed": stage_rolled, "merged": merged}
+              "outer_boundaries": outer, "stage_rolled_back_not_listed": stage_rolled, "no_border_not_listed": no_border,
+              "merged": merged}
     return {"schema_version": SCHEMA_VERSION, "unit": unit, "counts": counts, "entries": entries}
 
 

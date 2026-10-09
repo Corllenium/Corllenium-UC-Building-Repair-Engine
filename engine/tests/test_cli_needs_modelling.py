@@ -42,7 +42,7 @@ def test_the_file_is_written_valid_and_lists_the_refused_hole(tmp_path):
     (entry,) = doc["entries"]
     assert (entry["kind"], entry["reason"]) == ("hole", "too_wide") and len(entry["border"]) == 24
     assert doc["counts"] == {"entries": 1, "by_kind": {"hole": 1}, "by_reason": {"too_wide": 1}, "outer_boundaries": 2,
-                             "stage_rolled_back_not_listed": 0, "merged": 0}
+                             "stage_rolled_back_not_listed": 0, "no_border_not_listed": 0, "merged": 0}
     assert abs(entry["area_in2"] - 3600.0) < 1e-3, "the 60 in square hole"
     report = json.loads((out / "report.json").read_text(encoding="utf-8"))
     assert report["needs_modelling"]["entries"] == 1 and report["needs_modelling"]["file"] == "needs_modelling.json"
