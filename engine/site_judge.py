@@ -62,7 +62,7 @@ from dataclasses import dataclass, field
 import numpy as np
 
 from engine.model import MeshData
-from engine.validate.checks import Focus, Looks, Settings, depth_tolerance, print_step, validate
+from engine.validate.checks import FillSite, Focus, Looks, Settings, depth_tolerance, print_step, validate
 from engine.validate.sampling import recentred, used_bbox
 from engine.validate.viewpoints import interior_probes, outside_directions, pedestrian_ring
 from engine.validate.visibility import EPS_ORIGIN, build_caster
@@ -322,12 +322,14 @@ class SiteJudge:
         return Attribution(charged=charged, how=how, unknown=np.flatnonzero(~hit_any))
 
     # -- the check ---------------------------------------------------------------------------------------------
-    def check(self, after: MeshData, focus: Focus) -> SiteVerdict:
-        """Run the Validator on `after` against the stage's BEFORE with `focus`."""
+    def check(self, after: MeshData, focus: Focus, fills=None) -> SiteVerdict:
+        """Run the Validator on `after` against the stage's BEFORE with `focus`. `fills` (P2-E8b): the flat fills
+        the edit log marks, `{"faces": AFTER face ids, "loop": (n, 3) points}` each, for the `fill_site` class."""
         st = self.stage
         t0 = time.perf_counter()
         settings = Settings(**{**self.settings.as_dict(), "max_sites": 1 << 30})   # every failing sample, grouped
-        v = validate(st.before, after, self.looks, settings=settings, focus=focus)
+        marks = [FillSite(faces=f["faces"], loop=f["loop"]) for f in fills] if fills else None
+        v = validate(st.before, after, self.looks, settings=settings, focus=focus, fills=marks)
         failing = set()
         first = {}
         for i, f in enumerate(v.samples.face.tolist()):
@@ -343,10 +345,10 @@ class SiteJudge:
                    "textures": {"samples": t["samples"], "samples_failed": t["samples_failed"],
                                 "reasons": t["reasons"]},
                    "nothing_deleted": {k: g[k] for k in ("samples", "samples_extra", "deleted", "replaced",
-                                                         "covered", "overlaid")},
+                                                         "covered", "overlaid", "covered_by_fill") if k in g},
                    "sites": [{k: s[k] for k in ("centre", "size", "samples", "checks", "reasons", "faces")}
                              for s in r["sites"][:5]],
-                   "sites_total": r["sites_total"]}
+                   "sites_total": r["sites_total"], "fill_sites": r.get("fill_sites", [])}
         seconds = time.perf_counter() - t0
         self.seconds["check"] += seconds
         self.calls += 1

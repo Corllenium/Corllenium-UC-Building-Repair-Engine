@@ -47,12 +47,14 @@
     Exit 0 when each member's face count is the campus map's, 1 when one differs, 2 on a refused input.
 
 `python -m engine.cli repair-unit (--unit <UNIT> | --snapshot <dir>) --engines E8 --out <dir>`
-    Repairs one unit with the P2 engines (E8, strict solidify, so far): builds its BEFORE as `campus-unit-before`
+    Repairs one unit with the P2 engines (E8: E8a, strict solidify, then E8b, the narrow flat fill; `E8a` or `E8b`
+    runs one of them): builds its BEFORE as `campus-unit-before`
     does (into `<dir>/before/`), runs the repair kernel with the site judge on (`validate_sites=True`), so each
     piece of work is its own site and one that breaks anything visible -- a rebuilt side covering anything any
     viewpoint sees, eye-height probes included -- is rolled back. Writes `<unit>.fixed.obj`, `edit_log.jsonl` and
     `report.json` (pieces built, kept and rolled back by reason; the Validator's covered count after rollback;
-    times). No `.skp`. Exit 0 when the E8 stage passed, 1 when the unit's BEFORE differs from the campus map
+    times; for E8b `fills`, each kept fill with its BEFORE | AFTER crop in `fills/`, `not_filled`, every hole refused
+    with its rule, and `fill_stats`). No `.skp`. Exit 0 when the E8 stage passed, 1 when the unit's BEFORE differs from the campus map
     (nothing repaired), 2 on a refused input, 3 when the stage was rolled back whole or ended FAIL (every file is
     still written, and the mesh shipped is the BEFORE).
 
@@ -917,11 +919,46 @@ def cmd_errors(snapshot_dir: Path, out_file: Path, profile: FixProfile | None = 
 # -------------------------------------------------------------------------------------- validate
 
 
+def fills_from_edit_log(path: Path, after) -> list:
+    """The kept flat fills of an `edit_log.jsonl` as the Validator's `FillSite`s (ruling P2-E8b-R11): every line
+    marked `flat_fill`, not rolled back, with its `after_faces` and `loop_points`. Each fill's faces must exist in
+    `after` and have every corner on one of the loop's points (within 1e-3 in, the OBJ's printing); otherwise the log
+    does not describe this AFTER and a `ValueError` says so."""
+    from engine.validate.checks import FillSite
+
+    if not path.is_file():
+        raise FileNotFoundError(f"--edit-log {path} is not a file")
+    fills = []
+    for number, text in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+        line = json.loads(text)
+        if "check" in line or not line.get("flat_fill") or line.get("rolled_back"):
+            continue
+        faces, loop = line.get("after_faces"), line.get("loop_points")
+        if not faces or not loop:
+            raise ValueError(f"edit log {path} line {number}: a kept flat fill without after_faces and loop_points")
+        faces = np.asarray(faces, np.int64)
+        loop = np.asarray(loop, np.float64).reshape(-1, 3)
+        if faces.min() < 0 or faces.max() >= after.n_faces:
+            raise ValueError(f"edit log {path} line {number}: fill faces {faces.tolist()} are not faces of the AFTER "
+                             f"({after.n_faces} faces)")
+        corners = after.positions[after.face_v[faces]].reshape(-1, 3)
+        off = np.linalg.norm(corners[:, None, :] - loop[None, :, :], axis=2).min(axis=1)
+        if (off > 1e-3).any():
+            raise ValueError(f"edit log {path} line {number}: the AFTER's faces {faces.tolist()} are not the fill "
+                             f"(a corner lies {off.max():.4f} in off its loop's points)")
+        fills.append(FillSite(faces=faces, loop=loop))
+    return fills
+
+
 def cmd_validate(before_dir: Path, after_path: Path, materials: Path, out_dir: Path,
-                 targets: Path | None = None, settings=None) -> int:
+                 targets: Path | None = None, settings=None, edit_log: Path | None = None) -> int:
     """Judge `after_path` (an OBJ) against the snapshot `before_dir` by the owner's three checks and write
     `<out_dir>/validation.json` and `<out_dir>/evidence/*.png`. Returns 0 on PASS, 2 on FAIL or on an
-    input that is missing or unreadable (a message on stderr, and no verdict written)."""
+    input that is missing or unreadable (a message on stderr, and no verdict written).
+
+    `edit_log` (ruling P2-E8b-R11): the `edit_log.jsonl` of the repair that made `after_path`. Its kept flat fills
+    (`fills_from_edit_log`) go to the Validator's `fill_site` class, so a shipped fill is judged as a fill. A
+    log whose fill faces are not, in AFTER, faces on the fill's own loop is refused (exit 2)."""
     # The process counters (peak memory) come from winprobe: only the SketchUp binding modules and winprobe may
     # import ctypes (test_skp_writer.test_ctypes_is_imported_only_by_the_sketchup_binding_modules).
     from engine.campus.winprobe import peak_memory_mb
@@ -945,6 +982,7 @@ def cmd_validate(before_dir: Path, after_path: Path, materials: Path, out_dir: P
             sources.append((parse_mtl(after_mtl), after_path.parent))
         looks = load_looks(materials, sources)
         signed = load_targets(targets)
+        fills = None if edit_log is None else fills_from_edit_log(Path(edit_log), after)
     except (FileNotFoundError, ValueError, OSError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
@@ -958,7 +996,7 @@ def cmd_validate(before_dir: Path, after_path: Path, materials: Path, out_dir: P
             print(f"  {done}/{total} samples cast", file=sys.stderr, flush=True)
 
     try:
-        result = validate(before, after, looks, targets=signed, settings=settings, progress=progress)
+        result = validate(before, after, looks, targets=signed, settings=settings, progress=progress, fills=fills)
     except ValueError as exc:                              # e.g. a mesh too far from the origin to cast rays at
         print(f"error: {exc}", file=sys.stderr)
         return 2
@@ -970,6 +1008,8 @@ def cmd_validate(before_dir: Path, after_path: Path, materials: Path, out_dir: P
     report["inputs"] = {"before": str(before_obj), "after": str(after_path), "materials": str(materials),
                         "targets": str(targets_used) if targets_used.is_file() else None,
                         "before_sha256": sha256_file(before_obj), "after_sha256": sha256_file(after_path)}
+    if edit_log is not None:
+        report["inputs"]["edit_log"] = str(edit_log)
     report["peak_working_set_mb"], report["peak_commit_mb"] = peak, commit
     report["wall_s"] = round(time.perf_counter() - started, 2)
     (out_dir / "validation.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
@@ -993,12 +1033,16 @@ def cmd_validate(before_dir: Path, after_path: Path, materials: Path, out_dir: P
 
 # ------------------------------------------------------------------------------------ repair-unit command
 
-#: The repair engines `repair-unit` runs (P2): only E8, strict solidify, so far.
-REPAIR_ENGINES = ("E8",)
+#: The repair engines `repair-unit` takes (P2): E8, which is E8a (strict solidify) then E8b (the narrow flat fill,
+#: ruling E8b-R7), or either one alone.
+REPAIR_ENGINES = ("E8", "E8a", "E8b")
+#: The kernel stages each engine name runs; they always run in this order, E8a before E8b.
+REPAIR_STAGES = {"E8": ("E8a", "E8b"), "E8a": ("E8a",), "E8b": ("E8b",)}
+_STAGE_ORDER = ("E8a", "E8b")
 #: `repair-unit`'s exit code when an engine stage was rolled back whole or ended FAIL (its outputs are still written).
 REPAIR_STAGE_FAILED = 3
 #: `repair-unit`'s exit codes, as its help gives them.
-REPAIR_EXIT_CODES = ("exit 0: the E8 stage passed (its last check PASS, or every piece rolled back on its own charge); "
+REPAIR_EXIT_CODES = ("exit 0: every E8 stage passed (its last check PASS, or every piece rolled back on its own charge); "
                      "1: the unit's BEFORE differs from the campus map, nothing repaired; "
                      "2: a refused input (unknown engine, protected folder, missing file); "
                      "3: the stage was rolled back whole or ended FAIL - every file is still written and the "
@@ -1076,6 +1120,7 @@ def cmd_repair_unit(out_dir: Path, *, unit: str | None = None, snapshot: Path | 
     campus map (nothing repaired). Raises ValueError for an unknown engine, a unit or snapshot missing (or both
     given), a protected `out_dir`, or a snapshot in a protected folder (`main` turns those into exit 2)."""
     from engine.campus.unit_before import build_unit_before
+    from engine.repair.engines.e8_fill import E8FlatFill
     from engine.repair.engines.e8_solidify import E8Solidify
     from engine.repair.kernel import repair_unit
     from engine.repair.types import RepairContext, UnitState
@@ -1117,13 +1162,16 @@ def cmd_repair_unit(out_dir: Path, *, unit: str | None = None, snapshot: Path | 
     obj_path, mesh, flatness, mtl_materials = _load_snapshot(before_dir)
     profile = profile or FixProfile()
     judge = SiteJudge(load_looks(Path(materials), [(mtl_materials, before_dir)]))
-    engine = E8Solidify(flatness=flatness)
+    stages = [s for s in _STAGE_ORDER if any(s in REPAIR_STAGES[e] for e in engines)]
+    solid = E8Solidify(flatness=flatness) if "E8a" in stages else None
+    fill = E8FlatFill() if "E8b" in stages else None
+    kernel_engines = [e for e in (solid, fill) if e is not None]
     out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / "report.json").unlink(missing_ok=True)
     built = time.perf_counter()
     result = repair_unit(UnitState(mesh=mesh, topo=None, looks={}, viewpoints=None),
                          RepairContext(profile=profile, decider=None, validator=judge),
-                         engines=[engine], validate_sites=True, edit_log=out_dir / "edit_log.jsonl")
+                         engines=kernel_engines, validate_sites=True, edit_log=out_dir / "edit_log.jsonl")
     repaired = time.perf_counter()
 
     name = mesh.name
@@ -1136,9 +1184,16 @@ def cmd_repair_unit(out_dir: Path, *, unit: str | None = None, snapshot: Path | 
             shutil.copyfile(before_dir / "materials.mtl", out_dir / "materials.mtl")
 
     checks = {c["stage"]: c for c in result.checks}
-    pieces, sites = _repair_report(result, checks)
+    by_stage = _edits_by_stage(result)
+    solid_stage = None if solid is None else solid.name
+    pieces, sites = _repair_report(_StageView(result, by_stage.get(solid_stage, [])),
+                                   {k: c for k, c in checks.items() if k == solid_stage})
     after = [dict(_after_rollback(c), stage=stage) for stage, c in checks.items()]
-    sr = engine.report or {}
+    sr = (solid.report if solid is not None else None) or {}
+    fills, not_filled, fill_stats = [], [], None
+    if fill is not None:
+        fills, not_filled, fill_stats = _fill_report(fill, by_stage.get(fill.name, []), result, checks.get(fill.name),
+                                                     mesh, judge.looks, out_dir)
     report = {
         "unit": unit, "snapshot": None if snapshot is None else str(snapshot), "engines": engines,
         "before": {"obj": str(obj_path), "sha256": sha256_file(obj_path), "faces": int(mesh.n_faces),
@@ -1155,6 +1210,9 @@ def cmd_repair_unit(out_dir: Path, *, unit: str | None = None, snapshot: Path | 
         "solidify": {k: sr.get(k) for k in ("skirts_added", "bottoms_added", "sides_rebuilt", "side_pieces_replaced",
                                             "invented_vertices", "cap_guard_removed", "cap_guard_passed",
                                             "walls_refused", "bottom_faces_refused", "runtime_s")},
+        "fills": fills,
+        "not_filled": not_filled,
+        "fill_stats": fill_stats,
         "seconds": {"before": round(built - started, 2), "kernel": round(repaired - built, 2),
                     "total": round(time.perf_counter() - started, 2)},
         "exit_code": _repair_exit_code(result.checks),
@@ -1163,14 +1221,89 @@ def cmd_repair_unit(out_dir: Path, *, unit: str | None = None, snapshot: Path | 
 
     _print_checks(name, result.checks, repaired - built)
     s = sites
-    print(f"{name}: E8 built {s['built']} pieces ({s['by_piece']['wall']['built']} walls, "
-          f"{s['by_piece']['bottom']['built']} bottoms); kept {s['kept']}, rolled back {s['rolled_back']} "
-          f"{s['rolled_back_by_reason']}; covered after rollback {report['covered_after_rollback']}; "
+    if solid is not None:
+        print(f"{name}: E8 built {s['built']} pieces ({s['by_piece']['wall']['built']} walls, "
+              f"{s['by_piece']['bottom']['built']} bottoms); kept {s['kept']}, rolled back {s['rolled_back']} "
+              f"{s['rolled_back_by_reason']}")
+    if fill_stats is not None:
+        f = fill_stats
+        print(f"{name}: E8b found {f['loops']} closed loops ({f['outer_boundaries']} patch outer borders, {f['holes']} "
+              f"holes) among {f['components']} pieces of open edges; filled {f['kept']}, rolled back "
+              f"{f['rolled_back']}; not filled {f['not_filled_by_reason']}")
+    print(f"{name}: covered after rollback {report['covered_after_rollback']}; "
           f"{mesh.n_faces} -> {result.mesh.n_faces} faces; {report['seconds']['total']} s; wrote {out_dir}")
     if report["exit_code"] == REPAIR_STAGE_FAILED:
         print(f"{name}: an engine stage was rolled back whole or did not end PASS: the BEFORE ships for it "
               f"(exit {REPAIR_STAGE_FAILED})", file=sys.stderr)
     return report["exit_code"]
+
+
+def fill_diameter_bins() -> tuple:
+    """The inscribed-diameter histogram's bin edges in report.json's `fill_stats` (inches): one edge is E8b's own cap,
+    `engine.repair.engines.e8_fill.FILL_MAX_DIAMETER` (ruling E8b-R3), read when called."""
+    from engine.repair.engines import e8_fill
+    return (0.0, 5.0, 10.0, 20.0, float(e8_fill.FILL_MAX_DIAMETER), 80.0, 160.0)
+
+
+def _fill_report(engine, edits: list, result, check: dict | None, before, looks, out_dir: Path):
+    """`(fills, not_filled, fill_stats)` of report.json (ruling E8b-R8). `fills`: one row per kept fill, with its
+    BEFORE | AFTER crop (`fills/fill-<site>.png`, `engine.fill_review`). `not_filled`: every hole E8b refused (its
+    rule and reason), then every fill the site check rolled back (rule E8b-R7, reason `charged` with the Validator's
+    reasons as `detail`, or `stage_rolled_back`). `fill_stats`: E8b's counts, patch outer borders included (counted,
+    never listed), kept and rolled back, refusals by reason and the inscribed-diameter histogram of every hole."""
+    from engine.fill_review import write_fill_crop
+
+    after = result.mesh
+    kept = {id(e) for e in result.kept}
+    rolled = {row["site"]: row for row in (check or {}).get("rolled_back", [])}
+    fills, not_filled = [], [dict(row) for row in engine.not_filled]
+    rnd = lambda v: [round(float(x), 3) for x in v]
+    for e in edits:
+        ev = e.evidence
+        loop = after.positions[np.asarray(ev["loop"], np.int64)]
+        if id(e) in kept:
+            crop = f"fills/fill-{e.site:04d}.png"
+            write_fill_crop(before, after, loop, ev["normal"], looks, Path(out_dir) / crop)
+            fills.append({"site": int(e.site), "loop": ev["loop_id"], "vertices": ev["vertices"], "area": ev["area"],
+                          "inscribed_diameter": ev["inscribed_diameter"], "look": ev["look"],
+                          "centroid": ev["centroid"], "normal": ev["normal"], "crop": crop})
+            continue
+        row = rolled.get(e.site, {})
+        whole = bool(row.get("stage_rolled_back"))
+        not_filled.append({"loop": ev["loop_id"], "site": int(e.site), "rule": "E8b-R7",
+                           "reason": "stage_rolled_back" if whole else "charged",
+                           "detail": {} if whole else dict(row.get("reasons", {})), "vertices": ev["vertices"],
+                           "centroid": ev["centroid"], "points": [rnd(p) for p in loop],
+                           "inscribed_diameter": ev["inscribed_diameter"], "area": ev["area"]})
+    report = engine.report or {}
+    diameters = np.asarray(report.get("diameters", []), dtype=np.float64)
+    edges = sorted(fill_diameter_bins()) + [np.inf]
+    counts = np.histogram(diameters, bins=edges)[0].tolist() if len(diameters) else [0] * (len(edges) - 1)
+    labels = [f"{a:g}-{b:g}" if np.isfinite(b) else f">{a:g}" for a, b in zip(edges[:-1], edges[1:])]
+    stats = {k: report.get(k) for k in ("open_edges", "components", "loops", "outer_boundaries", "holes", "planned",
+                                        "plane_tol", "max_diameter")}
+    stats.update(kept=len(fills), rolled_back=len(edits) - len(fills),
+                 not_filled_by_reason=dict(sorted(collections.Counter(r["reason"] for r in not_filled).items())),
+                 diameter_histogram={"bins_in": labels, "counts": counts})
+    return fills, not_filled, stats
+
+
+class _StageView:
+    """The part of a kernel result one stage made: its `edits` and the `kept` among them."""
+
+    def __init__(self, result, edits: list):
+        ids = {id(e) for e in edits}
+        self.edits = list(edits)
+        self.kept = [e for e in result.kept if id(e) in ids]
+
+
+def _edits_by_stage(result) -> dict:
+    """`{stage: [its edits]}`: the edit lines of `result.records` run in the order of `result.edits`."""
+    lines = [r for r in result.records if "check" not in r]
+    out: dict = {}
+    for edit, line in zip(result.edits, lines):
+        out.setdefault(line["stage"], []).append(edit)
+    return out
 
 
 def _repair_exit_code(checks: list[dict]) -> int:
@@ -1285,6 +1418,9 @@ def build_parser() -> argparse.ArgumentParser:
     validate_p.add_argument("--area-per-sample", type=float, default=36.0,
                             help="one sample per this many sq in of face (owner's value 36). Any other value is a "
                                  "development run and the report says it is not an owner verdict")
+    validate_p.add_argument("--edit-log", type=Path, default=None,
+                            help="the edit_log.jsonl of the repair that made --after: its kept flat fills are judged "
+                                 "by the Validator's fill_site class (ruling P2-E8b-R11)")
     validate_p.add_argument("--min-per-face", type=int, default=4,
                             help="at least this many samples on every face (owner's value 4; see --area-per-sample)")
 
@@ -1312,7 +1448,9 @@ def build_parser() -> argparse.ArgumentParser:
     where.add_argument("--unit", default=None, help="the unit's name in the campus map, e.g. CHTM-L05")
     where.add_argument("--snapshot", type=Path, default=None,
                        help="a snapshot folder (one .obj, materials.mtl, tex/) as the BEFORE, instead of a unit")
-    repair_p.add_argument("--engines", nargs="+", required=True, help=f"the engines to run: {', '.join(REPAIR_ENGINES)}")
+    repair_p.add_argument("--engines", nargs="+", required=True,
+                          help=f"the engines to run: {', '.join(REPAIR_ENGINES)} (E8 = E8a, strict solidify, then E8b, "
+                               f"the narrow flat fill)")
     repair_p.add_argument("--out", type=Path, required=True,
                           help="receives before/, <unit>.fixed.obj, edit_log.jsonl and report.json (a short temp folder)")
     repair_p.add_argument("--map", type=Path, default=Path("data/campus/campus_map.json"),
@@ -1458,7 +1596,8 @@ def main(argv: list[str] | None = None) -> int:
     elif args.command == "validate":
         from engine.validate.checks import Settings
         return cmd_validate(args.before, args.after, args.materials, args.out, targets=args.targets,
-                            settings=Settings(area_per_sample=args.area_per_sample, min_per_face=args.min_per_face))
+                            settings=Settings(area_per_sample=args.area_per_sample, min_per_face=args.min_per_face),
+                            edit_log=args.edit_log)
     elif args.command == "campus-freeze":
         from engine.campus.source import freeze_source
         res = freeze_source(args.export, args.backup, args.out, args.snapshots)

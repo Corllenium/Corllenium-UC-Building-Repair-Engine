@@ -394,12 +394,17 @@ def _witnesses(vs: VisibleSet, rows: np.ndarray, points: np.ndarray, normals: np
     sel = np.flatnonzero(seen.any(axis=1))
     seen, front, abs_cos = seen[sel], front[sel], scores[sel]
     p, n = points[rows][sel], normals[rows][sel]
-    n_dir = len(vs.dirs)
-    viewpoints = np.vstack([vs.cams, vs.probes])
     need_front = front.any(axis=1)
     score = np.where(need_front[:, None], np.where(front, abs_cos, -1.0), np.where(seen, abs_cos, -1.0))
     col = score.argmax(axis=1)
+    return _witness_rays(vs, p, n, col, need_front), sel
 
+
+def _witness_rays(vs: VisibleSet, p: np.ndarray, n: np.ndarray, col: np.ndarray, need_front: np.ndarray) -> _Witnesses:
+    """The rays from the samples at `p` (normals `n`) to the viewpoints `col` (columns of `vs`), exactly as
+    `visibility` cast them in BEFORE: stepped off the face toward the viewer (see `_Witnesses`)."""
+    n_dir = len(vs.dirs)
+    viewpoints = np.vstack([vs.cams, vs.probes])
     is_dir = col < n_dir
     toward, origin = np.empty_like(p), np.empty_like(p)
     dirn, reach = np.empty_like(p), np.full(len(p), np.inf)
@@ -422,7 +427,7 @@ def _witnesses(vs: VisibleSet, rows: np.ndarray, points: np.ndarray, normals: np
         dirn[pi] = to / np.maximum(r, 1e-9)[:, None]
         toward[pi] = v / dist[:, None]
     return _Witnesses(col=col, need_front=need_front, toward=toward, origin=origin, dirn=dirn, reach=reach,
-                      is_dir=is_dir), sel
+                      is_dir=is_dir)
 
 
 class _Judge:
@@ -453,10 +458,17 @@ class _Judge:
 
     # -- covered ---------------------------------------------------------------------------------
     def covered(self, p, w: _Witnesses) -> np.ndarray:
+        return self.blocker(p, w)[0]
+
+    def blocker(self, p, w: _Witnesses):
+        """`(covered, face, point)`: `covered` as `covered` gives it, and for each covered sample the AFTER face that
+        covers it and where the line of sight meets it (-1 and zeros for the others)."""
         n = len(p)
         covered = np.zeros(n, dtype=bool)
+        face = np.full(n, -1, dtype=np.int64)
+        point = np.zeros((n, 3))
         if not self.n_faces or not n:
-            return covered
+            return covered, face, point
         cur, travelled = w.origin.copy(), np.zeros(n)
         active = np.arange(n)
         for _ in range(_PEEL_MAX + 1):
@@ -470,12 +482,14 @@ class _Judge:
             in_front = np.einsum("ij,ij->i", q - p[active], w.toward[active])
             beyond = blocks & (in_front > self.tol)
             covered[active[beyond]] = True
+            face[active[beyond]] = tri[beyond]
+            point[active[beyond]] = q[beyond]
             within = blocks & ~beyond                     # a layer inside the tolerance: look past it
             nxt = active[within]
             cur[nxt] = q[within] + w.dirn[nxt] * _PEEL_STEP
             travelled[nxt] = total[within] + _PEEL_STEP
             active = nxt
-        return covered
+        return covered, face, point
 
     # -- present ---------------------------------------------------------------------------------
     def _flags(self, start, u, t_b, tri, rows, look_b, uv_b, tex_w, tex_h, need_front, inside):
@@ -715,6 +729,186 @@ class _Overlay:
 
 
 # ---------------------------------------------------------------------------------------------
+# The one named class of allowed change: fill_site (job P2-E8b, ruling E8b-R6)
+# ---------------------------------------------------------------------------------------------
+
+@dataclass(frozen=True, eq=False)
+class FillSite:
+    """One flat fill the edit log marks as E8's (AGENTS.md section 4, the owner's narrow flat fill exception):
+    `faces`, its face ids in AFTER; `loop`, the (n, 3) points of the hole's border it fills, in the model's own
+    coordinates and in loop order."""
+    faces: np.ndarray
+    loop: np.ndarray
+
+
+#: (sample, viewpoint) lines of sight replayed at once by the fill_site class.
+_FILL_PAIRS = 200_000
+#: The owner's narrow flat fill, re-measured here and never taken from the engine (AGENTS.md section 6): the hole's
+#: largest inscribed circle is at most this many inches across (E8b-R3, one block), and every face round it is
+#: within this many degrees of the loop's plane, up to sign (E8b-R2).
+FILL_MAX_DIAMETER = 39.37
+FILL_NORMAL_TOL_DEG = 1.0
+#: How close `polylabel` gets to the inscribed circle's centre (in); counted AGAINST the hole: the diameter it finds
+#: plus twice this must stay within the cap.
+_FILL_POLYLABEL_TOL = 0.005
+
+
+def _fill_shape_refusal(before: MeshData, neighbours, loop: np.ndarray, c: np.ndarray, n: np.ndarray,
+                        poly: np.ndarray, tol: float) -> str | None:
+    """Why a marked fill is not the owner's narrow FLAT fill, re-measured on BEFORE (None when it is): a neighbour
+    more than `FILL_NORMAL_TOL_DEG` off the loop's plane, or with a corner more than `tol` out of it (E8b-R2); a loop
+    that crosses itself; or a hole whose largest inscribed circle, plus polylabel's own tolerance on both sides, is
+    wider than `FILL_MAX_DIAMETER` (E8b-R3)."""
+    from shapely import Polygon
+    from shapely.ops import polylabel
+
+    tri = before.positions[before.face_v[np.asarray(neighbours, dtype=np.int64)]]
+    normal = np.cross(tri[:, 1] - tri[:, 0], tri[:, 2] - tri[:, 0])
+    length = np.linalg.norm(normal, axis=1)
+    if (length <= 0.0).any():
+        return "a face round the hole has no area, so no normal to compare (E8b-R2)"
+    angle = float(np.degrees(np.arccos(np.clip(np.abs((normal / length[:, None]) @ n), 0.0, 1.0))).max())
+    offset = float(np.abs((tri - c) @ n).max())
+    if angle > FILL_NORMAL_TOL_DEG or offset > tol:
+        return (f"the faces round the hole are not coplanar with it: {angle:.3f} deg and {offset:.4f} in off its "
+                f"plane (at most {FILL_NORMAL_TOL_DEG} deg and {tol:.4f} in; E8b-R2)")
+    polygon = Polygon(poly)
+    if not polygon.is_valid:
+        return "the loop crosses itself in its plane (E8b-R1)"
+    diameter = 2.0 * float(polygon.exterior.distance(polylabel(polygon, tolerance=_FILL_POLYLABEL_TOL)))
+    if diameter + 2.0 * _FILL_POLYLABEL_TOL > FILL_MAX_DIAMETER:
+        return (f"the hole's largest inscribed circle is {diameter:.2f} in across (with polylabel's tolerance at most "
+                f"{FILL_MAX_DIAMETER} in; E8b-R3)")
+    return None
+
+
+def _in_polygon(poly: np.ndarray, xy: np.ndarray, tol: float) -> np.ndarray:
+    """(k,) bool: the points `xy` lie inside the polygon `poly` (m, 2) (even-odd), or within `tol` of its border."""
+    if not len(xy):
+        return np.zeros(0, dtype=bool)
+    a, b = poly, np.roll(poly, -1, axis=0)
+    x, y = xy[:, 0:1], xy[:, 1:2]
+    straddle = (a[None, :, 1] > y) != (b[None, :, 1] > y)
+    dy = np.where(b[:, 1] == a[:, 1], 1.0, b[:, 1] - a[:, 1])
+    x_cross = a[None, :, 0] + (y - a[None, :, 1]) * (b[:, 0] - a[:, 0])[None] / dy[None]
+    inside = (straddle & (x < x_cross)).sum(axis=1) % 2 == 1
+    ab = b - a
+    ab2 = np.maximum((ab * ab).sum(axis=1), 1e-300)
+    t = np.clip(((xy[:, None, :] - a[None]) * ab[None]).sum(axis=2) / ab2[None], 0.0, 1.0)
+    near = np.linalg.norm(a[None] + t[..., None] * ab[None] - xy[:, None, :], axis=2).min(axis=1) <= tol
+    return inside | near
+
+
+class _FillSites:
+    """The `fill_site` class (ruling E8b-R6). A BEFORE sample the cover test found covered counts as
+    `covered_by_fill` instead only when EVERY line of sight that saw it in BEFORE and is blocked in AFTER ends on a
+    face of a marked fill, at a point inside that fill's own loop (in the loop's plane, within the depth tolerance,
+    and inside its polygon or within the tolerance of its border); a line that still reaches the sample is no loss.
+
+    The mark is checked, never trusted: a fill is HONEST only when every edge of its loop is an edge of exactly one
+    face of BEFORE (a hole's border, open in BEFORE), those faces have one look, every face of the fill has that
+    look, and the fill is the owner's narrow FLAT fill, re-measured here (`_fill_shape_refusal`): every face round the
+    hole coplanar with it within 1 degree (E8b-R2), and the hole at most 39.37 in across its inscribed circle
+    (E8b-R3). A dishonest fill explains nothing: what it covers stays `covered`."""
+
+    def __init__(self, fills, before: MeshData, after: MeshData, centre: np.ndarray, look_b: np.ndarray,
+                 look_a: np.ndarray, step: float, tol: float):
+        self.tol = tol
+        self.fill_of = np.full(after.n_faces, -1, dtype=np.int64)
+        self.sites = []
+        q = step if step > 0.0 else 1e-6
+        tri_b = before.positions[before.face_v] if before.n_faces else np.zeros((0, 3, 3))
+        lo_b, hi_b = tri_b.min(axis=1), tri_b.max(axis=1)
+        for k, fill in enumerate(fills):
+            faces = np.unique(np.asarray(fill.faces, dtype=np.int64).reshape(-1))
+            loop = np.asarray(fill.loop, dtype=np.float64).reshape(-1, 3)
+            if not len(faces) or faces.min() < 0 or faces.max() >= after.n_faces:
+                raise ValueError(f"fill {k}: its faces must be AFTER face ids in 0..{after.n_faces - 1}")
+            if len(loop) < 3 or not np.isfinite(loop).all():
+                raise ValueError(f"fill {k}: its loop needs at least 3 finite points")
+            if (self.fill_of[faces] >= 0).any():
+                raise ValueError(f"fill {k}: a face belongs to two fills")
+            self.fill_of[faces] = k
+            loop = loop - centre
+            c = loop.mean(axis=0)
+            _u, _s, vt = np.linalg.svd(loop - c, full_matrices=False)
+            n = vt[2] / np.linalg.norm(vt[2])
+            e1 = np.cross(n, [1.0, 0.0, 0.0] if abs(n[0]) < 0.9 else [0.0, 1.0, 0.0])
+            e1 /= np.linalg.norm(e1)
+            e2 = np.cross(n, e1)
+            site = {"faces": faces, "c": c, "n": n, "e": np.stack([e1, e2]),
+                    "poly": (loop - c) @ np.stack([e1, e2]).T, "honest": True, "why": None, "neighbours": []}
+            # honest? every loop edge an edge of exactly one BEFORE face; one look round the hole; the fill in it
+            near = np.flatnonzero(((lo_b <= loop.max(axis=0) + q) & (hi_b >= loop.min(axis=0) - q)).all(axis=1))
+            snap = lambda p: tuple(np.round(p / q).astype(np.int64).tolist())
+            edge_faces: dict = {}
+            for f in near.tolist():
+                corners = [snap(p) for p in before.positions[before.face_v[f]]]
+                for i in range(3):
+                    key = tuple(sorted((corners[i], corners[(i + 1) % 3])))
+                    edge_faces.setdefault(key, []).append(f)
+            neighbours = []
+            for i in range(len(loop)):
+                key = tuple(sorted((snap(loop[i]), snap(loop[(i + 1) % len(loop)]))))
+                owners = edge_faces.get(key, [])
+                if len(owners) != 1:
+                    site["honest"], site["why"] = False, (f"loop edge {i} is an edge of {len(owners)} BEFORE faces, "
+                                                          f"not of exactly one: not an open border of BEFORE")
+                    break
+                neighbours.append(owners[0])
+            if site["honest"]:
+                site["neighbours"] = sorted(set(neighbours))
+                around = np.unique(look_b[neighbours])
+                if len(around) != 1:
+                    site["honest"], site["why"] = False, f"the hole's border faces have {len(around)} looks"
+                elif (look_a[faces] != around[0]).any():
+                    site["honest"], site["why"] = False, "the fill is in another look than its neighbours"
+            if site["honest"]:
+                site["why"] = _fill_shape_refusal(before, site["neighbours"], loop, c, n, site["poly"], tol)
+                site["honest"] = site["why"] is None
+            self.sites.append(site)
+
+    def explain(self, judge: "_Judge", vs: VisibleSet, rows: np.ndarray, points: np.ndarray, normals: np.ndarray,
+                cover: np.ndarray):
+        """`(by_fill, fill)` over `rows` (samples of the chunk `vs` was cast for): which covered samples are
+        covered only by honest fills inside their own loops, and the fill that took the first blocked line."""
+        by_fill = np.zeros(len(rows), dtype=bool)
+        which = np.full(len(rows), -1, dtype=np.int64)
+        idx = np.flatnonzero(cover)
+        if not len(idx):
+            return by_fill, which
+        r_all, col_all = np.nonzero(vs.seen[rows[idx]])
+        p_all, n_all = points[rows[idx]], normals[rows[idx]]
+        bad = np.zeros(len(idx), dtype=bool)
+        blocked_any = np.zeros(len(idx), dtype=bool)
+        for start in range(0, len(r_all), _FILL_PAIRS):
+            r, col = r_all[start:start + _FILL_PAIRS], col_all[start:start + _FILL_PAIRS]
+            p = p_all[r]
+            w = _witness_rays(vs, p, n_all[r], col, np.zeros(len(r), dtype=bool))
+            blocked, face, hit = judge.blocker(p, w)
+            ok = ~blocked
+            b = np.flatnonzero(blocked)
+            fill = self.fill_of[face[b]]
+            for k in np.unique(fill[fill >= 0]).tolist():
+                site = self.sites[k]
+                if not site["honest"]:
+                    continue
+                mine = b[fill == k]
+                d = hit[mine] - site["c"]
+                on_plane = np.abs(d @ site["n"]) <= self.tol
+                ok[mine] = on_plane & _in_polygon(site["poly"], d @ site["e"].T, self.tol)
+            np.logical_or.at(bad, r, ~ok)
+            np.logical_or.at(blocked_any, r, blocked)
+            first = b[fill >= 0] if len(b) else b
+            for i, k in zip(r[first].tolist(), self.fill_of[face[first]].tolist()):
+                if which[idx[i]] < 0:
+                    which[idx[i]] = k
+        by_fill[idx] = ~bad & blocked_any
+        which[~by_fill] = -1
+        return by_fill, which
+
+
+# ---------------------------------------------------------------------------------------------
 # Check 2: problems solved
 # ---------------------------------------------------------------------------------------------
 
@@ -939,7 +1133,7 @@ def _cluster_sites(validation_points: np.ndarray, centre: np.ndarray, failing: n
 
 def validate(before: MeshData, after: MeshData, looks: Looks, *, errors=None, targets=None,
              settings: Settings = Settings(), dirs=None, cams=None, probes=None, extra_dirs=None,
-             progress=None, focus: Focus | None = None) -> Validation:
+             progress=None, focus: Focus | None = None, fills=None) -> Validation:
     """Judge `after` against `before` by the owner's three checks.
 
     Both meshes are in the model's own coordinates; they are shifted into the Validator's frame here, by
@@ -977,7 +1171,16 @@ def validate(before: MeshData, after: MeshData, looks: Looks, *, errors=None, ta
     (`checks.problems` is `{"status": "skipped (focus)"}`, `errors` is ignored) and there is NO floor verdict:
     `verdict` is None (so `Validation.passed` is False). `focus` says `before_faces`, `after_faces` (how many) and
     `status`, "FAIL" when check 1 or check 3 failed on those faces, else "PASS": whether these sites broke
-    anything, never whether the floor is good."""
+    anything, never whether the floor is good.
+
+    FILLS (`fills`, a list of `FillSite`: the faces the edit log marks as E8 flat fills; job P2-E8b, ruling E8b-R6).
+    The one named class of allowed change, `fill_site` (see `_FillSites`): a sample covered only by honest fills,
+    each line of sight ending inside the fill's own loop, is `covered_by_fill` instead of `covered`, and fails neither
+    check. `checks.textures.covered_by_fill` and `checks.nothing_deleted.covered_by_fill` count them (they are in
+    neither `reasons` nor `covered`), and `fill_sites` (at the report's end) lists, per fill: `honest`, `why` not,
+    its AFTER `faces`, the `samples` it covers and the BEFORE faces those lie on (`before_faces`, at most 50).
+    Without fills (None or an empty list) nothing differs: those three keys are left out and `validation.json` is
+    byte for byte the Validator's of before the class."""
     clock = {"start": time.perf_counter()}
     if focus is not None:
         focus_before = _focus_ids(focus.before_faces, before.n_faces, "before_faces")
@@ -1022,11 +1225,14 @@ def validate(before: MeshData, after: MeshData, looks: Looks, *, errors=None, ta
         overlay_new = np.zeros(after.n_faces, dtype=bool)
         overlay_new[focus_after] = True
         overlay_new &= new_after
+    fill_sites = _FillSites(fills, b, a, centre, look_b, look_a, step, tol) if fills else None
     clock["prepared"] = time.perf_counter()
 
     tested = np.zeros(n, dtype=bool)
     extra = np.zeros(n, dtype=bool)
     covered = np.zeros(n, dtype=bool)
+    by_fill = np.zeros(n, dtype=bool)
+    fill_of_sample = np.full(n, -1, dtype=np.int64)
     present = np.zeros(n, dtype=np.int8)
     wit_col = np.full(n, -1, dtype=np.int32)
     wit_extra = np.zeros(n, dtype=bool)
@@ -1060,6 +1266,11 @@ def validate(before: MeshData, after: MeshData, looks: Looks, *, errors=None, ta
                 found = judge.covered(p[sel], w2) & ~cover[sel]
                 cover[sel[found]] = True
                 col[sel[found]] = w2.col[found]
+        if fill_sites is not None:
+            # the fill_site class (E8b-R6): covered only by marked, honest fills, inside their own loops
+            explained, which = fill_sites.explain(judge, vs, rows, sub.points, face_normal, cover)
+            cover &= ~explained
+            by_fill[g], fill_of_sample[g] = explained, which
         covered[g] = cover
         present[g] = judge.present(p, w, lb, uv_at(b, face, sub.bary[rows]), tex_w[lb], tex_h[lb])
         tested[g], extra[g], wit_col[g], wit_extra[g], toward_all[g] = True, is_extra, col, is_extra, w.toward
@@ -1122,6 +1333,16 @@ def validate(before: MeshData, after: MeshData, looks: Looks, *, errors=None, ta
         "area_covered_in2": round(float(sample_area[tested & covered].sum()), 2),
         "area_overlaid_in2": round(float(sample_area[tested & overlaid].sum()), 2),
         "depth_tolerance_in": round(tol, 4)}
+    fill_report = []
+    if fill_sites is not None:
+        # only with fills: without them `validation.json` is exactly what it was before the fill_site class
+        textures["covered_by_fill"] = int((standard & by_fill).sum())
+        nothing_deleted["covered_by_fill"] = int((tested & by_fill).sum())
+    for k, site in enumerate([] if fill_sites is None else fill_sites.sites):
+        mine = tested & by_fill & (fill_of_sample == k)
+        fill_report.append({"fill": k, "honest": site["honest"], "why": site["why"], "faces": int(len(site["faces"])),
+                            "samples": int(mine.sum()), "area_in2": round(float(sample_area[mine].sum()), 2),
+                            "before_faces": [int(f) for f in np.unique(samples.face[mine])[:50]]})
 
     # ---- check 2 (never in a focus run: it judges the floor, and a focus run judges sites) ----
     if focus is not None:
@@ -1193,6 +1414,8 @@ def validate(before: MeshData, after: MeshData, looks: Looks, *, errors=None, ta
                       "problems": round(clock["problems"] - clock["overlay"], 2),
                       "sites": round(clock["end"] - clock["problems"], 2),
                       "total": round(clock["end"] - clock["start"], 2)}}
+    if fill_sites is not None:
+        report["fill_sites"] = fill_report
     if focus is not None:
         report["focus"] = {"before_faces": int(len(focus_before)), "after_faces": int(len(focus_after)),
                            "status": "FAIL" if (fail1 | fail3).any() else "PASS"}

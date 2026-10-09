@@ -24,8 +24,17 @@ sample to the sites that could have caused it, rolls those back and confirms wit
 one site each and are logged, not rolled back (ruling K3-R2). A non-legacy stage that does not end PASS is rolled
 back as a whole, and the next stage runs on the stage's input (P2-K0). The edit log then also carries a
 `{"check": {...}}` line after each stage's edits and `"rolled_back": true` on every dropped edit;
-the check lines hold run DURATIONS (seconds), so unlike the edit lines they differ between runs.
+the check lines hold run DURATIONS (seconds), so unlike the edit lines they differ between runs. Every stage writes
+its check line, one that planned nothing included: the edit log is the audit trail (ruling P2-E8b-R10).
 Without `validate_sites` the kernel is exactly P1-K2's.
+
+FLAT FILLS (P2-E8b). An E8 "add" whose evidence marks it `flat_fill` with its `loop` (the stage input's vertex ids)
+is an E8 narrow flat fill: its edit-log line carries `flat_fill: true`, `loop`, `loop_points` (the loop in model
+coordinates) and `after_faces` (its face ids in the shipped AFTER; [] when rolled back, None when a later legacy stage
+made them unknown; ruling P2-E8b-R11, so `engine.cli validate --edit-log` can hand the fills to the floor Validator),
+and every check run hands the site
+judge the kept fills (`check(after, focus, fills=[{"faces", "loop"}])`, only when there are some), so the
+Validator's `fill_site` class can tell a fill closing a hole from a cover.
 """
 from __future__ import annotations
 
@@ -105,16 +114,45 @@ def edit_record(edit: Edit, keys: dict | None = None, stage: str | None = None) 
                 "material": evidence.get("material")}
         stage = evidence["stage"] if stage is None else stage
     removed, added = list(keys["removed"]), list(keys["added"])
-    return {"stage": stage, "engine": edit.engine, "kind": edit.kind,
-            "site": int(edit.site), "reason": edit.reason, "faces": [int(f) for f in edit.faces],
-            "removed": removed, "added": added, "n_removed": len(removed), "n_added": len(added),
-            "n_new_points": 0 if edit.new_points is None else int(len(edit.new_points)),
-            "material": keys["material"]}
+    record = {"stage": stage, "engine": edit.engine, "kind": edit.kind,
+              "site": int(edit.site), "reason": edit.reason, "faces": [int(f) for f in edit.faces],
+              "removed": removed, "added": added, "n_removed": len(removed), "n_added": len(added),
+              "n_new_points": 0 if edit.new_points is None else int(len(edit.new_points)),
+              "material": keys["material"]}
+    if _is_flat_fill(edit):
+        # THE MARK (P2-E8b): the Validator's fill_site class accepts what this add covers inside its loop
+        record.update(flat_fill=True, loop=[int(v) for v in edit.evidence["loop"]])
+    return record
+
+
+def _is_flat_fill(edit: Edit) -> bool:
+    """An E8 narrow flat fill (P2-E8b): an E8 add whose evidence marks it `flat_fill` and names its `loop`."""
+    return (edit.engine == "E8" and edit.kind == "add" and bool(edit.evidence.get("flat_fill"))
+            and "loop" in edit.evidence)
 
 
 def stage_records(stage_input: MeshData, edits: list[Edit], looks: dict[int, str], stage: str) -> list[dict]:
-    """The `edit_log.jsonl` lines of one stage's `edits`, in order."""
-    return [edit_record(e, k, stage) for e, k in zip(edits, edit_keys(stage_input, edits, looks))]
+    """The `edit_log.jsonl` lines of one stage's `edits`, in order. A flat fill's line also carries its loop as
+    model-coordinate points (`loop_points`, ruling P2-E8b-R11), so the floor Validator can read the fill from the log."""
+    lines = [edit_record(e, k, stage) for e, k in zip(edits, edit_keys(stage_input, edits, looks))]
+    for e, line in zip(edits, lines):
+        if _is_flat_fill(e):
+            line["loop_points"] = stage_input.positions[np.asarray(e.evidence["loop"], np.int64)].tolist()
+    return lines
+
+
+def _fill_after_faces(stage_input: MeshData, kept: list[Edit]) -> tuple[np.ndarray, list[tuple[Edit, list[int]]]]:
+    """`(new_to_old, [(fill edit, its face ids)])` of `apply_edits(stage_input, kept)`: where each kept flat fill's
+    faces land in the stage's result (the surviving faces first, then each add or cut in edit order)."""
+    _after, new_to_old = apply_edits(stage_input, kept)
+    appended = int((new_to_old >= 0).sum())
+    out = []
+    for e in kept:
+        if e.kind in ("add", "cut"):
+            if _is_flat_fill(e):
+                out.append((e, list(range(appended, appended + len(e.new_faces)))))
+            appended += len(e.new_faces)
+    return new_to_old, out
 
 
 def write_records(path: Path, records: list[dict]) -> None:
@@ -188,8 +226,9 @@ _SKIPPED = ("an earlier legacy stage was rolled back; the legacy stages share on
 
 
 def _site_parts(stage_input: MeshData, edits: list[Edit], sites: list[int]):
-    """`(after, parts)`: `after = apply_edits(stage_input, edits of sites)`, and per site the input
-    faces its edits remove, flip or replace and the AFTER faces they add, cut or flip."""
+    """`(after, parts, fills)`: `after = apply_edits(stage_input, edits of sites)`, per site the input
+    faces its edits remove, flip or replace and the AFTER faces they add, cut or flip, and the flat fills among those
+    edits (P2-E8b) as the site judge takes them: `{"faces": AFTER face ids, "loop": (n, 3) loop points}`."""
     chosen = [e for e in edits if e.site in set(sites)]
     after, new_to_old = apply_edits(stage_input, chosen)
     survived = new_to_old >= 0
@@ -197,6 +236,7 @@ def _site_parts(stage_input: MeshData, edits: list[Edit], sites: list[int]):
     at[new_to_old[survived]] = np.flatnonzero(survived)
     appended = int(survived.sum())
     parts = {s: ([], []) for s in sites}
+    fills = []
     for e in chosen:
         touched, new = parts[e.site]
         if e.kind in ("remove", "flip", "cut"):
@@ -204,9 +244,13 @@ def _site_parts(stage_input: MeshData, edits: list[Edit], sites: list[int]):
         if e.kind == "flip":
             new.extend(at[list(e.faces)].tolist())
         if e.kind in ("add", "cut"):
-            new.extend(range(appended, appended + len(e.new_faces)))
+            ids = list(range(appended, appended + len(e.new_faces)))
+            new.extend(ids)
             appended += len(e.new_faces)
-    return after, parts
+            if _is_flat_fill(e):
+                fills.append({"faces": np.asarray(ids, np.int64),
+                              "loop": stage_input.positions[np.asarray(e.evidence["loop"], np.int64)]})
+    return after, parts, fills
 
 
 def _status(verdict) -> str:
@@ -253,10 +297,11 @@ def _check_stage(judge, stage_input: MeshData, edits: list[Edit], *, stage: str,
 
     def run(kept: list[int], kind: str):
         seconds = dict(judge.seconds)
-        after, parts = _site_parts(stage_input, edits, kept)
+        after, parts, fills = _site_parts(stage_input, edits, kept)
         foci = {s: judge.site_focus(after, np.array(parts[s][0], np.int64),
                                     np.array(parts[s][1], np.int64)) for s in kept}
-        verdict = judge.check(after, judge.union(list(foci.values())))
+        # the marked flat fills go to the judge only when there are some, so a judge of P1 still fits
+        verdict = judge.check(after, judge.union(list(foci.values())), **({"fills": fills} if fills else {}))
         att = judge.attribute(verdict, foci)
         s, summary = verdict.samples, verdict.summary
         charged = (np.unique(np.concatenate(list(att.charged.values()))) if att.charged
@@ -271,6 +316,7 @@ def _check_stage(judge, stage_input: MeshData, edits: list[Edit], *, stage: str,
             "textures": dict(summary["textures"]["reasons"]),
             "nothing_deleted": {k: summary["nothing_deleted"][k]
                                 for k in ("deleted", "replaced", "covered", "overlaid")},
+            "covered_by_fill": int(summary["nothing_deleted"].get("covered_by_fill", 0)),
             "before_faces": summary["before_faces"], "after_faces": summary["after_faces"],
             "seconds": round(verdict.seconds, 2),
             "focus_seconds": round(judge.seconds["focus"] - seconds["focus"], 2),
@@ -343,6 +389,7 @@ def _repair_checked(unit: UnitState, ctx: RepairContext, *, flatness, obj_path, 
         engines = legacy_engines(run)
     current = input_mesh
     edits, kept_all, rolled_all, checks, records = [], [], [], [], []
+    fill_faces: list = []      # [edit-log line, face ids in the current result] of every kept flat fill so far
     legacy_stopped = False
     for engine in engines:
         is_legacy = isinstance(engine, LegacyEngine)
@@ -370,16 +417,34 @@ def _repair_checked(unit: UnitState, ctx: RepairContext, *, flatness, obj_path, 
         kept = [e for e in planned if e.site not in rolled]
         kept_all.extend(kept)
         rolled_all.extend(e for e in planned if e.site in rolled)
+        line_of = {}
         for e, line in zip(planned, stage_records(stage_input, planned, unit.looks, stage)):
-            records.append({**line, "rolled_back": True} if e.site in rolled else line)
+            if e.site in rolled:
+                line = {**line, "rolled_back": True, **({"after_faces": []} if _is_flat_fill(e) else {})}
+            records.append(line)
+            line_of[id(e)] = line
         if check is not None:
             checks.append(check)
             records.append({"check": check})
         if is_legacy and not rolled:
             current = engine.run.current.as_mesh()
+            for placed in fill_faces:          # a legacy stage's face order is not tracked: the ids are unknown
+                placed[1] = None
         else:
-            current = apply_edits(stage_input, kept)[0]
+            current, new_to_old = apply_edits(stage_input, kept)
             legacy_stopped = legacy_stopped or is_legacy
+            if fill_faces or any(_is_flat_fill(e) for e in kept):
+                # ruling P2-E8b-R11: each kept fill's face ids in the shipped AFTER, carried through later stages
+                survived = new_to_old >= 0
+                at = np.full(stage_input.n_faces, -1, np.int64)
+                at[new_to_old[survived]] = np.flatnonzero(survived)
+                for placed in fill_faces:
+                    if placed[1] is not None:
+                        moved = at[np.asarray(placed[1], np.int64)]
+                        placed[1] = None if (moved < 0).any() else moved.tolist()
+                fill_faces.extend([line_of[id(e)], ids] for e, ids in _fill_after_faces(stage_input, kept)[1])
+    for line, ids in fill_faces:
+        line["after_faces"] = ids
 
     result = report = None
     mesh = current
