@@ -16,6 +16,7 @@ from typing import Callable
 import numpy as np
 
 from engine.campus.pixfont import GLYPHS, text_width
+from engine.io.protected import refuse_protected
 
 #: face kinds, in drawing priority: a face listed under several kinds is drawn in the first
 ERROR_KINDS = ("flicker_diff", "flicker_same", "reversed", "loose", "hidden")
@@ -322,7 +323,6 @@ def _column_flags(unit: dict, is_excluded: bool, known: set[str], mismatches: di
 
 # ------------------------------------------------------------------------------------------ the SketchUp file
 
-PROTECTED = ("CHECKPOINT-17-BACKUP", r"PROJECTS\UC\02-SKETCHUP", "UC ENVIRONMENT BUILDING")
 TUBE_R_IN = 1.5             # open-edge tube radius
 MARKER_R_IN = 3.0           # crack / degenerate-face marker radius
 PLATE_Z_IN = -2.0
@@ -342,16 +342,6 @@ def tag_of(kind: str) -> str:
 
 
 TAGS = ["base"] + [tag_of(k) for k in ERROR_KINDS + LINE_KINDS] + [tag_of(k) for k in GROUPING_KINDS] + ["labels"]
-
-
-def _check_out(out) -> None:
-    """Refuse an output in the backup, master or export folders, judged on the resolved absolute path (so `..`,
-    a relative path or a junction cannot get round it)."""
-    import os
-    text = os.path.normcase(os.path.realpath(os.path.abspath(str(out)))).replace("/", "\\").upper()
-    for p in PROTECTED:
-        if p.upper() in text:
-            raise ValueError(f"refusing to write {out}: it lies in a protected folder ({p})")
 
 
 def _tubes(seg: np.ndarray, r: float = TUBE_R_IN) -> np.ndarray:
@@ -468,7 +458,7 @@ def write_building_skp(plan: BuildingPlan, out, dll_path=None) -> dict:
     from pathlib import Path
     from engine.io.skp_writer import TaggedModel
     out = Path(out)
-    _check_out(out)
+    refuse_protected(out)
     out.parent.mkdir(parents=True, exist_ok=True)
     with TaggedModel(COLOURS, TAGS, dll_path, chunk=CHUNK) as w:
         _draw_legend(w, plan)
@@ -517,7 +507,7 @@ def cmd_campus_errors_skp(campus_map, source, errors_dir, skp_check, out_dir, bu
     from engine.campus.census import _load_snapshot_mesh
     from engine.campus.inventory import building_of
     out_dir, errors_dir = Path(out_dir), Path(errors_dir)
-    _check_out(out_dir)
+    refuse_protected(out_dir)
     cmap = json.loads(Path(campus_map).read_text(encoding="utf-8"))
     snapshots = json.loads(Path(source).read_text(encoding="utf-8"))["snapshots"]
     snaps = {s["group"]: Path(s["dir"]) for s in snapshots}

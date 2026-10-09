@@ -30,6 +30,8 @@ from typing import Any, Sequence
 from engine.detectors.errors import find_errors
 from engine.io.obj_reader import read_obj
 from engine.model import MeshData
+from engine.io.protected import refuse_protected
+from engine.campus.materials import _material_name as _mat_name, split_flicker_pairs
 from engine.campus.winprobe import get_machine_load, get_process_peak_memory_mb
 
 
@@ -98,7 +100,7 @@ def flicker_split(
     else:
         mat_path = DEFAULT_MATERIALS_PATH
         if not mat_path.is_file():
-            raise FileNotFoundError(f"Default materials map not found: {mat_path}")
+            raise FileNotFoundError(f"Materials map not found: {mat_path.resolve()} (pass --materials)")
         data = json.loads(mat_path.read_text(encoding="utf-8"))
         if not isinstance(data, dict):
             raise ValueError(f"Invalid materials JSON in {mat_path}")
@@ -109,49 +111,19 @@ def flicker_split(
     if not materials_map:
         raise ValueError("Materials map is empty")
 
-    same_opp = 0
-    same_same = 0
-    diff_opp = 0
-    diff_same = 0
+    for name in {_mat_name(mesh, f) for item in pair_list for f in (item[0], item[1])}:
+        if name not in materials_map:
+            raise KeyError(f"Material {name!r} not found in materials map")
+        info = materials_map[name]
+        if not (info.get("look") if isinstance(info, dict) else info):
+            raise ValueError(f"Material {name!r} has no 'look' in materials map")
 
-    face_mats = mesh.face_material
-    mat_names = mesh.materials
-
-    for item in pair_list:
-        i, j, _shared, opp = item[0], item[1], item[2], bool(item[3])
-        mat_idx_i = int(face_mats[i]) if i < len(face_mats) else 0
-        mat_idx_j = int(face_mats[j]) if j < len(face_mats) else 0
-
-        name_i = mat_names[mat_idx_i] if mat_idx_i < len(mat_names) else str(mat_idx_i)
-        name_j = mat_names[mat_idx_j] if mat_idx_j < len(mat_names) else str(mat_idx_j)
-
-        if name_i not in materials_map:
-            raise KeyError(f"Material {name_i!r} not found in materials map")
-        if name_j not in materials_map:
-            raise KeyError(f"Material {name_j!r} not found in materials map")
-
-        info_i = materials_map[name_i]
-        look_i = info_i.get("look") if isinstance(info_i, dict) else info_i
-        info_j = materials_map[name_j]
-        look_j = info_j.get("look") if isinstance(info_j, dict) else info_j
-
-        if not look_i:
-            raise ValueError(f"Material {name_i!r} has no 'look' in materials map")
-        if not look_j:
-            raise ValueError(f"Material {name_j!r} has no 'look' in materials map")
-
-        same_look = (look_i == look_j)
-
-        if same_look:
-            if opp:
-                same_opp += 1
-            else:
-                same_same += 1
-        else:
-            if opp:
-                diff_opp += 1
-            else:
-                diff_same += 1
+    # the look split itself is the shared one (engine.campus.materials), which E4/E5 and the colour export use
+    same_pairs, diff_pairs = split_flicker_pairs(mesh, pair_list, materials_map)
+    same_opp = sum(1 for item in same_pairs if bool(item[3]))
+    same_same = len(same_pairs) - same_opp
+    diff_opp = sum(1 for item in diff_pairs if bool(item[3]))
+    diff_same = len(diff_pairs) - diff_opp
 
     return FlickerSplit({
         "same_look_opposite": same_opp,
@@ -400,6 +372,9 @@ def census(
     """Run census over snapshot units."""
     repo_root = Path(__file__).resolve().parents[2]
     out_json = Path(out_json).resolve()
+    for written in (out_json, errors_dir, out_md):
+        if written is not None:
+            refuse_protected(written)
 
     if errors_dir is None:
         errors_dir = out_json.parent / "errors"

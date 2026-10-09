@@ -21,6 +21,7 @@ from datetime import datetime
 from pathlib import Path, PurePosixPath
 
 from engine.io.mtl import parse_mtl
+from engine.io.protected import refuse_protected
 from engine.io.snapshot import (SourceUnstable, copy_if_present, copy_verified, read_manifest_stable,
                                 sha256_file, snapshot_object)
 
@@ -128,6 +129,8 @@ def _write_json_atomic(path: Path, data: dict) -> None:
 
 def freeze_source(export_dir: Path, backup_dir: Path, out_root: Path, snapshots_root: Path,
                   interval_s: float = 1.0, sleep=time.sleep) -> SourceFreeze:
+    refuse_protected(out_root)
+    refuse_protected(snapshots_root)
     # abspath, not resolve(): resolving would stat the live tree from outside engine/io/snapshot.py
     export_dir = Path(os.path.abspath(export_dir))
     backup_dir = Path(backup_dir).resolve()

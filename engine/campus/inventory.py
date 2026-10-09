@@ -32,6 +32,7 @@ from pathlib import Path
 import numpy as np
 
 from engine.io.obj_reader import read_obj
+from engine.io.protected import refuse_protected
 from engine.io.snapshot import sha256_file
 from engine.model import MeshData
 
@@ -913,6 +914,8 @@ def levels_with(groups: list[GroupData], params: InventoryParams) -> dict[str, i
 def cmd_campus_inventory(source_json, index_json, materials_json, out_json, out_md,
                          params: InventoryParams | None = None) -> dict:
     """Build the draft campus map from the frozen snapshots and write the JSON and the owner's table."""
+    refuse_protected(out_json)
+    refuse_protected(out_md)
     source = json.loads(Path(source_json).read_text(encoding="utf-8"))
     index = json.loads(Path(index_json).read_text(encoding="utf-8"))
     materials = json.loads(Path(materials_json).read_text(encoding="utf-8"))

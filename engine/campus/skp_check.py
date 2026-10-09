@@ -44,6 +44,7 @@ from pathlib import Path
 import numpy as np
 
 from engine.io import skp_reader
+from engine.io.protected import refuse_protected
 from engine.io.obj_reader import read_obj
 from engine.io.snapshot import copy_verified, sha256_file
 
@@ -584,6 +585,9 @@ def check_source(source_json, backup_dir, out_dir, *, name: str | None = None, s
     refuse_inside(out_dir, backup_dir)
     if summary is not None:
         refuse_inside(Path(summary), backup_dir)
+    refuse_protected(out_dir)
+    if summary is not None:
+        refuse_protected(summary)
     out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / "skp_check.json").unlink(missing_ok=True)       # a failed run leaves no report that looks current
     source = json.loads(source_json.read_text(encoding="utf-8"))

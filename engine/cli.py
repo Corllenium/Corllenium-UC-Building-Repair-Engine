@@ -41,6 +41,11 @@
     256 px crops (BEFORE, AFTER) of each of the 20 worst failing sites. Exit code 0 on PASS, 2 on FAIL
     or when an input is missing. Nothing is changed or fixed; the inputs are only read.
 
+`python -m engine.cli campus-unit-before --unit <UNIT> --out <dir>`
+    Writes a campus unit's BEFORE as a snapshot-shaped folder (`<UNIT>.obj`, `materials.mtl`) from its members'
+    frozen snapshots, banded members cut by face-centre z, so `validate --before <dir>` takes a whole unit.
+    Exit 0 when each member's face count is the campus map's, 1 when one differs, 2 on a refused input.
+
 A snapshot directory is the layout `engine.io.snapshot.snapshot_object` produces: one `<name>.obj`,
 `materials.mtl`, and a `tex/` folder of the textures it references.
 
@@ -72,6 +77,7 @@ from engine.guard.views import VIEWS_26, ortho_first_hit
 from engine.io.mtl import MtlMaterial, parse_mtl, texture_flatness
 from engine.io.obj_reader import read_obj
 from engine.io.obj_writer import write_obj, write_obj_polygons
+from engine.io.protected import refuse_protected
 from engine.io.skp_writer import SketchUpError, check_skp_validity, write_skp
 from engine.io.snapshot import sha256_file
 from engine.model import MeshData
@@ -918,6 +924,7 @@ def cmd_validate(before_dir: Path, after_path: Path, materials: Path, out_dir: P
     settings = settings or Settings()
     before_dir, after_path, materials, out_dir = Path(before_dir), Path(after_path), Path(materials), Path(out_dir)
     try:
+        refuse_protected(out_dir)
         if not after_path.is_file():
             raise FileNotFoundError(f"--after {after_path} is not a file")
         if not materials.is_file():
@@ -1082,6 +1089,20 @@ def build_parser() -> argparse.ArgumentParser:
     validate_p.add_argument("--min-per-face", type=int, default=4,
                             help="at least this many samples on every face (owner's value 4; see --area-per-sample)")
 
+    before_p = sub.add_parser(
+        "campus-unit-before",
+        help="write a campus unit's BEFORE (its members' frozen snapshots, bands cut by face-centre z) as a "
+             "folder that `validate --before` takes")
+    before_p.add_argument("--unit", required=True, help="the unit's name in the campus map, e.g. CHTM-L05")
+    before_p.add_argument("--map", type=Path, default=Path("data/campus/campus_map.json"),
+                          help="the owner-confirmed campus map")
+    before_p.add_argument("--source", type=Path, default=Path("data/campus/source.json"),
+                          help="the source.json file from campus-freeze (snapshot folders)")
+    before_p.add_argument("--out", type=Path, required=True,
+                          help="receives <unit>.obj and materials.mtl (a short temp folder)")
+    before_p.add_argument("--copy-textures", action="store_true",
+                          help="copy the textures to <out>/tex (default: the MTL points at the snapshots')")
+
     census_p = sub.add_parser("census", help="run find_errors census over units with timings, peak memory and fix plan")
     census_p.add_argument("units", nargs="*", default=None, help="snapshot directories (default: all snapshots in source.json)")
     census_p.add_argument("--out", type=Path, default=Path("data/campus/census.json"), help="output census JSON path")
@@ -1170,9 +1191,33 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+#: Where each writing command puts its files (argparse names); the commands that write nothing are not here.
+#: campus-errors-skp checks its own output (error_export raises, as its tests expect).
+_OUTPUT_ARGS = {"campus-skp-check": ("out", "summary"), "validate": ("out",),
+                "census": ("out", "md", "errors_dir"), "campus-freeze": ("out", "snapshots"),
+                "campus-index": ("out",), "campus-materials": ("out",), "campus-inventory": ("out", "md"),
+                "decide-pilot": ("out",), "campus-unit-before": ("out",)}
+
+
+def _refuse_protected_outputs(args) -> str | None:
+    """The refusal text when a writing command's output lies in a protected folder, else None; checked before
+    the command does anything."""
+    try:
+        for name in _OUTPUT_ARGS.get(args.command, ()):
+            if getattr(args, name, None) is not None:
+                refuse_protected(getattr(args, name))
+    except ValueError as exc:
+        return str(exc)
+    return None
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
+    refusal = _refuse_protected_outputs(args)
+    if refusal is not None:
+        print(f"error: {refusal}", file=sys.stderr)
+        return 2
     if args.command == "fix":
         if args.validate_sites and not args.kernel:
             parser.error("--validate-sites needs --kernel")
@@ -1231,6 +1276,20 @@ def main(argv: list[str] | None = None) -> int:
             print(f"  {key} ({len(mats)} materials): {mats}")
         print(f"wrote materials to {out_path}")
         return 0
+    elif args.command == "campus-unit-before":
+        from engine.campus.unit_before import build_unit_before
+        try:
+            cmap = json.loads(Path(args.map).read_text(encoding="utf-8"))
+            source = json.loads(Path(args.source).read_text(encoding="utf-8"))
+            report = build_unit_before(cmap, source, args.unit, args.out, copy_textures=args.copy_textures)
+        except (ValueError, OSError, KeyError) as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            return 2
+        parts = ", ".join(f"{m['group']} [{m['band']}] {m['faces']}" for m in report["members"])
+        print(f"{report['unit']}: {report['faces']} faces from {len(report['members'])} members ({parts}); "
+              + ("equals the campus map's tris" if report["matches_campus_map"]
+                 else "DIFFERS from the campus map's tris") + f" -> {report['obj']}")
+        return 0 if report["matches_campus_map"] else 1
     elif args.command == "campus-skp-check":
         from engine.campus import skp_check
         from engine.io.snapshot import SourceUnstable
