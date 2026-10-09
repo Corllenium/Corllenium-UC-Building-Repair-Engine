@@ -1143,6 +1143,8 @@ def build_parser() -> argparse.ArgumentParser:
                        help="the export-vs-backup check (mismatches become grouping flags)")
     col_p.add_argument("--out", type=Path, default=Path("data/coloring_scratch"),
                        help="writes <out>/<BUILDING>/<BUILDING>-errors.skp and .json")
+    col_p.add_argument("--materials", type=Path, default=Path("data/campus/materials.json"),
+                       help="the materials.json file from campus-materials (flicker is split by look)")
     col_p.add_argument("--buildings", nargs="*", default=None, help="only these buildings (default: all)")
     col_p.add_argument("--dll", default=None, help="SketchUpAPI.dll (default: $FIXER_SKETCHUP_DLL or SketchUp 2026)")
 
@@ -1347,7 +1349,7 @@ def main(argv: list[str] | None = None) -> int:
     elif args.command == "campus-errors-skp":
         from engine.campus.error_export import cmd_campus_errors_skp
         for r in cmd_campus_errors_skp(args.map, args.source, args.errors, args.skp_check, args.out,
-                                       args.buildings, args.dll):
+                                       args.buildings, args.dll, args.materials):
             back = r["read_back"]["faces_by_tag"]
             dups, odd = sum(r["duplicates_by_tag"].values()), r["unexplained_by_tag"]
             same = "as written" if not odd else f"UNEXPLAINED {odd}"
