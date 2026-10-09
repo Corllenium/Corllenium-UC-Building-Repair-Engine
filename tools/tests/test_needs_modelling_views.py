@@ -32,6 +32,11 @@ FORBIDDEN = {
                             r"\.name\s*=|set_attribute|delete_attribute|\.explode|\.make_unique|\.move!|\.pushpull|\.followme)",
     "writing or running": r"(File\s*\.\s*(write|open|new|delete|rename|binwrite|chmod)|\bIO\b|FileUtils|write_image|\.export|"
                           r"open_file|send_action|\bsystem\b|\bexec\b|\beval\b|%x|`)",
+    # fix round, item 2: ways round a blacklist (a call built from a string, a variable holding the model, other
+    # things that change the session or the model's settings)
+    "dynamic calls": r"\b(send|public_send|__send__|instance_eval|instance_exec|class_eval|module_eval|define_method|const_get|method)\b",
+    "Dir, Kernel, open, exit": r"\b(Dir|Kernel|open|exit)\b",
+    "session and settings": r"\.\s*(import|close|undo|quit|options|rendering_options|shadow_info)\b",
 }
 #: The only methods of the model the helper calls.
 MODEL_CALLS = {"active_view", "bounds", "select_tool"}
@@ -103,6 +108,21 @@ def test_the_script_touches_the_model_only_through_the_viewers_three_calls():
     assert active <= MODEL_CALLS, f"unexpected model calls: {sorted(active - MODEL_CALLS)}"
 
 
+VARIABLE_HOLDING_THE_MODEL = (r"=\s*Sketchup\s*\.\s*active_model\b(?!\s*\.\s*(active_view|bounds|select_tool)\b)",
+                              r"\b(?!model\b)(\w+)\s*=\s*(Sketchup\s*\.\s*)?model\b(?!\s*\.)")
+
+
+def test_the_model_is_reached_only_by_the_one_model_method_or_the_three_calls():
+    """No `m = Sketchup.active_model` (a variable the call whitelist cannot follow): every `active_model` is followed by
+    one of the three calls, except the one in `def self.model`, whose callers the whitelist reads as `model.<x>`."""
+    code = _code()
+    bare = re.findall(r"\bactive_model\b(?!\s*\.\s*(?:active_view|bounds|select_tool)\b)", code)
+    assert len(bare) == 1, f"active_model used {len(bare)} times other than for the three calls"
+    assert re.search(r"def self\.model\s*\n\s*Sketchup\.active_model\s*\n\s*end", code)
+    for pattern in VARIABLE_HOLDING_THE_MODEL:
+        assert not re.search(pattern, code), "the model is not kept in a variable"
+
+
 def test_the_script_uses_no_literal_the_scanner_cannot_read():
     assert not re.search(r"<<[~-]?['\"A-Z_]|%[qQwWiIrx]?[({\[<|!/]|(?<![\w)\]])/[^/\s*]", _code()), \
         "heredocs, %-literals and regexp literals hide code from the scan: do not use them"
@@ -149,6 +169,24 @@ def test_ruby_blocks_are_balanced():
     ("model.start_operation('x', true)", "operations"),
     ("x = \"#{model.entities.add_face(a, b, c)}\"", "add_face"),      # an interpolation is code
     ("File.write('x', 'y')", "writing or running"),
+    # the reviewer's bypasses of the first blacklist (fix round, item 2)
+    ('m = Sketchup.active_model; m.send("sa"+"ve")', "dynamic calls"),
+    ("m.public_send(name)", "dynamic calls"),
+    ("m.__send__(:save)", "dynamic calls"),
+    ("m.method(:save).call", "dynamic calls"),
+    ("m.instance_eval { save }", "dynamic calls"),
+    ("Object.const_get('Dir')", "dynamic calls"),
+    ("m.import(path)", "session and settings"),
+    ("dialog.close", "session and settings"),
+    ("m.rendering_options['Texture'] = false", "session and settings"),
+    ("m.options['UnitsOptions']['LengthUnit'] = 0", "session and settings"),
+    ("m.shadow_info['DisplayShadows'] = true", "session and settings"),
+    ("Sketchup.undo", "session and settings"),
+    ("Sketchup.quit", "session and settings"),
+    ("Dir.mkdir('x')", "Dir, Kernel, open, exit"),
+    ("open('x', 'w')", "Dir, Kernel, open, exit"),
+    ("Kernel.exit", "Dir, Kernel, open, exit"),
+    ("exit", "Dir, Kernel, open, exit"),
 ])
 def test_the_scan_catches_each_forbidden_call(line, name):
     assert re.search(FORBIDDEN[name], code_only(line)), f"{name} not found in {line!r}"
@@ -169,3 +207,15 @@ def test_the_list_dialog_calls_sketchup_go_and_not_the_old_webdialog_protocol():
     assert "skp:" not in text, "skp: links are the old WebDialog protocol; HtmlDialog ignores them"
     assert re.search(r"onclick='sketchup\.go\(#\{i\}\); return false'", text)
     assert "add_action_callback('go')" in text
+
+
+@pytest.mark.parametrize("line", ["m = Sketchup.active_model", "m = Sketchup . active_model", "m = model",
+                                  "view = Sketchup.active_model"])
+def test_a_variable_holding_the_model_is_caught(line):
+    code = code_only(line)
+    assert any(re.search(pattern, code) for pattern in VARIABLE_HOLDING_THE_MODEL), line
+
+
+def test_the_scan_does_not_flag_the_scripts_own_model_method():
+    assert not any(re.search(pattern, code_only("def self.model\n  Sketchup.active_model\nend\nmodel.bounds"))
+                   for pattern in VARIABLE_HOLDING_THE_MODEL)

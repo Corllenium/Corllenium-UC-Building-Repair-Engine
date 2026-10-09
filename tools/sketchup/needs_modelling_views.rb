@@ -190,12 +190,11 @@ module UCNeedsModelling
     @dialog.show
   end
 
-  # Put the camera back, stop drawing the outline and forget the list.
+  # Put the camera back, stop drawing the outline and forget the list (the dialog, if open, is only told it is done).
   def self.done
     restore_camera
     model.select_tool(nil)
-    @dialog.close if @dialog
-    @dialog = nil
+    @dialog.set_html("<html><body style='font-family:sans-serif'>Done. You can close this window.</body></html>") if @dialog
     @entries = []
     @index = -1
     Sketchup.status_text = ''
