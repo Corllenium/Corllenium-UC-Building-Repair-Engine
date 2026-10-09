@@ -150,7 +150,12 @@ def repair_unit(unit: UnitState, ctx: RepairContext, *, flatness: dict[str, floa
     `FixResult` and the report are the unchecked run's. `rollback_legacy` (tests only) rolls a
     failing legacy stage back too; the legacy stages share one state, so the later ones are then
     skipped (logged), and `result` / `report` are None. Without `validate_sites` nothing here
-    differs from P1-K2."""
+    differs from P1-K2.
+
+    WARNING: with `validate_sites=False` the edits of a NON-legacy engine (`engines=`) are kept
+    UNCHECKED: no judge runs, no site is rolled back, and a stage that would fail ships whole. That
+    mode is for tests only. Every P2 command-line path must pass the judge (`validate_sites=True`,
+    with the site judge in `ctx.validator`)."""
     if validate_sites or engines is not None:
         return _repair_checked(unit, ctx, flatness=flatness, obj_path=obj_path, edit_log=edit_log,
                                engines=engines, validate_sites=validate_sites,
