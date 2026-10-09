@@ -33,7 +33,7 @@ whose line is most square to the spot's plane wins (a spot with no plane: the mo
 it, the view is 1.6 m along the normal, on a side where that line is clear (`source` "normal"). Model inches, Z up.
 
 Only reads: nothing is written here, and `before_mesh` is not changed. Written next to `engine.fill_review`, which
-draws the crops (`write_spot_crop`).
+draws the crops (`SpotCropper`).
 """
 from __future__ import annotations
 
@@ -200,6 +200,7 @@ class _Viewer:
         from engine.validate.visibility import build_caster
 
         self.caster, self.centre = None, np.zeros(3)
+        self.n_dirs = self.n_cams = 0
         self.toward = np.zeros((0, 3))
         self.where = np.zeros((0, 3))
         self.source_of = []

@@ -203,3 +203,19 @@ def test_a_rolled_back_piece_with_no_border_is_counted_not_silently_dropped():
     doc = _build(_report([], [_piece_row(), bare, gone]), _log(3, 5, 6))
     assert len(doc["entries"]) == 1 and doc["counts"]["no_border_not_listed"] == 2
     assert _build()["counts"]["no_border_not_listed"] == 0
+
+
+def test_a_unit_with_no_faces_gets_a_view_along_the_normal_and_the_viewer_is_whole():
+    empty = dataclasses.replace(_closed_slab(), face_v=np.zeros((0, 3), np.int64), face_vt=np.zeros((0, 3), np.int64),
+                                face_vn=np.zeros((0, 3), np.int64), face_material=np.zeros(0, np.int64),
+                                face_line=np.zeros(0, np.int64))
+    viewer = nm._Viewer(empty)
+    assert (viewer.n_dirs, viewer.n_cams) == (0, 0), "set on the early return too"
+    assert nm._Viewer(None).n_dirs == 0
+    doc = nm.build_needs_modelling(_report([_hole_row()], []), _log(), empty)
+    assert doc["entries"][0]["suggested_view"]["source"] == "normal"
+
+
+def test_fill_review_has_one_spot_drawer_and_no_unused_wrapper():
+    from engine import fill_review
+    assert hasattr(fill_review, "SpotCropper") and not hasattr(fill_review, "write_spot_crop")

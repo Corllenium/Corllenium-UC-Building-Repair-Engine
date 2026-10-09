@@ -8,7 +8,7 @@ behind the hole and AFTER shows the fill in its neighbours' look. The two halves
 the hole's loop outlined in yellow on both, and a 4 px white gap between them.
 
 The needs-modelling queue (job P2-E8c) reuses the camera and the drawing for a single BEFORE picture of each spot
-(`write_spot_crop`): orthographic, standing at the entry's `suggested_view` and looking at its target, the spot's
+(`SpotCropper`): orthographic, standing at the entry's `suggested_view` and looking at its target, the spot's
 border outlined in yellow (a loop as a line, an unordered set of open-edge points as crosses).
 
 This module sits outside both packages, like `engine.site_judge`: the repair package never imports the Validator.
@@ -136,7 +136,3 @@ class SpotCropper:
         image.save(path)
         return path
 
-
-def write_spot_crop(before: MeshData, border, ordered: bool, view: dict, looks: Looks, path, px: int = PX) -> Path:
-    """`SpotCropper(before, looks, px).write(...)` for one spot."""
-    return SpotCropper(before, looks, px).write(border, ordered, view, path)
