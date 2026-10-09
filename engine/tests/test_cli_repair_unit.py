@@ -59,8 +59,8 @@ def test_the_parser_takes_a_unit_or_a_snapshot_and_the_engines():
 
 
 def test_an_engine_that_is_not_e8_is_refused(capsys):
-    assert cli.main(["repair-unit", "--unit", "U", "--engines", "E3", "--out", "o"]) == 2
-    assert "E3" in capsys.readouterr().err
+    assert cli.main(["repair-unit", "--unit", "U", "--engines", "E5", "--out", "o"]) == 2
+    assert "E5" in capsys.readouterr().err
 
 
 def test_repair_unit_refuses_a_protected_output(tmp_path, capsys):
