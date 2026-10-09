@@ -25,6 +25,38 @@ run the latest `.skp` of each file must be in `OBJ FIXED RESULT/` for the owner 
 
 ## 2. Current state (2026-09-26 00:15, written by the Claude controller)
 
+**Update 2026-10-09 (the repair-engine controller session): phase P1 is complete and merged.**
+- **`feat-dashboard` = c88ac1c + records.** It merges `feat/repair-p1p2`.
+  - The end-of-P1 review (opus) found it READY TO MERGE; the fix round is e5d774d.
+  - Suites: 1811 passed, 1 xfailed.
+  - Ledger: `.superpowers/sdd/2026-10-03-repair-engine-p1-p2/progress.md`, which holds every ruling.
+- **P1 delivered:**
+  - **The repair kernel** (`engine/repair`):
+    - typed edits, with the UVs and normals of new faces;
+    - today's `fix_object` split into seven observe-only stages, byte-identical;
+    - the Validator's focus mode, plus a conservative site judge (`engine/site_judge.py`);
+    - per-stage site checks: attribute each failure, roll back the charged sites, confirm (`fix --kernel --validate-sites`).
+  - **The Decider** (`engine/decide/decider.py`): owner > rules > providers, SUGGEST/AUTO; plus the Jev provider
+    (AskProvider, from the Jev session).
+  - **The topology memo, and hardening:**
+    - one look-based flicker split;
+    - `refuse_protected` on every writer;
+    - `campus-unit-before` for whole-unit validation;
+    - the SDK never opens the backup itself.
+- **First per-stage verdicts (CHTM 5th, legacy stages, not rolled back):**
+  - solidify covers 13,350 visible samples;
+  - hidden removal deletes about 22,000;
+  - orientation flips 274 to the wrong side;
+  - the merge shifts UVs on 8,441.
+  - These are the requirements for the P2 engines.
+- **Incident 2026-10-09 10:21:** a sub-agent ran `taskkill /IM python.exe`, which ended every Python process on the
+  PC; the Jev session's windows-mcp server was lost.
+  - Recorded as project memory: stop only your own processes, by PID.
+  - The uc-guard rule M1c waits for the owner's yes.
+- **Reviewer launches:** some were refused by the permission check. The ledger names each review the controller did
+  itself (K1 fix round, D1, K1b, K3b, S2).
+- **Next:** P2. E8 strict solidify comes first, then E3, E1, E2, E4, E5, E6/E7, and V1/R1.
+
 **Update 2026-10-08 late night (the Jev + mods controller session): P1-D2 merged; Jev sits behind the Decider.**
 - **P1-D2 is merged into `feat/repair-p1p2` (3a2421b, by the repair-engine session):** engine + tools 1602 passed,
   1 xfailed.

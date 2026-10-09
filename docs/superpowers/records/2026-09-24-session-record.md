@@ -147,6 +147,14 @@ lies on pixel centres from real damage, so the guard now measures the displaceme
 - **Colour export** republished from 8163bb0.
 - **Follow-ups** are queued as P1-H1.
 
+### 2026-10-09: P1 closed
+- **The kernel:** K1, K1b, K2, K3, K3b.
+- **The Decider:** D1, plus D2 from the Jev session.
+- **Hardening and speed:** H1, H1b, S2.
+- **Final review:** READY TO MERGE. Phase merge c88ac1c; suites 1811 passed.
+- **First per-stage Validator verdicts** on CHTM 5th recorded.
+- **A process-kill incident** recorded.
+
 ## 5. Measured state of the SketchUp files
 
 Audit of every edge SketchUp draws, read back through the C API (`scripts/skp_edge_audit.py`).
