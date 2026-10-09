@@ -923,18 +923,29 @@ def cmd_errors(snapshot_dir: Path, out_file: Path, profile: FixProfile | None = 
 # -------------------------------------------------------------------------------------- validate
 
 
-def fills_from_edit_log(path: Path, after) -> list:
+def fills_from_edit_log(path: Path, after, before_faces: int | None = None) -> list:
     """The kept flat fills of an `edit_log.jsonl` as the Validator's `FillSite`s (ruling P2-E8b-R11): every line
     marked `flat_fill`, not rolled back, with its `after_faces` and `loop_points`. Each fill's faces must exist in
     `after` and have every corner on one of the loop's points (within 1e-3 in, the OBJ's printing); otherwise the log
-    does not describe this AFTER and a `ValueError` says so."""
+    does not describe this AFTER and a `ValueError` says so.
+
+    `before_faces` (the BEFORE's face count; P2-E8c item 4c): a fill's faces are NEW faces. The AFTER lists the BEFORE's
+    surviving faces first and the added ones after them, so a face id below the survivors' count names an existing
+    BEFORE face and the log is refused. The survivors are `before_faces` less the faces the log's kept cuts and
+    removes took away (a kept E8a cut makes the first new id lower than the BEFORE's count). Without it the check is
+    not made."""
     from engine.validate.checks import FillSite
 
     if not path.is_file():
         raise FileNotFoundError(f"--edit-log {path} is not a file")
     fills = []
-    for number, text in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
-        line = json.loads(text)
+    lines = [json.loads(text) for text in path.read_text(encoding="utf-8").splitlines()]
+    first_new = None
+    if before_faces is not None:
+        took = sum(len(line.get("faces") or []) for line in lines
+                   if "check" not in line and not line.get("rolled_back") and line.get("kind") in ("cut", "remove"))
+        first_new = int(before_faces) - took
+    for number, line in enumerate(lines, start=1):
         if "check" in line or not line.get("flat_fill") or line.get("rolled_back"):
             continue
         faces, loop = line.get("after_faces"), line.get("loop_points")
@@ -945,6 +956,10 @@ def fills_from_edit_log(path: Path, after) -> list:
         if faces.min() < 0 or faces.max() >= after.n_faces:
             raise ValueError(f"edit log {path} line {number}: fill faces {faces.tolist()} are not faces of the AFTER "
                              f"({after.n_faces} faces)")
+        if first_new is not None and faces.min() < first_new:
+            raise ValueError(f"edit log {path} line {number}: fill face {int(faces.min())} names an existing BEFORE face "
+                             f"(a new face's id is at least {first_new}: the BEFORE's {before_faces} faces less the "
+                             f"{int(before_faces) - first_new} a kept cut took away)")
         corners = after.positions[after.face_v[faces]].reshape(-1, 3)
         off = np.linalg.norm(corners[:, None, :] - loop[None, :, :], axis=2).min(axis=1)
         if (off > 1e-3).any():
@@ -986,7 +1001,7 @@ def cmd_validate(before_dir: Path, after_path: Path, materials: Path, out_dir: P
             sources.append((parse_mtl(after_mtl), after_path.parent))
         looks = load_looks(materials, sources)
         signed = load_targets(targets)
-        fills = None if edit_log is None else fills_from_edit_log(Path(edit_log), after)
+        fills = None if edit_log is None else fills_from_edit_log(Path(edit_log), after, before.n_faces)
     except (FileNotFoundError, ValueError, OSError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
