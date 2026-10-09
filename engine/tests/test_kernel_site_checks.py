@@ -78,7 +78,7 @@ def _bad(kind, before):
         return [Edit(engine="E5", kind="remove", faces=(8,), new_faces=None, new_points=None, site=BAD,
                      reason="bad", evidence=_ev()),
                 Edit(engine="E5", kind="add", faces=(), new_faces=tri(8), new_points=None, site=BAD, reason="bad",
-                     evidence=_ev(material=1), new_face_uv=uv(8))]
+                     evidence=_ev(material=1), new_face_uv=uv(8), legacy=True)]
     if kind == "3 UVs shifted by half":
         return [Edit(engine="E7", kind="cut", faces=(2,), new_faces=tri(2), new_points=None, site=BAD,
                      reason="bad", evidence=_ev(), new_face_uv=uv(2) + 0.5)]
@@ -195,7 +195,8 @@ def _covered_then_unmasked():
     gone = int(dup[0]) - 8                                       # the first copy of the doubled slab's first face
     plate = _bad("5 a face one inch in front of a visible face", before)
     copy = Edit(engine="E5", kind="add", faces=(), new_faces=before.face_v[gone][None], new_points=None, site=BAD,
-                reason="copy", evidence=_ev(material=0), new_face_uv=before.uvs[before.face_vt[gone]][None])
+                reason="copy", evidence=_ev(material=0), new_face_uv=before.uvs[before.face_vt[gone]][None],
+                legacy=True)
     remove = Edit(engine="E4", kind="remove", faces=(gone, gone + 8), new_faces=None, new_points=None, site=GOOD_DUP,
                   reason="both copies", evidence=_ev())
     return before, [*plate, copy, remove]

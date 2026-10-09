@@ -30,6 +30,9 @@ Pass 1 has no mesh of its own -- `fix_object` drops pass 1's and pass 2's faces 
 `removed_pass1`, observed as a `FaceView` subset of the reference: a face's key depends only on
 its own vertices and material, so the subset's keys are exactly the keys of those faces.
 
+Every edit made here carries the LEGACY MARKER `legacy=True` (`engine.repair.types.Edit`): the observer records
+adds that no P2 engine may plan (the merge stage's E7 adds) and this module is the only place that sets it.
+
 Every `Edit.faces` id indexes the stage's INPUT face set (the previous stage's output view), and
 every `new_faces` vertex id the input mesh's positions, ids from `n` up naming the edit's own
 `new_points` (K1's `apply_edits` convention). Every add and cut also carries, from the stage's
@@ -238,7 +241,7 @@ def observe(before: FaceView, after: FaceView, *, stage: str, site: int, engine:
         for name, group in groups.items():
             edits.append(Edit(engine=name, kind="remove", faces=tuple(group), new_faces=None,
                               new_points=None, site=site, reason=reason,
-                              evidence=evidence([kb[i] for i in group], [])))
+                              evidence=evidence([kb[i] for i in group], []), legacy=True))
 
     def add_edit(kind: str, material: int, faces: list[int], ids: list[int]) -> None:
         new_faces, new_points = _new_faces(before, after, ids, stage)
@@ -246,7 +249,7 @@ def observe(before: FaceView, after: FaceView, *, stage: str, site: int, engine:
         edits.append(Edit(engine=engine, kind=kind, faces=tuple(faces), new_faces=new_faces,
                           new_points=new_points, site=site, reason=reason,
                           evidence=evidence([kb[i] for i in faces], [ka[j] for j in ids], material),
-                          new_face_uv=uv, new_face_normal=normal))
+                          new_face_uv=uv, new_face_normal=normal, legacy=True))
 
     if mode == "cut":
         leftover = []
@@ -265,7 +268,8 @@ def observe(before: FaceView, after: FaceView, *, stage: str, site: int, engine:
     if flips:
         edits.append(Edit(engine=engine, kind="flip", faces=tuple(i for i, _ in flips),
                           new_faces=None, new_points=None, site=site, reason=reason,
-                          evidence=evidence([kb[i] for i, _ in flips], [rk for _, rk in flips])))
+                          evidence=evidence([kb[i] for i, _ in flips], [rk for _, rk in flips]),
+                          legacy=True))
     if mode != "cut":
         for material in sorted(by_material_added):
             add_edit("add", material, [], by_material_added[material])
