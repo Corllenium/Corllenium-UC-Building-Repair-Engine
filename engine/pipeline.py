@@ -1,3 +1,6 @@
+import hashlib
+import threading
+from collections import OrderedDict
 from dataclasses import dataclass
 
 import numpy as np
@@ -42,14 +45,18 @@ class Topology:
     soft_angle: float = SOFT_ANGLE
 
 
-def analyse_topology(mesh: MeshData, flat_materials=frozenset(), *,
-                     coplanar_angle: float = COPLANAR_ANGLE,
-                     soft_angle: float = SOFT_ANGLE) -> Topology:
+def _check_flat_materials(flat_materials) -> None:
     for m in flat_materials:
         if not isinstance(m, (int, np.integer)) or isinstance(m, bool):
             raise TypeError(
                 f"flat_materials must contain int indices into mesh.materials, got {m!r} "
                 f"({type(m).__name__}); use flat_material_indices() to convert names first")
+
+
+def analyse_topology(mesh: MeshData, flat_materials=frozenset(), *,
+                     coplanar_angle: float = COPLANAR_ANGLE,
+                     soft_angle: float = SOFT_ANGLE) -> Topology:
+    _check_flat_materials(flat_materials)
     positions_w, remap = weld_exact(mesh.positions, mesh.coord_decimals)
     face_w = remap[mesh.face_v]
     ok = ~degenerate_mask(positions_w, face_w)
@@ -62,6 +69,61 @@ def analyse_topology(mesh: MeshData, flat_materials=frozenset(), *,
                                 coplanar_angle=coplanar_angle, soft_angle=soft_angle)
     return Topology(positions_w, face_w, ok, quanta, table, t_vertices, face_region, edge_class,
                     coplanar_angle=coplanar_angle, soft_angle=soft_angle)
+
+
+#: How many topologies `analyse_topology_memo` keeps (least recently used out first). The fix
+#: pipeline needs four distinct meshes (input, reference, flipped, overlapped) and the CLI one
+#: more (the shipped mesh); four is enough to carry the reference's topology from `stage_hidden`
+#: to the CLI's own QA-image call, and bounds the memory a long-lived process holds.
+TOPOLOGY_MEMO_SIZE = 4
+
+_memo: "OrderedDict[bytes, Topology]" = OrderedDict()
+_memo_lock = threading.Lock()
+
+
+def _topology_key(mesh: MeshData, flat_materials, coplanar_angle: float, soft_angle: float) -> bytes:
+    """sha256 over EVERYTHING `analyse_topology` reads: the positions and the vertex/uv/material
+    rows (dtype, shape and bytes of each), the two precision settings, the flat-material set and
+    the two dihedral thresholds. Not the mesh's identity: an array edited in place is a new key."""
+    h = hashlib.sha256()
+    for name in ("positions", "uvs", "face_v", "face_vt", "face_material"):
+        a = np.ascontiguousarray(getattr(mesh, name))
+        h.update(f"{name}:{a.dtype.str}:{a.shape};".encode())
+        h.update(a.tobytes())
+    h.update(repr((int(mesh.coord_decimals), int(mesh.sig_digits), sorted(int(m) for m in flat_materials),
+                   float(coplanar_angle), float(soft_angle))).encode())
+    return h.digest()
+
+
+def analyse_topology_memo(mesh: MeshData, flat_materials=frozenset(), *,
+                          coplanar_angle: float = COPLANAR_ANGLE,
+                          soft_angle: float = SOFT_ANGLE) -> Topology:
+    """`analyse_topology`, computed once for each distinct input (P1-S2).
+
+    The result is the very `Topology` object an earlier call with the same CONTENT returned, so a
+    caller must treat it as read-only (no pipeline step writes to one). A different mesh content,
+    flat-material set or threshold is a different key and is computed afresh; a bad
+    `flat_materials` raises exactly as `analyse_topology` does. Bounded by `TOPOLOGY_MEMO_SIZE`."""
+    _check_flat_materials(flat_materials)
+    key = _topology_key(mesh, flat_materials, coplanar_angle, soft_angle)
+    with _memo_lock:
+        hit = _memo.get(key)
+        if hit is not None:
+            _memo.move_to_end(key)
+            return hit
+    topo = analyse_topology(mesh, flat_materials, coplanar_angle=coplanar_angle, soft_angle=soft_angle)
+    with _memo_lock:
+        _memo[key] = topo
+        _memo.move_to_end(key)
+        while len(_memo) > TOPOLOGY_MEMO_SIZE:
+            _memo.popitem(last=False)
+    return topo
+
+
+def clear_topology_memo() -> None:
+    """Drop every memoised topology (tests, and a caller that wants the memory back)."""
+    with _memo_lock:
+        _memo.clear()
 
 
 def coplanar_region_borders(t: Topology) -> int:
