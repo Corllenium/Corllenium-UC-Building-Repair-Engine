@@ -269,6 +269,26 @@ describe('rule 7: stop only your own processes, by PID (M1c)', () => {
     ]) expect(bash(c)).toBe(REASONS.kill)
     expect(ps('cmd /c taskkill /F /IM python.exe')).toBe(REASONS.kill)
   })
+  test('review round 2: a script block is one statement; timeout -s; -EncodedCommand; ps | grep | xargs kill', () => {
+    for (const c of [
+      'Get-Process python | ForEach-Object { $x = $_.Id; Stop-Process -Id $x -Force }',
+      'Get-Process python |\n  ForEach-Object {\n    Stop-Process -Id $_.Id -Force\n  }',
+      'powershell -EncodedCommand UwB0AG8AcAAtAFAAcgBvAGMAZQBzAHMA',
+      'pwsh -enc UwB0AG8AcAAtAFAAcgBvAGMAZQBzAHMA',
+    ]) expect(ps(c)).toBe(REASONS.kill)
+    for (const c of [
+      'timeout -s KILL 5 pkill python',
+      'timeout -k 2 5 pkill python',
+      "ps -W | grep python | awk '{print $1}' | xargs kill -f",
+      'powershell -EncodedCommand UwB0AG8AcAAtAFAAcgBvAGMAZQBzAHMA',
+    ]) expect(bash(c)).toBe(REASONS.kill)
+  })
+  test('review round 2 allows: .Kill() in another statement, kill -0 liveness check', () => {
+    expect(ps('Get-Process python | Format-Table Id; $p.Kill()')).toBeUndefined()
+    expect(bash('pid=$(pgrep -f uvicorn) && kill -0 $pid')).toBeUndefined()
+    expect(bash('ps aux | grep python')).toBeUndefined()
+    expect(bash('powershell -ExecutionPolicy Bypass -File build.ps1')).toBeUndefined()
+  })
   test('separate statements do not pair: listing then stopping something else by id passes', () => {
     expect(ps('Get-Process | Out-Null; $p | Stop-Process')).toBeUndefined()
     expect(ps('Get-Process python\nStop-Process -Id 5')).toBeUndefined()

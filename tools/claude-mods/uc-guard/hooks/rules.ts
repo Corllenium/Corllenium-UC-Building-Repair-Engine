@@ -111,6 +111,8 @@ function segments(command: string, shell: Shell): Segment[] {
   const scopes: number[] = []
   let opened = 0
   let stmt = 0
+  let braces = 0
+  let afterPipe = false
   let quote: string | null = null
   const endWord = () => {
     if (inWord) words.push(word)
@@ -135,6 +137,7 @@ function segments(command: string, shell: Shell): Segment[] {
     if (c === "'" || c === '"') {
       quote = c
       inWord = true
+      afterPipe = false
       continue
     }
     if (shell === 'bash' && c === '\\' && n !== '.') {
@@ -167,13 +170,18 @@ function segments(command: string, shell: Shell): Segment[] {
     }
     if (c === ';' || c === '\n' || c === '|' || c === '&') {
       endSegment()
-      if (c === ';' || c === '\n') stmt++
+      // a new statement, unless inside a PowerShell script block or on the line after a trailing `|`
+      if ((c === ';' || (c === '\n' && !afterPipe)) && braces === 0) stmt++
+      if (c === '|') afterPipe = true
       continue
     }
     if (c === ' ' || c === '\t' || c === '\r') {
       endWord()
       continue
     }
+    afterPipe = false
+    if (shell === 'ps' && c === '{') braces++
+    if (shell === 'ps' && c === '}' && braces > 0) braces--
     word += c
     inWord = true
   }
@@ -193,8 +201,9 @@ function commandWords(words: string[]): string[] {
       while ((words[i] ?? '').startsWith('-')) i++ // flag options such as env -i
     } else if (w === 'timeout') {
       i++
-      while ((words[i] ?? '').startsWith('-')) i++
-      i++ // the duration
+      // its options (-s KILL and -k 2 take a value), then the duration
+      for (let o = words[i] ?? ''; o.startsWith('-'); o = words[i] ?? '') i += /^(-s|-k|--signal|--kill-after)$/.test(o) ? 2 : 1
+      i++
     } else if (WRAPPERS.has(w)) {
       i++
     } else break
@@ -397,22 +406,34 @@ const PS_STOP = new Set(['stop-process', 'spps', 'kill'])
 const PS_GET = new Set(['get-process', 'gps', 'ps'])
 
 const PID_FINDERS = new Set(['pgrep', 'pidof'])
+const GREPS = new Set(['grep', 'egrep', 'rg', 'findstr'])
+// powershell -EncodedCommand and its prefixes (-e, -ec, -enc, ...): the command cannot be read, so it is refused
+const PS_ENCODED = /^[-/]e(c|n[a-z]*)?$/
 
-// Each statement (split at `;` or a newline) is judged on its own, so a pipeline's parts pair up only with each other.
-type KillStmt = { psGet: boolean; psGetByName: boolean; psStop: boolean; stopWord: boolean; pidFinder: boolean; bashKill: boolean }
+// Each statement (split at `;` or a newline outside a PowerShell script block) is judged on its own,
+// so a pipeline's parts pair up only with each other.
+type KillStmt = {
+  psGet: boolean; psGetByName: boolean; psStop: boolean; stopWord: boolean; dotKill: boolean
+  pidFinder: boolean; ps: boolean; grep: boolean; bashKill: boolean
+}
 
-function killReason(segs: Segment[], shell: Shell, command: string): string | undefined {
+function killReason(segs: Segment[], shell: Shell): string | undefined {
   const stmts = new Map<number, KillStmt>()
   const at = (n: number) => {
     let st = stmts.get(n)
-    if (!st) stmts.set(n, (st = { psGet: false, psGetByName: false, psStop: false, stopWord: false, pidFinder: false, bashKill: false }))
+    if (!st) {
+      st = { psGet: false, psGetByName: false, psStop: false, stopWord: false, dotKill: false, pidFinder: false, ps: false, grep: false, bashKill: false }
+      stmts.set(n, st)
+    }
     return st
   }
   for (const s of segs) {
+    const st = at(s.stmt)
+    // (Get-Process python).Kill(), $_.Kill(): the word before the call's `(` ends in .Kill
+    if (shell === 'ps' && s.words.some(w => /\.kill$/i.test(w))) st.dotKill = true
     const seg = commandWords(s.words)
     const v = verb(seg[0])
     if (v === undefined) continue
-    const st = at(s.stmt)
     // Git Bash turns /IM into a path, so it is written //IM there
     const args = seg.slice(1).map(a => a.toLowerCase().replace(/^\/+/, '/'))
     if (NAME_KILLERS.has(v)) return REASONS.kill
@@ -422,15 +443,16 @@ function killReason(segs: Segment[], shell: Shell, command: string): string | un
     // a command handed to another shell: cmd /c ..., powershell -c ...
     const inner = args.findIndex(a => a === '/c' || a === '/k')
     if (v === 'cmd' && inner >= 0) {
-      const rest = seg.slice(inner + 2).join(' ')
-      const r = killReason(segments(rest, 'bash'), 'bash', rest)
+      const r = killReason(segments(seg.slice(inner + 2).join(' '), 'bash'), 'bash')
       if (r) return r
     }
-    const psInner = args.findIndex(a => a === '-c' || a === '-command' || a === '/c' || a === '/command')
-    if ((v === 'powershell' || v === 'pwsh') && psInner >= 0) {
-      const rest = seg.slice(psInner + 2).join(' ')
-      const r = killReason(segments(rest, 'ps'), 'ps', rest)
-      if (r) return r
+    if (v === 'powershell' || v === 'pwsh') {
+      if (args.some(a => PS_ENCODED.test(a))) return REASONS.kill
+      const psInner = args.findIndex(a => a === '-c' || a === '-command' || a === '/c' || a === '/command')
+      if (psInner >= 0) {
+        const r = killReason(segments(seg.slice(psInner + 2).join(' '), 'ps'), 'ps')
+        if (r) return r
+      }
     }
     if (shell === 'ps') {
       const byId = args.some(a => /^-(id|inputobject)(:|$)/.test(a))
@@ -445,10 +467,13 @@ function killReason(segs: Segment[], shell: Shell, command: string): string | un
         if (byName || args.some(a => !a.startsWith('-'))) st.psGetByName = true
       }
       // Stop-Process inside a script block: ForEach-Object { Stop-Process -Id $_.Id }
-      if (seg.slice(1).some(w => PS_STOP.has(w.toLowerCase()))) st.stopWord = true
+      if (seg.some(w => PS_STOP.has(w.toLowerCase()))) st.stopWord = true
     } else {
       if (PID_FINDERS.has(v)) st.pidFinder = true
-      if (v === 'kill') {
+      if (v === 'ps') st.ps = true
+      if (GREPS.has(v)) st.grep = true
+      // kill -0 only checks that a process is alive
+      if (v === 'kill' && !args.includes('-0')) {
         // kill -1 signals every process the user may signal
         if (args.length >= 2 && args[args.length - 1] === '-1') return REASONS.kill
         st.bashKill = true
@@ -456,13 +481,12 @@ function killReason(segs: Segment[], shell: Shell, command: string): string | un
       if (v === 'xargs' && args.includes('kill')) st.bashKill = true
     }
   }
-  const dotKill = /\.kill\s*\(/i.test(command)
   for (const st of stmts.values()) {
     // Get-Process <name or filter> | Stop-Process: the pipeline selects by name, not by PID
     if (st.psGet && st.psStop) return REASONS.kill
-    if (st.psGetByName && (st.stopWord || dotKill)) return REASONS.kill
-    // kill $(pgrep -f python), pgrep python | xargs kill: the PIDs come from a name match
-    if (st.pidFinder && st.bashKill) return REASONS.kill
+    if (st.psGetByName && (st.stopWord || st.dotKill)) return REASONS.kill
+    // kill $(pgrep -f python), pgrep python | xargs kill, ps | grep python | ... | xargs kill: PIDs from a name match
+    if ((st.pidFinder || (st.ps && st.grep)) && st.bashKill) return REASONS.kill
   }
   return undefined
 }
@@ -505,7 +529,7 @@ function shellReason(command: string, shell: Shell): string | undefined {
   const results = resultsReason(segs)
   if (results) return results
 
-  const kill = killReason(segs, shell, command)
+  const kill = killReason(segs, shell)
   if (kill) return kill
 
   for (const s of segs) {
