@@ -8,7 +8,8 @@ by its centre z, lo <= z < hi, as `error_export.member_mask` and the inventory s
 `build_unit_before` reads each member's frozen snapshot (data/campus/source.json names the folders; the OBJ's
 sha256 must be the frozen one), keeps the member's faces, and writes `<out>/<unit>.obj` and `<out>/materials.mtl`:
 a folder `validate --before` takes as it is. Nothing is repaired or changed: the faces, their vertices, UVs,
-normals and materials are the snapshots' own. Textures are referenced where they lie (absolute `map_Kd`), and
+normals and materials are the snapshots' own (a face with no material gets the material `NO_MATERIAL`, "<none>", so
+it keeps that look after another member's faces in the one OBJ). Textures are referenced where they lie (absolute `map_Kd`), and
 copied to `<out>/tex/` only when `copy_textures` is set. Two members that give one material name two different
 definitions are refused: the merged MTL could not keep both.
 """
@@ -27,6 +28,11 @@ from engine.io.obj_writer import write_obj
 from engine.io.protected import refuse_protected
 from engine.io.snapshot import sha256_file
 from engine.model import MeshData
+
+#: The material a face with none (index -1) gets in a unit's BEFORE: `engine.campus.materials.material_name` names
+#: such a face "<none>", and `engine.repair.types.face_keys` gives it the look "material:<none>", which is what a
+#: material of this name (in no `materials.json`) has. It has no `newmtl` in the merged MTL.
+NO_MATERIAL = "<none>"
 
 
 def _band_name(member: dict) -> str:
@@ -127,7 +133,15 @@ def build_unit_before(campus_map: dict, source: dict, unit: str, out_dir, *, cop
                 materials.append(name)
             local[k] = materials.index(name)
         fm = mesh.face_material[keep]
-        f_mat.append(np.where(fm >= 0, local[np.where(fm >= 0, fm, len(mesh.materials))], -1))
+        if (fm < 0).any():
+            # a face before any `usemtl` (index -1) has no material. `write_obj` writes no `usemtl` for -1, so
+            # after another member's faces it would read back as THAT member's last material; it gets the
+            # material NO_MATERIAL instead, whose look is "material:<none>" -- the look `face_keys` gives index
+            # -1 -- and whose name is `material_name`'s "<none>" (P2-K0 item 4, P2-E8a item 4)
+            if NO_MATERIAL not in materials:
+                materials.append(NO_MATERIAL)
+            local[len(mesh.materials)] = materials.index(NO_MATERIAL)
+        f_mat.append(local[np.where(fm >= 0, fm, len(mesh.materials))])
         positions.append(pos)
         uvs.append(uv)
         normals.append(nrm)
