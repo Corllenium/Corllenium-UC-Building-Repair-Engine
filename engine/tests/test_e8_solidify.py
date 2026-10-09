@@ -256,3 +256,22 @@ def test_pieces_that_cover_nothing_visible_are_all_kept_and_the_stage_passes():
         assert got.rolled_back == [] and {e.site for e in got.kept} == set(
             ref.face_group[ref.face_group >= 0].tolist())
         assert _faces_and_uvs(got.mesh) == _faces_and_uvs(ref.mesh), "everything solidify built ships"
+
+
+def test_a_replaced_face_whose_piece_shipped_no_face_is_refused(monkeypatch):
+    """Review finding 5: every piece `replaced_group` names must have faces in `face_group`; otherwise the replaced
+    faces would silently be kept (no site names them). Raise instead."""
+    import dataclasses
+    import engine.repair.engines.e8_solidify as e8
+    mesh = B.slab_with_sawtooth_side()
+    real = e8.solidify
+
+    def orphaned(*args, **kwargs):
+        result = real(*args, **kwargs)
+        rg = result.replaced_group.copy()
+        rg[np.flatnonzero(rg >= 0)[0]] = 9_999          # a piece that shipped no face
+        return dataclasses.replace(result, replaced_group=rg)
+
+    monkeypatch.setattr(e8, "solidify", orphaned)
+    with pytest.raises(ValueError, match="9999"):
+        _plan(mesh)

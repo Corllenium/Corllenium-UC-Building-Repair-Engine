@@ -79,6 +79,13 @@ class E8Solidify:
             raise ValueError("E8: solidify moved or dropped an input vertex; its pieces cannot be written as edits")
         group = result.face_group
         pieces = result.pieces or []
+        # a replaced face is named by the edits of the piece that replaced it; a piece that shipped no face makes no
+        # edit, so its replaced faces would silently stay in the mesh: refuse that instead
+        shipped = set(group[group >= 0].tolist())
+        orphans = sorted(set(result.replaced_group[result.replaced_group >= 0].tolist()) - shipped)
+        if orphans:
+            raise ValueError(f"E8: solidify says piece(s) {orphans} replaced input faces, but those pieces shipped no "
+                             f"face; their replaced faces would be kept without any edit naming them")
         edits: list[Edit] = []
         for g in sorted(set(group[group >= 0].tolist())):
             info = pieces[g]
