@@ -29,7 +29,10 @@ its check line, one that planned nothing included: the edit log is the audit tra
 Without `validate_sites` the kernel is exactly P1-K2's.
 
 FLAT FILLS (P2-E8b). An E8 "add" whose evidence marks it `flat_fill` with its `loop` (the stage input's vertex ids)
-is an E8 narrow flat fill: its edit-log line carries `flat_fill: true` and `loop`, and every check run hands the site
+is an E8 narrow flat fill: its edit-log line carries `flat_fill: true`, `loop`, `loop_points` (the loop in model
+coordinates) and `after_faces` (its face ids in the shipped AFTER; [] when rolled back, None when a later legacy stage
+made them unknown; ruling P2-E8b-R11, so `engine.cli validate --edit-log` can hand the fills to the floor Validator),
+and every check run hands the site
 judge the kept fills (`check(after, focus, fills=[{"faces", "loop"}])`, only when there are some), so the
 Validator's `fill_site` class can tell a fill closing a hole from a cover.
 """
@@ -129,8 +132,27 @@ def _is_flat_fill(edit: Edit) -> bool:
 
 
 def stage_records(stage_input: MeshData, edits: list[Edit], looks: dict[int, str], stage: str) -> list[dict]:
-    """The `edit_log.jsonl` lines of one stage's `edits`, in order."""
-    return [edit_record(e, k, stage) for e, k in zip(edits, edit_keys(stage_input, edits, looks))]
+    """The `edit_log.jsonl` lines of one stage's `edits`, in order. A flat fill's line also carries its loop as
+    model-coordinate points (`loop_points`, ruling P2-E8b-R11), so the floor Validator can read the fill from the log."""
+    lines = [edit_record(e, k, stage) for e, k in zip(edits, edit_keys(stage_input, edits, looks))]
+    for e, line in zip(edits, lines):
+        if _is_flat_fill(e):
+            line["loop_points"] = stage_input.positions[np.asarray(e.evidence["loop"], np.int64)].tolist()
+    return lines
+
+
+def _fill_after_faces(stage_input: MeshData, kept: list[Edit]) -> tuple[np.ndarray, list[tuple[Edit, list[int]]]]:
+    """`(new_to_old, [(fill edit, its face ids)])` of `apply_edits(stage_input, kept)`: where each kept flat fill's
+    faces land in the stage's result (the surviving faces first, then each add or cut in edit order)."""
+    _after, new_to_old = apply_edits(stage_input, kept)
+    appended = int((new_to_old >= 0).sum())
+    out = []
+    for e in kept:
+        if e.kind in ("add", "cut"):
+            if _is_flat_fill(e):
+                out.append((e, list(range(appended, appended + len(e.new_faces)))))
+            appended += len(e.new_faces)
+    return new_to_old, out
 
 
 def write_records(path: Path, records: list[dict]) -> None:
@@ -367,6 +389,7 @@ def _repair_checked(unit: UnitState, ctx: RepairContext, *, flatness, obj_path, 
         engines = legacy_engines(run)
     current = input_mesh
     edits, kept_all, rolled_all, checks, records = [], [], [], [], []
+    fill_faces: list = []      # [edit-log line, face ids in the current result] of every kept flat fill so far
     legacy_stopped = False
     for engine in engines:
         is_legacy = isinstance(engine, LegacyEngine)
@@ -394,16 +417,34 @@ def _repair_checked(unit: UnitState, ctx: RepairContext, *, flatness, obj_path, 
         kept = [e for e in planned if e.site not in rolled]
         kept_all.extend(kept)
         rolled_all.extend(e for e in planned if e.site in rolled)
+        line_of = {}
         for e, line in zip(planned, stage_records(stage_input, planned, unit.looks, stage)):
-            records.append({**line, "rolled_back": True} if e.site in rolled else line)
+            if e.site in rolled:
+                line = {**line, "rolled_back": True, **({"after_faces": []} if _is_flat_fill(e) else {})}
+            records.append(line)
+            line_of[id(e)] = line
         if check is not None:
             checks.append(check)
             records.append({"check": check})
         if is_legacy and not rolled:
             current = engine.run.current.as_mesh()
+            for placed in fill_faces:          # a legacy stage's face order is not tracked: the ids are unknown
+                placed[1] = None
         else:
-            current = apply_edits(stage_input, kept)[0]
+            current, new_to_old = apply_edits(stage_input, kept)
             legacy_stopped = legacy_stopped or is_legacy
+            if fill_faces or any(_is_flat_fill(e) for e in kept):
+                # ruling P2-E8b-R11: each kept fill's face ids in the shipped AFTER, carried through later stages
+                survived = new_to_old >= 0
+                at = np.full(stage_input.n_faces, -1, np.int64)
+                at[new_to_old[survived]] = np.flatnonzero(survived)
+                for placed in fill_faces:
+                    if placed[1] is not None:
+                        moved = at[np.asarray(placed[1], np.int64)]
+                        placed[1] = None if (moved < 0).any() else moved.tolist()
+                fill_faces.extend([line_of[id(e)], ids] for e, ids in _fill_after_faces(stage_input, kept)[1])
+    for line, ids in fill_faces:
+        line["after_faces"] = ids
 
     result = report = None
     mesh = current

@@ -919,11 +919,46 @@ def cmd_errors(snapshot_dir: Path, out_file: Path, profile: FixProfile | None = 
 # -------------------------------------------------------------------------------------- validate
 
 
+def fills_from_edit_log(path: Path, after) -> list:
+    """The kept flat fills of an `edit_log.jsonl` as the Validator's `FillSite`s (ruling P2-E8b-R11): every line
+    marked `flat_fill`, not rolled back, with its `after_faces` and `loop_points`. Each fill's faces must exist in
+    `after` and have every corner on one of the loop's points (within 1e-3 in, the OBJ's printing); otherwise the log
+    does not describe this AFTER and a `ValueError` says so."""
+    from engine.validate.checks import FillSite
+
+    if not path.is_file():
+        raise FileNotFoundError(f"--edit-log {path} is not a file")
+    fills = []
+    for number, text in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+        line = json.loads(text)
+        if "check" in line or not line.get("flat_fill") or line.get("rolled_back"):
+            continue
+        faces, loop = line.get("after_faces"), line.get("loop_points")
+        if not faces or not loop:
+            raise ValueError(f"edit log {path} line {number}: a kept flat fill without after_faces and loop_points")
+        faces = np.asarray(faces, np.int64)
+        loop = np.asarray(loop, np.float64).reshape(-1, 3)
+        if faces.min() < 0 or faces.max() >= after.n_faces:
+            raise ValueError(f"edit log {path} line {number}: fill faces {faces.tolist()} are not faces of the AFTER "
+                             f"({after.n_faces} faces)")
+        corners = after.positions[after.face_v[faces]].reshape(-1, 3)
+        off = np.linalg.norm(corners[:, None, :] - loop[None, :, :], axis=2).min(axis=1)
+        if (off > 1e-3).any():
+            raise ValueError(f"edit log {path} line {number}: the AFTER's faces {faces.tolist()} are not the fill "
+                             f"(a corner lies {off.max():.4f} in off its loop's points)")
+        fills.append(FillSite(faces=faces, loop=loop))
+    return fills
+
+
 def cmd_validate(before_dir: Path, after_path: Path, materials: Path, out_dir: Path,
-                 targets: Path | None = None, settings=None) -> int:
+                 targets: Path | None = None, settings=None, edit_log: Path | None = None) -> int:
     """Judge `after_path` (an OBJ) against the snapshot `before_dir` by the owner's three checks and write
     `<out_dir>/validation.json` and `<out_dir>/evidence/*.png`. Returns 0 on PASS, 2 on FAIL or on an
-    input that is missing or unreadable (a message on stderr, and no verdict written)."""
+    input that is missing or unreadable (a message on stderr, and no verdict written).
+
+    `edit_log` (ruling P2-E8b-R11): the `edit_log.jsonl` of the repair that made `after_path`. Its kept flat fills
+    (`fills_from_edit_log`) go to the Validator's `fill_site` class, so a shipped fill is judged as a fill. A
+    log whose fill faces are not, in AFTER, faces on the fill's own loop is refused (exit 2)."""
     # The process counters (peak memory) come from winprobe: only the SketchUp binding modules and winprobe may
     # import ctypes (test_skp_writer.test_ctypes_is_imported_only_by_the_sketchup_binding_modules).
     from engine.campus.winprobe import peak_memory_mb
@@ -947,6 +982,7 @@ def cmd_validate(before_dir: Path, after_path: Path, materials: Path, out_dir: P
             sources.append((parse_mtl(after_mtl), after_path.parent))
         looks = load_looks(materials, sources)
         signed = load_targets(targets)
+        fills = None if edit_log is None else fills_from_edit_log(Path(edit_log), after)
     except (FileNotFoundError, ValueError, OSError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
@@ -960,7 +996,7 @@ def cmd_validate(before_dir: Path, after_path: Path, materials: Path, out_dir: P
             print(f"  {done}/{total} samples cast", file=sys.stderr, flush=True)
 
     try:
-        result = validate(before, after, looks, targets=signed, settings=settings, progress=progress)
+        result = validate(before, after, looks, targets=signed, settings=settings, progress=progress, fills=fills)
     except ValueError as exc:                              # e.g. a mesh too far from the origin to cast rays at
         print(f"error: {exc}", file=sys.stderr)
         return 2
@@ -972,6 +1008,8 @@ def cmd_validate(before_dir: Path, after_path: Path, materials: Path, out_dir: P
     report["inputs"] = {"before": str(before_obj), "after": str(after_path), "materials": str(materials),
                         "targets": str(targets_used) if targets_used.is_file() else None,
                         "before_sha256": sha256_file(before_obj), "after_sha256": sha256_file(after_path)}
+    if edit_log is not None:
+        report["inputs"]["edit_log"] = str(edit_log)
     report["peak_working_set_mb"], report["peak_commit_mb"] = peak, commit
     report["wall_s"] = round(time.perf_counter() - started, 2)
     (out_dir / "validation.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
@@ -1377,6 +1415,9 @@ def build_parser() -> argparse.ArgumentParser:
     validate_p.add_argument("--area-per-sample", type=float, default=36.0,
                             help="one sample per this many sq in of face (owner's value 36). Any other value is a "
                                  "development run and the report says it is not an owner verdict")
+    validate_p.add_argument("--edit-log", type=Path, default=None,
+                            help="the edit_log.jsonl of the repair that made --after: its kept flat fills are judged "
+                                 "by the Validator's fill_site class (ruling P2-E8b-R11)")
     validate_p.add_argument("--min-per-face", type=int, default=4,
                             help="at least this many samples on every face (owner's value 4; see --area-per-sample)")
 
@@ -1552,7 +1593,8 @@ def main(argv: list[str] | None = None) -> int:
     elif args.command == "validate":
         from engine.validate.checks import Settings
         return cmd_validate(args.before, args.after, args.materials, args.out, targets=args.targets,
-                            settings=Settings(area_per_sample=args.area_per_sample, min_per_face=args.min_per_face))
+                            settings=Settings(area_per_sample=args.area_per_sample, min_per_face=args.min_per_face),
+                            edit_log=args.edit_log)
     elif args.command == "campus-freeze":
         from engine.campus.source import freeze_source
         res = freeze_source(args.export, args.backup, args.out, args.snapshots)
