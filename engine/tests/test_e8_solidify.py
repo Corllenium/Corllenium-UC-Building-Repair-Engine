@@ -110,6 +110,25 @@ def test_a_broken_side_is_replaced_by_a_cut():
     assert cuts and sorted(f for e in cuts for f in e.faces) == np.flatnonzero(ref.replaced).tolist()
 
 
+def test_a_piece_replacing_faces_of_another_material_is_an_add_and_a_remove_of_one_site():
+    """A cut inherits its input faces' material (`apply_edits`), so a bottom replacing a strip in ANOTHER material
+    is written as an add of the bottom and a remove of the strip, both of the bottom's site."""
+    import dataclasses
+    plain = B.slab_with_a_bottom_strip()
+    strip = np.flatnonzero(_reference(plain).replaced)
+    material = plain.face_material.copy()
+    material[strip] = 1
+    mesh = dataclasses.replace(plain, materials=["m0", "m1"], face_material=material)
+    ref = _reference(mesh)
+    assert np.flatnonzero(ref.replaced).tolist() == strip.tolist()
+    edits = _plan(mesh)
+    assert sorted(e.kind for e in edits) == ["add", "remove"] and len({e.site for e in edits}) == 1
+    (remove,) = [e for e in edits if e.kind == "remove"]
+    assert list(remove.faces) == strip.tolist()
+    after, _ = apply_edits(mesh, edits)
+    assert _faces_and_uvs(after) == _faces_and_uvs(ref.mesh)
+
+
 def test_adds_carry_the_points_solidify_invented():
     mesh = B.slab_with_two_depths()
     ref = _reference(mesh)
