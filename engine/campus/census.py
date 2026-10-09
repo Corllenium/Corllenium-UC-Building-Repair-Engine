@@ -31,7 +31,7 @@ from engine.detectors.errors import find_errors
 from engine.io.obj_reader import read_obj
 from engine.model import MeshData
 from engine.io.protected import refuse_protected
-from engine.campus.materials import _material_name as _mat_name, split_flicker_pairs
+from engine.campus.materials import material_name as _mat_name, split_flicker_pairs
 from engine.campus.winprobe import get_machine_load, get_process_peak_memory_mb
 
 
@@ -383,10 +383,8 @@ def census(
     errors_dir.mkdir(parents=True, exist_ok=True)
 
     if out_md is None:
-        if out_json.parent.name == "campus":
-            out_md = repo_root / "docs" / "superpowers" / "records" / "campus" / "census.md"
-        else:
-            out_md = out_json.parent / "census.md"
+        out_md = out_json.parent / "census.md"      # beside the json (data/campus by default): copying a
+                                                    # census into docs/superpowers/records/ is a deliberate step
     else:
         out_md = Path(out_md).resolve()
 

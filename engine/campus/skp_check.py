@@ -44,7 +44,7 @@ from pathlib import Path
 import numpy as np
 
 from engine.io import skp_reader
-from engine.io.protected import refuse_protected
+from engine.io.protected import refuse_master, refuse_protected
 from engine.io.obj_reader import read_obj
 from engine.io.snapshot import copy_verified, sha256_file
 
@@ -404,13 +404,6 @@ def _parts(path) -> list[str]:
     return [p.lower() for p in Path(path).resolve().parts]
 
 
-def refuse_master(path) -> None:
-    """The owner's campus model, `...\\02-SKETCHUP\\current\\...skp`, is never opened (AGENTS.md)."""
-    parts = _parts(path)
-    if any(a == "02-sketchup" and b == "current" for a, b in zip(parts, parts[1:])):
-        raise ValueError(f"refusing to open the CHECKPOINT-17 master (under 02-SKETCHUP\\current): {path}")
-
-
 def refuse_inside(path, folder) -> None:
     """Nothing is ever written inside the backup folder."""
     inside, outer = _parts(path), _parts(folder)
@@ -463,10 +456,27 @@ def verified_copy(source: dict, backup_dir, dest_dir, name: str | None = None, *
     return dest
 
 
-def require_verified_copy(source: dict, skp) -> Path:
-    """`skp` itself, once it is shown to be the verified copy and nothing else: a file directly in a
-    `data/campus/skp_copy/` folder, named like a `.skp` of `source["backup"]`, whose sha256 is the one
-    `source.json` froze (AGENTS.md section 2: the SDK opens only a verified copy and never saves).
+def _report_names(report, skp: Path) -> bool:
+    """Does `report` (a `skp_check.json` dict, or the path of one) name `skp` as the verified copy it made?"""
+    if isinstance(report, (str, os.PathLike)):
+        try:
+            report = json.loads(Path(report).read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            return False
+    try:
+        named = report["source"]["copy"]
+    except (KeyError, TypeError):
+        return False
+    return isinstance(named, str) and Path(named).resolve() == skp.resolve()
+
+
+def require_verified_copy(source: dict, skp, *, report=None) -> Path:
+    """`skp` itself, once it is shown to be the verified copy and nothing else: a file named like a `.skp` of
+    `source["backup"]`, whose sha256 is the one `source.json` froze, and that lies either directly in a
+    `data/campus/skp_copy/` folder or where a campus-skp-check report says it put its copy (`--out` can be
+    any folder: `<out>/skp_check.json` records `source.copy`). `report` is that report, or the path of one;
+    by default the `skp_check.json` beside the copy's `skp_copy` folder is read, if there is one. (AGENTS.md
+    section 2: the SDK opens only a verified copy and never saves.)
     For a probe that is handed a path (`docs/superpowers/records/scripts/skp_duplicate_census.py`);
     `verified_copy` makes the copy that passes. `ValueError` for the master or a wrong folder,
     `FileNotFoundError` for a missing file, `BackupMismatch` for a name that was not frozen or
@@ -474,8 +484,12 @@ def require_verified_copy(source: dict, skp) -> Path:
     skp = Path(skp)
     refuse_master(skp)
     if _parts(skp)[-4:-1] != ["data", "campus", "skp_copy"]:
-        raise ValueError(f"refusing to open {skp}: the SDK is given only the verified copy of the "
-                         "backup, which lives in data/campus/skp_copy/ (campus-skp-check makes it)")
+        if report is None:
+            report = skp.resolve().parent.parent / "skp_check.json"
+        if not _report_names(report, skp):
+            raise ValueError(f"refusing to open {skp}: the SDK is given only the verified copy of the "
+                             "backup, which lives in data/campus/skp_copy/ (campus-skp-check makes it) "
+                             "or where the skp_check.json of its --out says it is")
     if not skp.is_file():
         raise FileNotFoundError(skp)
     names = [n for n in source["backup"] if n.lower().endswith(".skp")]

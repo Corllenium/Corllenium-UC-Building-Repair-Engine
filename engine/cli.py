@@ -1123,8 +1123,9 @@ def build_parser() -> argparse.ArgumentParser:
                        help="the materials.json file from campus-materials")
     inv_p.add_argument("--out", type=Path, default=Path("data/campus/campus_map.draft.json"),
                        help="the draft campus map (JSON)")
-    inv_p.add_argument("--md", type=Path, default=Path("docs/superpowers/records/campus/campus-map-draft.md"),
-                       help="the owner-readable table")
+    inv_p.add_argument("--md", type=Path, default=Path("data/campus/campus_map.draft.md"),
+                       help="the owner-readable table (under data/ by default; copying it into "
+                            "docs/superpowers/records/campus/ is a deliberate step)")
     inv_p.add_argument("--literal", action="store_true",
                        help="use the brief's constants as written (24 in slab window, nearest base, 20 in merge, "
                             "print-step duplicates) instead of the measured ones")
@@ -1142,6 +1143,8 @@ def build_parser() -> argparse.ArgumentParser:
                        help="the export-vs-backup check (mismatches become grouping flags)")
     col_p.add_argument("--out", type=Path, default=Path("data/coloring_scratch"),
                        help="writes <out>/<BUILDING>/<BUILDING>-errors.skp and .json")
+    col_p.add_argument("--materials", type=Path, default=Path("data/campus/materials.json"),
+                       help="the materials.json file from campus-materials (flicker is split by look)")
     col_p.add_argument("--buildings", nargs="*", default=None, help="only these buildings (default: all)")
     col_p.add_argument("--dll", default=None, help="SketchUpAPI.dll (default: $FIXER_SKETCHUP_DLL or SketchUp 2026)")
 
@@ -1193,7 +1196,8 @@ def build_parser() -> argparse.ArgumentParser:
 
 #: Where each writing command puts its files (argparse names); the commands that write nothing are not here.
 #: campus-errors-skp checks its own output (error_export raises, as its tests expect).
-_OUTPUT_ARGS = {"campus-skp-check": ("out", "summary"), "validate": ("out",),
+_OUTPUT_ARGS = {"fix": ("out", "skp_dir"), "preview-data": ("out",), "errors": ("out",),
+                "campus-skp-check": ("out", "summary"), "validate": ("out",),
                 "census": ("out", "md", "errors_dir"), "campus-freeze": ("out", "snapshots"),
                 "campus-index": ("out",), "campus-materials": ("out",), "campus-inventory": ("out", "md"),
                 "decide-pilot": ("out",), "campus-unit-before": ("out",)}
@@ -1345,7 +1349,7 @@ def main(argv: list[str] | None = None) -> int:
     elif args.command == "campus-errors-skp":
         from engine.campus.error_export import cmd_campus_errors_skp
         for r in cmd_campus_errors_skp(args.map, args.source, args.errors, args.skp_check, args.out,
-                                       args.buildings, args.dll):
+                                       args.buildings, args.dll, args.materials):
             back = r["read_back"]["faces_by_tag"]
             dups, odd = sum(r["duplicates_by_tag"].values()), r["unexplained_by_tag"]
             same = "as written" if not odd else f"UNEXPLAINED {odd}"

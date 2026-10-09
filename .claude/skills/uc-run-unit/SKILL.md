@@ -21,9 +21,9 @@ path, as each brief says.
 | `campus-freeze --export <CKPT17> --backup <BACKUP> --out data/campus --snapshots data/snapshots` | P0 task 7 | stable copies and sha256 of every split OBJ, CKPT17-CLEAN, the MTL and textures; hashes the backup | `data/campus/source.json` |
 | `campus-index --source data/campus/source.json --out data/campus/group_index.json` | task 8 | face → SketchUp group path | `group_index.json` |
 | `campus-materials --source … --out data/campus/materials.json` | task 9 | look key = texture sha256 + Kd + d | `materials.json` |
-| `campus-inventory …` | task 10 | level tables, units, duplicates, misnamed and missing levels | `campus_map.draft.json`, `docs/superpowers/records/campus/campus-map-draft.md` |
+| `campus-inventory …` | task 10 | level tables, units, duplicates, misnamed and missing levels | `campus_map.draft.json`, `data/campus/campus_map.draft.md` (copy into `docs/superpowers/records/campus/` on purpose) |
 | `campus-skp-check …` | task 11 | read-only SDK walk of a verified copy of the backup, compared with the export | `skp_check.json` |
-| `census --units … --jobs 4` | task 12 | `find_errors` per unit, with stage timings, peak memory and machine load | `census.json`, `docs/superpowers/records/campus/census.md` |
+| `census --units … --jobs 4` | task 12 | `find_errors` per unit, with stage timings, peak memory and machine load | `census.json`, `census.md` beside `--out` (copy into `docs/superpowers/records/campus/` on purpose) |
 | `validate --before <snapshot> --after <obj> --materials … --out <dir>` | task 15 | the owner's three checks | `validation.json`, `evidence/*.png` |
 
 **Never:**

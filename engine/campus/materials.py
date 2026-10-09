@@ -149,7 +149,8 @@ def look_of_material(name: str, materials: dict) -> Any:
     return look if look else ("material", name)
 
 
-def _material_name(mesh, face: int) -> str:
+def material_name(mesh, face: int) -> str:
+    """The name of the material of `face`; a face with no entry is material 0, and an index with no name is its number."""
     index = int(mesh.face_material[face]) if face < len(mesh.face_material) else 0
     return mesh.materials[index] if index < len(mesh.materials) else str(index)
 
@@ -162,8 +163,8 @@ def split_flicker_pairs(mesh, pairs, materials: dict) -> tuple[list, list]:
     same, diff = [], []
     for pair in pairs:
         i, j = int(pair[0]), int(pair[1])
-        a = look_of_material(_material_name(mesh, i), materials)
-        b = look_of_material(_material_name(mesh, j), materials)
+        a = look_of_material(material_name(mesh, i), materials)
+        b = look_of_material(material_name(mesh, j), materials)
         (same if a == b else diff).append(pair)
     return same, diff
 

@@ -328,7 +328,7 @@ MARKER_R_IN = 3.0           # crack / degenerate-face marker radius
 PLATE_Z_IN = -2.0
 CHUNK = 20000               # faces per SUGeometryInput
 
-KIND_NAMES = {"base": "NO ERROR", "flicker_diff": "FLICKER DIFFERENT MATERIAL", "flicker_same": "FLICKER SAME MATERIAL",
+KIND_NAMES = {"base": "NO ERROR", "flicker_diff": "FLICKER DIFFERENT LOOK", "flicker_same": "FLICKER SAME LOOK",
               "reversed": "REVERSED", "loose": "LOOSE BITS", "hidden": "HIDDEN", "open_edges": "OPEN EDGES",
               "cracks": "CRACKS", "excluded": "EXCLUDED COPY", "skp_mismatch": "EXPORT VS BACKUP"}
 
@@ -499,29 +499,81 @@ def _engine_commit() -> str:
         return "unknown"
 
 
+def look_split_errors(errors: dict, mesh, materials: dict) -> dict:
+    """`errors` (a census error map) with its `flicker_diff` / `flicker_same` face lists re-split BY LOOK, with
+    `engine.campus.materials.flicker_faces_by_look` over the map's `flicker_pairs` -- the one definition E4 and E5 read
+    (two materials of one look are same-look). `find_errors` splits by material index, which calls two materials of one
+    look "different"; the colour export must not. Nothing else in `errors` changes, and `errors` itself is not
+    modified. Faces listed as flicker without their pairs cannot be split: ValueError."""
+    from engine.campus.materials import flicker_faces_by_look
+    faces = errors.get("faces", {})
+    pairs = errors.get("flicker_pairs")
+    if pairs is None:
+        if faces.get("flicker_diff") or faces.get("flicker_same"):
+            raise ValueError("the error map lists flicker faces but no flicker_pairs, so they cannot be split by "
+                             "look: run the census again")
+        pairs = []
+    same, diff = flicker_faces_by_look(mesh, pairs, materials)
+    return {**errors, "faces": {**faces, "flicker_same": sorted(same), "flicker_diff": sorted(diff)}}
+
+
+def check_member_input(group: str, obj, map_sha, source_sha, *, in_map: bool = True) -> str:
+    """The snapshot OBJ `obj` of `group` must be the one the campus map was made from. A member of a unit: its
+    sha256 must equal the one `campus_map.json` gives it, and `source.json` must say the same. A group the map
+    holds only as an excluded duplicate (`in_map=False`) is checked against `source.json` alone. Raises
+    ValueError naming the group when a hash is missing or any of them differ; returns the file's sha256."""
+    actual = _sha256(obj)
+    if in_map:
+        if not map_sha:
+            raise ValueError(f"{group}: campus_map.json gives its member no sha256, so the snapshot cannot be "
+                             "checked against the map")
+        if actual != map_sha:
+            raise ValueError(f"{group}: the snapshot {obj} has sha256 {actual}, but campus_map.json was made "
+                             f"from {map_sha}: run campus-inventory again on this snapshot")
+        if source_sha != map_sha:
+            raise ValueError(f"{group}: source.json gives sha256 {source_sha}, campus_map.json gives {map_sha}")
+    else:
+        if not source_sha:
+            raise ValueError(f"{group}: source.json gives it no sha256, so the snapshot cannot be checked")
+        if actual != source_sha:
+            raise ValueError(f"{group}: the snapshot {obj} has sha256 {actual}, but source.json froze {source_sha}")
+    return actual
+
+
 def cmd_campus_errors_skp(campus_map, source, errors_dir, skp_check, out_dir, buildings=None,
-                          dll_path=None) -> list[dict]:
-    """Write `<out_dir>/<BUILDING>/<BUILDING>-errors.skp` and `-errors.json` for each building."""
+                          dll_path=None, materials="data/campus/materials.json") -> list[dict]:
+    """Write `<out_dir>/<BUILDING>/<BUILDING>-errors.skp` and `-errors.json` for each building. Flicker is split by
+    look with `materials` (`materials.json`; `look_split_errors`)."""
     import json
     from pathlib import Path
     from engine.campus.census import _load_snapshot_mesh
     from engine.campus.inventory import building_of
     out_dir, errors_dir = Path(out_dir), Path(errors_dir)
     refuse_protected(out_dir)
+    materials = Path(materials)
+    if not materials.is_file():
+        raise FileNotFoundError(f"Materials map not found: {materials.resolve()} (pass --materials)")
+    looks = json.loads(materials.read_text(encoding="utf-8"))
     cmap = json.loads(Path(campus_map).read_text(encoding="utf-8"))
     snapshots = json.loads(Path(source).read_text(encoding="utf-8"))["snapshots"]
     snaps = {s["group"]: Path(s["dir"]) for s in snapshots}
     snap_sha = {s["group"]: s.get("sha256") for s in snapshots}
+    map_sha = {m["group"]: m.get("sha256") for u in cmap["units"] for m in u["members"]}
     mismatches = {m["file"]: m for m in json.loads(Path(skp_check).read_text(encoding="utf-8"))["mismatches"]}
     names = sorted({u["building"] for u in cmap["units"]} | {building_of(e["group"]) for e in cmap.get("excluded", [])})
     commit = _engine_commit()
     used: dict[str, str] = {}
 
     def load_member(group: str):
-        _, mesh = _load_snapshot_mesh(snaps[group])
+        objs = sorted(Path(snaps[group]).glob("*.obj"))      # hash the snapshot BEFORE parsing it
+        if len(objs) != 1:
+            raise ValueError(f"{group}: expected exactly one .obj in {snaps[group]}, found {len(objs)}")
+        check_member_input(group, objs[0], map_sha.get(group), snap_sha.get(group), in_map=group in map_sha)
+        obj, mesh = _load_snapshot_mesh(snaps[group])
         path = errors_dir / f"{group}.json"
         used[group] = _sha256(path)
-        return mesh.positions, mesh.face_v, json.loads(path.read_text(encoding="utf-8"))
+        errors = look_split_errors(json.loads(path.read_text(encoding="utf-8")), mesh, looks)
+        return mesh.positions, mesh.face_v, errors
 
     reports = []
     for name in buildings or names:
@@ -550,6 +602,7 @@ def cmd_campus_errors_skp(campus_map, source, errors_dir, skp_check, out_dir, bu
             "duplicates_by_tag": dups,
             "unexplained_by_tag": {t: d for t, d in unexplained.items() if d},
             "inputs": {"campus_map": _sha256(campus_map), "skp_check": _sha256(skp_check),
+                       "materials": _sha256(materials),
                        "source": _sha256(source), "errors": {g: used[g] for g in sorted(used)},
                        "snapshots": {g: snap_sha[g] for g in sorted(used)}},
             "legend": list(("base",) + ERROR_KINDS + LINE_KINDS + GROUPING_KINDS),

@@ -105,3 +105,29 @@ def test_the_functions_refuse_too_when_called_directly(tmp_path):
         cmd_campus_inventory(tmp_path / "s", tmp_path / "i", tmp_path / "m", bad / "m.json", tmp_path / "m.md")
     assert cli.cmd_validate(tmp_path / "b", tmp_path / "a.obj", tmp_path / "m.json", bad) == 2
     assert not bad.exists()
+
+
+# ------------------------------------------- the older commands too (P1-H1b item 12)
+
+
+@pytest.mark.parametrize("argv", [
+    ["fix", "SNAP", "--out", "{bad}"],
+    ["fix", "SNAP", "--out", "{ok}", "--skp-dir", "{bad}"],
+    ["preview-data", "SNAP", "--out", "{bad}"],
+    ["errors", "SNAP", "--out", "{bad}/errors.json"],
+])
+def test_fix_errors_and_preview_data_refuse_a_protected_output_before_they_read_anything(argv, tmp_path, capsys,
+                                                                                         monkeypatch):
+    monkeypatch.chdir(tmp_path)                       # SNAP does not exist: only the pre-check can answer
+    bad = _bad(tmp_path, "CHECKPOINT-17-BACKUP")
+    args = [a.format(bad=bad, ok=tmp_path / "ok") for a in argv]
+    assert cli.main(args) == 2
+    assert "protected" in capsys.readouterr().err
+    assert not bad.exists() and not (tmp_path / "ok").exists()
+
+
+def test_fix_with_an_ordinary_output_is_not_stopped_by_the_pre_check(tmp_path):
+    args = cli.build_parser().parse_args(["fix", "SNAP", "--out", str(tmp_path / "o"), "--skp-dir", str(tmp_path / "s")])
+    assert cli._refuse_protected_outputs(args) is None
+    args = cli.build_parser().parse_args(["fix", "SNAP"])                    # the defaults are not protected
+    assert cli._refuse_protected_outputs(args) is None

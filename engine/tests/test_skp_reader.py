@@ -517,3 +517,17 @@ def test_a_flattened_transform_has_no_area_instead_of_failing():
     faces = _faces([[0, 0, 1]], [10.0], [[0, 0, 0], [1, 1, 0]])
     area, bbox = faces.in_world(np.diag([1.0, 1.0, 0.0, 1.0]))
     assert area == 0.0 and bbox == [[0.0, 0.0, 0.0], [1.0, 1.0, 0.0]]
+
+
+# ------------------------------------------------------------------------------ the master (P1-H1b item 3)
+
+
+def test_walk_skp_refuses_the_master_itself_before_it_loads_anything(tmp_path, monkeypatch):
+    """Defence in depth: the reader refuses the owner's master even when called without skp_check."""
+    master = tmp_path / "UC" / "02-SKETCHUP" / "current"
+    master.mkdir(parents=True)
+    (master / "M - CHECKPOINT-17.skp").write_bytes(b"skp-bytes")
+    monkeypatch.setattr(skp_reader, "load_api",
+                        lambda *a, **k: pytest.fail("the API was loaded before the master was refused"))
+    with pytest.raises(ValueError, match="master"):
+        skp_reader.walk_skp(master / "M - CHECKPOINT-17.skp")
