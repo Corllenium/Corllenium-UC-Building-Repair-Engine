@@ -145,3 +145,61 @@ def test_clear_drops_everything(counted):
     clear_topology_memo()
     analyse_topology_memo(m)
     assert len(counted) == 2
+
+
+# ------------------------------------------------------------------ through the fix pipeline
+import engine.fixes.pipeline as fix_pipeline
+from engine.fixes.pipeline import FixProfile, fix_object
+from engine.tests.fixtures.build import slab_with_wall
+
+_FAST = FixProfile(guard_size=(120, 80), n_dirs=32)
+
+
+def _unmemoised(monkeypatch, record):
+    """Make the fix pipeline recompute every topology, recording the meshes it asked for."""
+    real = pipe.analyse_topology
+
+    def fresh(mesh, flat_materials=frozenset(), **kw):
+        record.append(pipe._topology_key(mesh, flat_materials, kw["coplanar_angle"], kw["soft_angle"]))
+        return real(mesh, flat_materials, **kw)
+
+    monkeypatch.setattr(fix_pipeline, "analyse_topology_memo", fresh)
+
+
+@pytest.mark.parametrize("make", [box_with_partition, slab_with_wall], ids=["partition", "wall"])
+def test_fix_object_computes_each_distinct_input_once_with_identical_results(monkeypatch, make):
+    base_keys = []
+    _unmemoised(monkeypatch, base_keys)
+    clear_topology_memo()
+    base = fix_object(make(), {}, _FAST)
+    monkeypatch.undo()
+    clear_topology_memo()
+
+    calls = []
+    real = pipe.analyse_topology
+    monkeypatch.setattr(pipe, "analyse_topology",
+                        lambda mesh, flat_materials=frozenset(), **kw: (calls.append(1),
+                                                                        real(mesh, flat_materials, **kw))[1])
+    memo = fix_object(make(), {}, _FAST)
+
+    assert len(base_keys) == 4                                  # the four stage inputs, unmemoised
+    assert len(calls) == len(set(base_keys))                    # memo: one compute per distinct input
+    assert len(calls) < len(base_keys)                          # and the fixture does repeat one
+    for name in ("positions", "face_v", "face_vt", "face_material"):
+        assert np.array_equal(getattr(memo.mesh, name), getattr(base.mesh, name)), name
+    assert np.array_equal(memo.face_region_final, base.face_region_final)
+    assert repr(memo.rings) == repr(base.rings)
+    assert np.array_equal(memo.exposure_class, base.exposure_class)
+    assert memo.guard_final.totals == base.guard_final.totals
+
+
+def test_the_references_topology_is_served_to_the_cli(counted):
+    """`cmd_fix` / `cmd_preview_data` ask for the reference mesh's topology after `fix_object`
+    returns: it is the one `stage_hidden` already computed, so it costs nothing."""
+    from engine.pipeline import flat_material_indices
+    mesh = box_with_partition()
+    result = fix_object(mesh, {}, _FAST)
+    n = len(counted)
+    flat = flat_material_indices(mesh, {}, _FAST.flat_texture_std)
+    analyse_topology_memo(result.reference_mesh, flat)
+    assert len(counted) == n

@@ -63,7 +63,7 @@ from engine.guard.compare import (GuardReport, compare_views, face_planes, fragm
 from engine.guard.piece_rays import judge_alone, piece_ray_check
 from engine.guard.views import VIEWS_26, ortho_first_hit
 from engine.model import MeshData
-from engine.pipeline import analyse_topology, flat_material_indices
+from engine.pipeline import analyse_topology, analyse_topology_memo, flat_material_indices  # noqa: F401
 from engine.topo.edges import COPLANAR_ANGLE, SOFT_ANGLE
 from engine.rays.caster import ReusableCaster
 from engine.topo.weld import weld_exact
@@ -722,7 +722,7 @@ def start_fix(mesh: MeshData, flatness: dict[str, float], profile: FixProfile = 
     flat_materials = flat_material_indices(mesh, flatness, profile.flat_texture_std)
     angles = {"coplanar_angle": profile.coplanar_angle, "soft_angle": profile.soft_angle}
     input_mesh = mesh
-    topo_input = analyse_topology(mesh, flat_materials, **angles)
+    topo_input = analyse_topology_memo(mesh, flat_materials, **angles)
     return FixState(profile=profile, flatness=flatness, input_mesh=input_mesh, mesh=mesh,
                     flat_materials=flat_materials, angles=angles, topo_input=topo_input)
 
@@ -754,7 +754,7 @@ def stage_hidden(s: FixState) -> FixState:
     solidify_report, seen_through_shell = s.solidify_report, s.seen_through_shell
     replaced_input = s.replaced_input
 
-    topo = analyse_topology(mesh, flat_materials, **angles)
+    topo = analyse_topology_memo(mesh, flat_materials, **angles)
     depth_tol = guard_depth_tol(topo.quanta, profile)
     # Recentre once, to the REFERENCE mesh's bbox centre; the same recentred frame renders every
     # side, before and after, at every stage -- vertices never move after this point, so one
@@ -995,7 +995,7 @@ def stage_overlap(s: FixState) -> FixState:
     # Before the merge and after the flip: the merge cannot do anything with a region that
     # overlaps itself (rule 3 excludes the triangles, and a region whose union still overlaps is
     # skipped outright), and flipping first means a face is judged in the winding it will ship in.
-    topo2 = analyse_topology(mesh_flipped, flat_materials, **angles)
+    topo2 = analyse_topology_memo(mesh_flipped, flat_materials, **angles)
     overlap_result = remove_overlaps(
         mesh_flipped, topo2, positions_c, flat_materials, depth_tol,
         guard_size=profile.guard_size, crack_closed_cap=profile.crack_closed_cap)
@@ -1027,7 +1027,7 @@ def stage_merge(s: FixState) -> FixState:
     depth_tol, removed_fragments_full = s.depth_tol, s.removed_fragments_full
     normal_reference, side_exposure = s.normal_reference, s.side_exposure
 
-    topo3 = analyse_topology(mesh_overlapped, flat_materials, **angles)
+    topo3 = analyse_topology_memo(mesh_overlapped, flat_materials, **angles)
     merge_result = merge_regions(mesh_overlapped, topo3, flat_materials)
     # How far the merge may move a border: its corner pass drops a border vertex while the whole
     # original polyline stays within `collinear_tol` of the chord that replaces it, so a merged

@@ -81,8 +81,8 @@ from engine.io.protected import refuse_protected
 from engine.io.skp_writer import SketchUpError, check_skp_validity, write_skp
 from engine.io.snapshot import sha256_file
 from engine.model import MeshData
-from engine.pipeline import (Topology, analyse_topology, coplanar_region_borders,
-                             flat_material_indices)
+from engine.pipeline import (Topology, analyse_topology, analyse_topology_memo,
+                             coplanar_region_borders, flat_material_indices)  # noqa: F401 -- analyse_topology stays importable from here
 from engine.rays.caster import ReusableCaster
 from engine.topo.adjacency import build_edge_table, edge_face_lists
 from engine.topo.edges import EDGE_SOFT
@@ -456,8 +456,8 @@ def _write_skp(result: FixResult, name: str, out_dir: Path, flat_materials: froz
     path = out_dir / f"{name}.fixed.skp"
     mtl_path = out_dir / "materials.mtl"
     # the hidden edges are decided on the shipped mesh's own topology, with the run's thresholds
-    topo = analyse_topology(result.mesh, flat_materials, coplanar_angle=profile.coplanar_angle,
-                            soft_angle=profile.soft_angle)
+    topo = analyse_topology_memo(result.mesh, flat_materials, coplanar_angle=profile.coplanar_angle,
+                                 soft_angle=profile.soft_angle)
     try:
         written = write_skp(result.mesh, result.rings, result.face_region_final, topo,
                             parse_mtl(mtl_path) if mtl_path.exists() else {}, path,
@@ -553,7 +553,7 @@ def cmd_fix(snapshot_dir: Path, out_root: Path, accept_slit: bool,
     # against: the solidified mesh when `profile.solidify` is on, the input otherwise.
     flat_materials = flat_material_indices(mesh, flatness, profile.flat_texture_std)
     reference = result.reference_mesh
-    topo = analyse_topology(reference, flat_materials)
+    topo = analyse_topology_memo(reference, flat_materials)
     centre = (topo.positions_w.min(axis=0) + topo.positions_w.max(axis=0)) / 2.0
     positions_c = topo.positions_w - centre
     _write_guard_images(reference, result, profile, flat_materials, topo, positions_c, out_dir)
@@ -743,11 +743,11 @@ def cmd_preview_data(snapshot_dir: Path, out_dir: Path, profile: FixProfile | No
     # centre so the two panes stay registered.
     input_mesh, mesh = mesh, result.reference_mesh
     flat_materials = flat_material_indices(mesh, flatness, profile.flat_texture_std)
-    topo = analyse_topology(mesh, flat_materials)
+    topo = analyse_topology_memo(mesh, flat_materials)
     centre = (topo.positions_w.min(axis=0) + topo.positions_w.max(axis=0)) / 2.0
     positions_c_w = topo.positions_w - centre       # welded frame (topo.face_w indexes it)
     positions_c_o = mesh.positions - centre          # original frame: AFTER (result.mesh.face_v indexes it)
-    topo_input = analyse_topology(input_mesh, flat_materials)
+    topo_input = analyse_topology_memo(input_mesh, flat_materials)
 
     replaced = np.asarray(result.replaced_input, dtype=bool)
     n_kept = int((~replaced).sum())                  # reference rows below this are input faces
@@ -778,9 +778,9 @@ def cmd_preview_data(snapshot_dir: Path, out_dir: Path, profile: FixProfile | No
 
     # The SHIPPED mesh's own topology: `result.mesh.positions` IS `mesh.positions` (nothing in
     # the pipeline ever touches it), so it welds to the same frame `positions_c_w` is in.
-    topo_after = analyse_topology(result.mesh, flat_materials,
-                                  coplanar_angle=profile.coplanar_angle,
-                                  soft_angle=profile.soft_angle)
+    topo_after = analyse_topology_memo(result.mesh, flat_materials,
+                                       coplanar_angle=profile.coplanar_angle,
+                                       soft_angle=profile.soft_angle)
     soft_after = _soft_edges(topo_after, positions_c_w)
 
     guard_final = result.guard_final.totals
