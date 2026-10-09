@@ -54,7 +54,11 @@
     viewpoint sees, eye-height probes included -- is rolled back. Writes `<unit>.fixed.obj`, `edit_log.jsonl` and
     `report.json` (pieces built, kept and rolled back by reason; the Validator's covered count after rollback;
     times; for E8b `fills`, each kept fill with its BEFORE | AFTER crop in `fills/`, `not_filled`, every hole refused
-    with its rule, and `fill_stats`). No `.skp`. Exit 0 when the E8 stage passed, 1 when the unit's BEFORE differs from the campus map
+    with its rule, and `fill_stats`; `needs_modelling`, the summary of `needs_modelling.json`). Also writes
+    `needs_modelling.json` (schema version 1: every refused hole and every slab side or bottom the site check rolled back,
+    per floor, for a person to model in SketchUp, each with a stable id, a suggested camera view and a BEFORE crop in
+    `needs_modelling/`; see `engine.campus.needs_modelling`). A refused run (exit 1) removes the outputs an earlier run left in
+    `--out`. No `.skp`. Exit 0 when the E8 stage passed, 1 when the unit's BEFORE differs from the campus map
     (nothing repaired), 2 on a refused input, 3 when the stage was rolled back whole or ended FAIL (every file is
     still written, and the mesh shipped is the BEFORE).
 
@@ -919,18 +923,29 @@ def cmd_errors(snapshot_dir: Path, out_file: Path, profile: FixProfile | None = 
 # -------------------------------------------------------------------------------------- validate
 
 
-def fills_from_edit_log(path: Path, after) -> list:
+def fills_from_edit_log(path: Path, after, before_faces: int | None = None) -> list:
     """The kept flat fills of an `edit_log.jsonl` as the Validator's `FillSite`s (ruling P2-E8b-R11): every line
     marked `flat_fill`, not rolled back, with its `after_faces` and `loop_points`. Each fill's faces must exist in
     `after` and have every corner on one of the loop's points (within 1e-3 in, the OBJ's printing); otherwise the log
-    does not describe this AFTER and a `ValueError` says so."""
+    does not describe this AFTER and a `ValueError` says so.
+
+    `before_faces` (the BEFORE's face count; P2-E8c item 4c): a fill's faces are NEW faces. The AFTER lists the BEFORE's
+    surviving faces first and the added ones after them, so a face id below the survivors' count names an existing
+    BEFORE face and the log is refused. The survivors are `before_faces` less the faces the log's kept cuts and
+    removes took away (a kept E8a cut makes the first new id lower than the BEFORE's count). Without it the check is
+    not made."""
     from engine.validate.checks import FillSite
 
     if not path.is_file():
         raise FileNotFoundError(f"--edit-log {path} is not a file")
     fills = []
-    for number, text in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
-        line = json.loads(text)
+    lines = [json.loads(text) for text in path.read_text(encoding="utf-8").splitlines()]
+    first_new = None
+    if before_faces is not None:
+        took = sum(len(line.get("faces") or []) for line in lines
+                   if "check" not in line and not line.get("rolled_back") and line.get("kind") in ("cut", "remove"))
+        first_new = int(before_faces) - took
+    for number, line in enumerate(lines, start=1):
         if "check" in line or not line.get("flat_fill") or line.get("rolled_back"):
             continue
         faces, loop = line.get("after_faces"), line.get("loop_points")
@@ -941,6 +956,10 @@ def fills_from_edit_log(path: Path, after) -> list:
         if faces.min() < 0 or faces.max() >= after.n_faces:
             raise ValueError(f"edit log {path} line {number}: fill faces {faces.tolist()} are not faces of the AFTER "
                              f"({after.n_faces} faces)")
+        if first_new is not None and faces.min() < first_new:
+            raise ValueError(f"edit log {path} line {number}: fill face {int(faces.min())} names an existing BEFORE face "
+                             f"(a new face's id is at least {first_new}: the BEFORE's {before_faces} faces less the "
+                             f"{int(before_faces) - first_new} a kept cut took away)")
         corners = after.positions[after.face_v[faces]].reshape(-1, 3)
         off = np.linalg.norm(corners[:, None, :] - loop[None, :, :], axis=2).min(axis=1)
         if (off > 1e-3).any():
@@ -982,7 +1001,7 @@ def cmd_validate(before_dir: Path, after_path: Path, materials: Path, out_dir: P
             sources.append((parse_mtl(after_mtl), after_path.parent))
         looks = load_looks(materials, sources)
         signed = load_targets(targets)
-        fills = None if edit_log is None else fills_from_edit_log(Path(edit_log), after)
+        fills = None if edit_log is None else fills_from_edit_log(Path(edit_log), after, before.n_faces)
     except (FileNotFoundError, ValueError, OSError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
@@ -1049,6 +1068,29 @@ REPAIR_EXIT_CODES = ("exit 0: every E8 stage passed (its last check PASS, or eve
                      "mesh shipped is the BEFORE, the safe one")
 
 
+#: The folders of crops `repair-unit` writes in `--out`.
+_STALE_DIRS = ("fills", "needs_modelling")
+
+
+def _remove_stale_outputs(out_dir: Path, name: str | None, *, everything: bool = False) -> None:
+    """Remove what an earlier `repair-unit` left in `out_dir`, so it cannot be mistaken for this run's. Always the
+    needs-modelling file and its crops (this run rewrites them); with `everything` (the run stops at exit 1, before
+    it writes anything) also `report.json`, `edit_log.jsonl`, `<name>.fixed.obj` and the `fills/` crops. In the crop
+    folders only the `*.png` files go, and the folder only when it is then empty. Files this tool never writes stay."""
+    out_dir = Path(out_dir)
+    names = ["needs_modelling.json"] + (["report.json", "edit_log.jsonl", f"{name}.fixed.obj"] if everything else [])
+    for file in names:
+        (out_dir / file).unlink(missing_ok=True)
+    for folder in (_STALE_DIRS if everything else ("needs_modelling",)):
+        # only this tool's own crops (*.png); the folder goes only when that leaves it empty
+        for crop in (out_dir / folder).glob("*.png"):
+            crop.unlink(missing_ok=True)
+        try:
+            (out_dir / folder).rmdir()
+        except OSError:
+            pass                      # not there, or it holds something that is not ours
+
+
 def _after_rollback(check: dict) -> dict:
     """What the stage's LAST check says of the mesh it ships. When it kept sites, the last run judged exactly those
     (the kernel rolls back the rest, and a stage whose last run is not PASS is rolled back whole); when it kept
@@ -1064,9 +1106,12 @@ def _after_rollback(check: dict) -> dict:
             "judged_by": f"the {last['kind']} run on the {last['sites']} kept site(s)"}
 
 
-def _repair_report(result, check_by_stage: dict) -> tuple[list[dict], dict]:
+def _repair_report(result, check_by_stage: dict, before=None) -> tuple[list[dict], dict]:
     """`(pieces, sites)` of report.json: one row per site E8 planned, and the counts kept and rolled back, by
-    reason (a site counts once under each reason the Validator gave for the samples charged to it)."""
+    reason (a site counts once under each reason the Validator gave for the samples charged to it). With `before`
+    (the stage's input), a piece that was NOT kept also carries the outline of the faces it would have built
+    (`border`, `border_ordered`, `border_rings`, `area_in2`, `normal`: `needs_modelling.piece_border`), which is
+    where the unit still needs modelling (job P2-E8c)."""
     rolled = {}
     for check in check_by_stage.values():
         for row in check.get("rolled_back", []):
@@ -1088,6 +1133,10 @@ def _repair_report(result, check_by_stage: dict) -> tuple[list[dict], dict]:
                        "replaced": int(sum(len(e.faces) for e in mine)), "length": ev.get("length"),
                        "thickness": ev.get("thickness"), "kept": site in kept_sites, "reasons": reasons,
                        "charged": 0 if row is None else int(row["charged"]), "reason": build.reason})
+        if before is not None and site not in kept_sites and build.new_faces is not None:
+            from engine.campus.needs_modelling import piece_border
+            extra = build.new_points if build.new_points is not None else np.zeros((0, 3))
+            pieces[-1].update(piece_border(np.vstack([before.positions, extra]), build.new_faces))
         if row is not None:
             by_reason.update(reasons.keys())
             samples_by_reason.update(reasons)
@@ -1154,6 +1203,7 @@ def cmd_repair_unit(out_dir: Path, *, unit: str | None = None, snapshot: Path | 
             # as campus-unit-before: a BEFORE that is not the campus map's unit is not repaired
             parts = ", ".join(f"{m['group']} [{m['band']}] {m['faces']} (map {m['expected']})"
                               for m in before_report["members"])
+            _remove_stale_outputs(out_dir, unit, everything=True)
             print(f"error: {unit}: the BEFORE built from the snapshots DIFFERS from the campus map's tris ({parts}); "
                   f"nothing repaired -> {before_report['obj']}", file=sys.stderr)
             return 1
@@ -1168,6 +1218,7 @@ def cmd_repair_unit(out_dir: Path, *, unit: str | None = None, snapshot: Path | 
     kernel_engines = [e for e in (solid, fill) if e is not None]
     out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / "report.json").unlink(missing_ok=True)
+    _remove_stale_outputs(out_dir, None)
     built = time.perf_counter()
     result = repair_unit(UnitState(mesh=mesh, topo=None, looks={}, viewpoints=None),
                          RepairContext(profile=profile, decider=None, validator=judge),
@@ -1187,7 +1238,7 @@ def cmd_repair_unit(out_dir: Path, *, unit: str | None = None, snapshot: Path | 
     by_stage = _edits_by_stage(result)
     solid_stage = None if solid is None else solid.name
     pieces, sites = _repair_report(_StageView(result, by_stage.get(solid_stage, [])),
-                                   {k: c for k, c in checks.items() if k == solid_stage})
+                                   {k: c for k, c in checks.items() if k == solid_stage}, before=mesh)
     after = [dict(_after_rollback(c), stage=stage) for stage, c in checks.items()]
     sr = (solid.report if solid is not None else None) or {}
     fills, not_filled, fill_stats = [], [], None
@@ -1217,6 +1268,12 @@ def cmd_repair_unit(out_dir: Path, *, unit: str | None = None, snapshot: Path | 
                     "total": round(time.perf_counter() - started, 2)},
         "exit_code": _repair_exit_code(result.checks),
     }
+    queued = time.perf_counter()
+    needs = _needs_modelling(report, result.records, mesh, judge.looks, out_dir)
+    report["needs_modelling"] = {"file": "needs_modelling.json", "entries": needs["counts"]["entries"],
+                                 "by_kind": needs["counts"]["by_kind"], "by_reason": needs["counts"]["by_reason"]}
+    report["seconds"]["needs_modelling"] = round(time.perf_counter() - queued, 2)
+    report["seconds"]["total"] = round(time.perf_counter() - started, 2)
     (out_dir / "report.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
 
     _print_checks(name, result.checks, repaired - built)
@@ -1230,12 +1287,33 @@ def cmd_repair_unit(out_dir: Path, *, unit: str | None = None, snapshot: Path | 
         print(f"{name}: E8b found {f['loops']} closed loops ({f['outer_boundaries']} patch outer borders, {f['holes']} "
               f"holes) among {f['components']} pieces of open edges; filled {f['kept']}, rolled back "
               f"{f['rolled_back']}; not filled {f['not_filled_by_reason']}")
+    print(f"{name}: needs modelling: {needs['counts']['entries']} spots {needs['counts']['by_kind']} "
+          f"{needs['counts']['by_reason']} ({needs['counts']['outer_boundaries']} patch outer borders only counted); "
+          f"{report['seconds']['needs_modelling']} s")
     print(f"{name}: covered after rollback {report['covered_after_rollback']}; "
           f"{mesh.n_faces} -> {result.mesh.n_faces} faces; {report['seconds']['total']} s; wrote {out_dir}")
     if report["exit_code"] == REPAIR_STAGE_FAILED:
         print(f"{name}: an engine stage was rolled back whole or did not end PASS: the BEFORE ships for it "
               f"(exit {REPAIR_STAGE_FAILED})", file=sys.stderr)
     return report["exit_code"]
+
+
+def _needs_modelling(report: dict, records: list, before, looks, out_dir: Path) -> dict:
+    """Write `<out_dir>/needs_modelling.json` (job P2-E8c) and a BEFORE crop per entry under
+    `<out_dir>/needs_modelling/<id>.png` (`engine.fill_review.SpotCropper`, from the entry's `suggested_view`), and
+    return the document. `report` is the run's report.json dict, `records` the lines of its edit log."""
+    from engine.campus.needs_modelling import build_needs_modelling, validate_document
+    from engine.fill_review import SpotCropper
+
+    doc = build_needs_modelling(report, records, before)
+    if doc["entries"]:
+        cropper = SpotCropper(before, looks)
+        for entry in doc["entries"]:
+            entry["crop"] = f"needs_modelling/{entry['id']}.png"
+            cropper.write(entry["border"], entry["ordered"], entry["suggested_view"], Path(out_dir) / entry["crop"])
+    validate_document(doc)
+    (Path(out_dir) / "needs_modelling.json").write_text(json.dumps(doc, indent=2), encoding="utf-8")
+    return doc
 
 
 def fill_diameter_bins() -> tuple:
