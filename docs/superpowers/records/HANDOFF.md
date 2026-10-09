@@ -25,6 +25,18 @@ run the latest `.skp` of each file must be in `OBJ FIXED RESULT/` for the owner 
 
 ## 2. Current state (2026-09-26 00:15, written by the Claude controller)
 
+**Update 2026-10-09 afternoon (the repair-engine controller session): P2 started.**
+- **P2-K0 merged** into `feat/repair-p1p2` (b43d27f): kernel prep for the new engines.
+  - A new engine's stage that does not PASS is rolled back whole.
+  - The edit log works for any engine.
+  - Only E8 may add faces, and only the legacy observer may set the legacy marker.
+  - A face with no material is its own look, `material:<none>`.
+  - Suites: engine 1715 passed, tools 123. Byte-identical on sidewalks A and B.
+- **P2-E8a in progress:** the strict solidify engine.
+  - Ruling E8-R1: the guard's `cover_max_exposure` stays 0.10. The owner's "0 % visible" rule is enforced by the Validator, one site per rebuilt piece, with eye-height probes.
+  - A piece that covers anything visible is rolled back; its hole goes to E8b or E8c.
+- **Next:** E8b narrow flat fill, E8c needs-modelling queue, then E3, E1, E2, E4, E5, E6/E7.
+
 **Update 2026-10-09 (the repair-engine controller session): phase P1 is complete and merged.**
 - **`feat-dashboard` = c88ac1c + records.** It merges `feat/repair-p1p2`.
   - The end-of-P1 review (opus) found it READY TO MERGE; the fix round is e5d774d.

@@ -161,6 +161,11 @@ lies on pixel centres from real damage, so the guard now measures the displaceme
 - **Review:** rules-reviewer, 2 fix rounds, then APPROVED; plugin test 37/37.
 - **Parked Minor:** `foreach ($p in Get-Process name) { ... }` is not seen.
 
+### 2026-10-09: P2-K0 merged, E8a started
+- **P2-K0** (kernel prep): review Spec PASS; one fix round (the legacy marker could be bypassed) re-reviewed APPROVED.
+- **Byte-identical** on sidewalks A and B; merged into `feat/repair-p1p2` as b43d27f.
+- **E8a brief** (strict solidify engine) with ruling E8-R1; implementer dispatched.
+
 ## 5. Measured state of the SketchUp files
 
 Audit of every edge SketchUp draws, read back through the C API (`scripts/skp_edge_audit.py`).
