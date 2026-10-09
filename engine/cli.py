@@ -52,7 +52,9 @@
     piece of work is its own site and one that breaks anything visible -- a rebuilt side covering anything any
     viewpoint sees, eye-height probes included -- is rolled back. Writes `<unit>.fixed.obj`, `edit_log.jsonl` and
     `report.json` (pieces built, kept and rolled back by reason; the Validator's covered count after rollback;
-    times). No `.skp`. Exit 0 when it completes, 2 on a refused input.
+    times). No `.skp`. Exit 0 when the E8 stage passed, 1 when the unit's BEFORE differs from the campus map
+    (nothing repaired), 2 on a refused input, 3 when the stage was rolled back whole or ended FAIL (every file is
+    still written, and the mesh shipped is the BEFORE).
 
 A snapshot directory is the layout `engine.io.snapshot.snapshot_object` produces: one `<name>.obj`,
 `materials.mtl`, and a `tex/` folder of the textures it references.
@@ -993,6 +995,14 @@ def cmd_validate(before_dir: Path, after_path: Path, materials: Path, out_dir: P
 
 #: The repair engines `repair-unit` runs (P2): only E8, strict solidify, so far.
 REPAIR_ENGINES = ("E8",)
+#: `repair-unit`'s exit code when an engine stage was rolled back whole or ended FAIL (its outputs are still written).
+REPAIR_STAGE_FAILED = 3
+#: `repair-unit`'s exit codes, as its help gives them.
+REPAIR_EXIT_CODES = ("exit 0: the E8 stage passed (its last check PASS, or every piece rolled back on its own charge); "
+                     "1: the unit's BEFORE differs from the campus map, nothing repaired; "
+                     "2: a refused input (unknown engine, protected folder, missing file); "
+                     "3: the stage was rolled back whole or ended FAIL - every file is still written and the "
+                     "mesh shipped is the BEFORE, the safe one")
 
 
 def _after_rollback(check: dict) -> dict:
@@ -1060,8 +1070,11 @@ def cmd_repair_unit(out_dir: Path, *, unit: str | None = None, snapshot: Path | 
     anything visible is rolled back. Writes `<out_dir>/<name>.fixed.obj` (with `materials.mtl` next to it),
     `edit_log.jsonl` and `report.json`: the pieces built, kept and rolled back (by the Validator's reason), the
     stage checks, the Validator's covered count after rollback, and the times. Writes no `.skp`.
-    Returns 0 when the run completes; raises ValueError for an unknown engine, a unit or snapshot missing (or
-    both given), or a protected `out_dir`."""
+    Returns 0 when the E8 stage passed (its last check PASS, or NOTHING KEPT: every piece rolled back on its own
+    charge); 3 (`REPAIR_STAGE_FAILED`) when the stage was rolled back whole or ended FAIL -- every file is still
+    written, and the mesh shipped is the safe one (the stage's input); 1 when the unit's BEFORE differs from the
+    campus map (nothing repaired). Raises ValueError for an unknown engine, a unit or snapshot missing (or both
+    given), a protected `out_dir`, or a snapshot in a protected folder (`main` turns those into exit 2)."""
     from engine.campus.unit_before import build_unit_before
     from engine.repair.engines.e8_solidify import E8Solidify
     from engine.repair.kernel import repair_unit
@@ -1144,6 +1157,7 @@ def cmd_repair_unit(out_dir: Path, *, unit: str | None = None, snapshot: Path | 
                                             "walls_refused", "bottom_faces_refused", "runtime_s")},
         "seconds": {"before": round(built - started, 2), "kernel": round(repaired - built, 2),
                     "total": round(time.perf_counter() - started, 2)},
+        "exit_code": _repair_exit_code(result.checks),
     }
     (out_dir / "report.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
 
@@ -1153,6 +1167,18 @@ def cmd_repair_unit(out_dir: Path, *, unit: str | None = None, snapshot: Path | 
           f"{s['by_piece']['bottom']['built']} bottoms); kept {s['kept']}, rolled back {s['rolled_back']} "
           f"{s['rolled_back_by_reason']}; covered after rollback {report['covered_after_rollback']}; "
           f"{mesh.n_faces} -> {result.mesh.n_faces} faces; {report['seconds']['total']} s; wrote {out_dir}")
+    if report["exit_code"] == REPAIR_STAGE_FAILED:
+        print(f"{name}: an engine stage was rolled back whole or did not end PASS: the BEFORE ships for it "
+              f"(exit {REPAIR_STAGE_FAILED})", file=sys.stderr)
+    return report["exit_code"]
+
+
+def _repair_exit_code(checks: list[dict]) -> int:
+    """0 when every stage passed: its last check PASS, or NOTHING KEPT (each piece rolled back on its own charge,
+    the stage's input ships); `REPAIR_STAGE_FAILED` (3) when a stage was rolled back whole or ended any other way."""
+    for check in checks:
+        if check.get("stage_rolled_back") or check.get("final") not in ("PASS", "NOTHING KEPT"):
+            return REPAIR_STAGE_FAILED
     return 0
 
 
@@ -1279,7 +1305,9 @@ def build_parser() -> argparse.ArgumentParser:
     repair_p = sub.add_parser(
         "repair-unit",
         help="repair one floor or element unit with the P2 engines (E8 so far), every piece checked by the "
-             "Validator and rolled back if it breaks anything visible")
+             "Validator and rolled back if it breaks anything visible",
+        description="Repair one floor or element unit with the P2 engines (E8 so far); every piece is checked by "
+                    "the Validator and rolled back if it breaks anything visible. " + REPAIR_EXIT_CODES + ".")
     where = repair_p.add_mutually_exclusive_group(required=True)
     where.add_argument("--unit", default=None, help="the unit's name in the campus map, e.g. CHTM-L05")
     where.add_argument("--snapshot", type=Path, default=None,

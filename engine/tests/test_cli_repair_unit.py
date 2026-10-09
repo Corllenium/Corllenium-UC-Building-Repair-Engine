@@ -144,3 +144,60 @@ def test_a_unit_whose_before_differs_from_the_campus_map_stops_with_exit_1(tmp_p
     assert "DIFFERS from the campus map" in capsys.readouterr().err
     assert not (out / "report.json").exists() and not (out / "T-L01.fixed.obj").exists()
     assert not (out / "edit_log.jsonl").exists(), "the kernel never ran"
+
+
+from engine.site_judge import SiteJudge as _RealSiteJudge  # noqa: E402  (the class itself, before any patch)
+
+NO_SITES_FACE = 999_999   # a face id in no site's focus
+
+
+class _FarNoiseJudge:
+    """Made in place of `SiteJudge`: the Validator, plus one failing sample no site can be charged with (its face id
+    names no face any site touched, boxed or covered, and it lies far off), so the stage's failure is charged to no
+    site and the stage is rolled back whole."""
+
+    def __new__(cls, looks, **kw):
+        import numpy as np
+        from engine.site_judge import FailingSamples, SiteVerdict
+
+        class Noisy(_RealSiteJudge):
+            def check(self, after, focus):
+                v = super().check(after, focus)
+                s = v.samples
+                add = lambda a, row: np.concatenate([a, np.asarray(row, dtype=a.dtype)])
+                far = FailingSamples(face=add(s.face, [NO_SITES_FACE]), index=add(s.index, [0]),
+                                     point=np.vstack([s.point, [[1.0e4, 1.0e4, 1.0e4]]]),
+                                     witness=np.vstack([s.witness, [[0.0, 0.0, -1.0]]]), is_dir=add(s.is_dir, [True]),
+                                     cluster=add(s.cluster, [len(s.clusters)]), clusters=s.clusters + [{"deleted": 1}])
+                return SiteVerdict(failing=v.failing | {(NO_SITES_FACE, 0)}, summary=v.summary, seconds=v.seconds, samples=far)
+        return Noisy(looks, **kw)
+
+
+def test_the_exit_code_is_0_when_the_stage_passed(tmp_path):
+    """Finding 3: 0 when E8's stage passed (here every piece kept; NOTHING KEPT, each piece rolled back on its own
+    charge, is a passing stage too: `test_repair_unit_reports_a_rolled_back_piece_by_reason`)."""
+    code, out = _run(tmp_path, slab_with_three_skirts())
+    report = json.loads((out / "report.json").read_text(encoding="utf-8"))
+    assert code == 0 and report["stages"][0]["final"] == "PASS" and report["exit_code"] == 0
+
+
+def test_the_exit_code_is_3_when_the_stage_was_rolled_back_whole_and_the_outputs_are_still_written(tmp_path,
+                                                                                                    monkeypatch):
+    """Finding 3: 3 when the stage was rolled back whole (or ended FAIL); the BEFORE ships, and every file is written."""
+    import engine.site_judge
+    monkeypatch.setattr(engine.site_judge, "SiteJudge", _FarNoiseJudge)
+    mesh = slab_with_three_skirts()
+    code, out = _run(tmp_path, mesh)
+    report = json.loads((out / "report.json").read_text(encoding="utf-8"))
+    stage = report["stages"][0]
+    assert stage["stage_rolled_back"] and stage["unknown"]["samples"] == 1
+    assert code == 3 and report["exit_code"] == 3
+    assert report["sites"]["kept"] == 0 and read_obj(out / "T-L01.fixed.obj").n_faces == mesh.n_faces
+    assert (out / "edit_log.jsonl").is_file()
+
+
+def test_the_help_documents_the_exit_codes():
+    import argparse
+    sub = next(a for a in cli.build_parser()._actions if isinstance(a, argparse._SubParsersAction))
+    text = " ".join(sub.choices["repair-unit"].format_help().split())
+    assert "exit 0" in text and "1" in text and "2" in text and "3" in text and "rolled back whole" in text
