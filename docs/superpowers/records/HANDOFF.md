@@ -33,8 +33,10 @@ run the latest `.skp` of each file must be in `OBJ FIXED RESULT/` for the owner 
 - **P2-E8b merged** (ed278b7): the narrow flat fill. No real hole qualifies before E6 joins the T-junctions (ruling
   R9); the fill measurement and the pictures follow E6. The Validator's one named class `fill_site` re-measures
   every limit itself; `validate --edit-log` gives it the fills.
-- **P2-E8c in progress:** `needs_modelling.json` per unit plus a read-only SketchUp helper that jumps the camera to
-  each spot.
+- **P2-E8c merged** (9cae2d2): `needs_modelling.json` per unit (sidewalk A 143 spots, sidewalk B 142, CHTM 5th 395)
+  plus the read-only SketchUp helper `tools/sketchup/needs_modelling_views.rb`. The helper has not been run in
+  SketchUp yet; it waits for the owner's OK to try it once on a working copy.
+- **E8 is complete.** Next: E3 (hidden faces, judged from outside and from eye height inside).
 - **P2-K0 merged** into `feat/repair-p1p2` (b43d27f): kernel prep for the new engines.
   - A new engine's stage that does not PASS is rolled back whole.
   - The edit log works for any engine.

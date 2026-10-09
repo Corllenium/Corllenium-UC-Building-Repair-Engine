@@ -180,6 +180,11 @@ lies on pixel centres from real damage, so the guard now measures the displaceme
 - **Merged** as ed278b7.
 - **E8c brief and dispatch.**
 
+### 2026-10-09: P2-E8c merged; E8 complete
+- **The needs-modelling queue and its read-only SketchUp helper.**
+- **Review:** CHANGES (the HtmlDialog links; a bypassable static scan). Fix round re-reviewed APPROVED.
+- **Merged** as 9cae2d2.
+
 ## 5. Measured state of the SketchUp files
 
 Audit of every edge SketchUp draws, read back through the C API (`scripts/skp_edge_audit.py`).
