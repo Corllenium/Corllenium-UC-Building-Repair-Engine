@@ -188,3 +188,22 @@ def test_the_cli_refuses_a_protected_output_and_an_unknown_unit(campus, capsys):
     assert "protected" in capsys.readouterr().err
     assert cli.main([*base, "--unit", "NOPE", "--out", str(campus / "o")]) == 2
     assert "no unit" in capsys.readouterr().err
+
+
+def test_a_source_row_without_a_sha256_is_refused(campus):
+    """P1-H1b item 11: `if frozen and actual != frozen` used to skip the check for a row with no hash."""
+    source = json.loads((campus / "source.json").read_text(encoding="utf-8"))
+    for row in source["snapshots"]:
+        row.pop("sha256")
+    (campus / "source.json").write_text(json.dumps(source), encoding="utf-8")
+    with pytest.raises(ValueError, match=r"Floor_A.*no sha256"):
+        _build(campus, "B-L01")
+    assert not (campus / "out" / "B-L01").exists()                         # nothing was built
+
+
+def test_an_empty_sha256_in_a_source_row_is_refused_too(campus):
+    source = json.loads((campus / "source.json").read_text(encoding="utf-8"))
+    source["snapshots"][0]["sha256"] = ""
+    (campus / "source.json").write_text(json.dumps(source), encoding="utf-8")
+    with pytest.raises(ValueError, match=r"Floor_A.*no sha256"):
+        _build(campus, "B-L01")

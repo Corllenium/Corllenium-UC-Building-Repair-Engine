@@ -74,10 +74,13 @@ def build_unit_before(campus_map: dict, source: dict, unit: str, out_dir, *, cop
         folder = Path(snap["dir"])
         obj = folder / snap["file"]
         frozen = snap.get("sha256")
-        if member.get("sha256") and frozen and member["sha256"] != frozen:
+        if not frozen:
+            raise ValueError(f"{member['group']}: source.json gives its snapshot no sha256, so the BEFORE cannot be "
+                             "checked against the freeze")
+        if member.get("sha256") and member["sha256"] != frozen:
             raise ValueError(f"{member['group']}: sha256 differs between campus_map.json and source.json")
         actual = sha256_file(obj)
-        if frozen and actual != frozen:
+        if actual != frozen:
             raise ValueError(f"{obj}: sha256 {actual[:12]} is not the frozen {frozen[:12]}")
         mesh = read_obj(obj)
         cz = mesh.positions[mesh.face_v][:, :, 2].mean(axis=1)
