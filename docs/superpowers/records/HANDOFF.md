@@ -26,6 +26,11 @@ run the latest `.skp` of each file must be in `OBJ FIXED RESULT/` for the owner 
 ## 2. Current state (2026-09-26 00:15, written by the Claude controller)
 
 **Update 2026-10-09 afternoon (the repair-engine controller session): P2 started.**
+- **P2-E8a merged** (76ca35a): solidify as the strict E8 engine; `engine.cli repair-unit`. Covered after rollback 0 on
+  sidewalks A and B and CHTM 5th; most pieces rolled back (kept 4/66, 10/54, 8/209).
+  - Owner questions open: (1) should the Validator judge every line of sight to a sample (both sides) instead of one?
+    (2) may a kept piece be visible itself when it hides nothing?
+- **P2-E8b in progress:** the narrow flat fill, with the Validator's one named `fill_site` class.
 - **P2-K0 merged** into `feat/repair-p1p2` (b43d27f): kernel prep for the new engines.
   - A new engine's stage that does not PASS is rolled back whole.
   - The edit log works for any engine.

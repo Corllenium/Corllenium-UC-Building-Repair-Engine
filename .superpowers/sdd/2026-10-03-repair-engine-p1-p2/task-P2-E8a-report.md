@@ -261,3 +261,81 @@ ce26e0392ab0 faces 4801 4801 | keys+UV multiset equal: True | same corner positi
 6. **Material `<none>`.** It is written as `usemtl <none>` with no `newmtl`, so viewers show their default material for it, as they would for a face before any `usemtl`. No real snapshot has such a face.
 7. **One test was written after its code:** the add-plus-remove test (see item 1).
 8. **Exit code.** `repair-unit` exits 0 when the run completes, whatever was rolled back; the verdicts are in report.json and on the printed lines.
+
+## Fix round 1 (review: Spec PASS, Quality APPROVED, five Minor findings)
+
+One commit per finding on `claude/P2-E8a`, test first. Not merged, not pushed.
+
+| finding | commit | change |
+|---|---|---|
+| 1 | 514ea40 | `repair-unit --snapshot` runs `refuse_protected(snapshot)` before `_load_snapshot`. The error says the folder is read only through `engine/io/snapshot.py`. |
+| 2 | bfa8257 | When the built BEFORE does not match the campus map (`matches_campus_map` false), the command prints a "DIFFERS from the campus map's tris" message on stderr and exits 1 before the kernel runs, as `campus-unit-before` does. |
+| 3 | 62bbf88 | Exit 0 when the E8 stage passed; exit 3 (`REPAIR_STAGE_FAILED`) when it was rolled back whole or ended any other way. The files are still written and the BEFORE ships. `report.json` gains `exit_code`, and the help (parser description), the module docstring and `cmd_repair_unit` list the codes 0/1/2/3. |
+| 4 | 5066211 | The protected-output test is real: `cli.main([... "--out", "D:/PROJECTS/UC ENVIRONMENT BUILDING/x"])` returns 2 with "protected" on stderr; `cmd_repair_unit` with that `--out` raises ValueError; nothing is created there. |
+| 5 | f90364f | `E8Solidify.plan` raises ValueError when `replaced_group` names a piece that has no face in `face_group`, instead of silently keeping the replaced faces. |
+
+Three points to note:
+- **Finding 3, what counts as passed.** "NOTHING KEPT" counts as a passing stage. Every piece was rolled back on its own charge, each confirmed by the Validator, and the stage's input ships. Exit 3 is for `stage_rolled_back`, or any final verdict other than PASS or NOTHING KEPT (FAIL or UNCONFIRMED). The existing test `test_repair_unit_reports_a_rolled_back_piece_by_reason` (compartment, NOTHING KEPT) keeps exit 0.
+- **Finding 3, the exit-3 test.** It swaps in `SiteJudge` through a monkeypatch: the real Validator plus one failing sample whose face id (999,999) is in no site's focus. That failure is charged to no site, so the stage is rolled back whole. My first try used face 0, but attribution charges by face membership in a site's box set, so face 0 was charged to both sites. The test was corrected before any code was written.
+- **Finding 4 was never red.** The guard already existed; the finding was that the old test asserted only the `_OUTPUT_ARGS` entry. So the new test passed on first run. To show it has teeth, I ran it once with `cli.refuse_protected` and `cli._refuse_protected_outputs` monkeypatched to no-ops: it FAILS, because stderr shows `error: [Errno 2] No such file or directory: ...no_map.json` instead of a refusal. That run could write nothing either: the map file does not exist.
+
+### Red, then green (real output)
+
+Finding 1, red:
+```
+$ pytest engine/tests/test_cli_repair_unit.py -k live_export
+E   AssertionError            <- raised by the monkeypatched _load_snapshot: the live export path was being read
+1 failed, 6 deselected in 1.77s
+```
+Finding 1, green: `7 passed in 1.58s` (test_cli_repair_unit.py)
+
+Finding 2, red:
+```
+$ pytest engine/tests/test_cli_repair_unit.py -k differs
+E       assert 0 == 1
+1 failed, 7 deselected in 9.63s
+```
+Finding 2, green: `8 passed in 1.45s`
+
+Finding 3, red (the test's judge already corrected; its assertions before the exit code hold):
+```
+$ pytest engine/tests/test_cli_repair_unit.py -k "exit_code or help"
+E       KeyError: 'exit_code'
+E       assert (0 == 3)
+E       AssertionError: assert ('exit 0' in 'usage: python -m engine.cli repair-unit [-h] ...')
+3 failed, 8 deselected in 1.28s
+```
+Finding 3, green: `11 passed in 1.71s`
+
+Finding 4: `1 passed, 10 deselected in 0.72s` (green at once). With the guards disabled:
+```
+E        +  where "error: [Errno 2] No such file or directory: '...\no_map.json'\n" = CaptureResult(...).err
+FAILED engine/tests/test_cli_repair_unit.py::test_repair_unit_refuses_a_protected_output
+1 failed, 10 deselected in 0.21s
+```
+
+Finding 5, red:
+```
+$ pytest engine/tests/test_e8_solidify.py -k replaced_face_whose
+E       Failed: DID NOT RAISE ValueError
+1 failed, 32 deselected in 1.10s
+```
+Finding 5, green: `33 passed in 14.32s` (test_e8_solidify.py)
+
+### Suites after the fix round
+
+```
+$ ( cd <worktree> && PYTHONPATH="$PWD" "$PY" -m pytest engine/tests -q -p no:cacheprovider )
+1760 passed, 1 xfailed in 564.68s (0:09:24)
+$ ( cd <worktree> && PYTHONPATH="$PWD" "$PY" -m pytest tools/tests -q -p no:cacheprovider )
+123 passed in 14.70s
+```
+
+Engine: 1754 plus 6 new tests (finding 4 rewrote an existing one). The xfail is the pre-existing one. The golden-unit runs were not repeated. No change in this round alters what E8 plans: finding 5 only adds a refusal, and on the real runs every replaced face's piece shipped faces, as the earlier 66, 54 and 209 sites show.
+
+Measured after the fix round: `E8Solidify.plan` with the finding-5 check, owner's profile, on the three golden units. None raises, and the edit and site counts are the earlier runs':
+```
+CHTM_SIDE_WALK_2nd_floor plan ok: 66 edits 66 sites
+CHTM_2nd_to_3rd_building_sidewalk_outside plan ok: 56 edits 54 sites
+CHTM-L05 plan ok: 216 edits 209 sites
+```
