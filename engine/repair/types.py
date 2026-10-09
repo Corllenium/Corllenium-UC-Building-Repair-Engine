@@ -59,6 +59,7 @@ ENGINES = tuple(f"E{i}" for i in range(1, 9))
 KINDS = ("remove", "flip", "add", "cut")
 POINT_ENGINES = ("E5", "E8")  # the E5 cut (points on the winner's border) and E8 solidify only
 POINT_KINDS = {"E5": ("cut",), "E8": ("add", "cut")}  # the kinds in which those engines may bring points
+NO_MATERIAL_LOOK = "material:<none>"  # the look of a face with no material (index -1): its own, never the last one
 ADD_ENGINES = ("E8",)  # the only engine that may "add" faces (E8's narrow flat fill); the rest cut, remove or flip
 
 
@@ -186,7 +187,8 @@ def _lex_less(a: np.ndarray, b: np.ndarray) -> np.ndarray:
 def face_keys(mesh: MeshData, looks: dict[int, str]) -> list[FaceKey]:
     """One `FaceKey` per face: sha256 over the face's 3 vertices snapped to the print step, with the
     winding kept but the starting vertex canonical (the lexicographically smallest rotation), plus the
-    face's look key (`looks[material index]`, else `"material:<name>"`).
+    face's look key (`looks[material index]`, else `"material:<name>"`; a negative material index, a face before
+    any `usemtl`, is the look `"material:<none>"`).
 
     Stable when faces are reordered or the vertex array is reordered or duplicated (it hashes
     positions, never ids); different for another look and for a flipped winding."""
@@ -207,9 +209,12 @@ def face_keys(mesh: MeshData, looks: dict[int, str]) -> list[FaceKey]:
         material = int(mesh.face_material[i])
         look = look_of.get(material)
         if look is None:
-            name = looks.get(material)
-            if name is None:
-                name = f"material:{mesh.materials[material]}"
+            if material < 0:   # a face before any `usemtl` is its own look, never the last material
+                name = NO_MATERIAL_LOOK
+            else:
+                name = looks.get(material)
+                if name is None:
+                    name = f"material:{mesh.materials[material]}"
             look = look_of[material] = name.encode("utf-8")
         out.append(hashlib.sha256(best[i].tobytes() + b"|" + look).hexdigest())
     return out
