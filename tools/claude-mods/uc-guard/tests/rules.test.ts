@@ -219,6 +219,94 @@ describe('rule 6: the owner result folders take only verified output', () => {
   })
 })
 
+describe('rule 7: stop only your own processes, by PID (M1c)', () => {
+  test('denies killing by image name in Bash and cmd forms', () => {
+    for (const c of [
+      'taskkill /F /T /IM python.exe',
+      'taskkill /im node.exe /f',
+      'taskkill -IM python.exe -F',
+      'taskkill /F /FI "IMAGENAME eq python.exe"',
+      'pkill -f uvicorn',
+      'killall python3',
+      'wmic process where name="python.exe" delete',
+      'wmic process where "name=\'python.exe\'" call terminate',
+    ]) expect(bash(c)).toBe(REASONS.kill)
+  })
+  test('denies killing by name in PowerShell', () => {
+    for (const c of [
+      'Stop-Process -Name python -Force',
+      'spps -n node',
+      'Stop-Process -ProcessName python',
+      'Get-Process python | Stop-Process -Force',
+      "Get-Process | Where-Object { $_.Name -eq 'python' } | Stop-Process",
+      'gps node | kill',
+    ]) expect(ps(c)).toBe(REASONS.kill)
+  })
+  test('review round 1: Git Bash //IM, any /FI, by-name selection stopped by id or .Kill()', () => {
+    for (const c of [
+      'taskkill //F //T //IM python.exe',
+      'taskkill //FI "IMAGENAME eq python.exe" //F',
+      'taskkill /F /FI "PID gt 1000"',
+      'taskkill /F /FI "MEMUSAGE gt 100000"',
+      'taskkill /F /FI "STATUS eq RUNNING" /FI "IMAGENAME eq python.exe"',
+    ]) expect(bash(c)).toBe(REASONS.kill)
+    for (const c of [
+      'Get-Process python | ForEach-Object { Stop-Process -Id $_.Id -Force }',
+      '(Get-Process python).Kill()',
+      'Get-Process -Name python | ForEach-Object { $_.Kill() }',
+    ]) expect(ps(c)).toBe(REASONS.kill)
+  })
+  test('review round 1 minors: nested cmd/powershell, env/timeout wrappers, kill -1, pgrep with kill', () => {
+    for (const c of [
+      'cmd /c taskkill /F /IM python.exe',
+      'powershell -c "Stop-Process -Name python"',
+      'pwsh -Command "Get-Process python | Stop-Process"',
+      'env -i pkill python',
+      'timeout 5 pkill python',
+      'kill -9 -1',
+      'pgrep -f python | xargs kill -9',
+      'kill $(pgrep -f python)',
+    ]) expect(bash(c)).toBe(REASONS.kill)
+    expect(ps('cmd /c taskkill /F /IM python.exe')).toBe(REASONS.kill)
+  })
+  test('review round 2: a script block is one statement; timeout -s; -EncodedCommand; ps | grep | xargs kill', () => {
+    for (const c of [
+      'Get-Process python | ForEach-Object { $x = $_.Id; Stop-Process -Id $x -Force }',
+      'Get-Process python |\n  ForEach-Object {\n    Stop-Process -Id $_.Id -Force\n  }',
+      'powershell -EncodedCommand UwB0AG8AcAAtAFAAcgBvAGMAZQBzAHMA',
+      'pwsh -enc UwB0AG8AcAAtAFAAcgBvAGMAZQBzAHMA',
+    ]) expect(ps(c)).toBe(REASONS.kill)
+    for (const c of [
+      'timeout -s KILL 5 pkill python',
+      'timeout -k 2 5 pkill python',
+      "ps -W | grep python | awk '{print $1}' | xargs kill -f",
+      'powershell -EncodedCommand UwB0AG8AcAAtAFAAcgBvAGMAZQBzAHMA',
+    ]) expect(bash(c)).toBe(REASONS.kill)
+  })
+  test('review round 2 allows: .Kill() in another statement, kill -0 liveness check', () => {
+    expect(ps('Get-Process python | Format-Table Id; $p.Kill()')).toBeUndefined()
+    expect(bash('pid=$(pgrep -f uvicorn) && kill -0 $pid')).toBeUndefined()
+    expect(bash('ps aux | grep python')).toBeUndefined()
+    expect(bash('powershell -ExecutionPolicy Bypass -File build.ps1')).toBeUndefined()
+  })
+  test('separate statements do not pair: listing then stopping something else by id passes', () => {
+    expect(ps('Get-Process | Out-Null; $p | Stop-Process')).toBeUndefined()
+    expect(ps('Get-Process python\nStop-Process -Id 5')).toBeUndefined()
+    expect(bash('taskkill //PID 1234 //F')).toBeUndefined()
+    expect(bash('pgrep -f python')).toBeUndefined()
+  })
+  test('allows stopping one process by its id, and listing processes', () => {
+    expect(bash('taskkill /PID 1234 /T /F')).toBeUndefined()
+    expect(bash('kill 1234')).toBeUndefined()
+    expect(bash('kill -9 1234 5678')).toBeUndefined()
+    expect(bash('ps aux | grep python')).toBeUndefined()
+    expect(bash('tasklist /FI "IMAGENAME eq python.exe"')).toBeUndefined()
+    expect(ps('Stop-Process -Id 1234 -Force')).toBeUndefined()
+    expect(ps('Get-Process -Id 1234 | Stop-Process')).toBeUndefined()
+    expect(ps('Get-Process python | Select-Object Id, CPU')).toBeUndefined()
+  })
+})
+
 describe('through the engine', () => {
   test('a denied call ends with the rule as its reason, and the tool never runs', async ($, on) => {
     let ran = false

@@ -3,8 +3,9 @@
 // mistakes past sessions made, not a full shell parser.
 
 type Shell = 'bash' | 'ps'
-// depth: how many parentheses enclose the segment; scopes: their ids, outermost first (each `(` gets a new id)
-type Segment = { words: string[]; depth: number; scopes: number[] }
+// depth: how many parentheses enclose the segment; scopes: their ids, outermost first (each `(` gets a new id);
+// stmt: the statement it belongs to (a new one after `;` or a newline, not after `|` or `&&`)
+type Segment = { words: string[]; depth: number; scopes: number[]; stmt: number }
 
 export const REASONS = {
   source:
@@ -19,6 +20,8 @@ export const REASONS = {
     'AGENTS.md §3 "Shared working tree": stage files by name; never git add -A / . / --all / -u, git commit -a, a git stash without push -m, or a force push.',
   live:
     'AGENTS.md §3 "Never touch": the live containers fixer-api, fixer-web and fixer-db and the live database fixer are the owner\'s; restarting them or writing to fixer needs his OK (HANDOFF §8).',
+  kill:
+    'stop only your own processes, by PID: killing by image name ends every matching process on the machine, other sessions and MCP servers included (2026-10-09: `taskkill /IM python.exe`). Use `taskkill /PID <n> /T /F` or `Stop-Process -Id <n>`.',
   secret:
     'the secret files: the Jev plan (2026-10-08, "The secret") says agents never read .env* files, and the controller\'s ruling adds never writing them; the same holds for auth.json and anything under Corllenium-Phone-session-Config. Code reads keys at run time.',
 } as const
@@ -107,6 +110,9 @@ function segments(command: string, shell: Shell): Segment[] {
   let inWord = false
   const scopes: number[] = []
   let opened = 0
+  let stmt = 0
+  let braces = 0
+  let afterPipe = false
   let quote: string | null = null
   const endWord = () => {
     if (inWord) words.push(word)
@@ -115,7 +121,7 @@ function segments(command: string, shell: Shell): Segment[] {
   }
   const endSegment = () => {
     endWord()
-    if (words.length) out.push({ words, depth: scopes.length, scopes: [...scopes] })
+    if (words.length) out.push({ words, depth: scopes.length, scopes: [...scopes], stmt })
     words = []
   }
   for (let i = 0; i < cmd.length; i++) {
@@ -131,6 +137,7 @@ function segments(command: string, shell: Shell): Segment[] {
     if (c === "'" || c === '"') {
       quote = c
       inWord = true
+      afterPipe = false
       continue
     }
     if (shell === 'bash' && c === '\\' && n !== '.') {
@@ -163,12 +170,18 @@ function segments(command: string, shell: Shell): Segment[] {
     }
     if (c === ';' || c === '\n' || c === '|' || c === '&') {
       endSegment()
+      // a new statement, unless inside a PowerShell script block or on the line after a trailing `|`
+      if ((c === ';' || (c === '\n' && !afterPipe)) && braces === 0) stmt++
+      if (c === '|') afterPipe = true
       continue
     }
     if (c === ' ' || c === '\t' || c === '\r') {
       endWord()
       continue
     }
+    afterPipe = false
+    if (shell === 'ps' && c === '{') braces++
+    if (shell === 'ps' && c === '}' && braces > 0) braces--
     word += c
     inWord = true
   }
@@ -178,8 +191,24 @@ function segments(command: string, shell: Shell): Segment[] {
 
 // The command words of a segment, past variable assignments, wrappers like sudo and shell keywords.
 function commandWords(words: string[]): string[] {
-  const i = words.findIndex(w => !/^[A-Za-z_][A-Za-z0-9_]*=/.test(w) && !WRAPPERS.has(w))
-  return i < 0 ? [] : words.slice(i)
+  let i = 0
+  while (i < words.length) {
+    const w = words[i] ?? ''
+    if (/^[A-Za-z_][A-Za-z0-9_]*=/.test(w)) {
+      i++
+    } else if (w === 'env' || w === 'nohup') {
+      i++
+      while ((words[i] ?? '').startsWith('-')) i++ // flag options such as env -i
+    } else if (w === 'timeout') {
+      i++
+      // its options (-s KILL and -k 2 take a value), then the duration
+      for (let o = words[i] ?? ''; o.startsWith('-'); o = words[i] ?? '') i += /^(-s|-k|--signal|--kill-after)$/.test(o) ? 2 : 1
+      i++
+    } else if (WRAPPERS.has(w)) {
+      i++
+    } else break
+  }
+  return words.slice(i)
 }
 
 // Words that may name files: a git or gh message value (-m "...") is prose, not a path.
@@ -370,6 +399,98 @@ function resultsReason(segs: Segment[]): string | undefined {
 
 // The engine reads only the TYPESAFE_API_KEY line of the file given to `python -m engine.cli ... --env-file`
 // (owner decision 2026-10-08: code reads keys at run time), so that one value is not an agent reading a secret.
+// Killing by image name ends every matching process on the machine, other sessions' included (M1c).
+// By PID (taskkill /PID, Stop-Process -Id, kill <pid>) stays allowed; so does listing processes.
+const NAME_KILLERS = new Set(['pkill', 'killall'])
+const PS_STOP = new Set(['stop-process', 'spps', 'kill'])
+const PS_GET = new Set(['get-process', 'gps', 'ps'])
+
+const PID_FINDERS = new Set(['pgrep', 'pidof'])
+const GREPS = new Set(['grep', 'egrep', 'rg', 'findstr'])
+// powershell -EncodedCommand and its prefixes (-e, -ec, -enc, ...): the command cannot be read, so it is refused
+const PS_ENCODED = /^[-/]e(c|n[a-z]*)?$/
+
+// Each statement (split at `;` or a newline outside a PowerShell script block) is judged on its own,
+// so a pipeline's parts pair up only with each other.
+type KillStmt = {
+  psGet: boolean; psGetByName: boolean; psStop: boolean; stopWord: boolean; dotKill: boolean
+  pidFinder: boolean; ps: boolean; grep: boolean; bashKill: boolean
+}
+
+function killReason(segs: Segment[], shell: Shell): string | undefined {
+  const stmts = new Map<number, KillStmt>()
+  const at = (n: number) => {
+    let st = stmts.get(n)
+    if (!st) {
+      st = { psGet: false, psGetByName: false, psStop: false, stopWord: false, dotKill: false, pidFinder: false, ps: false, grep: false, bashKill: false }
+      stmts.set(n, st)
+    }
+    return st
+  }
+  for (const s of segs) {
+    const st = at(s.stmt)
+    // (Get-Process python).Kill(), $_.Kill(): the word before the call's `(` ends in .Kill
+    if (shell === 'ps' && s.words.some(w => /\.kill$/i.test(w))) st.dotKill = true
+    const seg = commandWords(s.words)
+    const v = verb(seg[0])
+    if (v === undefined) continue
+    // Git Bash turns /IM into a path, so it is written //IM there
+    const args = seg.slice(1).map(a => a.toLowerCase().replace(/^\/+/, '/'))
+    if (NAME_KILLERS.has(v)) return REASONS.kill
+    if (v === 'taskkill' && args.some(a => a === '/im' || a === '-im' || a === '/fi' || a === '-fi')) return REASONS.kill
+    if (v === 'wmic' && args.includes('process') && args.some(a => a === 'delete' || a === 'terminate'))
+      return REASONS.kill
+    // a command handed to another shell: cmd /c ..., powershell -c ...
+    const inner = args.findIndex(a => a === '/c' || a === '/k')
+    if (v === 'cmd' && inner >= 0) {
+      const r = killReason(segments(seg.slice(inner + 2).join(' '), 'bash'), 'bash')
+      if (r) return r
+    }
+    if (v === 'powershell' || v === 'pwsh') {
+      if (args.some(a => PS_ENCODED.test(a))) return REASONS.kill
+      const psInner = args.findIndex(a => a === '-c' || a === '-command' || a === '/c' || a === '/command')
+      if (psInner >= 0) {
+        const r = killReason(segments(seg.slice(psInner + 2).join(' '), 'ps'), 'ps')
+        if (r) return r
+      }
+    }
+    if (shell === 'ps') {
+      const byId = args.some(a => /^-(id|inputobject)(:|$)/.test(a))
+      const byName = args.some(a => /^-(name|processname|n)(:|$)/.test(a))
+      if (PS_STOP.has(v)) {
+        if (byName) return REASONS.kill
+        if (!byId) st.psStop = true
+      }
+      if (PS_GET.has(v) && !byId) {
+        st.psGet = true
+        // -Name, or a bare name (Get-Process python)
+        if (byName || args.some(a => !a.startsWith('-'))) st.psGetByName = true
+      }
+      // Stop-Process inside a script block: ForEach-Object { Stop-Process -Id $_.Id }
+      if (seg.some(w => PS_STOP.has(w.toLowerCase()))) st.stopWord = true
+    } else {
+      if (PID_FINDERS.has(v)) st.pidFinder = true
+      if (v === 'ps') st.ps = true
+      if (GREPS.has(v)) st.grep = true
+      // kill -0 only checks that a process is alive
+      if (v === 'kill' && !args.includes('-0')) {
+        // kill -1 signals every process the user may signal
+        if (args.length >= 2 && args[args.length - 1] === '-1') return REASONS.kill
+        st.bashKill = true
+      }
+      if (v === 'xargs' && args.includes('kill')) st.bashKill = true
+    }
+  }
+  for (const st of stmts.values()) {
+    // Get-Process <name or filter> | Stop-Process: the pipeline selects by name, not by PID
+    if (st.psGet && st.psStop) return REASONS.kill
+    if (st.psGetByName && (st.stopWord || st.dotKill)) return REASONS.kill
+    // kill $(pgrep -f python), pgrep python | xargs kill, ps | grep python | ... | xargs kill: PIDs from a name match
+    if ((st.pidFinder || (st.ps && st.grep)) && st.bashKill) return REASONS.kill
+  }
+  return undefined
+}
+
 // Only when the command itself is a Python interpreter whose module is engine.cli. Only flag-only options may
 // come first (and the py launcher's version, -3.12): anything else, such as -cCODE, a lone `-` (program from
 // stdin) or -X with its value, ends Python's own options or takes a value, so there is no exemption.
@@ -407,6 +528,9 @@ function shellReason(command: string, shell: Shell): string | undefined {
 
   const results = resultsReason(segs)
   if (results) return results
+
+  const kill = killReason(segs, shell)
+  if (kill) return kill
 
   for (const s of segs) {
     const seg = commandWords(s.words)
