@@ -175,7 +175,7 @@ module UCNeedsModelling
     return unless ready?
     rows = @entries.each_with_index.map do |e, i|
       area = e['area_in2'].nil? ? '' : format('%.0f', e['area_in2'])
-      "<tr><td><a href='skp:go@#{i}'>Go</a></td><td>#{i + 1}</td><td>#{CGI.escapeHTML(e['id'].to_s)}</td>" \
+      "<tr><td><a href='#' onclick='sketchup.go(#{i}); return false'>Go</a></td><td>#{i + 1}</td><td>#{CGI.escapeHTML(e['id'].to_s)}</td>" \
         "<td>#{CGI.escapeHTML(e['kind'].to_s)}</td><td>#{CGI.escapeHTML(e['reason'].to_s)}</td><td>#{area}</td></tr>"
     end
     html = "<html><body style='font-family:sans-serif;font-size:13px'><h3>#{CGI.escapeHTML(@unit.to_s)}: " \

@@ -159,3 +159,13 @@ def test_the_scan_ignores_comments_and_strings():
     cleaned = code_only(sample)
     assert "save" not in cleaned and "add_face" not in cleaned and "entities.add" not in cleaned
     assert "1 + 1" in cleaned and "x = 1" in cleaned
+
+
+# ------------------------------------------------------------------ fix round: the List dialog's Go links
+
+def test_the_list_dialog_calls_sketchup_go_and_not_the_old_webdialog_protocol():
+    """An HtmlDialog ignores `skp:` links (the WebDialog protocol); its callbacks are reached by `sketchup.<name>(...)`."""
+    text = SCRIPT.read_text(encoding="utf-8")
+    assert "skp:" not in text, "skp: links are the old WebDialog protocol; HtmlDialog ignores them"
+    assert re.search(r"onclick='sketchup\.go\(#\{i\}\); return false'", text)
+    assert "add_action_callback('go')" in text
