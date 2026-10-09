@@ -298,15 +298,26 @@ class SiteJudge:
         sample and the viewpoint that judged it. "Between" is a box test, so it can only over-charge: the line of
         sight from the sample (from the depth tolerance behind it, for a layer on it) to the viewpoint (to infinity
         for a direction) meets the box of a new face grown by the depth tolerance, `EPS_ORIGIN` (the Validator's
-        rays start that far off the face) and a little slack."""
+        rays start that far off the face) and a little slack.
+
+        REMOVE-ONLY SITES (ruling E3-R8, job P2-E3). A site with no new faces (every edit of it a `remove`: an add,
+        cut or flip always brings new faces) can delete only its own faces' samples, so a `deleted` sample is charged
+        to it only when the sample lies on a face it touched -- never through its grown box. The Validator gives its
+        reasons per cluster of failing samples (`FailingSamples.clusters`), not per sample, so a sample counts as
+        `deleted` when every reason of its cluster is `deleted`; a sample of a mixed cluster, and every other kind
+        (covered, look, uv, ...), keeps the conservative attribution above."""
         s = verdict.samples
         grow = self.stage.tol + EPS_ORIGIN + _SLACK
         charged, how = {}, {}
         hit_any = np.zeros(len(s), dtype=bool)
+        only_deleted = np.array([bool(c) and set(c) <= {"deleted"} for c in s.clusters], dtype=bool)
+        deleted = only_deleted[s.cluster] if len(s) else np.zeros(0, dtype=bool)
         for site in sorted(sites):
             f = sites[site]
             by_touch = np.isin(s.face, f.touched)
             by_box = ~by_touch & np.isin(s.face, f.near)
+            if not len(f.new):
+                by_box &= ~deleted                    # ruling E3-R8: a removal deletes only its own faces' samples
             by_cover = ~by_touch & ~by_box & np.isin(s.face, f.cover)
             if by_cover.any() and len(f.new_lo):
                 rows = np.flatnonzero(by_cover)
