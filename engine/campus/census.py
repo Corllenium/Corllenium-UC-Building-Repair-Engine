@@ -100,7 +100,7 @@ def flicker_split(
     else:
         mat_path = DEFAULT_MATERIALS_PATH
         if not mat_path.is_file():
-            raise FileNotFoundError(f"Default materials map not found: {mat_path}")
+            raise FileNotFoundError(f"Materials map not found: {mat_path.resolve()} (pass --materials)")
         data = json.loads(mat_path.read_text(encoding="utf-8"))
         if not isinstance(data, dict):
             raise ValueError(f"Invalid materials JSON in {mat_path}")
