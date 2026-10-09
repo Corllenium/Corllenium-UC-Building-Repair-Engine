@@ -47,7 +47,8 @@
     Exit 0 when each member's face count is the campus map's, 1 when one differs, 2 on a refused input.
 
 `python -m engine.cli repair-unit (--unit <UNIT> | --snapshot <dir>) --engines E8 --out <dir>`
-    Repairs one unit with the P2 engines (E8, strict solidify, so far): builds its BEFORE as `campus-unit-before`
+    Repairs one unit with the P2 engines (E8: E8a, strict solidify, then E8b, the narrow flat fill; `E8a` or `E8b`
+    runs one of them): builds its BEFORE as `campus-unit-before`
     does (into `<dir>/before/`), runs the repair kernel with the site judge on (`validate_sites=True`), so each
     piece of work is its own site and one that breaks anything visible -- a rebuilt side covering anything any
     viewpoint sees, eye-height probes included -- is rolled back. Writes `<unit>.fixed.obj`, `edit_log.jsonl` and
@@ -993,12 +994,16 @@ def cmd_validate(before_dir: Path, after_path: Path, materials: Path, out_dir: P
 
 # ------------------------------------------------------------------------------------ repair-unit command
 
-#: The repair engines `repair-unit` runs (P2): only E8, strict solidify, so far.
-REPAIR_ENGINES = ("E8",)
+#: The repair engines `repair-unit` takes (P2): E8, which is E8a (strict solidify) then E8b (the narrow flat fill,
+#: ruling E8b-R7), or either one alone.
+REPAIR_ENGINES = ("E8", "E8a", "E8b")
+#: The kernel stages each engine name runs; they always run in this order, E8a before E8b.
+REPAIR_STAGES = {"E8": ("E8a", "E8b"), "E8a": ("E8a",), "E8b": ("E8b",)}
+_STAGE_ORDER = ("E8a", "E8b")
 #: `repair-unit`'s exit code when an engine stage was rolled back whole or ended FAIL (its outputs are still written).
 REPAIR_STAGE_FAILED = 3
 #: `repair-unit`'s exit codes, as its help gives them.
-REPAIR_EXIT_CODES = ("exit 0: the E8 stage passed (its last check PASS, or every piece rolled back on its own charge); "
+REPAIR_EXIT_CODES = ("exit 0: every E8 stage passed (its last check PASS, or every piece rolled back on its own charge); "
                      "1: the unit's BEFORE differs from the campus map, nothing repaired; "
                      "2: a refused input (unknown engine, protected folder, missing file); "
                      "3: the stage was rolled back whole or ended FAIL - every file is still written and the "
@@ -1076,6 +1081,7 @@ def cmd_repair_unit(out_dir: Path, *, unit: str | None = None, snapshot: Path | 
     campus map (nothing repaired). Raises ValueError for an unknown engine, a unit or snapshot missing (or both
     given), a protected `out_dir`, or a snapshot in a protected folder (`main` turns those into exit 2)."""
     from engine.campus.unit_before import build_unit_before
+    from engine.repair.engines.e8_fill import E8FlatFill
     from engine.repair.engines.e8_solidify import E8Solidify
     from engine.repair.kernel import repair_unit
     from engine.repair.types import RepairContext, UnitState
@@ -1117,13 +1123,16 @@ def cmd_repair_unit(out_dir: Path, *, unit: str | None = None, snapshot: Path | 
     obj_path, mesh, flatness, mtl_materials = _load_snapshot(before_dir)
     profile = profile or FixProfile()
     judge = SiteJudge(load_looks(Path(materials), [(mtl_materials, before_dir)]))
-    engine = E8Solidify(flatness=flatness)
+    stages = [s for s in _STAGE_ORDER if any(s in REPAIR_STAGES[e] for e in engines)]
+    solid = E8Solidify(flatness=flatness) if "E8a" in stages else None
+    fill = E8FlatFill() if "E8b" in stages else None
+    kernel_engines = [e for e in (solid, fill) if e is not None]
     out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / "report.json").unlink(missing_ok=True)
     built = time.perf_counter()
     result = repair_unit(UnitState(mesh=mesh, topo=None, looks={}, viewpoints=None),
                          RepairContext(profile=profile, decider=None, validator=judge),
-                         engines=[engine], validate_sites=True, edit_log=out_dir / "edit_log.jsonl")
+                         engines=kernel_engines, validate_sites=True, edit_log=out_dir / "edit_log.jsonl")
     repaired = time.perf_counter()
 
     name = mesh.name
@@ -1136,9 +1145,12 @@ def cmd_repair_unit(out_dir: Path, *, unit: str | None = None, snapshot: Path | 
             shutil.copyfile(before_dir / "materials.mtl", out_dir / "materials.mtl")
 
     checks = {c["stage"]: c for c in result.checks}
-    pieces, sites = _repair_report(result, checks)
+    by_stage = _edits_by_stage(result)
+    solid_stage = None if solid is None else solid.name
+    pieces, sites = _repair_report(_StageView(result, by_stage.get(solid_stage, [])),
+                                   {k: c for k, c in checks.items() if k == solid_stage})
     after = [dict(_after_rollback(c), stage=stage) for stage, c in checks.items()]
-    sr = engine.report or {}
+    sr = (solid.report if solid is not None else None) or {}
     report = {
         "unit": unit, "snapshot": None if snapshot is None else str(snapshot), "engines": engines,
         "before": {"obj": str(obj_path), "sha256": sha256_file(obj_path), "faces": int(mesh.n_faces),
@@ -1163,14 +1175,34 @@ def cmd_repair_unit(out_dir: Path, *, unit: str | None = None, snapshot: Path | 
 
     _print_checks(name, result.checks, repaired - built)
     s = sites
-    print(f"{name}: E8 built {s['built']} pieces ({s['by_piece']['wall']['built']} walls, "
-          f"{s['by_piece']['bottom']['built']} bottoms); kept {s['kept']}, rolled back {s['rolled_back']} "
-          f"{s['rolled_back_by_reason']}; covered after rollback {report['covered_after_rollback']}; "
+    if solid is not None:
+        print(f"{name}: E8 built {s['built']} pieces ({s['by_piece']['wall']['built']} walls, "
+              f"{s['by_piece']['bottom']['built']} bottoms); kept {s['kept']}, rolled back {s['rolled_back']} "
+              f"{s['rolled_back_by_reason']}")
+    print(f"{name}: covered after rollback {report['covered_after_rollback']}; "
           f"{mesh.n_faces} -> {result.mesh.n_faces} faces; {report['seconds']['total']} s; wrote {out_dir}")
     if report["exit_code"] == REPAIR_STAGE_FAILED:
         print(f"{name}: an engine stage was rolled back whole or did not end PASS: the BEFORE ships for it "
               f"(exit {REPAIR_STAGE_FAILED})", file=sys.stderr)
     return report["exit_code"]
+
+
+class _StageView:
+    """The part of a kernel result one stage made: its `edits` and the `kept` among them."""
+
+    def __init__(self, result, edits: list):
+        ids = {id(e) for e in edits}
+        self.edits = list(edits)
+        self.kept = [e for e in result.kept if id(e) in ids]
+
+
+def _edits_by_stage(result) -> dict:
+    """`{stage: [its edits]}`: the edit lines of `result.records` run in the order of `result.edits`."""
+    lines = [r for r in result.records if "check" not in r]
+    out: dict = {}
+    for edit, line in zip(result.edits, lines):
+        out.setdefault(line["stage"], []).append(edit)
+    return out
 
 
 def _repair_exit_code(checks: list[dict]) -> int:
@@ -1312,7 +1344,9 @@ def build_parser() -> argparse.ArgumentParser:
     where.add_argument("--unit", default=None, help="the unit's name in the campus map, e.g. CHTM-L05")
     where.add_argument("--snapshot", type=Path, default=None,
                        help="a snapshot folder (one .obj, materials.mtl, tex/) as the BEFORE, instead of a unit")
-    repair_p.add_argument("--engines", nargs="+", required=True, help=f"the engines to run: {', '.join(REPAIR_ENGINES)}")
+    repair_p.add_argument("--engines", nargs="+", required=True,
+                          help=f"the engines to run: {', '.join(REPAIR_ENGINES)} (E8 = E8a, strict solidify, then E8b, "
+                               f"the narrow flat fill)")
     repair_p.add_argument("--out", type=Path, required=True,
                           help="receives before/, <unit>.fixed.obj, edit_log.jsonl and report.json (a short temp folder)")
     repair_p.add_argument("--map", type=Path, default=Path("data/campus/campus_map.json"),

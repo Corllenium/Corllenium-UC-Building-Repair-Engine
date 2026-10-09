@@ -89,6 +89,16 @@ def square_hole_slab(**kw):
     return holed_slab("square_hole_slab", holes={(i, j) for i in (4, 5) for j in (4, 5)}, **kw)
 
 
+def floor_over_room(holes=None, nx=12, ny=12):
+    """An open floor (m0, one sheet) 120 x 120 in over a room floor (m1) 100 in below. By default two holes: a 20 in
+    square (cells (1..2, 1..2)), which the narrow flat fill takes, and a 60 in square (cells (5..10, 4..9)), refused
+    as too wide (R3). E8a (solidify) builds nothing on it; both outer borders are patch borders."""
+    if holes is None:
+        holes = {(i, j) for i in (1, 2) for j in (1, 2)} | {(i, j) for i in range(5, 11) for j in range(4, 10)}
+    return holed_slab("floor_over_room", nx=nx, ny=ny, holes=holes, closed=False, materials=("m0", "m1"),
+                      below=(100.0, 1))
+
+
 def fillable_and_wide_holes():
     """A closed 120 x 120 x 8 in slab with two holes in its top: a 20 in square (cells (1..2, 1..2)), which the
     narrow flat fill takes, and a 60 in (1.52 m) square (cells (5..10, 4..9)), wider than one block: refused (R3)."""
