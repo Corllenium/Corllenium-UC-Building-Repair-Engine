@@ -24,8 +24,8 @@ sample to the sites that could have caused it, rolls those back and confirms wit
 one site each and are logged, not rolled back (ruling K3-R2). A non-legacy stage that does not end PASS is rolled
 back as a whole, and the next stage runs on the stage's input (P2-K0). The edit log then also carries a
 `{"check": {...}}` line after each stage's edits and `"rolled_back": true` on every dropped edit;
-the check lines hold run DURATIONS (seconds), so unlike the edit lines they differ between runs. A non-legacy
-stage that planned no edit writes no check line (its record is still in `KernelResult.checks`).
+the check lines hold run DURATIONS (seconds), so unlike the edit lines they differ between runs. Every stage writes
+its check line, one that planned nothing included: the edit log is the audit trail (ruling P2-E8b-R10).
 Without `validate_sites` the kernel is exactly P1-K2's.
 
 FLAT FILLS (P2-E8b). An E8 "add" whose evidence marks it `flat_fill` with its `loop` (the stage input's vertex ids)
@@ -398,10 +398,7 @@ def _repair_checked(unit: UnitState, ctx: RepairContext, *, flatness, obj_path, 
             records.append({**line, "rolled_back": True} if e.site in rolled else line)
         if check is not None:
             checks.append(check)
-            if planned or is_legacy:
-                # a non-legacy stage that planned nothing has no edits for a check line to follow (P2-E8b: E8b after
-                # an E8a that closed every hole); its record stays in `checks`
-                records.append({"check": check})
+            records.append({"check": check})
         if is_legacy and not rolled:
             current = engine.run.current.as_mesh()
         else:

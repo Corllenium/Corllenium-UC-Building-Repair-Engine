@@ -91,7 +91,7 @@ def test_repair_unit_writes_the_fixed_obj_the_edit_log_and_the_report(tmp_path):
     assert report["before"]["faces"] == mesh.n_faces and report["after"]["faces"] == fixed.n_faces > mesh.n_faces
     assert {p["piece"] for p in report["pieces"]} == {"wall", "bottom"} and all(p["kept"] for p in report["pieces"])
     lines = [json.loads(line) for line in (out / "edit_log.jsonl").read_text(encoding="utf-8").splitlines()]
-    assert sum("check" in line for line in lines) == 1
+    assert sum("check" in line for line in lines) == 2, "one check line per stage: E8 runs E8a then E8b (R10)"
     assert {line["site"] for line in lines if "check" not in line} == {p["site"] for p in report["pieces"]}
     assert (out / "before" / "T-L01.obj").is_file()
 

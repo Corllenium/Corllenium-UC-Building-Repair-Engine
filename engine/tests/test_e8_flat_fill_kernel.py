@@ -88,12 +88,14 @@ def test_the_kernel_hands_the_judge_the_mark_without_it_the_fill_is_rolled_back(
     assert got.kept == [] and len(got.rolled_back) == 1
 
 
-def test_a_stage_that_planned_nothing_writes_no_check_line_but_keeps_its_record(tmp_path):
+def test_a_stage_that_planned_nothing_still_writes_its_check_line(tmp_path):
+    """Ruling P2-E8b-R10: every stage writes its check line; the edit log is the audit trail."""
     log = tmp_path / "edit_log.jsonl"
     mesh = floor_over_room(holes=set())                      # no hole: E8b plans nothing
     got = _run(E8FlatFill(), mesh, log)
     assert got.checks[0]["edits"] == 0 and got.checks[0]["final"] == "PASS"
-    assert log.read_text(encoding="utf-8") == ""
+    (line,) = [json.loads(x) for x in log.read_text(encoding="utf-8").splitlines()]
+    assert line["check"]["stage"] == "E8b" and line["check"]["edits"] == 0
 
 
 # ------------------------------------------------------------------------------------- repair-unit engines
@@ -120,14 +122,14 @@ def test_repair_unit_e8a_or_e8b_runs_one_stage(tmp_path):
     assert code == 0 and [s["stage"] for s in report["stages"]] == ["E8b"]
 
 
-def test_repair_unit_e8_on_a_slab_e8a_closes_writes_one_check_line(tmp_path):
-    """E8b finds nothing left after E8a on slab_with_three_skirts: the edit log keeps one check line."""
+def test_repair_unit_e8_on_a_slab_e8a_closes_writes_one_check_line_per_stage(tmp_path):
+    """E8b finds nothing left after E8a on slab_with_three_skirts; both stages still write their check line (R10)."""
     paths, _snap = _campus(tmp_path, slab_with_three_skirts())
     out = tmp_path / "out"
     assert cli.cmd_repair_unit(out, unit="T-L01", engines=["E8"], campus_map=paths["map"], source=paths["source"],
                                materials=paths["materials"], profile=_FAST) == 0
     lines = [json.loads(line) for line in (out / "edit_log.jsonl").read_text(encoding="utf-8").splitlines()]
-    assert sum("check" in line for line in lines) == 1
+    assert [line["check"]["stage"] for line in lines if "check" in line] == ["E8", "E8b"]
 
 
 def test_the_parser_and_help_name_e8a_and_e8b():
