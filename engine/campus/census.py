@@ -31,7 +31,7 @@ from engine.detectors.errors import find_errors
 from engine.io.obj_reader import read_obj
 from engine.model import MeshData
 from engine.io.protected import refuse_protected
-from engine.campus.materials import _material_name as _mat_name, split_flicker_pairs
+from engine.campus.materials import material_name as _mat_name, split_flicker_pairs
 from engine.campus.winprobe import get_machine_load, get_process_peak_memory_mb
 
 
