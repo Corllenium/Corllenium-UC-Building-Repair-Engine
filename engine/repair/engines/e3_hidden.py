@@ -9,7 +9,9 @@ input; the faces it gives back stay. When E8a ran first (`solidify`), the input 
 cover only through rule 6 (`SolidifyResult.seen_through_shell`) are left out too, by K1 face key, as the legacy
 stage leaves them out of the solidified reference.
 
-THEN TWO RULES TAKE FACES OUT, before the judge runs:
+THEN THESE RULES TAKE FACES OUT, before the judge runs:
+- E3-R9, NEVER ZERO-AREA FACES (fix round 1). A zero-area face (`~topo.ok`) belongs to E1 (debris and zero-area): the
+  legacy pass 1 removes it with the hidden ones, E3 leaves it (`report["excluded"]["zero_area"]`).
 - E3-R3, NEVER SIDE MESHES. A face is a slab side when solidify, run on the stage input as a measurement only (its
   output is thrown away), takes it as one (`SolidifyResult.side_faces`: an own side of a top it plans -- a side face,
   `|n_z| <= top_min_nz`, with an edge along the top's outline -- or a piece it finds in the side band under one of
@@ -29,7 +31,7 @@ THEN TWO RULES TAKE FACES OUT, before the judge runs:
 ONE SITE PER EDGE-CONNECTED GROUP of what is left (faces sharing an edge of the welded topology, within the
 candidate set). A group over `MAX_SITE_FACES` (512) faces is split by a spatial grid over its faces' centroids
 (`split_group`), so one visible face cannot roll back a whole storey's interior. Each site is one `remove` edit,
-labelled E3 (a zero-area face too: its rule says which), judged by the kernel's site checks (`validate_sites=True`):
+labelled E3, judged by the kernel's site checks (`validate_sites=True`):
 a site whose removal deletes any sample some viewpoint sees -- outside directions, ring cameras, eye-height probes,
 and the 1,024 extra directions the Validator casts for faces that are gone -- is rolled back (ruling E3-R2).
 
@@ -38,8 +40,8 @@ it, for a later job (a winding-number test needs the owner's OK to install).
 
 `evidence` of an edit: `group` (its connected group), `cell` (its grid cell, None when the group was not split),
 `group_faces`, `faces`, `area` (sq in), `exposure` (`front_max`, `back_max` over its faces, from
-`compute_side_exposure`), `rules` (per face, in `faces` order: "hidden" or "zero_area", the legacy rule that made it a
-candidate), `centroid` and `bbox` (model coordinates). `report` (the last run): the legacy counts, what each rule took
+`compute_side_exposure`), `rules` (per face, in `faces` order, the legacy rule that made it a candidate: "hidden",
+the only one E3 takes since ruling E3-R9), `centroid` and `bbox` (model coordinates). `report` (the last run): the legacy counts, what each rule took
 out, the candidates, groups and sites, the probe numbers and the disagreements.
 """
 from __future__ import annotations
@@ -217,9 +219,10 @@ class E3Hidden:
         seen = probe_samples > 0
         seconds["probes"] = time.perf_counter() - t0
 
-        excluded = {"invented": 0, "side": 0, "seen_through_shell": 0, "probe": 0}
+        # E3-R9 (fix round 1): a zero-area face is E1's (debris and zero-area), never an E3 candidate
+        excluded = {"zero_area": 0, "invented": 0, "side": 0, "seen_through_shell": 0, "probe": 0}
         left = removed.copy()
-        for name, mask in (("invented", invented), ("side", side), ("seen_through_shell", through),
+        for name, mask in (("zero_area", ~ok), ("invented", invented), ("side", side), ("seen_through_shell", through),
                            ("probe", seen)):
             hit = left & mask
             excluded[name] = int(hit.sum())
@@ -267,13 +270,12 @@ class E3Hidden:
                                          .reshape(-1, 3).mean(axis=0)],
                             "bbox": [[round(float(v), 4) for v in corners.min(axis=0)],
                                      [round(float(v), 4) for v in corners.max(axis=0)]]}
-                n_zero = rules.count("zero_area")
                 edits.append(Edit(
                     engine="E3", kind="remove", faces=tuple(faces.tolist()), new_faces=None, new_points=None,
                     site=len(edits),
                     reason=(f"E3 hidden: {len(faces)} face(s) of connected group {g} ({len(members)} faces) that the "
-                            f"legacy pass 1 removes ({len(faces) - n_zero} with exposure 0 from every outside "
-                            f"direction, {n_zero} of zero area, confirmed by its strict guard); none a slab side, none "
+                            f"legacy pass 1 removes (exposure 0 from every outside direction, confirmed by its strict "
+                            f"guard); none of zero area (E1's), none a slab side, none "
                             f"seen by an eye-height probe, none seen at any point of its {DENSE_POINTS_PER_FACE}-point "
                             f"lattice"),
                     evidence=evidence))

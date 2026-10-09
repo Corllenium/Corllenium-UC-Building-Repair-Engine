@@ -235,6 +235,20 @@ def test_a_face_solidify_invented_is_never_a_candidate():
     assert edits == [] and engine.report["excluded"]["invented"] == 2
 
 
+def test_a_zero_area_face_is_never_an_e3_candidate():
+    """Ruling E3-R9 (fix round 1): zero-area faces belong to E1 (debris and zero-area). The legacy pass 1 removes a
+    hidden zero-area triangle (face 14, three collinear points inside the sealed cube) with the partition; E3 plans
+    only the partition, and names the zero-area face as left out."""
+    P = [[2.0, 2.0, 2.0], [4.0, 4.0, 4.0], [6.0, 6.0, 6.0]]
+    sliver = _mesh("sliver", P, [[0.0, 0.0], [0.1, 0.1], [0.2, 0.2]], [[0, 1, 2]], [[0, 1, 2]], face_material=[0])
+    mesh = _with_plate(B.box_with_partition(), sliver)
+    engine, edits = _plan(mesh, probe_view=_blind, dense_view=_blind)
+    assert 14 in engine.report["legacy_removed"] and engine.report["by_rule"]["zero_area"] == 1
+    assert sorted(f for e in edits for f in e.faces) == [12, 13]
+    assert engine.report["excluded"]["zero_area"] == 1
+    assert all(rule == "hidden" for e in edits for rule in e.evidence["rules"])
+
+
 # ------------------------------------------------------------------------------- E3-R4: never room surfaces
 
 def test_a_closed_room_seen_only_from_its_probe_keeps_every_face():
