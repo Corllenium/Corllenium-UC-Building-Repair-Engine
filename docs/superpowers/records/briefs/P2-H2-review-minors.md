@@ -82,6 +82,27 @@ Do them in order, test first, with one commit per item.
   more spaces.
 - The existing static scan (`tools/tests/test_needs_modelling_views.py`) must still pass.
 
+### Item 7 (added 2026-10-11): the P2-V2 re-review's minors in the Validator's floor
+
+The Validator now judges to the owner's floor (merged 0795710). These three notes are small and allowed in
+`engine/validate/**` because they only add tests or wording; **no verdict may change.**
+
+1. **The 5° boundary has no test.** In `engine/tests/test_validate_floor_covered.py`, add two cases around the
+   near-parallel rule (`|n_blocker · n_sample| >= cos 5°` in `_Judge.blocker`, `engine/validate/checks.py` about
+   lines 600-612): a layer tilted about 4° and within the depth tolerance stays excused (check 3 PASS); one tilted
+   about 6° covers (check 3 FAIL). Build them from the existing overlay fixture in that file.
+2. **The `_FLOOR_LATTICE_PER_LINE` flag** (`engine/validate/checks.py` about line 72) keeps a second code path only
+   for the equivalence test, and the change it was added for gave no speedup. Keep the flag, but reword its comment
+   to say it is a reference path for `test_validate_floor_speed.py` and gave no speedup; in
+   `engine/tests/test_validate_floor.py`, replace `getattr(b, "weight", np.ones(len(b)))` with `b.weight`.
+3. **The report's known limits.** Append to `.superpowers/sdd/2026-10-03-repair-engine-p1-p2/task-P2-V2-report.md`
+   under "Item 5: the floor's known limits": (3) a blocker within 5° of parallel and within the depth tolerance stays
+   an overlay rather than a cover on grazing lines (the V2-R3 overlay class); (4) floor pixel counts are float areas,
+   not integers. Use `git add -f` for that file.
+
+- **Done when:** the two new boundary tests pass, `engine/tests/test_validate_floor.py` and
+  `engine/tests/test_validate_floor_covered.py` pass, and the report has the two limits.
+
 ## Acceptance commands
 
 ```bash
