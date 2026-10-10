@@ -301,3 +301,83 @@ Rules touched (§3-6):
 - **§5/§6:** the judge only became stricter or more exact. The one excused case is the corner artefact, measured as a false positive.
 - **Outputs:** only under `C:/Temp/v2`.
 - **Processes:** I stopped only my own, by PID: two stale pytest runs, 2198 and 539.
+
+## Item 8: the owner's horizon rule (filed by the controller from the implementer's hand-back; the write was refused)
+
+**Commit:** c0a7792, with the code, the new tests and the changed tests together.
+
+**Suites at c0a7792:**
+
+```
+engine/tests: 1880 passed, 1 xfailed in 1388.50s (0:23:08)
+tools/tests:  180 passed in 10.78s
+```
+
+### The sign rule
+
+A direction `d` is a look direction; the viewer stands infinitely far off at `-d`. The model is Z up, so the viewer
+is at or above the horizon when `d_z <= 0`.
+
+- `viewpoints.above_horizon_directions(n)` keeps 64 of the 128 standard directions and 512 of the 1,024 extra ones.
+- The Validator's defaults and the site judge (its stage viewpoints and `lattice_seen`) use them.
+- Ring cameras and probes are unchanged. The 26 inside-vote rays are not viewpoints, so they still cover the whole
+  sphere.
+- **Not routed yet:** `engine/campus/needs_modelling.py` still uses the whole sphere.
+
+### New tests (`test_validate_horizon.py`, 4)
+
+- the kept directions have `d_z <= 0`, number n/2, and are a subset of the sphere;
+- closing an open slab whose only visible inside is its underside is check 3 PASS;
+- a plate over the top, seen from above, still fails `covered`;
+- the slot mutation still fails the floor.
+
+Red first: `ImportError`. Through the full-sphere Validator the open slab gives `check3 FAIL covered 122 floor failed
+10`. Green: `4 passed`.
+
+### The below-ground-only mutation that flipped to PASS
+
+The fill over a box's open bottom (in `test_validate_fill_site`), renamed. It is still refused as dishonest (the
+neighbours are not coplanar).
+
+### Changed existing tests in item 8
+
+- The cube and room tests in `test_validate_checks`: sample, face and direction counts, because the bottom is seen
+  only from below the ground.
+- `test_validate_focus`: the out-of-focus defect moves from the bottom face to the top face.
+- The byte-for-byte fill_site test: both Validators are given the whole sphere explicitly.
+- Two `test_kernel_site_checks` overlap helpers: they now drop the top face instead of the bottom.
+
+### Item 7 again, with the horizon rule (outputs in C:/Temp/v2/val_new/)
+
+| Run | Old checks 1 / 3 | New check 3 | New floor | Old s | New s |
+|---|---|---|---|---|---|
+| sidewalk A, E8a | PASS / PASS | FAIL, 167 covered | FAIL, 16 of 16 covered faces | 29 | 23 |
+| sidewalk A, E8a+E3 | PASS / PASS | FAIL, 167 covered | FAIL, 25 of 27 (16 covered, 9 of 11 removed) | 27 | 47 |
+| sidewalk B, E8a | PASS / PASS | FAIL, 2 overlaid | PASS | 59 | 49 |
+| sidewalk B, E8a+E3 | PASS / PASS | FAIL, 2 overlaid | FAIL, 6 of 6 removed | 72 | 134 |
+| CHTM 5th, E8a | PASS / PASS | PASS | PASS | 434 | 210 |
+| CHTM 5th, E8a+E3 | PASS / PASS | FAIL (floor) | FAIL, 19 of 22 removed | 330 | 1,194 |
+
+- **Against full-sphere:** sidewalk A 937 → 167 covered, 97 → 16 faces; sidewalk B covered 22 → 0; removed faces
+  failing 12 → 9, 10 → 6, 55 → 19.
+- **Worst faces:** sidewalk A 1669 154,981 px (covered by E8a's new faces 4691-4693, seen from above); CHTM 11816 ≥
+  22,068 px (probe 1339).
+- The crops are described; 8810 and 16754 are uninformative.
+
+### Rulings V2-R4 to V2-R9
+
+- **V2-R4:** UV changes stay with check 1.
+- **V2-R5:** additional lines cover only beyond the tolerance along the line and square to the face.
+- **V2-R6:** covered faces are judged on the standard viewpoints; removed faces also on the extra directions.
+- **V2-R7:** a face is measured only where a seen lattice point is lost.
+- **V2-R8:** the 2^18-ray cap reports `at_least` with `pixels_estimate`.
+- **V2-R9:** the floor never excuses a sample-level failure.
+
+### Concerns
+
+1. Sidewalk A still has 16 faces covered by E8a. Those outputs were built by engines judged with the old Validator;
+   the repair-unit re-run with this judge is the proof.
+2. E3's outputs fail the floor: 9, 6 and 19 removed faces.
+3. CHTM with E3 takes 1,194 s against 330 s.
+4. `needs_modelling.py` still uses the whole sphere.
+5. Some crops are uninformative.
