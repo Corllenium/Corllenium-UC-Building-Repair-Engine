@@ -13,10 +13,12 @@ HOW A VIEW IS DRAWN.
   centroid. Each pixel's ray comes from outside the mesh's bounding box along `dir`.
 * A CAMERA OR PROBE (a point `e`) is drawn in PERSPECTIVE, as a cube map round `e`: six square image planes at unit
   distance, one along the line from `e` to the face's centroid and the other five square to it, each with an angular
-  pitch of `px / D`, where `D` is the distance from `e` to the face's centroid. So a pixel is `px` wide AT THE FACE
-  (ruling: "the pixel size taken at the face"), and a face that wraps round a probe (the floor under it) is drawn
-  whole, on as many of the six planes as it reaches. A ray belongs to the one plane its direction is most along
-  (ties to the first), so no pixel is drawn twice.
+  pitch of `px / D`, where `D` is the distance from `e` to the face's centroid. A face that wraps round a probe (the
+  floor under it) is drawn whole, on as many of the six planes as it reaches. A ray belongs to the one plane its
+  direction is most along (ties to the first), so no pixel is drawn twice. EACH PIXEL IS WEIGHTED (P2-V2 review,
+  finding 2) by `(r / D)^2 g`, `r` its distance and `g = (1 + s^2 + t^2)^-1.5` its gnomonic factor, so it counts its
+  own area at `px` across the line of sight wherever on the face it lies: the owner's 0.02 in per pixel "at the face",
+  measured across the line of sight. Counts from a point are therefore sums of weights, not integers.
 
 WHAT "NEAREST" MEANS. A pixel shows the face when the pixel's ray crosses the face (in float64, inside the triangle,
 its edges included) and Embree's first hit along the same ray is not more than `ZFIGHT` in front of that crossing.
@@ -104,6 +106,14 @@ class PixelBlock:
     bary: np.ndarray                 #: (k, 3) the points' barycentric weights on the face
     rays: int = 0                    #: how many candidate rays the block cast (its pixels and the ones it did not show)
     of_rays: int = 0                 #: how many candidate rays the whole face has from this viewpoint
+    #: (k,) what each pixel counts: 1 for a direction; for a camera or probe its own area at `px` across the line of sight,
+    #: in pixels, `(r / D)^2 g` (see `face_pixels`). None reads as all ones.
+    weight: np.ndarray | None = None
+
+    @property
+    def count(self) -> float:
+        """The block's pixels, each counted by its weight."""
+        return float(len(self.points) if self.weight is None else self.weight.sum())
 
     def __len__(self) -> int:
         return int(len(self.points))
@@ -112,7 +122,7 @@ class PixelBlock:
 def _empty_block(rays: int, of_rays: int) -> PixelBlock:
     z3, z = np.zeros((0, 3)), np.zeros(0)
     return PixelBlock(points=z3, toward=z3, reach=z, ij=np.zeros((0, 2), np.int64), plane=np.zeros(0, np.int64),
-                      t=z, bary=z3, rays=int(rays), of_rays=int(of_rays))
+                      t=z, bary=z3, rays=int(rays), of_rays=int(of_rays), weight=z)
 
 
 @dataclass(frozen=True, eq=False)
@@ -342,14 +352,21 @@ def face_pixels(mesh: MeshData, face: int, viewpoint: Viewpoint, caster=None, *,
             if viewpoint.kind == "direction":
                 toward = np.broadcast_to(-viewpoint.at, pts.shape).copy()
                 reach = np.full(len(idx), np.inf)
+                weight = np.ones(len(idx))
             else:
                 v = viewpoint.at - pts
                 reach = np.linalg.norm(v, axis=1)
                 toward = v / np.maximum(reach, 1e-300)[:, None]
+                # the pixel's own area at `px` across its line of sight (P2-V2 review, finding 2): its solid angle on the
+                # cube plane is pitch^2 g, g = (1 + s^2 + t^2)^-1.5 (gnomonic), and at distance r that spans
+                # pitch^2 g r^2 = px^2 (r / D)^2 g square inches, with pitch = px / D
+                s_, t_ = i[idx] * plane.pitch, j[idx] * plane.pitch
+                gnomonic = (1.0 + s_ * s_ + t_ * t_) ** -1.5
+                weight = (tf[idx] * plane.pitch / px) ** 2 * gnomonic
             yield PixelBlock(points=pts, toward=toward, reach=reach, ij=np.stack([i[idx], j[idx]], axis=1),
                              plane=np.full(len(idx), plane.index, dtype=np.int64), t=tf[idx],
                              bary=np.stack([1.0 - wb[idx] - wc[idx], wb[idx], wc[idx]], axis=1), rays=cast,
-                             of_rays=of_rays)
+                             of_rays=of_rays, weight=weight)
 
 
 def floor_lattice(mesh: MeshData, faces) -> Samples:
@@ -380,8 +397,8 @@ def floor_lattice(mesh: MeshData, faces) -> Samples:
 
 
 def face_visible_pixels(before_mesh: MeshData, face: int, viewpoint: Viewpoint, caster=None, *,
-                        px: float = FLOOR_IN_PER_PX) -> int:
+                        px: float = FLOOR_IN_PER_PX) -> float:
     """How many pixels, at `px` (0.02 in) per pixel, `face` of `before_mesh` shows from `viewpoint`: the pixels of an
     ID buffer of the mesh along that viewpoint's lines, centred on the face, where the face is the nearest surface
     (see the module docstring). From either side of the face. `caster`: `build_caster(before_mesh)`, to reuse."""
-    return int(sum(len(block) for block in face_pixels(before_mesh, face, viewpoint, caster, px=px)))
+    return float(sum(block.count for block in face_pixels(before_mesh, face, viewpoint, caster, px=px)))

@@ -1216,15 +1216,16 @@ class _Floor:
             rays += blk.rays
             of_rays = blk.of_rays
             if len(blk):
-                visible += len(blk)
+                weight = np.ones(len(blk)) if blk.weight is None else blk.weight      # perspective pixels: true area
+                visible += float(weight.sum())
                 mask, reason, cover_face = self._lost(face, col, vp, blk)
                 if mask.any():
-                    lost += int(mask.sum())
-                    for code, count in zip(*np.unique(reason[mask], return_counts=True)):
+                    lost += float(weight[mask].sum())
+                    for code in np.unique(reason[mask]).tolist():
                         name = "covered" if code == COVERED else _GONE_NAMES[int(code)]
-                        reasons[name] = reasons.get(name, 0) + int(count)
-                    for g, count in zip(*np.unique(cover_face[mask & (cover_face >= 0)], return_counts=True)):
-                        covering[int(g)] = covering.get(int(g), 0) + int(count)
+                        reasons[name] = reasons.get(name, 0.0) + float(weight[mask & (reason == code)].sum())
+                    for g in np.unique(cover_face[mask & (cover_face >= 0)]).tolist():
+                        covering[int(g)] = covering.get(int(g), 0.0) + float(weight[mask & (cover_face == g)].sum())
                     ij.append(blk.ij[mask])
                     plane.append(blk.plane[mask])
                     if point is None:
@@ -1233,7 +1234,7 @@ class _Floor:
             if rays >= PIXEL_BUDGET and lost > VISIBLE_FLOOR_PX and rays < of_rays:
                 at_least = True
                 break
-        estimate = int(round(lost * of_rays / rays)) if at_least else lost
+        estimate = lost * of_rays / rays if at_least else lost
         return {"visible": visible, "lost": lost, "estimate": estimate, "reasons": reasons, "covering": covering,
                 "at_least": at_least,
                 "ij": np.vstack(ij) if ij else np.zeros((0, 2), np.int64),
@@ -1255,9 +1256,10 @@ class _Floor:
                     worst, worst_col = m, col
                 if m["lost"] > VISIBLE_FLOOR_PX:
                     break
-            entries.append({"face": int(face), "kind": kind, "pixels": int(worst["lost"]),
-                            "visible_px": int(worst["visible"]), "reasons": dict(sorted(worst["reasons"].items())),
-                            "at_least": bool(worst["at_least"]), "pixels_estimate": int(worst["estimate"]),
+            entries.append({"face": int(face), "kind": kind, "pixels": round(float(worst["lost"]), 1),
+                            "visible_px": round(float(worst["visible"]), 1),
+                            "reasons": {k: round(v, 1) for k, v in sorted(worst["reasons"].items())},
+                            "at_least": bool(worst["at_least"]), "pixels_estimate": round(float(worst["estimate"]), 1),
                             "viewpoint": dict(self.labels[worst_col]),
                             "viewpoints_seen": len(cols), "viewpoints_measured": measured,
                             "covering_faces": [g for g, _ in sorted(worst["covering"].items(),

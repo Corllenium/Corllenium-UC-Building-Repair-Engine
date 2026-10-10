@@ -139,3 +139,23 @@ def test_a_viewpoint_must_say_what_it_is():
         Viewpoint.direction([0.0, 0.0, 0.0])
     with pytest.raises(ValueError):
         Viewpoint("sideways", np.zeros(3))
+
+
+def test_a_far_patch_of_a_big_face_counts_its_true_area_at_two_hundredths_across_the_line():
+    """P2-V2 review, finding 2. Perspective pixels must count each patch's own area at 0.02 in across the line of sight
+    (AGENTS.md section 5: "as projected across the line of sight"), wherever on the face it lies: a 1 x 1 in patch of
+    a 400 in floor triangle seen from a probe at (5, 5, 63) counts 2,500 x cos(its angle to the line), within 15 %,
+    near the probe and 390 in away alike (taking the pixel size at the centroid, 269 in off, counted 0.52 of that)."""
+    L, W = 400.0, 10.0
+    m = _mesh("strip", [[0, 0, 0], [L, 0, 0], [L, W, 0], [0, W, 0]], [[0, 0]] * 4, [[0, 1, 2], [0, 2, 3]],
+              [[0, 0, 0]] * 2)
+    probe = np.array([5.0, 5.0, 63.0])
+    blocks = list(face_pixels(m, 0, Viewpoint.point(probe)))
+    pts = np.vstack([b.points for b in blocks])
+    weight = np.concatenate([getattr(b, "weight", np.ones(len(b))) for b in blocks])
+    for x0 in (60.0, 100.0, 266.0, 390.0):                       # face 0 is the triangle y < x / 40: rows y 0..1
+        inside = (pts[:, 0] >= x0) & (pts[:, 0] < x0 + 1) & (pts[:, 1] >= 0.0) & (pts[:, 1] < 1.0)
+        v = probe - np.array([x0 + 0.5, 0.5, 0.0])
+        owner = (abs(v[2]) / np.linalg.norm(v)) / FLOOR_IN_PER_PX ** 2           # 2,500 px x cos
+        got = float(weight[inside].sum())
+        assert abs(got / owner - 1.0) <= 0.15, (x0, got, owner)
