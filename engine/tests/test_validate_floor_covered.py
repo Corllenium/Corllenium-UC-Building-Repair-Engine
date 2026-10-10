@@ -97,3 +97,30 @@ def test_a_cover_is_found_from_a_probe_and_from_a_camera_on_every_line():
     _textures, gone = _checks(v)
     assert gone["covered"] == 8
     assert all(bad["viewpoint"]["kind"] == "probe" for bad in _floor(v)["failing"])
+
+
+def test_a_plate_across_the_top_of_a_strip_covers_it_from_a_steep_viewer():
+    """Re-ruled V2-R5 (P2-V2 review, finding 1). F: a strip in x = 0, 10 in long and 0.3 in tall, facing +x; AFTER adds
+    N, a 0.5 in horizontal plate along F's top edge. From a viewer high above in front of F, N hides F, though N lies
+    within the tolerance of F when measured square to F. Only a blocker nearly parallel to the sample's face (within
+    5 degrees) is asked to lie beyond the tolerance square to it too: N stands across F, so it covers."""
+    from engine.validate.floor import Viewpoint, face_visible_pixels
+    from engine.validate.sampling import recentred
+    H, Y, DEPTH = 0.3, 10.0, 0.5
+    P = [[0, 0, 0], [0, Y, 0], [0, Y, H], [0, 0, H]]
+    before = _mesh("F", P, [[0, 0]] * 4, [[0, 1, 2], [0, 2, 3]], [[0, 0, 0]] * 2)
+    after = _mesh("F+N", P + [[DEPTH, 0, H], [DEPTH, Y, H]], [[0, 0]] * 6,
+                  [[0, 1, 2], [0, 2, 3], [3, 4, 5], [3, 5, 2]], [[0, 0, 0]] * 4)
+    square = np.array([-1.0, 0.0, -0.01]) / np.linalg.norm([-1.0, 0.0, -0.01])
+    steep = np.array([-0.1, 0.0, -1.0]) / np.linalg.norm([-0.1, 0.0, -1.0])
+    b, c = recentred(before)
+    a, _ = recentred(after, c)
+    seen_b = sum(face_visible_pixels(b, f, Viewpoint.direction(steep)) for f in (0, 1))
+    seen_a = sum(face_visible_pixels(a, f, Viewpoint.direction(steep)) for f in (0, 1))
+    assert seen_b > 500 and seen_a == 0, (seen_b, seen_a)             # the measure itself: N hides F from above
+    v = _judge(before, after, [square, steep])
+    gone = v.report["checks"]["nothing_deleted"]
+    assert gone["status"] == "FAIL" and gone["covered"] > 0
+    floor = _floor(v)
+    assert floor["status"] == "FAIL" and {e["face"] for e in floor["failing"]} & {0, 1}
+    assert all(e["kind"] == "covered" for e in floor["failing"])

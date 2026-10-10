@@ -447,6 +447,9 @@ def _witness_rays(vs: VisibleSet, p: np.ndarray, n: np.ndarray, col: np.ndarray,
                       is_dir=is_dir)
 
 
+#: Re-ruled V2-R5: a blocker is "nearly parallel" to a sample's face, and must then also lie beyond the depth tolerance
+#: square to that face to cover, when |n_blocker . n_sample| >= cos 5 degrees.
+PARALLEL_COS = float(np.cos(np.radians(5.0)))
 #: (sample, viewpoint) lines of sight replayed into AFTER at once by the every-line cover test.
 _LINE_PAIRS = 1 << 20
 
@@ -464,7 +467,8 @@ def _covered_on_every_line(judge: "_Judge", vs: VisibleSet, rows: np.ndarray, po
 
     `witness` (len(rows), k): per sample the columns of the lines the Validator asked before every line was (its
     witness and its best probe; -1 for none). Those keep the test along the line alone; every other line also needs
-    the blocker beyond the tolerance square to the sample's face (`_Judge.blocker`'s `square`), so that a layer within
+    a blocker NEARLY PARALLEL to the sample's face beyond the tolerance square to it too (`_Judge.blocker`'s `square`,
+    re-ruled V2-R5), so that a layer within
     the tolerance of the surface, met by a grazing line, stays an overlay and never becomes a cover."""
     n = len(rows)
     cover, col, best = np.zeros(n, dtype=bool), np.full(n, -1, dtype=np.int64), np.full(n, -np.inf)
@@ -515,8 +519,9 @@ class _Judge:
 
     * COVERED. The same ray `visibility` cast in BEFORE (same origin, same direction), into AFTER's NEW
       GEOMETRY only (`blockable`: `changed_faces`). A first hit more than the tolerance in front of the sample,
-      before the viewpoint, covers it (on the lines beyond the witness's, also more than the tolerance square to
-      the sample's face: see `blocker`); a layer within the tolerance is the sample's own depth (or an overlay),
+      before the viewpoint, covers it (on the lines beyond the witness's, a face nearly parallel to the sample's
+      must also lie beyond the tolerance square to it: see `blocker`); a layer within the tolerance is the sample's
+      own depth (or an overlay),
       and the ray looks beyond it. A face AFTER kept from BEFORE lies where it lay and met none of the line BEFORE saw clear,
       so only new geometry can block it. Casting into the whole of AFTER let the float32 caster newly block a line
       through a shared vertex or edge that BEFORE's caster let through: its verdict on such a line depends on the
@@ -562,9 +567,11 @@ class _Judge:
         """`(covered, face, point)`: `covered` as `covered` gives it, and for each covered sample the AFTER face that
         covers it and where the line of sight meets it (-1 and zeros for the others).
 
-        `square` (bool per line, job P2-V2): for those lines a face covers only when it lies beyond the tolerance BOTH
-        along the line and square to the sample's own face. A layer within the tolerance of the sample's surface is its
-        own depth (or an overlay, `_Overlay`), however grazing the line that meets it. The witness lines -- the ones the
+        `square` (bool per line, job P2-V2, ruling V2-R5 as re-ruled after review): on those lines a face NEARLY
+        PARALLEL to the sample's own (`PARALLEL_COS`, 5 degrees) covers only when it lies beyond the tolerance BOTH
+        along the line and square to the sample's face: such a layer within the tolerance of the surface is its own
+        depth (or an overlay, `_Overlay`), however grazing the line that meets it. A face across the sample's (a plate
+        on a strip's top edge seen from above) covers on the line alone. The witness lines -- the ones the
         Validator asked before every line was asked -- keep the test along the line alone, so nothing they found
         covered is excused."""
         n = len(p)
@@ -587,9 +594,14 @@ class _Judge:
             in_front = np.einsum("ij,ij->i", q - p[active], w.toward[active])
             beyond = blocks & (in_front > self.tol)
             if square is not None:
+                # re-ruled V2-R5: only a blocker nearly parallel to the sample's face (a layer, a moved surface) must
+                # also lie beyond the tolerance square to that face; a blocker across it covers on the line alone
                 off = (w.origin[active] - p[active]) / EPS_ORIGIN           # the sample's normal, toward the viewer
                 deep = np.einsum("ij,ij->i", q - p[active], off) > self.tol
-                beyond &= ~square[active] | deep
+                g = np.maximum(tri, 0)
+                n_b = self.raw[g] / np.maximum(np.linalg.norm(self.raw[g], axis=1), 1e-300)[:, None]
+                parallel = np.abs(np.einsum("ij,ij->i", n_b, off)) >= PARALLEL_COS
+                beyond &= ~square[active] | ~parallel | deep
             covered[active[beyond]] = True
             face[active[beyond]] = tri[beyond]
             point[active[beyond]] = q[beyond]
@@ -1091,8 +1103,9 @@ class _Floor:
         """`({BEFORE face: {view column: lattice points}}, lattice size)`: the BEFORE faces the NEW faces of AFTER
         (`new_faces`, ids of `after`) could cover, found by the new faces' own lattice (`floor.floor_lattice`). For
         every lattice point `q` and every viewpoint, BEFORE is cast along the viewpoint's line through `q`, from the
-        viewer: when the first face it meets lies more than `tol` beyond `q`, along the line and square to itself, that
-        face was nearest-visible there in BEFORE and a new face now stands in front of it. A line within `MIN_COS` of
+        viewer: when the first face it meets lies more than `tol` beyond `q` along the line (and, when the new face is
+        nearly parallel to it, square to it too: re-ruled V2-R5), that face was nearest-visible there in BEFORE and a
+        new face now stands in front of it. A line within `MIN_COS` of
         a new face's plane is skipped. The viewpoints are the standard ones, as for every cover (`dirs`: the standard
         directions; the camera and probe columns follow the `n_extra` extra directions, as the floor numbers them):
         the extra directions are cast only for faces that are gone."""
@@ -1129,11 +1142,13 @@ class _Floor:
                 if not len(origin):
                     continue
                 tri, t = self.caster_b.first_hit(np.ascontiguousarray(origin), np.ascontiguousarray(d))
-                # beyond the tolerance along the line AND square to the face behind, as `_Judge.blocker` asks
+                # beyond the tolerance along the line; and, for a new face nearly parallel to the face behind (re-ruled
+                # V2-R5), square to that face too, as `_Judge.blocker` asks
                 hit = tri >= 0
-                gap = np.where(hit, np.abs(np.einsum("ij,ij->i", d, self.normals[np.maximum(tri, 0)]))
-                               * np.where(hit, t - t_q, 0.0), 0.0)
-                behind = hit & (t > t_q + tol) & (gap > tol)
+                n_behind = self.normals[np.maximum(tri, 0)]
+                gap = np.where(hit, np.abs(np.einsum("ij,ij->i", d, n_behind)) * np.where(hit, t - t_q, 0.0), 0.0)
+                parallel = np.abs(np.einsum("ij,ij->i", n_behind, nq[row])) >= PARALLEL_COS
+                behind = hit & (t > t_q + tol) & (~parallel | (gap > tol))
                 if not behind.any():
                     continue
                 keys, counts = np.unique(tri[behind] * n_views + col[behind], return_counts=True)
