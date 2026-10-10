@@ -87,8 +87,9 @@ def test_a_refused_hole_and_the_slab_side_closing_it_are_one_spot(tmp_path):
 
 def test_a_piece_rolled_back_on_its_own_charge_is_listed(tmp_path):
     # job P2-V2 (was: a kept piece is not listed). Covered is asked on every line, from both sides, so the three-skirt
-    # slab's wall and bottom, kept until then, now hide its inside from the viewers below and beside it: both are
-    # rolled back on their own charge and listed, `covered`, beside E8b's refused hole
+    # slab's wall and bottom, kept until then, now hide its inside, seen through its open side from just above the
+    # horizon and from the ring cameras: both are rolled back on their own charge and listed, `covered`, beside E8b's
+    # refused hole
     code, out, _ = _run(tmp_path, slab_with_three_skirts())
     assert code == 0
     doc = _doc(out)

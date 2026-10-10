@@ -130,10 +130,32 @@ def _shade(caster, normals, colours, origin, d) -> np.ndarray:
     return out
 
 
+#: Lost pixels are grouped into clusters on a grid of this many pixels (cells touching, diagonals included, join).
+_CLUSTER_CELL = 32
+
+
+def _crop_window(ij: np.ndarray) -> tuple[np.ndarray, int]:
+    """`(centre, side)` of a floor crop over the lost pixels `ij` (k, 2): centred on the LARGEST CLUSTER of them (the
+    most pixels; cells of `_CLUSTER_CELL` px that touch are one cluster), not on the bounding box of all, which can
+    land between two clusters and show neither (P2-V2 review); `side` covers that cluster plus a margin, within
+    `FLOOR_CROP_MIN`..`FLOOR_CROP_MAX` pixels."""
+    from engine.validate.checks import _components
+
+    ij = np.asarray(ij, dtype=np.int64).reshape(-1, 2)
+    cell = (ij - ij.min(axis=0)) // _CLUSTER_CELL
+    cells, which = np.unique(cell, axis=0, return_inverse=True)
+    group = _components(np.column_stack([cells, np.zeros(len(cells), dtype=np.int64)]), 1)[which.reshape(-1)]
+    mine = group == int(np.argmax(np.bincount(group)))
+    lo, hi = ij[mine].min(axis=0), ij[mine].max(axis=0)
+    side = int(np.clip(int((hi - lo).max()) + 40, FLOOR_CROP_MIN, FLOOR_CROP_MAX))
+    return np.round((lo + hi) / 2.0).astype(np.int64), side
+
+
 def write_floor_crops(v: Validation, out_dir) -> list[str]:
     """For every face the floor measured above 0 pixels (job P2-V2): `floor/face-NNNNN.png`, BEFORE then
     AFTER side by side, drawn on the measure's own image plane at 0.02 in/px (the plane holding most of its lost
-    pixels), a window round those pixels; the lost pixels are marked in the BEFORE half. Sets each entry's `crop` in
+    pixels), a window round the largest cluster of them (`_crop_window`); the lost pixels are marked in the BEFORE
+    half. Sets each entry's `crop` in
     the report. Returns the paths written (relative to `out_dir`)."""
     out_dir = Path(out_dir)
     entries = v.report["checks"]["nothing_deleted"].get("floor", {}).get("measured", [])
@@ -154,9 +176,7 @@ def write_floor_crops(v: Validation, out_dir) -> list[str]:
         which = int(np.bincount(case["plane"]).argmax())
         plane = next((p for p in planes if p.index == which), planes[0])
         ij = case["ij"][case["plane"] == plane.index]
-        lo, hi = ij.min(axis=0), ij.max(axis=0)
-        side = int(np.clip(int((hi - lo).max()) + 40, FLOOR_CROP_MIN, FLOOR_CROP_MAX))
-        centre = np.round((lo + hi) / 2.0).astype(np.int64)
+        centre, side = _crop_window(ij)                                # on the largest cluster of lost pixels
         cols = centre[0] - side // 2 + np.arange(side)
         rows = centre[1] + side // 2 - np.arange(side)                 # top row first: +j is up
         i = np.tile(cols, side)

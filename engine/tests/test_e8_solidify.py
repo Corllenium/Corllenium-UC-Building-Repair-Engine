@@ -216,8 +216,9 @@ def test_a_piece_covering_what_only_a_probe_sees_is_rolled_back_and_the_others_a
     (check,) = got.checks
     assert check["engine"] == "E8" and check["first"] == "FAIL" and check["stage_rolled_back"] is None
     # job P2-V2: covered is asked on every line of sight, from both sides, so the far slab's wall and bottom, which
-    # hide its open underside and end from the viewers below and beside it, fail on their own charge too: every piece
-    # is rolled back, each for `covered` (until P2-V2 they were kept and only the probe-seen wall was rolled back)
+    # hide its inner faces from the probes, the ring cameras and the directions above it (measured: probe, camera and
+    # direction witnesses; no viewer below the ground since item 8), fail on their own charge too: every piece is
+    # rolled back, each for `covered` (until P2-V2 they were kept and only the probe-seen wall was rolled back)
     assert check["final"] == "NOTHING KEPT" and got.kept == []
     assert all(set(r["reasons"]) == {"covered"} and r["reasons"]["covered"] > 0 for r in check["rolled_back"])
 
@@ -239,10 +240,11 @@ def test_a_piece_covering_what_only_a_probe_sees_is_rolled_back_and_the_others_a
     assert all(r["reasons"].keys() == {"covered"} for r in check_line["rolled_back"])
 
 
-def test_pieces_closing_an_open_slab_cover_its_inside_seen_from_below_and_are_rolled_back():
+def test_pieces_closing_an_open_slab_cover_its_inside_seen_from_beside_and_above_and_are_rolled_back():
     # job P2-V2 (was: the pieces cover nothing visible and are all kept). Covered is asked on every line of sight and
-    # from both sides now: the slab's open underside and open end show its inner faces (their backs) to the viewers
-    # below and beside it, and the wall and bottom solidify builds hide them, so each piece fails on its own charge
+    # from both sides now: the slab's open side shows its inner faces (their backs) to the viewers beside and above it
+    # (measured, with item 8's horizon rule: directions 1 to 62 degrees above the horizon and the ring cameras), and
+    # the wall and bottom solidify builds hide them, so each piece fails on its own charge
     for mesh in (slab_with_three_skirts(), B.slab_with_half_side()):
         ref = _reference(mesh)
         got = _checked(mesh)

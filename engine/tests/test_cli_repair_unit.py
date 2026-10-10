@@ -85,8 +85,9 @@ def test_repair_unit_writes_the_fixed_obj_the_edit_log_and_the_report(tmp_path):
     fixed = read_obj(out / "T-L01.fixed.obj")
     report = json.loads((out / "report.json").read_text(encoding="utf-8"))
     assert report["unit"] == "T-L01" and report["engines"] == ["E8"]
-    # job P2-V2: covered is asked on every line, from both sides: the wall and bottom hide the slab's inside from the
-    # viewers below and beside it, so both pieces are rolled back on their own charge (until P2-V2 both were kept)
+    # job P2-V2: covered is asked on every line, from both sides: the wall and bottom hide the slab's inside, seen
+    # through its open side from directions just above the horizon and from the ring cameras, so both pieces are rolled
+    # back on their own charge (until P2-V2 both were kept)
     assert report["sites"]["built"] == 2 and report["sites"]["kept"] == 0 and report["sites"]["rolled_back"] == 2
     assert report["sites"]["rolled_back_by_reason"] == {"covered": 2}
     assert report["stages"][0]["final"] == "NOTHING KEPT" and report["covered_after_rollback"] == 0
@@ -190,7 +191,8 @@ class _FarNoiseJudge:
 def test_the_exit_code_is_0_when_the_stage_passed(tmp_path):
     """Finding 3: 0 when E8's stage passed. NOTHING KEPT, each piece rolled back on its own charge, is a passing
     stage too (`test_repair_unit_reports_a_rolled_back_piece_by_reason`); since job P2-V2 that is what this slab gives
-    (both pieces cover its inside, seen from below and beside it), where until then every piece was kept."""
+    (both pieces cover its inside, seen through its open side from just above the horizon and from the ring cameras),
+    where until then every piece was kept."""
     code, out = _run(tmp_path, slab_with_three_skirts())
     report = json.loads((out / "report.json").read_text(encoding="utf-8"))
     assert code == 0 and report["stages"][0]["final"] == "NOTHING KEPT" and report["exit_code"] == 0

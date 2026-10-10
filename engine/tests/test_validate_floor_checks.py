@@ -115,3 +115,14 @@ def test_a_crop_before_and_after_is_written_for_every_face_measured_above_0(tmp_
     measured = v.report["checks"]["nothing_deleted"]["floor"]["measured"]
     assert all(m["crop"] for m in measured if m["pixels"] > 0)
     json.dumps(v.report)                                                 # the report stays JSON
+
+
+def test_the_floor_crop_is_centred_on_the_largest_cluster_of_lost_pixels():
+    # P2-V2 review: a crop centred on the lost pixels' bounding box can land between two clusters and show neither
+    from engine.validate.evidence import FLOOR_CROP_MAX, _crop_window
+    rng = np.random.default_rng(3)
+    small = rng.integers(0, 20, (40, 2))                                   # 40 lost pixels near (0, 0)
+    large = rng.integers(0, 60, (900, 2)) + [3000, 1200]                   # 900 near (3030, 1230), far off
+    centre, side = _crop_window(np.vstack([small, large]))
+    assert side <= FLOOR_CROP_MAX
+    assert abs(centre[0] - 3030) <= 30 and abs(centre[1] - 1230) <= 30, centre
