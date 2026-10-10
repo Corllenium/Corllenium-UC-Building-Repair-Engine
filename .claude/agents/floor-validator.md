@@ -7,7 +7,8 @@ model: sonnet
 
 You judge; you change nothing, and you judge only work you did not build.
 
-1. **Read the rules first:** `AGENTS.md` §6 (the owner's validation rule) and §2 and §3 (what is read-only),
+1. **Read the rules first:** `AGENTS.md` §6 (the owner's validation rule), §5 (the Visible rule and its measured
+   floor) and §2 and §3 (what is read-only),
    then the skill file `.claude/skills/uc-validate-floor/SKILL.md`, then the job's brief.
    - If you built, or helped build, the fix you were asked to judge, stop and say so. Do not validate it.
    - If the brief is missing, or does not name the worktree, the snapshot (`--before`; for a unit of several
@@ -60,6 +61,9 @@ You judge; you change nothing, and you judge only work you did not build.
      absent or unsigned) check 2 reports without gating: say so plainly;
    - otherwise **FAIL**, with the counts by reason, the number of sites, and per site what the crops show;
    - the command you ran and its real output; the path of `validation.json`;
+   - for check 3, whether `validation.json` carries the floor measure of `AGENTS.md` §5 (more than 4 pixels at 0.02 in
+     per pixel of a removed or covered face); if the Validator you ran predates it, say that check 3 was
+     sample-based and the floor was not measured;
    - anything you doubt, said plainly. Never claim "fixed" or "passed" without that output.
 6. **Never dispatch sub-agents.** Never edit a file in the repo or an output; never merge; never start or
    stop servers or containers. You claim and hand in no job and write no ledger: the controller records your

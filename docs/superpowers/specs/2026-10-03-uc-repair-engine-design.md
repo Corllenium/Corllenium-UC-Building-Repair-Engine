@@ -27,7 +27,7 @@
 | Source | The CHECKPOINT-17 model, which the owner has already checked. The **backup** in `MODEL FIXER ENGINE FILES\02-SKETCHUP-MODELS\CHECKPOINT-17-BACKUP\` is the source of truth (read only). The master in `D:\PROJECTS\UC\02-SKETCHUP\current\` is never touched |
 | Reference for "visible" | CHECKPOINT-17 itself, before against after. The Minecraft export is old (owner): not a reference |
 | **Owner's validation rule** | A floor passes only if: **(1)** every facade texture is still there; **(2)** the problems are solved; **(3)** nothing visible to the eye was deleted or covered. A Validator tool plus an independent agent checks this; then the owner confirms the floor |
-| Visible rule | **Strict.** Nothing that can be seen is deleted or covered. Visible debris stays and is listed with a picture. A rebuilt side may cover only faces that are 0 % visible (today's cap is 10 %) |
+| Visible rule | **Strict.** Nothing that can be seen is deleted or covered. Visible debris stays and is listed with a picture. A rebuilt side may cover only faces that are 0 % visible (today's cap is 10 %). How the Validator measures it: `AGENTS.md` §5, "Visible rule, measured" |
 | Viewpoints | **Outside, and inside: players walk the floors.** A face is removable only if no outside view and no eye-height view inside any floor can see it |
 | Unity | Draws **both sides** of every face (`CampusDoubleSided.cs`, `_Cull = 0`), so back-to-back faces flicker |
 | Back-to-back pairs | **Keep the side facing a viewer** (outside or walkable space) and remove the inward copy. Where both sides are seen with different looks, the owner decides |

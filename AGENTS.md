@@ -98,7 +98,8 @@ named, measured and tested:
 | Scope | Every building (BRS, CHTM, EDS, GYMNASIUM, MAIN, MAIN INFRASTRUCTURE, PE, SCIENCE A, ARCHITECTURE, plus site pieces), per floor or element |
 | Source | CHECKPOINT-17 (its backup is the source of truth); the master is never touched |
 | Reference for "visible" | CHECKPOINT-17 itself, before against after. The Minecraft export is old and not a reference |
-| Visible rule | **Strict.** Nothing that can be seen is deleted or covered. Visible debris stays and is listed with a picture; a rebuilt side may cover only faces that are 0 % visible. **How it is measured (owner, 2026-10-10):** no removed or covered face may show more than **4 pixels at 0.02 in per pixel** (about 0.0016 sq in) from any Validator viewpoint, judged on every line of sight and from both sides |
+| Visible rule | **Strict.** Nothing that can be seen is deleted or covered. Visible debris stays and is listed with a picture; a rebuilt side may cover only faces that are 0 % visible |
+| Visible rule, measured (owner, 2026-10-10) | The Validator counts the pixels that a removed or covered face shows in CHECKPOINT-17 (before), at **0.02 in per pixel** at the face, one count per viewpoint, on every line of sight and from both sides (Unity draws both). From any one viewpoint of the Viewpoints row, **more than 4 pixels** (4 × 0.02 × 0.02 = 0.0016 sq in, as projected across the line of sight) fails check 3 of §6; counts from different viewpoints are not added. "Cannot be seen" and "0 % visible" in the row above mean at or below this floor. The floor is the Validator's tolerance: it loosens no guard (§3), and builders aim for zero |
 | Viewpoints | Outside, **and inside at eye height**, because players walk the floors |
 | Back-to-back faces | They flicker in Unity (`_Cull = 0`). Keep the side facing a viewer and remove the inward copy. Where both sides are seen with different looks, the owner decides |
 | Flicker, different looks | The loser is cut along the winner's border (E5). The winner, in order: a patch inside a bigger face of the same source group; the look and UV continuing the plane's neighbours; otherwise the owner |
@@ -116,8 +117,8 @@ shows all three:
 1. **every facade texture is still there**: every visible sample keeps its surface, its look (texture
    plus colour) and its UV;
 2. **the problems are solved**: `find_errors` after the fix meets the targets the owner signed;
-3. **nothing visible to the eye was deleted or covered**: from outside, and from **eye height** inside
-   every floor.
+3. **nothing visible to the eye was deleted or covered**, measured as §5 "Visible rule, measured" says: from
+   outside, and from **eye height** inside every floor.
 
 Then the owner confirms the floor. A log line or a self-report is not a pass. The pass is the
 Validator's `validation.json` together with its evidence images.

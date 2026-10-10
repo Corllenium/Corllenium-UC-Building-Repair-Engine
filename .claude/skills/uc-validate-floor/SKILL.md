@@ -6,7 +6,8 @@ description: Use when a UC floor or element has been repaired and must be judged
 # Validating a floor
 
 The rule is `AGENTS.md` §6: a floor is good only when the Validator, run by an agent that did not build the
-fix, shows all three, and then the owner confirms it:
+fix, shows all three, and then the owner confirms it. How check 3 is measured (the floor in pixels) is in
+`AGENTS.md` §5, "Visible rule, measured":
 
 1. **every facade texture is still there** (check 1: each visible sample keeps its surface, its look and its UV);
 2. **the problems are solved** (check 2: `find_errors` after the fix meets the targets the owner signed);
@@ -52,7 +53,8 @@ PY="D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe"
 - A large floor takes minutes (CHTM 5th floor about 10 minutes), as long as the foreground Bash limit: start the
   run in the background and wait for its exit. Note the machine load with the timing.
 - Pass only the flags above. For a verdict, never pass `--targets`, `--area-per-sample` or `--min-per-face`: the
-  defaults are the owner's values (the signed targets file, 36, 4). Another density makes the notes say the run
+  defaults are the owner's values (the signed targets file, 36 sq in per sample, 4 samples per face; neither is the
+  pixel floor of `AGENTS.md` §5). Another density makes the notes say the run
   is a development run and not an owner verdict; another `--targets` file replaces the signed one, and only
   `inputs.targets` in the report shows it.
 

@@ -163,3 +163,4 @@ No task's own text contradicts itself beyond the rulings above.
   - Rulings V2-R1 (total pixels per face per viewpoint; fail if any one viewpoint > 4 px; never summed), V2-R2 (covered = BEFORE-visible pixels hidden in AFTER by another face), V2-R3 (floor applies after fill_site, the E5 z-fight class and today's same-look rule) sent to the P2-V2 implementer.
   - Hunks touching AGENTS.md §5 and §6 wait for the owner (asked in chat); the other hunks (floor-validator, uc-validate-floor, design spec) depend on the §5 row name and are applied together with them.
 - Session restart ~2026-10-10 09:40: the P2-V2 implementer had made no commits (worktree clean); resumed by message with V2-R1..R3.
+- OWNER OK 2026-10-10 (chat): apply the whole visible-floor audit diff (AGENTS.md §5 split into 'Visible rule' + 'Visible rule, measured', §6 check 3 pointer, pointers in floor-validator, uc-validate-floor, design spec). Applied as proposed.
