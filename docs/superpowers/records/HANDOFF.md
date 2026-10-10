@@ -36,7 +36,17 @@ run the latest `.skp` of each file must be in `OBJ FIXED RESULT/` for the owner 
 - **P2-E8c merged** (9cae2d2): `needs_modelling.json` per unit (sidewalk A 143 spots, sidewalk B 142, CHTM 5th 395)
   plus the read-only SketchUp helper `tools/sketchup/needs_modelling_views.rb`. The helper has not been run in
   SketchUp yet; it waits for the owner's OK to try it once on a working copy.
-- **E8 is complete.** Next: E3 (hidden faces, judged from outside and from eye height inside).
+- **E3 merged** (7258652): hidden faces, interior-aware, with a dense pre-filter. Its output still showed small
+  visible patches under a denser check, which led to the owner's floor.
+- **The Validator judges to the owner's floor (P2-V2, merged 0795710):** 4 pixels at 0.02 in per pixel per face
+  per viewpoint, every line of sight, both sides; outside views only at or above the horizon (owner, 2026-10-10);
+  the corner false positive is gone. CHTM 5th with E3 takes 24-30 minutes to validate (the lattice's casting);
+  a cheaper cast is a follow-up.
+- **The Unity floor pipeline** (spec `docs/superpowers/specs/2026-10-10-unity-floor-pipeline-design.md`, approved;
+  plan `docs/superpowers/plans/2026-10-10-unity-import-check.md`): U1-B (the mirror Unity project) merged; U1-A
+  (the Python check) with Hermes, fix made, hand-in pending; U1-C next.
+- **Hermes jobs:** U1-A (changes made, not handed in), P2-H2 (ready).
+- **Next:** the golden-floor proof run with the new judge, then an E3 fix round if needed, U1-C, and E1/E2/E4/E5/E6/E7.
 - **P2-K0 merged** into `feat/repair-p1p2` (b43d27f): kernel prep for the new engines.
   - A new engine's stage that does not PASS is rolled back whole.
   - The edit log works for any engine.

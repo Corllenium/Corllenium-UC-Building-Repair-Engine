@@ -185,6 +185,12 @@ lies on pixel centres from real damage, so the guard now measures the displaceme
 - **Review:** CHANGES (the HtmlDialog links; a bypassable static scan). Fix round re-reviewed APPROVED.
 - **Merged** as 9cae2d2.
 
+### 2026-10-10 / 11: E3 merged; the Validator to the owner's floor; the Unity pipeline started
+- **E3** merged (7258652). **P2-V2** (the Validator's floor measure, horizon rule, corner fix) merged (0795710) after
+  one fix round; the owner set the floor (4 px at 0.02 in/px) and the horizon rule in chat.
+- **Unity floor pipeline:** spec and Part 1 plan approved; U1-B merged; U1-A with Hermes.
+- **Hermes started** on the queue (U1-A, P2-H2).
+
 ## 5. Measured state of the SketchUp files
 
 Audit of every edge SketchUp draws, read back through the C API (`scripts/skp_edge_audit.py`).
