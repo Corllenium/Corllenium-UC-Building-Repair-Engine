@@ -39,7 +39,7 @@ roads, water, rocks: `Assets/Models/Env/`) stays outside the engine, as the owne
   by look), reversed, hidden, loose, open edges and cracks. The Validator judges to the owner's floor (AGENTS.md
   §5, "Visible rule, measured").
 
-## 3. The design: four parts, built in this order
+## 3. The design: five parts, built in this order
 
 ### Part 1: the Unity import check (built first; it answers "is the engine's fix still there in Unity?")
 
@@ -127,6 +127,26 @@ it. There are two ways to get that geometry:
   (AGENTS.md §3).
 - **The tracked current version** is per unit. The engine always repairs from the latest accepted version, so an
   accepted Unity or Blender fix is never undone.
+
+### Part 5: the owner's check scene (owner request 2026-10-10)
+
+The check scene is a separate Unity scene in the **mirror project** (`unity/ImportMirror/`). It holds every building
+with **each floor or element as its own object, never merged into one building**. It is the owner's check files.
+
+- **Why the mirror project:** it imports with the same rules as the owner's real project (a sha256-checked copy of
+  `CampusModelImporter.cs`), so what the owner sees there is what the real project would show. The real project
+  stays untouched, so the owner can open, move, hide or break anything in the check scene without risk.
+- **Two layouts in one scene, switchable from a menu:**
+  1. **Assembled in place.** Buildings stand at their campus positions; each floor is a separate GameObject the owner
+     can show or hide.
+  2. **Spread out side by side.** Per building, the floors in a row with labels (like the EDS comparison `.skp`):
+     column pitch = the widest floor + 8 m, one row per building.
+- **Each floor object is built from that floor's record (Part 4)** and labelled `<BUILDING> <Lnn> v<NNN>
+  <verdict>` (PASS, FAIL or NEEDS MODELLING).
+- **An optional error overlay** colours each floor's engine errors (flicker, holes, reversed, cracks, open edges) in
+  the dashboard's colours, toggled per kind. It shows the glitches the owner cannot see by eye.
+- **The scene is rebuilt by a headless batch command** whenever a floor gets a new version. The owner only opens it;
+  it is never edited by hand. Opening it in the editor is the owner's choice.
 
 ## 4. Error handling and proof
 
