@@ -39,7 +39,7 @@ roads, water, rocks: `Assets/Models/Env/`) stays outside the engine, as the owne
   by look), reversed, hidden, loose, open edges and cracks. The Validator judges to the owner's floor (AGENTS.md
   §5, "Visible rule, measured").
 
-## 3. The design: five parts, built in this order
+## 3. The design: six parts, built in this order
 
 ### Part 1: the Unity import check (built first; it answers "is the engine's fix still there in Unity?")
 
@@ -147,6 +147,40 @@ with **each floor or element as its own object, never merged into one building**
   the dashboard's colours, toggled per kind. It shows the glitches the owner cannot see by eye.
 - **The scene is rebuilt by a headless batch command** whenever a floor gets a new version. The owner only opens it;
   it is never edited by hand. Opening it in the editor is the owner's choice.
+
+### Part 6: automatic reports from Unity, a triage agent, and Jev (owner request 2026-10-10)
+
+1. **An engine-side watcher** (`tools/unity_watch.py`; nothing in the owner's Unity project).
+   - It keeps sha256 fingerprints of the owner's building model files (`Assets/Models/Campus/**`) and scene files.
+   - When one changes (a saved AI fix, a re-import, a hand edit), it maps the change to its unit or units, then:
+     - reads that floor through route B (read-only, over the MCP);
+     - runs `find_errors` and the Validator against the floor's latest accepted version;
+     - writes the report into the floor record (Part 4) and the dashboard.
+   - It reads only. It runs while the owner allows it; it is started and stopped by the owner, never at boot
+     without the owner's OK.
+2. **A floor-watch agent triages each new report.** It is a Claude sub-agent, or Hermes when Claude is at its limit
+   (the existing hand-off).
+   - **Better than the last accepted version** (Validator PASS, no error kind worse): propose it as the floor's next
+     version, recorded as an owner fix (Part 3).
+   - **Worse:** queue an engine repair job for that floor (`tools/jobs.py`) and tell the owner.
+   - **Cannot be fixed automatically:** add it to the floor's `needs_modelling.json`, with a picture.
+   - It never merges, never edits the owner's project, and never overrides the Validator. Accepting a new version
+     needs the owner's yes until the owner says otherwise.
+3. **Jev answers the judgment questions through the Decider** (`engine/decide/`, AskProvider), under its existing
+   rules:
+   - the owner's answer always wins;
+   - SUGGEST first;
+   - AUTO only for a question type with at least 50 decisions at 95 % or more;
+   - back to SUGGEST below 90 % over the last 30.
+
+   The questions:
+   - **Which building and floor a changed object belongs to,** when Unity's names do not say. Jev's pilot: building
+     right 97.5 % when confident, floor number 95.3 %.
+   - **Whether a change looks like an intended fix or an accidental break** (for example an AI tool deleting a wall).
+   - **Look questions** (which texture is right when two flicker). These stay SUGGEST; the pilot was confident on
+     only 74 % of materials.
+
+   Jev's key stays in the repo-root `.env`, read only by code (`read_env_key`); agents never open `.env*`.
 
 ## 4. Error handling and proof
 
