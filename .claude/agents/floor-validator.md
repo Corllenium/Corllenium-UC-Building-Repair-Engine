@@ -61,9 +61,12 @@ You judge; you change nothing, and you judge only work you did not build.
      absent or unsigned) check 2 reports without gating: say so plainly;
    - otherwise **FAIL**, with the counts by reason, the number of sites, and per site what the crops show;
    - the command you ran and its real output; the path of `validation.json`;
-   - for check 3, whether `validation.json` carries the floor measure of `AGENTS.md` §5 (more than 4 pixels at 0.02 in
-     per pixel of a removed or covered face); if the Validator you ran predates it, say that check 3 was
-     sample-based and the floor was not measured;
+   - for check 3, the floor measure of `AGENTS.md` §5: `checks.nothing_deleted.floor` in `validation.json`, with
+     its `status`, `floor_px` (4) and `in_per_px` (0.02), `faces_measured`, `faces_failed`, and for each entry of
+     `failing` the face, its pixels and the viewpoint, plus what its crop under `floor/` shows. If that key is
+     absent the Validator you ran predates the floor: say that check 3 was sample-based and the floor was not
+     measured. When the fix came from `repair-unit`, pass its `edit_log.jsonl` with `--edit-log`, so the Validator
+     knows the E8 fills; without it, every fill reads as covered;
    - anything you doubt, said plainly. Never claim "fixed" or "passed" without that output.
 6. **Never dispatch sub-agents.** Never edit a file in the repo or an output; never merge; never start or
    stop servers or containers. You claim and hand in no job and write no ledger: the controller records your

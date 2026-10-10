@@ -35,8 +35,17 @@ The builder never validates their own fix. A FAIL goes back to the builder with 
 PY="D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe"
 ( cd "<worktree>" && PYTHONPATH="$PWD" "$PY" -m engine.cli validate \
     --before "<main>/data/snapshots/<id>" --after "<repaired>.fixed.obj" \
-    --materials "<main>/data/campus/materials.json" --out "<short output dir>" )
+    --materials "<main>/data/campus/materials.json" --out "<short output dir>" \
+    --edit-log "<repaired folder>/edit_log.jsonl" )
 ```
+
+- `--edit-log` is the `edit_log.jsonl` that `repair-unit` wrote next to the fixed OBJ. It tells the Validator which
+  faces are E8 flat fills (the owner's exception); without it every fill reads as covered. For a `.fixed.obj` that
+  did not come from `repair-unit`, leave it out.
+- The floor measure (`AGENTS.md` §5, "Visible rule, measured") is `checks.nothing_deleted.floor` in
+  `validation.json`: `status`, `floor_px` 4, `in_per_px` 0.02, `faces_measured`, `faces_failed`, and `failing` (face,
+  pixels, viewpoint). Its crops are under `<out>/floor/`. A `validation.json` without that key came from a Validator
+  that predates the floor.
 
 - A unit made of several groups or floor bands has no single snapshot. Build its BEFORE first, into a short temp
   folder (never `OBJ FIXED RESULT\` or `MODEL FIXER ENGINE FILES\`; the command refuses only the export, backup and
