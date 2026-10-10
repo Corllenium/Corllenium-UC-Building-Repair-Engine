@@ -133,12 +133,13 @@ def test_two_good_sites_and_one_bad_only_the_bad_site_is_rolled_back_and_the_con
     (check,) = got.checks
     assert check["first"] == "FAIL" and check["final"] == "PASS"
     assert [r["kind"] for r in check["runs"]] == ["first", "confirm"]
-    assert check["runs"][0]["failing"] == 4 and check["runs"][0]["nothing_deleted"]["deleted"] == 4
+    # job P2-V2: 4 failing samples and the floor's failing row for the deleted face
+    assert check["runs"][0]["failing"] == 5 and check["runs"][0]["nothing_deleted"]["deleted"] == 4
     assert check["runs"][1]["failing"] == 0 and check["runs"][1]["status"] == "PASS"
     (rolled,) = check["rolled_back"]
-    assert rolled["site"] == BAD and rolled["charged"] == 4 and rolled["round"] == 1
-    assert rolled["how"] == {"touched": 4, "box": 0, "cover": 0} and rolled["edits"] == 1
-    assert rolled["reasons"] == {"deleted": 4}
+    assert rolled["site"] == BAD and rolled["charged"] == 5 and rolled["round"] == 1
+    assert rolled["how"] == {"touched": 5, "box": 0, "cover": 0} and rolled["edits"] == 1
+    assert rolled["reasons"] == {"deleted": 5}
     assert check["rounds"] == 1 and check["rounds_exhausted"] is False and check["unknown"]["samples"] == 0
     assert got.rolled_back == bad and got.kept == [good[0], good[1]]
     _same(got.mesh, apply_edits(before, good)[0])

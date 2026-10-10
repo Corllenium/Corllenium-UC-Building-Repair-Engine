@@ -85,13 +85,17 @@ def test_a_refused_hole_and_the_slab_side_closing_it_are_one_spot(tmp_path):
     assert [(a["kind"], a["reason"]) for a in entry["also"]] == [("slab_side", "covered")] and doc["counts"]["merged"] == 1
 
 
-def test_a_kept_piece_is_not_listed(tmp_path):
+def test_a_piece_rolled_back_on_its_own_charge_is_listed(tmp_path):
+    # job P2-V2 (was: a kept piece is not listed). Covered is asked on every line, from both sides, so the three-skirt
+    # slab's wall and bottom, kept until then, now hide its inside from the viewers below and beside it: both are
+    # rolled back on their own charge and listed, `covered`, beside E8b's refused hole
     code, out, _ = _run(tmp_path, slab_with_three_skirts())
     assert code == 0
     doc = _doc(out)
     validate_document(doc)
-    assert doc["entries"] == [] and doc["counts"]["entries"] == 0
-    assert not list((out / "needs_modelling").glob("*.png")) if (out / "needs_modelling").exists() else True
+    assert sorted((e["kind"], e["reason"]) for e in doc["entries"]) == [
+        ("hole", "not_planar"), ("slab_bottom", "covered"), ("slab_side", "covered")]
+    assert doc["counts"]["entries"] == 3
 
 
 def test_an_old_crop_does_not_survive_a_new_run(tmp_path):

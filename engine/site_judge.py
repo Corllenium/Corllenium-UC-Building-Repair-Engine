@@ -418,6 +418,8 @@ class SiteJudge:
             for i in members.tolist():
                 f = int(v.samples.face[i])
                 failing.add((f, i - first[f]))
+        floor_rows = _floor_rows(v)
+        failing.update(zip(floor_rows.face.tolist(), floor_rows.index.tolist()))
         r = v.report
         t, g = r["checks"]["textures"], r["checks"]["nothing_deleted"]
         summary = {"status": r["focus"]["status"], "before_faces": r["focus"]["before_faces"],
@@ -428,12 +430,15 @@ class SiteJudge:
                                                          "covered", "overlaid", "covered_by_fill") if k in g},
                    "sites": [{k: s[k] for k in ("centre", "size", "samples", "checks", "reasons", "faces")}
                              for s in r["sites"][:5]],
-                   "sites_total": r["sites_total"], "fill_sites": r.get("fill_sites", [])}
+                   "sites_total": r["sites_total"], "fill_sites": r.get("fill_sites", []),
+                   "floor": {**{k: g["floor"][k] for k in ("status", "faces_measured", "faces_failed", "candidates")},
+                             "failing": [{k: e[k] for k in ("face", "kind", "pixels", "at_least", "reasons", "viewpoint")}
+                                         for e in g["floor"]["failing"][:5]]}}
         seconds = time.perf_counter() - t0
         self.seconds["check"] += seconds
         self.calls += 1
         return SiteVerdict(failing=frozenset(failing), summary=summary, seconds=seconds,
-                           samples=_failing_samples(v, first))
+                           samples=_joined(_failing_samples(v, first), floor_rows))
 
 
 def _failing_samples(v, first: dict) -> FailingSamples:
@@ -463,6 +468,42 @@ def _failing_samples(v, first: dict) -> FailingSamples:
     clusters = [dict(s["reasons"]) for s in v.report["sites"]]
     return FailingSamples(face=face, index=index, point=point, witness=witness, is_dir=is_dir, cluster=cluster,
                           clusters=clusters)
+
+
+def _floor_rows(v) -> FailingSamples:
+    """The floor's failing faces of the Validation `v` (job P2-V2) as failing samples: one row per face that showed
+    more than the floor from a viewpoint -- its BEFORE face, index `-1 - viewpoint column` (never a sample's index),
+    the point of its first lost pixel, that viewpoint as the witness -- each in a cluster of its own whose reasons
+    count it once under every reason it lost pixels to (`deleted`, `replaced`, `covered`), so the kernel's reasons stay
+    counts of failing rows (the pixels are in the summary's `floor`) and `SiteJudge.attribute` charges it under its
+    own rules, ruling E3-R8 included (a face only deleted is `{"deleted": 1}`)."""
+    entries = v.report["checks"]["nothing_deleted"].get("floor", {}).get("measured", [])
+    rows = [(e, c) for e, c in zip(entries, v.floor_cases) if e["fails"] and c["point"] is not None]
+    if not rows:
+        return _no_samples()
+    face = np.array([e["face"] for e, _c in rows], dtype=np.int64)
+    index = np.array([-1 - int(c["col"]) for _e, c in rows], dtype=np.int64)
+    point = np.array([c["point"] for _e, c in rows]) + v.centre
+    is_dir = np.array([e["viewpoint"]["kind"] in ("direction", "extra direction") for e, _c in rows])
+    witness = np.empty((len(rows), 3))
+    for k, (e, c) in enumerate(rows):
+        witness[k] = c["toward"] if is_dir[k] else np.asarray(e["viewpoint"]["at"], dtype=np.float64)
+    return FailingSamples(face=face, index=index, point=point, witness=witness, is_dir=is_dir,
+                          cluster=np.arange(len(rows), dtype=np.int64),
+                          clusters=[{k: 1 for k, n in e["reasons"].items() if n} for e, _c in rows])
+
+
+def _joined(a: FailingSamples, b: FailingSamples) -> FailingSamples:
+    """The rows of `a`, then those of `b`, `b`'s clusters numbered after `a`'s."""
+    if not len(b):
+        return a
+    if not len(a):
+        return b
+    return FailingSamples(face=np.concatenate([a.face, b.face]), index=np.concatenate([a.index, b.index]),
+                          point=np.vstack([a.point, b.point]), witness=np.vstack([a.witness, b.witness]),
+                          is_dir=np.concatenate([a.is_dir, b.is_dir]),
+                          cluster=np.concatenate([a.cluster, b.cluster + len(a.clusters)]),
+                          clusters=list(a.clusters) + list(b.clusters))
 
 
 def _segments_meet_boxes(points: np.ndarray, witness: np.ndarray, is_dir: np.ndarray, lo: np.ndarray,
