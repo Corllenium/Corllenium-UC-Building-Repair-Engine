@@ -1,0 +1,13 @@
+Library/
+Temp/
+Logs/
+UserSettings/
+obj/
+*.csproj
+*.sln
+Assets/Editor/CampusModelImporter.cs
+Assets/Editor/CampusModelImporter.cs.meta
+Assets/Models/
+Assets/Models.meta
+importer.sha256
+overrides.json
