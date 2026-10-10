@@ -1119,9 +1119,16 @@ def test_a_cover_only_an_eye_height_probe_sees_is_found_and_the_crop_is_drawn_fr
     o = s.points + [0.0, 0.0, 0.02]                                    # BEFORE's ray starts 0.02 in above the face
     lam = (30.0 - o[:, 0]) / (probe[0, 0] - o[:, 0])                   # where along the segment it meets x = 30
     y, z = o[:, 1] + lam * (probe[0, 1] - o[:, 1]), o[:, 2] + lam * (probe[0, 2] - o[:, 2])
-    hidden = (o[:, 0] > 30.0) & (lam > 0.0) & (lam < 1.0) & (y >= 0.0) & (y <= 40.0) & (z >= 10.0) & (z <= 60.0)
+    # job P2-V2: a line that passes exactly through the panel's edge (one does, at y = 40) is a tie the float32
+    # caster may call either way, so the count lies between the lines strictly inside and those inside or on the edge
+    inside = lambda e: ((o[:, 0] > 30.0) & (lam > 0.0) & (lam < 1.0) & (y >= -e) & (y <= 40.0 + e) & (z >= 10.0 - e)
+                        & (z <= 60.0 + e))
+    hidden, strict, edge = inside(0.0), inside(-1e-9), inside(1e-9)
     assert 0 < hidden.sum() < len(s)
-    assert gone["covered"] == int(hidden.sum()) and textures["reasons"]["covered"] == int(hidden.sum())
+    assert strict.sum() <= gone["covered"] <= edge.sum() and textures["reasons"]["covered"] == gone["covered"]
+    failing = np.zeros(len(s), dtype=bool)
+    failing[np.concatenate(v.members)] = True
+    assert (failing & ~edge).sum() == 0 and (strict & ~failing).sum() == 0
     # the crop of that site is drawn from the probe that saw the cover (column 1: after the one direction)
     assert set(v.wit_col[np.concatenate(v.members)].tolist()) == {1}
     write_evidence(v, tmp_path)
@@ -1129,24 +1136,30 @@ def test_a_cover_only_an_eye_height_probe_sees_is_found_and_the_crop_is_drawn_fr
     assert (before != after_img).any(), "the panel shows in AFTER, in front of the floor"
 
 
-def test_the_cover_is_replayed_from_the_probe_only_where_it_is_not_already_the_best_viewpoint(monkeypatch):
+def test_the_cover_is_judged_on_every_line_and_cast_only_into_new_geometry(monkeypatch):
+    # job P2-V2 item 3 replaced the witness-and-best-probe replay (P0): every line that saw a sample is asked, and only
+    # AFTER's new geometry can block one (item 4), so an AFTER with none casts no cover line at all
     from engine.validate import checks
+    from engine.validate.sampling import recentred
+    from engine.validate.visibility import visible_samples
     calls = []
-    original = checks._Judge.covered
-    monkeypatch.setattr(checks._Judge, "covered", lambda self, p, w: (calls.append(len(p)), original(self, p, w))[1])
+    original = checks._Judge.blocker
+    monkeypatch.setattr(checks._Judge, "blocker",
+                        lambda self, p, w, *more: (calls.append(len(p)), original(self, p, w, *more))[1])
     none, sky = np.zeros((0, 3)), outside_directions(128)
+    probe = np.array([[5.0, 5.0, 63.0]])
 
-    tile = grid_slab(1, 1, cell=10.0)                      # 8 samples, the probe right over the middle: the best of all
-    _check(tile, tile, _looks("m0"), dirs=sky, cams=none, probes=np.array([[5.0, 5.0, 63.0]]))
-    assert sum(calls) == 8, "one replay each: the probe is the witness already"
+    tile = grid_slab(1, 1, cell=10.0)
+    _check(tile, tile, _looks("m0"), dirs=sky, cams=none, probes=probe)
+    assert sum(calls) == 0, "AFTER = BEFORE: nothing new, nothing cast"
 
     calls.clear()
-    floor = grid_slab(10, 10, cell=10.0)                   # most samples have a direction straight above as the best
-    _check(floor, floor, _looks("m0"), dirs=sky, cams=none, probes=np.array([[20.0, 20.0, 63.0]]))
-    assert 800 < sum(calls) <= 1600, "at most twice the casts"
-    calls.clear()
-    _check(floor, floor, _looks("m0"), dirs=sky, cams=none, probes=none)
-    assert sum(calls) == 800, "no probe, no second replay"
+    far = _with_plate(tile, _moved(grid_slab(1, 1, cell=1.0), [500.0, 500.0, -50.0]))    # new, and covering nothing
+    v = _check(tile, far, _looks("m0"), dirs=sky, cams=none, probes=probe)
+    assert v.report["checks"]["nothing_deleted"]["covered"] == 0
+    b, centre = recentred(tile)
+    seen = visible_samples(b, face_samples(b), sky, none, probe - centre, build_caster(b)).seen
+    assert sum(calls) == int(seen.sum()) > 2 * len(face_samples(b)), "every line that saw a sample, once each"
 
 
 def test_given_cameras_and_probes_are_positions_in_the_models_own_coordinates():
