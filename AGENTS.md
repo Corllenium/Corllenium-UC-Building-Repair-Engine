@@ -98,7 +98,7 @@ named, measured and tested:
 | Scope | Every building (BRS, CHTM, EDS, GYMNASIUM, MAIN, MAIN INFRASTRUCTURE, PE, SCIENCE A, ARCHITECTURE, plus site pieces), per floor or element |
 | Source | CHECKPOINT-17 (its backup is the source of truth); the master is never touched |
 | Reference for "visible" | CHECKPOINT-17 itself, before against after. The Minecraft export is old and not a reference |
-| Visible rule | **Strict.** Nothing that can be seen is deleted or covered. Visible debris stays and is listed with a picture; a rebuilt side may cover only faces that are 0 % visible |
+| Visible rule | **Strict.** Nothing that can be seen is deleted or covered. Visible debris stays and is listed with a picture; a rebuilt side may cover only faces that are 0 % visible. **How it is measured (owner, 2026-10-10):** no removed or covered face may show more than **4 pixels at 0.02 in per pixel** (about 0.0016 sq in) from any Validator viewpoint, judged on every line of sight and from both sides |
 | Viewpoints | Outside, **and inside at eye height**, because players walk the floors |
 | Back-to-back faces | They flicker in Unity (`_Cull = 0`). Keep the side facing a viewer and remove the inward copy. Where both sides are seen with different looks, the owner decides |
 | Flicker, different looks | The loser is cut along the winner's border (E5). The winner, in order: a patch inside a bigger face of the same source group; the look and UV continuing the plane's neighbours; otherwise the owner |
