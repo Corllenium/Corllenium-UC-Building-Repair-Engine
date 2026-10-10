@@ -447,6 +447,10 @@ def _witness_rays(vs: VisibleSet, p: np.ndarray, n: np.ndarray, col: np.ndarray,
                       is_dir=is_dir)
 
 
+#: The reference path of the removed faces' lattice (P2-V2 review, finding 3): True judges every seen line as a pixel is
+#: (`_Floor._lost_lines`); False, the default, asks `present` once per (point, side) and `blocker` only where the point
+#: is not gone (`_Floor._lost_points`), with the same verdicts (test_validate_floor_speed).
+_FLOOR_LATTICE_PER_LINE = False
 #: Re-ruled V2-R5: a blocker is "nearly parallel" to a sample's face, and must then also lie beyond the depth tolerance
 #: square to that face to cover, when |n_blocker . n_sample| >= cos 5 degrees.
 PARALLEL_COS = float(np.cos(np.radians(5.0)))
@@ -1088,7 +1092,10 @@ class _Floor:
             seen_faces.update(np.unique(sub.face[r]).tolist())
             p, faces_r = sub.points[r], sub.face[r]
             w = _witness_rays(vs, p, self.normals[faces_r], col, vs.front[r, col])
-            lost = self._lost_lines(faces_r, p, w, sub.bary[r])[0]
+            if _FLOOR_LATTICE_PER_LINE:                   # the reference: every line judged as a pixel is
+                lost = self._lost_lines(faces_r, p, w, sub.bary[r])[0]
+            else:
+                lost = self._lost_points(r, faces_r, p, w, sub.bary[r])
             r, col = r[lost], col[lost]
             if not len(r):
                 continue
@@ -1174,6 +1181,37 @@ class _Floor:
                        reach=reach, is_dir=is_dir)
         return self._lost_lines(np.full(len(p), face, dtype=np.int64), p, w, blk.bary)
 
+    def _gone(self, faces: np.ndarray, p: np.ndarray, toward: np.ndarray, w: _Witnesses, bary: np.ndarray) -> np.ndarray:
+        """(k,) the `present` status of points `p` on BEFORE faces `faces` (weights `bary`), asked square to the face from
+        the side `toward` points to -- the place's question, not the line's (along a grazing line a surface 0.015 in
+        off lies more than the tolerance away). `w` gives each point's column and `need_front`."""
+        n = self.normals[faces]
+        side = n * np.where(np.einsum("ij,ij->i", toward, n) > 0.0, 1.0, -1.0)[:, None]
+        place = _Witnesses(col=w.col, need_front=w.need_front, toward=side, origin=p + EPS_ORIGIN * side, dirn=side,
+                           reach=np.full(len(p), np.inf), is_dir=np.ones(len(p), dtype=bool))
+        lb = self.look_b[faces]
+        return self.judge.present(p, place, lb, uv_at(self.b, faces, bary), self.tex_w[lb], self.tex_h[lb])
+
+    def _lost_points(self, rows: np.ndarray, faces: np.ndarray, p: np.ndarray, w: _Witnesses,
+                     bary: np.ndarray) -> np.ndarray:
+        """`_lost_lines(...)[0]`, the same verdicts, cheaper (P2-V2 review, finding 3): whether a place still holds its
+        surface depends on the point and the side it is seen from, not on the line, so `present` is asked once per
+        (lattice point `rows`, side); and a line whose point is already gone is lost whatever blocks it, so `blocker`
+        is cast only for the others."""
+        side = np.einsum("ij,ij->i", w.toward, self.normals[faces]) > 0.0
+        _keys, first, inverse = np.unique(rows * 2 + side, return_index=True, return_inverse=True)
+        inverse = inverse.reshape(-1)
+        status = self._gone(faces[first], p[first], w.toward[first], w.take(first), bary[first])
+        lost = np.isin(status, _GONE)[inverse]
+        rest = np.flatnonzero(~lost)
+        if len(rest):
+            covered, cover_face, hit = self.judge.blocker(p[rest], w.take(rest), square=np.ones(len(rest), dtype=bool))
+            if self.fills is not None and covered.any():
+                c = np.flatnonzero(covered)
+                covered[c[self.fills.excused(cover_face[c], hit[c])]] = False
+            lost[rest] = covered
+        return lost
+
     def _lost_lines(self, faces: np.ndarray, p: np.ndarray, w: _Witnesses, bary: np.ndarray):
         """`(lost, reason, cover_face)` for points `p` on BEFORE faces `faces` (weights `bary`) seen along the lines
         `w`: COVERED when the line is blocked in AFTER (`_Judge.blocker`, new geometry only) and no honest fill takes
@@ -1188,17 +1226,8 @@ class _Floor:
         status = np.full(len(p), OK, dtype=np.int8)
         rest = np.flatnonzero(~covered)
         if len(rest):
-            # whether the place still holds its surface is the place's question, not the line's: it is asked square to
-            # the face, from the viewer's side, as the squarest witness would ask it (along a grazing line a surface
-            # 0.015 in off lies more than the tolerance away)
-            n = self.normals[faces[rest]]
-            toward = n * np.where(np.einsum("ij,ij->i", w.toward[rest], n) > 0.0, 1.0, -1.0)[:, None]
-            place = _Witnesses(col=w.col[rest], need_front=w.need_front[rest], toward=toward,
-                               origin=p[rest] + EPS_ORIGIN * toward, dirn=toward, reach=np.full(len(rest), np.inf),
-                               is_dir=np.ones(len(rest), dtype=bool))
-            lb = self.look_b[faces[rest]]
-            status[rest] = self.judge.present(p[rest], place, lb, uv_at(self.b, faces[rest], bary[rest]),
-                                              self.tex_w[lb], self.tex_h[lb])
+            # whether the place still holds its surface is the place's question, not the line's (`_gone`)
+            status[rest] = self._gone(faces[rest], p[rest], w.toward[rest], w.take(rest), bary[rest])
         gone = np.isin(status, _GONE)
         reason = np.where(covered, COVERED, status).astype(np.int8)
         return covered | gone, reason, cover_face
