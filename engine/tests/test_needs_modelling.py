@@ -219,3 +219,12 @@ def test_a_unit_with_no_faces_gets_a_view_along_the_normal_and_the_viewer_is_who
 def test_fill_review_has_one_spot_drawer_and_no_unused_wrapper():
     from engine import fill_review
     assert hasattr(fill_review, "SpotCropper") and not hasattr(fill_review, "write_spot_crop")
+
+
+def test_the_suggested_views_come_only_from_at_or_above_the_horizon():
+    # job P2-V2 review: the needs-modelling viewer uses the Validator's outside directions, which are those at or above
+    # the horizon (owner, 2026-10-10): the viewer at -d, so d_z <= 0 and the vector toward the viewer has z >= 0
+    from engine.campus.needs_modelling import _Viewer
+    from engine.tests.fixtures.build import cube
+    viewer = _Viewer(cube(10.0))
+    assert viewer.n_dirs == 64 and (viewer.toward[:, 2] >= 0.0).all()

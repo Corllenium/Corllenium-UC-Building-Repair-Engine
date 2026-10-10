@@ -85,11 +85,14 @@ def test_repair_unit_writes_the_fixed_obj_the_edit_log_and_the_report(tmp_path):
     fixed = read_obj(out / "T-L01.fixed.obj")
     report = json.loads((out / "report.json").read_text(encoding="utf-8"))
     assert report["unit"] == "T-L01" and report["engines"] == ["E8"]
-    assert report["sites"]["built"] == 2 and report["sites"]["kept"] == 2 and report["sites"]["rolled_back"] == 0
-    assert report["sites"]["rolled_back_by_reason"] == {}
-    assert report["stages"][0]["final"] == "PASS" and report["covered_after_rollback"] == 0
-    assert report["before"]["faces"] == mesh.n_faces and report["after"]["faces"] == fixed.n_faces > mesh.n_faces
-    assert {p["piece"] for p in report["pieces"]} == {"wall", "bottom"} and all(p["kept"] for p in report["pieces"])
+    # job P2-V2: covered is asked on every line, from both sides: the wall and bottom hide the slab's inside, seen
+    # through its open side from directions just above the horizon and from the ring cameras, so both pieces are rolled
+    # back on their own charge (until P2-V2 both were kept)
+    assert report["sites"]["built"] == 2 and report["sites"]["kept"] == 0 and report["sites"]["rolled_back"] == 2
+    assert report["sites"]["rolled_back_by_reason"] == {"covered": 2}
+    assert report["stages"][0]["final"] == "NOTHING KEPT" and report["covered_after_rollback"] == 0
+    assert report["before"]["faces"] == mesh.n_faces and report["after"]["faces"] == fixed.n_faces == mesh.n_faces
+    assert {p["piece"] for p in report["pieces"]} == {"wall", "bottom"} and not any(p["kept"] for p in report["pieces"])
     lines = [json.loads(line) for line in (out / "edit_log.jsonl").read_text(encoding="utf-8").splitlines()]
     assert sum("check" in line for line in lines) == 2, "one check line per stage: E8 runs E8a then E8b (R10)"
     assert {line["site"] for line in lines if "check" not in line} == {p["site"] for p in report["pieces"]}
@@ -116,7 +119,7 @@ def test_repair_unit_takes_a_snapshot_folder_as_the_before(tmp_path):
     code = cli.cmd_repair_unit(out, snapshot=snap, engines=["E8"], materials=paths["materials"], profile=_FAST)
     assert code == 0
     report = json.loads((out / "report.json").read_text(encoding="utf-8"))
-    assert report["snapshot"] == str(snap) and report["sites"]["kept"] == 2
+    assert report["snapshot"] == str(snap) and report["sites"]["built"] == 2          # both rolled back (P2-V2)
     assert (out / f"{mesh.name}.fixed.obj").is_file()
 
 
@@ -163,9 +166,11 @@ NO_SITES_FACE = 999_999   # a face id in no site's focus
 
 
 class _FarNoiseJudge:
-    """Made in place of `SiteJudge`: the Validator, plus one failing sample no site can be charged with (its face id
-    names no face any site touched, boxed or covered, and it lies far off), so the stage's failure is charged to no
-    site and the stage is rolled back whole."""
+    """Made in place of `SiteJudge`: the Validator's verdict REPLACED by one failing sample no site can be charged
+    with (its face id names no face any site touched, boxed or covered, and it lies far off), so the stage's failure
+    is charged to no site and the stage is rolled back whole. (Job P2-V2: the Validator's own failures are dropped
+    here, because every piece of the three-skirt slab now fails on its own charge and would be rolled back one by
+    one, NOTHING KEPT, before the stage could be rolled back whole; this judge tests the exit code, not the Validator.)"""
 
     def __new__(cls, looks, **kw):
         import numpy as np
@@ -174,22 +179,23 @@ class _FarNoiseJudge:
         class Noisy(_RealSiteJudge):
             def check(self, after, focus):
                 v = super().check(after, focus)
-                s = v.samples
-                add = lambda a, row: np.concatenate([a, np.asarray(row, dtype=a.dtype)])
-                far = FailingSamples(face=add(s.face, [NO_SITES_FACE]), index=add(s.index, [0]),
-                                     point=np.vstack([s.point, [[1.0e4, 1.0e4, 1.0e4]]]),
-                                     witness=np.vstack([s.witness, [[0.0, 0.0, -1.0]]]), is_dir=add(s.is_dir, [True]),
-                                     cluster=add(s.cluster, [len(s.clusters)]), clusters=s.clusters + [{"deleted": 1}])
-                return SiteVerdict(failing=v.failing | {(NO_SITES_FACE, 0)}, summary=v.summary, seconds=v.seconds, samples=far)
+                far = FailingSamples(face=np.array([NO_SITES_FACE], dtype=np.int64), index=np.array([0], dtype=np.int64),
+                                     point=np.array([[1.0e4, 1.0e4, 1.0e4]]), witness=np.array([[0.0, 0.0, -1.0]]),
+                                     is_dir=np.array([True]), cluster=np.array([0], dtype=np.int64),
+                                     clusters=[{"deleted": 1}])
+                return SiteVerdict(failing=frozenset({(NO_SITES_FACE, 0)}), summary=v.summary, seconds=v.seconds,
+                                   samples=far)
         return Noisy(looks, **kw)
 
 
 def test_the_exit_code_is_0_when_the_stage_passed(tmp_path):
-    """Finding 3: 0 when E8's stage passed (here every piece kept; NOTHING KEPT, each piece rolled back on its own
-    charge, is a passing stage too: `test_repair_unit_reports_a_rolled_back_piece_by_reason`)."""
+    """Finding 3: 0 when E8's stage passed. NOTHING KEPT, each piece rolled back on its own charge, is a passing
+    stage too (`test_repair_unit_reports_a_rolled_back_piece_by_reason`); since job P2-V2 that is what this slab gives
+    (both pieces cover its inside, seen through its open side from just above the horizon and from the ring cameras),
+    where until then every piece was kept."""
     code, out = _run(tmp_path, slab_with_three_skirts())
     report = json.loads((out / "report.json").read_text(encoding="utf-8"))
-    assert code == 0 and report["stages"][0]["final"] == "PASS" and report["exit_code"] == 0
+    assert code == 0 and report["stages"][0]["final"] == "NOTHING KEPT" and report["exit_code"] == 0
 
 
 def test_the_exit_code_is_3_when_the_stage_was_rolled_back_whole_and_the_outputs_are_still_written(tmp_path,

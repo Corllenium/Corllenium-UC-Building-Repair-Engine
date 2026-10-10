@@ -133,12 +133,13 @@ def test_two_good_sites_and_one_bad_only_the_bad_site_is_rolled_back_and_the_con
     (check,) = got.checks
     assert check["first"] == "FAIL" and check["final"] == "PASS"
     assert [r["kind"] for r in check["runs"]] == ["first", "confirm"]
-    assert check["runs"][0]["failing"] == 4 and check["runs"][0]["nothing_deleted"]["deleted"] == 4
+    # job P2-V2: 4 failing samples and the floor's failing row for the deleted face
+    assert check["runs"][0]["failing"] == 5 and check["runs"][0]["nothing_deleted"]["deleted"] == 4
     assert check["runs"][1]["failing"] == 0 and check["runs"][1]["status"] == "PASS"
     (rolled,) = check["rolled_back"]
-    assert rolled["site"] == BAD and rolled["charged"] == 4 and rolled["round"] == 1
-    assert rolled["how"] == {"touched": 4, "box": 0, "cover": 0} and rolled["edits"] == 1
-    assert rolled["reasons"] == {"deleted": 4}
+    assert rolled["site"] == BAD and rolled["charged"] == 5 and rolled["round"] == 1
+    assert rolled["how"] == {"touched": 5, "box": 0, "cover": 0} and rolled["edits"] == 1
+    assert rolled["reasons"] == {"deleted": 5}
     assert check["rounds"] == 1 and check["rounds_exhausted"] is False and check["unknown"]["samples"] == 0
     assert got.rolled_back == bad and got.kept == [good[0], good[1]]
     _same(got.mesh, apply_edits(before, good)[0])
@@ -272,14 +273,18 @@ def test_the_edit_log_has_a_check_record_per_stage_and_marks_rolled_back_edits(t
 # ---------------------------------------------------------------------------------------------------------------
 
 def _overlap_drops_a_visible_face(monkeypatch):
-    """The overlap stage, then the first face of what it hands on dropped: a visible face of the box deleted."""
+    """The overlap stage, then a face of the box's TOP dropped from what it hands on: a visible face deleted. (Job
+    P2-V2 item 8: it was the first face, the bottom, which only a viewer below the ground saw.)"""
     stages = dict(legacy.FIX_STAGES)
     real = stages["overlap"]
 
     def overlap(s):
         s = real(s)
         m = s.mesh_overlapped
-        keep = np.arange(1, m.n_faces)
+        tri = m.positions[m.face_v]
+        nz = np.cross(tri[:, 1] - tri[:, 0], tri[:, 2] - tri[:, 0])[:, 2]
+        top = int(np.argmax(np.where(nz > 0.0, tri[:, :, 2].mean(axis=1), -np.inf)))
+        keep = np.flatnonzero(np.arange(m.n_faces) != top)
         s.mesh_overlapped = dataclasses.replace(m, face_v=m.face_v[keep], face_vt=m.face_vt[keep],
                                                 face_vn=m.face_vn[keep], face_material=m.face_material[keep],
                                                 face_line=m.face_line[keep])

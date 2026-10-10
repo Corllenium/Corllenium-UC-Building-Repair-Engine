@@ -196,7 +196,7 @@ class _Viewer:
     def __init__(self, before: MeshData | None):
         from engine.validate.checks import Settings
         from engine.validate.sampling import face_normals, recentred, used_bbox
-        from engine.validate.viewpoints import interior_probes, outside_directions, pedestrian_ring
+        from engine.validate.viewpoints import above_horizon_directions, interior_probes, pedestrian_ring
         from engine.validate.visibility import build_caster
 
         self.caster, self.centre = None, np.zeros(3)
@@ -210,7 +210,7 @@ class _Viewer:
         b, self.centre = recentred(before)
         self.caster = build_caster(b)
         lo, hi = used_bbox(b)
-        dirs = outside_directions(settings.n_directions)
+        dirs = above_horizon_directions(settings.n_directions)        # the viewer at or above the horizon (owner)
         cams = pedestrian_ring((lo, hi), eye_z=lo[2] + settings.eye, n=settings.n_cameras,
                                margin=settings.camera_margin)
         probes = interior_probes(b, eye=settings.eye, caster=self.caster)

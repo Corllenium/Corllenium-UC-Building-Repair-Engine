@@ -214,48 +214,46 @@ def test_a_piece_covering_what_only_a_probe_sees_is_rolled_back_and_the_others_a
     got = _checked(mesh, edit_log=log)
 
     (check,) = got.checks
-    assert check["engine"] == "E8" and check["first"] == "FAIL" and check["final"] == "PASS"
-    assert check["stage_rolled_back"] is None
-    (rolled,) = check["rolled_back"]
-    assert set(rolled["reasons"]) == {"covered"} and rolled["reasons"]["covered"] > 0
-    assert check["runs"][-1]["kind"] == "confirm" and check["runs"][-1]["failing"] == 0
+    assert check["engine"] == "E8" and check["first"] == "FAIL" and check["stage_rolled_back"] is None
+    # job P2-V2: covered is asked on every line of sight, from both sides, so the far slab's wall and bottom, which
+    # hide its inner faces from the probes, the ring cameras and the directions above it (measured: probe, camera and
+    # direction witnesses; no viewer below the ground since item 8), fail on their own charge too: every piece is
+    # rolled back, each for `covered` (until P2-V2 they were kept and only the probe-seen wall was rolled back)
+    assert check["final"] == "NOTHING KEPT" and got.kept == []
+    assert all(set(r["reasons"]) == {"covered"} and r["reasons"]["covered"] > 0 for r in check["rolled_back"])
 
-    # the rolled-back piece is the wall closing the compartment's open end (x = 0, z 55..65) ...
-    bad = rolled["site"]
-    (wall,) = [e for e in got.rolled_back if e.kind in ("add", "cut")]
-    assert wall.site == bad and wall.evidence["piece"] == "wall"
+    # among them the wall closing the compartment's open end (x = 0, z 55..65), seen only from eye height ...
+    (wall,) = [e for e in got.rolled_back if e.kind in ("add", "cut") and e.evidence["piece"] == "wall"
+               and np.allclose(_points_of(e, mesh)[:, 0], 0.0)]
     p = _points_of(wall, mesh)
-    assert np.allclose(p[:, 0], 0.0) and p[:, 2].min() >= 55.0 - 1e-6 and p[:, 2].max() <= 65.0 + 1e-6
+    assert p[:, 2].min() >= 55.0 - 1e-6 and p[:, 2].max() <= 65.0 + 1e-6
+    bad = wall.site
     # ... which the legacy cap guard KEPT (its threshold reads outside directions only)
     assert bad in set(ref.face_group[ref.face_group >= 0].tolist()) and ref.report["cap_guard_passed"]
-
-    # the far slab's wall and bottom are kept, and the shipped mesh is exactly them
-    kept_sites = {e.site for e in got.kept}
-    assert len(kept_sites) == 2 and bad not in kept_sites
-    assert {e.evidence["piece"] for e in got.kept if e.kind in ("add", "cut")} == {"wall", "bottom"}
-    for e in got.kept:
-        if e.kind in ("add", "cut"):
-            assert _points_of(e, mesh)[:, 0].min() >= 2000.0 - 1e-6
-    assert _faces_and_uvs(got.mesh) == _faces_and_uvs(apply_edits(mesh, got.kept)[0])
-    assert got.mesh.n_faces == mesh.n_faces + sum(len(e.new_faces) for e in got.kept if e.kind == "add")
+    assert _faces_and_uvs(got.mesh) == _faces_and_uvs(mesh), "nothing ships"
 
     lines = [json.loads(line) for line in log.read_text(encoding="utf-8").splitlines()]
     edits = [line for line in lines if "check" not in line]
-    assert {line["site"] for line in edits if line.get("rolled_back")} == {bad}
+    assert bad in {line["site"] for line in edits if line.get("rolled_back")}
     assert all(line["engine"] == "E8" and line["stage"] == "E8" for line in edits)
     (check_line,) = [line["check"] for line in lines if "check" in line]
-    assert check_line["rolled_back"][0]["reasons"].keys() == {"covered"}
+    assert all(r["reasons"].keys() == {"covered"} for r in check_line["rolled_back"])
 
 
-def test_pieces_that_cover_nothing_visible_are_all_kept_and_the_stage_passes():
+def test_pieces_closing_an_open_slab_cover_its_inside_seen_from_beside_and_above_and_are_rolled_back():
+    # job P2-V2 (was: the pieces cover nothing visible and are all kept). Covered is asked on every line of sight and
+    # from both sides now: the slab's open side shows its inner faces (their backs) to the viewers beside and above it
+    # (measured, with item 8's horizon rule: directions 1 to 62 degrees above the horizon and the ring cameras), and
+    # the wall and bottom solidify builds hide them, so each piece fails on its own charge
     for mesh in (slab_with_three_skirts(), B.slab_with_half_side()):
         ref = _reference(mesh)
         got = _checked(mesh)
         (check,) = got.checks
-        assert check["first"] == "PASS" and check["final"] == "PASS" and check["rolled_back"] == [], mesh.name
-        assert got.rolled_back == [] and {e.site for e in got.kept} == set(
-            ref.face_group[ref.face_group >= 0].tolist())
-        assert _faces_and_uvs(got.mesh) == _faces_and_uvs(ref.mesh), "everything solidify built ships"
+        assert check["first"] == "FAIL" and check["final"] == "NOTHING KEPT", mesh.name
+        assert check["stage_rolled_back"] is None and got.kept == []
+        assert {r["site"] for r in check["rolled_back"]} == set(ref.face_group[ref.face_group >= 0].tolist())
+        assert all(set(r["reasons"]) == {"covered"} for r in check["rolled_back"]), mesh.name
+        assert _faces_and_uvs(got.mesh) == _faces_and_uvs(mesh), "nothing ships"
 
 
 def test_a_replaced_face_whose_piece_shipped_no_face_is_refused(monkeypatch):

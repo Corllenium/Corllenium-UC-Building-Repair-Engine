@@ -80,7 +80,9 @@ def test_the_check_is_the_validators_focus_run_and_names_its_failing_samples():
     judge = _judge(m, LOOKS)
     after = _without_faces(m, [8])
     verdict = judge.check(after, judge.focus(after, [8], []))
-    assert verdict.failed and verdict.failing == {(8, i) for i in range(4)}
+    assert verdict.failed and {(f, i) for f, i in verdict.failing if i >= 0} == {(8, i) for i in range(4)}
+    # job P2-V2: the floor's failing face is a failing row too, `(face, -1 - viewpoint)`
+    assert {f for f, i in verdict.failing if i < 0} == {8} and verdict.summary["floor"]["faces_failed"] == 1
     assert verdict.summary["status"] == "FAIL" and verdict.summary["nothing_deleted"]["deleted"] == 4
     assert verdict.summary["sites"][0]["faces"] == [8]
     same = judge.check(m, judge.focus(m, [8], []))

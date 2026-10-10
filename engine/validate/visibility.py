@@ -23,6 +23,8 @@ through `engine.rays.caster.EmbreeCaster` and nothing else of the engine.
 """
 from __future__ import annotations
 
+import os
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 
 import numpy as np
@@ -43,13 +45,60 @@ _MIN_DIST = 1e-9
 _BATCH = 1 << 20
 
 
-def build_caster(mesh: MeshData) -> EmbreeCaster:
+#: A batch of at least this many rays is split over threads (job P2-V2: the floor's dense lattice and pixel renders).
+THREAD_MIN_RAYS = 1 << 16
+_POOL = None
+
+
+def _pool():
+    global _POOL
+    if _POOL is None:
+        _POOL = ThreadPoolExecutor(max_workers=max(1, min(16, os.cpu_count() or 1)), thread_name_prefix="validator-cast")
+    return _POOL
+
+
+class ThreadedCaster:
+    """An `EmbreeCaster` whose big batches (`THREAD_MIN_RAYS` rays or more) are cast in slices on a thread pool.
+    Embree answers each ray on its own and releases the interpreter while it casts, so the answers are exactly the
+    one-thread answers (`tri`, `t`, `any_hit`), only sooner. `faces` and `all_hits` are the wrapped caster's."""
+
+    def __init__(self, caster: EmbreeCaster):
+        self._caster = caster
+        self.faces = caster.faces
+        self.threads = _pool()._max_workers
+        if len(self.faces):                       # trimesh fills its caches on the first cast: do it on one thread
+            caster.first_hit(np.zeros((1, 3)), np.array([[0.0, 0.0, 1.0]]))
+
+    def _split(self, fn, origins, directions):
+        origins, directions = np.asarray(origins, dtype=np.float64), np.asarray(directions, dtype=np.float64)
+        n = len(origins)
+        if n < THREAD_MIN_RAYS or self.threads <= 1:
+            return fn(origins, directions)
+        parts = np.array_split(np.arange(n), min(self.threads, -(-n // (THREAD_MIN_RAYS // 4))))
+        return list(_pool().map(lambda p: fn(origins[p[0]:p[-1] + 1], directions[p[0]:p[-1] + 1]), parts))
+
+    def any_hit(self, origins, directions) -> np.ndarray:
+        out = self._split(self._caster.any_hit, origins, directions)
+        return np.concatenate(out) if isinstance(out, list) else out
+
+    def first_hit(self, origins, directions) -> tuple[np.ndarray, np.ndarray]:
+        out = self._split(self._caster.first_hit, origins, directions)
+        if isinstance(out, list):
+            return np.concatenate([o[0] for o in out]), np.concatenate([o[1] for o in out])
+        return out
+
+    def all_hits(self, origins, directions):
+        return self._caster.all_hits(origins, directions)
+
+
+def build_caster(mesh: MeshData) -> ThreadedCaster:
     """The ray caster for `mesh`, which must already be in the Validator's frame
     (`sampling.recentred`): Embree stores float32, so a mesh sitting near 24,000 in is refused
     with a `ValueError` instead of being silently rounded. `first_hit`'s `tri` indexes
-    `mesh.face_v`, degenerate faces included (they are never hit)."""
+    `mesh.face_v`, degenerate faces included (they are never hit). Big batches go on threads
+    (`ThreadedCaster`), with the answers of one thread."""
     check_frame(mesh.positions, "mesh positions")
-    return EmbreeCaster(mesh.positions, mesh.face_v)
+    return ThreadedCaster(EmbreeCaster(mesh.positions, mesh.face_v))
 
 
 def check_caster(mesh: MeshData, caster) -> None:

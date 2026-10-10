@@ -8,12 +8,25 @@ module imports `engine.fixes`, `engine.guard` and `engine.vis`: so it is importe
 A look key (`data/campus/materials.json`: texture sha256 + Kd + d) is the identity of what a face
 looks like, never a `usemtl` number. A face's look is `looks.key[mesh.materials[face_material]]`.
 
-HOW A FLOOR IS JUDGED. The BEFORE is sampled (`sampling.face_samples`) and every sample is looked at
-from 128 directions, a ring of cameras and the eye-height probes (`visibility.visible_samples`). Each
-sample some viewpoint sees is then asked of AFTER from ONE viewpoint, the best conditioned (the one
-least edge-on to its face; one that sees its front, when any does). For the covers (check 1 `covered`,
-check 3) the test is also replayed from the best eye-height probe that sees the sample (AGENTS.md section 5), so
-a cover only a probe sees is not missed because an outside direction won (at most twice the cover casts):
+HOW A FLOOR IS JUDGED. Two layers, and a floor passes check 3 only when both pass (job P2-V2; the owner's floor of
+2026-10-10, AGENTS.md section 5).
+
+* SAMPLES. The BEFORE is sampled (`sampling.face_samples`, at least 4 a face and one per 36 sq in) and every sample
+  is looked at from the directions at or above the horizon (64 of a 128-point sphere), a ring of cameras and the
+  eye-height probes (`visibility.visible_samples`). The
+  sample's surface is asked of AFTER from its witness, the best-conditioned viewpoint (the one least edge-on to its
+  face; one that sees its front, when any does). COVERED is asked on EVERY line of sight that saw the sample, from
+  either side (`_covered_on_every_line`): blocked in AFTER by new geometry more than the depth tolerance in front of
+  it (only AFTER's new geometry can block: `changed_faces`, which also ends the float32 corner artefact).
+* THE FLOOR (`_Floor`). The samples are too sparse to be the whole judge (P2-E3: a face with 0 of 9 samples seen
+  showed through an opening between them). Every removed face (its fingerprint gone from AFTER) gets a dense lattice
+  (`floor.floor_lattice`: 36 points plus one per sq in, at most 4,096), every new face of AFTER gets one too, to find
+  what it stands in front of, and the covered samples name their faces and lines. Each (face, viewpoint) so found
+  is MEASURED in pixels at 0.02 in/px (`floor.face_pixels`), and a face fails when one viewpoint shows more than
+  `floor.VISIBLE_FLOOR_PX` of its pixels lost (removed, replaced by another look, or covered). The floor never
+  excuses a sample's failure: the samples still fail what they find.
+
+What the samples are asked:
 
 * check 1, textures there: AFTER shows, at that depth (within `max(2 print steps, 0.05 in)`), a
   surface with the same look key, the same UV (mod 1, within one texel of that texture), seen from its
@@ -51,8 +64,10 @@ import numpy as np
 from engine.model import MeshData
 from engine.validate.sampling import (Samples, face_areas, face_normals, face_samples, recentred, used_bbox,
                                       uv_at)
-from engine.validate.viewpoints import interior_probes, outside_directions, pedestrian_ring
-from engine.validate.visibility import EPS_ORIGIN, VisibleSet, _side, build_caster, visible_samples
+from engine.validate.viewpoints import above_horizon_directions, interior_probes, pedestrian_ring
+from engine.validate.floor import (FLOOR_IN_PER_PX, LATTICE_CAP, LATTICE_MIN, LATTICE_PER_SQ_IN, PIXEL_BUDGET,
+                                   VISIBLE_FLOOR_PX, Viewpoint, face_pixels, floor_lattice)
+from engine.validate.visibility import EPS_ORIGIN, MIN_COS, VisibleSet, _side, build_caster, visible_samples
 
 #: The look of a face with no `usemtl` (material -1), which is never "the last material" by accident.
 NO_MATERIAL = "<no material>"
@@ -278,7 +293,8 @@ def face_fingerprints(mesh: MeshData, step: float, look_ids: np.ndarray) -> np.n
 @dataclass(frozen=True)
 class Settings:
     """How much the Validator looks at. The defaults are the owner's (spec section 3): at least 4
-    samples on every face and one per 36 sq in, 128 directions, a ring of 24 cameras, 1,024 extra
+    samples on every face and one per 36 sq in, 128 directions (the 64 whose viewer is at or above the horizon are
+    used: `viewpoints.above_horizon_directions`), a ring of 24 cameras, 1,024 extra (512 used, the same way)
     directions for faces that are gone, probes 1.6 m up. `chunk` is how many samples are cast at a
     time, which bounds memory (the dense `seen` and `front` matrices are chunk x viewpoints)."""
     n_directions: int = 128
@@ -311,8 +327,9 @@ _PRESENT_BACK = 0.02
 _INSIDE = 1e-9
 #: A texel of slack on top of the 1-texel UV tolerance, for float noise in a shift of exactly one.
 _TEXEL_SLACK = 1e-9
-#: Pairs (ray x face) tested in one numpy block when the surface at a sample is looked up by hand.
-_FALLBACK_PAIRS = 4_000_000
+#: The face grid that finds the faces near a sample's short segment reaches this much beyond the tolerance, in
+#: inches: more than the box test's own 1e-6, so a face that test keeps is always offered.
+_PRESENT_GRID_SLACK = 1e-5
 
 
 def _barycentric(positions: np.ndarray, face_v: np.ndarray, q: np.ndarray) -> np.ndarray:
@@ -430,15 +447,92 @@ def _witness_rays(vs: VisibleSet, p: np.ndarray, n: np.ndarray, col: np.ndarray,
                       is_dir=is_dir)
 
 
+#: The reference path of the removed faces' lattice (P2-V2 review, finding 3): True judges every seen line as a pixel is
+#: (`_Floor._lost_lines`); False, the default, asks `present` once per (point, side) and `blocker` only where the point
+#: is not gone (`_Floor._lost_points`), with the same verdicts (test_validate_floor_speed).
+_FLOOR_LATTICE_PER_LINE = False
+#: Re-ruled V2-R5: a blocker is "nearly parallel" to a sample's face, and must then also lie beyond the depth tolerance
+#: square to that face to cover, when |n_blocker . n_sample| >= cos 5 degrees.
+PARALLEL_COS = float(np.cos(np.radians(5.0)))
+#: (sample, viewpoint) lines of sight replayed into AFTER at once by the every-line cover test.
+_LINE_PAIRS = 1 << 20
+
+
+def _covered_on_every_line(judge: "_Judge", vs: VisibleSet, rows: np.ndarray, points: np.ndarray,
+                           normals: np.ndarray, scores: np.ndarray, witness: np.ndarray,
+                           fills: "_FillSites | None" = None):
+    """Job P2-V2 item 3. `(cover, col, blocked_rows, blocked_cols, by_fill, which)` for the samples `rows` of the chunk
+    `vs` was cast for: a sample is covered when ANY line of sight that saw it in BEFORE -- every viewpoint, from either
+    side -- is blocked in AFTER (`_Judge.blocker`: new geometry more than the depth tolerance in front of it, before
+    the viewpoint) and no honest fill takes that line inside its own loop (`_FillSites.excused`, the `fill_site`
+    class, E8b-R6); `col` is its best-conditioned such line (the largest `scores`), -1 for the others; then every such
+    pair, as indices into `rows` and columns of `vs`. `by_fill`: some line is blocked and every blocked line is taken
+    by a fill (`covered_by_fill`); `which`: for those, the fill of the first blocked line a fill face blocks.
+
+    `witness` (len(rows), k): per sample the columns of the lines the Validator asked before every line was (its
+    witness and its best probe; -1 for none). Those keep the test along the line alone; every other line also needs
+    a blocker NEARLY PARALLEL to the sample's face beyond the tolerance square to it too (`_Judge.blocker`'s `square`,
+    re-ruled V2-R5), so that a layer within
+    the tolerance of the surface, met by a grazing line, stays an overlay and never becomes a cover."""
+    n = len(rows)
+    cover, col, best = np.zeros(n, dtype=bool), np.full(n, -1, dtype=np.int64), np.full(n, -np.inf)
+    blocked_any, which = np.zeros(n, dtype=bool), np.full(n, -1, dtype=np.int64)
+    empty = np.zeros(0, dtype=np.int64)
+    if not n or not judge.can_block:
+        return cover, col, empty, empty, blocked_any, which
+    r_all, c_all = np.nonzero(vs.seen[rows])
+    p_rows, n_rows = points[rows], normals[rows]
+    out_r, out_c = [], []
+    for start in range(0, len(r_all), _LINE_PAIRS):
+        r, c = r_all[start:start + _LINE_PAIRS], c_all[start:start + _LINE_PAIRS]
+        p = p_rows[r]
+        square = ~(witness[r] == c[:, None]).any(axis=1)
+        blocked, face, hit = judge.blocker(p, _witness_rays(vs, p, n_rows[r], c, np.zeros(len(r), dtype=bool)), square)
+        if not blocked.any():
+            continue
+        blocked_any[r[blocked]] = True
+        if fills is not None:
+            bi = np.flatnonzero(blocked)
+            by_a_fill = bi[fills.fill_of[face[bi]] >= 0]
+            for i in by_a_fill.tolist():                          # the first line a fill face blocks names the fill
+                if which[r[i]] < 0:
+                    which[r[i]] = fills.fill_of[face[i]]
+            blocked[bi[fills.excused(face[bi], hit[bi])]] = False
+            if not blocked.any():
+                continue
+        rb, cb = r[blocked], c[blocked]
+        out_r.append(rb)
+        out_c.append(cb)
+        s = scores[rb, cb]
+        order = np.lexsort((cb, -s, rb))
+        first = order[np.unique(rb[order], return_index=True)[1]]
+        better = s[first] > best[rb[first]]
+        best[rb[first][better]], col[rb[first][better]] = s[first][better], cb[first][better]
+        cover[rb] = True
+    by_fill = blocked_any & ~cover
+    which[~by_fill] = -1
+    if not out_r:
+        return cover, col, empty, empty, by_fill, which
+    return cover, col, np.concatenate(out_r), np.concatenate(out_c), by_fill, which
+
+
 class _Judge:
     """What AFTER shows along a sample's line of sight, asked of the viewpoint that saw the sample in BEFORE.
 
     Two casts, both short, both started where float32 noise cannot matter:
 
-    * COVERED. The same ray `visibility` cast in BEFORE (same origin, same direction), into AFTER. A
-      first hit more than the tolerance in front of the sample, and before the viewpoint, covers it;
-      a layer within the tolerance is the sample's own depth, and the ray looks beyond it. For AFTER =
-      BEFORE this is BEFORE's own ray, so nothing can be reported that BEFORE did not see.
+    * COVERED. The same ray `visibility` cast in BEFORE (same origin, same direction), into AFTER's NEW
+      GEOMETRY only (`blockable`: `changed_faces`). A first hit more than the tolerance in front of the sample,
+      before the viewpoint, covers it (on the lines beyond the witness's, a face nearly parallel to the sample's
+      must also lie beyond the tolerance square to it: see `blocker`); a layer within the tolerance is the sample's
+      own depth (or an overlay),
+      and the ray looks beyond it. A face AFTER kept from BEFORE lies where it lay and met none of the line BEFORE saw clear,
+      so only new geometry can block it. Casting into the whole of AFTER let the float32 caster newly block a line
+      through a shared vertex or edge that BEFORE's caster let through: its verdict on such a line depends on the
+      whole mesh it was built from (measured both ways: trimesh scales each mesh by its own size before rounding to
+      float32; and on CHTM 5th, with the very same frame, the two Embree trees still disagreed on face 10553's
+      corner -- job P2-V2 item 4, P2-E3 concern 3). So an AFTER that is a subset of BEFORE's faces covers nothing,
+      by construction.
     * PRESENT. A ray from just outside the tolerance window, on the viewer's side, toward the sample.
       The first hit, if it is in the window, is judged; when it is not the whole story (another look,
       a coincident layer, nothing there), every face the short segment crosses is looked up by hand
@@ -446,41 +540,72 @@ class _Judge:
       front) shows its front. Two layers in one place are both drawn in Unity, so either may answer.
     """
 
-    def __init__(self, after: MeshData, caster, look_after: np.ndarray, tol: float):
+    def __init__(self, after: MeshData, caster, look_after: np.ndarray, tol: float, blockable=None):
         self.after, self.caster, self.look_a, self.tol = after, caster, look_after, tol
         self.n_faces = after.n_faces
+        # the faces that may block a line: AFTER's new geometry (all of AFTER when not said)
+        self.block_ids = (np.arange(after.n_faces, dtype=np.int64) if blockable is None
+                          else np.flatnonzero(np.asarray(blockable, dtype=bool)).astype(np.int64))
+        self.block_caster = None
+        if len(self.block_ids):
+            self.block_caster = (caster if len(self.block_ids) == after.n_faces else
+                                 build_caster(dataclasses.replace(after, face_v=after.face_v[self.block_ids])))
         if self.n_faces:
             pos, fv = after.positions, after.face_v
             self.a0 = pos[fv[:, 0]]
             self.raw = np.cross(pos[fv[:, 1]] - self.a0, pos[fv[:, 2]] - self.a0)
             tri = pos[fv]
             self.face_lo, self.face_hi = tri.min(axis=1), tri.max(axis=1)
+        self._grid = None                                  # `_by_hand`'s face grid, built when first asked
 
     # -- covered ---------------------------------------------------------------------------------
+    @property
+    def can_block(self) -> bool:
+        """Some face of AFTER could block a line of sight: AFTER has new geometry."""
+        return self.block_caster is not None
+
     def covered(self, p, w: _Witnesses) -> np.ndarray:
         return self.blocker(p, w)[0]
 
-    def blocker(self, p, w: _Witnesses):
+    def blocker(self, p, w: _Witnesses, square=None):
         """`(covered, face, point)`: `covered` as `covered` gives it, and for each covered sample the AFTER face that
-        covers it and where the line of sight meets it (-1 and zeros for the others)."""
+        covers it and where the line of sight meets it (-1 and zeros for the others).
+
+        `square` (bool per line, job P2-V2, ruling V2-R5 as re-ruled after review): on those lines a face NEARLY
+        PARALLEL to the sample's own (`PARALLEL_COS`, 5 degrees) covers only when it lies beyond the tolerance BOTH
+        along the line and square to the sample's face: such a layer within the tolerance of the surface is its own
+        depth (or an overlay, `_Overlay`), however grazing the line that meets it. A face across the sample's (a plate
+        on a strip's top edge seen from above) covers on the line alone. The witness lines -- the ones the
+        Validator asked before every line was asked -- keep the test along the line alone, so nothing they found
+        covered is excused."""
         n = len(p)
         covered = np.zeros(n, dtype=bool)
         face = np.full(n, -1, dtype=np.int64)
         point = np.zeros((n, 3))
-        if not self.n_faces or not n:
+        if self.block_caster is None or not n:
             return covered, face, point
         cur, travelled = w.origin.copy(), np.zeros(n)
         active = np.arange(n)
         for _ in range(_PEEL_MAX + 1):
             if not len(active):
                 break
-            tri, t = self.caster.first_hit(cur[active], w.dirn[active])
+            tri, t = self.block_caster.first_hit(cur[active], w.dirn[active])
             hit = tri >= 0
+            tri = np.where(hit, self.block_ids[np.maximum(tri, 0)], -1)
             total = travelled[active] + np.where(hit, t, 0.0)
             blocks = hit & (w.is_dir[active] | (total < w.reach[active] - EPS_ORIGIN))
             q = cur[active] + np.where(hit, t, 0.0)[:, None] * w.dirn[active]
             in_front = np.einsum("ij,ij->i", q - p[active], w.toward[active])
             beyond = blocks & (in_front > self.tol)
+            if square is not None:
+                # re-ruled V2-R5: only a blocker nearly parallel to the sample's face (a layer, a moved surface) must
+                # also lie beyond the tolerance square to that face; a blocker across it covers on the line alone
+                off = (w.origin[active] - p[active]) / EPS_ORIGIN           # the sample's normal, toward the viewer
+                deep = np.einsum("ij,ij->i", q - p[active], off) > self.tol
+                g = np.maximum(tri, 0)
+                n_b = self.raw[g] / np.maximum(np.linalg.norm(self.raw[g], axis=1), 1e-300)[:, None]
+                parallel = np.abs(np.einsum("ij,ij->i", n_b, off)) >= PARALLEL_COS
+                beyond &= ~square[active] | ~parallel | deep
             covered[active[beyond]] = True
             face[active[beyond]] = tri[beyond]
             point[active[beyond]] = q[beyond]
@@ -515,21 +640,23 @@ class _Judge:
 
     def _by_hand(self, start, u, t_b, rows, look_b, uv_b, tex_w, tex_h, need_front):
         """The same flags for EVERY face the short segment of each of `rows` crosses, found with a
-        bounding-box prefilter and an exact float64 test, and reduced to a status per row."""
+        bounding-box prefilter and an exact float64 test, and reduced to a status per row.
+
+        The segment lies within the tolerance of its middle, so every face whose box it meets is registered, in a
+        `_FaceGrid` with that reach, in the middle's own cell: the grid offers those faces (and some others), and the
+        box test then keeps exactly the pairs a test against every face would keep (job P2-V2: the floor asks this
+        of every pixel of a removed face, where a test against every face cost pixels x faces)."""
         m = len(rows)
         status = np.full(m, DELETED, dtype=np.int8)
         s0 = start[rows] + u[rows] * (t_b - self.tol)
         s1 = start[rows] + u[rows] * (t_b + self.tol)
         lo, hi = np.minimum(s0, s1) - 1e-6, np.maximum(s0, s1) + 1e-6
-        block = max(1, _FALLBACK_PAIRS // max(self.n_faces, 1))
-        pair_r, pair_f = [], []
-        for k in range(0, m, block):
-            near = ((lo[k:k + block, None, :] <= self.face_hi[None]) &
-                    (hi[k:k + block, None, :] >= self.face_lo[None])).all(axis=2)
-            r, f = np.nonzero(near)
-            pair_r.append(r + k)
-            pair_f.append(f)
-        r, f = np.concatenate(pair_r), np.concatenate(pair_f)
+        if self._grid is None:
+            self._grid = _FaceGrid(self.after.positions, self.after.face_v, np.arange(self.n_faces),
+                                   self.tol + _PRESENT_GRID_SLACK)
+        r, f = self._grid.lookup(start[rows] + u[rows] * t_b)
+        near = ((lo[r] <= self.face_hi[f]) & (hi[r] >= self.face_lo[f])).all(axis=1)
+        r, f = r[near], f[near]
         if not len(r):
             return status
         window, look_ok, uv_ok, side_ok = self._flags(start, u, t_b, f, rows[r], look_b, uv_b, tex_w, tex_h,
@@ -868,44 +995,308 @@ class _FillSites:
                 site["honest"] = site["why"] is None
             self.sites.append(site)
 
-    def explain(self, judge: "_Judge", vs: VisibleSet, rows: np.ndarray, points: np.ndarray, normals: np.ndarray,
-                cover: np.ndarray):
-        """`(by_fill, fill)` over `rows` (samples of the chunk `vs` was cast for): which covered samples are
-        covered only by honest fills inside their own loops, and the fill that took the first blocked line."""
-        by_fill = np.zeros(len(rows), dtype=bool)
-        which = np.full(len(rows), -1, dtype=np.int64)
-        idx = np.flatnonzero(cover)
-        if not len(idx):
-            return by_fill, which
-        r_all, col_all = np.nonzero(vs.seen[rows[idx]])
-        p_all, n_all = points[rows[idx]], normals[rows[idx]]
-        bad = np.zeros(len(idx), dtype=bool)
-        blocked_any = np.zeros(len(idx), dtype=bool)
-        for start in range(0, len(r_all), _FILL_PAIRS):
-            r, col = r_all[start:start + _FILL_PAIRS], col_all[start:start + _FILL_PAIRS]
-            p = p_all[r]
-            w = _witness_rays(vs, p, n_all[r], col, np.zeros(len(r), dtype=bool))
-            blocked, face, hit = judge.blocker(p, w)
-            ok = ~blocked
-            b = np.flatnonzero(blocked)
-            fill = self.fill_of[face[b]]
-            for k in np.unique(fill[fill >= 0]).tolist():
-                site = self.sites[k]
-                if not site["honest"]:
+    def excused(self, face: np.ndarray, hit: np.ndarray) -> np.ndarray:
+        """(k,) bool, for k blocked lines of sight: the AFTER face `face` that blocks each belongs to an HONEST fill,
+        and the line meets it at `hit` inside that fill's own loop (in the loop's plane within the depth tolerance, and
+        inside its polygon or within the tolerance of its border). The one test the class makes of a line."""
+        face = np.asarray(face, dtype=np.int64)
+        ok = np.zeros(len(face), dtype=bool)
+        if not len(face):
+            return ok
+        fill = self.fill_of[face]
+        for k in np.unique(fill[fill >= 0]).tolist():
+            site = self.sites[k]
+            if not site["honest"]:
+                continue
+            mine = np.flatnonzero(fill == k)
+            d = hit[mine] - site["c"]
+            ok[mine] = (np.abs(d @ site["n"]) <= self.tol) & _in_polygon(site["poly"], d @ site["e"].T, self.tol)
+        return ok
+
+
+# ---------------------------------------------------------------------------------------------
+# The owner's floor (job P2-V2): removed and covered faces, measured in pixels
+# ---------------------------------------------------------------------------------------------
+
+#: What a pixel of a removed or covered face can have become in AFTER (V2-R2, V2-R3): the `present` codes that lose
+#: it, as check 3 has always read them -- nothing at that depth, or another look there. A UV moved under the same look
+#: is check 1's (`uv`): the surface is neither removed nor covered.
+_GONE = (DELETED, LOOK)
+_GONE_NAMES = {DELETED: "deleted", LOOK: "replaced"}
+
+
+def floor_views(dirs: np.ndarray, extra_dirs: np.ndarray, cams: np.ndarray, probes: np.ndarray, centre: np.ndarray):
+    """`(views, labels)`: every Validator viewpoint as a `floor.Viewpoint` in the Validator's frame, in the order the
+    floor numbers them -- the standard directions, the extra directions, the cameras, the probes -- and for each a
+    JSON-able label (`kind`, `index` within its kind, `at`: the look direction, or the position in the model's own
+    coordinates)."""
+    views, labels = [], []
+    for kind, block, shift in (("direction", dirs, None), ("extra direction", extra_dirs, None),
+                               ("camera", cams, centre), ("probe", probes, centre)):
+        for k, at in enumerate(np.asarray(block, dtype=np.float64).reshape(-1, 3)):
+            if shift is None:
+                views.append(Viewpoint.direction(at))
+                where = views[-1].at
+            else:
+                views.append(Viewpoint.point(at))
+                where = at + shift
+            labels.append({"kind": kind, "index": k, "at": [round(float(x), 4) for x in where]})
+    return views, labels
+
+
+class _Floor:
+    """The owner's floor (AGENTS.md section 5, 2026-10-10), judged on the faces a lattice finds (job P2-V2).
+
+    A CANDIDATE is a (BEFORE face, viewpoint) pair: a removed face (its fingerprint is gone from AFTER) and every
+    viewpoint that sees a point of its area-scaled lattice (`floor.floor_lattice`), from either side; a covered face and
+    every viewpoint whose line is blocked (see `validate`). Each pair is MEASURED (`measure`): the face's pixels from that
+    viewpoint at 0.02 in/px (`floor.face_pixels`, nearest-visible in BEFORE), and of those the LOST ones, each judged
+    along its own line of sight exactly as a sample is:
+
+    * COVERED: the line from the pixel's point (stepped off the face toward the viewer) is blocked in AFTER by a face
+      more than the depth tolerance in front (`_Judge.blocker`), unless an honest fill takes it inside its own loop
+      (the `fill_site` class, `_FillSites.excused`);
+    * GONE: AFTER no longer shows, at that depth, a surface in the pixel's look (`_Judge.present` says deleted or
+      replaced). Where AFTER still shows the same look there, nothing was removed or covered (ruling V2-R3); a UV that
+      moved is check 1's `uv`, as it always was.
+
+    A face FAILS when one viewpoint shows more than `VISIBLE_FLOOR_PX` lost pixels; counts are never summed over
+    viewpoints (V2-R1). A face's viewpoints are measured in order of how many lattice points (or sample lines) each
+    saw, and the first above the floor ends the face's measure."""
+
+    def __init__(self, before: MeshData, judge: "_Judge", fills, look_b: np.ndarray, tex_w: np.ndarray,
+                 tex_h: np.ndarray, caster_b, views: list, labels: list, normals_b: np.ndarray, centre: np.ndarray):
+        self.b, self.judge, self.fills = before, judge, fills
+        self.look_b, self.tex_w, self.tex_h = look_b, tex_w, tex_h
+        self.caster_b, self.views, self.labels, self.normals = caster_b, views, labels, normals_b
+        self.centre = centre
+
+    def lattice_seen(self, faces: np.ndarray, dirs: np.ndarray, cams: np.ndarray, probes: np.ndarray):
+        """`(lost, seen_faces, lattice size)` for `faces`, cast against every viewpoint (`dirs` here are the standard
+        then the extra directions, so the columns are the floor's own): `lost` is `{face: {view column: lattice points
+        it sees that are lost in AFTER}}` (each seen line judged as a pixel is, `_lost_lines`), `seen_faces` how many
+        faces some viewpoint sees a point of at all. A face whose seen points AFTER all still shows in their look
+        (re-wound, re-cut, a copy dropped) lost nothing there (V2-R3) and is not measured from that viewpoint."""
+        lattice = floor_lattice(self.b, faces)
+        seen: dict = {}
+        seen_faces: set = set()
+        n_views = len(dirs) + len(cams) + len(probes)
+        step = max(1, 4_000_000 // max(n_views, 1))
+        for start in range(0, len(lattice), step):
+            part = slice(start, min(start + step, len(lattice)))
+            sub = Samples(points=lattice.points[part], face=lattice.face[part], bary=lattice.bary[part])
+            vs = visible_samples(self.b, sub, dirs, cams, probes, self.caster_b)
+            r, col = np.nonzero(vs.seen)
+            if not len(r):
+                continue
+            seen_faces.update(np.unique(sub.face[r]).tolist())
+            p, faces_r = sub.points[r], sub.face[r]
+            w = _witness_rays(vs, p, self.normals[faces_r], col, vs.front[r, col])
+            if _FLOOR_LATTICE_PER_LINE:                   # the reference: every line judged as a pixel is
+                lost = self._lost_lines(faces_r, p, w, sub.bary[r])[0]
+            else:
+                lost = self._lost_points(r, faces_r, p, w, sub.bary[r])
+            r, col = r[lost], col[lost]
+            if not len(r):
+                continue
+            keys, counts = np.unique(sub.face[r] * n_views + col, return_counts=True)
+            for key, count in zip(keys.tolist(), counts.tolist()):
+                per = seen.setdefault(key // n_views, {})
+                per[key % n_views] = per.get(key % n_views, 0) + count
+        return seen, len(seen_faces), len(lattice)
+
+    def cover_seen(self, after: MeshData, new_faces: np.ndarray, dirs: np.ndarray, cams: np.ndarray,
+                   probes: np.ndarray, tol: float, n_extra: int = 0) -> tuple[dict, int]:
+        """`({BEFORE face: {view column: lattice points}}, lattice size)`: the BEFORE faces the NEW faces of AFTER
+        (`new_faces`, ids of `after`) could cover, found by the new faces' own lattice (`floor.floor_lattice`). For
+        every lattice point `q` and every viewpoint, BEFORE is cast along the viewpoint's line through `q`, from the
+        viewer: when the first face it meets lies more than `tol` beyond `q` along the line (and, when the new face is
+        nearly parallel to it, square to it too: re-ruled V2-R5), that face was nearest-visible there in BEFORE and a
+        new face now stands in front of it. A line within `MIN_COS` of
+        a new face's plane is skipped. The viewpoints are the standard ones, as for every cover (`dirs`: the standard
+        directions; the camera and probe columns follow the `n_extra` extra directions, as the floor numbers them):
+        the extra directions are cast only for faces that are gone."""
+        lattice = floor_lattice(after, new_faces)
+        seen: dict = {}
+        if not len(lattice):
+            return seen, 0
+        normals_a = face_normals(after)
+        lo_b, hi_b = used_bbox(self.b)
+        lo_a, hi_a = used_bbox(after)
+        far = float(np.linalg.norm(np.maximum(hi_b, hi_a) - np.minimum(lo_b, lo_a))) + 1.0
+        eyes = np.vstack([np.asarray(cams, float).reshape(-1, 3), np.asarray(probes, float).reshape(-1, 3)])
+        n_dirs = len(dirs)
+        n_views = n_dirs + n_extra + len(eyes)
+        step = max(1, (1 << 21) // max(n_dirs + len(eyes), 1))
+        for start in range(0, len(lattice), step):
+            q = lattice.points[start:start + step]
+            nq = normals_a[lattice.face[start:start + step]]
+            m = len(q)
+            parts = []
+            if n_dirs:
+                d = np.broadcast_to(dirs[None], (m, n_dirs, 3)).reshape(-1, 3)
+                origin = (q[:, None, :] - far * dirs[None]).reshape(-1, 3)
+                parts.append((origin, d, np.full(m * n_dirs, far), np.tile(np.arange(n_dirs), m),
+                              np.repeat(np.arange(m), n_dirs)))
+            if len(eyes):
+                v = (q[:, None, :] - eyes[None]).reshape(-1, 3)
+                dist = np.linalg.norm(v, axis=1)
+                parts.append((np.tile(eyes, (m, 1)), v / np.maximum(dist, 1e-12)[:, None], dist,
+                              np.tile(np.arange(n_dirs + n_extra, n_views), m), np.repeat(np.arange(m), len(eyes))))
+            for origin, d, t_q, col, row in parts:
+                ok = (np.abs(np.einsum("ij,ij->i", d, nq[row])) > MIN_COS) & (t_q > 1e-9)
+                origin, d, t_q, col, row = origin[ok], d[ok], t_q[ok], col[ok], row[ok]
+                if not len(origin):
                     continue
-                mine = b[fill == k]
-                d = hit[mine] - site["c"]
-                on_plane = np.abs(d @ site["n"]) <= self.tol
-                ok[mine] = on_plane & _in_polygon(site["poly"], d @ site["e"].T, self.tol)
-            np.logical_or.at(bad, r, ~ok)
-            np.logical_or.at(blocked_any, r, blocked)
-            first = b[fill >= 0] if len(b) else b
-            for i, k in zip(r[first].tolist(), self.fill_of[face[first]].tolist()):
-                if which[idx[i]] < 0:
-                    which[idx[i]] = k
-        by_fill[idx] = ~bad & blocked_any
-        which[~by_fill] = -1
-        return by_fill, which
+                tri, t = self.caster_b.first_hit(np.ascontiguousarray(origin), np.ascontiguousarray(d))
+                # beyond the tolerance along the line; and, for a new face nearly parallel to the face behind (re-ruled
+                # V2-R5), square to that face too, as `_Judge.blocker` asks
+                hit = tri >= 0
+                n_behind = self.normals[np.maximum(tri, 0)]
+                gap = np.where(hit, np.abs(np.einsum("ij,ij->i", d, n_behind)) * np.where(hit, t - t_q, 0.0), 0.0)
+                parallel = np.abs(np.einsum("ij,ij->i", n_behind, nq[row])) >= PARALLEL_COS
+                behind = hit & (t > t_q + tol) & (~parallel | (gap > tol))
+                if not behind.any():
+                    continue
+                keys, counts = np.unique(tri[behind] * n_views + col[behind], return_counts=True)
+                for key, count in zip(keys.tolist(), counts.tolist()):
+                    per = seen.setdefault(key // n_views, {})
+                    per[key % n_views] = per.get(key % n_views, 0) + count
+        return seen, len(lattice)
+
+    def _lost(self, face: int, col: int, vp: Viewpoint, blk):
+        """For the pixels of one block: `(lost, reason, cover_face)`, the lost pixels, the reason code of each pixel
+        (COVERED or a `present` code) and the AFTER face that covers it (-1 when none)."""
+        p, toward = blk.points, blk.toward
+        n = self.normals[face]
+        cos = toward @ n
+        origin = p + _side(cos)[:, None] * n
+        if vp.kind == "direction":
+            dirn, reach, is_dir = toward, np.full(len(p), np.inf), np.ones(len(p), dtype=bool)
+        else:
+            to = vp.at - origin
+            reach = np.linalg.norm(to, axis=1)
+            dirn, is_dir = to / np.maximum(reach, 1e-9)[:, None], np.zeros(len(p), dtype=bool)
+        w = _Witnesses(col=np.full(len(p), col), need_front=cos > 0.0, toward=toward, origin=origin, dirn=dirn,
+                       reach=reach, is_dir=is_dir)
+        return self._lost_lines(np.full(len(p), face, dtype=np.int64), p, w, blk.bary)
+
+    def _gone(self, faces: np.ndarray, p: np.ndarray, toward: np.ndarray, w: _Witnesses, bary: np.ndarray) -> np.ndarray:
+        """(k,) the `present` status of points `p` on BEFORE faces `faces` (weights `bary`), asked square to the face from
+        the side `toward` points to -- the place's question, not the line's (along a grazing line a surface 0.015 in
+        off lies more than the tolerance away). `w` gives each point's column and `need_front`."""
+        n = self.normals[faces]
+        side = n * np.where(np.einsum("ij,ij->i", toward, n) > 0.0, 1.0, -1.0)[:, None]
+        place = _Witnesses(col=w.col, need_front=w.need_front, toward=side, origin=p + EPS_ORIGIN * side, dirn=side,
+                           reach=np.full(len(p), np.inf), is_dir=np.ones(len(p), dtype=bool))
+        lb = self.look_b[faces]
+        return self.judge.present(p, place, lb, uv_at(self.b, faces, bary), self.tex_w[lb], self.tex_h[lb])
+
+    def _lost_points(self, rows: np.ndarray, faces: np.ndarray, p: np.ndarray, w: _Witnesses,
+                     bary: np.ndarray) -> np.ndarray:
+        """`_lost_lines(...)[0]`, the same verdicts, cheaper (P2-V2 review, finding 3): whether a place still holds its
+        surface depends on the point and the side it is seen from, not on the line, so `present` is asked once per
+        (lattice point `rows`, side); and a line whose point is already gone is lost whatever blocks it, so `blocker`
+        is cast only for the others."""
+        side = np.einsum("ij,ij->i", w.toward, self.normals[faces]) > 0.0
+        _keys, first, inverse = np.unique(rows * 2 + side, return_index=True, return_inverse=True)
+        inverse = inverse.reshape(-1)
+        status = self._gone(faces[first], p[first], w.toward[first], w.take(first), bary[first])
+        lost = np.isin(status, _GONE)[inverse]
+        rest = np.flatnonzero(~lost)
+        if len(rest):
+            covered, cover_face, hit = self.judge.blocker(p[rest], w.take(rest), square=np.ones(len(rest), dtype=bool))
+            if self.fills is not None and covered.any():
+                c = np.flatnonzero(covered)
+                covered[c[self.fills.excused(cover_face[c], hit[c])]] = False
+            lost[rest] = covered
+        return lost
+
+    def _lost_lines(self, faces: np.ndarray, p: np.ndarray, w: _Witnesses, bary: np.ndarray):
+        """`(lost, reason, cover_face)` for points `p` on BEFORE faces `faces` (weights `bary`) seen along the lines
+        `w`: COVERED when the line is blocked in AFTER (`_Judge.blocker`, new geometry only) and no honest fill takes
+        it inside its own loop; else gone when AFTER shows no surface in the point's look at its place, asked square
+        to its face (`_Judge.present`: deleted, replaced). `reason` is COVERED or the `present` code; `cover_face` the AFTER
+        face that covers (-1 when none)."""
+        covered, cover_face, hit = self.judge.blocker(p, w, square=np.ones(len(p), dtype=bool))
+        if self.fills is not None and covered.any():
+            c = np.flatnonzero(covered)
+            covered[c[self.fills.excused(cover_face[c], hit[c])]] = False
+        cover_face = np.where(covered, cover_face, -1)
+        status = np.full(len(p), OK, dtype=np.int8)
+        rest = np.flatnonzero(~covered)
+        if len(rest):
+            # whether the place still holds its surface is the place's question, not the line's (`_gone`)
+            status[rest] = self._gone(faces[rest], p[rest], w.toward[rest], w.take(rest), bary[rest])
+        gone = np.isin(status, _GONE)
+        reason = np.where(covered, COVERED, status).astype(np.int8)
+        return covered | gone, reason, cover_face
+
+    def measure(self, face: int, col: int) -> dict:
+        """The face's pixels from view column `col`: `visible` (nearest-visible in BEFORE), `lost` and its `reasons`,
+        `covering` (AFTER face -> pixels), `at_least` (the measure stopped early, above the floor, past
+        `floor.PIXEL_BUDGET` rays), and for the crops and the site judge the lost pixels' `ij`, `plane` and `point`."""
+        vp = self.views[col]
+        visible, lost, rays, of_rays, at_least = 0, 0, 0, 0, False
+        reasons: dict = {}
+        covering: dict = {}
+        ij, plane, point, toward = [], [], None, None
+        for blk in face_pixels(self.b, face, vp, self.caster_b):
+            rays += blk.rays
+            of_rays = blk.of_rays
+            if len(blk):
+                weight = np.ones(len(blk)) if blk.weight is None else blk.weight      # perspective pixels: true area
+                visible += float(weight.sum())
+                mask, reason, cover_face = self._lost(face, col, vp, blk)
+                if mask.any():
+                    lost += float(weight[mask].sum())
+                    for code in np.unique(reason[mask]).tolist():
+                        name = "covered" if code == COVERED else _GONE_NAMES[int(code)]
+                        reasons[name] = reasons.get(name, 0.0) + float(weight[mask & (reason == code)].sum())
+                    for g in np.unique(cover_face[mask & (cover_face >= 0)]).tolist():
+                        covering[int(g)] = covering.get(int(g), 0.0) + float(weight[mask & (cover_face == g)].sum())
+                    ij.append(blk.ij[mask])
+                    plane.append(blk.plane[mask])
+                    if point is None:
+                        first = int(np.flatnonzero(mask)[0])
+                        point, toward = blk.points[first], blk.toward[first]
+            if rays >= PIXEL_BUDGET and lost > VISIBLE_FLOOR_PX and rays < of_rays:
+                at_least = True
+                break
+        estimate = lost * of_rays / rays if at_least else lost
+        return {"visible": visible, "lost": lost, "estimate": estimate, "reasons": reasons, "covering": covering,
+                "at_least": at_least,
+                "ij": np.vstack(ij) if ij else np.zeros((0, 2), np.int64),
+                "plane": np.concatenate(plane) if plane else np.zeros(0, np.int64), "point": point, "toward": toward}
+
+    def run(self, candidates: dict) -> tuple[list, list]:
+        """`(entries, cases)`: one report entry per candidate face, worst first, and alongside each the measure's own
+        data (`face`, `col`, and `measure`'s arrays) for the crops and the site judge. `candidates`:
+        `{face: (kind, {view column: evidence count})}`."""
+        entries, cases = [], []
+        for face in sorted(candidates):
+            kind, cols = candidates[face]
+            order = sorted(cols, key=lambda c: (-cols[c], c))
+            worst, worst_col, measured = None, None, 0
+            for col in order:
+                m = self.measure(face, col)
+                measured += 1
+                if worst is None or m["lost"] > worst["lost"]:
+                    worst, worst_col = m, col
+                if m["lost"] > VISIBLE_FLOOR_PX:
+                    break
+            entries.append({"face": int(face), "kind": kind, "pixels": round(float(worst["lost"]), 1),
+                            "visible_px": round(float(worst["visible"]), 1),
+                            "reasons": {k: round(v, 1) for k, v in sorted(worst["reasons"].items())},
+                            "at_least": bool(worst["at_least"]), "pixels_estimate": round(float(worst["estimate"]), 1),
+                            "viewpoint": dict(self.labels[worst_col]),
+                            "viewpoints_seen": len(cols), "viewpoints_measured": measured,
+                            "covering_faces": [g for g, _ in sorted(worst["covering"].items(),
+                                                                     key=lambda kv: (-kv[1], kv[0]))[:10]],
+                            "fails": bool(worst["lost"] > VISIBLE_FLOOR_PX), "crop": None})
+            cases.append({"face": int(face), "col": int(worst_col), **worst})
+        order = sorted(range(len(entries)), key=lambda k: (-entries[k]["pixels"], entries[k]["face"]))
+        return [entries[k] for k in order], [cases[k] for k in order]
 
 
 # ---------------------------------------------------------------------------------------------
@@ -1030,6 +1421,8 @@ class Validation:
     wit_col: np.ndarray
     wit_extra: np.ndarray
     viewpoints: dict
+    #: the floor's measures (job P2-V2), one per entry of `checks.nothing_deleted.floor.measured`, in its order
+    floor_cases: list = field(default_factory=list)
 
     @property
     def passed(self) -> bool:
@@ -1040,6 +1433,22 @@ def _rows_in(a: np.ndarray, b: np.ndarray) -> np.ndarray:
     """(len(a),) bool: row i of `a` is also a row of `b`."""
     keys = {row.tobytes() for row in np.ascontiguousarray(b)}
     return np.fromiter((row.tobytes() in keys for row in np.ascontiguousarray(a)), dtype=bool, count=len(a))
+
+
+def changed_faces(before: MeshData, after: MeshData) -> np.ndarray:
+    """(after.n_faces,) bool: the AFTER faces whose three corners, as a set and exactly in float64, are not the corners
+    of any BEFORE face -- NEW GEOMETRY. A face kept, re-wound or given another look or UV lies where it lay, so it
+    meets exactly the lines it met in BEFORE and can block nothing new; only these can (job P2-V2, items 3 and 4). Both
+    meshes in one frame (the same shift keeps equal coordinates equal)."""
+    def keys(mesh: MeshData) -> np.ndarray:
+        tri = np.ascontiguousarray(mesh.positions[mesh.face_v] + 0.0)          # + 0.0: -0.0 is 0.0
+        rows = tri.view(np.dtype((np.void, 24))).reshape(mesh.n_faces, 3)
+        return np.ascontiguousarray(np.sort(rows, axis=1)).view(np.dtype((np.void, 72))).reshape(-1)
+    if not after.n_faces:
+        return np.zeros(0, dtype=bool)
+    if not before.n_faces:
+        return np.ones(after.n_faces, dtype=bool)
+    return ~np.isin(keys(after), keys(before))
 
 
 def _points(a) -> np.ndarray:
@@ -1154,8 +1563,14 @@ def validate(before: MeshData, after: MeshData, looks: Looks, *, errors=None, ta
       depth), `look`, `uv` or `side` (BEFORE's front seen, AFTER's back).
     * `checks.nothing_deleted` (check 3): `status`, `samples` (the above plus `samples_extra`, which only
       the extra directions of a face that is gone saw), `suspect_faces`, `deleted`, `replaced` (something
-      is there, in another look), `covered`, `overlaid`, `faces_unmet` (every tested sample of the face),
-      `faces_partly_unmet`, `faces_covered`, `faces_overlaid` and the areas.
+      is there, in another look), `covered` (on any line of sight that saw it, from either side), `overlaid`,
+      `faces_unmet` (every tested sample of the face), `faces_partly_unmet`, `faces_covered`, `faces_overlaid`
+      and the areas; and `floor` (job P2-V2, `_Floor`): its `status`, the floor (`floor_px`, `in_per_px`), the
+      `lattice` on the removed faces and the one on AFTER's `new_faces`, the `candidates`, and per measured face
+      (`measured`, worst first; `failing`, those above the floor) its `kind` (removed or covered), `pixels` lost
+      from its worst viewpoint (`at_least` and `pixels_estimate` when the measure stopped early), `visible_px`,
+      `reasons`, the `viewpoint`, the `covering_faces` and the `crop` (`evidence.write_floor_crops`). Check 3
+      fails when the samples fail or the floor does.
     * `checks.problems` (check 2): per `find_errors` kind `before`, `after`, `target` ("unsigned",
       "listed" or the number), `status` and `residual` (AFTER's spots with their `centre`).
     * `sites`: the failing samples grouped (`id` 1 is the worst), each with `centre` and `size` in the
@@ -1193,7 +1608,8 @@ def validate(before: MeshData, after: MeshData, looks: Looks, *, errors=None, ta
     caster_a = build_caster(a) if a.n_faces else None
 
     lo, hi = used_bbox(b)
-    dirs = _points(outside_directions(settings.n_directions) if dirs is None else dirs)
+    # outside views come only from directions at or above the horizon (owner, 2026-10-10): d_z <= 0, the viewer at -d
+    dirs = _points(above_horizon_directions(settings.n_directions) if dirs is None else dirs)
     # made here, they are already in the Validator's frame; given, they are positions in the model's own
     # coordinates (like the meshes) and are shifted into it
     cams = (_points(pedestrian_ring((lo, hi), eye_z=lo[2] + settings.eye, n=settings.n_cameras,
@@ -1202,7 +1618,7 @@ def validate(before: MeshData, after: MeshData, looks: Looks, *, errors=None, ta
         probes = _points(interior_probes(b, eye=settings.eye, caster=caster_b)) if b.n_faces else np.zeros((0, 3))
     else:
         probes = _points(probes) - centre
-    extra_dirs = _points(outside_directions(settings.n_extra_directions) if extra_dirs is None else extra_dirs)
+    extra_dirs = _points(above_horizon_directions(settings.n_extra_directions) if extra_dirs is None else extra_dirs)
     nothing = np.zeros((0, 3))
 
     samples = face_samples(b, faces=None if focus is None else focus_before, min_per_face=settings.min_per_face,
@@ -1238,7 +1654,11 @@ def validate(before: MeshData, after: MeshData, looks: Looks, *, errors=None, ta
     wit_extra = np.zeros(n, dtype=bool)
     toward_all = np.zeros((n, 3))
     normals_b = face_normals(b)
-    judge = _Judge(a, caster_a, look_a, tol)
+    changed_a = changed_faces(b, a)           # AFTER's new geometry, the only faces that can block (job P2-V2)
+    judge = _Judge(a, caster_a, look_a, tol, blockable=changed_a)
+    n_dirs, n_extra = len(dirs), len(extra_dirs)
+    n_views = n_dirs + n_extra + len(cams) + len(probes)
+    covered_pairs: dict = {}                  # BEFORE face -> {floor view column: blocked lines} (job P2-V2 item 3)
 
     def run(idx: np.ndarray, d: np.ndarray, c: np.ndarray, pr: np.ndarray, is_extra: bool) -> None:
         sub = Samples(points=samples.points[idx], face=samples.face[idx], bary=samples.bary[idx])
@@ -1252,24 +1672,28 @@ def validate(before: MeshData, after: MeshData, looks: Looks, *, errors=None, ta
         p, face = sub.points[rows], sub.face[rows]
         lb = look_b[face]
         g = idx[rows]
-        cover, col = judge.covered(p, w), w.col.copy()
+        # job P2-V2 item 3: covered on EVERY line of sight that saw the sample, from either side, not the witness's
+        # alone; the crop of a covered sample is drawn from its best-conditioned blocked line
+        witness = np.stack([w.col, np.full(len(rows), -1, dtype=np.int64)], axis=1)
         if len(vs.probes) and not is_extra:
-            # AGENTS.md section 5 asks for eye height: where a probe sees the sample, the cover test is replayed
-            # from the best probe too (at most twice the casts), so a cover only a probe sees is not missed
-            # because an outside direction won. The crop of such a site is drawn from that probe.
+            # the best eye-height probe, which the Validator asked as well before every line was asked (AGENTS.md 5)
             probes_only = np.zeros(vs.seen.shape[1], dtype=bool)
             probes_only[len(vs.dirs) + len(vs.cams):] = True
             w2, sel = _witnesses(vs, rows, sub.points, face_normal, scores, probes_only)
-            other = w2.col != w.col[sel]                                   # a probe that is not the witness already
-            if other.any():
-                w2, sel = w2.take(other), sel[other]
-                found = judge.covered(p[sel], w2) & ~cover[sel]
-                cover[sel[found]] = True
-                col[sel[found]] = w2.col[found]
+            witness[sel, 1] = w2.col
+        cover, col, blocked_r, blocked_c, explained, which = _covered_on_every_line(
+            judge, vs, rows, sub.points, face_normal, scores, witness, fill_sites)
+        col = np.where(cover, col, w.col)
+        if len(blocked_r):
+            # the floor measures each covered face from each viewpoint that saw it covered (its columns are the
+            # floor's: the standard directions, the extra ones, the cameras, the probes)
+            floor_col = blocked_c + np.where(is_extra, n_dirs, np.where(blocked_c < n_dirs, 0, n_extra))
+            keys, counts = np.unique(sub.face[rows[blocked_r]] * n_views + floor_col, return_counts=True)
+            for key, count in zip(keys.tolist(), counts.tolist()):
+                per = covered_pairs.setdefault(key // n_views, {})
+                per[key % n_views] = per.get(key % n_views, 0) + count
         if fill_sites is not None:
             # the fill_site class (E8b-R6): covered only by marked, honest fills, inside their own loops
-            explained, which = fill_sites.explain(judge, vs, rows, sub.points, face_normal, cover)
-            cover &= ~explained
             by_fill[g], fill_of_sample[g] = explained, which
         covered[g] = cover
         present[g] = judge.present(p, w, lb, uv_at(b, face, sub.bary[rows]), tex_w[lb], tex_h[lb])
@@ -1300,6 +1724,49 @@ def validate(before: MeshData, after: MeshData, looks: Looks, *, errors=None, ta
                                              uv_at(b, face, samples.bary[blk]))
     clock["overlay"] = time.perf_counter()
 
+    # ---- the owner's floor (job P2-V2): removed faces a dense lattice sees, measured in pixels ----
+    floor_report = {"status": "PASS", "floor_px": VISIBLE_FLOOR_PX, "in_per_px": FLOOR_IN_PER_PX,
+                    "lattice": {"min": LATTICE_MIN, "per_sq_in": LATTICE_PER_SQ_IN, "cap": LATTICE_CAP, "faces": 0,
+                                "points": 0},
+                    "new_faces": {"faces": 0, "points": 0},
+                    "pixel_budget": PIXEL_BUDGET, "candidates": {"removed": 0, "covered": 0}, "faces_measured": 0,
+                    "faces_failed": 0, "failing": [], "measured": []}
+    floor_cases: list = []
+    if b.n_faces:
+        views, labels = floor_views(dirs, extra_dirs, cams, probes, centre)
+        floor = _Floor(b, judge, fill_sites, look_b, tex_w, tex_h, caster_b, views, labels, normals_b, centre)
+        removed = suspect & (np.abs(normals_b).sum(axis=1) > 0.0)
+        in_focus = np.ones(b.n_faces, dtype=bool)
+        if focus is not None:
+            in_focus[:] = False
+            in_focus[focus_before] = True
+            removed &= in_focus
+        removed_ids = np.flatnonzero(removed)
+        all_dirs = np.vstack([dirs, extra_dirs])
+        seen, n_seen, n_points = floor.lattice_seen(removed_ids, all_dirs, cams, probes)
+        floor_report["lattice"].update(faces=int(len(removed_ids)), points=int(n_points))
+        candidates = {f: ("removed", dict(cols)) for f, cols in seen.items()}
+        floor_report["candidates"].update(removed_seen=int(n_seen), removed=len(seen))
+        # covered faces: those a sample line found covered, and those a new face's own lattice finds behind it
+        new_ids = np.flatnonzero(changed_a if focus is None else changed_a & np.isin(np.arange(a.n_faces), focus_after))
+        behind, n_new_points = floor.cover_seen(a, new_ids, dirs, cams, probes, tol, n_extra=len(extra_dirs))
+        floor_report["new_faces"] = {"faces": int(len(new_ids)), "points": int(n_new_points)}
+        covered_faces = set()
+        for source in (covered_pairs, behind):
+            for f, cols in source.items():
+                if focus is not None and not in_focus[f]:
+                    continue
+                covered_faces.add(f)
+                kind, have = candidates.setdefault(f, ("covered", {}))
+                for c, k in cols.items():
+                    have[c] = have.get(c, 0) + k
+        floor_report["candidates"]["covered"] = len(covered_faces)
+        entries, floor_cases = floor.run(candidates)
+        failing = [e for e in entries if e["fails"]]
+        floor_report.update(status="FAIL" if failing else "PASS", faces_measured=len(entries),
+                            faces_failed=len(failing), failing=failing, measured=entries)
+    clock["floor"] = time.perf_counter()
+
     # ---- check 1 and check 3 from what every tested sample turned out to be ----
     standard = tested & ~extra
     reason1 = present.astype(np.int8)
@@ -1321,7 +1788,7 @@ def validate(before: MeshData, after: MeshData, looks: Looks, *, errors=None, ta
                      (UV, "uv"), (SIDE, "side"))},
         "depth_tolerance_in": round(tol, 4)}
     nothing_deleted = {
-        "status": "FAIL" if fail3.any() else "PASS", "samples": int(tested.sum()), "samples_extra": int(extra.sum()),
+        "status": "FAIL" if fail3.any() or floor_report["status"] == "FAIL" else "PASS", "samples": int(tested.sum()), "samples_extra": int(extra.sum()),
         "suspect_faces": int(suspect.sum()), "deleted": int((tested & ~covered & (present == DELETED)).sum()),
         "replaced": int((tested & ~covered & (present == LOOK)).sum()), "covered": int((tested & covered).sum()),
         "overlaid": int((tested & ~covered & overlaid).sum()), "faces": int((tested_per_face > 0).sum()),
@@ -1332,7 +1799,7 @@ def validate(before: MeshData, after: MeshData, looks: Looks, *, errors=None, ta
         "area_lost_in2": round(float(sample_area[unmet].sum()), 2),
         "area_covered_in2": round(float(sample_area[tested & covered].sum()), 2),
         "area_overlaid_in2": round(float(sample_area[tested & overlaid].sum()), 2),
-        "depth_tolerance_in": round(tol, 4)}
+        "depth_tolerance_in": round(tol, 4), "floor": floor_report}
     fill_report = []
     if fill_sites is not None:
         # only with fills: without them `validation.json` is exactly what it was before the fill_site class
@@ -1411,15 +1878,16 @@ def validate(before: MeshData, after: MeshData, looks: Looks, *, errors=None, ta
                       "visibility_and_casts": round(clock["cast"] - clock["prepared"], 2),
                       "extra_directions": round(clock["extra"] - clock["cast"], 2),
                       "overlay": round(clock["overlay"] - clock["extra"], 2),
-                      "problems": round(clock["problems"] - clock["overlay"], 2),
+                      "floor": round(clock["floor"] - clock["overlay"], 2),
+                      "problems": round(clock["problems"] - clock["floor"], 2),
                       "sites": round(clock["end"] - clock["problems"], 2),
                       "total": round(clock["end"] - clock["start"], 2)}}
     if fill_sites is not None:
         report["fill_sites"] = fill_report
     if focus is not None:
         report["focus"] = {"before_faces": int(len(focus_before)), "after_faces": int(len(focus_after)),
-                           "status": "FAIL" if (fail1 | fail3).any() else "PASS"}
+                           "status": "FAIL" if (fail1 | fail3).any() or floor_report["status"] == "FAIL" else "PASS"}
     return Validation(report=report, before=b, after=a, centre=centre, looks=looks, look_keys=table.keys,
                       look_before=look_b, look_after=look_a, samples=samples, members=members, wit_col=wit_col,
                       wit_extra=wit_extra, viewpoints={"dirs": dirs, "cams": cams, "probes": probes,
-                                                       "extra_dirs": extra_dirs})
+                                                       "extra_dirs": extra_dirs}, floor_cases=floor_cases)

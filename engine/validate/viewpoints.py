@@ -1,6 +1,7 @@
 """Viewpoints for the Validator: where it looks from.
 
-Outside, 128 directions over the sphere and a ring of cameras at pedestrian height. Inside, a
+Outside, the directions of a 128-point sphere whose viewer stands at or above the horizon (64 of them; owner,
+2026-10-10: nobody looks up from under the ground) and a ring of cameras at pedestrian height. Inside, a
 probe at eye height above every stretch of floor someone could stand on, because players walk the
 floors (AGENTS.md section 5). Everything is deterministic: no randomness anywhere.
 
@@ -47,6 +48,18 @@ def outside_directions(n: int = 128) -> np.ndarray:
     theta = np.pi * (1.0 + 5.0 ** 0.5) * i
     d = np.stack([r * np.cos(theta), r * np.sin(theta), z], axis=1)
     return d / np.linalg.norm(d, axis=1, keepdims=True)
+
+
+def above_horizon_directions(n: int = 128) -> np.ndarray:
+    """The view directions of `outside_directions(n)` whose VIEWER stands at or above the horizon (owner, 2026-10-10,
+    AGENTS.md section 5, Viewpoints: ground level and up; nobody looks up from under the ground).
+
+    SIGN RULE. A direction `d` is a LOOK direction: the viewer stands infinitely far off at `-d` (`visibility` casts
+    from a sample toward `-d`). The frame is Z up, so the viewer is at or above the horizon when `-d` has z >= 0, that
+    is when `d_z <= 0`: the view ray travels downward or level. The kept rows are the same directions as before, in
+    the same order: half of them for the Fibonacci lattice (none lies exactly on the horizon for an even `n`)."""
+    d = outside_directions(n)
+    return d[d[:, 2] <= 0.0]
 
 
 def pedestrian_ring(bbox, eye_z: float, n: int = 24, margin: float = 240.0) -> np.ndarray:

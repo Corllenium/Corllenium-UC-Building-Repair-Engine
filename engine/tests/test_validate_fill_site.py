@@ -112,9 +112,17 @@ def test_without_fills_validation_json_is_byte_for_byte_the_76ca35a_validator_s(
     exec(compile(shown.stdout, str(old_path), "exec"), old.__dict__)
     m = cube(10.0)
     after = _without_faces(m, [8])
-    dump = lambda r: json.dumps({k: v for k, v in r.items() if k != "timings_s"}, indent=2).encode("utf-8")
-    then = old.validate(m, after, _looks("m0"), errors=(NO_ERRORS, NO_ERRORS)).report
-    now = validate(m, after, _looks("m0"), errors=(NO_ERRORS, NO_ERRORS)).report
+    def dump(r):
+        # job P2-V2 added the owner's floor to check 3 (`checks.nothing_deleted.floor`); everything else is as it was
+        r = json.loads(json.dumps({k: v for k, v in r.items() if k != "timings_s"}))
+        r["checks"]["nothing_deleted"].pop("floor", None)
+        return json.dumps(r, indent=2).encode("utf-8")
+    # job P2-V2 item 8: the default viewpoints are now the directions at or above the horizon; both get the whole
+    # sphere here, so what is compared is the code, not the viewpoint set
+    from engine.validate.viewpoints import outside_directions
+    sphere = dict(dirs=outside_directions(128), extra_dirs=outside_directions(1024))
+    then = old.validate(m, after, _looks("m0"), errors=(NO_ERRORS, NO_ERRORS), **sphere).report
+    now = validate(m, after, _looks("m0"), errors=(NO_ERRORS, NO_ERRORS), **sphere).report
     assert then["checks"]["nothing_deleted"]["status"] == "FAIL", "a case with failures, sites and counts"
     assert dump(now) == dump(then)
 
@@ -183,11 +191,14 @@ def _open_box(size=30.0):
     return _mesh("open_box", P, uvs, fv, fvt, materials=("m0", "m1"))
 
 
-def test_mutation_a_fill_over_a_box_s_open_bottom_with_walls_at_90_degrees_fails_check_3():
+def test_a_fill_over_a_box_s_open_bottom_is_dishonest_but_covers_nothing_seen_from_at_or_above_the_horizon():
+    # job P2-V2 item 8 (was: ..._fails_check_3). The box's inside shows only through its open bottom, so only a viewer
+    # below the ground saw it; outside views come only from at or above the horizon now (owner, 2026-10-10), so the
+    # fill covers nothing visible and check 3 passes. The mark is still refused: not the owner's flat fill.
     before = _open_box()
     after, faces = _with_fill(before, [0, 3, 2, 1])           # wound to face down, out of the box
     v, _t, gone = _run(before, after, [FillSite(faces=faces, loop=before.positions[[0, 3, 2, 1]])])
-    assert gone["status"] == "FAIL" and gone["covered"] > 0 and gone["covered_by_fill"] == 0
+    assert gone["status"] == "PASS" and gone["covered"] == 0 and gone["covered_by_fill"] == 0
     (site,) = v.report["fill_sites"]
     assert site["honest"] is False and "coplanar" in site["why"]
 
