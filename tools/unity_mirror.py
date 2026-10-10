@@ -20,8 +20,9 @@ def owner_importer() -> Path:
 
 
 def _sha(p: Path) -> str:
-    # The text, not the bytes: a UTF-8 BOM (which Unity may add or strip) must not change the hash.
-    return hashlib.sha256(p.read_text(encoding="utf-8-sig").encode("utf-8")).hexdigest()
+    # A UTF-8 BOM (which Unity may add or strip) must not change the hash; line endings do (CRLF kept byte-exact),
+    # matching the C# exporter's File.ReadAllText -> UTF-8 bytes.
+    return hashlib.sha256(p.read_bytes().decode("utf-8-sig").encode("utf-8")).hexdigest()
 
 
 def _copy_path(mirror: Path) -> Path:

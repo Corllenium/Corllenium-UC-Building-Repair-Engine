@@ -43,3 +43,13 @@ def test_a_utf8_bom_does_not_change_the_hash(tmp_path):
     (mirror / "Assets" / "Editor" / "CampusModelImporter.cs").write_bytes(b"\xef\xbb\xbf" + text.encode("utf-8"))
     ok, have, want = check(mirror, owner)
     assert ok and have == want
+
+
+def test_a_line_ending_change_makes_the_copy_stale(tmp_path):
+    # The C# exporter hashes File.ReadAllText, which keeps CRLF; so must we (the safe direction).
+    mirror, owner = _setup(tmp_path)
+    owner.write_bytes(b"public class CampusModelImporter {}\r\n")
+    sync(mirror, owner)
+    (mirror / "Assets" / "Editor" / "CampusModelImporter.cs").write_bytes(b"public class CampusModelImporter {}\n")
+    ok, have, want = check(mirror, owner)
+    assert not ok and have != want
