@@ -35,7 +35,7 @@ from typing import Iterator
 import numpy as np
 
 from engine.model import MeshData
-from engine.validate.sampling import check_frame, used_bbox
+from engine.validate.sampling import Samples, _lattice, check_frame, used_bbox
 from engine.validate.visibility import EPS_ORIGIN, MIN_COS, build_caster, check_caster
 
 #: The owner's floor: a removed or covered face may show at most this many pixels from any one viewpoint.
@@ -44,8 +44,17 @@ VISIBLE_FLOOR_PX = 4
 FLOOR_IN_PER_PX = 0.02
 #: A face this close behind the nearest surface along a pixel's ray is drawn there too (it z-fights).
 ZFIGHT = EPS_ORIGIN
-#: Pixel rays cast in one block.
+#: The lattice that sends a removed or covered face to the measure: at least `LATTICE_MIN` points on every face, plus
+#: `LATTICE_PER_SQ_IN` per square inch of it, at most `LATTICE_CAP` (the n x n equal-area lattice reaching that count).
+LATTICE_MIN = 36
+LATTICE_PER_SQ_IN = 1.0
+LATTICE_CAP = 4096
+#: A measure that has cast this many candidate pixel rays stops as soon as it is above the floor: the face fails
+#: either way, and the report says its count is "at least" that many (`at_least`), with an estimate of the whole.
+PIXEL_BUDGET = 1 << 18
+#: Pixel rays cast in one block: the first block holds `_FIRST_BLOCK`, each next one four times more, at most `_BLOCK`.
 _BLOCK = 1 << 19
+_FIRST_BLOCK = 1 << 12
 #: Slack, in pixels, on the rasteriser's row intervals: it offers a pixel centre a hair outside the outline, and the
 #: exact float64 test on the face decides.
 _RASTER_SLACK = 1e-6
@@ -92,9 +101,18 @@ class PixelBlock:
     ij: np.ndarray
     plane: np.ndarray
     t: np.ndarray
+    bary: np.ndarray                 #: (k, 3) the points' barycentric weights on the face
+    rays: int = 0                    #: how many candidate rays the block cast (its pixels and the ones it did not show)
+    of_rays: int = 0                 #: how many candidate rays the whole face has from this viewpoint
 
     def __len__(self) -> int:
         return int(len(self.points))
+
+
+def _empty_block(rays: int, of_rays: int) -> PixelBlock:
+    z3, z = np.zeros((0, 3)), np.zeros(0)
+    return PixelBlock(points=z3, toward=z3, reach=z, ij=np.zeros((0, 2), np.int64), plane=np.zeros(0, np.int64),
+                      t=z, bary=z3, rays=int(rays), of_rays=int(of_rays))
 
 
 @dataclass(frozen=True, eq=False)
@@ -225,6 +243,34 @@ def _cube_axes(e_axis: np.ndarray) -> np.ndarray:
     return np.stack([a0, -a0, r0, -r0, u0, -u0])
 
 
+def face_view(mesh: MeshData, face: int, viewpoint: Viewpoint, px: float = FLOOR_IN_PER_PX):
+    """`(planes, cube)`: the image planes `face` of `mesh` is drawn on from `viewpoint` (one for a direction; those of
+    the cube map round a point that the face reaches), and the cube's axes (None for a direction). The same planes
+    serve any mesh in the same frame: the crops draw BEFORE and AFTER on them."""
+    tri = mesh.positions[mesh.face_v[int(face)]].astype(np.float64)
+    lo, hi = used_bbox(mesh)
+    cube = None
+    if viewpoint.kind == "point":
+        towards = tri.mean(axis=0) - viewpoint.at
+        cube = _cube_axes(towards / np.linalg.norm(towards))
+    return _planes(tri, viewpoint, px, lo, hi), cube
+
+
+def plane_rays(plane: _Plane, cube, i: np.ndarray, j: np.ndarray):
+    """`(origin, dir, mine)`: the rays of the pixel centres `(i, j)` of `plane`. `mine` is False for a cube-map ray
+    that belongs to another plane of the cube (the one it is most along)."""
+    i, j = np.asarray(i), np.asarray(j)
+    s, t = i * plane.pitch, j * plane.pitch
+    if plane.kind == "ortho":
+        d = np.broadcast_to(plane.axis, (len(i), 3)).copy()
+        origin = plane.centre + s[:, None] * plane.right + t[:, None] * plane.up - plane.back * plane.axis
+        return origin, d, np.ones(len(i), dtype=bool)
+    d = plane.axis + s[:, None] * plane.right + t[:, None] * plane.up
+    d = d / np.linalg.norm(d, axis=1, keepdims=True)
+    mine = np.argmax(d @ cube.T, axis=1) == plane.index
+    return np.broadcast_to(plane.centre, d.shape).copy(), d, mine
+
+
 def face_pixels(mesh: MeshData, face: int, viewpoint: Viewpoint, caster=None, *, px: float = FLOOR_IN_PER_PX
                 ) -> Iterator[PixelBlock]:
     """The pixels of `face` that it shows from `viewpoint` (see the module docstring), as blocks of at most
@@ -254,30 +300,24 @@ def face_pixels(mesh: MeshData, face: int, viewpoint: Viewpoint, caster=None, *,
     if caster is None:
         caster = build_caster(mesh)
     check_caster(mesh, caster)
-    lo, hi = used_bbox(mesh)
-    cube = _cube_axes((tri.mean(axis=0) - viewpoint.at) / np.linalg.norm(tri.mean(axis=0) - viewpoint.at)) \
-        if viewpoint.kind == "point" else None
-    for plane in _planes(tri, viewpoint, px, lo, hi):
-        rows, c_lo, c_hi = _raster_rows(plane.poly, plane.pitch)
+    planes, cube = face_view(mesh, face, viewpoint, px)
+    rasters = [(plane, *_raster_rows(plane.poly, plane.pitch)) for plane in planes]
+    of_rays = int(sum(int((c_hi - c_lo + 1).sum()) for _p, _r, c_lo, c_hi in rasters))
+    size = _FIRST_BLOCK
+    for plane, rows, c_lo, c_hi in rasters:
         count = c_hi - c_lo + 1
         start = 0
         while start < len(rows):
             ends = np.cumsum(count[start:])
-            stop = start + max(1, int(np.searchsorted(ends, _BLOCK, side="right")))
+            stop = start + max(1, int(np.searchsorted(ends, size, side="right")))
+            size = min(4 * size, _BLOCK)
             cnt = count[start:stop]
             j = np.repeat(rows[start:stop], cnt)
             i = np.repeat(c_lo[start:stop], cnt) + (np.arange(int(cnt.sum())) - np.repeat(np.cumsum(cnt) - cnt, cnt))
             start = stop
-            s, t = i * plane.pitch, j * plane.pitch
-            if plane.kind == "ortho":
-                d = np.broadcast_to(plane.axis, (len(i), 3))
-                origin = plane.centre + s[:, None] * plane.right + t[:, None] * plane.up - plane.back * plane.axis
-            else:
-                d = plane.axis + s[:, None] * plane.right + t[:, None] * plane.up
-                d = d / np.linalg.norm(d, axis=1, keepdims=True)
-                mine = np.argmax(d @ cube.T, axis=1) == plane.index
-                i, j, d = i[mine], j[mine], d[mine]
-                origin = np.broadcast_to(plane.centre, d.shape)
+            origin, d, mine = plane_rays(plane, cube, i, j)
+            cast = len(i)                                         # candidate rays of the block, as `of_rays` counts
+            i, j, origin, d = i[mine], j[mine], origin[mine], d[mine]
             den = d @ n
             with np.errstate(divide="ignore", invalid="ignore"):
                 tf = ((a - origin) @ n) / den
@@ -289,12 +329,14 @@ def face_pixels(mesh: MeshData, face: int, viewpoint: Viewpoint, caster=None, *,
             ok &= (wb >= 0.0) & (wc >= 0.0) & (wb + wc <= 1.0)
             idx = np.flatnonzero(ok)
             if not len(idx):
+                yield _empty_block(cast, of_rays)
                 continue
             o_k, d_k = np.ascontiguousarray(origin[idx]), np.ascontiguousarray(d[idx])
             _, t_hit = caster.first_hit(o_k, d_k)
             shown = tf[idx] <= t_hit + ZFIGHT
             idx = idx[shown]
             if not len(idx):
+                yield _empty_block(cast, of_rays)
                 continue
             pts = q[idx]
             if viewpoint.kind == "direction":
@@ -305,7 +347,36 @@ def face_pixels(mesh: MeshData, face: int, viewpoint: Viewpoint, caster=None, *,
                 reach = np.linalg.norm(v, axis=1)
                 toward = v / np.maximum(reach, 1e-300)[:, None]
             yield PixelBlock(points=pts, toward=toward, reach=reach, ij=np.stack([i[idx], j[idx]], axis=1),
-                             plane=np.full(len(idx), plane.index, dtype=np.int64), t=tf[idx])
+                             plane=np.full(len(idx), plane.index, dtype=np.int64), t=tf[idx],
+                             bary=np.stack([1.0 - wb[idx] - wc[idx], wb[idx], wc[idx]], axis=1), rays=cast,
+                             of_rays=of_rays)
+
+
+def floor_lattice(mesh: MeshData, faces) -> Samples:
+    """Points on `faces` (ids of `mesh`) for finding which removed or covered faces any viewpoint sees: on each face
+    the smallest n x n equal-area lattice (`sampling._lattice`) holding at least `LATTICE_MIN + LATTICE_PER_SQ_IN *
+    area` points, with n x n at most `LATTICE_CAP`. Rows in the order of `faces`, each face's points in lattice
+    order. A face with no area gets the `LATTICE_MIN` points, which nobody sees (no normal)."""
+    ids = np.asarray(faces, dtype=np.int64).reshape(-1)
+    if not len(ids):
+        return Samples(points=np.zeros((0, 3)), face=ids, bary=np.zeros((0, 3)))
+    if ids.min() < 0 or ids.max() >= mesh.n_faces:
+        raise ValueError(f"face ids must lie in 0..{mesh.n_faces - 1}")
+    tri = mesh.positions[mesh.face_v[ids]]
+    area = 0.5 * np.linalg.norm(np.cross(tri[:, 1] - tri[:, 0], tri[:, 2] - tri[:, 0]), axis=1)
+    wanted = np.minimum(LATTICE_MIN + np.ceil(area * LATTICE_PER_SQ_IN), LATTICE_CAP)
+    side = np.minimum(np.ceil(np.sqrt(wanted)), int(np.floor(np.sqrt(LATTICE_CAP)))).astype(np.int64)
+    counts = side * side
+    starts = np.cumsum(counts) - counts
+    face = np.repeat(ids, counts)
+    bary = np.empty((int(counts.sum()), 3))
+    for n in np.unique(side):
+        which = np.flatnonzero(side == n)
+        at = (starts[which][:, None] + np.arange(n * n)[None, :]).reshape(-1)
+        bary[at] = np.tile(_lattice(int(n)), (len(which), 1))
+    P, fv = mesh.positions, mesh.face_v[face]
+    points = bary[:, 0, None] * P[fv[:, 0]] + bary[:, 1, None] * P[fv[:, 1]] + bary[:, 2, None] * P[fv[:, 2]]
+    return Samples(points=points, face=face, bary=bary)
 
 
 def face_visible_pixels(before_mesh: MeshData, face: int, viewpoint: Viewpoint, caster=None, *,

@@ -112,7 +112,11 @@ def test_without_fills_validation_json_is_byte_for_byte_the_76ca35a_validator_s(
     exec(compile(shown.stdout, str(old_path), "exec"), old.__dict__)
     m = cube(10.0)
     after = _without_faces(m, [8])
-    dump = lambda r: json.dumps({k: v for k, v in r.items() if k != "timings_s"}, indent=2).encode("utf-8")
+    def dump(r):
+        # job P2-V2 added the owner's floor to check 3 (`checks.nothing_deleted.floor`); everything else is as it was
+        r = json.loads(json.dumps({k: v for k, v in r.items() if k != "timings_s"}))
+        r["checks"]["nothing_deleted"].pop("floor", None)
+        return json.dumps(r, indent=2).encode("utf-8")
     then = old.validate(m, after, _looks("m0"), errors=(NO_ERRORS, NO_ERRORS)).report
     now = validate(m, after, _looks("m0"), errors=(NO_ERRORS, NO_ERRORS)).report
     assert then["checks"]["nothing_deleted"]["status"] == "FAIL", "a case with failures, sites and counts"

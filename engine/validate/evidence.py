@@ -21,6 +21,7 @@ import numpy as np
 from PIL import Image
 
 from engine.validate.checks import BACK_TINT, Validation
+from engine.validate.floor import Viewpoint, face_view, plane_rays
 from engine.validate.sampling import face_normals, used_bbox
 from engine.validate.visibility import build_caster
 
@@ -32,6 +33,12 @@ MAX_WINDOW = 400.0
 BACKGROUND = (236, 238, 241)
 MARK = (255, 220, 0)
 _TICK = 8
+#: The floor's crops (job P2-V2): at most this many pixels a side, at the measure's own 0.02 in/px; the lost pixels
+#: are mixed half and half with `LOST` in the BEFORE half; `GAP` px of `BACKGROUND` part BEFORE from AFTER.
+FLOOR_CROP_MAX = 320
+FLOOR_CROP_MIN = 96
+LOST = (255, 0, 200)
+GAP = 6
 
 
 def _basis(u: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
@@ -97,11 +104,89 @@ def _viewers(v: Validation, idx: np.ndarray, point_set: np.ndarray) -> tuple[np.
     return toward, position
 
 
+def _floor_viewpoint(v: Validation, label: dict) -> Viewpoint:
+    """The floor's viewpoint of a report label, in the Validator's frame."""
+    vp, k = v.viewpoints, int(label["index"])
+    if label["kind"] == "direction":
+        return Viewpoint.direction(vp["dirs"][k])
+    if label["kind"] == "extra direction":
+        return Viewpoint.direction(vp["extra_dirs"][k])
+    return Viewpoint.point(vp["cams"][k] if label["kind"] == "camera" else vp["probes"][k])
+
+
+def _shade(caster, normals, colours, origin, d) -> np.ndarray:
+    """(k, 3) float colours of the first faces the rays meet, as `render_crop` colours them."""
+    out = np.empty((len(origin), 3))
+    out[:] = BACKGROUND
+    if caster is None or not len(origin):
+        return out
+    tri, _ = caster.first_hit(origin, d)
+    hit = np.flatnonzero(tri >= 0)
+    facing = np.einsum("ij,ij->i", normals[tri[hit]], d[hit])
+    colour = colours[tri[hit]] * (0.55 + 0.45 * np.abs(facing))[:, None]
+    back = facing > 0.0
+    colour[back] = 0.5 * colour[back] + 0.5 * np.array(BACK_TINT)
+    out[hit] = colour
+    return out
+
+
+def write_floor_crops(v: Validation, out_dir) -> list[str]:
+    """For every face the floor measured above 0 pixels (job P2-V2): `floor/face-NNNNN.png`, BEFORE then
+    AFTER side by side, drawn on the measure's own image plane at 0.02 in/px (the plane holding most of its lost
+    pixels), a window round those pixels; the lost pixels are marked in the BEFORE half. Sets each entry's `crop` in
+    the report. Returns the paths written (relative to `out_dir`)."""
+    out_dir = Path(out_dir)
+    entries = v.report["checks"]["nothing_deleted"].get("floor", {}).get("measured", [])
+    todo = [(e, c) for e, c in zip(entries, v.floor_cases) if e["pixels"] > 0]
+    if not todo:
+        return []
+    (out_dir / "floor").mkdir(parents=True, exist_ok=True)
+    caster_b = build_caster(v.before)
+    caster_a = build_caster(v.after) if v.after.n_faces else None
+    normals_b, normals_a = face_normals(v.before), face_normals(v.after)
+    colours_b, colours_a = _face_colours(v.look_before, v), _face_colours(v.look_after, v)
+    written = []
+    for entry, case in todo:
+        vp = _floor_viewpoint(v, entry["viewpoint"])
+        planes, cube = face_view(v.before, case["face"], vp)
+        if not planes or not len(case["ij"]):
+            continue
+        which = int(np.bincount(case["plane"]).argmax())
+        plane = next((p for p in planes if p.index == which), planes[0])
+        ij = case["ij"][case["plane"] == plane.index]
+        lo, hi = ij.min(axis=0), ij.max(axis=0)
+        side = int(np.clip(int((hi - lo).max()) + 40, FLOOR_CROP_MIN, FLOOR_CROP_MAX))
+        centre = np.round((lo + hi) / 2.0).astype(np.int64)
+        cols = centre[0] - side // 2 + np.arange(side)
+        rows = centre[1] + side // 2 - np.arange(side)                 # top row first: +j is up
+        i = np.tile(cols, side)
+        j = np.repeat(rows, side)
+        origin, d, _mine = plane_rays(plane, cube, i, j)
+        before_img = _shade(caster_b, normals_b, colours_b, origin, d)
+        after_img = _shade(caster_a, normals_a, colours_a, origin, d)
+        r = centre[1] + side // 2 - ij[:, 1]
+        c = ij[:, 0] - (centre[0] - side // 2)
+        inside = (r >= 0) & (r < side) & (c >= 0) & (c < side)
+        at = r[inside] * side + c[inside]
+        before_img[at] = 0.5 * before_img[at] + 0.5 * np.array(LOST)
+        image = np.empty((side, 2 * side + GAP, 3))
+        image[:] = BACKGROUND
+        image[:, :side] = before_img.reshape(side, side, 3)
+        image[:, side + GAP:] = after_img.reshape(side, side, 3)
+        name = f"floor/face-{entry['face']:05d}.png"
+        Image.fromarray(np.clip(np.round(image), 0, 255).astype(np.uint8), "RGB").save(out_dir / name)
+        entry["crop"] = name
+        written.append(name)
+    return written
+
+
 def write_evidence(v: Validation, out_dir, *, limit: int = WORST, px: int = PX) -> list[dict]:
     """Write `evidence/site-NN-before.png` and `-after.png` under `out_dir` for each of the `limit` worst
     sites of `v`, and set that site's `evidence` in the report to their paths (relative to `out_dir`).
-    Returns the list of those entries. A floor with no failing site writes nothing."""
+    Returns the list of those entries. The floor's crops (`write_floor_crops`) are written too. A floor with no
+    failing site and no face measured above 0 pixels writes nothing."""
     out_dir = Path(out_dir)
+    write_floor_crops(v, out_dir)
     sites = v.report["sites"][:limit]
     if not sites:
         return []

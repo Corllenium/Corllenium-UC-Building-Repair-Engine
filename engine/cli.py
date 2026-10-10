@@ -1046,6 +1046,14 @@ def cmd_validate(before_dir: Path, after_path: Path, materials: Path, out_dir: P
     print(f"  nothing_deleted {g['status']:<11} {g['deleted']} deleted, {g['replaced']} replaced, {g['covered']} covered, "
           f"{g['overlaid']} overlaid "
           f"({g['samples_extra']} samples only the {report['viewpoints']['extra_directions']} extra directions saw)")
+    floor = g.get("floor")
+    if floor is not None:
+        worst = floor["measured"][0] if floor["measured"] else None
+        print(f"  floor           {floor['status']:<11} {floor['faces_failed']} of {floor['faces_measured']} measured faces "
+              f"show more than {floor['floor_px']} px at {floor['in_per_px']} in/px (lattice {floor['lattice']['points']} "
+              f"points on {floor['lattice']['faces']} faces)"
+              + (f"; worst face {worst['face']} ({worst['kind']}) {'>=' if worst['at_least'] else ''}{worst['pixels']} px "
+                 f"from {worst['viewpoint']['kind']} {worst['viewpoint']['index']}" if worst else ""))
     print(f"  {report['sites_total']} sites, {sum(1 for s in report['sites'] if s['evidence'])} with evidence crops; "
           f"wrote {out_dir / 'validation.json'}")
     for note in report["notes"]:

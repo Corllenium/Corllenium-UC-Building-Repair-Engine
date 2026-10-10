@@ -15,10 +15,13 @@ The modules:
 * `viewpoints`: where to look from (`outside_directions`, `pedestrian_ring`, `interior_probes`);
 * `visibility`: what each viewpoint sees, and which side of the face (`visible_samples`,
   `VisibleSet`, `build_caster`);
+* `floor`: the owner's floor (2026-10-10), measured: a face's pixels at 0.02 in/px from one viewpoint
+  (`face_visible_pixels`, `face_pixels`) and the dense lattice that finds which faces to measure (`floor_lattice`);
 * `checks`: the three checks on a BEFORE and an AFTER (`validate`): textures there, problems solved
   (`find_errors` against the owner's signed targets, imported lazily because it imports
   `engine.fixes`, `engine.guard` and `engine.vis`), nothing visible deleted or covered;
-* `evidence`: two 256 px orthographic crops of each of the 20 worst failing sites.
+* `evidence`: two 256 px orthographic crops of each of the 20 worst failing sites, and a BEFORE | AFTER crop at
+  0.02 in/px of every face the floor measured above 0 pixels (`write_floor_crops`).
 
 The command is `python -m engine.cli validate` (see `engine/cli.py`); it writes `validation.json` and
 the evidence PNGs.
