@@ -100,13 +100,14 @@ def test_a_focus_run_says_in_its_notes_that_it_is_not_a_floor_verdict():
 
 def test_a_focus_samples_only_its_before_faces_and_finds_a_defect_inside_it_as_the_full_run_does():
     m = two_look_cube()
-    after = _with_shifted_uv(_without_faces(m, [8]), 1, 0.5)         # x = 10 face 8 gone; bottom face 1 in shifted UVs
+    # x = 10 face 8 gone; top face 2 in shifted UVs (P2-V2 item 8: it was the bottom, which nobody sees any more)
+    after = _with_shifted_uv(_without_faces(m, [8]), 2, 0.5)
     full = _check(m, after, LOOKS)
     side = _check(m, after, LOOKS, focus=Focus(before_faces=np.array([8, 9]), after_faces=np.arange(after.n_faces)))
     textures, gone = _checks(side)
     assert textures["faces"] == 2 and textures["samples"] == 8, "only the x = 10 side is sampled"
     assert gone["deleted"] == full.report["checks"]["nothing_deleted"]["deleted"] == 4
-    assert textures["reasons"]["uv"] == 0 < full.report["checks"]["textures"]["reasons"]["uv"], "the bottom is not in it"
+    assert textures["reasons"]["uv"] == 0 < full.report["checks"]["textures"]["reasons"]["uv"], "the top is not in it"
     assert [s["faces"] for s in side.report["sites"]] == [[8]]
     # ids are a set: repeats and order do not change what is sampled, and a boolean mask is the same set
     again = _check(m, after, LOOKS, focus=Focus(before_faces=np.array([9, 8, 8]), after_faces=np.arange(after.n_faces)))

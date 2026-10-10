@@ -12,7 +12,8 @@ HOW A FLOOR IS JUDGED. Two layers, and a floor passes check 3 only when both pas
 2026-10-10, AGENTS.md section 5).
 
 * SAMPLES. The BEFORE is sampled (`sampling.face_samples`, at least 4 a face and one per 36 sq in) and every sample
-  is looked at from 128 directions, a ring of cameras and the eye-height probes (`visibility.visible_samples`). The
+  is looked at from the directions at or above the horizon (64 of a 128-point sphere), a ring of cameras and the
+  eye-height probes (`visibility.visible_samples`). The
   sample's surface is asked of AFTER from its witness, the best-conditioned viewpoint (the one least edge-on to its
   face; one that sees its front, when any does). COVERED is asked on EVERY line of sight that saw the sample, from
   either side (`_covered_on_every_line`): blocked in AFTER by new geometry more than the depth tolerance in front of
@@ -63,7 +64,7 @@ import numpy as np
 from engine.model import MeshData
 from engine.validate.sampling import (Samples, face_areas, face_normals, face_samples, recentred, used_bbox,
                                       uv_at)
-from engine.validate.viewpoints import interior_probes, outside_directions, pedestrian_ring
+from engine.validate.viewpoints import above_horizon_directions, interior_probes, pedestrian_ring
 from engine.validate.floor import (FLOOR_IN_PER_PX, LATTICE_CAP, LATTICE_MIN, LATTICE_PER_SQ_IN, PIXEL_BUDGET,
                                    VISIBLE_FLOOR_PX, Viewpoint, face_pixels, floor_lattice)
 from engine.validate.visibility import EPS_ORIGIN, MIN_COS, VisibleSet, _side, build_caster, visible_samples
@@ -292,7 +293,8 @@ def face_fingerprints(mesh: MeshData, step: float, look_ids: np.ndarray) -> np.n
 @dataclass(frozen=True)
 class Settings:
     """How much the Validator looks at. The defaults are the owner's (spec section 3): at least 4
-    samples on every face and one per 36 sq in, 128 directions, a ring of 24 cameras, 1,024 extra
+    samples on every face and one per 36 sq in, 128 directions (the 64 whose viewer is at or above the horizon are
+    used: `viewpoints.above_horizon_directions`), a ring of 24 cameras, 1,024 extra (512 used, the same way)
     directions for faces that are gone, probes 1.6 m up. `chunk` is how many samples are cast at a
     time, which bounds memory (the dense `seen` and `front` matrices are chunk x viewpoints)."""
     n_directions: int = 128
@@ -1560,7 +1562,8 @@ def validate(before: MeshData, after: MeshData, looks: Looks, *, errors=None, ta
     caster_a = build_caster(a) if a.n_faces else None
 
     lo, hi = used_bbox(b)
-    dirs = _points(outside_directions(settings.n_directions) if dirs is None else dirs)
+    # outside views come only from directions at or above the horizon (owner, 2026-10-10): d_z <= 0, the viewer at -d
+    dirs = _points(above_horizon_directions(settings.n_directions) if dirs is None else dirs)
     # made here, they are already in the Validator's frame; given, they are positions in the model's own
     # coordinates (like the meshes) and are shifted into it
     cams = (_points(pedestrian_ring((lo, hi), eye_z=lo[2] + settings.eye, n=settings.n_cameras,
@@ -1569,7 +1572,7 @@ def validate(before: MeshData, after: MeshData, looks: Looks, *, errors=None, ta
         probes = _points(interior_probes(b, eye=settings.eye, caster=caster_b)) if b.n_faces else np.zeros((0, 3))
     else:
         probes = _points(probes) - centre
-    extra_dirs = _points(outside_directions(settings.n_extra_directions) if extra_dirs is None else extra_dirs)
+    extra_dirs = _points(above_horizon_directions(settings.n_extra_directions) if extra_dirs is None else extra_dirs)
     nothing = np.zeros((0, 3))
 
     samples = face_samples(b, faces=None if focus is None else focus_before, min_per_face=settings.min_per_face,

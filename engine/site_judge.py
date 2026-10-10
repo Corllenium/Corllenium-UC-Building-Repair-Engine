@@ -33,7 +33,8 @@ boxes contain the faces, so a face some witness ray of the Validator could find 
 is never left out (`_meets_shadow`). It over-approximates instead: the bottom of a box under a new plate is a
 candidate though the box's top hides it. The ray peel this replaces (and its `_PEEL` cut-off) is gone.
 
-THE CANDIDATE SET IS DELIBERATELY LARGE: that is the price of being conservative. From 128 directions and a ring of
+THE CANDIDATE SET IS DELIBERATELY LARGE: that is the price of being conservative. From the directions at or above
+the horizon (64 of 128; owner, 2026-10-10) and a ring of
 cameras, and from every eye-height probe inside the floor, the shadows of even a few small boxes reach most of a
 floor (on CHTM 5th a 10-face site has all 20,599 faces as candidates). A focus run is then about as costly as a full
 run, and that is accepted (ruling K3-R2); what keeps a failure from being blamed on the wrong site is not this set
@@ -64,7 +65,7 @@ import numpy as np
 from engine.model import MeshData
 from engine.validate.checks import FillSite, Focus, Looks, Settings, depth_tolerance, print_step, validate
 from engine.validate.sampling import Samples, face_samples, recentred, used_bbox
-from engine.validate.viewpoints import interior_probes, outside_directions, pedestrian_ring
+from engine.validate.viewpoints import above_horizon_directions, interior_probes, pedestrian_ring
 from engine.validate.visibility import EPS_ORIGIN, build_caster, visible_samples
 
 #: Slack, in inches, on top of the depth tolerance and `EPS_ORIGIN` round the new faces' boxes.
@@ -228,7 +229,7 @@ class SiteJudge:
         self._stage = _Stage(before=before, centre=centre,
                              viewpoints=np.vstack([np.asarray(cams, float).reshape(-1, 3),
                                                    np.asarray(probes, float).reshape(-1, 3)]) + centre,
-                             dirs=outside_directions(s.n_directions),
+                             dirs=above_horizon_directions(s.n_directions),   # the viewer at or above the horizon
                              face_lo=tri.min(axis=1), face_hi=tri.max(axis=1),
                              tol=depth_tolerance(print_step(before)))
         if before.n_faces:
@@ -384,7 +385,7 @@ class SiteJudge:
         lo, hi = used_bbox(b)
         cams = pedestrian_ring((lo, hi), eye_z=lo[2] + s.eye, n=s.n_cameras, margin=s.camera_margin)
         probes = interior_probes(b, eye=s.eye, caster=caster)
-        dirs = np.vstack([outside_directions(s.n_directions), outside_directions(s.n_extra_directions)])
+        dirs = np.vstack([above_horizon_directions(s.n_directions), above_horizon_directions(s.n_extra_directions)])
         ids = np.unique(faces)
         # the smallest n x n lattice reaching `points_per_face` on every face: no area term (an infinite area per sample)
         samples = face_samples(b, faces=ids, min_per_face=int(points_per_face), area_per_sample=float("inf"))

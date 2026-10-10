@@ -273,14 +273,18 @@ def test_the_edit_log_has_a_check_record_per_stage_and_marks_rolled_back_edits(t
 # ---------------------------------------------------------------------------------------------------------------
 
 def _overlap_drops_a_visible_face(monkeypatch):
-    """The overlap stage, then the first face of what it hands on dropped: a visible face of the box deleted."""
+    """The overlap stage, then a face of the box's TOP dropped from what it hands on: a visible face deleted. (Job
+    P2-V2 item 8: it was the first face, the bottom, which only a viewer below the ground saw.)"""
     stages = dict(legacy.FIX_STAGES)
     real = stages["overlap"]
 
     def overlap(s):
         s = real(s)
         m = s.mesh_overlapped
-        keep = np.arange(1, m.n_faces)
+        tri = m.positions[m.face_v]
+        nz = np.cross(tri[:, 1] - tri[:, 0], tri[:, 2] - tri[:, 0])[:, 2]
+        top = int(np.argmax(np.where(nz > 0.0, tri[:, :, 2].mean(axis=1), -np.inf)))
+        keep = np.flatnonzero(np.arange(m.n_faces) != top)
         s.mesh_overlapped = dataclasses.replace(m, face_v=m.face_v[keep], face_vt=m.face_vt[keep],
                                                 face_vn=m.face_vn[keep], face_material=m.face_material[keep],
                                                 face_line=m.face_line[keep])

@@ -238,8 +238,9 @@ def test_identity_passes_every_check_on_a_cube():
     assert (textures["status"], gone["status"]) == ("PASS", "PASS")
     assert v.report["checks"]["problems"]["status"] == "REPORT_ONLY"
     assert v.report["verdict"] == "PASS" and v.passed
-    assert textures["samples"] == 48 and textures["faces"] == 12, "4 samples on each of 12 faces, all seen from outside"
-    assert textures["samples_failed"] == 0 and gone["samples"] == 48 and gone["deleted"] == gone["covered"] == 0
+    # job P2-V2 item 8: outside views only from at or above the horizon (owner 2026-10-10): the bottom (2 faces) is seen only from below the ground, so it is not seen
+    assert textures["samples"] == 40 and textures["faces"] == 10, "4 samples on each of the 10 faces seen from outside"
+    assert textures["samples_failed"] == 0 and gone["samples"] == 40 and gone["deleted"] == gone["covered"] == 0
     assert v.report["sites"] == []
 
 
@@ -257,8 +258,9 @@ def test_identity_passes_every_check_in_a_closed_room_whose_walls_only_the_probe
     v = _check(m, m, _looks("plaster", "brick"))
     textures, gone = _checks(v)
     assert (textures["status"], gone["status"], v.report["verdict"]) == ("PASS", "PASS", "PASS")
-    assert textures["faces"] == 24, "the inner skin from the probes, the outer skin from outside: every face"
-    assert v.report["viewpoints"] == {"directions": 128, "cameras": 24, "probes": 40, "extra_directions": 1024}
+    # job P2-V2 item 8: outside views only from at or above the horizon (owner 2026-10-10): the outer skin's floor (2 faces) is seen only from below the ground
+    assert textures["faces"] == 22, "the inner skin from the probes, the outer skin from outside but its floor"
+    assert v.report["viewpoints"] == {"directions": 64, "cameras": 24, "probes": 40, "extra_directions": 512}   # job P2-V2 item 8: outside views only from at or above the horizon (owner 2026-10-10)
     assert textures["samples_failed"] == 0 and gone["deleted"] == 0 and gone["covered"] == 0
 
 
@@ -317,7 +319,7 @@ def test_a_material_unknown_to_materials_json_is_listed_and_still_compares_by_it
     assert v.report["verdict"] == "PASS"
     assert v.report["materials"]["unknown_before"] == ["m0"] and v.report["materials"]["unknown_after"] == ["m0"]
     other = _check(m, dataclasses.replace(m, materials=["m9"]), Looks(key={}))
-    assert other.report["verdict"] == "FAIL" and _checks(other)[0]["reasons"]["look"] == 48
+    assert other.report["verdict"] == "FAIL" and _checks(other)[0]["reasons"]["look"] == 40          # the bottom unseen (P2-V2 item 8)
 
 
 def test_uvs_shifted_by_half_fail_check_1_and_only_check_1():
@@ -402,8 +404,8 @@ def test_an_after_with_no_faces_has_deleted_everything_without_crashing():
     m = cube(10.0)
     v = _check(m, _without_faces(m, range(12)), _looks("m0"))
     textures, gone = _checks(v)
-    assert v.report["verdict"] == "FAIL" and gone["deleted"] == 48 and gone["faces_unmet"] == 12
-    assert textures["reasons"]["deleted"] == 48
+    assert v.report["verdict"] == "FAIL" and gone["deleted"] == 40 and gone["faces_unmet"] == 10      # the bottom unseen (P2-V2 item 8)
+    assert textures["reasons"]["deleted"] == 40                  # the bottom unseen (P2-V2 item 8)
 
 
 def test_a_before_with_no_faces_has_nothing_to_judge():
@@ -742,7 +744,7 @@ def test_validate_writes_validation_json_and_evidence_and_exits_2_on_a_failure(t
     assert data["inputs"]["before_sha256"] == sha256_file(before / "cube.obj")
     assert data["inputs"]["after_sha256"] == sha256_file(after / "cube.obj")
     assert data["inputs"]["materials"] == str(tmp_path / "materials.json")
-    assert data["viewpoints"]["directions"] == 128 and data["timings_s"]["total"] > 0
+    assert data["viewpoints"]["directions"] == 64 and data["timings_s"]["total"] > 0      # job P2-V2 item 8: outside views only from at or above the horizon (owner 2026-10-10): 64 of 128
     if os.name == "nt":
         assert data["peak_working_set_mb"] > 10.0
     assert data["materials"] == {"unknown_before": [], "unknown_after": [], "no_texel": []}
