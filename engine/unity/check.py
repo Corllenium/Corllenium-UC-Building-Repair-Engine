@@ -12,7 +12,7 @@ import numpy as np
 
 from engine.model import MeshData
 from engine.repair.types import print_step
-from engine.unity.align import align, to_build_frame
+from engine.unity.align import align, dump_winding_flips, to_build_frame
 from engine.unity.dump import UnityDump
 
 UINT16_MAX_VERTICES = 65535
@@ -41,7 +41,7 @@ def geometry_diff(build: MeshData, dump: UnityDump) -> dict:
     det = float(np.linalg.det(a.matrix))
     upts = to_build_frame(dump.mesh.positions, a)
     bkeys = _oriented_keys(build.positions, build.face_v, tol, flip=False)
-    ukeys = _oriented_keys(upts, dump.mesh.face_v, tol, flip=det > 0)   # Unity's dump reverses winding
+    ukeys = _oriented_keys(upts, dump.mesh.face_v, tol, flip=dump_winding_flips(a.matrix))
     bc, uc = Counter(bkeys), Counter(ukeys)
     matched = sum((bc & uc).values())
     b_left, u_left = bc - uc, uc - bc
@@ -88,7 +88,7 @@ def _match_pairs(build: MeshData, dump: UnityDump) -> tuple[list[tuple[int, int,
     """(build face, unity face, corner order) for every matched face, and Unity's positions in the build frame."""
     tol = print_step(build)
     a = align(build, dump.mesh, float(dump.sidecar["importer"]["globalScale"]), tol)
-    flip = np.linalg.det(a.matrix) > 0
+    flip = dump_winding_flips(a.matrix)
     upts = to_build_frame(dump.mesh.positions, a)
     qb = np.round(build.positions / tol).astype(np.int64)
     qu = np.round(upts / tol).astype(np.int64)
@@ -137,6 +137,8 @@ SURFACE_CAUSES = ("material_remapped", "texture_lost", "uv_changed", "normal_aga
 
 
 def _kind_counts(errors: dict) -> dict[str, int]:
+    if "counts" in errors and isinstance(errors["counts"], dict):
+        return {k: int(v) for k, v in errors["counts"].items()}
     out = {}
     for kind, v in errors.items():
         if isinstance(v, dict) and "count" in v:
@@ -153,7 +155,10 @@ def unity_check(build: MeshData, dump: UnityDump, build_mtl: dict, unity_mtl: di
     s = surface_diff(build, dump, build_mtl, unity_mtl)
     a = _align(build, dump.mesh, float(dump.sidecar["importer"]["globalScale"]), print_step(build))
     from dataclasses import replace
+    flip = dump_winding_flips(a.matrix)
+    ufaces = dump.mesh.face_v[:, ::-1] if flip else dump.mesh.face_v
     unity_in_build_frame = replace(dump.mesh, positions=to_build_frame(dump.mesh.positions, a),
+                                   face_v=ufaces,
                                    coord_decimals=build.coord_decimals)
     eb = _kind_counts(find_errors(build))
     eu = _kind_counts(find_errors(unity_in_build_frame))

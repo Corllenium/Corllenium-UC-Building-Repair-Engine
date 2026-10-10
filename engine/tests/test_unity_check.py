@@ -107,3 +107,41 @@ def test_a_face_without_material_that_unity_gave_a_default_is_remapped_not_a_cra
               normals=np.repeat(_face_normals_unity(d)[:, None, :], 3, axis=1))
     s = surface_diff(b, d, {}, {"Default-Material": None})
     assert s["material_remapped"]["count"] == 12
+
+
+def test_split_vertex_reordered_cube_matches_exactly():
+    b = cube(100.0)
+    tri_positions = []
+    tri_faces = []
+    for f in b.face_v:
+        pts = b.positions[f]
+        pts_u = (pts @ M.T) * 0.0254
+        idx = len(tri_positions)
+        tri_positions.extend(pts_u)
+        tri_faces.append([idx + 2, idx + 1, idx])
+    rng = np.random.default_rng(123)
+    perm = rng.permutation(12)
+    split_faces = np.array(tri_faces)[perm]
+
+    u_mesh = replace(b, positions=np.array(tri_positions), face_v=split_faces,
+                     uvs=np.zeros((len(tri_positions), 2)), normals=np.zeros((len(tri_positions), 3)),
+                     face_vt=np.zeros((12, 3), dtype=np.int64), face_vn=np.zeros((12, 3), dtype=np.int64),
+                     face_material=np.zeros(12, dtype=np.int64), face_line=np.arange(1, 13))
+    side = {"importer": {"globalScale": 0.0254},
+            "meshes": [{"name": "m", "vertex_count": 36, "index_format": "UInt32", "submeshes": []}]}
+    dump = UnityDump(mesh=u_mesh, corner_normals=np.zeros((12, 3, 3)), sidecar=side)
+
+    g = geometry_diff(b, dump)
+    assert (g["matched"], g["missing"], g["extra"], g["flipped"]) == (12, 0, 0, 0)
+
+
+def test_worse_kind_appears_in_causes_when_unity_gains_error():
+    from engine.unity.check import unity_check
+    b = cube(100.0)
+    f = b.face_v[:, ::-1].copy()
+    f[0] = f[0, ::-1]
+    d = _dump(b, faces=f)
+    rep = unity_check(b, d, {}, {})
+    assert rep["verdict"] == "BROKEN BY IMPORT"
+    assert "worse:reversed" in rep["causes"]
+    assert "reversed" in rep["worse_kinds"]
