@@ -8,12 +8,24 @@ module imports `engine.fixes`, `engine.guard` and `engine.vis`: so it is importe
 A look key (`data/campus/materials.json`: texture sha256 + Kd + d) is the identity of what a face
 looks like, never a `usemtl` number. A face's look is `looks.key[mesh.materials[face_material]]`.
 
-HOW A FLOOR IS JUDGED. The BEFORE is sampled (`sampling.face_samples`) and every sample is looked at
-from 128 directions, a ring of cameras and the eye-height probes (`visibility.visible_samples`). Each
-sample some viewpoint sees is then asked of AFTER from ONE viewpoint, the best conditioned (the one
-least edge-on to its face; one that sees its front, when any does). For the covers (check 1 `covered`,
-check 3) the test is also replayed from the best eye-height probe that sees the sample (AGENTS.md section 5), so
-a cover only a probe sees is not missed because an outside direction won (at most twice the cover casts):
+HOW A FLOOR IS JUDGED. Two layers, and a floor passes check 3 only when both pass (job P2-V2; the owner's floor of
+2026-10-10, AGENTS.md section 5).
+
+* SAMPLES. The BEFORE is sampled (`sampling.face_samples`, at least 4 a face and one per 36 sq in) and every sample
+  is looked at from 128 directions, a ring of cameras and the eye-height probes (`visibility.visible_samples`). The
+  sample's surface is asked of AFTER from its witness, the best-conditioned viewpoint (the one least edge-on to its
+  face; one that sees its front, when any does). COVERED is asked on EVERY line of sight that saw the sample, from
+  either side (`_covered_on_every_line`): blocked in AFTER by new geometry more than the depth tolerance in front of
+  it (only AFTER's new geometry can block: `changed_faces`, which also ends the float32 corner artefact).
+* THE FLOOR (`_Floor`). The samples are too sparse to be the whole judge (P2-E3: a face with 0 of 9 samples seen
+  showed through an opening between them). Every removed face (its fingerprint gone from AFTER) gets a dense lattice
+  (`floor.floor_lattice`: 36 points plus one per sq in, at most 4,096), every new face of AFTER gets one too, to find
+  what it stands in front of, and the covered samples name their faces and lines. Each (face, viewpoint) so found
+  is MEASURED in pixels at 0.02 in/px (`floor.face_pixels`), and a face fails when one viewpoint shows more than
+  `floor.VISIBLE_FLOOR_PX` of its pixels lost (removed, replaced by another look, or covered). The floor never
+  excuses a sample's failure: the samples still fail what they find.
+
+What the samples are asked:
 
 * check 1, textures there: AFTER shows, at that depth (within `max(2 print steps, 0.05 in)`), a
   surface with the same look key, the same UV (mod 1, within one texel of that texture), seen from its
