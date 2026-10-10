@@ -516,10 +516,12 @@ class _Judge:
       before the viewpoint, covers it (on the lines beyond the witness's, also more than the tolerance square to
       the sample's face: see `blocker`); a layer within the tolerance is the sample's own depth (or an overlay),
       and the ray looks beyond it. A face AFTER kept from BEFORE lies where it lay and met none of the line BEFORE saw clear,
-      so only new geometry can block it; casting into the whole of AFTER let the float32 caster, which rounds
-      each mesh in its own frame, newly block a line through a shared vertex or edge that BEFORE's caster let
-      through (job P2-V2 item 4, the corner artefact of P2-E3 concern 3). So an AFTER that is a subset of
-      BEFORE's faces covers nothing, by construction.
+      so only new geometry can block it. Casting into the whole of AFTER let the float32 caster newly block a line
+      through a shared vertex or edge that BEFORE's caster let through: its verdict on such a line depends on the
+      whole mesh it was built from (measured both ways: trimesh scales each mesh by its own size before rounding to
+      float32; and on CHTM 5th, with the very same frame, the two Embree trees still disagreed on face 10553's
+      corner -- job P2-V2 item 4, P2-E3 concern 3). So an AFTER that is a subset of BEFORE's faces covers nothing,
+      by construction.
     * PRESENT. A ray from just outside the tolerance window, on the viewer's side, toward the sample.
       The first hit, if it is in the window, is judged; when it is not the whole story (another look,
       a coincident layer, nothing there), every face the short segment crosses is looked up by hand

@@ -1,14 +1,15 @@
 """Job P2-V2 item 4: a mesh that is a subset of BEFORE's faces never newly blocks a line (the corner artefact).
 
 P2-E3 concern 3: on CHTM 5th a probe's line through the corner of face 10553 missed everything in BEFORE and hit that
-very face in AFTER, a subset of BEFORE's faces -- 4 false `covered` samples, 21 sites rolled back. The cause: the ray
-caster stores the vertices in float32 AFTER shifting them by the mesh's own lowest corner and scaling them by its own
-size (trimesh's Embree wrapper), so two meshes with different extents round the SAME triangle differently, and a line
-through a shared vertex or edge slips through one and not the other.
+very face in AFTER, a subset of BEFORE's faces -- 4 false `covered` samples, 21 sites rolled back. The cause: the float32
+caster's verdict on a line through a shared vertex or edge depends on the whole mesh it was built from. Measured both
+ways: trimesh's Embree wrapper scales each mesh by its own size before rounding to float32 (this fixture: the same
+origin, scale 0.26 against 5.88), and on CHTM 5th the two meshes had the very same frame and their Embree trees still
+disagreed on face 10553's corner. So a line slips through one caster and not the other.
 
 The fixture: a floor under an opaque grid of triangles, every probe placed on the line from a floor sample's ray
-origin through a vertex of the grid, and a zero-area face far away that sets the mesh's lowest corner. AFTER drops
-that face only, so it is a face subset of BEFORE with another extent.
+origin through a vertex of the grid, and a zero-area face far off. AFTER drops that face only, so it is a face subset
+of BEFORE (its vertices stay) with another size.
 """
 import numpy as np
 
