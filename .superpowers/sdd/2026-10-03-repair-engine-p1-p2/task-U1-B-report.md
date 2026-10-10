@@ -28,3 +28,8 @@ check exit=0
 - The hash is of the decoded text, as the brief asked. `read_text` also folds CRLF to LF, so the value (b6b88e...) differs from the raw-byte `sha256sum` of the owner's file (ea37ed...). Both sides use the same function, so check is consistent. Anyone comparing with `sha256sum` by hand will see a different value. This also means a line-ending-only change by the owner does not count as stale.
 - Nothing was written to the owner's Unity project (the importer was read only; its mtime test is covered). `unityvcstray.exe` was already running (not mine, left alone). No guard, FixProfile, engine or existing test file touched.
 - No geometry is affected, so the golden-unit Validator run does not apply to this task.
+
+## Follow-up fix (coordinator request): commit 0814609
+- `_sha` is now `sha256(p.read_bytes().decode("utf-8-sig").encode("utf-8"))`: BOM stripped, CRLF kept byte-exact (matches the C# exporter's File.ReadAllText).
+- New test `test_a_line_ending_change_makes_the_copy_stale`: red first (`assert (not True)`), green after the fix. BOM test kept. 5 passed in the file; tools suite 185 passed.
+- sync/check: `OK mirror=ea37ed71d057537c260a0048217b607859972e16ac82a8d667de1927b7e49732 owner=` the same value. This now equals the raw `sha256sum` of the owner's file (it has no BOM), so the earlier note about differing hashes no longer applies.
