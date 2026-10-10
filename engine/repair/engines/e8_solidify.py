@@ -69,11 +69,17 @@ class E8Solidify:
     name: str = "E8"
     legacy: bool = False
     report: dict | None = field(default=None, repr=False)
+    #: P2-E3, read only: `(the stage input, SolidifyResult.seen_through_shell)` of the last run (None: not measured):
+    #: the input faces the cap guard let a new face cover only because they are seen through a closed slab. The
+    #: legacy hidden stage never deletes one, and neither does E3 run after this engine.
+    seen_through: tuple | None = field(default=None, repr=False)
 
     def plan(self, unit: UnitState, ctx: RepairContext) -> list[Edit]:
         mesh, profile = unit.mesh, ctx.profile
         result = solidify(mesh, start_fix(mesh, self.flatness, profile).topo_input, profile)
         self.report = result.report
+        self.seen_through = (None if result.seen_through_shell is None
+                             else (mesh, np.asarray(result.seen_through_shell, bool).copy()))
         out, n = result.mesh, len(mesh.positions)
         if len(out.positions) < n or not np.array_equal(out.positions[:n], mesh.positions):
             raise ValueError("E8: solidify moved or dropped an input vertex; its pieces cannot be written as edits")

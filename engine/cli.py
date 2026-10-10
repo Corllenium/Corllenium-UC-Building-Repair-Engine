@@ -61,6 +61,10 @@
     `--out`. No `.skp`. Exit 0 when the E8 stage passed, 1 when the unit's BEFORE differs from the campus map
     (nothing repaired), 2 on a refused input, 3 when the stage was rolled back whole or ended FAIL (every file is
     still written, and the mesh shipped is the BEFORE).
+    `--engines` takes a comma list run IN ORDER (job P2-E3), e.g. `--engines E8a,E3`: E3 removes hidden faces,
+    interior-aware (`engine.repair.engines.e3_hidden`), one site per connected group, each judged like the rest;
+    report.json then also carries `e3` (candidates, groups, sites kept and rolled back by reason, faces removed, the
+    Validator's deleted count after rollback, disagreements). `E8` keeps meaning E8a then E8b. Unknown names exit 2.
 
 A snapshot directory is the layout `engine.io.snapshot.snapshot_object` produces: one `<name>.obj`,
 `materials.mtl`, and a `tex/` folder of the textures it references.
@@ -1053,19 +1057,31 @@ def cmd_validate(before_dir: Path, after_path: Path, materials: Path, out_dir: P
 # ------------------------------------------------------------------------------------ repair-unit command
 
 #: The repair engines `repair-unit` takes (P2): E8, which is E8a (strict solidify) then E8b (the narrow flat fill,
-#: ruling E8b-R7), or either one alone.
-REPAIR_ENGINES = ("E8", "E8a", "E8b")
-#: The kernel stages each engine name runs; they always run in this order, E8a before E8b.
-REPAIR_STAGES = {"E8": ("E8a", "E8b"), "E8a": ("E8a",), "E8b": ("E8b",)}
-_STAGE_ORDER = ("E8a", "E8b")
+#: ruling E8b-R7), either one alone, and E3 (hidden faces, interior-aware; job P2-E3).
+REPAIR_ENGINES = ("E8", "E8a", "E8b", "E3")
+#: The kernel stages each engine name runs. They run in the order the names are given (ruling E3-R6: `E8a,E3`),
+#: each stage once, at its first place; `E8` is E8a then E8b.
+REPAIR_STAGES = {"E8": ("E8a", "E8b"), "E8a": ("E8a",), "E8b": ("E8b",), "E3": ("E3",)}
 #: `repair-unit`'s exit code when an engine stage was rolled back whole or ended FAIL (its outputs are still written).
 REPAIR_STAGE_FAILED = 3
 #: `repair-unit`'s exit codes, as its help gives them.
-REPAIR_EXIT_CODES = ("exit 0: every E8 stage passed (its last check PASS, or every piece rolled back on its own charge); "
+REPAIR_EXIT_CODES = ("exit 0: every E8 stage passed (its last check PASS, or every piece rolled back on its own charge), "
+                     "and so did every E3 stage; "
                      "1: the unit's BEFORE differs from the campus map, nothing repaired; "
                      "2: a refused input (unknown engine, protected folder, missing file); "
                      "3: the stage was rolled back whole or ended FAIL - every file is still written and the "
                      "mesh shipped is the BEFORE, the safe one")
+
+
+def repair_stages(engines) -> list[str]:
+    """The kernel stages `repair-unit` runs for the engine names `engines` (words, each possibly a comma list such as
+    `E8a,E3`), in the order given, each stage once at its first place (`E8` is E8a then E8b; ruling E3-R6).
+    ValueError for an unknown name, or for none."""
+    names = [n.strip() for e in engines for n in str(e).split(",") if n.strip()]
+    unknown = [n for n in names if n not in REPAIR_ENGINES]
+    if unknown or not names:
+        raise ValueError(f"repair-unit runs only {REPAIR_ENGINES}; not {unknown or 'no engine'}")
+    return list(dict.fromkeys(s for n in names for s in REPAIR_STAGES[n]))
 
 
 #: The folders of crops `repair-unit` writes in `--out`.
@@ -1098,12 +1114,48 @@ def _after_rollback(check: dict) -> dict:
     runs = check.get("runs") or []
     kept_any = check.get("sites", 0) > len(check.get("rolled_back", []))
     if not runs or not kept_any:
-        return {"verdict": check.get("final", "PASS"), "covered": 0, "textures_covered": 0, "failing": 0,
+        return {"verdict": check.get("final", "PASS"), "covered": 0, "textures_covered": 0, "deleted": 0, "failing": 0,
                 "judged_by": "nothing kept: the stage ships its input"}
     last = runs[-1]
     return {"verdict": check["final"], "covered": int(last["nothing_deleted"]["covered"]),
-            "textures_covered": int(last["textures"].get("covered", 0)), "failing": int(last["failing"]),
+            "textures_covered": int(last["textures"].get("covered", 0)),
+            "deleted": int(last["nothing_deleted"]["deleted"]), "failing": int(last["failing"]),
             "judged_by": f"the {last['kind']} run on the {last['sites']} kept site(s)"}
+
+
+def _e3_report(engine, edits: list, result, check: dict | None) -> dict:
+    """report.json's `e3` (job P2-E3): the engine's own numbers (`E3Hidden.report`: legacy candidates, what each rule
+    took out, candidates, groups, sites, probes, disagreements), then `sites` (planned, kept, rolled back, by the
+    Validator's reason; a site counts once under each reason its charged samples had), `faces_removed` (by the kept
+    sites), `deleted_after_rollback` (the Validator's deleted count in the stage's last check, on the kept sites:
+    must be 0), `after_rollback`, and `site_rows`, one per site (its group, faces, area, rules, centroid, box, kept,
+    reasons, samples charged)."""
+    kept = {id(e) for e in result.kept}
+    rolled = {row["site"]: row for row in (check or {}).get("rolled_back", [])}
+    rows, by_reason, samples_by_reason = [], collections.Counter(), collections.Counter()
+    for e in edits:
+        ev, row = e.evidence, rolled.get(e.site)
+        reasons = {} if row is None else dict(row["reasons"])
+        if row is not None and row.get("stage_rolled_back"):
+            reasons = {"stage_rolled_back": 0}
+        if row is not None:
+            by_reason.update(reasons.keys())
+            samples_by_reason.update(reasons)
+        rows.append({"site": int(e.site), "group": ev.get("group"), "cell": ev.get("cell"), "faces": len(e.faces),
+                     "group_faces": ev.get("group_faces"), "area": ev.get("area"),
+                     "rules": dict(collections.Counter(ev.get("rules", []))), "centroid": ev.get("centroid"),
+                     "bbox": ev.get("bbox"), "kept": id(e) in kept, "reasons": reasons,
+                     "charged": 0 if row is None else int(row["charged"])})
+    after = _after_rollback(check) if check is not None else None
+    return {**(engine.report or {}),
+            "sites": {"planned": len(rows), "kept": sum(r["kept"] for r in rows),
+                      "rolled_back": sum(not r["kept"] for r in rows),
+                      "rolled_back_by_reason": dict(sorted(by_reason.items())),
+                      "rolled_back_samples_by_reason": {k: int(v) for k, v in sorted(samples_by_reason.items()) if v}},
+            "faces_removed": int(sum(r["faces"] for r in rows if r["kept"])),
+            "deleted_after_rollback": 0 if after is None else int(after["deleted"]),
+            "after_rollback": after,
+            "site_rows": rows}
 
 
 def _repair_report(result, check_by_stage: dict, before=None) -> tuple[list[dict], dict]:
@@ -1158,8 +1210,8 @@ def cmd_repair_unit(out_dir: Path, *, unit: str | None = None, snapshot: Path | 
     """Repair one floor or element unit with the P2 engines, each piece of work checked by the Validator.
 
     The BEFORE is the campus unit `unit`, built as `campus-unit-before` builds it (into `<out_dir>/before/`), or the
-    snapshot folder `snapshot`. The repair kernel runs `engines` (E8 only, so far) with the site judge on
-    (`validate_sites=True`, the owner's settings; looks from `materials` and the BEFORE's MTL): a site that broke
+    snapshot folder `snapshot`. The repair kernel runs `engines` (E8a, E8b, E3, in the order given) with the site
+    judge on (`validate_sites=True`, the owner's settings; looks from `materials` and the BEFORE's MTL): a site that broke
     anything visible is rolled back. Writes `<out_dir>/<name>.fixed.obj` (with `materials.mtl` next to it),
     `edit_log.jsonl` and `report.json`: the pieces built, kept and rolled back (by the Validator's reason), the
     stage checks, the Validator's covered count after rollback, and the times. Writes no `.skp`.
@@ -1169,6 +1221,7 @@ def cmd_repair_unit(out_dir: Path, *, unit: str | None = None, snapshot: Path | 
     campus map (nothing repaired). Raises ValueError for an unknown engine, a unit or snapshot missing (or both
     given), a protected `out_dir`, or a snapshot in a protected folder (`main` turns those into exit 2)."""
     from engine.campus.unit_before import build_unit_before
+    from engine.repair.engines.e3_hidden import E3Hidden
     from engine.repair.engines.e8_fill import E8FlatFill
     from engine.repair.engines.e8_solidify import E8Solidify
     from engine.repair.kernel import repair_unit
@@ -1177,9 +1230,7 @@ def cmd_repair_unit(out_dir: Path, *, unit: str | None = None, snapshot: Path | 
     from engine.validate.checks import load_looks
 
     engines = list(engines)
-    unknown = [e for e in engines if e not in REPAIR_ENGINES]
-    if unknown or not engines:
-        raise ValueError(f"repair-unit runs only {REPAIR_ENGINES}; not {unknown or 'no engine'}")
+    stages = repair_stages(engines)          # ValueError for an unknown name (exit 2), in the order given
     if (unit is None) == (snapshot is None):
         raise ValueError("give exactly one of a unit and a snapshot")
     out_dir = Path(out_dir)
@@ -1212,10 +1263,10 @@ def cmd_repair_unit(out_dir: Path, *, unit: str | None = None, snapshot: Path | 
     obj_path, mesh, flatness, mtl_materials = _load_snapshot(before_dir)
     profile = profile or FixProfile()
     judge = SiteJudge(load_looks(Path(materials), [(mtl_materials, before_dir)]))
-    stages = [s for s in _STAGE_ORDER if any(s in REPAIR_STAGES[e] for e in engines)]
     solid = E8Solidify(flatness=flatness) if "E8a" in stages else None
     fill = E8FlatFill() if "E8b" in stages else None
-    kernel_engines = [e for e in (solid, fill) if e is not None]
+    hidden = E3Hidden(flatness=flatness, solidify=solid) if "E3" in stages else None
+    kernel_engines = [{"E8a": solid, "E8b": fill, "E3": hidden}[s] for s in stages]
     out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / "report.json").unlink(missing_ok=True)
     _remove_stale_outputs(out_dir, None)
@@ -1245,8 +1296,12 @@ def cmd_repair_unit(out_dir: Path, *, unit: str | None = None, snapshot: Path | 
     if fill is not None:
         fills, not_filled, fill_stats = _fill_report(fill, by_stage.get(fill.name, []), result, checks.get(fill.name),
                                                      mesh, judge.looks, out_dir)
+    e3 = None
+    if hidden is not None:
+        e3 = _e3_report(hidden, by_stage.get(hidden.name, []), result, checks.get(hidden.name))
     report = {
         "unit": unit, "snapshot": None if snapshot is None else str(snapshot), "engines": engines,
+        "stages_run": stages,
         "before": {"obj": str(obj_path), "sha256": sha256_file(obj_path), "faces": int(mesh.n_faces),
                    "unit_before": before_report},
         "after": {"obj": str(fixed), "sha256": sha256_file(fixed), "faces": int(result.mesh.n_faces)},
@@ -1264,6 +1319,7 @@ def cmd_repair_unit(out_dir: Path, *, unit: str | None = None, snapshot: Path | 
         "fills": fills,
         "not_filled": not_filled,
         "fill_stats": fill_stats,
+        **({"e3": e3} if e3 is not None else {}),
         "seconds": {"before": round(built - started, 2), "kernel": round(repaired - built, 2),
                     "total": round(time.perf_counter() - started, 2)},
         "exit_code": _repair_exit_code(result.checks),
@@ -1287,6 +1343,13 @@ def cmd_repair_unit(out_dir: Path, *, unit: str | None = None, snapshot: Path | 
         print(f"{name}: E8b found {f['loops']} closed loops ({f['outer_boundaries']} patch outer borders, {f['holes']} "
               f"holes) among {f['components']} pieces of open edges; filled {f['kept']}, rolled back "
               f"{f['rolled_back']}; not filled {f['not_filled_by_reason']}")
+    if e3 is not None:
+        s3 = e3["sites"]
+        print(f"{name}: E3 legacy candidates {e3['legacy_candidates']} {e3['by_rule']}, left out {e3['excluded']}; "
+              f"{e3['candidates']} candidate faces in {e3['groups']} groups ({e3['groups_split']} split) -> "
+              f"{s3['planned']} sites; kept {s3['kept']}, rolled back {s3['rolled_back']} "
+              f"{s3['rolled_back_by_reason']}; removed {e3['faces_removed']} faces; deleted after rollback "
+              f"{e3['deleted_after_rollback']}; disagreements {e3['disagreements']['faces']}")
     print(f"{name}: needs modelling: {needs['counts']['entries']} spots {needs['counts']['by_kind']} "
           f"{needs['counts']['by_reason']} ({needs['counts']['outer_boundaries']} patch outer borders only counted); "
           f"{report['seconds']['needs_modelling']} s")
@@ -1518,17 +1581,18 @@ def build_parser() -> argparse.ArgumentParser:
 
     repair_p = sub.add_parser(
         "repair-unit",
-        help="repair one floor or element unit with the P2 engines (E8 so far), every piece checked by the "
+        help="repair one floor or element unit with the P2 engines (E8, E3), every piece checked by the "
              "Validator and rolled back if it breaks anything visible",
-        description="Repair one floor or element unit with the P2 engines (E8 so far); every piece is checked by "
+        description="Repair one floor or element unit with the P2 engines (E8, E3); every piece is checked by "
                     "the Validator and rolled back if it breaks anything visible. " + REPAIR_EXIT_CODES + ".")
     where = repair_p.add_mutually_exclusive_group(required=True)
     where.add_argument("--unit", default=None, help="the unit's name in the campus map, e.g. CHTM-L05")
     where.add_argument("--snapshot", type=Path, default=None,
                        help="a snapshot folder (one .obj, materials.mtl, tex/) as the BEFORE, instead of a unit")
     repair_p.add_argument("--engines", nargs="+", required=True,
-                          help=f"the engines to run: {', '.join(REPAIR_ENGINES)} (E8 = E8a, strict solidify, then E8b, "
-                               f"the narrow flat fill)")
+                          help=f"the engines to run, in this order, as a comma list (e.g. E8a,E3): "
+                               f"{', '.join(REPAIR_ENGINES)} (E8 = E8a, strict solidify, then E8b, the narrow flat "
+                               f"fill; E3 = hidden faces, interior-aware); an unknown name exits 2")
     repair_p.add_argument("--out", type=Path, required=True,
                           help="receives before/, <unit>.fixed.obj, edit_log.jsonl and report.json (a short temp folder)")
     repair_p.add_argument("--map", type=Path, default=Path("data/campus/campus_map.json"),
