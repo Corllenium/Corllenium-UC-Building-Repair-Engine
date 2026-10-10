@@ -43,14 +43,32 @@ roads, water, rocks: `Assets/Models/Env/`) stays outside the engine, as the owne
 
 ### Part 1: the Unity import check (built first; it answers "is the engine's fix still there in Unity?")
 
-1. **A Unity editor script `UcFloorExport.cs`.**
-   - It lives in this repo under `unity/Editor/` and is copied into the Unity project only with the owner's OK.
-   - For one floor's GameObject (or its imported model asset), it writes **exactly what Unity made of it**:
+**Owner decision 2026-10-10: nothing is installed in the owner's Unity project.** Validation never runs inside
+Unity: Unity only hands over the geometry it made, and the engine (Python) runs `find_errors` and the Validator on
+it. There are two ways to get that geometry:
+
+1. **A. The mirror Unity project, for every engine build (automatic).**
+   - It is a small Unity project kept in this repo at `unity/ImportMirror/`, on the same Unity version (6000.4.7f1,
+     installed at `D:\SOFTWARE\UNITY\Unity Hub\Editor\6000.4.7f1`).
+   - It holds a read-only copy of the owner's `CampusModelImporter.cs`, refreshed and hashed each run, so it imports
+     exactly as the real project does. It also holds its own exporter `UcFloorExport.cs`.
+   - The engine runs Unity headless on it (`-batchmode -nographics -quit -executeMethod`): import the engine build,
+     then write **exactly what Unity made of it**:
      - vertices, triangles, normals and UVs per submesh;
      - the material and texture per submesh;
      - the importer settings in force.
-   - Output is an OBJ+MTL plus a JSON sidecar, in world coordinates, written to a folder outside the Unity project.
-   - It never saves a scene or changes an asset.
+   - Output is an OBJ+MTL plus a JSON sidecar, in world coordinates, written to a temp folder.
+   - The owner's project and open editor are never touched. Import settings can be varied here one at a time
+     (section 3, Part 2) without risk.
+2. **B. Reads of the owner's live Unity scene, on request, through the Unity MCP already in that project
+   (`com.anklebreaker.unity-mcp`).**
+   - When the owner asks to check a floor (or all floors), the engine sends a **read-only** command that reads that
+     floor's meshes and materials as shown and writes the same OBJ+MTL+JSON to a folder outside the project.
+   - Nothing is saved and no file is added to the project.
+   - This finds what is wrong with floors already in Unity, including the owner's AI or hand fixes, and errors such
+     as flicker that cannot be seen by eye.
+   - If the Unity MCP cannot read mesh data, the fallback is an MCP command that runs the same export code in the
+     editor without saving it as an asset. It needs the owner's OK for the first run.
 2. **The engine's `engine.cli unity-check --build <engine floor OBJ> --unity <exported OBJ>`.** It compares the two
    with the engine's own tools:
    - face, vertex and triangle counts;
@@ -73,11 +91,12 @@ roads, water, rocks: `Assets/Models/Env/`) stays outside the engine, as the owne
    - Any change to `CampusModelImporter.cs` for building floors needs the owner's OK. It is proposed as a diff with
      measurements, never applied silently.
 2. **The per-floor loop**, automatic and per unit:
-   1. **Scan what Unity has now.** `UcFloorExport` exports the floor as Unity shows it, and the engine runs
-      `find_errors`. The result is the floor's error map in the dashboard, with pictures; no eyes are needed.
+   1. **Scan what Unity has now.** Route B reads the floor as the owner's scene shows it, and the engine runs
+      `find_errors` and the Validator. The result is the floor's error map in the dashboard, with pictures; no eyes
+      are needed.
    2. **Repair.** `engine.cli repair-unit`, with every engine merged so far.
    3. **Validate** to the owner's floor.
-   4. **Import check (Part 1).** The floor goes to Unity only if Unity's copy passes.
+   4. **Import check (Part 1, route A).** The floor goes to Unity only if the mirror project's copy passes.
    5. **Swap.** A Unity editor action replaces only that floor's object. The owner triggers it at first.
 3. **Triggers:**
    - the owner selects a floor in Unity and runs "Check & fix this floor";
@@ -90,7 +109,7 @@ roads, water, rocks: `Assets/Models/Env/`) stays outside the engine, as the owne
   - the request becomes a queued job for that unit;
   - it also becomes a test fixture (the existing rule: every spot the owner marks wrong becomes a fixture).
 - **A hand fix in Unity (or Blender):**
-  - `UcFloorExport` exports the fixed floor;
+  - route B reads the fixed floor (a Blender fix is read from its exported file);
   - the engine compares it with its latest build and records the difference as an example, with the Validator's
     verdict;
   - accepted examples become fixtures, then rules;
@@ -111,8 +130,11 @@ roads, water, rocks: `Assets/Models/Env/`) stays outside the engine, as the owne
 
 ## 4. Error handling and proof
 
-- **The exporter's own check.** `UcFloorExport` runs its round-trip on an untouched engine build first. If Unity's
-  copy differs, the report says why, by cause. That is the import diagnosis itself.
+- **The exporter's own check.** The mirror project round-trips an untouched engine build first. If Unity's copy
+  differs, the report says why, by cause. That is the import diagnosis itself.
+- **The mirror is checked against the real importer.** The mirror refuses to run when its copy of
+  `CampusModelImporter.cs` does not match the owner's (by sha256); it re-copies first. So a change the owner makes in
+  the real project cannot leave the check out of date.
 - **No swap without a pass.** A floor whose Unity copy fails the check is never swapped in. The report names the
   cause.
 - **Every tool's output is snapshotted with sha256**, as `engine/io/snapshot.py` does today, so a record can never
@@ -128,10 +150,10 @@ roads, water, rocks: `Assets/Models/Env/`) stays outside the engine, as the owne
     - a remapped material;
     - a shifted UV.
 - **Unity side:**
-  - `UcFloorExport` on a tiny known OBJ inside the Unity project: the exported OBJ matches the input under a no-op
-    importer preset.
-  - It runs through the Unity CLI or Unity MCP in batch mode. This needs the owner's OK to run Unity headless or in
-    the open editor.
+  - Route A on a tiny known OBJ in the mirror project: under a no-op importer preset the exported OBJ matches the
+    input.
+  - Under the copied `CampusModelImporter.cs`, each changed setting is reported by cause.
+  - Route B on one floor of the owner's open scene, read-only, once the owner allows the first read.
 - **Golden floors:** CHTM 5th and sidewalks A and B, with the engine build → Unity → `unity-check` table before and
   after the import-setting changes.
 
@@ -143,7 +165,8 @@ roads, water, rocks: `Assets/Models/Env/`) stays outside the engine, as the owne
 
 ## 7. Open points for the owner
 
-1. Copying `UcFloorExport.cs` (and later the swap action) into the Unity project's `Assets/Editor/`, and running it
-   from the Unity CLI or MCP. This needs your OK when Part 1 starts.
+1. **Settled 2026-10-10:** nothing is installed in your Unity project. Route A (the mirror project, run headless) and
+   route B (read-only reads through the Unity MCP) replace it. Your OK is still asked once: before the first route-B
+   read of your open scene. Later, before the swap action, because it writes to your project.
 2. Any change to `CampusModelImporter.cs` for building floors will be proposed with measurements and needs your OK.
 3. Part 2's swap is manual (you press the button) until you say it may run automatically.
