@@ -56,3 +56,54 @@ def test_a_16_bit_mesh_over_65535_vertices_is_flagged():
     b = cube(100.0)
     g = geometry_diff(b, _dump(b, index_format="UInt16", vertex_count=70000))
     assert g["index_overflow"] is True
+
+
+def _with(dump, **kw):
+    return UnityDump(mesh=replace(dump.mesh, **{k: v for k, v in kw.items() if k != "normals"}),
+                     corner_normals=kw.get("normals", dump.corner_normals), sidecar=dump.sidecar)
+
+
+def _face_normals_unity(dump):
+    p = dump.mesh.positions[dump.mesh.face_v]
+    n = np.cross(p[:, 1] - p[:, 0], p[:, 2] - p[:, 0])
+    return n / np.linalg.norm(n, axis=1)[:, None]
+
+
+def test_matching_looks_uvs_and_normals_report_nothing():
+    from engine.unity.check import surface_diff
+    b = cube(100.0)
+    d = _dump(b)
+    good = np.repeat(_face_normals_unity(d)[:, None, :], 3, axis=1)
+    s = surface_diff(b, _with(d, normals=good), {"m0": None}, {"m0": None})
+    assert all(s[k]["count"] == 0 for k in
+               ("material_remapped", "texture_lost", "uv_changed", "normal_against_face", "normal_smoothed"))
+
+
+def test_a_corner_normal_pointing_into_the_face_is_named_black_face_cause():
+    from engine.unity.check import surface_diff
+    b = cube(100.0)
+    d = _dump(b)
+    n = np.repeat(_face_normals_unity(d)[:, None, :], 3, axis=1)
+    n[0] = -n[0]
+    s = surface_diff(b, _with(d, normals=n), {"m0": None}, {"m0": None})
+    assert s["normal_against_face"]["count"] == 1
+
+
+def test_a_shifted_uv_is_uv_changed():
+    from engine.unity.check import surface_diff
+    b = cube(100.0)
+    d = _dump(b)
+    good = np.repeat(_face_normals_unity(d)[:, None, :], 3, axis=1)
+    s = surface_diff(b, _with(d, uvs=d.mesh.uvs + 0.01, normals=good), {"m0": None}, {"m0": None})
+    assert s["uv_changed"]["count"] == 12
+
+
+def test_a_face_without_material_that_unity_gave_a_default_is_remapped_not_a_crash():
+    from engine.unity.check import surface_diff
+    b = cube(100.0)
+    b = replace(b, face_material=np.full(12, -1))
+    d = _dump(b)
+    d = _with(d, face_material=np.zeros(12, np.int64), materials=["Default-Material"],
+              normals=np.repeat(_face_normals_unity(d)[:, None, :], 3, axis=1))
+    s = surface_diff(b, d, {}, {"Default-Material": None})
+    assert s["material_remapped"]["count"] == 12

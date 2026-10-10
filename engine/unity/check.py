@@ -67,3 +67,66 @@ def geometry_diff(build: MeshData, dump: UnityDump) -> dict:
         "vertex_counts": {m.get("name"): m.get("vertex_count") for m in meshes},
         "examples": {"missing": [i for i, k in enumerate(bkeys) if k in miss_keys][:_EXAMPLES]},
     }
+
+
+UV_TOL = 1e-4
+SMOOTH_DEG = 1.0
+NO_MATERIAL = "<none>"
+
+
+def _name(mesh: MeshData, f: int) -> str:
+    m = int(mesh.face_material[f])
+    return NO_MATERIAL if m < 0 else mesh.materials[m]
+
+
+def _tex(mtl: dict, name: str):
+    e = mtl.get(name)
+    return getattr(e, "map_kd", None) if e is not None else None
+
+
+def _match_pairs(build: MeshData, dump: UnityDump) -> tuple[list[tuple[int, int, list[int]]], np.ndarray]:
+    """(build face, unity face, corner order) for every matched face, and Unity's positions in the build frame."""
+    tol = print_step(build)
+    a = align(build, dump.mesh, float(dump.sidecar["importer"]["globalScale"]), tol)
+    flip = np.linalg.det(a.matrix) > 0
+    upts = to_build_frame(dump.mesh.positions, a)
+    qb = np.round(build.positions / tol).astype(np.int64)
+    qu = np.round(upts / tol).astype(np.int64)
+    bkeys = _oriented_keys(build.positions, build.face_v, tol, False)
+    by_key: dict = {}
+    for j, k in enumerate(_oriented_keys(upts, dump.mesh.face_v, tol, flip)):
+        by_key.setdefault(k, []).append(j)
+    pairs = []
+    for i, k in enumerate(bkeys):
+        if by_key.get(k):
+            j = by_key[k].pop()
+            ucorner = {tuple(qu[v]): c for c, v in enumerate(dump.mesh.face_v[j])}
+            order = [ucorner[tuple(qb[v])] for v in build.face_v[i]]
+            pairs.append((i, j, order))
+    return pairs, upts
+
+
+def surface_diff(build: MeshData, dump: UnityDump, build_mtl: dict, unity_mtl: dict) -> dict:
+    pairs, upts = _match_pairs(build, dump)
+    found = {k: [] for k in ("material_remapped", "texture_lost", "uv_changed",
+                             "normal_against_face", "normal_smoothed")}
+    cos_smooth = np.cos(np.radians(SMOOTH_DEG))
+    for i, j, order in pairs:
+        bn, un = _name(build, i), _name(dump.mesh, j)
+        if bn != un:
+            found["material_remapped"].append(i)
+        if _tex(build_mtl, bn) and not _tex(unity_mtl, un):
+            found["texture_lost"].append(i)
+        if build.face_vt.size and dump.mesh.face_vt.size:
+            buv = build.uvs[build.face_vt[i]]
+            uuv = dump.mesh.uvs[dump.mesh.face_vt[j]][order]
+            if np.abs(buv - uuv).max() > UV_TOL:
+                found["uv_changed"].append(i)
+        fn_u = np.cross(*(dump.mesh.positions[dump.mesh.face_v[j]][1:] - dump.mesh.positions[dump.mesh.face_v[j]][0]))
+        fn_u = fn_u / max(np.linalg.norm(fn_u), 1e-300)
+        dots = dump.corner_normals[j] @ fn_u
+        if (dots < 0).any():
+            found["normal_against_face"].append(i)
+        elif (dots < cos_smooth).any():
+            found["normal_smoothed"].append(i)
+    return {k: {"count": len(v), "examples": v[:_EXAMPLES]} for k, v in found.items()}
