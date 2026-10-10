@@ -812,13 +812,10 @@ SURFACE_CAUSES = ("material_remapped", "texture_lost", "uv_changed", "normal_aga
 
 
 def _kind_counts(errors: dict) -> dict[str, int]:
-    out = {}
-    for kind, v in errors.items():
-        if isinstance(v, dict) and "count" in v:
-            out[kind] = int(v["count"])
-        elif isinstance(v, (list, tuple)):
-            out[kind] = len(v)
-    return out
+    # CORRECTED 2026-10-10 (U1-A review): find_errors keeps the per-kind counts under errors["counts"]
+    # (flicker_diff, flicker_same, reversed, hidden, loose, open_edges, cracks). The first version of this plan
+    # guessed top-level keys, which compared only 2 of the 7 kinds.
+    return {k: int(v) for k, v in errors["counts"].items()}
 
 
 def unity_check(build: MeshData, dump: UnityDump, build_mtl: dict, unity_mtl: dict) -> dict:
