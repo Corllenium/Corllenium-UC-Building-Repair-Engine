@@ -130,3 +130,38 @@ def surface_diff(build: MeshData, dump: UnityDump, build_mtl: dict, unity_mtl: d
         elif (dots < cos_smooth).any():
             found["normal_smoothed"].append(i)
     return {k: {"count": len(v), "examples": v[:_EXAMPLES]} for k, v in found.items()}
+
+
+GEOMETRY_CAUSES = ("missing", "extra", "flipped")
+SURFACE_CAUSES = ("material_remapped", "texture_lost", "uv_changed", "normal_against_face")
+
+
+def _kind_counts(errors: dict) -> dict[str, int]:
+    out = {}
+    for kind, v in errors.items():
+        if isinstance(v, dict) and "count" in v:
+            out[kind] = int(v["count"])
+        elif isinstance(v, (list, tuple)):
+            out[kind] = len(v)
+    return out
+
+
+def unity_check(build: MeshData, dump: UnityDump, build_mtl: dict, unity_mtl: dict) -> dict:
+    from engine.detectors.errors import find_errors
+    from engine.unity.align import align as _align
+    g = geometry_diff(build, dump)
+    s = surface_diff(build, dump, build_mtl, unity_mtl)
+    a = _align(build, dump.mesh, float(dump.sidecar["importer"]["globalScale"]), print_step(build))
+    from dataclasses import replace
+    unity_in_build_frame = replace(dump.mesh, positions=to_build_frame(dump.mesh.positions, a),
+                                   coord_decimals=build.coord_decimals)
+    eb = _kind_counts(find_errors(build))
+    eu = _kind_counts(find_errors(unity_in_build_frame))
+    worse = sorted(k for k in eb if eu.get(k, 0) > eb[k])
+    causes = [c for c in GEOMETRY_CAUSES if g[c]] + [c for c in SURFACE_CAUSES if s[c]["count"]]
+    if g["index_overflow"]:
+        causes.append("index_overflow")
+    causes += [f"worse:{k}" for k in worse]
+    return {"geometry": g, "surface": s, "errors_build": eb, "errors_unity": eu, "worse_kinds": worse,
+            "causes": causes, "verdict": "UNITY-SAFE" if not causes else "BROKEN BY IMPORT",
+            "normal_smoothed": s["normal_smoothed"]["count"]}
