@@ -1,0 +1,86 @@
+diff --git a/.claude/agents/floor-validator.md b/.claude/agents/floor-validator.md
+index fd76923..2ec53e5 100644
+--- a/.claude/agents/floor-validator.md
++++ b/.claude/agents/floor-validator.md
+@@ -7,7 +7,8 @@ model: sonnet
+ 
+ You judge; you change nothing, and you judge only work you did not build.
+ 
+-1. **Read the rules first:** `AGENTS.md` §6 (the owner's validation rule) and §2 and §3 (what is read-only),
++1. **Read the rules first:** `AGENTS.md` §6 (the owner's validation rule), §5 (the Visible rule and its measured
++   floor) and §2 and §3 (what is read-only),
+    then the skill file `.claude/skills/uc-validate-floor/SKILL.md`, then the job's brief.
+    - If you built, or helped build, the fix you were asked to judge, stop and say so. Do not validate it.
+    - If the brief is missing, or does not name the worktree, the snapshot (`--before`; for a unit of several
+@@ -60,6 +61,9 @@ You judge; you change nothing, and you judge only work you did not build.
+      absent or unsigned) check 2 reports without gating: say so plainly;
+    - otherwise **FAIL**, with the counts by reason, the number of sites, and per site what the crops show;
+    - the command you ran and its real output; the path of `validation.json`;
++   - for check 3, whether `validation.json` carries the floor measure of `AGENTS.md` §5 (more than 4 pixels at 0.02 in
++     per pixel of a removed or covered face); if the Validator you ran predates it, say that check 3 was
++     sample-based and the floor was not measured;
+    - anything you doubt, said plainly. Never claim "fixed" or "passed" without that output.
+ 6. **Never dispatch sub-agents.** Never edit a file in the repo or an output; never merge; never start or
+    stop servers or containers. You claim and hand in no job and write no ledger: the controller records your
+diff --git a/.claude/skills/uc-validate-floor/SKILL.md b/.claude/skills/uc-validate-floor/SKILL.md
+index 8c48b01..ff8844c 100644
+--- a/.claude/skills/uc-validate-floor/SKILL.md
++++ b/.claude/skills/uc-validate-floor/SKILL.md
+@@ -6,7 +6,8 @@ description: Use when a UC floor or element has been repaired and must be judged
+ # Validating a floor
+ 
+ The rule is `AGENTS.md` §6: a floor is good only when the Validator, run by an agent that did not build the
+-fix, shows all three, and then the owner confirms it:
++fix, shows all three, and then the owner confirms it. How check 3 is measured (the floor in pixels) is in
++`AGENTS.md` §5, "Visible rule, measured":
+ 
+ 1. **every facade texture is still there** (check 1: each visible sample keeps its surface, its look and its UV);
+ 2. **the problems are solved** (check 2: `find_errors` after the fix meets the targets the owner signed);
+@@ -52,7 +53,8 @@ PY="D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe"
+ - A large floor takes minutes (CHTM 5th floor about 10 minutes), as long as the foreground Bash limit: start the
+   run in the background and wait for its exit. Note the machine load with the timing.
+ - Pass only the flags above. For a verdict, never pass `--targets`, `--area-per-sample` or `--min-per-face`: the
+-  defaults are the owner's values (the signed targets file, 36, 4). Another density makes the notes say the run
++  defaults are the owner's values (the signed targets file, 36 sq in per sample, 4 samples per face; neither is the
++  pixel floor of `AGENTS.md` §5). Another density makes the notes say the run
+   is a development run and not an owner verdict; another `--targets` file replaces the signed one, and only
+   `inputs.targets` in the report shows it.
+ 
+diff --git a/AGENTS.md b/AGENTS.md
+index 6391433..1662b7e 100644
+--- a/AGENTS.md
++++ b/AGENTS.md
+@@ -98,7 +98,8 @@ named, measured and tested:
+ | Scope | Every building (BRS, CHTM, EDS, GYMNASIUM, MAIN, MAIN INFRASTRUCTURE, PE, SCIENCE A, ARCHITECTURE, plus site pieces), per floor or element |
+ | Source | CHECKPOINT-17 (its backup is the source of truth); the master is never touched |
+ | Reference for "visible" | CHECKPOINT-17 itself, before against after. The Minecraft export is old and not a reference |
+-| Visible rule | **Strict.** Nothing that can be seen is deleted or covered. Visible debris stays and is listed with a picture; a rebuilt side may cover only faces that are 0 % visible. **How it is measured (owner, 2026-10-10):** no removed or covered face may show more than **4 pixels at 0.02 in per pixel** (about 0.0016 sq in) from any Validator viewpoint, judged on every line of sight and from both sides |
++| Visible rule | **Strict.** Nothing that can be seen is deleted or covered. Visible debris stays and is listed with a picture; a rebuilt side may cover only faces that are 0 % visible |
++| Visible rule, measured (owner, 2026-10-10) | The Validator counts the pixels that a removed or covered face shows in CHECKPOINT-17 (before), at **0.02 in per pixel** at the face, one count per viewpoint, on every line of sight and from both sides (Unity draws both). From any one viewpoint of the Viewpoints row, **more than 4 pixels** (4 × 0.02 × 0.02 = 0.0016 sq in, as projected across the line of sight) fails check 3 of §6; counts from different viewpoints are not added. "Cannot be seen" and "0 % visible" in the row above mean at or below this floor. The floor is the Validator's tolerance: it loosens no guard (§3), and builders aim for zero |
+ | Viewpoints | Outside, **and inside at eye height**, because players walk the floors |
+ | Back-to-back faces | They flicker in Unity (`_Cull = 0`). Keep the side facing a viewer and remove the inward copy. Where both sides are seen with different looks, the owner decides |
+ | Flicker, different looks | The loser is cut along the winner's border (E5). The winner, in order: a patch inside a bigger face of the same source group; the look and UV continuing the plane's neighbours; otherwise the owner |
+@@ -116,8 +117,8 @@ shows all three:
+ 1. **every facade texture is still there**: every visible sample keeps its surface, its look (texture
+    plus colour) and its UV;
+ 2. **the problems are solved**: `find_errors` after the fix meets the targets the owner signed;
+-3. **nothing visible to the eye was deleted or covered**: from outside, and from **eye height** inside
+-   every floor.
++3. **nothing visible to the eye was deleted or covered**, measured as §5 "Visible rule, measured" says: from
++   outside, and from **eye height** inside every floor.
+ 
+ Then the owner confirms the floor. A log line or a self-report is not a pass. The pass is the
+ Validator's `validation.json` together with its evidence images.
+diff --git a/docs/superpowers/specs/2026-10-03-uc-repair-engine-design.md b/docs/superpowers/specs/2026-10-03-uc-repair-engine-design.md
+index d4f70d6..a529b6a 100644
+--- a/docs/superpowers/specs/2026-10-03-uc-repair-engine-design.md
++++ b/docs/superpowers/specs/2026-10-03-uc-repair-engine-design.md
+@@ -27,7 +27,7 @@
+ | Source | The CHECKPOINT-17 model, which the owner has already checked. The **backup** in `MODEL FIXER ENGINE FILES\02-SKETCHUP-MODELS\CHECKPOINT-17-BACKUP\` is the source of truth (read only). The master in `D:\PROJECTS\UC\02-SKETCHUP\current\` is never touched |
+ | Reference for "visible" | CHECKPOINT-17 itself, before against after. The Minecraft export is old (owner): not a reference |
+ | **Owner's validation rule** | A floor passes only if: **(1)** every facade texture is still there; **(2)** the problems are solved; **(3)** nothing visible to the eye was deleted or covered. A Validator tool plus an independent agent checks this; then the owner confirms the floor |
+-| Visible rule | **Strict.** Nothing that can be seen is deleted or covered. Visible debris stays and is listed with a picture. A rebuilt side may cover only faces that are 0 % visible (today's cap is 10 %) |
++| Visible rule | **Strict.** Nothing that can be seen is deleted or covered. Visible debris stays and is listed with a picture. A rebuilt side may cover only faces that are 0 % visible (today's cap is 10 %). How the Validator measures it: `AGENTS.md` §5, "Visible rule, measured" |
+ | Viewpoints | **Outside, and inside: players walk the floors.** A face is removable only if no outside view and no eye-height view inside any floor can see it |
+ | Unity | Draws **both sides** of every face (`CampusDoubleSided.cs`, `_Cull = 0`), so back-to-back faces flicker |
+ | Back-to-back pairs | **Keep the side facing a viewer** (outside or walkable space) and remove the inward copy. Where both sides are seen with different looks, the owner decides |
