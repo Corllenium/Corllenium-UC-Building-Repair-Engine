@@ -126,3 +126,10 @@ def test_the_floor_crop_is_centred_on_the_largest_cluster_of_lost_pixels():
     centre, side = _crop_window(np.vstack([small, large]))
     assert side <= FLOOR_CROP_MAX
     assert abs(centre[0] - 3030) <= 30 and abs(centre[1] - 1230) <= 30, centre
+
+
+def test_a_hairline_loss_is_marked_three_pixels_wide():
+    # P2-V2 review follow-up: CHTM 8810 lost a 1 px sliver along an edge; a 1 px mark on that edge cannot be seen
+    from engine.validate.evidence import _marks
+    marks = _marks(np.array([[10, 10]]), side=32)
+    assert marks.shape == (32, 32) and marks.sum() == 9 and marks[9:12, 9:12].all()

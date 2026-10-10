@@ -134,6 +134,18 @@ def _shade(caster, normals, colours, origin, d) -> np.ndarray:
 _CLUSTER_CELL = 32
 
 
+def _marks(rc: np.ndarray, side: int) -> np.ndarray:
+    """(side, side) bool: the lost pixels at rows and columns `rc` (k, 2), each grown to its 3 x 3 neighbourhood, so a
+    hairline loss (a 1 px sliver along an edge, CHTM 8810) can be seen in the crop. The marks show where to look; the
+    count is the report's."""
+    mask = np.zeros((side + 2, side + 2), dtype=bool)
+    rc = np.asarray(rc, dtype=np.int64).reshape(-1, 2) + 1
+    for dr in (-1, 0, 1):
+        for dc in (-1, 0, 1):
+            mask[rc[:, 0] + dr, rc[:, 1] + dc] = True
+    return mask[1:-1, 1:-1]
+
+
 def _crop_window(ij: np.ndarray) -> tuple[np.ndarray, int]:
     """`(centre, side)` of a floor crop over the lost pixels `ij` (k, 2): centred on the LARGEST CLUSTER of them (the
     most pixels; cells of `_CLUSTER_CELL` px that touch are one cluster), not on the bounding box of all, which can
@@ -187,7 +199,7 @@ def write_floor_crops(v: Validation, out_dir) -> list[str]:
         r = centre[1] + side // 2 - ij[:, 1]
         c = ij[:, 0] - (centre[0] - side // 2)
         inside = (r >= 0) & (r < side) & (c >= 0) & (c < side)
-        at = r[inside] * side + c[inside]
+        at = _marks(np.stack([r[inside], c[inside]], axis=1), side).reshape(-1)
         before_img[at] = 0.5 * before_img[at] + 0.5 * np.array(LOST)
         image = np.empty((side, 2 * side + GAP, 3))
         image[:] = BACKGROUND
