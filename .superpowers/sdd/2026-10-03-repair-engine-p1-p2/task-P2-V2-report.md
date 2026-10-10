@@ -381,3 +381,82 @@ neighbours are not coplanar).
 3. CHTM with E3 takes 1,194 s against 330 s.
 4. `needs_modelling.py` still uses the whole sphere.
 5. Some crops are uninformative.
+
+## Fix round 1 (filed by the controller from the implementer's hand-back; the write was refused)
+
+**Commits:** 093ee7a (re-ruled V2-R5), 342c5f0 (true-area perspective pixels), 2492e98 (present once per point and
+side), f1eb82d (minors), 003c219 (crop marks 3 px wide). Each was green against the affected test files when made.
+
+**Suites at 003c219:**
+
+```
+engine/tests: 1888 passed, 1 xfailed in 2320.73s (0:38:40)
+tools/tests:  180 passed in 12.79s
+```
+
+### Item 1: V2-R5 re-ruled
+
+- The square-to-the-face requirement applies only when the blocker is nearly parallel to the sample's face
+  (|n_blocker · n_sample| ≥ cos 5°). Any other blocker beyond the along-the-line tolerance covers. The same rule
+  applies to the new faces' reverse lattice.
+- Test `test_a_plate_across_the_top_of_a_strip_covers_it_from_a_steep_viewer`: the strip shows over 500 px in
+  BEFORE and 0 in AFTER. Red: check 3 passed. Green: check 3 FAILs and the floor fails the strip as covered. The two
+  motivating cases (a surface moved 0.015 in, a 0.03 in overlay) stay excused.
+
+### Item 2: perspective pixel size
+
+- Each camera or probe pixel counts (r_i / D)² × its gnomonic factor (1 + s² + t²)^-1.5: its own area at 0.02 in
+  across the line of sight. Direction views keep weight 1.
+- Test `test_a_far_patch_of_a_big_face_counts_its_true_area_at_two_hundredths_across_the_line`: 1 × 1 in patches
+  of the 400 in floor triangle from a probe at (5, 5, 63), at x = 60, 100, 266 and 390, each within ±15 % of
+  2,500 × cos. Red: (60.0, 35133.0, 1873.2), the near patch at 18.8× and the far one at 0.5×. Green: 25 floor tests
+  pass.
+
+### Item 3: speed
+
+- `present` is asked once per (lattice point, side); `blocker` is cast only for lines whose point is not already
+  gone. The old path stays as a reference behind `_FLOOR_LATTICE_PER_LINE`; `test_validate_floor_speed.py` compares
+  the whole report with the flag on and off on 3 fixtures (identical).
+- **No measurable speedup:** CHTM-L05 E8a+E3 1,437 s → 1,425 s, floor 1,162 → 1,174 s. A profile on a tenth of the
+  lattice puts `lattice_seen` at 140 of 433 s, almost all of it `visible_samples`: the lattice's visibility cast
+  against about 2,000 viewpoints (1,403 probes). `present` and `blocker` are a small share. A faster floor needs a
+  cheaper visibility cast for hidden points.
+
+### Item 4: minors
+
+- `needs_modelling.py:213` uses `above_horizon_directions` (test red 128 == 64, then green).
+- The floor crop is centred on the largest cluster of lost pixels (`_crop_window` with the Validator's own
+  `_components`); marks are drawn 3 px wide. CHTM 8810's loss is a one-pixel sliver about 29 in along a seam
+  (4,281 px); its crop now shows a magenta line along the seam. 16754 is no longer measured since item 8 (its only
+  view was from below the ground).
+- Renames: the E8 test names and comments now say "beside and above" instead of "below". Measured drivers: the
+  three-skirt slab by directions just above the horizon and the ring cameras through its open side; the half-side
+  slab by directions from above and the cameras; the probe scene mostly by probes.
+
+### Item 5: the floor's known limits
+
+1. On very large faces the lattice is capped at 4,096 points (spacing up to 1.56 in), so a 0.5 in slot can be
+   missed by every point.
+2. Overlays stay at sample density (V2-R3).
+
+### Item 7 at f1eb82d (verdicts and failing faces match item 8's; pixel counts moved with item 2)
+
+| Run | Old checks 1 / 3 | New check 3 | New floor | Old s | New s |
+|---|---|---|---|---|---|
+| sidewalk A, E8a | PASS / PASS | FAIL, 167 covered | FAIL, 16 of 16 covered faces | 29 | 29 |
+| sidewalk A, E8a+E3 | PASS / PASS | FAIL, 167 covered | FAIL, 25 of 27 | 27 | 62 |
+| sidewalk B, E8a | PASS / PASS | FAIL, 2 overlaid | PASS | 59 | 52 |
+| sidewalk B, E8a+E3 | PASS / PASS | FAIL, 2 overlaid | FAIL, 6 of 6 removed | 72 | 137 |
+| CHTM 5th, E8a | PASS / PASS | PASS | PASS | 434 | 234 |
+| CHTM 5th, E8a+E3 | PASS / PASS | FAIL (floor) | FAIL, 19 of 22 removed | 330 | 1,798 (load) |
+
+Worst faces: sidewalk A 1684, 1669, 1668, 1685 (each over 116,000 px, covered by E8a's new faces); sidewalk B 7046
+removed (≥ 3,456 px); CHTM 11816 (≥ 15,320 px, probe 1339), 4011, 8810 (4,281 px), 9225. Every face is in
+`C:/Temp/v2/summ7_new_v3.txt`; runs in `C:/Temp/v2/val_new/`.
+
+### Concerns
+
+1. No measurable speedup from item 3; CHTM with E3 stays at 1,400-1,800 s against the old 330 s.
+2. E8a still fails 16 covered faces on sidewalk A and leaves 2 overlaid samples on sidewalk B.
+3. E3's outputs still fail the floor: 9, 6 and 19 removed faces.
+4. 003c219 (crop drawing only) was not in the item 7 runs; the suites ran on it.
