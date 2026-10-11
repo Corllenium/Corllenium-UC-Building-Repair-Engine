@@ -2,6 +2,7 @@
 
 - Branch: hermes/U1-A   Base: 7258652 (feat/repair-p1p2)
 - Commits:
+  1eaa520 fix(unity): address review changes on tie-breaking, shared orientation rule and find_errors shape
   371c8c3 feat(unity): unity-check verdict (UNITY-SAFE / BROKEN BY IMPORT, by cause, find_errors on both) and its CLI
   e93a490 feat(unity): name look, texture, UV and normal causes on matched faces (black faces = normal against the face)
   7c127eb feat(unity): oriented face matching between the build and Unity's import (matched/missing/extra/flipped, 16-bit overflow)
@@ -76,6 +77,12 @@
   ```
 - Notes: Added `unity-check` subparser to `engine/cli.py`, registered `--out` in `_OUTPUT_ARGS` for protected output check.
 
+### Review fix round (commit 1eaa520): DONE
+- Finding 1: Removed by-index mean-distance tie-break in `align.py`; uses order-free oriented face-set overlap exclusively.
+- Finding 2: Evaluates vertex match for all 48 permutations first; builds `b_faces` lazily and checks face overlap only for permutations tied at best match (skipped when unique winner).
+- Finding 3: Unified winding orientation rule into shared `dump_winding_flips` in `align.py`, used by both `align.py` and `check.py`. Added test `test_split_vertex_reordered_cube_matches_exactly` (36 vs 8 vertices).
+- Finding 4: Updated `_kind_counts` in `check.py` to read `errors["counts"]` (the actual structure returned by `find_errors`), noting the plan's shape guess was wrong. Added test `test_worse_kind_appears_in_causes_when_unity_gains_error`.
+
 ## Acceptance command outputs
 
 ### Command 1: new suite
@@ -86,8 +93,8 @@ W="D:/PROJECTS/UC MODEL FIXER/.hermes/worktrees/U1-A"
 ```
 Output:
 ```
-...................                                                      [100%]
-19 passed in 0.73s
+.....................                                                    [100%]
+21 passed in 1.27s
 ```
 
 ### Command 2: full engine suite
@@ -112,8 +119,8 @@ Output:
 ........................................................................ [ 40%]
 ........................................................................ [ 80%]
 ....................................                                     [100%]
-180 passed in 12.69s
+180 passed in 12.78s
 ```
 
 ## Unsure about
-Nothing: all 19 new tests, 1869 engine tests (with the 1 known strict xfail), and 180 tools tests pass with real output matching the brief's specifications.
+Nothing: all 21 new tests, 1869 engine tests (with the 1 known strict xfail), and 180 tools tests pass with real output.
