@@ -2350,3 +2350,44 @@ def closed_room(width=200.0, depth=160.0, height=120.0, wall=8.0):
     _quads(P, uvs, fv, fvt, fm, [tuple(reversed(loop)) for loop in outward], material=0)
     _closed_box(P, uvs, fv, fvt, fm, -wall, w + wall, -wall, d + wall, -wall, h + wall, material=1)
     return _mesh("closed_room", P, uvs, fv, fvt, materials=("plaster", "brick"), face_material=fm)
+
+
+def slab_with_debris(nx=4, ny=4, cell=10.0, uv_per_unit=0.05, needle_width=0.02):
+    """A 40 x 40 in slab at z = 0 (32 triangles) plus four loose/debris features:
+    1. an attached needle sliver along y = 0 edge (face 32);
+    2. a detached 2 sq in stray triangle floating at z = 20 (face 33);
+    3. a collinear zero-area triangle on the slab (face 34);
+    4. a degenerate zero-area triangle with duplicate vertices sharing edge (0, 1) (face 35).
+    """
+    P, uvs, fv, fvt, fm = _grid(nx, ny, cell, uv_per_unit)
+    # 1. attached needle sliver
+    base = len(P)
+    P.append([cell / 2, -needle_width, 0.0])
+    ub = len(uvs)
+    uvs.extend([[0.0, 0.0], [cell * uv_per_unit, 0.0], [cell / 2 * uv_per_unit, -needle_width]])
+    fv.append([0, 1, base])
+    fvt.append([ub, ub + 1, ub + 2])
+    fm.append(0)
+    # 2. stray 2 sq in triangle floating at z=20
+    base = len(P)
+    P += [[0.0, 0.0, 20.0], [2.0, 0.0, 20.0], [0.0, 2.0, 20.0]]
+    ub = len(uvs)
+    uvs.extend([[0.0, 0.0], [2.0 * uv_per_unit, 0.0], [0.0, 2.0 * uv_per_unit]])
+    fv.append([base, base + 1, base + 2])
+    fvt.append([ub, ub + 1, ub + 2])
+    fm.append(0)
+    # 3. zero area face 1: collinear on slab
+    base = len(P)
+    P += [[10.0, 10.0, 0.0], [20.0, 10.0, 0.0], [30.0, 10.0, 0.0]]
+    ub = len(uvs)
+    uvs.extend([[0.5, 0.5], [1.0, 0.5], [1.5, 0.5]])
+    fv.append([base, base + 1, base + 2])
+    fvt.append([ub, ub + 1, ub + 2])
+    fm.append(0)
+    # 4. zero area face 2: duplicate vertices sharing edge (0, 1) with slab
+    ub = len(uvs)
+    uvs.extend([[0.0, 0.0], [0.0, 0.0], [cell * uv_per_unit, 0.0]])
+    fv.append([0, 0, 1])
+    fvt.append([ub, ub + 1, ub + 2])
+    fm.append(0)
+    return _mesh("slab_with_debris", P, uvs, fv, fvt, face_material=fm)
