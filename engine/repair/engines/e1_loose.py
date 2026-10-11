@@ -228,8 +228,10 @@ class E1Loose:
                     })
 
         # Pre-filter: measure visibility from every Validator viewpoint (E1-R3)
-        b_mesh, viewpoints = self._get_viewpoints(mesh, ctx)
-        caster = build_caster(b_mesh) if b_mesh.n_faces else None
+        cand_faces_list = [f for p in pieces for f in p["faces"] if ok[f]]
+        needs_casting = len(cand_faces_list) > 0 and (self.viewpoints is None or len(self.viewpoints) > 0)
+        b_mesh, _ = recentred(mesh)
+        caster = build_caster(b_mesh) if (b_mesh.n_faces and needs_casting) else None
 
         looks = unit.looks if isinstance(unit.looks, Looks) else Looks(unit.looks or {})
         cropper: SpotCropper | None = None
