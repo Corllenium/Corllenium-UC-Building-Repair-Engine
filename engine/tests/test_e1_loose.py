@@ -77,6 +77,7 @@ def test_visible_debris_stays_and_is_listed(tmp_path):
 def test_invisible_debris_goes_check3_floor_pass():
     from engine.tests.fixtures.build import _mesh, _closed_box
     from engine.validate.checks import validate, Settings, Looks
+    from engine.validate.floor import Viewpoint
     P, uvs, fv, fvt, fm = [], [], [], [], []
     _closed_box(P, uvs, fv, fvt, fm, 0.0, 40.0, 0.0, 40.0, 0.0, 40.0, material=0)
     base = len(P)
@@ -87,7 +88,8 @@ def test_invisible_debris_goes_check3_floor_pass():
     m = _mesh("closed_box_with_fragment", P, uvs, fv, fvt, face_material=fm)
     frag_face = m.n_faces - 1
 
-    engine = E1Loose()
+    vp_above = Viewpoint.direction([0.0, 0.0, -1.0])
+    engine = E1Loose(viewpoints=[vp_above])
     unit = UnitState(mesh=m, topo=None, looks={}, viewpoints=None)
     profile = FixProfile(accept_fragments=True, fragment_max_area=100.0)
     ctx = RepairContext(profile=profile, decider=None, validator=None)
