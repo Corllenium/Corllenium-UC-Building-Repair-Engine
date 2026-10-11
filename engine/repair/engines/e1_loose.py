@@ -23,13 +23,23 @@ from engine.pipeline import analyse_topology
 from engine.repair.engines.e3_hidden import _components, split_group
 from engine.repair.types import Edit, RepairContext, UnitState, print_step
 from engine.validate.checks import Looks, Settings
-from engine.validate.floor import FLOOR_IN_PER_PX, VISIBLE_FLOOR_PX, Viewpoint, face_visible_pixels
+from engine.validate.floor import FLOOR_IN_PER_PX, VISIBLE_FLOOR_PX, Viewpoint, face_pixels, face_visible_pixels, floor_lattice
 from engine.validate.sampling import recentred, used_bbox
 from engine.validate.viewpoints import above_horizon_directions, interior_probes, pedestrian_ring
-from engine.validate.visibility import build_caster
+from engine.validate.visibility import build_caster, visible_samples
 
 MAX_SITE_FACES = 512
 MAX_ZERO_AREA_SITE = 64
+
+
+def _face_visible_exceeds(mesh: MeshData, face: int, viewpoint: Viewpoint, caster, limit: float = VISIBLE_FLOOR_PX) -> float:
+    """Early-exit visibility measurement: stops as soon as `limit` pixels are exceeded."""
+    total = 0.0
+    for block in face_pixels(mesh, face, viewpoint, caster, px=FLOOR_IN_PER_PX):
+        total += block.count
+        if total > limit:
+            return total
+    return total
 
 
 def _build_default_viewpoints(mesh: MeshData, settings: Settings = Settings()) -> tuple[MeshData, list[Viewpoint]]:
@@ -232,29 +242,90 @@ class E1Loose:
         visible_debris: list[dict] = []
         site_id = 0
 
-        for p_idx, piece in enumerate(pieces):
-            p_faces = piece["faces"]
-            max_px = 0.0
-            worst_vp: Viewpoint | None = None
-            worst_face: int = -1
+        # Determine visibility
+        is_visible_piece = [False] * len(pieces)
+        worst_vps: list[Viewpoint | None] = [None] * len(pieces)
+        worst_faces = [-1] * len(pieces)
+        worst_pixels = [0.0] * len(pieces)
 
-            # Check visibility across viewpoints
-            for vp in viewpoints:
-                for f in p_faces:
-                    # zero-area faces have 0 visible pixels by definition
-                    if not ok[f]:
-                        continue
-                    px = face_visible_pixels(b_mesh, int(f), vp, caster=caster, px=FLOOR_IN_PER_PX)
-                    if px > max_px:
-                        max_px = px
-                        worst_vp = vp
-                        worst_face = int(f)
+        if self.viewpoints is not None:
+            # Custom viewpoints passed in (e.g. unit tests)
+            for p_idx, piece in enumerate(pieces):
+                p_faces = piece["faces"]
+                max_px = 0.0
+                worst_vp: Viewpoint | None = None
+                worst_face: int = -1
+                for vp in self.viewpoints:
+                    for f in p_faces:
+                        if not ok[f]:
+                            continue
+                        px = _face_visible_exceeds(b_mesh, int(f), vp, caster=caster, limit=VISIBLE_FLOOR_PX)
+                        if px > max_px:
+                            max_px = px
+                            worst_vp = vp
+                            worst_face = int(f)
+                        if max_px > VISIBLE_FLOOR_PX:
+                            break
                     if max_px > VISIBLE_FLOOR_PX:
                         break
                 if max_px > VISIBLE_FLOOR_PX:
-                    break
+                    is_visible_piece[p_idx] = True
+                    worst_vps[p_idx] = worst_vp
+                    worst_faces[p_idx] = worst_face
+                    worst_pixels[p_idx] = max_px
+        else:
+            # Standard Validator viewpoints: use lattice and visible_samples to find candidate viewpoints
+            s = getattr(ctx.validator, "settings", Settings())
+            lo, hi = used_bbox(b_mesh)
+            dirs = above_horizon_directions(s.n_directions)
+            cams = pedestrian_ring((lo, hi), eye_z=lo[2] + s.eye, n=s.n_cameras, margin=s.camera_margin)
+            probes = interior_probes(b_mesh, eye=s.eye, caster=caster) if b_mesh.n_faces else np.zeros((0, 3))
+            views = ([Viewpoint.direction(d) for d in dirs] +
+                     [Viewpoint.point(p) for p in cams] +
+                     [Viewpoint.point(p) for p in probes])
 
-            if max_px > VISIBLE_FLOOR_PX:
+            cand_faces_list = [f for p in pieces for f in p["faces"] if ok[f]]
+            cand_faces_arr = np.array(cand_faces_list, dtype=np.int64)
+            lattice = floor_lattice(b_mesh, cand_faces_arr) if len(cand_faces_arr) else None
+            vs = visible_samples(b_mesh, lattice, dirs, cams, probes, caster) if lattice and len(lattice) else None
+
+            for p_idx, piece in enumerate(pieces):
+                p_faces = piece["faces"]
+                max_px = 0.0
+                worst_vp: Viewpoint | None = None
+                worst_face: int = -1
+
+                if vs is not None and lattice is not None:
+                    for f in p_faces:
+                        if not ok[f]:
+                            continue
+                        f_mask = lattice.face == f
+                        seen_f = vs.seen[f_mask]
+                        cols = np.flatnonzero(seen_f.any(axis=0))
+                        for col in cols:
+                            vp = views[col]
+                            px = _face_visible_exceeds(b_mesh, int(f), vp, caster=caster, limit=VISIBLE_FLOOR_PX)
+                            if px > max_px:
+                                max_px = px
+                                worst_vp = vp
+                                worst_face = int(f)
+                            if max_px > VISIBLE_FLOOR_PX:
+                                break
+                        if max_px > VISIBLE_FLOOR_PX:
+                            break
+
+                if max_px > VISIBLE_FLOOR_PX:
+                    is_visible_piece[p_idx] = True
+                    worst_vps[p_idx] = worst_vp
+                    worst_faces[p_idx] = worst_face
+                    worst_pixels[p_idx] = max_px
+
+        for p_idx, piece in enumerate(pieces):
+            p_faces = piece["faces"]
+            if is_visible_piece[p_idx]:
+                worst_face = worst_faces[p_idx]
+                worst_vp = worst_vps[p_idx]
+                max_px = worst_pixels[p_idx]
                 # Visible debris: remains in mesh, listed with crop (E1-R3)
                 crop_path = None
                 if cropper is not None and crop_dir is not None and worst_face >= 0 and worst_vp is not None:
