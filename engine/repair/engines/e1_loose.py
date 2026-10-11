@@ -66,7 +66,7 @@ class E1Loose:
         b, centre = recentred(mesh)
         if self.viewpoints is not None:
             return b, self.viewpoints
-        if ctx.validator is not None and hasattr(ctx.validator, "stage"):
+        if ctx.validator is not None and getattr(ctx.validator, "_stage", None) is not None:
             st = ctx.validator.stage
             views = [Viewpoint.direction(d) for d in st.dirs]
             # convert stored stage viewpoints to centered frame
@@ -98,8 +98,8 @@ class E1Loose:
         det = detect_fragments(positions_w, face_w, profile,
                                contact_tol=contact_tol, max_width=max_width,
                                protected=invented)
-        frag_mask = np.asarray(det.fragments, bool) & ~invented
-        sliver_mask = np.asarray(det.slivers, bool) & ~invented
+        frag_mask = np.asarray(det.fragments, bool) & ok & ~invented
+        sliver_mask = np.asarray(det.slivers, bool) & ok & ~invented
 
         # Detect folds
         folds = detect_folds(positions_w, face_w, mesh.face_material,
@@ -116,7 +116,7 @@ class E1Loose:
 
         fold_mask = np.zeros(mesh.n_faces, bool)
         fold_mask[list(fold_pairs.keys())] = True
-        fold_mask &= ~(frag_mask | sliver_mask)
+        fold_mask &= ~(frag_mask | sliver_mask) & ok
 
         # Zero-area faces
         zero_area_mask = np.zeros(mesh.n_faces, bool)

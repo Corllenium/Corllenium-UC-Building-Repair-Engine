@@ -1066,10 +1066,10 @@ def cmd_validate(before_dir: Path, after_path: Path, materials: Path, out_dir: P
 
 #: The repair engines `repair-unit` takes (P2): E8, which is E8a (strict solidify) then E8b (the narrow flat fill,
 #: ruling E8b-R7), either one alone, and E3 (hidden faces, interior-aware; job P2-E3).
-REPAIR_ENGINES = ("E8", "E8a", "E8b", "E3")
+REPAIR_ENGINES = ("E8", "E8a", "E8b", "E3", "E1")
 #: The kernel stages each engine name runs. They run in the order the names are given (ruling E3-R6: `E8a,E3`),
 #: each stage once, at its first place; `E8` is E8a then E8b.
-REPAIR_STAGES = {"E8": ("E8a", "E8b"), "E8a": ("E8a",), "E8b": ("E8b",), "E3": ("E3",)}
+REPAIR_STAGES = {"E8": ("E8a", "E8b"), "E8a": ("E8a",), "E8b": ("E8b",), "E3": ("E3",), "E1": ("E1",)}
 #: `repair-unit`'s exit code when an engine stage was rolled back whole or ended FAIL (its outputs are still written).
 REPAIR_STAGE_FAILED = 3
 #: `repair-unit`'s exit codes, as its help gives them.
@@ -1093,7 +1093,7 @@ def repair_stages(engines) -> list[str]:
 
 
 #: The folders of crops `repair-unit` writes in `--out`.
-_STALE_DIRS = ("fills", "needs_modelling")
+_STALE_DIRS = ("fills", "needs_modelling", "visible_debris")
 
 
 def _remove_stale_outputs(out_dir: Path, name: str | None, *, everything: bool = False) -> None:
@@ -1166,6 +1166,40 @@ def _e3_report(engine, edits: list, result, check: dict | None) -> dict:
             "site_rows": rows}
 
 
+def _e1_report(engine, edits: list, result, check: dict | None) -> dict:
+    """report.json's `e1` (job P2-E1): engine's numbers (candidates by kind, visible_debris), sites (planned, kept,
+    rolled_back), kept count, rolled_back list with reasons."""
+    kept = {id(e) for e in result.kept}
+    rolled = {row["site"]: row for row in (check or {}).get("rolled_back", [])}
+    rows, by_reason = [], collections.Counter()
+    for e in edits:
+        ev, row = e.evidence, rolled.get(e.site)
+        reasons = {} if row is None else dict(row["reasons"])
+        if row is not None and row.get("stage_rolled_back"):
+            reasons = {"stage_rolled_back": 0}
+        if row is not None:
+            by_reason.update(reasons.keys())
+        rows.append({"site": int(e.site), "faces": len(e.faces), "rule": ev.get("rule"),
+                     "area": ev.get("area"), "centroid": ev.get("centroid"),
+                     "bbox": ev.get("bbox"), "kept": id(e) in kept, "reasons": reasons,
+                     "charged": 0 if row is None else int(row["charged"])})
+    after = _after_rollback(check) if check is not None else None
+    rep = engine.report or {}
+    kept_count = sum(r["kept"] for r in rows)
+    rolled_count = sum(not r["kept"] for r in rows)
+    return {
+        "candidates": rep.get("candidates", {}),
+        "sites": {"planned": len(rows), "kept": kept_count, "rolled_back": rolled_count,
+                  "rolled_back_by_reason": dict(sorted(by_reason.items()))},
+        "kept": kept_count,
+        "rolled_back": [row for row in rolled.values()],
+        "visible_debris": rep.get("visible_debris", []),
+        "visible_debris_count": rep.get("visible_debris_count", 0),
+        "after_rollback": after,
+        "site_rows": rows,
+    }
+
+
 def _repair_report(result, check_by_stage: dict, before=None) -> tuple[list[dict], dict]:
     """`(pieces, sites)` of report.json: one row per site E8 planned, and the counts kept and rolled back, by
     reason (a site counts once under each reason the Validator gave for the samples charged to it). With `before`
@@ -1229,6 +1263,7 @@ def cmd_repair_unit(out_dir: Path, *, unit: str | None = None, snapshot: Path | 
     campus map (nothing repaired). Raises ValueError for an unknown engine, a unit or snapshot missing (or both
     given), a protected `out_dir`, or a snapshot in a protected folder (`main` turns those into exit 2)."""
     from engine.campus.unit_before import build_unit_before
+    from engine.repair.engines.e1_loose import E1Loose
     from engine.repair.engines.e3_hidden import E3Hidden
     from engine.repair.engines.e8_fill import E8FlatFill
     from engine.repair.engines.e8_solidify import E8Solidify
@@ -1274,7 +1309,8 @@ def cmd_repair_unit(out_dir: Path, *, unit: str | None = None, snapshot: Path | 
     solid = E8Solidify(flatness=flatness) if "E8a" in stages else None
     fill = E8FlatFill() if "E8b" in stages else None
     hidden = E3Hidden(flatness=flatness, solidify=solid) if "E3" in stages else None
-    kernel_engines = [{"E8a": solid, "E8b": fill, "E3": hidden}[s] for s in stages]
+    loose = E1Loose(flatness=flatness, solidify=solid, out_dir=out_dir) if "E1" in stages else None
+    kernel_engines = [{"E8a": solid, "E8b": fill, "E3": hidden, "E1": loose}[s] for s in stages]
     out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / "report.json").unlink(missing_ok=True)
     _remove_stale_outputs(out_dir, None)
@@ -1307,6 +1343,9 @@ def cmd_repair_unit(out_dir: Path, *, unit: str | None = None, snapshot: Path | 
     e3 = None
     if hidden is not None:
         e3 = _e3_report(hidden, by_stage.get(hidden.name, []), result, checks.get(hidden.name))
+    e1 = None
+    if loose is not None:
+        e1 = _e1_report(loose, by_stage.get(loose.name, []), result, checks.get(loose.name))
     report = {
         "unit": unit, "snapshot": None if snapshot is None else str(snapshot), "engines": engines,
         "stages_run": stages,
@@ -1328,6 +1367,7 @@ def cmd_repair_unit(out_dir: Path, *, unit: str | None = None, snapshot: Path | 
         "not_filled": not_filled,
         "fill_stats": fill_stats,
         **({"e3": e3} if e3 is not None else {}),
+        **({"e1": e1} if e1 is not None else {}),
         "seconds": {"before": round(built - started, 2), "kernel": round(repaired - built, 2),
                     "total": round(time.perf_counter() - started, 2)},
         "exit_code": _repair_exit_code(result.checks),
@@ -1358,6 +1398,10 @@ def cmd_repair_unit(out_dir: Path, *, unit: str | None = None, snapshot: Path | 
               f"{s3['planned']} sites; kept {s3['kept']}, rolled back {s3['rolled_back']} "
               f"{s3['rolled_back_by_reason']}; removed {e3['faces_removed']} faces; deleted after rollback "
               f"{e3['deleted_after_rollback']}; disagreements {e3['disagreements']['faces']}")
+    if e1 is not None:
+        s1 = e1["sites"]
+        print(f"{name}: E1 candidates {e1['candidates']}; sites: planned {s1['planned']}, kept {s1['kept']}, "
+              f"rolled back {s1['rolled_back']}; visible debris: {len(e1['visible_debris'])}")
     print(f"{name}: needs modelling: {needs['counts']['entries']} spots {needs['counts']['by_kind']} "
           f"{needs['counts']['by_reason']} ({needs['counts']['outer_boundaries']} patch outer borders only counted); "
           f"{report['seconds']['needs_modelling']} s")
