@@ -31,14 +31,11 @@ def to_build_frame(points: np.ndarray, a: Alignment) -> np.ndarray:
     return (np.asarray(points, float) / a.scale) @ a.matrix.T + a.offset
 
 
-def dump_winding_flips(matrix_or_det: np.ndarray | float) -> bool:
-    """Unity uses clockwise winding (left-handed). When Unity's triangles are mapped to the build frame:
-    if det > 0, the coordinate transformation preserves clockwise winding, which opposes the build's
-    counter-clockwise convention, so the face vertices must be reversed (flip=True).
-    If det < 0, the coordinate transformation itself inverts winding, aligning it with the build (flip=False).
-    """
-    det = float(np.linalg.det(matrix_or_det)) if isinstance(matrix_or_det, np.ndarray) else float(matrix_or_det)
-    return det > 0
+def dump_winding_flips(matrix_or_det: np.ndarray | float | None = None) -> bool:
+    """Unity stores triangles in left-handed (clockwise) vertex order (`f[:, ::-1]`). Once vertex positions are mapped
+    back to their corresponding build coordinates by the true alignment `a.matrix`, reversing each dump triangle's
+    vertex order (`flip=True`) restores the build's counter-clockwise winding."""
+    return True
 
 
 def _keys(points: np.ndarray, tol: float) -> set:
