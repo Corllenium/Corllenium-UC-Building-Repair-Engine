@@ -261,7 +261,7 @@ class E3Hidden:
             split += int(len(pieces) > 1)
             for c, faces in enumerate(pieces):
                 corners = mesh.positions[mesh.face_v[faces]].reshape(-1, 3)
-                rules = ["hidden" if ok[f] else "zero_area" for f in faces.tolist()]
+                rules = ["hidden"] * len(faces)
                 evidence = {"group": g, "cell": c if len(pieces) > 1 else None, "group_faces": int(len(members)),
                             "faces": int(len(faces)), "area": round(float(area[faces].sum()), 4),
                             "exposure": {"front_max": float(front[faces].max()), "back_max": float(back[faces].max())},

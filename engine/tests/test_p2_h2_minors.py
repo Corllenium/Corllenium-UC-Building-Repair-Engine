@@ -4,7 +4,12 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from engine.repair.engines.e3_hidden import MAX_SITE_FACES, split_group
+from engine.repair.engines.e3_hidden import MAX_SITE_FACES, E3Hidden, split_group
+from engine.repair.types import RepairContext, UnitState
+from engine.site_judge import SiteJudge
+from engine.tests.fixtures import build as B
+from engine.tests.test_e3_hidden import _FAST
+from engine.tests.test_validate_checks import _looks
 
 
 def _grid_centroids(nx: int = 32, ny: int = 32, span_xy: float = 100.0, z_jitter: float = 0.0) -> np.ndarray:
@@ -38,3 +43,15 @@ def test_item1_near_flat_groups_are_not_over_split():
     assert len(sites_jittered) == len(sites_flat)
     assert all(len(s) <= MAX_SITE_FACES for s in sites_jittered)
     assert sorted(int(f) for s in sites_jittered for f in s) == list(range(2048))
+
+
+def test_item2_every_e3_edit_rule_is_hidden_on_box_with_partition():
+    mesh = B.box_with_partition()
+    engine = E3Hidden()
+    unit = UnitState(mesh=mesh, topo=None, looks={}, viewpoints=None)
+    judge = SiteJudge(_looks(*mesh.materials), margin=2.0)
+    edits = engine.plan(unit, RepairContext(profile=_FAST, decider=None, validator=judge))
+    assert edits
+    for edit in edits:
+        assert edit.evidence["rules"] == ["hidden"] * len(edit.faces)
+
