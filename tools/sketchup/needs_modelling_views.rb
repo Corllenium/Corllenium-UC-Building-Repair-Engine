@@ -73,7 +73,7 @@ module UCNeedsModelling
         strokes = []
         @points.each do |p|
           d = view.pixels_to_model(CROSS_PIXELS, p)
-          strokes << p.offset(across, -d) << p.offset(across, d) << p.offset(upward, -d) << p.offset(upward, d)
+          strokes << p.offset(across.reverse, d) << p.offset(across, d) << p.offset(upward.reverse, d) << p.offset(upward, d)
         end
         view.draw(GL_LINES, strokes)
       end
@@ -90,7 +90,8 @@ module UCNeedsModelling
 
   def self.load_entries
     if JSON_PATH == PLACEHOLDER_PATH
-      UI.messagebox("UC Needs Modelling: set JSON_PATH at the top of this script to the floor's needs_modelling.json, "                     "then paste the script again. Nothing was loaded.")
+      UI.messagebox("UC Needs Modelling: set JSON_PATH at the top of this script to the floor's needs_modelling.json, " \
+                    "then paste the script again. Nothing was loaded.")
       return false
     end
     unless File.file?(JSON_PATH)
