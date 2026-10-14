@@ -1468,6 +1468,28 @@ def _repair_exit_code(checks: list[dict]) -> int:
     return 0
 
 
+def cmd_unity_check(build_path: Path, unity_path: Path, out_dir: Path) -> int:
+    from engine.io.mtl import parse_mtl
+    from engine.io.obj_reader import read_obj
+    from engine.unity.align import AlignError
+    from engine.unity.check import unity_check
+    from engine.unity.dump import DumpError, read_unity_dump
+    try:
+        dump = read_unity_dump(unity_path)
+        build = read_obj(build_path)
+        bm = build_path.with_suffix(".mtl")
+        um = unity_path.with_suffix(".mtl")
+        report = unity_check(build, dump, parse_mtl(bm) if bm.is_file() else {},
+                             parse_mtl(um) if um.is_file() else {})
+    except (DumpError, AlignError) as e:
+        print(f"unity-check refused: {e}", file=sys.stderr)
+        return 2
+    out_dir.mkdir(parents=True, exist_ok=True)
+    (out_dir / "unity_check.json").write_text(json.dumps(report, indent=2, default=int), encoding="utf-8")
+    print(f"{build_path.name}: {report['verdict']} {report['causes']}")
+    return 0 if report["verdict"] == "UNITY-SAFE" else 3
+
+
 # ------------------------------------------------------------------------------------------ main
 
 
@@ -1702,6 +1724,11 @@ def build_parser() -> argparse.ArgumentParser:
                             "(default: the repo-root .env; only that one line is read)")
     imp_p.add_argument("--dry-run", action="store_true", help="print the counts and send nothing")
 
+    ucheck_p = sub.add_parser("unity-check", help="did this build survive Unity's import? (exit 0 safe, 3 broken, 2 refused)")
+    ucheck_p.add_argument("--build", type=Path, required=True)
+    ucheck_p.add_argument("--unity", type=Path, required=True, help="the Unity dump's .obj (sidecar next to it)")
+    ucheck_p.add_argument("--out", type=Path, required=True)
+
     return parser
 
 
@@ -1711,7 +1738,8 @@ _OUTPUT_ARGS = {"fix": ("out", "skp_dir"), "preview-data": ("out",), "errors": (
                 "campus-skp-check": ("out", "summary"), "validate": ("out",),
                 "census": ("out", "md", "errors_dir"), "campus-freeze": ("out", "snapshots"),
                 "campus-index": ("out",), "campus-materials": ("out",), "campus-inventory": ("out", "md"),
-                "decide-pilot": ("out",), "campus-unit-before": ("out",), "repair-unit": ("out",)}
+                "decide-pilot": ("out",), "campus-unit-before": ("out",), "repair-unit": ("out",),
+                "unity-check": ("out",)}
 
 
 def _refuse_protected_outputs(args) -> str | None:
@@ -1945,6 +1973,8 @@ def main(argv: list[str] | None = None) -> int:
         print(f"imported: added {total['added']}, skipped {total['skipped']}, invalid {total['invalid']}, "
               f"unreproducible {n['unreproducible']}")
         return 0
+    elif args.command == "unity-check":
+        return cmd_unity_check(args.build, args.unity, args.out)
     return 1
 
 
