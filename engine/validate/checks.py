@@ -447,9 +447,10 @@ def _witness_rays(vs: VisibleSet, p: np.ndarray, n: np.ndarray, col: np.ndarray,
                       is_dir=is_dir)
 
 
-#: The reference path of the removed faces' lattice (P2-V2 review, finding 3): True judges every seen line as a pixel is
-#: (`_Floor._lost_lines`); False, the default, asks `present` once per (point, side) and `blocker` only where the point
-#: is not gone (`_Floor._lost_points`), with the same verdicts (test_validate_floor_speed).
+#: Reference path of the removed faces' lattice for `test_validate_floor_speed.py` (P2-V2 review, finding 3): True
+#: judges every seen line as a pixel is (`_Floor._lost_lines`); False, the default, asks `present` once per
+#: (point, side) and `blocker` only where the point is not gone (`_Floor._lost_points`), with the same verdicts; the
+#: change it was added for gave no speedup.
 _FLOOR_LATTICE_PER_LINE = False
 #: Re-ruled V2-R5: a blocker is "nearly parallel" to a sample's face, and must then also lie beyond the depth tolerance
 #: square to that face to cover, when |n_blocker . n_sample| >= cos 5 degrees.

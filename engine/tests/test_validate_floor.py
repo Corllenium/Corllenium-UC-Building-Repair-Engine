@@ -152,7 +152,7 @@ def test_a_far_patch_of_a_big_face_counts_its_true_area_at_two_hundredths_across
     probe = np.array([5.0, 5.0, 63.0])
     blocks = list(face_pixels(m, 0, Viewpoint.point(probe)))
     pts = np.vstack([b.points for b in blocks])
-    weight = np.concatenate([getattr(b, "weight", np.ones(len(b))) for b in blocks])
+    weight = np.concatenate([b.weight for b in blocks])
     for x0 in (60.0, 100.0, 266.0, 390.0):                       # face 0 is the triangle y < x / 40: rows y 0..1
         inside = (pts[:, 0] >= x0) & (pts[:, 0] < x0 + 1) & (pts[:, 1] >= 0.0) & (pts[:, 1] < 1.0)
         v = probe - np.array([x0 + 0.5, 0.5, 0.0])
