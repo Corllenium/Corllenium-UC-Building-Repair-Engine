@@ -1084,12 +1084,15 @@ REPAIR_EXIT_CODES = ("exit 0: every E8 stage passed (its last check PASS, or eve
 def repair_stages(engines) -> list[str]:
     """The kernel stages `repair-unit` runs for the engine names `engines` (words, each possibly a comma list such as
     `E8a,E3`), in the order given, each stage once at its first place (`E8` is E8a then E8b; ruling E3-R6).
-    ValueError for an unknown name, or for none."""
+    ValueError for an unknown name, for none, or when E8b is given before E8a."""
     names = [n.strip() for e in engines for n in str(e).split(",") if n.strip()]
     unknown = [n for n in names if n not in REPAIR_ENGINES]
     if unknown or not names:
         raise ValueError(f"repair-unit runs only {REPAIR_ENGINES}; not {unknown or 'no engine'}")
-    return list(dict.fromkeys(s for n in names for s in REPAIR_STAGES[n]))
+    stages = list(dict.fromkeys(s for n in names for s in REPAIR_STAGES[n]))
+    if "E8a" in stages and "E8b" in stages and stages.index("E8b") < stages.index("E8a"):
+        raise ValueError("repair-unit: E8b needs E8a first")
+    return stages
 
 
 #: The folders of crops `repair-unit` writes in `--out`.

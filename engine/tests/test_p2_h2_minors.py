@@ -4,11 +4,13 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
+from engine import cli
 from engine.campus.needs_modelling import build_needs_modelling
 from engine.repair.engines.e3_hidden import MAX_SITE_FACES, E3Hidden, split_group
 from engine.repair.types import RepairContext, UnitState
 from engine.site_judge import SiteJudge
 from engine.tests.fixtures import build as B
+from engine.tests.test_cli_repair_unit import _campus
 from engine.tests.test_e3_hidden import _FAST
 from engine.tests.test_validate_checks import _looks
 
@@ -78,5 +80,21 @@ def test_item3_needs_modelling_cross_check_reads_only_e8_lines():
     e8_log = e3_only_log + [{"stage": "E8", "engine": "E8", "site": 5, "rolled_back": True}]
     doc = build_needs_modelling(report, e8_log, None)
     assert doc["counts"]["entries"] == 1 and doc["entries"][0]["site"] == 5
+
+
+def test_item5_e8b_before_e8a_is_refused(tmp_path, capsys):
+    assert cli.main(["repair-unit", "--unit", "U", "--engines", "E8b,E8a", "--out", str(tmp_path / "out")]) == 2
+    assert "E8b needs E8a first" in capsys.readouterr().err
+    with pytest.raises(ValueError, match="E8b needs E8a first"):
+        cli.repair_stages(["E8b,E8a"])
+
+    assert cli.repair_stages(["E8a,E8b"]) == ["E8a", "E8b"]
+    assert cli.repair_stages(["E8b"]) == ["E8b"]
+    paths, snap = _campus(tmp_path, B.box_with_partition())
+    for eng in ("E8a,E8b", "E8b"):
+        out = tmp_path / f"out_{eng.replace(',', '_')}"
+        assert cli.cmd_repair_unit(out, snapshot=snap, engines=[eng], materials=paths["materials"], profile=_FAST) == 0
+
+
 
 
