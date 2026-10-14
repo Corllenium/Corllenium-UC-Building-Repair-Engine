@@ -1223,11 +1223,12 @@ def cmd_repair_unit(out_dir: Path, *, unit: str | None = None, snapshot: Path | 
     anything visible is rolled back. Writes `<out_dir>/<name>.fixed.obj` (with `materials.mtl` next to it),
     `edit_log.jsonl` and `report.json`: the pieces built, kept and rolled back (by the Validator's reason), the
     stage checks, the Validator's covered count after rollback, and the times. Writes no `.skp`.
-    Returns 0 when the E8 stage passed (its last check PASS, or NOTHING KEPT: every piece rolled back on its own
-    charge); 3 (`REPAIR_STAGE_FAILED`) when the stage was rolled back whole or ended FAIL -- every file is still
-    written, and the mesh shipped is the safe one (the stage's input); 1 when the unit's BEFORE differs from the
-    campus map (nothing repaired). Raises ValueError for an unknown engine, a unit or snapshot missing (or both
-    given), a protected `out_dir`, or a snapshot in a protected folder (`main` turns those into exit 2)."""
+    Returns 0 when every engine stage run passed (its last check PASS, or NOTHING KEPT: every piece rolled back on its
+    own charge); 3 (`REPAIR_STAGE_FAILED`) when any engine stage was rolled back whole or ended FAIL -- every file is
+    still written, and the mesh shipped for a rolled-back stage is the safe one (the stage's input); 1 when the unit's
+    BEFORE differs from the campus map (nothing repaired). Raises ValueError for an unknown engine, a unit or snapshot
+    missing (or both given), a protected `out_dir`, or a snapshot in a protected folder (`main` turns those into exit
+    2)."""
     from engine.campus.unit_before import build_unit_before
     from engine.repair.engines.e3_hidden import E3Hidden
     from engine.repair.engines.e8_fill import E8FlatFill
