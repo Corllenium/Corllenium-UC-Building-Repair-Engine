@@ -1084,12 +1084,15 @@ REPAIR_EXIT_CODES = ("exit 0: every E8 stage passed (its last check PASS, or eve
 def repair_stages(engines) -> list[str]:
     """The kernel stages `repair-unit` runs for the engine names `engines` (words, each possibly a comma list such as
     `E8a,E3`), in the order given, each stage once at its first place (`E8` is E8a then E8b; ruling E3-R6).
-    ValueError for an unknown name, or for none."""
+    ValueError for an unknown name, for none, or when E8b is given before E8a."""
     names = [n.strip() for e in engines for n in str(e).split(",") if n.strip()]
     unknown = [n for n in names if n not in REPAIR_ENGINES]
     if unknown or not names:
         raise ValueError(f"repair-unit runs only {REPAIR_ENGINES}; not {unknown or 'no engine'}")
-    return list(dict.fromkeys(s for n in names for s in REPAIR_STAGES[n]))
+    stages = list(dict.fromkeys(s for n in names for s in REPAIR_STAGES[n]))
+    if "E8a" in stages and "E8b" in stages and stages.index("E8b") < stages.index("E8a"):
+        raise ValueError("repair-unit: E8b needs E8a first")
+    return stages
 
 
 #: The folders of crops `repair-unit` writes in `--out`.
@@ -1223,11 +1226,12 @@ def cmd_repair_unit(out_dir: Path, *, unit: str | None = None, snapshot: Path | 
     anything visible is rolled back. Writes `<out_dir>/<name>.fixed.obj` (with `materials.mtl` next to it),
     `edit_log.jsonl` and `report.json`: the pieces built, kept and rolled back (by the Validator's reason), the
     stage checks, the Validator's covered count after rollback, and the times. Writes no `.skp`.
-    Returns 0 when the E8 stage passed (its last check PASS, or NOTHING KEPT: every piece rolled back on its own
-    charge); 3 (`REPAIR_STAGE_FAILED`) when the stage was rolled back whole or ended FAIL -- every file is still
-    written, and the mesh shipped is the safe one (the stage's input); 1 when the unit's BEFORE differs from the
-    campus map (nothing repaired). Raises ValueError for an unknown engine, a unit or snapshot missing (or both
-    given), a protected `out_dir`, or a snapshot in a protected folder (`main` turns those into exit 2)."""
+    Returns 0 when every engine stage run passed (its last check PASS, or NOTHING KEPT: every piece rolled back on its
+    own charge); 3 (`REPAIR_STAGE_FAILED`) when any engine stage was rolled back whole or ended FAIL -- every file is
+    still written, and the mesh shipped for a rolled-back stage is the safe one (the stage's input); 1 when the unit's
+    BEFORE differs from the campus map (nothing repaired). Raises ValueError for an unknown engine, a unit or snapshot
+    missing (or both given), a protected `out_dir`, or a snapshot in a protected folder (`main` turns those into exit
+    2)."""
     from engine.campus.unit_before import build_unit_before
     from engine.repair.engines.e3_hidden import E3Hidden
     from engine.repair.engines.e8_fill import E8FlatFill

@@ -1,11 +1,12 @@
 """Job P2-E3: hidden faces, interior-aware, as the repair engine E3 (`engine.repair.engines.e3_hidden.E3Hidden`).
 
 E3 computes its candidates exactly as the legacy hidden stage does (`engine.fixes.pipeline.stage_hidden`, pass 1:
-exposure 0 from every outside direction, or zero area, confirmed by the strict guard), then drops every slab side
-(ruling E3-R3) and every face an eye-height probe sees from either side (ruling E3-R4), and hands back one `remove`
-site per edge-connected group of what is left (a group over 512 faces split by a spatial grid). The kernel's site
-checks (`validate_sites=True`) judge every site, so a group that deletes any sample some viewpoint sees -- an
-eye-height probe included -- is rolled back (ruling E3-R2).
+exposure 0 from every outside direction, confirmed by the strict guard; zero-area faces belong to E1 under ruling
+E3-R9 and are left out), then drops every slab side (ruling E3-R3), every face an eye-height probe sees from either
+side (ruling E3-R4), and every face any point of whose 36-point dense pre-filter lattice is seen from any Validator
+viewpoint (ruling E3-R7), and hands back one `remove` site per edge-connected group of what is left (a group over 512
+faces split by a spatial grid). The kernel's site checks (`validate_sites=True`) judge every site, so a group that
+deletes any sample some viewpoint sees -- an eye-height probe included -- is rolled back (ruling E3-R2).
 """
 from __future__ import annotations
 

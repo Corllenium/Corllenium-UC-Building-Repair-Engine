@@ -113,7 +113,7 @@ def split_group(ids: np.ndarray, centroid: np.ndarray, cap: int = MAX_SITE_FACES
         return [ids]
     pts = centroid[ids]
     lo, span = pts.min(axis=0), np.ptp(pts, axis=0)
-    axes = span > 1e-9
+    axes = (span >= 1.0) & (span >= 0.01 * float(span.max()))
     if not axes.any():
         return [ids[i:i + cap] for i in range(0, len(ids), cap)]
     cells = math.ceil(len(ids) / cap)
@@ -261,7 +261,7 @@ class E3Hidden:
             split += int(len(pieces) > 1)
             for c, faces in enumerate(pieces):
                 corners = mesh.positions[mesh.face_v[faces]].reshape(-1, 3)
-                rules = ["hidden" if ok[f] else "zero_area" for f in faces.tolist()]
+                rules = ["hidden"] * len(faces)
                 evidence = {"group": g, "cell": c if len(pieces) > 1 else None, "group_faces": int(len(members)),
                             "faces": int(len(faces)), "area": round(float(area[faces].sum()), 4),
                             "exposure": {"front_max": float(front[faces].max()), "back_max": float(back[faces].max())},

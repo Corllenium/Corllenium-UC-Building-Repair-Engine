@@ -11,9 +11,10 @@ before_mesh)` makes that list from one `repair-unit` run:
   bottom (kind `slab_bottom`) stays missing, so the hole stays open. Its border is the outline of the faces the piece
   would have built (report.json's `pieces[*].border`, written by `repair-unit`), its reason the Validator's reason
   that was charged most (all of them are in `detail`). A piece rolled back because its whole stage was rolled back
-  (`stage_rolled_back`) is counted, not listed; so is a rolled-back piece that has no border
-  (`counts.no_border_not_listed`), which cannot be outlined or aimed at: it failed no check of its own. The edit log is the audit trail: a
-  listed piece must have its rolled-back line there, or the report and the log describe different runs (ValueError).
+  (`stage_rolled_back`) is counted, not listed: it failed no check of its own. A rolled-back piece that has no border
+  (`counts.no_border_not_listed`) cannot be outlined or aimed at, so it is counted, not listed. The edit log is the
+  audit trail: a listed piece must have its rolled-back line there, or the report and the log describe different runs
+  (ValueError).
 
 Each entry (`ENTRY_KEYS`): `id` (the first 12 hex digits of the sha256 of the border's points, snapped to the OBJ's
 print step, sorted and de-duplicated, so the face order of the mesh, where a loop starts and which way it runs change
@@ -314,7 +315,8 @@ def build_needs_modelling(report: dict, edit_log, before_mesh: MeshData | None) 
                               row.get("loop"), row["points"], row["reason"] not in _UNORDERED, None, None,
                               row.get("centroid"), step, opens))
     rolled_lines = {line["site"] for line in _lines(edit_log)
-                    if "check" not in line and line.get("rolled_back") and not line.get("flat_fill")}
+                    if "check" not in line and line.get("stage") == "E8"
+                    and line.get("rolled_back") and not line.get("flat_fill")}
     log_given = edit_log is not None
     stage_rolled = no_border = 0
     for piece in report.get("pieces") or []:

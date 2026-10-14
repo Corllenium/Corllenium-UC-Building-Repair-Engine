@@ -124,3 +124,34 @@ def test_a_plate_across_the_top_of_a_strip_covers_it_from_a_steep_viewer():
     floor = _floor(v)
     assert floor["status"] == "FAIL" and {e["face"] for e in floor["failing"]} & {0, 1}
     assert all(e["kind"] == "covered" for e in floor["failing"])
+
+
+def _tilted_layer_case(deg: float):
+    """Strip `F` in `x = 0` (`z` in `0..0.3`) plus a new layer `L` (`z` in `0.05..0.45`) tilted by `deg` degrees from
+    parallel to `F` while staying within the 0.05 in depth tolerance square to `F` (`0.001 <= x <= 0.043`). Along the
+    steep viewing line `steep`, `L` lies ~0.22 in (> 0.05 in) in front of `F`'s samples."""
+    H, Y = 0.3, 10.0
+    z0, z1, x_mid = 0.05, 0.45, 0.022
+    dx = 0.5 * (z1 - z0) * float(np.tan(np.radians(deg)))
+    x0, x1 = x_mid + dx, x_mid - dx
+    P = [[0, 0, 0], [0, Y, 0], [0, Y, H], [0, 0, H],
+         [x0, 0, z0], [x0, Y, z0], [x1, Y, z1], [x1, 0, z1]]
+    before = _mesh("F", P[:4], [[0, 0]] * 4, [[0, 1, 2], [0, 2, 3]], [[0, 0, 0]] * 2)
+    after = _mesh("F+L", P, [[0, 0]] * 8,
+                  [[0, 1, 2], [0, 2, 3], [4, 5, 6], [4, 6, 7]], [[0, 0, 0]] * 4)
+    square = np.array([-1.0, 0.0, -0.01]) / np.linalg.norm([-1.0, 0.0, -0.01])
+    steep = np.array([-0.1, 0.0, -1.0]) / np.linalg.norm([-0.1, 0.0, -1.0])
+    return _judge(before, after, [square, steep])
+
+
+def test_a_layer_tilted_four_degrees_within_depth_tolerance_stays_excused():
+    v = _tilted_layer_case(4.0)
+    gone = v.report["checks"]["nothing_deleted"]
+    assert gone["status"] == "PASS" and gone["covered"] == 0 and v.report["verdict"] == "PASS"
+
+
+def test_a_layer_tilted_six_degrees_within_depth_tolerance_covers_and_fails_check_3():
+    v = _tilted_layer_case(6.0)
+    gone = v.report["checks"]["nothing_deleted"]
+    assert gone["status"] == "FAIL" and gone["covered"] > 0 and v.report["verdict"] == "FAIL"
+
