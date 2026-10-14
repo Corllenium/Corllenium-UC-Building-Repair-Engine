@@ -113,7 +113,7 @@ def split_group(ids: np.ndarray, centroid: np.ndarray, cap: int = MAX_SITE_FACES
         return [ids]
     pts = centroid[ids]
     lo, span = pts.min(axis=0), np.ptp(pts, axis=0)
-    axes = span > 1e-9
+    axes = (span >= 1.0) & (span >= 0.01 * float(span.max()))
     if not axes.any():
         return [ids[i:i + cap] for i in range(0, len(ids), cap)]
     cells = math.ceil(len(ids) / cap)
