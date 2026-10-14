@@ -314,7 +314,8 @@ def build_needs_modelling(report: dict, edit_log, before_mesh: MeshData | None) 
                               row.get("loop"), row["points"], row["reason"] not in _UNORDERED, None, None,
                               row.get("centroid"), step, opens))
     rolled_lines = {line["site"] for line in _lines(edit_log)
-                    if "check" not in line and line.get("rolled_back") and not line.get("flat_fill")}
+                    if "check" not in line and line.get("stage") == "E8"
+                    and line.get("rolled_back") and not line.get("flat_fill")}
     log_given = edit_log is not None
     stage_rolled = no_border = 0
     for piece in report.get("pieces") or []:

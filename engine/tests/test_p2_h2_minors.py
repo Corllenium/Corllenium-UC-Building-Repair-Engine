@@ -4,6 +4,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
+from engine.campus.needs_modelling import build_needs_modelling
 from engine.repair.engines.e3_hidden import MAX_SITE_FACES, E3Hidden, split_group
 from engine.repair.types import RepairContext, UnitState
 from engine.site_judge import SiteJudge
@@ -54,4 +55,28 @@ def test_item2_every_e3_edit_rule_is_hidden_on_box_with_partition():
     assert edits
     for edit in edits:
         assert edit.evidence["rules"] == ["hidden"] * len(edit.faces)
+
+
+def test_item3_needs_modelling_cross_check_reads_only_e8_lines():
+    report = {
+        "unit": "ARCH-L03",
+        "pieces": [{
+            "site": 5,
+            "piece": "wall",
+            "kept": False,
+            "reasons": {"covered": 10},
+            "border": [[0.0, 0.0, 0.0], [10.0, 0.0, 0.0], [10.0, 0.0, 10.0], [0.0, 0.0, 10.0]],
+            "border_ordered": True,
+            "area_in2": 100.0,
+            "normal": [0.0, -1.0, 0.0],
+        }],
+    }
+    e3_only_log = [{"stage": "E3", "engine": "E3", "site": 5, "rolled_back": True}]
+    with pytest.raises(ValueError, match="site 5"):
+        build_needs_modelling(report, e3_only_log, None)
+
+    e8_log = e3_only_log + [{"stage": "E8", "engine": "E8", "site": 5, "rolled_back": True}]
+    doc = build_needs_modelling(report, e8_log, None)
+    assert doc["counts"]["entries"] == 1 and doc["entries"][0]["site"] == 5
+
 
