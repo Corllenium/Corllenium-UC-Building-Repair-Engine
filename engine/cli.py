@@ -1534,6 +1534,18 @@ def cmd_unity_check(build_path: Path, unity_path: Path, out_dir: Path) -> int:
     return 0 if report["verdict"] == "UNITY-SAFE" else 3
 
 
+def cmd_unity_mirror_import(build: Path, out_dir: Path, overrides: list[str]) -> int:
+    from engine.unity.mirror import MirrorError, mirror_import
+    ov = dict(o.split("=", 1) for o in overrides)
+    try:
+        dump = mirror_import(build, out_dir, overrides=ov)
+    except MirrorError as e:
+        print(f"unity-mirror-import failed: {e}", file=sys.stderr)
+        return 2
+    print(dump)
+    return 0
+
+
 # ------------------------------------------------------------------------------------------ main
 
 
@@ -1773,6 +1785,11 @@ def build_parser() -> argparse.ArgumentParser:
     ucheck_p.add_argument("--unity", type=Path, required=True, help="the Unity dump's .obj (sidecar next to it)")
     ucheck_p.add_argument("--out", type=Path, required=True)
 
+    umirror_p = sub.add_parser("unity-mirror-import", help="route A: import a build in the mirror Unity project and dump it")
+    umirror_p.add_argument("--build", type=Path, required=True)
+    umirror_p.add_argument("--out", type=Path, required=True)
+    umirror_p.add_argument("--override", action="append", default=[], metavar="KEY=VALUE")
+
     return parser
 
 
@@ -1783,7 +1800,7 @@ _OUTPUT_ARGS = {"fix": ("out", "skp_dir"), "preview-data": ("out",), "errors": (
                 "census": ("out", "md", "errors_dir"), "campus-freeze": ("out", "snapshots"),
                 "campus-index": ("out",), "campus-materials": ("out",), "campus-inventory": ("out", "md"),
                 "decide-pilot": ("out",), "campus-unit-before": ("out",), "repair-unit": ("out",),
-                "unity-check": ("out",)}
+                "unity-check": ("out",), "unity-mirror-import": ("out",)}
 
 
 def _refuse_protected_outputs(args) -> str | None:
@@ -2019,6 +2036,8 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     elif args.command == "unity-check":
         return cmd_unity_check(args.build, args.unity, args.out)
+    elif args.command == "unity-mirror-import":
+        return cmd_unity_mirror_import(args.build, args.out, args.override)
     return 1
 
 

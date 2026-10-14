@@ -30,3 +30,4 @@ include = ["engine*", "api*"]
 
 [tool.pytest.ini_options]
 testpaths = ["engine/tests", "api/tests"]
+markers = ["unity: launches the Unity editor headless"]
