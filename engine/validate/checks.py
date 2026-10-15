@@ -67,7 +67,8 @@ from engine.validate.sampling import (Samples, face_areas, face_normals, face_sa
 from engine.validate.viewpoints import above_horizon_directions, interior_probes, pedestrian_ring
 from engine.validate.floor import (FLOOR_IN_PER_PX, LATTICE_CAP, LATTICE_MIN, LATTICE_PER_SQ_IN, PIXEL_BUDGET,
                                    VISIBLE_FLOOR_PX, Viewpoint, face_pixels, floor_lattice)
-from engine.validate.visibility import EPS_ORIGIN, MIN_COS, VisibleSet, _side, build_caster, visible_samples
+from engine.validate.visibility import (EPS_ORIGIN, MIN_COS, VisibleSet, _side, build_caster, snapped_point_keys,
+                                        visible_floor_lattice, visible_samples)
 
 #: The look of a face with no `usemtl` (material -1), which is never "the last material" by accident.
 NO_MATERIAL = "<no material>"
@@ -452,6 +453,9 @@ def _witness_rays(vs: VisibleSet, p: np.ndarray, n: np.ndarray, col: np.ndarray,
 #: (point, side) and `blocker` only where the point is not gone (`_Floor._lost_points`), with the same verdicts; the
 #: change it was added for gave no speedup.
 _FLOOR_LATTICE_PER_LINE = False
+#: Job P2-V3: when True (the default), `_Floor.lattice_seen` uses `visible_floor_lattice` (quadtree shadow-frustum
+#: culling + sample-coincidence reuse); when False, it casts every lattice point via `visible_samples`.
+_FLOOR_LATTICE_CULL = True
 #: Re-ruled V2-R5: a blocker is "nearly parallel" to a sample's face, and must then also lie beyond the depth tolerance
 #: square to that face to cover, when |n_blocker . n_sample| >= cos 5 degrees.
 PARALLEL_COS = float(np.cos(np.radians(5.0)))
@@ -1066,11 +1070,13 @@ class _Floor:
     saw, and the first above the floor ends the face's measure."""
 
     def __init__(self, before: MeshData, judge: "_Judge", fills, look_b: np.ndarray, tex_w: np.ndarray,
-                 tex_h: np.ndarray, caster_b, views: list, labels: list, normals_b: np.ndarray, centre: np.ndarray):
+                 tex_h: np.ndarray, caster_b, views: list, labels: list, normals_b: np.ndarray, centre: np.ndarray,
+                 *, unseen_keys: np.ndarray | None = None, snap_step: float = 0.0):
         self.b, self.judge, self.fills = before, judge, fills
         self.look_b, self.tex_w, self.tex_h = look_b, tex_w, tex_h
         self.caster_b, self.views, self.labels, self.normals = caster_b, views, labels, normals_b
         self.centre = centre
+        self.unseen_keys, self.snap_step = unseen_keys, snap_step
 
     def lattice_seen(self, faces: np.ndarray, dirs: np.ndarray, cams: np.ndarray, probes: np.ndarray):
         """`(lost, seen_faces, lattice size)` for `faces`, cast against every viewpoint (`dirs` here are the standard
@@ -1082,6 +1088,39 @@ class _Floor:
         seen: dict = {}
         seen_faces: set = set()
         n_views = len(dirs) + len(cams) + len(probes)
+        if _FLOOR_LATTICE_CULL and not _FLOOR_LATTICE_PER_LINE and getattr(self.caster_b, "_wrap", None) is not None:
+            r, col, front_rc = visible_floor_lattice(
+                self.b, lattice, faces, self.normals, dirs, cams, probes, self.caster_b,
+                lattice_min=LATTICE_MIN, lattice_per_sq_in=LATTICE_PER_SQ_IN, lattice_cap=LATTICE_CAP,
+                unseen_keys=self.unseen_keys, snap_step=self.snap_step,
+            )
+            if not len(r):
+                return seen, 0, len(lattice)
+            seen_faces.update(np.unique(lattice.face[r]).tolist())
+            uniq_r, inv_r = np.unique(r, return_inverse=True)
+            inv_r = inv_r.reshape(-1)
+            sub = Samples(points=lattice.points[uniq_r], face=lattice.face[uniq_r], bary=lattice.bary[uniq_r])
+            seen_mat = np.zeros((len(uniq_r), n_views), dtype=bool)
+            front_mat = np.zeros((len(uniq_r), n_views), dtype=bool)
+            seen_mat[inv_r, col] = True
+            front_mat[inv_r, col] = front_rc
+            d_arr = np.asarray(dirs, dtype=np.float64).reshape(-1, 3)
+            if len(d_arr):
+                d_arr = d_arr / np.linalg.norm(d_arr, axis=1, keepdims=True)
+            vs = VisibleSet(dirs=d_arr, cams=np.asarray(cams, dtype=np.float64).reshape(-1, 3),
+                            probes=np.asarray(probes, dtype=np.float64).reshape(-1, 3),
+                            seen=seen_mat, front=front_mat)
+            p, faces_r = sub.points[inv_r], sub.face[inv_r]
+            w = _witness_rays(vs, p, self.normals[faces_r], col, front_rc)
+            lost = self._lost_points(inv_r, faces_r, p, w, sub.bary[inv_r])
+            r_lost, col_lost = inv_r[lost], col[lost]
+            if len(r_lost):
+                keys, counts = np.unique(sub.face[r_lost] * n_views + col_lost, return_counts=True)
+                for key, count in zip(keys.tolist(), counts.tolist()):
+                    per = seen.setdefault(key // n_views, {})
+                    per[key % n_views] = per.get(key % n_views, 0) + count
+            return seen, len(seen_faces), len(lattice)
+
         step = max(1, 4_000_000 // max(n_views, 1))
         for start in range(0, len(lattice), step):
             part = slice(start, min(start + step, len(lattice)))
@@ -1735,7 +1774,6 @@ def validate(before: MeshData, after: MeshData, looks: Looks, *, errors=None, ta
     floor_cases: list = []
     if b.n_faces:
         views, labels = floor_views(dirs, extra_dirs, cams, probes, centre)
-        floor = _Floor(b, judge, fill_sites, look_b, tex_w, tex_h, caster_b, views, labels, normals_b, centre)
         removed = suspect & (np.abs(normals_b).sum(axis=1) > 0.0)
         in_focus = np.ones(b.n_faces, dtype=bool)
         if focus is not None:
@@ -1743,6 +1781,10 @@ def validate(before: MeshData, after: MeshData, looks: Looks, *, errors=None, ta
             in_focus[focus_before] = True
             removed &= in_focus
         removed_ids = np.flatnonzero(removed)
+        unseen_samp = np.flatnonzero(removed[samples.face] & ~tested)
+        u_keys = snapped_point_keys(samples.face[unseen_samp], samples.points[unseen_samp], step)
+        floor = _Floor(b, judge, fill_sites, look_b, tex_w, tex_h, caster_b, views, labels, normals_b, centre,
+                       unseen_keys=u_keys, snap_step=step)
         all_dirs = np.vstack([dirs, extra_dirs])
         seen, n_seen, n_points = floor.lattice_seen(removed_ids, all_dirs, cams, probes)
         floor_report["lattice"].update(faces=int(len(removed_ids)), points=int(n_points))

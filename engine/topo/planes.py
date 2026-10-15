@@ -155,10 +155,14 @@ def build_regions(mesh, positions_w, face_w, ok, table, t_vertices, quanta, flat
     sub_edges = t_junction_sub_edges(table, t_vertices)
 
     def join(faces):
-        faces = [f for f in faces if group[f] >= 0]
-        for f in faces[1:]:
-            if group[f] == group[faces[0]]:
-                parent[find(f)] = find(faces[0])
+        first_by_group = {}
+        for f in faces:
+            g = int(group[f])
+            if g < 0:
+                continue
+            rep = first_by_group.setdefault(g, f)
+            if rep != f:
+                parent[find(f)] = find(rep)
 
     for faces in ef:
         join(list(faces))
