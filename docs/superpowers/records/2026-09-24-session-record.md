@@ -60,6 +60,8 @@ topology again, **merge**, **final guard** (rolled back if it fails), invariants
 
 ## 4. History: rounds, commits, measured results
 
+2026-10-17, Codex, STAGING-T123-V1: added exact copies of two staging tests missing from main; the requested five files match siege-jev-gate byte-for-byte. Requested pytest modules: main 81 passed, worktree 81 passed. Read-only receipt/Blender checks: all 12 floors/signatures match, buildings file self-contained with restored ARCHI ceiling present, current linked CHTM LOD0 99,310 triangles. Receipt and three `.blend` files unchanged. Both runners compile/import; third/fourth runner lacks `--stages` CLI and remains unedited under the foreign-untracked rule. [Full evidence and limitations](STAGING-T123-V1-report.md).
+
 Triangles out of the fixed file (input: A 4,692, B 7,227). "Passed" = every invariant true and the
 final guard passed.
 

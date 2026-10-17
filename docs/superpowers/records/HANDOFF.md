@@ -25,6 +25,8 @@ run the latest `.skp` of each file must be in `OBJ FIXED RESULT/` for the owner 
 
 ## 2. Current state (2026-09-26 00:15, written by the Claude controller)
 
+**Update 2026-10-17 (Codex, STAGING-T123-V1):** synchronized the two missing Blender staging test files from siege-jev-gate to main; all five requested files now have identical SHA-256s. The five requested pytest modules pass in each checkout (81 passed each). Receipt and read-only Blender inspection pass: 12 CHTM floors, self-contained buildings staging, restored ARCHI ceiling present, current environment CHTM LOD0 99,310 triangles; all three `.blend` hashes unchanged. Both CHTM runners compile/import, but `run_chtm_3rd_and_4th_floors.py` lacks a `--stages` CLI. That pre-existing untracked file remains untouched pending the owner's exception. Details and actual output: [STAGING-T123-V1-report.md](STAGING-T123-V1-report.md).
+
 **Update 2026-10-09 afternoon (the repair-engine controller session): P2 started.**
 - **P2-E8a merged** (76ca35a): solidify as the strict E8 engine; `engine.cli repair-unit`. Covered after rollback 0 on
   sidewalks A and B and CHTM 5th; most pieces rolled back (kept 4/66, 10/54, 8/209).
