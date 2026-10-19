@@ -13,3 +13,7 @@
   coverage and winding agree, vector area equal) and 10 mixed-material n-gons (1,475 sq in) at tile edges. Guard images
   read (see report). 6F engine running. Source V2 re-saved at 21:26:50 (sha256 47ca5bcc...); the run stays on the
   21:01:56 copy.
+- 2026-10-19 22:23: 6F done, 30,518 -> 15,712 tris (engine 2,429 s, guard 547 s). Guard FAILED on 26/26 views
+  (199,839 of 4.91 M px = 4.07 %; peer 6F on the 19:28 V2 had 11.43 %). Checker PASS for both files. Guard images
+  read: light triangles fanned over the ceiling plane (fail_5), a long diagonal strip on the right (fail_17).
+  7F waiting for commit headroom (2,133 MB free at 22:22:36).

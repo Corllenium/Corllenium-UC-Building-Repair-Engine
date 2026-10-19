@@ -58,7 +58,7 @@ log's `ModuleNotFoundError: No module named 'httpx'` is the `higgsfield_blender`
 ## Results
 
 No floor pass is claimed: a guard verdict is the runner's 26-view orthographic guard, not the Validator of
-AGENTS.md §6. 6F and 7F pending.
+AGENTS.md §6. 7F pending.
 
 ### 1F (21:25:00 - 21:32:56)
 
@@ -113,6 +113,44 @@ amber = tolerated):
 - `guard_fail_20` (oblique, from above): red clusters at the stair and lift tower at the right end, and thin red
   slivers across the middle floors. AFTER has a long thin light triangle across the corridor floor beside the lower
   stair that BEFORE lacks.
+
+### 6F (21:32:58 - 22:22:34)
+
+```text
+[21:32:58] MAIN_INFRA_6F: 30,518 input triangles, 23,760 vertices, 27 materials
+[22:13:27] MAIN_INFRA_6F: engine done in 2429s -> 15,712 triangles (hidden/liners 2725, soffits 1480, notches 3, flipped 0, beige tile cover restored on 8 faces)
+[22:22:34] MAIN_INFRA_6F: 26-view guard FAILED in 547s: holes 8, grown 14905, material 91940, moved_other 0, moved_same_flat 92660, flicker 402, failing views 26
+```
+
+- Report invariants: area ratio 0.990766 (non-increasing); bbox unchanged (max delta 0.0 in).
+- Guard: every view fails. In total 199,839 of 4,907,549 model pixels (4.07 %) fail. The eight views from above
+  carry most of it: 16,988 to 25,934 failing pixels each, split about evenly between material changes and
+  moved_same_flat. Level and below views have 87 to 2,513 each. Grown surface: 14,905 px.
+- For comparison, the peer's 6F on the 19:28 V2 (`engine-7floors-6-7/6F`, 35,237 input triangles) failed 534,083 of
+  4,670,621 px (11.43 %), with grown 31,445 and moved_same_flat 404,051.
+
+```text
+6F: files PASS
+  fixed.obj  30,518 -> 15,712 tris, 10,778 verts, 13 materials, area ratio 0.990767, bbox delta 0.0 in, zero-area 1, same-dir duplicates 11, opposite pairs 0, verts not in input 945 (1146 faces)
+  ngon.obj   8,016 faces (3,135 n-gons, 4,881 triangles, max 45 corners), total area diff 2.52e-07, vector 7.87e-17, planarity max 0.0199 in, read_obj refuses n-gons True
+             replay: 8,016 lines -> 15,712 rows (3,177 ring lines over 10,873 rows, 55 decided by geometry); polygons off >1e-4: 8 area / 0 vector (worst 0.0 sq in, outline drift 0.0 in), >1%: 0; mixed-material polygons 0 (0.0 sq in)
+  warning fixed: 0 repeated-index and 1 zero-area faces
+  warning fixed: 11 same-direction coincident duplicate faces (same three corner positions)
+  warning ngon: 8 polygons differ from their fixed.obj rows by up to 0.08652 sq in (< 1%); the rows' own corners stick out of the ring by up to 0.0 in
+```
+
+Visual pass, `6F/guard/` (BEFORE | AFTER | DIFF; red = hole, material change or moved surface; amber = tolerated;
+blue = surface where BEFORE saw the sky):
+
+- `guard_fail_5` (from above, -x side), the worst view at 25,934 px:
+  - AFTER shows large light triangles fanned across the dark ceiling plane over the rooms. BEFORE has none there.
+    DIFF marks them red, along with red strips on the room walls' top edges.
+  - Two wide amber wedges: one at the right end of the ceiling, one at the lower left.
+- `guard_fail_17` (from below, +x -y side):
+  - AFTER adds a long diagonal strip running from the lower right up across the right-hand rooms. BEFORE has
+    nothing there.
+  - DIFF marks a blue line along the lower facade edge, red dashes along the corridor's slab edge, and blue and
+    red on the small roof piece at the top.
 
 The source V2 .blend was saved again at 21:26:50 (23,337,754 bytes, sha256 `47ca5bcc…`). This run stays on the
 21:01:56 copy.
