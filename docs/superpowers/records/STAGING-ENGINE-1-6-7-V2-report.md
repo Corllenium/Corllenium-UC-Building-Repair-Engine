@@ -57,5 +57,62 @@ log's `ModuleNotFoundError: No module named 'httpx'` is the `higgsfield_blender`
 
 ## Results
 
-Pending. No floor pass is claimed: a guard verdict is the runner's 26-view orthographic guard, not the
-Validator of AGENTS.md §6.
+No floor pass is claimed: a guard verdict is the runner's 26-view orthographic guard, not the Validator of
+AGENTS.md §6. 6F and 7F pending.
+
+### 1F (21:25:00 - 21:32:56)
+
+```text
+[21:25:00] MAIN_INFRA_1F: 16,354 input triangles, 12,287 vertices, 17 materials
+[21:30:41] MAIN_INFRA_1F: engine done in 340s -> 7,217 triangles (hidden/liners 4292, soffits 554, notches 0, flipped 0, beige tile cover restored on 132 faces)
+[21:32:56] MAIN_INFRA_1F: 26-view guard FAILED in 135s: holes 186, grown 0, material 46917, moved_other 0, moved_same_flat 3116, flicker 149, failing views 26
+```
+
+- Report invariants: area 6,670,407 -> 5,430,219 sq in (ratio 0.814, non-increasing); bbox unchanged (max delta
+  0.0 in); material list unchanged, 12 of 17 still used.
+- Guard: depth tolerance 0.15 in, border shift 0.15 in, flicker cap 0.0001. Every view fails, with 177 to 4,673
+  failing pixels per view. In total 50,246 of 3,774,880 model pixels (1.3 %) fail, and 93 % of those are material
+  changes.
+- For comparison, the earlier 1F run on REVIEW.blend (`engine-7floors/1F`, 17,071 input triangles) had holes 27,
+  material 29,559 and moved_same_flat 3,660.
+
+Output files, checked with `checks/verify_fixed_outputs.py` (a byte copy of the 4-5 run's checker, sha256 `4657f76a…d663`):
+
+```text
+1F: files FAIL
+  fixed.obj  16,354 -> 7,217 tris, 5,161 verts, 12 materials, area ratio 0.814076, bbox delta 0.0 in, zero-area 0, same-dir duplicates 14, opposite pairs 4, verts not in input 412 (492 faces)
+  ngon.obj   3,946 faces (1,398 n-gons, 2,548 triangles, max 45 corners), total area diff 2.21e-07, vector 1.78e-16, planarity max 0.0384 in, read_obj refuses n-gons True
+             replay: 3,946 lines -> 7,217 rows (1,424 ring lines over 4,695 rows, 21 decided by geometry); polygons off >1e-4: 3 area / 0 vector (worst 0.0 sq in, outline drift 0.0 in), >1%: 1; mixed-material polygons 10 (1475.429 sq in)
+  ERROR   ngon: 1 polygons whose area or vector area differs from their fixed.obj rows by more than 1% (coverage or winding)
+  warning fixed: 14 same-direction coincident duplicate faces (same three corner positions)
+  warning ngon: 10 polygons carry one material over fixed.obj triangles of another (21 triangles, 1475.429 sq in)
+```
+
+- **The ERROR is n-gon 2418.** It is a vertical sliver 0.03-0.05 in wide and 39.2 in tall (z 1385.83-1425.0). The
+  n-gon has 5 corners and an area of 1.239 sq in; its triangles add to 1.268 sq in.
+  - In the sliver's plane, its three `.fixed.obj` triangles tile the ring exactly: union 1.2387 = ring 1.2387, no
+    overlaps (`checks/inspect_ngon_polygon.py`).
+  - The corners sit up to 0.0038 in off one plane, which is below the 0.01 in print step. So the triangles' 3D
+    areas add to 1.2676 while their vector area is 1.2387, and the checker's vector-area difference is 0.0.
+  - Coverage and winding agree. The 2.3 % comes from comparing the 3D areas of triangles that are not quite in one
+    plane.
+- **Mixed materials:** 10 n-gons (1,475 sq in) carry one material over triangles that `.fixed.obj` gives another.
+  All of them pair FLOOR_TILES_BEIGE with a building material. The runner writes both files after
+  `restore_tile_cover` has re-materialed 132 triangles, and the n-gons come from the engine's rings, built before
+  that step. Staging reads `.fixed.obj`, so the staged .blend follows the triangle file.
+
+Visual pass, `1F/guard/` (each image is BEFORE | AFTER | DIFF; red = hole, material change or moved surface;
+amber = tolerated):
+
+- `guard_-z` (looking down): AFTER loses the dark back-facing patches BEFORE showed: three rectangles mid-left and a
+  hatched triangle fan in the lower-right corner. DIFF is red along the lower-right block's edges, with a few
+  slivers mid-plan.
+- `guard_+z` (looking up from below): AFTER shows a new light triangle, about 40 x 60 px, in the lower middle of
+  the plan, with thin slivers fanning left. DIFF marks it red.
+- `guard_fail_10` (level, along -y): a red cluster at the left end of the elevation and a red line along its base.
+- `guard_fail_20` (oblique, from above): red clusters at the stair and lift tower at the right end, and thin red
+  slivers across the middle floors. AFTER has a long thin light triangle across the corridor floor beside the lower
+  stair that BEFORE lacks.
+
+The source V2 .blend was saved again at 21:26:50 (23,337,754 bytes, sha256 `47ca5bcc…`). This run stays on the
+21:01:56 copy.
