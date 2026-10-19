@@ -328,3 +328,7 @@ STAGING-ENGINE-2-3 progress, 2026-10-19 20:05 +08:00: runner tests 26 passed; fl
 Claimed owner-requested MAIN INFRA floors 6, 7 and 1 engine run into MAIN-INFRA-ALL-FLOORS-ENGINE-STAGED.blend (work dir engine-7floors-v2). Input V2 is re-saved by a live Blender session, so the run reads the sha256-checked copy MAIN-INFRA-ALL-FLOORS-FIXED-CUTS-V2.frozen-210156.blend. Runner tests 26 passed. Launched 21:08, waiting for memory headroom. See STAGING-ENGINE-1-6-7-V2-report.md; no floor pass claimed.
 
 STAGING-ENGINE-2-3, 2026-10-19 21:24 +08:00: first floor 2 attempt failed after at least fragment round 240 on a 2.14 MiB trimesh allocation. Full failure preserved in engine-7floors-2-3/2F/engine-attempt1.log. Runner automatically began retry 1/3. No fixed OBJ or staged Blender output yet; verification pending.
+
+### 2026-10-19 - STAGING-ENGINE-4-5-V2 (claude-argon)
+
+Claimed owner-requested MAIN INFRA floors 4 and 5 engine run into MAIN-INFRA-FLOORS-4-5-ENGINE.blend (work dir engine-7floors-4-5-v2). Input V2 is re-saved by a live Blender session (21:50:57 and 21:56:50), so the run reads the sha256-checked copy MAIN-INFRA-ALL-FLOORS-FIXED-CUTS-V2.frozen-215650.blend (0d3ffedb...d8a8). Runner tests 26 passed. Launched 21:59 (PID 47836); export complete: 4F 45,004 tris, 5F 34,464 tris; 4F engine running. See STAGING-ENGINE-4-5-V2-report.md; no floor pass claimed.

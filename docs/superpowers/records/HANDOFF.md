@@ -25,6 +25,8 @@ run the latest `.skp` of each file must be in `OBJ FIXED RESULT/` for the owner 
 
 ## 2. Current state (2026-09-26 00:15, written by the Claude controller)
 
+**Update 2026-10-19 22:00 (claude-argon, STAGING-ENGINE-4-5-V2):** owner-requested MAIN INFRA floors 4 and 5 run on freshly updated `MAIN-INFRA-ALL-FLOORS-FIXED-CUTS-V2.blend` into `MAIN-INFRA-FLOORS-4-5-ENGINE.blend`, work dir `engine-7floors-4-5-v2`. Because a live Blender session re-saves V2 (21:50:57 and 21:56:50), the run reads the sha256-checked copy `MAIN-INFRA-ALL-FLOORS-FIXED-CUTS-V2.frozen-215650.blend` (`0d3ffedb…d8a8`). Launched 21:59 (PID 47836); export done 21:59 (4F 45,004 tris, 5F 34,464 tris); 4F engine running. See [STAGING-ENGINE-4-5-V2-report.md](STAGING-ENGINE-4-5-V2-report.md).
+
 **Update 2026-10-19 21:10 (claude-vertex-opus, STAGING-ENGINE-1-6-7-V2):** owner-requested MAIN INFRA floors 6, 7 and 1 run into `MAIN-INFRA-ALL-FLOORS-ENGINE-STAGED.blend`, work dir `engine-7floors-v2`. The V2 input is re-saved by a live Blender session, so the run reads the hash-checked copy `MAIN-INFRA-ALL-FLOORS-FIXED-CUTS-V2.frozen-210156.blend`. Launched 21:08 (PID 41992); export done 21:25; 1F done 21:33 (16,354 -> 7,217 tris, guard failed on 26 of 26 views); 6F running. See [STAGING-ENGINE-1-6-7-V2-report.md](STAGING-ENGINE-1-6-7-V2-report.md).
 
 **Update 2026-10-19 (codex-sol, STAGING-ENGINE-2-3):** owner-requested MAIN INFRA floors 2–3 run started against FIXED-CUTS-V2, isolated artifacts in `engine-7floors-2-3`. Export complete; repair pending. Current runner rejects obsolete `--stage-failed`; equivalent default stages all floors. See [STAGING-ENGINE-2-3-report.md](STAGING-ENGINE-2-3-report.md).
