@@ -320,3 +320,5 @@ no other session is (they drop the shared test database).
 ### 2026-10-19 — STAGING-ENGINE-2-3 (codex-sol)
 
 Claimed owner-requested MAIN INFRA floors 2–3 engine run. Export complete: 53,605 and 58,216 triangles. Repair pending. See STAGING-ENGINE-2-3-report.md; obsolete --stage-failed replaced by equivalent default staging.
+
+STAGING-ENGINE-2-3 progress, 2026-10-19 20:05 +08:00: runner tests 26 passed; floor 2 fragment ray verification reached round 52, 755 initial units. Automatic artifact and headless Blender readback verifier queued. Recovery details in STAGING-ENGINE-2-3-report.md; no floor pass claimed.
