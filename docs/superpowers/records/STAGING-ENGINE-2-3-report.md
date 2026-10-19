@@ -48,3 +48,29 @@ numpy._core._exceptions._ArrayMemoryError: Unable to allocate 2.14 MiB for an ar
 ```
 
 Failure occurred in `piece_ray_check` -> `_Unit.follow` -> `EmbreeCaster.first_hit` -> trimesh triangle allocation. Preserved the full first attempt as `2F/engine-attempt1.log`. The orchestrator automatically restarted floor 2; retry interpreter PID 49648, shim PID 57960. No guard or geometry settings changed. Both fixed OBJ variants, final Blender output, and verification remain pending.
+
+## Second allocation failure and stable-source restart
+
+At 22:42:41 +08:00 the retry failed around fragment round 160:
+
+```text
+numpy._core._exceptions._ArrayMemoryError: Unable to allocate 1.42 MiB for an array with shape (31106, 2, 3) and data type float64
+[22:42:41] 2F: MemoryError with 6074 MB of commit free on the machine; retrying in 120 s (2/3)
+```
+
+System commit availability subsequently fell below 1 GB. The job's own waiting orchestrator was stopped by verified PID before another floor process started. Other sessions and services were untouched.
+
+The source file was externally replaced during execution: its SHA-256 is now `18949DA28A317E0A67996C48B954DCFBEAE268B9D7F8F2E1DC2480A6353D465E` (different from the initial `6F801D...`). The first export and both failures were archived under `engine-7floors-2-3/attempts/source-6f801db55201/`; those exports cannot be staged against the changed source.
+
+The current source was copied and checked before/after copying. Stable input: sibling `MAIN-INFRA-FLOORS-2-3-SOURCE-SNAPSHOT.blend` (same `18949D...` hash), preserving relative asset paths; an additional copy and provenance are under `engine-7floors-2-3/source/`. The new run re-exports floors 2,3 from that snapshot, retains the requested output/work paths and default failed-floor staging, and adds only resource options `--min-commit-free-mb 10000 --max-commit-wait 86400`. It waits for 10 GB of free commit rather than repeatedly losing long guard runs under memory pressure. Geometry, guard stages, thresholds, and existing code remain unchanged by this worker.
+
+Automatic artifact verification now expects the stable `18949D...` snapshot. At restart, export is waiting for memory; fixed OBJ variants and Blender output remain pending.
+
+## Active queued run
+
+- Engine shim PID **57684**, interpreter PID **6316**, terminal session **40241**.
+- Automatic verifier restarted hidden (shim PID **6300**); it now checks engine liveness and reports a failure if the engine exits without a summary. Scripts compile successfully.
+- `engine-7floors-2-3/run-process.json` records the active engine and stable input hash.
+- Startup is blocked on shared commit headroom: fresh checks found only 1.6–4.1 GB available against the 10 GB requirement. The process remains active and will continue automatically when that memory is available (maximum wait 86400 seconds).
+- Both `.fixed.obj` and `.fixed.ngon.obj` outputs and `MAIN-INFRA-FLOORS-2-3-ENGINE.blend` are **not yet produced or verified**. No guard or owner-validation pass is claimed. The two failed attempts and original-source exports remain archived.
+- Automatic results will appear in `engine-7floors-2-3/verification-status.json`, `artifact-verification.json`, and `blend-readback-verification.json`. Guard PNGs still require visual review after a completed repair.
