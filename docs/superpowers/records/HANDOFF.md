@@ -25,7 +25,7 @@ run the latest `.skp` of each file must be in `OBJ FIXED RESULT/` for the owner 
 
 ## 2. Current state (2026-09-26 00:15, written by the Claude controller)
 
-**Update 2026-10-19 21:10 (claude-vertex-opus, STAGING-ENGINE-1-6-7-V2):** owner-requested MAIN INFRA floors 6, 7 and 1 run into `MAIN-INFRA-ALL-FLOORS-ENGINE-STAGED.blend`, work dir `engine-7floors-v2`. The V2 input is re-saved by a live Blender session, so the run reads the hash-checked copy `MAIN-INFRA-ALL-FLOORS-FIXED-CUTS-V2.frozen-210156.blend`. Launched 21:08 (PID 41992); waiting for memory headroom. See [STAGING-ENGINE-1-6-7-V2-report.md](STAGING-ENGINE-1-6-7-V2-report.md).
+**Update 2026-10-19 21:10 (claude-vertex-opus, STAGING-ENGINE-1-6-7-V2):** owner-requested MAIN INFRA floors 6, 7 and 1 run into `MAIN-INFRA-ALL-FLOORS-ENGINE-STAGED.blend`, work dir `engine-7floors-v2`. The V2 input is re-saved by a live Blender session, so the run reads the hash-checked copy `MAIN-INFRA-ALL-FLOORS-FIXED-CUTS-V2.frozen-210156.blend`. Launched 21:08 (PID 41992); export done 21:25 (1F 16,354, 6F 30,518, 7F 16,680 tris), engine running. See [STAGING-ENGINE-1-6-7-V2-report.md](STAGING-ENGINE-1-6-7-V2-report.md).
 
 **Update 2026-10-19 (codex-sol, STAGING-ENGINE-2-3):** owner-requested MAIN INFRA floors 2–3 run started against FIXED-CUTS-V2, isolated artifacts in `engine-7floors-2-3`. Export complete; repair pending. Current runner rejects obsolete `--stage-failed`; equivalent default stages all floors. See [STAGING-ENGINE-2-3-report.md](STAGING-ENGINE-2-3-report.md).
 

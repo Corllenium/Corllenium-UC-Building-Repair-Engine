@@ -40,6 +40,21 @@ src_before=10ceb8d75c33022ca4b400de1eef354ba72052088b03b57613f8289a49d9e9d6 froz
 [21:08:49] blender export: only 1756 MB of commit free on the machine (need 3000); waiting up to 7200 s
 ```
 
+## Export (21:24:55 - 21:24:59)
+
+```text
+[21:24:55] blender export: continuing with 3109 MB of commit free
+EXPORTED 1F: 16,354 tris, 12,287 verts, 44 materials, 15 objects
+EXPORTED 6F: 30,518 tris, 23,760 verts, 28 materials, 140 objects
+EXPORTED 7F: 16,680 tris, 13,267 verts, 17 materials, 133 objects
+EXPORT_OK
+```
+
+`export.json` names the frozen copy as `input_blend`. Caps among the objects: 1F 10, 6F 133, 7F 130. The export
+log's `ModuleNotFoundError: No module named 'httpx'` is the `higgsfield_blender` add-on failing at Blender start
+(the peer runs' export logs have it too); it does not touch the export. The runner runs the floors in sorted order:
+1F, then 6F, then 7F.
+
 ## Results
 
 Pending. No floor pass is claimed: a guard verdict is the runner's 26-view orthographic guard, not the
