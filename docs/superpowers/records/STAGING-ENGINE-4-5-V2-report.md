@@ -48,5 +48,7 @@ EXPORT_OK
 
 ## Results
 
-Pending (4F engine running since 21:59:56, then 5F, then stage-back into `MAIN-INFRA-FLOORS-4-5-ENGINE.blend`). No
-floor pass is claimed: a guard verdict is the runner's 26-view orthographic guard, not the Validator of AGENTS.md §6.
+Pending (4F engine retry 1/3 running since 22:44:13, PID 41872, after attempt 1 hit a 1.76 MiB `ArrayMemoryError` in
+`piece_ray_check` -> `EmbreeCaster.first_hit` during a machine commit-charge spike to 436 MB free; preserved as
+`4F/engine-attempt1.log`). No floor pass is claimed: a guard verdict is the runner's 26-view orthographic guard, not the
+Validator of AGENTS.md §6.
