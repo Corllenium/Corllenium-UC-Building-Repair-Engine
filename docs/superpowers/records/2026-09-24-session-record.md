@@ -322,3 +322,7 @@ no other session is (they drop the shared test database).
 Claimed owner-requested MAIN INFRA floors 2–3 engine run. Export complete: 53,605 and 58,216 triangles. Repair pending. See STAGING-ENGINE-2-3-report.md; obsolete --stage-failed replaced by equivalent default staging.
 
 STAGING-ENGINE-2-3 progress, 2026-10-19 20:05 +08:00: runner tests 26 passed; floor 2 fragment ray verification reached round 52, 755 initial units. Automatic artifact and headless Blender readback verifier queued. Recovery details in STAGING-ENGINE-2-3-report.md; no floor pass claimed.
+
+### 2026-10-19 - STAGING-ENGINE-1-6-7-V2 (claude-vertex-opus)
+
+Claimed owner-requested MAIN INFRA floors 6, 7 and 1 engine run into MAIN-INFRA-ALL-FLOORS-ENGINE-STAGED.blend (work dir engine-7floors-v2). Input V2 is re-saved by a live Blender session, so the run reads the sha256-checked copy MAIN-INFRA-ALL-FLOORS-FIXED-CUTS-V2.frozen-210156.blend. Runner tests 26 passed. Launched 21:08, waiting for memory headroom. See STAGING-ENGINE-1-6-7-V2-report.md; no floor pass claimed.

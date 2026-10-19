@@ -25,6 +25,8 @@ run the latest `.skp` of each file must be in `OBJ FIXED RESULT/` for the owner 
 
 ## 2. Current state (2026-09-26 00:15, written by the Claude controller)
 
+**Update 2026-10-19 21:10 (claude-vertex-opus, STAGING-ENGINE-1-6-7-V2):** owner-requested MAIN INFRA floors 6, 7 and 1 run into `MAIN-INFRA-ALL-FLOORS-ENGINE-STAGED.blend`, work dir `engine-7floors-v2`. The V2 input is re-saved by a live Blender session, so the run reads the hash-checked copy `MAIN-INFRA-ALL-FLOORS-FIXED-CUTS-V2.frozen-210156.blend`. Launched 21:08 (PID 41992); waiting for memory headroom. See [STAGING-ENGINE-1-6-7-V2-report.md](STAGING-ENGINE-1-6-7-V2-report.md).
+
 **Update 2026-10-19 (codex-sol, STAGING-ENGINE-2-3):** owner-requested MAIN INFRA floors 2–3 run started against FIXED-CUTS-V2, isolated artifacts in `engine-7floors-2-3`. Export complete; repair pending. Current runner rejects obsolete `--stage-failed`; equivalent default stages all floors. See [STAGING-ENGINE-2-3-report.md](STAGING-ENGINE-2-3-report.md).
 
 **Update 2026-10-17 (Codex, STAGING-T123-V1):** synchronized the two missing Blender staging test files from siege-jev-gate to main; all five requested files now have identical SHA-256s. The five requested pytest modules pass in each checkout (81 passed each). Receipt and read-only Blender inspection pass: 12 CHTM floors, self-contained buildings staging, restored ARCHI ceiling present, current environment CHTM LOD0 99,310 triangles; all three `.blend` hashes unchanged. Both CHTM runners compile/import, but `run_chtm_3rd_and_4th_floors.py` lacks a `--stages` CLI. That pre-existing untracked file remains untouched pending the owner's exception. Details and actual output: [STAGING-T123-V1-report.md](STAGING-T123-V1-report.md).
