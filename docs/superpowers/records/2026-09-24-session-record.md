@@ -316,3 +316,7 @@ the reset, never re-dispatch blindly); on Windows a running agent's output file 
 is not a hang; other sessions edit this same working tree, so workers use their own worktree or
 branch and the controller merges; describe the work inline in agent prompts; run API tests only when
 no other session is (they drop the shared test database).
+
+### 2026-10-19 — STAGING-ENGINE-2-3 (codex-sol)
+
+Claimed owner-requested MAIN INFRA floors 2–3 engine run. Export complete: 53,605 and 58,216 triangles. Repair pending. See STAGING-ENGINE-2-3-report.md; obsolete --stage-failed replaced by equivalent default staging.
