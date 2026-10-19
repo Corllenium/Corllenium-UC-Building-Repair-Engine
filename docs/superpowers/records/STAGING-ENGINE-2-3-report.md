@@ -37,3 +37,14 @@ Repair in progress. Final artifact verification and guard verdicts pending. Read
 - Automatic verifier launched hidden (shim PID 54844): `engine-7floors-2-3/verify_when_complete.py`. It waits for `summary.json`, then runs `verify_outputs.py` and `verify_blend_readback.py` (fresh background Blender with factory startup).
 - Inspect `verification-status.json`, `artifact-verification.json`, `blend-readback-verification.json`, `artifact-verification.log`, and `blend_readback-verification.log` in the work directory. `verified` is an artifact/readback result, not an owner's Validator acceptance.
 - Guards, final evidence-image review, and owner acceptance are still pending. No floor pass claimed.
+
+## First attempt allocation failure
+
+At 21:24:30 +08:00, after reaching at least fragment verification round 240, floor 2 failed before writing either fixed OBJ variant:
+
+```text
+numpy._core._exceptions._ArrayMemoryError: Unable to allocate 2.14 MiB for an array with shape (31202, 3, 3) and data type float64
+[21:24:30] 2F: MemoryError with 2933 MB of commit free on the machine; retrying in 60 s (1/3)
+```
+
+Failure occurred in `piece_ray_check` -> `_Unit.follow` -> `EmbreeCaster.first_hit` -> trimesh triangle allocation. Preserved the full first attempt as `2F/engine-attempt1.log`. The orchestrator automatically restarted floor 2; retry interpreter PID 49648, shim PID 57960. No guard or geometry settings changed. Both fixed OBJ variants, final Blender output, and verification remain pending.
