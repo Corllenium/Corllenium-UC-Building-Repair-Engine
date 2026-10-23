@@ -25,6 +25,10 @@ run the latest `.skp` of each file must be in `OBJ FIXED RESULT/` for the owner 
 
 ## 2. Current state (2026-09-26 00:15, written by the Claude controller)
 
+2026-10-23: MAIN-INFRA-RAY-INDEX-20261023 is a separate claimed API integration task
+from b603d39: reuse reviewed ce4e325 index and refuse nonfinite coordinates test-first.
+No current E3/floor worker or real-data run is changed. See its scoped record and ledger.
+
 2026-10-23 17:40 +08: actual checked E3 engine is running on fresh 1F (15856
 triangles), PID28024. This is the real repair kernel, not another duplicate-only
 pass. Output is data/main-infra-e3/run-20261023/1F in this worktree; worker status

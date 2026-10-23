@@ -1,0 +1,15 @@
+{
+  "base": "b603d39f15412323d6acb39910ef771b1ede3c0a",
+  "reused_commit": "ce4e3258b3a46991ebd74a35545e58d7524270e8",
+  "unchanged_methods": {
+    "any_hit": true,
+    "first_hit": true,
+    "all_hits": true,
+    "_face_bounds": true,
+    "_contains": true
+  },
+  "exact_reviewed_tree": true,
+  "exact_reviewed_search": true,
+  "caster_sha256": "a65d23fa6f92be033b78dd1c78a3a4ef48b51e9454fb2b10cb143efe1f523bb9",
+  "scope": "normalized-line-ending byte equality; not a native depth precision claim"
+}
