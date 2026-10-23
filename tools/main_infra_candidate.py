@@ -15,6 +15,7 @@ from engine.io.minecraft_floor import parse_floor, write_floor
 from engine.io.snapshot import copy_verified, sha256_file, snapshot_object
 from engine.rays.caster import EmbreeCaster, ReusableCaster
 from engine.topo.weld import axis_quanta
+from tools.main_infra_progress import FLOORS as FLOOR_CHOICES
 
 
 def strict_guard(before, after, source, provenance, *, caster_factory=EmbreeCaster, on_view=None):
@@ -109,7 +110,7 @@ def main():
     parser.add_argument('--baseline', type=Path, required=True)
     parser.add_argument('--qualification', type=Path, required=True)
     parser.add_argument('--out', type=Path, required=True)
-    parser.add_argument('--floor', choices=['1F', '4F'], required=True)
+    parser.add_argument('--floor', choices=list(FLOOR_CHOICES), required=True)
     parser.add_argument('--progress', type=Path)
     parser.add_argument('--publish-status', type=Path)
     parser.add_argument('--trace-after-seconds', type=int)

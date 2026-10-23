@@ -6,7 +6,7 @@ from pathlib import Path
 import re
 
 from engine.io.snapshot import copy_verified, sha256_file
-from tools.main_infra_progress import load_progress, update_floor, write_progress
+from tools.main_infra_progress import FLOORS as FLOOR_CHOICES, load_progress, update_floor, write_progress
 
 
 def evidence_locations(root, revision, run_id, floor, validation_run=None):
@@ -54,7 +54,7 @@ def review_state(validation, candidate):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--root', type=Path, required=True)
-    parser.add_argument('--floor', choices=['1F', '4F'], required=True)
+    parser.add_argument('--floor', choices=list(FLOOR_CHOICES), required=True)
     parser.add_argument('--public', type=Path, required=True)
     parser.add_argument('--progress', type=Path, required=True)
     parser.add_argument('--publish-status', type=Path, required=True)
