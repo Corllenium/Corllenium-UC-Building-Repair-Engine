@@ -1,0 +1,8 @@
+{
+  "checked_utc": "2026-10-23T23:29:00.624319+00:00",
+  "phase_sha256": "1e6b932c82aa2f8bd143fddd61e061c33840e3cee33bf883b2fa0228e64d6d53",
+  "pins": 388,
+  "mismatches": [],
+  "output_absent": true,
+  "approval": "root readback only; independent review required before guard phase"
+}

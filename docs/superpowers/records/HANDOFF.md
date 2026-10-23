@@ -25,6 +25,26 @@ run the latest `.skp` of each file must be in `OBJ FIXED RESULT/` for the owner 
 
 ## 2. Current state (2026-09-26 00:15, written by the Claude controller)
 
+### 2026-10-24 07:38 SGT - corrected3F actual strict26 PASS
+
+Actual55272/creation23:31:55.8455340Z terminatedexit0/noabort/allgone23:32:19.5522209Z/23.78s. New44972guard7f987622766e2c3402d2c03e68468137ed137fc3614cdc5a6d61129a6125ac2c measures26x900x600/4717188modelpixels/allhole,movement,material,growthviolations0/existingtie3. Fullactual1412kept/0freshrollback,263retainedsites6281faces and145oldrollbacksites7818faces survived exact original lineage;500receiptlabels0mismatch. This is newc553/e92/Pb62 candidateproof, not old38691. Native46plan metadata preparing; no actualnative/fullsigned/package hasrun. Livecanonical updated with actualguardPASS and explicitpendingnewnative/signednull; old38691validation moved to previous_inspection_validation, currentinspectionstilllabelledolderfailed38691. Acceptance remainsfalse.
+
+
+### 2026-10-24 07:36 SGT - live 1F delivered, exact LFS reproduction, 2F17 and new3F44972
+
+1F real Before/After inspection is live: fresh15,856 versus preserved10,410, six original materials and eight actual proof links. All17 published files passed HTTP SHA readback; real configured-login browser QA measured both models/triangle-edge changes, nine worker events,29successful polls/no authenticated HTTP or page errors/no390pxoverflow. Native qualified views zero changed pixels; signed preservation passes, but problem targets1798different/1153same/2378cracks stillFAIL, acceptancefalse. Existing E7 cleanup is being adapted to this preserved base in a separate claimed job; no E7 model phase has run.
+
+2F numerical retry actually exited37932/exit2/noabort at23:07:16.9397982Z:17moved_other pixels in four views(9/6/1/1), allhole/material/growth zero, defaulttol unchanged. Exact reporta7097da888c70c072332e83cc4ce56be4ee454036e339984f4b33c6e1aea2462. Native/fullsigned stopped. A separate claimed bounded diagnostic is being built; no waiver or floor acceptance.
+
+Corrective3F E3 actually exited60376/exit0/noabort at23:06:54.7080520Z, saved44,972source+engine triangles/1412kept/0freshrollback. All6281protected original faces and old145rollbackcohort survive exact typed lineage; root separately counted both savedOBJf-records. Independentc553 profile129testsPASS, root+Delivery rehashed388strict26pins0mismatch, actualoutputabsent. RootGO issued onlyfor fresh strict26/default900x600 under existing8GiB/3GiB/3.5GiB gates. Native/fullsigned require separate actualreadback/GO; existing3Fpublic38,691failedinspection is not evidence for44972.
+
+Live observere1e9575/actual53812 is installed; twice-read public statuses show1F10410inspection/2F17FAIL/new3F44972saved/exitedworkers. Completed60376registration retired after two receipts; no server/API/container restart or liveDBwrite; API remainsbb71d3144c32e237133b4c7d995c39900508f9ab. Floors4-7remainClaudeCode-owned and mirrored only.
+
+ConfiguredGit/LFS used: actualfilteredHEAD3739d11 reproduces all31public payload hashes,19LFSpaths/13uniqueobjects/zero mismatches. Scoped JSON -text preserves signed exactbytes; freshZ/master/04verified-output folders untouched. New1Fliveproofs/screenshots/receipts pushed toSiege2e2fb05 onexistingconfiguredbranch, PR39draftunmerged. HostedCIneverstarted due accountpayment/spendinglimit; noCIpass claimed. Priorguardpush auto-reviewblock was resolved after newexactpublicorigin/admin/credentialfreepayloadtrust evidence, actualb56d9ea pushsucceeded.
+
+Evidence: delivery-update-20261024-0736/SHA256.json pins nine actual receipts/reports; 1Flive screenshots live in Siege docs/handoff/main-infra-live-logs-20261024/evidence-1f-retained/. Three newclaimedjobs are recorded with actualcodexbranchlabels. No model acceptance.
+
+
 ### 2026-10-24 06:52 SGT - actual1F signed verdict and corrective3F launch
 
 1F actual25704 terminatedexit2/noabort/allownedgone22:33:10.1508821Z/841.91s. Root re-read validation70299e1f00f324168a0488ab401f1ea167307f9754366f8d271a918c78a74829:108392texture samplesPASS, visiblecoverage/defaultfloorPASS, different-look5684->1798/same-look3347->1153/cracks2819->2378 remainFAIL(target0). Actual signedPNG count0; native140PNGinventory/33qualified0delta remainsbound768e54. Live1Fstateblocked/workerexited; independentinspect-only review4f32d479 preservesFAIL/acceptancefalse. Private10410candidate inspection53784 running under219/ca14/f2171GiB; no publicnew1Fpointeryet.

@@ -1,0 +1,42 @@
+[
+  {
+    "path": "evidence-1f-retained/1F-actual-engine-log.png",
+    "sha256": "b0ff1d0088f0eaa675edf11ed7ab448f6be0c3b5691123ecae67b5e35e586e10",
+    "bytes": 95205
+  },
+  {
+    "path": "evidence-1f-retained/1F-live-before-after-textures.png",
+    "sha256": "8233fd58780a155823bcdf3c88555530094c0e9b7fd061e8f507db73db0c25bd",
+    "bytes": 253794
+  },
+  {
+    "path": "evidence-1f-retained/1F-live-material-colours-triangle-edges.png",
+    "sha256": "43cd5d51e65e4942dcad9b3475162dba09bc9cb7fb2f0e2be941fbc6515825b6",
+    "bytes": 280619
+  },
+  {
+    "path": "evidence-1f-retained/1F-live-xray.png",
+    "sha256": "6cb190fc31c510199a2978dbb20b36bb97baff76ef9d3330a4b43e4f21a4ee3b",
+    "bytes": 330760
+  },
+  {
+    "path": "evidence-1f-retained/live-floor-status.png",
+    "sha256": "9658c9e0f12c4a2f7352910178a40710bd3917315891054a78ae80fb110d8f8f",
+    "bytes": 150674
+  },
+  {
+    "path": "evidence-1f-retained/live-log-mobile-390.png",
+    "sha256": "491702c4e42d66c84fece65d7163648638bfaf48b834b1c5080ad298b5452c82",
+    "bytes": 76450
+  },
+  {
+    "path": "evidence-1f-retained/model-deployment.log",
+    "sha256": "3ed46e9e4d9651061b2f8d8922ce1204f0af133acfa497d66cc8c32ea3d6adda",
+    "bytes": 475
+  },
+  {
+    "path": "evidence-1f-retained/verification.json",
+    "sha256": "9c044c51ba2d97e9da798793cd08a7c362895a2e3dba5440ae191116647f397f",
+    "bytes": 1205
+  }
+]

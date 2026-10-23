@@ -1,0 +1,52 @@
+[
+  {
+    "path": "1f-live-browser-verification.json",
+    "sha256": "9c044c51ba2d97e9da798793cd08a7c362895a2e3dba5440ae191116647f397f",
+    "bytes": 1205
+  },
+  {
+    "path": "1f-live-deployment.log",
+    "sha256": "3ed46e9e4d9651061b2f8d8922ce1204f0af133acfa497d66cc8c32ea3d6adda",
+    "bytes": 475
+  },
+  {
+    "path": "1f-live-evidence-sha256.json",
+    "sha256": "0c25d5b7d106cb2d1e7bb2c1af67174a7dbcc78cf39108c0eaf7da5438cd6419",
+    "bytes": 1377
+  },
+  {
+    "path": "2f-guard17-report.json",
+    "sha256": "a7097da888c70c072332e83cc4ce56be4ee454036e339984f4b33c6e1aea2462",
+    "bytes": 95195
+  },
+  {
+    "path": "3f-independent-root-pin-readback.json",
+    "sha256": "2ce81ae773963b786f9265efcaa9e56a70e960fa0900cc229c89ae84dd915d98",
+    "bytes": 286
+  },
+  {
+    "path": "3f-new-44972-independent-guard.json",
+    "sha256": "7f987622766e2c3402d2c03e68468137ed137fc3614cdc5a6d61129a6125ac2c",
+    "bytes": 191897
+  },
+  {
+    "path": "3f-saved-candidate-readback.json",
+    "sha256": "7dfd9a2181df63500a049d0af5b48c5c45e5268cf127bb3515fcc1e8362c31b7",
+    "bytes": 1967
+  },
+  {
+    "path": "git-payload-cold-readback.json",
+    "sha256": "e572bf2708f148df4c432f2b3911668a35eae2d285774316df7b95fd99de9a25",
+    "bytes": 10963
+  },
+  {
+    "path": "observer-public-readback.json",
+    "sha256": "86211212d5414fca6bbf69f62085da44ea3726729a9b1eb6dcb73c72cd84a48f",
+    "bytes": 3137
+  },
+  {
+    "path": "publisher-identity.json",
+    "sha256": "599b2d3fbb222a31c5bdbb4d2df06d80f2367207170f0b926e0ab6441eaed6e5",
+    "bytes": 697
+  }
+]

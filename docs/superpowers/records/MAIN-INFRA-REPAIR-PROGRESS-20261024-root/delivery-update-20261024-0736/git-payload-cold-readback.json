@@ -1,0 +1,197 @@
+{
+  "checked_utc": "2026-10-23T23:28:05.671254+00:00",
+  "head": "3739d11bb86a0cf3e2c5da32ac6efa4c073c0a5e",
+  "method": "git cat-file --filters HEAD:path; compare actual smudged payload with published manifest",
+  "matched_payloads": 31,
+  "mismatches": 0,
+  "lfs_paths": 19,
+  "lfs_unique_objects": 13,
+  "files": [
+    {
+      "path": "dashboard/public/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/3F/main-infra-clean-20261023/candidate/3rd floor main infra.mtl",
+      "sha256": "c021e8faec66f4d705a70b0caf7ea49d467bdc829b7680263bda02e3660c9b07",
+      "bytes": 1039,
+      "matches": true
+    },
+    {
+      "path": "dashboard/public/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/3F/main-infra-clean-20261023/candidate/model-e3-native-failed-inspection-20261024.obj",
+      "sha256": "a910864443ea698855836b9f725664d2a9e86f9b11270b503515eaacc9ad907a",
+      "bytes": 1597464,
+      "matches": true
+    },
+    {
+      "path": "dashboard/public/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/3F/main-infra-clean-20261023/candidate/textures/minecraft/concrete_white_-1.png",
+      "sha256": "f42c7be3c52294ead4c69ac0e9ef1bbbbe6bdb4451382c89a65c386709df6171",
+      "bytes": 95365,
+      "matches": true
+    },
+    {
+      "path": "dashboard/public/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/3F/main-infra-clean-20261023/candidate/textures/minecraft/concrete_white_-15579874.png",
+      "sha256": "14ceba3d0329594e00458bc6ed2aeafa24d9228519994a60d758de2509fee1ad",
+      "bytes": 70773,
+      "matches": true
+    },
+    {
+      "path": "dashboard/public/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/3F/main-infra-clean-20261023/candidate/textures/minecraft/glass_white_-1.png",
+      "sha256": "899b9a1f08688eb13dd6dc980a743f5d335862615c49da8b2298ff3817933dd4",
+      "bytes": 41180,
+      "matches": true
+    },
+    {
+      "path": "dashboard/public/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/3F/main-infra-clean-20261023/candidate/textures/minecraft/quartz_block_bottom_-1.png",
+      "sha256": "daf3f46f93f7364b1530ec468a7a1d5a02eda1cd0a118e41e93e9c4177791cc1",
+      "bytes": 13240,
+      "matches": true
+    },
+    {
+      "path": "dashboard/public/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/3F/main-infra-clean-20261023/candidate/textures/minecraft/quartz_block_side_-1.png",
+      "sha256": "85e34c6a6b917ade1cfbd2826127de4175c63317f3efbba1f7aaed3bf105a193",
+      "bytes": 168804,
+      "matches": true
+    },
+    {
+      "path": "dashboard/public/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/3F/main-infra-clean-20261023/candidate/textures/minecraft/quartz_block_top_-1.png",
+      "sha256": "eea2309518da196d86171dd0d78ecdcdc3a0510005790fa2beb8484744d8ae88",
+      "bytes": 19337,
+      "matches": true
+    },
+    {
+      "path": "dashboard/public/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/3F/main-infra-clean-20261023/candidate/textures/minecraft/wool_colored_orange_-1.png",
+      "sha256": "c6a3c27b965f298da28c89c1a522b5ff3152321a97fcbe613aec2f9a6d8f66fa",
+      "bytes": 78114,
+      "matches": true
+    },
+    {
+      "path": "dashboard/public/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/3F/main-infra-clean-20261023/candidate/preview-e3-native-failed-inspection-20261024.json",
+      "sha256": "b33e75452fcd9deb176c7320cdc6797686c4a7d84eeaeca52ec7ecbe31a8da4f",
+      "bytes": 4240,
+      "matches": true
+    },
+    {
+      "path": "dashboard/public/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/3F/main-infra-clean-20261023/evidence/inspection-20261024/inspection-receipt.json",
+      "sha256": "4fd52a5ee15cfb217464373730a1b4a3ffb66104e2cce9fe54cc7e28bf714297",
+      "bytes": 174538,
+      "matches": true
+    },
+    {
+      "path": "dashboard/public/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/3F/main-infra-clean-20261023/evidence/inspection-20261024/guard.json",
+      "sha256": "01dc21dcc6362247698b5f898503dcb78b543c96344b96d57f8de0135c2a3e7f",
+      "bytes": 112071,
+      "matches": true
+    },
+    {
+      "path": "dashboard/public/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/3F/main-infra-clean-20261023/evidence/inspection-20261024/native-failed.json",
+      "sha256": "33d60ae794dac1d43033083d63f2365409f72573ec82ef1fd6bb5a6e2533d94a",
+      "bytes": 177605,
+      "matches": true
+    },
+    {
+      "path": "dashboard/public/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/3F/main-infra-clean-20261023/evidence/inspection-20261024/signed-diagnostic.json",
+      "sha256": "524876c6a356898d8136e9647562317f6f89a74edb752d81080c0a9b51a689e0",
+      "bytes": 368541,
+      "matches": true
+    },
+    {
+      "path": "dashboard/public/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/1F/main-infra-clean-20261023/candidate/1st floor main infra.mtl",
+      "sha256": "c64c0cb12926c707b55262a82fd324ccd09502f92b0c866801a00e9f3c89d9a3",
+      "bytes": 902,
+      "matches": true
+    },
+    {
+      "path": "dashboard/public/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/1F/main-infra-clean-20261023/candidate/model-e3-retain-visible-inspection-20261024.obj",
+      "sha256": "fef98d78ab5fb5c7be4462e9c68531b6b306b918d9152ed49c8b31a5bff4e2c4",
+      "bytes": 374949,
+      "matches": true
+    },
+    {
+      "path": "dashboard/public/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/1F/main-infra-clean-20261023/candidate/textures/minecraft/concrete_white_-1.png",
+      "sha256": "f42c7be3c52294ead4c69ac0e9ef1bbbbe6bdb4451382c89a65c386709df6171",
+      "bytes": 95365,
+      "matches": true
+    },
+    {
+      "path": "dashboard/public/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/1F/main-infra-clean-20261023/candidate/textures/minecraft/concrete_white_-15579874.png",
+      "sha256": "14ceba3d0329594e00458bc6ed2aeafa24d9228519994a60d758de2509fee1ad",
+      "bytes": 70773,
+      "matches": true
+    },
+    {
+      "path": "dashboard/public/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/1F/main-infra-clean-20261023/candidate/textures/minecraft/quartz_block_bottom_-1.png",
+      "sha256": "daf3f46f93f7364b1530ec468a7a1d5a02eda1cd0a118e41e93e9c4177791cc1",
+      "bytes": 13240,
+      "matches": true
+    },
+    {
+      "path": "dashboard/public/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/1F/main-infra-clean-20261023/candidate/textures/minecraft/quartz_block_side_-1.png",
+      "sha256": "85e34c6a6b917ade1cfbd2826127de4175c63317f3efbba1f7aaed3bf105a193",
+      "bytes": 168804,
+      "matches": true
+    },
+    {
+      "path": "dashboard/public/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/1F/main-infra-clean-20261023/candidate/textures/minecraft/quartz_block_top_-1.png",
+      "sha256": "eea2309518da196d86171dd0d78ecdcdc3a0510005790fa2beb8484744d8ae88",
+      "bytes": 19337,
+      "matches": true
+    },
+    {
+      "path": "dashboard/public/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/1F/main-infra-clean-20261023/candidate/textures/minecraft/wool_colored_orange_-1.png",
+      "sha256": "c6a3c27b965f298da28c89c1a522b5ff3152321a97fcbe613aec2f9a6d8f66fa",
+      "bytes": 78114,
+      "matches": true
+    },
+    {
+      "path": "dashboard/public/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/1F/main-infra-clean-20261023/candidate/preview-e3-retain-visible-inspection-20261024.json",
+      "sha256": "0854a14470c745581601e59f864cf01b0ea5e762806008fab90bde4a80985cbf",
+      "bytes": 5003,
+      "matches": true
+    },
+    {
+      "path": "dashboard/public/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/1F/main-infra-clean-20261023/candidate/evidence-e3-retain-visible-20261024/validation.json",
+      "sha256": "70299e1f00f324168a0488ab401f1ea167307f9754366f8d271a918c78a74829",
+      "bytes": 283666,
+      "matches": true
+    },
+    {
+      "path": "dashboard/public/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/1F/main-infra-clean-20261023/candidate/evidence-e3-retain-visible-20261024/independent-guard.json",
+      "sha256": "ec36e05bc42a1c446958cf054536ffac94f9222ba5118bf18e0699d62c92bca5",
+      "bytes": 196651,
+      "matches": true
+    },
+    {
+      "path": "dashboard/public/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/1F/main-infra-clean-20261023/candidate/evidence-e3-retain-visible-20261024/native-readback.json",
+      "sha256": "768e54ab59716ef718481eef1cca44ec61854f7286c498f14515f46cf7bbbd2a",
+      "bytes": 267313,
+      "matches": true
+    },
+    {
+      "path": "dashboard/public/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/1F/main-infra-clean-20261023/candidate/evidence-e3-retain-visible-20261024/retained-floor.json",
+      "sha256": "b35c6c6cf4a9db281544a34ed137c9430cac0d1b051b3e6b8376e95a05ef09cb",
+      "bytes": 181990,
+      "matches": true
+    },
+    {
+      "path": "dashboard/public/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/1F/main-infra-clean-20261023/candidate/evidence-e3-retain-visible-20261024/all-views.png",
+      "sha256": "61f12570571859f57b180660e5a274c3438a0c9a6af67096fe57064d320b868c",
+      "bytes": 1180413,
+      "matches": true
+    },
+    {
+      "path": "dashboard/public/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/1F/main-infra-clean-20261023/candidate/evidence-e3-retain-visible-20261024/paired-detail.png",
+      "sha256": "1622e0e983c39082470a0e4141e4242353e708227853fdc3acd50cf2808e4a02",
+      "bytes": 907272,
+      "matches": true
+    },
+    {
+      "path": "dashboard/public/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/1F/main-infra-clean-20261023/candidate/evidence-e3-retain-visible-20261024/independent-review.json",
+      "sha256": "4f32d479c2cdce5534dc4635e80658c4a5c793184ef096892e7cf6fe33d964e1",
+      "bytes": 10023,
+      "matches": true
+    },
+    {
+      "path": "dashboard/public/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/1F/main-infra-clean-20261023/candidate/evidence-e3-retain-visible-20261024/inspection-receipt.json",
+      "sha256": "283e69c2056b0b55c7490bf3e679c0a957329d77850337b760ff99212b9d9d22",
+      "bytes": 214260,
+      "matches": true
+    }
+  ]
+}

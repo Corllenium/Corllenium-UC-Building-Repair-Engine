@@ -1,0 +1,85 @@
+{
+  "checked_utc": "2026-10-23T23:28:06.844725+00:00",
+  "url": "https://corllenium.ai.dev-environment.site/building-repair-status.json",
+  "sha256": "8977b6922fc4c6554274b8a8127f87ced440075ba0c1030a38c71685090824fd",
+  "updated_at": "2026-10-23T23:27:26.626979Z",
+  "floors": [
+    {
+      "floor": null,
+      "floor_id": "MAIN_INFRA_1F",
+      "state": "blocked",
+      "step": "Corrected 1F model available for inspection; preservation passed, remaining problem targets failed",
+      "worker_pid": 25704,
+      "worker_alive": false,
+      "worker_observed_at": "2026-10-23T22:33:10.1508821Z",
+      "output_triangles": 10410,
+      "candidate_preview": "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/1F/main-infra-clean-20261023/candidate/preview-e3-retain-visible-inspection-20261024.json"
+    },
+    {
+      "floor": null,
+      "floor_id": "MAIN_INFRA_2F",
+      "state": "blocked",
+      "step": "2F numerical retry completed; 17 moved-surface pixels remain and need diagnosis",
+      "worker_pid": 37932,
+      "worker_alive": false,
+      "worker_observed_at": "2026-10-23T23:07:16.9397982Z",
+      "output_triangles": null,
+      "candidate_preview": null
+    },
+    {
+      "floor": null,
+      "floor_id": "MAIN_INFRA_3F",
+      "state": "validating",
+      "step": "E3 retention candidate saved; independent preservation and signed validation pending",
+      "worker_pid": 60376,
+      "worker_alive": false,
+      "worker_observed_at": "2026-10-23T23:27:26.626979Z",
+      "output_triangles": 44972,
+      "candidate_preview": "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/3F/main-infra-clean-20261023/candidate/preview-e3-native-failed-inspection-20261024.json"
+    },
+    {
+      "floor": null,
+      "floor_id": "MAIN_INFRA_4F",
+      "state": "blocked",
+      "step": "Claude Code reports: Independent floor validation complete; inspect evidence",
+      "worker_pid": null,
+      "worker_alive": null,
+      "worker_observed_at": null,
+      "output_triangles": 52865,
+      "candidate_preview": null
+    },
+    {
+      "floor": null,
+      "floor_id": "MAIN_INFRA_5F",
+      "state": "blocked",
+      "step": "Claude Code reports: Independent floor validation complete; inspect evidence",
+      "worker_pid": null,
+      "worker_alive": null,
+      "worker_observed_at": null,
+      "output_triangles": 38113,
+      "candidate_preview": null
+    },
+    {
+      "floor": null,
+      "floor_id": "MAIN_INFRA_6F",
+      "state": "blocked",
+      "step": "Claude Code reports: Independent floor validation complete; inspect evidence",
+      "worker_pid": null,
+      "worker_alive": null,
+      "worker_observed_at": null,
+      "output_triangles": 27108,
+      "candidate_preview": null
+    },
+    {
+      "floor": null,
+      "floor_id": "MAIN_INFRA_7F",
+      "state": "blocked",
+      "step": "Claude Code reports: Independent floor validation complete; inspect evidence",
+      "worker_pid": null,
+      "worker_alive": null,
+      "worker_observed_at": null,
+      "output_triangles": 20625,
+      "candidate_preview": null
+    }
+  ]
+}

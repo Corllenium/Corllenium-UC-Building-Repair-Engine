@@ -1,0 +1,11 @@
+{
+  "pid": 53812,
+  "start_utc": "2026-10-23T23:17:19.0997918Z",
+  "runtime_sha256": "35bfbc560b18c2e0a466b44b43d6aa2560fdbac9aee9f369fc29d744161c284d",
+  "component_commit": "e1e95756372cd738c0119bc6644dd93ca6432826",
+  "runtime_path": "D:/PROJECTS/UC MODEL FIXER/data/siege-live-20261023/watch-actual-workers-observations-20261024.ps1",
+  "stdout": "D:/PROJECTS/UC MODEL FIXER/data/siege-live-20261023/publisher-observations-20261024.stdout.log",
+  "stderr": "D:/PROJECTS/UC MODEL FIXER/data/siege-live-20261023/publisher-observations-20261024.stderr.log",
+  "previous_pid": 44780,
+  "scope": "Owned canonical publisher only; actual common3F and independent validator observations"
+}
