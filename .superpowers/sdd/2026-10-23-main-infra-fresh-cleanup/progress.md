@@ -1,5 +1,12 @@
 # SDD ledger - plan: docs/superpowers/plans/2026-10-23-main-infra-fresh-cleanup.md
 
+- 4F real guardPASS:52completedrenders,4,853,024modelpixels,allfailureclasses0;
+  78160->78160tri,exactduplicates0,missing/added0,19assets. Candidate stored;
+  independent fullfloor verdict pending. Native savedQA30pairs0differentpixels,
+  all-view/detail images inspected. Final clean --factory-startup run exit0;
+  first addonshutdownwarning run retained separately. Candidate inspection refs
+  packaged/published to isolatedpublic/out; defaultAfterstillwaitsforvalidation.
+
 - Actual completed Before/After guard view events now publish per-floor step/time
   after rendering, separate from heartbeat. Regression RED then GREEN on all52
   fixture events; strict candidate tests4passed. Full4Foriginaloracle pilot next.

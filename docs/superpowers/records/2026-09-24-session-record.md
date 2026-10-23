@@ -344,3 +344,5 @@ Owner reset to the fresh seven-floor Z: Minecraft export, confirmed 1 block = 1 
 2026-10-23 Codex MAIN-INFRA-CLEAN: fresh36 frozen; 1F/4F native maps complete; 30 source render pairs each byte-identical; frame RGB-only differences recorded. 67 focused tests pass. Independent import qualification finishing; correct Validator33606ce9 identified. No accepted output/SKP/deployment. See MAIN-INFRA-CLEAN-20261023.md.
 
 2026-10-23 Codex MAIN-INFRA-CLEAN: fresh seven-card Before/After dashboard reviewed and committed2800a66/de060b9; build26pages/browser8.9s/UI28/publisher17 pass. Independent1F preservation PASS but overallFAIL on flicker/crack targets. Shared ray experiments withdrawn; bounded original oracle reviewed118tests+20probes, explicit pilot factory12tests pass. Full4Fguard next; no accepted floor/SKP/deployment. See MAIN-INFRA-CLEAN-20261023.md.
+
+2026-10-23 Codex MAIN-INFRA-CLEAN: 4FstrictguardPASS4853024pixels/allfailureclasses0;78160->78160tri/duplicates0/19assets. NativeQA30savedpairs0differentpixels;factoryBlenderexit0. IndependentfullValidatorinputchecksunderway; noacceptedfloor/SKP/deployment.

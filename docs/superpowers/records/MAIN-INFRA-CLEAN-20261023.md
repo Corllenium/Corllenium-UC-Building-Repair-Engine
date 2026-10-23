@@ -22,6 +22,25 @@ owner scale: 1 block = 1 metre. Preserve cuts, facade look/UVs and visible cover
 
 ## Evidence and pointers
 
+### 4F saved candidate, 2026-10-23
+
+The committed original-oracle pilot completed all52renders and PASSED the strict
+guard:4,853,024modelpixels; holes, moved_other, material changes and grown0.
+78,160->78,160triangles, exact duplicates0, exact source/engine coverage missing0
+and added0. Candidate engine SHA924ac3984bf199e632d00e5e6eaa226a29a7920b07a50820622c602102ca8b05;
+source SHA2a217d63f6dbc6556e4713bff06bf66316f66580272d3bbbcca0719be1e586b9.
+19assets verified. Output is under run-20261023/candidates/4F, not an accepted result.
+
+Saved native fresh-raw/source-candidate QA:30texturedpairs including26directions
+and4eye-height views; decoded PNG readback0differentpixels. Inspected all-view
+and paired-detail sheets: tiled floors, white facade textures/green bands,
+openings/cut edges and orange source markers match; diff images black.
+Initial Blender run exited0 but a user addon logged a shutdown exception; that
+run is preserved under candidate-qa-addon-shutdown/4F. Final evidence is exclusively
+candidate-qa/4F, rerendered with --factory-startup, exit0, no addon startup.
+Independent full-floor Validator input readback is in progress. No floor pass,
+repaired-target success, owner acceptance or deployment is implied by the guard.
+
 ### Fresh model dashboard and precision investigation, 2026-10-23
 
 - Final post-review compiled browser test passed in8.9s. Inspected pending After
