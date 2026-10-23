@@ -1,5 +1,14 @@
 # SDD ledger - plan: docs/superpowers/plans/2026-10-23-main-infra-fresh-cleanup.md
 
+- Signed integration d0d157d: independent75preflight tests pass8.00s,36raw hashes
+  unchanged, physical source/before/candidate partitions agree. 1F fullrun
+  80.91s exit2; preservationPASS108392samples/0fail, check2FAIL unchanged counts
+  flicker_diff5684/same3347/cracks2819. 4F fullrun active; remaining5floors wait.
+- New evidence batch preserves old immutable reports; namespace RED observed,
+  review/progress/preview24tests pass0.42s. Compiled4Fcandidate browsertest passed
+  11.0s total, saved images inspected; all67Gitpreviewassets byte-matchdisk.
+  Broad suite attempts/partial logs preserved; final bounded-thread suites run.
+
 - Independent precision audit: raw sig9 / engine sig17, 39,370,078.74x quanta
   mismatch; six 512-face partitions differ only with storage inference. Physical
   frame partitions agree. Stopped owned workers 49304/46880 after 1810.21s and all

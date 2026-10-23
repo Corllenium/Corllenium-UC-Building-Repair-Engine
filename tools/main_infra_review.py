@@ -3,9 +3,21 @@ import argparse
 import json
 import os
 from pathlib import Path
+import re
 
 from engine.io.snapshot import copy_verified, sha256_file
 from tools.main_infra_progress import load_progress, update_floor, write_progress
+
+
+def evidence_locations(root, revision, run_id, floor, validation_run=None):
+    if validation_run is not None and not re.fullmatch(r'[a-z0-9]+(?:-[a-z0-9]+)*', validation_run):
+        raise ValueError('validation evidence run must be a single lowercase slug')
+    reports = Path(root) / 'independent-validator'
+    base = f'/models/main-infra/{revision}/{floor}/{run_id}/evidence/'
+    if validation_run is not None:
+        reports /= validation_run
+        base += validation_run + '/'
+    return reports / floor, base
 
 
 def bind_independent_review(*, validation, candidate, qualification, independent, source_revision,
@@ -46,9 +58,10 @@ if __name__ == '__main__':
     parser.add_argument('--public', type=Path, required=True)
     parser.add_argument('--progress', type=Path, required=True)
     parser.add_argument('--publish-status', type=Path, required=True)
+    parser.add_argument('--validation-run', help='Immutable batch containing a source-precision rerun')
     args = parser.parse_args()
     doc = load_progress(args.progress)
-    root = args.root / 'independent-validator' / args.floor
+    root, base = evidence_locations(args.root, doc['source_revision'], doc['run_id'], args.floor, args.validation_run)
     audit_path = args.root / 'candidates' / args.floor / 'stage-audit.json'
     audit = json.loads(audit_path.read_text(encoding='utf-8'))
     if sha256_file(Path(audit['engine_candidate'])) != audit['engine_candidate_sha256']:
@@ -68,12 +81,16 @@ if __name__ == '__main__':
         qualification_sha256=sha256_file(qualification_path), validation_sha256=sha256_file(root / 'validation.json'),
         expected_before_sha256=sha256_file(snapshots[0]))
     state, blocker = review_state(report, audit)
-    base = f'/models/main-infra/{doc["source_revision"]}/{args.floor}/{doc["run_id"]}/evidence/'
     destination = args.public.resolve() / base.lstrip('/')
     if os.name == 'nt':
         destination = Path('\\\\?\\' + str(destination))
     destination.mkdir(parents=True, exist_ok=True)
     files = {name: root / name for name in ['validation.json', 'independent-review.json', 'input-readback.json', 'invocation.json']}
+    if args.validation_run is not None:
+        precision = root / 'physical-precision-inputs.json'
+        if json.loads(precision.read_text(encoding='utf-8')) != report.get('physical_precision'):
+            raise ValueError('Physical precision receipt differs from validation report')
+        files[precision.name] = precision
     files['stage-audit.json'] = audit_path
     files['candidate-paired-detail.png'] = args.root / 'candidate-qa' / args.floor / 'paired-detail.png'
     files['candidate-all-views.png'] = args.root / 'candidate-qa' / args.floor / 'all-views.png'

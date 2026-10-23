@@ -1,5 +1,27 @@
 # Fresh MAIN INFRA execution - current status
 
+## Qualified 1F rerun and dashboard evidence
+
+Independent signed Validator integration d0d157d passed 75 preflight tests and
+rehashed all 36 frozen files. Real 1F full default rerun: exit2, 80.91s; textures
+PASS (108392 visible samples, zero failures), visible coverage PASS (zero suspect,
+deleted, covered or overlaid faces). Signed problem targets FAIL: flicker_diff
+5684, flicker_same3347, cracks2819, unchanged before/after. These replace earlier
+storage-precision diagnostic counts. Report SHA a151edea17e78dc4d5266b4a3ccc34cc42e0c7dc3e93d34cc4782dc05011b7c8.
+
+Unchanged signed visibility precision was separately measured: both storage and
+physical bases give0.05in depth tolerance; exact candidate fingerprints and
+membership agree. This proves only these unchanged candidates. No general claim
+about future changed geometry. The independent review and30decoded PNG pairs
+support preservation; no repair acceptance. 4F full rerun is active.
+
+Compiled browser test with explicit4F candidate inspection passed (9.8s test,
+11.0s total). Saved cards/candidate images were inspected. Seven states are real;
+After waits for validated repair. All67committed preview assets match disk bytes.
+Dashboard commit524bece. A new immutable physical-precision evidence namespace
+preserves prior diagnostic reports; RED namespace/escape regressions reproduced,
+24review/progress/preview tests pass. Full broad suites continue separately.
+
 ## Source precision blocker and correction, 2026-10-23
 
 The independent audit found raw/source sig9 versus normalized engine sig17.
