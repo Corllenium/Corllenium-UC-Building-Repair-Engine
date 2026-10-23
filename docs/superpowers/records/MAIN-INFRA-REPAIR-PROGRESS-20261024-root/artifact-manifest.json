@@ -1,0 +1,104 @@
+[
+  {
+    "name": "1F-preparation.json",
+    "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-e3-1f-retain-visible-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e3\\run-20261024-1F-retain-visible\\preparation-1F.json",
+    "sha256": "41fcb9a8146891da633289c57c097baba419a59fbafd068ce54951be6fdc583b",
+    "bytes": 208627
+  },
+  {
+    "name": "1F-phase-prepare.json",
+    "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-e3-1f-retain-visible-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e3\\retain-visible-preflight\\phase-prepare.json",
+    "sha256": "3c5e884625e035c7db2135bfd5b3d6fb63a6dd80b11cbee89892c2e169929b0a",
+    "bytes": 61734
+  },
+  {
+    "name": "1F-phase-execute.json",
+    "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-e3-1f-retain-visible-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e3\\retain-visible-preflight\\phase-execute.json",
+    "sha256": "4e2091563e767fb8b92420927d2d79921cbe4e3f33f5ccd1a603343f50d7dc28",
+    "bytes": 61949
+  },
+  {
+    "name": "1F-preparation-terminal.json",
+    "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-e3-1f-retain-visible-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e3\\retain-visible-preflight\\monitor-e3-retain-visible-prepare-20261023T211255\\result.json",
+    "sha256": "19afaa345070d5cc30d73c8b91403c58aa00af5488db74dc3b3bb449762d579d",
+    "bytes": 741
+  },
+  {
+    "name": "1F-execution-identity.json",
+    "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-e3-1f-retain-visible-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e3\\retain-visible-preflight\\monitor-e3-retain-visible-execute-20261023T211538\\actual-identity.json",
+    "sha256": "45a60e45032d8b700c576bb08a68f98c2f731a8618e35594dc8167cba059295d",
+    "bytes": 1278
+  },
+  {
+    "name": "2F-guard-FAIL.json",
+    "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-2f-validation-20261023\\05-Corllenium-UC-Building-Repair-Engine\\data\\iv2f\\run-20261024-attempt2\\2F\\guard\\independent-guard.json",
+    "sha256": "1d95e1c4c03b7bd0209308690b06acfe01d95128564fdfdfaa4ca0fa652c96dc",
+    "bytes": 67943
+  },
+  {
+    "name": "2F-guard-terminal.json",
+    "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-2f-validation-20261023\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-2f-validation\\execution-ownership-attempt2\\monitor-independent-E3-2F-strict26-20261023T210033\\result.json",
+    "sha256": "f49584f118c6f36cd4b337152fa04151a7df9e9ffd7416a751ab8077eb3b4dd7",
+    "bytes": 641
+  },
+  {
+    "name": "2F-preparation-actual.json",
+    "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-2f-validation-20261023\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-2f-validation\\execution-ownership-attempt2\\preparation-actual.json",
+    "sha256": "33548803e4394e3a14cea3657a474e641208f8147f3a49924ef9e94de67772b7",
+    "bytes": 31490
+  },
+  {
+    "name": "2F-engine-terminal-readback.json",
+    "source": "D:\\PROJECTS\\UC MODEL FIXER\\data\\tmp\\main-infra-2F-actual-terminal-readback-20261024.json",
+    "sha256": "1b96c772a46d1a42be43b9d66d123e62447bf74baeab6770acc21fa29d486fa0",
+    "bytes": 1202
+  },
+  {
+    "name": "3F-native-FAIL.json",
+    "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-3f-validation-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-3f-validation\\run-20261024-attempt2\\3F\\native\\native-readback.json",
+    "sha256": "33d60ae794dac1d43033083d63f2365409f72573ec82ef1fd6bb5a6e2533d94a",
+    "bytes": 177605
+  },
+  {
+    "name": "3F-native-pixel-audit.json",
+    "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-3f-validation-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-3f-validation\\run-20261024-attempt2\\3F\\native\\independent-pixel-audit.json",
+    "sha256": "3f7bd84b6ff704f21f5622f2d08564a4139a1aef8ad54b4e4a605bece64b9028",
+    "bytes": 47530
+  },
+  {
+    "name": "3F-native-terminal.json",
+    "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-3f-validation-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-3f-validation\\execution-ownership-attempt2\\monitor-independent-E3-3F-native46-20261023T203802\\result.json",
+    "sha256": "1eb76f3e8aa509dc39cbca353752868674a4d98f2da3f444aa6d276956732bdf",
+    "bytes": 640
+  },
+  {
+    "name": "3F-native-footprint.json",
+    "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-3f-validation-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-3f-validation\\run-20261024-attempt2\\3F\\native-footprint-diagnostic\\footprint.json",
+    "sha256": "63eb9d4b3c757adc6a33794f133820b9e670d03185057bd7fae06c30b3f431a1",
+    "bytes": 6885696
+  },
+  {
+    "name": "3F-footprint-terminal.json",
+    "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-3f-validation-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-3f-validation\\execution-ownership-attempt2\\monitor-independent-E3-3F-native-footprint-20261023T205539\\result.json",
+    "sha256": "7a4ebbb73a9398a2d4b43caed4d267cc137b6e2603cea9ff556f9633b7f30b39",
+    "bytes": 661
+  },
+  {
+    "name": "3F-signed-diagnostic-identity.json",
+    "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-3f-validation-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-3f-validation\\execution-ownership-attempt2\\monitor-independent-E3-3F-native-failure-signed-diagnostic-20261023T204430\\actual-identity.json",
+    "sha256": "dab1ed2b97a30fb406527519c2431c95bab213bcddf90819f1af2c8d8f672ba5",
+    "bytes": 680
+  },
+  {
+    "name": "publisher-first-recovery-identity.json",
+    "source": "D:\\PROJECTS\\UC MODEL FIXER\\data\\siege-live-20261023\\publisher-recovery-20261024.identity.json",
+    "sha256": "247cb0382ea1cd2fed41593bd1001cbe2b2118742e64ede82093fe8821e88a24",
+    "bytes": 613
+  },
+  {
+    "name": "publisher-first-recovery-stderr.txt",
+    "source": "D:\\PROJECTS\\UC MODEL FIXER\\data\\siege-live-20261023\\publisher-recovery-20261024.stderr.log",
+    "sha256": "9df1fde670905c81bb1fc1d023930e497afd103d3a38a1c1cc136a11924bf5e0",
+    "bytes": 398
+  }
+]

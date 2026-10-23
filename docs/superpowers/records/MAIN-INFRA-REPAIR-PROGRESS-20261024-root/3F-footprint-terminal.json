@@ -1,0 +1,16 @@
+{
+  "state": "PROCESS_EXITED_ZERO",
+  "phase": "independent-E3-3F-native-footprint",
+  "abort_reason": null,
+  "actual_pid": 50760,
+  "actual_creation_utc": "2026-10-23T20:55:40.9576544Z",
+  "actual_exit_code": 0,
+  "launcher_exit_code": 0,
+  "wall_s": 11.8183554,
+  "HEAD": "a4c78e33e048d861ed938f76a718cf54f298239c",
+  "phase_plan_sha256": "4b4a978d09131bd1b59bce09565de185eca67c999ca70537b21b78f367b9ab35",
+  "all_owned_exited": true,
+  "evidence": "data\\main-infra-3f-validation\\execution-ownership-attempt2\\monitor-independent-E3-3F-native-footprint-20261023T205539",
+  "ended_utc": "2026-10-23T20:55:52.6476156Z",
+  "acceptance": false
+}

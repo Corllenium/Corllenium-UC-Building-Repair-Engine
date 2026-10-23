@@ -1,0 +1,12 @@
+{
+  "state": "RUNNING",
+  "phase": "e3-retain-visible-execute",
+  "actual_pid": 40476,
+  "actual_creation_utc": "2026-10-23T21:15:39.9150019Z",
+  "launcher_pid": 40396,
+  "monitor_pid": 62388,
+  "command": "C:\\Users\\Future26\\AppData\\Local\\Programs\\Python\\Python312\\python.exe -B -u -m tools.main_infra_e3_visible_run execute --plan D:\\LLM_BACKUP\\Codex session\\main-infra-e3-1f-retain-visible-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e3\\run-20261024-1F-retain-visible\\preparation-1F.json --policy D:\\LLM_BACKUP\\Codex session\\main-infra-e3-1f-retain-visible-20261024\\05-Corllenium-UC-Building-Repair-Engine\\docs\\superpowers\\records\\MAIN-INFRA-E3-1F-RETAIN-VISIBLE-20261024\\policy.json --policy-sha256 6b9efd75b42db0a601bd099b561f660f11bfeebb9914166a0aa3e2d75a804cfd --plan-sha256 41fcb9a8146891da633289c57c097baba419a59fbafd068ce54951be6fdc583b",
+  "HEAD": "17247d295d809a6405fae8271a4d3d290e04bb59",
+  "phase_plan_sha256": "4e2091563e767fb8b92420927d2d79921cbe4e3f33f5ccd1a603343f50d7dc28",
+  "evidence": "D:\\LLM_BACKUP\\Codex session\\main-infra-e3-1f-retain-visible-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e3\\retain-visible-preflight\\monitor-e3-retain-visible-execute-20261023T211538"
+}

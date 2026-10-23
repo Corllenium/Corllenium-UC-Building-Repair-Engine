@@ -1,0 +1,16 @@
+{
+  "state": "PROCESS_FAILED",
+  "phase": "independent-E3-2F-strict26",
+  "abort_reason": null,
+  "actual_pid": 51584,
+  "actual_creation_utc": "2026-10-23T21:00:34.6242438Z",
+  "actual_exit_code": 2,
+  "launcher_exit_code": 2,
+  "wall_s": 199.2581933,
+  "HEAD": "1ac1de3ad71e6550e7b80a8732c6662831e7884d",
+  "phase_plan_sha256": "056ff436bad0fa74563f646cc50d2a0f4914696b6cc0ce8888cf3a33c6bb6f52",
+  "all_owned_exited": true,
+  "evidence": "data\\main-infra-2f-validation\\execution-ownership-attempt2\\monitor-independent-E3-2F-strict26-20261023T210033",
+  "ended_utc": "2026-10-23T21:03:53.7653701Z",
+  "acceptance": false
+}

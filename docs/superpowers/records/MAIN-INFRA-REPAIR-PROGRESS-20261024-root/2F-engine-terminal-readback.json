@@ -1,0 +1,26 @@
+{
+  "evidence_type": "controller readback of actual completed tool sessions and saved worker",
+  "recorded_at": "2026-10-23T20:55:51.478862+00:00",
+  "actual_worker_pid": 41648,
+  "actual_creation_utc": "2026-10-23T14:13:11.8254166Z",
+  "actual_worker_exited_observed": true,
+  "engine_exec_session": 73109,
+  "engine_exec_exit_code": 0,
+  "observer_exec_session": 37006,
+  "observer_exec_exit_code": 0,
+  "observer_terminal_output": {
+    "samples": 10635,
+    "output": "D:/PROJECTS/UC MODEL FIXER/.claude/worktrees/MAIN-INFRA-E3-20261023/data/main-infra-e3/run-20261023-attempt2/resources-2F.jsonl",
+    "worker_pid": 41648
+  },
+  "worker_path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-e3\\run-20261023-attempt2\\worker-2F.json",
+  "worker_sha256": "740eb2afc1a2b285997991904faf2ce759959aded72790ea8cbdf38a0cb478e5",
+  "worker_state": "candidate_saved",
+  "input_triangles": 56828,
+  "output_triangles": 38134,
+  "worker_saved_at": "2026-10-23T20:16:04.163911+00:00",
+  "worker_reported_wall_s": 21771.02,
+  "not_a_V4_monitor_receipt": true,
+  "all_owned_exited_not_independently_asserted": true,
+  "acceptance": false
+}

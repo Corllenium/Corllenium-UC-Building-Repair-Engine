@@ -1,0 +1,10 @@
+{
+  "pid": 58240,
+  "start_utc": "2026-10-23T21:10:57.9790242Z",
+  "runtime_sha256": "83b04918b56ad03b5df95b38b8c083415eddd35016ad2f105e1ae84435a59dad",
+  "component_commit": "f3243fb",
+  "runtime_path": "D:/PROJECTS/UC MODEL FIXER/data/siege-live-20261023/watch-actual-workers-recovery-20261024.ps1",
+  "stdout": "D:/PROJECTS/UC MODEL FIXER/data/siege-live-20261023/publisher-recovery-20261024.stdout.log",
+  "stderr": "D:/PROJECTS/UC MODEL FIXER/data/siege-live-20261023/publisher-recovery-20261024.stderr.log",
+  "scope": "sole owned live status publisher recovery; no server or container restart"
+}

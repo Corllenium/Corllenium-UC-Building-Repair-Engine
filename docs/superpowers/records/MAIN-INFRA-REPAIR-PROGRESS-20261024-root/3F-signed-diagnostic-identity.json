@@ -1,0 +1,12 @@
+{
+  "state": "RUNNING",
+  "phase": "independent-E3-3F-native-failure-signed-diagnostic",
+  "actual_pid": 17092,
+  "actual_creation_utc": "2026-10-23T20:44:32.3337348Z",
+  "launcher_pid": 44904,
+  "monitor_pid": 33700,
+  "command": "C:\\Users\\Future26\\AppData\\Local\\Programs\\Python\\Python312\\python.exe -B -u -m data.tmp.three_f_native_failure_signed_diagnostic",
+  "HEAD": "a4c78e33e048d861ed938f76a718cf54f298239c",
+  "phase_plan_sha256": "50c9985a7a165516b43a8126e86e57d0f7c7424f6989ba710ef99e64540eac0d",
+  "evidence": "data\\main-infra-3f-validation\\execution-ownership-attempt2\\monitor-independent-E3-3F-native-failure-signed-diagnostic-20261023T204430"
+}

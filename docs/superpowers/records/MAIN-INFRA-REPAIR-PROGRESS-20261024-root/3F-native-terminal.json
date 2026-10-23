@@ -1,0 +1,16 @@
+{
+  "state": "PROCESS_FAILED",
+  "phase": "independent-E3-3F-native46",
+  "abort_reason": null,
+  "actual_pid": 23216,
+  "actual_creation_utc": "2026-10-23T20:38:04.3203283Z",
+  "actual_exit_code": 2,
+  "launcher_exit_code": 2,
+  "wall_s": 22.8211402,
+  "HEAD": "a4c78e33e048d861ed938f76a718cf54f298239c",
+  "phase_plan_sha256": "b8f36297345c0fa6fb06f14b3d65d0006083c172dc303c340984b1883293c636",
+  "all_owned_exited": true,
+  "evidence": "data\\main-infra-3f-validation\\execution-ownership-attempt2\\monitor-independent-E3-3F-native46-20261023T203802",
+  "ended_utc": "2026-10-23T20:38:27.0635477Z",
+  "acceptance": false
+}

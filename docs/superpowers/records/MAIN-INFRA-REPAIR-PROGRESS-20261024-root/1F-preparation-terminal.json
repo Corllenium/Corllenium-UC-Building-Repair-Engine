@@ -1,0 +1,16 @@
+{
+  "state": "PROCESS_EXITED_ZERO",
+  "phase": "e3-retain-visible-prepare",
+  "abort_reason": null,
+  "actual_pid": 54296,
+  "actual_creation_utc": "2026-10-23T21:12:57.0979970Z",
+  "actual_exit_code": 0,
+  "launcher_exit_code": 0,
+  "wall_s": 9.9265725,
+  "HEAD": "17247d295d809a6405fae8271a4d3d290e04bb59",
+  "phase_plan_sha256": "3c5e884625e035c7db2135bfd5b3d6fb63a6dd80b11cbee89892c2e169929b0a",
+  "all_owned_exited": true,
+  "evidence": "D:\\LLM_BACKUP\\Codex session\\main-infra-e3-1f-retain-visible-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e3\\retain-visible-preflight\\monitor-e3-retain-visible-prepare-20261023T211255",
+  "ended_utc": "2026-10-23T21:13:06.8573867Z",
+  "acceptance": false
+}

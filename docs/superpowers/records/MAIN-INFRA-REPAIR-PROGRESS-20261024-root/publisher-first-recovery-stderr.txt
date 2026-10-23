@@ -1,0 +1,5 @@
+ParentContainsErrorRecordException: D:\PROJECTS\UC MODEL FIXER\data\siege-live-20261023\watch-actual-workers-recovery-20261024.ps1:158
+Line |
+ 158 |  . healthPath)){[IO.File]::Replace($healthTmp,$healthPath,$null)}else{[I .
+     |                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+     | Exception calling "Replace" with "3" argument(s): "The path is empty. (Parameter 'path')"
