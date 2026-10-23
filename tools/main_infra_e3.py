@@ -90,13 +90,15 @@ def _source_digest(mesh):
     return digest.digest()
 
 
-def source_survivors(before, outcome):
+def source_survivors(before, outcome, engine='E3'):
+    """The surviving face ids of `before` after one checked remove-only stage of `engine` ("E3", or "E5" for the
+    coincident-layer cull), after proving the outcome is exactly `before` minus the kept remove edits."""
     if outcome.result is not None or outcome.stages or len(outcome.checks) != 1:
-        raise ValueError('only one checked non-legacy E3 stage is allowed')
+        raise ValueError(f'only one checked non-legacy {engine} stage is allowed')
     check = outcome.checks[0]
-    if (check.get('stage') != 'E3' or check.get('engine') != 'E3'
+    if (check.get('stage') != engine or check.get('engine') != engine
             or check.get('legacy') is not False or check.get('rollback') is not True):
-        raise ValueError('E3 site checks and rollback are required')
+        raise ValueError(f'{engine} site checks and rollback are required')
     planned = {id(item) for item in outcome.edits}
     kept = {id(item) for item in outcome.kept}
     rolled = {id(item) for item in outcome.rolled_back}
@@ -104,19 +106,19 @@ def source_survivors(before, outcome):
             or len(kept) != len(outcome.kept) or len(rolled) != len(outcome.rolled_back)):
         raise ValueError('kept and rolled-back edits must partition the actual plan')
     if {item.site for item in outcome.kept} & {item.site for item in outcome.rolled_back}:
-        raise ValueError('an E3 site cannot be partly kept')
+        raise ValueError(f'an {engine} site cannot be partly kept')
     if outcome.kept and check.get('final') != 'PASS':
-        raise ValueError('unconfirmed E3 removal cannot ship')
+        raise ValueError(f'unconfirmed {engine} removal cannot ship')
     all_faces = set()
     for item in outcome.edits:
-        if item.engine != 'E3' or item.kind != 'remove' or item.legacy:
-            raise ValueError('only non-legacy E3 remove edits are allowed')
+        if item.engine != engine or item.kind != 'remove' or item.legacy:
+            raise ValueError(f'only non-legacy {engine} remove edits are allowed')
         if any(value is not None and len(value) for value in (item.new_points, item.new_faces,
                                                              item.new_face_uv, item.new_face_normal)):
-            raise ValueError('E3 may not add or replace geometry or corner attributes')
+            raise ValueError(f'{engine} may not add or replace geometry or corner attributes')
         if (len(set(item.faces)) != len(item.faces)
                 or any(face < 0 or face >= before.n_faces or face in all_faces for face in item.faces)):
-            raise ValueError('E3 source face indices must be valid and disjoint')
+            raise ValueError(f'{engine} source face indices must be valid and disjoint')
         all_faces.update(item.faces)
     drop = np.zeros(before.n_faces, bool)
     for item in outcome.kept:
@@ -124,10 +126,10 @@ def source_survivors(before, outcome):
     expected, indices = remove_faces(before, drop)
     for name in ('positions', 'uvs', 'normals', 'face_v', 'face_vt', 'face_vn', 'face_material', 'face_line'):
         if not np.array_equal(getattr(expected, name), getattr(outcome.mesh, name)):
-            raise ValueError(f'E3 changed original survivor data: {name}')
+            raise ValueError(f'{engine} changed original survivor data: {name}')
     for name in ('materials', 'mtllib', 'units', 'physical_quanta', 'coord_decimals', 'sig_digits'):
         if getattr(expected, name) != getattr(outcome.mesh, name):
-            raise ValueError(f'E3 changed source metadata: {name}')
+            raise ValueError(f'{engine} changed source metadata: {name}')
     return indices
 
 

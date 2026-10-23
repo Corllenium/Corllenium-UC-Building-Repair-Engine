@@ -2,22 +2,24 @@
 
 Modelled on `tools/main_infra_e3_binding.py`. The Validator's BEFORE stays the qualified baseline snapshot; the
 candidate is proven to be that baseline, minus the faces a checked E3 removed (`e3_then_e4_merge`, chained through
-the E3 candidate's own `source-faces.json` and `bind_saved_e3`), with every E4 region replaced exactly as
-`region-map.json` says (`tools.main_infra_e4.verify_merged_mesh`, in both frames). The region map and the edit log
-are hash-bound to the audit, the log must hold only non-legacy E4 cuts whose kept sites are the mapped regions, the
-one site check must end PASS when anything was kept, and the audit must say the strict guard passed.
+the E3 candidate's own `source-faces.json` and `bind_saved_e3`), minus the coincident layers a checked E5 culled after
+E3 (`e3_then_e5_then_e4_merge`, chained through the E5 candidate and ITS `e3_candidate`:
+`tools.main_infra_e5_binding.chained_e5_before`), with every E4 region replaced exactly as `region-map.json` says
+(`tools.main_infra_e4.verify_merged_mesh`, in both frames). The region map and the edit log are hash-bound to the
+audit, the log must hold only non-legacy E4 cuts whose kept sites are the mapped regions, the one site check must end
+PASS when anything was kept, and the audit must say the strict guard passed.
 """
 import json
-from dataclasses import replace
 from pathlib import Path
 
 from engine.io.minecraft_floor import Frame
-from engine.io.obj_reader import read_obj
 from engine.io.snapshot import sha256_file
-from tools.main_infra_e3_binding import bind_saved_e3
+from tools.main_infra_e3_binding import chained_e3_before as _e3_before
 from tools.main_infra_e4 import MODE, verify_merged_mesh
+from tools.main_infra_e5_binding import chained_e5_before
 
-CLEANUP_MODES = {'e4_merge_only': ['E4'], 'e3_then_e4_merge': ['E3', 'E4']}
+CLEANUP_MODES = {'e4_merge_only': ['E4'], 'e3_then_e4_merge': ['E3', 'E4'],
+                 'e3_then_e5_then_e4_merge': ['E3', 'E5', 'E4']}
 _ROTATION = Frame(1.0, 'the fixed source Y-up to engine Z-up rotation').rotation
 
 
@@ -30,28 +32,6 @@ def _hash(path, expected):
 
 def _count(value, expected):
     return type(value) is int and value == expected
-
-
-def _e3_before(*, audit, before_engine, before_source):
-    """The E3 candidate the audit chains through, proven against the baseline: `(e3 engine mesh, e3 source mesh,
-    E3 source face list, E3 contract)`."""
-    binding = audit.get('e3_candidate')
-    if not isinstance(binding, dict) or not binding.get('candidate'):
-        raise ValueError('e3_then_e4_merge needs the E3 candidate binding in the audit')
-    e3_dir = Path(binding['candidate'])
-    _hash(e3_dir / 'stage-audit.json', binding.get('stage_audit_sha256'))
-    e3_audit = json.loads((e3_dir / 'stage-audit.json').read_text(encoding='utf-8'))
-    for key, name in (('engine_candidate_sha256', 'candidate.engine.obj'),
-                      ('source_candidate_sha256', 'candidate.source.obj'), ('source_faces_sha256', 'source-faces.json')):
-        if e3_audit.get(key) != binding.get(key):
-            raise ValueError(f'E3 candidate binding differs from its audit: {key}')
-        _hash(e3_dir / name, binding.get(key))
-    e3_engine = replace(read_obj(e3_dir / 'candidate.engine.obj'), physical_quanta=before_engine.physical_quanta)
-    e3_source = read_obj(e3_dir / 'candidate.source.obj')
-    contract = bind_saved_e3(candidate=e3_dir, audit=e3_audit, before_engine=before_engine, after_engine=e3_engine,
-                             before_source=before_source, after_source=e3_source)
-    faces = json.loads((e3_dir / 'source-faces.json').read_text(encoding='utf-8'))['source_faces']
-    return e3_engine, e3_source, faces, contract
 
 
 def bind_saved_e4(*, candidate, audit, before_engine, after_engine, before_source, after_source,
@@ -71,11 +51,16 @@ def bind_saved_e4(*, candidate, audit, before_engine, after_engine, before_sourc
     if before_source.n_faces != before_engine.n_faces or after_source.n_faces != after_engine.n_faces:
         raise ValueError('E4 pair triangle counts differ between frames')
 
-    e3_contract, e3_faces = None, list(range(before_engine.n_faces))
+    # `e3_faces`: the baseline face id of each face of E4's BEFORE (the identity without a chained stage)
+    e3_contract, e5_contract, e3_faces = None, None, list(range(before_engine.n_faces))
     e4_before_engine, e4_before_source = before_engine, before_source
     if mode == 'e3_then_e4_merge':
         e4_before_engine, e4_before_source, e3_faces, e3_contract = _e3_before(
             audit=audit, before_engine=before_engine, before_source=before_source)
+    elif mode == 'e3_then_e5_then_e4_merge':
+        e4_before_engine, e4_before_source, e3_faces, e5_contract = chained_e5_before(
+            audit=audit, before_engine=before_engine, before_source=before_source)
+        e3_contract = e5_contract['e3_contract']
     if (not isinstance(mapping, dict) or not _count(mapping.get('schema_version'), 1) or mapping.get('mode') != MODE
             or not _count(mapping.get('input_triangles'), e4_before_engine.n_faces)
             or not _count(mapping.get('output_triangles'), after_engine.n_faces)
@@ -144,11 +129,12 @@ def bind_saved_e4(*, candidate, audit, before_engine, after_engine, before_sourc
     elif check.get('final') not in ('PASS', 'NOTHING KEPT'):
         raise ValueError('E4 no-op check must confirm PASS or NOTHING KEPT')
 
-    # back to the baseline's face ids through the E3 survivor list (the identity without E3)
+    # back to the baseline's face ids through the chained survivor lists (the identity without E3 / E5)
     to_baseline = lambda faces: [int(e3_faces[f]) for f in faces]
     return dict(candidate_contract=mode, region_map_sha256=mapping_hash, edit_log_sha256=log_hash,
-                e3_contract=e3_contract,
-                e3_removed_triangles=before_engine.n_faces - len(e3_faces),
+                e3_contract=e3_contract, e5_contract=e5_contract,
+                e3_removed_triangles=0 if e3_contract is None else e3_contract['e3_removed_triangles'],
+                e5_removed_triangles=0 if e5_contract is None else e5_contract['e5_removed_triangles'],
                 e4_merged_regions=len(kept), e4_replaced_triangles=len(replaced),
                 e4_new_triangles=sum(n for _faces, n in kept.values()),
                 baseline_kept_source_faces=to_baseline(mapping['kept_source_faces']),
