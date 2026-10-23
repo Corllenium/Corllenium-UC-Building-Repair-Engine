@@ -25,7 +25,10 @@ EVERY site is checked here BEFORE the judge sees it, and refused (listed in `rep
 - `uv_seam`: for a textured (non-flat) material, the one affine UV map of the new triangles misses an input corner's UV
   by more than `UV_RESIDUAL_MAX` (1e-3 UV units; the merge re-bases a FLAT material's UVs by whole tiles, which is
   invisible and only recorded);
-- `too_large`: the region has more input faces than `max_site_faces` (a region is one site: it cannot be split).
+- `too_large`: the region has more input faces than `max_site_faces` (a region is one site: it cannot be split);
+- `grew` (unless `allow_growth`): the merge returned MORE triangles than the region had input faces. Measured on the
+  7F E4 trial (2026-10-24): 123 of 275 kept regions grew, 2 input faces becoming 8-14 triangles, because the
+  `keep_all` ring carries every vertex a neighbour threads into the border; such a region gains lines, not cleanliness.
 And the whole plan raises when `merge_regions` returns different `positions` (it never does: positions are never moved,
 appended to or re-indexed there; the assertion is the contract made visible).
 
@@ -60,7 +63,7 @@ AREA_REL_TOL = 1e-6
 UV_RESIDUAL_MAX = 1e-3
 
 SKIP_REASONS = ("unchanged", "not_allowed")
-REFUSE_REASONS = ("area_changed", "off_plane", "flipped", "uv_lost", "uv_seam", "too_large", "mixed_material")
+REFUSE_REASONS = ("area_changed", "off_plane", "flipped", "uv_lost", "uv_seam", "too_large", "mixed_material", "grew")
 
 
 def e4_topology(mesh, flatness: dict, profile) -> tuple[frozenset, Topology]:
@@ -118,9 +121,10 @@ class RegionChange:
 
 
 def region_changes(mesh, topo: Topology, result, flat: Iterable[int], *, allowed_regions=None,
-                   max_site_faces: int = MAX_SITE_FACES) -> list[RegionChange]:
+                   max_site_faces: int = MAX_SITE_FACES, allow_growth: bool = False) -> list[RegionChange]:
     """One `RegionChange` per region the merge result holds, in ascending region id, each measured against the rules
-    of the module docstring. Raises when `result` changed `positions` or a region's rows disagree on their source."""
+    of the module docstring (`allow_growth` lifts the `grew` refusal). Raises when `result` changed `positions` or a
+    region's rows disagree on their source."""
     if not np.array_equal(result.mesh.positions, mesh.positions):
         raise ValueError("E4: merge_regions changed positions; the merge never moves, adds or re-indexes a vertex")
     flat = set(int(m) for m in flat)
@@ -175,6 +179,11 @@ def region_changes(mesh, topo: Topology, result, flat: Iterable[int], *, allowed
             change.reason = "too_large"
             change.detail = f"{len(source)} input faces, more than max_site_faces {max_site_faces}"
             continue
+        if not allow_growth and len(rows) > len(source):
+            change.reason = "grew"
+            change.detail = (f"the merge returned {len(rows)} triangles for {len(source)} input faces; a region may not "
+                             f"gain triangles (allow_growth is off)")
+            continue
         if abs(a_after - a_before) > AREA_REL_TOL * a_before:
             change.reason = "area_changed"
             change.detail = f"area {a_before:.6f} before, {a_after:.6f} after (tolerance {AREA_REL_TOL} relative)"
@@ -214,10 +223,12 @@ def region_changes(mesh, topo: Topology, result, flat: Iterable[int], *, allowed
 class E4Merge:
     """The repair engine E4 (see the module docstring). `flatness` is the per-material texture std the legacy profile
     reads its flat materials from; `allowed_regions` restricts the plan to those region ids (None: every region);
-    `report` holds the last run's numbers."""
+    `allow_growth` (off) lets a region come back with more triangles than it had faces; `report` holds the last
+    run's numbers."""
     flatness: dict = field(default_factory=dict)
     allowed_regions: set | None = None
     max_site_faces: int = MAX_SITE_FACES
+    allow_growth: bool = False
     name: str = "E4"
     legacy: bool = False
     report: dict | None = field(default=None, repr=False)
@@ -230,7 +241,8 @@ class E4Merge:
         result = merge_regions(mesh, topo, flat)
         merge_seconds = time.perf_counter() - t0
         allowed = None if self.allowed_regions is None else {int(r) for r in self.allowed_regions}
-        changes = region_changes(mesh, topo, result, flat, allowed_regions=allowed, max_site_faces=self.max_site_faces)
+        changes = region_changes(mesh, topo, result, flat, allowed_regions=allowed, max_site_faces=self.max_site_faces,
+                                 allow_growth=self.allow_growth)
 
         edits: list[Edit] = []
         skipped = {k: 0 for k in SKIP_REASONS}
@@ -264,7 +276,8 @@ class E4Merge:
             "changed": sum(1 for c in changes if c.reason != "unchanged"),
             "sites": len(edits), "skipped": skipped, "refused": refused,
             "allowed_regions": None if allowed is None else sorted(allowed),
-            "max_site_faces": int(self.max_site_faces), "flat_materials": sorted(int(m) for m in flat),
+            "max_site_faces": int(self.max_site_faces), "allow_growth": bool(self.allow_growth),
+            "flat_materials": sorted(int(m) for m in flat),
             "merge_report": result.report,
             "seconds": {"merge": round(merge_seconds, 2), "total": round(time.perf_counter() - started, 2)},
         }
