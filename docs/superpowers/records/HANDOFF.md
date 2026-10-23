@@ -24,6 +24,14 @@ run the latest `.skp` of each file must be in `OBJ FIXED RESULT/` for the owner 
 2026. Work visually: every round ends with renders that are looked at, not only numbers.
 
 ## 2. Current state (2026-09-26 00:15, written by the Claude controller)
+2026-10-23 23:38 +08: actual1F preparation completed36.726s/EXIT0; planSHAe5af36dd,
+all628records matched/273selected/source273+engine273proofsPASS, inputs/code
+rehashed/frozen18c8ae9. No1Fkernel/candidate yet. Venvlauncher private measurement
+INVALID; globalmin7.23GiBvalid. Rootapproved guardedconcurrent1F onlywith3fresh
+>=8GiBlaunchsamples, actualinterpreteridentityfromlaunch/privatecap3GiB/global
+abort<3.5GiB; at15:37global7.426GiB/no1Fexecute.2F41648continuesfirstkernelcheck.
+Newpublisher4996/start15:35:22.463240Z/exec46920 loads3438f3echeckpoint-awarecode.
+Existing1F E3inspectioncandidate retained; no acceptedfloor; Claude4F-7F separate.
 E7preview exporter now committed2197243 (independent52PASS/reviewb9000bb9).
 Actualattempt3 checkpoint state status regressionRED->GREEN1/0parsererrors;
 updated runtime is on disk, to be loaded before1F starts. No model publication.

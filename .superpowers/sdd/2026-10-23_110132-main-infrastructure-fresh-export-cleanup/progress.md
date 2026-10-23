@@ -182,3 +182,28 @@ now reports cleaning and verified checkpoint saving. Next-action text derives
 from observed active floors. Runtime file updated on disk; running publisher
 47864 retains its loaded212cd30 version until the next owned restart before1F.
 Actual2F remains the only heavy worker; saved independent output still pending.
+
+## 23:38 +08 — actual 1F preparation saved; guarded execution gate
+
+Actual1F prepare-only CLI completed EXIT0/wall36.726s, frozen18c8ae9, planSHA
+e5af36dde9a242388985200cd6502b370dba87aba92ef152bec9e91b0f681e2a. All628donor
+K1records match;273selected/355excluded;273exact-source+273engine proofsPASS,
+rejects0. Original15856/stage10136 remain distinct.14inputs/201components/3donors
+rehashed; executiontreeHEADunchanged. Durable readback57b3b69f copied verbatim.
+35globalsamples minheadroom7.23GiB. Private/peakINVALID: initial observer tracked
+venvlauncher64416, not actual interpreter; never use847872B as worker budget.
+No1Fkernel or candidate exists yet. Public15:32:07 shows queued273proofmilestone.
+
+Operational rootreview permits a guarded second1Fworker only after3fresh>=8GiB
+headroomsamples, actualchild identity fromlaunch,3GiB private/OSpeakcap and abort
+onlynewowned1Ftree ifglobalheadroom<3.5GiB/counteroridentityfailure. Independent
+review found reasonable best-effort, not a guarantee. This changes no geometry
+threshold or signed guard. Recent600samples min5.880/median8.297/latest8.372GiB;
+2Factualpeak1.921GiB, prior1F2.152GiB. Launch still requiresactualgates; at15:37
+headroom7.426GiB/no1Fexecuteprocess. No other new heavy process is authorized.
+
+Loaded tested checkpoint-aware3438f3e status runtime by replacing only owned
+publisher47864 with4996/start15:35:22.463240Z/exec46920. Newdynamicnextaction uses
+observed active floors. Publictwo-rootreadback15:35:24 identical; 2Factual41648
+stillrunning,3Fqueued; Claude4F-7F remains separate. Independent1Fattempt3caller
+job claimed in separate tree; only bounded TDD permitted. Noacceptedfloor.
