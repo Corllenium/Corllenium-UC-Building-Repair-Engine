@@ -42,6 +42,8 @@ def main():
     parser.add_argument('--job-id', required=True)
     parser.add_argument('--reviewer', required=True)
     parser.add_argument('--expected-revision', default='7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511')
+    parser.add_argument('--original-oracle', action='store_true',
+                        help='bounded float64 caster (engine/rays/bounded_brute.py beside --helper) for precision-sensitive floors')
     args = parser.parse_args()
     run, F = args.root.resolve(), args.floor
     candidate, out = args.candidate.resolve(), args.out.resolve()
@@ -131,17 +133,25 @@ def main():
         spec = importlib.util.spec_from_file_location('independent_existing_strict_guard', paths['helper'])
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
+        caster_kwargs = {}
+        if args.original_oracle:
+            oracle_path = paths['helper'].parent.parent / 'engine' / 'rays' / 'bounded_brute.py'
+            oracle_spec = importlib.util.spec_from_file_location('independent_bounded_brute', oracle_path)
+            oracle = importlib.util.module_from_spec(oracle_spec)
+            oracle_spec.loader.exec_module(oracle)
+            caster_kwargs['caster_factory'] = oracle.BoundedBruteCaster
 
         def view_done(label, index):
             (out / 'guard-progress.json').write_text(json.dumps(dict(job_id=args.job_id, floor_id=F, phase='strict26 guard',
                 pair=label, completed_views=index, views_per_pair=26, pid=os.getpid(), observed_utc=now())), encoding='utf-8')
 
-        report, tol = module.strict_guard(before, after, source.mesh, provenance, on_view=view_done)
+        report, tol = module.strict_guard(before, after, source.mesh, provenance, on_view=view_done, **caster_kwargs)
         for key, path in paths.items():
             assert sha256_file(path) == hashes[key], 'guard input changed: ' + key
         _verify_assets(paths['raw'], run / 'normalized' / F, candidate, paths['before'].parent, source.mesh, provenance, audit)
         receipt = dict(**readback, guard=asdict(report), guard_depth_tol_inches=tol,
-                       resolution=[900, 600], views=26, caster='unchanged E3 worktree EmbreeCaster default',
+                       resolution=[900, 600], views=26,
+                       caster='BoundedBruteCaster (original float64 oracle)' if args.original_oracle else 'unchanged E3 worktree EmbreeCaster default',
                        wall_s=round(time.perf_counter() - started, 3), finished_utc=now(),
                        post_guard_input_hashes=dict(before=sha256_file(paths['before']), after=sha256_file(paths['after']),
                                                     source_after=sha256_file(paths['source_after']), matches_receipt=True))
