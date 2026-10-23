@@ -21,6 +21,14 @@ class MeshData:
     coord_decimals: int
     sig_digits: int
     units: str = "inches"
+    physical_quanta: tuple[float, float, float] | None = None
+
+    def __post_init__(self):
+        if self.physical_quanta is not None:
+            values = np.asarray(self.physical_quanta, dtype=float)
+            if values.shape != (3,) or not np.isfinite(values).all() or (values <= 0).any():
+                raise ValueError("physical_quanta must contain three finite positive axis steps")
+            self.physical_quanta = tuple(float(value) for value in values)
 
     @property
     def n_faces(self) -> int:

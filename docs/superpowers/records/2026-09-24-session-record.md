@@ -270,3 +270,6 @@ the reset, never re-dispatch blindly); on Windows a running agent's output file 
 is not a hang; other sessions edit this same working tree, so workers use their own worktree or
 branch and the controller merges; describe the work inline in agent prompts; run API tests only when
 no other session is (they drop the shared test database).
+
+2026-10-23 MAIN-INFRA-PRECISION-20261023: reviewed physical precision integration
+on signed336. Actual focused tests 36 passed in 1.97s, no floor verdict yet.

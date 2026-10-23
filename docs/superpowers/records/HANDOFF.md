@@ -456,3 +456,7 @@ docker compose -p ucmodelfixer up -d --no-build api web
 - The two `docker tag` commands keep the old images, so a rollback is one command.
 - The API runs `alembic upgrade head` on the live database when it starts.
 - Check `docker logs fixer-api`, then that `/api/versions/<id>/meshbuf` returns 200 through port 5190.
+
+2026-10-23 MAIN-INFRA-PRECISION-20261023: owned signed336 integration preserves
+all Validator/guard/target files. Physical source precision wrapper focused tests:
+36 passed in 1.97s. Independent full pilot reruns pending. See task report.

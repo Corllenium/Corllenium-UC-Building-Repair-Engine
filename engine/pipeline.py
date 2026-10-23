@@ -60,7 +60,8 @@ def analyse_topology(mesh: MeshData, flat_materials=frozenset(), *,
     positions_w, remap = weld_exact(mesh.positions, mesh.coord_decimals)
     face_w = remap[mesh.face_v]
     ok = ~degenerate_mask(positions_w, face_w)
-    quanta = axis_quanta(positions_w, mesh.sig_digits)
+    quanta = (axis_quanta(positions_w, mesh.sig_digits) if mesh.physical_quanta is None
+              else np.asarray(mesh.physical_quanta))
     table = build_edge_table(face_w, ok)
     t_vertices = find_t_vertices(positions_w, table, tol=1.5 * float(quanta.max()), face_w=face_w, degenerate=~ok)
     face_region = build_regions(mesh, positions_w, face_w, ok, table, t_vertices, quanta, set(flat_materials))
@@ -90,7 +91,8 @@ def _topology_key(mesh: MeshData, flat_materials, coplanar_angle: float, soft_an
         a = np.ascontiguousarray(getattr(mesh, name))
         h.update(f"{name}:{a.dtype.str}:{a.shape};".encode())
         h.update(a.tobytes())
-    h.update(repr((int(mesh.coord_decimals), int(mesh.sig_digits), sorted(int(m) for m in flat_materials),
+    h.update(repr((int(mesh.coord_decimals), int(mesh.sig_digits), mesh.physical_quanta,
+                   sorted(int(m) for m in flat_materials),
                    float(coplanar_angle), float(soft_angle))).encode())
     return h.digest()
 
