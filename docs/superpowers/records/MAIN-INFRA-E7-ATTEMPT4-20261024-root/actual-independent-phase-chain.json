@@ -1,0 +1,127 @@
+{
+  "acceptance": false,
+  "blocker": "One RGB-only pixel in qualified native outside view; cause unproved; native prerequisite failed",
+  "caller_commit": "a50226737ac155f4f7a303e3c2afe48abd45c29d",
+  "caller_sha256": "8d1210feaf846d323083fd65864167014b838ca2e525096eedeb3d188ad77a39",
+  "canonical_independent_review_exists": false,
+  "canonical_signed_report_exists": false,
+  "evidence": {
+    "guard": {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261024-attempt4\\1F\\guard\\independent-guard.json",
+      "sha256": "53f54fc443971474afb7d67c82dc637fb45ad937cc9a97131ef1ea2c16902030"
+    },
+    "native": {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261024-attempt4\\1F\\native\\native-readback.json",
+      "sha256": "eed21d6471660e612cf4b861fff15a08acc3e43b8885b7d16fdd19f20759d049"
+    },
+    "pixel_readback": {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\execution-ownership-attempt4\\native-pixel-readback.json",
+      "sha256": "2b3dc7a6d5a72f17c922ed1baedd0904b0290a3220c21e1f9ce41cb62dab9dfc"
+    },
+    "prepared": {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261024-attempt4\\1F\\prepared-inputs.json",
+      "sha256": "4e80ed648780216562bd6ee746fe78d5b8efca009ec84b0a5c76a6a8c1e52d9b"
+    }
+  },
+  "floor_id": "1F",
+  "guard_passed": true,
+  "job_id": "MAIN-INFRA-1F-VALIDATE-ATTEMPT4-20261024",
+  "native_changed": {
+    "after": [
+      206,
+      206,
+      206,
+      255
+    ],
+    "alpha_changed": 0,
+    "before": [
+      176,
+      176,
+      176,
+      255
+    ],
+    "name": "view_-1_-1_1",
+    "silhouette_occupancy_changed": 0,
+    "x": 221,
+    "y": 172
+  },
+  "native_preservation_passed": false,
+  "original_source_triangles": 15856,
+  "parent_job_id": "MAIN-INFRA-CLEAN-20261023",
+  "phases": [
+    {
+      "HEAD": "a50226737ac155f4f7a303e3c2afe48abd45c29d",
+      "abort_reason": null,
+      "acceptance": false,
+      "actual_creation_utc": "2026-10-23T19:25:07.9440408Z",
+      "actual_exit_code": 0,
+      "actual_pid": 53144,
+      "all_owned_exited": true,
+      "ended_utc": "2026-10-23T19:26:11.9857474Z",
+      "evidence": "data\\main-infra-1f-validation\\execution-ownership-attempt4\\monitor-prepare-20261023T192506",
+      "launcher_exit_code": 0,
+      "max_actual_os_peak_commit_bytes": 339681280,
+      "max_tree_private_bytes": 336625664,
+      "minimum_headroom_bytes": 9365254144,
+      "phase": "prepare",
+      "phase_plan_sha256": "d9a42184d1feca4f95d59ea2d4fc1442c3504b87805ef1521cc54990fae81a89",
+      "resource_sha256": "f6b82d02f9d7326fa9fd0d6a1104c5aacb78c3318c9676a02ae2fd4494804a85",
+      "result_sha256": "48957d8daf76d9b94f917a02c277f79149e54ffdeb2c7af66f30150eb0731640",
+      "state": "PROCESS_EXITED_ZERO",
+      "wall_s": 64.15377149999999
+    },
+    {
+      "HEAD": "a50226737ac155f4f7a303e3c2afe48abd45c29d",
+      "abort_reason": null,
+      "acceptance": false,
+      "actual_creation_utc": "2026-10-23T19:27:57.2857582Z",
+      "actual_exit_code": 0,
+      "actual_pid": 60768,
+      "all_owned_exited": true,
+      "ended_utc": "2026-10-23T19:29:16.5803655Z",
+      "evidence": "data\\main-infra-1f-validation\\execution-ownership-attempt4\\monitor-guard-20261023T192755",
+      "launcher_exit_code": 0,
+      "max_actual_os_peak_commit_bytes": 848297984,
+      "max_tree_private_bytes": 824946688,
+      "minimum_headroom_bytes": 8797089792,
+      "phase": "guard",
+      "phase_plan_sha256": "00d27106785bfff900fd3929cb662aca6dfdae423aaa97eedb22d502ad349eb4",
+      "resource_sha256": "54aa8f6e2325d3873f2ad7e71772221d0d86cbf36d5051d2fba45c1151eb810b",
+      "result_sha256": "3aaec789b3abdc74051ef48729d752b4500dfd5940d925a5dd3ecdeca3cc0697",
+      "state": "PROCESS_EXITED_ZERO",
+      "wall_s": 79.4694152
+    },
+    {
+      "HEAD": "a50226737ac155f4f7a303e3c2afe48abd45c29d",
+      "abort_reason": null,
+      "acceptance": false,
+      "actual_creation_utc": "2026-10-23T19:31:23.0929543Z",
+      "actual_exit_code": 2,
+      "actual_pid": 63184,
+      "all_owned_exited": true,
+      "ended_utc": "2026-10-23T19:33:03.1618547Z",
+      "evidence": "data\\main-infra-1f-validation\\execution-ownership-attempt4\\monitor-native-20261023T193121",
+      "launcher_exit_code": 2,
+      "max_actual_os_peak_commit_bytes": 342392832,
+      "max_tree_private_bytes": 2525114368,
+      "minimum_headroom_bytes": 7113437184,
+      "phase": "native",
+      "phase_plan_sha256": "2aaf082e54093e154b82cfebabcf681237d9275ba004e915f44a07bf944a28dc",
+      "resource_sha256": "6b31f51cb81669c086cf4bcc40fa31de320a453a54c8c2609e12cccb0c422b75",
+      "result_sha256": "b09a461a414aff2335edb0305006318bbb01baeb22ae93c5ff8e9ce8ec4367df",
+      "state": "PROCESS_FAILED",
+      "wall_s": 100.19033549999999
+    }
+  ],
+  "post_native_input_hashes": {
+    "after": "20dc4122d902c586bdae961198b7b0e693739e959d4c26acd9c8c91f53f7f68b",
+    "before": "bed4b7c24b7a3a164381b8e6e0ca0b7e7bf9998e1df7c2782878d23cd1796df3",
+    "source_after": "782358c9877864443654a12d86b8f1cc50012483d342e0e1509ee813fd3e76c8"
+  },
+  "publishable": false,
+  "saved_candidate_triangles": 10393,
+  "source_revision": "7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511",
+  "stage_input_triangles": 10136,
+  "validator_passed": null,
+  "validator_started": false
+}

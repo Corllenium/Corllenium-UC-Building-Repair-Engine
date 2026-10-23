@@ -1,0 +1,377 @@
+{
+  "state": "SAVED_ARTIFACT_READBACK_PASS",
+  "HEAD": "95dad1de1be241e613cb0763447b662b918f7eca",
+  "candidate": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-native-safe-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261024-attempt4\\1F",
+  "original_triangles": 15856,
+  "stage_triangles": 10136,
+  "output_triangles": 10393,
+  "original_donor_rolled_back": 355,
+  "policy_excluded_sites": 101,
+  "proposed_cuts": 172,
+  "fresh_kept": 159,
+  "fresh_rolled_back": 13,
+  "unchanged_faces": 9977,
+  "cut_child_faces": 416,
+  "original_source_positions_bit_exact": true,
+  "original_engine_positions_bit_exact": true,
+  "original_uv_normal_prefixes_bit_exact": true,
+  "original_surviving_ancestry_equal": true,
+  "assets_verified": 7,
+  "preparation_sha256": "1e42d67a3419b9a3cc7388c8714837b7e06b358350450b5d11479b94353bf14d",
+  "worker_sha256": "cfe7767fe4b9700297ff28aafe083796e88a99422d34df82a23ac6253920bde1",
+  "checkpoint_receipt_sha256": "dc4afa825bf2170aa9fe4edfe6e775ac8c8549bb0b48a4e1a8ff33dd4593f6f7",
+  "files": {
+    "candidate.source.obj": "782358c9877864443654a12d86b8f1cc50012483d342e0e1509ee813fd3e76c8",
+    "candidate.engine.obj": "20dc4122d902c586bdae961198b7b0e693739e959d4c26acd9c8c91f53f7f68b",
+    "cut-receipt.json": "50387bc6d0493fab9ebd09f6c4cad423ed0e6fdc21bf8dfda44803b53a145094",
+    "run-receipt.json": "cdc4869fbae6ec2f9e7f4664f4d6751f050f32b4aab1805a532faff3139af1f1",
+    "asset-receipt.json": "019d965f6ded3630e9d957335fea8f33b98c7e8705a5017600ef1d66ae33eb3b",
+    "cut-lineage.json": "8ffbc1da0f1bcd8d107c0541cc840b812d46638c0f351a673695d59f2988915c",
+    "checked-edits.json": "2738c9e2b454f7b3112b002459d23f13c79db8d9daa8a208e7ae6af50caefd9b",
+    "edit-log.jsonl": "9ae7cb027b4150e8f663e67c21e0d45fa599de3a1057ff35f7fb1ea80a5844e4"
+  },
+  "check": {
+    "edits": 172,
+    "engine": "E7",
+    "final": "PASS",
+    "first": "FAIL",
+    "legacy": false,
+    "rollback": true,
+    "rolled_back": [
+      {
+        "charged": 1,
+        "edits": 1,
+        "faces": [
+          1845
+        ],
+        "how": {
+          "box": 1,
+          "cover": 0,
+          "touched": 0
+        },
+        "reasons": {
+          "covered": 1
+        },
+        "round": 1,
+        "rounds_exhausted": false,
+        "site": 2028
+      },
+      {
+        "charged": 3,
+        "edits": 1,
+        "faces": [
+          2005,
+          2519,
+          2761
+        ],
+        "how": {
+          "box": 0,
+          "cover": 3,
+          "touched": 0
+        },
+        "reasons": {
+          "covered": 3
+        },
+        "round": 1,
+        "rounds_exhausted": false,
+        "site": 4414
+      },
+      {
+        "charged": 1,
+        "edits": 1,
+        "faces": [
+          1845
+        ],
+        "how": {
+          "box": 1,
+          "cover": 0,
+          "touched": 0
+        },
+        "reasons": {
+          "covered": 1
+        },
+        "round": 1,
+        "rounds_exhausted": false,
+        "site": 5676
+      },
+      {
+        "charged": 2,
+        "edits": 1,
+        "faces": [
+          1845,
+          2519
+        ],
+        "how": {
+          "box": 0,
+          "cover": 2,
+          "touched": 0
+        },
+        "reasons": {
+          "covered": 2
+        },
+        "round": 1,
+        "rounds_exhausted": false,
+        "site": 5688
+      },
+      {
+        "charged": 2,
+        "edits": 1,
+        "faces": [
+          2005,
+          2761
+        ],
+        "how": {
+          "box": 2,
+          "cover": 0,
+          "touched": 0
+        },
+        "reasons": {
+          "covered": 2
+        },
+        "round": 1,
+        "rounds_exhausted": false,
+        "site": 7485
+      },
+      {
+        "charged": 2,
+        "edits": 1,
+        "faces": [
+          2005,
+          2761
+        ],
+        "how": {
+          "box": 2,
+          "cover": 0,
+          "touched": 0
+        },
+        "reasons": {
+          "covered": 2
+        },
+        "round": 1,
+        "rounds_exhausted": false,
+        "site": 7491
+      },
+      {
+        "charged": 2,
+        "edits": 1,
+        "faces": [
+          2005,
+          2761
+        ],
+        "how": {
+          "box": 2,
+          "cover": 0,
+          "touched": 0
+        },
+        "reasons": {
+          "covered": 2
+        },
+        "round": 1,
+        "rounds_exhausted": false,
+        "site": 7787
+      },
+      {
+        "charged": 2,
+        "edits": 1,
+        "faces": [
+          2005,
+          2761
+        ],
+        "how": {
+          "box": 2,
+          "cover": 0,
+          "touched": 0
+        },
+        "reasons": {
+          "covered": 2
+        },
+        "round": 1,
+        "rounds_exhausted": false,
+        "site": 7913
+      },
+      {
+        "charged": 2,
+        "edits": 1,
+        "faces": [
+          2005,
+          2761
+        ],
+        "how": {
+          "box": 2,
+          "cover": 0,
+          "touched": 0
+        },
+        "reasons": {
+          "covered": 2
+        },
+        "round": 1,
+        "rounds_exhausted": false,
+        "site": 8126
+      },
+      {
+        "charged": 2,
+        "edits": 1,
+        "faces": [
+          2005,
+          2761
+        ],
+        "how": {
+          "box": 2,
+          "cover": 0,
+          "touched": 0
+        },
+        "reasons": {
+          "covered": 2
+        },
+        "round": 1,
+        "rounds_exhausted": false,
+        "site": 8232
+      },
+      {
+        "charged": 1,
+        "edits": 1,
+        "faces": [
+          1845
+        ],
+        "how": {
+          "box": 1,
+          "cover": 0,
+          "touched": 0
+        },
+        "reasons": {
+          "covered": 1
+        },
+        "round": 1,
+        "rounds_exhausted": false,
+        "site": 8289
+      },
+      {
+        "charged": 2,
+        "edits": 1,
+        "faces": [
+          2005,
+          2761
+        ],
+        "how": {
+          "box": 2,
+          "cover": 0,
+          "touched": 0
+        },
+        "reasons": {
+          "covered": 2
+        },
+        "round": 1,
+        "rounds_exhausted": false,
+        "site": 8835
+      },
+      {
+        "charged": 2,
+        "edits": 1,
+        "faces": [
+          2005,
+          2761
+        ],
+        "how": {
+          "box": 2,
+          "cover": 0,
+          "touched": 0
+        },
+        "reasons": {
+          "covered": 2
+        },
+        "round": 1,
+        "rounds_exhausted": false,
+        "site": 8889
+      }
+    ],
+    "rounds": 1,
+    "rounds_exhausted": false,
+    "runs": [
+      {
+        "after_faces": 466,
+        "before_faces": 10136,
+        "charged": 4,
+        "cover_seconds": 79.91,
+        "covered_by_fill": 0,
+        "failing": 4,
+        "focus_seconds": 0.12,
+        "kind": "first",
+        "nothing_deleted": {
+          "covered": 4,
+          "deleted": 0,
+          "overlaid": 0,
+          "replaced": 0
+        },
+        "seconds": 292.21,
+        "sites": 172,
+        "status": "FAIL",
+        "textures": {
+          "covered": 4,
+          "deleted": 0,
+          "look": 0,
+          "overlaid": 0,
+          "side": 0,
+          "uv": 0
+        },
+        "unknown": 0
+      },
+      {
+        "after_faces": 416,
+        "before_faces": 10136,
+        "charged": 0,
+        "cover_seconds": 71.04,
+        "covered_by_fill": 0,
+        "failing": 0,
+        "focus_seconds": 0.12,
+        "kind": "confirm",
+        "nothing_deleted": {
+          "covered": 0,
+          "deleted": 0,
+          "overlaid": 0,
+          "replaced": 0
+        },
+        "seconds": 274.28,
+        "sites": 159,
+        "status": "PASS",
+        "textures": {
+          "covered": 0,
+          "deleted": 0,
+          "look": 0,
+          "overlaid": 0,
+          "side": 0,
+          "uv": 0
+        },
+        "unknown": 0
+      }
+    ],
+    "sites": 172,
+    "stage": "E7",
+    "stage_rolled_back": null,
+    "unknown": {
+      "faces": [],
+      "reasons": {},
+      "samples": 0
+    }
+  },
+  "terminal": {
+    "state": "PROCESS_EXITED_ZERO",
+    "phase": "attempt4-execute",
+    "abort_reason": null,
+    "actual_pid": 14236,
+    "actual_creation_utc": "2026-10-23T19:00:14.1430901Z",
+    "actual_exit_code": 0,
+    "launcher_exit_code": 0,
+    "wall_s": 855.1558136,
+    "HEAD": "95dad1de1be241e613cb0763447b662b918f7eca",
+    "phase_plan_sha256": "27e6ae7367e4045a185bad6330568bc7484ab16a58f667971f658d239bff1b8e",
+    "all_owned_exited": true,
+    "evidence": ".\\data\\main-infra-e7\\attempt4-preflight\\monitor-attempt4-execute-20261023T190012",
+    "ended_utc": "2026-10-23T19:14:29.1437485Z",
+    "acceptance": false
+  },
+  "actual_os_peak_commit": 1389166592,
+  "min_system_headroom": 8719511552,
+  "resource_samples": 1308,
+  "native_and_full_signed_independent_validation": "pending",
+  "floor_accepted": false
+}

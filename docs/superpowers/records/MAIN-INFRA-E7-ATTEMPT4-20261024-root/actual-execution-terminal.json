@@ -1,0 +1,16 @@
+{
+  "state": "PROCESS_EXITED_ZERO",
+  "phase": "attempt4-execute",
+  "abort_reason": null,
+  "actual_pid": 14236,
+  "actual_creation_utc": "2026-10-23T19:00:14.1430901Z",
+  "actual_exit_code": 0,
+  "launcher_exit_code": 0,
+  "wall_s": 855.1558136,
+  "HEAD": "95dad1de1be241e613cb0763447b662b918f7eca",
+  "phase_plan_sha256": "27e6ae7367e4045a185bad6330568bc7484ab16a58f667971f658d239bff1b8e",
+  "all_owned_exited": true,
+  "evidence": ".\\data\\main-infra-e7\\attempt4-preflight\\monitor-attempt4-execute-20261023T190012",
+  "ended_utc": "2026-10-23T19:14:29.1437485Z",
+  "acceptance": false
+}

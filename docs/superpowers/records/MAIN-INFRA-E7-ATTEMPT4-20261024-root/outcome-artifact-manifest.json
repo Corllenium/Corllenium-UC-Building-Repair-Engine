@@ -1,0 +1,84 @@
+{
+  "artifacts": [
+    {
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-native-safe-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\attempt4-preflight\\monitor-attempt4-execute-20261023T190012\\result.json",
+      "path": "docs\\superpowers\\records\\MAIN-INFRA-E7-ATTEMPT4-20261024-root\\actual-execution-terminal.json",
+      "sha256": "4f319cfbf956fd25de9b922f839360cb7e605d87e4c704dc0453f638ff4a453c",
+      "bytes": 608
+    },
+    {
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-native-safe-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\attempt4-preflight\\final-readback.json",
+      "path": "docs\\superpowers\\records\\MAIN-INFRA-E7-ATTEMPT4-20261024-root\\final-readback.json",
+      "sha256": "e339fcf592145a7bacf7006481f57f4ff60f8e170aebc7f5f5c9817f32fdac6b",
+      "bytes": 9128
+    },
+    {
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261024-attempt4\\1F\\prepared-inputs.json",
+      "path": "docs\\superpowers\\records\\MAIN-INFRA-E7-ATTEMPT4-20261024-root\\actual-independent-prepared-inputs.json",
+      "sha256": "4e80ed648780216562bd6ee746fe78d5b8efca009ec84b0a5c76a6a8c1e52d9b",
+      "bytes": 140644
+    },
+    {
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261024-attempt4\\1F\\guard\\independent-guard.json",
+      "path": "docs\\superpowers\\records\\MAIN-INFRA-E7-ATTEMPT4-20261024-root\\actual-independent-guard.json",
+      "sha256": "53f54fc443971474afb7d67c82dc637fb45ad937cc9a97131ef1ea2c16902030",
+      "bytes": 158784
+    },
+    {
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261024-attempt4\\1F\\native\\native-readback.json",
+      "path": "docs\\superpowers\\records\\MAIN-INFRA-E7-ATTEMPT4-20261024-root\\actual-native-readback.json",
+      "sha256": "eed21d6471660e612cf4b861fff15a08acc3e43b8885b7d16fdd19f20759d049",
+      "bytes": 205838
+    },
+    {
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\execution-ownership-attempt4\\native-pixel-readback.json",
+      "path": "docs\\superpowers\\records\\MAIN-INFRA-E7-ATTEMPT4-20261024-root\\actual-native-pixel-readback.json",
+      "sha256": "2b3dc7a6d5a72f17c922ed1baedd0904b0290a3220c21e1f9ce41cb62dab9dfc",
+      "bytes": 29785
+    },
+    {
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\execution-ownership-attempt4\\phase-chain-summary.json",
+      "path": "docs\\superpowers\\records\\MAIN-INFRA-E7-ATTEMPT4-20261024-root\\actual-independent-phase-chain.json",
+      "sha256": "941a15d24827354bd812b3921b481a559148fa3d93acd02e4b1728ae35fcfd87",
+      "bytes": 5707
+    },
+    {
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\execution-ownership-attempt4\\phase-native-failure-signed-diagnostic.json",
+      "path": "docs\\superpowers\\records\\MAIN-INFRA-E7-ATTEMPT4-20261024-root\\phase-native-failure-signed-diagnostic.json",
+      "sha256": "9221c689b44ec3a4a7cb7e80e548d17aca4c6982fc064395c16210a0ede26ad8",
+      "bytes": 5609
+    },
+    {
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\tmp\\attempt4_native_failure_signed_diagnostic.py",
+      "path": "docs\\superpowers\\records\\MAIN-INFRA-E7-ATTEMPT4-20261024-root\\native-failure-signed-diagnostic.py",
+      "sha256": "63b18bdfa7db88ffa0fb7f89d1e7e8511e9d1264729d502092eb1a20f07dec7b",
+      "bytes": 5523
+    },
+    {
+      "source": "D:\\PROJECTS\\UC MODEL FIXER\\data\\tmp\\main-infra-e7-attempt4-pixel-footprint-20261024\\footprint.json",
+      "path": "docs\\superpowers\\records\\MAIN-INFRA-E7-ATTEMPT4-20261024-root\\native-pixel-footprint.json",
+      "sha256": "04f6947f74a670d022e1e2661dbd5d5019b5caae648726d5d05240a735701afe",
+      "bytes": 31788
+    },
+    {
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261024-attempt4\\1F\\native\\paired\\view_-1_-1_1.before.png",
+      "path": "docs\\superpowers\\records\\MAIN-INFRA-E7-ATTEMPT4-20261024-root\\native-before.png",
+      "sha256": "05e76fee98b2f3e4379b77c11cdeb92fe2fb24bc572adacb1744a6efd5d1eb9f",
+      "bytes": 114069
+    },
+    {
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261024-attempt4\\1F\\native\\paired\\view_-1_-1_1.after.png",
+      "path": "docs\\superpowers\\records\\MAIN-INFRA-E7-ATTEMPT4-20261024-root\\native-after.png",
+      "sha256": "8325dff42c0b224c91e95b5103d702a5f1effcb23581d544b34df3943310cbe6",
+      "bytes": 114069
+    },
+    {
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261024-attempt4\\1F\\native\\paired\\view_-1_-1_1.diff.png",
+      "path": "docs\\superpowers\\records\\MAIN-INFRA-E7-ATTEMPT4-20261024-root\\native-diff.png",
+      "sha256": "99b9a374d2696785e44a77e3ec424f8648b6bb71e77008e2c671c51a7e66a586",
+      "bytes": 6327
+    }
+  ],
+  "accepted": false,
+  "publishable": false
+}

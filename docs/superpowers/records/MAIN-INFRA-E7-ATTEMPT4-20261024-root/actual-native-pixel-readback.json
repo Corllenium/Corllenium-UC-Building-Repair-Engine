@@ -1,0 +1,513 @@
+{
+  "acceptance": false,
+  "alpha_changed": 0,
+  "canonical_signed_validation_started": false,
+  "changed": [
+    {
+      "after": {
+        "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261024-attempt4\\1F\\native\\paired\\view_-1_-1_1.after.png",
+        "sha256": "8325dff42c0b224c91e95b5103d702a5f1effcb23581d544b34df3943310cbe6"
+      },
+      "alpha_changed": 0,
+      "before": {
+        "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261024-attempt4\\1F\\native\\paired\\view_-1_-1_1.before.png",
+        "sha256": "05e76fee98b2f3e4379b77c11cdeb92fe2fb24bc572adacb1744a6efd5d1eb9f"
+      },
+      "diff": {
+        "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261024-attempt4\\1F\\native\\paired\\view_-1_-1_1.diff.png",
+        "sha256": "99b9a374d2696785e44a77e3ec424f8648b6bb71e77008e2c671c51a7e66a586"
+      },
+      "different_pixels": 1,
+      "name": "view_-1_-1_1",
+      "pixels": [
+        {
+          "after": [
+            206,
+            206,
+            206,
+            255
+          ],
+          "before": [
+            176,
+            176,
+            176,
+            255
+          ],
+          "x": 221,
+          "y": 172
+        }
+      ],
+      "silhouette_occupancy_changed": 0
+    }
+  ],
+  "changed_pairs": 1,
+  "different_pixels": 1,
+  "native_preservation_passed": false,
+  "native_receipt_sha256": "eed21d6471660e612cf4b861fff15a08acc3e43b8885b7d16fdd19f20759d049",
+  "pairs": [
+    {
+      "after": {
+        "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261024-attempt4\\1F\\native\\paired\\view_-1_-1_0.after.png",
+        "sha256": "e93448cb2d24876ec36732130ab826b3cb71b1ba952d31feff7fcdf3cfd626ea"
+      },
+      "alpha_changed": 0,
+      "before": {
+        "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261024-attempt4\\1F\\native\\paired\\view_-1_-1_0.before.png",
+        "sha256": "5e7f05fe604265b1aedc7928b63a070ea9d92fa0bcfbaa5f0093a1909f1644cb"
+      },
+      "different_pixels": 0,
+      "name": "view_-1_-1_0",
+      "silhouette_occupancy_changed": 0
+    },
+    {
+      "after": {
+        "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261024-attempt4\\1F\\native\\paired\\view_-1_-1_1.after.png",
+        "sha256": "8325dff42c0b224c91e95b5103d702a5f1effcb23581d544b34df3943310cbe6"
+      },
+      "alpha_changed": 0,
+      "before": {
+        "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261024-attempt4\\1F\\native\\paired\\view_-1_-1_1.before.png",
+        "sha256": "05e76fee98b2f3e4379b77c11cdeb92fe2fb24bc572adacb1744a6efd5d1eb9f"
+      },
+      "different_pixels": 1,
+      "name": "view_-1_-1_1",
+      "silhouette_occupancy_changed": 0
+    },
+    {
+      "after": {
+        "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261024-attempt4\\1F\\native\\paired\\view_-1_0_0.after.png",
+        "sha256": "b43dd1e20f5ddda44c5c55d46a4482ec165f8ea92946f0cd07e274003d065d56"
+      },
+      "alpha_changed": 0,
+      "before": {
+        "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261024-attempt4\\1F\\native\\paired\\view_-1_0_0.before.png",
+        "sha256": "8dd01fb7c7a94fc048d11bde65f349f6dad087a6ceba5b55f61b741851755bff"
+      },
+      "different_pixels": 0,
+      "name": "view_-1_0_0",
+      "silhouette_occupancy_changed": 0
+    },
+    {
+      "after": {
+        "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261024-attempt4\\1F\\native\\paired\\view_-1_0_1.after.png",
+        "sha256": "616b39313a7e0b3aae91f150949c2b21500a0f5af84f0d9c758ee5214b7c041f"
+      },
+      "alpha_changed": 0,
+      "before": {
+        "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261024-attempt4\\1F\\native\\paired\\view_-1_0_1.before.png",
+        "sha256": "420166db5563513c03fc38345fdc3463bcbbcc8c12c438912e745084a91a3cc7"
+      },
+      "different_pixels": 0,
+      "name": "view_-1_0_1",
+      "silhouette_occupancy_changed": 0
+    },
+    {
+      "after": {
+        "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261024-attempt4\\1F\\native\\paired\\view_-1_1_0.after.png",
+        "sha256": "b1bae2a164f73bf1a2f823af447045ffaed4a9809367604d46d458adac19247d"
+      },
+      "alpha_changed": 0,
+      "before": {
+        "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261024-attempt4\\1F\\native\\paired\\view_-1_1_0.before.png",
+        "sha256": "ba1547855effb8581473ef7bc011b7da3d944dea390dd796630045579df76fc2"
+      },
+      "different_pixels": 0,
+      "name": "view_-1_1_0",
+      "silhouette_occupancy_changed": 0
+    },
+    {
+      "after": {
+        "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261024-attempt4\\1F\\native\\paired\\view_-1_1_1.after.png",
+        "sha256": "5e956aa57a20e884135d778c173ccd98bd34fbbb09116212803605f74f83a11f"
+      },
+      "alpha_changed": 0,
+      "before": {
+        "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261024-attempt4\\1F\\native\\paired\\view_-1_1_1.before.png",
+        "sha256": "5cac714dbc5399733219e3db24d8af7df175019bf36925e556a4fe65f9367259"
+      },
+      "different_pixels": 0,
+      "name": "view_-1_1_1",
+      "silhouette_occupancy_changed": 0
+    },
+    {
+      "after": {
+        "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261024-attempt4\\1F\\native\\paired\\view_0_-1_0.after.png",
+        "sha256": "b7d219bef85ffd7aeb6d3145239769f4af26515fa1a14fa8c773784ad7866051"
+      },
+      "alpha_changed": 0,
+      "before": {
+        "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261024-attempt4\\1F\\native\\paired\\view_0_-1_0.before.png",
+        "sha256": "a385deb637cb522ebc977fb6b3d36a9bdb30eabb31571768c92862bee337ec77"
+      },
+      "different_pixels": 0,
+      "name": "view_0_-1_0",
+      "silhouette_occupancy_changed": 0
+    },
+    {
+      "after": {
+        "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261024-attempt4\\1F\\native\\paired\\view_0_-1_1.after.png",
+        "sha256": "210386a054895c59a6ae89ac1f3f560baaabc12b0bb8ec588c7403e5108b3f7e"
+      },
+      "alpha_changed": 0,
+      "before": {
+        "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261024-attempt4\\1F\\native\\paired\\view_0_-1_1.before.png",
+        "sha256": "48f1c29e80040f393112fb14c9556649fd8f0f31cc5f305107f3879368c98ad1"
+      },
+      "different_pixels": 0,
+      "name": "view_0_-1_1",
+      "silhouette_occupancy_changed": 0
+    },
+    {
+      "after": {
+        "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261024-attempt4\\1F\\native\\paired\\view_0_0_1.after.png",
+        "sha256": "1241533012784316290c44659aba759563e2254450c32d34b28c0ee39eb16215"
+      },
+      "alpha_changed": 0,
+      "before": {
+        "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261024-attempt4\\1F\\native\\paired\\view_0_0_1.before.png",
+        "sha256": "f52dceb3040470d5f3f3184fe4d9b42b64e690d83f7ae62aa158fb78b3e82645"
+      },
+      "different_pixels": 0,
+      "name": "view_0_0_1",
+      "silhouette_occupancy_changed": 0
+    },
+    {
+      "after": {
+        "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261024-attempt4\\1F\\native\\paired\\view_0_1_0.after.png",
+        "sha256": "aff851b5a888c9d4914615ce827a83af98edcfef456fff6165f48030d076a83e"
+      },
+      "alpha_changed": 0,
+      "before": {
+        "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261024-attempt4\\1F\\native\\paired\\view_0_1_0.before.png",
+        "sha256": "a0b85e8125ceac0a5606b3b0b221bc76150263b89ad13b43ec1f1680ed08bb2e"
+      },
+      "different_pixels": 0,
+      "name": "view_0_1_0",
+      "silhouette_occupancy_changed": 0
+    },
+    {
+      "after": {
+        "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261024-attempt4\\1F\\native\\paired\\view_0_1_1.after.png",
+        "sha256": "115853f39f1162e95ba87fb39b2f050bbfd7b222bc8fd0fca06ed12b1bf1b8a7"
+      },
+      "alpha_changed": 0,
+      "before": {
+        "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261024-attempt4\\1F\\native\\paired\\view_0_1_1.before.png",
+        "sha256": "dca3a64d5d05680faa0205c2a7a2649c3c342578f83053c11e1963ee55c05b4b"
+      },
+      "different_pixels": 0,
+      "name": "view_0_1_1",
+      "silhouette_occupancy_changed": 0
+    },
+    {
+      "after": {
+        "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261024-attempt4\\1F\\native\\paired\\view_1_-1_0.after.png",
+        "sha256": "debcb74f8a74821a54ff681721377a60b65b7e14124bbdc7d943af4c72d38f8d"
+      },
+      "alpha_changed": 0,
+      "before": {
+        "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261024-attempt4\\1F\\native\\paired\\view_1_-1_0.before.png",
+        "sha256": "61f5fbb4e3dd394f9f4271fe697da5ea5037a4ecfdd0e07d2779f24d14cebf2e"
+      },
+      "different_pixels": 0,
+      "name": "view_1_-1_0",
+      "silhouette_occupancy_changed": 0
+    },
+    {
+      "after": {
+        "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261024-attempt4\\1F\\native\\paired\\view_1_-1_1.after.png",
+        "sha256": "a749671ee5f42b9a1727e14506d6ad2304323ae89162ba95565a965ad0ad0992"
+      },
+      "alpha_changed": 0,
+      "before": {
+        "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261024-attempt4\\1F\\native\\paired\\view_1_-1_1.before.png",
+        "sha256": "8a2c3fac12e2128698b8a452b9b0ff8e75e6d62ec2741309388239008ba94abf"
+      },
+      "different_pixels": 0,
+      "name": "view_1_-1_1",
+      "silhouette_occupancy_changed": 0
+    },
+    {
+      "after": {
+        "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261024-attempt4\\1F\\native\\paired\\view_1_0_0.after.png",
+        "sha256": "6eb797431f7aaa5213de909546ee1c102f70d409cdf79cf3680fadd7f33aee65"
+      },
+      "alpha_changed": 0,
+      "before": {
+        "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261024-attempt4\\1F\\native\\paired\\view_1_0_0.before.png",
+        "sha256": "b4c80081f30bed21ecaf4a9c4f56c6edd2916785233a3ca029621e7f5a5d88c9"
+      },
+      "different_pixels": 0,
+      "name": "view_1_0_0",
+      "silhouette_occupancy_changed": 0
+    },
+    {
+      "after": {
+        "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261024-attempt4\\1F\\native\\paired\\view_1_0_1.after.png",
+        "sha256": "2a8df46b539486ed595f7f5c06cddb417de85ef188b7e659db948ed859614080"
+      },
+      "alpha_changed": 0,
+      "before": {
+        "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261024-attempt4\\1F\\native\\paired\\view_1_0_1.before.png",
+        "sha256": "2a8df46b539486ed595f7f5c06cddb417de85ef188b7e659db948ed859614080"
+      },
+      "different_pixels": 0,
+      "name": "view_1_0_1",
+      "silhouette_occupancy_changed": 0
+    },
+    {
+      "after": {
+        "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261024-attempt4\\1F\\native\\paired\\view_1_1_0.after.png",
+        "sha256": "ba7f55ca2151c37459f7259aca9aeb64e996a59ed808be8b4e97ba9daa1601e6"
+      },
+      "alpha_changed": 0,
+      "before": {
+        "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261024-attempt4\\1F\\native\\paired\\view_1_1_0.before.png",
+        "sha256": "ba7f55ca2151c37459f7259aca9aeb64e996a59ed808be8b4e97ba9daa1601e6"
+      },
+      "different_pixels": 0,
+      "name": "view_1_1_0",
+      "silhouette_occupancy_changed": 0
+    },
+    {
+      "after": {
+        "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261024-attempt4\\1F\\native\\paired\\view_1_1_1.after.png",
+        "sha256": "a516f0eb80317d577c59a6c283d14b63d1c7779f74f0b32be7d2fa8c7846ab0c"
+      },
+      "alpha_changed": 0,
+      "before": {
+        "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261024-attempt4\\1F\\native\\paired\\view_1_1_1.before.png",
+        "sha256": "9d312c86dbce291e775fdec411d1cc31698bd93277d84806ac9ea5e9418da9e8"
+      },
+      "different_pixels": 0,
+      "name": "view_1_1_1",
+      "silhouette_occupancy_changed": 0
+    },
+    {
+      "after": {
+        "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261024-attempt4\\1F\\native\\paired\\eye_0_qualified_0_probe_627.after.png",
+        "sha256": "1f822a6dcffbd925cacaf0543d7bb66657cf8aa950b2d8064d31573b9ce1881a"
+      },
+      "alpha_changed": 0,
+      "before": {
+        "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261024-attempt4\\1F\\native\\paired\\eye_0_qualified_0_probe_627.before.png",
+        "sha256": "5d379d2e7e367491c3dfe3618636c6ecc640df60716262a05c9606b3fd14a07b"
+      },
+      "different_pixels": 0,
+      "name": "eye_0_qualified_0_probe_627",
+      "silhouette_occupancy_changed": 0
+    },
+    {
+      "after": {
+        "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261024-attempt4\\1F\\native\\paired\\eye_0_qualified_1_probe_501.after.png",
+        "sha256": "473daf3825ddc9328daebf71310bb74307ec1ab5f49199c8e893bc5f4365bf12"
+      },
+      "alpha_changed": 0,
+      "before": {
+        "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261024-attempt4\\1F\\native\\paired\\eye_0_qualified_1_probe_501.before.png",
+        "sha256": "7d06423bbcbcff8c09eaf40a4202ab4f2f619f864ee9b16e7d564b92c8b1d6c8"
+      },
+      "different_pixels": 0,
+      "name": "eye_0_qualified_1_probe_501",
+      "silhouette_occupancy_changed": 0
+    },
+    {
+      "after": {
+        "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261024-attempt4\\1F\\native\\paired\\eye_0_qualified_2_probe_503.after.png",
+        "sha256": "5c9bcaf937bc997d7e51bd55314643b353fbdf8571e410558c435684d3a8df6e"
+      },
+      "alpha_changed": 0,
+      "before": {
+        "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261024-attempt4\\1F\\native\\paired\\eye_0_qualified_2_probe_503.before.png",
+        "sha256": "01a8600ee9c944c6252e0ad200223fb48e5903d6e62233d5d2ebfac0adc37d52"
+      },
+      "different_pixels": 0,
+      "name": "eye_0_qualified_2_probe_503",
+      "silhouette_occupancy_changed": 0
+    },
+    {
+      "after": {
+        "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261024-attempt4\\1F\\native\\paired\\eye_0_qualified_3_probe_502.after.png",
+        "sha256": "150f25f13b88b9377a0e4d79624d108410e54d0ed545510d346ced670b7e1540"
+      },
+      "alpha_changed": 0,
+      "before": {
+        "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261024-attempt4\\1F\\native\\paired\\eye_0_qualified_3_probe_502.before.png",
+        "sha256": "3449f21cde26a8a72c51476298d295ddc07e8d44bbe88486f78427468515c268"
+      },
+      "different_pixels": 0,
+      "name": "eye_0_qualified_3_probe_502",
+      "silhouette_occupancy_changed": 0
+    },
+    {
+      "after": {
+        "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261024-attempt4\\1F\\native\\paired\\eye_1_qualified_0_probe_75.after.png",
+        "sha256": "3a3b6427007ae0d7f7c0735868d6f944f819f402c048612e60d148fac4a8f236"
+      },
+      "alpha_changed": 0,
+      "before": {
+        "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261024-attempt4\\1F\\native\\paired\\eye_1_qualified_0_probe_75.before.png",
+        "sha256": "cb7a374dccf43283d4d2015266027f42e905bd25610492e921a89a477056bd3f"
+      },
+      "different_pixels": 0,
+      "name": "eye_1_qualified_0_probe_75",
+      "silhouette_occupancy_changed": 0
+    },
+    {
+      "after": {
+        "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261024-attempt4\\1F\\native\\paired\\eye_1_qualified_1_probe_185.after.png",
+        "sha256": "62fa63e2829552febc4cfba63f8996d7be76cf208988500e6dbc2a2d4636f7c2"
+      },
+      "alpha_changed": 0,
+      "before": {
+        "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261024-attempt4\\1F\\native\\paired\\eye_1_qualified_1_probe_185.before.png",
+        "sha256": "da7ad942aa40417b54864608b58b1167e99d3626117cf46fa72d5b645d8f80e9"
+      },
+      "different_pixels": 0,
+      "name": "eye_1_qualified_1_probe_185",
+      "silhouette_occupancy_changed": 0
+    },
+    {
+      "after": {
+        "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261024-attempt4\\1F\\native\\paired\\eye_1_qualified_2_probe_90.after.png",
+        "sha256": "6ca6e944510bc60cd4d1c87c8cacfb935de1f51d0544ac45270b5990ce06cf3f"
+      },
+      "alpha_changed": 0,
+      "before": {
+        "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261024-attempt4\\1F\\native\\paired\\eye_1_qualified_2_probe_90.before.png",
+        "sha256": "fb2e5b58159b8075d28a5db6227e0c33266f4c6343494fe70947763fd1e20403"
+      },
+      "different_pixels": 0,
+      "name": "eye_1_qualified_2_probe_90",
+      "silhouette_occupancy_changed": 0
+    },
+    {
+      "after": {
+        "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261024-attempt4\\1F\\native\\paired\\eye_1_qualified_3_probe_60.after.png",
+        "sha256": "afd66ae79dfe34278bf1796be1cf57c478ceb6741f33e76089d2958b4edda7f0"
+      },
+      "alpha_changed": 0,
+      "before": {
+        "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261024-attempt4\\1F\\native\\paired\\eye_1_qualified_3_probe_60.before.png",
+        "sha256": "3e479c64bd479f62623b7b17ae84a504d1af7bc95f9eefcfc70b58549288a0fc"
+      },
+      "different_pixels": 0,
+      "name": "eye_1_qualified_3_probe_60",
+      "silhouette_occupancy_changed": 0
+    },
+    {
+      "after": {
+        "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261024-attempt4\\1F\\native\\paired\\eye_2_qualified_0_probe_261.after.png",
+        "sha256": "237f9d7fad692ea4ba2705f6a549fce8fc56f74218dcd821652a67fb5630d93f"
+      },
+      "alpha_changed": 0,
+      "before": {
+        "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261024-attempt4\\1F\\native\\paired\\eye_2_qualified_0_probe_261.before.png",
+        "sha256": "4562a9cbb758e3a8986a6c2ff72ae255f97e5330afda3928912da231831612cf"
+      },
+      "different_pixels": 0,
+      "name": "eye_2_qualified_0_probe_261",
+      "silhouette_occupancy_changed": 0
+    },
+    {
+      "after": {
+        "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261024-attempt4\\1F\\native\\paired\\eye_2_qualified_1_probe_14.after.png",
+        "sha256": "2025318a0d314653eecf0b208346a93e0d5707d1a244cb19967e3dd7ba8447cf"
+      },
+      "alpha_changed": 0,
+      "before": {
+        "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261024-attempt4\\1F\\native\\paired\\eye_2_qualified_1_probe_14.before.png",
+        "sha256": "d923b7ebcd33a6c2a059a7868514986eae304d7f57074a60f29d26e2434d57db"
+      },
+      "different_pixels": 0,
+      "name": "eye_2_qualified_1_probe_14",
+      "silhouette_occupancy_changed": 0
+    },
+    {
+      "after": {
+        "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261024-attempt4\\1F\\native\\paired\\eye_2_qualified_2_probe_321.after.png",
+        "sha256": "0d602b69268a1b29649ffd6084b8f27ea7c63d0fae47c61598a765f202d0563c"
+      },
+      "alpha_changed": 0,
+      "before": {
+        "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261024-attempt4\\1F\\native\\paired\\eye_2_qualified_2_probe_321.before.png",
+        "sha256": "a39a86454fd4a86d9582a947194ce2a837b033854b7ef4f551698a725aa11a0f"
+      },
+      "different_pixels": 0,
+      "name": "eye_2_qualified_2_probe_321",
+      "silhouette_occupancy_changed": 0
+    },
+    {
+      "after": {
+        "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261024-attempt4\\1F\\native\\paired\\eye_2_qualified_3_probe_7.after.png",
+        "sha256": "62c796ab3ffe9e2fd0d3cfd06939c679a86e20c3b4fa96f462dcdf2b2f80f250"
+      },
+      "alpha_changed": 0,
+      "before": {
+        "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261024-attempt4\\1F\\native\\paired\\eye_2_qualified_3_probe_7.before.png",
+        "sha256": "51a345fa7c5c792f2d1a6cb35dad889b76a0c4e543cf52091f1fe04bd4e04377"
+      },
+      "different_pixels": 0,
+      "name": "eye_2_qualified_3_probe_7",
+      "silhouette_occupancy_changed": 0
+    },
+    {
+      "after": {
+        "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261024-attempt4\\1F\\native\\paired\\eye_3_qualified_0_probe_67.after.png",
+        "sha256": "95090c7bb0e70e5de17d4b1d80ac7bad1c183f66bb76088addff0b415138b26e"
+      },
+      "alpha_changed": 0,
+      "before": {
+        "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261024-attempt4\\1F\\native\\paired\\eye_3_qualified_0_probe_67.before.png",
+        "sha256": "3973b5ca9563a37dc356e8ec045cf81328e0d9cb03c1f148987130a49ac810c9"
+      },
+      "different_pixels": 0,
+      "name": "eye_3_qualified_0_probe_67",
+      "silhouette_occupancy_changed": 0
+    },
+    {
+      "after": {
+        "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261024-attempt4\\1F\\native\\paired\\eye_3_qualified_1_probe_181.after.png",
+        "sha256": "cca2320c787228bcdd63b90a88213fbda3f6bd27b39578aa6d8c73dae992d3f2"
+      },
+      "alpha_changed": 0,
+      "before": {
+        "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261024-attempt4\\1F\\native\\paired\\eye_3_qualified_1_probe_181.before.png",
+        "sha256": "fef5e1121ac0071273502b7dbb6785c8f3b3ea542ba6ba6e63a9c80c46ff5c6a"
+      },
+      "different_pixels": 0,
+      "name": "eye_3_qualified_1_probe_181",
+      "silhouette_occupancy_changed": 0
+    },
+    {
+      "after": {
+        "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261024-attempt4\\1F\\native\\paired\\eye_3_qualified_2_probe_82.after.png",
+        "sha256": "b52d8bbc32cd050aed9d78090a9db11cf8d34fd2261d6a6411d01b7f396ab6d7"
+      },
+      "alpha_changed": 0,
+      "before": {
+        "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261024-attempt4\\1F\\native\\paired\\eye_3_qualified_2_probe_82.before.png",
+        "sha256": "66f4d85a757970e595e337a1e4e25e2ff95b563289148a809d47168b63db56cd"
+      },
+      "different_pixels": 0,
+      "name": "eye_3_qualified_2_probe_82",
+      "silhouette_occupancy_changed": 0
+    },
+    {
+      "after": {
+        "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261024-attempt4\\1F\\native\\paired\\eye_3_qualified_3_probe_52.after.png",
+        "sha256": "fcfe0e2dab55bffe7cc5025a2bb1f1f5853f6e2d9435460bfea9dca2b4134f5c"
+      },
+      "alpha_changed": 0,
+      "before": {
+        "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261024-attempt4\\1F\\native\\paired\\eye_3_qualified_3_probe_52.before.png",
+        "sha256": "474fa998b8314887d09933a9035ec724a21b45f5b5ce51709b4e79c4be9d8515"
+      },
+      "different_pixels": 0,
+      "name": "eye_3_qualified_3_probe_52",
+      "silhouette_occupancy_changed": 0
+    }
+  ],
+  "qualified_pairs": 33,
+  "silhouette_occupancy_changed": 0
+}

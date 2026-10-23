@@ -1,0 +1,1053 @@
+{
+  "schema_version": 1,
+  "diagnostic_only": true,
+  "acceptance": false,
+  "native_preservation_passed": false,
+  "pixel": [
+    221,
+    172
+  ],
+  "camera": {
+    "name": "view_-1_-1_1",
+    "projection": "ORTHO",
+    "camera_position_metres": [
+      -45.54086685180664,
+      -74.54086303710938,
+      56.04086685180664
+    ],
+    "target_metres": [
+      7.5,
+      -21.5,
+      3.0
+    ],
+    "different_pixels": 1,
+    "max_channel_difference": 0.11764711141586304,
+    "mean_channel_difference": 3.3659108567007934e-07,
+    "non_background_pixels": 41991
+  },
+  "basis": {
+    "forward": [
+      0.5773502830306294,
+      0.5773502415076175,
+      -0.5773502830306294
+    ],
+    "right": [
+      0.7071067557589988,
+      -0.7071068066140953,
+      0.0
+    ],
+    "up": [
+      0.40824831493153246,
+      0.4082482855703281,
+      0.8164965711406583
+    ]
+  },
+  "ortho_scale": 50.52820994256575,
+  "bounds_metres": [
+    [
+      0.0,
+      -43.0,
+      0.0
+    ],
+    [
+      15.0,
+      0.0,
+      6.0
+    ]
+  ],
+  "admission": [
+    {
+      "unix": 1792784983.2884564,
+      "commit_bytes": 53193723904,
+      "limit_bytes": 67197034496,
+      "headroom_bytes": 14003310592
+    },
+    {
+      "unix": 1792784983.8037438,
+      "commit_bytes": 53472370688,
+      "limit_bytes": 67197034496,
+      "headroom_bytes": 13724663808
+    },
+    {
+      "unix": 1792784984.3152611,
+      "commit_bytes": 52682072064,
+      "limit_bytes": 67197034496,
+      "headroom_bytes": 14514962432
+    }
+  ],
+  "input_sha256": {
+    "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261024-attempt4\\1F\\native\\native-readback.json": "eed21d6471660e612cf4b861fff15a08acc3e43b8885b7d16fdd19f20759d049",
+    "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-native-safe-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261024-attempt4\\preparation-1F.json": "1e42d67a3419b9a3cc7388c8714837b7e06b358350450b5d11479b94353bf14d",
+    "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-native-safe-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261024-attempt4\\execution-1F\\checked-outcome\\checkpoint-receipt.json": "dc4afa825bf2170aa9fe4edfe6e775ac8c8549bb0b48a4e1a8ff33dd4593f6f7",
+    "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-native-safe-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261024-attempt4\\execution-1F\\checked-outcome\\result.json": "269dba2baab0a087a255b25c30d60c733d9f930fbc39933a60c0248d414f6ced",
+    "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-native-safe-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261024-attempt4\\1F\\cut-lineage.json": "8ffbc1da0f1bcd8d107c0541cc840b812d46638c0f351a673695d59f2988915c",
+    "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261024-attempt4\\1F\\native\\paired\\comparison.json": "fa1b2e532a21d2c2529eb130f304a98991de3d71c30c780fba1e2571c9933de0",
+    "D:\\LLM_BACKUP\\Codex session\\main-infra-2f-validation-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\io\\obj_reader.py": "72b300cdd8af9b3312369fb3ffe2064f07933298198ad0e8f438c91d1990a7fe",
+    "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\tmp\\main-infra-e7-attempt4-pixel-footprint-20261024\\footprint.py": "cf2e73bcfb053a1eaf437af24dca8420c8e3bce33c1e19e2e7058e21d654a9da",
+    "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLEAN-20261023\\data\\main-infra-fresh\\run-20261023\\normalized\\1F\\before.source.obj": "26eda65235ce9d1f8c82e97b00d4da21cc1e272d0817e769dddb6ca192f4aea5",
+    "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-native-safe-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261024-attempt4\\1F\\candidate.source.obj": "782358c9877864443654a12d86b8f1cc50012483d342e0e1509ee813fd3e76c8",
+    "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-native-safe-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261024-attempt4\\1F\\cut-receipt.json": "50387bc6d0493fab9ebd09f6c4cad423ed0e6fdc21bf8dfda44803b53a145094",
+    "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-native-safe-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261024-attempt4\\1F\\asset-receipt.json": "019d965f6ded3630e9d957335fea8f33b98c7e8705a5017600ef1d66ae33eb3b",
+    "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\validate\\targets.json": "4117f5e22045750fed7c4627ffa6324bf2efe5c14cf9629389a482c960036507",
+    "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-native-safe-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\docs\\superpowers\\records\\MAIN-INFRA-E7-NATIVE-SAFE-ATTEMPT4-20261024\\policy.json": "ff44af745864e72500a2ab48aaa9d735cd7f72659118f0688ddbd194049fe3eb",
+    "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-native-safe-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261024-attempt4\\1F\\1st floor main infra.mtl": "c64c0cb12926c707b55262a82fd324ccd09502f92b0c866801a00e9f3c89d9a3",
+    "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-native-safe-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261024-attempt4\\1F\\textures\\minecraft\\concrete_white_-1.png": "f42c7be3c52294ead4c69ac0e9ef1bbbbe6bdb4451382c89a65c386709df6171",
+    "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-native-safe-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261024-attempt4\\1F\\textures\\minecraft\\concrete_white_-15579874.png": "14ceba3d0329594e00458bc6ed2aeafa24d9228519994a60d758de2509fee1ad",
+    "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-native-safe-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261024-attempt4\\1F\\textures\\minecraft\\quartz_block_bottom_-1.png": "daf3f46f93f7364b1530ec468a7a1d5a02eda1cd0a118e41e93e9c4177791cc1",
+    "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-native-safe-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261024-attempt4\\1F\\textures\\minecraft\\quartz_block_side_-1.png": "85e34c6a6b917ade1cfbd2826127de4175c63317f3efbba1f7aaed3bf105a193",
+    "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-native-safe-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261024-attempt4\\1F\\textures\\minecraft\\quartz_block_top_-1.png": "eea2309518da196d86171dd0d78ecdcdc3a0510005790fa2beb8484744d8ae88",
+    "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-native-safe-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261024-attempt4\\1F\\textures\\minecraft\\wool_colored_orange_-1.png": "c6a3c27b965f298da28c89c1a522b5ff3152321a97fcbe613aec2f9a6d8f66fa",
+    "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261024-attempt4\\1F\\native\\paired\\view_-1_-1_1.before.png": "05e76fee98b2f3e4379b77c11cdeb92fe2fb24bc572adacb1744a6efd5d1eb9f",
+    "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261024-attempt4\\1F\\native\\paired\\view_-1_-1_1.after.png": "8325dff42c0b224c91e95b5103d702a5f1effcb23581d544b34df3943310cbe6",
+    "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261024-attempt4\\1F\\native\\paired\\view_-1_-1_1.diff.png": "99b9a374d2696785e44a77e3ec424f8648b6bb71e77008e2c671c51a7e66a586"
+  },
+  "counts": {
+    "planned": 172,
+    "kept": 159,
+    "rolled_back": 13,
+    "cut_children": 416
+  },
+  "padding_pixels": 2,
+  "footprints": {
+    "0": {
+      "pixel_box": [
+        221,
+        172,
+        222,
+        173
+      ],
+      "intersections": [
+        {
+          "variant": "source_float64",
+          "lineage": {
+            "child": 0,
+            "edit_index": 89,
+            "engine_normal": [
+              -1,
+              -1,
+              -1
+            ],
+            "engine_uv": [
+              633,
+              653,
+              624
+            ],
+            "group": "minecraft_concrete_white_-1",
+            "kind": "cut_child",
+            "material": "minecraft_concrete_white_-1",
+            "object_name": "",
+            "original_source_triangle": 7559,
+            "output_face": 10199,
+            "site": 5120,
+            "source_normal": [
+              -1,
+              -1,
+              -1
+            ],
+            "source_polygon_line": 10497,
+            "source_uv": [
+              633,
+              653,
+              624
+            ],
+            "stage_input_face": 5120,
+            "vertex_ids": [
+              6065,
+              6063,
+              5978
+            ]
+          },
+          "projected_triangle": [
+            [
+              220.17459533599862,
+              173.26478076953154
+            ],
+            [
+              221.9658652986597,
+              172.23059047522597
+            ],
+            [
+              220.17459533599862,
+              181.5383025289447
+            ]
+          ]
+        },
+        {
+          "variant": "import_float32",
+          "lineage": {
+            "child": 0,
+            "edit_index": 89,
+            "engine_normal": [
+              -1,
+              -1,
+              -1
+            ],
+            "engine_uv": [
+              633,
+              653,
+              624
+            ],
+            "group": "minecraft_concrete_white_-1",
+            "kind": "cut_child",
+            "material": "minecraft_concrete_white_-1",
+            "object_name": "",
+            "original_source_triangle": 7559,
+            "output_face": 10199,
+            "site": 5120,
+            "source_normal": [
+              -1,
+              -1,
+              -1
+            ],
+            "source_polygon_line": 10497,
+            "source_uv": [
+              633,
+              653,
+              624
+            ],
+            "stage_input_face": 5120,
+            "vertex_ids": [
+              6065,
+              6063,
+              5978
+            ]
+          },
+          "projected_triangle": [
+            [
+              220.17459533599862,
+              173.26478076953154
+            ],
+            [
+              221.9658652986597,
+              172.23059047522597
+            ],
+            [
+              220.17459533599862,
+              181.5383025289447
+            ]
+          ]
+        },
+        {
+          "variant": "source_float64",
+          "lineage": {
+            "child": 1,
+            "edit_index": 89,
+            "engine_normal": [
+              -1,
+              -1,
+              -1
+            ],
+            "engine_uv": [
+              653,
+              654,
+              624
+            ],
+            "group": "minecraft_concrete_white_-1",
+            "kind": "cut_child",
+            "material": "minecraft_concrete_white_-1",
+            "object_name": "",
+            "original_source_triangle": 7559,
+            "output_face": 10200,
+            "site": 5120,
+            "source_normal": [
+              -1,
+              -1,
+              -1
+            ],
+            "source_polygon_line": 10497,
+            "source_uv": [
+              653,
+              654,
+              624
+            ],
+            "stage_input_face": 5120,
+            "vertex_ids": [
+              6063,
+              6064,
+              5978
+            ]
+          },
+          "projected_triangle": [
+            [
+              221.9658652986597,
+              172.23059047522597
+            ],
+            [
+              225.5484052239819,
+              170.1622098866148
+            ],
+            [
+              220.17459533599862,
+              181.5383025289447
+            ]
+          ]
+        },
+        {
+          "variant": "import_float32",
+          "lineage": {
+            "child": 1,
+            "edit_index": 89,
+            "engine_normal": [
+              -1,
+              -1,
+              -1
+            ],
+            "engine_uv": [
+              653,
+              654,
+              624
+            ],
+            "group": "minecraft_concrete_white_-1",
+            "kind": "cut_child",
+            "material": "minecraft_concrete_white_-1",
+            "object_name": "",
+            "original_source_triangle": 7559,
+            "output_face": 10200,
+            "site": 5120,
+            "source_normal": [
+              -1,
+              -1,
+              -1
+            ],
+            "source_polygon_line": 10497,
+            "source_uv": [
+              653,
+              654,
+              624
+            ],
+            "stage_input_face": 5120,
+            "vertex_ids": [
+              6063,
+              6064,
+              5978
+            ]
+          },
+          "projected_triangle": [
+            [
+              221.9658652986597,
+              172.23059047522597
+            ],
+            [
+              225.5484052239819,
+              170.1622098866148
+            ],
+            [
+              220.17459533599862,
+              181.5383025289447
+            ]
+          ]
+        }
+      ],
+      "sites": [
+        5120
+      ],
+      "faces": [
+        10199,
+        10200
+      ]
+    },
+    "1": {
+      "pixel_box": [
+        220,
+        171,
+        223,
+        174
+      ],
+      "intersections": [
+        {
+          "variant": "source_float64",
+          "lineage": {
+            "child": 0,
+            "edit_index": 89,
+            "engine_normal": [
+              -1,
+              -1,
+              -1
+            ],
+            "engine_uv": [
+              633,
+              653,
+              624
+            ],
+            "group": "minecraft_concrete_white_-1",
+            "kind": "cut_child",
+            "material": "minecraft_concrete_white_-1",
+            "object_name": "",
+            "original_source_triangle": 7559,
+            "output_face": 10199,
+            "site": 5120,
+            "source_normal": [
+              -1,
+              -1,
+              -1
+            ],
+            "source_polygon_line": 10497,
+            "source_uv": [
+              633,
+              653,
+              624
+            ],
+            "stage_input_face": 5120,
+            "vertex_ids": [
+              6065,
+              6063,
+              5978
+            ]
+          },
+          "projected_triangle": [
+            [
+              220.17459533599862,
+              173.26478076953154
+            ],
+            [
+              221.9658652986597,
+              172.23059047522597
+            ],
+            [
+              220.17459533599862,
+              181.5383025289447
+            ]
+          ]
+        },
+        {
+          "variant": "import_float32",
+          "lineage": {
+            "child": 0,
+            "edit_index": 89,
+            "engine_normal": [
+              -1,
+              -1,
+              -1
+            ],
+            "engine_uv": [
+              633,
+              653,
+              624
+            ],
+            "group": "minecraft_concrete_white_-1",
+            "kind": "cut_child",
+            "material": "minecraft_concrete_white_-1",
+            "object_name": "",
+            "original_source_triangle": 7559,
+            "output_face": 10199,
+            "site": 5120,
+            "source_normal": [
+              -1,
+              -1,
+              -1
+            ],
+            "source_polygon_line": 10497,
+            "source_uv": [
+              633,
+              653,
+              624
+            ],
+            "stage_input_face": 5120,
+            "vertex_ids": [
+              6065,
+              6063,
+              5978
+            ]
+          },
+          "projected_triangle": [
+            [
+              220.17459533599862,
+              173.26478076953154
+            ],
+            [
+              221.9658652986597,
+              172.23059047522597
+            ],
+            [
+              220.17459533599862,
+              181.5383025289447
+            ]
+          ]
+        },
+        {
+          "variant": "source_float64",
+          "lineage": {
+            "child": 1,
+            "edit_index": 89,
+            "engine_normal": [
+              -1,
+              -1,
+              -1
+            ],
+            "engine_uv": [
+              653,
+              654,
+              624
+            ],
+            "group": "minecraft_concrete_white_-1",
+            "kind": "cut_child",
+            "material": "minecraft_concrete_white_-1",
+            "object_name": "",
+            "original_source_triangle": 7559,
+            "output_face": 10200,
+            "site": 5120,
+            "source_normal": [
+              -1,
+              -1,
+              -1
+            ],
+            "source_polygon_line": 10497,
+            "source_uv": [
+              653,
+              654,
+              624
+            ],
+            "stage_input_face": 5120,
+            "vertex_ids": [
+              6063,
+              6064,
+              5978
+            ]
+          },
+          "projected_triangle": [
+            [
+              221.9658652986597,
+              172.23059047522597
+            ],
+            [
+              225.5484052239819,
+              170.1622098866148
+            ],
+            [
+              220.17459533599862,
+              181.5383025289447
+            ]
+          ]
+        },
+        {
+          "variant": "import_float32",
+          "lineage": {
+            "child": 1,
+            "edit_index": 89,
+            "engine_normal": [
+              -1,
+              -1,
+              -1
+            ],
+            "engine_uv": [
+              653,
+              654,
+              624
+            ],
+            "group": "minecraft_concrete_white_-1",
+            "kind": "cut_child",
+            "material": "minecraft_concrete_white_-1",
+            "object_name": "",
+            "original_source_triangle": 7559,
+            "output_face": 10200,
+            "site": 5120,
+            "source_normal": [
+              -1,
+              -1,
+              -1
+            ],
+            "source_polygon_line": 10497,
+            "source_uv": [
+              653,
+              654,
+              624
+            ],
+            "stage_input_face": 5120,
+            "vertex_ids": [
+              6063,
+              6064,
+              5978
+            ]
+          },
+          "projected_triangle": [
+            [
+              221.9658652986597,
+              172.23059047522597
+            ],
+            [
+              225.5484052239819,
+              170.1622098866148
+            ],
+            [
+              220.17459533599862,
+              181.5383025289447
+            ]
+          ]
+        }
+      ],
+      "sites": [
+        5120
+      ],
+      "faces": [
+        10199,
+        10200
+      ]
+    },
+    "2": {
+      "pixel_box": [
+        219,
+        170,
+        224,
+        175
+      ],
+      "intersections": [
+        {
+          "variant": "source_float64",
+          "lineage": {
+            "child": 0,
+            "edit_index": 89,
+            "engine_normal": [
+              -1,
+              -1,
+              -1
+            ],
+            "engine_uv": [
+              633,
+              653,
+              624
+            ],
+            "group": "minecraft_concrete_white_-1",
+            "kind": "cut_child",
+            "material": "minecraft_concrete_white_-1",
+            "object_name": "",
+            "original_source_triangle": 7559,
+            "output_face": 10199,
+            "site": 5120,
+            "source_normal": [
+              -1,
+              -1,
+              -1
+            ],
+            "source_polygon_line": 10497,
+            "source_uv": [
+              633,
+              653,
+              624
+            ],
+            "stage_input_face": 5120,
+            "vertex_ids": [
+              6065,
+              6063,
+              5978
+            ]
+          },
+          "projected_triangle": [
+            [
+              220.17459533599862,
+              173.26478076953154
+            ],
+            [
+              221.9658652986597,
+              172.23059047522597
+            ],
+            [
+              220.17459533599862,
+              181.5383025289447
+            ]
+          ]
+        },
+        {
+          "variant": "import_float32",
+          "lineage": {
+            "child": 0,
+            "edit_index": 89,
+            "engine_normal": [
+              -1,
+              -1,
+              -1
+            ],
+            "engine_uv": [
+              633,
+              653,
+              624
+            ],
+            "group": "minecraft_concrete_white_-1",
+            "kind": "cut_child",
+            "material": "minecraft_concrete_white_-1",
+            "object_name": "",
+            "original_source_triangle": 7559,
+            "output_face": 10199,
+            "site": 5120,
+            "source_normal": [
+              -1,
+              -1,
+              -1
+            ],
+            "source_polygon_line": 10497,
+            "source_uv": [
+              633,
+              653,
+              624
+            ],
+            "stage_input_face": 5120,
+            "vertex_ids": [
+              6065,
+              6063,
+              5978
+            ]
+          },
+          "projected_triangle": [
+            [
+              220.17459533599862,
+              173.26478076953154
+            ],
+            [
+              221.9658652986597,
+              172.23059047522597
+            ],
+            [
+              220.17459533599862,
+              181.5383025289447
+            ]
+          ]
+        },
+        {
+          "variant": "source_float64",
+          "lineage": {
+            "child": 1,
+            "edit_index": 89,
+            "engine_normal": [
+              -1,
+              -1,
+              -1
+            ],
+            "engine_uv": [
+              653,
+              654,
+              624
+            ],
+            "group": "minecraft_concrete_white_-1",
+            "kind": "cut_child",
+            "material": "minecraft_concrete_white_-1",
+            "object_name": "",
+            "original_source_triangle": 7559,
+            "output_face": 10200,
+            "site": 5120,
+            "source_normal": [
+              -1,
+              -1,
+              -1
+            ],
+            "source_polygon_line": 10497,
+            "source_uv": [
+              653,
+              654,
+              624
+            ],
+            "stage_input_face": 5120,
+            "vertex_ids": [
+              6063,
+              6064,
+              5978
+            ]
+          },
+          "projected_triangle": [
+            [
+              221.9658652986597,
+              172.23059047522597
+            ],
+            [
+              225.5484052239819,
+              170.1622098866148
+            ],
+            [
+              220.17459533599862,
+              181.5383025289447
+            ]
+          ]
+        },
+        {
+          "variant": "import_float32",
+          "lineage": {
+            "child": 1,
+            "edit_index": 89,
+            "engine_normal": [
+              -1,
+              -1,
+              -1
+            ],
+            "engine_uv": [
+              653,
+              654,
+              624
+            ],
+            "group": "minecraft_concrete_white_-1",
+            "kind": "cut_child",
+            "material": "minecraft_concrete_white_-1",
+            "object_name": "",
+            "original_source_triangle": 7559,
+            "output_face": 10200,
+            "site": 5120,
+            "source_normal": [
+              -1,
+              -1,
+              -1
+            ],
+            "source_polygon_line": 10497,
+            "source_uv": [
+              653,
+              654,
+              624
+            ],
+            "stage_input_face": 5120,
+            "vertex_ids": [
+              6063,
+              6064,
+              5978
+            ]
+          },
+          "projected_triangle": [
+            [
+              221.9658652986597,
+              172.23059047522597
+            ],
+            [
+              225.5484052239819,
+              170.1622098866148
+            ],
+            [
+              220.17459533599862,
+              181.5383025289447
+            ]
+          ]
+        },
+        {
+          "variant": "source_float64",
+          "lineage": {
+            "child": 2,
+            "edit_index": 89,
+            "engine_normal": [
+              -1,
+              -1,
+              -1
+            ],
+            "engine_uv": [
+              654,
+              617,
+              624
+            ],
+            "group": "minecraft_concrete_white_-1",
+            "kind": "cut_child",
+            "material": "minecraft_concrete_white_-1",
+            "object_name": "",
+            "original_source_triangle": 7559,
+            "output_face": 10201,
+            "site": 5120,
+            "source_normal": [
+              -1,
+              -1,
+              -1
+            ],
+            "source_polygon_line": 10497,
+            "source_uv": [
+              654,
+              617,
+              624
+            ],
+            "stage_input_face": 5120,
+            "vertex_ids": [
+              6064,
+              6068,
+              5978
+            ]
+          },
+          "projected_triangle": [
+            [
+              225.5484052239819,
+              170.1622098866148
+            ],
+            [
+              227.33967518664303,
+              169.12801959230924
+            ],
+            [
+              220.17459533599862,
+              181.5383025289447
+            ]
+          ]
+        },
+        {
+          "variant": "import_float32",
+          "lineage": {
+            "child": 2,
+            "edit_index": 89,
+            "engine_normal": [
+              -1,
+              -1,
+              -1
+            ],
+            "engine_uv": [
+              654,
+              617,
+              624
+            ],
+            "group": "minecraft_concrete_white_-1",
+            "kind": "cut_child",
+            "material": "minecraft_concrete_white_-1",
+            "object_name": "",
+            "original_source_triangle": 7559,
+            "output_face": 10201,
+            "site": 5120,
+            "source_normal": [
+              -1,
+              -1,
+              -1
+            ],
+            "source_polygon_line": 10497,
+            "source_uv": [
+              654,
+              617,
+              624
+            ],
+            "stage_input_face": 5120,
+            "vertex_ids": [
+              6064,
+              6068,
+              5978
+            ]
+          },
+          "projected_triangle": [
+            [
+              225.5484052239819,
+              170.1622098866148
+            ],
+            [
+              227.33967518664303,
+              169.12801959230924
+            ],
+            [
+              220.17459533599862,
+              181.5383025289447
+            ]
+          ]
+        }
+      ],
+      "sites": [
+        5120
+      ],
+      "faces": [
+        10199,
+        10200,
+        10201
+      ]
+    }
+  },
+  "conservative_kept_sites": [
+    5120
+  ],
+  "actual_kernel_rollback_sites": [
+    2028,
+    4414,
+    5676,
+    5688,
+    7485,
+    7491,
+    7787,
+    7913,
+    8126,
+    8232,
+    8289,
+    8835,
+    8889
+  ],
+  "actual_kernel_rollbacks": [
+    {
+      "current_edit_index": 18,
+      "site": 2028,
+      "stage_input_face": 2028,
+      "original_source_triangle": 2855,
+      "original_donor_index": 63
+    },
+    {
+      "current_edit_index": 64,
+      "site": 4414,
+      "stage_input_face": 4414,
+      "original_source_triangle": 6725,
+      "original_donor_index": 246
+    },
+    {
+      "current_edit_index": 105,
+      "site": 5676,
+      "stage_input_face": 5676,
+      "original_source_triangle": 8204,
+      "original_donor_index": 344
+    },
+    {
+      "current_edit_index": 106,
+      "site": 5688,
+      "stage_input_face": 5688,
+      "original_source_triangle": 8218,
+      "original_donor_index": 345
+    },
+    {
+      "current_edit_index": 131,
+      "site": 7485,
+      "stage_input_face": 7485,
+      "original_source_triangle": 11304,
+      "original_donor_index": 445
+    },
+    {
+      "current_edit_index": 132,
+      "site": 7491,
+      "stage_input_face": 7491,
+      "original_source_triangle": 11310,
+      "original_donor_index": 448
+    },
+    {
+      "current_edit_index": 134,
+      "site": 7787,
+      "stage_input_face": 7787,
+      "original_source_triangle": 11886,
+      "original_donor_index": 470
+    },
+    {
+      "current_edit_index": 137,
+      "site": 7913,
+      "stage_input_face": 7913,
+      "original_source_triangle": 12123,
+      "original_donor_index": 485
+    },
+    {
+      "current_edit_index": 138,
+      "site": 8126,
+      "stage_input_face": 8126,
+      "original_source_triangle": 12453,
+      "original_donor_index": 516
+    },
+    {
+      "current_edit_index": 140,
+      "site": 8232,
+      "stage_input_face": 8232,
+      "original_source_triangle": 12617,
+      "original_donor_index": 531
+    },
+    {
+      "current_edit_index": 141,
+      "site": 8289,
+      "stage_input_face": 8289,
+      "original_source_triangle": 12688,
+      "original_donor_index": 538
+    },
+    {
+      "current_edit_index": 148,
+      "site": 8835,
+      "stage_input_face": 8835,
+      "original_source_triangle": 13394,
+      "original_donor_index": 574
+    },
+    {
+      "current_edit_index": 150,
+      "site": 8889,
+      "stage_input_face": 8889,
+      "original_source_triangle": 13480,
+      "original_donor_index": 590
+    }
+  ],
+  "method": "Exact rational 2D separating-axis triangle/rectangle intersection on binary64 CPU projections; inclusive touching; no depth/occlusion/backface/clip filter. Whole pixel square plus2px padding on every edge. Both sourceF64 and source-importF32 coordinate variants; native recorded source-frame bounds/camera.",
+  "limitations": [
+    "Approximate CPU camera basis; does not reproduce Blender quaternion/Euler rounding, GPU jitter, interpolation or primitive ownership.",
+    "All projected child intersections are retained conservatively, including occluded geometry; not nearest-center attribution.",
+    "Padding is explicit conservative diagnostic scope, not a renderer tolerance or native pass.",
+    "No model mutation, raycast, rerender, canonical validation or publication."
+  ]
+}
