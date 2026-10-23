@@ -1,0 +1,5 @@
+# MAIN-INFRA-2F-GUARD-F64-VALIDATE-20261024
+
+Independent retry of the actual saved2F E3 candidate38134 against original fresh56828, using reviewed Guard-F64 code060315/735d after99guard tests and separately reviewed reference-model checks. Owned branch codex/main-infra-2f-guard-f64-validate-20261024; main interpreter with correct newWTcwd/PYTHONPATH. Builder geometry/audit/worker/source/provenance/assets unchanged. Preserve original26-viewFAIL1d95 and tileddiagnostic4d758 as historical evidence.
+
+Prepare new immutable caller inventory/preparation/config and freshnamespace; no model mutation. Root reviews concrete configs/frozenHEAD/inputSHA/allpins before each actual phase; unchanged42e5/V4/fresh3x8GiB/own3GiB/global3.5. Default strict26views/900x600/allcaps0, exactoriginalsignedtargets, physicalquanta/normal/look/UV/cut/floor policies unchanged. No Settings/FixProfile/test/guard tolerance edits. AfteractualguardPASS prepare actualnative46 (33qualified+13diagnostic) and fullsigned phases with own rootGO. Exit2 is a verdict, never silently retried. Rehash actualsavedJSON/images; separate acceptance remains owner gated.
