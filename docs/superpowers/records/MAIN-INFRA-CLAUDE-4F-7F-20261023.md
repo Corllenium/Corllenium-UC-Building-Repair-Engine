@@ -52,7 +52,17 @@ Dashboard state 7F: `blocked`, evidence under `/models/main-infra/<rev>/7F/main-
 | Validator on E3 | FAIL on signed targets, textures PASS, nothing deleted PASS: flicker_diff 6918→3236, flicker_same 9922→4934, cracks 7480→6659, hidden 15,518→7,763 |
 | Archived | 04 upper-floors/6F + Model-Floor_06; 03 Floor/Model-Floor_06; Z mirror 6F; Blender library 7F+6F |
 
-### 5F, 4F
+### 5F (2026-10-24)
+| Step | Result |
+|---|---|
+| Duplicate-only candidate | 0 exact duplicates; default Embree guard false-flagged 1.2 M moved px on an unchanged mesh, float64 oracle guard PASS (21 min) |
+| Checked E3 | 56,368 → 38,113 (18,255 removed), 2,331 kept, 36 rolled back, 7,773 s |
+| Independent strict-26 guard | PASS with `--original-oracle` (Embree default again false-flagged); holes 0, material_changed 0, grown 0 |
+| Interior gate | 16 certified poses: 2 changed px |
+| Validator on E3 | FAIL on signed targets, textures PASS, nothing deleted PASS: flicker_diff 14412→4976, flicker_same 16317→6500, cracks 12985→10623, reversed 0→1, hidden 29,067→10,810 (3,733 s) |
+| Archived | 04 upper-floors/5F + Model-Floor_05; 03 Floor/Model-Floor_05; Z mirror 5F; Blender library 7F+6F+5F |
+
+### 4F
 - Import qualification PASS: 6F 253 RGB px / 0 alpha; 4F 190 / 0 (matches Codex's pilot); 5F refused at 512 px on one
   silhouette-edge pixel, re-rendered at 1024 px: 857 RGB px / 0 alpha → PASS (512 px record kept as `refused-512px-*`).
 - 6F duplicate-only candidate: 0 duplicates, guard PASS; checked E3 running. 5F candidate running. 4F queued.
