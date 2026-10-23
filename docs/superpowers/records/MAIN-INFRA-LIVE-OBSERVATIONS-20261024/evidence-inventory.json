@@ -1,0 +1,18 @@
+{
+  "docs/superpowers/records/scripts/main-infra/live-worker-status-runtime.ps1": "f8129f42c76550c063ef09a96bae4174122abd6624acd0b6b97ef1b1474e497c",
+  "tools/tests/test_live_status_common_observations.py": "410b3d27f8f1e62df6afe174c12a97e32697573879668fd972dd4104df39891a",
+  "tools/tests/test_live_status_e3_tracking.py": "098842a392d63ef7156c85a016b79e7ec453c14d38b4611aef600a969853a96a",
+  "tools/tests/live_status_publication_retry.ps1": "4b77e80d1153b1089ad1dc004e18a544c0d9373d4df0e47bdd7cf4c2d07c0838",
+  "data/live-observations-tiny-tests/common-red.stdout.txt": "c26c47bffb2266b189a2a9fa2b1ca902aaf0750c7921beb6b79416ef8aa9ed2c",
+  "data/live-observations-tiny-tests/common-red.resources.json": "3ac1579511d0ed54b953cfbcb7beb09010131aaae52442ec1c7a4f8d8393d0b3",
+  "data/live-observations-tiny-tests/finished-engine-validator-red.stdout.txt": "20d60778fa4a3015a62ddddc8b23839b3dd893af826b7a99fdeb46bd346a80b9",
+  "data/live-observations-tiny-tests/finished-engine-validator-red.resources.json": "a0f160296480a8e9acc0e35935414bbbfd00386fa2db3d77bf6de9cc402dcc6b",
+  "data/live-observations-tiny-tests/canonical-start-red.stdout.txt": "4b88fbdc0eb148b160b0bf3702f6d53631ca38ddb3448f659ec48477ecf60494",
+  "data/live-observations-tiny-tests/inspection-context-red.stdout.txt": "656d761187c6c2c7b44a7402e3e39eb2718d053a420514172c7c693dbe450457",
+  "data/live-observations-tiny-tests/final-green.stdout.txt": "4dece8b2cfac2067d9f4f553db1533b9b824cd779c9932da56ed9f88dd91827e",
+  "data/live-observations-tiny-tests/final-green.resources.json": "b0603b7b809d4cb5fc722c8d1e23b2d38c6ac5f811d3e8a5bc7f2c489fae0f3f",
+  "data/live-observations-tiny-tests/final-powershell-publication-green.txt": "f37ff2b84d710e0375bc30b83fe124bae84287d7dae054b2a27b2bc8f20bb317",
+  "data/live-observations-tiny-tests/run-bounded.ps1": "dacab78c3ad5c4304394755478995bb7be7d90bad2c44353a229a9e5fc287ea2",
+  "docs/superpowers/records/MAIN-INFRA-LIVE-OBSERVATIONS-20261024/extra-e3-workers.example.json": "8b71a6e5919e5bc1ab3ecf52f5e7cb90ec1bf292f7ae4030f25a2718cbbb9122",
+  "docs/superpowers/records/MAIN-INFRA-LIVE-OBSERVATIONS-20261024/extra-validator-workers.example.json": "e636045b9f19c817073170ae72ed22749253574a2742e1b1352a03714b4e6059"
+}

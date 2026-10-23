@@ -1,0 +1,15 @@
+{
+  "2F": {
+    "deferred": true
+  },
+  "3F": {
+    "pid": 60376,
+    "preparation_sha256": "b62f399728cd09e08cfbecc8306d61628d62d8f6aa972c8ecf26b008a4cd1f62",
+    "deferred": false,
+    "component_commit": "c125cd8ab28fe648491676125e8bc8e67d1c5c3a",
+    "start": "2026-10-23T22:43:56.2456960Z",
+    "run_id": "MAIN-INFRA-E3-3F-retain-visible-20261024",
+    "worker_path": "D:/LLM_BACKUP/Codex session/main-infra-e3-3f-retain-visible-20261024/05-Corllenium-UC-Building-Repair-Engine/data/main-infra-e3/attempt2/run-20261024-3F-retain-visible/execution-3F/worker.json",
+    "preparation": "D:/LLM_BACKUP/Codex session/main-infra-e3-3f-retain-visible-20261024/05-Corllenium-UC-Building-Repair-Engine/data/main-infra-e3/attempt2/run-20261024-3F-retain-visible/preparation-3F.json"
+  }
+}
