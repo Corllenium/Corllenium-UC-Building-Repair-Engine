@@ -25,6 +25,16 @@ run the latest `.skp` of each file must be in `OBJ FIXED RESULT/` for the owner 
 
 ## 2. Current state (2026-09-26 00:15, written by the Claude controller)
 
+2026-10-23 memory recovery: all three actual lower-floor workers stopped at
+12:20:17 UTC with allocation failures; Windows Operational Event 1003 measured
+99.63% system commit. No new E7/2F/3F candidate was saved. Failed receipts and
+inputs are preserved. This execution tree now ports only the independently
+reviewed ff3e8e5 ray index and its regression tests onto the fec7b3e qualified
+loader: RED 7 failed/1 passed, GREEN 31 passed in 1.95s. Signed checks, guard,
+kernel, SiteJudge and loader have an empty diff from fec7b3e. Sequential retry
+is prepared, not started; see MAIN-INFRA-E3-INDEX-RETRY-20261023.md. Ownership
+and the pending independent validation requirements remain unchanged.
+
 2026-10-23 18:56 +08: supersedes the running-worker entry below. Actual 1F E3
 completed: 15856 -> 10136 triangles; 280 sites kept,3 rolled back. Independent
 strict26 guard PASS; signed full Validator textures PASS108392/0 and visible
