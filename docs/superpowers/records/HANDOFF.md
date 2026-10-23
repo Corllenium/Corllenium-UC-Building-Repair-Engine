@@ -25,6 +25,12 @@ run the latest `.skp` of each file must be in `OBJ FIXED RESULT/` for the owner 
 
 ## 2. Current state (2026-09-26 00:15, written by the Claude controller)
 
+2026-10-23 checked E3 qualification: parent fresh1F/4F full independent physical
+precision runs preserve textures/visible coverage but fail signed flicker/crack
+targets. New isolated MAIN-INFRA-E3-PILOT-20261023 has18passing wrapper/source
+integrity tests, including real default E3 facade fixture. No real E3 repair has
+run. Saved survivor proof and independent review precede any real1F attempt.
+
 **Update 2026-10-08 night (the Jev + mods controller session): "Jev on the VPS" is built and merged; Jev stays off.**
 - **`feat-dashboard` = e2a37ee:** `feat/jev-vps` is merged.
   - Spec: `docs/superpowers/specs/2026-10-08-jev-vps-service-design.md`.

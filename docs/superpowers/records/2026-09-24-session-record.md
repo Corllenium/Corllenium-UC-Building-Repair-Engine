@@ -273,3 +273,7 @@ no other session is (they drop the shared test database).
 
 2026-10-23 MAIN-INFRA-PRECISION-20261023: reviewed physical precision integration
 on signed336. Actual focused tests 36 passed in 1.97s, no floor verdict yet.
+
+2026-10-23 MAIN-INFRA-E3-PILOT-20261023 first item: 18 wrapper/source-integrity
+tests passed25.11s including actual default E3 facade fixture. No real E3 repair;
+saved-source survivor proof and independent review still required.
