@@ -1,0 +1,24 @@
+{
+  "actual_result": {
+    "state": "PROCESS_FAILED",
+    "phase": "prepare-coverage-retry",
+    "abort_reason": null,
+    "actual_pid": 34652,
+    "actual_creation_utc": "2026-10-23T17:15:36.6328407Z",
+    "actual_exit_code": 1,
+    "launcher_exit_code": 1,
+    "wall_s": 74.0793374,
+    "HEAD": "a77aa44f3366820c7fd7aef94d82e7ab403ba20d",
+    "phase_plan_sha256": "4cfb3f40f7a84e2cd33b42109de9677643f28317a0fc512164f570bba3ceb713",
+    "all_owned_exited": true,
+    "evidence": ".\\data\\main-infra-1f-validation\\execution-ownership-attempt3\\monitor-prepare-coverage-retry-20261023T171535",
+    "ended_utc": "2026-10-23T17:16:50.6176264Z",
+    "acceptance": false
+  },
+  "result_sha256": "26e288f5a6fb67336079635d3d528aea39f01a49007647d0ee40bdd3cb6f0e7b",
+  "stderr_sha256": "67f1e8adf08ad0923b59a5f3380f89daf7f55da215463bc4497ad2d50d9bbae7",
+  "error": "ValueError: conflicting independent input pin",
+  "geometry_or_guard_verdict": false,
+  "saved_candidate_unchanged": true,
+  "remaining_cross_worktree_handoff_audit": "in progress; no new retry yet"
+}

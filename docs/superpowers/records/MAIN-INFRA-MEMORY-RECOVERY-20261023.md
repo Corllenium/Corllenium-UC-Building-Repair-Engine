@@ -300,3 +300,36 @@ work. No output/ETA/percentage is claimed. 3F readiness55e33ccf and measured gla
 factsd78b3dda are copied into this record folder; no 3F engine launch occurred.
 The live public status returned200 at16:49:56Z: 1Fvalidating,2Fcleaning,3Fqueued;
 all accepted_preview fields remain null. Codex1F-3F/Claude4F-7F split unchanged.
+
+
+2026-10-24 01:17 +08: actual independent 1F preparation is retrying under committed
+callera77aa44f3366820c7fd7aef94d82e7ab403ba20d, PID34652/start17:15:36.6328407Z.
+The prior metadata correction3796 passed independent review, then actualretry37540
+stopped on an additional stored/physical fingerprint equality prerequisite.
+Measured469a0df8/ada1e27d prove physicalmissing5990/added712 are strictsubsets
+ofstored5993/715; both depthfloors0.05in; zero physical-only or unchanged-lineage
+mismatches. Three tiny existing-vertex cut aliases explain the difference.
+The corrected caller requires this explicit conservative superset (all physical
+suspects still checked), records both masks, and rejects physical-only suspects,
+shape/type/depth changes. Actual retained fixture RED then55PASS13.87s; delivery
+independently verified actualmaskbytes,17inventory+201component/14input/3donorpins
+and all default signed sampling branches. No geometry/engine/guard/defaults changed.
+Completed1F engine feed config was retired after candidate_saved witness95e9c175;
+actual precision blocker was publicly readbackHTTP200, then canonical1F was moved
+tovalidating with actualretry34652. Pending10578/priorE3preview10136/acceptednull
+remain. New model publication waits for independent guard/native/fullsigned proof.
+Reviewed3Fwrapperbd6862b2/config7f7b2698 refuse preexisting output/W/snapshot and
+E3subdirectorycwd beforegate/launch; actualrootpositive/toolsnegative passed.
+All219pins match, V4unchanged;3F model HOLD behind1F proof and8GiB launchgate.
+
+
+2026-10-24 01:21 +08: preparation34652 exited1 at17:16:50.617Z after74.079s,
+after passing source qualification and measured conservative precision proof.
+The next failure is a receipt key collision: builder target path is already
+bound as targets; validator default target lives in a different worktree.
+All owned handles exited; no resource abort or guard/native/full model verdict.
+Both agents now audit all phase pin namespaces against the real multi-worktree
+receipt before a narrow distinct validator-target label fix/retry. Original
+builder target entry, signed target bytes and model/P remain untouched.
+Canonical/live1F now reports the actual checker handoff blocker, workerfalse;
+new10578 candidate remains pending while prior10136 preview stays inspectable.

@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "pid": 41648,
+  "creation_utc": "2026-10-23T14:13:11.8254166Z",
+  "one_mainthread_dump_sha256": "4777a53a876836c6c5fcdb4e4d32ebb4674e7e5e2b44c678c773de78668db0b0",
+  "dump_utc": "2026-10-23T16:50:12Z",
+  "no_locals": true,
+  "cpu_start": {
+    "utc": "2026-10-23T16:48:13.9833762Z",
+    "seconds": 22381.6875
+  },
+  "cpu_end": {
+    "utc": "2026-10-23T16:50:12.8538710Z",
+    "seconds": 22681.34375
+  },
+  "cpu_delta_seconds": 299.65625,
+  "elapsed_seconds": 118.8704948,
+  "average_cpu_cores": 2.520863150306328,
+  "threads": 32,
+  "first_check_evidence": "kernel._check_stage line328 calls run(kept, first); confirmation is line353. Current stack enters run304/SiteJudge.check413/validate1747/_Floor.lattice_seen1089/visible_samples249/_seen_by_points203/nonzero.",
+  "input_faces": 56828,
+  "actual_planned_sites": null,
+  "count_limit": "No site count is persisted before run_checked_e3 returns. Worker/console provide only running_checked_E3 and input56828; candidate/edit-log/stage-audit absent. No locals or plan regeneration performed.",
+  "complexity": "Lattice L=sum over actually removed focus faces of min-cap area-scaled square counts. Per face36..4096 points; visibility work scales L*(directions+cameras+interior probes), plus ray-cast/query cost. L, actual removed-face count and viewpoint count are not available from the current persisted artifacts.",
+  "all_face_lattice_upper_bound": 232767488,
+  "future_proposal_only": "visible_samples recomputes face_normals(mesh) for every lattice chunk despite immutable before mesh and _Floor.normals already held. Passing/reusing that exact array could remove chunk_count*all_face repeated normal work without changing any point, viewpoint, ray, threshold or verdict. Requires separate TDD/equality review; benefit unmeasured, nothing implemented.",
+  "code": [
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\repair\\kernel.py",
+      "sha256": "dca8042e6d562676589f6b2741ee178d58f48e3d61f767d718303641c1525ca5"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\site_judge.py",
+      "sha256": "50cee322111f5bf192f1a20160e06234c61b71518a891684434d246faebd6993"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\validate\\checks.py",
+      "sha256": "3d3ebe288abab4afa73b26e8908047a8fbe71a36b8df31d3fed69fb190601606"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\validate\\visibility.py",
+      "sha256": "28cbad91da779c0a12155c3036a717db78e5629bb5fbf54e4e8ad2d95ca04821"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\validate\\floor.py",
+      "sha256": "bde829b4832443ce159ae8d7937a5ed4b4207bd6d7e1b4b669b2df2b9b0e84e8"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\repair\\engines\\e3_hidden.py",
+      "sha256": "e4b2e2e00127683d1f8b0ec221aab35e9f3cb67407fb4f561760a6f12f1d8d92"
+    }
+  ],
+  "running_tree_or_process_changed": false,
+  "percent_or_eta": null
+}

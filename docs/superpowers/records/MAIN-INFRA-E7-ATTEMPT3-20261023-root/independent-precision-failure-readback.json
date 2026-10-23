@@ -1,0 +1,28 @@
+{
+  "result": {
+    "state": "PROCESS_FAILED",
+    "phase": "prepare-schema-retry",
+    "abort_reason": null,
+    "actual_pid": 37540,
+    "actual_creation_utc": "2026-10-23T16:54:25.2111345Z",
+    "actual_exit_code": 1,
+    "launcher_exit_code": 1,
+    "wall_s": 75.2908659,
+    "HEAD": "3796a0c2abbfd885589da88c4174b04fcc5d18c7",
+    "phase_plan_sha256": "168a4c45a28148edd42a277a9fbe2355862474d118c6ab0e382888885cb739c3",
+    "all_owned_exited": true,
+    "evidence": ".\\data\\main-infra-1f-validation\\execution-ownership-attempt3\\monitor-prepare-schema-retry-20261023T165423",
+    "ended_utc": "2026-10-23T16:55:40.3816863Z",
+    "acceptance": false
+  },
+  "result_sha256": "cad1835c3d4769eba717cf00108592603f97ed914249c73bc0ba53b56fda271f",
+  "stderr_sha256": "04e7c5346467f211db29c2e333b08d2ad7afd40fee27f39bc553462ff4a2af91",
+  "last_error": "ValueError: stored/physical proof membership or depth floor differs",
+  "diagnostic_sha256": "469a0df8795409a69ed828f287e486f132da7ab4ee26f7f88d76e7340b952cf4",
+  "mask_sha256": "ada1e27da77ada6edfce30931e158ed058721fa9237054db5418b0ec4fa54bb3",
+  "corrected_caller_commit": "a77aa44f3366820c7fd7aef94d82e7ab403ba20d",
+  "independent_code_review": "CLEAR;55 targeted tests PASS; no model verdict",
+  "actual_retry_pid": 34652,
+  "actual_retry_start_utc": "2026-10-23T17:15:36.6328407Z",
+  "actual_model_verdict": "pending; guard/native/full signed validation not yet run"
+}

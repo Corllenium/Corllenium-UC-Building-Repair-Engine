@@ -1,0 +1,1060 @@
+{
+  "schema_version": 1,
+  "job_id": "MAIN-INFRA-CLEAN-20261023",
+  "reviewer": "/root/main_infra_independent_validator",
+  "candidate_sha256": "cc8e67785116edd9132e5b75353479810265f051a1f98e8da4df89b1eea9d6f9",
+  "preparation_sha256": "e5af36dde9a242388985200cd6502b370dba87aba92ef152bec9e91b0f681e2a",
+  "diagnostic_only": true,
+  "qualified": false,
+  "original_source_triangles": 15856,
+  "stage_input_triangles": 10136,
+  "after_triangles": 10578,
+  "physical_quanta": [
+    3.937007874015748e-05,
+    3.937007874015748e-05,
+    3.937007874015748e-06
+  ],
+  "grids": {
+    "stored": {
+      "step_inches": 1e-13,
+      "depth_tolerance_inches": 0.05,
+      "missing": 5993,
+      "added": 715,
+      "unchanged_fingerprint_mismatches": []
+    },
+    "physical": {
+      "step_inches": 3.937007874015748e-05,
+      "depth_tolerance_inches": 0.05,
+      "missing": 5990,
+      "added": 712,
+      "unchanged_fingerprint_mismatches": []
+    }
+  },
+  "containment_counts": {
+    "physical_missing_not_stored": 0,
+    "physical_added_not_stored": 0,
+    "stored_missing_not_physical": 3,
+    "stored_added_not_physical": 3
+  },
+  "containment_ids": {
+    "physical_missing_not_stored": [],
+    "physical_added_not_stored": [],
+    "stored_missing_not_physical": [
+      4999,
+      8014,
+      10688
+    ],
+    "stored_added_not_physical": [
+      10108,
+      10319,
+      10419
+    ]
+  },
+  "witnesses": [
+    {
+      "before": {
+        "face": 4999,
+        "obj_line": 9207,
+        "vertices": [
+          5176,
+          5178,
+          5166
+        ],
+        "positions_inches": [
+          [
+            236.2204724409449,
+            -74.46079921259843,
+            196.8503937007874
+          ],
+          [
+            236.2204724409449,
+            -64.61828346456693,
+            196.8503937007874
+          ],
+          [
+            236.2204724409449,
+            -64.61828346456693,
+            157.48031496062993
+          ]
+        ],
+        "positions_binary64_hex": [
+          [
+            "0x1.d870e1c3870e2p+7",
+            "-0x1.29d7dbbfb0880p+6",
+            "0x1.89b366cd9b367p+7"
+          ],
+          [
+            "0x1.d870e1c3870e2p+7",
+            "-0x1.02791f4cefe3ep+6",
+            "0x1.89b366cd9b367p+7"
+          ],
+          [
+            "0x1.d870e1c3870e2p+7",
+            "-0x1.02791f4cefe3ep+6",
+            "0x1.3af5ebd7af5ecp+7"
+          ]
+        ],
+        "uv": [
+          [
+            0.89052105,
+            0.999
+          ],
+          [
+            0.6410213,
+            0.999
+          ],
+          [
+            0.6410213,
+            0.0009999871
+          ]
+        ],
+        "material": "minecraft_concrete_white_-1"
+      },
+      "physically_matching_after": [
+        {
+          "face": 10108,
+          "obj_line": 17151,
+          "vertices": [
+            5176,
+            5177,
+            5166
+          ],
+          "positions_inches": [
+            [
+              236.2204724409449,
+              -74.46079921259843,
+              196.8503937007874
+            ],
+            [
+              236.2204724409449,
+              -64.6182874015748,
+              196.8503937007874
+            ],
+            [
+              236.2204724409449,
+              -64.61828346456693,
+              157.48031496062993
+            ]
+          ],
+          "positions_binary64_hex": [
+            [
+              "0x1.d870e1c3870e2p+7",
+              "-0x1.29d7dbbfb0880p+6",
+              "0x1.89b366cd9b367p+7"
+            ],
+            [
+              "0x1.d870e1c3870e2p+7",
+              "-0x1.02792055252bap+6",
+              "0x1.89b366cd9b367p+7"
+            ],
+            [
+              "0x1.d870e1c3870e2p+7",
+              "-0x1.02791f4cefe3ep+6",
+              "0x1.3af5ebd7af5ecp+7"
+            ]
+          ],
+          "uv": [
+            [
+              0.89052105,
+              0.999
+            ],
+            [
+              0.64102139979994,
+              0.999
+            ],
+            [
+              0.6410213,
+              0.0009999871
+            ]
+          ],
+          "material": "minecraft_concrete_white_-1",
+          "lineage": {
+            "child": 0,
+            "edit_index": 98,
+            "engine_normal": [
+              -1,
+              -1,
+              -1
+            ],
+            "engine_uv": [
+              680,
+              681,
+              682
+            ],
+            "group": "minecraft_concrete_white_-1",
+            "kind": "cut_child",
+            "material": "minecraft_concrete_white_-1",
+            "object_name": "",
+            "original_source_triangle": 4999,
+            "output_face": 10108,
+            "site": 3409,
+            "source_normal": [
+              -1,
+              -1,
+              -1
+            ],
+            "source_polygon_line": 9207,
+            "source_uv": [
+              680,
+              681,
+              682
+            ],
+            "stage_input_face": 3409,
+            "vertex_ids": [
+              5176,
+              5177,
+              5166
+            ]
+          }
+        }
+      ],
+      "original_source_positions_metres": [
+        [
+          6.0,
+          5.0,
+          1.8913043
+        ],
+        [
+          6.0,
+          5.0,
+          1.6413044
+        ],
+        [
+          6.0,
+          4.0,
+          1.6413044
+        ]
+      ]
+    },
+    {
+      "before": {
+        "face": 8014,
+        "obj_line": 10725,
+        "vertices": [
+          5206,
+          5510,
+          5511
+        ],
+        "positions_inches": [
+          [
+            275.59055118110234,
+            -68.04176771653543,
+            196.8503937007874
+          ],
+          [
+            275.59055118110234,
+            -68.89763779527559,
+            196.8503937007874
+          ],
+          [
+            285.43307086614175,
+            -68.89763779527559,
+            196.8503937007874
+          ]
+        ],
+        "positions_binary64_hex": [
+          [
+            "0x1.13972e5cb972ep+8",
+            "-0x1.102ac52802317p+6",
+            "0x1.89b366cd9b367p+7"
+          ],
+          [
+            "0x1.13972e5cb972ep+8",
+            "-0x1.13972e5cb972ep+6",
+            "0x1.89b366cd9b367p+7"
+          ],
+          [
+            "0x1.1d6eddbb76edep+8",
+            "-0x1.13972e5cb972ep+6",
+            "0x1.89b366cd9b367p+7"
+          ]
+        ],
+        "uv": [
+          [
+            0.0009995288,
+            0.27219564
+          ],
+          [
+            0.0009995288,
+            0.25050002
+          ],
+          [
+            0.25049928,
+            0.25050002
+          ]
+        ],
+        "material": "minecraft_concrete_white_-1"
+      },
+      "physically_matching_after": [
+        {
+          "face": 10319,
+          "obj_line": 17362,
+          "vertices": [
+            5208,
+            5510,
+            5511
+          ],
+          "positions_inches": [
+            [
+              275.59055118110234,
+              -68.04177165354331,
+              196.8503937007874
+            ],
+            [
+              275.59055118110234,
+              -68.89763779527559,
+              196.8503937007874
+            ],
+            [
+              285.43307086614175,
+              -68.89763779527559,
+              196.8503937007874
+            ]
+          ],
+          "positions_binary64_hex": [
+            [
+              "0x1.13972e5cb972ep+8",
+              "-0x1.102ac63037793p+6",
+              "0x1.89b366cd9b367p+7"
+            ],
+            [
+              "0x1.13972e5cb972ep+8",
+              "-0x1.13972e5cb972ep+6",
+              "0x1.89b366cd9b367p+7"
+            ],
+            [
+              "0x1.1d6eddbb76edep+8",
+              "-0x1.13972e5cb972ep+6",
+              "0x1.89b366cd9b367p+7"
+            ]
+          ],
+          "uv": [
+            [
+              0.0009995288,
+              0.2721955402000083
+            ],
+            [
+              0.0009995288,
+              0.25050002
+            ],
+            [
+              0.25049928,
+              0.25050002
+            ]
+          ],
+          "material": "minecraft_concrete_white_-1",
+          "lineage": {
+            "child": 1,
+            "edit_index": 183,
+            "engine_normal": [
+              -1,
+              -1,
+              -1
+            ],
+            "engine_uv": [
+              734,
+              668,
+              735
+            ],
+            "group": "minecraft_concrete_white_-1",
+            "kind": "cut_child",
+            "material": "minecraft_concrete_white_-1",
+            "object_name": "",
+            "original_source_triangle": 8014,
+            "output_face": 10319,
+            "site": 5524,
+            "source_normal": [
+              -1,
+              -1,
+              -1
+            ],
+            "source_polygon_line": 10725,
+            "source_uv": [
+              734,
+              668,
+              735
+            ],
+            "stage_input_face": 5524,
+            "vertex_ids": [
+              5208,
+              5510,
+              5511
+            ]
+          }
+        }
+      ],
+      "original_source_positions_metres": [
+        [
+          7.0,
+          5.0,
+          1.7282609
+        ],
+        [
+          7.0,
+          5.0,
+          1.75
+        ],
+        [
+          7.25,
+          5.0,
+          1.75
+        ]
+      ]
+    },
+    {
+      "before": {
+        "face": 10688,
+        "obj_line": 12089,
+        "vertices": [
+          2735,
+          2730,
+          2727
+        ],
+        "positions_inches": [
+          [
+            39.37007874015748,
+            -57.343370078740165,
+            78.74015748031496
+          ],
+          [
+            39.37007874015748,
+            -47.50085433070866,
+            78.74015748031496
+          ],
+          [
+            39.37007874015748,
+            -47.50085433070866,
+            39.37007874015748
+          ]
+        ],
+        "positions_binary64_hex": [
+          [
+            "0x1.3af5ebd7af5ecp+5",
+            "-0x1.cabf38cfd4e96p+5",
+            "0x1.3af5ebd7af5ecp+6"
+          ],
+          [
+            "0x1.3af5ebd7af5ecp+5",
+            "-0x1.7c01bfea53a12p+5",
+            "0x1.3af5ebd7af5ecp+6"
+          ],
+          [
+            "0x1.3af5ebd7af5ecp+5",
+            "-0x1.7c01bfea53a12p+5",
+            "0x1.3af5ebd7af5ecp+5"
+          ]
+        ],
+        "uv": [
+          [
+            0.45660824,
+            0.999
+          ],
+          [
+            0.20710848,
+            0.999
+          ],
+          [
+            0.20710848,
+            0.0009999871
+          ]
+        ],
+        "material": "minecraft_concrete_white_-15579874"
+      },
+      "physically_matching_after": [
+        {
+          "face": 10419,
+          "obj_line": 17465,
+          "vertices": [
+            2735,
+            4575,
+            2727
+          ],
+          "positions_inches": [
+            [
+              39.37007874015748,
+              -57.343370078740165,
+              78.74015748031496
+            ],
+            [
+              39.37007874015748,
+              -47.50086220472441,
+              78.74015748031496
+            ],
+            [
+              39.37007874015748,
+              -47.50085433070866,
+              39.37007874015748
+            ]
+          ],
+          "positions_binary64_hex": [
+            [
+              "0x1.3af5ebd7af5ecp+5",
+              "-0x1.cabf38cfd4e96p+5",
+              "0x1.3af5ebd7af5ecp+6"
+            ],
+            [
+              "0x1.3af5ebd7af5ecp+5",
+              "-0x1.7c01c40b28c02p+5",
+              "0x1.3af5ebd7af5ecp+6"
+            ],
+            [
+              "0x1.3af5ebd7af5ecp+5",
+              "-0x1.7c01bfea53a12p+5",
+              "0x1.3af5ebd7af5ecp+5"
+            ]
+          ],
+          "uv": [
+            [
+              0.45660824,
+              0.999
+            ],
+            [
+              0.20710867959988788,
+              0.999
+            ],
+            [
+              0.20710848,
+              0.0009999871
+            ]
+          ],
+          "material": "minecraft_concrete_white_-15579874",
+          "lineage": {
+            "child": 0,
+            "edit_index": 216,
+            "engine_normal": [
+              -1,
+              -1,
+              -1
+            ],
+            "engine_uv": [
+              779,
+              780,
+              781
+            ],
+            "group": "minecraft_concrete_white_-15579874",
+            "kind": "cut_child",
+            "material": "minecraft_concrete_white_-15579874",
+            "object_name": "",
+            "original_source_triangle": 10688,
+            "output_face": 10419,
+            "site": 7143,
+            "source_normal": [
+              -1,
+              -1,
+              -1
+            ],
+            "source_polygon_line": 12089,
+            "source_uv": [
+              779,
+              780,
+              781
+            ],
+            "stage_input_face": 7143,
+            "vertex_ids": [
+              2735,
+              4575,
+              2727
+            ]
+          }
+        }
+      ],
+      "original_source_positions_metres": [
+        [
+          1.0,
+          2.0,
+          1.4565216
+        ],
+        [
+          1.0,
+          2.0,
+          1.2065217
+        ],
+        [
+          1.0,
+          1.0,
+          1.2065217
+        ]
+      ]
+    },
+    {
+      "after": {
+        "face": 10108,
+        "obj_line": 17151,
+        "vertices": [
+          5176,
+          5177,
+          5166
+        ],
+        "positions_inches": [
+          [
+            236.2204724409449,
+            -74.46079921259843,
+            196.8503937007874
+          ],
+          [
+            236.2204724409449,
+            -64.6182874015748,
+            196.8503937007874
+          ],
+          [
+            236.2204724409449,
+            -64.61828346456693,
+            157.48031496062993
+          ]
+        ],
+        "positions_binary64_hex": [
+          [
+            "0x1.d870e1c3870e2p+7",
+            "-0x1.29d7dbbfb0880p+6",
+            "0x1.89b366cd9b367p+7"
+          ],
+          [
+            "0x1.d870e1c3870e2p+7",
+            "-0x1.02792055252bap+6",
+            "0x1.89b366cd9b367p+7"
+          ],
+          [
+            "0x1.d870e1c3870e2p+7",
+            "-0x1.02791f4cefe3ep+6",
+            "0x1.3af5ebd7af5ecp+7"
+          ]
+        ],
+        "uv": [
+          [
+            0.89052105,
+            0.999
+          ],
+          [
+            0.64102139979994,
+            0.999
+          ],
+          [
+            0.6410213,
+            0.0009999871
+          ]
+        ],
+        "material": "minecraft_concrete_white_-1"
+      },
+      "lineage": {
+        "child": 0,
+        "edit_index": 98,
+        "engine_normal": [
+          -1,
+          -1,
+          -1
+        ],
+        "engine_uv": [
+          680,
+          681,
+          682
+        ],
+        "group": "minecraft_concrete_white_-1",
+        "kind": "cut_child",
+        "material": "minecraft_concrete_white_-1",
+        "object_name": "",
+        "original_source_triangle": 4999,
+        "output_face": 10108,
+        "site": 3409,
+        "source_normal": [
+          -1,
+          -1,
+          -1
+        ],
+        "source_polygon_line": 9207,
+        "source_uv": [
+          680,
+          681,
+          682
+        ],
+        "stage_input_face": 3409,
+        "vertex_ids": [
+          5176,
+          5177,
+          5166
+        ]
+      },
+      "physically_matching_before": [
+        {
+          "face": 4999,
+          "obj_line": 9207,
+          "vertices": [
+            5176,
+            5178,
+            5166
+          ],
+          "positions_inches": [
+            [
+              236.2204724409449,
+              -74.46079921259843,
+              196.8503937007874
+            ],
+            [
+              236.2204724409449,
+              -64.61828346456693,
+              196.8503937007874
+            ],
+            [
+              236.2204724409449,
+              -64.61828346456693,
+              157.48031496062993
+            ]
+          ],
+          "positions_binary64_hex": [
+            [
+              "0x1.d870e1c3870e2p+7",
+              "-0x1.29d7dbbfb0880p+6",
+              "0x1.89b366cd9b367p+7"
+            ],
+            [
+              "0x1.d870e1c3870e2p+7",
+              "-0x1.02791f4cefe3ep+6",
+              "0x1.89b366cd9b367p+7"
+            ],
+            [
+              "0x1.d870e1c3870e2p+7",
+              "-0x1.02791f4cefe3ep+6",
+              "0x1.3af5ebd7af5ecp+7"
+            ]
+          ],
+          "uv": [
+            [
+              0.89052105,
+              0.999
+            ],
+            [
+              0.6410213,
+              0.999
+            ],
+            [
+              0.6410213,
+              0.0009999871
+            ]
+          ],
+          "material": "minecraft_concrete_white_-1"
+        }
+      ]
+    },
+    {
+      "after": {
+        "face": 10319,
+        "obj_line": 17362,
+        "vertices": [
+          5208,
+          5510,
+          5511
+        ],
+        "positions_inches": [
+          [
+            275.59055118110234,
+            -68.04177165354331,
+            196.8503937007874
+          ],
+          [
+            275.59055118110234,
+            -68.89763779527559,
+            196.8503937007874
+          ],
+          [
+            285.43307086614175,
+            -68.89763779527559,
+            196.8503937007874
+          ]
+        ],
+        "positions_binary64_hex": [
+          [
+            "0x1.13972e5cb972ep+8",
+            "-0x1.102ac63037793p+6",
+            "0x1.89b366cd9b367p+7"
+          ],
+          [
+            "0x1.13972e5cb972ep+8",
+            "-0x1.13972e5cb972ep+6",
+            "0x1.89b366cd9b367p+7"
+          ],
+          [
+            "0x1.1d6eddbb76edep+8",
+            "-0x1.13972e5cb972ep+6",
+            "0x1.89b366cd9b367p+7"
+          ]
+        ],
+        "uv": [
+          [
+            0.0009995288,
+            0.2721955402000083
+          ],
+          [
+            0.0009995288,
+            0.25050002
+          ],
+          [
+            0.25049928,
+            0.25050002
+          ]
+        ],
+        "material": "minecraft_concrete_white_-1"
+      },
+      "lineage": {
+        "child": 1,
+        "edit_index": 183,
+        "engine_normal": [
+          -1,
+          -1,
+          -1
+        ],
+        "engine_uv": [
+          734,
+          668,
+          735
+        ],
+        "group": "minecraft_concrete_white_-1",
+        "kind": "cut_child",
+        "material": "minecraft_concrete_white_-1",
+        "object_name": "",
+        "original_source_triangle": 8014,
+        "output_face": 10319,
+        "site": 5524,
+        "source_normal": [
+          -1,
+          -1,
+          -1
+        ],
+        "source_polygon_line": 10725,
+        "source_uv": [
+          734,
+          668,
+          735
+        ],
+        "stage_input_face": 5524,
+        "vertex_ids": [
+          5208,
+          5510,
+          5511
+        ]
+      },
+      "physically_matching_before": [
+        {
+          "face": 8014,
+          "obj_line": 10725,
+          "vertices": [
+            5206,
+            5510,
+            5511
+          ],
+          "positions_inches": [
+            [
+              275.59055118110234,
+              -68.04176771653543,
+              196.8503937007874
+            ],
+            [
+              275.59055118110234,
+              -68.89763779527559,
+              196.8503937007874
+            ],
+            [
+              285.43307086614175,
+              -68.89763779527559,
+              196.8503937007874
+            ]
+          ],
+          "positions_binary64_hex": [
+            [
+              "0x1.13972e5cb972ep+8",
+              "-0x1.102ac52802317p+6",
+              "0x1.89b366cd9b367p+7"
+            ],
+            [
+              "0x1.13972e5cb972ep+8",
+              "-0x1.13972e5cb972ep+6",
+              "0x1.89b366cd9b367p+7"
+            ],
+            [
+              "0x1.1d6eddbb76edep+8",
+              "-0x1.13972e5cb972ep+6",
+              "0x1.89b366cd9b367p+7"
+            ]
+          ],
+          "uv": [
+            [
+              0.0009995288,
+              0.27219564
+            ],
+            [
+              0.0009995288,
+              0.25050002
+            ],
+            [
+              0.25049928,
+              0.25050002
+            ]
+          ],
+          "material": "minecraft_concrete_white_-1"
+        }
+      ]
+    },
+    {
+      "after": {
+        "face": 10419,
+        "obj_line": 17465,
+        "vertices": [
+          2735,
+          4575,
+          2727
+        ],
+        "positions_inches": [
+          [
+            39.37007874015748,
+            -57.343370078740165,
+            78.74015748031496
+          ],
+          [
+            39.37007874015748,
+            -47.50086220472441,
+            78.74015748031496
+          ],
+          [
+            39.37007874015748,
+            -47.50085433070866,
+            39.37007874015748
+          ]
+        ],
+        "positions_binary64_hex": [
+          [
+            "0x1.3af5ebd7af5ecp+5",
+            "-0x1.cabf38cfd4e96p+5",
+            "0x1.3af5ebd7af5ecp+6"
+          ],
+          [
+            "0x1.3af5ebd7af5ecp+5",
+            "-0x1.7c01c40b28c02p+5",
+            "0x1.3af5ebd7af5ecp+6"
+          ],
+          [
+            "0x1.3af5ebd7af5ecp+5",
+            "-0x1.7c01bfea53a12p+5",
+            "0x1.3af5ebd7af5ecp+5"
+          ]
+        ],
+        "uv": [
+          [
+            0.45660824,
+            0.999
+          ],
+          [
+            0.20710867959988788,
+            0.999
+          ],
+          [
+            0.20710848,
+            0.0009999871
+          ]
+        ],
+        "material": "minecraft_concrete_white_-15579874"
+      },
+      "lineage": {
+        "child": 0,
+        "edit_index": 216,
+        "engine_normal": [
+          -1,
+          -1,
+          -1
+        ],
+        "engine_uv": [
+          779,
+          780,
+          781
+        ],
+        "group": "minecraft_concrete_white_-15579874",
+        "kind": "cut_child",
+        "material": "minecraft_concrete_white_-15579874",
+        "object_name": "",
+        "original_source_triangle": 10688,
+        "output_face": 10419,
+        "site": 7143,
+        "source_normal": [
+          -1,
+          -1,
+          -1
+        ],
+        "source_polygon_line": 12089,
+        "source_uv": [
+          779,
+          780,
+          781
+        ],
+        "stage_input_face": 7143,
+        "vertex_ids": [
+          2735,
+          4575,
+          2727
+        ]
+      },
+      "physically_matching_before": [
+        {
+          "face": 10688,
+          "obj_line": 12089,
+          "vertices": [
+            2735,
+            2730,
+            2727
+          ],
+          "positions_inches": [
+            [
+              39.37007874015748,
+              -57.343370078740165,
+              78.74015748031496
+            ],
+            [
+              39.37007874015748,
+              -47.50085433070866,
+              78.74015748031496
+            ],
+            [
+              39.37007874015748,
+              -47.50085433070866,
+              39.37007874015748
+            ]
+          ],
+          "positions_binary64_hex": [
+            [
+              "0x1.3af5ebd7af5ecp+5",
+              "-0x1.cabf38cfd4e96p+5",
+              "0x1.3af5ebd7af5ecp+6"
+            ],
+            [
+              "0x1.3af5ebd7af5ecp+5",
+              "-0x1.7c01bfea53a12p+5",
+              "0x1.3af5ebd7af5ecp+6"
+            ],
+            [
+              "0x1.3af5ebd7af5ecp+5",
+              "-0x1.7c01bfea53a12p+5",
+              "0x1.3af5ebd7af5ecp+5"
+            ]
+          ],
+          "uv": [
+            [
+              0.45660824,
+              0.999
+            ],
+            [
+              0.20710848,
+              0.999
+            ],
+            [
+              0.20710848,
+              0.0009999871
+            ]
+          ],
+          "material": "minecraft_concrete_white_-15579874"
+        }
+      ]
+    }
+  ],
+  "mask_artifact": {
+    "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\execution-ownership-attempt3\\precision-diagnostic\\masks.npz",
+    "sha256": "ada1e27da77ada6edfce30931e158ed058721fa9237054db5418b0ec4fa54bb3"
+  },
+  "source_code_sha256": "d8413ace200a3d05c1f40f0812bc78be60f151bf367bee0f9acf3527b9bebda9",
+  "acceptance": false
+}

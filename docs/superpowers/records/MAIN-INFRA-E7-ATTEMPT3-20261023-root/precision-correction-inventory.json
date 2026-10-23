@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "job_id": "MAIN-INFRA-1F-VALIDATE-ATTEMPT3",
+  "operator": "/root/main_infra_independent_validator",
+  "recorded_utc": "2026-10-23T17:09:43.207175+00:00",
+  "base_commit": "3796a0c2abbfd885589da88c4174b04fcc5d18c7",
+  "files": {
+    "tools/main_infra_e7_independent_attempt3.py": "7a7e1845c4308dbfcb3a7cda782085cc67c79e60eb0fe3946a8737a1a6041582",
+    "tools/tests/test_main_infra_e7_independent_attempt3.py": "63477cde8ec1c33ff4bc5b235bcee2dc7f0910289fc9428a44cf8c8479b426d8",
+    ".superpowers/sdd/main-infra-1f-validation-attempt3/progress.md": "8b75fc729658ea5ae375eb9c90871086f75bbb1b3d1b0fa4050587554a94e4db",
+    "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-ATTEMPT3/retained-precision-masks.npz": "ada1e27da77ada6edfce30931e158ed058721fa9237054db5418b0ec4fa54bb3",
+    "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-ATTEMPT3/retained-precision-diagnostic.json": "469a0df8795409a69ed828f287e486f132da7ab4ee26f7f88d76e7340b952cf4",
+    "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-ATTEMPT3/precision-coverage-proof.md": "26b10e5fb5964102405963ccdb4d5f86880e586050243eebf3c6f3217e297f46",
+    "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-ATTEMPT3/actual-prepare-precision-failure.txt": "04e7c5346467f211db29c2e333b08d2ad7afd40fee27f39bc553462ff4a2af91",
+    "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-ATTEMPT3/actual-prepare-precision-result.json": "cad1835c3d4769eba717cf00108592603f97ed914249c73bc0ba53b56fda271f",
+    "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-ATTEMPT3/precision-entry-red.txt": "2fb41f59fe81a56be6da4991e4646f82736102c1d286c6ca1090bb92c44a7f82",
+    "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-ATTEMPT3/precision-entry-red-stderr.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-ATTEMPT3/precision-entry-red-process.json": "1285118e911fe18c4dc0cf28210524f8b1e7eec40b901247bb7dd3244aa38ef1",
+    "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-ATTEMPT3/precision-real-red.txt": "fc1705e66ec8fb2730e58c76f379cbc9a073926e992a4420b557a6bb9098dad6",
+    "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-ATTEMPT3/precision-real-red-stderr.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-ATTEMPT3/precision-real-red-process.json": "20a1a6ba3de0a0d213104fccf152a7328885fd64123478772c432d21e43edad7",
+    "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-ATTEMPT3/precision-green.txt": "5af6a511d4be034d4322aff9f373585b5296025d0f6258b3f47e3a9bc77fd1f5",
+    "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-ATTEMPT3/precision-green-stderr.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-ATTEMPT3/precision-green-process.json": "a086997b9ffbe49bc1d7bb63d4279c0590a52867bff371754fef28680f864bbe"
+  },
+  "preparation_sha256": "e5af36dde9a242388985200cd6502b370dba87aba92ef152bec9e91b0f681e2a",
+  "component_mismatches": {
+    "components": [],
+    "inputs": [],
+    "donors": []
+  },
+  "signed_diff_exit_code": 0,
+  "historical_qualifier_inventory_sha256": "4eef722b7cb9e30b68c596a1f85a8d8e320a7ffc654c044dba0c47f7f08223c1",
+  "test_result": {
+    "passed": 55,
+    "seconds": 13.87,
+    "exit_code": 0,
+    "cap_exceeded": false
+  },
+  "model_verdict": "pending independent actual proof",
+  "acceptance": false
+}
