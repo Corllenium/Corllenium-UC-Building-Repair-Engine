@@ -353,3 +353,105 @@ Output: `<root>/e5/7F/{candidate.engine.obj, candidate.source.obj, source-faces.
 5. The E4 independent guard (`tools/e4_independent_guard.py`) binds with `bind_saved_e4`, which now accepts the triple
    mode, so an E4-after-E5 candidate needs no change there; an E5-only candidate has no independent guard yet (see the
    4F-7F note above).
+
+## E5 `backface_twin` and the Validator's owner-approved class `coincident_backface_removed` (2026-10-24)
+
+Commit d391ec3 on the same branch, plus this record. Fixtures only; nothing ran on a real floor. `engine/guard/**`,
+`FixProfile` thresholds, the strict 26-view guard, `engine/site_judge.py` defaults and existing tests are untouched.
+`engine/validate/checks.py` IS changed: the owner approved one allowed-change class (below); the approval reached this
+worker through the coordinator's message, not first-hand.
+
+### The owner decision and its measured basis (coordinator, 2026-10-24)
+
+The engine MAY remove the solid-facing twin of a back-to-back coincident pair regardless of look, judged under a new
+owner-approved allowed-change class in the Validator. Measured on the real 7F E3 candidate: the first E5 (same-facing
+rules only) planned 0 edits because `double_layers` reported 4,783 pairs, ALL `opposite`, 0 same-facing; the error
+census on the same candidate shows 5,556 flicker faces of which 4,974 are also `hidden` (128-direction census), i.e. a
+face whose normal points into solid lying exactly on its visible twin. E3 never proposes them (its sample points on the
+shared plane see the room through the twin, a depth tie) and the first E5 skipped them by the "opposite-facing sheets
+are not duplicates" rule.
+
+### E5 rule (c), `backface_twin` (`E5Coincident.cull_opposite_backfaces: bool = True`)
+
+For each pair `double_layers` flags `opposite` (within the depth tolerance, overlapping footprint, the same coverage
+test as rules a / b), the per-face front and back exposure is measured exactly as `find_errors` measures it
+(`engine.vis.exposure.compute_side_exposure(positions_c, faces, ok, n_dirs=profile.n_dirs)`): the face whose FRONT
+exposure is 0 loses to a twin whose front exposure is above 0, whatever the looks; both hidden or both exposed keep
+both (`kept["no_backface_winner"]`). Anchoring (never both faces of a pair) and the 98 % cover rules apply unchanged.
+Evidence per dropped face: `rule: backface_twin`, `look` / `winner_looks`, `front` / `back` of the face, `winner_front`
+/ `winner_back` of its twins, `overlap_fraction`. The group plane is now signed toward the largest face's normal so a
+back-to-back pair's normals do not cancel. `report["cull_opposite_backfaces"]`, `report["exposure_n_dirs"]`,
+`seconds["exposure"]`.
+
+### The Validator class (`engine/validate/checks.py`: `CBR = "coincident_backface_removed"`, `ALLOWED_CHANGE_CLASSES`)
+
+`Settings.allowed_changes` (frozenset, EMPTY by default: every existing caller and test keeps the strict behaviour;
+an unknown name raises; `as_dict` writes a sorted list, so the site judge's `Settings(**as_dict())` round-trips).
+With the class enabled, a tested, uncovered BEFORE sample whose AFTER status is `deleted` or `look` (check 3
+`deleted` / `replaced`) is reclassified as allowed iff (a) its face's fingerprint is gone in AFTER, (b) a BEFORE face
+kept in AFTER lies on the sample within the depth tolerance (the sample inside it, barycentric), its normal opposite to
+the sample's face normal (dot < -0.7) and its own front exposure in BEFORE above 0 (the twin was the visible surface),
+and (c) the sample's face had front exposure 0 in BEFORE (`compute_side_exposure` at `settings.n_directions`). Such a
+sample fails neither check 1 nor check 3 (`reason1 = OK`, left out of `unmet`, `deleted`, `replaced`), a removed face
+ALL of whose tested samples were allowed is excused from the floor's pixel measure, and the report gains
+`allowed_changes: {coincident_backface_removed: {samples, deleted, look, faces, faces_excused_from_floor, area_in2,
+candidates, rule}}` plus a note "ALLOWED CHANGES active (owner-approved class, 2026-10-24)". `covered`, `overlaid`,
+`uv`, `side`, same-facing twins and any deletion whose face was exposed stay as strict as today.
+
+Site judge: `SiteJudge(looks, settings=Settings(allowed_changes={CBR}))` passes the class through to `validate`, so an
+E5 `backface_twin` site is kept; the default settings roll it back. `tools.main_infra_e5.run_checked_e5(...,
+allowed_changes=ALLOWED_CHANGES)` (default `(CBR,)`; `()` for the strict judge) and the E5 floor runner records
+`allowed_changes` and the owner approval in the stage audit. `tools/main_infra_physical_validation.py --allow
+coincident_backface_removed` (repeatable; `build_parser`, `settings_for`) runs the Validator under the class and writes
+it into `validation.json` as the header key `allowed_changes_active`, `settings.allowed_changes`, `inputs.allowed_changes`
+and the physical-precision receipt.
+
+Tests: `engine/tests/test_validate_allowed_changes.py` (6: settings default / round trip / unknown name; the strict
+default still fails removing the inward twin of another look; with the class the same removal passes, is reported
+under `allowed_changes`, reclassifies exactly the strictly-failing samples and excuses both faces from the floor; a
+non-coincident deletion still fails with the class; a same-facing twin removal is not covered; removing the exposed face
+and keeping the inward twin is not covered); `engine/tests/test_e5_coincident.py` +4 (the solid-facing twin dropped
+whatever its look, with its exposures in the evidence; the rule switched off; both-hidden pair kept; the site judge
+keeps the site under the class and rolls it back without it -- `NOTHING KEPT`); the opposite-sheets test now also
+asserts `no_backface_winner`; `tools/tests/test_main_infra_e5.py` +2 (`run_checked_e5` judges under the class by
+default and strictly on request; the CLI's repeatable `--allow` builds the settings and refuses an unknown class).
+
+Output (2026-10-24, worktree root, `PYTHONPATH` = it, `-p no:cacheprovider`):
+
+```
+pytest engine/tests/test_validate_allowed_changes.py -> 6 passed in 7.55s
+pytest engine/tests/test_e5_coincident.py -> 17 passed (16 + the corrected site-judge test: 1 passed in 14.69s)
+pytest tools/tests/test_main_infra_e5.py -> 19 passed in 72.10s
+pytest engine/tests/test_validate_checks.py test_site_judge.py test_site_judge_remove_only.py test_site_judge_cover.py
+  test_cli_validate_sites.py tools/tests/test_main_infra_physical_validation.py
+  -> 1 failed, 137 passed in 207.99s: the one failure is the pre-existing
+     test_the_repair_package_imports_nothing_from_the_validator (e1_loose.py imports engine.validate.checks, since
+     531769c; e5_coincident.py imports engine.vis.exposure, nothing of engine.validate)
+pytest tools/tests -> 348 passed in 150.47s (0:02:30), exit 0   (346 + 2)
+```
+
+### 7F commands (NOT run; the engine is in use by another worker)
+
+```powershell
+$env:PYTHONPATH=(Get-Location).Path
+$PY='D:/PROJECTS/05-Corllenium-UC-Building-Repair-Engine/.venv/Scripts/python.exe'
+# E5 on the E3 candidate: the site judge runs under coincident_backface_removed by default (recorded in the audit)
+& $PY -B -u tools/run_checked_e5_floor.py --root <claude run root> --floor 7F --raw-name "7th floor main infra.obj" --from-e3
+# E4 on the E5 candidate
+& $PY -B -u tools/run_checked_e4_floor.py --root <claude run root> --floor 7F --raw-name "7th floor main infra.obj" --from-e5
+# the Validator on the E4 candidate (after guard.passed is recorded), under the owner-approved class
+& $PY tools/main_infra_physical_validation.py --raw "<root>/raw/7th floor main infra.obj" --reference <root>/reference/7F.json --baseline <root>/normalized/7F --qualification <root>/independent-validator/import-audit/qualification-7F.json --candidate <root>/e4/7F --materials <root>/independent-validator/preflight/materials-7F.json --out <root>/e4/7F-validation --allow coincident_backface_removed
+```
+
+### Open questions (backface)
+
+1. Condition (b) uses the twin's GLOBAL front exposure (above 0 from some census direction), not exposure from the
+   sample's own viewing side; a twin exposed only elsewhere still qualifies. Tighter: test the twin's front along the
+   sample's witness ray. Measured on fixtures only.
+2. A removed face is excused from the floor only when every tested sample of it was allowed; a face partly under
+   its twin keeps its floor measure and its uncovered samples still fail.
+3. The E5 plan now costs one `compute_side_exposure` (128 directions over the whole floor) whenever an opposite pair
+   exists -- the same measure the census already runs; `seconds["exposure"]` records it.
+4. The E4 independent guard and the strict 26-view guard know nothing of the class: an E5 backface cull changes which
+   face answers a pixel on the shared plane (a depth tie in BEFORE), and the strict guard's verdict on that is not yet
+   measured.
