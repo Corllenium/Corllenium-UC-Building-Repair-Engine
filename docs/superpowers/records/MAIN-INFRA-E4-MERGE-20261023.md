@@ -455,3 +455,93 @@ $PY='D:/PROJECTS/05-Corllenium-UC-Building-Repair-Engine/.venv/Scripts/python.ex
 4. The E4 independent guard and the strict 26-view guard know nothing of the class: an E5 backface cull changes which
    face answers a pixel on the shared plane (a depth tie in BEFORE), and the strict guard's verdict on that is not yet
    measured.
+
+## After the first real 7F chain run: E5 `interior_twins`, the class excuses `uv`, E4 `--allow-growth`, the guard's chained count (2026-10-24)
+
+The feature commit preceding this record on the branch, plus this record. Fixtures only here; the measured numbers
+below are the coordinator's from the first real E3 -> E5 -> E4 chain on 7F.
+
+### Measured (coordinator, real 7F E3 candidate, first chain run)
+
+E5: pairs 4,783, all opposite; faces_in_pairs 5,599; dropped 498 (`backface_twin`); kept `no_backface_winner` 4,476,
+`uncovered` 140, `no_overlap` 485; 214 sites, 57 rolled back with reasons {uv: 1250, replaced: 5}. E4 after E5:
+regions 4,524, changed 1,904, refused 1,604 = grew 1,250, uv_seam 344, too_large 4, off_plane 4, area_changed 2; 300
+sites, 237 kept, 63 rolled back (covered 147). Net 20,625 -> 19,814. The E4 independent guard on the chained candidate
+(baseline 26,152 -> E3 20,625 -> E5 20,308 -> E4 19,814) failed its face-count assertion because `before` is the
+baseline while the contract counted only E3-removed + E4-replaced.
+
+### 1. E5 rule (d), `interior_twins`
+
+An opposite-facing coincident pair BOTH of whose fronts have exposure 0 (both EXP_HIDDEN by the 128-direction census)
+is an interior block-against-block seam: both faces are planned for removal as ONE site (the seam's faces are joined
+into one site even when their vertices are not welded, test `interior_twins_are_one_site_even_when_their_vertices_are_
+not_shared`); the cover and only-coverage rules do not apply to the seam, the site judge decides, and a seam any sample
+sees rolls back as any site does (test: the judge keeps the sealed partition's seam). `kept.both_exposed` now names the
+both-exposed pairs (a legitimate two-sided zero-thickness slab); `no_backface_winner` remains only for the mixed case
+with no exposure measured. `report["kept_pairs"]` samples the kept opposite pairs (at most `KEPT_PAIRS_LISTED`, 500
+rows: `faces`, `looks`, `front`, `back` of both faces, `reason`), `kept_pairs_total` counts them all;
+`by_rule.interior_twins` counts the dropped seam faces. Evidence rows of a seam face carry `rule: interior_twins`,
+its exposures and its partners' (`winners`, `winner_front`, `winner_back`).
+
+### 2. The class excuses `uv`
+
+`coincident_backface_removed` now reclassifies a sample whose AFTER status is `uv` under the same conditions (a)-(c)
+(its face gone, its front exposure 0 in BEFORE, a kept opposite exposed face on it within the depth tolerance), and
+counts it as `allowed_changes[CBR].uv`. Strict default unchanged. Test: an inward same-look twin with a 0.37-shifted
+UV layout fails `uv` strictly and passes with the class, the excused count equal to the strict `uv` count; the same
+shifted twin OUTWARD (both fronts exposed) still fails with the class.
+
+### 3. E4 `--allow-growth`
+
+`tools/run_checked_e4_floor.py --allow-growth` passes `allow_growth=True` to `E4Merge` through
+`run_checked_e4(..., allow_growth=...)`; default False; the mapping's `engine_report.allow_growth` and the stage audit's
+`allow_growth` record it. Rationale (coordinator): coplanar same-material triangle edges are invisible in the textured
+game render, the slit (crack) is the visible defect; the merge's `area_changed`, `off_plane`, `flipped`, `uv_seam`
+refusals and the site judge still stand.
+
+### 4. The E4 independent guard on a chained candidate
+
+`tools/e4_independent_guard.py`: `before` is the qualified baseline snapshot, so its face count is kept + E3-removed +
+E5-removed + E4-replaced (`contract.e3_removed_triangles + contract.get('e5_removed_triangles', 0) +
+contract.e4_replaced_triangles`); `after` stays kept + new. The kept faces themselves are already proven by
+`bind_saved_e4` against the chained BEFORE and mapped back to the baseline's ids (`baseline_kept_source_faces`), which
+the guard reads. The E5 candidate's files (`candidate.engine.obj`, `candidate.source.obj`, `source-faces.json`,
+`stage-audit.json`) join the guard's hashed inputs when the audit names `e5_candidate`. Test
+`test_the_e4_independent_guard_reads_back_the_chained_e3_e5_e4_candidate` (fixture root, fake `strict_guard`):
+contract `e3_then_e5_then_e4_merge`, input 9, output 2, removed 9 = 1 + 4 + 4, receipt PASS.
+
+### Output (2026-10-24, worktree root, `PYTHONPATH` = it, `-p no:cacheprovider`)
+
+```
+pytest engine/tests/test_e5_coincident.py -> 1 failed, 18 passed in 245.99s, then the corrected sheets test alone
+  -> 1 passed in 13.59s (the failure was my fixture arithmetic: a flipped quad's triangles use the other diagonal, so
+     the two sheets form 4 kept pairs, not 2)   (19 tests)
+pytest engine/tests/test_validate_allowed_changes.py -> 7 passed in 11.93s
+pytest engine/tests/test_e4_merge.py engine/tests/test_e4_growth.py -> 16 passed in 7.56s
+pytest tools/tests -> 350 passed in 275.50s (0:04:35), exit 0   (348 + 2: the chained guard test and the
+  run_checked_e4 allow_growth test; the chain test now runs E4 with --allow-growth and reads it from the audit)
+```
+
+### 7F commands (NOT run here)
+
+```powershell
+$env:PYTHONPATH=(Get-Location).Path
+$PY='D:/PROJECTS/05-Corllenium-UC-Building-Repair-Engine/.venv/Scripts/python.exe'
+& $PY -B -u tools/run_checked_e5_floor.py --root <claude run root> --floor 7F --raw-name "7th floor main infra.obj" --from-e3
+& $PY -B -u tools/run_checked_e4_floor.py --root <claude run root> --floor 7F --raw-name "7th floor main infra.obj" --from-e5 --allow-growth
+& $PY -B -u tools/e4_independent_guard.py --root <root> --floor 7F --raw-name "7th floor main infra.obj" --candidate <root>/e4/7F --out <root>/e4/7F-independent-guard --helper D:/PROJECTS/05-Corllenium-UC-Building-Repair-Engine/.claude/worktrees/MAIN-INFRA-CLAUDE-4F-7F-20261023/tools/main_infra_candidate.py --job-id <id> --reviewer <name> [--original-oracle]
+& $PY tools/main_infra_physical_validation.py --raw "<root>/raw/7th floor main infra.obj" --reference <root>/reference/7F.json --baseline <root>/normalized/7F --qualification <root>/independent-validator/import-audit/qualification-7F.json --candidate <root>/e4/7F --materials <root>/independent-validator/preflight/materials-7F.json --out <root>/e4/7F-validation --allow coincident_backface_removed
+```
+
+(An existing `<root>/e5/7F` or `<root>/e4/7F` must be moved aside first: both runners refuse an existing output.)
+
+### Open questions
+
+1. An interior seam's two faces may be seen by nothing yet still carry the only coverage of a footprint between two
+   solid blocks (a sealed cavity): the site judge sees nothing there and keeps the drop; the strict guard's 26 views
+   see nothing there either. Whether the owner wants sealed cavities opened is not decided; the plan records every
+   seam in `by_rule.interior_twins` and the evidence.
+2. The 57 rolled-back E5 sites (uv 1,250) on the first run were the `uv` status the class did not yet excuse; after
+   item 2 they should hold -- to be measured on the next chain run.
+3. `--allow-growth` trades invisible coplanar edges for merged regions; the E4 `grew` numbers of the next run say how
+   many of the 1,250 come back and what the judge does with them.
