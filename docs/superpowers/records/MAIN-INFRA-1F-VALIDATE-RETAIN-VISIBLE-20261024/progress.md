@@ -27,3 +27,7 @@ Root owns main HANDOFF/session/queue/live records. Historical a502/14ada and all
 ## Next operator step
 
 Delivery independently reviews the frozen caller/draft/inventory. After an actual candidate is saved, create a new immutable ignored operational manifest with measured terminal and candidate hashes and frozen callerHEAD. Root must release proof phases under the existing8GiB admission/3GiB owned/3.5GiB global resource gates. Preserve all historical failures. No acceptance or publication by this operator.
+
+## Independent review correction
+
+Delivery confirmed two provenance-only gaps in848: prior rollback classification was not explicitly compared, and the checkpoint's full selection seal was not recomputed. Root authorized exactly two coherent tiny tamper regressions and exact comparisons. Both reproduced DID NOT RAISE, then passed with positive controls:2passed0.49s,47deselected; testtree35,921,920B plus observer10,248,192B, no abort. The prior103-test8.21s sweep belongs to848; no new full-suite claim is made. Shared caller/signed/guard/native/floor code is unchanged. Historical848 and its evidence remain in Git; the draft and inventory now pin the corrected profile bytes.

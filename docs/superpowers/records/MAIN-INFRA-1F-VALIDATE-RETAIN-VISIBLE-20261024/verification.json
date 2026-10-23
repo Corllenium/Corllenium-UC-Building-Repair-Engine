@@ -1,10 +1,10 @@
 {
+  "prior_full_sweep_HEAD": "84836c45af345d29874f74d1d7035337fecddddd",
+  "prior_full_sweep": "103 passed in8.21s",
+  "new_tests": "2 passed,47 deselected in0.49s",
+  "new_test_receipt_sha256": "f602aaee71883b80cc331f44166c4881b8fd2d0f94268d5e965ddcb8c6cbc0d8",
   "protected_base": "33606ce94b7d08a09f72539a486aa5a3e293230b",
   "protected_diff_empty": true,
-  "target_sha256": "4117f5e22045750fed7c4627ffa6324bf2efe5c14cf9629389a482c960036507",
-  "full_tests": "103 passed in8.21s",
-  "test_receipt_sha256": "d4ff6175cce2b31b964e0febb78e7b6ec16a7311f6c5b90f4f4652e717c815a9",
-  "draft_sha256": "e2a7dce71d742cec9b246522faff33d73d23f1d5959f775a59ffa6cd1abf441f",
   "actual_model_phase_executed": false,
   "acceptance": false
 }

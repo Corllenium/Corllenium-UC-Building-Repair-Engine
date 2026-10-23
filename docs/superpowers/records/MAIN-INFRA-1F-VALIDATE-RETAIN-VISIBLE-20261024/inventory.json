@@ -10,11 +10,11 @@
     },
     {
       "path": "tools/main_infra_1f_retained_validation.py",
-      "sha256": "9b60f2070f8aa5101e9b8bb34725a13fa045a8b4fdb4f95df552af2c5dde85eb"
+      "sha256": "c02b52ab263f21de64fe7e240991f5cfd77de98ebc12d46ef1a51eda6791639a"
     },
     {
       "path": "tools/tests/test_main_infra_1f_retained_validation.py",
-      "sha256": "2e70eddc1c5b770446848c07cb1eb977c09f0bfb3d068500ef4348f78cffeb52"
+      "sha256": "e3677073d85a0279e085ac091ee825548bce810aa81a2493a7d64591dfa4da55"
     },
     {
       "path": "docs/superpowers/plans/2026-10-24-1f-retained-independent.md",
@@ -22,7 +22,7 @@
     },
     {
       "path": ".superpowers/sdd/1f-retain-visible-validation/progress.md",
-      "sha256": "0bf796badcb5b01ca72cb240eba4270ef5f66baca2ef4a342aa1e1bc0b36a48d"
+      "sha256": "f475027df9dd0ca9b28b7a5a88d93e6d2c625ecafcbf2e7acb04b701b15401ca"
     },
     {
       "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/capture-green-process.json",
@@ -270,7 +270,7 @@
     },
     {
       "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/preparation-draft.json",
-      "sha256": "e2a7dce71d742cec9b246522faff33d73d23f1d5959f775a59ffa6cd1abf441f"
+      "sha256": "32a041afbe625018b7d3f725ac5638b14f2c96dc1720785e4ac00c9b9ade0c17"
     },
     {
       "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/preparation-pin-green-process.json",
@@ -346,7 +346,43 @@
     },
     {
       "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/progress.md",
-      "sha256": "3c8e69f641cced023f08c74c8789df8a96525b2425c8dc5de0064378fe12e4dc"
+      "sha256": "e1dc53050d5939a5182984a50c635e3657b340ab2b6aa57f7adec8c66d94b3a1"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/provenance-green-final-process.json",
+      "sha256": "f602aaee71883b80cc331f44166c4881b8fd2d0f94268d5e965ddcb8c6cbc0d8"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/provenance-green-final-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/provenance-green-final.txt",
+      "sha256": "af4967fd7e93afc2f7107a2ea7cac3937da8df3d71cb82737ee40fc6fb261299"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/provenance-green-process.json",
+      "sha256": "976ccc304244c776ac3af2e0b6a18d5fb0959226c6f8bc3824fd6611b629076c"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/provenance-green-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/provenance-green.txt",
+      "sha256": "ec00ebbc3eae83d127cad35e7eb9207c5d4e39dfdd104da7830fc2da391ff5f9"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/provenance-red-process.json",
+      "sha256": "4b385492bdfc91c0be05fe8d343173f485b96ff7a69d10712587c0eb98231f71"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/provenance-red-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/provenance-red.txt",
+      "sha256": "c3d54e574fb3145d7d7ee4168a96561c65f11c48d670ceaa0fc1a7e2d886278c"
     },
     {
       "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/retention-gate-green-process.json",
@@ -390,9 +426,10 @@
     },
     {
       "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/verification.json",
-      "sha256": "24b08a0dbee9f64f3fe5b35fa9a1f6c0a8d52e707f83425ec3a602d8ef261614"
+      "sha256": "9135c3aabeb174377cd28e8c64a06541537390cd4e51d254634624558b5b5cb2"
     }
   ],
   "acceptance": false,
-  "no_actual_proof_phase": true
+  "no_actual_proof_phase": true,
+  "prior_freeze": "84836c45af345d29874f74d1d7035337fecddddd"
 }

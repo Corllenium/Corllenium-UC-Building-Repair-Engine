@@ -151,6 +151,7 @@ def normalise_worker(plan,worker,audit,candidate,paths,hashes):
     if (len(rows)!=283 or len(kept)!=280 or len(retained)!=1 or len(retained[0]['faces'])!=274
             or retained[0].get('rolled_back',False) or selection.get('retained_source_faces')!=retained[0]['faces']
             or selection.get('required_faces')!=list(FACES) or selection.get('original_counts')!=expected_counts
+            or selection.get('original_rolled_sites')!=sorted(row['site'] for row in rows if row.get('rolled_back',False))
             or selection.get('selected')!=279 or selection.get('selected_sites')!=[site for site in kept if site!=5]
             or selection.get('all_original_records_verified') is not True or selection.get('old_verdict_is_not_reused') is not True
             or selection.get('replay',{}).get('restored_sites')!=[5]
@@ -192,6 +193,7 @@ def normalise_worker(plan,worker,audit,candidate,paths,hashes):
 
 def bind_package(worker,plan,candidate,paths,hashes):
     from pathlib import Path
+    import hashlib
     p=shared.read(paths['builder_preparation'])
     for key,name,field in [('retention_receipt','retention-receipt.json','retention_receipt_sha256'),
             ('run_receipt','run-receipt.json','run_receipt_sha256'),
@@ -206,6 +208,7 @@ def bind_package(worker,plan,candidate,paths,hashes):
     if (checkpoint.get('mode')!='actual_checked_e3_checkpoint'
             or binding.get('run_id')!=p['run_id'] or binding.get('components')!=p['components']
             or binding.get('preparation_sha256')!=hashes['builder_preparation']
+            or binding.get('selection_digest')!=hashlib.sha256(canonical(p['selection']).encode()).hexdigest()
             or retained.get('schema_version')!=1 or retained.get('mode')!='original_e3_visible_retention'
             or retained.get('run_id')!=p['run_id'] or retained.get('policy')!=p['policy']
             or retained.get('selection')!=p['selection'] or retained.get('input_binding')!=expected

@@ -137,6 +137,7 @@ def retained_case(tmp_path):
     selected=[r['site'] for r in rows if not r.get('rolled_back',False) and r['site']!=5]
     faces=next(r['faces'] for r in rows if r['site']==5)
     component='17247d295d809a6405fae8271a4d3d290e04bb59';selection=dict(original_counts=pol['original_counts'],retained_source_faces=faces,
+        original_rolled_sites=[8,117,127],
         required_faces=[9809,10366],selected=279,selected_sites=selected,all_original_records_verified=True,
         old_verdict_is_not_reused=True,replay=dict(restored_sites=[5],original_kept_sites=280,remaining_sites=279,fresh_site_check_required=True))
     builder=run/'preparation-1F.json';checkpoint=run/'execution-1F/checked-outcome/checkpoint-receipt.json'
@@ -208,7 +209,8 @@ def test_actual_package_receipts_are_external_and_cross_bound(tmp_path):
     checkpoint=json.loads(paths['checkpoint_receipt'].read_bytes())
     checkpoint['binding']=dict(paths={'preparation':str(paths['builder_preparation'])},
         sha256={'preparation':hashes['builder_preparation']},run_id=p['run_id'],
-        preparation_sha256=hashes['builder_preparation'],components=p['components'])
+        preparation_sha256=hashes['builder_preparation'],components=p['components'],
+        selection_digest=__import__('hashlib').sha256((json.dumps(s,sort_keys=True,separators=(',',':'))+'\n').encode()).hexdigest())
     write(paths['checkpoint_receipt'],checkpoint);hashes['checkpoint_receipt']=digest(paths['checkpoint_receipt'])
     w['checkpoint_receipt_sha256']=hashes['checkpoint_receipt']
     ret=dict(schema_version=1,mode='original_e3_visible_retention',run_id=p['run_id'],policy=p['policy'],
@@ -269,7 +271,8 @@ def complete_retained_graph(tmp_path):
     from tools.tests.test_main_infra_2f_validation import write,digest
     plan,w,a,c,paths,hashes,p,s=retained_case(tmp_path)
     checkpoint=dict(mode='actual_checked_e3_checkpoint',binding=dict(paths={'preparation':str(paths['builder_preparation'])},
-        sha256={'preparation':hashes['builder_preparation']},run_id=p['run_id'],preparation_sha256=hashes['builder_preparation'],components=p['components']))
+        sha256={'preparation':hashes['builder_preparation']},run_id=p['run_id'],preparation_sha256=hashes['builder_preparation'],components=p['components'],
+        selection_digest=__import__('hashlib').sha256((json.dumps(s,sort_keys=True,separators=(',',':'))+'\n').encode()).hexdigest()))
     write(paths['checkpoint_receipt'],checkpoint);hashes['checkpoint_receipt']=digest(paths['checkpoint_receipt']);w['checkpoint_receipt_sha256']=hashes['checkpoint_receipt']
     ret=dict(schema_version=1,mode='original_e3_visible_retention',run_id=p['run_id'],policy=p['policy'],selection=s,
         checkpoint_receipt_sha256=hashes['checkpoint_receipt'],all_retained_faces_survive=True,exact_saved_tables=True,
@@ -358,6 +361,39 @@ def test_old_failed_diagnostic_receipt_cannot_overwrite_new_retention_label(tmp_
     normalise_worker(plan,w,a,c,paths,hashes)
     assert paths['retention_receipt']==new and hashes['retention_receipt']==digest(new)
     assert paths['policy_evidence_receipt']!=new
+
+
+def test_new_provenance_rejects_wrong_prior_rollback_classification(tmp_path):
+    from tools.main_infra_1f_retained_validation import normalise_worker
+    from tools.tests.test_main_infra_2f_validation import write,digest
+    plan,w,a,c,paths,hashes,p,s=retained_case(tmp_path)
+    normalise_worker(plan,w,a,c,paths,hashes)
+    s['original_rolled_sites']=[8,117,128]
+    write(paths['builder_preparation'],p);hashes['builder_preparation']=digest(paths['builder_preparation'])
+    w['preparation_sha256']=hashes['builder_preparation']
+    with pytest.raises(ValueError):normalise_worker(plan,w,a,c,paths,hashes)
+
+
+def test_new_provenance_rejects_rehashed_wrong_full_selection_seal(tmp_path):
+    from tools.main_infra_1f_retained_validation import bind_package
+    from tools.tests.test_main_infra_2f_validation import write,digest
+    prep,c,worker_path,plan=complete_retained_graph(tmp_path)
+    paths={k:Path(v) for k,v in plan['paths'].items()};hashes=dict(plan['sha256'])
+    w=json.loads(worker_path.read_bytes());p=json.loads(paths['builder_preparation'].read_bytes())
+    bind_package(w,p,c,paths,hashes)
+    cp=json.loads(paths['checkpoint_receipt'].read_bytes());cp['binding']['selection_digest']='0'*64
+    write(paths['checkpoint_receipt'],cp);hashes['checkpoint_receipt']=digest(paths['checkpoint_receipt'])
+    w['checkpoint_receipt_sha256']=hashes['checkpoint_receipt']
+    ret=json.loads((c/'retention-receipt.json').read_bytes())
+    ret['checkpoint_receipt_sha256']=hashes['checkpoint_receipt']
+    ret['input_binding']=dict(cp['binding'],paths=dict(cp['binding']['paths'],checked_outcome_receipt=str(paths['checkpoint_receipt'])),
+        sha256=dict(cp['binding']['sha256'],checked_outcome_receipt=hashes['checkpoint_receipt']))
+    write(c/'retention-receipt.json',ret);w['retention_receipt_sha256']=digest(c/'retention-receipt.json')
+    run=json.loads((c/'run-receipt.json').read_bytes())
+    run.update(checkpoint_receipt_sha256=w['checkpoint_receipt_sha256'],retention_receipt_sha256=w['retention_receipt_sha256'])
+    write(c/'run-receipt.json',run);w['run_receipt_sha256']=digest(c/'run-receipt.json')
+    with pytest.raises(ValueError):bind_package(w,p,c,paths,hashes)
+
 
 
 
