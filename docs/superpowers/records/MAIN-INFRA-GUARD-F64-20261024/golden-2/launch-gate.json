@@ -1,0 +1,24 @@
+{
+  "require8GiB": true,
+  "passed": true,
+  "samples": [
+    {
+      "utc": "2026-10-23T22:47:36.0599785Z",
+      "commit_bytes": 49803743232,
+      "limit_bytes": 67197034496,
+      "headroom_bytes": 17393291264
+    },
+    {
+      "utc": "2026-10-23T22:47:36.5778261Z",
+      "commit_bytes": 49864142848,
+      "limit_bytes": 67197034496,
+      "headroom_bytes": 17332891648
+    },
+    {
+      "utc": "2026-10-23T22:47:37.0910756Z",
+      "commit_bytes": 49689206784,
+      "limit_bytes": 67197034496,
+      "headroom_bytes": 17507827712
+    }
+  ]
+}

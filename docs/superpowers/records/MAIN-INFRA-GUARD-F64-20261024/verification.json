@@ -847,9 +847,8 @@
   "operator": "Codex-Guard-F64",
   "original_guard_passed": false,
   "pending": [
-    "Golden guard adapter/code/config review then root resource GO on three inventoried frozen pairs.",
-    "Any owner-signed golden Validator result remains a separate phase; no such result is claimed.",
-    "Actual 2F strict26 retry remains root-held; original strict FAIL is immutable."
+    "Actual independent 2F strict26 retry requires a new hash-bound preparation/config and separate rootGO.",
+    "Owner-signed golden Validator was not run; no owner acceptance is claimed."
   ],
   "prior_combined_cap_aborts": [
     "guard-area",
@@ -937,5 +936,11 @@
     "help_exit": 0,
     "model_inputs_loaded": false,
     "real_golden_phases_run": false
-  }
+  },
+  "golden_guard_comparisons_run": true,
+  "golden_guard_comparison_views": 78,
+  "golden_changed_view_reports": 0,
+  "golden_all_3_strict_passed": false,
+  "golden_readback_sha256": "d275a7fe3a81913630c2b8c64d2d92161451e4ffe0bbef2d0a600fed6e5ac611",
+  "root_disposition": "Accepted by controller as numerical regression evidence ONLY: 78 exact old/new reports; historical saved OBJ/report counts mismatch remains explicit; no owner/model PASS."
 }

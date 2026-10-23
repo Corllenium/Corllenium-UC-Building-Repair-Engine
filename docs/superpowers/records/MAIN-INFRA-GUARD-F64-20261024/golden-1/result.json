@@ -1,0 +1,16 @@
+{
+  "state": "PROCESS_FAILED",
+  "phase": "guard-F64-golden-1-01-chtm5",
+  "abort_reason": null,
+  "actual_pid": 16180,
+  "actual_creation_utc": "2026-10-23T22:45:34.6161823Z",
+  "actual_exit_code": 2,
+  "launcher_exit_code": 2,
+  "wall_s": 35.2373818,
+  "HEAD": "c2430808f2de642e95d32ea0fcc984d3c318f5f7",
+  "phase_plan_sha256": "7c81b97a4ec636a7c0b88e316837b0cb44b40663adec5a3f4aaeb25fd6fbc773",
+  "all_owned_exited": true,
+  "evidence": "data\\guard-f64-preflight\\monitor-guard-F64-golden-1-01-chtm5-20261023T224533",
+  "ended_utc": "2026-10-23T22:46:09.7005844Z",
+  "acceptance": false
+}

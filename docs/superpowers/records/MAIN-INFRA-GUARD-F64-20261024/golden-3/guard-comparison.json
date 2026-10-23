@@ -1,0 +1,2610 @@
+{
+  "schema_version": 1,
+  "unit": "CHTM_2nd_to_3rd_building_sidewalk_outside",
+  "plan_sha256": "e708ad72f77e411f9c2a2fe11c0c4f24261895bb9f9ce064f7a5b8761c8d2c5f",
+  "before_sha256": "0b290ec0bcb47402a5fe661fc037eb7d457e01917a0d748d900b8551946b65e2",
+  "after_sha256": "de5dd0defac73c086d1a0654c0b15fe748aa30df76e653fd1f070050dbd9eab0",
+  "before_triangles": 7227,
+  "after_triangles": 240,
+  "center_inches": [
+    2136.72,
+    23427.95,
+    1946.85
+  ],
+  "source_quanta_inches": [
+    0.01,
+    0.1,
+    0.01
+  ],
+  "source_sig_digits": 6,
+  "depth_tol_inches": 0.15000000000000002,
+  "common_material_names": [
+    "mumi_littletiles_ltstone_-3",
+    "mumi_littletiles_ltstone_-5",
+    "mumi_littletiles_ltstone_-8"
+  ],
+  "size": [
+    900,
+    600
+  ],
+  "view_count": 26,
+  "protocol": "strict26; all materials patterned; zero edge/crack/fragment/border allowances",
+  "reports": {
+    "baseline": {
+      "passed": false,
+      "totals": {
+        "model_px": 2425186,
+        "holes": 69886,
+        "material_changed": 3924,
+        "moved_same_flat": 0,
+        "moved_other": 258455,
+        "zfight_tie": 3,
+        "crack_closed": 0,
+        "edge_flicker": 676,
+        "fragment_removed": 0,
+        "edge_flicker_hole": 61,
+        "edge_flicker_moved": 401,
+        "edge_flicker_material": 72,
+        "border_shift": 0,
+        "grown": 3910,
+        "edge_flicker_grown": 142,
+        "grown_base": 4052,
+        "border_shift_grown": 0,
+        "crack_closed_grown": 0,
+        "zfight_tie_grown": 0
+      },
+      "views": [
+        {
+          "view": [
+            -0.987,
+            -0.993,
+            -0.989
+          ],
+          "model_px": 98528,
+          "holes": 3218,
+          "moved_same_flat": 0,
+          "moved_other": 15,
+          "material_changed": 0,
+          "zfight_tie": 0,
+          "crack_closed": 0,
+          "edge_flicker": 20,
+          "fragment_removed": 0,
+          "edge_flicker_hole": 7,
+          "edge_flicker_moved": 1,
+          "edge_flicker_material": 8,
+          "border_shift": 0,
+          "grown": 90,
+          "edge_flicker_grown": 4,
+          "grown_base": 94,
+          "border_shift_grown": 0,
+          "crack_closed_grown": 0,
+          "zfight_tie_grown": 0
+        },
+        {
+          "view": [
+            -0.987,
+            -0.993,
+            0.011
+          ],
+          "model_px": 25595,
+          "holes": 3960,
+          "moved_same_flat": 0,
+          "moved_other": 86,
+          "material_changed": 0,
+          "zfight_tie": 0,
+          "crack_closed": 0,
+          "edge_flicker": 22,
+          "fragment_removed": 0,
+          "edge_flicker_hole": 2,
+          "edge_flicker_moved": 4,
+          "edge_flicker_material": 6,
+          "border_shift": 0,
+          "grown": 12,
+          "edge_flicker_grown": 10,
+          "grown_base": 22,
+          "border_shift_grown": 0,
+          "crack_closed_grown": 0,
+          "zfight_tie_grown": 0
+        },
+        {
+          "view": [
+            -0.987,
+            -0.993,
+            1.011
+          ],
+          "model_px": 91732,
+          "holes": 1632,
+          "moved_same_flat": 0,
+          "moved_other": 16880,
+          "material_changed": 1,
+          "zfight_tie": 0,
+          "crack_closed": 0,
+          "edge_flicker": 29,
+          "fragment_removed": 0,
+          "edge_flicker_hole": 4,
+          "edge_flicker_moved": 20,
+          "edge_flicker_material": 2,
+          "border_shift": 0,
+          "grown": 372,
+          "edge_flicker_grown": 3,
+          "grown_base": 375,
+          "border_shift_grown": 0,
+          "crack_closed_grown": 0,
+          "zfight_tie_grown": 0
+        },
+        {
+          "view": [
+            -0.987,
+            0.007,
+            -0.989
+          ],
+          "model_px": 86739,
+          "holes": 5,
+          "moved_same_flat": 0,
+          "moved_other": 41,
+          "material_changed": 0,
+          "zfight_tie": 0,
+          "crack_closed": 0,
+          "edge_flicker": 6,
+          "fragment_removed": 0,
+          "edge_flicker_hole": 5,
+          "edge_flicker_moved": 0,
+          "edge_flicker_material": 0,
+          "border_shift": 0,
+          "grown": 35,
+          "edge_flicker_grown": 1,
+          "grown_base": 36,
+          "border_shift_grown": 0,
+          "crack_closed_grown": 0,
+          "zfight_tie_grown": 0
+        },
+        {
+          "view": [
+            -0.987,
+            0.007,
+            0.011
+          ],
+          "model_px": 49548,
+          "holes": 29,
+          "moved_same_flat": 0,
+          "moved_other": 44,
+          "material_changed": 0,
+          "zfight_tie": 0,
+          "crack_closed": 0,
+          "edge_flicker": 2,
+          "fragment_removed": 0,
+          "edge_flicker_hole": 2,
+          "edge_flicker_moved": 0,
+          "edge_flicker_material": 0,
+          "border_shift": 0,
+          "grown": 5,
+          "edge_flicker_grown": 0,
+          "grown_base": 5,
+          "border_shift_grown": 0,
+          "crack_closed_grown": 0,
+          "zfight_tie_grown": 0
+        },
+        {
+          "view": [
+            -0.987,
+            0.007,
+            1.011
+          ],
+          "model_px": 118793,
+          "holes": 41,
+          "moved_same_flat": 0,
+          "moved_other": 24428,
+          "material_changed": 8,
+          "zfight_tie": 0,
+          "crack_closed": 0,
+          "edge_flicker": 18,
+          "fragment_removed": 0,
+          "edge_flicker_hole": 1,
+          "edge_flicker_moved": 13,
+          "edge_flicker_material": 0,
+          "border_shift": 0,
+          "grown": 16,
+          "edge_flicker_grown": 4,
+          "grown_base": 20,
+          "border_shift_grown": 0,
+          "crack_closed_grown": 0,
+          "zfight_tie_grown": 0
+        },
+        {
+          "view": [
+            -0.987,
+            1.007,
+            -0.989
+          ],
+          "model_px": 96264,
+          "holes": 1429,
+          "moved_same_flat": 0,
+          "moved_other": 449,
+          "material_changed": 0,
+          "zfight_tie": 0,
+          "crack_closed": 0,
+          "edge_flicker": 24,
+          "fragment_removed": 0,
+          "edge_flicker_hole": 2,
+          "edge_flicker_moved": 9,
+          "edge_flicker_material": 7,
+          "border_shift": 0,
+          "grown": 446,
+          "edge_flicker_grown": 6,
+          "grown_base": 452,
+          "border_shift_grown": 0,
+          "crack_closed_grown": 0,
+          "zfight_tie_grown": 0
+        },
+        {
+          "view": [
+            -0.987,
+            1.007,
+            0.011
+          ],
+          "model_px": 44953,
+          "holes": 6123,
+          "moved_same_flat": 0,
+          "moved_other": 1372,
+          "material_changed": 0,
+          "zfight_tie": 0,
+          "crack_closed": 0,
+          "edge_flicker": 30,
+          "fragment_removed": 0,
+          "edge_flicker_hole": 2,
+          "edge_flicker_moved": 13,
+          "edge_flicker_material": 0,
+          "border_shift": 0,
+          "grown": 2,
+          "edge_flicker_grown": 15,
+          "grown_base": 17,
+          "border_shift_grown": 0,
+          "crack_closed_grown": 0,
+          "zfight_tie_grown": 0
+        },
+        {
+          "view": [
+            -0.987,
+            1.007,
+            1.011
+          ],
+          "model_px": 167643,
+          "holes": 6346,
+          "moved_same_flat": 0,
+          "moved_other": 32590,
+          "material_changed": 21,
+          "zfight_tie": 0,
+          "crack_closed": 0,
+          "edge_flicker": 42,
+          "fragment_removed": 0,
+          "edge_flicker_hole": 2,
+          "edge_flicker_moved": 36,
+          "edge_flicker_material": 0,
+          "border_shift": 0,
+          "grown": 115,
+          "edge_flicker_grown": 4,
+          "grown_base": 119,
+          "border_shift_grown": 0,
+          "crack_closed_grown": 0,
+          "zfight_tie_grown": 0
+        },
+        {
+          "view": [
+            0.013,
+            -0.993,
+            -0.989
+          ],
+          "model_px": 125238,
+          "holes": 4387,
+          "moved_same_flat": 0,
+          "moved_other": 7,
+          "material_changed": 0,
+          "zfight_tie": 0,
+          "crack_closed": 0,
+          "edge_flicker": 21,
+          "fragment_removed": 0,
+          "edge_flicker_hole": 2,
+          "edge_flicker_moved": 2,
+          "edge_flicker_material": 10,
+          "border_shift": 0,
+          "grown": 118,
+          "edge_flicker_grown": 7,
+          "grown_base": 125,
+          "border_shift_grown": 0,
+          "crack_closed_grown": 0,
+          "zfight_tie_grown": 0
+        },
+        {
+          "view": [
+            0.013,
+            -0.993,
+            0.011
+          ],
+          "model_px": 20076,
+          "holes": 6014,
+          "moved_same_flat": 0,
+          "moved_other": 419,
+          "material_changed": 1,
+          "zfight_tie": 0,
+          "crack_closed": 0,
+          "edge_flicker": 10,
+          "fragment_removed": 0,
+          "edge_flicker_hole": 0,
+          "edge_flicker_moved": 3,
+          "edge_flicker_material": 2,
+          "border_shift": 0,
+          "grown": 15,
+          "edge_flicker_grown": 5,
+          "grown_base": 20,
+          "border_shift_grown": 0,
+          "crack_closed_grown": 0,
+          "zfight_tie_grown": 0
+        },
+        {
+          "view": [
+            0.013,
+            -0.993,
+            1.011
+          ],
+          "model_px": 125882,
+          "holes": 1920,
+          "moved_same_flat": 0,
+          "moved_other": 23728,
+          "material_changed": 19,
+          "zfight_tie": 1,
+          "crack_closed": 0,
+          "edge_flicker": 43,
+          "fragment_removed": 0,
+          "edge_flicker_hole": 3,
+          "edge_flicker_moved": 30,
+          "edge_flicker_material": 3,
+          "border_shift": 0,
+          "grown": 673,
+          "edge_flicker_grown": 7,
+          "grown_base": 680,
+          "border_shift_grown": 0,
+          "crack_closed_grown": 0,
+          "zfight_tie_grown": 0
+        },
+        {
+          "view": [
+            0.013,
+            0.007,
+            -0.989
+          ],
+          "model_px": 159799,
+          "holes": 0,
+          "moved_same_flat": 0,
+          "moved_other": 131,
+          "material_changed": 0,
+          "zfight_tie": 0,
+          "crack_closed": 0,
+          "edge_flicker": 6,
+          "fragment_removed": 0,
+          "edge_flicker_hole": 0,
+          "edge_flicker_moved": 4,
+          "edge_flicker_material": 0,
+          "border_shift": 0,
+          "grown": 58,
+          "edge_flicker_grown": 2,
+          "grown_base": 60,
+          "border_shift_grown": 0,
+          "crack_closed_grown": 0,
+          "zfight_tie_grown": 0
+        },
+        {
+          "view": [
+            0.013,
+            0.007,
+            1.011
+          ],
+          "model_px": 160426,
+          "holes": 0,
+          "moved_same_flat": 0,
+          "moved_other": 33783,
+          "material_changed": 0,
+          "zfight_tie": 0,
+          "crack_closed": 0,
+          "edge_flicker": 2,
+          "fragment_removed": 0,
+          "edge_flicker_hole": 0,
+          "edge_flicker_moved": 0,
+          "edge_flicker_material": 0,
+          "border_shift": 0,
+          "grown": 60,
+          "edge_flicker_grown": 2,
+          "grown_base": 62,
+          "border_shift_grown": 0,
+          "crack_closed_grown": 0,
+          "zfight_tie_grown": 0
+        },
+        {
+          "view": [
+            0.013,
+            1.007,
+            -0.989
+          ],
+          "model_px": 122660,
+          "holes": 1953,
+          "moved_same_flat": 0,
+          "moved_other": 1131,
+          "material_changed": 0,
+          "zfight_tie": 0,
+          "crack_closed": 0,
+          "edge_flicker": 52,
+          "fragment_removed": 0,
+          "edge_flicker_hole": 8,
+          "edge_flicker_moved": 28,
+          "edge_flicker_material": 7,
+          "border_shift": 0,
+          "grown": 679,
+          "edge_flicker_grown": 9,
+          "grown_base": 688,
+          "border_shift_grown": 0,
+          "crack_closed_grown": 0,
+          "zfight_tie_grown": 0
+        },
+        {
+          "view": [
+            0.013,
+            1.007,
+            0.011
+          ],
+          "model_px": 19684,
+          "holes": 6081,
+          "moved_same_flat": 0,
+          "moved_other": 2631,
+          "material_changed": 93,
+          "zfight_tie": 0,
+          "crack_closed": 0,
+          "edge_flicker": 15,
+          "fragment_removed": 0,
+          "edge_flicker_hole": 0,
+          "edge_flicker_moved": 12,
+          "edge_flicker_material": 0,
+          "border_shift": 0,
+          "grown": 2,
+          "edge_flicker_grown": 3,
+          "grown_base": 5,
+          "border_shift_grown": 0,
+          "crack_closed_grown": 0,
+          "zfight_tie_grown": 0
+        },
+        {
+          "view": [
+            0.013,
+            1.007,
+            1.011
+          ],
+          "model_px": 124613,
+          "holes": 4317,
+          "moved_same_flat": 0,
+          "moved_other": 25456,
+          "material_changed": 60,
+          "zfight_tie": 0,
+          "crack_closed": 0,
+          "edge_flicker": 77,
+          "fragment_removed": 0,
+          "edge_flicker_hole": 3,
+          "edge_flicker_moved": 64,
+          "edge_flicker_material": 0,
+          "border_shift": 0,
+          "grown": 110,
+          "edge_flicker_grown": 10,
+          "grown_base": 120,
+          "border_shift_grown": 0,
+          "crack_closed_grown": 0,
+          "zfight_tie_grown": 0
+        },
+        {
+          "view": [
+            1.013,
+            -0.993,
+            -0.989
+          ],
+          "model_px": 170352,
+          "holes": 6528,
+          "moved_same_flat": 0,
+          "moved_other": 529,
+          "material_changed": 0,
+          "zfight_tie": 0,
+          "crack_closed": 0,
+          "edge_flicker": 36,
+          "fragment_removed": 0,
+          "edge_flicker_hole": 3,
+          "edge_flicker_moved": 8,
+          "edge_flicker_material": 14,
+          "border_shift": 0,
+          "grown": 113,
+          "edge_flicker_grown": 11,
+          "grown_base": 124,
+          "border_shift_grown": 0,
+          "crack_closed_grown": 0,
+          "zfight_tie_grown": 0
+        },
+        {
+          "view": [
+            1.013,
+            -0.993,
+            0.011
+          ],
+          "model_px": 46792,
+          "holes": 5711,
+          "moved_same_flat": 0,
+          "moved_other": 8927,
+          "material_changed": 117,
+          "zfight_tie": 1,
+          "crack_closed": 0,
+          "edge_flicker": 31,
+          "fragment_removed": 0,
+          "edge_flicker_hole": 2,
+          "edge_flicker_moved": 13,
+          "edge_flicker_material": 5,
+          "border_shift": 0,
+          "grown": 28,
+          "edge_flicker_grown": 11,
+          "grown_base": 39,
+          "border_shift_grown": 0,
+          "crack_closed_grown": 0,
+          "zfight_tie_grown": 0
+        },
+        {
+          "view": [
+            1.013,
+            -0.993,
+            1.011
+          ],
+          "model_px": 94546,
+          "holes": 1354,
+          "moved_same_flat": 0,
+          "moved_other": 19103,
+          "material_changed": 922,
+          "zfight_tie": 1,
+          "crack_closed": 0,
+          "edge_flicker": 37,
+          "fragment_removed": 0,
+          "edge_flicker_hole": 2,
+          "edge_flicker_moved": 27,
+          "edge_flicker_material": 3,
+          "border_shift": 0,
+          "grown": 430,
+          "edge_flicker_grown": 5,
+          "grown_base": 435,
+          "border_shift_grown": 0,
+          "crack_closed_grown": 0,
+          "zfight_tie_grown": 0
+        },
+        {
+          "view": [
+            1.013,
+            0.007,
+            -0.989
+          ],
+          "model_px": 122983,
+          "holes": 12,
+          "moved_same_flat": 0,
+          "moved_other": 1135,
+          "material_changed": 0,
+          "zfight_tie": 0,
+          "crack_closed": 0,
+          "edge_flicker": 19,
+          "fragment_removed": 0,
+          "edge_flicker_hole": 2,
+          "edge_flicker_moved": 12,
+          "edge_flicker_material": 0,
+          "border_shift": 0,
+          "grown": 17,
+          "edge_flicker_grown": 5,
+          "grown_base": 22,
+          "border_shift_grown": 0,
+          "crack_closed_grown": 0,
+          "zfight_tie_grown": 0
+        },
+        {
+          "view": [
+            1.013,
+            0.007,
+            0.011
+          ],
+          "model_px": 50823,
+          "holes": 84,
+          "moved_same_flat": 0,
+          "moved_other": 16538,
+          "material_changed": 391,
+          "zfight_tie": 0,
+          "crack_closed": 0,
+          "edge_flicker": 15,
+          "fragment_removed": 0,
+          "edge_flicker_hole": 1,
+          "edge_flicker_moved": 13,
+          "edge_flicker_material": 0,
+          "border_shift": 0,
+          "grown": 5,
+          "edge_flicker_grown": 1,
+          "grown_base": 6,
+          "border_shift_grown": 0,
+          "crack_closed_grown": 0,
+          "zfight_tie_grown": 0
+        },
+        {
+          "view": [
+            1.013,
+            0.007,
+            1.011
+          ],
+          "model_px": 87257,
+          "holes": 11,
+          "moved_same_flat": 0,
+          "moved_other": 19565,
+          "material_changed": 938,
+          "zfight_tie": 0,
+          "crack_closed": 0,
+          "edge_flicker": 28,
+          "fragment_removed": 0,
+          "edge_flicker_hole": 2,
+          "edge_flicker_moved": 22,
+          "edge_flicker_material": 0,
+          "border_shift": 0,
+          "grown": 36,
+          "edge_flicker_grown": 4,
+          "grown_base": 40,
+          "border_shift_grown": 0,
+          "crack_closed_grown": 0,
+          "zfight_tie_grown": 0
+        },
+        {
+          "view": [
+            1.013,
+            1.007,
+            -0.989
+          ],
+          "model_px": 89742,
+          "holes": 1661,
+          "moved_same_flat": 0,
+          "moved_other": 1630,
+          "material_changed": 62,
+          "zfight_tie": 0,
+          "crack_closed": 0,
+          "edge_flicker": 24,
+          "fragment_removed": 0,
+          "edge_flicker_hole": 2,
+          "edge_flicker_moved": 13,
+          "edge_flicker_material": 5,
+          "border_shift": 0,
+          "grown": 366,
+          "edge_flicker_grown": 4,
+          "grown_base": 370,
+          "border_shift_grown": 0,
+          "crack_closed_grown": 0,
+          "zfight_tie_grown": 0
+        },
+        {
+          "view": [
+            1.013,
+            1.007,
+            0.011
+          ],
+          "model_px": 25586,
+          "holes": 3890,
+          "moved_same_flat": 0,
+          "moved_other": 6187,
+          "material_changed": 243,
+          "zfight_tie": 0,
+          "crack_closed": 0,
+          "edge_flicker": 21,
+          "fragment_removed": 0,
+          "edge_flicker_hole": 3,
+          "edge_flicker_moved": 14,
+          "edge_flicker_material": 0,
+          "border_shift": 0,
+          "grown": 16,
+          "edge_flicker_grown": 4,
+          "grown_base": 20,
+          "border_shift_grown": 0,
+          "crack_closed_grown": 0,
+          "zfight_tie_grown": 0
+        },
+        {
+          "view": [
+            1.013,
+            1.007,
+            1.011
+          ],
+          "model_px": 98932,
+          "holes": 3180,
+          "moved_same_flat": 0,
+          "moved_other": 21650,
+          "material_changed": 1048,
+          "zfight_tie": 0,
+          "crack_closed": 0,
+          "edge_flicker": 46,
+          "fragment_removed": 0,
+          "edge_flicker_hole": 1,
+          "edge_flicker_moved": 40,
+          "edge_flicker_material": 0,
+          "border_shift": 0,
+          "grown": 91,
+          "edge_flicker_grown": 5,
+          "grown_base": 96,
+          "border_shift_grown": 0,
+          "crack_closed_grown": 0,
+          "zfight_tie_grown": 0
+        }
+      ]
+    },
+    "corrected": {
+      "passed": false,
+      "totals": {
+        "model_px": 2425186,
+        "holes": 69886,
+        "material_changed": 3924,
+        "moved_same_flat": 0,
+        "moved_other": 258455,
+        "zfight_tie": 3,
+        "crack_closed": 0,
+        "edge_flicker": 676,
+        "fragment_removed": 0,
+        "edge_flicker_hole": 61,
+        "edge_flicker_moved": 401,
+        "edge_flicker_material": 72,
+        "border_shift": 0,
+        "grown": 3910,
+        "edge_flicker_grown": 142,
+        "grown_base": 4052,
+        "border_shift_grown": 0,
+        "crack_closed_grown": 0,
+        "zfight_tie_grown": 0
+      },
+      "views": [
+        {
+          "view": [
+            -0.987,
+            -0.993,
+            -0.989
+          ],
+          "model_px": 98528,
+          "holes": 3218,
+          "moved_same_flat": 0,
+          "moved_other": 15,
+          "material_changed": 0,
+          "zfight_tie": 0,
+          "crack_closed": 0,
+          "edge_flicker": 20,
+          "fragment_removed": 0,
+          "edge_flicker_hole": 7,
+          "edge_flicker_moved": 1,
+          "edge_flicker_material": 8,
+          "border_shift": 0,
+          "grown": 90,
+          "edge_flicker_grown": 4,
+          "grown_base": 94,
+          "border_shift_grown": 0,
+          "crack_closed_grown": 0,
+          "zfight_tie_grown": 0
+        },
+        {
+          "view": [
+            -0.987,
+            -0.993,
+            0.011
+          ],
+          "model_px": 25595,
+          "holes": 3960,
+          "moved_same_flat": 0,
+          "moved_other": 86,
+          "material_changed": 0,
+          "zfight_tie": 0,
+          "crack_closed": 0,
+          "edge_flicker": 22,
+          "fragment_removed": 0,
+          "edge_flicker_hole": 2,
+          "edge_flicker_moved": 4,
+          "edge_flicker_material": 6,
+          "border_shift": 0,
+          "grown": 12,
+          "edge_flicker_grown": 10,
+          "grown_base": 22,
+          "border_shift_grown": 0,
+          "crack_closed_grown": 0,
+          "zfight_tie_grown": 0
+        },
+        {
+          "view": [
+            -0.987,
+            -0.993,
+            1.011
+          ],
+          "model_px": 91732,
+          "holes": 1632,
+          "moved_same_flat": 0,
+          "moved_other": 16880,
+          "material_changed": 1,
+          "zfight_tie": 0,
+          "crack_closed": 0,
+          "edge_flicker": 29,
+          "fragment_removed": 0,
+          "edge_flicker_hole": 4,
+          "edge_flicker_moved": 20,
+          "edge_flicker_material": 2,
+          "border_shift": 0,
+          "grown": 372,
+          "edge_flicker_grown": 3,
+          "grown_base": 375,
+          "border_shift_grown": 0,
+          "crack_closed_grown": 0,
+          "zfight_tie_grown": 0
+        },
+        {
+          "view": [
+            -0.987,
+            0.007,
+            -0.989
+          ],
+          "model_px": 86739,
+          "holes": 5,
+          "moved_same_flat": 0,
+          "moved_other": 41,
+          "material_changed": 0,
+          "zfight_tie": 0,
+          "crack_closed": 0,
+          "edge_flicker": 6,
+          "fragment_removed": 0,
+          "edge_flicker_hole": 5,
+          "edge_flicker_moved": 0,
+          "edge_flicker_material": 0,
+          "border_shift": 0,
+          "grown": 35,
+          "edge_flicker_grown": 1,
+          "grown_base": 36,
+          "border_shift_grown": 0,
+          "crack_closed_grown": 0,
+          "zfight_tie_grown": 0
+        },
+        {
+          "view": [
+            -0.987,
+            0.007,
+            0.011
+          ],
+          "model_px": 49548,
+          "holes": 29,
+          "moved_same_flat": 0,
+          "moved_other": 44,
+          "material_changed": 0,
+          "zfight_tie": 0,
+          "crack_closed": 0,
+          "edge_flicker": 2,
+          "fragment_removed": 0,
+          "edge_flicker_hole": 2,
+          "edge_flicker_moved": 0,
+          "edge_flicker_material": 0,
+          "border_shift": 0,
+          "grown": 5,
+          "edge_flicker_grown": 0,
+          "grown_base": 5,
+          "border_shift_grown": 0,
+          "crack_closed_grown": 0,
+          "zfight_tie_grown": 0
+        },
+        {
+          "view": [
+            -0.987,
+            0.007,
+            1.011
+          ],
+          "model_px": 118793,
+          "holes": 41,
+          "moved_same_flat": 0,
+          "moved_other": 24428,
+          "material_changed": 8,
+          "zfight_tie": 0,
+          "crack_closed": 0,
+          "edge_flicker": 18,
+          "fragment_removed": 0,
+          "edge_flicker_hole": 1,
+          "edge_flicker_moved": 13,
+          "edge_flicker_material": 0,
+          "border_shift": 0,
+          "grown": 16,
+          "edge_flicker_grown": 4,
+          "grown_base": 20,
+          "border_shift_grown": 0,
+          "crack_closed_grown": 0,
+          "zfight_tie_grown": 0
+        },
+        {
+          "view": [
+            -0.987,
+            1.007,
+            -0.989
+          ],
+          "model_px": 96264,
+          "holes": 1429,
+          "moved_same_flat": 0,
+          "moved_other": 449,
+          "material_changed": 0,
+          "zfight_tie": 0,
+          "crack_closed": 0,
+          "edge_flicker": 24,
+          "fragment_removed": 0,
+          "edge_flicker_hole": 2,
+          "edge_flicker_moved": 9,
+          "edge_flicker_material": 7,
+          "border_shift": 0,
+          "grown": 446,
+          "edge_flicker_grown": 6,
+          "grown_base": 452,
+          "border_shift_grown": 0,
+          "crack_closed_grown": 0,
+          "zfight_tie_grown": 0
+        },
+        {
+          "view": [
+            -0.987,
+            1.007,
+            0.011
+          ],
+          "model_px": 44953,
+          "holes": 6123,
+          "moved_same_flat": 0,
+          "moved_other": 1372,
+          "material_changed": 0,
+          "zfight_tie": 0,
+          "crack_closed": 0,
+          "edge_flicker": 30,
+          "fragment_removed": 0,
+          "edge_flicker_hole": 2,
+          "edge_flicker_moved": 13,
+          "edge_flicker_material": 0,
+          "border_shift": 0,
+          "grown": 2,
+          "edge_flicker_grown": 15,
+          "grown_base": 17,
+          "border_shift_grown": 0,
+          "crack_closed_grown": 0,
+          "zfight_tie_grown": 0
+        },
+        {
+          "view": [
+            -0.987,
+            1.007,
+            1.011
+          ],
+          "model_px": 167643,
+          "holes": 6346,
+          "moved_same_flat": 0,
+          "moved_other": 32590,
+          "material_changed": 21,
+          "zfight_tie": 0,
+          "crack_closed": 0,
+          "edge_flicker": 42,
+          "fragment_removed": 0,
+          "edge_flicker_hole": 2,
+          "edge_flicker_moved": 36,
+          "edge_flicker_material": 0,
+          "border_shift": 0,
+          "grown": 115,
+          "edge_flicker_grown": 4,
+          "grown_base": 119,
+          "border_shift_grown": 0,
+          "crack_closed_grown": 0,
+          "zfight_tie_grown": 0
+        },
+        {
+          "view": [
+            0.013,
+            -0.993,
+            -0.989
+          ],
+          "model_px": 125238,
+          "holes": 4387,
+          "moved_same_flat": 0,
+          "moved_other": 7,
+          "material_changed": 0,
+          "zfight_tie": 0,
+          "crack_closed": 0,
+          "edge_flicker": 21,
+          "fragment_removed": 0,
+          "edge_flicker_hole": 2,
+          "edge_flicker_moved": 2,
+          "edge_flicker_material": 10,
+          "border_shift": 0,
+          "grown": 118,
+          "edge_flicker_grown": 7,
+          "grown_base": 125,
+          "border_shift_grown": 0,
+          "crack_closed_grown": 0,
+          "zfight_tie_grown": 0
+        },
+        {
+          "view": [
+            0.013,
+            -0.993,
+            0.011
+          ],
+          "model_px": 20076,
+          "holes": 6014,
+          "moved_same_flat": 0,
+          "moved_other": 419,
+          "material_changed": 1,
+          "zfight_tie": 0,
+          "crack_closed": 0,
+          "edge_flicker": 10,
+          "fragment_removed": 0,
+          "edge_flicker_hole": 0,
+          "edge_flicker_moved": 3,
+          "edge_flicker_material": 2,
+          "border_shift": 0,
+          "grown": 15,
+          "edge_flicker_grown": 5,
+          "grown_base": 20,
+          "border_shift_grown": 0,
+          "crack_closed_grown": 0,
+          "zfight_tie_grown": 0
+        },
+        {
+          "view": [
+            0.013,
+            -0.993,
+            1.011
+          ],
+          "model_px": 125882,
+          "holes": 1920,
+          "moved_same_flat": 0,
+          "moved_other": 23728,
+          "material_changed": 19,
+          "zfight_tie": 1,
+          "crack_closed": 0,
+          "edge_flicker": 43,
+          "fragment_removed": 0,
+          "edge_flicker_hole": 3,
+          "edge_flicker_moved": 30,
+          "edge_flicker_material": 3,
+          "border_shift": 0,
+          "grown": 673,
+          "edge_flicker_grown": 7,
+          "grown_base": 680,
+          "border_shift_grown": 0,
+          "crack_closed_grown": 0,
+          "zfight_tie_grown": 0
+        },
+        {
+          "view": [
+            0.013,
+            0.007,
+            -0.989
+          ],
+          "model_px": 159799,
+          "holes": 0,
+          "moved_same_flat": 0,
+          "moved_other": 131,
+          "material_changed": 0,
+          "zfight_tie": 0,
+          "crack_closed": 0,
+          "edge_flicker": 6,
+          "fragment_removed": 0,
+          "edge_flicker_hole": 0,
+          "edge_flicker_moved": 4,
+          "edge_flicker_material": 0,
+          "border_shift": 0,
+          "grown": 58,
+          "edge_flicker_grown": 2,
+          "grown_base": 60,
+          "border_shift_grown": 0,
+          "crack_closed_grown": 0,
+          "zfight_tie_grown": 0
+        },
+        {
+          "view": [
+            0.013,
+            0.007,
+            1.011
+          ],
+          "model_px": 160426,
+          "holes": 0,
+          "moved_same_flat": 0,
+          "moved_other": 33783,
+          "material_changed": 0,
+          "zfight_tie": 0,
+          "crack_closed": 0,
+          "edge_flicker": 2,
+          "fragment_removed": 0,
+          "edge_flicker_hole": 0,
+          "edge_flicker_moved": 0,
+          "edge_flicker_material": 0,
+          "border_shift": 0,
+          "grown": 60,
+          "edge_flicker_grown": 2,
+          "grown_base": 62,
+          "border_shift_grown": 0,
+          "crack_closed_grown": 0,
+          "zfight_tie_grown": 0
+        },
+        {
+          "view": [
+            0.013,
+            1.007,
+            -0.989
+          ],
+          "model_px": 122660,
+          "holes": 1953,
+          "moved_same_flat": 0,
+          "moved_other": 1131,
+          "material_changed": 0,
+          "zfight_tie": 0,
+          "crack_closed": 0,
+          "edge_flicker": 52,
+          "fragment_removed": 0,
+          "edge_flicker_hole": 8,
+          "edge_flicker_moved": 28,
+          "edge_flicker_material": 7,
+          "border_shift": 0,
+          "grown": 679,
+          "edge_flicker_grown": 9,
+          "grown_base": 688,
+          "border_shift_grown": 0,
+          "crack_closed_grown": 0,
+          "zfight_tie_grown": 0
+        },
+        {
+          "view": [
+            0.013,
+            1.007,
+            0.011
+          ],
+          "model_px": 19684,
+          "holes": 6081,
+          "moved_same_flat": 0,
+          "moved_other": 2631,
+          "material_changed": 93,
+          "zfight_tie": 0,
+          "crack_closed": 0,
+          "edge_flicker": 15,
+          "fragment_removed": 0,
+          "edge_flicker_hole": 0,
+          "edge_flicker_moved": 12,
+          "edge_flicker_material": 0,
+          "border_shift": 0,
+          "grown": 2,
+          "edge_flicker_grown": 3,
+          "grown_base": 5,
+          "border_shift_grown": 0,
+          "crack_closed_grown": 0,
+          "zfight_tie_grown": 0
+        },
+        {
+          "view": [
+            0.013,
+            1.007,
+            1.011
+          ],
+          "model_px": 124613,
+          "holes": 4317,
+          "moved_same_flat": 0,
+          "moved_other": 25456,
+          "material_changed": 60,
+          "zfight_tie": 0,
+          "crack_closed": 0,
+          "edge_flicker": 77,
+          "fragment_removed": 0,
+          "edge_flicker_hole": 3,
+          "edge_flicker_moved": 64,
+          "edge_flicker_material": 0,
+          "border_shift": 0,
+          "grown": 110,
+          "edge_flicker_grown": 10,
+          "grown_base": 120,
+          "border_shift_grown": 0,
+          "crack_closed_grown": 0,
+          "zfight_tie_grown": 0
+        },
+        {
+          "view": [
+            1.013,
+            -0.993,
+            -0.989
+          ],
+          "model_px": 170352,
+          "holes": 6528,
+          "moved_same_flat": 0,
+          "moved_other": 529,
+          "material_changed": 0,
+          "zfight_tie": 0,
+          "crack_closed": 0,
+          "edge_flicker": 36,
+          "fragment_removed": 0,
+          "edge_flicker_hole": 3,
+          "edge_flicker_moved": 8,
+          "edge_flicker_material": 14,
+          "border_shift": 0,
+          "grown": 113,
+          "edge_flicker_grown": 11,
+          "grown_base": 124,
+          "border_shift_grown": 0,
+          "crack_closed_grown": 0,
+          "zfight_tie_grown": 0
+        },
+        {
+          "view": [
+            1.013,
+            -0.993,
+            0.011
+          ],
+          "model_px": 46792,
+          "holes": 5711,
+          "moved_same_flat": 0,
+          "moved_other": 8927,
+          "material_changed": 117,
+          "zfight_tie": 1,
+          "crack_closed": 0,
+          "edge_flicker": 31,
+          "fragment_removed": 0,
+          "edge_flicker_hole": 2,
+          "edge_flicker_moved": 13,
+          "edge_flicker_material": 5,
+          "border_shift": 0,
+          "grown": 28,
+          "edge_flicker_grown": 11,
+          "grown_base": 39,
+          "border_shift_grown": 0,
+          "crack_closed_grown": 0,
+          "zfight_tie_grown": 0
+        },
+        {
+          "view": [
+            1.013,
+            -0.993,
+            1.011
+          ],
+          "model_px": 94546,
+          "holes": 1354,
+          "moved_same_flat": 0,
+          "moved_other": 19103,
+          "material_changed": 922,
+          "zfight_tie": 1,
+          "crack_closed": 0,
+          "edge_flicker": 37,
+          "fragment_removed": 0,
+          "edge_flicker_hole": 2,
+          "edge_flicker_moved": 27,
+          "edge_flicker_material": 3,
+          "border_shift": 0,
+          "grown": 430,
+          "edge_flicker_grown": 5,
+          "grown_base": 435,
+          "border_shift_grown": 0,
+          "crack_closed_grown": 0,
+          "zfight_tie_grown": 0
+        },
+        {
+          "view": [
+            1.013,
+            0.007,
+            -0.989
+          ],
+          "model_px": 122983,
+          "holes": 12,
+          "moved_same_flat": 0,
+          "moved_other": 1135,
+          "material_changed": 0,
+          "zfight_tie": 0,
+          "crack_closed": 0,
+          "edge_flicker": 19,
+          "fragment_removed": 0,
+          "edge_flicker_hole": 2,
+          "edge_flicker_moved": 12,
+          "edge_flicker_material": 0,
+          "border_shift": 0,
+          "grown": 17,
+          "edge_flicker_grown": 5,
+          "grown_base": 22,
+          "border_shift_grown": 0,
+          "crack_closed_grown": 0,
+          "zfight_tie_grown": 0
+        },
+        {
+          "view": [
+            1.013,
+            0.007,
+            0.011
+          ],
+          "model_px": 50823,
+          "holes": 84,
+          "moved_same_flat": 0,
+          "moved_other": 16538,
+          "material_changed": 391,
+          "zfight_tie": 0,
+          "crack_closed": 0,
+          "edge_flicker": 15,
+          "fragment_removed": 0,
+          "edge_flicker_hole": 1,
+          "edge_flicker_moved": 13,
+          "edge_flicker_material": 0,
+          "border_shift": 0,
+          "grown": 5,
+          "edge_flicker_grown": 1,
+          "grown_base": 6,
+          "border_shift_grown": 0,
+          "crack_closed_grown": 0,
+          "zfight_tie_grown": 0
+        },
+        {
+          "view": [
+            1.013,
+            0.007,
+            1.011
+          ],
+          "model_px": 87257,
+          "holes": 11,
+          "moved_same_flat": 0,
+          "moved_other": 19565,
+          "material_changed": 938,
+          "zfight_tie": 0,
+          "crack_closed": 0,
+          "edge_flicker": 28,
+          "fragment_removed": 0,
+          "edge_flicker_hole": 2,
+          "edge_flicker_moved": 22,
+          "edge_flicker_material": 0,
+          "border_shift": 0,
+          "grown": 36,
+          "edge_flicker_grown": 4,
+          "grown_base": 40,
+          "border_shift_grown": 0,
+          "crack_closed_grown": 0,
+          "zfight_tie_grown": 0
+        },
+        {
+          "view": [
+            1.013,
+            1.007,
+            -0.989
+          ],
+          "model_px": 89742,
+          "holes": 1661,
+          "moved_same_flat": 0,
+          "moved_other": 1630,
+          "material_changed": 62,
+          "zfight_tie": 0,
+          "crack_closed": 0,
+          "edge_flicker": 24,
+          "fragment_removed": 0,
+          "edge_flicker_hole": 2,
+          "edge_flicker_moved": 13,
+          "edge_flicker_material": 5,
+          "border_shift": 0,
+          "grown": 366,
+          "edge_flicker_grown": 4,
+          "grown_base": 370,
+          "border_shift_grown": 0,
+          "crack_closed_grown": 0,
+          "zfight_tie_grown": 0
+        },
+        {
+          "view": [
+            1.013,
+            1.007,
+            0.011
+          ],
+          "model_px": 25586,
+          "holes": 3890,
+          "moved_same_flat": 0,
+          "moved_other": 6187,
+          "material_changed": 243,
+          "zfight_tie": 0,
+          "crack_closed": 0,
+          "edge_flicker": 21,
+          "fragment_removed": 0,
+          "edge_flicker_hole": 3,
+          "edge_flicker_moved": 14,
+          "edge_flicker_material": 0,
+          "border_shift": 0,
+          "grown": 16,
+          "edge_flicker_grown": 4,
+          "grown_base": 20,
+          "border_shift_grown": 0,
+          "crack_closed_grown": 0,
+          "zfight_tie_grown": 0
+        },
+        {
+          "view": [
+            1.013,
+            1.007,
+            1.011
+          ],
+          "model_px": 98932,
+          "holes": 3180,
+          "moved_same_flat": 0,
+          "moved_other": 21650,
+          "material_changed": 1048,
+          "zfight_tie": 0,
+          "crack_closed": 0,
+          "edge_flicker": 46,
+          "fragment_removed": 0,
+          "edge_flicker_hole": 1,
+          "edge_flicker_moved": 40,
+          "edge_flicker_material": 0,
+          "border_shift": 0,
+          "grown": 91,
+          "edge_flicker_grown": 5,
+          "grown_base": 96,
+          "border_shift_grown": 0,
+          "crack_closed_grown": 0,
+          "zfight_tie_grown": 0
+        }
+      ]
+    }
+  },
+  "evidence": [
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\goldf64\\03-outside\\qa\\view-00-base-classification.png",
+      "sha256": "9a3161a0352988973ac98070cd341c3b3b816041a37e6f93f6d8867c9bf303a7"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\goldf64\\03-outside\\qa\\view-01-base-classification.png",
+      "sha256": "a926a75b6fdb556a77342ea0cfb132040c7e375fd61ede3266ff8ac93359ae18"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\goldf64\\03-outside\\qa\\view-02-base-classification.png",
+      "sha256": "98f25ed88e01a753a43296f08e67c71e515989e4c7de511dbb103529ae177933"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\goldf64\\03-outside\\qa\\view-03-base-classification.png",
+      "sha256": "67b5600fc5c0acffe3571d6d88469da5a5c16dd4acab7ee7a947c789fb4bcdf8"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\goldf64\\03-outside\\qa\\view-04-base-classification.png",
+      "sha256": "5d01fa8f76ef2faf48a1dc34f75602b9beb33b31e4428c83a8784f5f2c1400cb"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\goldf64\\03-outside\\qa\\view-05-base-classification.png",
+      "sha256": "64ed701d2784a1c6045ad9212cef87c96bb412b6afa130258e908e8ff19018ec"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\goldf64\\03-outside\\qa\\view-06-base-classification.png",
+      "sha256": "ad7d68ef27d0eb7775e993a7a88eab83a0c9ab1fd2d59567da86eb940c965eb4"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\goldf64\\03-outside\\qa\\view-07-base-classification.png",
+      "sha256": "95309273ea65c40d72827e58e8399f62a72defacc1bde5e873eb1ab7a78a0fa8"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\goldf64\\03-outside\\qa\\view-08-base-classification.png",
+      "sha256": "973cfd7fb17554de638feb62c78b49435e36c761bf57a1e6b43acc1c397b95d0"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\goldf64\\03-outside\\qa\\view-09-base-classification.png",
+      "sha256": "03fe3c384957d6746f12a35918b1e87bcee951b50e28a9620bb0941e2daf1601"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\goldf64\\03-outside\\qa\\view-10-base-classification.png",
+      "sha256": "8ee12afdbd3ee48bbd181246f40fa6de96feef69c9aca56485fa0cd723eb63ce"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\goldf64\\03-outside\\qa\\view-11-base-classification.png",
+      "sha256": "4b2bdcd431ee36b92a14c76280c71b7cd235064039dbb18bb1c9e7640b6715ee"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\goldf64\\03-outside\\qa\\view-12-base-classification.png",
+      "sha256": "74509ff1a0a76a05971656b0c69db4845f04dddec6cd92c4f64d57d86779f6a3"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\goldf64\\03-outside\\qa\\view-13-base-classification.png",
+      "sha256": "0aa9eafb515a2da7ecfc69c4b28eb11720c482290e0183815af685472e8ab7d8"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\goldf64\\03-outside\\qa\\view-14-base-classification.png",
+      "sha256": "fa4e43735c6825f971a20d6806ea2f94f186a12b116c6eea3360400d061709da"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\goldf64\\03-outside\\qa\\view-15-base-classification.png",
+      "sha256": "026c2824aca610ff048d96a86a85f9b4b986867ef3795ff6b6e9dc4739064875"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\goldf64\\03-outside\\qa\\view-16-base-classification.png",
+      "sha256": "df87fcf22042adc3490d585553f306b66c2a019414784652274c0fdb747a775e"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\goldf64\\03-outside\\qa\\view-17-base-classification.png",
+      "sha256": "139e3a3b9be6939d0491c3fe727392e1a181c451908025ff40fcaa664403b3a1"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\goldf64\\03-outside\\qa\\view-18-base-classification.png",
+      "sha256": "349d7fb50bb3db47de281332ba24badc83930ddbcc9fc44de0287a7d78f78d22"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\goldf64\\03-outside\\qa\\view-19-base-classification.png",
+      "sha256": "16666900027557ad18a74b548ab072cd0cc58756ea9b23cd316cb7aa3eca52eb"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\goldf64\\03-outside\\qa\\view-20-base-classification.png",
+      "sha256": "c43abf9f9b70dc8a7272387ccb5befd0d763286af92b2a45d480e5d392aad5b6"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\goldf64\\03-outside\\qa\\view-21-base-classification.png",
+      "sha256": "17c5847eee1b20acce611dae0f3d8de0bd554d67e512771cd7527593edd669f0"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\goldf64\\03-outside\\qa\\view-22-base-classification.png",
+      "sha256": "0ec9165336af7070b92c43f84076149955b1be06280c79f9f9ac9e352f1af5db"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\goldf64\\03-outside\\qa\\view-23-base-classification.png",
+      "sha256": "bee190fc75882c0d3f6d41d73ddc8c4cae34db2d7a100771f4283f7ce86c5290"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\goldf64\\03-outside\\qa\\view-24-base-classification.png",
+      "sha256": "1dbd4408a93af792705f64c4b64c19fe4b8a452f3e267cb3c11744655225665b"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\goldf64\\03-outside\\qa\\view-25-base-classification.png",
+      "sha256": "1d3b005a51154a0ab403958664942ac6f26c4f38bf0b98f2d6891e846dca096a"
+    }
+  ],
+  "input_pins": [
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\docs\\superpowers\\records\\MAIN-INFRA-GUARD-F64-20261024\\inventory.json",
+      "sha256": "a41c72189cc9d554a369e2ca93e0fedd1a2909ffa95917b44630865ff4701c23"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\attempt3-preflight\\execute-resource-guard-v4.ps1",
+      "sha256": "9cce36842bd6f45b88c5122f350ae7eda4cc0ec79d3a38c5c2959dd24dd6fd60"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\pyproject.toml",
+      "sha256": "a98f2fa54e2dc98338eed9cf74c057dbf14adfd3093970d2f5885bf07e54753b"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.venv\\Scripts\\python.exe",
+      "sha256": "0b471133e110cfb53a061cad528ce8e517d7b9ac41a0a396c39ad795a487fc14"
+    },
+    {
+      "path": "C:\\Users\\Future26\\AppData\\Local\\Programs\\Python\\Python312\\python.exe",
+      "sha256": "4d6f5f81a4bca11191c4c7c6b43632694d0a4ce74e068619d8fdc161d469859a"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\campus\\__init__.py",
+      "sha256": "e47d53569bb287f38a3232bf9044dd2ede5fa493b7682ae756fd459da4bd50d2"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\campus\\census.py",
+      "sha256": "37bc6a44b5d768ba7518e78d123d65b40f52eff0828937dbd72c77a23088024c"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\campus\\error_export.py",
+      "sha256": "e88b726d242f3c68bd598efc4f957e5d4c59a151f86283afa447c977b69d68ab"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\campus\\groups.py",
+      "sha256": "7f0b05a8d1807bbbc5118d7a4acfd25975614f533d83264b978455eaffdb7e73"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\campus\\inventory.py",
+      "sha256": "144230f16f06b0dd6c9d5b01709f7f70f04faa94764aa76e3ab6e727fb42cf2f"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\campus\\materials.py",
+      "sha256": "2325873abf6efd0c67c894dcb9e3cb66eb72a584c93c79d46661bddfe0c2f221"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\campus\\needs_modelling.py",
+      "sha256": "857921b86475ff1f02c0fed5195840188e7e4bf86ed1a5ab691a5fe009677cb5"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\campus\\pixfont.py",
+      "sha256": "6c2554b6a2a15839525007a059425c0ff954d0e417669b2fc19a19704944e4e1"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\campus\\skp_check.py",
+      "sha256": "92d5477aa0284a5dab1dc550934763b25333a66f05dfab4b41798a2f88d22844"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\campus\\source.py",
+      "sha256": "25bc1a7bf19b511140135bde71474a668cb00614e1b30a488b86ea753768a737"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\campus\\unit_before.py",
+      "sha256": "fb0b4ace5010792740858933b8eac1bd59b674ea5c0e15ddebbb570ceacd4998"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\campus\\winprobe.py",
+      "sha256": "17ae7a4ae6856647cf670ec69ed3d00ac02ade629aff1b67ad59888dbae30759"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\cli.py",
+      "sha256": "22038f695aeef6f655a0409781993f2657e1a2507df8d3bb448c2faf1a3806c4"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\decide\\__init__.py",
+      "sha256": "35c706c776a73c97047b57abdb173b2c5a3b69e548cef0805be3e1858dd95ce1"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\decide\\decider.py",
+      "sha256": "63c318ae4e19d6130497207005d0e90c865875c6db8fef592dac6fd6eca0c9d0"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\decide\\jev.py",
+      "sha256": "6ee83f8a737f438b72bcc90a5d9ef58a198ea1b12e6e7d509d1b8ba3d8049534"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\decide\\pilot.py",
+      "sha256": "86e7a0545b9bce62fcd71e3259f177352a908b8d60fe34ce96fba08d1381e25a"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\decide\\pilot_import.py",
+      "sha256": "fb43df39144e95ea56a9b29dc0d4eba99473a6f99ebf059b6d471ed4fdabc959"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\decide\\providers.py",
+      "sha256": "f6d13f43daaef30e63798bfd0fb03455c81497b98d80098de90584deb31218e5"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\decide\\remote.py",
+      "sha256": "68444940c8fa733f9dacb29e264a33298fdfc8411c08aeeeecb58a0ba080ba2c"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\decide\\wire.py",
+      "sha256": "1350369bc601021eb0b13d5000da07c145cb12e28c61140483c938abde9eef27"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\detectors\\__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\detectors\\errors.py",
+      "sha256": "21823708b8f34ec42900008f7c16ac3b55fda5b213c8347abcb5057fe443610f"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\detectors\\folds.py",
+      "sha256": "6c78d57faf7eae8ed874cb25ca0a315362f5ac59f88d1543bbc23d310d7fb84e"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\detectors\\fragments.py",
+      "sha256": "63a9beac6a6dcb5826e13a120997ac172e3d809351269f939ee76b1308a012d5"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\fill_review.py",
+      "sha256": "dc04d19343736e6c062f73d5e6b9d8b642e545e7a1f9dd4547419b4bc1c2034f"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\fixes\\__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\fixes\\merge.py",
+      "sha256": "e11bfe7da7cfeb9c7cdad3da0c1e41306b124f4c42ed8f4099d9567118aff693"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\fixes\\orient.py",
+      "sha256": "0e15f196d51ff9d19c2e102baee0fc7966421275ead6bbcdb958850b37346855"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\fixes\\overlap.py",
+      "sha256": "ee8aab14411313b82e05da94c508a1d479ea00732f620bdb58fa92c2b9a8f8c9"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\fixes\\pipeline.py",
+      "sha256": "20f72381d1ef2040bd90de928e21c3bfb0b5c4e534669e15207110ae7736f2aa"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\fixes\\precut_cleanup.py",
+      "sha256": "faa4a8a2d921b83702d2cf53c04038cf4488168b6279cd66f6b49813ab40d6b4"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\fixes\\remove.py",
+      "sha256": "7ec0b682dc87cda8270fd157b1efa7bf34c5232e71963153b3fac7257ff02706"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\fixes\\solidify.py",
+      "sha256": "9201503de87813fdf34e1adc60b12d39340ee8f289f293ae8dd3b6abdc805e00"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\guard\\__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\guard\\compare.py",
+      "sha256": "0603150b2eebf9e3301688e825aef540575e8e688ee66180835df5c5e978dee8"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\guard\\piece_rays.py",
+      "sha256": "b15824c2385c00c3df19d88b8f379194f6dd01a0aeb53c1f20796661cbbbf1e9"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\guard\\qa_render.py",
+      "sha256": "a620795f0763af06420722daceb75c8dc62c62fda4787ffc911e9cde4b3cd74b"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\guard\\render.py",
+      "sha256": "9c918de0b2d53621af3b5cecf0f567c89144c3829a18f408fdf72dd68612bcb3"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\guard\\views.py",
+      "sha256": "d17931c6228909a6bd40f32a961db41c4d7b1e747100f1ea5e115d49f74ac66f"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\io\\__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\io\\minecraft_floor.py",
+      "sha256": "f039309f3cd988ea92c7242f5c3c5085cfdee35d0a3a8075b214910dbd46d014"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\io\\mtl.py",
+      "sha256": "91492f26a43adf2ba368ade4580bcc562fe7b3d162fa3ce0e5ecf964edc70026"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\io\\obj_reader.py",
+      "sha256": "72b300cdd8af9b3312369fb3ffe2064f07933298198ad0e8f438c91d1990a7fe"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\io\\obj_writer.py",
+      "sha256": "9358f99c2362f4cc84d1e11fc073785bae58936f115c6c8fa87e4616fd073df1"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\io\\protected.py",
+      "sha256": "d17e46d0cd294a0c9e23a87476b25d1491cc11b390d74abaee8205400e6d9058"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\io\\skp_reader.py",
+      "sha256": "6142326ccf9ba6a44a563721c14a73deee2fa14cbac6c7f39a34f21638158719"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\io\\skp_writer.py",
+      "sha256": "94a2dd52f872ed06131d5f3ae0f1cb5db05363007333098a893f477be1247500"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\io\\snapshot.py",
+      "sha256": "05b586a87f896552b5081bc5e263e3b4de3ba2d856b76b43af63787794933ac9"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\model.py",
+      "sha256": "4309d8ce5552ec295198f6f732d344842824e65ed1c300e63986e8c17a75be8b"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\pipeline.py",
+      "sha256": "eef997061586ed4735d39d8ffd7b245aece780181fe8c070d34bd8a5ccb764a9"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\rays\\__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\rays\\caster.py",
+      "sha256": "62bde18bb12e0e3c8f690eb9c819750274e4924911770b6f7cffa399a704ddd5"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\repair\\__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\repair\\engines\\__init__.py",
+      "sha256": "8afb2ca146db093adccbc2ca8506262e6fe01f4ed98d4ee11773153aefd45207"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\repair\\engines\\e1_loose.py",
+      "sha256": "c844ffa6147facb54ee60efdba3978dc46f05ca2dde6811b24ca8a1419eea539"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\repair\\engines\\e3_hidden.py",
+      "sha256": "e4b2e2e00127683d1f8b0ec221aab35e9f3cb67407fb4f561760a6f12f1d8d92"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\repair\\engines\\e8_fill.py",
+      "sha256": "6784bf95a73de18c80b3404a4d79c233ca1fef5e5d5856a7bda05d7b68501a42"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\repair\\engines\\e8_solidify.py",
+      "sha256": "a9862d6420609a341d0c0132b1ddf4c639c01092a7a7d1c6af054c50af976f21"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\repair\\engines\\legacy.py",
+      "sha256": "4ae576b9e7d0e5a5f610771efda83cba93d8a3b6e277d156367900cc30522b57"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\repair\\kernel.py",
+      "sha256": "dca8042e6d562676589f6b2741ee178d58f48e3d61f767d718303641c1525ca5"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\repair\\types.py",
+      "sha256": "43ca308fa31942982666cbae7dbf0f7082e5dd3c747be901c0ca37c32dec4c0c"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\site_judge.py",
+      "sha256": "50cee322111f5bf192f1a20160e06234c61b71518a891684434d246faebd6993"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\fixtures\\__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\fixtures\\build.py",
+      "sha256": "73685577a175ae6092cda4fcf0d5759d12147f0b6dd3e88de111bb1c18f3116f"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\fixtures\\guard_2f_f64_witnesses.json",
+      "sha256": "4985748e09b07081ee6d3e4034473f8352e86beb1ed773cf23251eec5f7ec502"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\fixtures\\holes.py",
+      "sha256": "2a54102ad9133212ab77dfbe96c8f674f6291d193fde8603b5a7df2071f47ccd"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\skp_scene.py",
+      "sha256": "8eadc03a62d67312c505e4ea4912bd1fba153f976dc0f042ae2db1e28e139690"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_campus_census.py",
+      "sha256": "6b127dcf0a7ebf702654b2985db65c5ac49cd2c84b181845f072aa2368d0c786"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_campus_groups.py",
+      "sha256": "aa4d8c9d1632bcb80feca99626a445d06033c0408f33e70ae84cf970b1a5c09b"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_campus_inventory.py",
+      "sha256": "3a0afaa80371c33c5bdbdb55944ea108e934038b6f267471a2e975db9a953cfa"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_campus_looks.py",
+      "sha256": "2595cf5152984094dd421b2db6d2eadd45a4831927588a2ee1790a78fc0daca8"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_campus_materials.py",
+      "sha256": "2d03d8b90903c4f729d9322f6abe6210138c876b44b82a806f11f237ede44326"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_campus_source.py",
+      "sha256": "acd9a6fa56827564ab11df06e3601528e794458e93530a56ebeca716c3c7ce7e"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_caster.py",
+      "sha256": "229880305bed4d8084a84258e9f7fca574f7472f69e500f4eb417a0bb5d9ca66"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_caster_spatial_recovery.py",
+      "sha256": "f2a0bff7e5be77878718fcb7a26bd7f922a7f3f83c9bfa6ae54ccac46249b9ff"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_census_materials_message.py",
+      "sha256": "55d2e50d6e2bb7aedb9f2e28bfebb0894070306a99ceda7f022197b17d844a62"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_cli.py",
+      "sha256": "12ccdbd8fa0354c7904c0e41ffb477a28cae461a4920329a8a0b62a17a8d3b6f"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_cli_needs_modelling.py",
+      "sha256": "96841fdd581329b853a2c4098b9c5d5d0e6d31834e5c0df10fb7bf75a7947d18"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_cli_repair_unit.py",
+      "sha256": "00a33f9b0ae5038586add8c3d5f2a4da340e59af70bc5834b47c65c9c148196f"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_cli_repair_unit_e1.py",
+      "sha256": "d600ab4c2e97d76422e0b0bc66d1b7c280b13335cff0159b33527e06323ccf17"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_cli_repair_unit_fills.py",
+      "sha256": "45719741a4c909d8126251b5cd12237588a881a7200de97116109bed75e28714"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_cli_unity_check.py",
+      "sha256": "5a1df437fc061c2b8be6af4e4331bc17e12cf4a395d6b4401c48f050dfbc17f1"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_cli_validate_sites.py",
+      "sha256": "2d5bf8f8ee3f16e95ec0bd0c5daa5b423f87c353ddfa4f3bb6800e13d36cf426"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_decide_jev.py",
+      "sha256": "c42029aad61a5728406b4038d36316ff5f324e39769a05e3b05aacabf1f7d2a4"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_decide_pilot.py",
+      "sha256": "2731cf2436360e73ee213322791d0f9c6e6d4ab0a1ca76bdd3192aa208f2f4a9"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_decide_pilot_import.py",
+      "sha256": "5a44ff3094c792146610f09d89bce8d2c9d7d8ec95d3bdba6e1cfe5bce02ef12"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_decide_providers.py",
+      "sha256": "1aae3c1d04588c2a1bf6f027fc918d4423e633eb47c51675d17a79e79e727a04"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_decide_remote.py",
+      "sha256": "d1a280cf9f8e4baa1c0753852d3e9a244d2be5c5386faee04fc639f71769a077"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_decide_wire.py",
+      "sha256": "7f144c30969207af00fc7d7d6e33cbd82fe7f26ca3a62cf7b477053ee4756df5"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_decider.py",
+      "sha256": "689379536ecc85286243b4071bf0e7296418b7fe83771e08cbbd2a5322fb3dfe"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_decider_unavailable.py",
+      "sha256": "4f2de6ef4de3bc8f40630e7169aafeee1b3fdd6dbd613deac148f8cb66aa6c6d"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_double_layers_memory.py",
+      "sha256": "4d70520fe77d88937c84c88e12cb5c991aa09d8aa8ba07c8a84d95e87febaa9e"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_double_layers_speed.py",
+      "sha256": "0ebf50864b75ab55ab4057f18d1b2208841c93a18ce750d73a14b5387a92c271"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_e1_loose.py",
+      "sha256": "274c8a1dc664223f72da3c3047370c6b3f994889fb15d8ee0a627a08e1bf5c81"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_e3_hidden.py",
+      "sha256": "16759a6de7d45b756e859e32100e5ad1955c5e8d5d540e83c159c0a7fa93130e"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_e8_flat_fill.py",
+      "sha256": "451f3b990b73235b720536fa9ece4f9c537ec55bf013f9b1a302cca23ffddb9c"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_e8_flat_fill_kernel.py",
+      "sha256": "2d677250c6d6021ac81fd8d9e15ec89e232fb2d84f801ad54f7b5f99cdf4a91b"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_e8_solidify.py",
+      "sha256": "8b3f4eecc7a6234178f16adb80e26ad99b985aa68fc92dd434e0a49a4c8400ef"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_edit_add_only_e8.py",
+      "sha256": "ccf6e25d10bc63d56e0fa80ad12450a4be017e795f3b2f8f19b2f574c711a5e7"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_error_export_cli.py",
+      "sha256": "38c4143429341f514c1eda6e411ff61fff47309b8ec8cc326e8e4bd4e911be7e"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_error_export_plan.py",
+      "sha256": "0dd0c3dec9fb18e7493e92467c645abbd317ba63aefdf0c49866bf5e165303fa"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_error_export_skp.py",
+      "sha256": "edfd65ab4a0b554ad64f45d365ca519619df30ff218454556e8d6dc2305f81ff"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_errors.py",
+      "sha256": "78d012f7cf2f9992f820b409efb9199c7d815491548c64f09573c8a8f25bf965"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_exposure.py",
+      "sha256": "b242aada48faa0c90c623af24adcd8ef07898d2af2d5086a7960abba2a80c2e0"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_fixtures.py",
+      "sha256": "af1170cee09387d780aa8e34278e467cf9a8a71c9a1ffca3ff58e12cbd66bcbb"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_folds.py",
+      "sha256": "39dd0eca23b51c30e49c660d1895b432358827384cf45e1eed46281e525c1e13"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_fragments.py",
+      "sha256": "ecd142a13e9116a40f804cd8bbfb229dc829933b0504992f88f2c48528935361"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_guard.py",
+      "sha256": "73707e5208bd9568fc164420dbdc86f353c05668093b5a97e92950fb575f924e"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_guard_f64_displacement.py",
+      "sha256": "0c4700d4b3b4bca0d71300e6bc8ce7c09a76a63d5954080b0685a8bdf9040a53"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_kernel_edit_log_any_engine.py",
+      "sha256": "4ecb05b3bb84dafb9dc2738ba269b6a99731f4a34bc4f924bc303d80d563352f"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_kernel_observe.py",
+      "sha256": "d7665310782be7cacd75c682ecdf89a447489c8d3bfa35ab70fc5a166d7e35bf"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_kernel_site_checks.py",
+      "sha256": "359b3d4128ba2de19d1f2223bca94c5f825cbafb223470f597703942197f4740"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_kernel_stage_rollback.py",
+      "sha256": "b16a246ee8b9447b04b4904f9efa58485b7d2c4dfff9ca5e6d3a69e834100e30"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_merge.py",
+      "sha256": "a0c44820f7dd10f86ec17ffe528642657031ccad7977a0a518775e80705fcc4b"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_meshbuf.py",
+      "sha256": "f58389906c22049fb8721262f593cad574b266ca581cdb2a2ef7c912c050c55b"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_minecraft_floor.py",
+      "sha256": "9e743b6b1da2dbb7a70be286030220342c40925ea0fed4541814092c3e11ab75"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_mtl.py",
+      "sha256": "ad5b288a61e4bef63395e4a19c3a541a5fd1ad4a79772ddf1d231cce0ad35ab5"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_needs_modelling.py",
+      "sha256": "cd16f82a47c3ae9bfdc63a1c329a76744ae1de778c4b34c0f80d6a13b02e7a60"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_no_material_is_its_own_look.py",
+      "sha256": "d7e303df9066bd083f01b28bd45adcf571eddf512dff339bf1fd30035cfbbc5c"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_obj_reader.py",
+      "sha256": "3d233308c9d3cbcdbaab05f59717dff3612c883cb9ca833064c25f0f00e063ea"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_obj_writer.py",
+      "sha256": "ac1dc701337e64750cac906b69f07d72d9075c6d9dacce81311f318da57c7eb7"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_orient.py",
+      "sha256": "78fe624d863a8119ef67ecb60044af1c467f8132390fd45d2ddac2d1b92f7177"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_overlap.py",
+      "sha256": "f7ef0c18902a11de9315f960d27100ea5379383692e79f60c53f2031d7a36d01"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_p2_h2_minors.py",
+      "sha256": "0186523a0afa76ad7f269369230b9fd29ebcb6daa8169bc7a032e6e3abf48a3e"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_physical_precision.py",
+      "sha256": "5a7d804395f0b9c89d82d15bd4258ae349dacae8f4f0dc70a648595037d23400"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_piece_rays.py",
+      "sha256": "b7407ce17b3e69cf07a96d65f40dc089863a05d22597d674066beffa77b0134d"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_pipeline.py",
+      "sha256": "87767e05a989db711e775351c9f0488224d2323eb29b0f8e52ca7757f193c870"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_pixfont.py",
+      "sha256": "5b3cd7df80c09afb4d76d00a159c167ced4a0028b677dc6f5e8f51d4a9ad2c91"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_qa_render.py",
+      "sha256": "9c461b9a2373860603e54fa17b334b18ab60be91021802906b2eb06b0e46e71a"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_refuse_protected.py",
+      "sha256": "dad7fb88fa92107472a9d2f9069e589d50b9015ae6d718dc6665ab214689a123"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_regions.py",
+      "sha256": "8d8643d62ca5783a35e2056db51936006165551c0e49115ec71c92857a3a36b0"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_remove.py",
+      "sha256": "61085a40b2d5cbeb0f56bfcec43ea53eb5793cdcca5270a245dc346010e02ced"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_repair_types.py",
+      "sha256": "60c666e646ddeb1a930fb0298fb68f6e059f38d16a7cb8a3685da7e217452f90"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_repair_uv.py",
+      "sha256": "b69077a6ac965be17648a5d1159db9ad7466b1cccea9f9318f34b6ff817100db"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_repair_uv_observer.py",
+      "sha256": "7122b30cc34b92fd404fd2136271f08873539dda0129e3f14644a893e8b690ca"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_site_attribution.py",
+      "sha256": "22f206570d63993f2430ce41aa90d5d4462a41388155f533caa0ae0c85f22dd6"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_site_judge.py",
+      "sha256": "4d53260ae3f89ebea689e70854f6999bf6f036083b3e78a4f750804df4c8b1e3"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_site_judge_cover.py",
+      "sha256": "c0f59446ad1736aa8be46a33daa3fd5311725ac3cccad7a845bade038b00733c"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_site_judge_floor.py",
+      "sha256": "206f8ff3f9982cfec9bbc65040438809e30b887e9b67f4928b57c4ecc81019e0"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_site_judge_remove_only.py",
+      "sha256": "f424d7a5267719056f96d4f2601509ccd01613bb4189b14417a9c9b541942656"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_skp_check.py",
+      "sha256": "5e10950dd2665d3a04301d0297e9cbf67812a39e96130471805c65a16f993a06"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_skp_reader.py",
+      "sha256": "1d3cfa294130ea8688f54cd21c25872bd0c72ca13a9e10dca58464f1157cb9ac"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_skp_writer.py",
+      "sha256": "30ed8fe7fcda42c40092ed93b9b8733951ca7af2fc331bca6e4ad301e4a38ac9"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_snapshot.py",
+      "sha256": "427f7d91764be117b4a6d2563754b0d1771b6bf77628795615dde6fc6b2f0b4c"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_solidify.py",
+      "sha256": "77f97480f7e74b7a1795a6f3b2918a99a14f611a3992a272da3573a3159865af"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_t_vertex_search.py",
+      "sha256": "b07fba23c37d52027264c1d8af5fd6a5d513a2629bb9a76858e68cef513504f4"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_topo_basics.py",
+      "sha256": "ab1d3cdf4b709b552b4750866c6d7b4117d476f6a4abb60f408aa77119c82d43"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_topology_memo.py",
+      "sha256": "166b5c95ef6d2663dba8fa1c25a84f1f8e19c9b6c488d971e44ed93c293b0321"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_unit_before.py",
+      "sha256": "ca9a610405da94dd3a8d06b5550e90b35b4c081e1f5bcd76ad4282666aceff3f"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_unit_before_no_material.py",
+      "sha256": "f8cac9a0483e673bca842235e79723f314927d9fc1eb3bf683ef6d146bb640c0"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_unity_align.py",
+      "sha256": "e3452da4f7cd421a1de79eb8c12101aaaa35e43d5f0907b966c756650d6abb0c"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_unity_check.py",
+      "sha256": "091790f4680396067e5d12c3a32f1e96176eb63bd24d22d31fd39d6329d25521"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_unity_dump.py",
+      "sha256": "6a707cb3207f5ba8ab90a2a109b2440a2af37b8522280a0b4e34488294d3c65f"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_unity_mirror.py",
+      "sha256": "479c9a61a19e83074a8a07c775552af1e6055a3b4f3fe9d977ea0d3bea96e8a5"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_validate_checks.py",
+      "sha256": "6651373a7493eb34c90e5b25b15fa0622fa03b9f0c35ea6eb3889c1070313654"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_validate_core.py",
+      "sha256": "e5adf885cecde0fa9773faff954c3807a7cfef24345b1709abac335ba67a5f14"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_validate_edit_log_fills.py",
+      "sha256": "e30385e5f6d21be70bdd03a4825ea569cdc3cfbc82f4ada272a450bf6ca1a824"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_validate_edit_log_new_faces.py",
+      "sha256": "9d01a4431082f4bdd7c1574a1e2a35efb44960dfb48011d523ab3416d494fff0"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_validate_fill_site.py",
+      "sha256": "759a64f16d03cbea5cbe7886b26e786ad4f148bccf3d64a4a501883dd1e841df"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_validate_floor.py",
+      "sha256": "97f41cab8b26e5eff85a63544ac64fd7d9c85a8c153cbe3e7dce7812b8f484c1"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_validate_floor_checks.py",
+      "sha256": "d6f9436f4853023734346fd2f7683853ad407a728b051fc9a29e22f8e99c8c0a"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_validate_floor_corner.py",
+      "sha256": "2d50cf05296d598e0f2d7227ac7344eeb30e51827906815140401bdcf856cda6"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_validate_floor_covered.py",
+      "sha256": "098cf5a6e82660d040d959b490bd7266fba52fd604cec22aa71007ed7fa2baaa"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_validate_floor_speed.py",
+      "sha256": "b62840972300bd3defc767a4aa17d1dfa54a2e0403d91c9416fc5bf083efb8d1"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_validate_focus.py",
+      "sha256": "dd80f07a214138250dca3790db078c6216524a13bd60d3edde9a63a05d3738aa"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_validate_horizon.py",
+      "sha256": "15f8537c97e251aa2b8f16342c6d9c0479f1651a30454a46c672d675557d6561"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_validate_mutations.py",
+      "sha256": "d7e00886a258dc761f5bf2ee052fa615f6e0c2c34c996f95fdca965fc561b5b0"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_validate_targets_shape.py",
+      "sha256": "4e351103057d405d730bc38475a2a42a0bc4fb26b7d90cbc381131f445de7e31"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_validate_threaded_caster.py",
+      "sha256": "fcea48d220b73f017c3dc919c527aeae1e9924203a9f07488ec63822f19635c3"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\topo\\__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\topo\\adjacency.py",
+      "sha256": "a4132a4025cec95bd004eeb174efa1e88950b4f86605ea972cec644a2479896e"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\topo\\edges.py",
+      "sha256": "e494c0ffee0b8a39cd5d5c2ac697ed7058f76b0838aac12928f2d03f0959c97b"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\topo\\planes.py",
+      "sha256": "1701d1ad46deb6bb90452159b312a7b94e8661bb33693143bf7825da39f17f93"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\topo\\weld.py",
+      "sha256": "e584a6ab2e46b20b7c4cf8da06516a4199978523ec68d3221263cd29cbf3bdea"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\transport\\__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\transport\\meshbuf.py",
+      "sha256": "2a24eaeaf1127a67ef1c87512147584a6a42761fb901fce0e6a634431ff28bd0"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\unity\\__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\unity\\align.py",
+      "sha256": "24af456f369a8a05444bb9fb7f1645d3068e957a437421e4eb048d776ed1e88a"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\unity\\check.py",
+      "sha256": "c244213fbf212afc092b37925797b4371606568fd745fce61b2377d03316f898"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\unity\\dump.py",
+      "sha256": "f710e519850f6aecab98de4ee3679cb58212ae407f1590fe4a2b3a4ea46d212d"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\unity\\mirror.py",
+      "sha256": "3c81e629e64a6ceb095c626d52fb92f35ab167ba0d9631a45bf17c5e4ab56ad5"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\validate\\__init__.py",
+      "sha256": "6d8a1be3faac9a3804d42cdcb5fba170739a756204aa755d2a05a1a3dd84f00b"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\validate\\checks.py",
+      "sha256": "3d3ebe288abab4afa73b26e8908047a8fbe71a36b8df31d3fed69fb190601606"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\validate\\evidence.py",
+      "sha256": "914fff0f76b253ba999fae91e6373ed2ab43d491c98f44d5cc57384e8ecffbd7"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\validate\\floor.py",
+      "sha256": "bde829b4832443ce159ae8d7937a5ed4b4207bd6d7e1b4b669b2df2b9b0e84e8"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\validate\\sampling.py",
+      "sha256": "d81a9af913839666ae8e63afd29ed22492fd90f1741be03bf01b1eb95a52a73d"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\validate\\targets.json",
+      "sha256": "4117f5e22045750fed7c4627ffa6324bf2efe5c14cf9629389a482c960036507"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\validate\\viewpoints.py",
+      "sha256": "c62acfd255fd99c003fd54bf084a68bdb82442cf1c96ada2f0a50e7a7efa7e98"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\validate\\visibility.py",
+      "sha256": "28cbad91da779c0a12155c3036a717db78e5629bb5fbf54e4e8ad2d95ca04821"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\vis\\__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\vis\\exposure.py",
+      "sha256": "ec922979de869284607ed067f71e8940465132db4eb020b49789b3d28547c34a"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\guard-f64-preflight\\run-golden-phase.ps1",
+      "sha256": "42e5d910a14514d2ef3b3669b90a209cfdba1e896fe680107c9068cb223b6242"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\docs\\superpowers\\records\\MAIN-INFRA-GUARD-F64-20261024\\golden_guard_phase.py",
+      "sha256": "35a30202d5b51344a043f2eb3e75e16bbd0d5a8f216b730582397680d8e591f7"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_guard_f64_golden_phase.py",
+      "sha256": "ae39c065518b8b383c1596fd68c7cf8e09dfbae82e169770eaafe90942183a69"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-2f-validation-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\guard\\compare.py",
+      "sha256": "8aca5a91a3d33af2bf0387a2fc6e5e13490ca337c2b3e24ea53b94cbe8722412"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\docs\\superpowers\\records\\MAIN-INFRA-GUARD-F64-20261024\\golden-input-inventory.json",
+      "sha256": "e5eb6b96fa4b6de068bb55b89c930b2c45282d30efac69cdf5da2738917be2c1"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\docs\\superpowers\\records\\MAIN-INFRA-GUARD-F64-20261024\\large-fixture-readback.json",
+      "sha256": "092f1dce2baff6324d9007b48e791cbce38593c566b819bc36e837022b49eee6"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\snapshots\\0b290ec0bcb4-9015fb3b\\CHTM_2nd_to_3rd_building_sidewalk_outside.obj",
+      "sha256": "0b290ec0bcb47402a5fe661fc037eb7d457e01917a0d748d900b8551946b65e2"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\CHTM_2nd_to_3rd_building_sidewalk_outside.fixed.obj",
+      "sha256": "de5dd0defac73c086d1a0654c0b15fe748aa30df76e653fd1f070050dbd9eab0"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\report.json",
+      "sha256": "2c169070dbde1947ac80a2ffd91b19c9ed27aa5fda6d927b53c2fcb381791d89"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\snapshots\\0b290ec0bcb4-9015fb3b\\materials.mtl",
+      "sha256": "feafdd99d250b203e2b6032322f2f5c03954565f633f11e7ece09d0557d9b695"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\snapshots\\0b290ec0bcb4-9015fb3b\\source.mtl",
+      "sha256": "6ddfa51c6d1827dec8990d6c3d8d28a4d11ae57fc4c3a9a720d669183e84e604"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\snapshots\\0b290ec0bcb4-9015fb3b\\tex\\mumi_littletiles_ltstone_-3.png",
+      "sha256": "2e50e9d8fa86a0d1532a003077950802b9213876ea5aae88fbb7e161b2ab7993"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\snapshots\\0b290ec0bcb4-9015fb3b\\tex\\mumi_littletiles_ltstone_-5.png",
+      "sha256": "a477984f7dfb332e889faf59a6aea82983e2b2c6a36133e79a9189412fc477fa"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\snapshots\\0b290ec0bcb4-9015fb3b\\tex\\mumi_littletiles_ltstone_-8.png",
+      "sha256": "2e50e9d8fa86a0d1532a003077950802b9213876ea5aae88fbb7e161b2ab7993"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\guard_+x.png",
+      "sha256": "ed367f95b0eea7548355c5f70457bd46c02c9665d20a3eaa5c330a3856b06d9f"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\guard_+y.png",
+      "sha256": "d4fb31c693570eac3312a0b96048063dd9967351a5a337a8934dac92b30caf88"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\guard_+z.png",
+      "sha256": "a97c89338688405e8c27a70c18325da9a011fbaaaf10637807679b548fde8c15"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\guard_-x.png",
+      "sha256": "afcd018fa772edad83a493d2ae143665fa0da1204e8640b8b59aad1611f31a29"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\guard_-y.png",
+      "sha256": "6c5dd66c3a086c19c1790cdf766bcbfbf92513276b4222179bc5efb804de22d3"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\guard_-z.png",
+      "sha256": "e3f6dfaf9fec0874bd6aa380ff495d233c03f961ed1c5dbc29abf49d50a4b07d"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\materials.mtl",
+      "sha256": "feafdd99d250b203e2b6032322f2f5c03954565f633f11e7ece09d0557d9b695"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\qa\\bottom.png",
+      "sha256": "bc1d1d08f30ba1b7ac938952f000e6c46ee610992184f64bf6495e1f105af3f4"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\qa\\chunk0_bottom.png",
+      "sha256": "d2b849a40e273a1043242c1f71ef20c68da37e3cfe95fb27548073e8abcbdc2a"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\qa\\chunk0_side.png",
+      "sha256": "dc258863620f3b6deecbb492090ea7446e1397fdf71d6068904007074ea9b9da"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\qa\\chunk0_top.png",
+      "sha256": "c3676e88014840d8b799efc194d5ad3bff321521be638793848ce724911f62a6"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\qa\\chunk1_bottom.png",
+      "sha256": "e062a1f7c58aec695f308d944f2941ab01f7743012f871a87468dce034bf5d87"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\qa\\chunk1_side.png",
+      "sha256": "c45b71f849ccb73e966d98ff5c33875df158a16272cf17e3280d446adae9ce54"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\qa\\chunk1_top.png",
+      "sha256": "82f4d654c300b4d71731db93bb23a97b3bdd394ed6fdcdeb4a98f04fbd1ca329"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\qa\\chunk2_bottom.png",
+      "sha256": "77b5c8a912f231444dc48f70dee8f27ff623c8190ae8d117afa1359c1fe54e7d"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\qa\\chunk2_side.png",
+      "sha256": "bee6cc0f994ef78e35fab95196ae5b35f58199e661db1fabd069bec3ba220698"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\qa\\chunk2_top.png",
+      "sha256": "4d1bf964b804654d5daf72cddc68b8b5fceb09f207409f69875730919cf39c61"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\qa\\nx.png",
+      "sha256": "35ed4d3377c67f155a8c2ae7d7c476fd84e3a774a8141f07f97d2b4ec93a6bfe"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\qa\\ny.png",
+      "sha256": "0d0b2aaff9fc7873bd1c37eec9c3db2389f00a1ca00587e064a2dda24a49488a"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\qa\\obl_bot_a.png",
+      "sha256": "6a7fcdf9b3137279d006814e70476f0f03604d2d2f76fab20828e62e535940c9"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\qa\\obl_bot_b.png",
+      "sha256": "9d6ada68bf44b4e43c99a0e1cca4ededdf7f883147268cad6db09042f8cd9e54"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\qa\\obl_top_a.png",
+      "sha256": "2761d56b09971ca3cf3748e3124a083415319b2c5f73386869ac3127d9bce20f"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\qa\\obl_top_b.png",
+      "sha256": "e6b95eb8149b1f5bbb63a54117a26240365f5426e3c7a1762cc17c706fc84600"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\qa\\px.png",
+      "sha256": "327797c048eac07faa2d0a6c413c1acc27b010678868f221d19a2343708b298f"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\qa\\py.png",
+      "sha256": "12f8313e3651c4f8786f9ea3ef929996cb7a8661f46bacbb27c7ff45112598e7"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\qa\\side_low_a.png",
+      "sha256": "fdbba7512f3ddc0f5ee4955e50e46aa9bc8133e9e624ff2b6615aefceadc814d"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\qa\\side_low_b.png",
+      "sha256": "8ff5597f16b3f897a8ce8a622703293da2ab53ea2dcb4df4bf6d2ce1c52c058d"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\qa\\top.png",
+      "sha256": "f214e4735a1937e46c7663d0174324ac09d1965e7faa064b119ef2342f4730ca"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\qa_clean\\bottom.png",
+      "sha256": "23bb63586670df20f6a470bc98a594ab8bc30286da67566f66d6de406227b1de"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\qa_clean\\chunk0_bottom.png",
+      "sha256": "cbbfde0543c0f074230341d3947a4ee037e476f98161c40c62d9faf6bd1f1e68"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\qa_clean\\chunk0_side.png",
+      "sha256": "794d2a3ef67190bcd6c178f64beb43e51e93e98eb209c68bb1d8218950d178e6"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\qa_clean\\chunk0_top.png",
+      "sha256": "ab683010894d909dfc814a75826ffe9fe6f485e32bdecbcdb4c840cf1cd0c677"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\qa_clean\\chunk1_bottom.png",
+      "sha256": "dd85680acde5843e1d774a70562a05df54b23756065659066f51a1064745cfa9"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\qa_clean\\chunk1_side.png",
+      "sha256": "6439030e9da3dd86cb8b179ff114ae5ac74b7d8cd4dd8ce4ca090f07a1cf2123"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\qa_clean\\chunk1_top.png",
+      "sha256": "ee7926c2cbe35be9be335e385f26e6a69b1c4e02eac23f90bf2d06cf05a011f2"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\qa_clean\\chunk2_bottom.png",
+      "sha256": "da79c3ab587aecf6063f50be086adc5276702b455b19987391298a8e6a2c5294"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\qa_clean\\chunk2_side.png",
+      "sha256": "661ae496d78f4ad544f7cf48894dc91cdf9d3044539d5fec1e437e45a56e0bdb"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\qa_clean\\chunk2_top.png",
+      "sha256": "371730b8af2da4cf50e2655acc1bbb31291718b5a05f16e148047e26c61f5a0e"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\qa_clean\\nx.png",
+      "sha256": "21a3e2354b392640b51b3b207db7b79cc1e549f95638ea98f9da7bf9c8a6faed"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\qa_clean\\ny.png",
+      "sha256": "29dea88875b65eeb894610b87635471e582375be8441e778c107c7802fb0c45d"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\qa_clean\\obl_bot_a.png",
+      "sha256": "003e36ea94357e1bba4fc43d31ad0fc2e50d22dab7d968047af1137eec182fea"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\qa_clean\\obl_bot_b.png",
+      "sha256": "324e98426ef3972caf08f5283b4803a3c902adf7b32d5cad9f60a5855c17032b"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\qa_clean\\obl_top_a.png",
+      "sha256": "35fbd4ca021fb61bf1ebf6b8da1caf02cf4415e05f14970e3e152b084cc76acf"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\qa_clean\\obl_top_b.png",
+      "sha256": "5c4b0e69f31af9a89767394f468e30848a0b901648769bbd50ce3d3c69498b35"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\qa_clean\\px.png",
+      "sha256": "fd8539c25772be7625de944ff46f9754e0217d35ee820aa64b091d80475014bd"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\qa_clean\\py.png",
+      "sha256": "793bdfd86ca3eae540d945fa37f9b83ee449dcc35c110d2b9c7bf63710d98f39"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\qa_clean\\side_low_a.png",
+      "sha256": "90fd647c1bcbfac06cdbb836152ee0db4f68459680a155a79e3fb437f072638a"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\qa_clean\\side_low_b.png",
+      "sha256": "81bcaae79764982ebdfe56b4450a87c35f6466b3888c983856773a5aada55efb"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\qa_clean\\top.png",
+      "sha256": "ead36c5528ef17c691f337ccbb6baf318a178e934b483188dfdcb54e7d64df46"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\tex\\mumi_littletiles_ltstone_-3.png",
+      "sha256": "2e50e9d8fa86a0d1532a003077950802b9213876ea5aae88fbb7e161b2ab7993"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\tex\\mumi_littletiles_ltstone_-5.png",
+      "sha256": "a477984f7dfb332e889faf59a6aea82983e2b2c6a36133e79a9189412fc477fa"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\tex\\mumi_littletiles_ltstone_-8.png",
+      "sha256": "2e50e9d8fa86a0d1532a003077950802b9213876ea5aae88fbb7e161b2ab7993"
+    }
+  ],
+  "wall_s": 152.06299999999464,
+  "qa_limitation": "PNG DIFF is base classification without ring/tie promotions; reports contain authoritative compare_views outcomes.",
+  "model_acceptance": false,
+  "owner_signed_validator_run": false
+}

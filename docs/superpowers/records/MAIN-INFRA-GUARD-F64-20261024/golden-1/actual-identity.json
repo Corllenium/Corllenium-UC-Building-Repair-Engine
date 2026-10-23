@@ -1,0 +1,12 @@
+{
+  "state": "RUNNING",
+  "phase": "guard-F64-golden-1-01-chtm5",
+  "actual_pid": 16180,
+  "actual_creation_utc": "2026-10-23T22:45:34.6161823Z",
+  "launcher_pid": 60180,
+  "monitor_pid": 40812,
+  "command": "C:\\Users\\Future26\\AppData\\Local\\Programs\\Python\\Python312\\python.exe -B -u D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\docs\\superpowers\\records\\MAIN-INFRA-GUARD-F64-20261024\\golden_guard_phase.py --plan D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\guard-f64-preflight\\golden-1-plan.json --plan-sha256 981f3342d82c1c33e739944333dda47ee55fca7f97e851a906da607dbc888e38",
+  "HEAD": "c2430808f2de642e95d32ea0fcc984d3c318f5f7",
+  "phase_plan_sha256": "7c81b97a4ec636a7c0b88e316837b0cb44b40663adec5a3f4aaeb25fd6fbc773",
+  "evidence": "data\\guard-f64-preflight\\monitor-guard-F64-golden-1-01-chtm5-20261023T224533"
+}

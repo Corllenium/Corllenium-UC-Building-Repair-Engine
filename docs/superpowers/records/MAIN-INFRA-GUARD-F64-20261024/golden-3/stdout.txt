@@ -1,0 +1,27 @@
+{"view": 0, "baseline": false, "corrected": false}
+{"view": 1, "baseline": false, "corrected": false}
+{"view": 2, "baseline": false, "corrected": false}
+{"view": 3, "baseline": false, "corrected": false}
+{"view": 4, "baseline": false, "corrected": false}
+{"view": 5, "baseline": false, "corrected": false}
+{"view": 6, "baseline": false, "corrected": false}
+{"view": 7, "baseline": false, "corrected": false}
+{"view": 8, "baseline": false, "corrected": false}
+{"view": 9, "baseline": false, "corrected": false}
+{"view": 10, "baseline": false, "corrected": false}
+{"view": 11, "baseline": false, "corrected": false}
+{"view": 12, "baseline": false, "corrected": false}
+{"view": 13, "baseline": false, "corrected": false}
+{"view": 14, "baseline": false, "corrected": false}
+{"view": 15, "baseline": false, "corrected": false}
+{"view": 16, "baseline": false, "corrected": false}
+{"view": 17, "baseline": false, "corrected": false}
+{"view": 18, "baseline": false, "corrected": false}
+{"view": 19, "baseline": false, "corrected": false}
+{"view": 20, "baseline": false, "corrected": false}
+{"view": 21, "baseline": false, "corrected": false}
+{"view": 22, "baseline": false, "corrected": false}
+{"view": 23, "baseline": false, "corrected": false}
+{"view": 24, "baseline": false, "corrected": false}
+{"view": 25, "baseline": false, "corrected": false}
+{"output": "D:\\LLM_BACKUP\\Codex session\\main-infra-guard-f64-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\goldf64\\03-outside\\guard-comparison.json", "sha256": "1fe9609074dad352cc8e507915ef7d14b73736bad0ea8a0c6aee6c751edd6643", "baseline": false, "corrected": false}

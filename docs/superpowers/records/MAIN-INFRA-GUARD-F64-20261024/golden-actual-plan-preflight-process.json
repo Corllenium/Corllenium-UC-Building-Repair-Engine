@@ -1,0 +1,17 @@
+{
+  "command": [
+    "D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe",
+    "-B",
+    "-c",
+    "import importlib.util,json,pathlib,sys; p=pathlib.Path('docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/golden_guard_phase.py'); s=importlib.util.spec_from_file_location('golden_preflight',p); m=importlib.util.module_from_spec(s); sys.modules[s.name]=m; s.loader.exec_module(m); plans=[json.loads(pathlib.Path(f'data/guard-f64-preflight/golden-{i}-plan.json').read_text()) for i in (1,2,3)]; [m.verify_plan(p) for p in plans]; print(json.dumps({'actual_plan_schemas_passed':3,'geometry_loaded':False,'phase_launched':False,'pin_counts':[len(p['pins']) for p in plans]}))"
+  ],
+  "exit_code": 0,
+  "test_tree_private_peak": 41431040,
+  "observer_private_peak": 10407936,
+  "pid_private_peaks": {
+    "60584": 40497152,
+    "57348": 933888
+  },
+  "cap_bytes": 262144000,
+  "cap_exceeded": false
+}

@@ -1,0 +1,1 @@
+{"actual_plan_schemas_passed": 3, "geometry_loaded": false, "phase_launched": false, "pin_counts": [274, 267, 265]}
