@@ -48,7 +48,10 @@ def load_replay_plan(before, looks, original_candidate, *, expected_audit_sha256
     before_paths = list(Path(audit['before_snapshot']).glob('*.obj'))
     if len(before_paths) != 1:
         raise ValueError('original BEFORE snapshot must contain one OBJ')
-    before_hash = _hash(before_paths[0], receipt.get('before_sha256'))
+    before_pin = receipt.get('before_sha256')
+    if 'before_sha256' not in receipt and receipt.get('floor_id') in ('2F', '3F'):
+        before_pin = receipt.get('engine_obj_sha256')
+    before_hash = _hash(before_paths[0], before_pin)
     if before_hash != receipt.get('engine_obj_sha256'):
         raise ValueError('original BEFORE qualification hash differs')
     quanta = receipt.get('physical_axis_quanta_inches')

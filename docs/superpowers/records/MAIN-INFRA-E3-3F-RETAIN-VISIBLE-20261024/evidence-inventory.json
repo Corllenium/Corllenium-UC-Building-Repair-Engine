@@ -15,5 +15,22 @@
   "docs/superpowers/records/MAIN-INFRA-E3-3F-RETAIN-VISIBLE-20261024/policy.json": "ffaf9bf6773076cef324aa5eb305fc4b38deccf173b5f6e4dd536ad15f214899",
   "tools/main_infra_e3_3f_visible_run.py": "a6fb42b9238c4bdc6910c4e9adacfe8b05278c08c7e7c2254df9476865541bb6",
   "tools/main_infra_e3_visible_run.py": "b4cbcc0f218bb299cb1775305bc231e752b382d50091235651a3345de198da06",
-  "tools/tests/test_main_infra_e3_3f_visible_run.py": "a3156e6f6746209c61bc6143c9edf3552275eb280c10f8e2140a3141f9d7ca54"
+  "tools/tests/test_main_infra_e3_3f_visible_run.py": "a3156e6f6746209c61bc6143c9edf3552275eb280c10f8e2140a3141f9d7ca54",
+  "tools/main_infra_e3_replay.py": "166adc07d5db3a643a43e6a8ee0cfffb77dfeb079f6c524589902193c957af1e",
+  "tools/tests/test_main_infra_e3_replay_receipts.py": "0f1d942e573b4eefc858eb3f9ee96af6ec48031224750f73c61a3dce58655115",
+  "data/e3-3f-visible-tiny-tests/receipt-schema-red.stdout.txt": "d902676878157d0e4632259121886e4a7369e7b18b0ede401fceb6ccb5269b61",
+  "data/e3-3f-visible-tiny-tests/receipt-schema-red.resources.json": "6900899ba770e360fe130915315210804f3879ec19b25ed12998f0f78b58cb5c",
+  "data/e3-3f-visible-tiny-tests/receipt-schema-green.stdout.txt": "f8f2427665aa516d47807570735aeddcbc4f4ce465a7b2a9eb2e9b97018189d2",
+  "data/e3-3f-visible-tiny-tests/receipt-schema-green.resources.json": "3e6f30d9b2d78ce44a93ebd95285b58e9fae487bebf5fcebfb01a3995c6b4a50",
+  "data/e3-3f-visible-tiny-tests/receipt-schema-metadata-green.stdout.txt": "ba9e2444dc3c22074044f39b39e0c8c9d178a82c6f41baec35502b9c47eec178",
+  "data/e3-3f-visible-tiny-tests/receipt-schema-metadata-green.resources.json": "54073f93fd3d4f7386881d0a5dd16c774585e108f3a5797f1ba0d051e1b9467a",
+  "data/e3-3f-visible-tiny-tests/receipt-schema-metadata-green2.stdout.txt": "7845fa7c73a7283417b2fcf3a17660a4a83d0fd4c04d5015099e6a5c0b9ed763",
+  "data/e3-3f-visible-tiny-tests/receipt-schema-metadata-green2.resources.json": "7b5d7908b3373c6fa03333f9eb20b182eea3076144c15d637ada85c19fcc650d",
+  "data/e3-3f-visible-tiny-tests/receipt-profile-regressions-green.stdout.txt": "22abd9cc975fe0c5ec048150d3b817f5e7347471d7942166dfdbf3320abfeec5",
+  "data/e3-3f-visible-tiny-tests/receipt-profile-regressions-green.resources.json": "e89312756159c445014b6151db7217c6bbf8fbaa6c0f8d1ea82637746221d446",
+  "data/main-infra-e3/3f-retain-visible-preflight/monitor-e3-3F-retain-visible-prepare-20261023T221945/result.json": "0bbb46c51138aaf44ff51dd3fbe3f125489efc2e6cf8257c2c952f32f02d0af0",
+  "data/main-infra-e3/3f-retain-visible-preflight/monitor-e3-3F-retain-visible-prepare-20261023T221945/stderr.txt": "acf298aef447f0bb64aa65a932bb98d03d38bde7c45580f1d3190ecc2016d687",
+  "data/main-infra-e3/3f-retain-visible-preflight/monitor-e3-3F-retain-visible-prepare-20261023T221945/launch-gate.json": "8bde9408dbd25141da4de618ec9ee4f821ee683e99dc61590a8522cac508ba85",
+  "data/main-infra-e3/3f-retain-visible-preflight/monitor-e3-3F-retain-visible-prepare-20261023T221945/resources.jsonl": "25a093ded692164a71c1395edbc76cc1f55ee5f89e70e83cb465ac4cc0cc3a46",
+  "docs/superpowers/records/MAIN-INFRA-E3-3F-RETAIN-VISIBLE-20261024/receipt-adapter.json": "880ae50b70e6524bb4795f470dd6922ec7a8c2291a989daa78bf02a26a4a5927"
 }

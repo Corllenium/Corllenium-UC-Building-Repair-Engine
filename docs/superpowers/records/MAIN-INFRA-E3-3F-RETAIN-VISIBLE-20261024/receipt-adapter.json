@@ -1,0 +1,85 @@
+{
+  "schema_version": 1,
+  "state": "CODE_FIXTURE_ONLY_NOT_RETRIED",
+  "cause": "Authenticated2F/3F load_qualified_floor receipt has engine_obj_sha256 and no before_sha256 alias",
+  "frozen_failed_head": "47f58caca98a2813fedfda8dd1206defd7b2b19d",
+  "producer_runtime": "D:/PROJECTS/UC MODEL FIXER/data/tmp/main-infra-e3-floors-worker-attempt2-20261023.py",
+  "producer_runtime_sha256": "a4898bdd79b192b20bb1c40afd31d1623dd3c3d28f06e8fd33c4c7a35ef9190f",
+  "original_audit_sha256": "56ab090d861106c2801b2dab057ba5e9df6109ac69d87faaf29b718c87389512",
+  "before_engine_sha256": "740103bb4197a1270e4c00e38abe9971e12f5c80ebe14502e4acd75148afbc82",
+  "qualification_sha256": "5e1880c494bb4fa532a1d50bce5515d20cc02e532d82c5e55db69e59a83a7424",
+  "first_prepare": {
+    "preparation_saved": false,
+    "tree_private_peak": 175095808,
+    "actual_private_peak": 172003328,
+    "resource_abort": false,
+    "exit": 1,
+    "wall_s": 17.6207321,
+    "minimum_headroom": 16806400000,
+    "pid": 26800,
+    "all_owned_exited": true,
+    "creation_utc": "2026-10-23T22:19:47.1557329Z"
+  },
+  "adapter": "Absent field only, floor_id2F/3F only; present None/conflict still rejects; engine hash equality, physical tables/quanta and full K1 unchanged;3F caller first authenticates qualification/provenance",
+  "tests": {
+    "profile_peak": 117010432,
+    "metadata_peak": 88559616,
+    "legacy_sitejudge_cap_abort": "Combined run incomplete: last unchanged SiteJudge fixture exceeded250MiB;445460480B observed before owned tree stop;all exited",
+    "quoting_error": "First metadata-only rerun invoked -k with unquoted spaces;pytestexit4/no tests; retained",
+    "red": "2 failed,9 passed in4.84s",
+    "commands": [
+      {
+        "TestFiles": [
+          "tools/tests/test_main_infra_e3_replay_receipts.py"
+        ],
+        "observer": "data/e3-3f-visible-tiny-tests/run-bounded.ps1",
+        "label": "receipt-schema-red"
+      },
+      {
+        "TestFiles": [
+          "tools/tests/test_main_infra_e3_replay_receipts.py",
+          "tools/tests/test_main_infra_e3_replay.py::test_replay_uses_original_kept_edit_keys_reason_and_site",
+          "tools/tests/test_main_infra_e3_replay.py::test_whole_restored_site_is_excluded_and_unknown_site_is_refused",
+          "tools/tests/test_main_infra_e3_replay.py::test_replay_refuses_changed_frozen_original_artifact",
+          "tools/tests/test_main_infra_e3_replay.py::test_even_rehashed_log_must_describe_original_e3_removals",
+          "tools/tests/test_main_infra_e3_replay.py::test_replay_refuses_an_unbound_before_mesh",
+          "tools/tests/test_main_infra_e3_replay.py::test_replay_refuses_changed_source_look_keys"
+        ],
+        "observer": "data/e3-3f-visible-tiny-tests/run-bounded.ps1",
+        "label": "receipt-schema-metadata-green2"
+      },
+      {
+        "TestFiles": [
+          "tools/tests/test_main_infra_e3_3f_visible_run.py",
+          "tools/tests/test_main_infra_e3_visible_run.py"
+        ],
+        "observer": "data/e3-3f-visible-tiny-tests/run-bounded.ps1",
+        "label": "receipt-profile-regressions-green"
+      }
+    ],
+    "metadata_green": "27 passed in7.41s",
+    "profile_green": "42 passed in40.12s"
+  },
+  "next_preparation": "data/main-infra-e3/attempt2/run-20261024-3F-retain-visible/preparation-3F.json",
+  "fresh_retry_requires_independent_review_and_root_go": true,
+  "hashes": {
+    "tools/main_infra_e3_replay.py": "166adc07d5db3a643a43e6a8ee0cfffb77dfeb079f6c524589902193c957af1e",
+    "tools/tests/test_main_infra_e3_replay_receipts.py": "0f1d942e573b4eefc858eb3f9ee96af6ec48031224750f73c61a3dce58655115",
+    "data/e3-3f-visible-tiny-tests/receipt-schema-red.stdout.txt": "d902676878157d0e4632259121886e4a7369e7b18b0ede401fceb6ccb5269b61",
+    "data/e3-3f-visible-tiny-tests/receipt-schema-red.resources.json": "6900899ba770e360fe130915315210804f3879ec19b25ed12998f0f78b58cb5c",
+    "data/e3-3f-visible-tiny-tests/receipt-schema-green.stdout.txt": "f8f2427665aa516d47807570735aeddcbc4f4ce465a7b2a9eb2e9b97018189d2",
+    "data/e3-3f-visible-tiny-tests/receipt-schema-green.resources.json": "3e6f30d9b2d78ce44a93ebd95285b58e9fae487bebf5fcebfb01a3995c6b4a50",
+    "data/e3-3f-visible-tiny-tests/receipt-schema-metadata-green.stdout.txt": "ba9e2444dc3c22074044f39b39e0c8c9d178a82c6f41baec35502b9c47eec178",
+    "data/e3-3f-visible-tiny-tests/receipt-schema-metadata-green.resources.json": "54073f93fd3d4f7386881d0a5dd16c774585e108f3a5797f1ba0d051e1b9467a",
+    "data/e3-3f-visible-tiny-tests/receipt-schema-metadata-green2.stdout.txt": "7845fa7c73a7283417b2fcf3a17660a4a83d0fd4c04d5015099e6a5c0b9ed763",
+    "data/e3-3f-visible-tiny-tests/receipt-schema-metadata-green2.resources.json": "7b5d7908b3373c6fa03333f9eb20b182eea3076144c15d637ada85c19fcc650d",
+    "data/e3-3f-visible-tiny-tests/receipt-profile-regressions-green.stdout.txt": "22abd9cc975fe0c5ec048150d3b817f5e7347471d7942166dfdbf3320abfeec5",
+    "data/e3-3f-visible-tiny-tests/receipt-profile-regressions-green.resources.json": "e89312756159c445014b6151db7217c6bbf8fbaa6c0f8d1ea82637746221d446",
+    "data/main-infra-e3/3f-retain-visible-preflight/monitor-e3-3F-retain-visible-prepare-20261023T221945/result.json": "0bbb46c51138aaf44ff51dd3fbe3f125489efc2e6cf8257c2c952f32f02d0af0",
+    "data/main-infra-e3/3f-retain-visible-preflight/monitor-e3-3F-retain-visible-prepare-20261023T221945/stderr.txt": "acf298aef447f0bb64aa65a932bb98d03d38bde7c45580f1d3190ecc2016d687",
+    "data/main-infra-e3/3f-retain-visible-preflight/monitor-e3-3F-retain-visible-prepare-20261023T221945/launch-gate.json": "8bde9408dbd25141da4de618ec9ee4f821ee683e99dc61590a8522cac508ba85",
+    "data/main-infra-e3/3f-retain-visible-preflight/monitor-e3-3F-retain-visible-prepare-20261023T221945/resources.jsonl": "25a093ded692164a71c1395edbc76cc1f55ee5f89e70e83cb465ac4cc0cc3a46",
+    "data/e3-3f-visible-tiny-tests/run-bounded.ps1": "95a84caceebee9533dfbb340c1abe7cd63f17d9cea0c34da8b94aca665a592c4"
+  },
+  "acceptance": false
+}
