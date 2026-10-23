@@ -25,6 +25,15 @@ run the latest `.skp` of each file must be in `OBJ FIXED RESULT/` for the owner 
 
 ## 2. Current state (2026-09-26 00:15, written by the Claude controller)
 
+### 2026-10-24 04:03 SGT - actual 3F engine output saved; independent proof queued
+
+Actual 3F worker 22268/start2026-10-23T17:36:13.8205790Z saved the fresh original 53,602 -> 38,691 triangles. Its monitor terminal exited0 at19:50:28.0941785Z after8054.5408417s, no abort, all owned processes exited. Of1820 proposed E3 edits,1675 were kept and145 rolled back; the default kernel confirmation passed with zero failing/unknown sites. Candidate source SHA a9108644, engine c3664f9e, audit56ab090d, lineage c16be706, edit-log22fd8da0. Root readback14e052ac independently parsed both saved OBJ spaces: full position/UV/normal tables are exactly unchanged, all38691 surviving faces/materials exactly match unique ordered original lineage, and all8 copied candidate asset hashes match original input pins. This is structural evidence, not visibility acceptance.
+
+New job MAIN-INFRA-3F-VALIDATE-ATTEMPT2-20261024 is claimed Codex-3F-Independent on codex/main-infra-3f-validation-20261024, in a separate new checkout from frozen independent2F code1ac1de3. Delivery did not build3F and owns its independent proof. Only minimal shared2F/3F profile code/TDD/plans are released initially. Strict26 guard, native33 qualified+13 separate diagnostic views, and unchanged full default owner-signed original-to-candidate validation require independent review/root phaseGO. No engine/guard/profile/target/render-policy change or old pass reuse is allowed. Current2F frozen caller behavior stays unchanged. No3F acceptance or publication is claimed.
+
+Public live JSON HTTP200 readback at19:55:56Z showed1F actual diagnostic57652/nativeFAIL retained,2F actual41648alive, and3F candidate saved38691/worker22268false/validation pending/accepted_preview null. The actual3F model remains undisplayed pending independent preservation evidence; root alone changes live assets. Claude owns4F-7F. The separate1F signed diagnostic continues with no verdict yet.
+
+
 ### 2026-10-24 03:55 SGT - saved 1F repair; one-pixel native failure retained
 
 Actual attempt4 engine PID 14236 exited 0 at 19:14:29.1437485Z after 855.1558136 seconds, no resource abort, all owned processes exited. The saved candidate has 10,393 triangles: 159 cuts kept and 13 fresh kernel rollbacks from 172 selected proposals. These 13 rollbacks are separate from the original 355 donor rollbacks and 101 policy exclusions. Final readback e339fcf5 confirms exact source position tables, unchanged surviving ancestry/UV/normal prefixes and all seven copied asset hashes. The default kernel confirmation passed after its own charged rollback round; no guard was loosened.

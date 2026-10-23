@@ -1,0 +1,22 @@
+[
+  {
+    "path": "docs/superpowers/records/MAIN-INFRA-3F-VALIDATE-ATTEMPT2-20261024-root/saved-file-readback.json",
+    "source": "D:\\PROJECTS\\UC MODEL FIXER\\data\\tmp\\main-infra-3f-saved-readback-20261024.json",
+    "sha256": "14e052acd906f9449d85bc9ee31298233eb22e07d7c3af0fe71e43caefd9d5c6"
+  },
+  {
+    "path": "docs/superpowers/records/MAIN-INFRA-3F-VALIDATE-ATTEMPT2-20261024-root/actual-stage-audit.json",
+    "source": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-e3\\run-20261023-attempt2\\3F\\stage-audit.json",
+    "sha256": "56ab090d861106c2801b2dab057ba5e9df6109ac69d87faaf29b718c87389512"
+  },
+  {
+    "path": "docs/superpowers/records/MAIN-INFRA-3F-VALIDATE-ATTEMPT2-20261024-root/actual-worker.json",
+    "source": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-e3\\run-20261023-attempt2\\worker-3F.json",
+    "sha256": "5ce4494b2e4a14f3c9303b5e5f017ff35d01635b984f987046150755495ad4ea"
+  },
+  {
+    "path": "docs/superpowers/records/MAIN-INFRA-3F-VALIDATE-ATTEMPT2-20261024-root/actual-engine-terminal.json",
+    "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\attempt3-preflight\\3F-execution-ready\\monitor-E3-3F-attempt2-20261023T173612\\result.json",
+    "sha256": "e0cb3afbacc60e37e58c9199b57236cf2af724357b8b66d0129ce6e9cf51f363"
+  }
+]

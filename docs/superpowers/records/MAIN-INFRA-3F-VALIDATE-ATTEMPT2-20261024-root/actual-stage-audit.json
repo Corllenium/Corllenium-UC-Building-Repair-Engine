@@ -1,0 +1,2946 @@
+{
+  "cleanup_mode": "e3_remove_only",
+  "executed_stages": [
+    "E3"
+  ],
+  "checks": [
+    {
+      "stage": "E3",
+      "engine": "E3",
+      "legacy": false,
+      "rollback": true,
+      "sites": 1820,
+      "edits": 1820,
+      "first": "FAIL",
+      "final": "PASS",
+      "runs": [
+        {
+          "kind": "first",
+          "sites": 1820,
+          "status": "FAIL",
+          "failing": 85,
+          "charged": 85,
+          "unknown": 0,
+          "textures": {
+            "covered": 0,
+            "overlaid": 0,
+            "deleted": 0,
+            "look": 0,
+            "uv": 0,
+            "side": 0
+          },
+          "nothing_deleted": {
+            "deleted": 0,
+            "replaced": 0,
+            "covered": 0,
+            "overlaid": 0
+          },
+          "covered_by_fill": 0,
+          "before_faces": 51726,
+          "after_faces": 0,
+          "seconds": 4286.8,
+          "focus_seconds": 3.55,
+          "cover_seconds": 0.0
+        },
+        {
+          "kind": "confirm",
+          "sites": 1675,
+          "status": "PASS",
+          "failing": 0,
+          "charged": 0,
+          "unknown": 0,
+          "textures": {
+            "covered": 0,
+            "overlaid": 0,
+            "deleted": 0,
+            "look": 0,
+            "uv": 0,
+            "side": 0
+          },
+          "nothing_deleted": {
+            "deleted": 0,
+            "replaced": 0,
+            "covered": 0,
+            "overlaid": 0
+          },
+          "covered_by_fill": 0,
+          "before_faces": 50483,
+          "after_faces": 0,
+          "seconds": 2590.19,
+          "focus_seconds": 3.98,
+          "cover_seconds": 0.0
+        }
+      ],
+      "rolled_back": [
+        {
+          "site": 5,
+          "round": 1,
+          "charged": 4,
+          "how": {
+            "touched": 4,
+            "box": 0,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 4
+          },
+          "faces": [
+            12293,
+            12294,
+            14387,
+            14388
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 55,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 1,
+            "replaced": 1
+          },
+          "faces": [
+            37736
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 57,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 1,
+            "replaced": 1
+          },
+          "faces": [
+            37736
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 81,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 1,
+            "replaced": 1
+          },
+          "faces": [
+            37736
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 82,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 1,
+            "replaced": 1
+          },
+          "faces": [
+            37736
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 115,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "replaced": 1
+          },
+          "faces": [
+            48929
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 116,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "replaced": 1
+          },
+          "faces": [
+            48929
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 117,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "replaced": 1
+          },
+          "faces": [
+            48929
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 130,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "replaced": 1
+          },
+          "faces": [
+            48929
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 134,
+          "round": 1,
+          "charged": 2,
+          "how": {
+            "touched": 2,
+            "box": 0,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 2
+          },
+          "faces": [
+            544,
+            1767
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 165,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 1,
+            "replaced": 1
+          },
+          "faces": [
+            37736
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 172,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 1,
+            "replaced": 1
+          },
+          "faces": [
+            37736
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 181,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 1,
+            "replaced": 1
+          },
+          "faces": [
+            37736
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 182,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 1,
+            "replaced": 1
+          },
+          "faces": [
+            37736
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 193,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "replaced": 1
+          },
+          "faces": [
+            48929
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 196,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 1,
+            "box": 0,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 1
+          },
+          "faces": [
+            3036
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 206,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "replaced": 1
+          },
+          "faces": [
+            44232
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 242,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 1,
+            "replaced": 1
+          },
+          "faces": [
+            37736
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 254,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 1,
+            "replaced": 1
+          },
+          "faces": [
+            37736
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 281,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "replaced": 1
+          },
+          "faces": [
+            48929
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 282,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "replaced": 1
+          },
+          "faces": [
+            48929
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 294,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "replaced": 1
+          },
+          "faces": [
+            44232
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 302,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 1,
+            "replaced": 1
+          },
+          "faces": [
+            37736
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 307,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 1,
+            "replaced": 1
+          },
+          "faces": [
+            37736
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 312,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 1,
+            "box": 0,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 1
+          },
+          "faces": [
+            1573
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 380,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "replaced": 1
+          },
+          "faces": [
+            48929
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 417,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "replaced": 1
+          },
+          "faces": [
+            48929
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 420,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "replaced": 1
+          },
+          "faces": [
+            48929
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 425,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "replaced": 1
+          },
+          "faces": [
+            48929
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 446,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 1,
+            "replaced": 1
+          },
+          "faces": [
+            37736
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 476,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "replaced": 1
+          },
+          "faces": [
+            44232
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 530,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "replaced": 1
+          },
+          "faces": [
+            48929
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 546,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "replaced": 1
+          },
+          "faces": [
+            48929
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 569,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 1,
+            "replaced": 1
+          },
+          "faces": [
+            37736
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 602,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 1,
+            "replaced": 1
+          },
+          "faces": [
+            37736
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 626,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "replaced": 1
+          },
+          "faces": [
+            48929
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 638,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 1,
+            "replaced": 1
+          },
+          "faces": [
+            37736
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 656,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 1,
+            "replaced": 1
+          },
+          "faces": [
+            37736
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 658,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 1,
+            "replaced": 1
+          },
+          "faces": [
+            37736
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 663,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 1,
+            "replaced": 1
+          },
+          "faces": [
+            37736
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 668,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 1,
+            "replaced": 1
+          },
+          "faces": [
+            37736
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 715,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "replaced": 1
+          },
+          "faces": [
+            48929
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 722,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 1,
+            "replaced": 1
+          },
+          "faces": [
+            37736
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 729,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "replaced": 1
+          },
+          "faces": [
+            48929
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 767,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "replaced": 1
+          },
+          "faces": [
+            48929
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 771,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "replaced": 1
+          },
+          "faces": [
+            48929
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 801,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 1,
+            "replaced": 1
+          },
+          "faces": [
+            37736
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 804,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 1,
+            "replaced": 1
+          },
+          "faces": [
+            37736
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 810,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 1,
+            "replaced": 1
+          },
+          "faces": [
+            37736
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 822,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 1,
+            "replaced": 1
+          },
+          "faces": [
+            37736
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 824,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 1,
+            "replaced": 1
+          },
+          "faces": [
+            37736
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 850,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "replaced": 1
+          },
+          "faces": [
+            48929
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 888,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "replaced": 1
+          },
+          "faces": [
+            48929
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 890,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "replaced": 1
+          },
+          "faces": [
+            48929
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 908,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 1,
+            "replaced": 1
+          },
+          "faces": [
+            37736
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 912,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 1,
+            "replaced": 1
+          },
+          "faces": [
+            37736
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 913,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 1,
+            "replaced": 1
+          },
+          "faces": [
+            37736
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 915,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 1,
+            "replaced": 1
+          },
+          "faces": [
+            37736
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 916,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 1,
+            "replaced": 1
+          },
+          "faces": [
+            37736
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 928,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 1,
+            "box": 0,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 1
+          },
+          "faces": [
+            5716
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 931,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "replaced": 1
+          },
+          "faces": [
+            48929
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 956,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 1,
+            "box": 0,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 1
+          },
+          "faces": [
+            7143
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 958,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "replaced": 1
+          },
+          "faces": [
+            48929
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 961,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "replaced": 1
+          },
+          "faces": [
+            48929
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 962,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 1,
+            "replaced": 1
+          },
+          "faces": [
+            37736
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 963,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "replaced": 1
+          },
+          "faces": [
+            48929
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 970,
+          "round": 1,
+          "charged": 4,
+          "how": {
+            "touched": 3,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 2,
+            "replaced": 2
+          },
+          "faces": [
+            42244,
+            44232,
+            48927,
+            48929
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 976,
+          "round": 1,
+          "charged": 3,
+          "how": {
+            "touched": 3,
+            "box": 0,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 3
+          },
+          "faces": [
+            35493,
+            35508,
+            36505
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 977,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 1,
+            "box": 0,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 1
+          },
+          "faces": [
+            21933
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 979,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 1,
+            "box": 0,
+            "cover": 0
+          },
+          "reasons": {
+            "replaced": 1
+          },
+          "faces": [
+            38577
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 980,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 1,
+            "box": 0,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 1
+          },
+          "faces": [
+            15769
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 981,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "replaced": 1
+          },
+          "faces": [
+            38577
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 982,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 1,
+            "box": 0,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 1
+          },
+          "faces": [
+            20577
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 986,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 1,
+            "box": 0,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 1
+          },
+          "faces": [
+            15491
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 987,
+          "round": 1,
+          "charged": 2,
+          "how": {
+            "touched": 2,
+            "box": 0,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 2
+          },
+          "faces": [
+            12233,
+            15756
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 988,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 1,
+            "box": 0,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 1
+          },
+          "faces": [
+            11821
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 990,
+          "round": 1,
+          "charged": 4,
+          "how": {
+            "touched": 4,
+            "box": 0,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 4
+          },
+          "faces": [
+            11921,
+            12229,
+            28571,
+            31148
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 991,
+          "round": 1,
+          "charged": 2,
+          "how": {
+            "touched": 0,
+            "box": 2,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 2,
+            "replaced": 2
+          },
+          "faces": [
+            15565,
+            34348
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 992,
+          "round": 1,
+          "charged": 2,
+          "how": {
+            "touched": 2,
+            "box": 0,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 2,
+            "replaced": 2
+          },
+          "faces": [
+            15565,
+            34348
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 998,
+          "round": 1,
+          "charged": 2,
+          "how": {
+            "touched": 0,
+            "box": 2,
+            "cover": 0
+          },
+          "reasons": {
+            "replaced": 2
+          },
+          "faces": [
+            44232,
+            48929
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 1001,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 1,
+            "box": 0,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 1
+          },
+          "faces": [
+            8665
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 1002,
+          "round": 1,
+          "charged": 2,
+          "how": {
+            "touched": 2,
+            "box": 0,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 2,
+            "replaced": 1
+          },
+          "faces": [
+            8910,
+            37736
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 1010,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 1,
+            "replaced": 1
+          },
+          "faces": [
+            37736
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 1011,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 1,
+            "replaced": 1
+          },
+          "faces": [
+            37736
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 1012,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 1,
+            "replaced": 1
+          },
+          "faces": [
+            37736
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 1063,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 1,
+            "box": 0,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 1
+          },
+          "faces": [
+            9644
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 1065,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 1,
+            "box": 0,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 1
+          },
+          "faces": [
+            9648
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 1088,
+          "round": 1,
+          "charged": 2,
+          "how": {
+            "touched": 0,
+            "box": 2,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 2,
+            "replaced": 2
+          },
+          "faces": [
+            15565,
+            34348
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 1124,
+          "round": 1,
+          "charged": 3,
+          "how": {
+            "touched": 3,
+            "box": 0,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 3
+          },
+          "faces": [
+            10495,
+            33073,
+            41772
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 1125,
+          "round": 1,
+          "charged": 2,
+          "how": {
+            "touched": 2,
+            "box": 0,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 2
+          },
+          "faces": [
+            10518,
+            10522
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 1126,
+          "round": 1,
+          "charged": 3,
+          "how": {
+            "touched": 3,
+            "box": 0,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 3
+          },
+          "faces": [
+            10537,
+            19178,
+            27878
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 1137,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 1,
+            "box": 0,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 1
+          },
+          "faces": [
+            36157
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 1138,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 1,
+            "replaced": 1
+          },
+          "faces": [
+            37736
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 1139,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 1,
+            "replaced": 1
+          },
+          "faces": [
+            37736
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 1140,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 1,
+            "replaced": 1
+          },
+          "faces": [
+            37736
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 1141,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 1,
+            "replaced": 1
+          },
+          "faces": [
+            37736
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 1142,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 1,
+            "replaced": 1
+          },
+          "faces": [
+            37736
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 1143,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 1,
+            "replaced": 1
+          },
+          "faces": [
+            37736
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 1146,
+          "round": 1,
+          "charged": 4,
+          "how": {
+            "touched": 3,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 4,
+            "replaced": 1
+          },
+          "faces": [
+            10673,
+            14801,
+            37736,
+            49223
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 1147,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 1,
+            "replaced": 1
+          },
+          "faces": [
+            37736
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 1150,
+          "round": 1,
+          "charged": 5,
+          "how": {
+            "touched": 4,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 5,
+            "replaced": 1
+          },
+          "faces": [
+            10713,
+            23027,
+            30246,
+            33213,
+            37736
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 1152,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 1,
+            "box": 0,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 1
+          },
+          "faces": [
+            29571
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 1154,
+          "round": 1,
+          "charged": 2,
+          "how": {
+            "touched": 2,
+            "box": 0,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 2
+          },
+          "faces": [
+            35648,
+            36471
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 1156,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 1,
+            "box": 0,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 1
+          },
+          "faces": [
+            21879
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 1159,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 1,
+            "replaced": 1
+          },
+          "faces": [
+            37736
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 1161,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 1,
+            "replaced": 1
+          },
+          "faces": [
+            37736
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 1164,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 1,
+            "replaced": 1
+          },
+          "faces": [
+            37736
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 1170,
+          "round": 1,
+          "charged": 2,
+          "how": {
+            "touched": 2,
+            "box": 0,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 2
+          },
+          "faces": [
+            10920,
+            40633
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 1173,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 1,
+            "box": 0,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 1
+          },
+          "faces": [
+            22476
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 1175,
+          "round": 1,
+          "charged": 2,
+          "how": {
+            "touched": 2,
+            "box": 0,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 2
+          },
+          "faces": [
+            15038,
+            31086
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 1200,
+          "round": 1,
+          "charged": 3,
+          "how": {
+            "touched": 3,
+            "box": 0,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 2,
+            "replaced": 1
+          },
+          "faces": [
+            11634,
+            22555,
+            44232
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 1209,
+          "round": 1,
+          "charged": 7,
+          "how": {
+            "touched": 6,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 6,
+            "replaced": 1
+          },
+          "faces": [
+            11610,
+            11652,
+            11697,
+            26033,
+            26046,
+            32744,
+            38577
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 1212,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "replaced": 1
+          },
+          "faces": [
+            44232
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 1213,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "replaced": 1
+          },
+          "faces": [
+            44232
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 1215,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "replaced": 1
+          },
+          "faces": [
+            44232
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 1220,
+          "round": 1,
+          "charged": 7,
+          "how": {
+            "touched": 7,
+            "box": 0,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 7
+          },
+          "faces": [
+            11828,
+            11890,
+            19625,
+            19637,
+            19746,
+            23248,
+            36103
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 1221,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 1,
+            "box": 0,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 1
+          },
+          "faces": [
+            31779
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 1222,
+          "round": 1,
+          "charged": 2,
+          "how": {
+            "touched": 0,
+            "box": 2,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 2,
+            "replaced": 2
+          },
+          "faces": [
+            15565,
+            34348
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 1223,
+          "round": 1,
+          "charged": 6,
+          "how": {
+            "touched": 6,
+            "box": 0,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 6
+          },
+          "faces": [
+            15662,
+            19766,
+            23307,
+            29038,
+            35730,
+            35876
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 1254,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "replaced": 1
+          },
+          "faces": [
+            44232
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 1313,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "replaced": 1
+          },
+          "faces": [
+            48929
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 1327,
+          "round": 1,
+          "charged": 2,
+          "how": {
+            "touched": 0,
+            "box": 2,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 2,
+            "replaced": 2
+          },
+          "faces": [
+            15565,
+            34348
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 1405,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "replaced": 1
+          },
+          "faces": [
+            44232
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 1406,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "replaced": 1
+          },
+          "faces": [
+            44232
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 1431,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 1,
+            "box": 0,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 1
+          },
+          "faces": [
+            20923
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 1432,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "replaced": 1
+          },
+          "faces": [
+            38577
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 1464,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "replaced": 1
+          },
+          "faces": [
+            44232
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 1469,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "replaced": 1
+          },
+          "faces": [
+            44232
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 1491,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "replaced": 1
+          },
+          "faces": [
+            48929
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 1516,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "replaced": 1
+          },
+          "faces": [
+            44232
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 1519,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "replaced": 1
+          },
+          "faces": [
+            44232
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 1546,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 1,
+            "replaced": 1
+          },
+          "faces": [
+            37736
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 1553,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "replaced": 1
+          },
+          "faces": [
+            44232
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 1558,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "replaced": 1
+          },
+          "faces": [
+            48929
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 1590,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "replaced": 1
+          },
+          "faces": [
+            44232
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 1592,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 1,
+            "replaced": 1
+          },
+          "faces": [
+            37736
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 1609,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "replaced": 1
+          },
+          "faces": [
+            48929
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 1702,
+          "round": 1,
+          "charged": 2,
+          "how": {
+            "touched": 0,
+            "box": 2,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 2,
+            "replaced": 2
+          },
+          "faces": [
+            15565,
+            34348
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 1714,
+          "round": 1,
+          "charged": 2,
+          "how": {
+            "touched": 0,
+            "box": 2,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 2,
+            "replaced": 2
+          },
+          "faces": [
+            15565,
+            34348
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 1771,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 1,
+            "replaced": 1
+          },
+          "faces": [
+            37736
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 1772,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 1,
+            "replaced": 1
+          },
+          "faces": [
+            37736
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 1778,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 1,
+            "replaced": 1
+          },
+          "faces": [
+            37736
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 1779,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 1,
+            "replaced": 1
+          },
+          "faces": [
+            37736
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 1790,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 0,
+            "box": 1,
+            "cover": 0
+          },
+          "reasons": {
+            "replaced": 1
+          },
+          "faces": [
+            48929
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        },
+        {
+          "site": 1814,
+          "round": 1,
+          "charged": 1,
+          "how": {
+            "touched": 1,
+            "box": 0,
+            "cover": 0
+          },
+          "reasons": {
+            "deleted": 1
+          },
+          "faces": [
+            53440
+          ],
+          "edits": 1,
+          "rounds_exhausted": false
+        }
+      ],
+      "unknown": {
+        "samples": 0,
+        "faces": [],
+        "reasons": {}
+      },
+      "rounds": 1,
+      "rounds_exhausted": false,
+      "stage_rolled_back": null
+    }
+  ],
+  "input_triangles": 53602,
+  "output_triangles": 38691,
+  "kept_edits": 1675,
+  "rolled_back_edits": 145,
+  "engine_candidate_sha256": "c3664f9e796c5c63cdcdcd1ba36be6996e07bee2727a908204ec08cbc37ed09d",
+  "source_candidate_sha256": "a910864443ea698855836b9f725664d2a9e86f9b11270b503515eaacc9ad907a",
+  "source_faces_sha256": "c16be706ec6ebc7579f82caf1d52d21238636b738cae99d9de417263a7a8b408",
+  "edit_log_sha256": "22fd8da0e707aca617d577c46c6cf397ed755805c7e1e12d27cbbeadcb9936c6",
+  "qualification_sha256": "5e1880c494bb4fa532a1d50bce5515d20cc02e532d82c5e55db69e59a83a7424",
+  "assets": [
+    {
+      "path": "3rd floor main infra.mtl",
+      "sha256": "c021e8faec66f4d705a70b0caf7ea49d467bdc829b7680263bda02e3660c9b07"
+    },
+    {
+      "path": "textures\\minecraft\\concrete_white_-1.png",
+      "sha256": "f42c7be3c52294ead4c69ac0e9ef1bbbbe6bdb4451382c89a65c386709df6171"
+    },
+    {
+      "path": "textures\\minecraft\\concrete_white_-15579874.png",
+      "sha256": "14ceba3d0329594e00458bc6ed2aeafa24d9228519994a60d758de2509fee1ad"
+    },
+    {
+      "path": "textures\\minecraft\\glass_white_-1.png",
+      "sha256": "899b9a1f08688eb13dd6dc980a743f5d335862615c49da8b2298ff3817933dd4"
+    },
+    {
+      "path": "textures\\minecraft\\quartz_block_bottom_-1.png",
+      "sha256": "daf3f46f93f7364b1530ec468a7a1d5a02eda1cd0a118e41e93e9c4177791cc1"
+    },
+    {
+      "path": "textures\\minecraft\\quartz_block_side_-1.png",
+      "sha256": "85e34c6a6b917ade1cfbd2826127de4175c63317f3efbba1f7aaed3bf105a193"
+    },
+    {
+      "path": "textures\\minecraft\\quartz_block_top_-1.png",
+      "sha256": "eea2309518da196d86171dd0d78ecdcdc3a0510005790fa2beb8484744d8ae88"
+    },
+    {
+      "path": "textures\\minecraft\\wool_colored_orange_-1.png",
+      "sha256": "c6a3c27b965f298da28c89c1a522b5ff3152321a97fcbe613aec2f9a6d8f66fa"
+    }
+  ],
+  "before_snapshot": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-e3\\run-20261023-attempt2\\before-snapshots\\3F\\740103bb4197-fe72f608",
+  "input_receipt": {
+    "source_obj_sha256": "f63c079408bd42fec7b9e5b5d10b0b8a8e4bc7077da006739bf5cfa1fdb5cf25",
+    "native_reference_sha256": "9597fcfa0e1a76e4a460a9e54f5a8b79c7bdb76c4f1030afb56914dfa97a1dfe",
+    "source_triangles_sha256": "f9f2f90eb52083233ab8c9baad7e8e9e61e9d528f95b90df743475afc5a39bc8",
+    "engine_obj_sha256": "740103bb4197a1270e4c00e38abe9971e12f5c80ebe14502e4acd75148afbc82",
+    "floor_id": "3F",
+    "source_revision": "7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511",
+    "qualification_sha256": "5e1880c494bb4fa532a1d50bce5515d20cc02e532d82c5e55db69e59a83a7424",
+    "assets": [
+      {
+        "path": "3rd floor main infra.mtl",
+        "sha256": "c021e8faec66f4d705a70b0caf7ea49d467bdc829b7680263bda02e3660c9b07"
+      },
+      {
+        "path": "textures\\minecraft\\concrete_white_-1.png",
+        "sha256": "f42c7be3c52294ead4c69ac0e9ef1bbbbe6bdb4451382c89a65c386709df6171"
+      },
+      {
+        "path": "textures\\minecraft\\concrete_white_-15579874.png",
+        "sha256": "14ceba3d0329594e00458bc6ed2aeafa24d9228519994a60d758de2509fee1ad"
+      },
+      {
+        "path": "textures\\minecraft\\glass_white_-1.png",
+        "sha256": "899b9a1f08688eb13dd6dc980a743f5d335862615c49da8b2298ff3817933dd4"
+      },
+      {
+        "path": "textures\\minecraft\\quartz_block_bottom_-1.png",
+        "sha256": "daf3f46f93f7364b1530ec468a7a1d5a02eda1cd0a118e41e93e9c4177791cc1"
+      },
+      {
+        "path": "textures\\minecraft\\quartz_block_side_-1.png",
+        "sha256": "85e34c6a6b917ade1cfbd2826127de4175c63317f3efbba1f7aaed3bf105a193"
+      },
+      {
+        "path": "textures\\minecraft\\quartz_block_top_-1.png",
+        "sha256": "eea2309518da196d86171dd0d78ecdcdc3a0510005790fa2beb8484744d8ae88"
+      },
+      {
+        "path": "textures\\minecraft\\wool_colored_orange_-1.png",
+        "sha256": "c6a3c27b965f298da28c89c1a522b5ff3152321a97fcbe613aec2f9a6d8f66fa"
+      }
+    ],
+    "physical_axis_quanta_inches": [
+      3.937007874015748e-05,
+      3.937007874015748e-05,
+      3.937007874015748e-06
+    ],
+    "source_to_engine": [
+      [
+        39.37007874015748,
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        -39.37007874015748,
+        0.0
+      ],
+      [
+        0.0,
+        39.37007874015748,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "source_sig_digits": 8
+  },
+  "materials_sha256": "ada00c4d5ce46ca19e168e0afd61684f636e68b84d2b18c15f5b3d90964b0b8b",
+  "builder_component_commit": "531769cad83dd6d03214a94cbd21e0209f8f2f33",
+  "guard": {
+    "passed": false,
+    "state": "independent strict guard pending"
+  },
+  "independent_validation": "pending",
+  "accepted": false,
+  "wall_s": 8051.56,
+  "engine_candidate": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-e3\\run-20261023-attempt2\\3F\\candidate.engine.obj",
+  "source_candidate": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-e3\\run-20261023-attempt2\\3F\\candidate.source.obj"
+}

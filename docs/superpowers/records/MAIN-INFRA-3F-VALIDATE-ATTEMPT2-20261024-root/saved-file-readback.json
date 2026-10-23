@@ -1,0 +1,94 @@
+{
+  "floor_id": "3F",
+  "source_revision": "7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511",
+  "builder_component": "531769cad83dd6d03214a94cbd21e0209f8f2f33",
+  "candidate": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-e3\\run-20261023-attempt2\\3F",
+  "worker_sha256": "5ce4494b2e4a14f3c9303b5e5f017ff35d01635b984f987046150755495ad4ea",
+  "files": {
+    "candidate.engine.obj": "c3664f9e796c5c63cdcdcd1ba36be6996e07bee2727a908204ec08cbc37ed09d",
+    "candidate.source.obj": "a910864443ea698855836b9f725664d2a9e86f9b11270b503515eaacc9ad907a",
+    "stage-audit.json": "56ab090d861106c2801b2dab057ba5e9df6109ac69d87faaf29b718c87389512",
+    "source-faces.json": "c16be706ec6ebc7579f82caf1d52d21238636b738cae99d9de417263a7a8b408",
+    "edit-log.jsonl": "22fd8da0e707aca617d577c46c6cf397ed755805c7e1e12d27cbbeadcb9936c6"
+  },
+  "lineage_unique_ordered": true,
+  "spaces": {
+    "source": {
+      "before_triangles": 53602,
+      "after_triangles": 38691,
+      "tables_equal": {
+        "v": true,
+        "vt": true,
+        "vn": true
+      },
+      "all_surviving_face_indices_and_materials_exact": true
+    },
+    "engine": {
+      "before_triangles": 53602,
+      "after_triangles": 38691,
+      "tables_equal": {
+        "v": true,
+        "vt": true,
+        "vn": true
+      },
+      "all_surviving_face_indices_and_materials_exact": true
+    }
+  },
+  "removed_triangles": 14911,
+  "assets": [
+    {
+      "path": "3rd floor main infra.mtl",
+      "sha256": "c021e8faec66f4d705a70b0caf7ea49d467bdc829b7680263bda02e3660c9b07"
+    },
+    {
+      "path": "textures\\minecraft\\concrete_white_-1.png",
+      "sha256": "f42c7be3c52294ead4c69ac0e9ef1bbbbe6bdb4451382c89a65c386709df6171"
+    },
+    {
+      "path": "textures\\minecraft\\concrete_white_-15579874.png",
+      "sha256": "14ceba3d0329594e00458bc6ed2aeafa24d9228519994a60d758de2509fee1ad"
+    },
+    {
+      "path": "textures\\minecraft\\glass_white_-1.png",
+      "sha256": "899b9a1f08688eb13dd6dc980a743f5d335862615c49da8b2298ff3817933dd4"
+    },
+    {
+      "path": "textures\\minecraft\\quartz_block_bottom_-1.png",
+      "sha256": "daf3f46f93f7364b1530ec468a7a1d5a02eda1cd0a118e41e93e9c4177791cc1"
+    },
+    {
+      "path": "textures\\minecraft\\quartz_block_side_-1.png",
+      "sha256": "85e34c6a6b917ade1cfbd2826127de4175c63317f3efbba1f7aaed3bf105a193"
+    },
+    {
+      "path": "textures\\minecraft\\quartz_block_top_-1.png",
+      "sha256": "eea2309518da196d86171dd0d78ecdcdc3a0510005790fa2beb8484744d8ae88"
+    },
+    {
+      "path": "textures\\minecraft\\wool_colored_orange_-1.png",
+      "sha256": "c6a3c27b965f298da28c89c1a522b5ff3152321a97fcbe613aec2f9a6d8f66fa"
+    }
+  ],
+  "kept_edits": 1675,
+  "rolled_back_edits": 145,
+  "terminal_path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\attempt3-preflight\\3F-execution-ready\\monitor-E3-3F-attempt2-20261023T173612\\result.json",
+  "terminal_sha256": "e0cb3afbacc60e37e58c9199b57236cf2af724357b8b66d0129ce6e9cf51f363",
+  "terminal": {
+    "state": "PROCESS_EXITED_ZERO",
+    "phase": "E3-3F-attempt2",
+    "abort_reason": null,
+    "actual_pid": 22268,
+    "actual_creation_utc": "2026-10-23T17:36:13.8205790Z",
+    "actual_exit_code": 0,
+    "launcher_exit_code": 0,
+    "wall_s": 8054.5408417,
+    "HEAD": "531769cad83dd6d03214a94cbd21e0209f8f2f33",
+    "phase_plan_sha256": "7f7b2698b331c107713832ef20adbed187b84d93598481201db8a25623491291",
+    "all_owned_exited": true,
+    "evidence": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\attempt3-preflight\\3F-execution-ready\\monitor-E3-3F-attempt2-20261023T173612",
+    "ended_utc": "2026-10-23T19:50:28.0941785Z",
+    "acceptance": false
+  },
+  "independent_visibility_proof_pending": true,
+  "accepted": false
+}
