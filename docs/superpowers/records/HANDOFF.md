@@ -25,6 +25,13 @@ run the latest `.skp` of each file must be in `OBJ FIXED RESULT/` for the owner 
 
 ## 2. Current state (2026-09-26 00:15, written by the Claude controller)
 
+2026-10-23 independent2F attempt2 preparation: jobMAIN-INFRA-2F-VALIDATE-ATTEMPT2,
+owned validation worktree/branch from531769c. Initial identity22GREEN; native/guard RED8
+then all30GREEN2.53s/help0. Test windows released. Actual2Fworker41648 still running; no saved output or
+independent guard/native/Validator launched. Runtime/source/code pins captured; sourceaudit
+must remain immutable and publication/status remains controller-owned. Final static caller review
+rehashes53paths/0mismatches; preparation checkpoint only, actual model proof pending.
+
 2026-10-23 memory recovery: all three actual lower-floor workers stopped at
 12:20:17 UTC with allocation failures; Windows Operational Event 1003 measured
 99.63% system commit. No new E7/2F/3F candidate was saved. Failed receipts and

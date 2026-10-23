@@ -1,0 +1,180 @@
+FFFFFFFF                                                                 [100%]
+================================== FAILURES ===================================
+____ test_native_plan_preserves_blender_failure_exit_and_launches_nothing _____
+
+bound = (WindowsPath('D:/TEMP/uc-2f-native-red/test_native_plan_preserves_ble0/preparation.json'), WindowsPath('D:/TEMP/uc-2f-...261023', 'floor_id': '2F', 'source_revision': '7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511', ...})
+tmp_path = WindowsPath('D:/TEMP/uc-2f-native-red/test_native_plan_preserves_ble0')
+
+    def test_native_plan_preserves_blender_failure_exit_and_launches_nothing(bound, tmp_path):
+        from tools.main_infra_2f_validation import main
+        args,out,_guard=native_args(bound,tmp_path)
+        assert main(args)==0
+        report=json.loads((out/"native-plan.json").read_text())
+        command=report["command"]
+>       assert command[command.index("--python-exit-code")+1]=="13"
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       ValueError: '--python-exit-code' is not in list
+
+tools\tests\test_main_infra_2f_validation.py:157: ValueError
+---------------------------- Captured stdout call -----------------------------
+{"native_plan": "D:\\TEMP\\uc-2f-native-red\\test_native_plan_preserves_ble0\\evidence\\native\\native-plan.json", "render_launched": false}
+_________ test_native_plan_rechecks_assets_bound_by_the_actual_guard __________
+
+bound = (WindowsPath('D:/TEMP/uc-2f-native-red/test_native_plan_rechecks_asse0/preparation.json'), WindowsPath('D:/TEMP/uc-2f-...261023', 'floor_id': '2F', 'source_revision': '7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511', ...})
+tmp_path = WindowsPath('D:/TEMP/uc-2f-native-red/test_native_plan_rechecks_asse0')
+
+    def test_native_plan_rechecks_assets_bound_by_the_actual_guard(bound,tmp_path):
+        from tools.main_infra_2f_validation import main
+        args,_out,guard=native_args(bound,tmp_path)
+        data=json.loads(guard.read_text())
+        texture=tmp_path/"guard-only-texture.png"
+        texture.write_bytes(b"original bytes")
+        data["paths"]["candidate_texture"]=str(texture)
+        data["hashes"]["candidate_texture"]=digest(texture)
+        write(guard,data)
+        args[args.index("--guard-sha256")+1]=digest(guard)
+        texture.write_bytes(b"changed since independent guard")
+>       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+tools\tests\test_main_infra_2f_validation.py:174: Failed
+---------------------------- Captured stdout call -----------------------------
+{"native_plan": "D:\\TEMP\\uc-2f-native-red\\test_native_plan_rechecks_asse0\\evidence\\native\\native-plan.json", "render_launched": false}
+_ test_native_plan_refuses_a_foreign_or_weaker_guard[source_revision-0000000000000000000000000000000000000000000000000000000000000000] _
+
+bound = (WindowsPath('D:/TEMP/uc-2f-native-red/test_native_plan_refuses_a_for0/preparation.json'), WindowsPath('D:/TEMP/uc-2f-...261023', 'floor_id': '2F', 'source_revision': '7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511', ...})
+tmp_path = WindowsPath('D:/TEMP/uc-2f-native-red/test_native_plan_refuses_a_for0')
+field = 'source_revision'
+value = '0000000000000000000000000000000000000000000000000000000000000000'
+
+    @pytest.mark.parametrize("field,value", [
+        ("source_revision","0"*64),("input_triangles",15856),("output_triangles",39999),
+        ("views",1),("resolution",[90,60]),("worker_pid",41649)])
+    def test_native_plan_refuses_a_foreign_or_weaker_guard(bound,tmp_path,field,value):
+        from tools.main_infra_2f_validation import main
+        args,_out,guard=native_args(bound,tmp_path)
+        data=json.loads(guard.read_text());data[field]=value;write(guard,data)
+        args[args.index("--guard-sha256")+1]=digest(guard)
+>       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+tools\tests\test_main_infra_2f_validation.py:186: Failed
+---------------------------- Captured stdout call -----------------------------
+{"native_plan": "D:\\TEMP\\uc-2f-native-red\\test_native_plan_refuses_a_for0\\evidence\\native\\native-plan.json", "render_launched": false}
+__ test_native_plan_refuses_a_foreign_or_weaker_guard[input_triangles-15856] __
+
+bound = (WindowsPath('D:/TEMP/uc-2f-native-red/test_native_plan_refuses_a_for1/preparation.json'), WindowsPath('D:/TEMP/uc-2f-...261023', 'floor_id': '2F', 'source_revision': '7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511', ...})
+tmp_path = WindowsPath('D:/TEMP/uc-2f-native-red/test_native_plan_refuses_a_for1')
+field = 'input_triangles', value = 15856
+
+    @pytest.mark.parametrize("field,value", [
+        ("source_revision","0"*64),("input_triangles",15856),("output_triangles",39999),
+        ("views",1),("resolution",[90,60]),("worker_pid",41649)])
+    def test_native_plan_refuses_a_foreign_or_weaker_guard(bound,tmp_path,field,value):
+        from tools.main_infra_2f_validation import main
+        args,_out,guard=native_args(bound,tmp_path)
+        data=json.loads(guard.read_text());data[field]=value;write(guard,data)
+        args[args.index("--guard-sha256")+1]=digest(guard)
+>       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+tools\tests\test_main_infra_2f_validation.py:186: Failed
+---------------------------- Captured stdout call -----------------------------
+{"native_plan": "D:\\TEMP\\uc-2f-native-red\\test_native_plan_refuses_a_for1\\evidence\\native\\native-plan.json", "render_launched": false}
+_ test_native_plan_refuses_a_foreign_or_weaker_guard[output_triangles-39999] __
+
+bound = (WindowsPath('D:/TEMP/uc-2f-native-red/test_native_plan_refuses_a_for2/preparation.json'), WindowsPath('D:/TEMP/uc-2f-...261023', 'floor_id': '2F', 'source_revision': '7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511', ...})
+tmp_path = WindowsPath('D:/TEMP/uc-2f-native-red/test_native_plan_refuses_a_for2')
+field = 'output_triangles', value = 39999
+
+    @pytest.mark.parametrize("field,value", [
+        ("source_revision","0"*64),("input_triangles",15856),("output_triangles",39999),
+        ("views",1),("resolution",[90,60]),("worker_pid",41649)])
+    def test_native_plan_refuses_a_foreign_or_weaker_guard(bound,tmp_path,field,value):
+        from tools.main_infra_2f_validation import main
+        args,_out,guard=native_args(bound,tmp_path)
+        data=json.loads(guard.read_text());data[field]=value;write(guard,data)
+        args[args.index("--guard-sha256")+1]=digest(guard)
+>       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+tools\tests\test_main_infra_2f_validation.py:186: Failed
+---------------------------- Captured stdout call -----------------------------
+{"native_plan": "D:\\TEMP\\uc-2f-native-red\\test_native_plan_refuses_a_for2\\evidence\\native\\native-plan.json", "render_launched": false}
+_________ test_native_plan_refuses_a_foreign_or_weaker_guard[views-1] _________
+
+bound = (WindowsPath('D:/TEMP/uc-2f-native-red/test_native_plan_refuses_a_for3/preparation.json'), WindowsPath('D:/TEMP/uc-2f-...261023', 'floor_id': '2F', 'source_revision': '7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511', ...})
+tmp_path = WindowsPath('D:/TEMP/uc-2f-native-red/test_native_plan_refuses_a_for3')
+field = 'views', value = 1
+
+    @pytest.mark.parametrize("field,value", [
+        ("source_revision","0"*64),("input_triangles",15856),("output_triangles",39999),
+        ("views",1),("resolution",[90,60]),("worker_pid",41649)])
+    def test_native_plan_refuses_a_foreign_or_weaker_guard(bound,tmp_path,field,value):
+        from tools.main_infra_2f_validation import main
+        args,_out,guard=native_args(bound,tmp_path)
+        data=json.loads(guard.read_text());data[field]=value;write(guard,data)
+        args[args.index("--guard-sha256")+1]=digest(guard)
+>       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+tools\tests\test_main_infra_2f_validation.py:186: Failed
+---------------------------- Captured stdout call -----------------------------
+{"native_plan": "D:\\TEMP\\uc-2f-native-red\\test_native_plan_refuses_a_for3\\evidence\\native\\native-plan.json", "render_launched": false}
+____ test_native_plan_refuses_a_foreign_or_weaker_guard[resolution-value4] ____
+
+bound = (WindowsPath('D:/TEMP/uc-2f-native-red/test_native_plan_refuses_a_for4/preparation.json'), WindowsPath('D:/TEMP/uc-2f-...261023', 'floor_id': '2F', 'source_revision': '7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511', ...})
+tmp_path = WindowsPath('D:/TEMP/uc-2f-native-red/test_native_plan_refuses_a_for4')
+field = 'resolution', value = [90, 60]
+
+    @pytest.mark.parametrize("field,value", [
+        ("source_revision","0"*64),("input_triangles",15856),("output_triangles",39999),
+        ("views",1),("resolution",[90,60]),("worker_pid",41649)])
+    def test_native_plan_refuses_a_foreign_or_weaker_guard(bound,tmp_path,field,value):
+        from tools.main_infra_2f_validation import main
+        args,_out,guard=native_args(bound,tmp_path)
+        data=json.loads(guard.read_text());data[field]=value;write(guard,data)
+        args[args.index("--guard-sha256")+1]=digest(guard)
+>       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+tools\tests\test_main_infra_2f_validation.py:186: Failed
+---------------------------- Captured stdout call -----------------------------
+{"native_plan": "D:\\TEMP\\uc-2f-native-red\\test_native_plan_refuses_a_for4\\evidence\\native\\native-plan.json", "render_launched": false}
+____ test_native_plan_refuses_a_foreign_or_weaker_guard[worker_pid-41649] _____
+
+bound = (WindowsPath('D:/TEMP/uc-2f-native-red/test_native_plan_refuses_a_for5/preparation.json'), WindowsPath('D:/TEMP/uc-2f-...261023', 'floor_id': '2F', 'source_revision': '7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511', ...})
+tmp_path = WindowsPath('D:/TEMP/uc-2f-native-red/test_native_plan_refuses_a_for5')
+field = 'worker_pid', value = 41649
+
+    @pytest.mark.parametrize("field,value", [
+        ("source_revision","0"*64),("input_triangles",15856),("output_triangles",39999),
+        ("views",1),("resolution",[90,60]),("worker_pid",41649)])
+    def test_native_plan_refuses_a_foreign_or_weaker_guard(bound,tmp_path,field,value):
+        from tools.main_infra_2f_validation import main
+        args,_out,guard=native_args(bound,tmp_path)
+        data=json.loads(guard.read_text());data[field]=value;write(guard,data)
+        args[args.index("--guard-sha256")+1]=digest(guard)
+>       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+tools\tests\test_main_infra_2f_validation.py:186: Failed
+---------------------------- Captured stdout call -----------------------------
+{"native_plan": "D:\\TEMP\\uc-2f-native-red\\test_native_plan_refuses_a_for5\\evidence\\native\\native-plan.json", "render_launched": false}
+=========================== short test summary info ===========================
+FAILED tools/tests/test_main_infra_2f_validation.py::test_native_plan_preserves_blender_failure_exit_and_launches_nothing
+FAILED tools/tests/test_main_infra_2f_validation.py::test_native_plan_rechecks_assets_bound_by_the_actual_guard
+FAILED tools/tests/test_main_infra_2f_validation.py::test_native_plan_refuses_a_foreign_or_weaker_guard[source_revision-0000000000000000000000000000000000000000000000000000000000000000]
+FAILED tools/tests/test_main_infra_2f_validation.py::test_native_plan_refuses_a_foreign_or_weaker_guard[input_triangles-15856]
+FAILED tools/tests/test_main_infra_2f_validation.py::test_native_plan_refuses_a_foreign_or_weaker_guard[output_triangles-39999]
+FAILED tools/tests/test_main_infra_2f_validation.py::test_native_plan_refuses_a_foreign_or_weaker_guard[views-1]
+FAILED tools/tests/test_main_infra_2f_validation.py::test_native_plan_refuses_a_foreign_or_weaker_guard[resolution-value4]
+FAILED tools/tests/test_main_infra_2f_validation.py::test_native_plan_refuses_a_foreign_or_weaker_guard[worker_pid-41649]
+8 failed, 22 deselected in 1.31s

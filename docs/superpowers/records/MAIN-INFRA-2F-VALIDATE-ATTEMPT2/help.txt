@@ -1,0 +1,24 @@
+usage: main_infra_2f_validation.py [-h] --preparation PREPARATION --candidate
+                                   CANDIDATE --out OUT --preparation-sha256
+                                   PREPARATION_SHA256 --audit-sha256
+                                   AUDIT_SHA256 --worker-sha256 WORKER_SHA256
+                                   [--guard-receipt GUARD_RECEIPT]
+                                   [--guard-sha256 GUARD_SHA256]
+                                   {guard,validate,native-plan}
+
+Independent 2F attempt2 E3 proof caller; heavy phases require controller
+scheduling.
+
+positional arguments:
+  {guard,validate,native-plan}
+
+options:
+  -h, --help            show this help message and exit
+  --preparation PREPARATION
+  --candidate CANDIDATE
+  --out OUT
+  --preparation-sha256 PREPARATION_SHA256
+  --audit-sha256 AUDIT_SHA256
+  --worker-sha256 WORKER_SHA256
+  --guard-receipt GUARD_RECEIPT
+  --guard-sha256 GUARD_SHA256

@@ -1,0 +1,74 @@
+{
+  "schema_version": 1,
+  "job_id": "MAIN-INFRA-2F-VALIDATE-ATTEMPT2",
+  "base_commit": "531769cad83dd6d03214a94cbd21e0209f8f2f33",
+  "code_scope": [
+    "tools/main_infra_2f_validation.py"
+  ],
+  "caller_sha256": "d1cc6cf75c08ba4c5baad0415330a55b0544f12558fb6c29bd69b9b551dcaaae",
+  "tests_sha256": "0a3538e38daef689acae84ad4fee9be418d7605e6ad9b60a560297ac59c657ae",
+  "initial_red": {
+    "collection_error": 1,
+    "seconds": 0.39,
+    "reason": "caller absent"
+  },
+  "behavioral_red": {
+    "failed": 1,
+    "seconds": 0.31
+  },
+  "initial_green": {
+    "passed": 22,
+    "seconds": 1.51
+  },
+  "native_guard_red": {
+    "failed": 8,
+    "seconds": 1.31
+  },
+  "final_green": {
+    "passed": 30,
+    "seconds": 2.53
+  },
+  "help_exit": 0,
+  "preparation_sha256": "431fac264a423d522c86bd152b4d4ab0a0a1beccd1d16796c9e6de64f52403b8",
+  "runtime_sha256": "a4898bdd79b192b20bb1c40afd31d1623dd3c3d28f06e8fd33c4c7a35ef9190f",
+  "native_renderer_sha256": "065989bc85dfc713ce74ed766428b4a1c23789209796d5913e59224c9d6a7472",
+  "native_readback_sha256": "fca870ab6a51c2c5d15a4ae23a7214972b723a844566acc8c66fec2480296676",
+  "heavy_entrypoints_executed": false,
+  "model_saved": false,
+  "acceptance": false,
+  "live_writes": false,
+  "project_suite_run": false,
+  "project_suite_reason": "Controller explicitly limited this resource window to tiny caller tests; actual2F sole heavy worker active.",
+  "independent_review": {
+    "schema_version": 1,
+    "reviewer": "/root/main_infra_independent_validator",
+    "recorded_by": "/root/main_infra_delivery_review",
+    "source": "Trusted collaboration final read-only confirmation",
+    "scope": "Static caller/preparation review only; not model validation or publication",
+    "caller_sha256": "d1cc6cf75c08ba4c5baad0415330a55b0544f12558fb6c29bd69b9b551dcaaae",
+    "preparation_sha256": "431fac264a423d522c86bd152b4d4ab0a0a1beccd1d16796c9e6de64f52403b8",
+    "pinned_paths": 53,
+    "hash_mismatches": 0,
+    "signed_reference": "33606ce9",
+    "signed_validator_guard_profile_diff_exit": 0,
+    "findings": [],
+    "tests_run_by_reviewer": false,
+    "heavy_entrypoints_run_by_reviewer": false,
+    "model_accepted": false,
+    "require_actual_saved_output": true
+  },
+  "evidence": {
+    "red.txt": "e0302d7a55422273be436ba39ce0d1da4ef90cbd9e4856c2d01dfe264bc22965",
+    "red-behavior.txt": "d00dfd8943c1b6081ea79c8aa897b7a95b30ddecf78cc33da206f2be2fb75748",
+    "green.txt": "2e6670319fc6432886d15c05e17ea9369706b8c0eb8bb840ca33b82a23aa0152",
+    "help.txt": "3c79725470f490fabc905a458127768854e0f63f869d4843e215310f53355e29",
+    "red-native.txt": "7198665a996e5cbe57f037109b85659799561bba7721793a4b1a6dcfd353b367",
+    "green-final.txt": "befd49a3ee5ed2bc6c267e5dd016c0fa6832de707c8cb256cffef101e6d3d5bb",
+    "help-final.txt": "3c79725470f490fabc905a458127768854e0f63f869d4843e215310f53355e29",
+    "worker-runtime.py": "a4898bdd79b192b20bb1c40afd31d1623dd3c3d28f06e8fd33c4c7a35ef9190f",
+    "strict-guard.py": "bc7d45e280950df37e23f4bca38d2a78ce6007969dec9e6a2edeab72fdba39b2",
+    "native-pairs.py": "065989bc85dfc713ce74ed766428b4a1c23789209796d5913e59224c9d6a7472",
+    "native-readback.py": "fca870ab6a51c2c5d15a4ae23a7214972b723a844566acc8c66fec2480296676",
+    "independent-preparation-review.json": "d043a5d9521fb4f8c225d6bb85195ec2a312a132e032d36a8d32196676bd3b22"
+  }
+}

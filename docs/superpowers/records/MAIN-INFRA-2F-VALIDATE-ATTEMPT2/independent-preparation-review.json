@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "reviewer": "/root/main_infra_independent_validator",
+  "recorded_by": "/root/main_infra_delivery_review",
+  "source": "Trusted collaboration final read-only confirmation",
+  "scope": "Static caller/preparation review only; not model validation or publication",
+  "caller_sha256": "d1cc6cf75c08ba4c5baad0415330a55b0544f12558fb6c29bd69b9b551dcaaae",
+  "preparation_sha256": "431fac264a423d522c86bd152b4d4ab0a0a1beccd1d16796c9e6de64f52403b8",
+  "pinned_paths": 53,
+  "hash_mismatches": 0,
+  "signed_reference": "33606ce9",
+  "signed_validator_guard_profile_diff_exit": 0,
+  "findings": [],
+  "tests_run_by_reviewer": false,
+  "heavy_entrypoints_run_by_reviewer": false,
+  "model_accepted": false,
+  "require_actual_saved_output": true
+}

@@ -1,0 +1,27 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+____ test_terminal_actual_attempt_is_bound_while_builder_guard_is_pending _____
+
+bound = (WindowsPath('D:/TEMP/uc-2f-proof-red-behavior/test_terminal_actual_attempt_i0/preparation.json'), WindowsPath('D:/TEM...261023', 'floor_id': '2F', 'source_revision': '7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511', ...})
+
+    def test_terminal_actual_attempt_is_bound_while_builder_guard_is_pending(bound):
+>       receipt = run(bound)
+                  ^^^^^^^^^^
+
+tools\tests\test_main_infra_2f_validation.py:71: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tools\tests\test_main_infra_2f_validation.py:67: in run
+    return bind_identity(preparation, candidate, digest(candidate/"stage-audit.json"), digest(worker))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+args = (WindowsPath('D:/TEMP/uc-2f-proof-red-behavior/test_terminal_actual_attempt_i0/preparation.json'), WindowsPath('D:/TEM...93ebc3f644aceaff55bed06a90bd9ad3f2a26c85ab993e1ee', '05c6a0c05f6859648fcb6042eaf09b5fe8372e510f7c4f1c539863da4d51f529')
+
+    def bind_identity(*args):
+>       raise ValueError("saved attempt binding not implemented")
+E       ValueError: saved attempt binding not implemented
+
+tools\main_infra_2f_validation.py:2: ValueError
+=========================== short test summary info ===========================
+FAILED tools/tests/test_main_infra_2f_validation.py::test_terminal_actual_attempt_is_bound_while_builder_guard_is_pending
+1 failed in 0.31s

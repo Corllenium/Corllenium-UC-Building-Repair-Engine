@@ -1,0 +1,16 @@
+
+=================================== ERRORS ====================================
+________ ERROR collecting tools/tests/test_main_infra_2f_validation.py ________
+ImportError while importing test module 'D:\LLM_BACKUP\Codex session\main-infra-2f-validation-20261023\05-Corllenium-UC-Building-Repair-Engine\tools\tests\test_main_infra_2f_validation.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+C:\Users\Future26\AppData\Local\Programs\Python\Python312\Lib\importlib\__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tools\tests\test_main_infra_2f_validation.py:7: in <module>
+    from tools.main_infra_2f_validation import bind_identity, recheck
+E   ModuleNotFoundError: No module named 'tools.main_infra_2f_validation'
+=========================== short test summary info ===========================
+ERROR tools/tests/test_main_infra_2f_validation.py
+!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
+1 error in 0.39s
