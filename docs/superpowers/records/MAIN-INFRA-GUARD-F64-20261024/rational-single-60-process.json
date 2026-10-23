@@ -1,0 +1,23 @@
+{
+  "command": [
+    "D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe",
+    "-B",
+    "-m",
+    "pytest",
+    "engine/tests/test_guard.py::test_growth_over_background_is_failing_base_and_excused_by_border_shift",
+    "-q",
+    "-p",
+    "no:cacheprovider",
+    "--basetemp",
+    "D:\\TEMP\\guard-f64\\rational-single-60\\pytest"
+  ],
+  "exit_code": 0,
+  "test_tree_private_peak": 89358336,
+  "observer_private_peak": 10489856,
+  "pid_private_peaks": {
+    "14136": 88502272,
+    "40532": 856064
+  },
+  "cap_bytes": 262144000,
+  "cap_exceeded": false
+}

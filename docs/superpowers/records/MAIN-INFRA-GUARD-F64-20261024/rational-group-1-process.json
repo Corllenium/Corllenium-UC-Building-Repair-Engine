@@ -1,0 +1,32 @@
+{
+  "command": [
+    "D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe",
+    "-B",
+    "-m",
+    "pytest",
+    "engine/tests/test_guard.py::test_views_26_are_the_26_nudged_axis_and_diagonal_directions",
+    "engine/tests/test_guard.py::test_ortho_first_hit_matches_cube_silhouette_and_miss_background",
+    "engine/tests/test_guard.py::test_ortho_first_hit_empty_faces_is_all_miss",
+    "engine/tests/test_guard.py::test_classify_pixels_priority_order",
+    "engine/tests/test_guard.py::test_classify_pixels_empty_flat_materials_treats_everything_as_patterned",
+    "engine/tests/test_guard.py::test_identity_all_counts_zero_and_passed",
+    "engine/tests/test_guard.py::test_delete_one_outer_face_fails",
+    "engine/tests/test_guard.py::test_delete_hidden_inner_tris_all_zero_and_passed",
+    "engine/tests/test_guard.py::test_material_change_on_visible_face_detected",
+    "engine/tests/test_guard.py::test_open_box_flat_vs_patterned_removal_of_near_partition",
+    "-q",
+    "-p",
+    "no:cacheprovider",
+    "--basetemp",
+    "D:\\TEMP\\guard-f64\\rational-group-1\\pytest"
+  ],
+  "exit_code": 0,
+  "test_tree_private_peak": 234078208,
+  "observer_private_peak": 10604544,
+  "pid_private_peaks": {
+    "27776": 856064,
+    "39916": 233222144
+  },
+  "cap_bytes": 262144000,
+  "cap_exceeded": false
+}

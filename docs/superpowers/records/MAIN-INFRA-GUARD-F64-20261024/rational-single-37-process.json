@@ -1,0 +1,23 @@
+{
+  "command": [
+    "D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe",
+    "-B",
+    "-m",
+    "pytest",
+    "engine/tests/test_guard.py::test_guard_feedback_reuses_one_caster_per_geometry_not_per_view",
+    "-q",
+    "-p",
+    "no:cacheprovider",
+    "--basetemp",
+    "D:\\TEMP\\guard-f64\\rational-single-37\\pytest"
+  ],
+  "exit_code": 0,
+  "test_tree_private_peak": 241442816,
+  "observer_private_peak": 10457088,
+  "pid_private_peaks": {
+    "25564": 240590848,
+    "41756": 851968
+  },
+  "cap_bytes": 262144000,
+  "cap_exceeded": false
+}

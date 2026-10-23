@@ -1,0 +1,23 @@
+{
+  "command": [
+    "D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe",
+    "-B",
+    "-m",
+    "pytest",
+    "engine/tests/test_guard.py::test_a_removed_face_narrower_than_the_ring_is_never_excused_as_a_closed_crack",
+    "-q",
+    "-p",
+    "no:cacheprovider",
+    "--basetemp",
+    "D:\\TEMP\\guard-f64\\rational-single-51\\pytest"
+  ],
+  "exit_code": 0,
+  "test_tree_private_peak": 229642240,
+  "observer_private_peak": 10428416,
+  "pid_private_peaks": {
+    "1168": 851968,
+    "31640": 228790272
+  },
+  "cap_bytes": 262144000,
+  "cap_exceeded": false
+}

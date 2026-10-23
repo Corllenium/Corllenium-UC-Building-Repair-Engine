@@ -1,0 +1,32 @@
+{
+  "command": [
+    "D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe",
+    "-B",
+    "-m",
+    "pytest",
+    "engine/tests/test_guard.py::test_grazing_view_does_not_report_a_coplanar_shift_as_moved",
+    "engine/tests/test_guard.py::test_grazing_view_still_catches_a_face_removed_over_a_surface_behind_it",
+    "engine/tests/test_guard.py::test_depth_along_the_ray_fallback_must_be_asked_for_explicitly",
+    "engine/tests/test_guard.py::test_compare_views_without_planes_needs_the_same_flag",
+    "engine/tests/test_guard.py::test_undefined_plane_falls_back_to_depth_along_the_ray",
+    "engine/tests/test_guard.py::test_a_would_be_hole_is_never_flicker_without_the_geometry_to_ring_test_it",
+    "engine/tests/test_guard.py::test_edge_flicker_cap_above_zero_without_geometry_is_an_error",
+    "engine/tests/test_guard.py::test_a_cap_above_zero_builds_the_planes_the_ring_needs_from_the_geometry",
+    "engine/tests/test_guard.py::test_a_cap_above_zero_with_planes_but_no_geometry_is_still_an_error",
+    "engine/tests/test_guard.py::test_interior_hole_fails_at_any_cap",
+    "-q",
+    "-p",
+    "no:cacheprovider",
+    "--basetemp",
+    "D:\\TEMP\\guard-f64\\rational-group-2\\pytest"
+  ],
+  "exit_code": 0,
+  "test_tree_private_peak": 231051264,
+  "observer_private_peak": 10481664,
+  "pid_private_peaks": {
+    "52248": 860160,
+    "27584": 230191104
+  },
+  "cap_bytes": 262144000,
+  "cap_exceeded": false
+}

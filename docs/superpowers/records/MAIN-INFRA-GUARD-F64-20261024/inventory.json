@@ -1,13 +1,14 @@
 {
+  "code_review_commit": "735d762b06ab3d4d9743c81132a3507df54fb350",
   "code_review_only": true,
   "files": [
     {
       "path": "engine/guard/compare.py",
-      "sha256": "32d7a42c4bc1c01bdefda1635a52a5a9ca999ff4a14b4fdcabc37e855e391926"
+      "sha256": "0603150b2eebf9e3301688e825aef540575e8e688ee66180835df5c5e978dee8"
     },
     {
       "path": "engine/tests/test_guard_f64_displacement.py",
-      "sha256": "9ea74415b78071b410169fc4554793b649193e3c7d669a0a76b3e4a71f2dd798"
+      "sha256": "0c4700d4b3b4bca0d71300e6bc8ce7c09a76a63d5954080b0685a8bdf9040a53"
     },
     {
       "path": "engine/tests/fixtures/guard_2f_f64_witnesses.json",
@@ -15,11 +16,35 @@
     },
     {
       "path": ".superpowers/sdd/guard-f64/progress.md",
-      "sha256": "0ab93b1b8d6b7d46f3d4a3c2a97e82178198ec1535d969a9a9c8265e29b907d8"
+      "sha256": "7c378d83b033404dcfde8c4be3b76689437af515448e82b1c0e2ea4f3aaf7c66"
     },
     {
       "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/bounded-tests.py",
       "sha256": "3e5f4c364fb35220e3d185466a202e3e2707fc0168235711a45fa02a12d9676a"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/cancellation-green-process.json",
+      "sha256": "378e10f67f8d1dd01173f9ffe5fcf7e9dbc1b43238ada2375a3dba2a562a599e"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/cancellation-green-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/cancellation-green.txt",
+      "sha256": "ddf2dfe90295e8d25ffb0fa46f8341b5d2f45e9aa2bdf46acc0c5dc7ee0b175a"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/cancellation-red-process.json",
+      "sha256": "dfcc7867d2085afdd8c9cc2d9b836a70c1d617ec3cbcdaa463caff3d1614b3ec"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/cancellation-red-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/cancellation-red.txt",
+      "sha256": "63f491d6a28849b6bce458273785a56311ca209a70b9a9e8ddfeda5f6b2ef94a"
     },
     {
       "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/golden-input-inventory.json",
@@ -578,6 +603,510 @@
       "sha256": "e8a8b9be750f03aa0c8d99433a229e729cc973a3cb234833b95202faa7b3ed2b"
     },
     {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-cap-1-process.json",
+      "sha256": "b69773df4926950f5282cab1704a3ae58b5e575df1f62c7529e1318fbd87da7f"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-cap-1-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-cap-1.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-cap-2-process.json",
+      "sha256": "0c9b7794680933711a895a46dee90faef88ac9052181468844d141f07ebe39d1"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-cap-2-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-cap-2.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-group-1-process.json",
+      "sha256": "3327f9d54567e7880ab987ebd8b1ebc4b264072b31cfc6cfca2dd0ba98a9dd24"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-group-1-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-group-1.txt",
+      "sha256": "cbd32286e5918dbcd5ca1cc5368b44c0e0f592124442294e8b9275e384507fd3"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-group-2-process.json",
+      "sha256": "84827c5522a1cd91bb7073a16e7ea7908a034e9c82a0ef40e0350eb4db697a17"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-group-2-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-group-2.txt",
+      "sha256": "364556f769c5bf8d3b871ff854ef719e77cabc292c947649a9da73319a8d4a2f"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-group-3-process.json",
+      "sha256": "98d5b94a4121eea6a1bdb57bb5ead5e1eca2d4a437d7203d20aed08c58605f4f"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-group-3-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-group-3.txt",
+      "sha256": "01052d4bd8523c1c0bde4f67aeeaf857c9325210a05aeefdc6dab9923328ee9f"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-32-process.json",
+      "sha256": "43a52dccdc2e9b28ee678677432ec981a46fa53233ddfe072ce25d80e98bc2ce"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-32-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-32.txt",
+      "sha256": "936793caac84be357db848b75f3be3513b56d85341baa2d15ba24d2e43f3122a"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-33-process.json",
+      "sha256": "d5b0f159510ab2f5cb8f2e4e6d55dff82d07b5ecc0fd08dd277cec4874330127"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-33-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-33.txt",
+      "sha256": "7586bbb7d181686f413da22837b82ba121403cfe041201e1ef02ea0840e5bbc3"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-34-process.json",
+      "sha256": "6ab6739a5018094fd4a79dd64471ba9f42bd3daee9c3d9ec37447d96a95728c6"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-34-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-34.txt",
+      "sha256": "64e0d33e08a54e45aab6fdd4aac9db8a4664af65fee05be28fd03b7fcd5f74c6"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-35-process.json",
+      "sha256": "26e95d4487846a278d1aed053608fffe7b3b19a4f264be3533dce8c0e30dfa11"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-35-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-35.txt",
+      "sha256": "653e6f7390f0c5c00dc20a6f50d4eb79ede4c597dae487883687dad1265d5dc9"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-36-process.json",
+      "sha256": "132b14c084d6b191133a473ca634094972f0b3c39f6e3f990d35a9ebb838e0df"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-36-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-36.txt",
+      "sha256": "9dd2ff9977854ee09bd761aa8bdae7ad864005a43bcffd3b30129e66b543223d"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-37-process.json",
+      "sha256": "2e09e7fe9e5b3cf09249af6a03acac9b99de2a5380cef80641be29a15e1a189c"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-37-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-37.txt",
+      "sha256": "5ab03b02e0f5cc121e49a5db31843a5a4643e269f8c52a603febc55f07ab70ed"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-38-process.json",
+      "sha256": "63b562a9f209034d56af99e4c41ef36145a13afdd74af077d3f4ed821da757fc"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-38-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-38.txt",
+      "sha256": "caf1c6899fa3ae27a3b9a0a5d04017b345e6195410ac49e5f54cfdd1002eb0c6"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-39-process.json",
+      "sha256": "5934d2b6ad3165c4acf01fc331991a431355494b1599d1d252c2308fd0b1c65d"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-39-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-39.txt",
+      "sha256": "f8219a6e8652e950dd896e3a6b2c3ab1f34144b00f0757e677edda91674f4eca"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-40-process.json",
+      "sha256": "95d8102c848ef322b6fcac51273be925b0c91630401448c96ca96533e7baf3d4"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-40-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-40.txt",
+      "sha256": "647262c6028e80e2681503a3070fa7c03601eb32e6fdc22dc54e3f1109a4c9af"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-41-process.json",
+      "sha256": "d2d97b25c8c281b04f397f71eef2400cd95db38668cf7077c8e3acf3bdd4d343"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-41-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-41.txt",
+      "sha256": "d705cecd85d337fb9638e791a656daa1c601e34753ef3b2e64fea9ef2712c31f"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-42-process.json",
+      "sha256": "2afd5634a7966dd3f8ce2fdc5946fd7f429806ea5afb24e41b31cc99a4a590db"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-42-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-42.txt",
+      "sha256": "d5dd0ca3b6354e94300b95ad476032efa2153e9efc0e6f572663b38e6f821bc8"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-43-process.json",
+      "sha256": "165bac3a9dcbf4f203d03ed21a2baf6e746aa8565fb77ba12213a838aab777b9"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-43-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-43.txt",
+      "sha256": "6cf7bad488e330c0a946c202699f0915f7cfeaeddb4d38276d041638e1204586"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-44-process.json",
+      "sha256": "a057cdc6b1323233d4a515da4aa52b7c5581af264af1b4e94084af67387fc65a"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-44-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-44.txt",
+      "sha256": "7f7fd0746504f9beed5b82ad674e06c38edc08af7b96466d64a5f7d677f346bd"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-45-process.json",
+      "sha256": "79262c3e3ce7156baf72b43700ce6a7f08588b8083b55f3fa3a2371391b7cfb3"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-45-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-45.txt",
+      "sha256": "97cc48e3342d8e80d864afe3dacb6aba1e724aa1f33b3b8bd9ba5723dc6d1c61"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-46-process.json",
+      "sha256": "e216b0889ae9076155ee93e5e38393b6172ee0cc4fd6145b4b9e38dd9af10b96"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-46-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-46.txt",
+      "sha256": "905233d4fdb4513ba1681e03184c4d5b7c5786fb6790b000275624c00771b4b1"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-47-process.json",
+      "sha256": "90a3d00bf307c018bc42a7031e3984f743fcba311dbda5435a5bf5a708a3d2eb"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-47-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-47.txt",
+      "sha256": "b7468a56449be725026f6528c73eb7447d146b68f4fae0b6012f55e02ab7e9ec"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-48-process.json",
+      "sha256": "e04fcdbc290c0391847b98b77ebde95a2a5c6854d22b715f0aecfcf6d17eeb7c"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-48-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-48.txt",
+      "sha256": "67fa0370b33009be0c9a22d143287f79dfbe5f3ac1d69d1e9700702673c48882"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-49-process.json",
+      "sha256": "ad752758ec8fde0e3c9e42c30bf71e3c2995e74f972be9d1aa5df63ebbc9be0f"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-49-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-49.txt",
+      "sha256": "3f5a57d191fbf8e77384ea110a620d86013d4b1cdd5eb21b8d28d561404e8d55"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-50-process.json",
+      "sha256": "a6ee867c74925d088cfa7b6870a2b6ae9725e9837c54bd1bb6abc36326618ca1"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-50-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-50.txt",
+      "sha256": "882e4951ca8cbd0cbd4189655587d9fb81c0871d32de36be53354065746d1f54"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-51-process.json",
+      "sha256": "ce5a074b569f74813a104a8eff60305a73e17822662651b9d98e12a974dbedad"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-51-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-51.txt",
+      "sha256": "669b423a3b2c9d76743e19e8defaa52fb5ec24a9ba7825b7509a33002a5a411d"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-52-process.json",
+      "sha256": "5ee4c9987a6c765d62e651d52af15e02dce000f7122120ce0d0c9ded680780a2"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-52-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-52.txt",
+      "sha256": "3d0bd1ef22433e352fa4d40526b3ac3dadd9ff85bf2166cde323bdcb40e887ca"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-53-process.json",
+      "sha256": "059d5b71d8e376f985268caa90aaaa33fa97bda3d9d89ebbd0499b71f5e6e185"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-53-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-53.txt",
+      "sha256": "f2e420023227e646c9c3580958e52b106c4a22b79e451cab2f44ab105adf3e68"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-54-process.json",
+      "sha256": "1a869a403509b49a0bb7b87d3bac8e6d3e9193419f761d49aa848b8468c46d4c"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-54-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-54.txt",
+      "sha256": "4bcb0c3f087ec1aeb1bc4d13927290cd232f91643be651f3434001668b343acb"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-55-process.json",
+      "sha256": "ffcb61af9a3d33953be0d126a64b32e329d343a4a5c53238320b7df2ea3865e8"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-55-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-55.txt",
+      "sha256": "c9399d8707dc15092b5981c2ff662c212560dca4c3abdb282a07347571c713d1"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-56-process.json",
+      "sha256": "f3fbe6c7acf24195c06057a42095ac4c8a11ff006c07221bad6831d23134b3c1"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-56-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-56.txt",
+      "sha256": "7ff9aeea50c1e2de21a62f34db4cce98896bc807140a6c3f0bb835db8886d858"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-57-process.json",
+      "sha256": "5f26b73ac04ce30783366b64b5ebb4b3f8dc1dcf13ae912f3c9307687a2defb1"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-57-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-57.txt",
+      "sha256": "e9dfd7f8c237c1a53ba511c3b05562702d8beaa02036bf14870a9f849f34c89a"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-58-process.json",
+      "sha256": "b91ca4ce2ee306448c2f82f30e172efcc751af66520713607da178e63992458b"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-58-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-58.txt",
+      "sha256": "c87f834657b8833dcc78817b5311f3439f99cbb8198b4a081a030423b427259d"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-59-process.json",
+      "sha256": "1ca5d1723fb4133e640d000caf7c96856020c5324cabcac570a35a49fd92a1bc"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-59-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-59.txt",
+      "sha256": "7892a3357e462a1d3b31699098cf66086e9b815f6ab0160bb45a147a9e75fca3"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-60-process.json",
+      "sha256": "eb55f2a563a1760d5ede0f77d5e439891a3f310450c79952b2c1a15b583c50fe"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-60-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-60.txt",
+      "sha256": "833a6c8f4d9ce7a26fd1ac5c65561aa59846f84fd19c0eea4c2905066cb20b38"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-61-process.json",
+      "sha256": "696eda137ba895c9c45bca09144f6342d5f911d3f0bc376ea262e22bf1c8e251"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-61-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-61.txt",
+      "sha256": "9dd2ff9977854ee09bd761aa8bdae7ad864005a43bcffd3b30129e66b543223d"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-62-process.json",
+      "sha256": "7e557ffcf5cdbfb0fe4d00ad3f8f3070337aa2aec223bc08c108276b5ab09191"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-62-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-62.txt",
+      "sha256": "f13502c364c7c5981599f49b51ae86b9bcde2070ec75fb61ff1b7aa15833cd9f"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-63-process.json",
+      "sha256": "827a94dd4a6afc5029a5c6a2fae993cc9511446dd4a9fe046f9c80759eb90664"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-63-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-63.txt",
+      "sha256": "58625b1ecd52202299085e2ded08192abe9965263e9dd5131894971f642622a9"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-64-process.json",
+      "sha256": "7ac844d5877a9b14fa8aa37037a038f6efd6703f7678dfc001026d66a55d1283"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-64-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-64.txt",
+      "sha256": "3beae1b942090a0494974f7451cca1fbbe70fab9a001988d5fc21a53b133eeb2"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-66-process.json",
+      "sha256": "00cef6d4de0fdcd8377ae2cdbc5c9b9ac502e8305545d67a409ad4bc386e3cb8"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-66-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-66.txt",
+      "sha256": "6da1d9f6315cdd5685886f9428675ca88e0bdb00f262afeabeba56f738f2814b"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-67-process.json",
+      "sha256": "dc71ee19713d0803395c137be2a6798d1af522ca2189f777d85dac68fcf32c5d"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-67-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-67.txt",
+      "sha256": "01f2959f1d421009479f996ce1a9b99fceb37f03a935174ccb8d5914f914db41"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-68-process.json",
+      "sha256": "36f880d38ef0a6a67a3e9d5024b7c98c97ce868e9dbaf19cd5692baaa1c75306"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-68-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-68.txt",
+      "sha256": "62c7ef6a85ea5c2678432dafb13eba55a1c7638732c5574005a7292cd59fd1fa"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-69-process.json",
+      "sha256": "fb12fec4882ed8428fa76f703773bdd7d67115bcaf9d4ed40ca6b6f2b9d814fa"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-69-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-single-69.txt",
+      "sha256": "ed900f4f9bb8de8df31cbf511a58615db79243e6ee3ecffc9d2e8a2b6e70d597"
+    },
+    {
       "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/red-process.json",
       "sha256": "98bf3ea7313a2e724b3aaa37be8ebac6807e8dc6599052b966886ade9d7a181a"
     },
@@ -591,11 +1120,11 @@
     },
     {
       "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/review-freeze.md",
-      "sha256": "0dbbd0d846872321c6f165042265dd74a127beb977ed073c36202dc07f15772e"
+      "sha256": "d5fbdf9f241df1dfaa2ad5e4b44349346176241e1989cb8ec606687932c3c3f0"
     },
     {
       "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/verification.json",
-      "sha256": "45eef23a3d9d8bcfd0049b4187b8c893a60076d9271e951f4a3850abfd88187b"
+      "sha256": "84118b15a4a4d6a1cf21e87b402b7fb642ac5e76e0bc148f852359b9198601cf"
     }
   ],
   "job_id": "MAIN-INFRA-GUARD-F64-20261024",

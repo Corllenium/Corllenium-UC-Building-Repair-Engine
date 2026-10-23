@@ -1,0 +1,23 @@
+{
+  "command": [
+    "D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe",
+    "-B",
+    "-m",
+    "pytest",
+    "engine/tests/test_guard.py::test_the_removal_guard_still_fails_a_flicker_pixel",
+    "-q",
+    "-p",
+    "no:cacheprovider",
+    "--basetemp",
+    "D:\\TEMP\\guard-f64\\rational-single-50\\pytest"
+  ],
+  "exit_code": 0,
+  "test_tree_private_peak": 225832960,
+  "observer_private_peak": 10465280,
+  "pid_private_peaks": {
+    "18320": 856064,
+    "58080": 224976896
+  },
+  "cap_bytes": 262144000,
+  "cap_exceeded": false
+}

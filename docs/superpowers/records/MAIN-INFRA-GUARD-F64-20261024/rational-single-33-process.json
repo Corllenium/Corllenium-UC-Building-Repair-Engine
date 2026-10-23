@@ -1,0 +1,23 @@
+{
+  "command": [
+    "D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe",
+    "-B",
+    "-m",
+    "pytest",
+    "engine/tests/test_guard.py::test_an_interior_hole_flanked_by_coplanar_survivors_fails_at_any_cap",
+    "-q",
+    "-p",
+    "no:cacheprovider",
+    "--basetemp",
+    "D:\\TEMP\\guard-f64\\rational-single-33\\pytest"
+  ],
+  "exit_code": 0,
+  "test_tree_private_peak": 225148928,
+  "observer_private_peak": 10149888,
+  "pid_private_peaks": {
+    "4476": 224296960,
+    "26276": 851968
+  },
+  "cap_bytes": 262144000,
+  "cap_exceeded": false
+}
