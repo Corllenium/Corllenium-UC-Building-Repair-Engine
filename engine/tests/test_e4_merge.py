@@ -137,18 +137,33 @@ def test_a_flat_material_may_be_rebased_by_whole_tiles_recorded_not_refused():
     assert edits[0].evidence["uv_residual"] == pytest.approx(1.0, abs=1e-6)
 
 
-def test_a_textured_region_whose_uvs_are_not_one_affine_map_is_refused():
+def test_a_sliver_with_a_shifted_texture_is_its_own_region_and_is_not_merged_into_the_others():
     before = t_quad()
     uvs = before.uvs.copy()
     uvs[9:12] += 0.37                         # the fourth sliver's texture is shifted by a non-integer offset
     shifted = dataclasses.replace(before, uvs=uvs)
     _flat, topo = e4_topology(shifted, TEXTURED, FixProfile())
-    if len(set(topo.face_region.tolist())) == 1:     # one region: the merge's single UV map cannot fit both
-        edits, engine = _plan(shifted)
-        assert edits == [] and engine.report["refused"][0]["reason"] == "uv_seam"
-    else:                                            # the UV classes split the region: each side is its own region
-        edits, engine = _plan(shifted)
-        assert all(e.evidence["uv_residual"] <= 1e-6 for e in edits) and engine.report["refused"] == []
+    assert topo.face_region.tolist() == [0, 0, 0, 1], "the UV classes keep the shifted sliver out of the region"
+    edits, engine = _plan(shifted)
+    assert len(edits) == 1 and edits[0].faces == (0, 1, 2) and edits[0].evidence["uv_residual"] <= 1e-6
+    assert engine.report["refused"] == []
+
+
+def test_a_textured_region_whose_new_uvs_miss_the_old_corners_is_refused(monkeypatch):
+    before = t_quad()
+    real = e4_merge.merge_regions
+
+    def shifted_uvs(mesh, topo, flat, **kw):
+        result = real(mesh, topo, flat, **kw)
+        uvs = result.mesh.uvs.copy()
+        uvs[len(mesh.uvs):] += 0.37           # the merge's new UV rows, shifted off the input corners' texture
+        return dataclasses.replace(result, mesh=dataclasses.replace(result.mesh, uvs=uvs))
+
+    monkeypatch.setattr(e4_merge, "merge_regions", shifted_uvs)
+    edits, engine = _plan(before)
+    assert edits == []
+    (refused,) = engine.report["refused"]
+    assert refused["reason"] == "uv_seam" and refused["uv_residual"] == pytest.approx(0.37 * 2 ** 0.5, rel=1e-6)
 
 
 def test_a_region_with_a_real_opening_keeps_the_hole_open():
