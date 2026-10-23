@@ -88,3 +88,5 @@ Codex1FcheckedE7nowrunsPID56540 initsown managedexecutiontree(396061b1),
 original15856/E3stage10136. 2F/3F remainuninterrupted53936/56832. Livepublisher
 47760observesactualPIDs/starttimes;newcandidategeometryandassetreadback,
 originalfreshpreservation,nativeviewsandsignedtargetsremainrequired.
+
+2026-10-23 resource coordination: Codex1F/2F/3F failed together12:20:17UTC under independently measured99.63% Windows systemcommit. No new lower candidates. Codex is preparing one-at-a-time retries with peak/system resource logging after UI build/browser release; failed data preserved. Claude Code retains4F-7F; no upper code/output/process was changed. See MAIN-INFRA-MEMORY-RECOVERY-20261023.md.

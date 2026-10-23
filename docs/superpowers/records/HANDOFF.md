@@ -25,6 +25,19 @@ run the latest `.skp` of each file must be in `OBJ FIXED RESULT/` for the owner 
 
 ## 2. Current state (2026-09-26 00:15, written by the Claude controller)
 
+2026-10-23 recovery update, superseding the 20:00 running entry: actual 1F E7,
+2F E3 and 3F E3 all stopped at 12:20:17 UTC with memory allocation failures.
+Windows Operational Event 1003 measured 99.63% system commit; independently
+corroborated. No new candidates were saved. Failed receipts and frozen inputs
+are preserved. Only the owned broad test tree was stopped. Sequential retries
+are prepared with fresh namespaces/resource logging: 1F plan SHA 1cd147ad,
+E3 indexed qualified-loader component 531769c (31 focused tests pass; signed
+checks/guard/kernel/SiteJudge/loader unchanged). Wait for UI build/browser
+release and measured resource GO before starting. Live publisher session 88873
+reports the real failure/recovery state. Mesh inspection UI 58a0f34 built all
+33 routes and passed 35 focused tests; compiled/live proof is pending. See
+MAIN-INFRA-MEMORY-RECOVERY-20261023.md. No accepted floor; ownership unchanged.
+
 2026-10-23 20:00 +08: real1F E7 now running PID56540,start11:52:52.1421866Z,
 nativeexecutiontree D:/LLM_BACKUP/Codex session/main-infra-e7-run-1f-20261023/
 05-Corllenium-UC-Building-Repair-Engine,HEAD396061b1. Worker is
