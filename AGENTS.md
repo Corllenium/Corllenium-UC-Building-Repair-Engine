@@ -160,3 +160,15 @@ PY="D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe"
 
 - A bare `cd` in a shared terminal moves everyone's working directory: use subshells or `git -C`.
 - Commit messages end with `Co-Authored-By: <model> <noreply@anthropic.com>` (Claude) or `Hermes-Job: <id>` (Hermes).
+
+## 9. Model repair requests require engine output
+
+A direct request to fix or clean a supplied model requires running the relevant repair engine on a
+verified copy of the owner's supplied fresh source, within the authorized scope and per floor or
+element. Save the candidate model and its actual before/after error counts, measurements and validation
+evidence. Preserve the source's cuts, facades, textures, UVs and visible geometry under sections 3-6.
+
+Setup, diagnostics, plans and dashboard updates support delivery; they do not complete a repair request.
+A no-op or a candidate that misses signed targets is not repaired. Report the saved candidate's file
+paths and remaining errors, or the concrete engine/validation blocker, and continue authorized guarded
+work while it can progress. Acceptance and publication still follow sections 3-6.
