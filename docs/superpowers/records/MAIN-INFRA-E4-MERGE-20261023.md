@@ -62,9 +62,7 @@ What is NOT guarded here:
 
 - The strict guard (`engine/guard`) has not run: `stage-audit.json` says `guard: pending`, `accepted: false`.
 - The Validator's full floor run (textures, nothing-visible-deleted, signed problem counts) has not run on an E4
-  candidate; `tools/main_infra_physical_validation.load_physical_pair` does not yet accept the E4 cleanup modes
-  (`e4_merge_only`, `e3_then_e4_merge`) -- a binding for them is the next job, the pieces (`verify_merged_mesh`,
-  the hashes in the audit) are in place.
+  candidate. `load_physical_pair` now accepts the E4 cleanup modes (follow-up below), so it can.
 - Faces OUTSIDE a merged region that `merge_regions` splits at a threaded vertex (`copied_split`) are NOT taken: E4
   copies them through unchanged, so a T-junction between a merged region and a neighbouring face of another region
   can remain. Measured on fixtures only.
@@ -150,5 +148,47 @@ stage-audit.json (cleanup_mode e3_then_e4_merge, guard pending), assets}`.
 3. The merge appends `vn` rows; E4 carries them only when every input face of the region had a normal.
 4. `max_site_faces = 512` mirrors E3; a floor slab of more slivers is refused `too_large` and listed. The cap may
    need raising for real floors (a region cannot be split).
-5. `load_physical_pair` needs an `e4_merge_only` / `e3_then_e4_merge` binding before the Validator can judge an E4
-   candidate end to end.
+5. (closed by the follow-up below) `load_physical_pair` accepts `e4_merge_only` / `e3_then_e4_merge`.
+6. Bootstrap order: `bind_saved_e4` requires `guard.passed` (as asked, and as `load_physical_pair` already did for
+   E3), yet the independent guard is what produces that verdict and the runner writes `guard: pending`. As for E3,
+   the reviewer sets the flag before the guard and validation run; alternatively the binding could take
+   `require_guard=False` when called from the guard itself. Left as asked.
+
+## Follow-up (2026-10-24): the E4 binding and the E4 independent guard
+
+- `tools/main_infra_e4_binding.py: bind_saved_e4(*, candidate, audit, before_engine, after_engine, before_source,
+  after_source)`, modelled on `bind_saved_e3`: `cleanup_mode` in {`e4_merge_only` (`executed_stages == ["E4"]`),
+  `e3_then_e4_merge` (`["E3", "E4"]`)}; `guard.passed` required; `region-map.json` and `edit-log.jsonl` hash-bound to
+  the audit (`region_map_sha256`, `edit_log_sha256`); in the chained mode the audit's `e3_candidate` binding (dir and
+  the hashes of its engine/source candidate, `source-faces.json`, `stage-audit.json`) is checked and `bind_saved_e3`
+  proves E3 candidate = baseline minus removed; then `verify_merged_mesh` proves the E4 candidate = that BEFORE with
+  the mapped regions replaced, in both frames; the log may hold only non-legacy E4 cuts with no new points whose kept
+  sites equal the mapped regions (faces and triangle counts); `kept_source_faces` must be the complement of the
+  replaced faces; the one check must be stage E4, non-legacy, rollback-enabled and, when anything was kept, end PASS
+  with a last run of 0 failing / 0 unknown. Returns `{candidate_contract, region_map_sha256, edit_log_sha256,
+  e3_contract, e3_removed_triangles, e4_merged_regions, e4_replaced_triangles, e4_new_triangles,
+  baseline_kept_source_faces, e4_region_source_faces}` (face ids mapped back to the BASELINE through E3's list).
+- `tools/main_infra_physical_validation.load_physical_pair` dispatches those two modes to it (one `elif`; BEFORE
+  stays the qualified baseline snapshot, AFTER is the E4 candidate).
+- `tools/e4_independent_guard.py` -- the E4 twin of the 4F-7F worktree's `tools/e3_independent_guard.py` (that file
+  is not edited): the same manifest / qualification / provenance / snapshot / asset checks, `bind_saved_e4` in place
+  of the fingerprint membership test, looks loaded and checked, the AFTER's material ids rebound to the BEFORE's by
+  NAME (`read_obj` numbers materials by first use and `strict_guard` compares ids; `material_order_equal` and
+  `material_ids_rebound_by_name` are recorded), then the UNCHANGED `strict_guard` loaded by path from `--helper`
+  (`--original-oracle` loads `engine/rays/bounded_brute.py` beside it). Writes `input-readback.json` and
+  `independent-guard.json` with the E3 guard's keys (`removed_triangles` = E3-removed + E4-replaced, plus
+  `new_triangles` and `manifest_files`), `guard-progress.json` per view, `failure.txt` on any failure; exit 0 pass,
+  2 fail. The manifest's file count is recorded, not asserted (the E3 guard hard-codes 36).
+- Tests: `tools/tests/test_main_infra_e4_binding.py` (19) and `tools/tests/test_e4_independent_guard.py` (4). The
+  guard tests use a fake `strict_guard` helper beside a fake oracle (the real one lives in another worktree and
+  renders 26 views): they prove the plumbing, the readback and the rebinding, not the renderer.
+
+Commands (worktree root, `PYTHONPATH` = it):
+
+```powershell
+& $PY -m pytest tools/tests/test_main_infra_e4_binding.py tools/tests/test_e4_independent_guard.py -q -p no:cacheprovider
+# the independent guard on an E4 candidate (the audit's guard.passed must be set first; see open question 6):
+& $PY -B -u tools/e4_independent_guard.py --root <root> --floor 7F --raw-name "7th floor main infra.obj" --candidate <root>/e4/7F --out <root>/e4/7F-independent-guard --helper D:/PROJECTS/05-Corllenium-UC-Building-Repair-Engine/.claude/worktrees/MAIN-INFRA-CLAUDE-4F-7F-20261023/tools/main_infra_candidate.py --job-id <id> --reviewer <name> [--original-oracle]
+# the Validator on it (BEFORE = baseline, AFTER = <root>/e4/7F):
+& $PY tools/main_infra_physical_validation.py --raw "<root>/raw/7th floor main infra.obj" --reference <root>/reference/7F.json --baseline <root>/normalized/7F --qualification <root>/independent-validator/import-audit/qualification-7F.json --candidate <root>/e4/7F --materials <root>/independent-validator/preflight/materials-7F.json --out <root>/e4/7F-validation
+```
