@@ -15,6 +15,7 @@ from tools.main_infra_e7_checkpoint import save_e7_checkpoint, restore_e7_checkp
 from tools.main_infra_e7_serialization import (_dump, _inputs, _prove_exact_source_coverage,
     prepare_cut_pair, save_cut_pair, bind_saved_cut_pair)
 from tools.main_infra_e7_subset import verify_donor_subset, run_checked_subset
+from tools.main_infra_e7_native_policy import apply_native_policy, RUN_ID as NATIVE_RUN_ID
 
 ROOT = Path(__file__).resolve().parents[1]
 DONOR_HEAD = 'd7e8b14e60e24fa08c569dda5ca937d9c42a7628'
@@ -24,7 +25,8 @@ DONOR = Path('D:/LLM_BACKUP/Codex session/main-infra-e7-run-1f-20261023/05-Corll
 DONOR_HASHES = dict(preparation='1cd147ad337153811478b6f7a02e904f8fd935227aefa89ef794b5b8abc4896f',
     edit_log='7348b39a2a54192c6f44b758be96cb57703e0c24c361b5ea99ed0879f39ce6c7',
     worker='e9b61a96b9d0ab3154118f275f7baf44a13385d8c641731c17d696bc50f3654f')
-NEW_COMPONENTS = ('tools/main_infra_e7_attempt3.py', 'tools/main_infra_e7_subset.py', 'tools/main_infra_e7_checkpoint.py')
+NEW_COMPONENTS = ('tools/main_infra_e7_attempt3.py', 'tools/main_infra_e7_subset.py', 'tools/main_infra_e7_checkpoint.py',
+    'tools/main_infra_e7_native_policy.py', 'tools/main_infra_e7_attempt4.py')
 _load, _read, _write, _now = legacy._load, legacy._read, legacy._write, legacy._now
 
 
@@ -63,8 +65,17 @@ def _preflight(source,engine,before,ancestry,subset,paths,hashes,facts,donor):
         accepted_sites=[e.site for e in subset.edits],rejected_sites=[],source_positions_unchanged=True)
 
 
-def prepare(paths,donor,donor_hashes,plan_path,out):
+def _native_namespace(plan_path,out):
+    if (plan_path.name!='preparation-1F.json' or out.name!='1F'
+            or plan_path.parent.resolve()!=out.parent.resolve()
+            or out.parent.name!='run-20261024-attempt4'):
+        raise ValueError('attempt4 preparation/output namespace differs')
+
+
+def prepare(paths,donor,donor_hashes,plan_path,out,*,native_policy=None):
     plan_path,out = Path(plan_path),Path(out)
+    if native_policy is not None:
+        _native_namespace(plan_path,out)
     refuse_protected(plan_path); refuse_protected(out)
     if plan_path.exists() or out.exists() or (out.parent/'execution-1F').exists():
         raise ValueError('preparation or output exists; refusing overwrite')
@@ -72,22 +83,32 @@ def prepare(paths,donor,donor_hashes,plan_path,out):
     source,engine,before,ancestry,looks,facts = _load(paths)
     hashes = {key:sha256_file(path) for key,path in paths.items()}
     subset = _select(before,looks,donor,donor_hashes)
+    if native_policy is not None:
+        subset = apply_native_policy(before,looks,subset,native_policy)
     if subset.proof['input_sha256'] != hashes:
         raise ValueError('new input hashes differ from qualified donor')
     preflight = _preflight(source,engine,before,ancestry,subset,paths,hashes,facts,donor)
-    value = dict(schema_version=1,mode='fresh_checked_e7_donor_subset',run_id=RUN_ID,floor='1F',
+    value = dict(schema_version=1,mode='fresh_checked_e7_donor_subset',run_id=NATIVE_RUN_ID if native_policy is not None else RUN_ID,floor='1F',
         state='prepared',prepared_utc=_now(),paths=paths,sha256=hashes,components=components,inputs=facts,
         donor_paths=donor,donor_sha256=donor_hashes,selection=subset.proof,selection_seal=subset.seal,
         preflight=preflight,out=str(out.resolve()),floor_accepted=False)
+    if native_policy is not None:
+        value['native_policy'] = native_policy
     plan_path.parent.mkdir(parents=True,exist_ok=True)
     _write(plan_path,value)
     return value
 
 
-def execute(plan_path,expected_sha256):
+def execute(plan_path,expected_sha256,*,native_policy=None):
     plan_path = Path(plan_path); _hash(plan_path,expected_sha256)
     plan = _read(plan_path)
-    if (plan.get('mode') != 'fresh_checked_e7_donor_subset' or plan.get('run_id') != RUN_ID
+    pinned_policy = plan.get('native_policy')
+    if native_policy is not None and pinned_policy != native_policy:
+        raise ValueError('externally pinned native policy differs')
+    run_id = NATIVE_RUN_ID if pinned_policy is not None else RUN_ID
+    if pinned_policy is not None:
+        _native_namespace(plan_path,Path(plan['out']))
+    if (plan.get('mode') != 'fresh_checked_e7_donor_subset' or plan.get('run_id') != run_id
             or plan['components'] != _components()):
         raise ValueError('prepared component or attempt identity changed')
     for name,path in plan['paths'].items():
@@ -100,12 +121,14 @@ def execute(plan_path,expected_sha256):
     if facts != plan['inputs']:
         raise ValueError('prepared physical inputs changed')
     subset = _select(before,looks,plan['donor_paths'],plan['donor_sha256'])
+    if pinned_policy is not None:
+        subset = apply_native_policy(before,looks,subset,pinned_policy)
     if subset.proof != plan['selection'] or subset.seal != plan['selection_seal']:
         raise ValueError('prepared typed subset selection changed')
     if plan['preflight'] != _preflight(source,engine,before,ancestry,subset,plan['paths'],plan['sha256'],facts,plan['donor_paths']):
         raise ValueError('prepared exact source preflight changed')
     work.mkdir(parents=True)
-    worker = dict(schema_version=1,run_id=RUN_ID,floor='1F',state='checking',pid=os.getpid(),
+    worker = dict(schema_version=1,run_id=run_id,floor='1F',state='checking',pid=os.getpid(),
         started_utc=_now(),components=plan['components'],preparation=str(plan_path.resolve()),
         preparation_sha256=expected_sha256,original_source_triangles=source.mesh.n_faces,
         stage_input_triangles=before.n_faces,planned_cuts=len(subset.edits),out=str(out),
@@ -124,8 +147,12 @@ def execute(plan_path,expected_sha256):
         for name,path in plan['donor_paths'].items():
             bound_paths['donor_'+name] = path
             bound_hashes['donor_'+name] = plan['donor_sha256'][name]
+        if pinned_policy is not None:
+            inventory = dict(native_policy=pinned_policy,**{'native_evidence_'+k:v for k,v in subset.proof['native_policy']['evidence'].items()})
+            for name,row in inventory.items():
+                bound_paths[name] = row['path']; bound_hashes[name] = row['sha256']
         checkpoint_binding = dict(paths=bound_paths,sha256=bound_hashes,before_digest=facts['before_digest'],
-            run_id=RUN_ID,preparation_sha256=expected_sha256,components=plan['components'],
+            run_id=run_id,preparation_sha256=expected_sha256,components=plan['components'],
             selection_digest=hashlib.sha256(_dump(subset.proof).encode()).hexdigest())
         checkpoint = work/'checked-outcome'
         receipt = save_e7_checkpoint(before,outcome,looks,checkpoint,binding=checkpoint_binding)

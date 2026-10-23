@@ -25,6 +25,9 @@ run the latest `.skp` of each file must be in `OBJ FIXED RESULT/` for the owner 
 
 ## 2. Current state (2026-09-26 00:15, written by the Claude controller)
 
+Attempt4 code-only handoff: conservative101-site exclusion/172 retained proposals;26 policy/actual-schema and38 donor/checkpoint/runner fixtures passed under250MiB. Real preparation/kernel remain HOLD. See records/MAIN-INFRA-E7-NATIVE-SAFE-ATTEMPT4-20261024/implementation.md; no floor acceptance claimed.
+
+
 2026-10-23: MAIN-INFRA-RAY-INDEX-20261023 is a separate claimed API integration task
 from b603d39: reuse reviewed ce4e325 index and refuse nonfinite coordinates test-first.
 No current E3/floor worker or real-data run is changed. See its scoped record and ledger.
