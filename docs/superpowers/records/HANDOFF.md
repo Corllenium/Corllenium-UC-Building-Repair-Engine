@@ -25,6 +25,23 @@ run the latest `.skp` of each file must be in `OBJ FIXED RESULT/` for the owner 
 
 ## 2. Current state (2026-09-26 00:15, written by the Claude controller)
 
+2026-10-23 21:05 +08: fresh mesh inspection is LIVE from Siege 58a0f34,
+durable evidence cd148fd (branch docs HEAD f43f3a5). Material colours/legend,
+original textures, X-ray and actual triangle edges work in both panes; actual
+authenticated live check passed, 65/65 status polls200, zero page exceptions,
+390px mobile no overflow, source-only 2F/3F After stays empty. All95 static
+files verified in both roots/public; API/models/status preserved; no restart.
+PR39 remains draft, unmerged, CI account-startup blocker recorded. Root reopened
+the live1F screenshot. Sole publisher resumed as exec1032 after deployment.
+1F E7 attempt2 is now ACTUALLY RUNNING PID43456, creation13:00:59.5817497Z,
+exec85048; planSHA1cd147ad, frozen component d7e8b14, run-20261023-attempt2.
+Root verified three post-browser commit margins8.01/8.22/8.16GiB before GO.
+External observer exec51889 records process peaks/systemcommit (~2.1s cadence).
+No other Codex geometry/validation/build/browser/suite runs concurrently.
+2F/3F indexed retries wait sequentially; old failures retained. Public13:04:03
+shows running1F and actualPID, with the older E3candidate10136 retained until
+new independent proof/publication. No new candidate or accepted floor yet.
+
 2026-10-23 recovery update, superseding the 20:00 running entry: actual 1F E7,
 2F E3 and 3F E3 all stopped at 12:20:17 UTC with memory allocation failures.
 Windows Operational Event 1003 measured 99.63% system commit; independently

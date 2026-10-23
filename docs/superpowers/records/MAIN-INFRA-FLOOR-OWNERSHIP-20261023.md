@@ -90,3 +90,5 @@ original15856/E3stage10136. 2F/3F remainuninterrupted53936/56832. Livepublisher
 originalfreshpreservation,nativeviewsandsignedtargetsremainrequired.
 
 2026-10-23 resource coordination: Codex1F/2F/3F failed together12:20:17UTC under independently measured99.63% Windows systemcommit. No new lower candidates. Codex is preparing one-at-a-time retries with peak/system resource logging after UI build/browser release; failed data preserved. Claude Code retains4F-7F; no upper code/output/process was changed. See MAIN-INFRA-MEMORY-RECOVERY-20261023.md.
+
+2026-10-23 21:05 +08: The fresh material/triangle inspection filter is LIVE with authenticated proof. Codex serial1F E7 attempt2 actual PID43456/creation13:00:59.5817497Z uses new run-20261023-attempt2 and an external resource observer.2F/3F retries wait; Claude Code retains4F-7F. Root remains sole canonical/live status writer, exec1032. No upper-floor output or process was edited.

@@ -61,3 +61,28 @@ legacy error masks or a visibility pass.
 
 Ownership remains Codex 1F-3F / Claude Code 4F-7F. The prior 1F E3 candidate
 still passes preservation but fails remaining targets; no floor is accepted.
+
+## Live delivery and serial retry start
+
+The filter is LIVE: Siege code58a0f34, durable evidencecd148fd, docs HEADf43f3a5.
+Root reopened the actual live1F material/edge screenshot. All95 static files
+match both hosting roots and public downloads; API remainsbb71d314. Real login
+and logout passed, zero page exceptions,65/65 status polls200,390px no overflow.
+2F/3F After stays empty. PR39 remains draft/unmerged; CI account startup limits
+are recorded. All43 committed evidence blobs matched saved hashes and sizes.
+Durable receipt/screenshots are under the Siege worktree's
+docs/handoff/main-infra-live-20261023/inspection/. No heavy browser remains.
+
+Root measured post-browser headroom8.01/8.22/8.16GiB and physical availability
+5.71/5.90/5.78GiB at13:00:17/21/24UTC, then authorized exactly one geometry job.
+Actual1F E7 attempt2 PID43456, creation13:00:59.5817497Z, exec85048; frozen
+planSHA1cd147ad and componentd7e8b14. Tested observerexec51889 retains process
+peaks/system commit at a measured approximately2.1s cadence. At13:09:48UTC the
+worker was still checking, peak commit2.104GB; system headroom was6.81GiB.
+
+Sole publisher resumedexec1032 after the static hash hold and is atomically
+bound to the newPID, creation time and planSHA. Public13:04:03UTC confirms
+running1F PID43456, alive, CPU169.16s. The earlier E3candidate10136 remains
+explicit inspection only. No new E7 candidate is saved or accepted yet.
+2F/3F retries and independent heavy checks remain sequential after1F, each
+with a fresh resource gate. Ownership remains Codex1F-3F / Claude Code4F-7F.
