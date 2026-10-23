@@ -48,14 +48,14 @@ def _select(before,looks,paths,hashes):
     return verify_donor_subset(before,looks,paths=paths,expected_sha256=hashes,component_root=ROOT)
 
 
-def _source_binding(paths,hashes,facts,log):
-    return dict(paths=dict(paths,edit_log=str(log)),sha256=dict(hashes,edit_log=sha256_file(log)),
+def _source_binding(paths,hashes,facts,log,expected_log_sha256):
+    return dict(paths=dict(paths,edit_log=str(log)),sha256=dict(hashes,edit_log=expected_log_sha256),
                 before_digest=facts['before_digest'])
 
 
 def _preflight(source,engine,before,ancestry,subset,paths,hashes,facts,donor):
     source_before,_ = _inputs(source,engine,before,ancestry,
-        _source_binding(paths,hashes,facts,donor['edit_log']))
+        _source_binding(paths,hashes,facts,donor['edit_log'],subset.proof['donor_sha256']['edit_log']))
     for edit in subset.edits:
         _prove_exact_source_coverage(source_before,edit.faces[0],edit.new_faces)
         _source_weights(before,edit.faces[0],edit.new_faces)
@@ -118,7 +118,9 @@ def execute(plan_path,expected_sha256):
     started = time.perf_counter()
     try:
         outcome = run_checked_subset(before,looks,subset)
-        bound_paths,bound_hashes = dict(plan['paths']),dict(plan['sha256'])
+        worker.update(kept_cuts=len(outcome.kept),rolled_back_cuts=len(outcome.rolled_back),
+                      output_triangles=outcome.mesh.n_faces,checks=outcome.checks)
+        bound_paths,bound_hashes = dict(plan['paths'],preparation=str(plan_path.resolve())),dict(plan['sha256'],preparation=expected_sha256)
         for name,path in plan['donor_paths'].items():
             bound_paths['donor_'+name] = path
             bound_hashes['donor_'+name] = plan['donor_sha256'][name]
@@ -127,17 +129,20 @@ def execute(plan_path,expected_sha256):
             selection_digest=hashlib.sha256(_dump(subset.proof).encode()).hexdigest())
         checkpoint = work/'checked-outcome'
         receipt = save_e7_checkpoint(before,outcome,looks,checkpoint,binding=checkpoint_binding)
-        status(state='checked_checkpoint_saved',checkpoint=str(checkpoint.resolve()),
-            checkpoint_receipt_sha256=receipt['receipt_sha256'],kept_cuts=len(outcome.kept),
-            rolled_back_cuts=len(outcome.rolled_back),output_triangles=outcome.mesh.n_faces,checks=outcome.checks)
+        worker.update(checkpoint=str(checkpoint.resolve()),checkpoint_receipt_sha256=receipt['receipt_sha256'],
+                      checkpoint_status='diagnostic_unverified')
+        _hash(plan_path,expected_sha256)
+        if plan['components'] != _components():
+            raise ValueError('prepared components changed during kernel')
+        status(state='checked_checkpoint_saved',checkpoint_status='verified')
         outcome = restore_e7_checkpoint(before,looks,checkpoint,binding=checkpoint_binding,
             expected_receipt_sha256=receipt['receipt_sha256'])
         paths,hashes = dict(bound_paths),dict(bound_hashes)
-        for name,path in dict(preparation=plan_path,checked_outcome_receipt=checkpoint/'checkpoint-receipt.json').items():
-            paths[name] = str(path.resolve()); hashes[name] = sha256_file(path)
+        paths['checked_outcome_receipt'] = str((checkpoint/'checkpoint-receipt.json').resolve())
+        hashes['checked_outcome_receipt'] = receipt['receipt_sha256']
         for index,row in enumerate(facts['assets']):
             key = f'asset_{index}'; paths[key] = str(Path(plan['paths']['raw']).parent/row['path']); hashes[key] = row['sha256']
-        binding = _source_binding(paths,hashes,facts,checkpoint/'edit-log.jsonl')
+        binding = _source_binding(paths,hashes,facts,checkpoint/'edit-log.jsonl',receipt['files']['edit-log.jsonl'])
         pair = prepare_cut_pair(source,engine,before,ancestry,outcome,looks,binding=binding)
         candidate = work/'candidate'; cut = save_cut_pair(pair,candidate)
         assets = legacy.copy_assets(Path(plan['paths']['raw']).parent,candidate,facts['assets'])
@@ -155,6 +160,10 @@ def execute(plan_path,expected_sha256):
         status(state='candidate_saved',final_package=str(out.resolve()),run_receipt_sha256=sha256_file(out/'run-receipt.json'))
         return worker
     except Exception as exc:
+        captured_receipt = work/'checked-outcome/checkpoint-receipt.json'
+        if worker.get('checkpoint_status') != 'verified' and captured_receipt.is_file():
+            worker.update(checkpoint=str(captured_receipt.parent.resolve()),checkpoint_status='diagnostic_unverified',
+                          checkpoint_receipt_sha256=sha256_file(captured_receipt))
         status(state='failed',error=f'{type(exc).__name__}: {exc}',wall_s=round(time.perf_counter()-started,2))
         raise
 

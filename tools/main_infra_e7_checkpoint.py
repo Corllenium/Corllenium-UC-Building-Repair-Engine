@@ -111,14 +111,13 @@ def save_e7_checkpoint(before, outcome, looks, out, *, binding):
     refuse_protected(out)
     if out.exists():
         raise ValueError('E7 checkpoint exists; refusing overwrite')
-    _inputs(before, binding)
     data, arrays = _pack(outcome)
     out.parent.mkdir(parents=True, exist_ok=True)
     staging = Path(tempfile.mkdtemp(prefix=out.name + '.incomplete-', dir=out.parent))
     np.savez(staging/'arrays.npz', **arrays)
     (staging/'result.json').write_text(_dump(data), encoding='utf-8')
     write_records(staging/'edit-log.jsonl', outcome.records)
-    receipt = dict(schema_version=1, mode='actual_checked_e7_checkpoint', binding=binding,
+    receipt = dict(schema_version=1, mode='actual_checked_e7_checkpoint', capture_only=True, binding=binding,
         files={name: sha256_file(staging/name) for name in sorted(FILES)},
         arrays={name: _digest(value) for name, value in arrays.items()},
         before_digest=_source_digest(before).hex(), after_digest=_source_digest(outcome.mesh).hex(),
@@ -140,6 +139,7 @@ def restore_e7_checkpoint(before, looks, out, *, binding, expected_receipt_sha25
     _hash(out/'checkpoint-receipt.json', expected_receipt_sha256)
     receipt = _read(out/'checkpoint-receipt.json')
     if (receipt.get('schema_version') != 1 or receipt.get('mode') != 'actual_checked_e7_checkpoint'
+            or receipt.get('capture_only') is not True
             or receipt.get('binding') != json.loads(_dump(binding)) or set(receipt.get('files', {})) != FILES):
         raise ValueError('E7 checkpoint binding differs')
     _inputs(before, binding)

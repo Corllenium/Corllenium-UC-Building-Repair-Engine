@@ -36,7 +36,7 @@ Subset/checkpoint GREEN:
 ```
 Real tiny SiteJudge fixtures passed; injected additional failing samples exercised charged rollback and whole-stage unknown refusal. The test window was released after actual process exit.
 
-Runner-order tests are written but not yet run; runner implementation is pending its RED measurement/window. Independent implementation review and resource GO are required before real execution. Original baseline15856, E3 stage10136; signed target failures remain unresolved/unmeasured after this new work.
+Runner implementation and tiny order/save/failure tests have completed RED/GREEN; independent implementation review and final focused regression are pending. Independent implementation review and resource GO are required before real execution. Original baseline15856, E3 stage10136; signed target failures remain unresolved/unmeasured after this new work.
 
 Runner TDD and CLI (actual bounded second window):
 ```
@@ -47,3 +47,10 @@ Runner TDD and CLI (actual bounded second window):
 exit0
 ```
 RED was missing runner module. GREEN saved a real tiny new checked subset with NEW asset bytes and checkpoint-linked cut receipt. Injected downstream serializer failure left the actual checkpoint hash readable, worker failed, no candidate saved. All processes exited; window released. Real preparation/execute remains held for independent implementation review and fresh root resource GO.
+
+Independent review found preparation/component drift during the kernel was not refused. Capture-first correction was approved by the reviewer: actual typed bytes are persisted before postflight, then original expected preparation/input/component hashes gate verified status and serialization. A drift failure keeps an explicitly diagnostic/unverified checkpoint and actual receipt SHA with failed worker/no candidate. Cut bindings never refresh changed preparation/checkpoint/log hashes as new truth.
+```
+-k drift: 3 failed, 17 deselected in 3.37s
+checkpoint + runner: 20 passed in 8.78s
+```
+The root-approved bounded BLAS1 window was released after actual exit. No real preparation/kernel/candidate or full Validator execution.

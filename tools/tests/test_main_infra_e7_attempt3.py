@@ -93,3 +93,32 @@ def test_actual_new_subset_candidate_has_new_assets_and_bound_checkpoint(prepare
     assert cut['output_triangles'] == 5 and worker['post_e7_signed_targets'] == 'not independently measured'
     with pytest.raises(ValueError,match='exists'):
         run.execute(plan,sha256_file(plan))
+
+
+@pytest.mark.parametrize('drift',['preparation','component'])
+def test_drift_during_kernel_keeps_diagnostic_capture_and_refuses_candidate(prepared,monkeypatch,drift):
+    run,plan,out,before,looks = prepared
+    pinned = sha256_file(plan)
+    actual_kernel = run.run_checked_subset
+    def checked_then_drift(*args):
+        result = actual_kernel(*args)
+        if drift == 'preparation':
+            value = json.loads(plan.read_text()); value['changed_during_kernel'] = True
+            plan.write_text(json.dumps(value))
+        return result
+    monkeypatch.setattr(run,'run_checked_subset',checked_then_drift)
+    if drift == 'component':
+        calls = iter([{'HEAD':'fixture'},{'HEAD':'changed-during-kernel'}])
+        monkeypatch.setattr(run,'_components',lambda:next(calls))
+    monkeypatch.setattr(run,'prepare_cut_pair',lambda *a,**kw:pytest.fail('drift reached serializer'))
+    with pytest.raises(ValueError,match='hash|component'):
+        run.execute(plan,pinned)
+    work = out.parent/'execution-1F'
+    receipt_path = work/'checked-outcome/checkpoint-receipt.json'
+    receipt = json.loads(receipt_path.read_text())
+    worker = json.loads((work/'worker.json').read_text())
+    assert worker['state'] == 'failed' and worker['checkpoint_status'] == 'diagnostic_unverified'
+    assert worker['checkpoint_receipt_sha256'] == sha256_file(receipt_path)
+    assert receipt['binding']['sha256']['preparation'] == pinned
+    assert receipt['binding']['preparation_sha256'] == pinned
+    assert not out.exists() and not (work/'candidate').exists()

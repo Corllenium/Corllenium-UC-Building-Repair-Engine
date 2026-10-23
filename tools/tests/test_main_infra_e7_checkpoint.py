@@ -139,3 +139,17 @@ def test_complete_typed_edit_preserves_optional_nan_and_decision(tmp_path, captu
     assert got.edits[0].new_face_normal is None
     assert got.edits[0].new_face_uv.tobytes() == edit.new_face_uv.tobytes()
     assert np.signbit(got.mesh.normals[0, 0]) == np.signbit(mesh.normals[0, 0])
+
+
+def test_input_drift_retains_diagnostic_actual_capture_without_verifying_it(tmp_path,captured):
+    before,outcome,looks,binding = captured
+    Path(binding['paths']['raw']).write_text('changed during kernel')
+    out = tmp_path/'diagnostic-capture'
+    with pytest.raises(ValueError,match='hash'):
+        api().save_e7_checkpoint(before,outcome,looks,out,binding=binding)
+    receipt = json.loads((out/'checkpoint-receipt.json').read_text())
+    assert receipt['capture_only'] is True
+    assert receipt['binding'] == json.loads(json.dumps(binding))
+    with pytest.raises(ValueError,match='hash'):
+        api().restore_e7_checkpoint(before,looks,out,binding=binding,
+            expected_receipt_sha256=sha256_file(out/'checkpoint-receipt.json'))
