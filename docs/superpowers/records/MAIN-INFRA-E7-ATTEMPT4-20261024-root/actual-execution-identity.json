@@ -1,0 +1,12 @@
+{
+  "state": "RUNNING",
+  "phase": "attempt4-execute",
+  "actual_pid": 14236,
+  "actual_creation_utc": "2026-10-23T19:00:14.1430901Z",
+  "launcher_pid": 53488,
+  "monitor_pid": 10952,
+  "command": "C:\\Users\\Future26\\AppData\\Local\\Programs\\Python\\Python312\\python.exe -B -u -m tools.main_infra_e7_attempt4 execute --plan D:\\LLM_BACKUP\\Codex session\\main-infra-e7-native-safe-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261024-attempt4\\preparation-1F.json --plan-sha256 1e42d67a3419b9a3cc7388c8714837b7e06b358350450b5d11479b94353bf14d --policy D:\\LLM_BACKUP\\Codex session\\main-infra-e7-native-safe-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\docs\\superpowers\\records\\MAIN-INFRA-E7-NATIVE-SAFE-ATTEMPT4-20261024\\policy.json --policy-sha256 ff44af745864e72500a2ab48aaa9d735cd7f72659118f0688ddbd194049fe3eb",
+  "HEAD": "95dad1de1be241e613cb0763447b662b918f7eca",
+  "phase_plan_sha256": "27e6ae7367e4045a185bad6330568bc7484ab16a58f667971f658d239bff1b8e",
+  "evidence": ".\\data\\main-infra-e7\\attempt4-preflight\\monitor-attempt4-execute-20261023T190012"
+}

@@ -1,0 +1,24 @@
+{
+  "state": "READY_NOT_LAUNCHED",
+  "HEAD": "95dad1de1be241e613cb0763447b662b918f7eca",
+  "policy_sha256": "ff44af745864e72500a2ab48aaa9d735cd7f72659118f0688ddbd194049fe3eb",
+  "component_inventory_sha256": "8aebe3987c2e5f38a2823ffc1da280e36e223b76cf98c0d7e2accd01b92e9685",
+  "component_files": 203,
+  "phase_wrapper_sha256": "42e5d910a14514d2ef3b3669b90a209cfdba1e896fe680107c9068cb223b6242",
+  "observer_sha256": "9cce36842bd6f45b88c5122f350ae7eda4cc0ec79d3a38c5c2959dd24dd6fd60",
+  "phase_plan": "D:/LLM_BACKUP/Codex session/main-infra-e7-native-safe-attempt4-20261024/05-Corllenium-UC-Building-Repair-Engine/data/main-infra-e7/attempt4-preflight/phase-prepare.json",
+  "phase_plan_sha256": "7dc4a7a427affcdaf80709325df2cb2a5a6f820294ebb26344f40b1b7b52ce05",
+  "checked_pins": 238,
+  "pin_mismatches": 0,
+  "required_cwd": "D:/LLM_BACKUP/Codex session/main-infra-e7-native-safe-attempt4-20261024/05-Corllenium-UC-Building-Repair-Engine",
+  "absent_paths": [
+    "D:/LLM_BACKUP/Codex session/main-infra-e7-native-safe-attempt4-20261024/05-Corllenium-UC-Building-Repair-Engine/data/main-infra-e7/run-20261024-attempt4/preparation-1F.json",
+    "D:/LLM_BACKUP/Codex session/main-infra-e7-native-safe-attempt4-20261024/05-Corllenium-UC-Building-Repair-Engine/data/main-infra-e7/run-20261024-attempt4/execution-1F",
+    "D:/LLM_BACKUP/Codex session/main-infra-e7-native-safe-attempt4-20261024/05-Corllenium-UC-Building-Repair-Engine/data/main-infra-e7/run-20261024-attempt4/1F"
+  ],
+  "gate_8gib": true,
+  "own_private_peak_tree_cap_gib": 3,
+  "system_headroom_abort_gib": 3.5,
+  "execute_phase_config_requires_actual_new_preparation_sha256": true,
+  "no_model_phase_started": true
+}
