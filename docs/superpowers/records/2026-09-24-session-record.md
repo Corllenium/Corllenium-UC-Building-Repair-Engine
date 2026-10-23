@@ -277,3 +277,6 @@ on signed336. Actual focused tests 36 passed in 1.97s, no floor verdict yet.
 2026-10-23 MAIN-INFRA-E3-PILOT-20261023 first item: 18 wrapper/source-integrity
 tests passed25.11s including actual default E3 facade fixture. No real E3 repair;
 saved-source survivor proof and independent review still required.
+
+2026-10-23 E3 saved-source step: RED16+unsigned ordering RED1 then35passed19.69s.
+No real E3 repair or acceptance; saved-file hash/audit integration remains next.

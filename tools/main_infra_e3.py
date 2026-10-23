@@ -1,5 +1,7 @@
 """Run only checked E3 and prove the surviving fresh-source triangle indices."""
 import hashlib
+import json
+from pathlib import Path
 
 import numpy as np
 
@@ -9,6 +11,8 @@ from engine.repair.engines.e3_hidden import E3Hidden
 from engine.repair.kernel import repair_unit
 from engine.repair.types import RepairContext, UnitState
 from engine.site_judge import SiteJudge
+from engine.io.minecraft_floor import write_floor
+from engine.io.obj_reader import read_obj
 
 
 def _source_digest(mesh):
@@ -72,3 +76,61 @@ def run_checked_e3(before, looks, flatness):
     if _source_digest(before) != original:
         raise ValueError('E3 mutated the source input')
     return outcome, source_survivors(before, outcome)
+
+
+def _survivor_indices(indices, count):
+    values = np.asarray(indices)
+    if values.ndim != 1 or (values.size and values.dtype.kind not in 'iu'):
+        raise ValueError('source survivor indices must be a one-dimensional integer list')
+    if values.size and ((values < 0).any() or (values >= count).any() or (values[1:] <= values[:-1]).any()):
+        raise ValueError('source survivor indices must be valid, sorted and unique')
+    return values.astype(np.int64)
+
+
+def _material_names(mesh):
+    if ((mesh.face_material < -1) | (mesh.face_material >= len(mesh.materials))).any():
+        raise ValueError('invalid survivor material index')
+    return [None if index == -1 else mesh.materials[index] for index in mesh.face_material]
+
+
+def verify_survivor_mesh(before, after, source_faces):
+    indices = _survivor_indices(source_faces, before.n_faces)
+    if after.n_faces != len(indices):
+        raise ValueError('saved survivor count differs')
+    for name in ('positions', 'uvs', 'normals'):
+        if not np.array_equal(getattr(before, name), getattr(after, name)):
+            raise ValueError(f'saved original source values changed: {name}')
+    for name in ('face_v', 'face_vt', 'face_vn'):
+        if not np.array_equal(getattr(before, name)[indices], getattr(after, name)):
+            raise ValueError(f'saved survivor corners or winding changed: {name}')
+    expected = _material_names(before)
+    if ([expected[index] for index in indices] != _material_names(after)
+            or not set(after.materials).issubset(before.materials)):
+        raise ValueError('saved survivor material names changed')
+
+
+def save_survivor_pair(engine_floor, source_floor, source_faces, out):
+    out = Path(out)
+    if out.exists():
+        raise ValueError('candidate output exists; refusing overwrite')
+    indices = _survivor_indices(source_faces, source_floor.mesh.n_faces)
+    if source_floor.frame is not None or engine_floor.frame is None:
+        raise ValueError('qualified original source and explicit engine frame required')
+    expected = source_floor.in_frame(engine_floor.frame).mesh
+    verify_survivor_mesh(expected, engine_floor.mesh, np.arange(expected.n_faces))
+    if expected.physical_quanta != engine_floor.mesh.physical_quanta:
+        raise ValueError('engine frame physical precision differs')
+    keep = np.zeros(source_floor.mesh.n_faces, bool)
+    keep[indices] = True
+    out.mkdir(parents=True)
+    engine_path, source_path = out / 'candidate.engine.obj', out / 'candidate.source.obj'
+    write_floor(engine_floor, engine_path, keep_triangles=keep)
+    write_floor(source_floor, source_path, keep_triangles=keep)
+    verify_survivor_mesh(expected, read_obj(engine_path), indices)
+    verify_survivor_mesh(source_floor.mesh, read_obj(source_path), indices)
+    mapping = dict(schema_version=1, mode='original_source_survivors',
+                   input_triangles=source_floor.mesh.n_faces, output_triangles=len(indices),
+                   source_faces=indices.tolist())
+    mapping_path = out / 'source-faces.json'
+    mapping_path.write_text(json.dumps(mapping, indent=2), encoding='utf-8')
+    return engine_path, source_path, mapping_path

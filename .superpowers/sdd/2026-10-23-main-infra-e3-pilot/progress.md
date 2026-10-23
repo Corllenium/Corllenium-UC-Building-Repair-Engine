@@ -1,5 +1,11 @@
 # Ledger: MAIN-INFRA-E3-PILOT-20261023
 
+- Saved original-source pair: RED16 plus unsigned ordering RED1, then combined
+  GREEN35passed19.69s. Exact original arrays, corner/winding/material-name mapping,
+  no inverse positions, immutable outputs and mismatched frame refusal. Mapping
+  validation precedes output creation. Audit/hash/independent proof is pending;
+  no real E3 model run or accepted candidate.
+
 - Claimed queued job; owned codex/main-infra-e3-pilot-20261023 worktree based
   d0d157d. Independent reviewer approved the sole checked E3 scaffold subject to
   exact survivor and saved-file proof. No default/guard/target/E3 changes.

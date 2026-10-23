@@ -466,3 +466,7 @@ docker compose -p ucmodelfixer up -d --no-build api web
 2026-10-23 MAIN-INFRA-PRECISION-20261023: owned signed336 integration preserves
 all Validator/guard/target files. Physical source precision wrapper focused tests:
 36 passed in 1.97s. Independent full pilot reruns pending. See task report.
+
+2026-10-23 E3 saved-source step: 35 combined tests passed19.69s. Both output
+frames retain exact original arrays and ordered source-face mappings, no inverse
+coordinate reconstruction. Hash/audit integration and real1F run remain pending.
