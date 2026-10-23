@@ -115,8 +115,18 @@ def load_physical_pair(*, raw, reference, baseline, qualification, candidate):
     _same_mesh(read_obj(baseline / 'before.source.obj'), source.mesh)
     before, after = read_obj(before_path), read_obj(after_path)
     _same_mesh(before, expected)
-    verify_exact_coverage(expected, after)
-    verify_exact_coverage(source.mesh, read_obj(candidate / 'candidate.source.obj'))
+    source_after = read_obj(candidate / 'candidate.source.obj')
+    cleanup_mode = audit.get('cleanup_mode', 'exact_duplicates')
+    if cleanup_mode == 'exact_duplicates':
+        verify_exact_coverage(expected, after)
+        verify_exact_coverage(source.mesh, source_after)
+        contract = dict(candidate_contract='exact_duplicates')
+    elif cleanup_mode == 'e3_remove_only':
+        from tools.main_infra_e3_binding import bind_saved_e3
+        contract = bind_saved_e3(candidate=candidate, audit=audit, before_engine=expected,
+                                 after_engine=after, before_source=source.mesh, after_source=source_after)
+    else:
+        raise ValueError(f'unsupported candidate cleanup contract: {cleanup_mode!r}')
     before = replace(before, physical_quanta=expected.physical_quanta)
     after = replace(after, physical_quanta=expected.physical_quanta)
     receipt = dict(**hashes, floor_id=proof['floor_id'], source_revision=proof['source_revision'],
@@ -125,7 +135,7 @@ def load_physical_pair(*, raw, reference, baseline, qualification, candidate):
         qualification_sha256=sha256_file(qualification), source_sig_digits=source.mesh.sig_digits,
         source_coord_decimals=source.mesh.coord_decimals, physical_axis_quanta_inches=list(expected.physical_quanta),
         source_to_engine=frame.matrix.tolist(),
-        assets=assets,
+        assets=assets, **contract,
         method='original source axis_quanta, transformed by absolute qualified frame; existing topology multipliers unchanged')
     return before, after, receipt
 
