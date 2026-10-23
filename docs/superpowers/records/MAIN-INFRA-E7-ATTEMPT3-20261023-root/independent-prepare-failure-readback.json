@@ -1,0 +1,28 @@
+{
+  "observed_utc": "2026-10-23T16:52:44.526136+00:00",
+  "actual_result": {
+    "state": "PROCESS_FAILED",
+    "phase": "prepare",
+    "abort_reason": null,
+    "actual_pid": 15192,
+    "actual_creation_utc": "2026-10-23T16:38:40.1887580Z",
+    "actual_exit_code": 1,
+    "launcher_exit_code": 1,
+    "wall_s": 75.6178871,
+    "HEAD": "daa5d94b1b082bb907982249e9fa99913e008bbf",
+    "phase_plan_sha256": "2279fcdfb268c6fa741e31390a61cb9b753c0d4df85d10d577d6a76d43329746",
+    "all_owned_exited": true,
+    "evidence": ".\\data\\main-infra-1f-validation\\execution-ownership-attempt3\\monitor-prepare-20261023T163838",
+    "ended_utc": "2026-10-23T16:39:55.5861221Z",
+    "acceptance": false
+  },
+  "result_sha256": "15167ca383bfb2fb0e945686b3027ae10177b208a29ac964bc86968cd1dfe75c",
+  "stderr_sha256": "dd981abb41a9cd3552f5be8d1e6b6fac612e76ed6b8d41260338a3c6a9712232",
+  "failure": "ValueError: qualified original fresh 1F source required",
+  "model_failure": false,
+  "guard_native_signed_validator_ran": false,
+  "schema_fix_commit": "3796a0c2abbfd885589da88c4174b04fcc5d18c7",
+  "schema_fix_inventory_sha256": "4eef722b7cb9e30b68c596a1f85a8d8e320a7ffc654c044dba0c47f7f08223c1",
+  "independent_diff_review": "pending",
+  "source_geometry_and_component_files_changed": false
+}

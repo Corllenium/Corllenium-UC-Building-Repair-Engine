@@ -25,6 +25,26 @@ run the latest `.skp` of each file must be in `OBJ FIXED RESULT/` for the owner 
 
 ## 2. Current state (2026-09-26 00:15, written by the Claude controller)
 
+2026-10-24 00:54 +08: actual independent 1F preparation exited 1 after
+75.618 s on caller metadata, before strict guard/native/full signed validation.
+The retained original qualified 1F receipt d2ab32f2 has no historical job_id;
+its qualified/floor/revision and all four source/engine/reference anchors match.
+The failed actual PID15192/result15167ca3/stderrdd981abb remain immutable.
+This is not a geometry failure. A narrow caller compatibility fix is committed
+3796a0c2: missing historical job_id is allowed, a present wrong/null/blank value
+is rejected, and all existing source anchors stay required. The actual retained
+schema regression failed before the fix; 44 targeted tests pass afterward.
+Independent diff review and a fresh actual preparation retry are pending.
+No new 1F E7 model is published or accepted: live shows pending10578 and keeps
+the existing independently preserved E3 preview10136 until the new proof exists.
+Actual 2F PID41648 remains in the FIRST combined SiteJudge preservation check
+(kernel first call, not repeated per-site checks). CPU rose22381.69 to22681.34 s
+in118.87 s; one no-locals, nonblocking MainThread dump confirms active ray-lattice
+work. No output/ETA/percentage is claimed. 3F readiness55e33ccf and measured glass
+factsd78b3dda are copied into this record folder; no 3F engine launch occurred.
+The live public status returned200 at16:49:56Z: 1Fvalidating,2Fcleaning,3Fqueued;
+all accepted_preview fields remain null. Codex1F-3F/Claude4F-7F split unchanged.
+
 2026-10-24 00:35 +08: NEW1Fcandidate SAVED10578tri/original15856/stage10136,
 273kept0rollback/defaultkernelPASS/verifiedcheckpoint/all7assetsmatch.60308+
 launcher+monitor exited0 at16:31:19Z; peak1.55GiB/noresourceabort. Frozen18c/P e5af;
