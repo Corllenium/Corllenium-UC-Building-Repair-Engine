@@ -54,12 +54,15 @@ def _e3_before(*, audit, before_engine, before_source):
     return e3_engine, e3_source, faces, contract
 
 
-def bind_saved_e4(*, candidate, audit, before_engine, after_engine, before_source, after_source):
+def bind_saved_e4(*, candidate, audit, before_engine, after_engine, before_source, after_source,
+                  require_guard: bool = True):
+    """`require_guard` (the default, the Validator path) refuses an audit without `guard.passed`; the independent
+    guard itself calls with `require_guard=False`, since it is what produces that verdict."""
     candidate = Path(candidate)
     mode = audit.get('cleanup_mode')
     if mode not in CLEANUP_MODES or audit.get('executed_stages') != CLEANUP_MODES[mode]:
         raise ValueError('only the checked E4 cleanup contracts are allowed')
-    if audit.get('guard', {}).get('passed') is not True:
+    if require_guard and audit.get('guard', {}).get('passed') is not True:
         raise ValueError('E4 candidate strict guard required (guard.passed)')
     mapping_path, log_path = candidate / 'region-map.json', candidate / 'edit-log.jsonl'
     mapping_hash = _hash(mapping_path, audit.get('region_map_sha256'))

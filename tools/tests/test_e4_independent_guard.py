@@ -125,6 +125,21 @@ def test_a_failing_guard_returns_2_and_a_changed_frozen_source_is_refused(tmp_pa
     assert (tmp_path / 'g2' / 'failure.txt').exists()
 
 
+def test_the_guard_runs_on_a_fresh_candidate_whose_audit_still_says_guard_pending(tmp_path):
+    from tools.e4_independent_guard import main
+    run, candidate, helper = run_layout(tmp_path)
+    audit_path = candidate / 'stage-audit.json'
+    audit = json.loads(audit_path.read_text())
+    audit['guard'] = {'passed': False, 'state': 'pending'}
+    audit_path.write_text(json.dumps(audit))
+    out = tmp_path / 'guard'
+    assert main(_args(run, candidate, helper, out)) == 0, 'the guard produces the verdict, it does not require it'
+    receipt = json.loads((out / 'independent-guard.json').read_text())
+    assert receipt['guard']['passed'] is True and receipt['acceptance'] is False
+    assert json.loads(audit_path.read_text())['guard'] == {'passed': False, 'state': 'pending'}, \
+        'the guard never writes the audit; the reviewer records its receipt there, as for E3'
+
+
 def test_a_tampered_candidate_is_refused_before_the_guard_runs(tmp_path):
     from tools.e4_independent_guard import main
     run, candidate, helper = run_layout(tmp_path)

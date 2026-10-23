@@ -152,12 +152,17 @@ stage-audit.json (cleanup_mode e3_then_e4_merge, guard pending), assets}`.
 6. Bootstrap order: `bind_saved_e4` requires `guard.passed` (as asked, and as `load_physical_pair` already did for
    E3), yet the independent guard is what produces that verdict and the runner writes `guard: pending`. As for E3,
    the reviewer sets the flag before the guard and validation run; alternatively the binding could take
-   `require_guard=False` when called from the guard itself. Left as asked.
+   `require_guard=False` when called from the guard itself. CLOSED (coordinator, 2026-10-24): `bind_saved_e4` takes
+   `require_guard: bool = True`; `tools/e4_independent_guard.py` calls it with `require_guard=False` (the guard
+   produces the verdict and never writes the audit), the Validator path keeps the default. After the guard passes the
+   reviewer records its receipt in the audit (`guard.passed`), as the E3 flow does. Tests: the binding accepts a
+   pending audit only with `require_guard=False` and refuses it by default and with `True`; the guard runs to a PASS
+   receipt on a candidate whose audit still says pending and leaves that audit unchanged.
 
 ## Follow-up (2026-10-24): the E4 binding and the E4 independent guard
 
 - `tools/main_infra_e4_binding.py: bind_saved_e4(*, candidate, audit, before_engine, after_engine, before_source,
-  after_source)`, modelled on `bind_saved_e3`: `cleanup_mode` in {`e4_merge_only` (`executed_stages == ["E4"]`),
+  after_source, require_guard=True)`, modelled on `bind_saved_e3`: `cleanup_mode` in {`e4_merge_only` (`executed_stages == ["E4"]`),
   `e3_then_e4_merge` (`["E3", "E4"]`)}; `guard.passed` required; `region-map.json` and `edit-log.jsonl` hash-bound to
   the audit (`region_map_sha256`, `edit_log_sha256`); in the chained mode the audit's `e3_candidate` binding (dir and
   the hashes of its engine/source candidate, `source-faces.json`, `stage-audit.json`) is checked and `bind_saved_e3`

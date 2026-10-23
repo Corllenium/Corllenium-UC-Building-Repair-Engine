@@ -205,6 +205,22 @@ def test_a_chained_candidate_whose_e3_proof_changed_is_refused(tmp_path):
         load_physical_pair(**inputs)
 
 
+def test_the_guard_itself_may_bind_a_pending_candidate_but_the_validator_path_may_not(tmp_path):
+    from tools.main_infra_e4_binding import bind_saved_e4
+    inputs = e4_fixture(tmp_path)
+    audit = _rehash(inputs['candidate'], guard={'passed': False, 'state': 'pending'})
+    engine_before = _source(inputs).in_frame(FRAME).mesh
+    args = dict(candidate=inputs['candidate'], audit=audit, before_engine=engine_before,
+                after_engine=read_obj(inputs['candidate'] / 'candidate.engine.obj'),
+                before_source=_source(inputs).mesh, after_source=read_obj(inputs['candidate'] / 'candidate.source.obj'))
+    contract = bind_saved_e4(**args, require_guard=False)
+    assert contract['candidate_contract'] == 'e4_merge_only' and contract['e4_merged_regions'] == 1
+    with pytest.raises(ValueError, match='guard'):
+        bind_saved_e4(**args)
+    with pytest.raises(ValueError, match='guard'):
+        bind_saved_e4(**args, require_guard=True)
+
+
 def test_a_chained_audit_without_its_e3_binding_is_refused(tmp_path):
     from tools.main_infra_physical_validation import load_physical_pair
     inputs = e4_fixture(tmp_path, chained=True)

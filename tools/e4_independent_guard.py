@@ -114,8 +114,9 @@ def main(argv=None):
         before, after, source_after = read_obj(paths['before']), read_obj(paths['after']), read_obj(paths['source_after'])
         _same_mesh(before, expected)
         _same_mesh(read_obj(paths['source_baseline']), source.mesh)
+        # this guard produces the verdict the audit's guard.passed records, so it does not require it
         contract = bind_saved_e4(candidate=candidate, audit=audit, before_engine=expected, after_engine=after,
-                                 before_source=source.mesh, after_source=source_after)
+                                 before_source=source.mesh, after_source=source_after, require_guard=False)
         assets = _verify_assets(paths['raw'], run / 'normalized' / F, candidate, paths['before'].parent,
                                 source.mesh, provenance, audit)
         looks = load_looks(paths['materials'], [(parse_mtl(paths['before'].parent / 'materials.mtl'), paths['before'].parent),
