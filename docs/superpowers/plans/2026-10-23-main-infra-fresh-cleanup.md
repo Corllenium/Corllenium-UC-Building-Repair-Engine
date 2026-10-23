@@ -36,14 +36,14 @@
 **Consumes:** Owner deletion instruction, failed reports and exact path/hash inventory.
 **Produces:** Reset report, removed-job archive, deletion/readback receipt and current queue pointer.
 
-- [ ] Archive five original job records; inventory obsolete plan paths and six OBJ
+- [x] Archive five original job records; inventory obsolete plan paths and six OBJ
   variants with explicit failed guards. Record exclusions, hashes and failure evidence.
-- [ ] Recheck process absence/hashes; resolve every target under named project/staging
+- [x] Recheck process absence/hashes; resolve every target under named project/staging
   roots. Delete exact files nonrecursively; stop on drift. Preserve raw data, snapshots,
   code, diagnostic reports and other outputs not demonstrated failed.
-- [ ] Remove five obsolete live job entries; regenerate QUEUE.md; read back absence,
+- [x] Remove five obsolete live job entries; regenerate QUEUE.md; read back absence,
   archive and queue membership. Report exact counts and any denied deletion.
-- [ ] Update HANDOFF, session history and task ledger; commit only named job files.
+- [x] Update HANDOFF, session history and task ledger; commit only named job files.
 
 ## Task 2: Qualify lossless import
 
@@ -52,17 +52,17 @@ test, `tools/repair_fresh_main_infra.py` and its existing test. No parallel impo
 **Consumes:** Verified 36-file raw package, scale decision, original polygons/corners.
 **Produces:** Equivalent engine input, polygon/corner provenance and frame manifest.
 
-- [ ] Reproduce exact 1F line 10224/4F line 36210 failure on frozen raw. Add regression
+- [x] Reproduce exact 1F line 10224/4F line 36210 failure on frozen raw. Add regression
   tests for those records, nonplanar/concave/bow-tie/degenerate polygons, UV seams,
   winding and reversible frame conversion. Unsupported/ambiguous cases report blockers.
-- [ ] Run RED: `$PY -m pytest engine/tests/test_minecraft_floor.py -q -p no:cacheprovider`.
-- [ ] Implement minimal explicit tessellation retaining actual 3D corners/attributes,
+- [x] Run RED: `$PY -m pytest engine/tests/test_minecraft_floor.py -q -p no:cacheprovider`.
+- [x] Implement minimal explicit tessellation retaining actual 3D corners/attributes,
   matching the recorded raw importer's reference. No flattening, face dropping or
   guard relaxation. Record source-polygon-to-triangle/corner provenance.
-- [ ] Establish exporter source-to-block mapping/up-axis; record forward/inverse matrix
+- [x] Establish exporter source-to-block mapping/up-axis; record forward/inverse matrix
   and determinant using 1 metre/block. Test 1000/25.4 inches/metre, no double conversion
   and preservation of local coordinates after round trip.
-- [ ] Run GREEN, import both pilots, read OBJ/MTL/textures back and inspect matched
+- [x] Run GREEN, import both pilots, read OBJ/MTL/textures back and inspect matched
   raw-versus-import renders. Check provenance/cut borders/coverage. Commit evidence/code.
   Failed equivalence blocks cleanup and any claim that the source preview is qualified.
 
@@ -73,12 +73,12 @@ and existing scoped runner/tests. Start from its exact-duplicate-only route.
 **Consumes:** Task 2 baseline/provenance, unchanged guards and fresh signed targets.
 **Produces:** Candidate/edit log/stage audit and independent acceptance evidence per floor.
 
-- [ ] Add RED tests: exact same-direction duplicates; material/UV/normal differences
+- [x] Add RED tests: exact same-direction duplicates; material/UV/normal differences
   remain; opposite-facing sheets remain; excluded/unknown passes never execute;
   failed pass rolls back. Run `$PY -m pytest engine/tests/test_precut_cleanup.py -q -p no:cacheprovider`.
-- [ ] Implement minimal allowlisted cleanup. Run GREEN and changed-area regressions;
+- [x] Implement minimal allowlisted cleanup. Run GREEN and changed-area regressions;
   commit before owner-facing deliverables. No duplicate framework/default pipeline.
-- [ ] Run 1F with unchanged guards/full-source comparison. Hidden/coplanar passes need
+- [x] Run 1F with unchanged guards/full-source comparison. Hidden/coplanar passes need
   separate test/evidence before enabling. Refusal keeps last passing state and records
   exact blocker. Triangle reduction alone is never the target.
 - [ ] Separate agent runs existing `engine.validate` against fresh look/UV samples and
@@ -109,24 +109,24 @@ Run artifacts: `data/main-infra-fresh/<source_revision>/<run_id>/`.
 Before freeze, source_revision is null, source state is explicitly not_frozen and
 no preview or acceptance reference is valid. Freeze assigns the manifest revision.
 
-- [ ] Add RED tests for partial JSON, schema/building mismatch, stale source/run,
+- [x] Add RED tests for partial JSON, schema/building mismatch, stale source/run,
   cancelled late events, >90s heartbeat age, blocked state and missing/mismatched
   Validator/owner proof. Other buildings' state must remain unchanged.
-- [ ] Add interaction regressions proving `handleRunSimulatedEngineFix` and
+- [x] Add interaction regressions proving `handleRunSimulatedEngineFix` and
   `handleApproveAndPush` cannot fabricate fresh MAIN INFRA metrics, validation,
   approval or publication. Imported AFTER data alone cannot grant acceptance.
-- [ ] Implement atomic replace and real step events/10s heartbeat. Reuse publishing,
+- [x] Implement atomic replace and real step events/10s heartbeat. Reuse publishing,
   no new database/server/scheduler. Worktree-only JSON is not live integration.
-- [ ] Implement pure version-aware merge: reject old MAIN INFRA completedUnits,
+- [x] Implement pure version-aware merge: reject old MAIN INFRA completedUnits,
   poll 5s, show last work event separately from heartbeat, show stale after 90s.
-- [ ] Reuse seven-floor view with step/state/time/blocker/evidence. Source label:
+- [x] Reuse seven-floor view with step/state/time/blocker/evidence. Source label:
   `Fresh source - not cleaned`. Candidate stays candidate; remove inherited all-done
   claims for this source. Preserve design, keyboard access and narrow layouts.
-- [ ] Replace fresh MAIN INFRA simulation/approve-push controls with real worker
+- [x] Replace fresh MAIN INFRA simulation/approve-push controls with real worker
   state, read-only evidence and persisted owner verdict from the existing workflow.
   If no persisted verdict is available, keep acceptance blocked. No invented commit
   or new approval backend belongs in this status/display slice.
-- [ ] Run `$PY -m pytest tools/tests/test_main_infra_progress.py -q -p no:cacheprovider`.
+- [x] Run `$PY -m pytest tools/tests/test_main_infra_progress.py -q -p no:cacheprovider`.
   In 02 dashboard run `npm test -- lib/buildings/freshMainInfraStatus.test.ts`,
   `npm run typecheck`, `npm run lint`, `npm run build`. Inspect real blocked/running/
   stale/review states and keyboard access. Save output/screenshots, then commit.
