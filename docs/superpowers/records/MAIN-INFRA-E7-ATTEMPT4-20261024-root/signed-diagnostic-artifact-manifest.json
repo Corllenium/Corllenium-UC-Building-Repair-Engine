@@ -1,0 +1,37 @@
+[
+  {
+    "path": "docs/superpowers/records/MAIN-INFRA-E7-ATTEMPT4-20261024-root/actual-signed-diagnostic-validation.json",
+    "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261024-attempt4\\1F\\native-failure-diagnostic\\validation.json",
+    "sha256": "b1865442179e278dde9993ee35922991bb73bbb8c2b11addbd4a8bc0040c5c43"
+  },
+  {
+    "path": "docs/superpowers/records/MAIN-INFRA-E7-ATTEMPT4-20261024-root/actual-signed-diagnostic-receipt.json",
+    "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261024-attempt4\\1F\\native-failure-diagnostic\\diagnostic-receipt.json",
+    "sha256": "8622d58fa4e05f9c0d3617307bd4b454c18924051a82ccf81c41a740097a1104"
+  },
+  {
+    "path": "docs/superpowers/records/MAIN-INFRA-E7-ATTEMPT4-20261024-root/actual-signed-diagnostic-terminal.json",
+    "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\execution-ownership-attempt4\\monitor-native-failure-signed-diagnostic-20261023T195041\\result.json",
+    "sha256": "ed11aeab93aa509f9603cdfeaf6a30297a7cc7d4111a3c2fde6e8a1479261994"
+  },
+  {
+    "path": "docs/superpowers/records/MAIN-INFRA-E7-ATTEMPT4-20261024-root/actual-signed-diagnostic-readback.json",
+    "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\execution-ownership-attempt4\\diagnostic-independent-readback.json",
+    "sha256": "ed17cf4ab68720cfa166b8cb84eb17f1213ee974a565c483ed3eda460e26f93b"
+  },
+  {
+    "path": "docs/superpowers/records/MAIN-INFRA-E7-ATTEMPT4-20261024-root/signed-face-09809.png",
+    "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261024-attempt4\\1F\\native-failure-diagnostic\\floor\\face-09809.png",
+    "sha256": "bd50828e687e492ab8cb6b93d3e090a97faafe9ba97c6959b5be67532309cf68"
+  },
+  {
+    "path": "docs/superpowers/records/MAIN-INFRA-E7-ATTEMPT4-20261024-root/signed-face-10366.png",
+    "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261024-attempt4\\1F\\native-failure-diagnostic\\floor\\face-10366.png",
+    "sha256": "28f25b06962d0674fe9e90ec453d645d89aaf80b4c822213c121c41bb657b40a"
+  },
+  {
+    "path": "docs/superpowers/records/MAIN-INFRA-E7-ATTEMPT4-20261024-root/actual-2F-confirmation-stack.json",
+    "source": "D:\\PROJECTS\\UC MODEL FIXER\\data\\tmp\\real-e3-2F-stack-20261023T2014.json",
+    "sha256": "e1a124324020d935bd0b1ea5a313c96f76b31a569ae5ddf83399271c2510091f"
+  }
+]

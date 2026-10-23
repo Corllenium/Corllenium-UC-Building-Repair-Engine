@@ -25,6 +25,15 @@ run the latest `.skp` of each file must be in `OBJ FIXED RESULT/` for the owner 
 
 ## 2. Current state (2026-09-26 00:15, written by the Claude controller)
 
+### 2026-10-24 04:18 SGT - measured 1F signed diagnostic failure; 2F confirmation observed
+
+Separate attempt4 signed diagnostic PID57652 exited2 at2026-10-23T20:09:17.6134655Z after1114.429s, no resource abort, all owned processes exited. Actual report b1865442 and diagnostic receipt8622d58f retain nativeFAIL/nonpublishable. Textures PASS:108392 visible samples, zero failed/deleted/covered/look/UV/side samples. The dense visible-surface floor FAILS for original9809 at10.5pixels and10366 at4.1pixels, both probe422. Their reason is DELETED and covering_faces is empty; it is invalid to infer no contributors or reuse the old covered-face mapping. Both actual evidence PNGs were opened: gray/taupe surface panels with tiny magenta seam marks. The cause remains unproved; a separate bounded exact-default two-face attribution replay is being prepared. No full validator/native rerun or gate change is released. The final attempt5 policy stays unsealed and must reject unmapped DELETED failures.
+
+The owner-signed problem census also remains FAIL: different-look flicker1626, same-look1014 and cracks2344 exceed zero targets; reversed0 passes. Report-only counts are hidden2945, loose1 and open edges2295. No canonical signed validation/review/acceptance exists. The live1F record was updated to blocked, actual57652false, native failure plus both coverage failures retained, texturePASS true, acceptance/publication false; previous E3 display remains.
+
+A new read-only nonblocking/no-locals snapshot of exact actual2F PID41648/start14:13:11.8254166Z gives stack SHAe1a12432. It is inside visibility lattice from kernel.py run304, called by kernel.py353 run(kept,"confirm"). This proves the current stage is confirmation after charged rollback; no rollback count, final verdict or ETA is inferred. The worker remains running_checked_E3 with no saved output at this observation. No process was paused, injected into, restarted or changed.3F remains saved38691 with its separate independent caller/manifest review underway.
+
+
 ### 2026-10-24 04:03 SGT - actual 3F engine output saved; independent proof queued
 
 Actual 3F worker 22268/start2026-10-23T17:36:13.8205790Z saved the fresh original 53,602 -> 38,691 triangles. Its monitor terminal exited0 at19:50:28.0941785Z after8054.5408417s, no abort, all owned processes exited. Of1820 proposed E3 edits,1675 were kept and145 rolled back; the default kernel confirmation passed with zero failing/unknown sites. Candidate source SHA a9108644, engine c3664f9e, audit56ab090d, lineage c16be706, edit-log22fd8da0. Root readback14e052ac independently parsed both saved OBJ spaces: full position/UV/normal tables are exactly unchanged, all38691 surviving faces/materials exactly match unique ordered original lineage, and all8 copied candidate asset hashes match original input pins. This is structural evidence, not visibility acceptance.

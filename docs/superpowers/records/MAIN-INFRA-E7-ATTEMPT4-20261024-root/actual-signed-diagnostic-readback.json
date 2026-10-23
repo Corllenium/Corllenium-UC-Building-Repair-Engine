@@ -1,0 +1,182 @@
+{
+  "acceptance": false,
+  "canonical_independent_review_exists": false,
+  "canonical_signed_report_exists": false,
+  "deleted_failure_attribution_pending": true,
+  "floor_failures": [
+    {
+      "at_least": true,
+      "covering_faces": [],
+      "crop": "floor/face-09809.png",
+      "face": 9809,
+      "fails": true,
+      "kind": "covered",
+      "pixels": 10.5,
+      "pixels_estimate": 12.0,
+      "reasons": {
+        "deleted": 10.5
+      },
+      "viewpoint": {
+        "at": [
+          59.055,
+          -728.3484,
+          259.8504
+        ],
+        "index": 422,
+        "kind": "probe"
+      },
+      "viewpoints_measured": 1,
+      "viewpoints_seen": 2,
+      "visible_px": 20.9
+    },
+    {
+      "at_least": true,
+      "covering_faces": [],
+      "crop": "floor/face-10366.png",
+      "face": 10366,
+      "fails": true,
+      "kind": "covered",
+      "pixels": 4.1,
+      "pixels_estimate": 4.4,
+      "reasons": {
+        "deleted": 4.1
+      },
+      "viewpoint": {
+        "at": [
+          59.055,
+          -728.3484,
+          259.8504
+        ],
+        "index": 422,
+        "kind": "probe"
+      },
+      "viewpoints_measured": 1,
+      "viewpoints_seen": 2,
+      "visible_px": 26.3
+    }
+  ],
+  "floor_id": "1F",
+  "image_inspection": "Both saved floor crops opened independently: gray/taupe panels with small magenta seam markers; no causal site inferred from crop alone",
+  "job_id": "MAIN-INFRA-CLEAN-20261023",
+  "mode": "independent_terminal_readback_diagnostic_only",
+  "native_preservation_passed": false,
+  "pngs": [
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261024-attempt4\\1F\\native-failure-diagnostic\\floor\\face-09809.png",
+      "sha256": "bd50828e687e492ab8cb6b93d3e090a97faafe9ba97c6959b5be67532309cf68"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261024-attempt4\\1F\\native-failure-diagnostic\\floor\\face-10366.png",
+      "sha256": "28f25b06962d0674fe9e90ec453d645d89aaf80b4c822213c121c41bb657b40a"
+    }
+  ],
+  "post_readback_input_hashes": {
+    "after": "20dc4122d902c586bdae961198b7b0e693739e959d4c26acd9c8c91f53f7f68b",
+    "before": "bed4b7c24b7a3a164381b8e6e0ca0b7e7bf9998e1df7c2782878d23cd1796df3",
+    "source_after": "782358c9877864443654a12d86b8f1cc50012483d342e0e1509ee813fd3e76c8"
+  },
+  "problem_targets": {
+    "cracks": {
+      "after": 2344,
+      "before": 2819,
+      "status": "FAIL",
+      "target": 0
+    },
+    "flicker_diff": {
+      "after": 1626,
+      "before": 5684,
+      "status": "FAIL",
+      "target": 0
+    },
+    "flicker_same": {
+      "after": 1014,
+      "before": 3347,
+      "status": "FAIL",
+      "target": 0
+    },
+    "hidden": {
+      "after": 2945,
+      "before": 8548,
+      "status": "REPORT_ONLY",
+      "target": "listed"
+    },
+    "loose": {
+      "after": 1,
+      "before": 0,
+      "status": "REPORT_ONLY",
+      "target": "listed"
+    },
+    "open_edges": {
+      "after": 2295,
+      "before": 312,
+      "status": "REPORT_ONLY",
+      "target": "listed"
+    },
+    "reversed": {
+      "after": 0,
+      "before": 0,
+      "status": "PASS",
+      "target": 0
+    }
+  },
+  "publishable": false,
+  "receipt": {
+    "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261024-attempt4\\1F\\native-failure-diagnostic\\diagnostic-receipt.json",
+    "sha256": "8622d58fa4e05f9c0d3617307bd4b454c18924051a82ccf81c41a740097a1104"
+  },
+  "report": {
+    "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261024-attempt4\\1F\\native-failure-diagnostic\\validation.json",
+    "sha256": "b1865442179e278dde9993ee35922991bb73bbb8c2b11addbd4a8bc0040c5c43"
+  },
+  "resource_peak": {
+    "actual_os_peak_commit_bytes": 1358000128,
+    "minimum_headroom_bytes": 12699238400,
+    "tree_private_bytes": 1316417536
+  },
+  "source_revision": "7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511",
+  "terminal": {
+    "HEAD": "a50226737ac155f4f7a303e3c2afe48abd45c29d",
+    "abort_reason": null,
+    "acceptance": false,
+    "actual_creation_utc": "2026-10-23T19:50:43.2943031Z",
+    "actual_exit_code": 2,
+    "actual_pid": 57652,
+    "all_owned_exited": true,
+    "ended_utc": "2026-10-23T20:09:17.6134655Z",
+    "evidence": "data\\main-infra-1f-validation\\execution-ownership-attempt4\\monitor-native-failure-signed-diagnostic-20261023T195041",
+    "launcher_exit_code": 2,
+    "phase": "native-failure-signed-diagnostic",
+    "phase_plan_sha256": "9221c689b44ec3a4a7cb7e80e548d17aca4c6982fc064395c16210a0ede26ad8",
+    "state": "PROCESS_FAILED",
+    "wall_s": 1114.4292883
+  },
+  "textures": {
+    "area_failed_in2": 0.0,
+    "depth_tolerance_in": 0.05,
+    "faces": 7314,
+    "faces_failed": 0,
+    "reasons": {
+      "covered": 0,
+      "deleted": 0,
+      "look": 0,
+      "overlaid": 0,
+      "side": 0,
+      "uv": 0
+    },
+    "samples": 108392,
+    "samples_failed": 0,
+    "status": "PASS"
+  },
+  "timings_s": {
+    "extra_directions": 5.08,
+    "floor": 936.65,
+    "overlay": 0.03,
+    "prepare": 0.23,
+    "problems": 27.21,
+    "sites": 0.0,
+    "total": 1060.78,
+    "visibility_and_casts": 91.58
+  },
+  "verdict": "FAIL",
+  "visibility_status": "FAIL"
+}
