@@ -48,6 +48,17 @@ class LiveWorkerRuntime(unittest.TestCase):
                 result = json.loads((fixture / 'data/main-infra-fresh/current.json').read_text())
                 self.assertNotIn('investigating shared memory allocation failure', result['step'])
                 self.assertIn('source boundary', result['step'])
+                observations.pop('3F')
+                result['floors']['3F'].update(state='queued', step='Serial retry prepared', blocker=None)
+                save(fixture / 'data/main-infra-fresh/current.json', result)
+                os.environ['UC_MODEL_WORKER_OBSERVATIONS'] = json.dumps(observations)
+                try:
+                    with contextlib.redirect_stdout(io.StringIO()):
+                        exec(compile(code, str(SCRIPT), 'exec'), {})
+                except KeyError:
+                    self.fail('Deferred floor still requires an obsolete worker')
+                result = json.loads((fixture / 'data/main-infra-fresh/current.json').read_text())
+                self.assertEqual(result['floors']['3F']['state'], 'queued')
             finally:
                 if saved is None:
                     os.environ.pop('UC_MODEL_WORKER_OBSERVATIONS', None)

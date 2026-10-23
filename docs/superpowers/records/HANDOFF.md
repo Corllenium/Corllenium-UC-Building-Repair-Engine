@@ -24,6 +24,17 @@ run the latest `.skp` of each file must be in `OBJ FIXED RESULT/` for the owner 
 2026. Work visually: every round ends with renders that are looked at, not only numbers.
 
 ## 2. Current state (2026-09-26 00:15, written by the Claude controller)
+2026-10-23 23:12 +08 supersedes prior retry states: 2F actual E3 attempt2 is
+running PID41648 (531769c, input56828), no saved candidate yet. 1F reviewed E7
+attempt3 18c8ae9 and3F E3retry are queued sequentially. One heavy worker at a time;
+previous failures and E3inspectioncandidate remain. Actual replacement status
+publisher47864/start15:08:03.691458Z/exec79843; live15:08:05 confirms1Fqueued,
+2Fcleaning/alive/actualPID,3Fqueued. Tested deferred-observation regression RED
+then GREEN1/0parsererrors. 2F independent caller1ac1de3 ready (53pins/0mismatch,
+30testsPASS), no heavy proof run yet. E7 sourcefix94dc8a4/49testsPASS and attempt3
+independent36testsPASS; realattempt3 NOTSTARTED. E7 preview packaging52local and
+52independent testsPASS; exact reviewed bytes awaiting named commit. No newE7
+floor publication, no accepted floor. ClaudeCode owns4F-7F separately.
 
 2026-10-23 22:15 +08: actual 2F indexed E3 attempt2 RUNNING PID41648,
 creation14:13:11.8254166Z, exec73109; frozen component531769c and runtimea4898bdd.

@@ -19,6 +19,8 @@ observations=json.loads(os.environ['UC_MODEL_WORKER_OBSERVATIONS'])
 run=root/'.claude/worktrees/MAIN-INFRA-E3-20261023/data/main-infra-e3/run-20261023'
 running=[]
 for floor in ('2F','3F'):
+    if floor not in observations:
+        continue
     process=observations[floor]
     state=json.loads(Path(process['worker_path']).read_text())
     row=doc['floors'][floor]
@@ -53,7 +55,7 @@ if '1F' in observations:
 failed=[f for f in ('1F','2F','3F') if doc['floors'][f]['state']=='failed']
 details='; '.join(f+': '+str(doc['floors'][f].get('blocker','failed')) for f in failed)
 doc.update(updated_at=now,heartbeat_at=now,state='running' if running else ('failed' if failed else 'reviewing'),step=('Actual checked engines running on '+','.join(running)+('; '+details if details else '')) if running else ('Engine checks stopped; '+details if failed else 'Engine workers finished; independent candidate review follows'))
-doc['next_action']='Resolve 1F source-boundary serialization failure. Run 2F then 3F with fresh memory checks and separate outputs; independently validate each saved candidate against its original fresh export. Claude Code owns 4F-7F.'
+doc['next_action']='Finish the active 2F repair and independently validate its saved output. Run the reviewed 1F E7 retry and queued 3F retry sequentially with fresh memory checks. Claude Code owns 4F-7F.'
 doc['step']+=';1F E3 preservation PASS, remaining targets awaiting new independent measurement;Claude Code owns4F-7F'
 source_refs=root/'data/siege-live-20261023/sources-published.json'
 if source_refs.exists():
@@ -94,6 +96,10 @@ do {
         $taskE3Extra=Get-Content -LiteralPath $taskE3ExtraPath -Raw | ConvertFrom-Json
         foreach($taskItem in $taskE3Extra.PSObject.Properties){
             if($taskItem.Name -notin @('2F','3F')){throw 'Unexpected E3 retry floor'}
+            if($taskItem.Value.deferred){
+                $null=$taskWitnessPaths.Remove($taskItem.Name)
+                continue
+            }
             $taskExpected[$taskItem.Name]=@{pid=$taskItem.Value.pid;start=$taskItem.Value.start}
             $taskWitnessPaths[$taskItem.Name]=$taskItem.Value.worker_path
         }

@@ -433,3 +433,30 @@ PID41648/alive/CPU41.75, overallrunning. 1Ffailure remains sourceboundary;
 prior preservedE3inspectionasset remains unchanged. 3F remains its old failed
 attempt until its actual serial retry. Separate independent2F caller is being
 prepared, not run. Codex1F-3F / Claude4F-7F; no accepted floor.
+
+## 23:12 +08 — truthful queued retries, reviewed callers and exporter
+
+Actual 2F E3 attempt2 remains running PID41648/start14:13:11.8254166Z,
+component531769c, qualified56828 triangles. At15:06:20 workerprivate1291MiB,
+peak1967MiB, systemcommit57,436,819,456/67,303,272,448bytes; no saved candidate
+or new failure. A single heavy geometry process remains the operational rule.
+
+The reviewed 1F attempt3 component is18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5:
+new checked subset, typed checkpoint captured BEFORE saving, exact source-proof
+serializer6456ac62. Independent36fixtures passed15.28s; final reviewf6372781.
+Real prepare/run has not started; no old kernel PASS is reusable. 2F independent
+caller committed1ac1de3 with53 pinned inputs/0mismatches,30tinytests passed2.53s;
+actual guard/native/full Validator waits for saved output and serial memory GO.
+
+The E7 preview exporter now has local52PASS20.14s and independent52PASS23.08s,
+reviewb9000bb9; fixtures use real tiny geometry but synthetic external evidence.
+Initial independent path-limit-only test failure is retained. No actual E7floor
+was packaged or accepted. Root delegated only named reviewed-file commit/records.
+
+Retired failed1Fworker config; all prior attempts/records preserved. New deferred
+3F observation regression RED then GREEN1test/0PowerShellparsererrors. Replaced
+only owned status publisher60916 while idle; replacement47864 creation
+15:08:03.691458Z exec79843. Public HTTP readback15:08:05 reports 1Fqueued,
+2Fcleaning/PID41648/alive,3Fqueued. Existing1F E3inspectionpreview10136 remains;
+2F/3FAfter stay empty. Full same-turn public artifact is queued-retry-live-
+readback-20261023.json beside the tested status runtime. Claude4F-7F unchanged.
