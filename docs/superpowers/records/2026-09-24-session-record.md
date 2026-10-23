@@ -346,3 +346,10 @@ Owner reset to the fresh seven-floor Z: Minecraft export, confirmed 1 block = 1 
 2026-10-23 Codex MAIN-INFRA-CLEAN: fresh seven-card Before/After dashboard reviewed and committed2800a66/de060b9; build26pages/browser8.9s/UI28/publisher17 pass. Independent1F preservation PASS but overallFAIL on flicker/crack targets. Shared ray experiments withdrawn; bounded original oracle reviewed118tests+20probes, explicit pilot factory12tests pass. Full4Fguard next; no accepted floor/SKP/deployment. See MAIN-INFRA-CLEAN-20261023.md.
 
 2026-10-23 Codex MAIN-INFRA-CLEAN: 4FstrictguardPASS4853024pixels/allfailureclasses0;78160->78160tri/duplicates0/19assets. NativeQA30savedpairs0differentpixels;factoryBlenderexit0. IndependentfullValidatorinputchecksunderway; noacceptedfloor/SKP/deployment.
+
+2026-10-23 fresh MAIN INFRA precision follow-up: independent audit found normalized
+sig17 replacing physical source sig9, changing all six measured plane subsets.
+Stopped only owned 4F workers with no full verdict. Both pilots blocked pending
+qualification; saved geometry and 30 paired 4F renders unchanged. RED plane
+invariance reproduced; 21 frame/topology tests and 15 bound-input/wrapper tests
+pass. Reviewed signed Validator integration and independent reruns follow.

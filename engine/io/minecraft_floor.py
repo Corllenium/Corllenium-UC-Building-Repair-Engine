@@ -10,6 +10,7 @@ import numpy as np
 from shapely.geometry import Polygon
 
 from engine.model import MeshData
+from engine.topo.weld import axis_quanta
 
 
 class FloorFormatError(ValueError):
@@ -62,10 +63,13 @@ class FloorInput:
     def in_frame(self, frame: Frame):
         if self.frame is not None:
             raise ValueError("input already normalized")
+        source_quanta = (axis_quanta(self.mesh.positions, self.mesh.sig_digits)
+                         if self.mesh.physical_quanta is None else np.asarray(self.mesh.physical_quanta))
         mesh = replace(self.mesh,
                        positions=self.mesh.positions @ frame.rotation.T * frame.inches_per_unit,
                        normals=self.mesh.normals @ frame.rotation.T,
-                       units="inches", coord_decimals=15, sig_digits=17)
+                       units="inches", coord_decimals=15, sig_digits=17,
+                       physical_quanta=tuple(np.abs(frame.matrix[:3, :3]) @ source_quanta))
         return replace(self, mesh=mesh, frame=frame)
 
 

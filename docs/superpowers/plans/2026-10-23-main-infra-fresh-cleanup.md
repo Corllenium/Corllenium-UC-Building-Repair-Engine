@@ -155,6 +155,23 @@ no preview or acceptance reference is valid. Freeze assigns the manifest revisio
 
 ## Order and checkpoints
 
+### Measured precision qualification follow-up (2026-10-23)
+
+Independent audit found engine serialization sig17 replacing raw sig9 physical
+precision. Six real 512-face subsets changed plane partitions; physically
+transformed source quanta retained all six partitions. Neither pilot's existing
+check-2 counts qualify as source-precision signed-target evidence.
+
+Add an explicit physical-quanta field and cache identity, derived only from the
+hash-bound raw source and recorded metre/Y-up frame. Retain existing axis_quanta
+formula, detector multipliers, signed targets and guard code. A regression must
+prove that conversion alone cannot split a source plane. Verify raw/reference,
+qualification, baseline/snapshot and both candidate files before using metadata.
+Run the reviewed patch in an owned validation worktree based on signed Validator
+33606ce9; never modify the foreign repair-p1p2 checkout. Queue follow-up
+MAIN-INFRA-PRECISION-20261023 owns that validation integration branch. Independently
+review the patch and rerun both pilot checks before advancing other floors.
+
 Task 1 -> Task 4 -> Task 2 -> Task 3 -> Task 5. After each step update ledger,
 canonical progress, HANDOFF section 2, session history and queue. Commit named files.
 Distinguish source preview, candidate, Validator pass, owner acceptance and deployment.

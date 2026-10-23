@@ -1,5 +1,16 @@
 # SDD ledger - plan: docs/superpowers/plans/2026-10-23-main-infra-fresh-cleanup.md
 
+- Independent precision audit: raw sig9 / engine sig17, 39,370,078.74x quanta
+  mismatch; six 512-face partitions differ only with storage inference. Physical
+  frame partitions agree. Stopped owned workers 49304/46880 after 1810.21s and all
+  771696 casts; no full validation.json or signed problem-count verdict.
+- RED regression: conversion alone splits one source plane. Explicit physical
+  metadata and memo identity retain the source partition. 21 frame/topology tests
+  pass; 15 bound-input/wrapper tests pass including seven MTL/PNG corruptions and
+  real default-density validation/report/exit/overwrite behavior. Guard, target
+  and detector multipliers unchanged. Broad available suite running. Original
+  signed336 integration, independent review and both pilot reruns remain pending.
+
 - 4F real guardPASS:52completedrenders,4,853,024modelpixels,allfailureclasses0;
   78160->78160tri,exactduplicates0,missing/added0,19assets. Candidate stored;
   independent fullfloor verdict pending. Native savedQA30pairs0differentpixels,

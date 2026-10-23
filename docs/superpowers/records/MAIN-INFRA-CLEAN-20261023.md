@@ -1,5 +1,24 @@
 # Fresh MAIN INFRA execution - current status
 
+## Source precision blocker and correction, 2026-10-23
+
+The independent audit found raw/source sig9 versus normalized engine sig17.
+Original physical quanta [1e-7,1e-8,1e-7]m become
+[3.937007874e-6,3.937007874e-6,3.937007874e-7]in; inferred engine quanta were
+39,370,078.74x smaller. Six deterministic512-face real subsets changed plane
+partitions under inference, while physical source/engine partitions agreed.
+Full4F validation was stopped at1810.21s after771696casts: no validation.json,
+no full verdict/counts. All diagnostic artifacts remain. Earlier1F numeric
+problem counts are literal storage-precision diagnostics pending requalification.
+Saved geometry/materials and30paired4F PNGs remain unchanged.
+
+RED fixture: a source plane splits into two regions solely after conversion.
+Explicit physical-quanta propagation now retains the plane and cache identity.
+21frame/topology tests pass;9hash-binding tests pass. Hash-bound raw/reference,
+independent import proof, saved baseline/snapshot and both candidate files are
+checked before attaching physical precision. No threshold/guard/target changed.
+Signed33606ce9 integration and independent reruns are pending; cards show blocked.
+
 Owner approved the replacement plan in this chat on October 23, 2026. Execution
 job: MAIN-INFRA-CLEAN-20261023. Source: the designated fresh seven-floor Z: package;
 owner scale: 1 block = 1 metre. Preserve cuts, facade look/UVs and visible coverage.

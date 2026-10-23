@@ -25,6 +25,15 @@ run the latest `.skp` of each file must be in `OBJ FIXED RESULT/` for the owner 
 
 ## 2. Current state (2026-09-26 00:15, written by the Claude controller)
 
+**Update 2026-10-23 (fresh source precision):** independent4F audit measured
+39,370,078.74x finer inferred quanta after metre-to-inch serialization. Six real
+512-face plane partitions differ with sig17 but agree under transformed source
+quanta. Stopped only owned4F worker49304/launcher46880 after1810.21s, all771696casts
+complete; no validation.json/no signed numeric verdict. Both pilots blocked on
+precision qualification. Explicit metadata regression observed RED,21focused
+tests pass; hash-bound loader9tests pass. Source/candidate bytes and30renderpairs
+unchanged. No accepted floor, SKP or live deployment.
+
 **Update 2026-10-23 (Codex, fresh MAIN INFRA):** owner confirmed fresh Minecraft exports. Frozen revision 7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511; 1 block=1m. Dashboard commits2800a66/de060b9 reuse seven cards and actual Before/After: default After waits for matched independent proof; failed candidate explicit inspection only. Clean webpack build26pages and compiled browser test8.9s pass; UI28 / publisher17 tests pass, independent feature review closed findings. Only isolated preview4192 changed, no live deployment. 1F keeps15856tri, preservation PASS but overall FAIL on flicker/crack targets. 4F precision investigation: rejected shared/native-depth and max-depth-pruning experiments; original Embree restored. Unbounded original-mesh BVH oracle reviewed118tests+20probes; real4F19200rays1.924s/samplefirst-all match; full guard integration/pilot follows. No accepted floor/SKP. Details: [task report](MAIN-INFRA-CLEAN-20261023.md).
 
 **Update 2026-10-23 (Codex, MAIN-INFRA-CLEAN-20261023):** owner approved inline execution. Isolated planning dashboard has seven real floor states (a1e234f), production unchanged. Source frozen: 36 files, revision 7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511. Explicit native reference retains all 1F/4F corners; raw/triangulated saved renders byte-identical across 30 views per floor. Engine-frame RGB raster differences and independent measurements are recorded in [execution report](MAIN-INFRA-CLEAN-20261023.md). Focused tests: 67 passed. Correct signed Validator located at 33606ce9; independent import qualification finishing, then guarded pilots. No accepted floor/SKP/deployment.
