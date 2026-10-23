@@ -1,5 +1,7 @@
 """Exact source/engine pairs for hash-bound checked E7 existing-vertex cuts."""
+from collections import Counter
 from dataclasses import dataclass, replace
+from fractions import Fraction
 import hashlib
 import json
 from pathlib import Path
@@ -189,6 +191,77 @@ def _seal(source, engine, lineage, checked):
         + _dump(lineage).encode() + _dump(checked).encode()).hexdigest()
 
 
+def _prove_exact_source_coverage(mesh, source, faces):
+    """Prove the partition on exact binary64 coordinates; never produce geometry or interpolation weights."""
+    faces = np.asarray(faces)
+    if (not isinstance(source, (int, np.integer)) or isinstance(source, (bool, np.bool_))
+            or not 0 <= source < mesh.n_faces or faces.ndim != 2 or faces.shape[1] != 3
+            or len(faces) < 2 or faces.dtype.kind not in 'iu'
+            or (faces < 0).any() or (faces >= len(mesh.positions)).any()):
+        raise ValueError('invalid exact source cut indices')
+    faces = faces.astype(np.int64, copy=False)
+    parent = mesh.face_v[source]
+    ids = np.unique(np.concatenate((parent, faces.reshape(-1))))
+    if not np.isfinite(mesh.positions[ids]).all():
+        raise ValueError('nonfinite exact source coordinates')
+    points = {int(i): tuple(Fraction(float(value)) for value in mesh.positions[i]) for i in ids}
+    a, b, c = (points[int(i)] for i in parent)
+    ab, ac = tuple(y - x for x, y in zip(a, b)), tuple(y - x for x, y in zip(a, c))
+    normal = (ab[1] * ac[2] - ab[2] * ac[1], ab[2] * ac[0] - ab[0] * ac[2],
+              ab[0] * ac[1] - ab[1] * ac[0])
+    if not any(normal):
+        raise ValueError('degenerate exact source triangle')
+    drop = next(i for i, value in enumerate(normal) if value)
+    u, v = [i for i in range(3) if i != drop]
+    determinant = ab[u] * ac[v] - ab[v] * ac[u]
+    projected = {}
+    for index, point in points.items():
+        delta = tuple(y - x for x, y in zip(a, point))
+        if sum(x * y for x, y in zip(normal, delta)) != 0:
+            raise ValueError('off exact source plane')
+        s = (delta[u] * ac[v] - delta[v] * ac[u]) / determinant
+        t = (ab[u] * delta[v] - ab[v] * delta[u]) / determinant
+        if s < 0 or t < 0 or s + t > 1:
+            raise ValueError('outside exact source triangle')
+        projected[index] = (s, t)
+
+    def cross(left, right):
+        return left[0] * right[1] - left[1] * right[0]
+
+    triangles = [[projected[int(i)] for i in row] for row in faces]
+    area = Fraction(0)
+    for p, q, r in triangles:
+        signed = cross((q[0] - p[0], q[1] - p[1]), (r[0] - p[0], r[1] - p[1]))
+        if signed <= 0:
+            raise ValueError('nonpositive exact source winding')
+        area += signed
+    if area != 1:
+        raise ValueError('exact source area differs')
+
+    vertices = set(projected.values())
+    boundary = Counter()
+    def edges(triangle, sign):
+        for p, q in zip(triangle, triangle[1:] + triangle[:1]):
+            direction = (q[0] - p[0], q[1] - p[1])
+            axis = 0 if direction[0] else 1
+            cuts = []
+            for point in vertices:
+                delta = (point[0] - p[0], point[1] - p[1])
+                if cross(direction, delta) == 0:
+                    along = delta[axis] / direction[axis]
+                    if 0 <= along <= 1:
+                        cuts.append((along, point))
+            cuts.sort()
+            for (_, left), (_, right) in zip(cuts, cuts[1:]):
+                key = (left, right) if left < right else (right, left)
+                boundary[key] += sign if left < right else -sign
+    for triangle in triangles:
+        edges(triangle, 1)
+    edges([(Fraction(0), Fraction(0)), (Fraction(1), Fraction(0)), (Fraction(0), Fraction(1))], -1)
+    if any(boundary.values()):
+        raise ValueError('exact source boundary differs')
+
+
 def prepare_cut_pair(source_floor, engine_floor, before, input_lineage, outcome, looks, *, binding):
     source_before, ancestry = _inputs(source_floor, engine_floor, before, input_lineage, binding)
     checked, records = _checked(before, outcome, looks, binding)
@@ -196,7 +269,7 @@ def prepare_cut_pair(source_floor, engine_floor, before, input_lineage, outcome,
     source_edits = []
     for edit in outcome.kept:
         source = edit.faces[0]
-        _source_weights(source_before, source, edit.new_faces)
+        _prove_exact_source_coverage(source_before, source, edit.new_faces)
         _faces, weights, _area, _after = _source_weights(before, source, edit.new_faces)
         source_edits.append(replace(edit, new_face_uv=_attributes(source_before, source, weights, 'face_vt', 'uvs'),
             new_face_normal=_attributes(source_before, source, weights, 'face_vn', 'normals')))
