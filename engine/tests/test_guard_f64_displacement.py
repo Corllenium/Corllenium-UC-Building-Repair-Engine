@@ -81,3 +81,21 @@ def test_material_swap_and_hole_still_fail_at_unchanged_witness_depths():
     d=actual_witnesses();w=d['witnesses'][0];origin=np.array([w['origin_inches']]*2);planes=np.array([w['before_plane']]);depth=w['before_depth_inches']
     codes=classify_pixels(np.array([depth,depth]),np.array([0,0]),np.array([depth,np.inf]),np.array([0,-1]),np.array([0]),np.array([1]),frozenset(),d['guard_depth_tol_inches'],origins=origin,direction=np.array(d['direction']),plane_before=planes,plane_after=planes)
     assert codes.tolist()==[PX_MATERIAL_CHANGED,PX_HOLE]
+@pytest.mark.parametrize('origin,direction,plane_before,plane_after,minimum',[
+    ([1e16,0,0],[-1,0,0],[1,0,0,0],[1,0,0,-.125],.12),
+    ([1e16,1e16,0],[-.7071067811865476,-.7071067811865475,0],
+     [1,0,0,0],[0,1,0,-1.4142135623730951],.15),
+])
+def test_large_ray_origin_cancellation_cannot_hide_true_plane_offset(origin,direction,plane_before,plane_after,minimum):
+    moved=_displacement(np.array([1e16]),np.array([0]),np.array([1e16]),np.array([0]),np.array([True]),np.array([origin]),np.array(direction),np.array([plane_before]),np.array([plane_after]))
+    assert moved[0]>minimum
+    assert classify_one(plane_before,plane_after,depth_before=1e16,depth_after=1e16,origin=origin,direction=direction,tolerance=.05)==PX_MOVED_OTHER
+
+
+@pytest.mark.parametrize('after,want',[(1+2**-10,PX_OK),(np.nextafter(1+2**-10,np.inf),PX_MOVED_OTHER),(np.nextafter(1+2**-10,-np.inf),PX_OK)])
+def test_binary_exact_tolerance_boundary_has_no_extra_epsilon(after,want):
+    assert classify_one([0,0,1,-1],[0,0,1,-after],tolerance=2**-10)==want
+
+
+def test_different_supporting_planes_meeting_at_the_same_ray_hit_have_zero_displacement():
+    assert classify_one([0,0,1,-1],[.6,0,.8,-.8])==PX_OK
