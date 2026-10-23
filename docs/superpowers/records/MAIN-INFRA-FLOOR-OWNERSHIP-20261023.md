@@ -35,3 +35,20 @@ independent floor repair runs in its own output directories.
 Recorded/checked here: floor sets are disjoint and together cover all seven
 floors; queue ownership and output roots are separate. Claude's actual process,
 claimed branch and future output artifacts are not yet confirmed by Codex.
+
+## Measured engine finding — 1F, 2026-10-23
+
+Actual checked E3 produced15856→10136triangles,5720removed,280kept sites and3
+rolled-back sites. Its final site check and independent strict26 exterior guard
+passed. However native Blender eye_0 showed129711changedpixels, including gaps
+in a green band and changed ceiling appearance. This candidate is REJECTED for
+delivery; it was removed from current candidate selection and never accepted.
+The original source is unchanged. Exterior guard/site PASS alone is insufficient.
+Both owners must inspect independent interior images before accepting a floor.
+
+Counterexample image: Codex E3 worktree
+`data/main-infra-e3/run-20261023/independent-validator/1F/native-qa/paired-detail.png`.
+The original failed candidate remains frozen for diagnosis and full signed
+validation. Codex is identifying visible removed faces and restoring whole
+affected sites in a separate candidate. Claude must retain its independent
+interior visual checks on4F–7F when using this same engine.
