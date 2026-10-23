@@ -104,6 +104,21 @@ $PY='D:/PROJECTS/05-Corllenium-UC-Building-Repair-Engine/.venv/Scripts/python.ex
 
 Scoped output (2026-10-23): `13 passed in 3.95s`, `7 passed in 5.87s`, `5 passed in 2.08s`.
 
+Whole suites (same interpreter, `-p no:cacheprovider`, run 2026-10-23/24):
+
+```
+pytest tools/tests  -> 304 passed in 97.52s (0:01:37), exit 0
+pytest engine/tests -> 2 failed, 1965 passed, 1 xfailed in 2903.80s (0:48:23), exit 1
+  FAILED engine/tests/test_site_judge.py::test_the_repair_package_imports_nothing_from_the_validator
+         AssertionError: e1_loose.py imports engine.validate.checks
+  FAILED engine/tests/test_unity_mirror.py::test_a_real_round_trip_under_a_neutral_preset_is_unity_safe
+         MirrorError: mirror importer copy is stale: mirror (none) != owner ea37ed71...; run tools/unity_mirror.py sync
+```
+
+Both failures predate this branch: `git show 531769c:engine/repair/engines/e1_loose.py` already imports
+`engine.validate.*` (lines 25-29), and the Unity mirror copy is absent in this environment. `e4_merge.py` imports
+nothing from `engine.validate` or `engine.site_judge`; only `tools/main_infra_e4.py` does, like `tools/main_infra_e3.py`.
+
 Run E4 on 7F from the E3 candidate (NOT run; the engine is in use by another worker):
 
 ```powershell
