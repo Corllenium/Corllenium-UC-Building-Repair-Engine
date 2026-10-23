@@ -1,0 +1,53 @@
+{
+  "engine": {
+    "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine",
+    "origin": "https://github.com/Corllenium/Corllenium-UC-Building-Repair-Engine.git",
+    "head": "24ce7e4cf4de27f0bf786c2562b0d64197a531a3",
+    "core_longpaths": "",
+    "lfs_filters": {
+      "clean": "git-lfs clean -- %f",
+      "smudge": "git-lfs smudge -- %f",
+      "process": "git-lfs filter-process",
+      "required": "true"
+    }
+  },
+  "siege": {
+    "path": "D:\\PROJECTS\\02-Corllenium-Siege",
+    "origin": "https://github.com/Corllenium/Corllenium-Siege-Planning-Dashboard.git",
+    "head": "8866be74332ac1a11c243d1115557ca191f73667",
+    "core_longpaths": "true",
+    "lfs_filters": {
+      "clean": "git-lfs clean -- %f",
+      "smudge": "git-lfs smudge -- %f",
+      "process": "git-lfs filter-process",
+      "required": "true"
+    },
+    "gitattributes_sha256": "6669847076b6bc3e9e16b37f9f727254c87978f108c1784440e15a7aa7cfbb5e"
+  },
+  "model_archive": {
+    "path": "D:\\PROJECTS\\04-Corllenium-Building-Model-Repair",
+    "origin": "https://github.com/Corllenium/Corllenium-Building-Model-Repair.git",
+    "head": "935e1cf9ec8eae2fe2f0542e772505ad2c766dc3",
+    "core_longpaths": "true",
+    "lfs_filters": {
+      "clean": "git-lfs clean -- %f",
+      "smudge": "git-lfs smudge -- %f",
+      "process": "git-lfs filter-process",
+      "required": "true"
+    },
+    "gitattributes_sha256": "4d5823810998aa85c79bba97bc564af39e885bfc94e1ac2c776cf320dcfd87f8"
+  },
+  "project_map": {
+    "exists": true,
+    "sha256": "1fde4becf2a8429d8da830057ed920a33e6f0d6e30ddb0c06dcf99cc84877ee7"
+  },
+  "old_workspace_map_exists": false,
+  "python": {
+    "executable": "D:\\PROJECTS\\UC MODEL FIXER\\.venv\\Scripts\\python.exe",
+    "version": "3.12.10"
+  },
+  "env_present_only": {
+    "canonical_siege": true,
+    "siege_worktree": false
+  }
+}

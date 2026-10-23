@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "terminal": {
+    "state": "PROCESS_FAILED",
+    "phase": "e7-1F-retained-base-prepare",
+    "abort_reason": null,
+    "actual_pid": 52392,
+    "actual_creation_utc": "2026-10-23T23:45:03.7539730Z",
+    "actual_exit_code": 1,
+    "launcher_exit_code": 1,
+    "wall_s": 41.3462338,
+    "HEAD": "f48f26d252f06822e7557b0d645487ec72d0a8a8",
+    "phase_plan_sha256": "e9f214d4d3ec9d4ca343f4a2f710958c708cab55b5b68cfcafaf0453cea53407",
+    "all_owned_exited": true,
+    "evidence": ".\\data\\main-infra-e7\\retained-base-preflight\\monitor-e7-1F-retained-base-prepare-20261023T234502",
+    "ended_utc": "2026-10-23T23:45:44.9957951Z",
+    "acceptance": false
+  },
+  "error": "ValueError: off exact source plane",
+  "preserved_failure_files": {
+    "result.json": "c7a44117738f5be33a13b794a88600a0dfba8fef783d21845b35fc1b03a5478a",
+    "stderr.txt": "9d62ee316a48cd5b9d979112ffa3e59f910c50bd87a6a44508c022ce4ba445c7",
+    "stdout.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "actual-identity.json": "615abfe6cc7e8d3cfcb0d14f99d28e5f3fddae7c7c5a1d8a539fad15ae6f1ab3",
+    "launch-gate.json": "98cb449bfdcb5e57739ddd77b84701d73809cce1354f8866f930c9e427d24520",
+    "resources.jsonl": "616c18347b1fd2a8f5a2cc2d396b33c1c6408732a475ed9da25548d5c6df14d0"
+  },
+  "samples": 68,
+  "actual_peak_private_bytes": 119402496,
+  "actual_os_peak_commit_bytes": 296124416,
+  "observed_tree_peak_bytes": 122515456,
+  "min_system_headroom_bytes": 15416438784,
+  "postflight_pin_count": 278,
+  "postflight_pin_mismatches": [],
+  "absent_paths": {
+    "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-1f-retained-base-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261024-1F-retained-base\\preparation-1F.json": true,
+    "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-1f-retained-base-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261024-1F-retained-base\\1F": true,
+    "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-1f-retained-base-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261024-1F-retained-base\\execution-1F": true
+  },
+  "HEAD": "f48f26d252f06822e7557b0d645487ec72d0a8a8",
+  "no_kernel_or_candidate": true,
+  "accepted": null,
+  "next_step": "HOLD; bounded exact rejected-proposal attribution requires root authorization"
+}
