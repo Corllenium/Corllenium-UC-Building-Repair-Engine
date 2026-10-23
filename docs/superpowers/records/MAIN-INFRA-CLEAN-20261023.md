@@ -22,6 +22,38 @@ owner scale: 1 block = 1 metre. Preserve cuts, facade look/UVs and visible cover
 
 ## Evidence and pointers
 
+### Fresh model dashboard and precision investigation, 2026-10-23
+
+- Owner reiterated the source is the fresh Minecraft export and requested the
+  existing seven cards/Before-After window. The isolated dashboard now selects
+  fresh MAIN_INFRA_1F through 7F, including old MAIN INFRA unit links. Source and
+  candidate objects use immutable revision/run/floor paths and hash-checked OBJ,
+  MTL and texture assets. Default After waits for independent validation;
+  a failed candidate requires explicit inspection and is labelled not accepted.
+- Review caught a legacy pending slab and three provenance gates. Test-first
+  corrections keep pending fresh scenes empty, bind preview floor/revision and
+  candidate qualification, bind independent report to the exact qualified Before,
+  and require matching review proof before automatic After. Null evidence links
+  are rejected. Actual focused results: 17 Python tests, 28 UI tests; typecheck
+  passes. Earlier browser readback passed in 9.5s; final post-review rerun pending.
+- The source and explicit candidate screenshot show the same tiled floor, stairs,
+  white walls, green facade bands and orange source pieces. No floor is accepted.
+  The isolated preview is not a live deployment. No fixer service/database touched.
+- Broad collectable engine suite after the committed spatial lookup: 1734 passed,
+  1 xfailed in 548.03s. The two original missing-module collection errors remain
+  excluded by exact filename; the full suite is not claimed as passing.
+- 4F's original native float32 depths disagree with original face planes above
+  its existing 5.905511811023622e-6 inch depth tolerance, even with no deletions.
+  A shared-caster depth refinement passed 115 independent checks but failed two
+  independent nearest-hit counterexamples. That experiment was withdrawn, with
+  its diff/tests preserved under evidence. Shared caster is restored to ce4e325.
+  No guard or threshold changed and no 4F candidate/pass was produced.
+- Ruling: qualify a bounded version of the existing float64 BruteCaster oracle
+  for this pilot via the guard's existing caster_factory hook. Original-face
+  bounding boxes reduce work; the unchanged oracle decides every leaf hit.
+  New exhaustive/random/parallel/corner/collapsed-sheet tests: 8 passed in 0.77s.
+  Independent review and real-floor timing are required before integration.
+
 ### First pilot verdict and ray lookup diagnosis
 
 1F exact-duplicate-only candidate retained all15,856 triangles. Strict26guard

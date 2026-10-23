@@ -22,11 +22,18 @@ def strict_guard(before, after, source, provenance):
     positions = before.positions - center
     def render(mesh):
         factory = ReusableCaster()
-        return [(view, ortho_first_hit(positions, mesh.face_v, np.arange(mesh.n_faces),
-                 view, positions, (900, 600), factory)) for view in VIEWS_26]
+        rendered = []
+        for index, view in enumerate(VIEWS_26, 1):
+            rendered.append((view, ortho_first_hit(positions, mesh.face_v, np.arange(mesh.n_faces),
+                             view, positions, (900, 600), factory)))
+            print(f'GUARD rendered {mesh.n_faces} triangles view {index}/26', flush=True)
+        return rendered
     quanta = np.abs(np.asarray(provenance['source_to_engine'])[:3, :3]) @ axis_quanta(source.positions, source.sig_digits)
     depth_tol = guard_depth_tol(quanta, FixProfile())
-    report = compare_views(render(before), render(after), before.face_material, after.face_material, (),
+    print(f'GUARD original sig_digits={source.sig_digits}, transformed quanta={quanta.tolist()}, existing depth tolerance={depth_tol}in', flush=True)
+    before_views, after_views = render(before), render(after)
+    print('GUARD comparing saved 26-view buffers', flush=True)
+    report = compare_views(before_views, after_views, before.face_material, after.face_material, (),
         depth_tol, strict=True, plane_before=face_planes(positions, before.face_v),
         plane_after=face_planes(positions, after.face_v),
         geometry_before=(positions, before.face_v), geometry_after=(positions, after.face_v),
@@ -51,6 +58,7 @@ def build_candidate(baseline, qualification, out):
     engine = parse_floor((baseline / 'before.engine.obj').read_text(encoding='utf-8'))
     source = parse_floor((baseline / 'before.source.obj').read_text(encoding='utf-8'))
     result = cleanup(engine.mesh)
+    print(f'CLEANUP {engine.mesh.n_faces}->{result.mesh.n_faces}, exact duplicates={len(result.removed_to_survivor)}', flush=True)
     keep = np.zeros(engine.mesh.n_faces, bool)
     keep[result.source_faces] = True
     from engine.fixes.remove import remove_faces
@@ -100,7 +108,11 @@ def main():
     parser.add_argument('--floor', choices=['1F', '4F'], required=True)
     parser.add_argument('--progress', type=Path)
     parser.add_argument('--publish-status', type=Path)
+    parser.add_argument('--trace-after-seconds', type=int)
     args = parser.parse_args()
+    if args.trace_after_seconds:
+        import faulthandler
+        faulthandler.dump_traceback_later(args.trace_after_seconds)
     from tools.main_infra_progress import heartbeat_progress, update_floor
     stop = threading.Event()
     heartbeat_errors = []
@@ -129,6 +141,8 @@ def main():
             update_floor(args.progress, args.floor, 'blocked', 'Cleanup refused; qualified baseline retained', blocker=str(exc), published_path=args.publish_status)
         raise
     finally:
+        if args.trace_after_seconds:
+            faulthandler.cancel_dump_traceback_later()
         stop.set()
         if worker:
             worker.join()

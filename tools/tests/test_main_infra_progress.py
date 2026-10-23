@@ -55,6 +55,31 @@ def test_refuses_accepted_state_without_independent_validation_and_owner_proof(t
         write_progress(tmp_path / 'current.json', doc)
 
 
+def test_review_state_requires_matching_independent_proof(tmp_path):
+    doc = progress()
+    doc['source_revision'] = 'a' * 64
+    row = doc['floors']['1F']
+    prefix = '/models/main-infra/' + 'a' * 64 + '/1F/fresh-run/'
+    row.update(state='needs_review', candidate_preview=prefix + 'candidate/preview.json',
+               validator_ref=prefix + 'evidence/validation.json', evidence_refs=[prefix + 'evidence/independent-review.json'])
+    with pytest.raises(ValueError, match='review proof'):
+        write_progress(tmp_path / 'current.json', doc)
+    row['validation_proof'] = dict(source_revision=doc['source_revision'], run_id=doc['run_id'], floor_id=row['floor_id'],
+        candidate_preview=row['candidate_preview'], validator_ref=row['validator_ref'], validator_passed=True, independent=True,
+        independent_review_ref=row['evidence_refs'][0], **{key: 'b' * 64 for key in ('before_sha256', 'engine_candidate_sha256',
+        'source_candidate_sha256', 'validation_sha256', 'independent_review_sha256', 'qualification_sha256')})
+    write_progress(tmp_path / 'current.json', doc)
+    for key in ('run_id', 'source_revision', 'candidate_preview', 'before_sha256'):
+        broken = copy.deepcopy(doc)
+        broken['floors']['1F']['validation_proof'][key] = 'wrong'
+        with pytest.raises(ValueError, match='review proof'):
+            write_progress(tmp_path / 'current.json', broken)
+    row['evidence_refs'] = [None]
+    row['validation_proof']['independent_review_ref'] = None
+    with pytest.raises(ValueError):
+        write_progress(tmp_path / 'current.json', doc)
+
+
 def test_cancelled_run_cannot_be_resurrected_by_late_events(tmp_path):
     path = tmp_path / 'current.json'
     doc = progress()
@@ -104,3 +129,14 @@ def test_partial_json_is_not_a_valid_progress_document(tmp_path):
     path.write_text('{"schema_version":')
     with pytest.raises(ValueError):
         load_progress(path)
+
+
+def test_real_floor_time_stays_distinct_from_other_floors_and_heartbeat(tmp_path):
+    from tools.main_infra_progress import update_floor
+    path = tmp_path / 'current.json'
+    write_progress(path, progress())
+    update_floor(path, '1F', 'validating', 'Independent checks', now='2026-10-23T05:01:00Z')
+    heartbeat_progress(path, now='2026-10-23T05:02:00Z')
+    doc = load_progress(path)
+    assert doc['floors']['1F']['last_work_event_at'] == '2026-10-23T05:01:00Z'
+    assert 'last_work_event_at' not in doc['floors']['2F']

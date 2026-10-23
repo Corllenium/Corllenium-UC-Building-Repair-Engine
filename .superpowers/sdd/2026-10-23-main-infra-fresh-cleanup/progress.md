@@ -1,5 +1,20 @@
 # SDD ledger - plan: docs/superpowers/plans/2026-10-23-main-infra-fresh-cleanup.md
 
+- 2026-10-23 15:10: Fresh seven-card and Before/After display implemented in
+  isolated dashboard. User source confirmation incorporated. Default After waits;
+  failed candidate explicit inspection only. Review findings corrected test-first:
+  empty pending scene, floor/source qualification identity, exact baseline and
+  independent report binding, needs_review proof, non-null evidence links.
+  Python17 / UI28 tests pass; typecheck passes. Final browser/build pending.
+- Broad available engine suite: 1734 passed, 1 xfailed, 548.03s; two existing
+  missing implementation-module collection errors remain excluded, not repaired.
+- Ruling: withdraw shared ray depth experiment after independent nearest-hit
+  counterexamples (2e-5 and0.02141in). Existing caster restored to ce4e325; diff
+  preserved under evidence. Qualify bounded original BruteCaster only for pilot
+  through existing factory parameter; unchanged thresholds and leaf predicate.
+  Cost if wrong: pilot stays blocked; no model adoption. New8 tests pass0.77s;
+  independent review and real4F timing required before integration.
+
 - Owner approved inline execution in this chat on 2026-10-23: real per-floor status
   first, then fresh cleanup and independent validation; preserve cuts/facades/textures.
 - Task 1: complete in d5067ea; original reset receipt and 9 passing queue tests retained.

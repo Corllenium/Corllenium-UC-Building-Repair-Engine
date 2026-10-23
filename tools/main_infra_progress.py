@@ -55,16 +55,30 @@ def validate_progress(doc):
         if floor.get('blocker') is not None and not isinstance(floor['blocker'], str):
             raise ValueError('Invalid blocker')
         refs = [floor.get(key) for key in ('source_preview', 'candidate_preview', 'accepted_preview', 'validator_ref', 'owner_decision_ref')]
-        if not isinstance(floor.get('evidence_refs'), list):
+        if not isinstance(floor.get('evidence_refs'), list) or not all(isinstance(ref, str) and ref.strip() for ref in floor['evidence_refs']):
             raise ValueError('Evidence references must be a list')
         for ref in refs + floor['evidence_refs']:
             if ref is None:
                 continue
-            if not revision or not isinstance(ref, str) or not ref.startswith(f'/models/main-infra/{revision}/{floor_id}/') or any(char in ref for char in ('..', '\\', '%', '?', '#')):
+            if not revision or not isinstance(ref, str) or not ref.startswith(f'/models/main-infra/{revision}/{floor_id}/{doc["run_id"]}/') or any(char in ref for char in ('..', '\\', '%', '?', '#')):
                 raise ValueError('Asset reference does not belong to this frozen floor')
         for key in ('input_triangles', 'output_triangles'):
             if key in floor and (type(floor[key]) is not int or floor[key] < 0):
                 raise ValueError('Invalid measured triangle count')
+        if floor['state'] in ('needs_review', 'accepted'):
+            proof = floor.get('validation_proof', {})
+            if not isinstance(proof, dict):
+                raise ValueError('Independent review proof must be an object')
+            required = {'source_revision': revision, 'run_id': doc['run_id'], 'floor_id': floor['floor_id'],
+                'candidate_preview': floor.get('candidate_preview'), 'validator_ref': floor.get('validator_ref'),
+                'validator_passed': True, 'independent': True}
+            hashes = ('before_sha256', 'engine_candidate_sha256', 'source_candidate_sha256', 'validation_sha256',
+                      'independent_review_sha256', 'qualification_sha256')
+            if (not revision or not floor.get('candidate_preview') or not floor.get('validator_ref')
+                or any(proof.get(key) != value for key, value in required.items())
+                or not all(isinstance(proof.get(key), str) and re.fullmatch('[a-f0-9]{64}', proof[key]) for key in hashes)
+                or proof.get('independent_review_ref') not in floor['evidence_refs']):
+                raise ValueError('Matching independent review proof is required before automatic After display')
         if floor['state'] == 'accepted':
             proof = floor.get('acceptance_proof', {})
             required = {'source_revision': revision, 'run_id': doc['run_id'], 'floor_id': floor['floor_id'],
@@ -144,7 +158,7 @@ def update_floor(path, floor_id, state, step, *, blocker=None, published_path=No
         stamp = now or utc_now()
         doc['updated_at'] = doc['last_work_event_at'] = doc['heartbeat_at'] = stamp
         doc['state'], doc['step'] = 'running', f'{floor_id}: {step}'
-        doc['floors'][floor_id].update(state=state, step=step, blocker=blocker, **measured)
+        doc['floors'][floor_id].update(state=state, step=step, blocker=blocker, last_work_event_at=stamp, **measured)
         return write_progress(path, doc, published_path=published_path)
 
 
@@ -154,7 +168,13 @@ def main():
     parser.add_argument('--publish', type=Path, required=True)
     parser.add_argument('--initialize-run')
     parser.add_argument('--step')
+    parser.add_argument('--heartbeat', action='store_true')
     args = parser.parse_args()
+    if args.heartbeat:
+        if args.step or args.initialize_run:
+            parser.error('Heartbeat cannot create a work event')
+        heartbeat_progress(args.canonical, published_path=args.publish)
+        return
     doc = load_progress(args.canonical)
     if args.initialize_run:
         doc['replaces_run_id'], doc['run_id'] = doc['run_id'], args.initialize_run
