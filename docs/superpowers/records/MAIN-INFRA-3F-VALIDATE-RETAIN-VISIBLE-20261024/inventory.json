@@ -1,0 +1,107 @@
+{
+  "schema_version": 1,
+  "job_id": "MAIN-INFRA-3F-VALIDATE-RETAIN-VISIBLE-20261024",
+  "base_commit": "c2d48db820ba7db0f99b701efa5cd5431ba3e771",
+  "entries": [
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-3f-validate-retain-visible-20261024\\05-Corllenium-UC-Building-Repair-Engine\\tools\\main_infra_2f_validation.py",
+      "sha256": "fb58c1ae4b9a8c4e5ce81dc707576eedad72f3e1f1af6dfd9a6e3bedb2702b0b"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-3f-validate-retain-visible-20261024\\05-Corllenium-UC-Building-Repair-Engine\\tools\\main_infra_1f_retained_validation.py",
+      "sha256": "368fc365f22279af005c42d4205e303de23bba3d002c82632bb3be73791ba862"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-3f-validate-retain-visible-20261024\\05-Corllenium-UC-Building-Repair-Engine\\tools\\main_infra_3f_retained_validation.py",
+      "sha256": "374a42d1e3c2c3288635120f7523019935d6698f61a074317e32e2898d5962a7"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-3f-validate-retain-visible-20261024\\05-Corllenium-UC-Building-Repair-Engine\\tools\\main_infra_e3_replay.py",
+      "sha256": "166adc07d5db3a643a43e6a8ee0cfffb77dfeb079f6c524589902193c957af1e"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-3f-validate-retain-visible-20261024\\05-Corllenium-UC-Building-Repair-Engine\\tools\\tests\\test_main_infra_3f_retained_validation.py",
+      "sha256": "12e553109aac79deedc8f2a9ddb8543b18707be9bae89db579a1cb0e321a1ab0"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-3f-validate-retain-visible-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\guard\\compare.py",
+      "sha256": "0603150b2eebf9e3301688e825aef540575e8e688ee66180835df5c5e978dee8"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-3f-validate-retain-visible-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\validate\\targets.json",
+      "sha256": "4117f5e22045750fed7c4627ffa6324bf2efe5c14cf9629389a482c960036507"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-3f-validate-retain-visible-20261024\\05-Corllenium-UC-Building-Repair-Engine\\docs\\superpowers\\records\\MAIN-INFRA-3F-VALIDATE-RETAIN-VISIBLE-20261024\\actual-graph-green-process.json",
+      "sha256": "2c21d807ec12301c157b23004a366665749403f0267f5e8b790f86268a71f153"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-3f-validate-retain-visible-20261024\\05-Corllenium-UC-Building-Repair-Engine\\docs\\superpowers\\records\\MAIN-INFRA-3F-VALIDATE-RETAIN-VISIBLE-20261024\\actual-graph-green-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-3f-validate-retain-visible-20261024\\05-Corllenium-UC-Building-Repair-Engine\\docs\\superpowers\\records\\MAIN-INFRA-3F-VALIDATE-RETAIN-VISIBLE-20261024\\actual-graph-green.txt",
+      "sha256": "4d9423ea3aeae60e6c76700c244ce3398284957cb259b3fc8ee4f7c582225375"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-3f-validate-retain-visible-20261024\\05-Corllenium-UC-Building-Repair-Engine\\docs\\superpowers\\records\\MAIN-INFRA-3F-VALIDATE-RETAIN-VISIBLE-20261024\\full-green-process.json",
+      "sha256": "c7ec67e4f228e3752299c4ca6d98568503747f94009bee8762c5c135b8dd2dbf"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-3f-validate-retain-visible-20261024\\05-Corllenium-UC-Building-Repair-Engine\\docs\\superpowers\\records\\MAIN-INFRA-3F-VALIDATE-RETAIN-VISIBLE-20261024\\full-green-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-3f-validate-retain-visible-20261024\\05-Corllenium-UC-Building-Repair-Engine\\docs\\superpowers\\records\\MAIN-INFRA-3F-VALIDATE-RETAIN-VISIBLE-20261024\\full-green.txt",
+      "sha256": "3d8174d01c035974223a84b82d2ef2acdd153f3d6e920045dfb4366cd8502756"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-3f-validate-retain-visible-20261024\\05-Corllenium-UC-Building-Repair-Engine\\docs\\superpowers\\records\\MAIN-INFRA-3F-VALIDATE-RETAIN-VISIBLE-20261024\\plan.md",
+      "sha256": "04809d964f1de4aaf4d2907718bf5568c9aba10cd416602173a237f80cd9afa6"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-3f-validate-retain-visible-20261024\\05-Corllenium-UC-Building-Repair-Engine\\docs\\superpowers\\records\\MAIN-INFRA-3F-VALIDATE-RETAIN-VISIBLE-20261024\\profile-green-process.json",
+      "sha256": "7afb94bc4a26d6802a262d16d7041e2772c597b9ac37460c3af5135a9befa031"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-3f-validate-retain-visible-20261024\\05-Corllenium-UC-Building-Repair-Engine\\docs\\superpowers\\records\\MAIN-INFRA-3F-VALIDATE-RETAIN-VISIBLE-20261024\\profile-green-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-3f-validate-retain-visible-20261024\\05-Corllenium-UC-Building-Repair-Engine\\docs\\superpowers\\records\\MAIN-INFRA-3F-VALIDATE-RETAIN-VISIBLE-20261024\\profile-green.txt",
+      "sha256": "6bc0235039719ee0e456eeaf74605f8ad8a53166ef613ce7e80b34cce52081d9"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-3f-validate-retain-visible-20261024\\05-Corllenium-UC-Building-Repair-Engine\\docs\\superpowers\\records\\MAIN-INFRA-3F-VALIDATE-RETAIN-VISIBLE-20261024\\profile-red-process.json",
+      "sha256": "679cbe467e28afaaec44cb6515ce4bd7c858e7d3311d0e0745349117c2d15eaf"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-3f-validate-retain-visible-20261024\\05-Corllenium-UC-Building-Repair-Engine\\docs\\superpowers\\records\\MAIN-INFRA-3F-VALIDATE-RETAIN-VISIBLE-20261024\\profile-red-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-3f-validate-retain-visible-20261024\\05-Corllenium-UC-Building-Repair-Engine\\docs\\superpowers\\records\\MAIN-INFRA-3F-VALIDATE-RETAIN-VISIBLE-20261024\\profile-red.txt",
+      "sha256": "1c10db90718b658f98da3add8d78495660c30cb3118cc57a7e861dc2966b6223"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-3f-validate-retain-visible-20261024\\05-Corllenium-UC-Building-Repair-Engine\\docs\\superpowers\\records\\MAIN-INFRA-3F-VALIDATE-RETAIN-VISIBLE-20261024\\progress.md",
+      "sha256": "b0089271cd00e837bd1f9142aa13205580c890e748c01ce33054782e056a5d57"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-3f-validate-retain-visible-20261024\\05-Corllenium-UC-Building-Repair-Engine\\docs\\superpowers\\records\\MAIN-INFRA-3F-VALIDATE-RETAIN-VISIBLE-20261024\\reviewed-components.json",
+      "sha256": "6f6ee2f0c93f3938f18ff7294ee4f6003f6bbee5f99ead27958baba0a825c3a4"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-3f-validate-retain-visible-20261024\\05-Corllenium-UC-Building-Repair-Engine\\docs\\superpowers\\records\\MAIN-INFRA-3F-VALIDATE-RETAIN-VISIBLE-20261024\\target-byte-reproduction.json",
+      "sha256": "87915129015d0ab2f9eb9c9fba711e405254994e4a9d910010dcf0cb7d451c5b"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-3f-validate-retain-visible-20261024\\05-Corllenium-UC-Building-Repair-Engine\\docs\\superpowers\\records\\MAIN-INFRA-3F-VALIDATE-RETAIN-VISIBLE-20261024\\tiny_test_window.py",
+      "sha256": "8afbebc046524c5b1c9d8c36dfdb1bdcd129efe246f59bcde764d49bd6d6dc59"
+    }
+  ],
+  "guard_pending": true,
+  "native_pending": true,
+  "full_signed_pending": true,
+  "acceptance": false
+}

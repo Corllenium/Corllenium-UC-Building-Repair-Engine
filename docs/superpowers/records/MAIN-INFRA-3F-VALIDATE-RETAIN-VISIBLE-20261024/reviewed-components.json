@@ -1,0 +1,16 @@
+[
+  {
+    "after_sha256": "0603150b2eebf9e3301688e825aef540575e8e688ee66180835df5c5e978dee8",
+    "path": "engine/guard/compare.py",
+    "source": "D:/LLM_BACKUP/Codex session/main-infra-guard-f64-20261024/05-Corllenium-UC-Building-Repair-Engine/engine/guard/compare.py",
+    "component_commit": "735d762b06ab3d4d9743c81132a3507df54fb350",
+    "before_sha256": "e71c3e001b3f369a0003db390baca2a620f4cef9254045c4a31dc22754eb05ef"
+  },
+  {
+    "after_sha256": "166adc07d5db3a643a43e6a8ee0cfffb77dfeb079f6c524589902193c957af1e",
+    "path": "tools/main_infra_e3_replay.py",
+    "source": "D:/LLM_BACKUP/Codex session/main-infra-e3-3f-retain-visible-20261024/05-Corllenium-UC-Building-Repair-Engine/tools/main_infra_e3_replay.py",
+    "component_commit": "c125cd8ab28fe648491676125e8bc8e67d1c5c3a",
+    "before_sha256": "1f17b77efe2ae5beabbe614d76ab01e85e2a051bda3dee8fc354143f7d1b3405"
+  }
+]

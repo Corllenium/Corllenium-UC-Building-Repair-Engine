@@ -1,0 +1,8 @@
+{
+  "path": "engine/validate/targets.json",
+  "before_sha256": "22c79b34f06a89c96749abe4245ac828bc5400490a4bed14cb07c3a5522a723a",
+  "after_sha256": "4117f5e22045750fed7c4627ffa6324bf2efe5c14cf9629389a482c960036507",
+  "retained": "D:/LLM_BACKUP/Codex session/main-infra-1f-validate-retain-visible-20261024/05-Corllenium-UC-Building-Repair-Engine/engine/validate/targets.json",
+  "normalized_equal": true,
+  "index_unchanged": true
+}

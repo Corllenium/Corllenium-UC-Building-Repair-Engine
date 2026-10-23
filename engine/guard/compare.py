@@ -69,12 +69,15 @@ def face_planes(positions: np.ndarray, faces: np.ndarray) -> np.ndarray:
 def _displacement(before_depth: np.ndarray, before_tri: np.ndarray, after_depth: np.ndarray,
                    after_tri: np.ndarray, both: np.ndarray, origins, direction,
                    plane_before, plane_after) -> np.ndarray:
-    """How far the visible SURFACE moved at each both-hit pixel:
-    `max(dist(P_before, plane(face_after)), dist(P_after, plane(face_before)))`, where
-    `P = origins[px] + depth[px] * direction` is the hit point.
+    """Compare original-plane intersections, independently of float32 caster depth error.
 
-    Falls back to `|t_before - t_after|` (depth along the ray) wherever the metric cannot be
-    evaluated: no geometry supplied, or either face's plane undefined (zero area)."""
+    Coincident planes have zero separation. Distinct planes use exact binary64 rational inputs
+    so large ray origins cannot cancel away a real offset. Undefined intersections fail closed;
+    zero-area faces retain the explicit depth fallback.
+    """
+    from fractions import Fraction
+    import math
+
     with np.errstate(invalid="ignore"):
         out = np.abs(after_depth - before_depth)
     if origins is None or plane_before is None or plane_after is None or not both.any():
@@ -82,16 +85,50 @@ def _displacement(before_depth: np.ndarray, before_tri: np.ndarray, after_depth:
 
     origins = np.asarray(origins, dtype=np.float64)[both]
     direction = np.asarray(direction, dtype=np.float64)
-    point_before = origins + before_depth[both][:, None] * direction
-    point_after = origins + after_depth[both][:, None] * direction
     n_before = np.asarray(plane_before, dtype=np.float64)[before_tri[both]]
     n_after = np.asarray(plane_after, dtype=np.float64)[after_tri[both]]
+    defined = ((np.linalg.norm(n_before[:, :3], axis=1) > 0.0)
+               & (np.linalg.norm(n_after[:, :3], axis=1) > 0.0))
+    finite_planes = np.isfinite(n_before).all(axis=1) & np.isfinite(n_after).all(axis=1)
+    finite = finite_planes & np.isfinite(origins).all(axis=1) & np.isfinite(direction).all()
+    same_plane = np.all(n_before == n_after, axis=1) | np.all(n_before == -n_after, axis=1)
+    along = n_before[:, :3] @ direction
+    with np.errstate(invalid="ignore", divide="ignore", over="ignore"):
+        t = -(np.einsum("ij,ij->i", origins, n_before[:, :3]) + n_before[:, 3]) / along
+    known_same = defined & finite & same_plane & np.isfinite(t) & (t >= 0.0) & (along != 0.0)
+    distance = np.full(len(origins), np.inf, dtype=np.float64)
+    distance[known_same] = 0.0
 
-    to_after = np.abs(np.einsum("ij,ij->i", point_before, n_after[:, :3]) + n_after[:, 3])
-    to_before = np.abs(np.einsum("ij,ij->i", point_after, n_before[:, :3]) + n_before[:, 3])
-    defined = (np.linalg.norm(n_before[:, :3], axis=1) > 0.0) & (np.linalg.norm(n_after[:, :3], axis=1) > 0.0)
+    direction_q = tuple(Fraction(float(v)) for v in direction) if np.isfinite(direction).all() else ()
+    planes_q = {}
+    for i in np.flatnonzero(defined & finite & ~same_plane):
+        intersections = []
+        for plane in (n_before[i], n_after[i]):
+            key = tuple(plane)
+            if key not in planes_q:
+                coeff = tuple(Fraction(float(v)) for v in plane)
+                slope = sum(a * b for a, b in zip(coeff[:3], direction_q))
+                planes_q[key] = coeff, slope
+            coeff, slope = planes_q[key]
+            if not slope:
+                break
+            offset = sum(a * Fraction(float(b)) for a, b in zip(coeff[:3], origins[i])) + coeff[3]
+            ray_t = -offset / slope
+            if ray_t < 0:
+                break
+            intersections.append((ray_t, slope))
+        if len(intersections) == 2:
+            (tb, sb), (ta, sa) = intersections
+            exact = abs(ta - tb) * max(abs(sb), abs(sa))
+            try:
+                value = float(exact)
+            except OverflowError:
+                continue
+            if Fraction(value) < exact:
+                value = math.nextafter(value, math.inf)
+            distance[i] = value
 
-    out[both] = np.where(defined, np.maximum(to_after, to_before), out[both])
+    out[both] = np.where(~finite_planes | defined, distance, out[both])
     return out
 
 

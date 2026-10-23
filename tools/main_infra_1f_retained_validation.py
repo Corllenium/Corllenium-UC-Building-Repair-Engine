@@ -309,7 +309,7 @@ def read_checked_capture(before,looks,out,sha256):
     return outcome
 
 
-def bind_checked_result(receipt,before,after,looks):
+def bind_checked_result(receipt,before,after,looks,*,restore_sites=(5,),selected=279):
     from pathlib import Path
     import json
     from tools.main_infra_e3 import source_survivors
@@ -318,7 +318,7 @@ def bind_checked_result(receipt,before,after,looks):
     plan=shared.read(p['builder_preparation']);selection=plan['selection']
     policy=shared.read(p['retention_policy'])
     original=Path(policy['original_audit']['path']).parent
-    edits,replay=load_replay_plan(before,looks,original,expected_audit_sha256=policy['original_audit']['sha256'],restore_sites=(5,))
+    edits,replay=load_replay_plan(before,looks,original,expected_audit_sha256=policy['original_audit']['sha256'],restore_sites=restore_sites)
     if (replay!=selection['replay'] or removal_digest(edits)!=selection['typed_plan_digest']
             or canonical(removal_rows(edits))!=canonical(selection['selected_edits'])):
         raise ValueError('All original E3 K1/typed subset proof differs')
@@ -342,7 +342,7 @@ def bind_checked_result(receipt,before,after,looks):
         elif actual.dtype!=written.dtype or actual.shape!=written.shape or actual.tobytes()!=written.tobytes():
             raise ValueError('Actual checkpoint corners differ from saved pair')
     receipt['retention']=dict(site=5,original_faces=len(selection['retained_source_faces']),
-        original_counts=selection['original_counts'],selected=279,actual_kept=len(outcome.kept),
+        original_counts=selection['original_counts'],selected=selected,actual_kept=len(outcome.kept),
         actual_rolled_back=len(outcome.rolled_back),checkpoint_receipt_sha256=receipt['hashes']['checkpoint_receipt'],
         all_original_records_verified=True,actual_typed_result_verified=True,old_verdict_is_not_reused=True)
 
