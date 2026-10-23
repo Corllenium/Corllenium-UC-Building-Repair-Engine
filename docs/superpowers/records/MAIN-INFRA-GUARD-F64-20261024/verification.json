@@ -2,7 +2,7 @@
   "code_base": "1ac1de3ad71e6550e7b80a8732c6662831e7884d",
   "code_review_commit": "735d762b06ab3d4d9743c81132a3507df54fb350",
   "code_sha256": "0603150b2eebf9e3301688e825aef540575e8e688ee66180835df5c5e978dee8",
-  "existing_guard_cases_passed": 68,
+  "existing_guard_cases_passed": 70,
   "existing_guard_completed": [
     {
       "combined_private_peak_upper_bound": 244682752,
@@ -828,7 +828,7 @@
       "process_sha256": "0c9b7794680933711a895a46dee90faef88ac9052181468844d141f07ebe39d1"
     }
   ],
-  "full_guard_area_passed": false,
+  "full_guard_area_passed": true,
   "full_project_suite_run": false,
   "golden_inventory_sha256": "e5eb6b96fa4b6de068bb55b89c930b2c45282d30efac69cdf5da2738917be2c1",
   "golden_validator_run": false,
@@ -847,9 +847,9 @@
   "operator": "Codex-Guard-F64",
   "original_guard_passed": false,
   "pending": [
-    "Two existing large ring fixtures require separately authorized resource window; current250MiB cap never increased.",
-    "Golden Validator phases on inventoried CHTM5 and both sidewalks require rootGO.",
-    "Independent frozen-code review and actual26/native/fullsigned remain required before preservation acceptance."
+    "Golden guard adapter/code/config review then root resource GO on three inventoried frozen pairs.",
+    "Any owner-signed golden Validator result remains a separate phase; no such result is claimed.",
+    "Actual 2F strict26 retry remains root-held; original strict FAIL is immutable."
   ],
   "prior_combined_cap_aborts": [
     "guard-area",
@@ -926,5 +926,16 @@
       "path": "engine/tests/test_guard.py",
       "sha256": "73707e5208bd9568fc164420dbdc86f353c05668093b5a97e92950fb575f924e"
     }
-  ]
+  ],
+  "large_fixture_readback_sha256": "092f1dce2baff6324d9007b48e791cbce38593c566b819bc36e837022b49eee6",
+  "private_golden_adapter": {
+    "test_file": "engine/tests/test_guard_f64_golden_phase.py",
+    "test_sha256": "ae39c065518b8b383c1596fd68c7cf8e09dfbae82e169770eaafe90942183a69",
+    "script_sha256": "35a30202d5b51344a043f2eb3e75e16bbd0d5a8f216b730582397680d8e591f7",
+    "tests_passed": 10,
+    "tests_seconds": 1.15,
+    "help_exit": 0,
+    "model_inputs_loaded": false,
+    "real_golden_phases_run": false
+  }
 }

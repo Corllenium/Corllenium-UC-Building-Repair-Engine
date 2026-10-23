@@ -1,0 +1,16 @@
+{
+  "state": "PROCESS_EXITED_ZERO",
+  "phase": "guard-F64-existing-fixture-1",
+  "abort_reason": null,
+  "actual_pid": 57948,
+  "actual_creation_utc": "2026-10-23T22:31:31.8376099Z",
+  "actual_exit_code": 0,
+  "launcher_exit_code": 0,
+  "wall_s": 5.5914286,
+  "HEAD": "7dda18c8fa3b387368222f5ebc801822dcba889a",
+  "phase_plan_sha256": "2902cac289ddce3bba634dd00faa2cb9c185c39fdfa163c1dff855f623f0764a",
+  "all_owned_exited": true,
+  "evidence": "data\\guard-f64-preflight\\monitor-guard-F64-existing-fixture-1-20261023T223130",
+  "ended_utc": "2026-10-23T22:31:37.3307722Z",
+  "acceptance": false
+}

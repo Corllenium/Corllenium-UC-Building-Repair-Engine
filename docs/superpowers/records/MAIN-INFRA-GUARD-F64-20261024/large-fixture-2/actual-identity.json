@@ -1,0 +1,12 @@
+{
+  "state": "RUNNING",
+  "phase": "guard-F64-existing-fixture-2",
+  "actual_pid": 34556,
+  "actual_creation_utc": "2026-10-23T22:34:16.1095361Z",
+  "launcher_pid": 63700,
+  "monitor_pid": 28444,
+  "command": "C:\\Users\\Future26\\AppData\\Local\\Programs\\Python\\Python312\\python.exe -B -u -m pytest engine\\tests\\test_guard.py::test_a_whole_triangle_lost_after_a_closed_slab_still_fails_with_the_border_tolerance -q -p no:cacheprovider --basetemp D:\\TEMP\\guard-f64-large-v4-2\\pytest",
+  "HEAD": "7dda18c8fa3b387368222f5ebc801822dcba889a",
+  "phase_plan_sha256": "bbc7550d27b4048fbdcbe37eac71981b5835808bcf0f8db11ccf14bffa26583d",
+  "evidence": "data\\guard-f64-preflight\\monitor-guard-F64-existing-fixture-2-20261023T223414"
+}

@@ -3,20 +3,8 @@
   "code_review_only": true,
   "files": [
     {
-      "path": "engine/guard/compare.py",
-      "sha256": "0603150b2eebf9e3301688e825aef540575e8e688ee66180835df5c5e978dee8"
-    },
-    {
-      "path": "engine/tests/test_guard_f64_displacement.py",
-      "sha256": "0c4700d4b3b4bca0d71300e6bc8ce7c09a76a63d5954080b0685a8bdf9040a53"
-    },
-    {
-      "path": "engine/tests/fixtures/guard_2f_f64_witnesses.json",
-      "sha256": "4985748e09b07081ee6d3e4034473f8352e86beb1ed773cf23251eec5f7ec502"
-    },
-    {
       "path": ".superpowers/sdd/guard-f64/progress.md",
-      "sha256": "7c378d83b033404dcfde8c4be3b76689437af515448e82b1c0e2ea4f3aaf7c66"
+      "sha256": "e1d12ff3294404ad634e9a12ca1d22736b806fdebf48033e492d1d4a4c441e82"
     },
     {
       "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/bounded-tests.py",
@@ -47,8 +35,48 @@
       "sha256": "63f491d6a28849b6bce458273785a56311ca209a70b9a9e8ddfeda5f6b2ef94a"
     },
     {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/golden-adapter-green-process.json",
+      "sha256": "a851154d3d6abcd03df66f9e206db77536852cb77397979d6c4b21d4380739a5"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/golden-adapter-green-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/golden-adapter-green.txt",
+      "sha256": "a20064adae7a9ffa2a701fa26ba5e2e5556f17b74f30fff26ae23b8a1e4c87cc"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/golden-adapter-help-process.json",
+      "sha256": "a9619e214f2bbefd6f4852764ce4c8bb9e51d2e15d4c904901ae3681ded2ba8b"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/golden-adapter-help-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/golden-adapter-help.txt",
+      "sha256": "0c6374ddf82a923d06d2d327bdb2774b21fcd8401706f6ddbebedda29a85cbea"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/golden-adapter-red-process.json",
+      "sha256": "e7ee7587fd5d08d7e490e88a0d45233c12e8663cae1d9776cf5421a62ebc9bfb"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/golden-adapter-red-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/golden-adapter-red.txt",
+      "sha256": "0bf2cc89143e7f8d7df4f2f38ce0e042eab3779b1953556b663ad6155df04bd9"
+    },
+    {
       "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/golden-input-inventory.json",
       "sha256": "e5eb6b96fa4b6de068bb55b89c930b2c45282d30efac69cdf5da2738917be2c1"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/golden_guard_phase.py",
+      "sha256": "35a30202d5b51344a043f2eb3e75e16bbd0d5a8f216b730582397680d8e591f7"
     },
     {
       "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/green-final-process.json",
@@ -603,6 +631,74 @@
       "sha256": "e8a8b9be750f03aa0c8d99433a229e729cc973a3cb234833b95202faa7b3ed2b"
     },
     {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/large-fixture-1/actual-identity.json",
+      "sha256": "f069aa72209534040d81400ab666b9696b47e97dd79f2642fc710848cfc87b69"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/large-fixture-1/identities.jsonl",
+      "sha256": "8fb9f69bd0d81168a749b6efd9d1b9cd1ee701c540010a6c9739b14e0756cb59"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/large-fixture-1/launch-gate.json",
+      "sha256": "dae7edc5a9e1d078409fa79815006d8be93e11907c5fafeb70105b657bbcbd47"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/large-fixture-1/phase-fixture-1.json",
+      "sha256": "2902cac289ddce3bba634dd00faa2cb9c185c39fdfa163c1dff855f623f0764a"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/large-fixture-1/resources.jsonl",
+      "sha256": "dd0b31cf49c8f0da40d3a47b1ebc2f764f77e7afb0b1dd681699070191985015"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/large-fixture-1/result.json",
+      "sha256": "3c9b88aebc774b5a3e3a752f568685f01d5c1646c3ee5a4af5142e1cdb68ce8a"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/large-fixture-1/stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/large-fixture-1/stdout.txt",
+      "sha256": "f59e0ddd4e8c93cca3c6fb7fc09ef244c12824bf944a54ee897279c112966769"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/large-fixture-2/actual-identity.json",
+      "sha256": "ab21cf8c0e1054457f25559c0260883202f28de6880883a29a9b8aae7a9a3421"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/large-fixture-2/identities.jsonl",
+      "sha256": "026434cce2674136135d45cd60d7a33aab5a60bb62d594588dccc7f3b1e715e1"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/large-fixture-2/launch-gate.json",
+      "sha256": "1e32c9f207efe066927c157c5f21d873d72044762419d7155e495a12b5dbfaf8"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/large-fixture-2/phase-fixture-2.json",
+      "sha256": "bbc7550d27b4048fbdcbe37eac71981b5835808bcf0f8db11ccf14bffa26583d"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/large-fixture-2/resources.jsonl",
+      "sha256": "2de4a17fca3797fab2071d418e2bdd853fffce525b8f123275683cc79214ea75"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/large-fixture-2/result.json",
+      "sha256": "b190cebd98efbf837435acae7882d28680381266bdd91d9a28924211a2a0cbae"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/large-fixture-2/stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/large-fixture-2/stdout.txt",
+      "sha256": "cb8e0cf10d8baec719456a4e6cdb1666227790d985804228c4ed19c760a06e35"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/large-fixture-readback.json",
+      "sha256": "092f1dce2baff6324d9007b48e791cbce38593c566b819bc36e837022b49eee6"
+    },
+    {
       "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/rational-cap-1-process.json",
       "sha256": "b69773df4926950f5282cab1704a3ae58b5e575df1f62c7529e1318fbd87da7f"
     },
@@ -1120,14 +1216,32 @@
     },
     {
       "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/review-freeze.md",
-      "sha256": "d5fbdf9f241df1dfaa2ad5e4b44349346176241e1989cb8ec606687932c3c3f0"
+      "sha256": "b51763bab0253c48adf6fb4d2d480ed1869c5cab963d9a6ad70a00a2bc91642b"
     },
     {
       "path": "docs/superpowers/records/MAIN-INFRA-GUARD-F64-20261024/verification.json",
-      "sha256": "84118b15a4a4d6a1cf21e87b402b7fb642ac5e76e0bc148f852359b9198601cf"
+      "sha256": "d762dfdaa25499240cb4308076b662caa8b3c0d6153e8ccb0fdfd14308d62090"
+    },
+    {
+      "path": "engine/guard/compare.py",
+      "sha256": "0603150b2eebf9e3301688e825aef540575e8e688ee66180835df5c5e978dee8"
+    },
+    {
+      "path": "engine/tests/fixtures/guard_2f_f64_witnesses.json",
+      "sha256": "4985748e09b07081ee6d3e4034473f8352e86beb1ed773cf23251eec5f7ec502"
+    },
+    {
+      "path": "engine/tests/test_guard_f64_displacement.py",
+      "sha256": "0c4700d4b3b4bca0d71300e6bc8ce7c09a76a63d5954080b0685a8bdf9040a53"
+    },
+    {
+      "path": "engine/tests/test_guard_f64_golden_phase.py",
+      "sha256": "ae39c065518b8b383c1596fd68c7cf8e09dfbae82e169770eaafe90942183a69"
     }
   ],
   "job_id": "MAIN-INFRA-GUARD-F64-20261024",
   "model_acceptance": false,
-  "schema_version": 1
+  "schema_version": 1,
+  "full_existing_guard_area_passed": true,
+  "golden_adapter_review_pending": true
 }

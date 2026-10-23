@@ -1,0 +1,8 @@
+usage: golden_guard_phase.py [-h] --plan PLAN --plan-sha256 PLAN_SHA256
+
+Private frozen-pair comparison of the retained and corrected guard metrics.
+
+options:
+  -h, --help            show this help message and exit
+  --plan PLAN
+  --plan-sha256 PLAN_SHA256

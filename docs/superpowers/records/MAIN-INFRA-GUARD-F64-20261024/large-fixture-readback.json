@@ -1,0 +1,107 @@
+{
+  "schema_version": 1,
+  "code_commit": "735d762b06ab3d4d9743c81132a3507df54fb350",
+  "execution_head": "7dda18c8fa3b387368222f5ebc801822dcba889a",
+  "code_sha256": "0603150b2eebf9e3301688e825aef540575e8e688ee66180835df5c5e978dee8",
+  "named_resource_increase": "250 MiB -> 1 GiB for these two unchanged existing fixture cases only after measured cap aborts; root reviewed immutable configs and authorized both",
+  "fixtures": [
+    {
+      "fixture": 1,
+      "phase": "guard-F64-existing-fixture-1",
+      "actual_pid": 57948,
+      "actual_creation_utc": "2026-10-23T22:31:31.8376099Z",
+      "ended_utc": "2026-10-23T22:31:37.3307722Z",
+      "exit_code": 0,
+      "all_owned_exited": true,
+      "stdout": ".                                                                        [100%]\n1 passed in 3.65s",
+      "samples": 10,
+      "tree_private_peak_bytes": 248967168,
+      "actual_os_peak_commit_bytes": 275427328,
+      "minimum_headroom_bytes": 15894933504,
+      "artifacts": [
+        {
+          "path": "docs\\superpowers\\records\\MAIN-INFRA-GUARD-F64-20261024\\large-fixture-1\\actual-identity.json",
+          "sha256": "f069aa72209534040d81400ab666b9696b47e97dd79f2642fc710848cfc87b69"
+        },
+        {
+          "path": "docs\\superpowers\\records\\MAIN-INFRA-GUARD-F64-20261024\\large-fixture-1\\identities.jsonl",
+          "sha256": "8fb9f69bd0d81168a749b6efd9d1b9cd1ee701c540010a6c9739b14e0756cb59"
+        },
+        {
+          "path": "docs\\superpowers\\records\\MAIN-INFRA-GUARD-F64-20261024\\large-fixture-1\\launch-gate.json",
+          "sha256": "dae7edc5a9e1d078409fa79815006d8be93e11907c5fafeb70105b657bbcbd47"
+        },
+        {
+          "path": "docs\\superpowers\\records\\MAIN-INFRA-GUARD-F64-20261024\\large-fixture-1\\phase-fixture-1.json",
+          "sha256": "2902cac289ddce3bba634dd00faa2cb9c185c39fdfa163c1dff855f623f0764a"
+        },
+        {
+          "path": "docs\\superpowers\\records\\MAIN-INFRA-GUARD-F64-20261024\\large-fixture-1\\resources.jsonl",
+          "sha256": "dd0b31cf49c8f0da40d3a47b1ebc2f764f77e7afb0b1dd681699070191985015"
+        },
+        {
+          "path": "docs\\superpowers\\records\\MAIN-INFRA-GUARD-F64-20261024\\large-fixture-1\\result.json",
+          "sha256": "3c9b88aebc774b5a3e3a752f568685f01d5c1646c3ee5a4af5142e1cdb68ce8a"
+        },
+        {
+          "path": "docs\\superpowers\\records\\MAIN-INFRA-GUARD-F64-20261024\\large-fixture-1\\stderr.txt",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "docs\\superpowers\\records\\MAIN-INFRA-GUARD-F64-20261024\\large-fixture-1\\stdout.txt",
+          "sha256": "f59e0ddd4e8c93cca3c6fb7fc09ef244c12824bf944a54ee897279c112966769"
+        }
+      ]
+    },
+    {
+      "fixture": 2,
+      "phase": "guard-F64-existing-fixture-2",
+      "actual_pid": 34556,
+      "actual_creation_utc": "2026-10-23T22:34:16.1095361Z",
+      "ended_utc": "2026-10-23T22:34:19.1229451Z",
+      "exit_code": 0,
+      "all_owned_exited": true,
+      "stdout": ".                                                                        [100%]\n1 passed in 1.96s",
+      "samples": 6,
+      "tree_private_peak_bytes": 264507392,
+      "actual_os_peak_commit_bytes": 291028992,
+      "minimum_headroom_bytes": 17404444672,
+      "artifacts": [
+        {
+          "path": "docs\\superpowers\\records\\MAIN-INFRA-GUARD-F64-20261024\\large-fixture-2\\actual-identity.json",
+          "sha256": "ab21cf8c0e1054457f25559c0260883202f28de6880883a29a9b8aae7a9a3421"
+        },
+        {
+          "path": "docs\\superpowers\\records\\MAIN-INFRA-GUARD-F64-20261024\\large-fixture-2\\identities.jsonl",
+          "sha256": "026434cce2674136135d45cd60d7a33aab5a60bb62d594588dccc7f3b1e715e1"
+        },
+        {
+          "path": "docs\\superpowers\\records\\MAIN-INFRA-GUARD-F64-20261024\\large-fixture-2\\launch-gate.json",
+          "sha256": "1e32c9f207efe066927c157c5f21d873d72044762419d7155e495a12b5dbfaf8"
+        },
+        {
+          "path": "docs\\superpowers\\records\\MAIN-INFRA-GUARD-F64-20261024\\large-fixture-2\\phase-fixture-2.json",
+          "sha256": "bbc7550d27b4048fbdcbe37eac71981b5835808bcf0f8db11ccf14bffa26583d"
+        },
+        {
+          "path": "docs\\superpowers\\records\\MAIN-INFRA-GUARD-F64-20261024\\large-fixture-2\\resources.jsonl",
+          "sha256": "2de4a17fca3797fab2071d418e2bdd853fffce525b8f123275683cc79214ea75"
+        },
+        {
+          "path": "docs\\superpowers\\records\\MAIN-INFRA-GUARD-F64-20261024\\large-fixture-2\\result.json",
+          "sha256": "b190cebd98efbf837435acae7882d28680381266bdd91d9a28924211a2a0cbae"
+        },
+        {
+          "path": "docs\\superpowers\\records\\MAIN-INFRA-GUARD-F64-20261024\\large-fixture-2\\stderr.txt",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "docs\\superpowers\\records\\MAIN-INFRA-GUARD-F64-20261024\\large-fixture-2\\stdout.txt",
+          "sha256": "cb8e0cf10d8baec719456a4e6cdb1666227790d985804228c4ed19c760a06e35"
+        }
+      ]
+    }
+  ],
+  "acceptance": false,
+  "model_phase_run": false
+}

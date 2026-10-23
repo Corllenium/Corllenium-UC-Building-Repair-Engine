@@ -1,0 +1,12 @@
+{
+  "state": "RUNNING",
+  "phase": "guard-F64-existing-fixture-1",
+  "actual_pid": 57948,
+  "actual_creation_utc": "2026-10-23T22:31:31.8376099Z",
+  "launcher_pid": 55316,
+  "monitor_pid": 32376,
+  "command": "C:\\Users\\Future26\\AppData\\Local\\Programs\\Python\\Python312\\python.exe -B -u -m pytest engine\\tests\\test_guard.py::test_a_whole_triangle_lost_from_the_same_scene_is_still_a_failure -q -p no:cacheprovider --basetemp D:\\TEMP\\guard-f64-large-v4-1\\pytest",
+  "HEAD": "7dda18c8fa3b387368222f5ebc801822dcba889a",
+  "phase_plan_sha256": "2902cac289ddce3bba634dd00faa2cb9c185c39fdfa163c1dff855f623f0764a",
+  "evidence": "data\\guard-f64-preflight\\monitor-guard-F64-existing-fixture-1-20261023T223130"
+}

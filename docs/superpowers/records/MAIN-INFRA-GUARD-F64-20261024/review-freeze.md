@@ -18,3 +18,10 @@ Coincident plane coefficients have symbolic zero separation when the finite forw
 
 This is a supporting-plane metric, not triangle-membership certification or a GPU primitive claim. Actual full26 cost remains unmeasured. Existing guard tests are being rerun after this revision within250MiB; known two large cap-blocked fixtures and golden Validator phases remain pending root resource GO. No actual model phase launched.
 Final060315 code-area rerun:29new and68existing cases passed; two existing largefixtures again hit the unchanged250MiB cap. No test/model process remains. Root authorized preparation of separately reviewed1GiB fixture configs, not a launch or a numeric-policy change. Golden phases remain unrun.
+
+
+## Existing fixture completion and golden adapter
+
+Root independently reviewed the two immutable configs and authorized a named1GiB resource increase for those two cases. Both completed:1PASS3.65s(actual57948) and1PASS1.96s(actual34556), exit0/noabort/allownedexited. The full existing guard area is70PASS; the29new numerical cases remainPASS. Prior250MiB cap-abort evidence is retained.
+
+The private golden adapter follows observed missing-module RED with10genuine tiny/schema testsPASS1.15s and help exit0. It compares the retained1ac and corrected060315 modules on the SAME saved hit buffers per view, preserving distinct before/after F64 position tables, the common BEFORE camera frame and exact material names. Actual protocol remains strict26/900x600/all materials patterned/zero caps, with the original BEFORE axis_quanta/FixProfile tolerance. PNG DIFF is explicitly base classification; authoritative totals come from compare_views. The private adapter produces no model and no owner-signed Validator/acceptance verdict. Three frozen golden phases still need independent code/config review and root resource GO.
