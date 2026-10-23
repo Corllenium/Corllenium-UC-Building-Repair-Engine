@@ -42,7 +42,17 @@ Worktree `.claude/worktrees/MAIN-INFRA-CLAUDE-4F-7F-20261023`, branch `claude/MA
 
 Dashboard state 7F: `blocked`, evidence under `/models/main-infra/<rev>/7F/main-infra-claude-4f-7f-20261023/evidence/`.
 
-### 6F, 5F, 4F
+### 6F (2026-10-23)
+| Step | Result |
+|---|---|
+| Duplicate-only candidate | 0 exact duplicates, guard PASS (63 s) |
+| Checked E3 | first attempt died with `_ArrayMemoryError` under four concurrent engine workers; rerun alone: 34,862 → 27,108 (7,754 removed), 1,497 sites, 1,319 kept, 178 rolled back, 2,990 s |
+| Independent strict-26 guard | PASS: holes 0, material_changed 0, grown 0 |
+| Interior gate | 16 certified poses (1,459 probes): 3 changed px total |
+| Validator on E3 | FAIL on signed targets, textures PASS, nothing deleted PASS: flicker_diff 6918→3236, flicker_same 9922→4934, cracks 7480→6659, hidden 15,518→7,763 |
+| Archived | 04 upper-floors/6F + Model-Floor_06; 03 Floor/Model-Floor_06; Z mirror 6F; Blender library 7F+6F |
+
+### 5F, 4F
 - Import qualification PASS: 6F 253 RGB px / 0 alpha; 4F 190 / 0 (matches Codex's pilot); 5F refused at 512 px on one
   silhouette-edge pixel, re-rendered at 1024 px: 857 RGB px / 0 alpha → PASS (512 px record kept as `refused-512px-*`).
 - 6F duplicate-only candidate: 0 duplicates, guard PASS; checked E3 running. 5F candidate running. 4F queued.
