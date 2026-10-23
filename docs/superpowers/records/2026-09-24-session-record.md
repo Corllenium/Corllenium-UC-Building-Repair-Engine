@@ -340,3 +340,5 @@ STAGING-ENGINE-2-3 recovery: second floor 2 attempt failed at 22:42 on a 1.42 Mi
 ### 2026-10-23 - MAIN-INFRA-RESET-20261023 (Codex)
 
 Owner reset to the fresh seven-floor Z: Minecraft export, confirmed 1 block = 1 metre, and authorized deletion of both old plans/jobs and failed outputs. Retired five old job entries, deleted six explicit failed-guard OBJ variants and four obsolete plan/brief files with SHA-256 receipts and absence readback. Source/raw data and diagnostic evidence remain. Replacement design/plan reviewed independently; progress precedes import and simulated dashboard completion/approval is disallowed for fresh MAIN INFRA. Queue tests: 9 passed in 1.22s. See MAIN-INFRA-RESET-20261023.md. Actual state: plan awaiting owner review; no fresh geometry repair, model acceptance or dashboard code/deployment this turn.
+
+2026-10-23 Codex MAIN-INFRA-CLEAN: fresh36 frozen; 1F/4F native maps complete; 30 source render pairs each byte-identical; frame RGB-only differences recorded. 67 focused tests pass. Independent import qualification finishing; correct Validator33606ce9 identified. No accepted output/SKP/deployment. See MAIN-INFRA-CLEAN-20261023.md.

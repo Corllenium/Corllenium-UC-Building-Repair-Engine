@@ -39,3 +39,14 @@
   count, winding, boundary and projected coverage without moving any corner.
 - No engine guard, FixProfile threshold or existing tracked engine test was changed.
   Next: freeze current source through copy_verified and reproduce both pilot errors.
+- Task 2 baseline: 36-file frozen revision 7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511.
+  Native errors reproduced; 1F/4F explicit reference maps all polygons/corners.
+  Valid import-qa-v2: 30 raw/triangulated textured pairs per floor, byte-identical.
+  Read all-view and detail images; original cuts, look and coverage agree.
+- Source-to-engine transform and inverse recorded. Engine-frame raster RGB-only
+  differences 123/190 pixels; independent frame audit reports zero alpha or
+  silhouette changes and inverse error <=3.55e-15m. No guard tolerance changed.
+- Tested saved-frame normalizer, native-reference capture, real render corruption
+  control/relative-path regression and guarded pilot candidate/refusal/readback.
+  Combined focused suite: 67 passed in 10.37s. Independent import review pending
+  final receipt; fresh cleanup has not yet run. Evidence/report records caveats.

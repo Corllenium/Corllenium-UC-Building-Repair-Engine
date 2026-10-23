@@ -14,7 +14,7 @@ from pathlib import Path
 
 import numpy as np
 
-from engine.io.minecraft_floor import FloorFormatError, _triangulate, parse_floor
+from engine.io.minecraft_floor import Frame, FloorFormatError, _triangulate, parse_floor, write_floor
 from engine.io.mtl import parse_mtl
 from engine.io.snapshot import copy_verified, sha256_file
 
@@ -61,6 +61,56 @@ def freeze_source(source, root, *, interval_s=1.0, progress=None):
                 'recorded_utc': datetime.now(timezone.utc).isoformat()}
     manifest_path.write_text(json.dumps(manifest, indent=2), encoding='utf-8')
     return manifest
+
+
+def normalize_reference(source, reference, output, frame):
+    source, reference, output = Path(source), Path(reference), Path(output)
+    doc = json.loads(reference.read_text(encoding='utf-8'))
+    if doc.get('schema_version') != 1 or doc.get('source_sha256') != sha256_file(source):
+        raise ValueError('Reference source hash differs')
+    if doc.get('unmatched_polygons') != 0 or not doc.get('blender_version'):
+        raise ValueError('Reference contains unmatched source polygons')
+    triangles = {int(line): value for line, value in doc['polygons'].items()}
+    floor = parse_floor(source.read_text(encoding='utf-8'), name=source.stem, triangulations=triangles)
+    if doc.get('raw_polygon_count') != len(floor.polygons) or doc.get('imported_polygon_count') != len(floor.polygons) or doc.get('triangle_count') != floor.mesh.n_faces:
+        raise ValueError('Reference polygon/triangle counts differ')
+    assets = []
+    raw_root = source.parent.resolve()
+    if floor.mesh.mtllib:
+        material = (raw_root / floor.mesh.mtllib).resolve()
+        if not material.is_relative_to(raw_root) or not material.is_file():
+            raise ValueError('Missing or escaping material dependency')
+        assets.append(material)
+        for value in parse_mtl(material).values():
+            if value.map_kd:
+                texture = (material.parent / value.map_kd).resolve()
+                if not texture.is_relative_to(raw_root) or not texture.is_file():
+                    raise ValueError('Missing or escaping texture dependency')
+                assets.append(texture)
+    if output.exists():
+        raise ValueError('Normalization destination exists; do not overwrite it')
+    normalized = floor.in_frame(frame)
+    output.mkdir(parents=True)
+    for asset in sorted(set(assets)):
+        target = output / asset.relative_to(raw_root)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        copy_verified(asset, target, interval_s=0)
+    source_triangles, engine_obj = output / 'before.source.obj', output / 'before.engine.obj'
+    write_floor(floor, source_triangles)
+    write_floor(normalized, engine_obj)
+    np.savez_compressed(output / 'corner-provenance.npz', triangle_polygon=floor.triangle_polygon,
+                        triangle_corners=floor.triangle_corners)
+    provenance = output / 'geometry-provenance.json'
+    provenance.write_text(json.dumps({'source_sha256': sha256_file(source),
+        'reference_sha256': sha256_file(reference), 'blender_version': doc['blender_version'],
+        'source_polygon_count': len(floor.polygons), 'triangle_count': floor.mesh.n_faces,
+        'source_corner_positions_changed': 0, 'source_bounds': [x.tolist() for x in floor.mesh.bbox()],
+        'units': 'inches', 'inches_per_source_unit': frame.inches_per_unit, 'frame_evidence': frame.evidence,
+        'source_to_engine': frame.matrix.tolist(), 'engine_to_source': np.linalg.inv(frame.matrix).tolist(),
+        'source_triangles_sha256': sha256_file(source_triangles), 'engine_obj_sha256': sha256_file(engine_obj),
+        'assets': [{'path': str(asset.relative_to(raw_root)), 'sha256': sha256_file(asset)} for asset in sorted(set(assets))],
+        'visual_equivalence': 'pending matched raw-versus-triangulated renders'}, indent=2), encoding='utf-8')
+    return {'source_triangles': source_triangles, 'engine_obj': engine_obj, 'provenance': provenance}
 
 
 def verify_frozen(root: Path, manifest: dict) -> dict:
@@ -152,6 +202,9 @@ def main(argv=None):
     parser.add_argument('--freeze-source', type=Path)
     parser.add_argument('--progress', type=Path)
     parser.add_argument('--publish-status', type=Path)
+    parser.add_argument('--normalize-references', type=Path)
+    parser.add_argument('--floors', default='1F,4F')
+    parser.add_argument('--scale-evidence')
     args = parser.parse_args(argv)
     root = args.root.resolve()
     allowed = (Path.cwd() / "data" / "main-infra-fresh").resolve()
@@ -177,6 +230,36 @@ def main(argv=None):
         print(json.dumps({'frozen_files': len(manifest['files']), 'source_revision': manifest['source_revision'], 'native_pilots': native}))
         return 0
     manifest = json.loads((root / "raw-manifest.json").read_text())
+    if args.normalize_references:
+        from tools.main_infra_progress import update_floor
+        if not args.scale_evidence:
+            parser.error('normalization requires explicit physical/axis evidence')
+        frozen = verify_frozen(root, manifest)
+        if frozen['status'] != 'verified':
+            raise ValueError('Frozen package readback failed')
+        selected = args.floors.split(',')
+        if any(key not in FILES for key in selected) or len(set(selected)) != len(selected):
+            parser.error('unknown or repeated fresh floor')
+        rows = {}
+        for key in selected:
+            if args.progress:
+                update_floor(args.progress, key, 'importing', 'Qualifying source-bound native tessellation', published_path=args.publish_status)
+            try:
+                result = normalize_reference(root / 'raw' / FILES[key], args.normalize_references / f'{key}.json',
+                                             root / 'normalized' / key, Frame(1000 / 25.4, args.scale_evidence))
+            except (ValueError, OSError) as exc:
+                if args.progress:
+                    update_floor(args.progress, key, 'blocked', 'Source normalization refused', blocker=str(exc), published_path=args.publish_status)
+                raise
+            measured = json.loads(result['provenance'].read_text(encoding='utf-8'))
+            rows[key] = {'triangles': measured['triangle_count'], 'source_polygons': measured['source_polygon_count'],
+                         **{name: str(path) for name, path in result.items()}, 'visual_equivalence': 'pending'}
+            if args.progress:
+                update_floor(args.progress, key, 'importing', 'All source corners mapped; raw-versus-triangulated image comparison pending',
+                             input_triangles=measured['triangle_count'], published_path=args.publish_status)
+            print(f'NORMALIZED {key}: {measured["source_polygon_count"]} source polygons, {measured["triangle_count"]} triangles, 0 source corner moves', flush=True)
+        (root / 'normalization-summary.json').write_text(json.dumps(rows, indent=2), encoding='utf-8')
+        return 0
     frozen = verify_frozen(root, manifest)
     (root / "freeze-readback.json").write_text(json.dumps(frozen, indent=2))
     if frozen["status"] != "verified":
