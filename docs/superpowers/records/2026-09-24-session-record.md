@@ -336,3 +336,15 @@ Claimed owner-requested MAIN INFRA floors 4 and 5 engine run into MAIN-INFRA-FLO
 STAGING-ENGINE-4-5-V2, 2026-10-19 22:45 +08:00: first floor 4 attempt hit a 1.76 MiB trimesh allocation failure in piece_ray_check during a machine commit spike (436 MB free); preserved as engine-7floors-4-5-v2/4F/engine-attempt1.log. Runner automatically started retry 1/3 at 22:44:13 with 5,629 MB commit free (PID 41872).
 
 STAGING-ENGINE-2-3 recovery: second floor 2 attempt failed at 22:42 on a 1.42 MiB allocation. Source changed externally; preserved new 18949D... snapshot and archived initial exports/logs. Restart shim 57684/interpreter 6316 is waiting for 10 GB commit headroom. Auto-verifier shim 6300 watches engine liveness and will check both OBJ variants and fresh Blender readback. No fixed output or validation pass claimed; job remains active and resource-blocked.
+
+### 2026-10-23 - MAIN-INFRA-RESET-20261023 (Codex)
+
+Owner reset to the fresh seven-floor Z: Minecraft export, confirmed 1 block = 1 metre, and authorized deletion of both old plans/jobs and failed outputs. Retired five old job entries, deleted six explicit failed-guard OBJ variants and four obsolete plan/brief files with SHA-256 receipts and absence readback. Source/raw data and diagnostic evidence remain. Replacement design/plan reviewed independently; progress precedes import and simulated dashboard completion/approval is disallowed for fresh MAIN INFRA. Queue tests: 9 passed in 1.22s. See MAIN-INFRA-RESET-20261023.md. Actual state: plan awaiting owner review; no fresh geometry repair, model acceptance or dashboard code/deployment this turn.
+
+2026-10-23 MAIN-INFRA-CLEAN-20261023: owner approved execution. Dashboard a1e234f has 20 passing UI tests, clean typecheck/lint/build and actual disk-backed browser polling/mobile proof. Engine 25cd6e5 has 59 passing focused import/freeze/cleanup/progress tests. Fresh source qualification next; no repaired/accepted floor or deployment. See MAIN-INFRA-CLEAN-20261023.md.
+
+2026-10-23 Codex MAIN-INFRA-CLEAN: fresh seven-card Before/After dashboard committed2800a66/de060b9, compiledbrowser8.9s/build26pages/UI28/publisher17 pass. Engine98a1580/fa5db8a. Independent1F preservationPASS but overallFAIL;4Fstrictguardnext with reviewed originalmesh oracle. Noacceptedfloor/SKP/deployment. Mainownedrecords synchronized; taskworktree carries committed record.
+
+2026-10-23 Codex MAIN-INFRA-CLEAN: 4F strict guard passed 4853024pixels, failure classes0, all78160triangles and19assets retained. Native QA30pairs identical; independent readback passes. Original336Validator full signed checks running worker49304 with PID-bound heartbeat. Noacceptedfloor/deployment. Engine9306483/dashboard9386a4d records.
+
+2026-10-23 owner split recorded: Codex1F–3F, Claude Code4F–7F; both use UC MODEL FIXER engine. Disjoint/allseven checks passed in data/main-infra-fresh/floor-ownership.json. Claude queuejob MAIN-INFRA-CLAUDE-4F-7F-20261023 ready, not falsely claimed. Separate output roots; single shared dashboard publisher Codex. Claude actual process/output not yet confirmed. Mandatory actualengineoutput AGENTS9 committed4c2329c after independent audit.
