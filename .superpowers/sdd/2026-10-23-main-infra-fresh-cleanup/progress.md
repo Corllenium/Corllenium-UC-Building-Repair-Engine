@@ -1,5 +1,14 @@
 # SDD ledger - plan: docs/superpowers/plans/2026-10-23-main-infra-fresh-cleanup.md
 
+- 2026-10-23: Final compiled dashboard build26pages and browser8.9s pass; pending
+  After readback shows empty grid. Committed2800a66/de060b9 and46previewfiles
+  matchGitblobs exactly. No production deployment or floor acceptance.
+- Bounded unpruned original oracle reviewed118tests+20probes; rejected max-depth
+  optimization after independent nearparallelcorner counterexample. Restored
+  exact reviewed blob68c93434 and saved regression. Real4Ftiming19200rays1.924s,
+  1877285leafpairs;12raysfirst/allmatchfulloracle. Explicit factory integration
+  RED->GREEN12passed29.01s. Full4Fguard pending; defaultguards/Embreeunchanged.
+
 - 2026-10-23 15:10: Fresh seven-card and Before/After display implemented in
   isolated dashboard. User source confirmation incorporated. Default After waits;
   failed candidate explicit inspection only. Review findings corrected test-first:

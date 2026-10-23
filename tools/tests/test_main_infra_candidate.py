@@ -60,3 +60,13 @@ def test_failed_coverage_leaves_baseline_and_no_candidate(tmp_path, monkeypatch)
         candidate.build_candidate(baseline, qa, tmp_path / 'candidate')
     assert (baseline / 'before.engine.obj').read_bytes() == old
     assert not (tmp_path / 'candidate').exists()
+
+
+def test_original_oracle_factory_runs_the_same_strict_guard_and_saves_its_identity(tmp_path):
+    from engine.rays.bounded_brute import BoundedBruteCaster
+    from tools.main_infra_candidate import build_candidate
+    baseline, qa = fixture(tmp_path)
+    report = build_candidate(baseline, qa, tmp_path / 'candidate', caster_factory=BoundedBruteCaster)
+    assert report['ray_caster'] == 'BoundedBruteCaster'
+    assert report['guard']['passed'] and len(report['guard']['views']) == 26
+    assert report['accepted'] is False and report['output_triangles'] == 2

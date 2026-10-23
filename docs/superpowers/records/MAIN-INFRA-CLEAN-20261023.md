@@ -24,6 +24,19 @@ owner scale: 1 block = 1 metre. Preserve cuts, facade look/UVs and visible cover
 
 ### Fresh model dashboard and precision investigation, 2026-10-23
 
+- Final post-review compiled browser test passed in8.9s. Inspected pending After
+  screenshot: empty grid, no invented slab. Source/candidate textures inspected.
+  Clean webpack build completed26pages. Dashboard commits2800a66/de060b9;46
+  committed preview/evidence files re-read from Git match disk bytes exactly.
+- Bounded original oracle independently passed118focused tests and20extra probes;
+  exact reviewed blob68c93434. A later max-depth optimization failed a near-parallel
+  corner oracle case and was withdrawn to exactly that reviewed blob. Regression
+  retained. Shared Embree/default guards remain unchanged.
+- Real4F timing:19200rays,1.924s,1,877,285leaf pairs vs1,500,672,000exhaustive;
+  sampled12first/all results match exhaustive oracle. Explicit factory integration
+  observed RED then GREEN:12tests passed29.01s, including actual52tiny-fixture
+  renders and saved audit. Real full guard next; no4F verdict implied.
+
 - Owner reiterated the source is the fresh Minecraft export and requested the
   existing seven cards/Before-After window. The isolated dashboard now selects
   fresh MAIN_INFRA_1F through 7F, including old MAIN INFRA unit links. Source and

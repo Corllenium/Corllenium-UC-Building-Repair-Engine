@@ -13,15 +13,15 @@ from engine.guard.compare import compare_views, face_planes
 from engine.guard.views import VIEWS_26, ortho_first_hit
 from engine.io.minecraft_floor import parse_floor, write_floor
 from engine.io.snapshot import copy_verified, sha256_file, snapshot_object
-from engine.rays.caster import ReusableCaster
+from engine.rays.caster import EmbreeCaster, ReusableCaster
 from engine.topo.weld import axis_quanta
 
 
-def strict_guard(before, after, source, provenance):
+def strict_guard(before, after, source, provenance, *, caster_factory=EmbreeCaster):
     center = (before.positions.min(axis=0) + before.positions.max(axis=0)) / 2
     positions = before.positions - center
     def render(mesh):
-        factory = ReusableCaster()
+        factory = ReusableCaster(caster_factory)
         rendered = []
         for index, view in enumerate(VIEWS_26, 1):
             rendered.append((view, ortho_first_hit(positions, mesh.face_v, np.arange(mesh.n_faces),
@@ -37,11 +37,12 @@ def strict_guard(before, after, source, provenance):
         depth_tol, strict=True, plane_before=face_planes(positions, before.face_v),
         plane_after=face_planes(positions, after.face_v),
         geometry_before=(positions, before.face_v), geometry_after=(positions, after.face_v),
+        caster_factory=caster_factory,
         crack_closed_cap=0.0, fragment_removed_cap=0.0)
     return report, depth_tol
 
 
-def build_candidate(baseline, qualification, out):
+def build_candidate(baseline, qualification, out, *, caster_factory=EmbreeCaster):
     baseline, qualification, out = Path(baseline), Path(qualification), Path(out)
     proof = json.loads(qualification.read_text(encoding='utf-8'))
     provenance = json.loads((baseline / 'geometry-provenance.json').read_text(encoding='utf-8'))
@@ -64,7 +65,7 @@ def build_candidate(baseline, qualification, out):
     from engine.fixes.remove import remove_faces
     source_candidate, _ = remove_faces(source.mesh, ~keep)
     source_coverage = verify_exact_coverage(source.mesh, source_candidate)
-    guard, depth_tol = strict_guard(engine.mesh, result.mesh, source.mesh, provenance)
+    guard, depth_tol = strict_guard(engine.mesh, result.mesh, source.mesh, provenance, caster_factory=caster_factory)
     if not guard.passed:
         raise ValueError(f'Strict existing 26-view guard refused candidate: {guard.totals}')
     out.mkdir(parents=True)
@@ -85,6 +86,7 @@ def build_candidate(baseline, qualification, out):
               for removed, survivor in sorted(result.removed_to_survivor.items())]
     (out / 'edit-log.jsonl').write_text(''.join(json.dumps(row) + '\n' for row in events), encoding='utf-8')
     report = {'input_triangles': engine.mesh.n_faces, 'output_triangles': saved_engine.n_faces,
+        'ray_caster': caster_factory.__name__,
         'removed_exact_duplicates': len(events), 'source_corner_positions_changed': 0,
         'source_coverage': source_coverage, 'engine_coverage': result.coverage,
         'executed_stages': list(result.executed), 'disabled_stages': list(result.disabled),
@@ -109,6 +111,7 @@ def main():
     parser.add_argument('--progress', type=Path)
     parser.add_argument('--publish-status', type=Path)
     parser.add_argument('--trace-after-seconds', type=int)
+    parser.add_argument('--original-oracle', action='store_true', help='Use bounded original float64 oracle for precision-sensitive pilot rays')
     args = parser.parse_args()
     if args.trace_after_seconds:
         import faulthandler
@@ -129,7 +132,10 @@ def main():
         worker = threading.Thread(target=pulse, daemon=True)
         worker.start()
     try:
-        report = build_candidate(args.baseline, args.qualification, args.out)
+        if args.original_oracle:
+            from engine.rays.bounded_brute import BoundedBruteCaster
+        report = build_candidate(args.baseline, args.qualification, args.out,
+                                 caster_factory=BoundedBruteCaster if args.original_oracle else EmbreeCaster)
         if heartbeat_errors:
             raise ValueError(f'Worker progress publication failed: {heartbeat_errors}')
         if args.progress:
