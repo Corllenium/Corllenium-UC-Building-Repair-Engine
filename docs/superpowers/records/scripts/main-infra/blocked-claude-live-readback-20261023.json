@@ -1,0 +1,27 @@
+{
+  "observed_utc": "2026-10-23T15:55:59.2635530Z",
+  "public_updated_at": "2026-10-23T15:55:32.634204Z",
+  "owner_source": "Separate Claude status and immutable worker witnesses",
+  "floors": [
+    {
+      "floor": "6F",
+      "state": "blocked",
+      "step": "Claude Code reports: Independent floor validation complete; inspect evidence",
+      "blocker": "Independent validation FAIL: textures PASS; visible coverage PASS; signed problem targets FAIL; remaining flicker_diff=3236, flicker_same=4934, cracks=6659 (before E3: flicker_diff=6918, flicker_same=9922, cracks=7480). Strict-26 guard PASS; 16 walking-height interior pairs: 3 changed px, no holes.",
+      "output_triangles": 27108
+    },
+    {
+      "floor": "7F",
+      "state": "blocked",
+      "step": "Claude Code reports: Independent floor validation complete; inspect evidence",
+      "blocker": "Independent validation FAIL: textures PASS; visible coverage PASS; signed problem targets FAIL; remaining flicker_diff=2310, flicker_same=3289, cracks=4705 (before E3: flicker_diff=4518, flicker_same=7091, cracks=5429). Strict-26 guard PASS; 16 walking-height interior pairs: 52 changed px, no holes.",
+      "output_triangles": 20625
+    }
+  ],
+  "publisher": {
+    "pid": 57300,
+    "creation_utc": "2026-10-23T15:52:56.585440Z",
+    "session": 10075
+  },
+  "regression": "Owner-blocked plus saved candidate: RED validating; GREEN blocked"
+}

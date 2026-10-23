@@ -28,7 +28,9 @@ class LiveWorkerRuntime(unittest.TestCase):
             one = fixture / 'retry/worker-1F.json'
             save(one, dict(pid=111, state='failed', error='ValueError: source boundary'))
             upper = dict(source_revision=original['source_revision'], job_id='MAIN-INFRA-CLAUDE-4F-7F-20261023', run_id='fixture-upper', updated_at=original['updated_at'], floors={f:original['floors'][f] for f in ('4F','5F','6F','7F')})
+            upper['floors']['6F'].update(state='blocked', step='Signed targets still fail', blocker='Signed targets still fail')
             save(fixture / '.claude/worktrees/MAIN-INFRA-CLAUDE-4F-7F-20261023/data/main-infra-fresh/current-upper.json', upper)
+            save(fixture / '.claude/worktrees/MAIN-INFRA-CLAUDE-4F-7F-20261023/data/main-infra-fresh/run-claude-4f-7f-20261023/e3/worker-6F.json', dict(pid=66, state='candidate_saved', output_triangles=42))
             observations = {'1F':dict(alive=False,worker_path=str(one)), '2F':dict(alive=True,cpu=1,start='2026-10-23T13:00:00Z',worker_path=str(newer)), '3F':dict(alive=False,worker_path=str(old / 'worker-3F.json'))}
             code = code.replace("root=Path('D:/PROJECTS/UC MODEL FIXER')", f'root=Path({str(fixture)!r})')
             saved = os.environ.get('UC_MODEL_WORKER_OBSERVATIONS')
@@ -40,6 +42,9 @@ class LiveWorkerRuntime(unittest.TestCase):
                 self.assertEqual(result['floors']['2F']['state'], 'cleaning')
                 self.assertEqual(result['floors']['2F']['worker_pid'], 222)
                 self.assertIn('source boundary', result['floors']['1F']['blocker'])
+                self.assertEqual(result['floors']['6F']['state'], 'blocked')
+                self.assertEqual(result['floors']['6F']['blocker'], 'Signed targets still fail')
+                self.assertEqual(result['floors']['6F']['output_triangles'], 42)
                 observations['2F']['alive'] = False
                 save(newer, dict(pid=222,state='failed',error='test stopped'))
                 os.environ['UC_MODEL_WORKER_OBSERVATIONS'] = json.dumps(observations)

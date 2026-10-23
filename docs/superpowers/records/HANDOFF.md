@@ -24,6 +24,14 @@ run the latest `.skp` of each file must be in `OBJ FIXED RESULT/` for the owner 
 2026. Work visually: every round ends with renders that are looked at, not only numbers.
 
 ## 2. Current state (2026-09-26 00:15, written by the Claude controller)
+2026-10-23 23:55 +08: actual2F41648stillcheckedkernel/nooutput;1Fprepared273
+source+engineproofs/P e5af queued;3Fqueued. Optionalconcurrent1Fneverlaunched:
+<8GiBgatesHOLD, observer-onlycleanup/CIMdefectsfound;63804stopped/exitverified,
+root15:49:42noexecute/noobserver. Needcorrectedobserverreview+freshGO.
+StatusmirrorblockedregressionRED->GREEN1/0parsererrors; loadedpublisher57300/
+start15:52:56.585440Z/exec10075. Public15:53:37correctlypreservesClaude6F/7Fblocked
+(signedtargetsFAIL) withsavedcounts27108/20625;5F52020actualalive,4Fownerqueuedstep.
+Noforeignworkers/modelschanged. Existing1FE3inspectionretained;noacceptedfloor.
 2026-10-23 23:38 +08: actual1F preparation completed36.726s/EXIT0; planSHAe5af36dd,
 all628records matched/273selected/source273+engine273proofsPASS, inputs/code
 rehashed/frozen18c8ae9. No1Fkernel/candidate yet. Venvlauncher private measurement

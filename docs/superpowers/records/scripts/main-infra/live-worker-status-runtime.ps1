@@ -83,7 +83,9 @@ for floor in ('4F','5F','6F','7F'):
         actual=json.loads(witness.read_text())
         row['owner_worker_pid']=actual['pid']
         if actual['state']=='candidate_saved':
-            row.update(state='validating',step='Claude Code E3 candidate saved; independent preservation and signed targets pending',output_triangles=actual['output_triangles'])
+            row['output_triangles']=actual['output_triangles']
+            if desired not in ('blocked','failed','cancelled'):
+                row.update(state='validating',step='Claude Code E3 candidate saved; independent preservation and signed targets pending')
         elif actual['state']=='failed':
             row.update(state='failed',step='Claude Code engine reports failure: '+actual.get('error','unknown'))
 write_progress(path,doc)

@@ -227,3 +227,27 @@ publisher47864 with4996/start15:35:22.463240Z/exec46920. Newdynamicnextaction us
 observed active floors. Publictwo-rootreadback15:35:24 identical; 2Factual41648
 stillrunning,3Fqueued; Claude4F-7F remains separate. Independent1Fattempt3caller
 job claimed in separate tree; only bounded TDD permitted. Noacceptedfloor.
+
+## 23:55 +08 — preserve Claude blockers; optional 1F launcher held
+
+Read-only ownership audit: actualClaude5F PID52020/start13:51:56.4222323Z was
+alive/private1.20GB;4Fownerstep says checkedE3queued after exactduplicateguard
+(noE3workerwitness).6F/7F immutableworkerrecords candidate_saved27108/20625,
+ownerreportsblocked due signedremainingtargets. No foreignworker/outputchanged.
+
+Found and corrected a statusmirrorbug: candidate_saved overwrote ownerblocked
+withvalidating. GenuinefixtureRED ('validating'!='blocked'), GREEN1test0.200s,
+PowerShellparser0errors. Savedcountretained; blocked/failed/cancelled ownerverdict
+preserved. Replacedonlyownedpublisher4996 with57300/start15:52:56.585440Z/exec10075.
+Public15:53:37 confirms6F/7Fblockedwithactualownerreportedtargetcounts/evidence
+summary, 2Fcleaning,1F/3Fqueued. Publicreadbackartifactcommittedbesideruntime.
+RootdoesnotclaimindependentgeometryapprovalofClaudeoutputs or adoptassetURLs.
+
+Optional1Fconditionalgate samples15:38were7.8276/7.6605/7.6815GiB (<8), later
+7.6..6.8GiB. Noexecuteeverstarted. Independentexternalobserverreviewfoundearly
+unboundchildcleanup, unverifiedkill andblockingCIMgaps. RootrevokedGO; agent
+stoppedonlyownedobserver63804/start15:45:31.7673815Z andverifiedexit15:49:21.
+RootindependentCIM15:49:42foundnoexecute/noobserver. No1Fexecutionnamespaceor
+candidateexists; frozen18c8ae9/P e5af unchanged. Observer-only lifecyclecorrection
+andnonmodelregressions requireindependentreview+freshrootGO. Actual2F41648
+continuescheckedkernel; nooutput/newfailure. Noacceptedfloor.
