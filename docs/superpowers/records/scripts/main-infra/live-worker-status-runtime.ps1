@@ -52,23 +52,30 @@ for floor in ('2F','3F'):
     row.update(state=desired,step=step,worker_pid=state['pid'],worker_alive=process['alive'],worker_observed_at=now,worker_cpu_seconds=process.get('cpu'),worker_start_utc=process.get('start'),blocker=step if desired=='failed' else None)
 if '1F' in observations:
     process=observations['1F']
+    engine=process.get('engine','E7')
+    if engine not in ('E3','E7'): raise ValueError('Unknown registered 1F engine')
+    if engine=='E3':
+        expected_worker=Path('D:/LLM_BACKUP/Codex session/main-infra-e3-1f-retain-visible-20261024/05-Corllenium-UC-Building-Repair-Engine/data/main-infra-e3/run-20261024-1F-retain-visible/execution-1F/worker.json')
+        if Path(process['worker_path']).resolve()!=expected_worker.resolve(): raise ValueError('E3 worker binding differs')
     state=json.loads(Path(process['worker_path']).read_text())
+    if engine=='E3' and (state.get('run_id')!='MAIN-INFRA-E3-1F-retain-visible-20261024' or state.get('floor')!='1F'):
+        raise ValueError('E3 run identity differs')
     row=doc['floors']['1F']
-    if process['alive'] and state['state'] in ('running','running_checked_E7','repairing','checking'):
-        desired='cleaning';step='Checked E7 existing-vertex crack repair running; preservation checks and rollback active';running.insert(0,'1F')
+    if process['alive'] and state['state'] in ('running','running_checked_E3','running_checked_E7','repairing','checking'):
+        desired='cleaning';step=('Checked E3 hidden-face repair running; preservation checks and rollback active' if engine=='E3' else 'Checked E7 existing-vertex crack repair running; preservation checks and rollback active');running.insert(0,'1F')
     elif state['state'] in ('candidate_saved','saved'):
-        desired='validating';step='New E7 candidate saved; original-fresh preservation and signed validation pending'
+        desired='validating';step='New '+engine+' candidate saved; original-fresh preservation and signed validation pending'
         row['pending_output_triangles']=state.get('output_triangles',state.get('triangles_after'))
     elif state['state'] in ('prepared','preparing','loading_qualified_input') and process['alive']:
-        desired='cleaning';step='Loading hash-bound original source and preserved E3 stage for E7'
+        desired='cleaning';step=('Loading hash-bound original source for E3 visible-site retention replay' if engine=='E3' else 'Loading hash-bound original source and preserved E3 stage for E7')
     elif state['state']=='checked_checkpoint_saved' and process['alive']:
-        desired='cleaning';step='E7 checked checkpoint saved; verifying exact source/engine output and copied assets';running.insert(0,'1F')
+        desired='cleaning';step=engine+' checked checkpoint saved; verifying exact source/engine output and copied assets';running.insert(0,'1F')
     elif state['state'] in ('serializing','finalizing') and process['alive']:
-        desired='cleaning';step='E7 site checks finished; saving exact source/engine pair and verifying copied assets';running.insert(0,'1F')
+        desired='cleaning';step=engine+' site checks finished; saving exact source/engine pair and verifying copied assets';running.insert(0,'1F')
     else:
-        desired='failed';step='E7 worker stopped: '+state.get('error',state['state'])
+        desired='failed';step=engine+' worker stopped: '+state.get('error',state['state'])
     if row['state']!=desired: row['last_work_event_at']=now;doc['last_work_event_at']=now
-    row.update(state=desired,step=step,blocker=step if desired=='failed' else None,worker_pid=state['pid'],worker_alive=process['alive'],worker_observed_at=now,worker_cpu_seconds=process.get('cpu'),worker_start_utc=process.get('start'),engine_stage='E7')
+    row.update(state=desired,step=step,blocker=step if desired=='failed' else None,worker_pid=state['pid'],worker_alive=process['alive'],worker_observed_at=now,worker_cpu_seconds=process.get('cpu'),worker_start_utc=process.get('start'),engine_stage=engine)
 failed=[f for f in ('1F','2F','3F') if doc['floors'][f]['state']=='failed']
 details='; '.join(f+': '+str(doc['floors'][f].get('blocker','failed')) for f in failed)
 doc.update(updated_at=now,heartbeat_at=now,state='running' if running else ('failed' if failed else 'reviewing'),step=('Actual checked engines running on '+','.join(running)+('; '+details if details else '')) if running else ('Engine checks stopped; '+details if failed else 'Engine workers finished; independent candidate review follows'))
@@ -109,6 +116,7 @@ print(json.dumps(dict(updated_at=now,running=running,floors={f:doc['floors'][f][
 $taskLastSuccess=$null
 do {
     $taskObserved=@{}
+    $task1FEngine='E7'
     $taskAlive=0
     $taskExtraPath="$taskRoot/data/siege-live-20261023/extra-workers.json"
     $taskWitnessPaths=@{'2F'="$taskRun/worker-2F.json";'3F'="$taskRun/worker-3F.json"}
@@ -127,6 +135,8 @@ do {
     }
     if(Test-Path -LiteralPath $taskExtraPath){
         $taskExtra=Get-Content -LiteralPath $taskExtraPath -Raw | ConvertFrom-Json
+        if($taskExtra.PSObject.Properties.Name -contains 'engine'){$task1FEngine=[string]$taskExtra.engine}
+        if($task1FEngine -notin @('E3','E7')){throw 'Unexpected registered 1F engine'}
         $taskExpected['1F']=@{pid=$taskExtra.pid;start=$taskExtra.start}
         $taskWitnessPaths['1F']=$taskExtra.worker_path
     }
@@ -144,6 +154,7 @@ do {
             $taskAlive++
         }
         $taskEntry['worker_path']=$taskWitnessPaths[$taskFloor]
+        if($taskFloor -eq '1F'){$taskEntry['engine']=$task1FEngine}
         $taskObserved[$taskFloor]=$taskEntry
     }
     $env:UC_MODEL_WORKER_OBSERVATIONS=ConvertTo-Json $taskObserved -Compress
