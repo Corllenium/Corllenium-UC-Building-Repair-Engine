@@ -1,0 +1,12 @@
+{
+  "state": "RUNNING",
+  "phase": "independent-E3-3F-strict26",
+  "actual_pid": 60004,
+  "actual_creation_utc": "2026-10-23T20:23:41.9680715Z",
+  "launcher_pid": 29412,
+  "monitor_pid": 53388,
+  "command": "C:\\Users\\Future26\\AppData\\Local\\Programs\\Python\\Python312\\python.exe -B -u -m tools.main_infra_3f_validation guard --preparation D:\\LLM_BACKUP\\Codex session\\main-infra-3f-validation-20261024\\05-Corllenium-UC-Building-Repair-Engine\\docs\\superpowers\\records\\MAIN-INFRA-3F-VALIDATE-ATTEMPT2-20261024\\preparation.json --preparation-sha256 00b13d36cb32997dccb1e0bfd94130c6ed90dba43c2884f9c8723f604c357ada --candidate D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-e3\\run-20261023-attempt2\\3F --audit-sha256 56ab090d861106c2801b2dab057ba5e9df6109ac69d87faaf29b718c87389512 --worker-sha256 5ce4494b2e4a14f3c9303b5e5f017ff35d01635b984f987046150755495ad4ea --out D:\\LLM_BACKUP\\Codex session\\main-infra-3f-validation-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-3f-validation\\run-20261024-attempt2\\3F\\guard",
+  "HEAD": "a4c78e33e048d861ed938f76a718cf54f298239c",
+  "phase_plan_sha256": "4bac0cccba69a8ed6fa2dec3f1dcd6b932097c28e135684704505982dd215df3",
+  "evidence": "D:\\LLM_BACKUP\\Codex session\\main-infra-3f-validation-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-3f-validation\\execution-ownership-attempt2\\monitor-independent-E3-3F-strict26-20261023T202340"
+}

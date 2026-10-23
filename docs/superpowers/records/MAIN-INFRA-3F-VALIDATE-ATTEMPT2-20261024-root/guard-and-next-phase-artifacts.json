@@ -1,0 +1,98 @@
+[
+  {
+    "path": "docs/superpowers/records/MAIN-INFRA-3F-VALIDATE-ATTEMPT2-20261024-root/actual-independent-guard.json",
+    "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-3f-validation-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-3f-validation\\run-20261024-attempt2\\3F\\guard\\independent-guard.json",
+    "sha256": "01dc21dcc6362247698b5f898503dcb78b543c96344b96d57f8de0135c2a3e7f",
+    "bytes": 112071
+  },
+  {
+    "path": "docs/superpowers/records/MAIN-INFRA-3F-VALIDATE-ATTEMPT2-20261024-root/actual-guard-terminal.json",
+    "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-3f-validation-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-3f-validation\\execution-ownership-attempt2\\monitor-independent-E3-3F-strict26-20261023T202340\\result.json",
+    "sha256": "7f9ef4280e1c1afaea507f5c12a5f2854f2d57967e0d3d845f5a76539e49962f",
+    "bytes": 752
+  },
+  {
+    "path": "docs/superpowers/records/MAIN-INFRA-3F-VALIDATE-ATTEMPT2-20261024-root/actual-guard-identity.json",
+    "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-3f-validation-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-3f-validation\\execution-ownership-attempt2\\monitor-independent-E3-3F-strict26-20261023T202340\\actual-identity.json",
+    "sha256": "9fe531bb100a3ca0d5225ba30de6f53946cdcb84893bc209fe1778d265b4ecd7",
+    "bytes": 1492
+  },
+  {
+    "path": "docs/superpowers/records/MAIN-INFRA-3F-VALIDATE-ATTEMPT2-20261024-root/phase-guard.json",
+    "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-3f-validation-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-3f-validation\\execution-ownership-attempt2\\phase-guard.json",
+    "sha256": "4bac0cccba69a8ed6fa2dec3f1dcd6b932097c28e135684704505982dd215df3",
+    "bytes": 73313
+  },
+  {
+    "path": "docs/superpowers/records/MAIN-INFRA-3F-VALIDATE-ATTEMPT2-20261024-root/actual-preparation.json",
+    "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-3f-validation-20261024\\05-Corllenium-UC-Building-Repair-Engine\\docs\\superpowers\\records\\MAIN-INFRA-3F-VALIDATE-ATTEMPT2-20261024\\preparation.json",
+    "sha256": "00b13d36cb32997dccb1e0bfd94130c6ed90dba43c2884f9c8723f604c357ada",
+    "bytes": 73120
+  },
+  {
+    "path": "docs/superpowers/records/MAIN-INFRA-3F-VALIDATE-ATTEMPT2-20261024-root/native-plan.json",
+    "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-3f-validation-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-3f-validation\\run-20261024-attempt2\\3F\\native\\native-plan.json",
+    "sha256": "6ae017fd48e9f75cc69a8c5e783961c8947fb62bce16d87b45f5f56c0c4f3ec8",
+    "bytes": 100973
+  },
+  {
+    "path": "docs/superpowers/records/MAIN-INFRA-3F-VALIDATE-ATTEMPT2-20261024-root/native-phase.py",
+    "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-3f-validation-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\tmp\\three_f_native_phase.py",
+    "sha256": "31227f3bedfc1f830a80d6a14732e52650b8e248b52d0f0ed349b9af1dff3b4f",
+    "bytes": 5732
+  },
+  {
+    "path": "docs/superpowers/records/MAIN-INFRA-3F-VALIDATE-ATTEMPT2-20261024-root/test-native-phase.py",
+    "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-3f-validation-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\tmp\\test_three_f_native_phase.py",
+    "sha256": "8caa780baa3ae870a5a36b04090d621d7d89caa0c5bcf9a6b3d4c2839e6e2f5a",
+    "bytes": 1646
+  },
+  {
+    "path": "docs/superpowers/records/MAIN-INFRA-3F-VALIDATE-ATTEMPT2-20261024-root/phase-native.json",
+    "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-3f-validation-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-3f-validation\\execution-ownership-attempt2\\phase-native.json",
+    "sha256": "b8f36297345c0fa6fb06f14b3d65d0006083c172dc303c340984b1883293c636",
+    "bytes": 75856
+  },
+  {
+    "path": "docs/superpowers/records/MAIN-INFRA-3F-VALIDATE-ATTEMPT2-20261024-root/independent-static-review.json",
+    "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\execution-ownership-attempt4\\3F-static-review.json",
+    "sha256": "bda56864c8eedfbe1e1222711f8411167df4eb3e72c8ba19e8727f6e098e816d",
+    "bytes": 1030
+  },
+  {
+    "path": "docs/superpowers/records/MAIN-INFRA-E7-ATTEMPT4-20261024-root/deleted-floor-attribution.json",
+    "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\execution-ownership-attempt4\\deleted-floor-attribution\\attribution.json",
+    "sha256": "a84b7a535a90dcdcc5dd722dbf17a96a185a07f7977e227d8113f9bf1b9cf15a",
+    "bytes": 146860
+  },
+  {
+    "path": "docs/superpowers/records/MAIN-INFRA-E7-ATTEMPT4-20261024-root/deleted-floor-lost-lines.jsonl",
+    "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\execution-ownership-attempt4\\deleted-floor-attribution\\lost-lines.jsonl",
+    "sha256": "7864e426fe4c9eae093cc9a3f066e563338b6d1f765e38c10aaf943aa54249d7",
+    "bytes": 27432
+  },
+  {
+    "path": "docs/superpowers/records/MAIN-INFRA-E7-ATTEMPT4-20261024-root/e3-removal-provenance.json",
+    "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\execution-ownership-attempt4\\e3-removal-provenance.json",
+    "sha256": "773272eca52969dffd84ec9d62eaa5cded76ae8f8947d28cbad197655ed33ec4",
+    "bytes": 29645
+  },
+  {
+    "path": "docs/superpowers/records/MAIN-INFRA-E7-ATTEMPT4-20261024-root/actual-attribution-terminal.json",
+    "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\execution-ownership-attempt4\\monitor-deleted-floor-attribution-20261023T202352\\result.json",
+    "sha256": "063eac005a932c01f50a047957422b166a56388920a121d1898c64e8d89121d1",
+    "bytes": 693
+  },
+  {
+    "path": "docs/superpowers/records/MAIN-INFRA-E7-ATTEMPT4-20261024-root/deleted-floor-attribution.py",
+    "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\tmp\\attempt4_deleted_floor_attribution.py",
+    "sha256": "e6dbc84e17772d2ec82ab794dc56f5d66fb62cabfffcd9a9cfc2f9af1e4cbcd0",
+    "bytes": 10721
+  },
+  {
+    "path": "docs/superpowers/records/MAIN-INFRA-E7-ATTEMPT4-20261024-root/phase-deleted-floor-attribution.json",
+    "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\execution-ownership-attempt4\\phase-deleted-floor-attribution.json",
+    "sha256": "954e05db4a83495664a22e3d8a34f2a8738bf6859d752ee50b591cf223a3b541",
+    "bytes": 6860
+  }
+]

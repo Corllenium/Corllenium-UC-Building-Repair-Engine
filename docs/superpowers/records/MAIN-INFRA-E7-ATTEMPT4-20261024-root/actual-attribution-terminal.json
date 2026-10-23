@@ -1,0 +1,16 @@
+{
+    "state":  "PROCESS_EXITED_ZERO",
+    "phase":  "deleted-floor-attribution",
+    "abort_reason":  null,
+    "actual_pid":  38372,
+    "actual_creation_utc":  "2026-10-23T20:23:54.3841257Z",
+    "actual_exit_code":  0,
+    "launcher_exit_code":  0,
+    "wall_s":  33.791125799999996,
+    "HEAD":  "a50226737ac155f4f7a303e3c2afe48abd45c29d",
+    "phase_plan_sha256":  "954e05db4a83495664a22e3d8a34f2a8738bf6859d752ee50b591cf223a3b541",
+    "all_owned_exited":  true,
+    "evidence":  "data\\main-infra-1f-validation\\execution-ownership-attempt4\\monitor-deleted-floor-attribution-20261023T202352",
+    "ended_utc":  "2026-10-23T20:24:28.1019171Z",
+    "acceptance":  false
+}

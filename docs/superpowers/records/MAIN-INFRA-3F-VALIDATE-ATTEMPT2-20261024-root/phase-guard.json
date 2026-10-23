@@ -1,0 +1,1214 @@
+{
+  "phase": "independent-E3-3F-strict26",
+  "HEAD": "a4c78e33e048d861ed938f76a718cf54f298239c",
+  "args": [
+    "-B",
+    "-u",
+    "-m",
+    "tools.main_infra_3f_validation",
+    "guard",
+    "--preparation",
+    "D:\\LLM_BACKUP\\Codex session\\main-infra-3f-validation-20261024\\05-Corllenium-UC-Building-Repair-Engine\\docs\\superpowers\\records\\MAIN-INFRA-3F-VALIDATE-ATTEMPT2-20261024\\preparation.json",
+    "--preparation-sha256",
+    "00b13d36cb32997dccb1e0bfd94130c6ed90dba43c2884f9c8723f604c357ada",
+    "--candidate",
+    "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-e3\\run-20261023-attempt2\\3F",
+    "--audit-sha256",
+    "56ab090d861106c2801b2dab057ba5e9df6109ac69d87faaf29b718c87389512",
+    "--worker-sha256",
+    "5ce4494b2e4a14f3c9303b5e5f017ff35d01635b984f987046150755495ad4ea",
+    "--out",
+    "D:\\LLM_BACKUP\\Codex session\\main-infra-3f-validation-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-3f-validation\\run-20261024-attempt2\\3F\\guard"
+  ],
+  "pins": [
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-3f-validation-20261024\\05-Corllenium-UC-Building-Repair-Engine\\docs\\superpowers\\records\\MAIN-INFRA-3F-VALIDATE-ATTEMPT2-20261024\\preparation.json",
+      "sha256": "00b13d36cb32997dccb1e0bfd94130c6ed90dba43c2884f9c8723f604c357ada"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-3f-validation-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\fixes\\pipeline.py",
+      "sha256": "20f72381d1ef2040bd90de928e21c3bfb0b5c4e534669e15207110ae7736f2aa"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-3f-validation-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\guard\\__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-3f-validation-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\guard\\compare.py",
+      "sha256": "8aca5a91a3d33af2bf0387a2fc6e5e13490ca337c2b3e24ea53b94cbe8722412"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-3f-validation-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\guard\\piece_rays.py",
+      "sha256": "b15824c2385c00c3df19d88b8f379194f6dd01a0aeb53c1f20796661cbbbf1e9"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-3f-validation-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\guard\\qa_render.py",
+      "sha256": "a620795f0763af06420722daceb75c8dc62c62fda4787ffc911e9cde4b3cd74b"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-3f-validation-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\guard\\render.py",
+      "sha256": "9c918de0b2d53621af3b5cecf0f567c89144c3829a18f408fdf72dd68612bcb3"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-3f-validation-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\guard\\views.py",
+      "sha256": "d17931c6228909a6bd40f32a961db41c4d7b1e747100f1ea5e115d49f74ac66f"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-3f-validation-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\io\\__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-3f-validation-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\io\\minecraft_floor.py",
+      "sha256": "f039309f3cd988ea92c7242f5c3c5085cfdee35d0a3a8075b214910dbd46d014"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-3f-validation-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\io\\mtl.py",
+      "sha256": "91492f26a43adf2ba368ade4580bcc562fe7b3d162fa3ce0e5ecf964edc70026"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-3f-validation-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\io\\obj_reader.py",
+      "sha256": "72b300cdd8af9b3312369fb3ffe2064f07933298198ad0e8f438c91d1990a7fe"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-3f-validation-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\io\\obj_writer.py",
+      "sha256": "9358f99c2362f4cc84d1e11fc073785bae58936f115c6c8fa87e4616fd073df1"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-3f-validation-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\io\\protected.py",
+      "sha256": "d17e46d0cd294a0c9e23a87476b25d1491cc11b390d74abaee8205400e6d9058"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-3f-validation-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\io\\skp_reader.py",
+      "sha256": "6142326ccf9ba6a44a563721c14a73deee2fa14cbac6c7f39a34f21638158719"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-3f-validation-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\io\\skp_writer.py",
+      "sha256": "94a2dd52f872ed06131d5f3ae0f1cb5db05363007333098a893f477be1247500"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-3f-validation-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\io\\snapshot.py",
+      "sha256": "05b586a87f896552b5081bc5e263e3b4de3ba2d856b76b43af63787794933ac9"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-3f-validation-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\rays\\__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-3f-validation-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\rays\\caster.py",
+      "sha256": "62bde18bb12e0e3c8f690eb9c819750274e4924911770b6f7cffa399a704ddd5"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-3f-validation-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\topo\\weld.py",
+      "sha256": "e584a6ab2e46b20b7c4cf8da06516a4199978523ec68d3221263cd29cbf3bdea"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-3f-validation-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\validate\\__init__.py",
+      "sha256": "6d8a1be3faac9a3804d42cdcb5fba170739a756204aa755d2a05a1a3dd84f00b"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-3f-validation-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\validate\\checks.py",
+      "sha256": "3d3ebe288abab4afa73b26e8908047a8fbe71a36b8df31d3fed69fb190601606"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-3f-validation-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\validate\\evidence.py",
+      "sha256": "914fff0f76b253ba999fae91e6373ed2ab43d491c98f44d5cc57384e8ecffbd7"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-3f-validation-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\validate\\floor.py",
+      "sha256": "bde829b4832443ce159ae8d7937a5ed4b4207bd6d7e1b4b669b2df2b9b0e84e8"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-3f-validation-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\validate\\sampling.py",
+      "sha256": "d81a9af913839666ae8e63afd29ed22492fd90f1741be03bf01b1eb95a52a73d"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-3f-validation-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\validate\\targets.json",
+      "sha256": "4117f5e22045750fed7c4627ffa6324bf2efe5c14cf9629389a482c960036507"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-3f-validation-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\validate\\viewpoints.py",
+      "sha256": "c62acfd255fd99c003fd54bf084a68bdb82442cf1c96ada2f0a50e7a7efa7e98"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-3f-validation-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\validate\\visibility.py",
+      "sha256": "28cbad91da779c0a12155c3036a717db78e5629bb5fbf54e4e8ad2d95ca04821"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-3f-validation-20261024\\05-Corllenium-UC-Building-Repair-Engine\\tools\\main_infra_e3.py",
+      "sha256": "1c7357518e366a403d62d14ea6e231985574eeb606334e4a62c053f5f591e981"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-3f-validation-20261024\\05-Corllenium-UC-Building-Repair-Engine\\tools\\main_infra_e3_binding.py",
+      "sha256": "2eb413942d49b6f1a65b42fb929be365bcb544481388a7935d8277e4e263f44c"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-3f-validation-20261024\\05-Corllenium-UC-Building-Repair-Engine\\tools\\main_infra_physical_validation.py",
+      "sha256": "e0be48fd466c12467189b361518aa026fd30dcc239a35f7e84bf8542120503d3"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-fresh\\import-2f-3f-20261023\\raw\\3rd floor main infra.obj",
+      "sha256": "f63c079408bd42fec7b9e5b5d10b0b8a8e4bc7077da006739bf5cfa1fdb5cf25"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-fresh\\import-2f-3f-20261023\\reference\\3F.json",
+      "sha256": "9597fcfa0e1a76e4a460a9e54f5a8b79c7bdb76c4f1030afb56914dfa97a1dfe"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-fresh\\import-2f-3f-20261023\\normalized\\3F\\before.engine.obj",
+      "sha256": "740103bb4197a1270e4c00e38abe9971e12f5c80ebe14502e4acd75148afbc82"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-fresh\\import-2f-3f-20261023\\normalized\\3F\\before.source.obj",
+      "sha256": "f9f2f90eb52083233ab8c9baad7e8e9e61e9d528f95b90df743475afc5a39bc8"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-fresh\\import-2f-3f-20261023\\normalized\\3F\\geometry-provenance.json",
+      "sha256": "0352a3aa9cb1810dab9c4683cf3bfafb9067963cea7dda94840656cad955ad23"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-e3\\run-20261023\\independent-validator\\import-2F3F-audit\\qualification-3F.json",
+      "sha256": "5e1880c494bb4fa532a1d50bce5515d20cc02e532d82c5e55db69e59a83a7424"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-e3\\run-20261023\\independent-validator\\import-2F3F-audit\\materials-3F.json",
+      "sha256": "ada00c4d5ce46ca19e168e0afd61684f636e68b84d2b18c15f5b3d90964b0b8b"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-fresh\\import-2f-3f-20261023\\raw-manifest.json",
+      "sha256": "4e0a494f1f625016a7fa7e207df127394a14d068f6920331306c8fc8f581cdfc"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-e3\\run-20261023\\independent-validator\\import-2F3F-audit\\import-audit.json",
+      "sha256": "58023bc0a0702e339718c867800633c8d13c54a0208910ee549a5d1021f1d89a"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-e3\\run-20261023\\independent-validator\\import-2F3F-audit\\camera-frame-control.json",
+      "sha256": "ae4bc6c0824765f16cd8bbaccb7f061e254c0df4b462343ee2406ff09fa25a79"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-e3\\run-20261023\\independent-validator\\import-2F3F-audit\\3F\\native-poses.json",
+      "sha256": "da53ab15b34e5b127020049bd86e2bd0cc517c441f8f6e23c736ed75da4708e8"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-e3\\run-20261023\\independent-validator\\import-2F3F-audit\\3F\\common-frame-qa\\comparison.json",
+      "sha256": "c81f1a01af5c2f32122c39324f048ad87e2088b83b9521656c422b33e3147480"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-e3\\run-20261023\\independent-validator\\import-2F3F-audit\\3F\\common-frame-invocation.json",
+      "sha256": "cca386f26c977196397ebb2f43f15a29a3b2e80b6862903efe1eb806bab7a982"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-fresh\\import-2f-3f-20261023\\execution\\3F_import-qa-v2.json",
+      "sha256": "5d8318a9d857f4438cb651e27de5a1d84dc654f07d5cf733cbd3b49249dc5166"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-fresh\\import-2f-3f-20261023\\execution\\3F_native_reference.json",
+      "sha256": "0beeec9e4c737ed4f01ea95de1a1d1b378e83a73987bcc0773b16a3c89eafadd"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-3f-validation-20261024\\05-Corllenium-UC-Building-Repair-Engine\\docs\\superpowers\\records\\MAIN-INFRA-3F-VALIDATE-ATTEMPT2-20261024\\worker-runtime.py",
+      "sha256": "a4898bdd79b192b20bb1c40afd31d1623dd3c3d28f06e8fd33c4c7a35ef9190f"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\tmp\\main-infra-e3-floors-worker-attempt2-20261023.py",
+      "sha256": "a4898bdd79b192b20bb1c40afd31d1623dd3c3d28f06e8fd33c4c7a35ef9190f"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-3f-validation-20261024\\05-Corllenium-UC-Building-Repair-Engine\\docs\\superpowers\\records\\MAIN-INFRA-3F-VALIDATE-ATTEMPT2-20261024\\strict-guard.py",
+      "sha256": "bc7d45e280950df37e23f4bca38d2a78ce6007969dec9e6a2edeab72fdba39b2"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-3f-validation-20261024\\05-Corllenium-UC-Building-Repair-Engine\\docs\\superpowers\\records\\MAIN-INFRA-3F-VALIDATE-ATTEMPT2-20261024\\native-pairs.py",
+      "sha256": "065989bc85dfc713ce74ed766428b4a1c23789209796d5913e59224c9d6a7472"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-3f-validation-20261024\\05-Corllenium-UC-Building-Repair-Engine\\docs\\superpowers\\records\\MAIN-INFRA-3F-VALIDATE-ATTEMPT2-20261024\\native-readback.py",
+      "sha256": "fca870ab6a51c2c5d15a4ae23a7214972b723a844566acc8c66fec2480296676"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-3f-validation-20261024\\05-Corllenium-UC-Building-Repair-Engine\\tools\\main_infra_2f_validation.py",
+      "sha256": "fa09448e72e1b0e184a3f8577559e10363d7b07279f289efa32e7425079648ab"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-3f-validation-20261024\\05-Corllenium-UC-Building-Repair-Engine\\tools\\main_infra_3f_validation.py",
+      "sha256": "9b2ecd0e4e8a2fd6ec7e9417b9cf4138793484458e48a29f2f811196d61e6193"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\attempt3-preflight\\3F-execution-ready\\monitor-E3-3F-attempt2-20261023T173612\\result.json",
+      "sha256": "e0cb3afbacc60e37e58c9199b57236cf2af724357b8b66d0129ce6e9cf51f363"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\attempt3-preflight\\3F-execution-ready\\phase-3F-attempt2.json",
+      "sha256": "7f7b2698b331c107713832ef20adbed187b84d93598481201db8a25623491291"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\attempt3-preflight\\3F-execution-ready\\run-3F-phase.ps1",
+      "sha256": "bd6862b2c802ad7019b325faa9ff9834099237decf3b07f8e299a55ceac50f61"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\attempt3-preflight\\3F-attempt2-ready.json",
+      "sha256": "55e33ccf2bc0edadce1a55b3db14e3e6de165f15fd9cf28c373b26cb1882b7c1"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\tmp\\main-infra-3f-saved-readback-20261024.json",
+      "sha256": "14e052acd906f9449d85bc9ee31298233eb22e07d7c3af0fe71e43caefd9d5c6"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\tmp\\main-infra-e3-floors-worker-attempt2-20261023.py",
+      "sha256": "a4898bdd79b192b20bb1c40afd31d1623dd3c3d28f06e8fd33c4c7a35ef9190f"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-fresh\\import-2f-3f-20261023\\normalized\\3F\\3rd floor main infra.mtl",
+      "sha256": "c021e8faec66f4d705a70b0caf7ea49d467bdc829b7680263bda02e3660c9b07"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-fresh\\import-2f-3f-20261023\\normalized\\3F\\corner-provenance.npz",
+      "sha256": "8576ac600d61df6be435599e07d7e6096b10380d17e594686a37a0feb082fbea"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-fresh\\import-2f-3f-20261023\\normalized\\3F\\textures\\minecraft\\concrete_white_-1.png",
+      "sha256": "f42c7be3c52294ead4c69ac0e9ef1bbbbe6bdb4451382c89a65c386709df6171"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-fresh\\import-2f-3f-20261023\\normalized\\3F\\textures\\minecraft\\concrete_white_-15579874.png",
+      "sha256": "14ceba3d0329594e00458bc6ed2aeafa24d9228519994a60d758de2509fee1ad"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-fresh\\import-2f-3f-20261023\\normalized\\3F\\textures\\minecraft\\glass_white_-1.png",
+      "sha256": "899b9a1f08688eb13dd6dc980a743f5d335862615c49da8b2298ff3817933dd4"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-fresh\\import-2f-3f-20261023\\normalized\\3F\\textures\\minecraft\\quartz_block_bottom_-1.png",
+      "sha256": "daf3f46f93f7364b1530ec468a7a1d5a02eda1cd0a118e41e93e9c4177791cc1"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-fresh\\import-2f-3f-20261023\\normalized\\3F\\textures\\minecraft\\quartz_block_side_-1.png",
+      "sha256": "85e34c6a6b917ade1cfbd2826127de4175c63317f3efbba1f7aaed3bf105a193"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-fresh\\import-2f-3f-20261023\\normalized\\3F\\textures\\minecraft\\quartz_block_top_-1.png",
+      "sha256": "eea2309518da196d86171dd0d78ecdcdc3a0510005790fa2beb8484744d8ae88"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-fresh\\import-2f-3f-20261023\\normalized\\3F\\textures\\minecraft\\wool_colored_orange_-1.png",
+      "sha256": "c6a3c27b965f298da28c89c1a522b5ff3152321a97fcbe613aec2f9a6d8f66fa"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-fresh\\import-2f-3f-20261023\\raw\\3rd floor main infra.mtl",
+      "sha256": "c021e8faec66f4d705a70b0caf7ea49d467bdc829b7680263bda02e3660c9b07"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-fresh\\import-2f-3f-20261023\\raw\\textures\\minecraft\\concrete_white_-1.png",
+      "sha256": "f42c7be3c52294ead4c69ac0e9ef1bbbbe6bdb4451382c89a65c386709df6171"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-fresh\\import-2f-3f-20261023\\raw\\textures\\minecraft\\concrete_white_-15579874.png",
+      "sha256": "14ceba3d0329594e00458bc6ed2aeafa24d9228519994a60d758de2509fee1ad"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-fresh\\import-2f-3f-20261023\\raw\\textures\\minecraft\\glass_white_-1.png",
+      "sha256": "899b9a1f08688eb13dd6dc980a743f5d335862615c49da8b2298ff3817933dd4"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-fresh\\import-2f-3f-20261023\\raw\\textures\\minecraft\\quartz_block_bottom_-1.png",
+      "sha256": "daf3f46f93f7364b1530ec468a7a1d5a02eda1cd0a118e41e93e9c4177791cc1"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-fresh\\import-2f-3f-20261023\\raw\\textures\\minecraft\\quartz_block_side_-1.png",
+      "sha256": "85e34c6a6b917ade1cfbd2826127de4175c63317f3efbba1f7aaed3bf105a193"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-fresh\\import-2f-3f-20261023\\raw\\textures\\minecraft\\quartz_block_top_-1.png",
+      "sha256": "eea2309518da196d86171dd0d78ecdcdc3a0510005790fa2beb8484744d8ae88"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-fresh\\import-2f-3f-20261023\\raw\\textures\\minecraft\\wool_colored_orange_-1.png",
+      "sha256": "c6a3c27b965f298da28c89c1a522b5ff3152321a97fcbe613aec2f9a6d8f66fa"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\campus\\__init__.py",
+      "sha256": "e47d53569bb287f38a3232bf9044dd2ede5fa493b7682ae756fd459da4bd50d2"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\campus\\census.py",
+      "sha256": "37bc6a44b5d768ba7518e78d123d65b40f52eff0828937dbd72c77a23088024c"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\campus\\error_export.py",
+      "sha256": "e88b726d242f3c68bd598efc4f957e5d4c59a151f86283afa447c977b69d68ab"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\campus\\groups.py",
+      "sha256": "7f0b05a8d1807bbbc5118d7a4acfd25975614f533d83264b978455eaffdb7e73"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\campus\\inventory.py",
+      "sha256": "144230f16f06b0dd6c9d5b01709f7f70f04faa94764aa76e3ab6e727fb42cf2f"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\campus\\materials.py",
+      "sha256": "2325873abf6efd0c67c894dcb9e3cb66eb72a584c93c79d46661bddfe0c2f221"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\campus\\needs_modelling.py",
+      "sha256": "857921b86475ff1f02c0fed5195840188e7e4bf86ed1a5ab691a5fe009677cb5"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\campus\\pixfont.py",
+      "sha256": "6c2554b6a2a15839525007a059425c0ff954d0e417669b2fc19a19704944e4e1"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\campus\\skp_check.py",
+      "sha256": "92d5477aa0284a5dab1dc550934763b25333a66f05dfab4b41798a2f88d22844"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\campus\\source.py",
+      "sha256": "25bc1a7bf19b511140135bde71474a668cb00614e1b30a488b86ea753768a737"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\campus\\unit_before.py",
+      "sha256": "fb0b4ace5010792740858933b8eac1bd59b674ea5c0e15ddebbb570ceacd4998"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\campus\\winprobe.py",
+      "sha256": "17ae7a4ae6856647cf670ec69ed3d00ac02ade629aff1b67ad59888dbae30759"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\cli.py",
+      "sha256": "22038f695aeef6f655a0409781993f2657e1a2507df8d3bb448c2faf1a3806c4"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\decide\\__init__.py",
+      "sha256": "35c706c776a73c97047b57abdb173b2c5a3b69e548cef0805be3e1858dd95ce1"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\decide\\decider.py",
+      "sha256": "63c318ae4e19d6130497207005d0e90c865875c6db8fef592dac6fd6eca0c9d0"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\decide\\jev.py",
+      "sha256": "6ee83f8a737f438b72bcc90a5d9ef58a198ea1b12e6e7d509d1b8ba3d8049534"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\decide\\pilot_import.py",
+      "sha256": "fb43df39144e95ea56a9b29dc0d4eba99473a6f99ebf059b6d471ed4fdabc959"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\decide\\pilot.py",
+      "sha256": "86e7a0545b9bce62fcd71e3259f177352a908b8d60fe34ce96fba08d1381e25a"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\decide\\providers.py",
+      "sha256": "f6d13f43daaef30e63798bfd0fb03455c81497b98d80098de90584deb31218e5"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\decide\\remote.py",
+      "sha256": "68444940c8fa733f9dacb29e264a33298fdfc8411c08aeeeecb58a0ba080ba2c"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\decide\\wire.py",
+      "sha256": "1350369bc601021eb0b13d5000da07c145cb12e28c61140483c938abde9eef27"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\detectors\\__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\detectors\\errors.py",
+      "sha256": "21823708b8f34ec42900008f7c16ac3b55fda5b213c8347abcb5057fe443610f"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\detectors\\folds.py",
+      "sha256": "6c78d57faf7eae8ed874cb25ca0a315362f5ac59f88d1543bbc23d310d7fb84e"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\detectors\\fragments.py",
+      "sha256": "63a9beac6a6dcb5826e13a120997ac172e3d809351269f939ee76b1308a012d5"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\fill_review.py",
+      "sha256": "dc04d19343736e6c062f73d5e6b9d8b642e545e7a1f9dd4547419b4bc1c2034f"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\fixes\\__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\fixes\\merge.py",
+      "sha256": "e11bfe7da7cfeb9c7cdad3da0c1e41306b124f4c42ed8f4099d9567118aff693"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\fixes\\orient.py",
+      "sha256": "0e15f196d51ff9d19c2e102baee0fc7966421275ead6bbcdb958850b37346855"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\fixes\\overlap.py",
+      "sha256": "ee8aab14411313b82e05da94c508a1d479ea00732f620bdb58fa92c2b9a8f8c9"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\fixes\\pipeline.py",
+      "sha256": "20f72381d1ef2040bd90de928e21c3bfb0b5c4e534669e15207110ae7736f2aa"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\fixes\\precut_cleanup.py",
+      "sha256": "faa4a8a2d921b83702d2cf53c04038cf4488168b6279cd66f6b49813ab40d6b4"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\fixes\\remove.py",
+      "sha256": "7ec0b682dc87cda8270fd157b1efa7bf34c5232e71963153b3fac7257ff02706"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\fixes\\solidify.py",
+      "sha256": "9201503de87813fdf34e1adc60b12d39340ee8f289f293ae8dd3b6abdc805e00"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\guard\\__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\guard\\compare.py",
+      "sha256": "8aca5a91a3d33af2bf0387a2fc6e5e13490ca337c2b3e24ea53b94cbe8722412"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\guard\\piece_rays.py",
+      "sha256": "b15824c2385c00c3df19d88b8f379194f6dd01a0aeb53c1f20796661cbbbf1e9"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\guard\\qa_render.py",
+      "sha256": "a620795f0763af06420722daceb75c8dc62c62fda4787ffc911e9cde4b3cd74b"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\guard\\render.py",
+      "sha256": "9c918de0b2d53621af3b5cecf0f567c89144c3829a18f408fdf72dd68612bcb3"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\guard\\views.py",
+      "sha256": "d17931c6228909a6bd40f32a961db41c4d7b1e747100f1ea5e115d49f74ac66f"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\io\\__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\io\\minecraft_floor.py",
+      "sha256": "f039309f3cd988ea92c7242f5c3c5085cfdee35d0a3a8075b214910dbd46d014"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\io\\mtl.py",
+      "sha256": "91492f26a43adf2ba368ade4580bcc562fe7b3d162fa3ce0e5ecf964edc70026"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\io\\obj_reader.py",
+      "sha256": "72b300cdd8af9b3312369fb3ffe2064f07933298198ad0e8f438c91d1990a7fe"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\io\\obj_writer.py",
+      "sha256": "9358f99c2362f4cc84d1e11fc073785bae58936f115c6c8fa87e4616fd073df1"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\io\\protected.py",
+      "sha256": "d17e46d0cd294a0c9e23a87476b25d1491cc11b390d74abaee8205400e6d9058"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\io\\skp_reader.py",
+      "sha256": "6142326ccf9ba6a44a563721c14a73deee2fa14cbac6c7f39a34f21638158719"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\io\\skp_writer.py",
+      "sha256": "94a2dd52f872ed06131d5f3ae0f1cb5db05363007333098a893f477be1247500"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\io\\snapshot.py",
+      "sha256": "05b586a87f896552b5081bc5e263e3b4de3ba2d856b76b43af63787794933ac9"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\model.py",
+      "sha256": "4309d8ce5552ec295198f6f732d344842824e65ed1c300e63986e8c17a75be8b"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\pipeline.py",
+      "sha256": "eef997061586ed4735d39d8ffd7b245aece780181fe8c070d34bd8a5ccb764a9"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\rays\\__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\rays\\caster.py",
+      "sha256": "62bde18bb12e0e3c8f690eb9c819750274e4924911770b6f7cffa399a704ddd5"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\repair\\__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\repair\\engines\\__init__.py",
+      "sha256": "8afb2ca146db093adccbc2ca8506262e6fe01f4ed98d4ee11773153aefd45207"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\repair\\engines\\e1_loose.py",
+      "sha256": "c844ffa6147facb54ee60efdba3978dc46f05ca2dde6811b24ca8a1419eea539"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\repair\\engines\\e3_hidden.py",
+      "sha256": "e4b2e2e00127683d1f8b0ec221aab35e9f3cb67407fb4f561760a6f12f1d8d92"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\repair\\engines\\e8_fill.py",
+      "sha256": "6784bf95a73de18c80b3404a4d79c233ca1fef5e5d5856a7bda05d7b68501a42"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\repair\\engines\\e8_solidify.py",
+      "sha256": "a9862d6420609a341d0c0132b1ddf4c639c01092a7a7d1c6af054c50af976f21"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\repair\\engines\\legacy.py",
+      "sha256": "4ae576b9e7d0e5a5f610771efda83cba93d8a3b6e277d156367900cc30522b57"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\repair\\kernel.py",
+      "sha256": "dca8042e6d562676589f6b2741ee178d58f48e3d61f767d718303641c1525ca5"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\repair\\types.py",
+      "sha256": "43ca308fa31942982666cbae7dbf0f7082e5dd3c747be901c0ca37c32dec4c0c"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\site_judge.py",
+      "sha256": "50cee322111f5bf192f1a20160e06234c61b71518a891684434d246faebd6993"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\fixtures\\__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\fixtures\\build.py",
+      "sha256": "73685577a175ae6092cda4fcf0d5759d12147f0b6dd3e88de111bb1c18f3116f"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\fixtures\\holes.py",
+      "sha256": "2a54102ad9133212ab77dfbe96c8f674f6291d193fde8603b5a7df2071f47ccd"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\skp_scene.py",
+      "sha256": "8eadc03a62d67312c505e4ea4912bd1fba153f976dc0f042ae2db1e28e139690"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_campus_census.py",
+      "sha256": "6b127dcf0a7ebf702654b2985db65c5ac49cd2c84b181845f072aa2368d0c786"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_campus_groups.py",
+      "sha256": "aa4d8c9d1632bcb80feca99626a445d06033c0408f33e70ae84cf970b1a5c09b"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_campus_inventory.py",
+      "sha256": "3a0afaa80371c33c5bdbdb55944ea108e934038b6f267471a2e975db9a953cfa"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_campus_looks.py",
+      "sha256": "2595cf5152984094dd421b2db6d2eadd45a4831927588a2ee1790a78fc0daca8"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_campus_materials.py",
+      "sha256": "2d03d8b90903c4f729d9322f6abe6210138c876b44b82a806f11f237ede44326"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_campus_source.py",
+      "sha256": "acd9a6fa56827564ab11df06e3601528e794458e93530a56ebeca716c3c7ce7e"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_caster_spatial_recovery.py",
+      "sha256": "f2a0bff7e5be77878718fcb7a26bd7f922a7f3f83c9bfa6ae54ccac46249b9ff"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_caster.py",
+      "sha256": "229880305bed4d8084a84258e9f7fca574f7472f69e500f4eb417a0bb5d9ca66"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_census_materials_message.py",
+      "sha256": "55d2e50d6e2bb7aedb9f2e28bfebb0894070306a99ceda7f022197b17d844a62"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_cli_needs_modelling.py",
+      "sha256": "96841fdd581329b853a2c4098b9c5d5d0e6d31834e5c0df10fb7bf75a7947d18"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_cli_repair_unit_e1.py",
+      "sha256": "d600ab4c2e97d76422e0b0bc66d1b7c280b13335cff0159b33527e06323ccf17"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_cli_repair_unit_fills.py",
+      "sha256": "45719741a4c909d8126251b5cd12237588a881a7200de97116109bed75e28714"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_cli_repair_unit.py",
+      "sha256": "00a33f9b0ae5038586add8c3d5f2a4da340e59af70bc5834b47c65c9c148196f"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_cli_unity_check.py",
+      "sha256": "5a1df437fc061c2b8be6af4e4331bc17e12cf4a395d6b4401c48f050dfbc17f1"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_cli_validate_sites.py",
+      "sha256": "2d5bf8f8ee3f16e95ec0bd0c5daa5b423f87c353ddfa4f3bb6800e13d36cf426"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_cli.py",
+      "sha256": "12ccdbd8fa0354c7904c0e41ffb477a28cae461a4920329a8a0b62a17a8d3b6f"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_decide_jev.py",
+      "sha256": "c42029aad61a5728406b4038d36316ff5f324e39769a05e3b05aacabf1f7d2a4"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_decide_pilot_import.py",
+      "sha256": "5a44ff3094c792146610f09d89bce8d2c9d7d8ec95d3bdba6e1cfe5bce02ef12"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_decide_pilot.py",
+      "sha256": "2731cf2436360e73ee213322791d0f9c6e6d4ab0a1ca76bdd3192aa208f2f4a9"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_decide_providers.py",
+      "sha256": "1aae3c1d04588c2a1bf6f027fc918d4423e633eb47c51675d17a79e79e727a04"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_decide_remote.py",
+      "sha256": "d1a280cf9f8e4baa1c0753852d3e9a244d2be5c5386faee04fc639f71769a077"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_decide_wire.py",
+      "sha256": "7f144c30969207af00fc7d7d6e33cbd82fe7f26ca3a62cf7b477053ee4756df5"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_decider_unavailable.py",
+      "sha256": "4f2de6ef4de3bc8f40630e7169aafeee1b3fdd6dbd613deac148f8cb66aa6c6d"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_decider.py",
+      "sha256": "689379536ecc85286243b4071bf0e7296418b7fe83771e08cbbd2a5322fb3dfe"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_double_layers_memory.py",
+      "sha256": "4d70520fe77d88937c84c88e12cb5c991aa09d8aa8ba07c8a84d95e87febaa9e"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_double_layers_speed.py",
+      "sha256": "0ebf50864b75ab55ab4057f18d1b2208841c93a18ce750d73a14b5387a92c271"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_e1_loose.py",
+      "sha256": "274c8a1dc664223f72da3c3047370c6b3f994889fb15d8ee0a627a08e1bf5c81"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_e3_hidden.py",
+      "sha256": "16759a6de7d45b756e859e32100e5ad1955c5e8d5d540e83c159c0a7fa93130e"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_e8_flat_fill_kernel.py",
+      "sha256": "2d677250c6d6021ac81fd8d9e15ec89e232fb2d84f801ad54f7b5f99cdf4a91b"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_e8_flat_fill.py",
+      "sha256": "451f3b990b73235b720536fa9ece4f9c537ec55bf013f9b1a302cca23ffddb9c"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_e8_solidify.py",
+      "sha256": "8b3f4eecc7a6234178f16adb80e26ad99b985aa68fc92dd434e0a49a4c8400ef"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_edit_add_only_e8.py",
+      "sha256": "ccf6e25d10bc63d56e0fa80ad12450a4be017e795f3b2f8f19b2f574c711a5e7"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_error_export_cli.py",
+      "sha256": "38c4143429341f514c1eda6e411ff61fff47309b8ec8cc326e8e4bd4e911be7e"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_error_export_plan.py",
+      "sha256": "0dd0c3dec9fb18e7493e92467c645abbd317ba63aefdf0c49866bf5e165303fa"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_error_export_skp.py",
+      "sha256": "edfd65ab4a0b554ad64f45d365ca519619df30ff218454556e8d6dc2305f81ff"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_errors.py",
+      "sha256": "78d012f7cf2f9992f820b409efb9199c7d815491548c64f09573c8a8f25bf965"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_exposure.py",
+      "sha256": "b242aada48faa0c90c623af24adcd8ef07898d2af2d5086a7960abba2a80c2e0"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_fixtures.py",
+      "sha256": "af1170cee09387d780aa8e34278e467cf9a8a71c9a1ffca3ff58e12cbd66bcbb"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_folds.py",
+      "sha256": "39dd0eca23b51c30e49c660d1895b432358827384cf45e1eed46281e525c1e13"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_fragments.py",
+      "sha256": "ecd142a13e9116a40f804cd8bbfb229dc829933b0504992f88f2c48528935361"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_guard.py",
+      "sha256": "73707e5208bd9568fc164420dbdc86f353c05668093b5a97e92950fb575f924e"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_kernel_edit_log_any_engine.py",
+      "sha256": "4ecb05b3bb84dafb9dc2738ba269b6a99731f4a34bc4f924bc303d80d563352f"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_kernel_observe.py",
+      "sha256": "d7665310782be7cacd75c682ecdf89a447489c8d3bfa35ab70fc5a166d7e35bf"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_kernel_site_checks.py",
+      "sha256": "359b3d4128ba2de19d1f2223bca94c5f825cbafb223470f597703942197f4740"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_kernel_stage_rollback.py",
+      "sha256": "b16a246ee8b9447b04b4904f9efa58485b7d2c4dfff9ca5e6d3a69e834100e30"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_merge.py",
+      "sha256": "a0c44820f7dd10f86ec17ffe528642657031ccad7977a0a518775e80705fcc4b"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_meshbuf.py",
+      "sha256": "f58389906c22049fb8721262f593cad574b266ca581cdb2a2ef7c912c050c55b"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_minecraft_floor.py",
+      "sha256": "9e743b6b1da2dbb7a70be286030220342c40925ea0fed4541814092c3e11ab75"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_mtl.py",
+      "sha256": "ad5b288a61e4bef63395e4a19c3a541a5fd1ad4a79772ddf1d231cce0ad35ab5"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_needs_modelling.py",
+      "sha256": "cd16f82a47c3ae9bfdc63a1c329a76744ae1de778c4b34c0f80d6a13b02e7a60"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_no_material_is_its_own_look.py",
+      "sha256": "d7e303df9066bd083f01b28bd45adcf571eddf512dff339bf1fd30035cfbbc5c"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_obj_reader.py",
+      "sha256": "3d233308c9d3cbcdbaab05f59717dff3612c883cb9ca833064c25f0f00e063ea"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_obj_writer.py",
+      "sha256": "ac1dc701337e64750cac906b69f07d72d9075c6d9dacce81311f318da57c7eb7"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_orient.py",
+      "sha256": "78fe624d863a8119ef67ecb60044af1c467f8132390fd45d2ddac2d1b92f7177"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_overlap.py",
+      "sha256": "f7ef0c18902a11de9315f960d27100ea5379383692e79f60c53f2031d7a36d01"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_p2_h2_minors.py",
+      "sha256": "0186523a0afa76ad7f269369230b9fd29ebcb6daa8169bc7a032e6e3abf48a3e"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_physical_precision.py",
+      "sha256": "5a7d804395f0b9c89d82d15bd4258ae349dacae8f4f0dc70a648595037d23400"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_piece_rays.py",
+      "sha256": "b7407ce17b3e69cf07a96d65f40dc089863a05d22597d674066beffa77b0134d"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_pipeline.py",
+      "sha256": "87767e05a989db711e775351c9f0488224d2323eb29b0f8e52ca7757f193c870"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_pixfont.py",
+      "sha256": "5b3cd7df80c09afb4d76d00a159c167ced4a0028b677dc6f5e8f51d4a9ad2c91"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_qa_render.py",
+      "sha256": "9c461b9a2373860603e54fa17b334b18ab60be91021802906b2eb06b0e46e71a"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_refuse_protected.py",
+      "sha256": "dad7fb88fa92107472a9d2f9069e589d50b9015ae6d718dc6665ab214689a123"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_regions.py",
+      "sha256": "8d8643d62ca5783a35e2056db51936006165551c0e49115ec71c92857a3a36b0"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_remove.py",
+      "sha256": "61085a40b2d5cbeb0f56bfcec43ea53eb5793cdcca5270a245dc346010e02ced"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_repair_types.py",
+      "sha256": "60c666e646ddeb1a930fb0298fb68f6e059f38d16a7cb8a3685da7e217452f90"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_repair_uv_observer.py",
+      "sha256": "7122b30cc34b92fd404fd2136271f08873539dda0129e3f14644a893e8b690ca"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_repair_uv.py",
+      "sha256": "b69077a6ac965be17648a5d1159db9ad7466b1cccea9f9318f34b6ff817100db"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_site_attribution.py",
+      "sha256": "22f206570d63993f2430ce41aa90d5d4462a41388155f533caa0ae0c85f22dd6"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_site_judge_cover.py",
+      "sha256": "c0f59446ad1736aa8be46a33daa3fd5311725ac3cccad7a845bade038b00733c"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_site_judge_floor.py",
+      "sha256": "206f8ff3f9982cfec9bbc65040438809e30b887e9b67f4928b57c4ecc81019e0"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_site_judge_remove_only.py",
+      "sha256": "f424d7a5267719056f96d4f2601509ccd01613bb4189b14417a9c9b541942656"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_site_judge.py",
+      "sha256": "4d53260ae3f89ebea689e70854f6999bf6f036083b3e78a4f750804df4c8b1e3"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_skp_check.py",
+      "sha256": "5e10950dd2665d3a04301d0297e9cbf67812a39e96130471805c65a16f993a06"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_skp_reader.py",
+      "sha256": "1d3cfa294130ea8688f54cd21c25872bd0c72ca13a9e10dca58464f1157cb9ac"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_skp_writer.py",
+      "sha256": "30ed8fe7fcda42c40092ed93b9b8733951ca7af2fc331bca6e4ad301e4a38ac9"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_snapshot.py",
+      "sha256": "427f7d91764be117b4a6d2563754b0d1771b6bf77628795615dde6fc6b2f0b4c"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_solidify.py",
+      "sha256": "77f97480f7e74b7a1795a6f3b2918a99a14f611a3992a272da3573a3159865af"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_t_vertex_search.py",
+      "sha256": "b07fba23c37d52027264c1d8af5fd6a5d513a2629bb9a76858e68cef513504f4"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_topo_basics.py",
+      "sha256": "ab1d3cdf4b709b552b4750866c6d7b4117d476f6a4abb60f408aa77119c82d43"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_topology_memo.py",
+      "sha256": "166b5c95ef6d2663dba8fa1c25a84f1f8e19c9b6c488d971e44ed93c293b0321"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_unit_before_no_material.py",
+      "sha256": "f8cac9a0483e673bca842235e79723f314927d9fc1eb3bf683ef6d146bb640c0"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_unit_before.py",
+      "sha256": "ca9a610405da94dd3a8d06b5550e90b35b4c081e1f5bcd76ad4282666aceff3f"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_unity_align.py",
+      "sha256": "e3452da4f7cd421a1de79eb8c12101aaaa35e43d5f0907b966c756650d6abb0c"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_unity_check.py",
+      "sha256": "091790f4680396067e5d12c3a32f1e96176eb63bd24d22d31fd39d6329d25521"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_unity_dump.py",
+      "sha256": "6a707cb3207f5ba8ab90a2a109b2440a2af37b8522280a0b4e34488294d3c65f"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_unity_mirror.py",
+      "sha256": "479c9a61a19e83074a8a07c775552af1e6055a3b4f3fe9d977ea0d3bea96e8a5"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_validate_checks.py",
+      "sha256": "6651373a7493eb34c90e5b25b15fa0622fa03b9f0c35ea6eb3889c1070313654"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_validate_core.py",
+      "sha256": "e5adf885cecde0fa9773faff954c3807a7cfef24345b1709abac335ba67a5f14"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_validate_edit_log_fills.py",
+      "sha256": "e30385e5f6d21be70bdd03a4825ea569cdc3cfbc82f4ada272a450bf6ca1a824"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_validate_edit_log_new_faces.py",
+      "sha256": "9d01a4431082f4bdd7c1574a1e2a35efb44960dfb48011d523ab3416d494fff0"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_validate_fill_site.py",
+      "sha256": "759a64f16d03cbea5cbe7886b26e786ad4f148bccf3d64a4a501883dd1e841df"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_validate_floor_checks.py",
+      "sha256": "d6f9436f4853023734346fd2f7683853ad407a728b051fc9a29e22f8e99c8c0a"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_validate_floor_corner.py",
+      "sha256": "2d50cf05296d598e0f2d7227ac7344eeb30e51827906815140401bdcf856cda6"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_validate_floor_covered.py",
+      "sha256": "098cf5a6e82660d040d959b490bd7266fba52fd604cec22aa71007ed7fa2baaa"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_validate_floor_speed.py",
+      "sha256": "b62840972300bd3defc767a4aa17d1dfa54a2e0403d91c9416fc5bf083efb8d1"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_validate_floor.py",
+      "sha256": "97f41cab8b26e5eff85a63544ac64fd7d9c85a8c153cbe3e7dce7812b8f484c1"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_validate_focus.py",
+      "sha256": "dd80f07a214138250dca3790db078c6216524a13bd60d3edde9a63a05d3738aa"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_validate_horizon.py",
+      "sha256": "15f8537c97e251aa2b8f16342c6d9c0479f1651a30454a46c672d675557d6561"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_validate_mutations.py",
+      "sha256": "d7e00886a258dc761f5bf2ee052fa615f6e0c2c34c996f95fdca965fc561b5b0"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_validate_targets_shape.py",
+      "sha256": "4e351103057d405d730bc38475a2a42a0bc4fb26b7d90cbc381131f445de7e31"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\tests\\test_validate_threaded_caster.py",
+      "sha256": "fcea48d220b73f017c3dc919c527aeae1e9924203a9f07488ec63822f19635c3"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\topo\\__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\topo\\adjacency.py",
+      "sha256": "a4132a4025cec95bd004eeb174efa1e88950b4f86605ea972cec644a2479896e"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\topo\\edges.py",
+      "sha256": "e494c0ffee0b8a39cd5d5c2ac697ed7058f76b0838aac12928f2d03f0959c97b"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\topo\\planes.py",
+      "sha256": "1701d1ad46deb6bb90452159b312a7b94e8661bb33693143bf7825da39f17f93"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\topo\\weld.py",
+      "sha256": "e584a6ab2e46b20b7c4cf8da06516a4199978523ec68d3221263cd29cbf3bdea"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\transport\\__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\transport\\meshbuf.py",
+      "sha256": "2a24eaeaf1127a67ef1c87512147584a6a42761fb901fce0e6a634431ff28bd0"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\unity\\__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\unity\\align.py",
+      "sha256": "24af456f369a8a05444bb9fb7f1645d3068e957a437421e4eb048d776ed1e88a"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\unity\\check.py",
+      "sha256": "c244213fbf212afc092b37925797b4371606568fd745fce61b2377d03316f898"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\unity\\dump.py",
+      "sha256": "f710e519850f6aecab98de4ee3679cb58212ae407f1590fe4a2b3a4ea46d212d"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\unity\\mirror.py",
+      "sha256": "3c81e629e64a6ceb095c626d52fb92f35ab167ba0d9631a45bf17c5e4ab56ad5"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\validate\\__init__.py",
+      "sha256": "6d8a1be3faac9a3804d42cdcb5fba170739a756204aa755d2a05a1a3dd84f00b"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\validate\\checks.py",
+      "sha256": "3d3ebe288abab4afa73b26e8908047a8fbe71a36b8df31d3fed69fb190601606"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\validate\\evidence.py",
+      "sha256": "914fff0f76b253ba999fae91e6373ed2ab43d491c98f44d5cc57384e8ecffbd7"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\validate\\floor.py",
+      "sha256": "bde829b4832443ce159ae8d7937a5ed4b4207bd6d7e1b4b669b2df2b9b0e84e8"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\validate\\sampling.py",
+      "sha256": "d81a9af913839666ae8e63afd29ed22492fd90f1741be03bf01b1eb95a52a73d"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\validate\\targets.json",
+      "sha256": "4117f5e22045750fed7c4627ffa6324bf2efe5c14cf9629389a482c960036507"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\validate\\viewpoints.py",
+      "sha256": "c62acfd255fd99c003fd54bf084a68bdb82442cf1c96ada2f0a50e7a7efa7e98"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\validate\\visibility.py",
+      "sha256": "28cbad91da779c0a12155c3036a717db78e5629bb5fbf54e4e8ad2d95ca04821"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\vis\\__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\engine\\vis\\exposure.py",
+      "sha256": "ec922979de869284607ed067f71e8940465132db4eb020b49789b3d28547c34a"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-e3\\run-20261023-attempt2\\3F\\stage-audit.json",
+      "sha256": "56ab090d861106c2801b2dab057ba5e9df6109ac69d87faaf29b718c87389512"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-e3\\run-20261023-attempt2\\worker-3F.json",
+      "sha256": "5ce4494b2e4a14f3c9303b5e5f017ff35d01635b984f987046150755495ad4ea"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-3f-validation-20261024\\05-Corllenium-UC-Building-Repair-Engine\\docs\\superpowers\\records\\MAIN-INFRA-3F-VALIDATE-ATTEMPT2-20261024\\inventory.json",
+      "sha256": "f0b8b1d6196e0754e514179397150afc03d7f3d2ba4c47b69eafe6e3854b1613"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-3f-validation-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-3f-validation\\execution-ownership-attempt2\\run-proof-phase.ps1",
+      "sha256": "42e5d910a14514d2ef3b3669b90a209cfdba1e896fe680107c9068cb223b6242"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-e3\\run-20261023-attempt2\\3F\\candidate.engine.obj",
+      "sha256": "c3664f9e796c5c63cdcdcd1ba36be6996e07bee2727a908204ec08cbc37ed09d"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-e3\\run-20261023-attempt2\\3F\\candidate.source.obj",
+      "sha256": "a910864443ea698855836b9f725664d2a9e86f9b11270b503515eaacc9ad907a"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-e3\\run-20261023-attempt2\\3F\\source-faces.json",
+      "sha256": "c16be706ec6ebc7579f82caf1d52d21238636b738cae99d9de417263a7a8b408"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-e3\\run-20261023-attempt2\\3F\\edit-log.jsonl",
+      "sha256": "22fd8da0e707aca617d577c46c6cf397ed755805c7e1e12d27cbbeadcb9936c6"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-e3\\run-20261023-attempt2\\3F\\3rd floor main infra.mtl",
+      "sha256": "c021e8faec66f4d705a70b0caf7ea49d467bdc829b7680263bda02e3660c9b07"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-e3\\run-20261023-attempt2\\3F\\textures\\minecraft\\concrete_white_-1.png",
+      "sha256": "f42c7be3c52294ead4c69ac0e9ef1bbbbe6bdb4451382c89a65c386709df6171"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-e3\\run-20261023-attempt2\\3F\\textures\\minecraft\\concrete_white_-15579874.png",
+      "sha256": "14ceba3d0329594e00458bc6ed2aeafa24d9228519994a60d758de2509fee1ad"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-e3\\run-20261023-attempt2\\3F\\textures\\minecraft\\glass_white_-1.png",
+      "sha256": "899b9a1f08688eb13dd6dc980a743f5d335862615c49da8b2298ff3817933dd4"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-e3\\run-20261023-attempt2\\3F\\textures\\minecraft\\quartz_block_bottom_-1.png",
+      "sha256": "daf3f46f93f7364b1530ec468a7a1d5a02eda1cd0a118e41e93e9c4177791cc1"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-e3\\run-20261023-attempt2\\3F\\textures\\minecraft\\quartz_block_side_-1.png",
+      "sha256": "85e34c6a6b917ade1cfbd2826127de4175c63317f3efbba1f7aaed3bf105a193"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-e3\\run-20261023-attempt2\\3F\\textures\\minecraft\\quartz_block_top_-1.png",
+      "sha256": "eea2309518da196d86171dd0d78ecdcdc3a0510005790fa2beb8484744d8ae88"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-e3\\run-20261023-attempt2\\3F\\textures\\minecraft\\wool_colored_orange_-1.png",
+      "sha256": "c6a3c27b965f298da28c89c1a522b5ff3152321a97fcbe613aec2f9a6d8f66fa"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-e3\\run-20261023-attempt2\\before-snapshots\\3F\\740103bb4197-fe72f608\\before.engine.obj",
+      "sha256": "740103bb4197a1270e4c00e38abe9971e12f5c80ebe14502e4acd75148afbc82"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-e3\\run-20261023-attempt2\\before-snapshots\\3F\\740103bb4197-fe72f608\\materials.mtl",
+      "sha256": "03dcae10a90fa4b62c455aaa2e3b1f983e99109ef762b15cec12f53ca6237d43"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-e3\\run-20261023-attempt2\\before-snapshots\\3F\\740103bb4197-fe72f608\\missing_textures.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-e3\\run-20261023-attempt2\\before-snapshots\\3F\\740103bb4197-fe72f608\\source.mtl",
+      "sha256": "c021e8faec66f4d705a70b0caf7ea49d467bdc829b7680263bda02e3660c9b07"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-e3\\run-20261023-attempt2\\before-snapshots\\3F\\740103bb4197-fe72f608\\tex\\concrete_white_-1.png",
+      "sha256": "f42c7be3c52294ead4c69ac0e9ef1bbbbe6bdb4451382c89a65c386709df6171"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-e3\\run-20261023-attempt2\\before-snapshots\\3F\\740103bb4197-fe72f608\\tex\\concrete_white_-15579874.png",
+      "sha256": "14ceba3d0329594e00458bc6ed2aeafa24d9228519994a60d758de2509fee1ad"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-e3\\run-20261023-attempt2\\before-snapshots\\3F\\740103bb4197-fe72f608\\tex\\glass_white_-1.png",
+      "sha256": "899b9a1f08688eb13dd6dc980a743f5d335862615c49da8b2298ff3817933dd4"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-e3\\run-20261023-attempt2\\before-snapshots\\3F\\740103bb4197-fe72f608\\tex\\quartz_block_bottom_-1.png",
+      "sha256": "daf3f46f93f7364b1530ec468a7a1d5a02eda1cd0a118e41e93e9c4177791cc1"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-e3\\run-20261023-attempt2\\before-snapshots\\3F\\740103bb4197-fe72f608\\tex\\quartz_block_side_-1.png",
+      "sha256": "85e34c6a6b917ade1cfbd2826127de4175c63317f3efbba1f7aaed3bf105a193"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-e3\\run-20261023-attempt2\\before-snapshots\\3F\\740103bb4197-fe72f608\\tex\\quartz_block_top_-1.png",
+      "sha256": "eea2309518da196d86171dd0d78ecdcdc3a0510005790fa2beb8484744d8ae88"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-e3\\run-20261023-attempt2\\before-snapshots\\3F\\740103bb4197-fe72f608\\tex\\wool_colored_orange_-1.png",
+      "sha256": "c6a3c27b965f298da28c89c1a522b5ff3152321a97fcbe613aec2f9a6d8f66fa"
+    }
+  ],
+  "gate_8gib": true,
+  "output": "D:\\LLM_BACKUP\\Codex session\\main-infra-3f-validation-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-3f-validation\\run-20261024-attempt2\\3F\\guard",
+  "working_directory": "D:\\LLM_BACKUP\\Codex session\\main-infra-3f-validation-20261024\\05-Corllenium-UC-Building-Repair-Engine",
+  "wrapper_sha256": "42e5d910a14514d2ef3b3669b90a209cfdba1e896fe680107c9068cb223b6242",
+  "resource_limits": {
+    "owned_private_peak_tree_GiB": 3,
+    "global_headroom_abort_GiB": 3.5
+  },
+  "acceptance": false
+}
