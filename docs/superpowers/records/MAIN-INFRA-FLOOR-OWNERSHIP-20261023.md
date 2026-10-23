@@ -33,8 +33,11 @@ from competing read/modify/write operations. It does not restrict Claude's
 independent floor repair runs in its own output directories.
 
 Recorded/checked here: floor sets are disjoint and together cover all seven
-floors; queue ownership and output roots are separate. Claude's actual process,
-claimed branch and future output artifacts are not yet confirmed by Codex.
+floors; queue ownership and output roots are separate. Later measured queue
+readback confirms Claude claimed MAIN-INFRA-CLAUDE-4F-7F-20261023 on branch
+claude/MAIN-INFRA-CLAUDE-4F-7F-20261023, since2026-10-23T18:16+08:00; its named
+worktree exists. Claude's actual engine worker and future outputs remain
+unconfirmed here; do not infer completion from the claim.
 
 ## Measured engine finding — 1F, 2026-10-23
 
@@ -68,3 +71,12 @@ accepted floor was published, no database was changed and no app restarted.
 Live page integration is built from the measured livebb71d31 base in the separate
 SIEGE-MAIN-INFRA-LIVE-20261023 worktree; never deploy the older preview branch,
 which is197commits behind the live base. Only Codex publishes shared live status.
+
+Live UI abd68ce is now deployed:95/95hashes match bothroots/public. Authenticated
+live browser confirms seven cards,textured1F source15856 and explicit inspection
+candidate10136,26/26status polls200,zero page exceptions. Atomic publisher briefly
+created mode600 files; corrected to644 before replacement, readback/public polls
+verified. API remainsbb71d31/no restart/DBwrite. Actual2F53936 and3F56832 E3workers
+run separately underfec7b3e with independently qualified56828/53602inputs. Live
+PID/start-time publisher records actual CPU/activity, no guessed completion %.
+Both floors still require independent candidate preservation/problem checks.

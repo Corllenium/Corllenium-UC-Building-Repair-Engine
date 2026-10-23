@@ -25,6 +25,20 @@ run the latest `.skp` of each file must be in `OBJ FIXED RESULT/` for the owner 
 
 ## 2. Current state (2026-09-26 00:15, written by the Claude controller)
 
+2026-10-23 19:12 +08: LIVE owner URL /pipelines/jev-repair/ serves fresh UI
+abd68ce, built from actual livebb71d31 (not the197-commits-old preview branch).
+95/95 deployed hashes match both static roots and public HTTP. Real authorized
+login/browser: seven cards, six textured1F materials,15856source/10136candidate
+only after Inspect;26/26status polls200,zero page exceptions. Root corrected
+atomic status permissions600->644 and retainedstring logs. API remainsbb71d31,
+DB untouched,no app restart. PID/start-time-bound live publisher47902 updates
+actual2F/3F E3 workers53936/56832; inputs56828/53602, codefec7b3e, outputs in
+E3worktree/data/main-infra-e3/run-20261023/{2F,3F}. Independent review/guard/
+native/full signed checks follow saved candidates. Actual1F E3 removed5720
+hidden triangles; textures/visible coverage PASS, remaining targetFAIL1626/
+1014/2372. No acceptedfloor. Claude4-7queue is now claimedbyClaude; its matching
+owned worktree exists. Codex1-3/output/publisher boundaries remain unchanged.
+
 2026-10-23 owner scope correction: Codex repairs fresh MAIN INFRA floors1F–3F;
 Claude Code repairs4F–7F. Both use this engine. Read
 MAIN-INFRA-FLOOR-OWNERSHIP-20261023.md before claiming/running. Queue floor sets
