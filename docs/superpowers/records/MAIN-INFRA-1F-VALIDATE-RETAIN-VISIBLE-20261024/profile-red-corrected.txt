@@ -1,0 +1,216 @@
+FFFFFFFFFFFFFFF                                                          [100%]
+================================== FAILURES ===================================
+______ test_explicit_corrected_profile_preserves_original_triangle_count ______
+
+    def test_explicit_corrected_profile_preserves_original_triangle_count():
+>       assert shared.floor_size('1F',profile=PROFILE)==15856
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       TypeError: floor_size() got an unexpected keyword argument 'profile'
+
+tools\tests\test_main_infra_1f_retained_validation.py:12: TypeError
+______________ test_profile_cannot_relabel_other_floor[1F-None] _______________
+
+floor = '1F', profile = None
+
+    @pytest.mark.parametrize('floor,profile',[('1F',None),('1F','old'),('2F',PROFILE),('4F',PROFILE)])
+    def test_profile_cannot_relabel_other_floor(floor,profile):
+>       with pytest.raises(ValueError,match='profile'):shared.floor_size(floor,profile=profile)
+                                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       TypeError: floor_size() got an unexpected keyword argument 'profile'
+
+tools\tests\test_main_infra_1f_retained_validation.py:17: TypeError
+_______________ test_profile_cannot_relabel_other_floor[1F-old] _______________
+
+floor = '1F', profile = 'old'
+
+    @pytest.mark.parametrize('floor,profile',[('1F',None),('1F','old'),('2F',PROFILE),('4F',PROFILE)])
+    def test_profile_cannot_relabel_other_floor(floor,profile):
+>       with pytest.raises(ValueError,match='profile'):shared.floor_size(floor,profile=profile)
+                                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       TypeError: floor_size() got an unexpected keyword argument 'profile'
+
+tools\tests\test_main_infra_1f_retained_validation.py:17: TypeError
+__ test_profile_cannot_relabel_other_floor[2F-e3_1f_retain_visible_20261024] __
+
+floor = '2F', profile = 'e3_1f_retain_visible_20261024'
+
+    @pytest.mark.parametrize('floor,profile',[('1F',None),('1F','old'),('2F',PROFILE),('4F',PROFILE)])
+    def test_profile_cannot_relabel_other_floor(floor,profile):
+>       with pytest.raises(ValueError,match='profile'):shared.floor_size(floor,profile=profile)
+                                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       TypeError: floor_size() got an unexpected keyword argument 'profile'
+
+tools\tests\test_main_infra_1f_retained_validation.py:17: TypeError
+__ test_profile_cannot_relabel_other_floor[4F-e3_1f_retain_visible_20261024] __
+
+floor = '4F', profile = 'e3_1f_retain_visible_20261024'
+
+    @pytest.mark.parametrize('floor,profile',[('1F',None),('1F','old'),('2F',PROFILE),('4F',PROFILE)])
+    def test_profile_cannot_relabel_other_floor(floor,profile):
+>       with pytest.raises(ValueError,match='profile'):shared.floor_size(floor,profile=profile)
+                                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       TypeError: floor_size() got an unexpected keyword argument 'profile'
+
+tools\tests\test_main_infra_1f_retained_validation.py:17: TypeError
+____ test_actual_historical_1f_qualification_without_job_id_remains_bound _____
+
+    def test_actual_historical_1f_qualification_without_job_id_remains_bound():
+        proof=json.loads(QUAL.read_bytes())
+        assert 'job_id' not in proof
+>       shared.require_qualification(proof,'1F',profile=PROFILE)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: module 'tools.main_infra_2f_validation' has no attribute 'require_qualification'
+
+tools\tests\test_main_infra_1f_retained_validation.py:22: AttributeError
+______ test_present_wrong_historical_qualification_job_is_rejected[None] ______
+
+job = None
+
+    @pytest.mark.parametrize('job',[None,'','foreign'])
+    def test_present_wrong_historical_qualification_job_is_rejected(job):
+        proof=json.loads(QUAL.read_bytes());proof['job_id']=job
+>       with pytest.raises(ValueError):shared.require_qualification(proof,'1F',profile=PROFILE)
+                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: module 'tools.main_infra_2f_validation' has no attribute 'require_qualification'
+
+tools\tests\test_main_infra_1f_retained_validation.py:30: AttributeError
+________ test_present_wrong_historical_qualification_job_is_rejected[] ________
+
+job = ''
+
+    @pytest.mark.parametrize('job',[None,'','foreign'])
+    def test_present_wrong_historical_qualification_job_is_rejected(job):
+        proof=json.loads(QUAL.read_bytes());proof['job_id']=job
+>       with pytest.raises(ValueError):shared.require_qualification(proof,'1F',profile=PROFILE)
+                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: module 'tools.main_infra_2f_validation' has no attribute 'require_qualification'
+
+tools\tests\test_main_infra_1f_retained_validation.py:30: AttributeError
+____ test_present_wrong_historical_qualification_job_is_rejected[foreign] _____
+
+job = 'foreign'
+
+    @pytest.mark.parametrize('job',[None,'','foreign'])
+    def test_present_wrong_historical_qualification_job_is_rejected(job):
+        proof=json.loads(QUAL.read_bytes());proof['job_id']=job
+>       with pytest.raises(ValueError):shared.require_qualification(proof,'1F',profile=PROFILE)
+                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: module 'tools.main_infra_2f_validation' has no attribute 'require_qualification'
+
+tools\tests\test_main_infra_1f_retained_validation.py:30: AttributeError
+________ test_actual_1f_native_cohort_has_33qualified_and13diagnostic _________
+
+    def test_actual_1f_native_cohort_has_33qualified_and13diagnostic():
+        poses=json.loads(NATIVE.read_bytes())['poses']
+>       assert shared.native_pose_inventory(poses,'1F',profile=PROFILE)==dict(qualified_walking=16,qualified_outside=17,diagnostic=13)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       TypeError: native_pose_inventory() got an unexpected keyword argument 'profile'
+
+tools\tests\test_main_infra_1f_retained_validation.py:34: TypeError
+____________ test_retained_1f_native_cohort_rejects_drift[missing] ____________
+
+change = 'missing'
+
+    @pytest.mark.parametrize('change',['missing','duplicate','eye_height','headroom','outside_projection'])
+    def test_retained_1f_native_cohort_rejects_drift(change):
+        poses=json.loads(NATIVE.read_bytes())['poses']
+        walking=next(p for p in poses if p['name'].startswith('eye_0_qualified'))
+        if change=='missing':poses.pop()
+        elif change=='duplicate':poses[-1]['name']=poses[0]['name']
+        elif change=='eye_height':walking['eye_height_above_floor_metres']=.6
+        elif change=='headroom':walking['headroom_clear']=False
+        elif change=='outside_projection':next(p for p in poses if p.get('projection')=='ORTHO')['projection']='PERSP'
+>       with pytest.raises(ValueError):shared.native_pose_inventory(poses,'1F',profile=PROFILE)
+                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       TypeError: native_pose_inventory() got an unexpected keyword argument 'profile'
+
+tools\tests\test_main_infra_1f_retained_validation.py:45: TypeError
+___________ test_retained_1f_native_cohort_rejects_drift[duplicate] ___________
+
+change = 'duplicate'
+
+    @pytest.mark.parametrize('change',['missing','duplicate','eye_height','headroom','outside_projection'])
+    def test_retained_1f_native_cohort_rejects_drift(change):
+        poses=json.loads(NATIVE.read_bytes())['poses']
+        walking=next(p for p in poses if p['name'].startswith('eye_0_qualified'))
+        if change=='missing':poses.pop()
+        elif change=='duplicate':poses[-1]['name']=poses[0]['name']
+        elif change=='eye_height':walking['eye_height_above_floor_metres']=.6
+        elif change=='headroom':walking['headroom_clear']=False
+        elif change=='outside_projection':next(p for p in poses if p.get('projection')=='ORTHO')['projection']='PERSP'
+>       with pytest.raises(ValueError):shared.native_pose_inventory(poses,'1F',profile=PROFILE)
+                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       TypeError: native_pose_inventory() got an unexpected keyword argument 'profile'
+
+tools\tests\test_main_infra_1f_retained_validation.py:45: TypeError
+__________ test_retained_1f_native_cohort_rejects_drift[eye_height] ___________
+
+change = 'eye_height'
+
+    @pytest.mark.parametrize('change',['missing','duplicate','eye_height','headroom','outside_projection'])
+    def test_retained_1f_native_cohort_rejects_drift(change):
+        poses=json.loads(NATIVE.read_bytes())['poses']
+        walking=next(p for p in poses if p['name'].startswith('eye_0_qualified'))
+        if change=='missing':poses.pop()
+        elif change=='duplicate':poses[-1]['name']=poses[0]['name']
+        elif change=='eye_height':walking['eye_height_above_floor_metres']=.6
+        elif change=='headroom':walking['headroom_clear']=False
+        elif change=='outside_projection':next(p for p in poses if p.get('projection')=='ORTHO')['projection']='PERSP'
+>       with pytest.raises(ValueError):shared.native_pose_inventory(poses,'1F',profile=PROFILE)
+                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       TypeError: native_pose_inventory() got an unexpected keyword argument 'profile'
+
+tools\tests\test_main_infra_1f_retained_validation.py:45: TypeError
+___________ test_retained_1f_native_cohort_rejects_drift[headroom] ____________
+
+change = 'headroom'
+
+    @pytest.mark.parametrize('change',['missing','duplicate','eye_height','headroom','outside_projection'])
+    def test_retained_1f_native_cohort_rejects_drift(change):
+        poses=json.loads(NATIVE.read_bytes())['poses']
+        walking=next(p for p in poses if p['name'].startswith('eye_0_qualified'))
+        if change=='missing':poses.pop()
+        elif change=='duplicate':poses[-1]['name']=poses[0]['name']
+        elif change=='eye_height':walking['eye_height_above_floor_metres']=.6
+        elif change=='headroom':walking['headroom_clear']=False
+        elif change=='outside_projection':next(p for p in poses if p.get('projection')=='ORTHO')['projection']='PERSP'
+>       with pytest.raises(ValueError):shared.native_pose_inventory(poses,'1F',profile=PROFILE)
+                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       TypeError: native_pose_inventory() got an unexpected keyword argument 'profile'
+
+tools\tests\test_main_infra_1f_retained_validation.py:45: TypeError
+______ test_retained_1f_native_cohort_rejects_drift[outside_projection] _______
+
+change = 'outside_projection'
+
+    @pytest.mark.parametrize('change',['missing','duplicate','eye_height','headroom','outside_projection'])
+    def test_retained_1f_native_cohort_rejects_drift(change):
+        poses=json.loads(NATIVE.read_bytes())['poses']
+        walking=next(p for p in poses if p['name'].startswith('eye_0_qualified'))
+        if change=='missing':poses.pop()
+        elif change=='duplicate':poses[-1]['name']=poses[0]['name']
+        elif change=='eye_height':walking['eye_height_above_floor_metres']=.6
+        elif change=='headroom':walking['headroom_clear']=False
+        elif change=='outside_projection':next(p for p in poses if p.get('projection')=='ORTHO')['projection']='PERSP'
+>       with pytest.raises(ValueError):shared.native_pose_inventory(poses,'1F',profile=PROFILE)
+                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       TypeError: native_pose_inventory() got an unexpected keyword argument 'profile'
+
+tools\tests\test_main_infra_1f_retained_validation.py:45: TypeError
+=========================== short test summary info ===========================
+FAILED tools/tests/test_main_infra_1f_retained_validation.py::test_explicit_corrected_profile_preserves_original_triangle_count
+FAILED tools/tests/test_main_infra_1f_retained_validation.py::test_profile_cannot_relabel_other_floor[1F-None]
+FAILED tools/tests/test_main_infra_1f_retained_validation.py::test_profile_cannot_relabel_other_floor[1F-old]
+FAILED tools/tests/test_main_infra_1f_retained_validation.py::test_profile_cannot_relabel_other_floor[2F-e3_1f_retain_visible_20261024]
+FAILED tools/tests/test_main_infra_1f_retained_validation.py::test_profile_cannot_relabel_other_floor[4F-e3_1f_retain_visible_20261024]
+FAILED tools/tests/test_main_infra_1f_retained_validation.py::test_actual_historical_1f_qualification_without_job_id_remains_bound
+FAILED tools/tests/test_main_infra_1f_retained_validation.py::test_present_wrong_historical_qualification_job_is_rejected[None]
+FAILED tools/tests/test_main_infra_1f_retained_validation.py::test_present_wrong_historical_qualification_job_is_rejected[]
+FAILED tools/tests/test_main_infra_1f_retained_validation.py::test_present_wrong_historical_qualification_job_is_rejected[foreign]
+FAILED tools/tests/test_main_infra_1f_retained_validation.py::test_actual_1f_native_cohort_has_33qualified_and13diagnostic
+FAILED tools/tests/test_main_infra_1f_retained_validation.py::test_retained_1f_native_cohort_rejects_drift[missing]
+FAILED tools/tests/test_main_infra_1f_retained_validation.py::test_retained_1f_native_cohort_rejects_drift[duplicate]
+FAILED tools/tests/test_main_infra_1f_retained_validation.py::test_retained_1f_native_cohort_rejects_drift[eye_height]
+FAILED tools/tests/test_main_infra_1f_retained_validation.py::test_retained_1f_native_cohort_rejects_drift[headroom]
+FAILED tools/tests/test_main_infra_1f_retained_validation.py::test_retained_1f_native_cohort_rejects_drift[outside_projection]
+15 failed in 0.18s

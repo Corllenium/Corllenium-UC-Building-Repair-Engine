@@ -12,6 +12,7 @@ REV = "7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511"
 COMPONENT = "531769cad83dd6d03214a94cbd21e0209f8f2f33"
 ATTEMPT = "run-20261023-attempt2"
 REVIEWER = "/root/main_infra_delivery_review"
+RETAINED_1F = "e3_1f_retain_visible_20261024"
 
 
 def digest(path):
@@ -31,10 +32,24 @@ def check(path, expected):
         raise ValueError("Independent input hash mismatch: " + str(path))
 
 
-def floor_size(floor_id):
+def floor_size(floor_id, *, profile=None):
+    if profile == RETAINED_1F and floor_id == '1F':
+        return 15856
+    if profile is not None:
+        raise ValueError('Explicit matching floor validation profile required')
     if floor_id not in ('2F','3F'):
         raise ValueError('Explicit 2F or 3F validation profile required')
     return {'2F':56828,'3F':53602}[floor_id]
+
+
+def require_qualification(proof, floor_id, *, profile=None):
+    floor_size(floor_id, profile=profile)
+    job_ok = proof.get('job_id') == JOB
+    if floor_id == '1F' and 'job_id' not in proof:
+        job_ok = True
+    if (proof.get('qualified') is not True or proof.get('floor_id') != floor_id
+            or not job_ok or proof.get('source_revision') != REV):
+        raise ValueError('Independent original floor import qualification required')
 
 
 def require_terminal(plan,worker,paths,hashes):
@@ -139,9 +154,7 @@ def load_meshes(receipt):
     p = {key: Path(value) for key,value in receipt["paths"].items()}
     candidate = Path(receipt["candidate"])
     proof, audit, native, provenance = (read(p[key]) for key in ["qualification", "audit", "reference", "provenance"])
-    if (proof.get("qualified") is not True or proof.get("floor_id") != floor_id
-            or proof.get("job_id") != JOB or proof.get("source_revision") != REV):
-        raise ValueError("Independent original floor import qualification required")
+    require_qualification(proof,floor_id,profile=receipt.get('validation_profile'))
     for field,key in [("source_obj_sha256","raw"),("native_reference_sha256","reference"),
                       ("source_triangles_sha256","source_baseline"),("engine_obj_sha256","engine_baseline")]:
         check(p[key], proof.get(field))
@@ -215,18 +228,22 @@ def require_guard(args, receipt):
     recheck(guard)
 
 
-def native_pose_inventory(poses,floor_id):
-    floor_size(floor_id)
-    walking=[p for p in poses if p.get('viewpoint_class')=='actual_unchanged_qualified_walking_probe']
+def native_pose_inventory(poses,floor_id,*,profile=None):
+    floor_size(floor_id,profile=profile)
+    walking_class='qualified_walking' if floor_id=='1F' else 'actual_unchanged_qualified_walking_probe'
+    walking=[p for p in poses if p.get('viewpoint_class')==walking_class]
     if len(walking)!=16:
         raise ValueError('Original qualified native walking cohort required')
     if floor_id=='2F':
         return dict(qualified_walking=len(walking))
     outside=[p for p in poses if p.get('name','').startswith('view_') and int(p['name'].rsplit('_',1)[1])>=0]
-    if floor_id=='3F' and (len(poses)!=46 or len({p['name'] for p in poses})!=46
+    if floor_id in ('1F','3F') and (len(poses)!=46 or len({p['name'] for p in poses})!=46
             or len(outside)!=17 or any(p.get('projection')!='ORTHO' for p in outside)
             or any(p.get('projection')!='PERSP' for p in walking)):
         raise ValueError('Original 3F native33qualified/13diagnostic cohort required')
+    if floor_id=='1F' and any(p.get('headroom_clear') is not True
+            or not 1.6 <= p.get('eye_height_above_floor_metres',0) < 1.601 for p in walking):
+        raise ValueError('Original1F qualified walking camera height/clearance differs')
     return dict(qualified_walking=len(walking),qualified_outside=len(outside),diagnostic=len(poses)-len(walking)-len(outside))
 
 
