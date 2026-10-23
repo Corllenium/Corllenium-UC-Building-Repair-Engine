@@ -148,12 +148,84 @@ def test_a_custom_priority_function_is_used():
 
 # ------------------------------------------------------------------------------------------- never
 
-def test_opposite_facing_sheets_are_left_alone():
+def test_opposite_facing_sheets_both_exposed_are_left_alone():
+    # two free-standing back-to-back sheets: both fronts see open space, so neither is the solid-facing twin
     before = plate(_quad(0, 0, 40, 20), _quad(0, 0, 40, 20, flip=True))
     edits, engine = _plan(before)
     assert edits == []
     assert engine.report["pairs"]["double_layers"] == 4 and engine.report["pairs"]["opposite"] == 4
     assert engine.report["pairs"]["same_facing"] == 0
+    assert engine.report["kept"]["no_backface_winner"] == 4
+    assert all(row["front"] > 0 for row in engine.report["kept_faces"])
+
+
+# ------------------------------------------------------------------------------------- backface twins
+
+def _cube_with_inward_twin(material=1):
+    """A closed 10 in cube whose x = s side (faces 8, 9) carries an inward-facing coincident copy (faces 12, 13) in
+    `material`: the Minecraft export's back-to-back twin, its front pointing into the solid."""
+    import dataclasses
+    from engine.tests.fixtures.build import cube
+    base = cube()
+    faces = [8, 9]
+    return dataclasses.replace(
+        base, face_v=np.vstack([base.face_v, base.face_v[faces][:, ::-1]]),
+        face_vt=np.vstack([base.face_vt, base.face_vt[faces][:, ::-1]]),
+        face_vn=np.vstack([base.face_vn, base.face_vn[faces]]),
+        face_material=np.concatenate([base.face_material, [material, material]]),
+        face_line=np.arange(1, base.n_faces + 3, dtype=np.int64), materials=["m0", "m1"])
+
+
+def test_the_solid_facing_twin_of_a_back_to_back_pair_is_dropped_whatever_its_look():
+    before = _cube_with_inward_twin()
+    edits, engine = _plan(before)
+    assert _dropped(edits) == [12, 13], "the inward copy goes, the outward face stays"
+    rows = [row for e in edits for row in e.evidence["pairs"]]
+    assert all(row["rule"] == "backface_twin" and row["front"] == 0.0 and row["back"] > 0 for row in rows)
+    assert all(row["look"] != row["winner_looks"][0] for row in rows), "a different look does not protect it"
+    assert all(min(row["winner_front"]) > 0 for row in rows)
+    assert engine.report["by_rule"]["backface_twin"] == 2 and engine.report["pairs"]["opposite"] >= 2
+    assert engine.report["cull_opposite_backfaces"] is True
+    after, _ = apply_edits(before, edits)
+    assert after.n_faces == 12
+
+
+def test_the_backface_rule_can_be_switched_off():
+    edits, engine = _plan(_cube_with_inward_twin(), E5Coincident(flatness={}, cull_opposite_backfaces=False))
+    assert edits == [] and engine.report["cull_opposite_backfaces"] is False
+    assert engine.report["pairs"]["opposite"] >= 2 and engine.report["kept"]["no_backface_winner"] == 0
+
+
+def test_a_back_to_back_pair_both_hidden_is_kept():
+    import dataclasses
+    from engine.tests.fixtures.build import box_with_partition
+    base = box_with_partition()                      # faces 12, 13: the sealed partition nothing sees
+    faces = [12, 13]
+    before = dataclasses.replace(
+        base, face_v=np.vstack([base.face_v, base.face_v[faces][:, ::-1]]),
+        face_vt=np.vstack([base.face_vt, base.face_vt[faces][:, ::-1]]),
+        face_vn=np.vstack([base.face_vn, base.face_vn[faces]]),
+        face_material=np.concatenate([base.face_material, [0, 0]]),
+        face_line=np.arange(1, base.n_faces + 3, dtype=np.int64))
+    edits, engine = _plan(before)
+    assert edits == []
+    assert engine.report["kept"]["no_backface_winner"] == 4
+    assert all(row["front"] == 0.0 for row in engine.report["kept_faces"])
+
+
+def test_the_judge_with_the_owner_class_keeps_a_backface_site_and_without_it_rolls_it_back():
+    from engine.validate.checks import CBR, Settings
+    before = _cube_with_inward_twin()
+    looks = _looks(*before.materials)
+    for settings, kept_faces, rolled_faces in ((Settings(allowed_changes={CBR}), [[12, 13]], []),
+                                               (Settings(), [], [[12, 13]])):
+        unit, ctx, _ = _ctx(before, judge=SiteJudge(looks, settings=settings, margin=2.0))
+        got = repair_unit(unit, ctx, engines=[E5Coincident(flatness={})], validate_sites=True)
+        (check,) = got.checks
+        assert check["final"] == ("PASS" if kept_faces else "NOTHING KEPT"), settings.allowed_changes
+        assert [sorted(e.faces) for e in got.kept] == kept_faces, settings.allowed_changes
+        assert [sorted(e.faces) for e in got.rolled_back] == rolled_faces
+        assert got.mesh.n_faces == (12 if kept_faces else 14)
 
 
 def test_a_face_that_is_the_only_coverage_of_part_of_its_footprint_is_never_dropped():

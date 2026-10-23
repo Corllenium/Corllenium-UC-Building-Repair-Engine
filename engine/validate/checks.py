@@ -290,13 +290,30 @@ def face_fingerprints(mesh: MeshData, step: float, look_ids: np.ndarray) -> np.n
 # Settings, and what each sample ends up as
 # ---------------------------------------------------------------------------------------------
 
+#: THE OWNER-APPROVED ALLOWED-CHANGE CLASS (owner decision 2026-10-24, relayed by the coordinator; the one place this
+#: module names a change that does not fail checks 1-3). `coincident_backface_removed`: a BEFORE sample that is
+#: `deleted`, `replaced` or `look`-changed is reclassified as allowed iff (a) its face is gone in AFTER (its
+#: fingerprint is not there), (b) AFTER keeps a face coincident with it (within the depth tolerance at the sample,
+#: the sample inside that face) whose normal is OPPOSITE (dot < -0.7) and which was itself exposed on its front in
+#: BEFORE (the twin was the visible surface), and (c) the sample's own face had front exposure 0 in BEFORE (its front
+#: points into solid: `engine.vis.exposure.compute_side_exposure`, the error census's own measure). The class is
+#: OPT-IN (`Settings.allowed_changes`, empty by default), counted in the report under `allowed_changes`, and never
+#: touches the strict 26-view guard.
+CBR = "coincident_backface_removed"
+ALLOWED_CHANGE_CLASSES = frozenset({CBR})
+#: The twin's normal against the sample's face normal: this far below zero counts as opposite.
+_OPPOSITE_DOT = -0.7
+
+
 @dataclass(frozen=True)
 class Settings:
     """How much the Validator looks at. The defaults are the owner's (spec section 3): at least 4
     samples on every face and one per 36 sq in, 128 directions (the 64 whose viewer is at or above the horizon are
     used: `viewpoints.above_horizon_directions`), a ring of 24 cameras, 1,024 extra (512 used, the same way)
     directions for faces that are gone, probes 1.6 m up. `chunk` is how many samples are cast at a
-    time, which bounds memory (the dense `seen` and `front` matrices are chunk x viewpoints)."""
+    time, which bounds memory (the dense `seen` and `front` matrices are chunk x viewpoints). `allowed_changes`
+    (EMPTY by default: every caller stays strict) names the owner-approved change classes that do not fail checks
+    1-3: `ALLOWED_CHANGE_CLASSES`."""
     n_directions: int = 128
     n_cameras: int = 24
     camera_margin: float = 240.0
@@ -307,9 +324,20 @@ class Settings:
     chunk: int = 1024
     cluster_cell: float = 6.0
     max_sites: int = 200
+    allowed_changes: frozenset = frozenset()
+
+    def __post_init__(self) -> None:
+        classes = frozenset(str(c) for c in (self.allowed_changes or ()))
+        unknown = classes - ALLOWED_CHANGE_CLASSES
+        if unknown:
+            raise ValueError(f"unknown allowed-change class(es) {sorted(unknown)}; the owner-approved classes are "
+                             f"{sorted(ALLOWED_CHANGE_CLASSES)}")
+        object.__setattr__(self, "allowed_changes", classes)
 
     def as_dict(self) -> dict:
-        return dataclasses.asdict(self)
+        out = dataclasses.asdict(self)
+        out["allowed_changes"] = sorted(self.allowed_changes)
+        return out
 
 
 #: What the surface at a sample's place is in AFTER, as the first of these it fails (0 = it is there).
@@ -1541,6 +1569,50 @@ def _cluster_sites(validation_points: np.ndarray, centre: np.ndarray, failing: n
     return sites, members, n_clusters
 
 
+def _coincident_backface_allowed(b: MeshData, samples: Samples, tested: np.ndarray, covered: np.ndarray,
+                                 present: np.ndarray, suspect: np.ndarray, normals_b: np.ndarray,
+                                 sample_area: np.ndarray, tol: float, n_directions: int):
+    """The `coincident_backface_removed` class (see `CBR`): `(allowed samples, BEFORE faces excused from the floor,
+    report)`. A face is excused from the floor's pixel measure only when EVERY tested sample of it was allowed."""
+    from engine.vis.exposure import compute_side_exposure      # lazy: it imports the ray caster
+    n, face = len(samples.face), samples.face
+    allowed = np.zeros(n, dtype=bool)
+    excused = np.zeros(b.n_faces, dtype=bool)
+    report = {"samples": 0, "deleted": 0, "look": 0, "faces": 0, "faces_excused_from_floor": 0, "area_in2": 0.0,
+              "candidates": 0, "opposite_dot": _OPPOSITE_DOT,
+              "rule": "the sample's face is gone, its front exposure in BEFORE was 0, and a kept opposite-facing face "
+                      "exposed on its front in BEFORE lies on the sample within the depth tolerance"}
+    cand = np.flatnonzero(tested & ~covered & ((present == DELETED) | (present == LOOK)) & suspect[face])
+    report["candidates"] = int(len(cand))
+    if not len(cand) or not b.n_faces:
+        return allowed, excused, report
+    ok = np.linalg.norm(normals_b, axis=1) > 0.0
+    front, _back = compute_side_exposure(b.positions, b.face_v, ok, n_dirs=n_directions)
+    hidden_front = ok & (front <= 0.0)
+    cand = cand[hidden_front[face[cand]]]
+    twins = np.flatnonzero(~suspect & ok & (front > 0.0))
+    if len(cand) and len(twins):
+        grid = _FaceGrid(b.positions, b.face_v, twins, tol)
+        p = samples.points[cand]
+        r, f = grid.lookup(p)
+        if len(r):
+            nf, ns = normals_b[f], normals_b[face[cand[r]]]
+            opposite = np.einsum("ij,ij->i", nf, ns) < _OPPOSITE_DOT
+            a0 = b.positions[b.face_v[f, 0]]
+            dist = np.einsum("ij,ij->i", p[r] - a0, nf)
+            q = p[r] - dist[:, None] * nf
+            inside = (_barycentric(b.positions, b.face_v[f], q) >= -_INSIDE).all(axis=1)
+            hit = opposite & (np.abs(dist) <= tol) & inside
+            allowed[cand[np.unique(r[hit])]] = True
+    per_face = lambda m: np.bincount(face[m], minlength=b.n_faces)
+    t_per, a_per = per_face(tested), per_face(allowed)
+    excused = (t_per > 0) & (a_per == t_per)
+    report.update(samples=int(allowed.sum()), deleted=int((allowed & (present == DELETED)).sum()),
+                  look=int((allowed & (present == LOOK)).sum()), faces=int((a_per > 0).sum()),
+                  faces_excused_from_floor=int(excused.sum()), area_in2=round(float(sample_area[allowed].sum()), 2))
+    return allowed, excused, report
+
+
 def validate(before: MeshData, after: MeshData, looks: Looks, *, errors=None, targets=None,
              settings: Settings = Settings(), dirs=None, cams=None, probes=None, extra_dirs=None,
              progress=None, focus: Focus | None = None, fills=None) -> Validation:
@@ -1725,6 +1797,15 @@ def validate(before: MeshData, after: MeshData, looks: Looks, *, errors=None, ta
                                              uv_at(b, face, samples.bary[blk]))
     clock["overlay"] = time.perf_counter()
 
+    # ---- the owner-approved allowed-change class (opt-in; nothing here runs with the default settings) ----
+    allowed = np.zeros(n, dtype=bool)
+    excused_faces = np.zeros(b.n_faces, dtype=bool)
+    allowed_report = None
+    if CBR in settings.allowed_changes:
+        allowed, excused_faces, cbr = _coincident_backface_allowed(
+            b, samples, tested, covered, present, suspect, normals_b, sample_area, tol, settings.n_directions)
+        allowed_report = {CBR: cbr}
+
     # ---- the owner's floor (job P2-V2): removed faces a dense lattice sees, measured in pixels ----
     floor_report = {"status": "PASS", "floor_px": VISIBLE_FLOOR_PX, "in_per_px": FLOOR_IN_PER_PX,
                     "lattice": {"min": LATTICE_MIN, "per_sq_in": LATTICE_PER_SQ_IN, "cap": LATTICE_CAP, "faces": 0,
@@ -1736,7 +1817,7 @@ def validate(before: MeshData, after: MeshData, looks: Looks, *, errors=None, ta
     if b.n_faces:
         views, labels = floor_views(dirs, extra_dirs, cams, probes, centre)
         floor = _Floor(b, judge, fill_sites, look_b, tex_w, tex_h, caster_b, views, labels, normals_b, centre)
-        removed = suspect & (np.abs(normals_b).sum(axis=1) > 0.0)
+        removed = suspect & (np.abs(normals_b).sum(axis=1) > 0.0) & ~excused_faces
         in_focus = np.ones(b.n_faces, dtype=bool)
         if focus is not None:
             in_focus[:] = False
@@ -1771,10 +1852,11 @@ def validate(before: MeshData, after: MeshData, looks: Looks, *, errors=None, ta
     # ---- check 1 and check 3 from what every tested sample turned out to be ----
     standard = tested & ~extra
     reason1 = present.astype(np.int8)
+    reason1[allowed] = OK                     # the owner-approved class: not a failure of check 1 or check 3
     reason1[overlaid] = OVERLAID
     reason1[covered] = COVERED
     fail1 = standard & (reason1 != OK)
-    unmet = tested & ((present == DELETED) | (present == LOOK))
+    unmet = tested & ((present == DELETED) | (present == LOOK)) & ~allowed
     fail3 = tested & (covered | overlaid | unmet)
     n_faces = b.n_faces
     per_face = lambda mask: np.bincount(samples.face[mask], minlength=n_faces)
@@ -1790,8 +1872,10 @@ def validate(before: MeshData, after: MeshData, looks: Looks, *, errors=None, ta
         "depth_tolerance_in": round(tol, 4)}
     nothing_deleted = {
         "status": "FAIL" if fail3.any() or floor_report["status"] == "FAIL" else "PASS", "samples": int(tested.sum()), "samples_extra": int(extra.sum()),
-        "suspect_faces": int(suspect.sum()), "deleted": int((tested & ~covered & (present == DELETED)).sum()),
-        "replaced": int((tested & ~covered & (present == LOOK)).sum()), "covered": int((tested & covered).sum()),
+        "suspect_faces": int(suspect.sum()),
+        "deleted": int((tested & ~covered & ~allowed & (present == DELETED)).sum()),
+        "replaced": int((tested & ~covered & ~allowed & (present == LOOK)).sum()),
+        "covered": int((tested & covered).sum()),
         "overlaid": int((tested & ~covered & overlaid).sum()), "faces": int((tested_per_face > 0).sum()),
         "faces_unmet": int(((tested_per_face > 0) & (unmet_per_face == tested_per_face)).sum()),
         "faces_partly_unmet": int(((unmet_per_face > 0) & (unmet_per_face < tested_per_face)).sum()),
@@ -1837,6 +1921,10 @@ def validate(before: MeshData, after: MeshData, looks: Looks, *, errors=None, ta
                "area_per_sample", "eye")
     changed = {k: getattr(settings, k) for k in density if getattr(settings, k) != getattr(default, k)}
     notes = ([f"NON-DEFAULT SETTINGS {changed}: a development run, NOT AN OWNER VERDICT"] if changed else [])
+    if allowed_report is not None:
+        notes.append(f"ALLOWED CHANGES active (owner-approved class, 2026-10-24): {sorted(settings.allowed_changes)}: "
+                     f"{int(allowed.sum())} sample(s) on {allowed_report[CBR]['faces']} face(s) reclassified as "
+                     f"allowed:{CBR}; they fail no check and are counted under allowed_changes")
     if focus is not None:
         notes.append(f"FOCUS RUN on {len(focus_before)}/{before.n_faces} faces: NOT A FLOOR VERDICT")
     # what BEFORE's looks leave unsaid: materials.json does not know a material, or a look has no texture size
@@ -1885,6 +1973,8 @@ def validate(before: MeshData, after: MeshData, looks: Looks, *, errors=None, ta
                       "total": round(clock["end"] - clock["start"], 2)}}
     if fill_sites is not None:
         report["fill_sites"] = fill_report
+    if allowed_report is not None:
+        report["allowed_changes"] = allowed_report
     if focus is not None:
         report["focus"] = {"before_faces": int(len(focus_before)), "after_faces": int(len(focus_after)),
                            "status": "FAIL" if (fail1 | fail3).any() or floor_report["status"] == "FAIL" else "PASS"}

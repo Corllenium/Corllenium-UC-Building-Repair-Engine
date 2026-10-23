@@ -15,9 +15,19 @@ THE PAIRS ARE THE VALIDATOR'S. The twin pairs come from `engine.fixes.overlap.do
 calls it (`double_layers(positions_c, face_w, guard_depth_tol(quanta, profile), VIEWS_26, profile.guard_size,
 centre=centre)` over `analyse_topology(mesh, frozenset(), coplanar_angle, soft_angle)`), so E5 targets exactly the
 faces the Validator counts as flicker: two faces whose outlines share more than 1 sq in within ONE plane (parallel,
-every corner within the depth tolerance of the other's plane). Of those pairs E5 takes only the SAME-FACING ones
-(`double_layers`' `opposite` flag false and the face normals' dot above `FACING_DOT`, 0.7): opposite-facing sheets are
-the back-to-back case of AGENTS.md section 4 and are left alone.
+every corner within the depth tolerance of the other's plane). SAME-FACING pairs (`double_layers`' `opposite` flag
+false and the face normals' dot above `FACING_DOT`, 0.7) go to rules (a) and (b) below. OPPOSITE pairs (the
+back-to-back case) go to rule (c), `backface_twin` (owner decision 2026-10-24, `cull_opposite_backfaces`, on by
+default; measured basis: on the real 7F E3 candidate `double_layers` reported 4,783 pairs, ALL opposite, and the
+error census counted 5,556 flicker faces of which 4,974 are also `hidden` -- a face whose normal points into solid
+lying exactly on its visible twin, which E3 never proposes because its samples see the room through the twin at a
+depth tie): with the per-face front exposure measured exactly as `find_errors` measures it
+(`engine.vis.exposure.compute_side_exposure(positions_c, faces, ok, n_dirs=profile.n_dirs)`), the face whose FRONT
+exposure is 0 loses to a twin whose front exposure is above 0, whatever the looks; both hidden or both exposed keep
+both (`no_backface_winner`). The coverage, anchoring and only-coverage rules below apply to it as to any drop. With
+`cull_opposite_backfaces=False` opposite pairs are only counted. Treating an opposite pair as duplicates is otherwise
+blocked (AGENTS.md section 4); this rule is the owner's exception and the Validator judges it under its own
+allowed-change class `coincident_backface_removed` (`engine.validate.checks.CBR`, opt-in).
 
 WHO LOSES. The same-facing pairs join faces into coincident groups (union-find over the pairs). Within a group every
 face is considered in ascending (area, -id) order -- the smaller face first, an exact copy by its higher id -- against
@@ -63,6 +73,7 @@ import shapely
 from engine.fixes.overlap import double_layers
 from engine.fixes.pipeline import guard_depth_tol
 from engine.guard.views import VIEWS_26
+from engine.vis.exposure import compute_side_exposure
 from engine.pipeline import analyse_topology, flat_material_indices
 from engine.repair.engines.e3_hidden import MAX_SITE_FACES, _components, split_group
 from engine.repair.types import NO_MATERIAL_LOOK, Edit, RepairContext, UnitState
@@ -78,8 +89,8 @@ DEFAULT_WIN_PATTERNS = ("UC_PAL_05", "UC_PAL_12", "UC_PAL_00", "quartz_block_top
                         "glass", "wool", "trim", "facade")
 #: Material-name patterns that LOSE a different-look pair: the generic concrete surfaces.
 DEFAULT_LOSER_PATTERNS = ("concrete_white", "concrete_gray")
-RULES = ("same_look", "priority", "larger_area")
-KEPT_REASONS = ("uncovered", "no_winner", "anchored", "only_coverage", "no_overlap")
+RULES = ("same_look", "priority", "larger_area", "backface_twin")
+KEPT_REASONS = ("uncovered", "no_winner", "no_backface_winner", "anchored", "only_coverage", "no_overlap")
 
 
 def default_priority(material: str, *, win=DEFAULT_WIN_PATTERNS, lose=DEFAULT_LOSER_PATTERNS) -> int:
@@ -133,6 +144,8 @@ class E5Coincident:
     lose_patterns: tuple = DEFAULT_LOSER_PATTERNS
     cover_fraction: float = COVER_FRACTION
     facing_dot: float = FACING_DOT
+    #: Rule c (owner decision 2026-10-24): drop the solid-facing twin of a back-to-back pair, whatever its look.
+    cull_opposite_backfaces: bool = True
     report: dict | None = field(default=None, repr=False)
 
     def _priority(self, mesh, material: int) -> int:
@@ -165,15 +178,27 @@ class E5Coincident:
         normal[ok] = cross[ok] / (2.0 * area[ok, None])
         pair_counts = {"double_layers": len(dl["pair_list"]), "opposite": 0, "same_facing": 0, "off_facing": 0}
         pairs: list[tuple[int, int, float]] = []
+        opposite_of: set[tuple[int, int]] = set()
         for i, j, shared, opposite in dl["pair_list"]:
             if opposite:
                 pair_counts["opposite"] += 1
-                continue
-            if float(normal[i] @ normal[j]) <= self.facing_dot:
+                if not self.cull_opposite_backfaces:
+                    continue
+                opposite_of.add((int(i), int(j)))
+                opposite_of.add((int(j), int(i)))
+            elif float(normal[i] @ normal[j]) <= self.facing_dot:
                 pair_counts["off_facing"] += 1
                 continue
-            pair_counts["same_facing"] += 1
+            else:
+                pair_counts["same_facing"] += 1
             pairs.append((int(i), int(j), float(shared)))
+
+        # ---- the back-to-back rule needs each face's front exposure, measured as the error census measures it
+        t0 = time.perf_counter()
+        front = back = None
+        if opposite_of:
+            front, back = compute_side_exposure(pos - centre, faces, ok, n_dirs=profile.n_dirs)
+        seconds["exposure"] = time.perf_counter() - t0
 
         # ---- the coincident groups, and who loses in each
         t0 = time.perf_counter()
@@ -187,6 +212,7 @@ class E5Coincident:
         material = np.asarray(mesh.face_material)
         look_of = {f: _look(mesh, looks, int(material[f])) for f in involved}
         prio_of = {f: self._priority(mesh, int(material[f])) for f in involved}
+        exposure = {f: (float(front[f]), float(back[f])) if front is not None else (None, None) for f in involved}
         dropped: dict[int, dict] = {}
         kept_rows: list[dict] = []
         kept_counts = {k: 0 for k in KEPT_REASONS}
@@ -195,9 +221,12 @@ class E5Coincident:
             members = [involved[k] for k in members]
             if len(members) < 2:
                 continue
-            n = np.sum(cross[members], axis=0)
+            # the group plane: every face's normal signed toward the largest face's (a back-to-back pair's normals
+            # would cancel otherwise); the footprints are the same whichever side the plane is viewed from
+            ref = normal[max(members, key=lambda f: float(area[f]))]
+            n = np.sum([cross[f] * (1.0 if float(normal[f] @ ref) >= 0 else -1.0) for f in members], axis=0)
             length = float(np.linalg.norm(n))
-            n = n / length if length > 0 else normal[members[0]]
+            n = n / length if length > 0 else ref
             e1, e2 = plane_basis(n)
             origin = tri[members].reshape(-1, 3).mean(axis=0)
             poly = {f: shapely.Polygon(np.column_stack([(tri[f] - origin) @ e1, (tri[f] - origin) @ e2]))
@@ -208,28 +237,34 @@ class E5Coincident:
                 if not others:
                     kept_counts["no_overlap"] += 1
                     continue
-                winners = [g for g in others if self._beats(g, f, area, look_of, prio_of)]
+                winners = [g for g in others if self._beats(g, f, area, look_of, prio_of, opposite_of, exposure)]
                 if not winners:
-                    kept_counts["no_winner"] += 1
-                    kept_rows.append(self._kept_row(f, "no_winner", others,
-                                                    self._coverage(poly[f], [poly[g] for g in others]), look_of, area))
+                    reason = ("no_backface_winner" if all((g, f) in opposite_of for g in others) else "no_winner")
+                    kept_counts[reason] += 1
+                    kept_rows.append(self._kept_row(f, reason, others,
+                                                    self._coverage(poly[f], [poly[g] for g in others]), look_of, area,
+                                                    exposure))
                     continue
                 cover = self._coverage(poly[f], [poly[g] for g in winners])
                 if f in anchored:
                     kept_counts["anchored"] += 1
-                    kept_rows.append(self._kept_row(f, "anchored", winners, cover, look_of, area))
+                    kept_rows.append(self._kept_row(f, "anchored", winners, cover, look_of, area, exposure))
                     continue
                 if cover < self.cover_fraction:
                     kept_counts["uncovered"] += 1
-                    kept_rows.append(self._kept_row(f, "uncovered", winners, cover, look_of, area))
+                    kept_rows.append(self._kept_row(f, "uncovered", winners, cover, look_of, area, exposure))
                     continue
-                rule = ("same_look" if all(look_of[g] == look_of[f] for g in winners)
+                rule = ("backface_twin" if any((g, f) in opposite_of for g in winners)
+                        else "same_look" if all(look_of[g] == look_of[f] for g in winners)
                         else "priority" if any(prio_of[g] != prio_of[f] for g in winners if look_of[g] != look_of[f])
                         else "larger_area")
                 dropped[f] = {"face": int(f), "material": int(material[f]), "look": look_of[f],
                               "area": round(float(area[f]), 4), "winners": [int(g) for g in winners],
                               "winner_looks": [look_of[g] for g in winners],
                               "winner_areas": [round(float(area[g]), 4) for g in winners],
+                              "front": exposure[f][0], "back": exposure[f][1],
+                              "winner_front": [exposure[g][0] for g in winners],
+                              "winner_back": [exposure[g][1] for g in winners],
                               "overlap_fraction": round(cover, 6), "rule": rule}
                 anchored.update(winners)
                 group_dropped.append(f)
@@ -274,7 +309,9 @@ class E5Coincident:
 
         self.report = {
             "pairs": pair_counts, "depth_tol": float(depth_tol), "facing_dot": float(self.facing_dot),
-            "cover_fraction": float(self.cover_fraction), "flat_materials": sorted(int(m) for m in flat),
+            "cover_fraction": float(self.cover_fraction), "cull_opposite_backfaces": bool(self.cull_opposite_backfaces),
+            "exposure_n_dirs": int(profile.n_dirs) if front is not None else None,
+            "flat_materials": sorted(int(m) for m in flat),
             "faces_in_pairs": len(involved), "groups": sum(1 for g in groups if len(g) > 1),
             "dropped": len(dropped),
             "by_rule": {r: sum(1 for row in dropped.values() if row["rule"] == r) for r in RULES},
@@ -287,8 +324,13 @@ class E5Coincident:
         return edits
 
     @staticmethod
-    def _beats(g: int, f: int, area, look_of, prio_of) -> bool:
-        """Does the kept face `g` beat `f` (the module docstring's rules a and b)?"""
+    def _beats(g: int, f: int, area, look_of, prio_of, opposite_of, exposure) -> bool:
+        """Does the kept face `g` beat `f`? A back-to-back pair (rule c, `backface_twin`): `g` wins iff `f`'s front
+        exposure is 0 and `g`'s is above 0, whatever the looks. A same-facing pair: the module docstring's rules a
+        and b."""
+        if (g, f) in opposite_of:
+            f_front, g_front = exposure[f][0], exposure[g][0]
+            return f_front is not None and g_front is not None and f_front <= 0.0 < g_front
         if look_of[g] == look_of[f]:
             return area[g] > area[f] or (area[g] == area[f] and g < f)
         if prio_of[g] != prio_of[f]:
@@ -302,7 +344,9 @@ class E5Coincident:
         return float(shapely.intersection(target, shapely.unary_union(covers)).area / target.area)
 
     @staticmethod
-    def _kept_row(f, reason, others, cover, look_of, area) -> dict:
+    def _kept_row(f, reason, others, cover, look_of, area, exposure) -> dict:
         return {"face": int(f), "look": look_of[f], "area": round(float(area[f]), 4), "kept": reason,
                 "winners": [int(g) for g in others], "winner_looks": [look_of[g] for g in others],
+                "front": exposure[f][0], "back": exposure[f][1],
+                "winner_front": [exposure[g][0] for g in others],
                 "overlap_fraction": round(float(cover), 6)}

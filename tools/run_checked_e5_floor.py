@@ -38,7 +38,7 @@ def main(argv=None):
     from engine.validate.checks import load_looks
     from tools.main_infra_e3 import save_survivor_pair
     from tools.main_infra_e4 import floor_from_candidate
-    from tools.main_infra_e5 import audit_report, run_checked_e5
+    from tools.main_infra_e5 import ALLOWED_CHANGES, audit_report, run_checked_e5
     from tools.main_infra_physical_validation import _hash, _same_mesh, load_physical_pair
 
     raw = root / 'raw' / args.raw_name
@@ -108,6 +108,10 @@ def main(argv=None):
                  qualification_sha256=sha256_file(qualification), assets=provenance['assets'],
                  before_snapshot=str(Path(receipt['before']).parent), input_receipt=receipt,
                  guard=dict(passed=False, state='pending'), independent_validation='pending', accepted=False,
+                 allowed_changes=list(ALLOWED_CHANGES),
+                 owner_approval='chat 2026-10-24: the solid-facing twin of a back-to-back coincident pair may be '
+                                'removed whatever its look (Validator class coincident_backface_removed); the '
+                                'Validator must run with --allow coincident_backface_removed',
                  wall_s=round(time.perf_counter() - started, 2))
     (out / 'stage-audit.json').write_text(json.dumps(audit, indent=2), encoding='utf-8')
     progress.write_text(json.dumps(dict(pid=os.getpid(), state='candidate_saved', input_triangles=before.n_faces,

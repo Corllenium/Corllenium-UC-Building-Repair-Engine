@@ -148,15 +148,30 @@ def load_physical_pair(*, raw, reference, baseline, qualification, candidate):
     return before, after, receipt
 
 
-def main(argv=None):
+def build_parser():
+    from engine.validate.checks import ALLOWED_CHANGE_CLASSES
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ('raw', 'reference', 'baseline', 'qualification', 'candidate', 'materials', 'out'):
         parser.add_argument('--' + name, type=Path, required=True)
-    args = parser.parse_args(argv)
+    parser.add_argument('--allow', action='append', default=[], choices=sorted(ALLOWED_CHANGE_CLASSES),
+                        help='an owner-approved allowed-change class the Validator judges under (repeatable); '
+                             'recorded in validation.json under settings.allowed_changes and allowed_changes_active')
+    return parser
+
+
+def settings_for(allow):
+    """The Validator settings for the CLI: the owner's defaults plus the `--allow` classes."""
+    from engine.validate.checks import Settings
+    return Settings(allowed_changes=frozenset(allow or ()))
+
+
+def main(argv=None):
+    args = build_parser().parse_args(argv)
     from engine.campus.winprobe import peak_memory_mb
     from engine.io.protected import refuse_protected
-    from engine.validate.checks import Settings, default_targets_path, load_looks, load_targets, validate
+    from engine.validate.checks import default_targets_path, load_looks, load_targets, validate
     from engine.validate.evidence import write_evidence
+    settings = settings_for(args.allow)
     started = time.perf_counter()
     refuse_protected(args.out)
     if (args.out / 'validation.json').exists():
@@ -181,16 +196,19 @@ def main(argv=None):
             print(f'{done}/{total} samples cast', file=sys.stderr, flush=True)
     args.out.mkdir(parents=True, exist_ok=True)
     (args.out / 'physical-precision-inputs.json').write_text(json.dumps(receipt, indent=2), encoding='utf-8')
-    result = validate(before, after, looks, targets=targets, settings=Settings(), progress=progress)
+    result = validate(before, after, looks, targets=targets, settings=settings, progress=progress)
     write_evidence(result, args.out)
     _hash(args.materials, materials_hash)
     _hash(targets_path, targets_hash)
     load_physical_pair(raw=args.raw, reference=args.reference, baseline=args.baseline,
                        qualification=args.qualification, candidate=args.candidate)
     report = result.report
+    # the header says which owner-approved classes were active, so the receipt shows it before the checks
+    report = dict(allowed_changes_active=sorted(settings.allowed_changes), **report)
     report['inputs'] = dict(before=receipt['before'], after=receipt['after'], materials=str(args.materials.resolve()),
         targets=str(targets_path.resolve()), before_sha256=receipt['before_sha256'], after_sha256=receipt['after_sha256'],
-        materials_sha256=materials_hash, targets_sha256=targets_hash)
+        materials_sha256=materials_hash, targets_sha256=targets_hash, allowed_changes=sorted(settings.allowed_changes))
+    receipt['allowed_changes'] = sorted(settings.allowed_changes)
     report['physical_precision'] = receipt
     report['peak_working_set_mb'], report['peak_commit_mb'] = peak_memory_mb()
     report['wall_s'] = round(time.perf_counter() - started, 2)

@@ -319,6 +319,49 @@ def test_the_guard_itself_may_bind_a_pending_e5_candidate_but_the_validator_path
         bind_saved_e5(**args)
 
 
+# ------------------------------------------------------------------------------ the owner-approved class
+
+def test_run_checked_e5_judges_with_the_backface_class_by_default_and_records_it():
+    from engine.validate.checks import CBR
+    from tools import main_infra_e5
+    before = floor().in_frame(FRAME).mesh
+    seen = {}
+    real = main_infra_e5.SiteJudge
+
+    class Spy(real):
+        def __init__(self, looks, **kw):
+            seen['settings'] = kw.get('settings')
+            super().__init__(looks, **kw)
+
+    main_infra_e5.SiteJudge = Spy
+    try:
+        report = {}
+        outcome, indices = main_infra_e5.run_checked_e5(before, looks(), FLATNESS, report=report)
+        assert seen['settings'].allowed_changes == frozenset({CBR})
+        assert report['cull_opposite_backfaces'] is True
+        _outcome, _indices = main_infra_e5.run_checked_e5(before, looks(), FLATNESS, allowed_changes=())
+        assert seen['settings'].allowed_changes == frozenset()
+    finally:
+        main_infra_e5.SiteJudge = real
+    np.testing.assert_array_equal(indices, PANEL + [FACADE])
+    assert main_infra_e5.ALLOWED_CHANGES == (CBR,)
+
+
+def test_the_validator_cli_takes_a_repeatable_allow_and_builds_the_settings():
+    from engine.validate.checks import CBR
+    from tools.main_infra_physical_validation import build_parser, settings_for
+    parser = build_parser()
+    common = ['--raw', 'r', '--reference', 'f', '--baseline', 'b', '--qualification', 'q', '--candidate', 'c',
+              '--materials', 'm', '--out', 'o']
+    assert parser.parse_args(common).allow == []
+    args = parser.parse_args(common + ['--allow', CBR, '--allow', CBR])
+    assert args.allow == [CBR, CBR]
+    assert settings_for(args.allow).allowed_changes == frozenset({CBR})
+    assert settings_for([]).allowed_changes == frozenset()
+    with pytest.raises(SystemExit):
+        parser.parse_args(common + ['--allow', 'anything_goes'])
+
+
 # ------------------------------------------------------------------------------------------ the runners
 
 def test_the_e5_floor_runner_refuses_an_existing_output_before_reading_anything(tmp_path):

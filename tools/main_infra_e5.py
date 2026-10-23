@@ -12,22 +12,28 @@ from engine.repair.engines.e5_coincident import E5Coincident
 from engine.repair.kernel import repair_unit
 from engine.repair.types import RepairContext, UnitState
 from engine.site_judge import SiteJudge
+from engine.validate.checks import CBR, Settings
 from tools.main_infra_e3 import _source_digest, save_survivor_pair, source_survivors, verify_survivor_mesh  # noqa: F401
 
 CLEANUP_MODES = {'e5_cull_only': ['E5'], 'e3_then_e5_cull': ['E3', 'E5']}
 #: How many kept-face rows of the engine report the stage audit keeps (the rest is counted).
 KEPT_FACES_LISTED = 1000
+#: The owner-approved Validator classes the E5 site judge runs with (owner decision 2026-10-24): the solid-facing twin
+#: of a back-to-back pair may go, whatever its look.
+ALLOWED_CHANGES = (CBR,)
 
 
-def run_checked_e5(before, looks, flatness, priority=None, *, report=None):
-    """`(outcome, survivor indices)` of one checked E5 stage over `before` with the Validator as site judge.
-    `priority(material name) -> int` overrides the default facade-wins rule; `report`, a dict, receives the engine's
-    report (`audit_report` trims it for the stage audit)."""
+def run_checked_e5(before, looks, flatness, priority=None, *, report=None, allowed_changes=ALLOWED_CHANGES):
+    """`(outcome, survivor indices)` of one checked E5 stage over `before` with the Validator as site judge, judging
+    under the owner-approved classes `allowed_changes` (`()` for the strict Validator). `priority(material name) ->
+    int` overrides the default facade-wins rule; `report`, a dict, receives the engine's report (`audit_report` trims
+    it for the stage audit)."""
     original = _source_digest(before)
     unit = UnitState(mesh=before, topo=None,
                      looks={i: looks.key_of(name) for i, name in enumerate(before.materials)}, viewpoints=None)
     engine = E5Coincident(flatness=flatness, priority=priority)
-    context = RepairContext(profile=FixProfile(), decider=None, validator=SiteJudge(looks))
+    judge = SiteJudge(looks, settings=Settings(allowed_changes=frozenset(allowed_changes)))
+    context = RepairContext(profile=FixProfile(), decider=None, validator=judge)
     outcome = repair_unit(unit, context, engines=[engine], validate_sites=True)
     if _source_digest(before) != original:
         raise ValueError('E5 mutated the source input')
