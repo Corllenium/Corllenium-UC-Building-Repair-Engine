@@ -24,6 +24,9 @@ run the latest `.skp` of each file must be in `OBJ FIXED RESULT/` for the owner 
 2026. Work visually: every round ends with renders that are looked at, not only numbers.
 
 ## 2. Current state (2026-09-26 00:15, written by the Claude controller)
+E7preview exporter now committed2197243 (independent52PASS/reviewb9000bb9).
+Actualattempt3 checkpoint state status regressionRED->GREEN1/0parsererrors;
+updated runtime is on disk, to be loaded before1F starts. No model publication.
 2026-10-23 23:12 +08 supersedes prior retry states: 2F actual E3 attempt2 is
 running PID41648 (531769c, input56828), no saved candidate yet. 1F reviewed E7
 attempt3 18c8ae9 and3F E3retry are queued sequentially. One heavy worker at a time;

@@ -59,6 +59,15 @@ class LiveWorkerRuntime(unittest.TestCase):
                     self.fail('Deferred floor still requires an obsolete worker')
                 result = json.loads((fixture / 'data/main-infra-fresh/current.json').read_text())
                 self.assertEqual(result['floors']['3F']['state'], 'queued')
+                save(one, dict(pid=111, state='checked_checkpoint_saved', checkpoint_status='verified'))
+                observations['1F']['alive'] = True
+                os.environ['UC_MODEL_WORKER_OBSERVATIONS'] = json.dumps(observations)
+                with contextlib.redirect_stdout(io.StringIO()):
+                    exec(compile(code, str(SCRIPT), 'exec'), {})
+                result = json.loads((fixture / 'data/main-infra-fresh/current.json').read_text())
+                self.assertEqual(result['floors']['1F']['state'], 'cleaning')
+                self.assertIsNone(result['floors']['1F']['blocker'])
+                self.assertIn('checkpoint', result['floors']['1F']['step'])
             finally:
                 if saved is None:
                     os.environ.pop('UC_MODEL_WORKER_OBSERVATIONS', None)

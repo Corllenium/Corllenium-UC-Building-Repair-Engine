@@ -168,3 +168,17 @@ only owned status publisher60916 while idle; replacement47864 creation
 2Fcleaning/PID41648/alive,3Fqueued. Existing1F E3inspectionpreview10136 remains;
 2F/3FAfter stay empty. Full same-turn public artifact is queued-retry-live-
 readback-20261023.json beside the tested status runtime. Claude4F-7F unchanged.
+
+### Reviewed exporter committed; checkpoint status regression
+
+E7 preview exporter commit2197243f0bfd4187dba41b3728c1193bb6702168 now contains
+exact independently reviewed bytes (reviewb9000bb9) and durable successful52PASS
+log plus the prior path-limit-only failed log. No real E7model was packaged.
+Sourcefix/attempt3/exporter jobs remain separate, with no engine/guard changes.
+
+A new actual attempt3 state checked_checkpoint_saved exposed another truthful-
+status regression: RED reportedfailed, GREEN1test0.135s/0PowerShellparsererrors
+now reports cleaning and verified checkpoint saving. Next-action text derives
+from observed active floors. Runtime file updated on disk; running publisher
+47864 retains its loaded212cd30 version until the next owned restart before1F.
+Actual2F remains the only heavy worker; saved independent output still pending.

@@ -46,6 +46,8 @@ if '1F' in observations:
         row['pending_output_triangles']=state.get('output_triangles',state.get('triangles_after'))
     elif state['state'] in ('prepared','preparing','loading_qualified_input') and process['alive']:
         desired='cleaning';step='Loading hash-bound original source and preserved E3 stage for E7'
+    elif state['state']=='checked_checkpoint_saved' and process['alive']:
+        desired='cleaning';step='E7 checked checkpoint saved; verifying exact source/engine output and copied assets';running.insert(0,'1F')
     elif state['state'] in ('serializing','finalizing') and process['alive']:
         desired='cleaning';step='E7 site checks finished; saving exact source/engine pair and verifying copied assets';running.insert(0,'1F')
     else:
@@ -55,7 +57,8 @@ if '1F' in observations:
 failed=[f for f in ('1F','2F','3F') if doc['floors'][f]['state']=='failed']
 details='; '.join(f+': '+str(doc['floors'][f].get('blocker','failed')) for f in failed)
 doc.update(updated_at=now,heartbeat_at=now,state='running' if running else ('failed' if failed else 'reviewing'),step=('Actual checked engines running on '+','.join(running)+('; '+details if details else '')) if running else ('Engine checks stopped; '+details if failed else 'Engine workers finished; independent candidate review follows'))
-doc['next_action']='Finish the active 2F repair and independently validate its saved output. Run the reviewed 1F E7 retry and queued 3F retry sequentially with fresh memory checks. Claude Code owns 4F-7F.'
+active=','.join(running)
+doc['next_action']=(f'Finish the active {active} repair and independently validate its saved output. ' if active else 'Independently validate saved output before publishing a new candidate. ')+ 'Run queued retries sequentially with fresh memory checks. Claude Code owns 4F-7F.'
 doc['step']+=';1F E3 preservation PASS, remaining targets awaiting new independent measurement;Claude Code owns4F-7F'
 source_refs=root/'data/siege-live-20261023/sources-published.json'
 if source_refs.exists():
