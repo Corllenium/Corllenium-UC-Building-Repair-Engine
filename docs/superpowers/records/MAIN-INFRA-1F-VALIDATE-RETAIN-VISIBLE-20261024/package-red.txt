@@ -1,0 +1,14 @@
+.................................F                                       [100%]
+================================== FAILURES ===================================
+__________ test_actual_package_receipts_are_external_and_cross_bound __________
+
+tmp_path = WindowsPath('D:/TEMP/iv1f-retained/package-red/pytest/test_actual_package_receipts_a0')
+
+    def test_actual_package_receipts_are_external_and_cross_bound(tmp_path):
+>       from tools.main_infra_1f_retained_validation import bind_package
+E       ImportError: cannot import name 'bind_package' from 'tools.main_infra_1f_retained_validation' (D:\LLM_BACKUP\Codex session\main-infra-1f-validate-retain-visible-20261024\05-Corllenium-UC-Building-Repair-Engine\tools\main_infra_1f_retained_validation.py)
+
+tools\tests\test_main_infra_1f_retained_validation.py:204: ImportError
+=========================== short test summary info ===========================
+FAILED tools/tests/test_main_infra_1f_retained_validation.py::test_actual_package_receipts_are_external_and_cross_bound
+1 failed, 33 passed in 2.74s

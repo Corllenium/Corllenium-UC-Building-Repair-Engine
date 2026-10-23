@@ -1,0 +1,23 @@
+{
+  "command": [
+    "D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe",
+    "-B",
+    "-m",
+    "pytest",
+    "tools/tests/test_main_infra_1f_retained_validation.py",
+    "-q",
+    "-p",
+    "no:cacheprovider",
+    "--basetemp",
+    "D:\\TEMP\\iv1f-retained\\direct-reader-red\\pytest"
+  ],
+  "exit_code": 1,
+  "test_tree_private_peak": 89280512,
+  "observer_private_peak": 10440704,
+  "pid_private_peaks": {
+    "52392": 851968,
+    "62724": 88428544
+  },
+  "cap_bytes": 262144000,
+  "cap_exceeded": false
+}

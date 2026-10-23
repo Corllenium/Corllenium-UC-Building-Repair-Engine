@@ -1,0 +1,23 @@
+......................FF                                                 [100%]
+================================== FAILURES ===================================
+________ test_retained_source_faces_must_survive_with_bit_exact_tables ________
+
+    def test_retained_source_faces_must_survive_with_bit_exact_tables():
+        import numpy as np
+>       from tools.main_infra_1f_retained_validation import require_retained_mesh
+E       ImportError: cannot import name 'require_retained_mesh' from 'tools.main_infra_1f_retained_validation' (D:\LLM_BACKUP\Codex session\main-infra-1f-validate-retain-visible-20261024\05-Corllenium-UC-Building-Repair-Engine\tools\main_infra_1f_retained_validation.py)
+
+tools\tests\test_main_infra_1f_retained_validation.py:98: ImportError
+_________ test_required_floor_receipt_cannot_be_omitted_or_relabelled _________
+
+tmp_path = WindowsPath('D:/TEMP/iv1f-retained/retention-gate-red/pytest/test_required_floor_receipt_ca0')
+
+    def test_required_floor_receipt_cannot_be_omitted_or_relabelled(tmp_path):
+>       from tools.main_infra_1f_retained_validation import require_floor_receipt
+E       ImportError: cannot import name 'require_floor_receipt' from 'tools.main_infra_1f_retained_validation' (D:\LLM_BACKUP\Codex session\main-infra-1f-validate-retain-visible-20261024\05-Corllenium-UC-Building-Repair-Engine\tools\main_infra_1f_retained_validation.py)
+
+tools\tests\test_main_infra_1f_retained_validation.py:110: ImportError
+=========================== short test summary info ===========================
+FAILED tools/tests/test_main_infra_1f_retained_validation.py::test_retained_source_faces_must_survive_with_bit_exact_tables
+FAILED tools/tests/test_main_infra_1f_retained_validation.py::test_required_floor_receipt_cannot_be_omitted_or_relabelled
+2 failed, 22 passed in 1.38s

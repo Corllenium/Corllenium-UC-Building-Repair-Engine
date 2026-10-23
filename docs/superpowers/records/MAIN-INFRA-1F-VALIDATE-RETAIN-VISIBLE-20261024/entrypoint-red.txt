@@ -1,0 +1,49 @@
+...............................FF                                        [100%]
+================================== FAILURES ===================================
+_____ test_corrected_1f_entrypoint_help_is_explicit_and_launches_nothing ______
+
+capsys = <_pytest.capture.CaptureFixture object at 0x0000027CF07E0200>
+
+    def test_corrected_1f_entrypoint_help_is_explicit_and_launches_nothing(capsys):
+        from tools.main_infra_1f_retained_validation import main
+>       with pytest.raises(SystemExit) as result:main(['--help'])
+                                                 ^^^^^^^^^^^^^^^^
+
+tools\tests\test_main_infra_1f_retained_validation.py:190: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+argv = ['--help']
+
+    def main(argv=None):
+>       return shared.main(argv,floor_id='1F',profile=PROFILE)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       TypeError: main() got an unexpected keyword argument 'profile'
+
+tools\main_infra_1f_retained_validation.py:187: TypeError
+____________ test_draft_without_actual_terminal_hashes_cannot_bind ____________
+
+tmp_path = WindowsPath('D:/TEMP/iv1f-retained/entrypoint-red/pytest/test_draft_without_actual_term0')
+
+    def test_draft_without_actual_terminal_hashes_cannot_bind(tmp_path):
+        from tools.main_infra_1f_retained_validation import main
+        path=tmp_path/'draft.json';path.write_text('{}')
+        with pytest.raises(ValueError):
+>           main(['guard','--preparation',str(path),'--preparation-sha256',shared.digest(path),
+                '--candidate',str(tmp_path/'run-20261024-1F-retain-visible/1F'),
+                '--audit-sha256','0'*64,'--worker-sha256','0'*64,'--out',str(tmp_path/'evidence')])
+
+tools\tests\test_main_infra_1f_retained_validation.py:198: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+argv = ['guard', '--preparation', 'D:\\TEMP\\iv1f-retained\\entrypoint-red\\pytest\\test_draft_without_actual_term0\\draft.json', '--preparation-sha256', '44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a', '--candidate', ...]
+
+    def main(argv=None):
+>       return shared.main(argv,floor_id='1F',profile=PROFILE)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       TypeError: main() got an unexpected keyword argument 'profile'
+
+tools\main_infra_1f_retained_validation.py:187: TypeError
+=========================== short test summary info ===========================
+FAILED tools/tests/test_main_infra_1f_retained_validation.py::test_corrected_1f_entrypoint_help_is_explicit_and_launches_nothing
+FAILED tools/tests/test_main_infra_1f_retained_validation.py::test_draft_without_actual_terminal_hashes_cannot_bind
+2 failed, 31 passed in 2.47s

@@ -1,0 +1,72 @@
+..................................FFFFFF                                 [100%]
+================================== FAILURES ===================================
+___________ test_read_uses_actual_typed_checkpoint_and_external_sha ___________
+
+    def test_read_uses_actual_typed_checkpoint_and_external_sha():
+>       from tools.main_infra_1f_retained_validation import read_checked_capture
+E       ImportError: cannot import name 'read_checked_capture' from 'tools.main_infra_1f_retained_validation' (D:\LLM_BACKUP\Codex session\main-infra-1f-validate-retain-visible-20261024\05-Corllenium-UC-Building-Repair-Engine\tools\main_infra_1f_retained_validation.py)
+
+tools\tests\test_main_infra_1f_retained_validation.py:240: ImportError
+__ test_checkpoint_reader_rejects_resealed_incoherent_payload[array_tamper] ___
+
+tmp_path = WindowsPath('D:/TEMP/iv1f-retained/direct-reader-red/pytest/test_checkpoint_reader_rejects0')
+change = 'array_tamper'
+
+    @pytest.mark.parametrize('change',['array_tamper','duplicate_archive','new_points','partition','wrong_before'])
+    def test_checkpoint_reader_rejects_resealed_incoherent_payload(tmp_path,change):
+>       from tools.main_infra_1f_retained_validation import read_checked_capture
+E       ImportError: cannot import name 'read_checked_capture' from 'tools.main_infra_1f_retained_validation' (D:\LLM_BACKUP\Codex session\main-infra-1f-validate-retain-visible-20261024\05-Corllenium-UC-Building-Repair-Engine\tools\main_infra_1f_retained_validation.py)
+
+tools\tests\test_main_infra_1f_retained_validation.py:248: ImportError
+_ test_checkpoint_reader_rejects_resealed_incoherent_payload[duplicate_archive] _
+
+tmp_path = WindowsPath('D:/TEMP/iv1f-retained/direct-reader-red/pytest/test_checkpoint_reader_rejects1')
+change = 'duplicate_archive'
+
+    @pytest.mark.parametrize('change',['array_tamper','duplicate_archive','new_points','partition','wrong_before'])
+    def test_checkpoint_reader_rejects_resealed_incoherent_payload(tmp_path,change):
+>       from tools.main_infra_1f_retained_validation import read_checked_capture
+E       ImportError: cannot import name 'read_checked_capture' from 'tools.main_infra_1f_retained_validation' (D:\LLM_BACKUP\Codex session\main-infra-1f-validate-retain-visible-20261024\05-Corllenium-UC-Building-Repair-Engine\tools\main_infra_1f_retained_validation.py)
+
+tools\tests\test_main_infra_1f_retained_validation.py:248: ImportError
+___ test_checkpoint_reader_rejects_resealed_incoherent_payload[new_points] ____
+
+tmp_path = WindowsPath('D:/TEMP/iv1f-retained/direct-reader-red/pytest/test_checkpoint_reader_rejects2')
+change = 'new_points'
+
+    @pytest.mark.parametrize('change',['array_tamper','duplicate_archive','new_points','partition','wrong_before'])
+    def test_checkpoint_reader_rejects_resealed_incoherent_payload(tmp_path,change):
+>       from tools.main_infra_1f_retained_validation import read_checked_capture
+E       ImportError: cannot import name 'read_checked_capture' from 'tools.main_infra_1f_retained_validation' (D:\LLM_BACKUP\Codex session\main-infra-1f-validate-retain-visible-20261024\05-Corllenium-UC-Building-Repair-Engine\tools\main_infra_1f_retained_validation.py)
+
+tools\tests\test_main_infra_1f_retained_validation.py:248: ImportError
+____ test_checkpoint_reader_rejects_resealed_incoherent_payload[partition] ____
+
+tmp_path = WindowsPath('D:/TEMP/iv1f-retained/direct-reader-red/pytest/test_checkpoint_reader_rejects3')
+change = 'partition'
+
+    @pytest.mark.parametrize('change',['array_tamper','duplicate_archive','new_points','partition','wrong_before'])
+    def test_checkpoint_reader_rejects_resealed_incoherent_payload(tmp_path,change):
+>       from tools.main_infra_1f_retained_validation import read_checked_capture
+E       ImportError: cannot import name 'read_checked_capture' from 'tools.main_infra_1f_retained_validation' (D:\LLM_BACKUP\Codex session\main-infra-1f-validate-retain-visible-20261024\05-Corllenium-UC-Building-Repair-Engine\tools\main_infra_1f_retained_validation.py)
+
+tools\tests\test_main_infra_1f_retained_validation.py:248: ImportError
+__ test_checkpoint_reader_rejects_resealed_incoherent_payload[wrong_before] ___
+
+tmp_path = WindowsPath('D:/TEMP/iv1f-retained/direct-reader-red/pytest/test_checkpoint_reader_rejects4')
+change = 'wrong_before'
+
+    @pytest.mark.parametrize('change',['array_tamper','duplicate_archive','new_points','partition','wrong_before'])
+    def test_checkpoint_reader_rejects_resealed_incoherent_payload(tmp_path,change):
+>       from tools.main_infra_1f_retained_validation import read_checked_capture
+E       ImportError: cannot import name 'read_checked_capture' from 'tools.main_infra_1f_retained_validation' (D:\LLM_BACKUP\Codex session\main-infra-1f-validate-retain-visible-20261024\05-Corllenium-UC-Building-Repair-Engine\tools\main_infra_1f_retained_validation.py)
+
+tools\tests\test_main_infra_1f_retained_validation.py:248: ImportError
+=========================== short test summary info ===========================
+FAILED tools/tests/test_main_infra_1f_retained_validation.py::test_read_uses_actual_typed_checkpoint_and_external_sha
+FAILED tools/tests/test_main_infra_1f_retained_validation.py::test_checkpoint_reader_rejects_resealed_incoherent_payload[array_tamper]
+FAILED tools/tests/test_main_infra_1f_retained_validation.py::test_checkpoint_reader_rejects_resealed_incoherent_payload[duplicate_archive]
+FAILED tools/tests/test_main_infra_1f_retained_validation.py::test_checkpoint_reader_rejects_resealed_incoherent_payload[new_points]
+FAILED tools/tests/test_main_infra_1f_retained_validation.py::test_checkpoint_reader_rejects_resealed_incoherent_payload[partition]
+FAILED tools/tests/test_main_infra_1f_retained_validation.py::test_checkpoint_reader_rejects_resealed_incoherent_payload[wrong_before]
+6 failed, 34 passed in 2.95s

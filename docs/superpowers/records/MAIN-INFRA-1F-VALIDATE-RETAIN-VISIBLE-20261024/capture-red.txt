@@ -1,0 +1,16 @@
+..................................F                                      [100%]
+================================== FAILURES ===================================
+_________ test_restore_uses_actual_typed_checkpoint_and_external_sha __________
+
+tmp_path = WindowsPath('D:/TEMP/iv1f-retained/capture-red/pytest/test_restore_uses_actual_typed0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001A389D59F40>
+
+    def test_restore_uses_actual_typed_checkpoint_and_external_sha(tmp_path,monkeypatch):
+        import importlib.util,sys,tools
+>       from tools.main_infra_1f_retained_validation import restore_capture
+E       ImportError: cannot import name 'restore_capture' from 'tools.main_infra_1f_retained_validation' (D:\LLM_BACKUP\Codex session\main-infra-1f-validate-retain-visible-20261024\05-Corllenium-UC-Building-Repair-Engine\tools\main_infra_1f_retained_validation.py)
+
+tools\tests\test_main_infra_1f_retained_validation.py:231: ImportError
+=========================== short test summary info ===========================
+FAILED tools/tests/test_main_infra_1f_retained_validation.py::test_restore_uses_actual_typed_checkpoint_and_external_sha
+1 failed, 34 passed in 2.47s

@@ -1,0 +1,46 @@
+..................................F                                      [100%]
+================================== FAILURES ===================================
+_________ test_restore_uses_actual_typed_checkpoint_and_external_sha __________
+
+tmp_path = WindowsPath('D:/TEMP/iv1f-retained/capture-green/pytest/test_restore_uses_actual_typed0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000237404CDDC0>
+
+    def test_restore_uses_actual_typed_checkpoint_and_external_sha(tmp_path,monkeypatch):
+        import importlib.util,sys,tools
+        from tools.main_infra_1f_retained_validation import restore_capture
+        builder=Path('D:/LLM_BACKUP/Codex session/main-infra-e3-1f-retain-visible-20261024/05-Corllenium-UC-Building-Repair-Engine')
+        helper=builder/'tools/main_infra_e3_checkpoint.py'
+>       spec=importlib.util.spec_from_file_location('tested_e3_capture',helper);api=importlib.util.module_from_spec(spec);spec.loader.exec_module(api)
+                                                                                                                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tools\tests\test_main_infra_1f_retained_validation.py:234: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+<frozen importlib._bootstrap_external>:999: in exec_module
+    ???
+<frozen importlib._bootstrap>:488: in _call_with_frames_removed
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    """Capture only actual checked E3 removals before survivor serialization."""
+    from dataclasses import fields
+    import json
+    from pathlib import Path
+    import tempfile
+    import zipfile
+    
+    import numpy as np
+    
+    from engine.io.protected import refuse_protected
+    from engine.io.snapshot import sha256_file
+    from engine.model import MeshData
+    from engine.repair.kernel import KernelResult,stage_records,write_records
+    from engine.repair.types import Edit,apply_edits
+    from tools.main_infra_e3 import _source_digest,source_survivors
+    from tools.main_infra_e3_binding import _hash
+>   from tools.main_infra_e7_checkpoint import MESH_ARRAYS,EDIT_ARRAYS,_digest,_partition,_inputs,typed_edits
+E   ModuleNotFoundError: No module named 'tools.main_infra_e7_checkpoint'
+
+..\..\main-infra-e3-1f-retain-visible-20261024\05-Corllenium-UC-Building-Repair-Engine\tools\main_infra_e3_checkpoint.py:17: ModuleNotFoundError
+=========================== short test summary info ===========================
+FAILED tools/tests/test_main_infra_1f_retained_validation.py::test_restore_uses_actual_typed_checkpoint_and_external_sha
+1 failed, 34 passed in 2.34s

@@ -1,0 +1,72 @@
+...............FFFFFFF                                                   [100%]
+================================== FAILURES ===================================
+_ test_forced_floor_reaches_real_measure_even_without_preselected_candidates __
+
+    def test_forced_floor_reaches_real_measure_even_without_preselected_candidates():
+>       from tools.main_infra_1f_retained_validation import measure_pairs
+E       ModuleNotFoundError: No module named 'tools.main_infra_1f_retained_validation'
+
+tools\tests\test_main_infra_1f_retained_validation.py:66: ModuleNotFoundError
+_______ test_forced_floor_rejects_actual_deleted_pixels_and_saved_line ________
+
+    def test_forced_floor_rejects_actual_deleted_pixels_and_saved_line():
+>       from tools.main_infra_1f_retained_validation import measure_pairs
+E       ModuleNotFoundError: No module named 'tools.main_infra_1f_retained_validation'
+
+tools\tests\test_main_infra_1f_retained_validation.py:73: ModuleNotFoundError
+__________ test_recorded_twoface_line_cohort_rejects_drift[omitted] ___________
+
+change = 'omitted'
+
+    @pytest.mark.parametrize('change',['omitted','duplicate','foreign','point'])
+    def test_recorded_twoface_line_cohort_rejects_drift(change):
+>       from tools.main_infra_1f_retained_validation import require_lines
+E       ModuleNotFoundError: No module named 'tools.main_infra_1f_retained_validation'
+
+tools\tests\test_main_infra_1f_retained_validation.py:81: ModuleNotFoundError
+_________ test_recorded_twoface_line_cohort_rejects_drift[duplicate] __________
+
+change = 'duplicate'
+
+    @pytest.mark.parametrize('change',['omitted','duplicate','foreign','point'])
+    def test_recorded_twoface_line_cohort_rejects_drift(change):
+>       from tools.main_infra_1f_retained_validation import require_lines
+E       ModuleNotFoundError: No module named 'tools.main_infra_1f_retained_validation'
+
+tools\tests\test_main_infra_1f_retained_validation.py:81: ModuleNotFoundError
+__________ test_recorded_twoface_line_cohort_rejects_drift[foreign] ___________
+
+change = 'foreign'
+
+    @pytest.mark.parametrize('change',['omitted','duplicate','foreign','point'])
+    def test_recorded_twoface_line_cohort_rejects_drift(change):
+>       from tools.main_infra_1f_retained_validation import require_lines
+E       ModuleNotFoundError: No module named 'tools.main_infra_1f_retained_validation'
+
+tools\tests\test_main_infra_1f_retained_validation.py:81: ModuleNotFoundError
+___________ test_recorded_twoface_line_cohort_rejects_drift[point] ____________
+
+change = 'point'
+
+    @pytest.mark.parametrize('change',['omitted','duplicate','foreign','point'])
+    def test_recorded_twoface_line_cohort_rejects_drift(change):
+>       from tools.main_infra_1f_retained_validation import require_lines
+E       ModuleNotFoundError: No module named 'tools.main_infra_1f_retained_validation'
+
+tools\tests\test_main_infra_1f_retained_validation.py:81: ModuleNotFoundError
+___________________ test_actual_fourteen_lines_are_complete ___________________
+
+    def test_actual_fourteen_lines_are_complete():
+>       from tools.main_infra_1f_retained_validation import require_lines
+E       ModuleNotFoundError: No module named 'tools.main_infra_1f_retained_validation'
+
+tools\tests\test_main_infra_1f_retained_validation.py:91: ModuleNotFoundError
+=========================== short test summary info ===========================
+FAILED tools/tests/test_main_infra_1f_retained_validation.py::test_forced_floor_reaches_real_measure_even_without_preselected_candidates
+FAILED tools/tests/test_main_infra_1f_retained_validation.py::test_forced_floor_rejects_actual_deleted_pixels_and_saved_line
+FAILED tools/tests/test_main_infra_1f_retained_validation.py::test_recorded_twoface_line_cohort_rejects_drift[omitted]
+FAILED tools/tests/test_main_infra_1f_retained_validation.py::test_recorded_twoface_line_cohort_rejects_drift[duplicate]
+FAILED tools/tests/test_main_infra_1f_retained_validation.py::test_recorded_twoface_line_cohort_rejects_drift[foreign]
+FAILED tools/tests/test_main_infra_1f_retained_validation.py::test_recorded_twoface_line_cohort_rejects_drift[point]
+FAILED tools/tests/test_main_infra_1f_retained_validation.py::test_actual_fourteen_lines_are_complete
+7 failed, 15 passed in 0.29s

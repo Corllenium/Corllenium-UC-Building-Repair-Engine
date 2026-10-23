@@ -52,63 +52,75 @@ def require_qualification(proof, floor_id, *, profile=None):
         raise ValueError('Independent original floor import qualification required')
 
 
-def require_terminal(plan,worker,paths,hashes):
+def require_terminal(plan,worker,paths,hashes,*,profile=None):
     if 'worker_terminal' not in paths or 'worker_phase_plan' not in paths:
         raise ValueError('Actual 3F worker terminal and phase plan required')
     terminal=read(paths['worker_terminal'])
-    if (terminal.get('state')!='PROCESS_EXITED_ZERO' or terminal.get('phase')!='E3-3F-attempt2'
+    component=plan['builder_component_commit'] if profile==RETAINED_1F else COMPONENT
+    phase=plan.get('worker_terminal_phase') if profile==RETAINED_1F else 'E3-3F-attempt2'
+    if (not isinstance(phase,str) or not phase or terminal.get('state')!='PROCESS_EXITED_ZERO' or terminal.get('phase')!=phase
             or terminal.get('actual_pid')!=worker['pid']
             or terminal.get('actual_creation_utc')!=plan.get('worker_creation_utc')
             or not isinstance(plan.get('worker_creation_utc'),str)
             or terminal.get('actual_exit_code')!=0 or terminal.get('launcher_exit_code')!=0
             or terminal.get('abort_reason') is not None or terminal.get('all_owned_exited') is not True
-            or terminal.get('HEAD')!=COMPONENT or terminal.get('acceptance') is not False
+            or terminal.get('HEAD')!=component or terminal.get('acceptance') is not False
             or terminal.get('phase_plan_sha256')!=hashes['worker_phase_plan']):
         raise ValueError('Actual successful 3F owned terminal required')
 
 
-def bind_identity(preparation, candidate, audit_sha256, worker_sha256, *, floor_id='2F'):
-    original_triangles=floor_size(floor_id)
+def bind_identity(preparation, candidate, audit_sha256, worker_sha256, *, floor_id='2F', profile=None,preparation_sha256=None):
+    original_triangles=floor_size(floor_id,profile=profile)
     preparation, candidate = Path(preparation).resolve(), Path(candidate).resolve()
+    if profile==RETAINED_1F:
+        check(preparation,preparation_sha256)
     plan = read(preparation)
+    retained=profile==RETAINED_1F
+    attempt='run-20261024-1F-retain-visible' if retained else ATTEMPT
+    component=plan.get('builder_component_commit') if retained else COMPONENT
     if (plan.get("schema_version") != 1 or plan.get("job_id") != JOB or plan.get("floor_id") != floor_id
-            or plan.get("source_revision") != REV or plan.get("attempt_namespace") != ATTEMPT
-            or plan.get("builder_component_commit") != COMPONENT
+            or plan.get("source_revision") != REV or plan.get("attempt_namespace") != attempt
+            or plan.get("builder_component_commit") != component
+            or (retained and (plan.get('validation_profile')!=profile or not isinstance(component,str)))
             or candidate != Path(plan["candidate"]).resolve()
-            or candidate.name != floor_id or candidate.parent.name != ATTEMPT):
+            or candidate.name != floor_id or candidate.parent.name != attempt):
         raise ValueError("Fresh floor attempt2 preparation identity required")
     worker_path, audit_path = Path(plan["worker"]).resolve(), candidate / "stage-audit.json"
-    if worker_path != candidate.parent / f"worker-{floor_id}.json":
+    expected_worker=candidate.parent/'execution-1F/worker.json' if retained else candidate.parent/f'worker-{floor_id}.json'
+    if worker_path != expected_worker:
         raise ValueError("Fresh attempt2 worker path required")
     check(worker_path, worker_sha256)
     check(audit_path, audit_sha256)
     worker, audit = read(worker_path), read(audit_path)
+    paths = {key: Path(value).resolve() for key, value in plan["paths"].items()}
+    hashes = dict(plan["sha256"])
+    if set(paths) != set(hashes):
+        raise ValueError("Preparation input inventory differs")
+    for key,path in paths.items():
+        check(path,hashes[key])
+    if retained:
+        from tools.main_infra_1f_retained_validation import normalise_worker
+        worker=normalise_worker(plan,worker,audit,candidate,paths,hashes)
     if (worker.get("state") != "candidate_saved" or worker.get("floor_id") != floor_id
             or type(worker.get("pid")) is not int or worker["pid"] != plan["worker_pid"]
             or worker.get("started_at") != plan["worker_started_at"]
             or Path(worker["candidate"]).resolve() != candidate
-            or worker.get("builder_component_commit") != COMPONENT
+            or worker.get("builder_component_commit") != component
             or worker.get("accepted") is not False or worker.get("input_triangles") != original_triangles):
         raise ValueError("Actual saved floor worker identity required")
-    if (audit.get("builder_component_commit") != COMPONENT or audit.get("cleanup_mode") != "e3_remove_only"
+    if (audit.get("builder_component_commit") != component or audit.get("cleanup_mode") != "e3_remove_only"
             or audit.get("executed_stages") != ["E3"] or audit.get("input_triangles") != original_triangles
             or type(audit.get("output_triangles")) is not int
             or not 0 < audit["output_triangles"] <= original_triangles
             or audit["output_triangles"] != worker.get("output_triangles")
             or audit.get("accepted") is not False
             or audit.get("qualification_sha256") != plan["sha256"]["qualification"]
-            or audit.get("materials_sha256") != plan["sha256"]["materials"]
+            or (not retained and audit.get("materials_sha256") != plan["sha256"]["materials"])
             or audit.get("input_receipt", {}).get("floor_id") != floor_id
             or audit["input_receipt"].get("source_revision") != REV):
         raise ValueError("New sole-E3 stage audit differs")
-    paths = {key: Path(value).resolve() for key, value in plan["paths"].items()}
-    hashes = dict(plan["sha256"])
-    if set(paths) != set(hashes):
-        raise ValueError("Preparation input inventory differs")
-    for key, path in paths.items():
-        check(path, hashes[key])
-    if floor_id=='3F':
-        require_terminal(plan,worker,paths,hashes)
+    if floor_id=='3F' or retained:
+        require_terminal(plan,worker,paths,hashes,profile=profile)
     snapshot = Path(audit["before_snapshot"]).resolve()
     if not snapshot.is_relative_to(Path(plan["before_snapshot_root"]).resolve()):
         raise ValueError("Fresh original BEFORE snapshot namespace required")
@@ -117,7 +129,7 @@ def bind_identity(preparation, candidate, audit_sha256, worker_sha256, *, floor_
         raise ValueError("Exactly one saved original BEFORE required")
     check(snapshots[0], hashes["engine_baseline"])
     paths.update(preparation=preparation, worker=worker_path, audit=audit_path, before=snapshots[0])
-    hashes.update(preparation=digest(preparation), worker=worker_sha256, audit=audit_sha256,
+    hashes.update(preparation=preparation_sha256 if retained else digest(preparation), worker=worker_sha256, audit=audit_sha256,
                   before=hashes["engine_baseline"])
     for filename, key in [("candidate.engine.obj", "engine_candidate_sha256"),
                           ("candidate.source.obj", "source_candidate_sha256"),
@@ -125,14 +137,20 @@ def bind_identity(preparation, candidate, audit_sha256, worker_sha256, *, floor_
         paths[filename] = candidate / filename
         hashes[filename] = audit.get(key)
         check(paths[filename], hashes[filename])
-    return dict(job_id=JOB, floor_id=floor_id, source_revision=REV, attempt_namespace=ATTEMPT,
-                reviewer=REVIEWER, builder_component_commit=COMPONENT, worker_pid=worker["pid"],
+    if retained:
+        from tools.main_infra_1f_retained_validation import bind_package
+        bind_package(worker,read(paths['builder_preparation']),candidate,paths,hashes)
+        check(preparation,preparation_sha256)
+    extra=dict(validation_profile=profile) if retained else {}
+    return dict(job_id=JOB, floor_id=floor_id, source_revision=REV, attempt_namespace=attempt,
+                reviewer='/root/main_infra_independent_validator' if retained else REVIEWER,
+                builder_component_commit=component, worker_pid=worker["pid"],
                 input_triangles=original_triangles, output_triangles=audit["output_triangles"],
                 builder_guard_passed=audit.get("guard", {}).get("passed") is True,
                 candidate=str(candidate), paths={k: str(v) for k,v in paths.items()}, hashes=hashes,
                 before=str(snapshots[0]), after=str(candidate/"candidate.engine.obj"),
                 before_sha256=hashes["engine_baseline"], after_sha256=hashes["candidate.engine.obj"],
-                source_after_sha256=hashes["candidate.source.obj"], acceptance=False)
+                source_after_sha256=hashes["candidate.source.obj"], acceptance=False,**extra)
 
 
 def recheck(receipt):
@@ -141,7 +159,7 @@ def recheck(receipt):
 
 
 def load_meshes(receipt):
-    floor_id=receipt['floor_id'];original_triangles=floor_size(floor_id)
+    floor_id=receipt['floor_id'];original_triangles=floor_size(floor_id,profile=receipt.get('validation_profile'))
     import numpy as np
     from dataclasses import replace
     from engine.io.minecraft_floor import Frame, parse_floor
@@ -173,6 +191,12 @@ def load_meshes(receipt):
         raise ValueError("Saved floor triangle counts differ")
     contract = bind_saved_e3(candidate=candidate, audit=audit, before_engine=expected,
                             after_engine=after, before_source=source.mesh, after_source=source_after)
+    if floor_id=='1F':
+        from tools.main_infra_1f_retained_validation import require_retained_mesh
+        selection=read(p['builder_preparation'])['selection']
+        indices=read(p['source-faces.json'])['source_faces']
+        require_retained_mesh(expected,after,indices,selection['retained_source_faces'])
+        require_retained_mesh(source.mesh,source_after,indices,selection['retained_source_faces'])
     assets = _verify_assets(p["raw"], p["engine_baseline"].parent, candidate, p["before"].parent,
                             source.mesh, provenance, audit)
     for i, row in enumerate(provenance["assets"]):
@@ -191,6 +215,9 @@ def load_meshes(receipt):
     if looks.unknown(before) or looks.unknown(after):
         raise ValueError("Unqualified material names")
     before, after = (replace(mesh,physical_quanta=expected.physical_quanta) for mesh in [before,after])
+    if floor_id=='1F':
+        from tools.main_infra_1f_retained_validation import bind_checked_result
+        bind_checked_result(receipt,before,after,looks)
     table=LookTable()
     lb,la=face_look_ids(before,looks,table),face_look_ids(after,looks,table)
     indices=np.asarray(read(p["source-faces.json"])["source_faces"],dtype=np.int64)
@@ -244,22 +271,29 @@ def native_pose_inventory(poses,floor_id,*,profile=None):
     if floor_id=='1F' and any(p.get('headroom_clear') is not True
             or not 1.6 <= p.get('eye_height_above_floor_metres',0) < 1.601 for p in walking):
         raise ValueError('Original1F qualified walking camera height/clearance differs')
+    if floor_id=='1F' and any(p.get('viewpoint_class')!='qualified_outside' for p in outside):
+        raise ValueError('Original1F outside camera classification differs')
     return dict(qualified_walking=len(walking),qualified_outside=len(outside),diagnostic=len(poses)-len(walking)-len(outside))
 
 
-def main(argv=None, *, floor_id="2F"):
-    floor_size(floor_id)
+def main(argv=None, *, floor_id="2F",profile=None):
+    floor_size(floor_id,profile=profile)
     parser=argparse.ArgumentParser(description=__doc__.replace("2F",floor_id))
-    parser.add_argument("phase",choices=["guard","validate","native-plan"])
+    phases=["guard","validate","native-plan"]+(['retained-floor'] if profile==RETAINED_1F else [])
+    parser.add_argument("phase",choices=phases)
     for name in ["preparation","candidate","out"]:
         parser.add_argument("--"+name,type=Path,required=True)
     for name in ["preparation-sha256","audit-sha256","worker-sha256"]:
         parser.add_argument("--"+name,required=True)
     parser.add_argument("--guard-receipt",type=Path)
     parser.add_argument("--guard-sha256")
+    if profile==RETAINED_1F:
+        parser.add_argument('--floor-receipt',type=Path)
+        parser.add_argument('--floor-sha256')
     args=parser.parse_args(argv)
     check(args.preparation,args.preparation_sha256)
-    receipt=bind_identity(args.preparation,args.candidate,args.audit_sha256,args.worker_sha256,floor_id=floor_id)
+    receipt=bind_identity(args.preparation,args.candidate,args.audit_sha256,args.worker_sha256,
+        floor_id=floor_id,profile=profile,preparation_sha256=args.preparation_sha256 if profile==RETAINED_1F else None)
     plan=read(args.preparation)
     out=args.out.resolve()
     if not out.is_relative_to(Path(plan["evidence_root"]).resolve()) or out.exists():
@@ -269,7 +303,7 @@ def main(argv=None, *, floor_id="2F"):
     started=time.perf_counter()
     if args.phase=="native-plan":
         poses=read(receipt["paths"]["native_poses"])["poses"]
-        native_pose_inventory(poses,floor_id)
+        native_pose_inventory(poses,floor_id,profile=profile)
         out.mkdir(parents=True)
         command=[plan["blender"],"--background","--factory-startup","--python-exit-code","13","--python",receipt["paths"]["native_renderer"],"--",
                  "--before",receipt["paths"]["source_baseline"],"--after",receipt["paths"]["candidate.source.obj"],
@@ -281,8 +315,18 @@ def main(argv=None, *, floor_id="2F"):
         print(json.dumps(dict(native_plan=str(out/"native-plan.json"),render_launched=False)))
         return 0
     source,before,after,looks,provenance=load_meshes(receipt)
+    if profile==RETAINED_1F and args.phase=='validate':
+        from tools.main_infra_1f_retained_validation import require_floor_receipt
+        require_floor_receipt(args.floor_receipt,args.floor_sha256,receipt)
     out.mkdir(parents=True)
     write(out/"input-readback.json",receipt)
+    if args.phase=='retained-floor':
+        from tools.main_infra_1f_retained_validation import forced_floor
+        measured=forced_floor(before,after,looks,receipt)
+        recheck(receipt)
+        write(out/'retained-floor.json',dict(receipt,forced_floor=measured))
+        print(json.dumps(dict(retained_floor_passed=measured['passed'],path=str(out/'retained-floor.json'))))
+        return 0 if measured['passed'] else 2
     if args.phase=="guard":
         from dataclasses import asdict,replace
         import numpy as np
@@ -312,6 +356,8 @@ def main(argv=None, *, floor_id="2F"):
                     progress=lambda done,total:print(f"{done}/{total} samples cast",flush=True) if done==total else None)
     write_evidence(result,out)
     recheck(receipt);check(args.guard_receipt,args.guard_sha256)
+    if profile==RETAINED_1F:
+        require_floor_receipt(args.floor_receipt,args.floor_sha256,receipt)
     report=result.report
     report["inputs"]=dict(before=receipt["before"],after=receipt["after"],
          before_sha256=receipt["before_sha256"],after_sha256=receipt["after_sha256"],
@@ -319,6 +365,8 @@ def main(argv=None, *, floor_id="2F"):
          targets=receipt["paths"]["signed_targets"],targets_sha256=receipt["hashes"]["signed_targets"])
     report["independent_cumulative_binding"]=receipt
     report["independent_guard_sha256"]=args.guard_sha256
+    if profile==RETAINED_1F:
+        report['independent_forced_floor']=dict(path=str(args.floor_receipt.resolve()),sha256=args.floor_sha256)
     report["wall_s"]=round(time.perf_counter()-started,3)
     write(out/"validation.json",report)
     print(json.dumps(dict(verdict=report["verdict"],path=str(out/"validation.json"))))

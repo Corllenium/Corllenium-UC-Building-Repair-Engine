@@ -1,0 +1,86 @@
+........................FFFFFFF                                          [100%]
+================================== FAILURES ===================================
+_______ test_new_retained_worker_normalises_without_reusing_old_attempt _______
+
+tmp_path = WindowsPath('D:/TEMP/iv1f-retained/cohort-red/pytest/test_new_retained_worker_norma0')
+
+    def test_new_retained_worker_normalises_without_reusing_old_attempt(tmp_path):
+>       from tools.main_infra_1f_retained_validation import normalise_worker
+E       ImportError: cannot import name 'normalise_worker' from 'tools.main_infra_1f_retained_validation' (D:\LLM_BACKUP\Codex session\main-infra-1f-validate-retain-visible-20261024\05-Corllenium-UC-Building-Repair-Engine\tools\main_infra_1f_retained_validation.py)
+
+tools\tests\test_main_infra_1f_retained_validation.py:166: ImportError
+_____ test_retention_cohort_or_actual_checkpoint_drift_rejected[old_run] ______
+
+tmp_path = WindowsPath('D:/TEMP/iv1f-retained/cohort-red/pytest/test_retention_cohort_or_actua0')
+kind = 'old_run'
+
+    @pytest.mark.parametrize('kind',['old_run','wrong_count','restored_other','missing_retained','unverified','old_pass'])
+    def test_retention_cohort_or_actual_checkpoint_drift_rejected(tmp_path,kind):
+>       from tools.main_infra_1f_retained_validation import normalise_worker
+E       ImportError: cannot import name 'normalise_worker' from 'tools.main_infra_1f_retained_validation' (D:\LLM_BACKUP\Codex session\main-infra-1f-validate-retain-visible-20261024\05-Corllenium-UC-Building-Repair-Engine\tools\main_infra_1f_retained_validation.py)
+
+tools\tests\test_main_infra_1f_retained_validation.py:174: ImportError
+___ test_retention_cohort_or_actual_checkpoint_drift_rejected[wrong_count] ____
+
+tmp_path = WindowsPath('D:/TEMP/iv1f-retained/cohort-red/pytest/test_retention_cohort_or_actua1')
+kind = 'wrong_count'
+
+    @pytest.mark.parametrize('kind',['old_run','wrong_count','restored_other','missing_retained','unverified','old_pass'])
+    def test_retention_cohort_or_actual_checkpoint_drift_rejected(tmp_path,kind):
+>       from tools.main_infra_1f_retained_validation import normalise_worker
+E       ImportError: cannot import name 'normalise_worker' from 'tools.main_infra_1f_retained_validation' (D:\LLM_BACKUP\Codex session\main-infra-1f-validate-retain-visible-20261024\05-Corllenium-UC-Building-Repair-Engine\tools\main_infra_1f_retained_validation.py)
+
+tools\tests\test_main_infra_1f_retained_validation.py:174: ImportError
+__ test_retention_cohort_or_actual_checkpoint_drift_rejected[restored_other] __
+
+tmp_path = WindowsPath('D:/TEMP/iv1f-retained/cohort-red/pytest/test_retention_cohort_or_actua2')
+kind = 'restored_other'
+
+    @pytest.mark.parametrize('kind',['old_run','wrong_count','restored_other','missing_retained','unverified','old_pass'])
+    def test_retention_cohort_or_actual_checkpoint_drift_rejected(tmp_path,kind):
+>       from tools.main_infra_1f_retained_validation import normalise_worker
+E       ImportError: cannot import name 'normalise_worker' from 'tools.main_infra_1f_retained_validation' (D:\LLM_BACKUP\Codex session\main-infra-1f-validate-retain-visible-20261024\05-Corllenium-UC-Building-Repair-Engine\tools\main_infra_1f_retained_validation.py)
+
+tools\tests\test_main_infra_1f_retained_validation.py:174: ImportError
+_ test_retention_cohort_or_actual_checkpoint_drift_rejected[missing_retained] _
+
+tmp_path = WindowsPath('D:/TEMP/iv1f-retained/cohort-red/pytest/test_retention_cohort_or_actua3')
+kind = 'missing_retained'
+
+    @pytest.mark.parametrize('kind',['old_run','wrong_count','restored_other','missing_retained','unverified','old_pass'])
+    def test_retention_cohort_or_actual_checkpoint_drift_rejected(tmp_path,kind):
+>       from tools.main_infra_1f_retained_validation import normalise_worker
+E       ImportError: cannot import name 'normalise_worker' from 'tools.main_infra_1f_retained_validation' (D:\LLM_BACKUP\Codex session\main-infra-1f-validate-retain-visible-20261024\05-Corllenium-UC-Building-Repair-Engine\tools\main_infra_1f_retained_validation.py)
+
+tools\tests\test_main_infra_1f_retained_validation.py:174: ImportError
+____ test_retention_cohort_or_actual_checkpoint_drift_rejected[unverified] ____
+
+tmp_path = WindowsPath('D:/TEMP/iv1f-retained/cohort-red/pytest/test_retention_cohort_or_actua4')
+kind = 'unverified'
+
+    @pytest.mark.parametrize('kind',['old_run','wrong_count','restored_other','missing_retained','unverified','old_pass'])
+    def test_retention_cohort_or_actual_checkpoint_drift_rejected(tmp_path,kind):
+>       from tools.main_infra_1f_retained_validation import normalise_worker
+E       ImportError: cannot import name 'normalise_worker' from 'tools.main_infra_1f_retained_validation' (D:\LLM_BACKUP\Codex session\main-infra-1f-validate-retain-visible-20261024\05-Corllenium-UC-Building-Repair-Engine\tools\main_infra_1f_retained_validation.py)
+
+tools\tests\test_main_infra_1f_retained_validation.py:174: ImportError
+_____ test_retention_cohort_or_actual_checkpoint_drift_rejected[old_pass] _____
+
+tmp_path = WindowsPath('D:/TEMP/iv1f-retained/cohort-red/pytest/test_retention_cohort_or_actua5')
+kind = 'old_pass'
+
+    @pytest.mark.parametrize('kind',['old_run','wrong_count','restored_other','missing_retained','unverified','old_pass'])
+    def test_retention_cohort_or_actual_checkpoint_drift_rejected(tmp_path,kind):
+>       from tools.main_infra_1f_retained_validation import normalise_worker
+E       ImportError: cannot import name 'normalise_worker' from 'tools.main_infra_1f_retained_validation' (D:\LLM_BACKUP\Codex session\main-infra-1f-validate-retain-visible-20261024\05-Corllenium-UC-Building-Repair-Engine\tools\main_infra_1f_retained_validation.py)
+
+tools\tests\test_main_infra_1f_retained_validation.py:174: ImportError
+=========================== short test summary info ===========================
+FAILED tools/tests/test_main_infra_1f_retained_validation.py::test_new_retained_worker_normalises_without_reusing_old_attempt
+FAILED tools/tests/test_main_infra_1f_retained_validation.py::test_retention_cohort_or_actual_checkpoint_drift_rejected[old_run]
+FAILED tools/tests/test_main_infra_1f_retained_validation.py::test_retention_cohort_or_actual_checkpoint_drift_rejected[wrong_count]
+FAILED tools/tests/test_main_infra_1f_retained_validation.py::test_retention_cohort_or_actual_checkpoint_drift_rejected[restored_other]
+FAILED tools/tests/test_main_infra_1f_retained_validation.py::test_retention_cohort_or_actual_checkpoint_drift_rejected[missing_retained]
+FAILED tools/tests/test_main_infra_1f_retained_validation.py::test_retention_cohort_or_actual_checkpoint_drift_rejected[unverified]
+FAILED tools/tests/test_main_infra_1f_retained_validation.py::test_retention_cohort_or_actual_checkpoint_drift_rejected[old_pass]
+7 failed, 24 passed in 1.95s

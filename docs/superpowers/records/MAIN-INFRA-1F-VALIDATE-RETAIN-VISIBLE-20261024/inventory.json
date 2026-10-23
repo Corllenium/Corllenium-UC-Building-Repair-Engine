@@ -1,0 +1,398 @@
+{
+  "schema_version": 1,
+  "job_id": "MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024",
+  "operator": "Codex-1F-Retained-Independent",
+  "parent_job_id": "MAIN-INFRA-CLEAN-20261023",
+  "files": [
+    {
+      "path": "tools/main_infra_2f_validation.py",
+      "sha256": "c849746efad9c3b2ce1e74db57e03c477aeca6895613acf02421f8b746c45ec6"
+    },
+    {
+      "path": "tools/main_infra_1f_retained_validation.py",
+      "sha256": "9b60f2070f8aa5101e9b8bb34725a13fa045a8b4fdb4f95df552af2c5dde85eb"
+    },
+    {
+      "path": "tools/tests/test_main_infra_1f_retained_validation.py",
+      "sha256": "2e70eddc1c5b770446848c07cb1eb977c09f0bfb3d068500ef4348f78cffeb52"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-10-24-1f-retained-independent.md",
+      "sha256": "82e7741aaea4df6b51fc05f7bf51584105e49140d435312f20b34916af9d1071"
+    },
+    {
+      "path": ".superpowers/sdd/1f-retain-visible-validation/progress.md",
+      "sha256": "0bf796badcb5b01ca72cb240eba4270ef5f66baca2ef4a342aa1e1bc0b36a48d"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/capture-green-process.json",
+      "sha256": "a627499b36f31db77ca9be56c3939e8cbbc9d657f2f6f4dc9e1312c0979fa993"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/capture-green-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/capture-green.txt",
+      "sha256": "7293c008e16185f0988408ee5cb9e23fb940a16c4608b0121c7ef9e28ce673b2"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/capture-red-process.json",
+      "sha256": "8e864b10d4191f1ff0f3bee67011cc8c6bd2eacb8dec23515985b98315ab1b18"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/capture-red-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/capture-red.txt",
+      "sha256": "65b3109a7aa7d7cb0917ab5cd8e1986dacf245e413c5669ec1b73243d4c2ce67"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/cohort-green-process.json",
+      "sha256": "90dd6a976e7d335b318c51eafefbc90f2ee29daaa51a5c3fa9af9ba356ca5d02"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/cohort-green-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/cohort-green.txt",
+      "sha256": "ecd03fbfda8fd04d1a61dcc224f30e8813448b9b7e088d757515d5c23c8645fb"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/cohort-red-process.json",
+      "sha256": "c9920f97c72d626b0c83a5c604abb70790e737e49622c037b01a7b7121d10a73"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/cohort-red-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/cohort-red.txt",
+      "sha256": "cbdcc74968bb372510279a238ae3e6b5740b5067182d180ceb700799c1cbe41c"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/complete-graph-process.json",
+      "sha256": "d94fff3bce1af782424a1ba910a8cc4419531e0e612244b3503e74b596856ade"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/complete-graph-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/complete-graph.txt",
+      "sha256": "64b1f8b268fd2345289633278234b2a3ca7075dcc8700a9bb45c3e8eb3d1c223"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/direct-reader-green-process.json",
+      "sha256": "d935bd435e8c9e8967492b586bcc75f3fe44248b24b928d8db4b81ef6e74217a"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/direct-reader-green-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/direct-reader-green.txt",
+      "sha256": "fb316d1244c9e8f68c91149474ee4bb285192a700c28e672c2f0d09ce4c86ac8"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/direct-reader-red-process.json",
+      "sha256": "edffb601197a5fba11a86900103bd4b019fcf511ce3b93d98e4826808fa4d6b5"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/direct-reader-red-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/direct-reader-red.txt",
+      "sha256": "0a63fe44d8fef74cc5aae8097def96736fe009236711b598ffcda63d7649c006"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/entrypoint-green-process.json",
+      "sha256": "8057ee785c751e5de8abe691b0b76e15ee9e369b626236ad954848d79f8db05c"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/entrypoint-green-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/entrypoint-green.txt",
+      "sha256": "1420565e593a5d06551d924b43c6e227253133b01a98dbfdb09c5d19f11409b9"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/entrypoint-red-process.json",
+      "sha256": "5419bdb18e6b1d6c10f37e20d1afb237dc1bc17d4fcdcd55a35c51e9f3d27f11"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/entrypoint-red-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/entrypoint-red.txt",
+      "sha256": "7004700f9fb3969f8ac6cb9f756bcf77f5472ec1219ad5c024cf05f18246fb9c"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/final-pins-green-process.json",
+      "sha256": "92a51a5618a2f03982f9d2ba306af6b829c19493f4ffdcaee9927a68c38bf3c9"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/final-pins-green-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/final-pins-green.txt",
+      "sha256": "13498269780aab9c53e83096f73746fa4d713084b2e32cd490d709f557ecb6d1"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/final-pins-red-process.json",
+      "sha256": "96c69a41f2408ff4e6dfcab54f6b3f4588ad78d5c55d61fc0d8f4f3b53d3fc17"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/final-pins-red-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/final-pins-red.txt",
+      "sha256": "361a210dbd798a1e7e4af966bff960a2f9cfbf7d2b422d337d96e0daf9db7bf1"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/final-shared-green-process.json",
+      "sha256": "e9823a931e4a5d1c5bf83e4df5a2a8bec3c336ef9e37edef48f4921658ed42d9"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/final-shared-green-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/final-shared-green.txt",
+      "sha256": "303f268cf7cfae1185a8901eafb0cb2605bf939acaa3d36de7b5f0d4d6ef4e91"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/forced-floor-green-final-process.json",
+      "sha256": "a93a2fecea7a5b0cfdb5d7699132ab392501e741fa4001f48cb0bcad5574ebe4"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/forced-floor-green-final-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/forced-floor-green-final.txt",
+      "sha256": "f26d3d2ff0789c9d930bbd07ea89ae15773594d19b0df72a59d144b47c2ea819"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/forced-floor-green-process.json",
+      "sha256": "1c26a2c1607907dd1395569bf4decf3a0b92e8bc17e6f56df1702da2b07a9564"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/forced-floor-green-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/forced-floor-green.txt",
+      "sha256": "f648aa67164ca4e0ca44f5cb6d1ed251fdcc0bc1034cdaa1fe73653ddb971841"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/forced-floor-red-process.json",
+      "sha256": "0374a3de09fe619778728cd1b8cd22a7fb119107dfd94f091ffc7b75d20e04b1"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/forced-floor-red-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/forced-floor-red.txt",
+      "sha256": "12e97ce750a3ae2d64c2477aedc5c26d9bfb630c06f61c3cd0fecf337dcf073d"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/freeze-green-process.json",
+      "sha256": "d4ff6175cce2b31b964e0febb78e7b6ec16a7311f6c5b90f4f4652e717c815a9"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/freeze-green-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/freeze-green.txt",
+      "sha256": "d6166a87cd0a1c444bc42eb0066b9d69fd3318e8b4fef4d94511360162508abb"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/handoff.md",
+      "sha256": "ae5899f6ad7efc0ac96d30a12e0b49c0cd5b8711de8be8ada1c374d09e2e7ef8"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/namespace-green-process.json",
+      "sha256": "5dbb4ff00574301834b5e4bce13427a1acc3331a86023bd6ca0fbb74cd2f7655"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/namespace-green-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/namespace-green.txt",
+      "sha256": "706a195ec7fc5261e654fac5b940a46797dc735dce9cb44ce724076bf18c941c"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/namespace-red-process.json",
+      "sha256": "ba3f3260623c4b44bc8a7774c6558a6f7944ddb80216ad9b62c87f52f29ae2c5"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/namespace-red-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/namespace-red.txt",
+      "sha256": "82edfca9299992d74eefb08c5614ab38cb967c603040bc937d2209884efc3471"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/package-green-process.json",
+      "sha256": "2894b35be8192af7165f695e4d61c2b92c67efc58193aa65af8d265fd7693806"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/package-green-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/package-green.txt",
+      "sha256": "fbbae231e0531829c4f21224b108c569f809594142bd16b7436626b8aca76e23"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/package-red-process.json",
+      "sha256": "872a6533b0a01a741853860d3fd783826d46d5526e6a9e27ae7dd05f53c36d03"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/package-red-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/package-red.txt",
+      "sha256": "15d1913d3e78ac1729b79b74a23a0967c36fc2fe159b87dce61bb3b13658a7b5"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/preparation-draft.json",
+      "sha256": "e2a7dce71d742cec9b246522faff33d73d23f1d5959f775a59ffa6cd1abf441f"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/preparation-pin-green-process.json",
+      "sha256": "92876256d9c636d50670769b7ee4e9d94a395639c8de5dc01aac6809130f469d"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/preparation-pin-green-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/preparation-pin-green.txt",
+      "sha256": "0d05d079fc8a6eb1488282ca396d6c95d6705878387f3f34e7452fd57e2ba0dc"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/preparation-pin-red-process.json",
+      "sha256": "71dd2f2109247b2881440b133325feffc2fc3d10a1e9e34d9f6b4f53aaea9d1c"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/preparation-pin-red-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/preparation-pin-red.txt",
+      "sha256": "851c1936d6d484998979840781ce69f70ccc02baf08270e66a435a3860da4f78"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/profile-green-final-process.json",
+      "sha256": "b5881815f90a4a285422cbee2913ccc018d1f8710f8ee9ad268c4505a2666e71"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/profile-green-final-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/profile-green-final.txt",
+      "sha256": "422e036b7cab9401619bce1581f69e97d97f1a5985dc229928af1cad63cbd255"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/profile-green-process.json",
+      "sha256": "ec98ddc63dc3f116dfffb4b8e70ff6fe57a4543c036f3086d590a79664f07a61"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/profile-green-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/profile-green.txt",
+      "sha256": "93e698391bf8053bb85f1f5be817fe8aeb8d083f4a637304c05c0bca7da826d1"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/profile-red-corrected-process.json",
+      "sha256": "16d2a0c4b92796b5218fe2e1ae5a7a1b6cd4cbe3320ac1d266eaa7f1ce41dd8d"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/profile-red-corrected-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/profile-red-corrected.txt",
+      "sha256": "a805119355f4f95277b07702f88abc844079400c5b851c24525e4c869dec35f4"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/profile-red-process.json",
+      "sha256": "1925279d8ace5e1793bd66ed5f2f720a340c6fc78602c3603fc5c90017791aba"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/profile-red-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/profile-red.txt",
+      "sha256": "1349a069c18a60956178b00429c76f0743b3dc0ded09d1ca7af9756549379ce7"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/progress.md",
+      "sha256": "3c8e69f641cced023f08c74c8789df8a96525b2425c8dc5de0064378fe12e4dc"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/retention-gate-green-process.json",
+      "sha256": "d58e7a38a7730e4c8fe9c77c59c2cf6b11e4a0de51d5eee4b5952755591a4b09"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/retention-gate-green-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/retention-gate-green.txt",
+      "sha256": "31a75878beed11c685634d65a23684c8696f6b6c77690c1288a86027f993c4da"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/retention-gate-red-process.json",
+      "sha256": "4549f4854b3c4a4e7c8f8639e071c6af2572fe3feac0967923d4bfd0fed6da6a"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/retention-gate-red-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/retention-gate-red.txt",
+      "sha256": "94f40f990e7964c2a706096cff452f9cd19ba2928c909fdbc10897d0147bc4df"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/shared-green-process.json",
+      "sha256": "a612b07b2bbfc802b76304909ae05a494cae60877025741a2c82a6da83afd35f"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/shared-green-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/shared-green.txt",
+      "sha256": "15c30277f24c5386fc3aba26ccf98a15ba493c1c0ff8af61ea4c0f8f62b36f60"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/tiny_test_window.py",
+      "sha256": "75eea7f33de138a1debd49000d136d2c5ae93c191d375dbe0d4aaac84f98dea5"
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024/verification.json",
+      "sha256": "24b08a0dbee9f64f3fe5b35fa9a1f6c0a8d52e707f83425ec3a602d8ef261614"
+    }
+  ],
+  "acceptance": false,
+  "no_actual_proof_phase": true
+}

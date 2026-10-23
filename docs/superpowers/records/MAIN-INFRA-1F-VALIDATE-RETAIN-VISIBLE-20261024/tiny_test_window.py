@@ -35,7 +35,7 @@ env=dict(os.environ,PYTHONPATH=str(root),OPENBLAS_NUM_THREADS='1',OMP_NUM_THREAD
 py='D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe'
 cmd=[py,'-B','-m','pytest','tools/tests/test_main_infra_1f_retained_validation.py','-q','-p','no:cacheprovider','--basetemp',str(temp/'pytest')]
 if len(sys.argv)>2:cmd+=['-k',sys.argv[2]]
-if label=='shared-green':cmd=[py,'-B','-m','pytest','tools/tests/test_main_infra_2f_validation.py','tools/tests/test_main_infra_3f_validation.py','tools/tests/test_main_infra_1f_retained_validation.py','-q','-p','no:cacheprovider','--basetemp',str(temp/'pytest')]
+if label in ('shared-green','final-shared-green','freeze-green'):cmd=[py,'-B','-m','pytest','tools/tests/test_main_infra_2f_validation.py','tools/tests/test_main_infra_3f_validation.py','tools/tests/test_main_infra_1f_retained_validation.py','-q','-p','no:cacheprovider','--basetemp',str(temp/'pytest')]
 if label=='terminal-static':cmd=[py,'-B','-m','data.tmp.attempt4_terminal_static']
 if label.startswith('static-smoke'):cmd=[py,'-B','-m','data.tmp.attempt4_static_preparation']
 if label=='cli-help':cmd=[py,'-B','-m','tools.main_infra_e7_independent_attempt4','--help']

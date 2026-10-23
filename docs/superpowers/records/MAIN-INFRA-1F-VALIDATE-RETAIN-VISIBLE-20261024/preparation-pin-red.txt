@@ -1,0 +1,16 @@
+............................................F                            [100%]
+================================== FAILURES ===================================
+________ test_retained_preparation_requires_the_external_manifest_hash ________
+
+tmp_path = WindowsPath('D:/TEMP/iv1f-retained/preparation-pin-red/pytest/test_retained_preparation_requ0')
+
+    def test_retained_preparation_requires_the_external_manifest_hash(tmp_path):
+        prep,c,worker,_=complete_retained_graph(tmp_path)
+>       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+tools\tests\test_main_infra_1f_retained_validation.py:337: Failed
+=========================== short test summary info ===========================
+FAILED tools/tests/test_main_infra_1f_retained_validation.py::test_retained_preparation_requires_the_external_manifest_hash
+1 failed, 44 passed in 5.76s

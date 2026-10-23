@@ -1,0 +1,23 @@
+..............F                                                          [100%]
+================================== FAILURES ===================================
+______ test_retained_1f_native_cohort_rejects_drift[outside_projection] _______
+
+change = 'outside_projection'
+
+    @pytest.mark.parametrize('change',['missing','duplicate','eye_height','headroom','outside_projection'])
+    def test_retained_1f_native_cohort_rejects_drift(change):
+        poses=json.loads(NATIVE.read_bytes())['poses']
+        walking=next(p for p in poses if p['name'].startswith('eye_0_qualified'))
+        if change=='missing':poses.pop()
+        elif change=='duplicate':poses[-1]['name']=poses[0]['name']
+        elif change=='eye_height':walking['eye_height_above_floor_metres']=.6
+        elif change=='headroom':walking['headroom_clear']=False
+        elif change=='outside_projection':next(p for p in poses if p.get('projection')=='ORTHO')['projection']='PERSP'
+>       with pytest.raises(ValueError):shared.native_pose_inventory(poses,'1F',profile=PROFILE)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+tools\tests\test_main_infra_1f_retained_validation.py:45: Failed
+=========================== short test summary info ===========================
+FAILED tools/tests/test_main_infra_1f_retained_validation.py::test_retained_1f_native_cohort_rejects_drift[outside_projection]
+1 failed, 14 passed in 0.18s

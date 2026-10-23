@@ -1,0 +1,68 @@
+...............F........F..................F                             [100%]
+================================== FAILURES ===================================
+_________ test_retained_1f_native_cohort_rejects_drift[outside_class] _________
+
+change = 'outside_class'
+
+    @pytest.mark.parametrize('change',['missing','duplicate','eye_height','headroom','outside_projection','outside_class'])
+    def test_retained_1f_native_cohort_rejects_drift(change):
+        poses=json.loads(NATIVE.read_bytes())['poses']
+        walking=next(p for p in poses if p['name'].startswith('eye_0_qualified'))
+        if change=='missing':poses.pop()
+        elif change=='duplicate':poses[-1]['name']=poses[0]['name']
+        elif change=='eye_height':walking['eye_height_above_floor_metres']=.6
+        elif change=='headroom':walking['headroom_clear']=False
+        elif change=='outside_projection':next(p for p in poses if p.get('viewpoint_class')=='qualified_outside')['projection']='PERSP'
+        elif change=='outside_class':next(p for p in poses if p.get('viewpoint_class')=='qualified_outside')['viewpoint_class']='diagnostic'
+>       with pytest.raises(ValueError):shared.native_pose_inventory(poses,'1F',profile=PROFILE)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+tools\tests\test_main_infra_1f_retained_validation.py:46: Failed
+_________ test_required_floor_receipt_cannot_be_omitted_or_relabelled _________
+
+tmp_path = WindowsPath('D:/TEMP/iv1f-retained/final-pins-red/pytest/test_required_floor_receipt_ca0')
+
+    def test_required_floor_receipt_cannot_be_omitted_or_relabelled(tmp_path):
+        from tools.main_infra_1f_retained_validation import require_floor_receipt
+        from tools.tests.test_main_infra_2f_validation import write,digest
+        binding=dict(job_id=shared.JOB,floor_id='1F',source_revision=shared.REV,
+            attempt_namespace='run-20261024-1F-retain-visible',worker_pid=123,
+            before_sha256='b'*64,after_sha256='a'*64,source_after_sha256='s'*64,paths={},hashes={})
+        proof=dict(binding,forced_floor=dict(passed=True,pixel_inches=.02,visible_floor_px=4,pixel_budget=1<<18,
+            faces=[dict(face=9809,lost_pixels=0),dict(face=10366,lost_pixels=0)],
+            viewpoint=dict(kind='probe',index=422),depth_tolerance_inches=.05,line_count=14,lost_lines=0,
+            lines=[dict(line_id=i,lost=False) for i in range(14)]))
+        path=tmp_path/'floor.json';write(path,proof)
+        require_floor_receipt(path,digest(path),binding)
+        for key,value in [('passed',False),('line_count',13),('lost_lines',1),('pixel_inches',.2),('depth_tolerance_inches',.5)]:
+            wrong=json.loads(json.dumps(proof));wrong['forced_floor'][key]=value;write(path,wrong)
+>           with pytest.raises(ValueError):require_floor_receipt(path,digest(path),binding)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^
+E           Failed: DID NOT RAISE ValueError
+
+tools\tests\test_main_infra_1f_retained_validation.py:124: Failed
+_______ test_all_builder_component_bytes_remain_in_postphase_inventory ________
+
+tmp_path = WindowsPath('D:/TEMP/iv1f-retained/final-pins-red/pytest/test_all_builder_component_byt0')
+
+    def test_all_builder_component_bytes_remain_in_postphase_inventory(tmp_path):
+        from tools.main_infra_1f_retained_validation import normalise_worker
+        from tools.tests.test_main_infra_2f_validation import write,digest
+        plan,w,a,c,paths,hashes,p,s=retained_case(tmp_path)
+        root=tmp_path/'builder';component=root/'engine/model.py';component.parent.mkdir(parents=True);component.write_bytes(b'fixture component')
+        p['components']['files']={'engine/model.py':dict(sha256=digest(component),commit=p['components']['HEAD'])}
+        plan['builder_root']=str(root);write(paths['builder_preparation'],p);hashes['builder_preparation']=digest(paths['builder_preparation'])
+        w['components']=p['components'];w['preparation_sha256']=hashes['builder_preparation']
+        normalise_worker(plan,w,a,c,paths,hashes)
+        component.write_bytes(b'changed after binding')
+>       with pytest.raises(ValueError):shared.recheck(dict(paths={k:str(v) for k,v in paths.items()},hashes=hashes))
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+tools\tests\test_main_infra_1f_retained_validation.py:332: Failed
+=========================== short test summary info ===========================
+FAILED tools/tests/test_main_infra_1f_retained_validation.py::test_retained_1f_native_cohort_rejects_drift[outside_class]
+FAILED tools/tests/test_main_infra_1f_retained_validation.py::test_required_floor_receipt_cannot_be_omitted_or_relabelled
+FAILED tools/tests/test_main_infra_1f_retained_validation.py::test_all_builder_component_bytes_remain_in_postphase_inventory
+3 failed, 41 passed in 3.49s

@@ -1,0 +1,60 @@
+...............FF.....                                                   [100%]
+================================== FAILURES ===================================
+_ test_forced_floor_reaches_real_measure_even_without_preselected_candidates __
+
+    def test_forced_floor_reaches_real_measure_even_without_preselected_candidates():
+        from tools.main_infra_1f_retained_validation import measure_pairs
+>       floor,lines=floor_case()
+                    ^^^^^^^^^^^^
+
+tools\tests\test_main_infra_1f_retained_validation.py:67: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+remove = False
+
+    def floor_case(remove=False):
+        import numpy as np
+        from dataclasses import replace
+        from engine.tests.fixtures.build import _mesh
+        from engine.rays.caster import BruteCaster
+        from engine.validate import checks as c
+        from engine.validate.floor import Viewpoint
+        b=_mesh('tiny',[[0,0,0],[.1,0,0],[.1,.1,0],[0,.1,0]],[[0,0]]*4,[[0,1,2],[0,2,3]],[[0,1,2],[0,2,3]])
+        a=replace(b,face_v=b.face_v[1:].copy(),face_vt=b.face_vt[1:].copy(),face_vn=b.face_vn[1:].copy(),face_material=b.face_material[1:].copy()) if remove else b
+        lb=np.zeros(2,dtype=np.int64);la=np.zeros(a.n_faces,dtype=np.int64)
+>       judge=c._Judge(a,BruteCaster(a),la,.05,blockable=c.changed_faces(b,a))
+                         ^^^^^^^^^^^^^^
+E       TypeError: BruteCaster.__init__() missing 1 required positional argument: 'faces'
+
+tools\tests\test_main_infra_1f_retained_validation.py:58: TypeError
+_______ test_forced_floor_rejects_actual_deleted_pixels_and_saved_line ________
+
+    def test_forced_floor_rejects_actual_deleted_pixels_and_saved_line():
+        from tools.main_infra_1f_retained_validation import measure_pairs
+>       floor,lines=floor_case(remove=True)
+                    ^^^^^^^^^^^^^^^^^^^^^^^
+
+tools\tests\test_main_infra_1f_retained_validation.py:74: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+remove = True
+
+    def floor_case(remove=False):
+        import numpy as np
+        from dataclasses import replace
+        from engine.tests.fixtures.build import _mesh
+        from engine.rays.caster import BruteCaster
+        from engine.validate import checks as c
+        from engine.validate.floor import Viewpoint
+        b=_mesh('tiny',[[0,0,0],[.1,0,0],[.1,.1,0],[0,.1,0]],[[0,0]]*4,[[0,1,2],[0,2,3]],[[0,1,2],[0,2,3]])
+        a=replace(b,face_v=b.face_v[1:].copy(),face_vt=b.face_vt[1:].copy(),face_vn=b.face_vn[1:].copy(),face_material=b.face_material[1:].copy()) if remove else b
+        lb=np.zeros(2,dtype=np.int64);la=np.zeros(a.n_faces,dtype=np.int64)
+>       judge=c._Judge(a,BruteCaster(a),la,.05,blockable=c.changed_faces(b,a))
+                         ^^^^^^^^^^^^^^
+E       TypeError: BruteCaster.__init__() missing 1 required positional argument: 'faces'
+
+tools\tests\test_main_infra_1f_retained_validation.py:58: TypeError
+=========================== short test summary info ===========================
+FAILED tools/tests/test_main_infra_1f_retained_validation.py::test_forced_floor_reaches_real_measure_even_without_preselected_candidates
+FAILED tools/tests/test_main_infra_1f_retained_validation.py::test_forced_floor_rejects_actual_deleted_pixels_and_saved_line
+2 failed, 20 passed in 1.66s
