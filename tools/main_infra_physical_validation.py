@@ -125,6 +125,10 @@ def load_physical_pair(*, raw, reference, baseline, qualification, candidate):
         from tools.main_infra_e3_binding import bind_saved_e3
         contract = bind_saved_e3(candidate=candidate, audit=audit, before_engine=expected,
                                  after_engine=after, before_source=source.mesh, after_source=source_after)
+    elif cleanup_mode in ('e4_merge_only', 'e3_then_e4_merge'):
+        from tools.main_infra_e4_binding import bind_saved_e4
+        contract = bind_saved_e4(candidate=candidate, audit=audit, before_engine=expected,
+                                 after_engine=after, before_source=source.mesh, after_source=source_after)
     else:
         raise ValueError(f'unsupported candidate cleanup contract: {cleanup_mode!r}')
     before = replace(before, physical_quanta=expected.physical_quanta)
