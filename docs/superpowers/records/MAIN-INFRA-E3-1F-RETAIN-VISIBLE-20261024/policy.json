@@ -1,0 +1,49 @@
+{
+  "evidence": {
+    "attribution": {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\execution-ownership-attempt4\\deleted-floor-attribution\\attribution.json",
+      "sha256": "a84b7a535a90dcdcc5dd722dbf17a96a185a07f7977e227d8113f9bf1b9cf15a"
+    },
+    "lost_lines": {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\execution-ownership-attempt4\\deleted-floor-attribution\\lost-lines.jsonl",
+      "sha256": "7864e426fe4c9eae093cc9a3f066e563338b6d1f765e38c10aaf943aa54249d7"
+    },
+    "original_validation": {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-e3\\run-20261023\\independent-validator\\1F\\validation\\validation.json",
+      "sha256": "3d10cde0d05a0ce732a8d5120913e22bc99276aec788d6de3fa0488d6d849913"
+    },
+    "provenance": {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\execution-ownership-attempt4\\e3-removal-provenance.json",
+      "sha256": "773272eca52969dffd84ec9d62eaa5cded76ae8f8947d28cbad197655ed33ec4"
+    },
+    "receipt": {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261024-attempt4\\1F\\native-failure-diagnostic\\diagnostic-receipt.json",
+      "sha256": "8622d58fa4e05f9c0d3617307bd4b454c18924051a82ccf81c41a740097a1104"
+    },
+    "report": {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261024-attempt4\\1F\\native-failure-diagnostic\\validation.json",
+      "sha256": "b1865442179e278dde9993ee35922991bb73bbb8c2b11addbd4a8bc0040c5c43"
+    }
+  },
+  "original_audit": {
+    "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-e3\\run-20261023\\1F\\stage-audit.json",
+    "sha256": "4daec2c27b2049ad61923f74e5c10cb3cfe750c24042bea9775a9f0caff6d3bf"
+  },
+  "original_counts": {
+    "kept": 280,
+    "planned": 283,
+    "rolled_back": 3,
+    "site_faces": 274
+  },
+  "policy": "retain_whole_original_e3_site_v1",
+  "required_faces": [
+    9809,
+    10366
+  ],
+  "restore_sites": [
+    5
+  ],
+  "run_id": "MAIN-INFRA-E3-1F-retain-visible-20261024",
+  "schema_version": 1,
+  "source_revision": "7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511"
+}
