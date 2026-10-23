@@ -1,6 +1,6 @@
 {
-  "docs/superpowers/records/scripts/main-infra/live-worker-status-runtime.ps1": "f8129f42c76550c063ef09a96bae4174122abd6624acd0b6b97ef1b1474e497c",
-  "tools/tests/test_live_status_common_observations.py": "410b3d27f8f1e62df6afe174c12a97e32697573879668fd972dd4104df39891a",
+  "docs/superpowers/records/scripts/main-infra/live-worker-status-runtime.ps1": "35bfbc560b18c2e0a466b44b43d6aa2560fdbac9aee9f369fc29d744161c284d",
+  "tools/tests/test_live_status_common_observations.py": "3d4c8f47d0392bc952af2ebb49002b61d2f0229b3f2423267354a80149e35f04",
   "tools/tests/test_live_status_e3_tracking.py": "098842a392d63ef7156c85a016b79e7ec453c14d38b4611aef600a969853a96a",
   "tools/tests/live_status_publication_retry.ps1": "4b77e80d1153b1089ad1dc004e18a544c0d9373d4df0e47bdd7cf4c2d07c0838",
   "data/live-observations-tiny-tests/common-red.stdout.txt": "c26c47bffb2266b189a2a9fa2b1ca902aaf0750c7921beb6b79416ef8aa9ed2c",
@@ -14,5 +14,20 @@
   "data/live-observations-tiny-tests/final-powershell-publication-green.txt": "f37ff2b84d710e0375bc30b83fe124bae84287d7dae054b2a27b2bc8f20bb317",
   "data/live-observations-tiny-tests/run-bounded.ps1": "dacab78c3ad5c4304394755478995bb7be7d90bad2c44353a229a9e5fc287ea2",
   "docs/superpowers/records/MAIN-INFRA-LIVE-OBSERVATIONS-20261024/extra-e3-workers.example.json": "8b71a6e5919e5bc1ab3ecf52f5e7cb90ec1bf292f7ae4030f25a2718cbbb9122",
-  "docs/superpowers/records/MAIN-INFRA-LIVE-OBSERVATIONS-20261024/extra-validator-workers.example.json": "e636045b9f19c817073170ae72ed22749253574a2742e1b1352a03714b4e6059"
+  "docs/superpowers/records/MAIN-INFRA-LIVE-OBSERVATIONS-20261024/extra-validator-workers.example.json": "e636045b9f19c817073170ae72ed22749253574a2742e1b1352a03714b4e6059",
+  "docs/superpowers/records/MAIN-INFRA-LIVE-OBSERVATIONS-20261024/actual-payload-readback.json": "1b9fd6e7a07de01e923b243fdbf8b17a248b707ce82a6f15c06e3f29238fb21b",
+  "docs/superpowers/records/MAIN-INFRA-LIVE-OBSERVATIONS-20261024/native-registration-readback.json": "3738368be68e4fb3a1de00662cea1de27faef9166b15ef1970bc697d7442ee45",
+  "data/live-observations-tiny-tests/actual-schema-red.stdout.txt": "8cfc03cac0354d91458397f26ab06e56074b8e8b6cf6ad26d242411947bf3f2f",
+  "data/live-observations-tiny-tests/actual-schema-red.resources.json": "7db3e38dc057536d17438869667bbe4afa286561331aa5e5ba1bc29207fa7177",
+  "data/live-observations-tiny-tests/actual-schema-green.stdout.txt": "d9c0b6b4e6a7808dbf26d13dd8652b4cac1ea52651fb1a1208034b787815b530",
+  "data/live-observations-tiny-tests/actual-schema-green.resources.json": "0022dbfcd6112c0962e2cfdd8f41748961c524e8ead71ddb69d1dc7620f141f3",
+  "data/live-observations-tiny-tests/actual-payload-dryrun.stdout.txt": "31298cf85182130bdd8f1b0a80574767e2f457cc16d13eda975d73a0cef60a67",
+  "data/live-observations-tiny-tests/actual-payload-dryrun-v2.stdout.txt": "564910381f636777f7fbac7471edc5a637523f2c34ac9ff9a43c5a156097a6e8",
+  "data/live-observations-tiny-tests/actual-payload-dryrun-v2.resources.json": "699a48b2b648d11fb0614e74180682ec063019d3f8428978db5dc328f0fbb383",
+  "data/live-observations-tiny-tests/test_actual_payload_dryrun.py": "e9e44011f53ea8e3589618f24712e558718c9cf4899a5762276e74b988887c19",
+  "data/live-observations-tiny-tests/actual-payload/actual-observation-block.ps1": "01cb63719bd1172b2744431b98e2e3bce9bc281484f7df3d57e533f339dfdd51",
+  "data/live-observations-tiny-tests/actual-payload/canonical-input.json": "5b715ddbc6d66e5068beec3c6e22553258546dd1302e9b783ff7cf6f6921cd9a",
+  "data/live-observations-tiny-tests/actual-payload/observations.json": "69fd1b5e91ac56417197fb2820bcf7c0d28936470d0387fd6a2ffa544171648b",
+  "data/live-observations-tiny-tests/actual-payload/collected-current.json": "10587dab755d911429ce663817d831aa3f16b424235488cc6be5ac00afbb746b",
+  "data/live-observations-tiny-tests/qualified-anchor-powershell-green.txt": "dcd31814f4abd0b613e442f579813a4f25676f0a2cfa6f3ff64577823c05e437"
 }

@@ -83,9 +83,17 @@ for floor in ('2F','3F'):
         preparation=Path(process['preparation'])
         if hashlib.sha256(preparation.read_bytes()).hexdigest()!=process['preparation_sha256']: raise ValueError('Common E3 preparation hash differs')
         prepared=json.loads(preparation.read_text())
+        qualification_path=prepared.get('paths',{}).get('qualification')
+        qualification_sha=prepared.get('sha256',{}).get('qualification')
+        if not isinstance(qualification_path,str) or hashlib.sha256(Path(qualification_path).read_bytes()).hexdigest()!=qualification_sha:
+            raise ValueError('Common E3 source qualification hash differs')
+        qualification=json.loads(Path(qualification_path).read_text())
+        if (qualification.get('schema_version')!=1 or qualification.get('qualified') is not True
+                or qualification.get('floor_id')!=floor or qualification.get('source_revision')!=doc['source_revision']
+                or ('source_revision' in prepared and prepared['source_revision']!=doc['source_revision'])):
+            raise ValueError('Common E3 qualified source revision differs')
         if (floor!='3F' or prepared.get('mode')!='fresh_checked_e3_visible_replay' or prepared.get('state')!='prepared'
                 or prepared.get('floor')!=floor or prepared.get('run_id')!=process['run_id']
-                or prepared.get('source_revision')!=doc['source_revision']
                 or prepared.get('components',{}).get('HEAD')!=process['component_commit']
                 or state.get('floor')!=floor or state.get('run_id')!=process['run_id']
                 or state.get('components',{}).get('HEAD')!=process['component_commit']

@@ -1,0 +1,16 @@
+{
+  "native_loop_extracted_from_runtime": true,
+  "runtime_sha256": "35bfbc560b18c2e0a466b44b43d6aa2560fdbac9aee9f369fc29d744161c284d",
+  "own_native_pid": 62508,
+  "own_native_creation": "2026-10-23T23:12:55.9860632Z",
+  "positive_alive": true,
+  "positive_cpu": 0.73,
+  "one_100ns_tick_rejected": true,
+  "actual3F_pid": 60376,
+  "actual3F_retained_native_identity_sha256": "5284c523916104dcd3374621d9b74be7fa182b667fe91a236ca0e6f7c3724b4c",
+  "actual3F_creation_matches_registration_exact_ticks": true,
+  "actual3F_now_exited": true,
+  "current3F_CPU_not_fabricated": true,
+  "own_private_bytes": 35131392,
+  "no_network_or_canonical_write": true
+}
