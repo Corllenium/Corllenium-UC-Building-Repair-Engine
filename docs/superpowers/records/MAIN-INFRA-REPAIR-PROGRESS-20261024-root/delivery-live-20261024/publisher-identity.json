@@ -1,0 +1,10 @@
+{
+  "pid": 44780,
+  "start_utc": "2026-10-23T22:15:19.9127718Z",
+  "runtime_sha256": "91a2c6f0ee6023ad6c40f3e3c39279d27521e18e5ffc8d6a49bb0b37488c6261",
+  "component_commit": "1aaaf83c03ab76cf7a9fc0330b2b20b75d7a7ee2",
+  "runtime_path": "D:/PROJECTS/UC MODEL FIXER/data/siege-live-20261023/watch-actual-workers-history-20261024.ps1",
+  "stdout": "D:/PROJECTS/UC MODEL FIXER/data/siege-live-20261023/publisher-after-live-logs-v2-20261024.stdout.log",
+  "stderr": "D:/PROJECTS/UC MODEL FIXER/data/siege-live-20261023/publisher-after-live-logs-v2-20261024.stderr.log",
+  "scope": "Resumed same owned publisher after scoped live logs deployment"
+}

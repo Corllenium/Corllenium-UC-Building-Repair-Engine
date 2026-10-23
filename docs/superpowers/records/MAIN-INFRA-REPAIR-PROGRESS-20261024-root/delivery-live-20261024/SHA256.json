@@ -1,0 +1,27 @@
+[
+  {
+    "path": "current-progress-snapshot.json",
+    "sha256": "373e951c4e8ea9550fd054d9a258c2af715dc16fd086c617a2f7a7615a4dc790",
+    "bytes": 37583
+  },
+  {
+    "path": "live-browser-verification.json",
+    "sha256": "ebd50bb8a293a909d04c2b51624d8669be120190208f344b64567d784a8ec53b",
+    "bytes": 1454
+  },
+  {
+    "path": "public-model-deployment.log",
+    "sha256": "cc66f1e1b087d3a1e554186bdfd12ae6191f7040dcc3574d42433cd982bd02f2",
+    "bytes": 414
+  },
+  {
+    "path": "public-static-deployment.log",
+    "sha256": "e4e54118e0a6b50dc19f57a8a68ad9e09092e450f3daa903524c237fc4b57d54",
+    "bytes": 636
+  },
+  {
+    "path": "publisher-identity.json",
+    "sha256": "bb909fee6b36f67969cc3b852cb61a86786267d1b90b57e8c7bf5f859cc3703e",
+    "bytes": 654
+  }
+]

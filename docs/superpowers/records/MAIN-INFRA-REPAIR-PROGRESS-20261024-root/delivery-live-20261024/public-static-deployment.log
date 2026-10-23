@@ -1,0 +1,6 @@
+PREFLIGHT_OK main-infra-live-logs-6d01640-20261023T215918Z; both old route trees backed up
+FILESYSTEM_OK 95/95 hashes in both roots
+PUBLIC_HASHES 25/95
+PUBLIC_HASHES 50/95
+PUBLIC_HASHES 75/95
+{"deploy_id":"main-infra-live-logs-6d01640-20261023T215918Z","build_sha":"6d016409ba99b9921501696c7b4b82c722e47f1e","api_sha_before_after":"bb71d3144c32e237133b4c7d995c39900508f9ab","status_sha256_preserved":"90e5e4a7df2fe9af4159167ee0917cd5a300639d49d7948f32217e7d92532793","filesystem_hashes_per_root":95,"public_hashes":95,"backup":"/home/devenvir/corllenium/backups/main-infra-live-logs-6d01640-20261023T215918Z","app_restart":false}

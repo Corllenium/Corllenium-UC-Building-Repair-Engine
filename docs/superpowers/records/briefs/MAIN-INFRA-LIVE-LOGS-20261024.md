@@ -1,0 +1,7 @@
+# MAIN-INFRA-LIVE-LOGS-20261024
+
+Owner: Codex. Continue the existing isolated Siege branch codex/main-infra-live-20261023 and its draft PR39; no duplicate branch or shared checkout. The owner explicitly requests live engine logs, fresh Minecraft model inspection and use of configured Git/LFS publishing.
+
+Show measured per-floor worker identity, observed CPU and bounded saved worker events; distinguish heartbeats from completed work. Show actual saved candidate counts separately from accepted output. Failed candidate inspection remains blocked and prominently labelled; accepted_preview and automatic After proof gates are unchanged. Keep the fresh seven-floor source/1metre scale, source qualification, all asset identities and independent preservation rules. No simulated numbers, legacy CKPT17 assets, guessed percentages, facade/UV/source geometry changes or server/database restarts.
+
+Write failing UI/parser tests first, run them, implement, re-run focused suites/typecheck/lint and production static export. Inspect generated/live results, publish scoped static assets without API replacement, and verify public hashes plus actual rendered UI. Preserve existing publication authorization and current hosting key/config. Configure LFS only for the generated published model asset paths; do not rewrite history or track source/scratch caches. Push named commits to the existing owned dashboard branch, update its work note and PR39, and retain actual evidence.
