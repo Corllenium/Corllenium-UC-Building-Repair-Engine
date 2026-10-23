@@ -15,6 +15,70 @@ from engine.io.minecraft_floor import write_floor
 from engine.io.obj_reader import read_obj
 
 
+def load_qualified_floor(*, raw, reference, baseline, qualification):
+    from dataclasses import replace
+    from engine.io.minecraft_floor import Frame, parse_floor
+    from engine.io.mtl import parse_mtl
+    from engine.io.snapshot import sha256_file
+    from tools.main_infra_physical_validation import _hash, _same_mesh
+
+    raw, reference, baseline, qualification = map(Path, (raw, reference, baseline, qualification))
+    proof = json.loads(qualification.read_text(encoding='utf-8'))
+    if (proof.get('qualified') is not True or not proof.get('floor_id')
+            or not isinstance(proof.get('source_revision'), str) or len(proof['source_revision']) != 64):
+        raise ValueError('independent import qualification is required before repair')
+    provenance = json.loads((baseline / 'geometry-provenance.json').read_text(encoding='utf-8'))
+    hashes = {}
+    for key, path in [('source_obj_sha256', raw), ('native_reference_sha256', reference),
+                      ('source_triangles_sha256', baseline / 'before.source.obj'),
+                      ('engine_obj_sha256', baseline / 'before.engine.obj')]:
+        hashes[key] = _hash(path, proof.get(key))
+    for key, proof_key in [('source_sha256', 'source_obj_sha256'), ('reference_sha256', 'native_reference_sha256'),
+                           ('source_triangles_sha256', 'source_triangles_sha256'), ('engine_obj_sha256', 'engine_obj_sha256')]:
+        if provenance.get(key) != hashes[proof_key]:
+            raise ValueError('qualified source provenance differs')
+    native = json.loads(reference.read_text(encoding='utf-8'))
+    if native.get('source_sha256') != hashes['source_obj_sha256'] or native.get('unmatched_polygons') != 0:
+        raise ValueError('native reference source/polygon binding differs')
+    source = parse_floor(raw.read_text(encoding='utf-8'),
+        triangulations={int(line): value for line, value in native['polygons'].items()})
+    frame = Frame(1000 / 25.4, provenance.get('frame_evidence', ''))
+    if not np.array_equal(np.asarray(provenance.get('source_to_engine')), frame.matrix):
+        raise ValueError('frame differs from owner metre/block scale and Y-up rotation')
+    engine = source.in_frame(frame)
+    _same_mesh(read_obj(baseline / 'before.source.obj'), source.mesh)
+    before = read_obj(baseline / 'before.engine.obj')
+    _same_mesh(before, engine.mesh)
+    assets = provenance.get('assets')
+    if not isinstance(assets, list):
+        raise ValueError('qualified asset inventory missing')
+    inventory = {}
+    for row in assets:
+        for root in (raw.parent, baseline):
+            path = (root / row['path']).resolve()
+            if not path.is_relative_to(root.resolve()):
+                raise ValueError('asset path escapes source package')
+            _hash(path, row['sha256'])
+        inventory[(raw.parent / row['path']).resolve()] = row['sha256']
+    if source.mesh.mtllib:
+        mtl_path = (raw.parent / source.mesh.mtllib).resolve()
+        if mtl_path not in inventory:
+            raise ValueError('source material omitted from asset inventory')
+        definitions = parse_mtl(mtl_path)
+        for name in source.mesh.materials:
+            if name not in definitions:
+                raise ValueError('source material definition missing')
+            material = definitions[name]
+            if material.map_kd and (mtl_path.parent / material.map_kd.replace(chr(92), '/')).resolve() not in inventory:
+                raise ValueError('source texture omitted from asset inventory')
+    before = replace(before, physical_quanta=engine.mesh.physical_quanta)
+    receipt = dict(**hashes, floor_id=proof['floor_id'], source_revision=proof['source_revision'],
+        qualification_sha256=sha256_file(qualification), assets=assets,
+        physical_axis_quanta_inches=list(engine.mesh.physical_quanta),
+        source_to_engine=frame.matrix.tolist(), source_sig_digits=source.mesh.sig_digits)
+    return source, engine, before, receipt
+
+
 def _source_digest(mesh):
     digest = hashlib.sha256()
     for name in ('positions', 'uvs', 'normals', 'face_v', 'face_vt', 'face_vn', 'face_material', 'face_line'):

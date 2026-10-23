@@ -1,5 +1,18 @@
 # Fresh 1F checked E3 pilot qualification
 
+Current measured result, 2026-10-23: E3 completed15856->10136 triangles;280
+sites kept/3rolled back. Strict26 guard PASS. Independent signed Validator
+textures108392/0 failures and visible coverage5720/0 failures PASS. Overall
+FAIL remains on different-look flicker1626,same-look1014,cracks2372. Qualified
+walking renders16pairs/0 differences. Generic eye0 was independently found to
+be inside a1m cavity, not a valid pedestrian viewpoint. No accepted floor.
+
+Independent2F/3F import qualification is complete. Before-only repair loader
+binds actual raw/native/source+engine arrays, frame and MTL/texture assets;
+does not require a prior no-op cleanup candidate. RED8, GREEN78passed37.21s.
+Actual candidate runs still require strict guard and separate signed validation.
+Original source exports, guard/default thresholds and signed targets unchanged.
+
 Saved-pair step: native source indices drive both OBJ exports; no inverse frame
 reconstruction. Readback compares full original position/UV/normal tables and
 surviving corner indices/winding; material names are compared across OBJ material

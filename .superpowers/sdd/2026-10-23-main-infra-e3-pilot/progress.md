@@ -30,3 +30,14 @@
   exact retained indices, attributes/precision, rollback/unchecked refusal,
   duplicate IDs and before-input mutation, real default E3 visible-facade fixture.
   No real model repair/candidate yet; serialization/rebinding is the next step.
+
+- 2026-10-23 before-only loader: RED8; GREEN78passed37.21s. Binds independent
+  import qualifier, raw/native/source/engine hashes, exact source corners,
+  metre/block physical frame and every used texture/MTL. No prerequisite no-op
+  cleanup. Final2F/3F import qualifiers independently passed46native pairs each,
+  including16actual walking poses. No actual2F/3F repair run yet.
+- Actual1F run completed15856->10136,280sites kept/3rolledback. Independent
+  guardPASS, texturesPASS108392/0,visiblePASS5720/0; overalltargetsFAIL
+  flicker_diff1626/flicker_same1014/cracks2372. Sixteen qualified walking image
+  pairs identical. Generic eye0 cavity-camera finding corrected in main records.
+  Actual live status/model/evidence assets published; no floor accepted.

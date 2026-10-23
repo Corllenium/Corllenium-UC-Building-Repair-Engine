@@ -282,3 +282,5 @@ saved-source survivor proof and independent review still required.
 No real E3 repair or acceptance; saved-file hash/audit integration remains next.
 
 2026-10-23 17:40 +08: Actual fresh1F checked E3 repair launched PID28024,15856 input triangles. Binding fbaa637 focused70pass; preview extension7pass. No completed model/acceptance while running. Independent guard/native QA/signed validation follow saved output. Prior signed full suite2149pass/2fail/1xfail retained: unchanged E1 Validator import, missing matching Unity importer.
+
+2026-10-23 before-only E3 input loader: RED8, GREEN78passed37.21s. Independent2F/3F import qualification46nativepairs0differences each. Actual1F E3:15856->10136; independenttexture/visiblePASS, targetsstillFAIL1626/1014/2372; sixteenqualifiedwalkingpairsidentical. Livepublication in progress; noflooraccepted.

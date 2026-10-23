@@ -25,6 +25,18 @@ run the latest `.skp` of each file must be in `OBJ FIXED RESULT/` for the owner 
 
 ## 2. Current state (2026-09-26 00:15, written by the Claude controller)
 
+2026-10-23 18:56 +08: supersedes the running-worker entry below. Actual 1F E3
+completed: 15856 -> 10136 triangles; 280 sites kept,3 rolled back. Independent
+strict26 guard PASS; signed full Validator textures PASS108392/0 and visible
+coverage PASS5720 suspects/0 lost. Overall targets FAIL: different-look flicker
+1626,same-look1014,cracks2372. Sixteen independently qualified walking images
+match exactly. Earlier generic eye0 image was inside a 1m cavity, not a valid
+walking eye-height viewpoint; preserve the diagnostic and correction. No accepted
+floor. Live status/assets published at the owner's production URL; static viewer
+update is being deployed from Siege abd68ce. Codex1-3,Claude4-7 ownership stands.
+Independent2F/3F import qualifiers are ready. New before-only loader RED8 then
+GREEN78passed37.21s; actual2F/3F E3 is next. Guards/defaults/targets unchanged.
+
 2026-10-23 17:40 +08: actual checked E3 engine is running on fresh 1F (15856
 triangles), PID28024. This is the real repair kernel, not another duplicate-only
 pass. Output is data/main-infra-e3/run-20261023/1F in this worktree; worker status
