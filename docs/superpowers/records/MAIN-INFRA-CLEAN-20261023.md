@@ -22,6 +22,26 @@ owner scale: 1 block = 1 metre. Preserve cuts, facade look/UVs and visible cover
 
 ## Evidence and pointers
 
+### First pilot verdict and ray lookup diagnosis
+
+1F exact-duplicate-only candidate retained all15,856 triangles. Strict26guard
+passed. Independent Validator33606ce9 reported FAIL solely on signed problem
+targets: flicker_diff5668->5668, flicker_same3347->3347, cracks2744->2744, all
+targets0. Textures/UV/side and visible coverage pass:108,392 visible BEFORE
+samples, no failures;24pedestrian cameras,762interior probes,64outside and
+512extra directions. Runtime158.12s. Actual report/independent readback is under
+run-20261023/independent-validator/1F. This floor is blocked, not accepted.
+
+4F found no exact duplicates either. Its unchanged guard completed52renders but
+spent minutes in the existing all-hit coincident recovery:51reported hitpoints
+times78,160face boxes per block, for BEFORE and AFTER. Owned attempts were stopped
+without verdict/output; faulthandler trace retained. A new conservative face-box
+hierarchy avoids the full product while retaining exactly the old geometric
+predicates/tolerances, face exclusion and output ordering. New equivalence/work
+regression observed RED;20caster/pilot tests pass. Independent read-only review:
+no blocking findings;17ray and70existing guard tests pass. Real4F rerun follows
+this commit. No guard source, target or FixProfile threshold was changed.
+
 ### Import qualification and pilot runner, 2026-10-23
 
 - Frozen package: 36 files, 10,795,763 bytes; source revision

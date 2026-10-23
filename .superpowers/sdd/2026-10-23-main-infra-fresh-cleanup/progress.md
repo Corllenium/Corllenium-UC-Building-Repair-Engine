@@ -50,3 +50,23 @@
   control/relative-path regression and guarded pilot candidate/refusal/readback.
   Combined focused suite: 67 passed in 10.37s. Independent import review pending
   final receipt; fresh cleanup has not yet run. Evidence/report records caveats.
+- Independent import receipt passed for both pilots. Qualification files bind
+  saved source/engine hashes; decoded RGBA pixels match (PNG metadata bytes need
+  not match). First 1F duplicate-only candidate: 15,856->15,856, zero duplicates.
+  Strict 26-view guard passes; independent33606ce9 Validator preservation passes
+  108,392 visible samples, zero appearance/deletion/coverage failures. Overall FAIL:
+  flicker_diff5668, flicker_same3347, cracks2744 remain; targets0, before=after.
+  Published blocked state/evidence in isolated dashboard; no owner acceptance.
+- 4F duplicate census78,160->78,160, zero duplicates. Original guard traced after
+  all52renders into exhaustive coincident recovery (51hits*78160faces per block).
+  Stopped owned attempts with no verdict; no candidate written. Baseline retained.
+- Necessary performance fix: exact bounding-box hierarchy, same old bbox and
+  _contains predicates/tolerances/itri exclusion, deterministic exhaustive order.
+  New sparse-work regression observed RED; equivalence and existing caster+pilot
+  guard tests20passed. Independent reviewer found no blocking issue and ran17ray
+  plus70guard tests. Guard code and thresholds unchanged. Review/hash receipt:
+  independent-validator/ray-spatial-review/review.json. Real4F rerun pending.
+- Broad engine suite cannot collect two pre-existing tracked tests because their
+  building_repair/blender_staging implementation modules are absent at this base.
+  Available suite running with only those two exact collection ignores; no pass
+  claimed yet. Full initial collection failure saved as engine-suite.txt.

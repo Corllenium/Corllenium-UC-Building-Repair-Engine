@@ -58,6 +58,8 @@ class EmbreeCaster:
         extent = positions.max(axis=0) - positions.min(axis=0) if len(positions) else np.zeros(3)
         self._coincident_tol = max(1e-8, float(np.linalg.norm(extent)) * _COINCIDENT_REL_TOL)
         self._face_box = None   # built on first all_hits, never for a plain render
+        self._coincident_tree = None
+        self.coincident_search_stats = {'bbox_pairs': 0}
 
     def any_hit(self, origins: np.ndarray, directions: np.ndarray) -> np.ndarray:
         origins = np.asarray(origins, dtype=np.float64)
@@ -135,27 +137,38 @@ class EmbreeCaster:
         """`(hit_index, tri)` pairs: for each reported hit, every OTHER triangle of the mesh that
         contains its hit point within `tol`. `hit_index` indexes into `itri`/`points`.
 
-        A bounding-box prefilter (per block of hits, so the mask stays bounded) narrows the
-        candidates before the exact point-in-triangle test."""
+        A hierarchy of exact face bounding boxes narrows candidates. Leaf boxes and the
+        point-in-triangle test retain the same tolerance and comparisons as the exhaustive search."""
         lo, hi = self._face_bounds()
-        block = max(1, _SEARCH_BLOCK // max(len(self.faces), 1))
+        if self._coincident_tree is None and len(self.faces):
+            self._coincident_tree = _FaceBoundsTree(lo, hi)
+        self.coincident_search_stats = {'bbox_pairs': 0}
         out_hit: list[np.ndarray] = []
         out_tri: list[np.ndarray] = []
-        for start in range(0, len(points), block):
-            p = points[start:start + block]
-            near = ((p[:, None, :] >= lo[None, :, :] - tol)
-                    & (p[:, None, :] <= hi[None, :, :] + tol)).all(axis=2)
-            near[np.arange(len(p)), itri[start:start + len(p)]] = False   # not itself
-            hit_index, cand_tri = np.nonzero(near)
-            if not len(hit_index):
-                continue
-            inside = self._contains(cand_tri, p[hit_index], tol)
-            out_hit.append(hit_index[inside] + start)
-            out_tri.append(cand_tri[inside])
+        if self._coincident_tree is not None:
+            for hit_ids, face_ids in self._coincident_tree.leaves(points, tol):
+                block = max(1, _SEARCH_BLOCK // len(face_ids))
+                for start in range(0, len(hit_ids), block):
+                    selected = hit_ids[start:start + block]
+                    p = points[selected]
+                    self.coincident_search_stats['bbox_pairs'] += len(p) * len(face_ids)
+                    near = ((p[:, None, :] >= lo[None, face_ids, :] - tol)
+                            & (p[:, None, :] <= hi[None, face_ids, :] + tol)).all(axis=2)
+                    hit_index, local_face = np.nonzero(near)
+                    cand_tri = face_ids[local_face]
+                    hit_index = selected[hit_index]
+                    other = cand_tri != itri[hit_index]
+                    hit_index, cand_tri = hit_index[other], cand_tri[other]
+                    if not len(hit_index):
+                        continue
+                    inside = self._contains(cand_tri, points[hit_index], tol)
+                    out_hit.append(hit_index[inside])
+                    out_tri.append(cand_tri[inside])
         if not out_hit:
             return np.zeros(0, np.int64), np.zeros(0, np.int64)
-        return (np.concatenate(out_hit).astype(np.int64),
-                np.concatenate(out_tri).astype(np.int64))
+        hit_index, cand_tri = np.concatenate(out_hit).astype(np.int64), np.concatenate(out_tri).astype(np.int64)
+        order = np.lexsort((cand_tri, hit_index))
+        return hit_index[order], cand_tri[order]
 
     def _contains(self, tri_index: np.ndarray, points: np.ndarray, tol: float) -> np.ndarray:
         """Is each point inside its triangle -- within `tol` of the triangle's plane AND no
@@ -178,6 +191,34 @@ class EmbreeCaster:
                 distance = np.where(edge_len > 0.0, side / np.where(edge_len > 0.0, edge_len, 1.0), -np.inf)
             out &= distance >= -tol
         return out
+
+
+class _FaceBoundsTree:
+    def __init__(self, lo, hi):
+        centers = lo + (hi - lo) / 2
+        def build(ids):
+            bounds = (lo[ids].min(axis=0), hi[ids].max(axis=0))
+            if len(ids) <= 32:
+                return bounds, ids, None
+            axis = int(np.ptp(centers[ids], axis=0).argmax())
+            ordered = ids[np.argsort(centers[ids, axis], kind='stable')]
+            middle = len(ids) // 2
+            return bounds, build(ordered[:middle]), build(ordered[middle:])
+        self.root = build(np.arange(len(lo), dtype=np.int64))
+
+    def leaves(self, points, tolerance):
+        pending = [(self.root, np.arange(len(points), dtype=np.int64))]
+        while pending:
+            (bounds, left, right), ids = pending.pop()
+            p = points[ids]
+            ids = ids[((p >= bounds[0] - tolerance) & (p <= bounds[1] + tolerance)).all(axis=1)]
+            if not len(ids):
+                continue
+            if right is None:
+                yield ids, left
+            else:
+                pending.append((right, ids))
+                pending.append((left, ids))
 
 
 class ReusableCaster:
