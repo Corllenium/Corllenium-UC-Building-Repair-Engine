@@ -109,6 +109,10 @@ def run(args):
             position = Vector((lower[0] + fx * (upper[0] - lower[0]),
                                lower[1] + fy * (upper[1] - lower[1]), lower[2] + 1.6002))
             views.append((f'eye_{idx}', position, position + Vector((dx, dy, 0)), 'PERSP'))
+    if getattr(args, 'poses', None) is not None:
+        # Qualified walking-height poses replace the fixed view list (interior gate; same renderer, same shader).
+        pose_input = json.loads(Path(args.poses).read_text(encoding='utf-8'))
+        views = [(row['name'], Vector(row['position_metres']), Vector(row['target_metres']), row['projection']) for row in pose_input['poses']]
     rows = []
     for name, position, target, projection in views:
         camera.location = position
@@ -157,4 +161,5 @@ if __name__ == '__main__':
     parser.add_argument('--after-frame', choices=['source', 'engine-inches', 'engine-metres'], required=True)
     parser.add_argument('--views', choices=['top', 'all'], default='all')
     parser.add_argument('--size', type=int, default=512)
+    parser.add_argument('--poses', type=Path, help='qualified-native-poses.json: render these poses instead of the fixed views')
     run(parser.parse_args(sys.argv[sys.argv.index('--') + 1:]))
