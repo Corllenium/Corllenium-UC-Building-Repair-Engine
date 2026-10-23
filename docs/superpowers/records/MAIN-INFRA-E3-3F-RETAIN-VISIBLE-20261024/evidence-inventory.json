@@ -1,0 +1,19 @@
+{
+  "data/e3-3f-visible-tiny-tests/focused-green.resources.json": "6c8c0f580bceea4b233f063b6d27239497c5ded5d327928885703912f0eb698f",
+  "data/e3-3f-visible-tiny-tests/focused-green.stdout.txt": "d115e01f8e80f24e957c37e8ddc66c01c1d9c785b13a76f430a8a1336c5fdf71",
+  "data/e3-3f-visible-tiny-tests/help-green.resources.json": "5b3fd415b6926b0fa7c46baf673f8224517c31d4278ae329c679f54bfe4ad801",
+  "data/e3-3f-visible-tiny-tests/help-green.stdout.txt": "6d424b8e362e07a1fe589e1faaef2ebbecde259dc2e4ab378935eb7aa81016f2",
+  "data/e3-3f-visible-tiny-tests/help-red.stdout.txt": "2300ea4763b8528fa229c880a79e1fb6973c41d4d2180963e90b2e45a49f51d1",
+  "data/e3-3f-visible-tiny-tests/inherited-byte-materialization.json": "8bd3d9f157812cc473b93234e01900af64aa570af9e056c5f7dfb1fe70c9be87",
+  "data/e3-3f-visible-tiny-tests/inventory-red.stdout.txt": "c87cb24b5ad284d6a9675ba0dcb2cd6d100c94b7e7de3ecd4a0b20a887fff2a8",
+  "data/e3-3f-visible-tiny-tests/policy-green.resources.json": "9d282c35315f5c51a536ccbb2f108fb73cd8cbd53e9878acc2e5966c20b13a60",
+  "data/e3-3f-visible-tiny-tests/policy-green.stdout.txt": "b48079c0d60a26579ed1a4c2c648b6ccae1845c73cedc5beb90a033607c7e1c2",
+  "data/e3-3f-visible-tiny-tests/policy-red.stdout.txt": "7c2fe7c9fb5ac6baf767fb4794dde9862e3110bd5fdf88bdc118033d0ba9bdcf",
+  "data/e3-3f-visible-tiny-tests/runner-green.resources.json": "d5692cde595cbf78366c34e8af8d3102a9507287f8436735f07e77bd452e3d28",
+  "data/e3-3f-visible-tiny-tests/runner-green.stdout.txt": "106be15913aa4592de5a4c75654e9675ce0312903b49cffaebf7e099c10e04c7",
+  "data/e3-3f-visible-tiny-tests/runner-red.stdout.txt": "445b73ff288ad6f250ef910539d910c53c76d8469cfcc272a89afdb730f5fbc2",
+  "docs/superpowers/records/MAIN-INFRA-E3-3F-RETAIN-VISIBLE-20261024/policy.json": "ffaf9bf6773076cef324aa5eb305fc4b38deccf173b5f6e4dd536ad15f214899",
+  "tools/main_infra_e3_3f_visible_run.py": "a6fb42b9238c4bdc6910c4e9adacfe8b05278c08c7e7c2254df9476865541bb6",
+  "tools/main_infra_e3_visible_run.py": "b4cbcc0f218bb299cb1775305bc231e752b382d50091235651a3345de198da06",
+  "tools/tests/test_main_infra_e3_3f_visible_run.py": "a3156e6f6746209c61bc6143c9edf3552275eb280c10f8e2140a3141f9d7ca54"
+}

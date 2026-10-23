@@ -8,6 +8,7 @@ import json
 import os
 from pathlib import Path
 import subprocess
+import sys
 import time
 
 from engine.io.snapshot import sha256_file
@@ -16,6 +17,7 @@ from tools.main_infra_e3_binding import _hash
 from tools.main_infra_e7_serialization import _dump,_read
 
 ROOT=Path(__file__).resolve().parents[1]
+FLOOR='1F'
 RUN_ID='MAIN-INFRA-E3-1F-retain-visible-20261024'
 NAMESPACE='run-20261024-1F-retain-visible'
 REVISION='7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511'
@@ -79,12 +81,13 @@ def check_namespace(plan_path,out):
             or out.parent.name!=NAMESPACE):raise ValueError('new visible E3 preparation/output namespace required')
 
 
-def components():
+def components(*,extra_files=()):
     from tools import main_infra_e7_1f_run as shared
     value=shared._components()
     subprocess.check_call(['git','-C',str(ROOT),'diff','--quiet','95dad1de1be241e613cb0763447b662b918f7eca','--','engine'])
     names={'tools/main_infra_e3_visible_run.py','tools/main_infra_e3_checkpoint.py','tools/main_infra_e3_replay.py',
         'tools/main_infra_e3.py','tools/main_infra_e7_checkpoint.py','engine/validate/targets.json'}
+    names.update(extra_files)
     names|={p.relative_to(ROOT).as_posix() for p in (ROOT/'engine').rglob('*.py')}
     subprocess.check_call(['git','-C',str(ROOT),'ls-files','--error-unmatch','--',*sorted(names)],stdout=subprocess.DEVNULL)
     value['files'].update({name:dict(sha256=sha256_file(ROOT/name),commit=value['HEAD']) for name in sorted(names)})
@@ -137,27 +140,38 @@ def _inventory(paths,hashes):
     for key,path in paths.items():_hash(Path(path),hashes[key])
 
 
-def prepare(paths,plan_path,out,*,policy_pin):
-    plan_path,out=Path(plan_path),Path(out);check_namespace(plan_path,out)
-    for target in (plan_path,out,out.parent/'execution-1F'):refuse_protected(target)
-    if plan_path.exists() or out.exists() or (out.parent/'execution-1F').exists():raise ValueError('preparation/output exists')
-    frozen=components();policy,evidence,retained=read_policy(policy_pin)
-    source,engine,before,looks,facts=load_inputs(paths)
-    selected=select_plan(before,looks,policy,evidence,retained)
+
+def _profile(profile):
+    return sys.modules[__name__] if profile is None else profile
+
+
+def required_sightlines(policy):
+    return policy['evidence']['lost_lines']
+
+
+def prepare(paths,plan_path,out,*,policy_pin,profile=None):
+    scope=_profile(profile)
+    plan_path,out=Path(plan_path),Path(out);scope.check_namespace(plan_path,out)
+    for target in (plan_path,out,out.parent/f'execution-{scope.FLOOR}'):refuse_protected(target)
+    if plan_path.exists() or out.exists() or (out.parent/f'execution-{scope.FLOOR}').exists():raise ValueError('preparation/output exists')
+    frozen=scope.components();policy,evidence,retained=scope.read_policy(policy_pin)
+    source,engine,before,looks,facts=scope.load_inputs(paths)
+    selected=scope.select_plan(before,looks,policy,evidence,retained)
     bound=dict(paths);bound['retention_policy']=policy_pin['path']
     bound['original_audit']=policy['original_audit']['path']
     bound.update({'retention_'+k:v['path'] for k,v in policy['evidence'].items()})
     hashes={k:sha256_file(v) for k,v in bound.items()};_hash(Path(policy_pin['path']),policy_pin['sha256'])
-    if frozen!=components():raise ValueError('components changed during preparation')
-    value=dict(schema_version=1,mode='fresh_checked_e3_visible_replay',run_id=RUN_ID,floor='1F',state='prepared',
+    if frozen!=scope.components():raise ValueError('components changed during preparation')
+    value=dict(schema_version=1,mode='fresh_checked_e3_visible_replay',run_id=scope.RUN_ID,floor=scope.FLOOR,state='prepared',
         prepared_utc=datetime.now(timezone.utc).isoformat(),paths=bound,sha256=hashes,components=frozen,inputs=facts,
-        policy=policy_pin,selection=selected,required_independent_sightlines=policy['evidence']['lost_lines'],
+        policy=policy_pin,selection=selected,required_independent_sightlines=scope.required_sightlines(policy),
         out=str(out.resolve()),floor_accepted=False)
     plan_path.parent.mkdir(parents=True,exist_ok=True);_write(plan_path,value)
     return value
 
 
-def serialize_result(source,engine,before,outcome,looks,facts,plan,binding,checkpoint_receipt,candidate):
+def serialize_result(source,engine,before,outcome,looks,facts,plan,binding,checkpoint_receipt,candidate,*,profile=None):
+    scope=_profile(profile)
     import numpy as np
     from engine.fixes.remove import remove_faces
     from engine.io.obj_reader import read_obj
@@ -191,7 +205,7 @@ def serialize_result(source,engine,before,outcome,looks,facts,plan,binding,check
     expected_source,_=remove_faces(source.mesh,drop);expected_engine,_=remove_faces(engine.mesh,drop)
     _tables(after_source,expected_source);_tables(after_engine,expected_engine)
     for row in assets:_hash(candidate/row['path'],row['sha256'])
-    retention=dict(schema_version=1,mode='original_e3_visible_retention',run_id=RUN_ID,input_binding=binding,
+    retention=dict(schema_version=1,mode='original_e3_visible_retention',run_id=scope.RUN_ID,input_binding=binding,
         policy=plan['policy'],selection=plan['selection'],checkpoint_receipt_sha256=checkpoint_receipt['receipt_sha256'],
         all_retained_faces_survive=True,exact_saved_tables=True,required_independent_sightlines=plan['required_independent_sightlines'],
         files={name:sha256_file(candidate/name) for name in ('candidate.engine.obj','candidate.source.obj','source-faces.json',
@@ -202,22 +216,23 @@ def serialize_result(source,engine,before,outcome,looks,facts,plan,binding,check
         asset_receipt_sha256=sha256_file(candidate/'asset-receipt.json'),assets=assets)
 
 
-def execute(plan_path,expected_sha256,*,policy_pin=None):
+def execute(plan_path,expected_sha256,*,policy_pin=None,profile=None):
+    scope=_profile(profile)
     from tools.main_infra_e3_checkpoint import save_e3_checkpoint,restore_e3_checkpoint
     from tools.main_infra_e7_checkpoint import typed_plan_digest
     plan_path=Path(plan_path);_hash(plan_path,expected_sha256);plan=_read(plan_path);out=Path(plan['out'])
-    check_namespace(plan_path,out)
-    if (plan.get('mode')!='fresh_checked_e3_visible_replay' or plan.get('run_id')!=RUN_ID
-            or plan['components']!=components() or (policy_pin is not None and plan['policy']!=policy_pin)):
+    scope.check_namespace(plan_path,out)
+    if (plan.get('mode')!='fresh_checked_e3_visible_replay' or plan.get('run_id')!=scope.RUN_ID or plan.get('floor')!=scope.FLOOR
+            or plan['components']!=scope.components() or (policy_pin is not None and plan['policy']!=policy_pin)):
         raise ValueError('prepared E3 identity/component/policy differs')
-    _inventory(plan['paths'],plan['sha256']);policy,evidence,retained=read_policy(plan['policy'])
-    source,engine,before,looks,facts=load_inputs(plan['paths']);selected=select_plan(before,looks,policy,evidence,retained)
+    _inventory(plan['paths'],plan['sha256']);policy,evidence,retained=scope.read_policy(plan['policy'])
+    source,engine,before,looks,facts=scope.load_inputs(plan['paths']);selected=scope.select_plan(before,looks,policy,evidence,retained)
     if facts!=plan['inputs'] or selected!=plan['selection']:raise ValueError('prepared physical inputs/typed selection differs')
-    work=out.parent/'execution-1F'
+    work=out.parent/f'execution-{scope.FLOOR}'
     for target in (out,work):refuse_protected(target)
     if out.exists() or work.exists():raise ValueError('execution/candidate exists')
     work.mkdir(parents=True);started=time.perf_counter()
-    worker=dict(schema_version=1,run_id=RUN_ID,floor='1F',state='checking',pid=os.getpid(),
+    worker=dict(schema_version=1,run_id=scope.RUN_ID,floor=scope.FLOOR,state='checking',pid=os.getpid(),
         started_utc=datetime.now(timezone.utc).isoformat(),components=plan['components'],preparation=str(plan_path.resolve()),
         preparation_sha256=expected_sha256,out=str(out),original_source_triangles=before.n_faces,
         original_e3_counts=policy['original_counts'],planned_edits=selected['selected'],floor_accepted=False,independent_validation='pending')
@@ -228,24 +243,24 @@ def execute(plan_path,expected_sha256,*,policy_pin=None):
     status();checkpoint=work/'checked-outcome'
     try:
         outcome,_indices,replay=run_checked_replay(before,looks,Path(policy['original_audit']['path']).parent,
-            expected_audit_sha256=policy['original_audit']['sha256'],restore_sites=(5,))
+            expected_audit_sha256=policy['original_audit']['sha256'],restore_sites=tuple(policy['restore_sites']))
         worker.update(kept_edits=len(outcome.kept),rolled_back_edits=len(outcome.rolled_back),output_triangles=outcome.mesh.n_faces,checks=outcome.checks)
         paths=dict(plan['paths'],preparation=str(plan_path.resolve()));hashes=dict(plan['sha256'],preparation=expected_sha256)
         for i,row in enumerate(facts['assets']):
             paths['asset_'+str(i)]=str(Path(plan['paths']['raw']).parent/row['path']);hashes['asset_'+str(i)]=row['sha256']
-        binding=dict(paths=paths,sha256=hashes,before_digest=facts['before_digest'],run_id=RUN_ID,
+        binding=dict(paths=paths,sha256=hashes,before_digest=facts['before_digest'],run_id=scope.RUN_ID,
             preparation_sha256=expected_sha256,components=plan['components'],selection_digest=hashlib.sha256(_dump(selected).encode()).hexdigest())
         capture=save_e3_checkpoint(before,outcome,looks,checkpoint,binding=binding)
         worker.update(checkpoint=str(checkpoint.resolve()),checkpoint_receipt_sha256=capture['receipt_sha256'],checkpoint_status='diagnostic_unverified')
         _hash(plan_path,expected_sha256);_inventory(paths,hashes)
-        if plan['components']!=components() or replay!=selected['replay'] or typed_plan_digest(outcome.edits)!=selected['typed_plan_digest']:
+        if plan['components']!=scope.components() or replay!=selected['replay'] or typed_plan_digest(outcome.edits)!=selected['typed_plan_digest']:
             raise ValueError('components/original replay/actual typed proposal changed during kernel')
         status(state='checked_checkpoint_saved',checkpoint_status='verified')
         outcome=restore_e3_checkpoint(before,looks,checkpoint,binding=binding,expected_receipt_sha256=capture['receipt_sha256'])
         binding=dict(binding,paths=dict(paths,checked_outcome_receipt=str((checkpoint/'checkpoint-receipt.json').resolve())),
             sha256=dict(hashes,checked_outcome_receipt=capture['receipt_sha256']))
         candidate=work/'candidate';status(state='serializing')
-        saved=serialize_result(source,engine,before,outcome,looks,facts,plan,binding,capture,candidate)
+        saved=serialize_result(source,engine,before,outcome,looks,facts,plan,binding,capture,candidate,profile=scope)
         status(state='finalizing',**saved,wall_s=round(time.perf_counter()-started,2),post_replay_signed_targets='not independently measured')
         _write(candidate/'run-receipt.json',dict(worker,state='candidate_saved',final_package=str(out.resolve())))
         candidate.rename(out)
@@ -259,18 +274,19 @@ def execute(plan_path,expected_sha256,*,policy_pin=None):
         raise
 
 
-def main(argv=None):
-    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('action',choices=['prepare','execute'])
+def main(argv=None,*,profile=None):
+    scope=_profile(profile)
+    parser=argparse.ArgumentParser(description=scope.__doc__);parser.add_argument('action',choices=['prepare','execute'])
     for name in ('plan','policy'):parser.add_argument('--'+name,type=Path,required=True)
     parser.add_argument('--policy-sha256',required=True);parser.add_argument('--out',type=Path);parser.add_argument('--plan-sha256')
     args=parser.parse_args(argv);pin=dict(path=str(args.policy.resolve()),sha256=args.policy_sha256)
     if args.action=='prepare':
         if args.out is None:parser.error('prepare requires --out')
-        p=prepare(real_paths(),args.plan,args.out,policy_pin=pin)
+        p=prepare(scope.real_paths(),args.plan,args.out,policy_pin=pin,profile=scope)
         print(_dump(dict(state=p['state'],selected=p['selection']['selected'],plan_sha256=sha256_file(args.plan))))
     else:
         if not args.plan_sha256:parser.error('execute requires --plan-sha256')
-        execute(args.plan,args.plan_sha256,policy_pin=pin)
+        execute(args.plan,args.plan_sha256,policy_pin=pin,profile=scope)
     return 0
 
 

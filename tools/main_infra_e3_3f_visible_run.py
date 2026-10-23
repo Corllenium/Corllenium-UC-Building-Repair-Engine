@@ -12,7 +12,13 @@ RUN_ID='MAIN-INFRA-E3-3F-retain-visible-20261024'
 NAMESPACE='run-20261024-3F-retain-visible'
 REVISION=common.REVISION
 AUDIT_SHA='56ab090d861106c2801b2dab057ba5e9df6109ac69d87faaf29b718c87389512'
-EVIDENCE_SHA=dict(footprint='63eb9d4b3c757adc6a33794f133820b9e670d03185057bd7fae06c30b3f431a1',native='33d60ae794dac1d43033083d63f2365409f72573ec82ef1fd6bb5a6e2533d94a',report='524876c6a356898d8136e9647562317f6f89a74edb752d81080c0a9b51a689e0',receipt='f8ac4b971295c8845fc99241be2305d4b6992aa319b3f41c733db78efa439791',completion='a8ab845148398b583c0e229e1f5568e043bcd97d7c79afd5a1c1706528668f75')
+EVIDENCE_SHA={
+    "completion": "a8ab845148398b583c0e229e1f5568e043bcd97d7c79afd5a1c1706528668f75",
+    "footprint": "63eb9d4b3c757adc6a33794f133820b9e670d03185057bd7fae06c30b3f431a1",
+    "native": "33d60ae794dac1d43033083d63f2365409f72573ec82ef1fd6bb5a6e2533d94a",
+    "receipt": "f8ac4b971295c8845fc99241be2305d4b6992aa319b3f41c733db78efa439791",
+    "report": "524876c6a356898d8136e9647562317f6f89a74edb752d81080c0a9b51a689e0"
+}
 
 
 def read_policy(pin):
@@ -114,3 +120,101 @@ def select_plan(before,looks,policy,evidence,retained):
     return dict(replay=replay,original_counts=policy['original_counts'],original_rolled_sites=rolled,
         native_restored_sites=policy['native_sites'],nonfailing_subthreshold_restored_sites=policy['subthreshold_extra_sites'],
         signed_preservation_failure_sites=[],retained_source_faces=retained,required_faces=policy['required_faces'],selected=len(edits),selected_sites=[e.site for e in edits],typed_plan_digest=typed_plan_digest(edits),selected_edits=[dict(_encode(e),decision=e.decision) for e in edits],all_original_records_verified=True,old_verdict_is_not_reused=True)
+
+ANCHORS={
+    "baseline_engine": "740103bb4197a1270e4c00e38abe9971e12f5c80ebe14502e4acd75148afbc82",
+    "baseline_source": "f9f2f90eb52083233ab8c9baad7e8e9e61e9d528f95b90df743475afc5a39bc8",
+    "e3_audit": "56ab090d861106c2801b2dab057ba5e9df6109ac69d87faaf29b718c87389512",
+    "e3_edit_log": "22fd8da0e707aca617d577c46c6cf397ed755805c7e1e12d27cbbeadcb9936c6",
+    "engine_input": "c3664f9e796c5c63cdcdcd1ba36be6996e07bee2727a908204ec08cbc37ed09d",
+    "lineage": "c16be706ec6ebc7579f82caf1d52d21238636b738cae99d9de417263a7a8b408",
+    "materials": "ada00c4d5ce46ca19e168e0afd61684f636e68b84d2b18c15f5b3d90964b0b8b",
+    "prior_validation": "524876c6a356898d8136e9647562317f6f89a74edb752d81080c0a9b51a689e0",
+    "provenance": "0352a3aa9cb1810dab9c4683cf3bfafb9067963cea7dda94840656cad955ad23",
+    "qualification": "5e1880c494bb4fa532a1d50bce5515d20cc02e532d82c5e55db69e59a83a7424",
+    "raw": "f63c079408bd42fec7b9e5b5d10b0b8a8e4bc7077da006739bf5cfa1fdb5cf25",
+    "reference": "9597fcfa0e1a76e4a460a9e54f5a8b79c7bdb76c4f1030afb56914dfa97a1dfe",
+    "source_input": "a910864443ea698855836b9f725664d2a9e86f9b11270b503515eaacc9ad907a",
+    "targets": "4117f5e22045750fed7c4627ffa6324bf2efe5c14cf9629389a482c960036507"
+}
+
+SOURCE_TRIANGLES=53602
+RETIRED_TRIANGLES=38691
+PROOF_ROOT=Path('D:/LLM_BACKUP/Codex session/main-infra-3f-validation-20261024/05-Corllenium-UC-Building-Repair-Engine/data/main-infra-3f-validation/run-20261024-attempt2/3F')
+
+
+def required_sightlines(policy):
+    return dict(native=policy['evidence']['footprint'],subthreshold_completion=policy['evidence']['completion'])
+
+
+def real_paths():
+    common._hash(PROOF_ROOT/'native/native-readback.json',EVIDENCE_SHA['native'])
+    context=_read(PROOF_ROOT/'native/native-readback.json');p=context['paths']
+    paths=dict(raw=p['raw'],reference=p['reference'],qualification=p['qualification'],provenance=p['provenance'],baseline_source=p['source_baseline'],baseline_engine=p['engine_baseline'],source_input=p['candidate.source.obj'],engine_input=p['candidate.engine.obj'],lineage=p['source-faces.json'],e3_audit=p['audit'],e3_edit_log=p['edit-log.jsonl'],materials=p['materials'],targets=str(ROOT/'engine/validate/targets.json'),prior_validation=str(PROOF_ROOT/'native-failure-diagnostic/validation.json'))
+    paths.update({k:v for k,v in p.items() if k=='before' or k.startswith(('snapshot_','asset_'))})
+    return paths
+
+
+def components():
+    common._hash(ROOT/'tools/main_infra_e3_checkpoint.py','c9390d3709694856207832c05f1b077ed0aa94f113782f7cdd9da87cbc53a2f0')
+    common._hash(ROOT/'tools/main_infra_e7_serialization.py','6456ac625441ce9c2649e088247ba73e094995858b074a127d7a54292365a44a')
+    return common.components(extra_files=('tools/main_infra_e3_3f_visible_run.py',))
+
+
+def load_inputs(paths):
+    import numpy as np
+    from dataclasses import replace
+    from engine.io.minecraft_floor import Frame,parse_floor
+    from engine.io.obj_reader import read_obj
+    from engine.io.mtl import parse_mtl
+    from engine.validate.checks import load_looks,load_targets
+    from tools.main_infra_physical_validation import _same_mesh,_verify_assets
+    from tools.main_infra_e3_binding import bind_saved_e3
+    from tools.main_infra_e3 import _source_digest
+    for key,value in ANCHORS.items():common._hash(Path(paths[key]),value)
+    if any(k.startswith(('snapshot_','asset_')) for k in paths):
+        common._hash(PROOF_ROOT/'native/native-readback.json',EVIDENCE_SHA['native'])
+        original=_read(PROOF_ROOT/'native/native-readback.json')
+        for key,path in paths.items():
+            if key.startswith(('snapshot_','asset_')):
+                if key not in original['paths'] or Path(path).resolve()!=Path(original['paths'][key]).resolve():raise ValueError('original3F snapshot/asset path differs')
+                common._hash(Path(path),original['hashes'][key])
+    p={k:Path(v) for k,v in paths.items()};q,n,prov,a=(_read(p[k]) for k in ('qualification','reference','provenance','e3_audit'))
+    if q.get('qualified') is not True or q.get('floor_id')!=FLOOR or q.get('source_revision')!=REVISION or q.get('job_id')!='MAIN-INFRA-CLEAN-20261023':raise ValueError('qualified original3F source required')
+    for field,key in [('source_obj_sha256','raw'),('native_reference_sha256','reference'),('source_triangles_sha256','baseline_source'),('engine_obj_sha256','baseline_engine')]:common._hash(p[key],q[field])
+    common._hash(p['qualification'],a['qualification_sha256'])
+    if n.get('source_sha256')!=q['source_obj_sha256'] or n.get('unmatched_polygons')!=0:raise ValueError('original3F native tessellation differs')
+    source=parse_floor(p['raw'].read_text(encoding='utf-8'),triangulations={int(k):v for k,v in n['polygons'].items()})
+    frame=Frame(1000/25.4,prov['frame_evidence'])
+    if not np.array_equal(frame.matrix,np.asarray(prov['source_to_engine'])):raise ValueError('qualified owner frame differs')
+    engine=source.in_frame(frame)
+    snapshots=list(Path(a['before_snapshot']).glob('*.obj'))
+    if len(snapshots)!=1:raise ValueError('one original3F BEFORE snapshot required')
+    before_path=snapshots[0];common._hash(before_path,q['engine_obj_sha256'])
+    if 'before' in p and p['before'].resolve()!=before_path.resolve():raise ValueError('original3F before snapshot path differs')
+    before=replace(read_obj(before_path),physical_quanta=engine.mesh.physical_quanta)
+    after=read_obj(p['engine_input']);after_source=read_obj(p['source_input'])
+    _same_mesh(before,engine.mesh);_same_mesh(read_obj(p['baseline_engine']),engine.mesh);_same_mesh(read_obj(p['baseline_source']),source.mesh)
+    if before.n_faces!=SOURCE_TRIANGLES or after.n_faces!=RETIRED_TRIANGLES:raise ValueError('qualified3F counts differ')
+    candidate=p['e3_audit'].parent
+    contract=bind_saved_e3(candidate=candidate,audit=a,before_engine=engine.mesh,after_engine=after,before_source=source.mesh,after_source=after_source)
+    checked_assets=_verify_assets(p['raw'],p['baseline_engine'].parent,candidate,before_path.parent,source.mesh,prov,a)
+    for key,field in [('source_sha256','source_obj_sha256'),('reference_sha256','native_reference_sha256'),('source_triangles_sha256','source_triangles_sha256'),('engine_obj_sha256','engine_obj_sha256')]:
+        if prov[key]!=q[field]:raise ValueError('qualified3F provenance differs')
+    looks=load_looks(p['materials'],[(parse_mtl(before_path.parent/'materials.mtl'),before_path.parent),(parse_mtl(candidate/after.mtllib),candidate)])
+    unknown=looks.unknown(before);no_texel=sorted({looks.key_of(name) for name in before.materials if looks.key_of(name) not in looks.texel and looks.key_of(name) not in looks.flat})
+    if unknown or looks.unknown(after) or no_texel:raise ValueError('qualified3F material/texel inventory incomplete')
+    if load_targets(p['targets']).get('signed') is not True:raise ValueError('owner signed targets required')
+    previous=_read(p['prior_validation'])
+    failed={key:{name:row[name] for name in ('before','after','target','status')} for key,row in previous['checks']['problems']['kinds'].items() if row['status']=='FAIL'}
+    physical=dict(a['input_receipt'],before=str(before_path.resolve()),before_sha256=q['engine_obj_sha256'],qualification_sha256=a['qualification_sha256'],physical_axis_quanta_inches=list(engine.mesh.physical_quanta),source_sig_digits=source.mesh.sig_digits,source_to_engine=frame.matrix.tolist())
+    facts=dict(original_source_triangles=before.n_faces,stage_input_triangles=before.n_faces,retired_stage_triangles=after.n_faces,before_digest=_source_digest(before).hex(),physical=physical,assets=prov['assets'],qualified_asset_checks=checked_assets,unknown_materials=unknown,no_texel=no_texel,prior_failed_targets=failed,prior_preservation_is_not_reused=True,retired_candidate_contract=contract)
+    return source,engine,before,looks,facts
+
+
+def main(argv=None):
+    import sys
+    return common.main(argv,profile=sys.modules[__name__])
+
+
+if __name__=='__main__':raise SystemExit(main())
