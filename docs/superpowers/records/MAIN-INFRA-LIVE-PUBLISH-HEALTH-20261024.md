@@ -37,3 +37,18 @@ pwsh -NoProfile -File tools/tests/live_status_publication_retry.ps1
 ```
 
 Final runtime SHA c295f81270c599ef6daa1712b9ffb36419e695501c7ca865f3b849b237f6efea. New test SHA04ec8a050573deabc8cb8a8911b3635b16df78664aa887f9ae368f0f5314776d. RED evidence `data/tmp/health-write-fix/e3-red.txt` SHA cf4b11f8dbc35fee82848b8644d295d769e14e2b385371b6f2861ac0eccb6cb5. Final GREEN `e3-freeze-green.txt` SHA 7e83eda72e1cf39f8e54530aed7f9fddddb67d2dc2a83ae14a4904b62e0d30c3; atomic/retry `e3-freeze-atomic-green.txt` SHA3a9e52b91edb92a4095ddef3dd3ad651ac1711af8339ca8b3ebd2858a00620cc. These evidence files share the same ignored directory. Root must register the actual E3 engine explicitly and deploy a new runtime filename; this change did not alter any running process, worker output or live status.
+
+## Observed 1F E3 history
+
+Only the explicitly registered 1F E3 row gains `worker_events` and `worker_cpu_samples`, each limited to the latest100 entries. Events contain observed_at,engine,run_id,pid,start_utc,phase,message and only available actual kept_edits/rolled_back_edits/output_triangles. They append on a different actual worker phase or bound lifetime, without backfilling earlier phases. observed_at is the observation time, not an invented phase start. Events update last_work_event_at; heartbeat and CPU-only samples do not. CPU samples contain the same lifetime keys plus observed_at and measured cumulative cpu_seconds, while alive and at least30seconds after the previous same-lifetime sample. Missing CPU creates no sample. There is no percentage or ETA.
+
+The PowerShell observation now forwards expected_pid and expected_start from the existing owned registration. The embedded Python rejects an E3 PID mismatch or actual/expected creation-time mismatch using the existing one-second identity floor, preserving the registered start after process exit. Legacy E7 history is unchanged. The remote publication adapter was read: it copies the complete incoming freshMainInfra object, so these row fields survive its existing path without any remote change.
+
+Actual embedded-Python metadata TDD: RED7failed/17passed0.39s, then GREEN24passed0.29s. Final exact-byte GREEN24passed0.30s, plus existing PowerShell publication/atomic-write regression exit0. No network/model/live status operation ran. Exact commands:
+
+```powershell
+& 'D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe' -B -m pytest tools/tests/test_live_status_e3_tracking.py -q -p no:cacheprovider --basetemp D:/TEMP/status-history-freeze
+pwsh -NoProfile -File tools/tests/live_status_publication_retry.ps1
+```
+
+Final runtime SHA91a2c6f0ee6023ad6c40f3e3c39279d27521e18e5ffc8d6a49bb0b37488c6261; test SHAae0786c2cef14180de4b3e4c7d59b300625f0d1429fdbf157fbc58e7cec2aea8. Evidence under `data/tmp/health-write-fix/`: history-red.txt SHA dbf5c6655681968bb5605de99297134a9abd0ad90616c755be57d6ec0c4822f7; history-freeze-green.txt SHA178f1fa895de679ac029cd5e0295e8695302eac00d0307dd3409ee0bb696d5f5; history-freeze-atomic-green.txt SHAc0d0cc7ecede3589648589d196a392bc296b2accf6252e7a6c8e33a280260400. Root review and a new runtime deployment are still required; current live publisher/output was not changed by these tests.

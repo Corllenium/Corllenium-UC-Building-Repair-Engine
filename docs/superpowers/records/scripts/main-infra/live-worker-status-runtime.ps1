@@ -24,7 +24,8 @@ $taskPython=@'
 import sys
 sys.path.insert(0,'D:/PROJECTS/UC MODEL FIXER/.claude/worktrees/MAIN-INFRA-CLEAN-20261023')
 from pathlib import Path
-import json,os
+import json,os,math
+from datetime import datetime
 from tools.main_infra_progress import load_progress,write_progress,utc_now
 root=Path('D:/PROJECTS/UC MODEL FIXER')
 path=root/'data/main-infra-fresh/current.json'
@@ -60,6 +61,14 @@ if '1F' in observations:
     state=json.loads(Path(process['worker_path']).read_text())
     if engine=='E3' and (state.get('run_id')!='MAIN-INFRA-E3-1F-retain-visible-20261024' or state.get('floor')!='1F'):
         raise ValueError('E3 run identity differs')
+    if engine=='E3':
+        start_utc=process.get('expected_start')
+        if state['pid']!=process.get('expected_pid') or not isinstance(start_utc,str): raise ValueError('E3 process lifetime identity differs')
+        try:
+            expected_start=datetime.fromisoformat(start_utc.replace('Z','+00:00'))
+            actual_start=datetime.fromisoformat(process['start'].replace('Z','+00:00')) if process['alive'] else expected_start
+            if expected_start.tzinfo is None or actual_start.tzinfo is None or abs((actual_start-expected_start).total_seconds())>1: raise ValueError('start mismatch')
+        except (KeyError,TypeError,ValueError) as exc: raise ValueError('E3 process start identity differs') from exc
     row=doc['floors']['1F']
     if process['alive'] and state['state'] in ('running','running_checked_E3','running_checked_E7','repairing','checking'):
         desired='cleaning';step=('Checked E3 hidden-face repair running; preservation checks and rollback active' if engine=='E3' else 'Checked E7 existing-vertex crack repair running; preservation checks and rollback active');running.insert(0,'1F')
@@ -76,6 +85,22 @@ if '1F' in observations:
         desired='failed';step=engine+' worker stopped: '+state.get('error',state['state'])
     if row['state']!=desired: row['last_work_event_at']=now;doc['last_work_event_at']=now
     row.update(state=desired,step=step,blocker=step if desired=='failed' else None,worker_pid=state['pid'],worker_alive=process['alive'],worker_observed_at=now,worker_cpu_seconds=process.get('cpu'),worker_start_utc=process.get('start'),engine_stage=engine)
+    if engine=='E3':
+        identity=dict(engine=engine,run_id=state['run_id'],pid=state['pid'],start_utc=start_utc)
+        events=list(row.get('worker_events',[]))[-100:]
+        if not events or any(events[-1].get(k)!=v for k,v in dict(identity,phase=state['state']).items()):
+            event=dict(identity,observed_at=now,phase=state['state'],message=step)
+            event.update({k:state[k] for k in ('kept_edits','rolled_back_edits','output_triangles') if k in state})
+            events.append(event)
+            row['last_work_event_at']=now;doc['last_work_event_at']=now
+        row['worker_events']=events[-100:]
+        samples=list(row.get('worker_cpu_samples',[]))[-100:]
+        cpu=process.get('cpu')
+        if process['alive'] and type(cpu) in (int,float) and math.isfinite(cpu) and cpu>=0:
+            same_lifetime=samples and all(samples[-1].get(k)==v for k,v in identity.items())
+            if not same_lifetime or (datetime.fromisoformat(now.replace('Z','+00:00'))-datetime.fromisoformat(samples[-1]['observed_at'].replace('Z','+00:00'))).total_seconds()>=30:
+                samples.append(dict(identity,observed_at=now,cpu_seconds=cpu))
+        row['worker_cpu_samples']=samples[-100:]
 failed=[f for f in ('1F','2F','3F') if doc['floors'][f]['state']=='failed']
 details='; '.join(f+': '+str(doc['floors'][f].get('blocker','failed')) for f in failed)
 doc.update(updated_at=now,heartbeat_at=now,state='running' if running else ('failed' if failed else 'reviewing'),step=('Actual checked engines running on '+','.join(running)+('; '+details if details else '')) if running else ('Engine checks stopped; '+details if failed else 'Engine workers finished; independent candidate review follows'))
@@ -154,6 +179,8 @@ do {
             $taskAlive++
         }
         $taskEntry['worker_path']=$taskWitnessPaths[$taskFloor]
+        $taskEntry['expected_pid']=$taskExpected[$taskFloor].pid
+        $taskEntry['expected_start']=$taskExpected[$taskFloor].start
         if($taskFloor -eq '1F'){$taskEntry['engine']=$task1FEngine}
         $taskObserved[$taskFloor]=$taskEntry
     }
