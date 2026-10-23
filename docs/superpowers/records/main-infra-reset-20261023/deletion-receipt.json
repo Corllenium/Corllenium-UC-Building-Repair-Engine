@@ -1,0 +1,76 @@
+{
+  "status": "deleted_readback_passed",
+  "deleted_file_count": 10,
+  "retired_job_count": 5,
+  "verified_at_utc": "2026-10-23T04:56:30.1167661Z",
+  "authorized_scope": "Both old plans/jobs and failed outputs",
+  "targets": [
+    {
+      "path": "D:\\PROJECTS\\04-Corllenium-Building-Model-Repair\\02_STAGING_DEVELOPMENT\\MAIN_INFRA-ALL-FLOORS-20261019\\engine-7floors-v2\\1F\\MAIN_INFRA_1F.fixed.obj",
+      "kind": "failed_generated_obj",
+      "bytes": 787500,
+      "sha256": "92745b7e0f07cad17c6c33c8069519a24c1d2a82071efdbd64250d4d7c0763fb",
+      "failed_guard_report": "D:\\PROJECTS\\04-Corllenium-Building-Model-Repair\\02_STAGING_DEVELOPMENT\\MAIN_INFRA-ALL-FLOORS-20261019\\engine-7floors-v2\\1F\\MAIN_INFRA_1F.report.json"
+    },
+    {
+      "path": "D:\\PROJECTS\\04-Corllenium-Building-Model-Repair\\02_STAGING_DEVELOPMENT\\MAIN_INFRA-ALL-FLOORS-20261019\\engine-7floors-v2\\1F\\MAIN_INFRA_1F.fixed.ngon.obj",
+      "kind": "failed_generated_obj",
+      "bytes": 611611,
+      "sha256": "b5c055c55448c4dd0f01b9bd29573f8b3aeabf7ce16fdece6a8c18dc8f854ff3",
+      "failed_guard_report": "D:\\PROJECTS\\04-Corllenium-Building-Model-Repair\\02_STAGING_DEVELOPMENT\\MAIN_INFRA-ALL-FLOORS-20261019\\engine-7floors-v2\\1F\\MAIN_INFRA_1F.report.json"
+    },
+    {
+      "path": "D:\\PROJECTS\\04-Corllenium-Building-Model-Repair\\02_STAGING_DEVELOPMENT\\MAIN_INFRA-ALL-FLOORS-20261019\\engine-7floors-v2\\6F\\MAIN_INFRA_6F.fixed.obj",
+      "kind": "failed_generated_obj",
+      "bytes": 1705792,
+      "sha256": "31b9017d7fdaabd55bef601f714e16d0cbf48bde097eacfbc1270ec2f2607211",
+      "failed_guard_report": "D:\\PROJECTS\\04-Corllenium-Building-Model-Repair\\02_STAGING_DEVELOPMENT\\MAIN_INFRA-ALL-FLOORS-20261019\\engine-7floors-v2\\6F\\MAIN_INFRA_6F.report.json"
+    },
+    {
+      "path": "D:\\PROJECTS\\04-Corllenium-Building-Model-Repair\\02_STAGING_DEVELOPMENT\\MAIN_INFRA-ALL-FLOORS-20261019\\engine-7floors-v2\\6F\\MAIN_INFRA_6F.fixed.ngon.obj",
+      "kind": "failed_generated_obj",
+      "bytes": 1267454,
+      "sha256": "ef0d5fecfa942f15ec18190ca7dc7fcc91a92836189a77f90ff2f6ba0e341d49",
+      "failed_guard_report": "D:\\PROJECTS\\04-Corllenium-Building-Model-Repair\\02_STAGING_DEVELOPMENT\\MAIN_INFRA-ALL-FLOORS-20261019\\engine-7floors-v2\\6F\\MAIN_INFRA_6F.report.json"
+    },
+    {
+      "path": "D:\\PROJECTS\\04-Corllenium-Building-Model-Repair\\02_STAGING_DEVELOPMENT\\MAIN_INFRA-ALL-FLOORS-20261019\\engine-7floors-6-7\\6F\\MAIN_INFRA_6F.fixed.obj",
+      "kind": "failed_generated_obj",
+      "bytes": 1913274,
+      "sha256": "0a3a6290e0501e798aa5ec736930119da501df5eaab314dcc52ca47a39254d21",
+      "failed_guard_report": "D:\\PROJECTS\\04-Corllenium-Building-Model-Repair\\02_STAGING_DEVELOPMENT\\MAIN_INFRA-ALL-FLOORS-20261019\\engine-7floors-6-7\\6F\\MAIN_INFRA_6F.report.json"
+    },
+    {
+      "path": "D:\\PROJECTS\\04-Corllenium-Building-Model-Repair\\02_STAGING_DEVELOPMENT\\MAIN_INFRA-ALL-FLOORS-20261019\\engine-7floors-6-7\\6F\\MAIN_INFRA_6F.fixed.ngon.obj",
+      "kind": "failed_generated_obj",
+      "bytes": 1424230,
+      "sha256": "9b7ebd439ae9de52dea74d6cdde7b9ace1191b491fac900a77682293ebffc289",
+      "failed_guard_report": "D:\\PROJECTS\\04-Corllenium-Building-Model-Repair\\02_STAGING_DEVELOPMENT\\MAIN_INFRA-ALL-FLOORS-20261019\\engine-7floors-6-7\\6F\\MAIN_INFRA_6F.report.json"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.hermes\\plans\\2026-10-23_110132-main-infrastructure-fresh-export-cleanup.md",
+      "kind": "obsolete_plan",
+      "bytes": 19230,
+      "sha256": "ff6f103dbba07e66c04d669ab31deec0e6f8ea90500335e185725b5d882ada78"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\docs\\superpowers\\records\\briefs\\STAGING-ENGINE-1-6-7-V2.md",
+      "kind": "obsolete_plan",
+      "bytes": 1785,
+      "sha256": "951c476f81999a59d7f94df9c95d3608f667b0e7bd50617d242764a8045483b7"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\docs\\superpowers\\records\\briefs\\STAGING-ENGINE-4-5-V2.md",
+      "kind": "obsolete_plan",
+      "bytes": 1792,
+      "sha256": "8fa36252eb1cabc2c12f4f1b4f32035dcac68d7c444fe3acc207a7b0de9acd28"
+    },
+    {
+      "path": "D:\\PROJECTS\\04-Corllenium-Building-Model-Repair\\02_STAGING_DEVELOPMENT\\MAIN_INFRA-ALL-FLOORS-20261019\\PLAN.md",
+      "kind": "obsolete_plan",
+      "bytes": 1123,
+      "sha256": "ccd0be4ec197cbde7c16f8b4e12816daf5a9b6f9d58dd688ee6931f8f4763d29"
+    }
+  ],
+  "excluded": "Fresh source; all raw/frozen inputs; prior sandbox code/tests/evidence; all diagnostic reports; other old outputs not demonstrated failed."
+}
