@@ -188,7 +188,8 @@ stage-audit.json (cleanup_mode e3_then_e4_merge, guard pending), assets}`.
   guard tests use a fake `strict_guard` helper beside a fake oracle (the real one lives in another worktree and
   renders 26 views): they prove the plumbing, the readback and the rebinding, not the renderer.
 - Whole tools suite after the follow-up: `pytest tools/tests -q -p no:cacheprovider` ->
-  `327 passed in 139.68s (0:02:19)`, exit 0 (304 before + 19 + 4).
+  `327 passed in 139.68s (0:02:19)`, exit 0 (304 before + 19 + 4); after the `require_guard` change:
+  `329 passed in 140.97s (0:02:20)`, exit 0 (the two E4 files alone: `25 passed in 52.97s`).
 
 Commands (worktree root, `PYTHONPATH` = it):
 
