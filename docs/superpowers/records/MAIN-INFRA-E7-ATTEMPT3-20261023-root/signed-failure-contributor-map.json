@@ -1,0 +1,1785 @@
+{
+  "diagnostic_only": true,
+  "acceptance": false,
+  "native_preservation_passed": false,
+  "source_report": {
+    "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261023-attempt3\\1F\\native-failure-diagnostic\\validation.json",
+    "sha256": "967e49df61b2d67e078d18c806285e635a04ed9cd2857222033553d7e155d209"
+  },
+  "source_receipt": {
+    "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261023-attempt3\\1F\\native-failure-diagnostic\\diagnostic-receipt.json",
+    "sha256": "2cd78fead61b532c1b448e81f1a93f017bbdd3d18e0bd0c34684f1c666c20a69"
+  },
+  "before_sha256": "bed4b7c24b7a3a164381b8e6e0ca0b7e7bf9998e1df7c2782878d23cd1796df3",
+  "after_sha256": "cc8e67785116edd9132e5b75353479810265f051a1f98e8da4df89b1eea9d6f9",
+  "lineage_sha256": "d39ce723763e33ecb9e289413b38d8ad34c93607048932fea07a817f48f3c1e2",
+  "method": "Same unchanged signed face_samples/Settings/frame/full64directions+24cameras+762probes/_covered_on_every_line/_Judge.blocker on ONLY the4actual failed texture faces; no full Validator/floor/native replay;8sample batches",
+  "selected_samples": 100,
+  "covered_samples": [
+    {
+      "global_sample_id": 132410,
+      "before_face": 8563,
+      "barycentric": [
+        0.6666666666666667,
+        0.06666666666666667,
+        0.26666666666666666
+      ],
+      "point_model_inches": [
+        207.34908136482937,
+        -1082.6771653543308,
+        49.21259842519686
+      ],
+      "best_blocked_standard_view_column": 427,
+      "area_in2": 23.250046500092907
+    },
+    {
+      "global_sample_id": 132414,
+      "before_face": 8563,
+      "barycentric": [
+        0.6666666666666667,
+        0.26666666666666666,
+        0.06666666666666667
+      ],
+      "point_model_inches": [
+        199.4750656167979,
+        -1082.6771653543308,
+        49.21259842519686
+      ],
+      "best_blocked_standard_view_column": 427,
+      "area_in2": 23.250046500092907
+    },
+    {
+      "global_sample_id": 132453,
+      "before_face": 8564,
+      "barycentric": [
+        0.5333333333333334,
+        0.3333333333333333,
+        0.13333333333333333
+      ],
+      "point_model_inches": [
+        215.2230971128609,
+        -1082.6771653543308,
+        49.21259842519686
+      ],
+      "best_blocked_standard_view_column": 427,
+      "area_in2": 23.250046500092907
+    },
+    {
+      "global_sample_id": 132454,
+      "before_face": 8564,
+      "barycentric": [
+        0.3333333333333334,
+        0.3333333333333333,
+        0.3333333333333333
+      ],
+      "point_model_inches": [
+        223.0971128608924,
+        -1082.6771653543308,
+        49.21259842519686
+      ],
+      "best_blocked_standard_view_column": 427,
+      "area_in2": 23.250046500092907
+    },
+    {
+      "global_sample_id": 132455,
+      "before_face": 8564,
+      "barycentric": [
+        0.13333333333333341,
+        0.3333333333333333,
+        0.5333333333333333
+      ],
+      "point_model_inches": [
+        230.9711286089239,
+        -1082.6771653543308,
+        49.21259842519686
+      ],
+      "best_blocked_standard_view_column": 245,
+      "area_in2": 23.250046500092907
+    },
+    {
+      "global_sample_id": 133598,
+      "before_face": 8633,
+      "barycentric": [
+        0.6666666666666667,
+        0.06666666666666667,
+        0.26666666666666666
+      ],
+      "point_model_inches": [
+        246.71916010498688,
+        -1082.6771653543308,
+        49.21259842519686
+      ],
+      "best_blocked_standard_view_column": 427,
+      "area_in2": 23.25004650009289
+    },
+    {
+      "global_sample_id": 133602,
+      "before_face": 8633,
+      "barycentric": [
+        0.6666666666666667,
+        0.26666666666666666,
+        0.06666666666666667
+      ],
+      "point_model_inches": [
+        238.8451443569554,
+        -1082.6771653543308,
+        49.21259842519686
+      ],
+      "best_blocked_standard_view_column": 427,
+      "area_in2": 23.25004650009289
+    },
+    {
+      "global_sample_id": 133641,
+      "before_face": 8634,
+      "barycentric": [
+        0.5333333333333334,
+        0.3333333333333333,
+        0.13333333333333333
+      ],
+      "point_model_inches": [
+        254.59317585301835,
+        -1082.6771653543308,
+        49.21259842519686
+      ],
+      "best_blocked_standard_view_column": 245,
+      "area_in2": 23.25004650009289
+    },
+    {
+      "global_sample_id": 133642,
+      "before_face": 8634,
+      "barycentric": [
+        0.3333333333333334,
+        0.3333333333333333,
+        0.3333333333333333
+      ],
+      "point_model_inches": [
+        262.4671916010499,
+        -1082.6771653543308,
+        49.21259842519686
+      ],
+      "best_blocked_standard_view_column": 245,
+      "area_in2": 23.25004650009289
+    },
+    {
+      "global_sample_id": 133643,
+      "before_face": 8634,
+      "barycentric": [
+        0.13333333333333341,
+        0.3333333333333333,
+        0.5333333333333333
+      ],
+      "point_model_inches": [
+        270.34120734908134,
+        -1082.6771653543308,
+        49.21259842519686
+      ],
+      "best_blocked_standard_view_column": 527,
+      "area_in2": 23.25004650009289
+    }
+  ],
+  "blocked_lines": [
+    {
+      "global_sample_id": 132410,
+      "before_face": 8563,
+      "standard_view_column": 245,
+      "viewpoint_kind": "probe",
+      "viewpoint_index": 157,
+      "covering_after_face": 10063,
+      "hit_model_inches": [
+        136.09657794578106,
+        -1082.6779637243117,
+        187.0078726340467
+      ],
+      "lineage": {
+        "child": 0,
+        "edit_index": 80,
+        "engine_normal": [
+          -1,
+          -1,
+          -1
+        ],
+        "engine_uv": [
+          573,
+          639,
+          632
+        ],
+        "group": "minecraft_quartz_block_top_-1",
+        "kind": "cut_child",
+        "material": "minecraft_quartz_block_top_-1",
+        "object_name": "",
+        "original_source_triangle": 4179,
+        "output_face": 10063,
+        "site": 2903,
+        "source_normal": [
+          -1,
+          -1,
+          -1
+        ],
+        "source_polygon_line": 8791,
+        "source_uv": [
+          573,
+          639,
+          632
+        ],
+        "stage_input_face": 2903,
+        "vertex_ids": [
+          835,
+          837,
+          624
+        ]
+      }
+    },
+    {
+      "global_sample_id": 132410,
+      "before_face": 8563,
+      "standard_view_column": 427,
+      "viewpoint_kind": "probe",
+      "viewpoint_index": 339,
+      "covering_after_face": 10020,
+      "hit_model_inches": [
+        161.85039679335233,
+        -1082.6779637243117,
+        187.0078726340467
+      ],
+      "lineage": {
+        "child": 0,
+        "edit_index": 63,
+        "engine_normal": [
+          -1,
+          -1,
+          -1
+        ],
+        "engine_uv": [
+          634,
+          635,
+          632
+        ],
+        "group": "minecraft_quartz_block_top_-1",
+        "kind": "cut_child",
+        "material": "minecraft_quartz_block_top_-1",
+        "object_name": "",
+        "original_source_triangle": 3543,
+        "output_face": 10020,
+        "site": 2479,
+        "source_normal": [
+          -1,
+          -1,
+          -1
+        ],
+        "source_polygon_line": 8473,
+        "source_uv": [
+          634,
+          635,
+          632
+        ],
+        "stage_input_face": 2479,
+        "vertex_ids": [
+          1153,
+          1155,
+          836
+        ]
+      }
+    },
+    {
+      "global_sample_id": 132410,
+      "before_face": 8563,
+      "standard_view_column": 567,
+      "viewpoint_kind": "probe",
+      "viewpoint_index": 479,
+      "covering_after_face": 10031,
+      "hit_model_inches": [
+        110.3427590982098,
+        -1082.6779637243117,
+        187.00787263404663
+      ],
+      "lineage": {
+        "child": 1,
+        "edit_index": 67,
+        "engine_normal": [
+          -1,
+          -1,
+          -1
+        ],
+        "engine_uv": [
+          639,
+          640,
+          632
+        ],
+        "group": "minecraft_quartz_block_top_-1",
+        "kind": "cut_child",
+        "material": "minecraft_quartz_block_top_-1",
+        "object_name": "",
+        "original_source_triangle": 3691,
+        "output_face": 10031,
+        "site": 2599,
+        "source_normal": [
+          -1,
+          -1,
+          -1
+        ],
+        "source_polygon_line": 8547,
+        "source_uv": [
+          639,
+          640,
+          632
+        ],
+        "stage_input_face": 2599,
+        "vertex_ids": [
+          625,
+          624,
+          385
+        ]
+      }
+    },
+    {
+      "global_sample_id": 132414,
+      "before_face": 8563,
+      "standard_view_column": 245,
+      "viewpoint_kind": "probe",
+      "viewpoint_index": 157,
+      "covering_after_face": 10063,
+      "hit_model_inches": [
+        133.37333626881195,
+        -1082.6779637243117,
+        187.0078726340467
+      ],
+      "lineage": {
+        "child": 0,
+        "edit_index": 80,
+        "engine_normal": [
+          -1,
+          -1,
+          -1
+        ],
+        "engine_uv": [
+          573,
+          639,
+          632
+        ],
+        "group": "minecraft_quartz_block_top_-1",
+        "kind": "cut_child",
+        "material": "minecraft_quartz_block_top_-1",
+        "object_name": "",
+        "original_source_triangle": 4179,
+        "output_face": 10063,
+        "site": 2903,
+        "source_normal": [
+          -1,
+          -1,
+          -1
+        ],
+        "source_polygon_line": 8791,
+        "source_uv": [
+          573,
+          639,
+          632
+        ],
+        "stage_input_face": 2903,
+        "vertex_ids": [
+          835,
+          837,
+          624
+        ]
+      }
+    },
+    {
+      "global_sample_id": 132414,
+      "before_face": 8563,
+      "standard_view_column": 427,
+      "viewpoint_kind": "probe",
+      "viewpoint_index": 339,
+      "covering_after_face": 10018,
+      "hit_model_inches": [
+        159.12715511638325,
+        -1082.6779637243117,
+        187.00787263404663
+      ],
+      "lineage": {
+        "child": 0,
+        "edit_index": 62,
+        "engine_normal": [
+          -1,
+          -1,
+          -1
+        ],
+        "engine_uv": [
+          632,
+          633,
+          634
+        ],
+        "group": "minecraft_quartz_block_top_-1",
+        "kind": "cut_child",
+        "material": "minecraft_quartz_block_top_-1",
+        "object_name": "",
+        "original_source_triangle": 3542,
+        "output_face": 10018,
+        "site": 2478,
+        "source_normal": [
+          -1,
+          -1,
+          -1
+        ],
+        "source_polygon_line": 8473,
+        "source_uv": [
+          632,
+          633,
+          634
+        ],
+        "stage_input_face": 2478,
+        "vertex_ids": [
+          836,
+          837,
+          1153
+        ]
+      }
+    },
+    {
+      "global_sample_id": 132414,
+      "before_face": 8563,
+      "standard_view_column": 567,
+      "viewpoint_kind": "probe",
+      "viewpoint_index": 479,
+      "covering_after_face": 10539,
+      "hit_model_inches": [
+        133.86776870098453,
+        -1082.6777355854972,
+        147.63779550086798
+      ],
+      "lineage": {
+        "child": 0,
+        "edit_index": 254,
+        "engine_normal": [
+          -1,
+          -1,
+          -1
+        ],
+        "engine_uv": [
+          861,
+          862,
+          869
+        ],
+        "group": "minecraft_quartz_block_bottom_-1",
+        "kind": "cut_child",
+        "material": "minecraft_quartz_block_bottom_-1",
+        "object_name": "",
+        "original_source_triangle": 14546,
+        "output_face": 10539,
+        "site": 9503,
+        "source_normal": [
+          -1,
+          -1,
+          -1
+        ],
+        "source_polygon_line": 14061,
+        "source_uv": [
+          861,
+          862,
+          869
+        ],
+        "stage_input_face": 9503,
+        "vertex_ids": [
+          571,
+          572,
+          786
+        ]
+      }
+    },
+    {
+      "global_sample_id": 132453,
+      "before_face": 8564,
+      "standard_view_column": 245,
+      "viewpoint_kind": "probe",
+      "viewpoint_index": 157,
+      "covering_after_face": 10529,
+      "hit_model_inches": [
+        160.65249566194692,
+        -1082.6777355854972,
+        147.63779550086792
+      ],
+      "lineage": {
+        "child": 0,
+        "edit_index": 249,
+        "engine_normal": [
+          -1,
+          -1,
+          -1
+        ],
+        "engine_uv": [
+          861,
+          862,
+          863
+        ],
+        "group": "minecraft_quartz_block_bottom_-1",
+        "kind": "cut_child",
+        "material": "minecraft_quartz_block_bottom_-1",
+        "object_name": "",
+        "original_source_triangle": 13748,
+        "output_face": 10529,
+        "site": 9039,
+        "source_normal": [
+          -1,
+          -1,
+          -1
+        ],
+        "source_polygon_line": 13662,
+        "source_uv": [
+          861,
+          862,
+          863
+        ],
+        "stage_input_face": 9039,
+        "vertex_ids": [
+          784,
+          785,
+          1099
+        ]
+      }
+    },
+    {
+      "global_sample_id": 132453,
+      "before_face": 8564,
+      "standard_view_column": 427,
+      "viewpoint_kind": "probe",
+      "viewpoint_index": 339,
+      "covering_after_face": 10021,
+      "hit_model_inches": [
+        164.57363847032144,
+        -1082.6779637243117,
+        187.00787263404663
+      ],
+      "lineage": {
+        "child": 1,
+        "edit_index": 63,
+        "engine_normal": [
+          -1,
+          -1,
+          -1
+        ],
+        "engine_uv": [
+          635,
+          636,
+          632
+        ],
+        "group": "minecraft_quartz_block_top_-1",
+        "kind": "cut_child",
+        "material": "minecraft_quartz_block_top_-1",
+        "object_name": "",
+        "original_source_triangle": 3543,
+        "output_face": 10021,
+        "site": 2479,
+        "source_normal": [
+          -1,
+          -1,
+          -1
+        ],
+        "source_polygon_line": 8473,
+        "source_uv": [
+          635,
+          636,
+          632
+        ],
+        "stage_input_face": 2479,
+        "vertex_ids": [
+          1155,
+          1154,
+          836
+        ]
+      }
+    },
+    {
+      "global_sample_id": 132453,
+      "before_face": 8564,
+      "standard_view_column": 567,
+      "viewpoint_kind": "probe",
+      "viewpoint_index": 479,
+      "covering_after_face": 10031,
+      "hit_model_inches": [
+        113.06600077517888,
+        -1082.6779637243117,
+        187.00787263404663
+      ],
+      "lineage": {
+        "child": 1,
+        "edit_index": 67,
+        "engine_normal": [
+          -1,
+          -1,
+          -1
+        ],
+        "engine_uv": [
+          639,
+          640,
+          632
+        ],
+        "group": "minecraft_quartz_block_top_-1",
+        "kind": "cut_child",
+        "material": "minecraft_quartz_block_top_-1",
+        "object_name": "",
+        "original_source_triangle": 3691,
+        "output_face": 10031,
+        "site": 2599,
+        "source_normal": [
+          -1,
+          -1,
+          -1
+        ],
+        "source_polygon_line": 8547,
+        "source_uv": [
+          639,
+          640,
+          632
+        ],
+        "stage_input_face": 2599,
+        "vertex_ids": [
+          625,
+          624,
+          385
+        ]
+      }
+    },
+    {
+      "global_sample_id": 132454,
+      "before_face": 8564,
+      "standard_view_column": 245,
+      "viewpoint_kind": "probe",
+      "viewpoint_index": 157,
+      "covering_after_face": 10531,
+      "hit_model_inches": [
+        164.84760065864276,
+        -1082.6777355854972,
+        147.63779550086795
+      ],
+      "lineage": {
+        "child": 0,
+        "edit_index": 250,
+        "engine_normal": [
+          -1,
+          -1,
+          -1
+        ],
+        "engine_uv": [
+          863,
+          865,
+          861
+        ],
+        "group": "minecraft_quartz_block_bottom_-1",
+        "kind": "cut_child",
+        "material": "minecraft_quartz_block_bottom_-1",
+        "object_name": "",
+        "original_source_triangle": 13749,
+        "output_face": 10531,
+        "site": 9040,
+        "source_normal": [
+          -1,
+          -1,
+          -1
+        ],
+        "source_polygon_line": 13662,
+        "source_uv": [
+          863,
+          865,
+          861
+        ],
+        "stage_input_face": 9040,
+        "vertex_ids": [
+          1099,
+          1098,
+          784
+        ]
+      }
+    },
+    {
+      "global_sample_id": 132454,
+      "before_face": 8564,
+      "standard_view_column": 427,
+      "viewpoint_kind": "probe",
+      "viewpoint_index": 339,
+      "covering_after_face": 10021,
+      "hit_model_inches": [
+        167.29688014729055,
+        -1082.6779637243117,
+        187.00787263404663
+      ],
+      "lineage": {
+        "child": 1,
+        "edit_index": 63,
+        "engine_normal": [
+          -1,
+          -1,
+          -1
+        ],
+        "engine_uv": [
+          635,
+          636,
+          632
+        ],
+        "group": "minecraft_quartz_block_top_-1",
+        "kind": "cut_child",
+        "material": "minecraft_quartz_block_top_-1",
+        "object_name": "",
+        "original_source_triangle": 3543,
+        "output_face": 10021,
+        "site": 2479,
+        "source_normal": [
+          -1,
+          -1,
+          -1
+        ],
+        "source_polygon_line": 8473,
+        "source_uv": [
+          635,
+          636,
+          632
+        ],
+        "stage_input_face": 2479,
+        "vertex_ids": [
+          1155,
+          1154,
+          836
+        ]
+      }
+    },
+    {
+      "global_sample_id": 132454,
+      "before_face": 8564,
+      "standard_view_column": 567,
+      "viewpoint_kind": "probe",
+      "viewpoint_index": 479,
+      "covering_after_face": 10031,
+      "hit_model_inches": [
+        115.78924245214796,
+        -1082.6779637243117,
+        187.0078726340467
+      ],
+      "lineage": {
+        "child": 1,
+        "edit_index": 67,
+        "engine_normal": [
+          -1,
+          -1,
+          -1
+        ],
+        "engine_uv": [
+          639,
+          640,
+          632
+        ],
+        "group": "minecraft_quartz_block_top_-1",
+        "kind": "cut_child",
+        "material": "minecraft_quartz_block_top_-1",
+        "object_name": "",
+        "original_source_triangle": 3691,
+        "output_face": 10031,
+        "site": 2599,
+        "source_normal": [
+          -1,
+          -1,
+          -1
+        ],
+        "source_polygon_line": 8547,
+        "source_uv": [
+          639,
+          640,
+          632
+        ],
+        "stage_input_face": 2599,
+        "vertex_ids": [
+          625,
+          624,
+          385
+        ]
+      }
+    },
+    {
+      "global_sample_id": 132455,
+      "before_face": 8564,
+      "standard_view_column": 245,
+      "viewpoint_kind": "probe",
+      "viewpoint_index": 157,
+      "covering_after_face": 10064,
+      "hit_model_inches": [
+        144.2663029766884,
+        -1082.6779637243117,
+        187.00787263404663
+      ],
+      "lineage": {
+        "child": 1,
+        "edit_index": 80,
+        "engine_normal": [
+          -1,
+          -1,
+          -1
+        ],
+        "engine_uv": [
+          639,
+          640,
+          632
+        ],
+        "group": "minecraft_quartz_block_top_-1",
+        "kind": "cut_child",
+        "material": "minecraft_quartz_block_top_-1",
+        "object_name": "",
+        "original_source_triangle": 4179,
+        "output_face": 10064,
+        "site": 2903,
+        "source_normal": [
+          -1,
+          -1,
+          -1
+        ],
+        "source_polygon_line": 8791,
+        "source_uv": [
+          639,
+          640,
+          632
+        ],
+        "stage_input_face": 2903,
+        "vertex_ids": [
+          837,
+          836,
+          624
+        ]
+      }
+    },
+    {
+      "global_sample_id": 132455,
+      "before_face": 8564,
+      "standard_view_column": 567,
+      "viewpoint_kind": "probe",
+      "viewpoint_index": 479,
+      "covering_after_face": 10061,
+      "hit_model_inches": [
+        118.51248412911707,
+        -1082.6779637243117,
+        187.00787263404663
+      ],
+      "lineage": {
+        "child": 0,
+        "edit_index": 79,
+        "engine_normal": [
+          -1,
+          -1,
+          -1
+        ],
+        "engine_uv": [
+          632,
+          638,
+          573
+        ],
+        "group": "minecraft_quartz_block_top_-1",
+        "kind": "cut_child",
+        "material": "minecraft_quartz_block_top_-1",
+        "object_name": "",
+        "original_source_triangle": 4178,
+        "output_face": 10061,
+        "site": 2902,
+        "source_normal": [
+          -1,
+          -1,
+          -1
+        ],
+        "source_polygon_line": 8791,
+        "source_uv": [
+          632,
+          638,
+          573
+        ],
+        "stage_input_face": 2902,
+        "vertex_ids": [
+          624,
+          625,
+          835
+        ]
+      }
+    },
+    {
+      "global_sample_id": 133598,
+      "before_face": 8633,
+      "standard_view_column": 245,
+      "viewpoint_kind": "probe",
+      "viewpoint_index": 157,
+      "covering_after_face": 10064,
+      "hit_model_inches": [
+        149.71278633062653,
+        -1082.6779637243117,
+        187.00787263404663
+      ],
+      "lineage": {
+        "child": 1,
+        "edit_index": 80,
+        "engine_normal": [
+          -1,
+          -1,
+          -1
+        ],
+        "engine_uv": [
+          639,
+          640,
+          632
+        ],
+        "group": "minecraft_quartz_block_top_-1",
+        "kind": "cut_child",
+        "material": "minecraft_quartz_block_top_-1",
+        "object_name": "",
+        "original_source_triangle": 4179,
+        "output_face": 10064,
+        "site": 2903,
+        "source_normal": [
+          -1,
+          -1,
+          -1
+        ],
+        "source_polygon_line": 8791,
+        "source_uv": [
+          639,
+          640,
+          632
+        ],
+        "stage_input_face": 2903,
+        "vertex_ids": [
+          837,
+          836,
+          624
+        ]
+      }
+    },
+    {
+      "global_sample_id": 133598,
+      "before_face": 8633,
+      "standard_view_column": 427,
+      "viewpoint_kind": "probe",
+      "viewpoint_index": 339,
+      "covering_after_face": 10497,
+      "hit_model_inches": [
+        170.3763970856545,
+        -1082.678020759029,
+        196.8503943015271
+      ],
+      "lineage": {
+        "child": 1,
+        "edit_index": 239,
+        "engine_normal": [
+          -1,
+          -1,
+          -1
+        ],
+        "engine_uv": [
+          840,
+          841,
+          647
+        ],
+        "group": "minecraft_concrete_white_-15579874",
+        "kind": "cut_child",
+        "material": "minecraft_concrete_white_-15579874",
+        "object_name": "",
+        "original_source_triangle": 12900,
+        "output_face": 10497,
+        "site": 8451,
+        "source_normal": [
+          -1,
+          -1,
+          -1
+        ],
+        "source_polygon_line": 13235,
+        "source_uv": [
+          840,
+          841,
+          647
+        ],
+        "stage_input_face": 8451,
+        "vertex_ids": [
+          1152,
+          1156,
+          3333
+        ]
+      }
+    },
+    {
+      "global_sample_id": 133598,
+      "before_face": 8633,
+      "standard_view_column": 567,
+      "viewpoint_kind": "probe",
+      "viewpoint_index": 479,
+      "covering_after_face": 10529,
+      "hit_model_inches": [
+        159.03839868115972,
+        -1082.6777355854972,
+        147.63779550086792
+      ],
+      "lineage": {
+        "child": 0,
+        "edit_index": 249,
+        "engine_normal": [
+          -1,
+          -1,
+          -1
+        ],
+        "engine_uv": [
+          861,
+          862,
+          863
+        ],
+        "group": "minecraft_quartz_block_bottom_-1",
+        "kind": "cut_child",
+        "material": "minecraft_quartz_block_bottom_-1",
+        "object_name": "",
+        "original_source_triangle": 13748,
+        "output_face": 10529,
+        "site": 9039,
+        "source_normal": [
+          -1,
+          -1,
+          -1
+        ],
+        "source_polygon_line": 13662,
+        "source_uv": [
+          861,
+          862,
+          863
+        ],
+        "stage_input_face": 9039,
+        "vertex_ids": [
+          784,
+          785,
+          1099
+        ]
+      }
+    },
+    {
+      "global_sample_id": 133602,
+      "before_face": 8633,
+      "standard_view_column": 245,
+      "viewpoint_kind": "probe",
+      "viewpoint_index": 157,
+      "covering_after_face": 10064,
+      "hit_model_inches": [
+        146.98954465365745,
+        -1082.6779637243117,
+        187.00787263404663
+      ],
+      "lineage": {
+        "child": 1,
+        "edit_index": 80,
+        "engine_normal": [
+          -1,
+          -1,
+          -1
+        ],
+        "engine_uv": [
+          639,
+          640,
+          632
+        ],
+        "group": "minecraft_quartz_block_top_-1",
+        "kind": "cut_child",
+        "material": "minecraft_quartz_block_top_-1",
+        "object_name": "",
+        "original_source_triangle": 4179,
+        "output_face": 10064,
+        "site": 2903,
+        "source_normal": [
+          -1,
+          -1,
+          -1
+        ],
+        "source_polygon_line": 8791,
+        "source_uv": [
+          639,
+          640,
+          632
+        ],
+        "stage_input_face": 2903,
+        "vertex_ids": [
+          837,
+          836,
+          624
+        ]
+      }
+    },
+    {
+      "global_sample_id": 133602,
+      "before_face": 8633,
+      "standard_view_column": 427,
+      "viewpoint_kind": "probe",
+      "viewpoint_index": 339,
+      "covering_after_face": 10497,
+      "hit_model_inches": [
+        168.02112132775068,
+        -1082.678020759029,
+        196.8503943015271
+      ],
+      "lineage": {
+        "child": 1,
+        "edit_index": 239,
+        "engine_normal": [
+          -1,
+          -1,
+          -1
+        ],
+        "engine_uv": [
+          840,
+          841,
+          647
+        ],
+        "group": "minecraft_concrete_white_-15579874",
+        "kind": "cut_child",
+        "material": "minecraft_concrete_white_-15579874",
+        "object_name": "",
+        "original_source_triangle": 12900,
+        "output_face": 10497,
+        "site": 8451,
+        "source_normal": [
+          -1,
+          -1,
+          -1
+        ],
+        "source_polygon_line": 13235,
+        "source_uv": [
+          840,
+          841,
+          647
+        ],
+        "stage_input_face": 8451,
+        "vertex_ids": [
+          1152,
+          1156,
+          3333
+        ]
+      }
+    },
+    {
+      "global_sample_id": 133602,
+      "before_face": 8633,
+      "standard_view_column": 567,
+      "viewpoint_kind": "probe",
+      "viewpoint_index": 479,
+      "covering_after_face": 10061,
+      "hit_model_inches": [
+        121.23572580608624,
+        -1082.6779637243117,
+        187.00787263404658
+      ],
+      "lineage": {
+        "child": 0,
+        "edit_index": 79,
+        "engine_normal": [
+          -1,
+          -1,
+          -1
+        ],
+        "engine_uv": [
+          632,
+          638,
+          573
+        ],
+        "group": "minecraft_quartz_block_top_-1",
+        "kind": "cut_child",
+        "material": "minecraft_quartz_block_top_-1",
+        "object_name": "",
+        "original_source_triangle": 4178,
+        "output_face": 10061,
+        "site": 2902,
+        "source_normal": [
+          -1,
+          -1,
+          -1
+        ],
+        "source_polygon_line": 8791,
+        "source_uv": [
+          632,
+          638,
+          573
+        ],
+        "stage_input_face": 2902,
+        "vertex_ids": [
+          624,
+          625,
+          835
+        ]
+      }
+    },
+    {
+      "global_sample_id": 133641,
+      "before_face": 8634,
+      "standard_view_column": 245,
+      "viewpoint_kind": "probe",
+      "viewpoint_index": 157,
+      "covering_after_face": 10064,
+      "hit_model_inches": [
+        152.4360280075956,
+        -1082.6779637243117,
+        187.0078726340467
+      ],
+      "lineage": {
+        "child": 1,
+        "edit_index": 80,
+        "engine_normal": [
+          -1,
+          -1,
+          -1
+        ],
+        "engine_uv": [
+          639,
+          640,
+          632
+        ],
+        "group": "minecraft_quartz_block_top_-1",
+        "kind": "cut_child",
+        "material": "minecraft_quartz_block_top_-1",
+        "object_name": "",
+        "original_source_triangle": 4179,
+        "output_face": 10064,
+        "site": 2903,
+        "source_normal": [
+          -1,
+          -1,
+          -1
+        ],
+        "source_polygon_line": 8791,
+        "source_uv": [
+          639,
+          640,
+          632
+        ],
+        "stage_input_face": 2903,
+        "vertex_ids": [
+          837,
+          836,
+          624
+        ]
+      }
+    },
+    {
+      "global_sample_id": 133641,
+      "before_face": 8634,
+      "standard_view_column": 567,
+      "viewpoint_kind": "probe",
+      "viewpoint_index": 479,
+      "covering_after_face": 10531,
+      "hit_model_inches": [
+        163.2335036778556,
+        -1082.6777355854972,
+        147.63779550086792
+      ],
+      "lineage": {
+        "child": 0,
+        "edit_index": 250,
+        "engine_normal": [
+          -1,
+          -1,
+          -1
+        ],
+        "engine_uv": [
+          863,
+          865,
+          861
+        ],
+        "group": "minecraft_quartz_block_bottom_-1",
+        "kind": "cut_child",
+        "material": "minecraft_quartz_block_bottom_-1",
+        "object_name": "",
+        "original_source_triangle": 13749,
+        "output_face": 10531,
+        "site": 9040,
+        "source_normal": [
+          -1,
+          -1,
+          -1
+        ],
+        "source_polygon_line": 13662,
+        "source_uv": [
+          863,
+          865,
+          861
+        ],
+        "stage_input_face": 9040,
+        "vertex_ids": [
+          1099,
+          1098,
+          784
+        ]
+      }
+    },
+    {
+      "global_sample_id": 133642,
+      "before_face": 8634,
+      "standard_view_column": 245,
+      "viewpoint_kind": "probe",
+      "viewpoint_index": 157,
+      "covering_after_face": 10064,
+      "hit_model_inches": [
+        155.15926968456475,
+        -1082.6779637243117,
+        187.00787263404663
+      ],
+      "lineage": {
+        "child": 1,
+        "edit_index": 80,
+        "engine_normal": [
+          -1,
+          -1,
+          -1
+        ],
+        "engine_uv": [
+          639,
+          640,
+          632
+        ],
+        "group": "minecraft_quartz_block_top_-1",
+        "kind": "cut_child",
+        "material": "minecraft_quartz_block_top_-1",
+        "object_name": "",
+        "original_source_triangle": 4179,
+        "output_face": 10064,
+        "site": 2903,
+        "source_normal": [
+          -1,
+          -1,
+          -1
+        ],
+        "source_polygon_line": 8791,
+        "source_uv": [
+          639,
+          640,
+          632
+        ],
+        "stage_input_face": 2903,
+        "vertex_ids": [
+          837,
+          836,
+          624
+        ]
+      }
+    },
+    {
+      "global_sample_id": 133642,
+      "before_face": 8634,
+      "standard_view_column": 567,
+      "viewpoint_kind": "probe",
+      "viewpoint_index": 479,
+      "covering_after_face": 10061,
+      "hit_model_inches": [
+        129.40545083699342,
+        -1082.6779637243117,
+        187.00787263404663
+      ],
+      "lineage": {
+        "child": 0,
+        "edit_index": 79,
+        "engine_normal": [
+          -1,
+          -1,
+          -1
+        ],
+        "engine_uv": [
+          632,
+          638,
+          573
+        ],
+        "group": "minecraft_quartz_block_top_-1",
+        "kind": "cut_child",
+        "material": "minecraft_quartz_block_top_-1",
+        "object_name": "",
+        "original_source_triangle": 4178,
+        "output_face": 10061,
+        "site": 2902,
+        "source_normal": [
+          -1,
+          -1,
+          -1
+        ],
+        "source_polygon_line": 8791,
+        "source_uv": [
+          632,
+          638,
+          573
+        ],
+        "stage_input_face": 2902,
+        "vertex_ids": [
+          624,
+          625,
+          835
+        ]
+      }
+    },
+    {
+      "global_sample_id": 133643,
+      "before_face": 8634,
+      "standard_view_column": 245,
+      "viewpoint_kind": "probe",
+      "viewpoint_index": 157,
+      "covering_after_face": 10018,
+      "hit_model_inches": [
+        157.88251136153383,
+        -1082.6779637243117,
+        187.00787263404663
+      ],
+      "lineage": {
+        "child": 0,
+        "edit_index": 62,
+        "engine_normal": [
+          -1,
+          -1,
+          -1
+        ],
+        "engine_uv": [
+          632,
+          633,
+          634
+        ],
+        "group": "minecraft_quartz_block_top_-1",
+        "kind": "cut_child",
+        "material": "minecraft_quartz_block_top_-1",
+        "object_name": "",
+        "original_source_triangle": 3542,
+        "output_face": 10018,
+        "site": 2478,
+        "source_normal": [
+          -1,
+          -1,
+          -1
+        ],
+        "source_polygon_line": 8473,
+        "source_uv": [
+          632,
+          633,
+          634
+        ],
+        "stage_input_face": 2478,
+        "vertex_ids": [
+          836,
+          837,
+          1153
+        ]
+      }
+    },
+    {
+      "global_sample_id": 133643,
+      "before_face": 8634,
+      "standard_view_column": 527,
+      "viewpoint_kind": "probe",
+      "viewpoint_index": 439,
+      "covering_after_face": 10280,
+      "hit_model_inches": [
+        285.43307079104926,
+        -1082.677904078827,
+        176.7148089837441
+      ],
+      "lineage": {
+        "child": 1,
+        "edit_index": 167,
+        "engine_normal": [
+          -1,
+          -1,
+          -1
+        ],
+        "engine_uv": [
+          690,
+          654,
+          648
+        ],
+        "group": "minecraft_concrete_white_-1",
+        "kind": "cut_child",
+        "material": "minecraft_concrete_white_-1",
+        "object_name": "",
+        "original_source_triangle": 7634,
+        "output_face": 10280,
+        "site": 5185,
+        "source_normal": [
+          -1,
+          -1,
+          -1
+        ],
+        "source_polygon_line": 10535,
+        "source_uv": [
+          690,
+          654,
+          648
+        ],
+        "stage_input_face": 5185,
+        "vertex_ids": [
+          5435,
+          5441,
+          5578
+        ]
+      }
+    },
+    {
+      "global_sample_id": 133643,
+      "before_face": 8634,
+      "standard_view_column": 567,
+      "viewpoint_kind": "probe",
+      "viewpoint_index": 479,
+      "covering_after_face": 10063,
+      "hit_model_inches": [
+        132.1286925139625,
+        -1082.6779637243117,
+        187.00787263404663
+      ],
+      "lineage": {
+        "child": 0,
+        "edit_index": 80,
+        "engine_normal": [
+          -1,
+          -1,
+          -1
+        ],
+        "engine_uv": [
+          573,
+          639,
+          632
+        ],
+        "group": "minecraft_quartz_block_top_-1",
+        "kind": "cut_child",
+        "material": "minecraft_quartz_block_top_-1",
+        "object_name": "",
+        "original_source_triangle": 4179,
+        "output_face": 10063,
+        "site": 2903,
+        "source_normal": [
+          -1,
+          -1,
+          -1
+        ],
+        "source_polygon_line": 8791,
+        "source_uv": [
+          573,
+          639,
+          632
+        ],
+        "stage_input_face": 2903,
+        "vertex_ids": [
+          835,
+          837,
+          624
+        ]
+      }
+    }
+  ],
+  "texture_covering_faces": [
+    10018,
+    10020,
+    10021,
+    10031,
+    10061,
+    10063,
+    10064,
+    10280,
+    10497,
+    10529,
+    10531,
+    10539
+  ],
+  "texture_contributor_sites": [
+    2478,
+    2479,
+    2599,
+    2902,
+    2903,
+    5185,
+    8451,
+    9039,
+    9040,
+    9503
+  ],
+  "floor_failures": [
+    {
+      "before_face": 9809,
+      "pixels": 11.5,
+      "covering_after_face": 10391,
+      "lineage": {
+        "child": 1,
+        "edit_index": 211,
+        "engine_normal": [
+          -1,
+          -1,
+          -1
+        ],
+        "engine_uv": [
+          748,
+          750,
+          749
+        ],
+        "group": "minecraft_concrete_white_-15579874",
+        "kind": "cut_child",
+        "material": "minecraft_concrete_white_-15579874",
+        "object_name": "",
+        "original_source_triangle": 9807,
+        "output_face": 10391,
+        "site": 6680,
+        "source_normal": [
+          -1,
+          -1,
+          -1
+        ],
+        "source_polygon_line": 11631,
+        "source_uv": [
+          748,
+          750,
+          749
+        ],
+        "stage_input_face": 6680,
+        "vertex_ids": [
+          3187,
+          3157,
+          3147
+        ]
+      }
+    },
+    {
+      "before_face": 9809,
+      "pixels": 11.5,
+      "covering_after_face": 10393,
+      "lineage": {
+        "child": 3,
+        "edit_index": 211,
+        "engine_normal": [
+          -1,
+          -1,
+          -1
+        ],
+        "engine_uv": [
+          751,
+          643,
+          749
+        ],
+        "group": "minecraft_concrete_white_-15579874",
+        "kind": "cut_child",
+        "material": "minecraft_concrete_white_-15579874",
+        "object_name": "",
+        "original_source_triangle": 9807,
+        "output_face": 10393,
+        "site": 6680,
+        "source_normal": [
+          -1,
+          -1,
+          -1
+        ],
+        "source_polygon_line": 11631,
+        "source_uv": [
+          751,
+          643,
+          749
+        ],
+        "stage_input_face": 6680,
+        "vertex_ids": [
+          3161,
+          3152,
+          3147
+        ]
+      }
+    },
+    {
+      "before_face": 10366,
+      "pixels": 6.2,
+      "covering_after_face": 10396,
+      "lineage": {
+        "child": 6,
+        "edit_index": 211,
+        "engine_normal": [
+          -1,
+          -1,
+          -1
+        ],
+        "engine_uv": [
+          753,
+          754,
+          749
+        ],
+        "group": "minecraft_concrete_white_-15579874",
+        "kind": "cut_child",
+        "material": "minecraft_concrete_white_-15579874",
+        "object_name": "",
+        "original_source_triangle": 9807,
+        "output_face": 10396,
+        "site": 6680,
+        "source_normal": [
+          -1,
+          -1,
+          -1
+        ],
+        "source_polygon_line": 11631,
+        "source_uv": [
+          753,
+          754,
+          749
+        ],
+        "stage_input_face": 6680,
+        "vertex_ids": [
+          3176,
+          3168,
+          3147
+        ]
+      }
+    },
+    {
+      "before_face": 10366,
+      "pixels": 6.2,
+      "covering_after_face": 10397,
+      "lineage": {
+        "child": 7,
+        "edit_index": 211,
+        "engine_normal": [
+          -1,
+          -1,
+          -1
+        ],
+        "engine_uv": [
+          754,
+          755,
+          749
+        ],
+        "group": "minecraft_concrete_white_-15579874",
+        "kind": "cut_child",
+        "material": "minecraft_concrete_white_-15579874",
+        "object_name": "",
+        "original_source_triangle": 9807,
+        "output_face": 10397,
+        "site": 6680,
+        "source_normal": [
+          -1,
+          -1,
+          -1
+        ],
+        "source_polygon_line": 11631,
+        "source_uv": [
+          754,
+          755,
+          749
+        ],
+        "stage_input_face": 6680,
+        "vertex_ids": [
+          3168,
+          3148,
+          3147
+        ]
+      }
+    }
+  ],
+  "all_signed_contributor_sites": [
+    2478,
+    2479,
+    2599,
+    2902,
+    2903,
+    5185,
+    6680,
+    8451,
+    9039,
+    9040,
+    9503
+  ],
+  "default_settings": {
+    "n_directions": 128,
+    "n_cameras": 24,
+    "camera_margin": 240.0,
+    "n_extra_directions": 1024,
+    "min_per_face": 4,
+    "area_per_sample": 36.0,
+    "eye": 63.0,
+    "chunk": 1024,
+    "cluster_cell": 6.0,
+    "max_sites": 200
+  },
+  "depth_tolerance_in": 0.05
+}

@@ -1,0 +1,16 @@
+{
+  "state": "PROCESS_EXITED_ZERO",
+  "phase": "signed-four-face-replay",
+  "abort_reason": null,
+  "actual_pid": 35880,
+  "actual_creation_utc": "2026-10-23T18:27:09.8569701Z",
+  "actual_exit_code": 0,
+  "launcher_exit_code": 0,
+  "wall_s": 4.7203658,
+  "HEAD": "a0a8dbda70544d9e1dee90f0d52271a7321324dd",
+  "phase_plan_sha256": "348e1b4da46523e2497db852ae7006ced771eab3699fab04300d6522020d6b00",
+  "all_owned_exited": true,
+  "evidence": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\execution-ownership-attempt3\\monitor-signed-four-face-replay-20261023T182708",
+  "ended_utc": "2026-10-23T18:27:14.4587501Z",
+  "acceptance": false
+}

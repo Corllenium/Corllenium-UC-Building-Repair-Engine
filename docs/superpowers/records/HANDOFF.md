@@ -26,6 +26,18 @@ run the latest `.skp` of each file must be in `OBJ FIXED RESULT/` for the owner 
 ## 2. Current state (2026-09-26 00:15, written by the Claude controller)
 
 
+### Complete measured attempt4 exclusion union
+
+Unchanged-function four-face diagnostic replay reproduced100samples/10covered/232.5in² and27blockedvisiblelines in4.72s, tree252366848B, allownedexited/noabort. Contributor-map432e513ea14cac9f0604464c4bf249ffcd908b3a0c6f475994270dc24fd4a082 maps12aftertriangles to10texture-contributor sites2478,2479,2599,2902,2903,5185,8451,9039,9040,9503; floor adds6680. These11signed contributors overlap native92 at2902/8451. Final measured union101exclusions leaves172 of273donor-kept proposals; original628/273/355 classification remains unchanged. This supersedes earlier pending92/181 and93/180 arithmetic. Bind actual signed report967e49df, receipt2cd78fea and replay432e513e into new policy/preparation/checkpoint/cut/independent proof. Every excluded original face stays. No fullproof rerun or changed gate; attempt3remainsFAIL. Rootlive readback confirms1Fblocked/29576false,2F41648true,3F22268true;acceptednullall.
+
+
+### Actual 1F signed diagnostic terminal - 2026-10-24
+
+Actual29576 completed18:17:41.9728646Z/1531.49s, exit2 with full signedFAIL report967e49df and receipt2cd78fea, noabort/allownedexited. TexturesFAIL108392samples/10covered/4faces, no look/UV/side mismatch. Per-facecoverageFAIL9809=11.5px and10366=6.2px (>4), contributor site6680/edit211/original9807; this site is outside92native-linked. Textureclusteroriginal8563/8564/8633/8634 retains exact source faces but covering contributors are not persisted; bounded unchanged-function replay authorized to map them, not an acceptance shortcut. Both failure groups remain blockers, no proof/publish promotion. Rootopened both actualfloorPNGcropped evidence: thin highlighted seams.
+
+Both attempt4briefs amended: exclusion count is measured union of native and all signed-failure contributors, not fixed92/181; policyseal waits for complete mapping. Independentattempt4job/WT froma0a8 claimedCodex-Independent-Validator, separate from frozen completeddiagnostic. Rootcanonical1Fblocked/workerfalse; existingE3preview10136 retained;2F41648/3F22268 running. Conservative builder TDD RED16failed16.87s/104.6MB after unrelated pytestplugin isolation; no newactualmodelrunyet.
+
+
 ### 2026-10-24 02:14 SGT - actual 3F run and conservative 1F retry
 
 - Actual 3F E3 worker22268 started2026-10-23T17:36:13.820579Z after three measured12GiB admission samples; original53602triangles, isolated from actual2F41648. Code531769c, worker a4898bdd, qualified3Fmapada00c4d; both still running on fresh source. No candidate/acceptance invented.

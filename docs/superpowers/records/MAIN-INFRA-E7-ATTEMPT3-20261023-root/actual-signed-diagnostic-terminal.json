@@ -1,0 +1,16 @@
+{
+  "state": "PROCESS_FAILED",
+  "phase": "native-failure-signed-diagnostic",
+  "abort_reason": null,
+  "actual_pid": 29576,
+  "actual_creation_utc": "2026-10-23T17:52:10.6357055Z",
+  "actual_exit_code": 2,
+  "launcher_exit_code": 2,
+  "wall_s": 1531.4882194,
+  "HEAD": "a0a8dbda70544d9e1dee90f0d52271a7321324dd",
+  "phase_plan_sha256": "c6a5a8a8771be30813581aea038ddc31cb67abe54a282d1f3f4fa92b1e5c82fb",
+  "all_owned_exited": true,
+  "evidence": ".\\data\\main-infra-1f-validation\\execution-ownership-attempt3\\monitor-native-failure-signed-diagnostic-20261023T175209",
+  "ended_utc": "2026-10-23T18:17:41.9728646Z",
+  "acceptance": false
+}
