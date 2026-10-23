@@ -23,8 +23,14 @@ error census counted 5,556 flicker faces of which 4,974 are also `hidden` -- a f
 lying exactly on its visible twin, which E3 never proposes because its samples see the room through the twin at a
 depth tie): with the per-face front exposure measured exactly as `find_errors` measures it
 (`engine.vis.exposure.compute_side_exposure(positions_c, faces, ok, n_dirs=profile.n_dirs)`), the face whose FRONT
-exposure is 0 loses to a twin whose front exposure is above 0, whatever the looks; both hidden or both exposed keep
-both (`no_backface_winner`). The coverage, anchoring and only-coverage rules below apply to it as to any drop. With
+exposure is 0 loses to a twin whose front exposure is above 0, whatever the looks; both exposed keep both
+(`both_exposed`: a legitimate two-sided zero-thickness slab; `kept_pairs` samples those pairs with both faces'
+exposures for the audit). Rule (d), `interior_twins` (coordinator, 2026-10-24, after the first 7F chain run kept 4,476
+faces as `no_backface_winner`): a back-to-back pair BOTH of whose fronts are hidden is an interior block-against-block
+seam, and BOTH faces are planned for removal as ONE site (the seam's faces are joined into one site even when their
+vertices are not welded together); the cover and only-coverage rules do not apply to it -- the site judge decides, and
+a seam any sample sees is rolled back as any site is. The coverage, anchoring and only-coverage rules apply to rule (c)'s
+drop as to any other. With
 `cull_opposite_backfaces=False` opposite pairs are only counted. Treating an opposite pair as duplicates is otherwise
 blocked (AGENTS.md section 4); this rule is the owner's exception and the Validator judges it under its own
 allowed-change class `coincident_backface_removed` (`engine.validate.checks.CBR`, opt-in).
@@ -89,8 +95,11 @@ DEFAULT_WIN_PATTERNS = ("UC_PAL_05", "UC_PAL_12", "UC_PAL_00", "quartz_block_top
                         "glass", "wool", "trim", "facade")
 #: Material-name patterns that LOSE a different-look pair: the generic concrete surfaces.
 DEFAULT_LOSER_PATTERNS = ("concrete_white", "concrete_gray")
-RULES = ("same_look", "priority", "larger_area", "backface_twin")
-KEPT_REASONS = ("uncovered", "no_winner", "no_backface_winner", "anchored", "only_coverage", "no_overlap")
+RULES = ("same_look", "priority", "larger_area", "backface_twin", "interior_twins")
+KEPT_REASONS = ("uncovered", "no_winner", "both_exposed", "no_backface_winner", "anchored", "only_coverage",
+                "no_overlap")
+#: How many kept opposite pairs `report["kept_pairs"]` lists (all are counted in `kept_pairs_total`).
+KEPT_PAIRS_LISTED = 500
 
 
 def default_priority(material: str, *, win=DEFAULT_WIN_PATTERNS, lose=DEFAULT_LOSER_PATTERNS) -> int:
@@ -217,6 +226,10 @@ class E5Coincident:
         kept_rows: list[dict] = []
         kept_counts = {k: 0 for k in KEPT_REASONS}
         anchored: set[int] = set()
+        interior: set[int] = set()                            # faces dropped by rule (d): exempt from the cover check
+        interior_pairs: list[tuple[int, int]] = []            # the seams, so both faces travel in one site
+        kept_pairs: list[dict] = []                           # the audit sample of kept opposite pairs
+        kept_pair_keys: set[tuple[int, int]] = set()
         for members in groups:
             members = [involved[k] for k in members]
             if len(members) < 2:
@@ -233,17 +246,57 @@ class E5Coincident:
                     for f in members}
             group_dropped: list[int] = []
             for f in sorted(members, key=lambda f: (float(area[f]), -f)):
+                if f in dropped:
+                    continue                                  # taken as the partner of an interior seam
                 others = [g for g in overlaps[f] if g in poly and g not in dropped]
                 if not others:
                     kept_counts["no_overlap"] += 1
                     continue
                 winners = [g for g in others if self._beats(g, f, area, look_of, prio_of, opposite_of, exposure)]
                 if not winners:
-                    reason = ("no_backface_winner" if all((g, f) in opposite_of for g in others) else "no_winner")
+                    opposite_only = all((g, f) in opposite_of for g in others)
+                    f_front = exposure[f][0]
+                    if opposite_only and f_front is not None and f_front <= 0.0 and f not in anchored:
+                        # rule (d), interior_twins: a back-to-back pair BOTH of whose fronts are hidden is an interior
+                        # block-against-block seam; both faces go, as one site, and the judge decides
+                        partners = [g for g in others if exposure[g][0] <= 0.0 and g not in anchored]
+                        if partners:
+                            seam = [f] + partners
+                            for h in seam:
+                                mates = [g for g in seam if g != h]
+                                dropped[h] = {"face": int(h), "material": int(material[h]), "look": look_of[h],
+                                              "area": round(float(area[h]), 4), "winners": [int(g) for g in mates],
+                                              "winner_looks": [look_of[g] for g in mates],
+                                              "winner_areas": [round(float(area[g]), 4) for g in mates],
+                                              "front": exposure[h][0], "back": exposure[h][1],
+                                              "winner_front": [exposure[g][0] for g in mates],
+                                              "winner_back": [exposure[g][1] for g in mates],
+                                              "overlap_fraction": round(self._coverage(poly[h], [poly[g] for g in mates]), 6),
+                                              "rule": "interior_twins"}
+                                interior.add(h)
+                            for h in seam[1:]:
+                                interior_pairs.append((min(f, h), max(f, h)))
+                            continue
+                    if opposite_only and f_front is not None and f_front > 0.0 \
+                            and all(exposure[g][0] > 0.0 for g in others):
+                        reason = "both_exposed"               # a legitimate two-sided zero-thickness slab
+                    elif opposite_only:
+                        reason = "no_backface_winner"
+                    else:
+                        reason = "no_winner"
                     kept_counts[reason] += 1
                     kept_rows.append(self._kept_row(f, reason, others,
                                                     self._coverage(poly[f], [poly[g] for g in others]), look_of, area,
                                                     exposure))
+                    if opposite_only:
+                        for g in others:
+                            key = (min(f, g), max(f, g))
+                            if key not in kept_pair_keys:
+                                kept_pair_keys.add(key)
+                                kept_pairs.append({"faces": [key[0], key[1]], "looks": [look_of[key[0]], look_of[key[1]]],
+                                                   "front": [exposure[key[0]][0], exposure[key[1]][0]],
+                                                   "back": [exposure[key[0]][1], exposure[key[1]][1]],
+                                                   "reason": reason})
                     continue
                 cover = self._coverage(poly[f], [poly[g] for g in winners])
                 if f in anchored:
@@ -271,6 +324,8 @@ class E5Coincident:
             # the final check: every dropped face is still covered 98 % by the faces of its plane that stay
             kept_in_group = [g for g in members if g not in dropped]
             for f in group_dropped:
+                if f in interior:
+                    continue                                  # an interior seam is removed whole: the judge decides
                 cover = self._coverage(poly[f], [poly[g] for g in kept_in_group if g in overlaps[f]])
                 if cover < self.cover_fraction:
                     row = dropped.pop(f)
@@ -282,6 +337,12 @@ class E5Coincident:
         candidates = np.array(sorted(dropped), np.int64)
         centroid = tri.mean(axis=1)
         comps = _components(faces, candidates)
+        if interior_pairs:
+            # both faces of an interior seam travel in one site, whether or not their vertices are welded together
+            owner = {int(f): k for k, members in enumerate(comps) for f in members.tolist()}
+            merged = _union_find(len(comps), [(owner[a], owner[b]) for a, b in interior_pairs
+                                              if a in owner and b in owner and owner[a] != owner[b]])
+            comps = [np.sort(np.concatenate([comps[k] for k in group])) for group in merged]
         edits: list[Edit] = []
         split = 0
         for g, members in enumerate(comps):
@@ -316,6 +377,7 @@ class E5Coincident:
             "dropped": len(dropped),
             "by_rule": {r: sum(1 for row in dropped.values() if row["rule"] == r) for r in RULES},
             "kept": kept_counts, "kept_faces": kept_rows,
+            "kept_pairs": kept_pairs[:KEPT_PAIRS_LISTED], "kept_pairs_total": len(kept_pairs),
             "planned": [list(e.faces) for e in edits], "sites": len(edits), "connected_groups": len(comps),
             "groups_split": split, "max_site_faces": int(self.max_site_faces),
             "seconds": {**{k: round(v, 2) for k, v in seconds.items()},

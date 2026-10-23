@@ -86,6 +86,39 @@ def test_with_the_class_the_same_removal_passes_and_is_reported_under_allowed_ch
     assert any("ALLOWED CHANGES" in note and CBR in note for note in v.report["notes"])
 
 
+def _with_shifted_uv_twin(mesh, faces, shift):
+    """`mesh` plus an inward-facing coincident copy of `faces` in the SAME look whose UVs are shifted by `shift`
+    (a non-integer: a different texture layout)."""
+    twin = _with_twin(mesh, faces, 0, flip=True)
+    k = len(faces)
+    new_rows = mesh.uvs[mesh.face_vt[faces][:, ::-1]].reshape(-1, 2) + shift
+    fvt = twin.face_vt.copy()
+    fvt[-k:] = np.arange(len(mesh.uvs), len(mesh.uvs) + 3 * k).reshape(k, 3)
+    return dataclasses.replace(twin, uvs=np.vstack([mesh.uvs, new_rows]), face_vt=fvt, materials=["m0", "m1"])
+
+
+def test_the_class_also_excuses_the_uv_status_of_a_removed_backface_under_the_same_conditions():
+    before = _with_shifted_uv_twin(cube(), SIDE, 0.37)
+    after = _without(before, [12, 13])
+    strict = _run(before, after)
+    assert not strict.passed and strict.report["checks"]["textures"]["reasons"]["uv"] > 0
+    v = _run(before, after, ALLOW)
+    assert v.passed, v.report["checks"]
+    allowed = v.report["allowed_changes"][CBR]
+    assert allowed["uv"] > 0 and allowed["uv"] == strict.report["checks"]["textures"]["reasons"]["uv"]
+    assert allowed["samples"] == allowed["deleted"] + allowed["look"] + allowed["uv"]
+    assert v.report["checks"]["textures"]["reasons"]["uv"] == 0
+    # the same shifted twin, OUTWARD (both fronts exposed): the uv failure stays
+    outward = _with_twin(cube(), SIDE, 0, flip=False)
+    k = 2
+    fvt = outward.face_vt.copy()
+    fvt[-k:] = np.arange(len(cube().uvs), len(cube().uvs) + 6).reshape(k, 3)
+    outward = dataclasses.replace(outward, uvs=np.vstack([cube().uvs, cube().uvs[cube().face_vt[SIDE]].reshape(-1, 2) + 0.37]),
+                                  face_vt=fvt)
+    v2 = _run(outward, _without(outward, [12, 13]), ALLOW)
+    assert not v2.passed and v2.report["allowed_changes"][CBR]["uv"] == 0
+
+
 def test_a_non_coincident_deletion_still_fails_with_the_class_enabled():
     before = cube()
     v = _run(before, _without(before, SIDE), ALLOW)

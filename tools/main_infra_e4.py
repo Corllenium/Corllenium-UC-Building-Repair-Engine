@@ -34,12 +34,15 @@ _ARRAYS = ('positions', 'uvs', 'normals', 'face_v', 'face_vt', 'face_vn', 'face_
 _META = ('materials', 'mtllib', 'units', 'physical_quanta', 'coord_decimals', 'sig_digits')
 
 
-def run_checked_e4(before, looks, flatness, *, allowed_regions=None):
-    """`(outcome, mapping)` of one checked E4 stage over `before` with the Validator as site judge."""
+def run_checked_e4(before, looks, flatness, *, allowed_regions=None, allow_growth=False):
+    """`(outcome, mapping)` of one checked E4 stage over `before` with the Validator as site judge. `allow_growth`
+    lets a region come back with more triangles than it had faces (E4's `grew` refusal off); the mapping's
+    `engine_report.allow_growth` records it."""
     original = _source_digest(before)
     unit = UnitState(mesh=before, topo=None,
                      looks={i: looks.key_of(name) for i, name in enumerate(before.materials)}, viewpoints=None)
-    engine = E4Merge(flatness=flatness, allowed_regions=None if allowed_regions is None else set(allowed_regions))
+    engine = E4Merge(flatness=flatness, allowed_regions=None if allowed_regions is None else set(allowed_regions),
+                     allow_growth=bool(allow_growth))
     context = RepairContext(profile=FixProfile(), decider=None, validator=SiteJudge(looks))
     outcome = repair_unit(unit, context, engines=[engine], validate_sites=True)
     if _source_digest(before) != original:
@@ -107,7 +110,8 @@ def merged_mapping(before, outcome, *, report=None):
                    appended_normals=expected.normals[len(before.normals):].tolist(), regions=regions)
     if report is not None:
         mapping['engine_report'] = {k: report[k] for k in ('regions', 'changed', 'sites', 'skipped', 'refused',
-                                                            'allowed_regions', 'max_site_faces', 'flat_materials')}
+                                                            'allowed_regions', 'max_site_faces', 'allow_growth',
+                                                            'flat_materials') if k in report}
     verify_merged_mesh(before, expected, mapping)
     return mapping
 

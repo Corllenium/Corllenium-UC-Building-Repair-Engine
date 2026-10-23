@@ -379,6 +379,49 @@ def test_the_e4_runner_from_e5_needs_an_e3_then_e5_candidate(tmp_path):
     assert not (tmp_path / 'run' / 'e4' / '7F').exists()
 
 
+def test_run_checked_e4_passes_allow_growth_to_the_engine_and_records_it_in_the_mapping():
+    from tools.main_infra_e4 import run_checked_e4
+    before = floor().in_frame(FRAME).mesh
+    _outcome, mapping = run_checked_e4(before, looks(), FLATNESS)
+    assert mapping['engine_report']['allow_growth'] is False
+    _outcome, mapping = run_checked_e4(before, looks(), FLATNESS, allow_growth=True)
+    assert mapping['engine_report']['allow_growth'] is True
+
+
+def test_the_e4_independent_guard_reads_back_the_chained_e3_e5_e4_candidate(tmp_path):
+    from tools.e4_independent_guard import main as guard_main
+    from tools.run_checked_e4_floor import main as e4_main
+    from tools.run_checked_e5_floor import main as e5_main
+    from tools.tests.test_e4_independent_guard import HELPER, ORACLE, REVISION
+    root = tmp_path / 'run'
+    inputs = run_root(root)
+    e3_fixture(inputs, root / 'e3' / '7F')
+    common = ['--root', str(root), '--floor', '7F', '--raw-name', 'source.obj']
+    assert e5_main(common + ['--from-e3']) == 0
+    assert e4_main(common + ['--from-e5']) == 0
+    (root / 'raw-manifest.json').write_text(json.dumps(dict(
+        source_revision=REVISION,
+        files=[dict(path=name, sha256=sha256_file(root / 'raw' / name)) for name in ('source.obj', 'source.mtl', 'glass.png')])))
+    helper = tmp_path / 'helper' / 'tools' / 'main_infra_candidate.py'
+    helper.parent.mkdir(parents=True)
+    helper.write_text(HELPER)
+    oracle = tmp_path / 'helper' / 'engine' / 'rays' / 'bounded_brute.py'
+    oracle.parent.mkdir(parents=True)
+    oracle.write_text(ORACLE)
+    out = tmp_path / 'guard'
+    assert guard_main(['--root', str(root), '--floor', '7F', '--raw-name', 'source.obj', '--candidate', str(root / 'e4' / '7F'),
+                       '--out', str(out), '--helper', str(helper), '--job-id', 'JOB-E5E4', '--reviewer', 'test',
+                       '--expected-revision', REVISION]) == 0
+    readback = json.loads((out / 'input-readback.json').read_text())
+    assert readback['contract']['candidate_contract'] == 'e3_then_e5_then_e4_merge'
+    assert readback['input_triangles'] == 9 and readback['output_triangles'] == 2
+    assert readback['removed_triangles'] == 9, 'E3 removed 1, E5 removed 4, E4 replaced 4'
+    assert readback['contract']['e3_removed_triangles'] == 1 and readback['contract']['e5_removed_triangles'] == 4
+    assert {'e5_candidate', 'e5_source_faces', 'e5_audit', 'e3_candidate'} <= set(readback['hashes'])
+    receipt = json.loads((out / 'independent-guard.json').read_text())
+    assert receipt['guard']['passed'] is True and receipt['removed_triangles'] == 9
+
+
 def test_the_chain_e3_then_e5_then_e4_runs_on_the_fixture_root_and_binds_to_the_baseline(tmp_path):
     from tools.main_infra_physical_validation import load_physical_pair
     from tools.run_checked_e4_floor import main as e4_main
@@ -398,9 +441,10 @@ def test_the_chain_e3_then_e5_then_e4_runs_on_the_fixture_root_and_binds_to_the_
     assert e5_audit['engine_report']['dropped'] == 4 and e5_audit['engine_report']['by_rule']['same_look'] == 4
     assert (e5_dir / 'edit-log.jsonl').exists() and (e5_dir / 'source.mtl').exists()
 
-    assert e4_main(common + ['--from-e5']) == 0
+    assert e4_main(common + ['--from-e5', '--allow-growth']) == 0
     e4_dir = root / 'e4' / '7F'
     e4_audit = json.loads((e4_dir / 'stage-audit.json').read_text())
+    assert e4_audit['allow_growth'] is True and e4_audit['engine_report']['allow_growth'] is True
     assert e4_audit['cleanup_mode'] == 'e3_then_e5_then_e4_merge' and e4_audit['executed_stages'] == ['E3', 'E5', 'E4']
     assert e4_audit['input_triangles'] == 4 and e4_audit['output_triangles'] == 2
     assert e4_audit['e5_candidate']['candidate'] == str(e5_dir)

@@ -106,6 +106,10 @@ def main(argv=None):
             e3_dir = Path(audit['e3_candidate']['candidate'])
             paths.update(e3_candidate=e3_dir / 'candidate.engine.obj', e3_source_candidate=e3_dir / 'candidate.source.obj',
                          e3_source_faces=e3_dir / 'source-faces.json', e3_audit=e3_dir / 'stage-audit.json')
+        if isinstance(audit.get('e5_candidate'), dict) and audit['e5_candidate'].get('candidate'):
+            e5_dir = Path(audit['e5_candidate']['candidate'])
+            paths.update(e5_candidate=e5_dir / 'candidate.engine.obj', e5_source_candidate=e5_dir / 'candidate.source.obj',
+                         e5_source_faces=e5_dir / 'source-faces.json', e5_audit=e5_dir / 'stage-audit.json')
         source = parse_floor(paths['raw'].read_text(encoding='utf-8'),
                              triangulations={int(k): v for k, v in native['polygons'].items()})
         frame = Frame(1000 / 25.4, provenance.get('frame_evidence', ''))
@@ -124,10 +128,15 @@ def main(argv=None):
         assert not looks.unknown(before) and not looks.unknown(after)
         material_order_equal = before.materials == after.materials
         after_bound = rebind_materials(before, after)
+        # `before` is the qualified baseline: its faces are the kept ones plus everything the chained stages took
+        # (E3 removed, E5 culled) plus what E4 replaced; `bind_saved_e4` has already proven the kept faces against the
+        # chained BEFORE and mapped them back to the baseline's ids
         kept = int(len(contract['baseline_kept_source_faces']))
-        replaced = int(contract['e3_removed_triangles'] + contract['e4_replaced_triangles'])
+        replaced = int(contract['e3_removed_triangles'] + contract.get('e5_removed_triangles', 0)
+                       + contract['e4_replaced_triangles'])
         new = int(contract['e4_new_triangles'])
-        assert before.n_faces == kept + replaced and after.n_faces == kept + new
+        assert before.n_faces == kept + replaced and after.n_faces == kept + new, \
+            (before.n_faces, after.n_faces, kept, replaced, new)
         precision = []
         for label, step in [('stored', print_step(before)), ('physical', max(expected.physical_quanta))]:
             precision.append(dict(grid=label, step_inches=step, depth_tolerance_inches=depth_tolerance(step),

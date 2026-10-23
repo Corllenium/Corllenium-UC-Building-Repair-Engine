@@ -155,8 +155,14 @@ def test_opposite_facing_sheets_both_exposed_are_left_alone():
     assert edits == []
     assert engine.report["pairs"]["double_layers"] == 4 and engine.report["pairs"]["opposite"] == 4
     assert engine.report["pairs"]["same_facing"] == 0
-    assert engine.report["kept"]["no_backface_winner"] == 4
+    assert engine.report["kept"]["both_exposed"] == 4 and engine.report["kept"]["no_backface_winner"] == 0
     assert all(row["front"] > 0 for row in engine.report["kept_faces"])
+    # the audit sample of kept opposite pairs: one row per pair with both faces' exposures
+    # the flipped quad's corner order is reversed, so its triangles use the other diagonal: each overlaps both
+    pairs = engine.report["kept_pairs"]
+    assert engine.report["kept_pairs_total"] == 4
+    assert sorted(tuple(r["faces"]) for r in pairs) == [(0, 2), (0, 3), (1, 2), (1, 3)]
+    assert all(r["reason"] == "both_exposed" and min(r["front"]) > 0 and len(r["back"]) == 2 for r in pairs)
 
 
 # ------------------------------------------------------------------------------------- backface twins
@@ -196,21 +202,57 @@ def test_the_backface_rule_can_be_switched_off():
     assert engine.report["pairs"]["opposite"] >= 2 and engine.report["kept"]["no_backface_winner"] == 0
 
 
-def test_a_back_to_back_pair_both_hidden_is_kept():
+def _partition_with_inward_twin():
     import dataclasses
     from engine.tests.fixtures.build import box_with_partition
     base = box_with_partition()                      # faces 12, 13: the sealed partition nothing sees
     faces = [12, 13]
-    before = dataclasses.replace(
+    return dataclasses.replace(
         base, face_v=np.vstack([base.face_v, base.face_v[faces][:, ::-1]]),
         face_vt=np.vstack([base.face_vt, base.face_vt[faces][:, ::-1]]),
         face_vn=np.vstack([base.face_vn, base.face_vn[faces]]),
         face_material=np.concatenate([base.face_material, [0, 0]]),
         face_line=np.arange(1, base.n_faces + 3, dtype=np.int64))
+
+
+def test_a_back_to_back_pair_both_hidden_is_an_interior_seam_and_both_faces_go_as_one_site():
+    before = _partition_with_inward_twin()
     edits, engine = _plan(before)
-    assert edits == []
-    assert engine.report["kept"]["no_backface_winner"] == 4
-    assert all(row["front"] == 0.0 for row in engine.report["kept_faces"])
+    assert len(edits) == 1 and sorted(edits[0].faces) == [12, 13, 14, 15], "both faces of each pair, one site"
+    rows = edits[0].evidence["pairs"]
+    assert all(row["rule"] == "interior_twins" and row["front"] == 0.0 for row in rows)
+    assert all(all(f == 0.0 for f in row["winner_front"]) for row in rows), "the partner is hidden too"
+    assert engine.report["by_rule"]["interior_twins"] == 4 and engine.report["dropped"] == 4
+    assert engine.report["kept"]["both_exposed"] == 0 and engine.report["kept"]["no_backface_winner"] == 0
+    assert engine.report["kept_pairs"] == [] and engine.report["kept_pairs_total"] == 0
+    after, _ = apply_edits(before, edits)
+    assert after.n_faces == 12
+
+
+def test_interior_twins_are_one_site_even_when_their_vertices_are_not_shared():
+    # the same partition twin, but the copy has its own (identical) vertices: no welded edge joins the two layers,
+    # and the pair still travels as one site
+    import dataclasses
+    before = _partition_with_inward_twin()
+    n_v = len(before.positions)
+    copy_v = before.face_v[[14, 15]]
+    used = np.unique(copy_v)
+    remap = {int(v): n_v + k for k, v in enumerate(used.tolist())}
+    fv = before.face_v.copy()
+    fv[[14, 15]] = np.vectorize(remap.get)(copy_v)
+    before = dataclasses.replace(before, positions=np.vstack([before.positions, before.positions[used]]), face_v=fv)
+    edits, _ = _plan(before)
+    assert len(edits) == 1 and sorted(edits[0].faces) == [12, 13, 14, 15]
+
+
+def test_the_judge_rolls_back_an_interior_seam_it_can_see_and_keeps_one_it_cannot():
+    from engine.validate.checks import CBR, Settings
+    before = _partition_with_inward_twin()
+    looks = _looks(*before.materials)
+    unit, ctx, _ = _ctx(before, judge=SiteJudge(looks, settings=Settings(allowed_changes={CBR}), margin=2.0))
+    got = repair_unit(unit, ctx, engines=[E5Coincident(flatness={})], validate_sites=True)
+    assert [sorted(e.faces) for e in got.kept] == [[12, 13, 14, 15]], "nothing sees the sealed partition"
+    assert got.mesh.n_faces == 12
 
 
 def test_the_judge_with_the_owner_class_keeps_a_backface_site_and_without_it_rolls_it_back():

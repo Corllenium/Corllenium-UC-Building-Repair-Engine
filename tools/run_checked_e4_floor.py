@@ -27,6 +27,10 @@ def main(argv=None):
     parser.add_argument('--from-e3', action='store_true')
     parser.add_argument('--from-e5', action='store_true')
     parser.add_argument('--crack-judgement', type=Path, default=None)
+    parser.add_argument('--allow-growth', action='store_true',
+                        help='let a region come back with more triangles than it had faces (E4 grew refusal off): '
+                             'coplanar same-material triangle edges are invisible in the textured game render, the '
+                             'slit (crack) is the visible defect; recorded in the stage audit')
     args = parser.parse_args(argv)
     root = args.root.resolve()
     F = args.floor
@@ -112,7 +116,7 @@ def main(argv=None):
     print(f'ENGINE E4 starting on fresh {F} ({cleanup_mode}): {before.n_faces} triangles; site checks and rollback '
           f'enabled; allowed regions: {"all" if allowed is None else len(allowed)}', flush=True)
     started = time.perf_counter()
-    outcome, mapping = run_checked_e4(before, looks, flatness, allowed_regions=allowed)
+    outcome, mapping = run_checked_e4(before, looks, flatness, allowed_regions=allowed, allow_growth=args.allow_growth)
     print(f'ENGINE E4 finished: {before.n_faces}->{outcome.mesh.n_faces}; kept sites={len(outcome.kept)}, '
           f'rolled back={len(outcome.rolled_back)}; checks={outcome.checks}', flush=True)
     eng, src, region_map = save_merged_pair(engine_floor, source_floor, mapping, out)
@@ -127,6 +131,7 @@ def main(argv=None):
                  input_triangles=before.n_faces, output_triangles=outcome.mesh.n_faces,
                  kept_edits=len(outcome.kept), rolled_back_edits=len(outcome.rolled_back),
                  engine_report=mapping.get('engine_report'), e3_candidate=e3_binding, e5_candidate=e5_binding,
+                 allow_growth=bool(args.allow_growth),
                  crack_judgement=None if args.crack_judgement is None else str(args.crack_judgement),
                  engine_candidate_sha256=sha256_file(eng), source_candidate_sha256=sha256_file(src),
                  region_map_sha256=sha256_file(region_map), edit_log_sha256=sha256_file(out / 'edit-log.jsonl'),

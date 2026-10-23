@@ -292,7 +292,7 @@ def face_fingerprints(mesh: MeshData, step: float, look_ids: np.ndarray) -> np.n
 
 #: THE OWNER-APPROVED ALLOWED-CHANGE CLASS (owner decision 2026-10-24, relayed by the coordinator; the one place this
 #: module names a change that does not fail checks 1-3). `coincident_backface_removed`: a BEFORE sample that is
-#: `deleted`, `replaced` or `look`-changed is reclassified as allowed iff (a) its face is gone in AFTER (its
+#: `deleted`, `replaced`, `look`-changed or `uv`-changed is reclassified as allowed iff (a) its face is gone in AFTER (its
 #: fingerprint is not there), (b) AFTER keeps a face coincident with it (within the depth tolerance at the sample,
 #: the sample inside that face) whose normal is OPPOSITE (dot < -0.7) and which was itself exposed on its front in
 #: BEFORE (the twin was the visible surface), and (c) the sample's own face had front exposure 0 in BEFORE (its front
@@ -1578,11 +1578,13 @@ def _coincident_backface_allowed(b: MeshData, samples: Samples, tested: np.ndarr
     n, face = len(samples.face), samples.face
     allowed = np.zeros(n, dtype=bool)
     excused = np.zeros(b.n_faces, dtype=bool)
-    report = {"samples": 0, "deleted": 0, "look": 0, "faces": 0, "faces_excused_from_floor": 0, "area_in2": 0.0,
-              "candidates": 0, "opposite_dot": _OPPOSITE_DOT,
+    report = {"samples": 0, "deleted": 0, "look": 0, "uv": 0, "faces": 0, "faces_excused_from_floor": 0,
+              "area_in2": 0.0, "candidates": 0, "opposite_dot": _OPPOSITE_DOT,
               "rule": "the sample's face is gone, its front exposure in BEFORE was 0, and a kept opposite-facing face "
-                      "exposed on its front in BEFORE lies on the sample within the depth tolerance"}
-    cand = np.flatnonzero(tested & ~covered & ((present == DELETED) | (present == LOOK)) & suspect[face])
+                      "exposed on its front in BEFORE lies on the sample within the depth tolerance (statuses deleted, "
+                      "look and uv)"}
+    cand = np.flatnonzero(tested & ~covered & ((present == DELETED) | (present == LOOK) | (present == UV))
+                          & suspect[face])
     report["candidates"] = int(len(cand))
     if not len(cand) or not b.n_faces:
         return allowed, excused, report
@@ -1608,7 +1610,8 @@ def _coincident_backface_allowed(b: MeshData, samples: Samples, tested: np.ndarr
     t_per, a_per = per_face(tested), per_face(allowed)
     excused = (t_per > 0) & (a_per == t_per)
     report.update(samples=int(allowed.sum()), deleted=int((allowed & (present == DELETED)).sum()),
-                  look=int((allowed & (present == LOOK)).sum()), faces=int((a_per > 0).sum()),
+                  look=int((allowed & (present == LOOK)).sum()), uv=int((allowed & (present == UV)).sum()),
+                  faces=int((a_per > 0).sum()),
                   faces_excused_from_floor=int(excused.sum()), area_in2=round(float(sample_area[allowed].sum()), 2))
     return allowed, excused, report
 
