@@ -25,6 +25,22 @@ run the latest `.skp` of each file must be in `OBJ FIXED RESULT/` for the owner 
 
 ## 2. Current state (2026-09-26 00:15, written by the Claude controller)
 
+2026-10-23 20:00 +08: real1F E7 now running PID56540,start11:52:52.1421866Z,
+nativeexecutiontree D:/LLM_BACKUP/Codex session/main-infra-e7-run-1f-20261023/
+05-Corllenium-UC-Building-Repair-Engine,HEAD396061b1. Worker is
+data/main-infra-e7/run-20261023/execution-1F/worker.json; immutablefinal1F
+isabsentuntilgeometryreadbackandNEWMTL/PNGcopy/hashchecksfinish. Original
+fresh15856 and E3stage10136 are distinct. E7b603/serializerfe833 and finite
+exactrayindexff3(integrated8fa5d4e) independentlyreviewed; defaults/guards/signed
+Validator/targetsunchanged. Current2F53936/3F56832stilloriginalfec7b3e imports.
+Livepublisher47760/session68861 now observesallthreePIDs+creationtimes. 2F/3F
+BEFOREmodelsarepublicandrealbrowserchecked56828/53602,9/7textures;Afterempty.
+Claude7FE3saved26152->20625,separateoutputroot;rootonlymirrorspendingvalidation.
+DraftdashboardPR39isopen/unmerged;GitHubCIjobsdidnotstartduetoaccountbilling/
+spendinglimitannotation.LiveUIabd68cealreadydeployed/tested.APIstillbb71d31.
+CodequeueE7reviewsarePASSbutawaitingcontrollerintegration(noGitmainmerge);
+correctedreview--passlabelwhichhadincorrectlymarkedjobsmerged. Noacceptedfloor.
+
 2026-10-23 19:12 +08: LIVE owner URL /pipelines/jev-repair/ serves fresh UI
 abd68ce, built from actual livebb71d31 (not the197-commits-old preview branch).
 95/95 deployed hashes match both static roots and public HTTP. Real authorized

@@ -80,3 +80,11 @@ verified. API remainsbb71d31/no restart/DBwrite. Actual2F53936 and3F56832 E3work
 run separately underfec7b3e with independently qualified56828/53602inputs. Live
 PID/start-time publisher records actual CPU/activity, no guessed completion %.
 Both floors still require independent candidate preservation/problem checks.
+
+Laterreadback: Claude's7FcheckedE3kernel/defaultSiteJudge was independently
+observed, then saved26152->20625triangles initsown e3/7F. No1F-3F/sharedstatus
+writes inthatinvocation. Sharedlivecardmirrorsvalidatingonly;noflooracceptance.
+Codex1FcheckedE7nowrunsPID56540 initsown managedexecutiontree(396061b1),
+original15856/E3stage10136. 2F/3F remainuninterrupted53936/56832. Livepublisher
+47760observesactualPIDs/starttimes;newcandidategeometryandassetreadback,
+originalfreshpreservation,nativeviewsandsignedtargetsremainrequired.
