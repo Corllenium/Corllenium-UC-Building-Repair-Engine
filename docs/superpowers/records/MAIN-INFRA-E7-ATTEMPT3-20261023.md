@@ -37,3 +37,13 @@ Subset/checkpoint GREEN:
 Real tiny SiteJudge fixtures passed; injected additional failing samples exercised charged rollback and whole-stage unknown refusal. The test window was released after actual process exit.
 
 Runner-order tests are written but not yet run; runner implementation is pending its RED measurement/window. Independent implementation review and resource GO are required before real execution. Original baseline15856, E3 stage10136; signed target failures remain unresolved/unmeasured after this new work.
+
+Runner TDD and CLI (actual bounded second window):
+```
+-m pytest tools/tests/test_main_infra_e7_attempt3.py -q -p no:cacheprovider --tb=short
+4 errors in 2.28s
+4 passed in 3.90s
+-m tools.main_infra_e7_attempt3 --help
+exit0
+```
+RED was missing runner module. GREEN saved a real tiny new checked subset with NEW asset bytes and checkpoint-linked cut receipt. Injected downstream serializer failure left the actual checkpoint hash readable, worker failed, no candidate saved. All processes exited; window released. Real preparation/execute remains held for independent implementation review and fresh root resource GO.
