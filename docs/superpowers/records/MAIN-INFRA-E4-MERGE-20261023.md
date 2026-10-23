@@ -200,3 +200,156 @@ Commands (worktree root, `PYTHONPATH` = it):
 # the Validator on it (BEFORE = baseline, AFTER = <root>/e4/7F):
 & $PY tools/main_infra_physical_validation.py --raw "<root>/raw/7th floor main infra.obj" --reference <root>/reference/7F.json --baseline <root>/normalized/7F --qualification <root>/independent-validator/import-audit/qualification-7F.json --candidate <root>/e4/7F --materials <root>/independent-validator/preflight/materials-7F.json --out <root>/e4/7F-validation
 ```
+
+## E5, the checked coincident-layer cull (2026-10-24), and the chained order E3 -> E5 -> E4
+
+Branch `claude/MAIN-INFRA-E4-MERGE-20261023`, commits 9e17b3a (engine), 987a446 (tools), plus this record. Fixtures
+only: nothing ran on a real floor (another worker holds the engine). Nothing under `engine/guard/**`, no `FixProfile`
+threshold, no `engine/site_judge.py` default and no existing test was changed.
+
+### Why (measured, the E4 trial on the real 7F E3 candidate, 2026-10-24, 4 h 11 min)
+
+1,243 coplanar regions; the site judge rolled back 968 of them, every one with reasons `{"covered": n}`: the merged
+clean triangle covers samples that lie on a COINCIDENT TWIN LAYER (a second face on the same plane within the depth
+tolerance, overlapping footprint) which the Validator counts as `flicker_same` (same look) or `flicker_diff` (different
+look). The fresh Minecraft export is full of these twins: 7F before E3, flicker_diff 4518, flicker_same 7091. And 123
+of the 275 kept regions GREW (2 input faces -> 8-14 triangles) because `keep_all` rings carry many vertices. So: one
+layer of each twin has to go before the merge (E5), and a merge that gains triangles is refused (E4 `grew`).
+
+### The E5 contract
+
+`engine/repair/engines/e5_coincident.py`, `E5Coincident(flatness, looks=None, priority=None, max_site_faces=512,
+name="E5", legacy=False)`:
+
+- REMOVE ONLY: `Edit(engine="E5", kind="remove")` and nothing else; no cut, no new point, no new face (the E5 cut of
+  AGENTS.md section 4 is not used: never clip, never add geometry).
+- THE PAIRS ARE THE VALIDATOR'S: `engine.fixes.overlap.double_layers(positions_c, face_w, guard_depth_tol(quanta,
+  profile), VIEWS_26, profile.guard_size, centre=centre)` over `analyse_topology(mesh, frozenset(), coplanar_angle,
+  soft_angle)`, exactly as `find_errors` calls it, so E5 targets exactly the faces counted as flicker. Only SAME-FACING
+  pairs are taken (`opposite` false and the normals' dot > 0.7); opposite-facing sheets are left alone
+  (`report["pairs"]["opposite"]`).
+- WHO LOSES, per coincident group (union-find over the pairs), each face in ascending (area, -id) order against the
+  kept faces overlapping it: (a) same look -> the larger face wins (equal area: the lower id, so an identical copy
+  keeps its first occurrence); (b) different look -> the higher `priority(material name)` wins (`default_priority`:
+  2 for a name containing UC_PAL_05, UC_PAL_12, UC_PAL_00, quartz_block_top, quartz_block_side, iron_block, glass,
+  wool, trim, facade; 0 for concrete_white / concrete_gray; 1 otherwise), at equal priority the larger area, at equal
+  priority and area nobody (`no_winner`: the owner decides). A face is dropped only when the union of the faces that
+  beat it covers at least 98 % of its footprint (shapely in the group plane; `uncovered` otherwise: partial overlap is
+  never clipped). Winners are ANCHORED (they cannot lose later in the run) so no pair loses both faces; a final pass
+  puts back a dropped face that the FINAL kept faces no longer cover 98 % (`only_coverage`), so a drop never opens a
+  hole beyond the 2 % the rule allows.
+- SITES: one `remove` per edge-connected group of dropped faces (E3's `_components`), split by `split_group` over
+  `max_site_faces` (512). Evidence per site: `pairs` rows (`face`, `material`, `look`, `area`, `winners`,
+  `winner_looks`, `winner_areas`, `overlap_fraction`, `rule` in {same_look, priority, larger_area}), `area`,
+  `centroid`, `bbox`. Report: `pairs` counts, `groups`, `dropped`, `by_rule`, `kept` (reason counts), `kept_faces`,
+  `planned`, `seconds`.
+
+What is guarded, and by whom:
+
+| Guard | Where |
+|---|---|
+| remove only, no geometry invented | the engine emits only `remove`; `source_survivors(..., engine='E5')` refuses anything else; `verify_survivor_mesh` on readback |
+| the pairs are the Validator's | `double_layers` at the pipeline's depth tolerance, as `find_errors` |
+| never both faces of a pair | anchoring of winners (test `never_both_faces_of_a_pair`) |
+| never the only coverage of a footprint | 98 % cover by the winners, re-checked against the final kept faces (`only_coverage`) |
+| opposite-facing sheets untouched | the `opposite` flag and the facing dot (test) |
+| nothing visible deleted or covered | the kernel's site checks with the Validator as judge (`validate_sites=True`): removing an identical coplanar copy passes; removing the different-look copy FAILS check 1 `look` / check 3 `replaced` in today's Validator and is rolled back (test `the_judge_keeps_the_identical_twin_drop_and_rolls_back_the_different_look_drop`) |
+| the saved pair is the BEFORE minus the kept removes | `save_survivor_pair` + `bind_remove_only` (hash-bound `source-faces.json`, `edit-log.jsonl`) |
+
+NOT guarded here: the strict guard (`guard: pending` in the audit); the Validator's full floor run on an E5 candidate;
+anything on a real floor. OPEN: as the Validator stands (its docstring: "v0 has NO allowed-change classes"), every
+different-look drop (rule `priority` / `larger_area`) is rolled back by the site judge, so on 7F E5 will take the
+flicker_same twins and leave the flicker_diff ones until the Validator names E5's allowed-change class (the owner's
+table: "Where both sides are seen with different looks, the owner decides").
+
+### E4: `allow_growth`
+
+`E4Merge(allow_growth: bool = False)`: a region whose merge returns more triangles than it had input faces is refused
+`grew` (in `report["refused"]` with `faces_before` / `faces_after`), checked before the area rule so a grown region is
+named as such. `allow_growth=True` restores the old behaviour. Tests `engine/tests/test_e4_growth.py` (3): refused by
+default, let through with the flag (area kept, 6 triangles over the same six vertices), the fixtures never grow.
+
+### Tools
+
+- `tools/main_infra_e5.py`: `run_checked_e5(before, looks, flatness, priority=None, *, report=None) -> (outcome,
+  survivor_indices)` via `repair_unit(..., engines=[E5Coincident(...)], validate_sites=True)` and
+  `tools.main_infra_e3.source_survivors(before, outcome, engine='E5')` (the E3 proof, now taking the engine name);
+  `save_survivor_pair` is E3's (same `source-faces.json`, `mode: original_source_survivors`); `audit_report` trims the
+  engine report for the stage audit. Cleanup modes `e5_cull_only` (`["E5"]`) and `e3_then_e5_cull` (`["E3", "E5"]`).
+- `tools/main_infra_e3_binding.py`: the remove-only proof is now `bind_remove_only(engine=...)`; `bind_saved_e3` keeps
+  its contract (same keys, same mode check); `chained_e3_before` (moved from the E4 binding) proves the `e3_candidate`
+  an audit chains through.
+- `tools/main_infra_e5_binding.py`: `bind_saved_e5(..., require_guard=True)` for both E5 modes (the chained one
+  through `chained_e3_before`); `chained_e5_before` for the stage after E5. `load_physical_pair` dispatches
+  `e5_cull_only` / `e3_then_e5_cull` to it, and `e3_then_e5_then_e4_merge` to `bind_saved_e4`, which proves the E5
+  candidate through `chained_e5_before` (its own `e3_candidate` inside) and maps face ids back to the baseline through
+  both survivor lists; its receipt adds `e5_contract` and `e5_removed_triangles`.
+- The 4F-7F worktree's `tools/e3_independent_guard.py` binds with `bind_saved_e3` (only `e3_remove_only`): to run it
+  on an E5 candidate it needs the same relaxation (`bind_saved_e5`, or `bind_remove_only` with the engine taken from
+  `executed_stages[-1]`, and `require_guard=False` as the E4 guard does). That worktree is NOT edited here.
+- `tools/run_checked_e5_floor.py --root --floor --raw-name [--from-e3]` writes `<root>/e5/<F>/` (the candidate pair,
+  `source-faces.json`, `edit-log.jsonl`, `stage-audit.json` with `cleanup_mode`, `source_faces_sha256`,
+  `edit_log_sha256`, `e3_candidate`, `engine_report`, `guard: pending`, the assets); refuses an existing output.
+- `tools/run_checked_e4_floor.py --from-e5`: BEFORE = `<root>/e5/<F>/candidate.engine.obj` (its audit must say
+  `e3_then_e5_cull`), audit `cleanup_mode e3_then_e5_then_e4_merge`, `executed_stages ["E3", "E5", "E4"]`,
+  `e5_candidate` binding plus the E5 audit's `e3_candidate` carried along; `--from-e3` and `--from-e5` exclude each other.
+
+Tests: `engine/tests/test_e5_coincident.py` (13: exact smaller twin dropped and the footprint unchanged; an identical
+copy drops the higher ids; a 98 %-covered face dropped; a half-overlapped face kept (25 % / 75 % per triangle); the
+default priority ranking; facade beats concrete; equal priority -> the larger area, else both kept; a custom priority;
+opposite-facing sheets untouched; a face that is the only coverage of part of its footprint is never dropped (96 %
+covered, stays); never both faces of a pair (anchoring; a second run takes the middle layer); the cap splits a group
+into sites; the real site judge keeps the identical-twin drop and rolls back the different-look drop, `first FAIL /
+final PASS`), `engine/tests/test_e4_growth.py` (3), `tools/tests/test_main_infra_e5.py` (17: the run, survivor-proof
+refusals, save and readback in both frames, both modes through `load_physical_pair`, hash and rehash refusals, the
+guard bootstrap, both runners' refusals, and the E3 -> E5 -> E4 chain on a fixture run root: E5 `--from-e3` 8 -> 4
+triangles, E4 `--from-e5` 4 -> 2, `load_physical_pair` on the E4 candidate -> `e3_removed 1, e5_removed 4,
+e4_replaced 4, e4_new 2`, a changed E5 proof breaks the chain).
+
+### Commands (worktree root, `PYTHONPATH` = it, `-p no:cacheprovider`)
+
+```powershell
+$env:PYTHONPATH=(Get-Location).Path
+$PY='D:/PROJECTS/05-Corllenium-UC-Building-Repair-Engine/.venv/Scripts/python.exe'
+& $PY -m pytest engine/tests/test_e5_coincident.py engine/tests/test_e4_growth.py engine/tests/test_e4_merge.py -q -p no:cacheprovider
+& $PY -m pytest tools/tests -q -p no:cacheprovider
+```
+
+Output (2026-10-24, this interpreter):
+
+```
+pytest engine/tests/test_e5_coincident.py engine/tests/test_e4_growth.py engine/tests/test_e4_merge.py
+  -> 29 passed in 146.95s (0:02:26), exit 0   (13 + 3 + the 13 existing E4 tests)
+pytest tools/tests -> 346 passed in 218.80s (0:03:38), exit 0   (329 before + 17)
+pytest tools/tests/test_main_infra_e5.py -> 17 passed in 82.23s
+pytest tools/tests/test_main_infra_e3.py test_main_infra_e3_binding.py test_main_infra_e3_replay.py test_main_infra_e4.py
+  test_main_infra_e4_binding.py test_e4_independent_guard.py -> 87 passed in 110.02s (the suites the refactor touched)
+```
+
+The chained order on 7F (NOT run; the engine is in use by another worker): E5 on the E3 candidate, then E4 on the E5
+candidate.
+
+```powershell
+& $PY -B -u tools/run_checked_e5_floor.py --root <claude run root> --floor 7F --raw-name "7th floor main infra.obj" --from-e3
+& $PY -B -u tools/run_checked_e4_floor.py --root <claude run root> --floor 7F --raw-name "7th floor main infra.obj" --from-e5
+```
+
+Output: `<root>/e5/7F/{candidate.engine.obj, candidate.source.obj, source-faces.json, edit-log.jsonl, stage-audit.json
+(e3_then_e5_cull, guard pending), assets}`, then `<root>/e4/7F/{..., region-map.json, stage-audit.json
+(e3_then_e5_then_e4_merge)}`. The Validator on the E4 candidate (after the guard's receipt is recorded as `guard.passed`):
+
+```powershell
+& $PY tools/main_infra_physical_validation.py --raw "<root>/raw/7th floor main infra.obj" --reference <root>/reference/7F.json --baseline <root>/normalized/7F --qualification <root>/independent-validator/import-audit/qualification-7F.json --candidate <root>/e4/7F --materials <root>/independent-validator/preflight/materials-7F.json --out <root>/e4/7F-validation
+```
+
+### Open questions (E5)
+
+1. Different-look drops are planned by the priority rule but rolled back by today's Validator (check 1 `look`, check 3
+   `replaced`); the flicker_diff twins stay until the Validator names E5's allowed-change class (an owner decision).
+2. A three-layer stack loses one layer per E5 run (anchoring); a real floor may need E5 twice before E4.
+3. `double_layers` renders 26 views per plan (as `find_errors` does); on a real floor the plan's
+   `seconds["double_layers"]` is the number to read first.
+4. `max_site_faces = 512` mirrors E3; a dropped group over it is split by a centroid grid (a site is never partly kept).
+5. The E4 independent guard (`tools/e4_independent_guard.py`) binds with `bind_saved_e4`, which now accepts the triple
+   mode, so an E4-after-E5 candidate needs no change there; an E5-only candidate has no independent guard yet (see the
+   4F-7F note above).
