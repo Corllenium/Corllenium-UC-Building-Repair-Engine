@@ -231,3 +231,31 @@ RootindependentCIM15:49:42foundnoexecute/noobserver. No1Fexecutionnamespaceor
 candidateexists; frozen18c8ae9/P e5af unchanged. Observer-only lifecyclecorrection
 andnonmodelregressions requireindependentreview+freshrootGO. Actual2F41648
 continuescheckedkernel; nooutput/newfailure. Noacceptedfloor.
+
+
+## 2026-10-24 00:35 +08 - actual 1F saved, independent proof started
+
+ACTUAL1FE7 attempt3 saved10578 source/engine triangles fromstage10136/original15856.
+DefaultfreshkernelPASS;273kept/0rollback; verifiedtypedcheckpoint BEFORE saving;
+all7newMTL/PNGassets exactqualifiedhashes. ActualPython60308/start16:22:46.8585703Z,
+launcher51068/monitor60396/exec21420 exited0 at16:31:19.243954Z. Kernelwall482.12s,
+launchwall512.467s; peakcommit1.55GiB/minheadroom5.87GiB; noresourceabort.
+Frozen18c8ae9/P e5af unchanged. Newfinalcutb587c3b9/runadb653f7/asset019d965f/
+checkpointf6a25830; fullfinalreadbacka73a7462 copied verbatim beside these records.
+
+Earlier v3 startup rejected ownedconhost and stoppedbeforemodelwork;all3owned
+handlesexitverified/noWdir. V4narrowclassificationfix9cce3684 independentlyclear;
+real_components SAMEHiddenstartupRED->GREEN3.719s/49samples/all10handlesexited.
+Actualv4passinggates8.603/8.675/8.712GiB, fullownedtreebudget3GiB/<3.5GiBglobalabort.
+ExactreviewedPSbytes preserved withoutGitnewlinefilters. No geometryrulechanged.
+
+Public feed boundactual1F60308+2F41648; now1Fvalidating/pending10578, displayed
+E3candidate10136 retained untilnewindependentpreservation/nativeproof. 2Fstill
+checkedkernel/nooutput,3Fqueued; Claude4F-7F separate. Publisher57300/exec10075.
+Independent1Fcallerdaa5d94/source2ad92656 has36PASS/help0/reviewclear; formaljob
+handofftoCodex-Independent-Validator. Its2checkoutCRLFfiles restoredonlyfrom
+verifiedcommittedLFblobs; all201components/14inputs/3donors/7assets match, treeclean.
+RootGO actual1Fbind/prepare thenfresh>=8GiBgated strict26 -> native33qualified+
+13diagnostic -> fullsignedValidator/defaultSettings/targets against ORIGINAL15856.
+Singleextraheavybesideexisting2F; owneroperatorindependent. No modelpublication or
+acceptedfloor yet. Signedtargets may FAIL; do not weaken or reuse oldPASS.

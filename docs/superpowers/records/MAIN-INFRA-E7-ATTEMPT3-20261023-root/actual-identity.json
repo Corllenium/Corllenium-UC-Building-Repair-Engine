@@ -1,0 +1,16 @@
+{
+  "state": "RUNNING",
+  "launcher_pid": 51068,
+  "launcher_creation_utc": "2026-10-23T16:22:46.7922695Z",
+  "actual_pid": 60308,
+  "actual_creation_utc": "2026-10-23T16:22:46.8585703Z",
+  "command": "C:\\Users\\Future26\\AppData\\Local\\Programs\\Python\\Python312\\python.exe -B -u -m tools.main_infra_e7_attempt3 execute --plan data\\main-infra-e7\\run-20261023-attempt3\\preparation-1F.json --plan-sha256 e5af36dde9a242388985200cd6502b370dba87aba92ef152bec9e91b0f681e2a",
+  "preparation_sha256": "e5af36dde9a242388985200cd6502b370dba87aba92ef152bec9e91b0f681e2a",
+  "HEAD": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+  "bound_before_worker_json": true,
+  "worker_path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261023-attempt3\\execution-1F\\worker.json",
+  "evidence": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\attempt3-preflight\\execute-20261023T162214",
+  "monitor_pid": 60396,
+  "private_limit_bytes": 3221225472,
+  "headroom_abort_bytes": 3758096384.0
+}

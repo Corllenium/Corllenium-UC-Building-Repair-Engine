@@ -24,6 +24,18 @@ run the latest `.skp` of each file must be in `OBJ FIXED RESULT/` for the owner 
 2026. Work visually: every round ends with renders that are looked at, not only numbers.
 
 ## 2. Current state (2026-09-26 00:15, written by the Claude controller)
+
+2026-10-24 00:35 +08: NEW1Fcandidate SAVED10578tri/original15856/stage10136,
+273kept0rollback/defaultkernelPASS/verifiedcheckpoint/all7assetsmatch.60308+
+launcher+monitor exited0 at16:31:19Z; peak1.55GiB/noresourceabort. Frozen18c/P e5af;
+cutb587c3b9/checkpointf6a25830/fullreadbacka73a7462. V4observer9cce3684 reviewed,
+realstartuphelpersPASS; rawcode+receipts committed here. Actual2F41648stillkernel/
+nooutput;3Fqueued. Publisher57300/exec10075:1Fvalidating/pending10578, oldE3display
+10136 retained. Independentcallerdaa5d94/2ad92656 formallyhandedtoindependent
+validator; exact201componentpins restored/14inputs+3donors+7assetsmatch. RootGO
+newactualbind/prepare -> memorygatedstrict26/native/fullsignedoriginal15856proof;
+noacceptedfloor/newE7publicationyet. Claude4F-7F remain separate/6F7Fblockedtargets.
+
 2026-10-23 23:55 +08: actual2F41648stillcheckedkernel/nooutput;1Fprepared273
 source+engineproofs/P e5af queued;3Fqueued. Optionalconcurrent1Fneverlaunched:
 <8GiBgatesHOLD, observer-onlycleanup/CIMdefectsfound;63804stopped/exitverified,
