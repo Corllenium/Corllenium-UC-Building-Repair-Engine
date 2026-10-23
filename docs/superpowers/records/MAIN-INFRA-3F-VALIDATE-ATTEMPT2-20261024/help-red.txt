@@ -1,0 +1,19 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+__________________ test_3f_entrypoint_help_launches_nothing ___________________
+
+capsys = <_pytest.capture.CaptureFixture object at 0x000001DD9E9BA840>
+
+    def test_3f_entrypoint_help_launches_nothing(capsys):
+        from tools.main_infra_3f_validation import main
+        with pytest.raises(SystemExit) as info:main(['--help'])
+        help_text=capsys.readouterr().out
+>       assert info.value.code==0 and '--guard-sha256' in help_text and 'Independent 3F' in help_text
+E       AssertionError: assert (0 == 0 and '--guard-sha256' in 'usage: run-tests.py [-h] --preparation PREPARATION --candidate CANDIDATE --out\n                    OUT --preparation...sha256 AUDIT_SHA256\n  --worker-sha256 WORKER_SHA256\n  --guard-receipt GUARD_RECEIPT\n  --guard-sha256 GUARD_SHA256\n' and 'Independent 3F' in 'usage: run-tests.py [-h] --preparation PREPARATION --candidate CANDIDATE --out\n                    OUT --preparation...sha256 AUDIT_SHA256\n  --worker-sha256 WORKER_SHA256\n  --guard-receipt GUARD_RECEIPT\n  --guard-sha256 GUARD_SHA256\n')
+E        +  where 0 = SystemExit(0).code
+E        +    where SystemExit(0) = <ExceptionInfo SystemExit(0) tblen=11>.value
+
+tools\tests\test_main_infra_3f_validation.py:63: AssertionError
+=========================== short test summary info ===========================
+FAILED tools/tests/test_main_infra_3f_validation.py::test_3f_entrypoint_help_launches_nothing
+1 failed, 25 deselected in 0.20s

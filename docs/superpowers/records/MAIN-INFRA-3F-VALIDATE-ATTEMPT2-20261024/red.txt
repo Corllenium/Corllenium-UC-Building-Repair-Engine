@@ -1,0 +1,463 @@
+.FFFFFFFFFFFFFFFFFFF                                                     [100%]
+================================== FAILURES ===================================
+______________ test_saved_3f_profile_binds_original_and_terminal ______________
+
+three = (WindowsPath('D:/TEMP/iv3f-r1/test_saved_3f_profile_binds_or0/preparation.json'), WindowsPath('D:/TEMP/iv3f-r1/test_sa...3', 'floor_id': '3F', 'source_revision': '7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511', ...}, ...)
+
+    def test_saved_3f_profile_binds_original_and_terminal(three):
+>       receipt=bind(three,floor_id='3F')
+                ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tools\tests\test_main_infra_3f_validation.py:39: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+case = (WindowsPath('D:/TEMP/iv3f-r1/test_saved_3f_profile_binds_or0/preparation.json'), WindowsPath('D:/TEMP/iv3f-r1/test_sa...3', 'floor_id': '3F', 'source_revision': '7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511', ...}, ...)
+kw = {'floor_id': '3F'}
+
+    def bind(case,**kw):
+>       return shared.bind_identity(case[0],case[1],digest(case[1]/'stage-audit.json'),digest(case[2]),**kw)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       TypeError: bind_identity() got an unexpected keyword argument 'floor_id'
+
+tools\tests\test_main_infra_3f_validation.py:32: TypeError
+_____________ test_only_explicit_2f3f_profiles_are_permitted[1F] ______________
+
+three = (WindowsPath('D:/TEMP/iv3f-r1/test_only_explicit_2f3f_profil0/preparation.json'), WindowsPath('D:/TEMP/iv3f-r1/test_on...3', 'floor_id': '3F', 'source_revision': '7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511', ...}, ...)
+floor = '1F'
+
+    @pytest.mark.parametrize('floor',['1F','4F','unknown'])
+    def test_only_explicit_2f3f_profiles_are_permitted(three,floor):
+>       with pytest.raises(ValueError,match='profile'):bind(three,floor_id=floor)
+                                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tools\tests\test_main_infra_3f_validation.py:45: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+case = (WindowsPath('D:/TEMP/iv3f-r1/test_only_explicit_2f3f_profil0/preparation.json'), WindowsPath('D:/TEMP/iv3f-r1/test_on...3', 'floor_id': '3F', 'source_revision': '7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511', ...}, ...)
+kw = {'floor_id': '1F'}
+
+    def bind(case,**kw):
+>       return shared.bind_identity(case[0],case[1],digest(case[1]/'stage-audit.json'),digest(case[2]),**kw)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       TypeError: bind_identity() got an unexpected keyword argument 'floor_id'
+
+tools\tests\test_main_infra_3f_validation.py:32: TypeError
+_____________ test_only_explicit_2f3f_profiles_are_permitted[4F] ______________
+
+three = (WindowsPath('D:/TEMP/iv3f-r1/test_only_explicit_2f3f_profil1/preparation.json'), WindowsPath('D:/TEMP/iv3f-r1/test_on...3', 'floor_id': '3F', 'source_revision': '7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511', ...}, ...)
+floor = '4F'
+
+    @pytest.mark.parametrize('floor',['1F','4F','unknown'])
+    def test_only_explicit_2f3f_profiles_are_permitted(three,floor):
+>       with pytest.raises(ValueError,match='profile'):bind(three,floor_id=floor)
+                                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tools\tests\test_main_infra_3f_validation.py:45: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+case = (WindowsPath('D:/TEMP/iv3f-r1/test_only_explicit_2f3f_profil1/preparation.json'), WindowsPath('D:/TEMP/iv3f-r1/test_on...3', 'floor_id': '3F', 'source_revision': '7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511', ...}, ...)
+kw = {'floor_id': '4F'}
+
+    def bind(case,**kw):
+>       return shared.bind_identity(case[0],case[1],digest(case[1]/'stage-audit.json'),digest(case[2]),**kw)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       TypeError: bind_identity() got an unexpected keyword argument 'floor_id'
+
+tools\tests\test_main_infra_3f_validation.py:32: TypeError
+___________ test_only_explicit_2f3f_profiles_are_permitted[unknown] ___________
+
+three = (WindowsPath('D:/TEMP/iv3f-r1/test_only_explicit_2f3f_profil2/preparation.json'), WindowsPath('D:/TEMP/iv3f-r1/test_on...3', 'floor_id': '3F', 'source_revision': '7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511', ...}, ...)
+floor = 'unknown'
+
+    @pytest.mark.parametrize('floor',['1F','4F','unknown'])
+    def test_only_explicit_2f3f_profiles_are_permitted(three,floor):
+>       with pytest.raises(ValueError,match='profile'):bind(three,floor_id=floor)
+                                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tools\tests\test_main_infra_3f_validation.py:45: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+case = (WindowsPath('D:/TEMP/iv3f-r1/test_only_explicit_2f3f_profil2/preparation.json'), WindowsPath('D:/TEMP/iv3f-r1/test_on...3', 'floor_id': '3F', 'source_revision': '7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511', ...}, ...)
+kw = {'floor_id': 'unknown'}
+
+    def bind(case,**kw):
+>       return shared.bind_identity(case[0],case[1],digest(case[1]/'stage-audit.json'),digest(case[2]),**kw)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       TypeError: bind_identity() got an unexpected keyword argument 'floor_id'
+
+tools\tests\test_main_infra_3f_validation.py:32: TypeError
+_________________ test_3f_rejects_foreign_worker[floor_id-2F] _________________
+
+three = (WindowsPath('D:/TEMP/iv3f-r1/test_3f_rejects_foreign_worker0/preparation.json'), WindowsPath('D:/TEMP/iv3f-r1/test_3f...3', 'floor_id': '3F', 'source_revision': '7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511', ...}, ...)
+field = 'floor_id', value = '2F'
+
+    @pytest.mark.parametrize('field,value',[('floor_id','2F'),('input_triangles',56828),('output_triangles',38690)])
+    def test_3f_rejects_foreign_worker(three,field,value):
+        three[4][field]=value;write(three[2],three[4])
+>       with pytest.raises(ValueError):bind(three,floor_id='3F')
+                                       ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tools\tests\test_main_infra_3f_validation.py:50: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+case = (WindowsPath('D:/TEMP/iv3f-r1/test_3f_rejects_foreign_worker0/preparation.json'), WindowsPath('D:/TEMP/iv3f-r1/test_3f...3', 'floor_id': '3F', 'source_revision': '7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511', ...}, ...)
+kw = {'floor_id': '3F'}
+
+    def bind(case,**kw):
+>       return shared.bind_identity(case[0],case[1],digest(case[1]/'stage-audit.json'),digest(case[2]),**kw)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       TypeError: bind_identity() got an unexpected keyword argument 'floor_id'
+
+tools\tests\test_main_infra_3f_validation.py:32: TypeError
+____________ test_3f_rejects_foreign_worker[input_triangles-56828] ____________
+
+three = (WindowsPath('D:/TEMP/iv3f-r1/test_3f_rejects_foreign_worker1/preparation.json'), WindowsPath('D:/TEMP/iv3f-r1/test_3f...3', 'floor_id': '3F', 'source_revision': '7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511', ...}, ...)
+field = 'input_triangles', value = 56828
+
+    @pytest.mark.parametrize('field,value',[('floor_id','2F'),('input_triangles',56828),('output_triangles',38690)])
+    def test_3f_rejects_foreign_worker(three,field,value):
+        three[4][field]=value;write(three[2],three[4])
+>       with pytest.raises(ValueError):bind(three,floor_id='3F')
+                                       ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tools\tests\test_main_infra_3f_validation.py:50: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+case = (WindowsPath('D:/TEMP/iv3f-r1/test_3f_rejects_foreign_worker1/preparation.json'), WindowsPath('D:/TEMP/iv3f-r1/test_3f...3', 'floor_id': '3F', 'source_revision': '7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511', ...}, ...)
+kw = {'floor_id': '3F'}
+
+    def bind(case,**kw):
+>       return shared.bind_identity(case[0],case[1],digest(case[1]/'stage-audit.json'),digest(case[2]),**kw)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       TypeError: bind_identity() got an unexpected keyword argument 'floor_id'
+
+tools\tests\test_main_infra_3f_validation.py:32: TypeError
+___________ test_3f_rejects_foreign_worker[output_triangles-38690] ____________
+
+three = (WindowsPath('D:/TEMP/iv3f-r1/test_3f_rejects_foreign_worker2/preparation.json'), WindowsPath('D:/TEMP/iv3f-r1/test_3f...3', 'floor_id': '3F', 'source_revision': '7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511', ...}, ...)
+field = 'output_triangles', value = 38690
+
+    @pytest.mark.parametrize('field,value',[('floor_id','2F'),('input_triangles',56828),('output_triangles',38690)])
+    def test_3f_rejects_foreign_worker(three,field,value):
+        three[4][field]=value;write(three[2],three[4])
+>       with pytest.raises(ValueError):bind(three,floor_id='3F')
+                                       ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tools\tests\test_main_infra_3f_validation.py:50: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+case = (WindowsPath('D:/TEMP/iv3f-r1/test_3f_rejects_foreign_worker2/preparation.json'), WindowsPath('D:/TEMP/iv3f-r1/test_3f...3', 'floor_id': '3F', 'source_revision': '7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511', ...}, ...)
+kw = {'floor_id': '3F'}
+
+    def bind(case,**kw):
+>       return shared.bind_identity(case[0],case[1],digest(case[1]/'stage-audit.json'),digest(case[2]),**kw)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       TypeError: bind_identity() got an unexpected keyword argument 'floor_id'
+
+tools\tests\test_main_infra_3f_validation.py:32: TypeError
+______ test_3f_requires_actual_successful_owned_terminal[state-RUNNING] _______
+
+three = (WindowsPath('D:/TEMP/iv3f-r1/test_3f_requires_actual_succes0/preparation.json'), WindowsPath('D:/TEMP/iv3f-r1/test_3f...3', 'floor_id': '3F', 'source_revision': '7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511', ...}, ...)
+field = 'state', value = 'RUNNING'
+
+    @pytest.mark.parametrize('field,value',[('state','RUNNING'),('phase','E3-2F-attempt2'),('actual_pid',41648),
+        ('actual_creation_utc','old'),('actual_exit_code',2),('launcher_exit_code',2),('abort_reason','failure'),
+        ('HEAD','old'),('all_owned_exited',False),('acceptance',True),('phase_plan_sha256','0'*64)])
+    def test_3f_requires_actual_successful_owned_terminal(three,field,value):
+        three[7][field]=value;write(three[6],three[7]);three[5]['sha256']['worker_terminal']=digest(three[6]);write(three[0],three[5])
+>       with pytest.raises(ValueError,match='terminal'):bind(three,floor_id='3F')
+                                                        ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tools\tests\test_main_infra_3f_validation.py:57: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+case = (WindowsPath('D:/TEMP/iv3f-r1/test_3f_requires_actual_succes0/preparation.json'), WindowsPath('D:/TEMP/iv3f-r1/test_3f...3', 'floor_id': '3F', 'source_revision': '7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511', ...}, ...)
+kw = {'floor_id': '3F'}
+
+    def bind(case,**kw):
+>       return shared.bind_identity(case[0],case[1],digest(case[1]/'stage-audit.json'),digest(case[2]),**kw)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       TypeError: bind_identity() got an unexpected keyword argument 'floor_id'
+
+tools\tests\test_main_infra_3f_validation.py:32: TypeError
+___ test_3f_requires_actual_successful_owned_terminal[phase-E3-2F-attempt2] ___
+
+three = (WindowsPath('D:/TEMP/iv3f-r1/test_3f_requires_actual_succes1/preparation.json'), WindowsPath('D:/TEMP/iv3f-r1/test_3f...3', 'floor_id': '3F', 'source_revision': '7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511', ...}, ...)
+field = 'phase', value = 'E3-2F-attempt2'
+
+    @pytest.mark.parametrize('field,value',[('state','RUNNING'),('phase','E3-2F-attempt2'),('actual_pid',41648),
+        ('actual_creation_utc','old'),('actual_exit_code',2),('launcher_exit_code',2),('abort_reason','failure'),
+        ('HEAD','old'),('all_owned_exited',False),('acceptance',True),('phase_plan_sha256','0'*64)])
+    def test_3f_requires_actual_successful_owned_terminal(three,field,value):
+        three[7][field]=value;write(three[6],three[7]);three[5]['sha256']['worker_terminal']=digest(three[6]);write(three[0],three[5])
+>       with pytest.raises(ValueError,match='terminal'):bind(three,floor_id='3F')
+                                                        ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tools\tests\test_main_infra_3f_validation.py:57: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+case = (WindowsPath('D:/TEMP/iv3f-r1/test_3f_requires_actual_succes1/preparation.json'), WindowsPath('D:/TEMP/iv3f-r1/test_3f...3', 'floor_id': '3F', 'source_revision': '7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511', ...}, ...)
+kw = {'floor_id': '3F'}
+
+    def bind(case,**kw):
+>       return shared.bind_identity(case[0],case[1],digest(case[1]/'stage-audit.json'),digest(case[2]),**kw)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       TypeError: bind_identity() got an unexpected keyword argument 'floor_id'
+
+tools\tests\test_main_infra_3f_validation.py:32: TypeError
+_____ test_3f_requires_actual_successful_owned_terminal[actual_pid-41648] _____
+
+three = (WindowsPath('D:/TEMP/iv3f-r1/test_3f_requires_actual_succes2/preparation.json'), WindowsPath('D:/TEMP/iv3f-r1/test_3f...3', 'floor_id': '3F', 'source_revision': '7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511', ...}, ...)
+field = 'actual_pid', value = 41648
+
+    @pytest.mark.parametrize('field,value',[('state','RUNNING'),('phase','E3-2F-attempt2'),('actual_pid',41648),
+        ('actual_creation_utc','old'),('actual_exit_code',2),('launcher_exit_code',2),('abort_reason','failure'),
+        ('HEAD','old'),('all_owned_exited',False),('acceptance',True),('phase_plan_sha256','0'*64)])
+    def test_3f_requires_actual_successful_owned_terminal(three,field,value):
+        three[7][field]=value;write(three[6],three[7]);three[5]['sha256']['worker_terminal']=digest(three[6]);write(three[0],three[5])
+>       with pytest.raises(ValueError,match='terminal'):bind(three,floor_id='3F')
+                                                        ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tools\tests\test_main_infra_3f_validation.py:57: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+case = (WindowsPath('D:/TEMP/iv3f-r1/test_3f_requires_actual_succes2/preparation.json'), WindowsPath('D:/TEMP/iv3f-r1/test_3f...3', 'floor_id': '3F', 'source_revision': '7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511', ...}, ...)
+kw = {'floor_id': '3F'}
+
+    def bind(case,**kw):
+>       return shared.bind_identity(case[0],case[1],digest(case[1]/'stage-audit.json'),digest(case[2]),**kw)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       TypeError: bind_identity() got an unexpected keyword argument 'floor_id'
+
+tools\tests\test_main_infra_3f_validation.py:32: TypeError
+_ test_3f_requires_actual_successful_owned_terminal[actual_creation_utc-old] __
+
+three = (WindowsPath('D:/TEMP/iv3f-r1/test_3f_requires_actual_succes3/preparation.json'), WindowsPath('D:/TEMP/iv3f-r1/test_3f...3', 'floor_id': '3F', 'source_revision': '7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511', ...}, ...)
+field = 'actual_creation_utc', value = 'old'
+
+    @pytest.mark.parametrize('field,value',[('state','RUNNING'),('phase','E3-2F-attempt2'),('actual_pid',41648),
+        ('actual_creation_utc','old'),('actual_exit_code',2),('launcher_exit_code',2),('abort_reason','failure'),
+        ('HEAD','old'),('all_owned_exited',False),('acceptance',True),('phase_plan_sha256','0'*64)])
+    def test_3f_requires_actual_successful_owned_terminal(three,field,value):
+        three[7][field]=value;write(three[6],three[7]);three[5]['sha256']['worker_terminal']=digest(three[6]);write(three[0],three[5])
+>       with pytest.raises(ValueError,match='terminal'):bind(three,floor_id='3F')
+                                                        ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tools\tests\test_main_infra_3f_validation.py:57: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+case = (WindowsPath('D:/TEMP/iv3f-r1/test_3f_requires_actual_succes3/preparation.json'), WindowsPath('D:/TEMP/iv3f-r1/test_3f...3', 'floor_id': '3F', 'source_revision': '7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511', ...}, ...)
+kw = {'floor_id': '3F'}
+
+    def bind(case,**kw):
+>       return shared.bind_identity(case[0],case[1],digest(case[1]/'stage-audit.json'),digest(case[2]),**kw)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       TypeError: bind_identity() got an unexpected keyword argument 'floor_id'
+
+tools\tests\test_main_infra_3f_validation.py:32: TypeError
+____ test_3f_requires_actual_successful_owned_terminal[actual_exit_code-2] ____
+
+three = (WindowsPath('D:/TEMP/iv3f-r1/test_3f_requires_actual_succes4/preparation.json'), WindowsPath('D:/TEMP/iv3f-r1/test_3f...3', 'floor_id': '3F', 'source_revision': '7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511', ...}, ...)
+field = 'actual_exit_code', value = 2
+
+    @pytest.mark.parametrize('field,value',[('state','RUNNING'),('phase','E3-2F-attempt2'),('actual_pid',41648),
+        ('actual_creation_utc','old'),('actual_exit_code',2),('launcher_exit_code',2),('abort_reason','failure'),
+        ('HEAD','old'),('all_owned_exited',False),('acceptance',True),('phase_plan_sha256','0'*64)])
+    def test_3f_requires_actual_successful_owned_terminal(three,field,value):
+        three[7][field]=value;write(three[6],three[7]);three[5]['sha256']['worker_terminal']=digest(three[6]);write(three[0],three[5])
+>       with pytest.raises(ValueError,match='terminal'):bind(three,floor_id='3F')
+                                                        ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tools\tests\test_main_infra_3f_validation.py:57: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+case = (WindowsPath('D:/TEMP/iv3f-r1/test_3f_requires_actual_succes4/preparation.json'), WindowsPath('D:/TEMP/iv3f-r1/test_3f...3', 'floor_id': '3F', 'source_revision': '7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511', ...}, ...)
+kw = {'floor_id': '3F'}
+
+    def bind(case,**kw):
+>       return shared.bind_identity(case[0],case[1],digest(case[1]/'stage-audit.json'),digest(case[2]),**kw)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       TypeError: bind_identity() got an unexpected keyword argument 'floor_id'
+
+tools\tests\test_main_infra_3f_validation.py:32: TypeError
+___ test_3f_requires_actual_successful_owned_terminal[launcher_exit_code-2] ___
+
+three = (WindowsPath('D:/TEMP/iv3f-r1/test_3f_requires_actual_succes5/preparation.json'), WindowsPath('D:/TEMP/iv3f-r1/test_3f...3', 'floor_id': '3F', 'source_revision': '7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511', ...}, ...)
+field = 'launcher_exit_code', value = 2
+
+    @pytest.mark.parametrize('field,value',[('state','RUNNING'),('phase','E3-2F-attempt2'),('actual_pid',41648),
+        ('actual_creation_utc','old'),('actual_exit_code',2),('launcher_exit_code',2),('abort_reason','failure'),
+        ('HEAD','old'),('all_owned_exited',False),('acceptance',True),('phase_plan_sha256','0'*64)])
+    def test_3f_requires_actual_successful_owned_terminal(three,field,value):
+        three[7][field]=value;write(three[6],three[7]);three[5]['sha256']['worker_terminal']=digest(three[6]);write(three[0],three[5])
+>       with pytest.raises(ValueError,match='terminal'):bind(three,floor_id='3F')
+                                                        ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tools\tests\test_main_infra_3f_validation.py:57: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+case = (WindowsPath('D:/TEMP/iv3f-r1/test_3f_requires_actual_succes5/preparation.json'), WindowsPath('D:/TEMP/iv3f-r1/test_3f...3', 'floor_id': '3F', 'source_revision': '7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511', ...}, ...)
+kw = {'floor_id': '3F'}
+
+    def bind(case,**kw):
+>       return shared.bind_identity(case[0],case[1],digest(case[1]/'stage-audit.json'),digest(case[2]),**kw)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       TypeError: bind_identity() got an unexpected keyword argument 'floor_id'
+
+tools\tests\test_main_infra_3f_validation.py:32: TypeError
+___ test_3f_requires_actual_successful_owned_terminal[abort_reason-failure] ___
+
+three = (WindowsPath('D:/TEMP/iv3f-r1/test_3f_requires_actual_succes6/preparation.json'), WindowsPath('D:/TEMP/iv3f-r1/test_3f...3', 'floor_id': '3F', 'source_revision': '7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511', ...}, ...)
+field = 'abort_reason', value = 'failure'
+
+    @pytest.mark.parametrize('field,value',[('state','RUNNING'),('phase','E3-2F-attempt2'),('actual_pid',41648),
+        ('actual_creation_utc','old'),('actual_exit_code',2),('launcher_exit_code',2),('abort_reason','failure'),
+        ('HEAD','old'),('all_owned_exited',False),('acceptance',True),('phase_plan_sha256','0'*64)])
+    def test_3f_requires_actual_successful_owned_terminal(three,field,value):
+        three[7][field]=value;write(three[6],three[7]);three[5]['sha256']['worker_terminal']=digest(three[6]);write(three[0],three[5])
+>       with pytest.raises(ValueError,match='terminal'):bind(three,floor_id='3F')
+                                                        ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tools\tests\test_main_infra_3f_validation.py:57: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+case = (WindowsPath('D:/TEMP/iv3f-r1/test_3f_requires_actual_succes6/preparation.json'), WindowsPath('D:/TEMP/iv3f-r1/test_3f...3', 'floor_id': '3F', 'source_revision': '7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511', ...}, ...)
+kw = {'floor_id': '3F'}
+
+    def bind(case,**kw):
+>       return shared.bind_identity(case[0],case[1],digest(case[1]/'stage-audit.json'),digest(case[2]),**kw)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       TypeError: bind_identity() got an unexpected keyword argument 'floor_id'
+
+tools\tests\test_main_infra_3f_validation.py:32: TypeError
+_________ test_3f_requires_actual_successful_owned_terminal[HEAD-old] _________
+
+three = (WindowsPath('D:/TEMP/iv3f-r1/test_3f_requires_actual_succes7/preparation.json'), WindowsPath('D:/TEMP/iv3f-r1/test_3f...3', 'floor_id': '3F', 'source_revision': '7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511', ...}, ...)
+field = 'HEAD', value = 'old'
+
+    @pytest.mark.parametrize('field,value',[('state','RUNNING'),('phase','E3-2F-attempt2'),('actual_pid',41648),
+        ('actual_creation_utc','old'),('actual_exit_code',2),('launcher_exit_code',2),('abort_reason','failure'),
+        ('HEAD','old'),('all_owned_exited',False),('acceptance',True),('phase_plan_sha256','0'*64)])
+    def test_3f_requires_actual_successful_owned_terminal(three,field,value):
+        three[7][field]=value;write(three[6],three[7]);three[5]['sha256']['worker_terminal']=digest(three[6]);write(three[0],three[5])
+>       with pytest.raises(ValueError,match='terminal'):bind(three,floor_id='3F')
+                                                        ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tools\tests\test_main_infra_3f_validation.py:57: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+case = (WindowsPath('D:/TEMP/iv3f-r1/test_3f_requires_actual_succes7/preparation.json'), WindowsPath('D:/TEMP/iv3f-r1/test_3f...3', 'floor_id': '3F', 'source_revision': '7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511', ...}, ...)
+kw = {'floor_id': '3F'}
+
+    def bind(case,**kw):
+>       return shared.bind_identity(case[0],case[1],digest(case[1]/'stage-audit.json'),digest(case[2]),**kw)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       TypeError: bind_identity() got an unexpected keyword argument 'floor_id'
+
+tools\tests\test_main_infra_3f_validation.py:32: TypeError
+__ test_3f_requires_actual_successful_owned_terminal[all_owned_exited-False] __
+
+three = (WindowsPath('D:/TEMP/iv3f-r1/test_3f_requires_actual_succes8/preparation.json'), WindowsPath('D:/TEMP/iv3f-r1/test_3f...3', 'floor_id': '3F', 'source_revision': '7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511', ...}, ...)
+field = 'all_owned_exited', value = False
+
+    @pytest.mark.parametrize('field,value',[('state','RUNNING'),('phase','E3-2F-attempt2'),('actual_pid',41648),
+        ('actual_creation_utc','old'),('actual_exit_code',2),('launcher_exit_code',2),('abort_reason','failure'),
+        ('HEAD','old'),('all_owned_exited',False),('acceptance',True),('phase_plan_sha256','0'*64)])
+    def test_3f_requires_actual_successful_owned_terminal(three,field,value):
+        three[7][field]=value;write(three[6],three[7]);three[5]['sha256']['worker_terminal']=digest(three[6]);write(three[0],three[5])
+>       with pytest.raises(ValueError,match='terminal'):bind(three,floor_id='3F')
+                                                        ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tools\tests\test_main_infra_3f_validation.py:57: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+case = (WindowsPath('D:/TEMP/iv3f-r1/test_3f_requires_actual_succes8/preparation.json'), WindowsPath('D:/TEMP/iv3f-r1/test_3f...3', 'floor_id': '3F', 'source_revision': '7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511', ...}, ...)
+kw = {'floor_id': '3F'}
+
+    def bind(case,**kw):
+>       return shared.bind_identity(case[0],case[1],digest(case[1]/'stage-audit.json'),digest(case[2]),**kw)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       TypeError: bind_identity() got an unexpected keyword argument 'floor_id'
+
+tools\tests\test_main_infra_3f_validation.py:32: TypeError
+_____ test_3f_requires_actual_successful_owned_terminal[acceptance-True] ______
+
+three = (WindowsPath('D:/TEMP/iv3f-r1/test_3f_requires_actual_succes9/preparation.json'), WindowsPath('D:/TEMP/iv3f-r1/test_3f...3', 'floor_id': '3F', 'source_revision': '7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511', ...}, ...)
+field = 'acceptance', value = True
+
+    @pytest.mark.parametrize('field,value',[('state','RUNNING'),('phase','E3-2F-attempt2'),('actual_pid',41648),
+        ('actual_creation_utc','old'),('actual_exit_code',2),('launcher_exit_code',2),('abort_reason','failure'),
+        ('HEAD','old'),('all_owned_exited',False),('acceptance',True),('phase_plan_sha256','0'*64)])
+    def test_3f_requires_actual_successful_owned_terminal(three,field,value):
+        three[7][field]=value;write(three[6],three[7]);three[5]['sha256']['worker_terminal']=digest(three[6]);write(three[0],three[5])
+>       with pytest.raises(ValueError,match='terminal'):bind(three,floor_id='3F')
+                                                        ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tools\tests\test_main_infra_3f_validation.py:57: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+case = (WindowsPath('D:/TEMP/iv3f-r1/test_3f_requires_actual_succes9/preparation.json'), WindowsPath('D:/TEMP/iv3f-r1/test_3f...3', 'floor_id': '3F', 'source_revision': '7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511', ...}, ...)
+kw = {'floor_id': '3F'}
+
+    def bind(case,**kw):
+>       return shared.bind_identity(case[0],case[1],digest(case[1]/'stage-audit.json'),digest(case[2]),**kw)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       TypeError: bind_identity() got an unexpected keyword argument 'floor_id'
+
+tools\tests\test_main_infra_3f_validation.py:32: TypeError
+_ test_3f_requires_actual_successful_owned_terminal[phase_plan_sha256-0000000000000000000000000000000000000000000000000000000000000000] _
+
+three = (WindowsPath('D:/TEMP/iv3f-r1/test_3f_requires_actual_succes10/preparation.json'), WindowsPath('D:/TEMP/iv3f-r1/test_3...3', 'floor_id': '3F', 'source_revision': '7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511', ...}, ...)
+field = 'phase_plan_sha256'
+value = '0000000000000000000000000000000000000000000000000000000000000000'
+
+    @pytest.mark.parametrize('field,value',[('state','RUNNING'),('phase','E3-2F-attempt2'),('actual_pid',41648),
+        ('actual_creation_utc','old'),('actual_exit_code',2),('launcher_exit_code',2),('abort_reason','failure'),
+        ('HEAD','old'),('all_owned_exited',False),('acceptance',True),('phase_plan_sha256','0'*64)])
+    def test_3f_requires_actual_successful_owned_terminal(three,field,value):
+        three[7][field]=value;write(three[6],three[7]);three[5]['sha256']['worker_terminal']=digest(three[6]);write(three[0],three[5])
+>       with pytest.raises(ValueError,match='terminal'):bind(three,floor_id='3F')
+                                                        ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tools\tests\test_main_infra_3f_validation.py:57: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+case = (WindowsPath('D:/TEMP/iv3f-r1/test_3f_requires_actual_succes10/preparation.json'), WindowsPath('D:/TEMP/iv3f-r1/test_3...3', 'floor_id': '3F', 'source_revision': '7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511', ...}, ...)
+kw = {'floor_id': '3F'}
+
+    def bind(case,**kw):
+>       return shared.bind_identity(case[0],case[1],digest(case[1]/'stage-audit.json'),digest(case[2]),**kw)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       TypeError: bind_identity() got an unexpected keyword argument 'floor_id'
+
+tools\tests\test_main_infra_3f_validation.py:32: TypeError
+__________________ test_3f_entrypoint_help_launches_nothing ___________________
+
+capsys = <_pytest.capture.CaptureFixture object at 0x000002A402084980>
+
+    def test_3f_entrypoint_help_launches_nothing(capsys):
+>       from tools.main_infra_3f_validation import main
+E       ModuleNotFoundError: No module named 'tools.main_infra_3f_validation'
+
+tools\tests\test_main_infra_3f_validation.py:60: ModuleNotFoundError
+=========================== short test summary info ===========================
+FAILED tools/tests/test_main_infra_3f_validation.py::test_saved_3f_profile_binds_original_and_terminal
+FAILED tools/tests/test_main_infra_3f_validation.py::test_only_explicit_2f3f_profiles_are_permitted[1F]
+FAILED tools/tests/test_main_infra_3f_validation.py::test_only_explicit_2f3f_profiles_are_permitted[4F]
+FAILED tools/tests/test_main_infra_3f_validation.py::test_only_explicit_2f3f_profiles_are_permitted[unknown]
+FAILED tools/tests/test_main_infra_3f_validation.py::test_3f_rejects_foreign_worker[floor_id-2F]
+FAILED tools/tests/test_main_infra_3f_validation.py::test_3f_rejects_foreign_worker[input_triangles-56828]
+FAILED tools/tests/test_main_infra_3f_validation.py::test_3f_rejects_foreign_worker[output_triangles-38690]
+FAILED tools/tests/test_main_infra_3f_validation.py::test_3f_requires_actual_successful_owned_terminal[state-RUNNING]
+FAILED tools/tests/test_main_infra_3f_validation.py::test_3f_requires_actual_successful_owned_terminal[phase-E3-2F-attempt2]
+FAILED tools/tests/test_main_infra_3f_validation.py::test_3f_requires_actual_successful_owned_terminal[actual_pid-41648]
+FAILED tools/tests/test_main_infra_3f_validation.py::test_3f_requires_actual_successful_owned_terminal[actual_creation_utc-old]
+FAILED tools/tests/test_main_infra_3f_validation.py::test_3f_requires_actual_successful_owned_terminal[actual_exit_code-2]
+FAILED tools/tests/test_main_infra_3f_validation.py::test_3f_requires_actual_successful_owned_terminal[launcher_exit_code-2]
+FAILED tools/tests/test_main_infra_3f_validation.py::test_3f_requires_actual_successful_owned_terminal[abort_reason-failure]
+FAILED tools/tests/test_main_infra_3f_validation.py::test_3f_requires_actual_successful_owned_terminal[HEAD-old]
+FAILED tools/tests/test_main_infra_3f_validation.py::test_3f_requires_actual_successful_owned_terminal[all_owned_exited-False]
+FAILED tools/tests/test_main_infra_3f_validation.py::test_3f_requires_actual_successful_owned_terminal[acceptance-True]
+FAILED tools/tests/test_main_infra_3f_validation.py::test_3f_requires_actual_successful_owned_terminal[phase_plan_sha256-0000000000000000000000000000000000000000000000000000000000000000]
+FAILED tools/tests/test_main_infra_3f_validation.py::test_3f_entrypoint_help_launches_nothing
+19 failed, 1 passed in 2.45s

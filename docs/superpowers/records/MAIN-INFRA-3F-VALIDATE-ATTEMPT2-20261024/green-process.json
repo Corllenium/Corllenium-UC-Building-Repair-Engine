@@ -1,0 +1,23 @@
+{
+  "command": [
+    "D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe",
+    "-B",
+    "D:\\LLM_BACKUP\\Codex session\\main-infra-3f-validation-20261024\\05-Corllenium-UC-Building-Repair-Engine\\docs\\superpowers\\records\\MAIN-INFRA-3F-VALIDATE-ATTEMPT2-20261024\\run-tests.py",
+    "tools/tests/test_main_infra_2f_validation.py",
+    "tools/tests/test_main_infra_3f_validation.py",
+    "-q",
+    "-p",
+    "no:cacheprovider",
+    "--basetemp",
+    "D:/TEMP/iv3f-g1"
+  ],
+  "exit_code": 0,
+  "tree_private_peak": 27410432,
+  "observer_private_peak": 10473472,
+  "pid_private_peaks": {
+    "3864": 847872,
+    "33460": 26562560
+  },
+  "cap_bytes": 262144000,
+  "cap_exceeded": false
+}

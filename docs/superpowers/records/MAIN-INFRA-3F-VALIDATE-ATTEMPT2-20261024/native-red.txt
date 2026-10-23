@@ -1,0 +1,81 @@
+FFFFF                                                                    [100%]
+================================== FAILURES ===================================
+________ test_retained_3f_native_cohort_has33qualified_and13diagnostic ________
+
+    def test_retained_3f_native_cohort_has33qualified_and13diagnostic():
+>       assert shared.native_pose_inventory(actual_3f_poses(),'3F')==dict(qualified_walking=16,qualified_outside=17,diagnostic=13)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: module 'tools.main_infra_2f_validation' has no attribute 'native_pose_inventory'
+
+tools\tests\test_main_infra_3f_validation.py:70: AttributeError
+_______________ test_3f_native_cohort_drift_is_refused[missing] _______________
+
+change = 'missing'
+
+    @pytest.mark.parametrize('change',['missing','duplicate','walking_relabel','outside_projection'])
+    def test_3f_native_cohort_drift_is_refused(change):
+        poses=actual_3f_poses()
+        if change=='missing':poses.pop()
+        if change=='duplicate':poses[-1]['name']=poses[0]['name']
+        if change=='walking_relabel':next(p for p in poses if p.get('viewpoint_class')=='actual_unchanged_qualified_walking_probe')['viewpoint_class']='diagnostic'
+        if change=='outside_projection':next(p for p in poses if p['name']=='view_0_0_1')['projection']='PERSP'
+>       with pytest.raises(ValueError,match='native|cohort'):shared.native_pose_inventory(poses,'3F')
+                                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: module 'tools.main_infra_2f_validation' has no attribute 'native_pose_inventory'
+
+tools\tests\test_main_infra_3f_validation.py:79: AttributeError
+______________ test_3f_native_cohort_drift_is_refused[duplicate] ______________
+
+change = 'duplicate'
+
+    @pytest.mark.parametrize('change',['missing','duplicate','walking_relabel','outside_projection'])
+    def test_3f_native_cohort_drift_is_refused(change):
+        poses=actual_3f_poses()
+        if change=='missing':poses.pop()
+        if change=='duplicate':poses[-1]['name']=poses[0]['name']
+        if change=='walking_relabel':next(p for p in poses if p.get('viewpoint_class')=='actual_unchanged_qualified_walking_probe')['viewpoint_class']='diagnostic'
+        if change=='outside_projection':next(p for p in poses if p['name']=='view_0_0_1')['projection']='PERSP'
+>       with pytest.raises(ValueError,match='native|cohort'):shared.native_pose_inventory(poses,'3F')
+                                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: module 'tools.main_infra_2f_validation' has no attribute 'native_pose_inventory'
+
+tools\tests\test_main_infra_3f_validation.py:79: AttributeError
+___________ test_3f_native_cohort_drift_is_refused[walking_relabel] ___________
+
+change = 'walking_relabel'
+
+    @pytest.mark.parametrize('change',['missing','duplicate','walking_relabel','outside_projection'])
+    def test_3f_native_cohort_drift_is_refused(change):
+        poses=actual_3f_poses()
+        if change=='missing':poses.pop()
+        if change=='duplicate':poses[-1]['name']=poses[0]['name']
+        if change=='walking_relabel':next(p for p in poses if p.get('viewpoint_class')=='actual_unchanged_qualified_walking_probe')['viewpoint_class']='diagnostic'
+        if change=='outside_projection':next(p for p in poses if p['name']=='view_0_0_1')['projection']='PERSP'
+>       with pytest.raises(ValueError,match='native|cohort'):shared.native_pose_inventory(poses,'3F')
+                                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: module 'tools.main_infra_2f_validation' has no attribute 'native_pose_inventory'
+
+tools\tests\test_main_infra_3f_validation.py:79: AttributeError
+_________ test_3f_native_cohort_drift_is_refused[outside_projection] __________
+
+change = 'outside_projection'
+
+    @pytest.mark.parametrize('change',['missing','duplicate','walking_relabel','outside_projection'])
+    def test_3f_native_cohort_drift_is_refused(change):
+        poses=actual_3f_poses()
+        if change=='missing':poses.pop()
+        if change=='duplicate':poses[-1]['name']=poses[0]['name']
+        if change=='walking_relabel':next(p for p in poses if p.get('viewpoint_class')=='actual_unchanged_qualified_walking_probe')['viewpoint_class']='diagnostic'
+        if change=='outside_projection':next(p for p in poses if p['name']=='view_0_0_1')['projection']='PERSP'
+>       with pytest.raises(ValueError,match='native|cohort'):shared.native_pose_inventory(poses,'3F')
+                                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: module 'tools.main_infra_2f_validation' has no attribute 'native_pose_inventory'
+
+tools\tests\test_main_infra_3f_validation.py:79: AttributeError
+=========================== short test summary info ===========================
+FAILED tools/tests/test_main_infra_3f_validation.py::test_retained_3f_native_cohort_has33qualified_and13diagnostic
+FAILED tools/tests/test_main_infra_3f_validation.py::test_3f_native_cohort_drift_is_refused[missing]
+FAILED tools/tests/test_main_infra_3f_validation.py::test_3f_native_cohort_drift_is_refused[duplicate]
+FAILED tools/tests/test_main_infra_3f_validation.py::test_3f_native_cohort_drift_is_refused[walking_relabel]
+FAILED tools/tests/test_main_infra_3f_validation.py::test_3f_native_cohort_drift_is_refused[outside_projection]
+5 failed, 20 deselected in 0.25s

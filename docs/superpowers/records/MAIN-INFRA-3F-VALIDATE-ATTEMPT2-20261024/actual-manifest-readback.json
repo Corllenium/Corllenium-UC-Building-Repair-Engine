@@ -1,0 +1,112 @@
+{
+  "preparation_sha256": "00b13d36cb32997dccb1e0bfd94130c6ed90dba43c2884f9c8723f604c357ada",
+  "paths": 277,
+  "mismatches": [],
+  "actual_asset_checks": [
+    {
+      "role": "raw",
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-fresh\\import-2f-3f-20261023\\raw\\3rd floor main infra.mtl",
+      "sha256": "c021e8faec66f4d705a70b0caf7ea49d467bdc829b7680263bda02e3660c9b07",
+      "matches": true
+    },
+    {
+      "role": "candidate",
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-e3\\run-20261023-attempt2\\3F\\3rd floor main infra.mtl",
+      "sha256": "c021e8faec66f4d705a70b0caf7ea49d467bdc829b7680263bda02e3660c9b07",
+      "matches": true
+    },
+    {
+      "role": "raw",
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-fresh\\import-2f-3f-20261023\\raw\\textures\\minecraft\\concrete_white_-1.png",
+      "sha256": "f42c7be3c52294ead4c69ac0e9ef1bbbbe6bdb4451382c89a65c386709df6171",
+      "matches": true
+    },
+    {
+      "role": "candidate",
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-e3\\run-20261023-attempt2\\3F\\textures\\minecraft\\concrete_white_-1.png",
+      "sha256": "f42c7be3c52294ead4c69ac0e9ef1bbbbe6bdb4451382c89a65c386709df6171",
+      "matches": true
+    },
+    {
+      "role": "raw",
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-fresh\\import-2f-3f-20261023\\raw\\textures\\minecraft\\concrete_white_-15579874.png",
+      "sha256": "14ceba3d0329594e00458bc6ed2aeafa24d9228519994a60d758de2509fee1ad",
+      "matches": true
+    },
+    {
+      "role": "candidate",
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-e3\\run-20261023-attempt2\\3F\\textures\\minecraft\\concrete_white_-15579874.png",
+      "sha256": "14ceba3d0329594e00458bc6ed2aeafa24d9228519994a60d758de2509fee1ad",
+      "matches": true
+    },
+    {
+      "role": "raw",
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-fresh\\import-2f-3f-20261023\\raw\\textures\\minecraft\\glass_white_-1.png",
+      "sha256": "899b9a1f08688eb13dd6dc980a743f5d335862615c49da8b2298ff3817933dd4",
+      "matches": true
+    },
+    {
+      "role": "candidate",
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-e3\\run-20261023-attempt2\\3F\\textures\\minecraft\\glass_white_-1.png",
+      "sha256": "899b9a1f08688eb13dd6dc980a743f5d335862615c49da8b2298ff3817933dd4",
+      "matches": true
+    },
+    {
+      "role": "raw",
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-fresh\\import-2f-3f-20261023\\raw\\textures\\minecraft\\quartz_block_bottom_-1.png",
+      "sha256": "daf3f46f93f7364b1530ec468a7a1d5a02eda1cd0a118e41e93e9c4177791cc1",
+      "matches": true
+    },
+    {
+      "role": "candidate",
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-e3\\run-20261023-attempt2\\3F\\textures\\minecraft\\quartz_block_bottom_-1.png",
+      "sha256": "daf3f46f93f7364b1530ec468a7a1d5a02eda1cd0a118e41e93e9c4177791cc1",
+      "matches": true
+    },
+    {
+      "role": "raw",
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-fresh\\import-2f-3f-20261023\\raw\\textures\\minecraft\\quartz_block_side_-1.png",
+      "sha256": "85e34c6a6b917ade1cfbd2826127de4175c63317f3efbba1f7aaed3bf105a193",
+      "matches": true
+    },
+    {
+      "role": "candidate",
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-e3\\run-20261023-attempt2\\3F\\textures\\minecraft\\quartz_block_side_-1.png",
+      "sha256": "85e34c6a6b917ade1cfbd2826127de4175c63317f3efbba1f7aaed3bf105a193",
+      "matches": true
+    },
+    {
+      "role": "raw",
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-fresh\\import-2f-3f-20261023\\raw\\textures\\minecraft\\quartz_block_top_-1.png",
+      "sha256": "eea2309518da196d86171dd0d78ecdcdc3a0510005790fa2beb8484744d8ae88",
+      "matches": true
+    },
+    {
+      "role": "candidate",
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-e3\\run-20261023-attempt2\\3F\\textures\\minecraft\\quartz_block_top_-1.png",
+      "sha256": "eea2309518da196d86171dd0d78ecdcdc3a0510005790fa2beb8484744d8ae88",
+      "matches": true
+    },
+    {
+      "role": "raw",
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-fresh\\import-2f-3f-20261023\\raw\\textures\\minecraft\\wool_colored_orange_-1.png",
+      "sha256": "c6a3c27b965f298da28c89c1a522b5ff3152321a97fcbe613aec2f9a6d8f66fa",
+      "matches": true
+    },
+    {
+      "role": "candidate",
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-e3\\run-20261023-attempt2\\3F\\textures\\minecraft\\wool_colored_orange_-1.png",
+      "sha256": "c6a3c27b965f298da28c89c1a522b5ff3152321a97fcbe613aec2f9a6d8f66fa",
+      "matches": true
+    }
+  ],
+  "worker_sha256": "5ce4494b2e4a14f3c9303b5e5f017ff35d01635b984f987046150755495ad4ea",
+  "terminal_sha256": "e0cb3afbacc60e37e58c9199b57236cf2af724357b8b66d0129ce6e9cf51f363",
+  "native_pose_classes": {
+    "qualified_walking": 16,
+    "qualified_outside": 17,
+    "diagnostic": 13
+  },
+  "heavy_phases_launched": false,
+  "acceptance": false
+}
