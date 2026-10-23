@@ -25,6 +25,35 @@ run the latest `.skp` of each file must be in `OBJ FIXED RESULT/` for the owner 
 
 ## 2. Current state (2026-09-26 00:15, written by the Claude controller)
 
+
+### 2026-10-24 02:14 SGT - actual 3F run and conservative 1F retry
+
+- Actual 3F E3 worker22268 started2026-10-23T17:36:13.820579Z after three measured12GiB admission samples; original53602triangles, isolated from actual2F41648. Code531769c, worker a4898bdd, qualified3Fmapada00c4d; both still running on fresh source. No candidate/acceptance invented.
+- Actual1F independent strict26-view guard PASS:3924929modelpixels, zero holes/material/moved/growth; existingzfighttie1. Prepared6254dd54, guard489f5c23. Native e80bf884 FAIL:335RGB-only changedpixels in17/33qualifiedviews, alpha/silhouette changes0 across46pairs. E7 candidate10578 remains blocked; old preserved E3candidate10136 stays inspectable and acceptance remainsnull.
+- Independent pixel-center diagnostic associates335changed samples with92E7sites, matching originalparent/material/depth and no nearest-hit ties. This approximates camera/rays and does not identify actualGPU primitives or prove native preservation. Exact Fraction source audit8d1d7862 measures all715cutchildren/2145corners: maximum1.5762807725749894e-12texels;9863unchangedfaces and fullpositiontable exact, no material/plane/membership/winding failure. Raster/texture interpolation sensitivity remains a hypothesis.
+- Separate unchanged signed Validator diagnostic actually runningPID29576/start17:52:10.6357055Z, nativeFAIL retained, diagnostic-only/notpublishable. Base231919casts completed; dense removed-face visibility underway. No guard, target33606ce9, Settings/FixProfile or quality threshold changed.
+- Created independent attempt4WT at18c8ae9, branchcodex/main-infra-e7-native-safe-attempt4-20261024. JobMAIN-INFRA-E7-NATIVE-SAFE-ATTEMPT4-20261024 claimedCodex-1F-Native-Safe. Narrow TDD policy will exclude all92native-mapped whole repair proposals after unchanged628donor verification(273kept/355rollback), retaining181 original edits/order with new hash-boundidentity/namespace/checkpoint. Code and tiny tests only are authorized now; real prepare/kernel waits for independent review and free guarded1Fslot.
+- ClaudeCode owns4F-7F; no foreign model/process/server/liveDB touched. Root continues scoped live worker/status publication.
+
+2026-10-24 01:36 +08: ACTUAL independent1F preparation and strict26 GUARD PASS.
+Complete cross-worktree audit of committedcallera0a8dbda70544d9e1dee90f0d52271a7321324dd
+verified293phase labels/files0collisions/mismatch;58targetedtestsPASS14.12s.
+Actualprepare64336 exited0 at17:29:21.404Z; savedprepared6254dd54 binds294paths,
+original15856/stage10136/final10578 and exacttypedcheckpoint/cut/assets.
+Actualguard26816 exited0 at17:32:28.822Z; saved489f5c23 covers26views900x600,
+3,924,929modelpixels; holes/material_changed/moved_other/grown all0; existing
+zfight_tie1 retains passed=true. Physicalguarddepth5.9055118110236214e-5in,
+nooverride. Originalbed4/candidatecc8e hashes stillmatch; all295guardpathsrehash.
+Actualnative60972/start17:34:32.2104441Z nowrunning withBlender5.1.2 source-source
+andPILsavedPNGreadback;33qualified+13diagnostic pairs, no nativeverdict yet.
+Userfreedmorememory: root17:25 headroom9.546GiB, guard3freshsamples~12.7GiB.
+Everyheavy retains8GiB admission/3GiBown/global3.5GiB abort. Root/peer approved
+an additional3F admission check of3fresh>=12GiB before unchangedreviewed3Fwrapper,
+reservingfull3GiB3F plusfull3GiBremaining1Fproof;3F actual launchstillpending
+freshpreflight/admission. Source/modelthresholds unchanged;1F proofpriority.
+Live1F updated toactualnativePID60972, strictguardPASS26/26; pending10578 and
+priorE3preview10136 remain. No newE7preview/acceptedflooruntilnative+signedproof.
+
 2026-10-24 01:21 +08: preparation34652 exited1 at17:16:50.617Z after74.079s,
 after passing source qualification and measured conservative precision proof.
 The next failure is a receipt key collision: builder target path is already

@@ -1,0 +1,70 @@
+{
+  "phase": "native-failure-signed-diagnostic",
+  "HEAD": "a0a8dbda70544d9e1dee90f0d52271a7321324dd",
+  "args": [
+    "-B",
+    "-u",
+    "-m",
+    "data.tmp.attempt3_native_failure_signed_diagnostic"
+  ],
+  "pins": [
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261023-attempt3\\preparation-1F.json",
+      "sha256": "e5af36dde9a242388985200cd6502b370dba87aba92ef152bec9e91b0f681e2a"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261023-attempt3\\execution-1F\\worker.json",
+      "sha256": "95e9c175248c59c6d4c058327a8ba03de8275a4d7a1bb4ba11e8f61c5a1aebdd"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261023-attempt3\\execution-1F\\checked-outcome\\checkpoint-receipt.json",
+      "sha256": "f6a2583085df8b5d87924be8fb67550a84d14dcd59f6796f05deb8892c1cbd67"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261023-attempt3\\1F\\cut-receipt.json",
+      "sha256": "b587c3b95639cd51dfe5a1c82093f57b7492609de393c9f3c9830e4a398e813a"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261023-attempt3\\1F\\run-receipt.json",
+      "sha256": "adb653f7e243468b7b86a3abd11e0cb83c0ee29009fb0eb9964e0fbb1b309222"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261023-attempt3\\1F\\asset-receipt.json",
+      "sha256": "019d965f6ded3630e9d957335fea8f33b98c7e8705a5017600ef1d66ae33eb3b"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\tools\\main_infra_e7_independent_attempt3.py",
+      "sha256": "d71bafb5d621e252eb6a5231e47c98b27fd70037cc49f70ba47798b1aa3ed835"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\attempt3-preflight\\execute-20261023T162214\\final-readback.json",
+      "sha256": "a73a74624726997ca3f43797eca92eb64df3b98e3442494ac064ca535ad29030"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\docs\\superpowers\\records\\MAIN-INFRA-1F-VALIDATE-ATTEMPT3\\precision-coverage-inventory.json",
+      "sha256": "1f8aed7cc206debec70e9fab41ade7657b4c433b7f0633c65b7a686df4768094"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\docs\\superpowers\\records\\MAIN-INFRA-1F-VALIDATE-ATTEMPT3\\target-path-inventory.json",
+      "sha256": "2044d0a18d31885885d856cfcfd414b31d466ecb6cadb3c142e01bfc74127b0a"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261023-attempt3\\1F\\prepared-inputs.json",
+      "sha256": "6254dd54716679d8afb1e5b9d26bf450b94ab7d9aabbee98a817fba6f2d8142b"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261023-attempt3\\1F\\guard\\independent-guard.json",
+      "sha256": "489f5c2397e889356520ac9b29807f4e22ad0d1d4e15970aa01f25e474a2a010"
+    },
+    {
+      "path": "D:/LLM_BACKUP/Codex session/main-infra-1f-validation-attempt3-20261023/05-Corllenium-UC-Building-Repair-Engine/data/tmp/attempt3_native_failure_signed_diagnostic.py",
+      "sha256": "0315cc16e663b9a96cfd9c37f677856ad8f4db34d4b963e101d58b13bf8160f5"
+    },
+    {
+      "path": "D:/LLM_BACKUP/Codex session/main-infra-1f-validation-attempt3-20261023/05-Corllenium-UC-Building-Repair-Engine/data/main-infra-1f-validation/run-20261023-attempt3/1F/native/native-readback.json",
+      "sha256": "e80bf8848328ab4067e9e0c7c219a9378fb9cdfb092b6588e4b3723f4c415d97"
+    }
+  ],
+  "gate_8gib": true,
+  "output": "D:/LLM_BACKUP/Codex session/main-infra-1f-validation-attempt3-20261023/05-Corllenium-UC-Building-Repair-Engine/data/main-infra-1f-validation/run-20261023-attempt3/1F/native-failure-diagnostic"
+}

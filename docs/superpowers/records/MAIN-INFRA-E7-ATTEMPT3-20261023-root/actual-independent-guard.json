@@ -1,0 +1,2213 @@
+{
+  "acceptance": false,
+  "after": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261023-attempt3\\1F\\candidate.engine.obj",
+  "after_sha256": "cc8e67785116edd9132e5b75353479810265f051a1f98e8da4df89b1eea9d6f9",
+  "asset_receipt_sha256": "019d965f6ded3630e9d957335fea8f33b98c7e8705a5017600ef1d66ae33eb3b",
+  "attempt_namespace": "run-20261023-attempt3",
+  "before": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLEAN-20261023\\data\\main-infra-fresh\\run-20261023\\normalized\\1F\\before.engine.obj",
+  "before_sha256": "bed4b7c24b7a3a164381b8e6e0ca0b7e7bf9998e1df7c2782878d23cd1796df3",
+  "blender": "C:\\Program Files\\Blender Foundation\\Blender 5.1\\blender.exe",
+  "builder_components": {
+    "HEAD": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+    "files": {
+      "engine/__init__.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "engine/campus/__init__.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "e47d53569bb287f38a3232bf9044dd2ede5fa493b7682ae756fd459da4bd50d2"
+      },
+      "engine/campus/census.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "37bc6a44b5d768ba7518e78d123d65b40f52eff0828937dbd72c77a23088024c"
+      },
+      "engine/campus/error_export.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "e88b726d242f3c68bd598efc4f957e5d4c59a151f86283afa447c977b69d68ab"
+      },
+      "engine/campus/groups.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "7f0b05a8d1807bbbc5118d7a4acfd25975614f533d83264b978455eaffdb7e73"
+      },
+      "engine/campus/inventory.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "144230f16f06b0dd6c9d5b01709f7f70f04faa94764aa76e3ab6e727fb42cf2f"
+      },
+      "engine/campus/materials.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "2325873abf6efd0c67c894dcb9e3cb66eb72a584c93c79d46661bddfe0c2f221"
+      },
+      "engine/campus/needs_modelling.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "857921b86475ff1f02c0fed5195840188e7e4bf86ed1a5ab691a5fe009677cb5"
+      },
+      "engine/campus/pixfont.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "6c2554b6a2a15839525007a059425c0ff954d0e417669b2fc19a19704944e4e1"
+      },
+      "engine/campus/skp_check.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "92d5477aa0284a5dab1dc550934763b25333a66f05dfab4b41798a2f88d22844"
+      },
+      "engine/campus/source.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "25bc1a7bf19b511140135bde71474a668cb00614e1b30a488b86ea753768a737"
+      },
+      "engine/campus/unit_before.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "fb0b4ace5010792740858933b8eac1bd59b674ea5c0e15ddebbb570ceacd4998"
+      },
+      "engine/campus/winprobe.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "17ae7a4ae6856647cf670ec69ed3d00ac02ade629aff1b67ad59888dbae30759"
+      },
+      "engine/cli.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "22038f695aeef6f655a0409781993f2657e1a2507df8d3bb448c2faf1a3806c4"
+      },
+      "engine/decide/__init__.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "35c706c776a73c97047b57abdb173b2c5a3b69e548cef0805be3e1858dd95ce1"
+      },
+      "engine/decide/decider.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "63c318ae4e19d6130497207005d0e90c865875c6db8fef592dac6fd6eca0c9d0"
+      },
+      "engine/decide/jev.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "6ee83f8a737f438b72bcc90a5d9ef58a198ea1b12e6e7d509d1b8ba3d8049534"
+      },
+      "engine/decide/pilot.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "86e7a0545b9bce62fcd71e3259f177352a908b8d60fe34ce96fba08d1381e25a"
+      },
+      "engine/decide/pilot_import.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "fb43df39144e95ea56a9b29dc0d4eba99473a6f99ebf059b6d471ed4fdabc959"
+      },
+      "engine/decide/providers.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "f6d13f43daaef30e63798bfd0fb03455c81497b98d80098de90584deb31218e5"
+      },
+      "engine/decide/remote.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "68444940c8fa733f9dacb29e264a33298fdfc8411c08aeeeecb58a0ba080ba2c"
+      },
+      "engine/decide/wire.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "1350369bc601021eb0b13d5000da07c145cb12e28c61140483c938abde9eef27"
+      },
+      "engine/detectors/__init__.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "engine/detectors/errors.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "21823708b8f34ec42900008f7c16ac3b55fda5b213c8347abcb5057fe443610f"
+      },
+      "engine/detectors/folds.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "6c78d57faf7eae8ed874cb25ca0a315362f5ac59f88d1543bbc23d310d7fb84e"
+      },
+      "engine/detectors/fragments.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "63a9beac6a6dcb5826e13a120997ac172e3d809351269f939ee76b1308a012d5"
+      },
+      "engine/fill_review.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "dc04d19343736e6c062f73d5e6b9d8b642e545e7a1f9dd4547419b4bc1c2034f"
+      },
+      "engine/fixes/__init__.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "engine/fixes/merge.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "e11bfe7da7cfeb9c7cdad3da0c1e41306b124f4c42ed8f4099d9567118aff693"
+      },
+      "engine/fixes/orient.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "0e15f196d51ff9d19c2e102baee0fc7966421275ead6bbcdb958850b37346855"
+      },
+      "engine/fixes/overlap.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "ee8aab14411313b82e05da94c508a1d479ea00732f620bdb58fa92c2b9a8f8c9"
+      },
+      "engine/fixes/pipeline.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "20f72381d1ef2040bd90de928e21c3bfb0b5c4e534669e15207110ae7736f2aa"
+      },
+      "engine/fixes/precut_cleanup.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "faa4a8a2d921b83702d2cf53c04038cf4488168b6279cd66f6b49813ab40d6b4"
+      },
+      "engine/fixes/remove.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "7ec0b682dc87cda8270fd157b1efa7bf34c5232e71963153b3fac7257ff02706"
+      },
+      "engine/fixes/solidify.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "9201503de87813fdf34e1adc60b12d39340ee8f289f293ae8dd3b6abdc805e00"
+      },
+      "engine/guard/__init__.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "engine/guard/compare.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "8aca5a91a3d33af2bf0387a2fc6e5e13490ca337c2b3e24ea53b94cbe8722412"
+      },
+      "engine/guard/piece_rays.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "b15824c2385c00c3df19d88b8f379194f6dd01a0aeb53c1f20796661cbbbf1e9"
+      },
+      "engine/guard/qa_render.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "a620795f0763af06420722daceb75c8dc62c62fda4787ffc911e9cde4b3cd74b"
+      },
+      "engine/guard/render.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "9c918de0b2d53621af3b5cecf0f567c89144c3829a18f408fdf72dd68612bcb3"
+      },
+      "engine/guard/views.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "d17931c6228909a6bd40f32a961db41c4d7b1e747100f1ea5e115d49f74ac66f"
+      },
+      "engine/io/__init__.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "engine/io/minecraft_floor.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "f039309f3cd988ea92c7242f5c3c5085cfdee35d0a3a8075b214910dbd46d014"
+      },
+      "engine/io/mtl.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "91492f26a43adf2ba368ade4580bcc562fe7b3d162fa3ce0e5ecf964edc70026"
+      },
+      "engine/io/obj_reader.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "72b300cdd8af9b3312369fb3ffe2064f07933298198ad0e8f438c91d1990a7fe"
+      },
+      "engine/io/obj_writer.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "9358f99c2362f4cc84d1e11fc073785bae58936f115c6c8fa87e4616fd073df1"
+      },
+      "engine/io/protected.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "d17e46d0cd294a0c9e23a87476b25d1491cc11b390d74abaee8205400e6d9058"
+      },
+      "engine/io/skp_reader.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "6142326ccf9ba6a44a563721c14a73deee2fa14cbac6c7f39a34f21638158719"
+      },
+      "engine/io/skp_writer.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "94a2dd52f872ed06131d5f3ae0f1cb5db05363007333098a893f477be1247500"
+      },
+      "engine/io/snapshot.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "05b586a87f896552b5081bc5e263e3b4de3ba2d856b76b43af63787794933ac9"
+      },
+      "engine/model.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "4309d8ce5552ec295198f6f732d344842824e65ed1c300e63986e8c17a75be8b"
+      },
+      "engine/pipeline.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "eef997061586ed4735d39d8ffd7b245aece780181fe8c070d34bd8a5ccb764a9"
+      },
+      "engine/rays/__init__.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "engine/rays/caster.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "62bde18bb12e0e3c8f690eb9c819750274e4924911770b6f7cffa399a704ddd5"
+      },
+      "engine/repair/__init__.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "engine/repair/engines/__init__.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "8afb2ca146db093adccbc2ca8506262e6fe01f4ed98d4ee11773153aefd45207"
+      },
+      "engine/repair/engines/e1_loose.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "c844ffa6147facb54ee60efdba3978dc46f05ca2dde6811b24ca8a1419eea539"
+      },
+      "engine/repair/engines/e3_hidden.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "e4b2e2e00127683d1f8b0ec221aab35e9f3cb67407fb4f561760a6f12f1d8d92"
+      },
+      "engine/repair/engines/e7_thread.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "60ee872b283dfe0557afc6311f4f2ebfef854c136b18e3dfbeeb679789d717d9"
+      },
+      "engine/repair/engines/e8_fill.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "6784bf95a73de18c80b3404a4d79c233ca1fef5e5d5856a7bda05d7b68501a42"
+      },
+      "engine/repair/engines/e8_solidify.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "a9862d6420609a341d0c0132b1ddf4c639c01092a7a7d1c6af054c50af976f21"
+      },
+      "engine/repair/engines/legacy.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "4ae576b9e7d0e5a5f610771efda83cba93d8a3b6e277d156367900cc30522b57"
+      },
+      "engine/repair/kernel.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "dca8042e6d562676589f6b2741ee178d58f48e3d61f767d718303641c1525ca5"
+      },
+      "engine/repair/types.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "43ca308fa31942982666cbae7dbf0f7082e5dd3c747be901c0ca37c32dec4c0c"
+      },
+      "engine/site_judge.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "50cee322111f5bf192f1a20160e06234c61b71518a891684434d246faebd6993"
+      },
+      "engine/tests/__init__.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "engine/tests/fixtures/__init__.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "engine/tests/fixtures/build.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "73685577a175ae6092cda4fcf0d5759d12147f0b6dd3e88de111bb1c18f3116f"
+      },
+      "engine/tests/fixtures/holes.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "2a54102ad9133212ab77dfbe96c8f674f6291d193fde8603b5a7df2071f47ccd"
+      },
+      "engine/tests/skp_scene.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "8eadc03a62d67312c505e4ea4912bd1fba153f976dc0f042ae2db1e28e139690"
+      },
+      "engine/tests/test_campus_census.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "6b127dcf0a7ebf702654b2985db65c5ac49cd2c84b181845f072aa2368d0c786"
+      },
+      "engine/tests/test_campus_groups.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "aa4d8c9d1632bcb80feca99626a445d06033c0408f33e70ae84cf970b1a5c09b"
+      },
+      "engine/tests/test_campus_inventory.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "3a0afaa80371c33c5bdbdb55944ea108e934038b6f267471a2e975db9a953cfa"
+      },
+      "engine/tests/test_campus_looks.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "2595cf5152984094dd421b2db6d2eadd45a4831927588a2ee1790a78fc0daca8"
+      },
+      "engine/tests/test_campus_materials.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "2d03d8b90903c4f729d9322f6abe6210138c876b44b82a806f11f237ede44326"
+      },
+      "engine/tests/test_campus_source.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "acd9a6fa56827564ab11df06e3601528e794458e93530a56ebeca716c3c7ce7e"
+      },
+      "engine/tests/test_caster.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "229880305bed4d8084a84258e9f7fca574f7472f69e500f4eb417a0bb5d9ca66"
+      },
+      "engine/tests/test_caster_spatial_recovery.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "f2a0bff7e5be77878718fcb7a26bd7f922a7f3f83c9bfa6ae54ccac46249b9ff"
+      },
+      "engine/tests/test_census_materials_message.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "55d2e50d6e2bb7aedb9f2e28bfebb0894070306a99ceda7f022197b17d844a62"
+      },
+      "engine/tests/test_cli.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "12ccdbd8fa0354c7904c0e41ffb477a28cae461a4920329a8a0b62a17a8d3b6f"
+      },
+      "engine/tests/test_cli_needs_modelling.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "96841fdd581329b853a2c4098b9c5d5d0e6d31834e5c0df10fb7bf75a7947d18"
+      },
+      "engine/tests/test_cli_repair_unit.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "00a33f9b0ae5038586add8c3d5f2a4da340e59af70bc5834b47c65c9c148196f"
+      },
+      "engine/tests/test_cli_repair_unit_e1.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "d600ab4c2e97d76422e0b0bc66d1b7c280b13335cff0159b33527e06323ccf17"
+      },
+      "engine/tests/test_cli_repair_unit_fills.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "45719741a4c909d8126251b5cd12237588a881a7200de97116109bed75e28714"
+      },
+      "engine/tests/test_cli_unity_check.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "5a1df437fc061c2b8be6af4e4331bc17e12cf4a395d6b4401c48f050dfbc17f1"
+      },
+      "engine/tests/test_cli_validate_sites.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "2d5bf8f8ee3f16e95ec0bd0c5daa5b423f87c353ddfa4f3bb6800e13d36cf426"
+      },
+      "engine/tests/test_decide_jev.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "c42029aad61a5728406b4038d36316ff5f324e39769a05e3b05aacabf1f7d2a4"
+      },
+      "engine/tests/test_decide_pilot.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "2731cf2436360e73ee213322791d0f9c6e6d4ab0a1ca76bdd3192aa208f2f4a9"
+      },
+      "engine/tests/test_decide_pilot_import.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "5a44ff3094c792146610f09d89bce8d2c9d7d8ec95d3bdba6e1cfe5bce02ef12"
+      },
+      "engine/tests/test_decide_providers.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "1aae3c1d04588c2a1bf6f027fc918d4423e633eb47c51675d17a79e79e727a04"
+      },
+      "engine/tests/test_decide_remote.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "d1a280cf9f8e4baa1c0753852d3e9a244d2be5c5386faee04fc639f71769a077"
+      },
+      "engine/tests/test_decide_wire.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "7f144c30969207af00fc7d7d6e33cbd82fe7f26ca3a62cf7b477053ee4756df5"
+      },
+      "engine/tests/test_decider.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "689379536ecc85286243b4071bf0e7296418b7fe83771e08cbbd2a5322fb3dfe"
+      },
+      "engine/tests/test_decider_unavailable.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "4f2de6ef4de3bc8f40630e7169aafeee1b3fdd6dbd613deac148f8cb66aa6c6d"
+      },
+      "engine/tests/test_double_layers_memory.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "4d70520fe77d88937c84c88e12cb5c991aa09d8aa8ba07c8a84d95e87febaa9e"
+      },
+      "engine/tests/test_double_layers_speed.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "0ebf50864b75ab55ab4057f18d1b2208841c93a18ce750d73a14b5387a92c271"
+      },
+      "engine/tests/test_e1_loose.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "274c8a1dc664223f72da3c3047370c6b3f994889fb15d8ee0a627a08e1bf5c81"
+      },
+      "engine/tests/test_e3_hidden.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "16759a6de7d45b756e859e32100e5ad1955c5e8d5d540e83c159c0a7fa93130e"
+      },
+      "engine/tests/test_e7_thread.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "08fd96504ffe5201399e024cc3f20c38b344dcdacece78fd7a940c4e095b3f3b"
+      },
+      "engine/tests/test_e8_flat_fill.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "451f3b990b73235b720536fa9ece4f9c537ec55bf013f9b1a302cca23ffddb9c"
+      },
+      "engine/tests/test_e8_flat_fill_kernel.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "2d677250c6d6021ac81fd8d9e15ec89e232fb2d84f801ad54f7b5f99cdf4a91b"
+      },
+      "engine/tests/test_e8_solidify.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "8b3f4eecc7a6234178f16adb80e26ad99b985aa68fc92dd434e0a49a4c8400ef"
+      },
+      "engine/tests/test_edit_add_only_e8.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "ccf6e25d10bc63d56e0fa80ad12450a4be017e795f3b2f8f19b2f574c711a5e7"
+      },
+      "engine/tests/test_error_export_cli.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "38c4143429341f514c1eda6e411ff61fff47309b8ec8cc326e8e4bd4e911be7e"
+      },
+      "engine/tests/test_error_export_plan.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "0dd0c3dec9fb18e7493e92467c645abbd317ba63aefdf0c49866bf5e165303fa"
+      },
+      "engine/tests/test_error_export_skp.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "edfd65ab4a0b554ad64f45d365ca519619df30ff218454556e8d6dc2305f81ff"
+      },
+      "engine/tests/test_errors.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "78d012f7cf2f9992f820b409efb9199c7d815491548c64f09573c8a8f25bf965"
+      },
+      "engine/tests/test_exposure.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "b242aada48faa0c90c623af24adcd8ef07898d2af2d5086a7960abba2a80c2e0"
+      },
+      "engine/tests/test_fixtures.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "af1170cee09387d780aa8e34278e467cf9a8a71c9a1ffca3ff58e12cbd66bcbb"
+      },
+      "engine/tests/test_folds.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "39dd0eca23b51c30e49c660d1895b432358827384cf45e1eed46281e525c1e13"
+      },
+      "engine/tests/test_fragments.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "ecd142a13e9116a40f804cd8bbfb229dc829933b0504992f88f2c48528935361"
+      },
+      "engine/tests/test_guard.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "73707e5208bd9568fc164420dbdc86f353c05668093b5a97e92950fb575f924e"
+      },
+      "engine/tests/test_kernel_edit_log_any_engine.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "4ecb05b3bb84dafb9dc2738ba269b6a99731f4a34bc4f924bc303d80d563352f"
+      },
+      "engine/tests/test_kernel_observe.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "d7665310782be7cacd75c682ecdf89a447489c8d3bfa35ab70fc5a166d7e35bf"
+      },
+      "engine/tests/test_kernel_site_checks.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "359b3d4128ba2de19d1f2223bca94c5f825cbafb223470f597703942197f4740"
+      },
+      "engine/tests/test_kernel_stage_rollback.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "b16a246ee8b9447b04b4904f9efa58485b7d2c4dfff9ca5e6d3a69e834100e30"
+      },
+      "engine/tests/test_merge.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "a0c44820f7dd10f86ec17ffe528642657031ccad7977a0a518775e80705fcc4b"
+      },
+      "engine/tests/test_meshbuf.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "f58389906c22049fb8721262f593cad574b266ca581cdb2a2ef7c912c050c55b"
+      },
+      "engine/tests/test_minecraft_floor.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "9e743b6b1da2dbb7a70be286030220342c40925ea0fed4541814092c3e11ab75"
+      },
+      "engine/tests/test_mtl.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "ad5b288a61e4bef63395e4a19c3a541a5fd1ad4a79772ddf1d231cce0ad35ab5"
+      },
+      "engine/tests/test_needs_modelling.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "cd16f82a47c3ae9bfdc63a1c329a76744ae1de778c4b34c0f80d6a13b02e7a60"
+      },
+      "engine/tests/test_no_material_is_its_own_look.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "d7e303df9066bd083f01b28bd45adcf571eddf512dff339bf1fd30035cfbbc5c"
+      },
+      "engine/tests/test_obj_reader.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "3d233308c9d3cbcdbaab05f59717dff3612c883cb9ca833064c25f0f00e063ea"
+      },
+      "engine/tests/test_obj_writer.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "ac1dc701337e64750cac906b69f07d72d9075c6d9dacce81311f318da57c7eb7"
+      },
+      "engine/tests/test_orient.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "78fe624d863a8119ef67ecb60044af1c467f8132390fd45d2ddac2d1b92f7177"
+      },
+      "engine/tests/test_overlap.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "f7ef0c18902a11de9315f960d27100ea5379383692e79f60c53f2031d7a36d01"
+      },
+      "engine/tests/test_p2_h2_minors.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "0186523a0afa76ad7f269369230b9fd29ebcb6daa8169bc7a032e6e3abf48a3e"
+      },
+      "engine/tests/test_physical_precision.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "5a7d804395f0b9c89d82d15bd4258ae349dacae8f4f0dc70a648595037d23400"
+      },
+      "engine/tests/test_piece_rays.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "b7407ce17b3e69cf07a96d65f40dc089863a05d22597d674066beffa77b0134d"
+      },
+      "engine/tests/test_pipeline.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "87767e05a989db711e775351c9f0488224d2323eb29b0f8e52ca7757f193c870"
+      },
+      "engine/tests/test_pixfont.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "5b3cd7df80c09afb4d76d00a159c167ced4a0028b677dc6f5e8f51d4a9ad2c91"
+      },
+      "engine/tests/test_qa_render.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "9c461b9a2373860603e54fa17b334b18ab60be91021802906b2eb06b0e46e71a"
+      },
+      "engine/tests/test_refuse_protected.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "dad7fb88fa92107472a9d2f9069e589d50b9015ae6d718dc6665ab214689a123"
+      },
+      "engine/tests/test_regions.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "8d8643d62ca5783a35e2056db51936006165551c0e49115ec71c92857a3a36b0"
+      },
+      "engine/tests/test_remove.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "61085a40b2d5cbeb0f56bfcec43ea53eb5793cdcca5270a245dc346010e02ced"
+      },
+      "engine/tests/test_repair_types.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "60c666e646ddeb1a930fb0298fb68f6e059f38d16a7cb8a3685da7e217452f90"
+      },
+      "engine/tests/test_repair_uv.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "b69077a6ac965be17648a5d1159db9ad7466b1cccea9f9318f34b6ff817100db"
+      },
+      "engine/tests/test_repair_uv_observer.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "7122b30cc34b92fd404fd2136271f08873539dda0129e3f14644a893e8b690ca"
+      },
+      "engine/tests/test_site_attribution.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "22f206570d63993f2430ce41aa90d5d4462a41388155f533caa0ae0c85f22dd6"
+      },
+      "engine/tests/test_site_judge.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "4d53260ae3f89ebea689e70854f6999bf6f036083b3e78a4f750804df4c8b1e3"
+      },
+      "engine/tests/test_site_judge_cover.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "c0f59446ad1736aa8be46a33daa3fd5311725ac3cccad7a845bade038b00733c"
+      },
+      "engine/tests/test_site_judge_floor.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "206f8ff3f9982cfec9bbc65040438809e30b887e9b67f4928b57c4ecc81019e0"
+      },
+      "engine/tests/test_site_judge_remove_only.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "f424d7a5267719056f96d4f2601509ccd01613bb4189b14417a9c9b541942656"
+      },
+      "engine/tests/test_skp_check.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "5e10950dd2665d3a04301d0297e9cbf67812a39e96130471805c65a16f993a06"
+      },
+      "engine/tests/test_skp_reader.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "1d3cfa294130ea8688f54cd21c25872bd0c72ca13a9e10dca58464f1157cb9ac"
+      },
+      "engine/tests/test_skp_writer.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "30ed8fe7fcda42c40092ed93b9b8733951ca7af2fc331bca6e4ad301e4a38ac9"
+      },
+      "engine/tests/test_snapshot.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "427f7d91764be117b4a6d2563754b0d1771b6bf77628795615dde6fc6b2f0b4c"
+      },
+      "engine/tests/test_solidify.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "77f97480f7e74b7a1795a6f3b2918a99a14f611a3992a272da3573a3159865af"
+      },
+      "engine/tests/test_t_vertex_search.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "b07fba23c37d52027264c1d8af5fd6a5d513a2629bb9a76858e68cef513504f4"
+      },
+      "engine/tests/test_topo_basics.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "ab1d3cdf4b709b552b4750866c6d7b4117d476f6a4abb60f408aa77119c82d43"
+      },
+      "engine/tests/test_topology_memo.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "166b5c95ef6d2663dba8fa1c25a84f1f8e19c9b6c488d971e44ed93c293b0321"
+      },
+      "engine/tests/test_unit_before.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "ca9a610405da94dd3a8d06b5550e90b35b4c081e1f5bcd76ad4282666aceff3f"
+      },
+      "engine/tests/test_unit_before_no_material.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "f8cac9a0483e673bca842235e79723f314927d9fc1eb3bf683ef6d146bb640c0"
+      },
+      "engine/tests/test_unity_align.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "e3452da4f7cd421a1de79eb8c12101aaaa35e43d5f0907b966c756650d6abb0c"
+      },
+      "engine/tests/test_unity_check.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "091790f4680396067e5d12c3a32f1e96176eb63bd24d22d31fd39d6329d25521"
+      },
+      "engine/tests/test_unity_dump.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "6a707cb3207f5ba8ab90a2a109b2440a2af37b8522280a0b4e34488294d3c65f"
+      },
+      "engine/tests/test_unity_mirror.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "479c9a61a19e83074a8a07c775552af1e6055a3b4f3fe9d977ea0d3bea96e8a5"
+      },
+      "engine/tests/test_validate_checks.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "6651373a7493eb34c90e5b25b15fa0622fa03b9f0c35ea6eb3889c1070313654"
+      },
+      "engine/tests/test_validate_core.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "e5adf885cecde0fa9773faff954c3807a7cfef24345b1709abac335ba67a5f14"
+      },
+      "engine/tests/test_validate_edit_log_fills.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "e30385e5f6d21be70bdd03a4825ea569cdc3cfbc82f4ada272a450bf6ca1a824"
+      },
+      "engine/tests/test_validate_edit_log_new_faces.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "9d01a4431082f4bdd7c1574a1e2a35efb44960dfb48011d523ab3416d494fff0"
+      },
+      "engine/tests/test_validate_fill_site.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "759a64f16d03cbea5cbe7886b26e786ad4f148bccf3d64a4a501883dd1e841df"
+      },
+      "engine/tests/test_validate_floor.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "97f41cab8b26e5eff85a63544ac64fd7d9c85a8c153cbe3e7dce7812b8f484c1"
+      },
+      "engine/tests/test_validate_floor_checks.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "d6f9436f4853023734346fd2f7683853ad407a728b051fc9a29e22f8e99c8c0a"
+      },
+      "engine/tests/test_validate_floor_corner.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "2d50cf05296d598e0f2d7227ac7344eeb30e51827906815140401bdcf856cda6"
+      },
+      "engine/tests/test_validate_floor_covered.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "098cf5a6e82660d040d959b490bd7266fba52fd604cec22aa71007ed7fa2baaa"
+      },
+      "engine/tests/test_validate_floor_speed.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "b62840972300bd3defc767a4aa17d1dfa54a2e0403d91c9416fc5bf083efb8d1"
+      },
+      "engine/tests/test_validate_focus.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "dd80f07a214138250dca3790db078c6216524a13bd60d3edde9a63a05d3738aa"
+      },
+      "engine/tests/test_validate_horizon.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "15f8537c97e251aa2b8f16342c6d9c0479f1651a30454a46c672d675557d6561"
+      },
+      "engine/tests/test_validate_mutations.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "d7e00886a258dc761f5bf2ee052fa615f6e0c2c34c996f95fdca965fc561b5b0"
+      },
+      "engine/tests/test_validate_targets_shape.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "4e351103057d405d730bc38475a2a42a0bc4fb26b7d90cbc381131f445de7e31"
+      },
+      "engine/tests/test_validate_threaded_caster.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "fcea48d220b73f017c3dc919c527aeae1e9924203a9f07488ec63822f19635c3"
+      },
+      "engine/topo/__init__.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "engine/topo/adjacency.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "a4132a4025cec95bd004eeb174efa1e88950b4f86605ea972cec644a2479896e"
+      },
+      "engine/topo/edges.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "e494c0ffee0b8a39cd5d5c2ac697ed7058f76b0838aac12928f2d03f0959c97b"
+      },
+      "engine/topo/planes.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "1701d1ad46deb6bb90452159b312a7b94e8661bb33693143bf7825da39f17f93"
+      },
+      "engine/topo/weld.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "e584a6ab2e46b20b7c4cf8da06516a4199978523ec68d3221263cd29cbf3bdea"
+      },
+      "engine/transport/__init__.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "engine/transport/meshbuf.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "2a24eaeaf1127a67ef1c87512147584a6a42761fb901fce0e6a634431ff28bd0"
+      },
+      "engine/unity/__init__.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "engine/unity/align.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "24af456f369a8a05444bb9fb7f1645d3068e957a437421e4eb048d776ed1e88a"
+      },
+      "engine/unity/check.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "c244213fbf212afc092b37925797b4371606568fd745fce61b2377d03316f898"
+      },
+      "engine/unity/dump.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "f710e519850f6aecab98de4ee3679cb58212ae407f1590fe4a2b3a4ea46d212d"
+      },
+      "engine/unity/mirror.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "3c81e629e64a6ceb095c626d52fb92f35ab167ba0d9631a45bf17c5e4ab56ad5"
+      },
+      "engine/validate/__init__.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "6d8a1be3faac9a3804d42cdcb5fba170739a756204aa755d2a05a1a3dd84f00b"
+      },
+      "engine/validate/checks.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "3d3ebe288abab4afa73b26e8908047a8fbe71a36b8df31d3fed69fb190601606"
+      },
+      "engine/validate/evidence.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "914fff0f76b253ba999fae91e6373ed2ab43d491c98f44d5cc57384e8ecffbd7"
+      },
+      "engine/validate/floor.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "bde829b4832443ce159ae8d7937a5ed4b4207bd6d7e1b4b669b2df2b9b0e84e8"
+      },
+      "engine/validate/sampling.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "d81a9af913839666ae8e63afd29ed22492fd90f1741be03bf01b1eb95a52a73d"
+      },
+      "engine/validate/viewpoints.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "c62acfd255fd99c003fd54bf084a68bdb82442cf1c96ada2f0a50e7a7efa7e98"
+      },
+      "engine/validate/visibility.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "28cbad91da779c0a12155c3036a717db78e5629bb5fbf54e4e8ad2d95ca04821"
+      },
+      "engine/vis/__init__.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "engine/vis/exposure.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "ec922979de869284607ed067f71e8940465132db4eb020b49789b3d28547c34a"
+      },
+      "tools/main_infra_e3_binding.py": {
+        "commit": "fbaa6374303b9657e34bf26141d6cef007e6b5f6",
+        "sha256": "2eb413942d49b6f1a65b42fb929be365bcb544481388a7935d8277e4e263f44c"
+      },
+      "tools/main_infra_e7.py": {
+        "commit": "ea30ae03917fd3046c9c537b07c98fe715712cb2",
+        "sha256": "beb40710cef8e88af1d077a8ca5c1b4bd4171dd90c06fc9c13e409cfa4a553bd"
+      },
+      "tools/main_infra_e7_1f_run.py": {
+        "commit": "396061b1222312c6a231db75481ed8cbb39618fa",
+        "sha256": "c9ef65b8b94987d3e3e8f9a666f7a0bf22f484b261bde55ab897e0591d019f2b"
+      },
+      "tools/main_infra_e7_attempt3.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "911450e08dc7c58ed02bd66635e46b7561db609619723b98e26d400e4fb7afe7"
+      },
+      "tools/main_infra_e7_checkpoint.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "e1e9ca745f8d06b68dd643a46c873d22cafb22d594de87601671bf003aeeef93"
+      },
+      "tools/main_infra_e7_serialization.py": {
+        "commit": "2396ecd11af30e789eef6bb83f69575e9ea19f07",
+        "sha256": "6456ac625441ce9c2649e088247ba73e094995858b074a127d7a54292365a44a"
+      },
+      "tools/main_infra_e7_subset.py": {
+        "commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+        "sha256": "dd6009be4e7e5c0d6a94b56d5e8b11dfa28f890e7584fa4565121d0095f19a77"
+      },
+      "tools/main_infra_physical_validation.py": {
+        "commit": "fbaa6374303b9657e34bf26141d6cef007e6b5f6",
+        "sha256": "e0be48fd466c12467189b361518aa026fd30dcc239a35f7e84bf8542120503d3"
+      }
+    }
+  },
+  "candidate": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261023-attempt3\\1F",
+  "checkpoint_after_digest": "6224af32a4ae9d22cdcd22b4e1b0aff60b69f29e51dc1b0f49a06b60e950d189",
+  "checkpoint_receipt_sha256": "f6a2583085df8b5d87924be8fb67550a84d14dcd59f6796f05deb8892c1cbd67",
+  "checkpoint_sha256": "f6a2583085df8b5d87924be8fb67550a84d14dcd59f6796f05deb8892c1cbd67",
+  "cut_receipt_sha256": "b587c3b95639cd51dfe5a1c82093f57b7492609de393c9f3c9830e4a398e813a",
+  "dashboard_run_id": "main-infra-clean-20261023",
+  "engine_run_id": "MAIN-INFRA-E7-1F-attempt3-20261023",
+  "external_pins": {
+    "checkpoint_sha256": "f6a2583085df8b5d87924be8fb67550a84d14dcd59f6796f05deb8892c1cbd67",
+    "cut_receipt_sha256": "b587c3b95639cd51dfe5a1c82093f57b7492609de393c9f3c9830e4a398e813a",
+    "preparation_sha256": "e5af36dde9a242388985200cd6502b370dba87aba92ef152bec9e91b0f681e2a",
+    "worker_sha256": "95e9c175248c59c6d4c058327a8ba03de8275a4d7a1bb4ba11e8f61c5a1aebdd"
+  },
+  "floor_id": "1F",
+  "guard": {
+    "passed": true,
+    "totals": {
+      "border_shift": 0,
+      "border_shift_grown": 0,
+      "crack_closed": 0,
+      "crack_closed_grown": 0,
+      "edge_flicker": 0,
+      "edge_flicker_grown": 0,
+      "edge_flicker_hole": 0,
+      "edge_flicker_material": 0,
+      "edge_flicker_moved": 0,
+      "fragment_removed": 0,
+      "grown": 0,
+      "grown_base": 0,
+      "holes": 0,
+      "material_changed": 0,
+      "model_px": 3924929,
+      "moved_other": 0,
+      "moved_same_flat": 0,
+      "zfight_tie": 1,
+      "zfight_tie_grown": 0
+    },
+    "views": [
+      {
+        "border_shift": 0,
+        "border_shift_grown": 0,
+        "crack_closed": 0,
+        "crack_closed_grown": 0,
+        "edge_flicker": 0,
+        "edge_flicker_grown": 0,
+        "edge_flicker_hole": 0,
+        "edge_flicker_material": 0,
+        "edge_flicker_moved": 0,
+        "fragment_removed": 0,
+        "grown": 0,
+        "grown_base": 0,
+        "holes": 0,
+        "material_changed": 0,
+        "model_px": 207166,
+        "moved_other": 0,
+        "moved_same_flat": 0,
+        "view": [
+          -0.987,
+          -0.993,
+          -0.989
+        ],
+        "zfight_tie": 0,
+        "zfight_tie_grown": 0
+      },
+      {
+        "border_shift": 0,
+        "border_shift_grown": 0,
+        "crack_closed": 0,
+        "crack_closed_grown": 0,
+        "edge_flicker": 0,
+        "edge_flicker_grown": 0,
+        "edge_flicker_hole": 0,
+        "edge_flicker_material": 0,
+        "edge_flicker_moved": 0,
+        "fragment_removed": 0,
+        "grown": 0,
+        "grown_base": 0,
+        "holes": 0,
+        "material_changed": 0,
+        "model_px": 118629,
+        "moved_other": 0,
+        "moved_same_flat": 0,
+        "view": [
+          -0.987,
+          -0.993,
+          0.011
+        ],
+        "zfight_tie": 0,
+        "zfight_tie_grown": 0
+      },
+      {
+        "border_shift": 0,
+        "border_shift_grown": 0,
+        "crack_closed": 0,
+        "crack_closed_grown": 0,
+        "edge_flicker": 0,
+        "edge_flicker_grown": 0,
+        "edge_flicker_hole": 0,
+        "edge_flicker_material": 0,
+        "edge_flicker_moved": 0,
+        "fragment_removed": 0,
+        "grown": 0,
+        "grown_base": 0,
+        "holes": 0,
+        "material_changed": 0,
+        "model_px": 163975,
+        "moved_other": 0,
+        "moved_same_flat": 0,
+        "view": [
+          -0.987,
+          -0.993,
+          1.011
+        ],
+        "zfight_tie": 1,
+        "zfight_tie_grown": 0
+      },
+      {
+        "border_shift": 0,
+        "border_shift_grown": 0,
+        "crack_closed": 0,
+        "crack_closed_grown": 0,
+        "edge_flicker": 0,
+        "edge_flicker_grown": 0,
+        "edge_flicker_hole": 0,
+        "edge_flicker_material": 0,
+        "edge_flicker_moved": 0,
+        "fragment_removed": 0,
+        "grown": 0,
+        "grown_base": 0,
+        "holes": 0,
+        "material_changed": 0,
+        "model_px": 180787,
+        "moved_other": 0,
+        "moved_same_flat": 0,
+        "view": [
+          -0.987,
+          0.007,
+          -0.989
+        ],
+        "zfight_tie": 0,
+        "zfight_tie_grown": 0
+      },
+      {
+        "border_shift": 0,
+        "border_shift_grown": 0,
+        "crack_closed": 0,
+        "crack_closed_grown": 0,
+        "edge_flicker": 0,
+        "edge_flicker_grown": 0,
+        "edge_flicker_hole": 0,
+        "edge_flicker_material": 0,
+        "edge_flicker_moved": 0,
+        "fragment_removed": 0,
+        "grown": 0,
+        "grown_base": 0,
+        "holes": 0,
+        "material_changed": 0,
+        "model_px": 82131,
+        "moved_other": 0,
+        "moved_same_flat": 0,
+        "view": [
+          -0.987,
+          0.007,
+          0.011
+        ],
+        "zfight_tie": 0,
+        "zfight_tie_grown": 0
+      },
+      {
+        "border_shift": 0,
+        "border_shift_grown": 0,
+        "crack_closed": 0,
+        "crack_closed_grown": 0,
+        "edge_flicker": 0,
+        "edge_flicker_grown": 0,
+        "edge_flicker_hole": 0,
+        "edge_flicker_material": 0,
+        "edge_flicker_moved": 0,
+        "fragment_removed": 0,
+        "grown": 0,
+        "grown_base": 0,
+        "holes": 0,
+        "material_changed": 0,
+        "model_px": 189166,
+        "moved_other": 0,
+        "moved_same_flat": 0,
+        "view": [
+          -0.987,
+          0.007,
+          1.011
+        ],
+        "zfight_tie": 0,
+        "zfight_tie_grown": 0
+      },
+      {
+        "border_shift": 0,
+        "border_shift_grown": 0,
+        "crack_closed": 0,
+        "crack_closed_grown": 0,
+        "edge_flicker": 0,
+        "edge_flicker_grown": 0,
+        "edge_flicker_hole": 0,
+        "edge_flicker_material": 0,
+        "edge_flicker_moved": 0,
+        "fragment_removed": 0,
+        "grown": 0,
+        "grown_base": 0,
+        "holes": 0,
+        "material_changed": 0,
+        "model_px": 182332,
+        "moved_other": 0,
+        "moved_same_flat": 0,
+        "view": [
+          -0.987,
+          1.007,
+          -0.989
+        ],
+        "zfight_tie": 0,
+        "zfight_tie_grown": 0
+      },
+      {
+        "border_shift": 0,
+        "border_shift_grown": 0,
+        "crack_closed": 0,
+        "crack_closed_grown": 0,
+        "edge_flicker": 0,
+        "edge_flicker_grown": 0,
+        "edge_flicker_hole": 0,
+        "edge_flicker_material": 0,
+        "edge_flicker_moved": 0,
+        "fragment_removed": 0,
+        "grown": 0,
+        "grown_base": 0,
+        "holes": 0,
+        "material_changed": 0,
+        "model_px": 84328,
+        "moved_other": 0,
+        "moved_same_flat": 0,
+        "view": [
+          -0.987,
+          1.007,
+          0.011
+        ],
+        "zfight_tie": 0,
+        "zfight_tie_grown": 0
+      },
+      {
+        "border_shift": 0,
+        "border_shift_grown": 0,
+        "crack_closed": 0,
+        "crack_closed_grown": 0,
+        "edge_flicker": 0,
+        "edge_flicker_grown": 0,
+        "edge_flicker_hole": 0,
+        "edge_flicker_material": 0,
+        "edge_flicker_moved": 0,
+        "fragment_removed": 0,
+        "grown": 0,
+        "grown_base": 0,
+        "holes": 0,
+        "material_changed": 0,
+        "model_px": 189039,
+        "moved_other": 0,
+        "moved_same_flat": 0,
+        "view": [
+          -0.987,
+          1.007,
+          1.011
+        ],
+        "zfight_tie": 0,
+        "zfight_tie_grown": 0
+      },
+      {
+        "border_shift": 0,
+        "border_shift_grown": 0,
+        "crack_closed": 0,
+        "crack_closed_grown": 0,
+        "edge_flicker": 0,
+        "edge_flicker_grown": 0,
+        "edge_flicker_hole": 0,
+        "edge_flicker_material": 0,
+        "edge_flicker_moved": 0,
+        "fragment_removed": 0,
+        "grown": 0,
+        "grown_base": 0,
+        "holes": 0,
+        "material_changed": 0,
+        "model_px": 129498,
+        "moved_other": 0,
+        "moved_same_flat": 0,
+        "view": [
+          0.013,
+          -0.993,
+          -0.989
+        ],
+        "zfight_tie": 0,
+        "zfight_tie_grown": 0
+      },
+      {
+        "border_shift": 0,
+        "border_shift_grown": 0,
+        "crack_closed": 0,
+        "crack_closed_grown": 0,
+        "edge_flicker": 0,
+        "edge_flicker_grown": 0,
+        "edge_flicker_hole": 0,
+        "edge_flicker_material": 0,
+        "edge_flicker_moved": 0,
+        "fragment_removed": 0,
+        "grown": 0,
+        "grown_base": 0,
+        "holes": 0,
+        "material_changed": 0,
+        "model_px": 230444,
+        "moved_other": 0,
+        "moved_same_flat": 0,
+        "view": [
+          0.013,
+          -0.993,
+          0.011
+        ],
+        "zfight_tie": 0,
+        "zfight_tie_grown": 0
+      },
+      {
+        "border_shift": 0,
+        "border_shift_grown": 0,
+        "crack_closed": 0,
+        "crack_closed_grown": 0,
+        "edge_flicker": 0,
+        "edge_flicker_grown": 0,
+        "edge_flicker_hole": 0,
+        "edge_flicker_material": 0,
+        "edge_flicker_moved": 0,
+        "fragment_removed": 0,
+        "grown": 0,
+        "grown_base": 0,
+        "holes": 0,
+        "material_changed": 0,
+        "model_px": 104195,
+        "moved_other": 0,
+        "moved_same_flat": 0,
+        "view": [
+          0.013,
+          -0.993,
+          1.011
+        ],
+        "zfight_tie": 0,
+        "zfight_tie_grown": 0
+      },
+      {
+        "border_shift": 0,
+        "border_shift_grown": 0,
+        "crack_closed": 0,
+        "crack_closed_grown": 0,
+        "edge_flicker": 0,
+        "edge_flicker_grown": 0,
+        "edge_flicker_hole": 0,
+        "edge_flicker_material": 0,
+        "edge_flicker_moved": 0,
+        "fragment_removed": 0,
+        "grown": 0,
+        "grown_base": 0,
+        "holes": 0,
+        "material_changed": 0,
+        "model_px": 85281,
+        "moved_other": 0,
+        "moved_same_flat": 0,
+        "view": [
+          0.013,
+          0.007,
+          -0.989
+        ],
+        "zfight_tie": 0,
+        "zfight_tie_grown": 0
+      },
+      {
+        "border_shift": 0,
+        "border_shift_grown": 0,
+        "crack_closed": 0,
+        "crack_closed_grown": 0,
+        "edge_flicker": 0,
+        "edge_flicker_grown": 0,
+        "edge_flicker_hole": 0,
+        "edge_flicker_material": 0,
+        "edge_flicker_moved": 0,
+        "fragment_removed": 0,
+        "grown": 0,
+        "grown_base": 0,
+        "holes": 0,
+        "material_changed": 0,
+        "model_px": 85507,
+        "moved_other": 0,
+        "moved_same_flat": 0,
+        "view": [
+          0.013,
+          0.007,
+          1.011
+        ],
+        "zfight_tie": 0,
+        "zfight_tie_grown": 0
+      },
+      {
+        "border_shift": 0,
+        "border_shift_grown": 0,
+        "crack_closed": 0,
+        "crack_closed_grown": 0,
+        "edge_flicker": 0,
+        "edge_flicker_grown": 0,
+        "edge_flicker_hole": 0,
+        "edge_flicker_material": 0,
+        "edge_flicker_moved": 0,
+        "fragment_removed": 0,
+        "grown": 0,
+        "grown_base": 0,
+        "holes": 0,
+        "material_changed": 0,
+        "model_px": 104126,
+        "moved_other": 0,
+        "moved_same_flat": 0,
+        "view": [
+          0.013,
+          1.007,
+          -0.989
+        ],
+        "zfight_tie": 0,
+        "zfight_tie_grown": 0
+      },
+      {
+        "border_shift": 0,
+        "border_shift_grown": 0,
+        "crack_closed": 0,
+        "crack_closed_grown": 0,
+        "edge_flicker": 0,
+        "edge_flicker_grown": 0,
+        "edge_flicker_hole": 0,
+        "edge_flicker_material": 0,
+        "edge_flicker_moved": 0,
+        "fragment_removed": 0,
+        "grown": 0,
+        "grown_base": 0,
+        "holes": 0,
+        "material_changed": 0,
+        "model_px": 262522,
+        "moved_other": 0,
+        "moved_same_flat": 0,
+        "view": [
+          0.013,
+          1.007,
+          0.011
+        ],
+        "zfight_tie": 0,
+        "zfight_tie_grown": 0
+      },
+      {
+        "border_shift": 0,
+        "border_shift_grown": 0,
+        "crack_closed": 0,
+        "crack_closed_grown": 0,
+        "edge_flicker": 0,
+        "edge_flicker_grown": 0,
+        "edge_flicker_hole": 0,
+        "edge_flicker_material": 0,
+        "edge_flicker_moved": 0,
+        "fragment_removed": 0,
+        "grown": 0,
+        "grown_base": 0,
+        "holes": 0,
+        "material_changed": 0,
+        "model_px": 128508,
+        "moved_other": 0,
+        "moved_same_flat": 0,
+        "view": [
+          0.013,
+          1.007,
+          1.011
+        ],
+        "zfight_tie": 0,
+        "zfight_tie_grown": 0
+      },
+      {
+        "border_shift": 0,
+        "border_shift_grown": 0,
+        "crack_closed": 0,
+        "crack_closed_grown": 0,
+        "edge_flicker": 0,
+        "edge_flicker_grown": 0,
+        "edge_flicker_hole": 0,
+        "edge_flicker_material": 0,
+        "edge_flicker_moved": 0,
+        "fragment_removed": 0,
+        "grown": 0,
+        "grown_base": 0,
+        "holes": 0,
+        "material_changed": 0,
+        "model_px": 184475,
+        "moved_other": 0,
+        "moved_same_flat": 0,
+        "view": [
+          1.013,
+          -0.993,
+          -0.989
+        ],
+        "zfight_tie": 0,
+        "zfight_tie_grown": 0
+      },
+      {
+        "border_shift": 0,
+        "border_shift_grown": 0,
+        "crack_closed": 0,
+        "crack_closed_grown": 0,
+        "edge_flicker": 0,
+        "edge_flicker_grown": 0,
+        "edge_flicker_hole": 0,
+        "edge_flicker_material": 0,
+        "edge_flicker_moved": 0,
+        "fragment_removed": 0,
+        "grown": 0,
+        "grown_base": 0,
+        "holes": 0,
+        "material_changed": 0,
+        "model_px": 83418,
+        "moved_other": 0,
+        "moved_same_flat": 0,
+        "view": [
+          1.013,
+          -0.993,
+          0.011
+        ],
+        "zfight_tie": 0,
+        "zfight_tie_grown": 0
+      },
+      {
+        "border_shift": 0,
+        "border_shift_grown": 0,
+        "crack_closed": 0,
+        "crack_closed_grown": 0,
+        "edge_flicker": 0,
+        "edge_flicker_grown": 0,
+        "edge_flicker_hole": 0,
+        "edge_flicker_material": 0,
+        "edge_flicker_moved": 0,
+        "fragment_removed": 0,
+        "grown": 0,
+        "grown_base": 0,
+        "holes": 0,
+        "material_changed": 0,
+        "model_px": 180236,
+        "moved_other": 0,
+        "moved_same_flat": 0,
+        "view": [
+          1.013,
+          -0.993,
+          1.011
+        ],
+        "zfight_tie": 0,
+        "zfight_tie_grown": 0
+      },
+      {
+        "border_shift": 0,
+        "border_shift_grown": 0,
+        "crack_closed": 0,
+        "crack_closed_grown": 0,
+        "edge_flicker": 0,
+        "edge_flicker_grown": 0,
+        "edge_flicker_hole": 0,
+        "edge_flicker_material": 0,
+        "edge_flicker_moved": 0,
+        "fragment_removed": 0,
+        "grown": 0,
+        "grown_base": 0,
+        "holes": 0,
+        "material_changed": 0,
+        "model_px": 188921,
+        "moved_other": 0,
+        "moved_same_flat": 0,
+        "view": [
+          1.013,
+          0.007,
+          -0.989
+        ],
+        "zfight_tie": 0,
+        "zfight_tie_grown": 0
+      },
+      {
+        "border_shift": 0,
+        "border_shift_grown": 0,
+        "crack_closed": 0,
+        "crack_closed_grown": 0,
+        "edge_flicker": 0,
+        "edge_flicker_grown": 0,
+        "edge_flicker_hole": 0,
+        "edge_flicker_material": 0,
+        "edge_flicker_moved": 0,
+        "fragment_removed": 0,
+        "grown": 0,
+        "grown_base": 0,
+        "holes": 0,
+        "material_changed": 0,
+        "model_px": 81826,
+        "moved_other": 0,
+        "moved_same_flat": 0,
+        "view": [
+          1.013,
+          0.007,
+          0.011
+        ],
+        "zfight_tie": 0,
+        "zfight_tie_grown": 0
+      },
+      {
+        "border_shift": 0,
+        "border_shift_grown": 0,
+        "crack_closed": 0,
+        "crack_closed_grown": 0,
+        "edge_flicker": 0,
+        "edge_flicker_grown": 0,
+        "edge_flicker_hole": 0,
+        "edge_flicker_material": 0,
+        "edge_flicker_moved": 0,
+        "fragment_removed": 0,
+        "grown": 0,
+        "grown_base": 0,
+        "holes": 0,
+        "material_changed": 0,
+        "model_px": 182407,
+        "moved_other": 0,
+        "moved_same_flat": 0,
+        "view": [
+          1.013,
+          0.007,
+          1.011
+        ],
+        "zfight_tie": 0,
+        "zfight_tie_grown": 0
+      },
+      {
+        "border_shift": 0,
+        "border_shift_grown": 0,
+        "crack_closed": 0,
+        "crack_closed_grown": 0,
+        "edge_flicker": 0,
+        "edge_flicker_grown": 0,
+        "edge_flicker_hole": 0,
+        "edge_flicker_material": 0,
+        "edge_flicker_moved": 0,
+        "fragment_removed": 0,
+        "grown": 0,
+        "grown_base": 0,
+        "holes": 0,
+        "material_changed": 0,
+        "model_px": 169741,
+        "moved_other": 0,
+        "moved_same_flat": 0,
+        "view": [
+          1.013,
+          1.007,
+          -0.989
+        ],
+        "zfight_tie": 0,
+        "zfight_tie_grown": 0
+      },
+      {
+        "border_shift": 0,
+        "border_shift_grown": 0,
+        "crack_closed": 0,
+        "crack_closed_grown": 0,
+        "edge_flicker": 0,
+        "edge_flicker_grown": 0,
+        "edge_flicker_hole": 0,
+        "edge_flicker_material": 0,
+        "edge_flicker_moved": 0,
+        "fragment_removed": 0,
+        "grown": 0,
+        "grown_base": 0,
+        "holes": 0,
+        "material_changed": 0,
+        "model_px": 118055,
+        "moved_other": 0,
+        "moved_same_flat": 0,
+        "view": [
+          1.013,
+          1.007,
+          0.011
+        ],
+        "zfight_tie": 0,
+        "zfight_tie_grown": 0
+      },
+      {
+        "border_shift": 0,
+        "border_shift_grown": 0,
+        "crack_closed": 0,
+        "crack_closed_grown": 0,
+        "edge_flicker": 0,
+        "edge_flicker_grown": 0,
+        "edge_flicker_hole": 0,
+        "edge_flicker_material": 0,
+        "edge_flicker_moved": 0,
+        "fragment_removed": 0,
+        "grown": 0,
+        "grown_base": 0,
+        "holes": 0,
+        "material_changed": 0,
+        "model_px": 208216,
+        "moved_other": 0,
+        "moved_same_flat": 0,
+        "view": [
+          1.013,
+          1.007,
+          1.011
+        ],
+        "zfight_tie": 0,
+        "zfight_tie_grown": 0
+      }
+    ]
+  },
+  "guard_depth_tol_inches": 5.9055118110236214e-05,
+  "hashes": {
+    "asset_receipt": "019d965f6ded3630e9d957335fea8f33b98c7e8705a5017600ef1d66ae33eb3b",
+    "baseline_asset_0": "c64c0cb12926c707b55262a82fd324ccd09502f92b0c866801a00e9f3c89d9a3",
+    "baseline_asset_1": "f42c7be3c52294ead4c69ac0e9ef1bbbbe6bdb4451382c89a65c386709df6171",
+    "baseline_asset_2": "14ceba3d0329594e00458bc6ed2aeafa24d9228519994a60d758de2509fee1ad",
+    "baseline_asset_3": "daf3f46f93f7364b1530ec468a7a1d5a02eda1cd0a118e41e93e9c4177791cc1",
+    "baseline_asset_4": "85e34c6a6b917ade1cfbd2826127de4175c63317f3efbba1f7aaed3bf105a193",
+    "baseline_asset_5": "eea2309518da196d86171dd0d78ecdcdc3a0510005790fa2beb8484744d8ae88",
+    "baseline_asset_6": "c6a3c27b965f298da28c89c1a522b5ff3152321a97fcbe613aec2f9a6d8f66fa",
+    "baseline_engine": "bed4b7c24b7a3a164381b8e6e0ca0b7e7bf9998e1df7c2782878d23cd1796df3",
+    "baseline_source": "26eda65235ce9d1f8c82e97b00d4da21cc1e272d0817e769dddb6ca192f4aea5",
+    "binding_asset_0": "c64c0cb12926c707b55262a82fd324ccd09502f92b0c866801a00e9f3c89d9a3",
+    "binding_asset_1": "f42c7be3c52294ead4c69ac0e9ef1bbbbe6bdb4451382c89a65c386709df6171",
+    "binding_asset_2": "14ceba3d0329594e00458bc6ed2aeafa24d9228519994a60d758de2509fee1ad",
+    "binding_asset_3": "daf3f46f93f7364b1530ec468a7a1d5a02eda1cd0a118e41e93e9c4177791cc1",
+    "binding_asset_4": "85e34c6a6b917ade1cfbd2826127de4175c63317f3efbba1f7aaed3bf105a193",
+    "binding_asset_5": "eea2309518da196d86171dd0d78ecdcdc3a0510005790fa2beb8484744d8ae88",
+    "binding_asset_6": "c6a3c27b965f298da28c89c1a522b5ff3152321a97fcbe613aec2f9a6d8f66fa",
+    "binding_baseline_engine": "bed4b7c24b7a3a164381b8e6e0ca0b7e7bf9998e1df7c2782878d23cd1796df3",
+    "binding_baseline_source": "26eda65235ce9d1f8c82e97b00d4da21cc1e272d0817e769dddb6ca192f4aea5",
+    "binding_checked_outcome_receipt": "f6a2583085df8b5d87924be8fb67550a84d14dcd59f6796f05deb8892c1cbd67",
+    "binding_donor_edit_log": "7348b39a2a54192c6f44b758be96cb57703e0c24c361b5ea99ed0879f39ce6c7",
+    "binding_donor_preparation": "1cd147ad337153811478b6f7a02e904f8fd935227aefa89ef794b5b8abc4896f",
+    "binding_donor_worker": "e9b61a96b9d0ab3154118f275f7baf44a13385d8c641731c17d696bc50f3654f",
+    "binding_e3_audit": "4daec2c27b2049ad61923f74e5c10cb3cfe750c24042bea9775a9f0caff6d3bf",
+    "binding_e3_edit_log": "0455cd684693eca72d1f283761d92004cf1b0c0268ea2ccaaf09a36bc255cb83",
+    "binding_edit_log": "0e0eb4a6ab55b2934abe6c1cc60181f969bdb8812d1fbb7202c1a23c14efaf57",
+    "binding_engine_input": "5c5c25cff8498178f4014f620be7a0473969c835427d03a5fd60817314aff141",
+    "binding_lineage": "4651b2ba97a20eeb49ff59afb07b9e84cb7fae12558652d7b618fcab65c8b4b8",
+    "binding_materials": "aafb0e8572a8a3aa544beedfcc9863a9c240e28fc4dcbe0e47d8b45e42982c5c",
+    "binding_preparation": "e5af36dde9a242388985200cd6502b370dba87aba92ef152bec9e91b0f681e2a",
+    "binding_prior_validation": "3d10cde0d05a0ce732a8d5120913e22bc99276aec788d6de3fa0488d6d849913",
+    "binding_provenance": "eac6bd90fc2c9c596659f658fc140251aac3f2de7afe0d42d02ebc3bff987746",
+    "binding_qualification": "d2ab32f244207b818de51cca2a54c6643e4c72f63a6feb434885fa355e366e96",
+    "binding_raw": "769cbb11cd954d2132b69a78a023f24f63f95b1923f7b336aa8be892d826503f",
+    "binding_reference": "b2c3f91727047fb4b37c5380550d8d213df2700d856a7aa49728fc43bde33039",
+    "binding_source_input": "ac32d4d054bf10226803e84493db19bd794d2afe0fd98d85dc3451e5e87eaf25",
+    "binding_targets": "4117f5e22045750fed7c4627ffa6324bf2efe5c14cf9629389a482c960036507",
+    "blender_executable": "1e6624af112b3c936f4b038b025ebd2bf00ae72c4b62881a6787166d71c58fa5",
+    "camera_qualification": "ba770ca39b80a352cbebf546b1ee951bb523efba1b5fbe451736ba2c6ec900f3",
+    "candidate_asset_0": "c64c0cb12926c707b55262a82fd324ccd09502f92b0c866801a00e9f3c89d9a3",
+    "candidate_asset_1": "f42c7be3c52294ead4c69ac0e9ef1bbbbe6bdb4451382c89a65c386709df6171",
+    "candidate_asset_2": "14ceba3d0329594e00458bc6ed2aeafa24d9228519994a60d758de2509fee1ad",
+    "candidate_asset_3": "daf3f46f93f7364b1530ec468a7a1d5a02eda1cd0a118e41e93e9c4177791cc1",
+    "candidate_asset_4": "85e34c6a6b917ade1cfbd2826127de4175c63317f3efbba1f7aaed3bf105a193",
+    "candidate_asset_5": "eea2309518da196d86171dd0d78ecdcdc3a0510005790fa2beb8484744d8ae88",
+    "candidate_asset_6": "c6a3c27b965f298da28c89c1a522b5ff3152321a97fcbe613aec2f9a6d8f66fa",
+    "candidate_candidate.engine.obj": "cc8e67785116edd9132e5b75353479810265f051a1f98e8da4df89b1eea9d6f9",
+    "candidate_candidate.source.obj": "feb331290528539e8e017ad7d412648c4b495eb320aeb4646ecaca5a3d6fb641",
+    "candidate_checked-edits.json": "16ea8361a6e364441b220a226fc52a6f889f8be7f55e875b655dcf5a8edf5d79",
+    "candidate_cut-lineage.json": "d39ce723763e33ecb9e289413b38d8ad34c93607048932fea07a817f48f3c1e2",
+    "candidate_edit-log.jsonl": "0e0eb4a6ab55b2934abe6c1cc60181f969bdb8812d1fbb7202c1a23c14efaf57",
+    "checkpoint_arrays.npz": "45c484ebecbbd3ec9dc68397055cdc518f2b92fe6f72d1c8236fc63dc765a373",
+    "checkpoint_edit-log.jsonl": "0e0eb4a6ab55b2934abe6c1cc60181f969bdb8812d1fbb7202c1a23c14efaf57",
+    "checkpoint_receipt": "f6a2583085df8b5d87924be8fb67550a84d14dcd59f6796f05deb8892c1cbd67",
+    "checkpoint_result.json": "2490cf893e7a5c68f2fc384324ddb947df901980b02b81f8c515d4d7310728a5",
+    "code_engine/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "code_engine/campus/__init__.py": "e47d53569bb287f38a3232bf9044dd2ede5fa493b7682ae756fd459da4bd50d2",
+    "code_engine/campus/census.py": "37bc6a44b5d768ba7518e78d123d65b40f52eff0828937dbd72c77a23088024c",
+    "code_engine/campus/error_export.py": "e88b726d242f3c68bd598efc4f957e5d4c59a151f86283afa447c977b69d68ab",
+    "code_engine/campus/groups.py": "7f0b05a8d1807bbbc5118d7a4acfd25975614f533d83264b978455eaffdb7e73",
+    "code_engine/campus/inventory.py": "144230f16f06b0dd6c9d5b01709f7f70f04faa94764aa76e3ab6e727fb42cf2f",
+    "code_engine/campus/materials.py": "2325873abf6efd0c67c894dcb9e3cb66eb72a584c93c79d46661bddfe0c2f221",
+    "code_engine/campus/needs_modelling.py": "857921b86475ff1f02c0fed5195840188e7e4bf86ed1a5ab691a5fe009677cb5",
+    "code_engine/campus/pixfont.py": "6c2554b6a2a15839525007a059425c0ff954d0e417669b2fc19a19704944e4e1",
+    "code_engine/campus/skp_check.py": "92d5477aa0284a5dab1dc550934763b25333a66f05dfab4b41798a2f88d22844",
+    "code_engine/campus/source.py": "25bc1a7bf19b511140135bde71474a668cb00614e1b30a488b86ea753768a737",
+    "code_engine/campus/unit_before.py": "fb0b4ace5010792740858933b8eac1bd59b674ea5c0e15ddebbb570ceacd4998",
+    "code_engine/campus/winprobe.py": "17ae7a4ae6856647cf670ec69ed3d00ac02ade629aff1b67ad59888dbae30759",
+    "code_engine/cli.py": "22038f695aeef6f655a0409781993f2657e1a2507df8d3bb448c2faf1a3806c4",
+    "code_engine/decide/__init__.py": "35c706c776a73c97047b57abdb173b2c5a3b69e548cef0805be3e1858dd95ce1",
+    "code_engine/decide/decider.py": "63c318ae4e19d6130497207005d0e90c865875c6db8fef592dac6fd6eca0c9d0",
+    "code_engine/decide/jev.py": "6ee83f8a737f438b72bcc90a5d9ef58a198ea1b12e6e7d509d1b8ba3d8049534",
+    "code_engine/decide/pilot.py": "86e7a0545b9bce62fcd71e3259f177352a908b8d60fe34ce96fba08d1381e25a",
+    "code_engine/decide/pilot_import.py": "fb43df39144e95ea56a9b29dc0d4eba99473a6f99ebf059b6d471ed4fdabc959",
+    "code_engine/decide/providers.py": "f6d13f43daaef30e63798bfd0fb03455c81497b98d80098de90584deb31218e5",
+    "code_engine/decide/remote.py": "68444940c8fa733f9dacb29e264a33298fdfc8411c08aeeeecb58a0ba080ba2c",
+    "code_engine/decide/wire.py": "1350369bc601021eb0b13d5000da07c145cb12e28c61140483c938abde9eef27",
+    "code_engine/detectors/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "code_engine/detectors/errors.py": "21823708b8f34ec42900008f7c16ac3b55fda5b213c8347abcb5057fe443610f",
+    "code_engine/detectors/folds.py": "6c78d57faf7eae8ed874cb25ca0a315362f5ac59f88d1543bbc23d310d7fb84e",
+    "code_engine/detectors/fragments.py": "63a9beac6a6dcb5826e13a120997ac172e3d809351269f939ee76b1308a012d5",
+    "code_engine/fill_review.py": "dc04d19343736e6c062f73d5e6b9d8b642e545e7a1f9dd4547419b4bc1c2034f",
+    "code_engine/fixes/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "code_engine/fixes/merge.py": "e11bfe7da7cfeb9c7cdad3da0c1e41306b124f4c42ed8f4099d9567118aff693",
+    "code_engine/fixes/orient.py": "0e15f196d51ff9d19c2e102baee0fc7966421275ead6bbcdb958850b37346855",
+    "code_engine/fixes/overlap.py": "ee8aab14411313b82e05da94c508a1d479ea00732f620bdb58fa92c2b9a8f8c9",
+    "code_engine/fixes/pipeline.py": "20f72381d1ef2040bd90de928e21c3bfb0b5c4e534669e15207110ae7736f2aa",
+    "code_engine/fixes/precut_cleanup.py": "faa4a8a2d921b83702d2cf53c04038cf4488168b6279cd66f6b49813ab40d6b4",
+    "code_engine/fixes/remove.py": "7ec0b682dc87cda8270fd157b1efa7bf34c5232e71963153b3fac7257ff02706",
+    "code_engine/fixes/solidify.py": "9201503de87813fdf34e1adc60b12d39340ee8f289f293ae8dd3b6abdc805e00",
+    "code_engine/guard/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "code_engine/guard/compare.py": "8aca5a91a3d33af2bf0387a2fc6e5e13490ca337c2b3e24ea53b94cbe8722412",
+    "code_engine/guard/piece_rays.py": "b15824c2385c00c3df19d88b8f379194f6dd01a0aeb53c1f20796661cbbbf1e9",
+    "code_engine/guard/qa_render.py": "a620795f0763af06420722daceb75c8dc62c62fda4787ffc911e9cde4b3cd74b",
+    "code_engine/guard/render.py": "9c918de0b2d53621af3b5cecf0f567c89144c3829a18f408fdf72dd68612bcb3",
+    "code_engine/guard/views.py": "d17931c6228909a6bd40f32a961db41c4d7b1e747100f1ea5e115d49f74ac66f",
+    "code_engine/io/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "code_engine/io/minecraft_floor.py": "f039309f3cd988ea92c7242f5c3c5085cfdee35d0a3a8075b214910dbd46d014",
+    "code_engine/io/mtl.py": "91492f26a43adf2ba368ade4580bcc562fe7b3d162fa3ce0e5ecf964edc70026",
+    "code_engine/io/obj_reader.py": "72b300cdd8af9b3312369fb3ffe2064f07933298198ad0e8f438c91d1990a7fe",
+    "code_engine/io/obj_writer.py": "9358f99c2362f4cc84d1e11fc073785bae58936f115c6c8fa87e4616fd073df1",
+    "code_engine/io/protected.py": "d17e46d0cd294a0c9e23a87476b25d1491cc11b390d74abaee8205400e6d9058",
+    "code_engine/io/skp_reader.py": "6142326ccf9ba6a44a563721c14a73deee2fa14cbac6c7f39a34f21638158719",
+    "code_engine/io/skp_writer.py": "94a2dd52f872ed06131d5f3ae0f1cb5db05363007333098a893f477be1247500",
+    "code_engine/io/snapshot.py": "05b586a87f896552b5081bc5e263e3b4de3ba2d856b76b43af63787794933ac9",
+    "code_engine/model.py": "4309d8ce5552ec295198f6f732d344842824e65ed1c300e63986e8c17a75be8b",
+    "code_engine/pipeline.py": "eef997061586ed4735d39d8ffd7b245aece780181fe8c070d34bd8a5ccb764a9",
+    "code_engine/rays/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "code_engine/rays/caster.py": "62bde18bb12e0e3c8f690eb9c819750274e4924911770b6f7cffa399a704ddd5",
+    "code_engine/repair/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "code_engine/repair/engines/__init__.py": "8afb2ca146db093adccbc2ca8506262e6fe01f4ed98d4ee11773153aefd45207",
+    "code_engine/repair/engines/e1_loose.py": "c844ffa6147facb54ee60efdba3978dc46f05ca2dde6811b24ca8a1419eea539",
+    "code_engine/repair/engines/e3_hidden.py": "e4b2e2e00127683d1f8b0ec221aab35e9f3cb67407fb4f561760a6f12f1d8d92",
+    "code_engine/repair/engines/e7_thread.py": "60ee872b283dfe0557afc6311f4f2ebfef854c136b18e3dfbeeb679789d717d9",
+    "code_engine/repair/engines/e8_fill.py": "6784bf95a73de18c80b3404a4d79c233ca1fef5e5d5856a7bda05d7b68501a42",
+    "code_engine/repair/engines/e8_solidify.py": "a9862d6420609a341d0c0132b1ddf4c639c01092a7a7d1c6af054c50af976f21",
+    "code_engine/repair/engines/legacy.py": "4ae576b9e7d0e5a5f610771efda83cba93d8a3b6e277d156367900cc30522b57",
+    "code_engine/repair/kernel.py": "dca8042e6d562676589f6b2741ee178d58f48e3d61f767d718303641c1525ca5",
+    "code_engine/repair/types.py": "43ca308fa31942982666cbae7dbf0f7082e5dd3c747be901c0ca37c32dec4c0c",
+    "code_engine/site_judge.py": "50cee322111f5bf192f1a20160e06234c61b71518a891684434d246faebd6993",
+    "code_engine/tests/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "code_engine/tests/fixtures/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "code_engine/tests/fixtures/build.py": "73685577a175ae6092cda4fcf0d5759d12147f0b6dd3e88de111bb1c18f3116f",
+    "code_engine/tests/fixtures/holes.py": "2a54102ad9133212ab77dfbe96c8f674f6291d193fde8603b5a7df2071f47ccd",
+    "code_engine/tests/skp_scene.py": "8eadc03a62d67312c505e4ea4912bd1fba153f976dc0f042ae2db1e28e139690",
+    "code_engine/tests/test_campus_census.py": "6b127dcf0a7ebf702654b2985db65c5ac49cd2c84b181845f072aa2368d0c786",
+    "code_engine/tests/test_campus_groups.py": "aa4d8c9d1632bcb80feca99626a445d06033c0408f33e70ae84cf970b1a5c09b",
+    "code_engine/tests/test_campus_inventory.py": "3a0afaa80371c33c5bdbdb55944ea108e934038b6f267471a2e975db9a953cfa",
+    "code_engine/tests/test_campus_looks.py": "2595cf5152984094dd421b2db6d2eadd45a4831927588a2ee1790a78fc0daca8",
+    "code_engine/tests/test_campus_materials.py": "2d03d8b90903c4f729d9322f6abe6210138c876b44b82a806f11f237ede44326",
+    "code_engine/tests/test_campus_source.py": "acd9a6fa56827564ab11df06e3601528e794458e93530a56ebeca716c3c7ce7e",
+    "code_engine/tests/test_caster.py": "229880305bed4d8084a84258e9f7fca574f7472f69e500f4eb417a0bb5d9ca66",
+    "code_engine/tests/test_caster_spatial_recovery.py": "f2a0bff7e5be77878718fcb7a26bd7f922a7f3f83c9bfa6ae54ccac46249b9ff",
+    "code_engine/tests/test_census_materials_message.py": "55d2e50d6e2bb7aedb9f2e28bfebb0894070306a99ceda7f022197b17d844a62",
+    "code_engine/tests/test_cli.py": "12ccdbd8fa0354c7904c0e41ffb477a28cae461a4920329a8a0b62a17a8d3b6f",
+    "code_engine/tests/test_cli_needs_modelling.py": "96841fdd581329b853a2c4098b9c5d5d0e6d31834e5c0df10fb7bf75a7947d18",
+    "code_engine/tests/test_cli_repair_unit.py": "00a33f9b0ae5038586add8c3d5f2a4da340e59af70bc5834b47c65c9c148196f",
+    "code_engine/tests/test_cli_repair_unit_e1.py": "d600ab4c2e97d76422e0b0bc66d1b7c280b13335cff0159b33527e06323ccf17",
+    "code_engine/tests/test_cli_repair_unit_fills.py": "45719741a4c909d8126251b5cd12237588a881a7200de97116109bed75e28714",
+    "code_engine/tests/test_cli_unity_check.py": "5a1df437fc061c2b8be6af4e4331bc17e12cf4a395d6b4401c48f050dfbc17f1",
+    "code_engine/tests/test_cli_validate_sites.py": "2d5bf8f8ee3f16e95ec0bd0c5daa5b423f87c353ddfa4f3bb6800e13d36cf426",
+    "code_engine/tests/test_decide_jev.py": "c42029aad61a5728406b4038d36316ff5f324e39769a05e3b05aacabf1f7d2a4",
+    "code_engine/tests/test_decide_pilot.py": "2731cf2436360e73ee213322791d0f9c6e6d4ab0a1ca76bdd3192aa208f2f4a9",
+    "code_engine/tests/test_decide_pilot_import.py": "5a44ff3094c792146610f09d89bce8d2c9d7d8ec95d3bdba6e1cfe5bce02ef12",
+    "code_engine/tests/test_decide_providers.py": "1aae3c1d04588c2a1bf6f027fc918d4423e633eb47c51675d17a79e79e727a04",
+    "code_engine/tests/test_decide_remote.py": "d1a280cf9f8e4baa1c0753852d3e9a244d2be5c5386faee04fc639f71769a077",
+    "code_engine/tests/test_decide_wire.py": "7f144c30969207af00fc7d7d6e33cbd82fe7f26ca3a62cf7b477053ee4756df5",
+    "code_engine/tests/test_decider.py": "689379536ecc85286243b4071bf0e7296418b7fe83771e08cbbd2a5322fb3dfe",
+    "code_engine/tests/test_decider_unavailable.py": "4f2de6ef4de3bc8f40630e7169aafeee1b3fdd6dbd613deac148f8cb66aa6c6d",
+    "code_engine/tests/test_double_layers_memory.py": "4d70520fe77d88937c84c88e12cb5c991aa09d8aa8ba07c8a84d95e87febaa9e",
+    "code_engine/tests/test_double_layers_speed.py": "0ebf50864b75ab55ab4057f18d1b2208841c93a18ce750d73a14b5387a92c271",
+    "code_engine/tests/test_e1_loose.py": "274c8a1dc664223f72da3c3047370c6b3f994889fb15d8ee0a627a08e1bf5c81",
+    "code_engine/tests/test_e3_hidden.py": "16759a6de7d45b756e859e32100e5ad1955c5e8d5d540e83c159c0a7fa93130e",
+    "code_engine/tests/test_e7_thread.py": "08fd96504ffe5201399e024cc3f20c38b344dcdacece78fd7a940c4e095b3f3b",
+    "code_engine/tests/test_e8_flat_fill.py": "451f3b990b73235b720536fa9ece4f9c537ec55bf013f9b1a302cca23ffddb9c",
+    "code_engine/tests/test_e8_flat_fill_kernel.py": "2d677250c6d6021ac81fd8d9e15ec89e232fb2d84f801ad54f7b5f99cdf4a91b",
+    "code_engine/tests/test_e8_solidify.py": "8b3f4eecc7a6234178f16adb80e26ad99b985aa68fc92dd434e0a49a4c8400ef",
+    "code_engine/tests/test_edit_add_only_e8.py": "ccf6e25d10bc63d56e0fa80ad12450a4be017e795f3b2f8f19b2f574c711a5e7",
+    "code_engine/tests/test_error_export_cli.py": "38c4143429341f514c1eda6e411ff61fff47309b8ec8cc326e8e4bd4e911be7e",
+    "code_engine/tests/test_error_export_plan.py": "0dd0c3dec9fb18e7493e92467c645abbd317ba63aefdf0c49866bf5e165303fa",
+    "code_engine/tests/test_error_export_skp.py": "edfd65ab4a0b554ad64f45d365ca519619df30ff218454556e8d6dc2305f81ff",
+    "code_engine/tests/test_errors.py": "78d012f7cf2f9992f820b409efb9199c7d815491548c64f09573c8a8f25bf965",
+    "code_engine/tests/test_exposure.py": "b242aada48faa0c90c623af24adcd8ef07898d2af2d5086a7960abba2a80c2e0",
+    "code_engine/tests/test_fixtures.py": "af1170cee09387d780aa8e34278e467cf9a8a71c9a1ffca3ff58e12cbd66bcbb",
+    "code_engine/tests/test_folds.py": "39dd0eca23b51c30e49c660d1895b432358827384cf45e1eed46281e525c1e13",
+    "code_engine/tests/test_fragments.py": "ecd142a13e9116a40f804cd8bbfb229dc829933b0504992f88f2c48528935361",
+    "code_engine/tests/test_guard.py": "73707e5208bd9568fc164420dbdc86f353c05668093b5a97e92950fb575f924e",
+    "code_engine/tests/test_kernel_edit_log_any_engine.py": "4ecb05b3bb84dafb9dc2738ba269b6a99731f4a34bc4f924bc303d80d563352f",
+    "code_engine/tests/test_kernel_observe.py": "d7665310782be7cacd75c682ecdf89a447489c8d3bfa35ab70fc5a166d7e35bf",
+    "code_engine/tests/test_kernel_site_checks.py": "359b3d4128ba2de19d1f2223bca94c5f825cbafb223470f597703942197f4740",
+    "code_engine/tests/test_kernel_stage_rollback.py": "b16a246ee8b9447b04b4904f9efa58485b7d2c4dfff9ca5e6d3a69e834100e30",
+    "code_engine/tests/test_merge.py": "a0c44820f7dd10f86ec17ffe528642657031ccad7977a0a518775e80705fcc4b",
+    "code_engine/tests/test_meshbuf.py": "f58389906c22049fb8721262f593cad574b266ca581cdb2a2ef7c912c050c55b",
+    "code_engine/tests/test_minecraft_floor.py": "9e743b6b1da2dbb7a70be286030220342c40925ea0fed4541814092c3e11ab75",
+    "code_engine/tests/test_mtl.py": "ad5b288a61e4bef63395e4a19c3a541a5fd1ad4a79772ddf1d231cce0ad35ab5",
+    "code_engine/tests/test_needs_modelling.py": "cd16f82a47c3ae9bfdc63a1c329a76744ae1de778c4b34c0f80d6a13b02e7a60",
+    "code_engine/tests/test_no_material_is_its_own_look.py": "d7e303df9066bd083f01b28bd45adcf571eddf512dff339bf1fd30035cfbbc5c",
+    "code_engine/tests/test_obj_reader.py": "3d233308c9d3cbcdbaab05f59717dff3612c883cb9ca833064c25f0f00e063ea",
+    "code_engine/tests/test_obj_writer.py": "ac1dc701337e64750cac906b69f07d72d9075c6d9dacce81311f318da57c7eb7",
+    "code_engine/tests/test_orient.py": "78fe624d863a8119ef67ecb60044af1c467f8132390fd45d2ddac2d1b92f7177",
+    "code_engine/tests/test_overlap.py": "f7ef0c18902a11de9315f960d27100ea5379383692e79f60c53f2031d7a36d01",
+    "code_engine/tests/test_p2_h2_minors.py": "0186523a0afa76ad7f269369230b9fd29ebcb6daa8169bc7a032e6e3abf48a3e",
+    "code_engine/tests/test_physical_precision.py": "5a7d804395f0b9c89d82d15bd4258ae349dacae8f4f0dc70a648595037d23400",
+    "code_engine/tests/test_piece_rays.py": "b7407ce17b3e69cf07a96d65f40dc089863a05d22597d674066beffa77b0134d",
+    "code_engine/tests/test_pipeline.py": "87767e05a989db711e775351c9f0488224d2323eb29b0f8e52ca7757f193c870",
+    "code_engine/tests/test_pixfont.py": "5b3cd7df80c09afb4d76d00a159c167ced4a0028b677dc6f5e8f51d4a9ad2c91",
+    "code_engine/tests/test_qa_render.py": "9c461b9a2373860603e54fa17b334b18ab60be91021802906b2eb06b0e46e71a",
+    "code_engine/tests/test_refuse_protected.py": "dad7fb88fa92107472a9d2f9069e589d50b9015ae6d718dc6665ab214689a123",
+    "code_engine/tests/test_regions.py": "8d8643d62ca5783a35e2056db51936006165551c0e49115ec71c92857a3a36b0",
+    "code_engine/tests/test_remove.py": "61085a40b2d5cbeb0f56bfcec43ea53eb5793cdcca5270a245dc346010e02ced",
+    "code_engine/tests/test_repair_types.py": "60c666e646ddeb1a930fb0298fb68f6e059f38d16a7cb8a3685da7e217452f90",
+    "code_engine/tests/test_repair_uv.py": "b69077a6ac965be17648a5d1159db9ad7466b1cccea9f9318f34b6ff817100db",
+    "code_engine/tests/test_repair_uv_observer.py": "7122b30cc34b92fd404fd2136271f08873539dda0129e3f14644a893e8b690ca",
+    "code_engine/tests/test_site_attribution.py": "22f206570d63993f2430ce41aa90d5d4462a41388155f533caa0ae0c85f22dd6",
+    "code_engine/tests/test_site_judge.py": "4d53260ae3f89ebea689e70854f6999bf6f036083b3e78a4f750804df4c8b1e3",
+    "code_engine/tests/test_site_judge_cover.py": "c0f59446ad1736aa8be46a33daa3fd5311725ac3cccad7a845bade038b00733c",
+    "code_engine/tests/test_site_judge_floor.py": "206f8ff3f9982cfec9bbc65040438809e30b887e9b67f4928b57c4ecc81019e0",
+    "code_engine/tests/test_site_judge_remove_only.py": "f424d7a5267719056f96d4f2601509ccd01613bb4189b14417a9c9b541942656",
+    "code_engine/tests/test_skp_check.py": "5e10950dd2665d3a04301d0297e9cbf67812a39e96130471805c65a16f993a06",
+    "code_engine/tests/test_skp_reader.py": "1d3cfa294130ea8688f54cd21c25872bd0c72ca13a9e10dca58464f1157cb9ac",
+    "code_engine/tests/test_skp_writer.py": "30ed8fe7fcda42c40092ed93b9b8733951ca7af2fc331bca6e4ad301e4a38ac9",
+    "code_engine/tests/test_snapshot.py": "427f7d91764be117b4a6d2563754b0d1771b6bf77628795615dde6fc6b2f0b4c",
+    "code_engine/tests/test_solidify.py": "77f97480f7e74b7a1795a6f3b2918a99a14f611a3992a272da3573a3159865af",
+    "code_engine/tests/test_t_vertex_search.py": "b07fba23c37d52027264c1d8af5fd6a5d513a2629bb9a76858e68cef513504f4",
+    "code_engine/tests/test_topo_basics.py": "ab1d3cdf4b709b552b4750866c6d7b4117d476f6a4abb60f408aa77119c82d43",
+    "code_engine/tests/test_topology_memo.py": "166b5c95ef6d2663dba8fa1c25a84f1f8e19c9b6c488d971e44ed93c293b0321",
+    "code_engine/tests/test_unit_before.py": "ca9a610405da94dd3a8d06b5550e90b35b4c081e1f5bcd76ad4282666aceff3f",
+    "code_engine/tests/test_unit_before_no_material.py": "f8cac9a0483e673bca842235e79723f314927d9fc1eb3bf683ef6d146bb640c0",
+    "code_engine/tests/test_unity_align.py": "e3452da4f7cd421a1de79eb8c12101aaaa35e43d5f0907b966c756650d6abb0c",
+    "code_engine/tests/test_unity_check.py": "091790f4680396067e5d12c3a32f1e96176eb63bd24d22d31fd39d6329d25521",
+    "code_engine/tests/test_unity_dump.py": "6a707cb3207f5ba8ab90a2a109b2440a2af37b8522280a0b4e34488294d3c65f",
+    "code_engine/tests/test_unity_mirror.py": "479c9a61a19e83074a8a07c775552af1e6055a3b4f3fe9d977ea0d3bea96e8a5",
+    "code_engine/tests/test_validate_checks.py": "6651373a7493eb34c90e5b25b15fa0622fa03b9f0c35ea6eb3889c1070313654",
+    "code_engine/tests/test_validate_core.py": "e5adf885cecde0fa9773faff954c3807a7cfef24345b1709abac335ba67a5f14",
+    "code_engine/tests/test_validate_edit_log_fills.py": "e30385e5f6d21be70bdd03a4825ea569cdc3cfbc82f4ada272a450bf6ca1a824",
+    "code_engine/tests/test_validate_edit_log_new_faces.py": "9d01a4431082f4bdd7c1574a1e2a35efb44960dfb48011d523ab3416d494fff0",
+    "code_engine/tests/test_validate_fill_site.py": "759a64f16d03cbea5cbe7886b26e786ad4f148bccf3d64a4a501883dd1e841df",
+    "code_engine/tests/test_validate_floor.py": "97f41cab8b26e5eff85a63544ac64fd7d9c85a8c153cbe3e7dce7812b8f484c1",
+    "code_engine/tests/test_validate_floor_checks.py": "d6f9436f4853023734346fd2f7683853ad407a728b051fc9a29e22f8e99c8c0a",
+    "code_engine/tests/test_validate_floor_corner.py": "2d50cf05296d598e0f2d7227ac7344eeb30e51827906815140401bdcf856cda6",
+    "code_engine/tests/test_validate_floor_covered.py": "098cf5a6e82660d040d959b490bd7266fba52fd604cec22aa71007ed7fa2baaa",
+    "code_engine/tests/test_validate_floor_speed.py": "b62840972300bd3defc767a4aa17d1dfa54a2e0403d91c9416fc5bf083efb8d1",
+    "code_engine/tests/test_validate_focus.py": "dd80f07a214138250dca3790db078c6216524a13bd60d3edde9a63a05d3738aa",
+    "code_engine/tests/test_validate_horizon.py": "15f8537c97e251aa2b8f16342c6d9c0479f1651a30454a46c672d675557d6561",
+    "code_engine/tests/test_validate_mutations.py": "d7e00886a258dc761f5bf2ee052fa615f6e0c2c34c996f95fdca965fc561b5b0",
+    "code_engine/tests/test_validate_targets_shape.py": "4e351103057d405d730bc38475a2a42a0bc4fb26b7d90cbc381131f445de7e31",
+    "code_engine/tests/test_validate_threaded_caster.py": "fcea48d220b73f017c3dc919c527aeae1e9924203a9f07488ec63822f19635c3",
+    "code_engine/topo/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "code_engine/topo/adjacency.py": "a4132a4025cec95bd004eeb174efa1e88950b4f86605ea972cec644a2479896e",
+    "code_engine/topo/edges.py": "e494c0ffee0b8a39cd5d5c2ac697ed7058f76b0838aac12928f2d03f0959c97b",
+    "code_engine/topo/planes.py": "1701d1ad46deb6bb90452159b312a7b94e8661bb33693143bf7825da39f17f93",
+    "code_engine/topo/weld.py": "e584a6ab2e46b20b7c4cf8da06516a4199978523ec68d3221263cd29cbf3bdea",
+    "code_engine/transport/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "code_engine/transport/meshbuf.py": "2a24eaeaf1127a67ef1c87512147584a6a42761fb901fce0e6a634431ff28bd0",
+    "code_engine/unity/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "code_engine/unity/align.py": "24af456f369a8a05444bb9fb7f1645d3068e957a437421e4eb048d776ed1e88a",
+    "code_engine/unity/check.py": "c244213fbf212afc092b37925797b4371606568fd745fce61b2377d03316f898",
+    "code_engine/unity/dump.py": "f710e519850f6aecab98de4ee3679cb58212ae407f1590fe4a2b3a4ea46d212d",
+    "code_engine/unity/mirror.py": "3c81e629e64a6ceb095c626d52fb92f35ab167ba0d9631a45bf17c5e4ab56ad5",
+    "code_engine/validate/__init__.py": "6d8a1be3faac9a3804d42cdcb5fba170739a756204aa755d2a05a1a3dd84f00b",
+    "code_engine/validate/checks.py": "3d3ebe288abab4afa73b26e8908047a8fbe71a36b8df31d3fed69fb190601606",
+    "code_engine/validate/evidence.py": "914fff0f76b253ba999fae91e6373ed2ab43d491c98f44d5cc57384e8ecffbd7",
+    "code_engine/validate/floor.py": "bde829b4832443ce159ae8d7937a5ed4b4207bd6d7e1b4b669b2df2b9b0e84e8",
+    "code_engine/validate/sampling.py": "d81a9af913839666ae8e63afd29ed22492fd90f1741be03bf01b1eb95a52a73d",
+    "code_engine/validate/viewpoints.py": "c62acfd255fd99c003fd54bf084a68bdb82442cf1c96ada2f0a50e7a7efa7e98",
+    "code_engine/validate/visibility.py": "28cbad91da779c0a12155c3036a717db78e5629bb5fbf54e4e8ad2d95ca04821",
+    "code_engine/vis/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "code_engine/vis/exposure.py": "ec922979de869284607ed067f71e8940465132db4eb020b49789b3d28547c34a",
+    "code_tools/main_infra_e3_binding.py": "2eb413942d49b6f1a65b42fb929be365bcb544481388a7935d8277e4e263f44c",
+    "code_tools/main_infra_e7.py": "beb40710cef8e88af1d077a8ca5c1b4bd4171dd90c06fc9c13e409cfa4a553bd",
+    "code_tools/main_infra_e7_1f_run.py": "c9ef65b8b94987d3e3e8f9a666f7a0bf22f484b261bde55ab897e0591d019f2b",
+    "code_tools/main_infra_e7_attempt3.py": "911450e08dc7c58ed02bd66635e46b7561db609619723b98e26d400e4fb7afe7",
+    "code_tools/main_infra_e7_checkpoint.py": "e1e9ca745f8d06b68dd643a46c873d22cafb22d594de87601671bf003aeeef93",
+    "code_tools/main_infra_e7_serialization.py": "6456ac625441ce9c2649e088247ba73e094995858b074a127d7a54292365a44a",
+    "code_tools/main_infra_e7_subset.py": "dd6009be4e7e5c0d6a94b56d5e8b11dfa28f890e7584fa4565121d0095f19a77",
+    "code_tools/main_infra_physical_validation.py": "e0be48fd466c12467189b361518aa026fd30dcc239a35f7e84bf8542120503d3",
+    "cut_receipt": "b587c3b95639cd51dfe5a1c82093f57b7492609de393c9f3c9830e4a398e813a",
+    "e3_audit": "4daec2c27b2049ad61923f74e5c10cb3cfe750c24042bea9775a9f0caff6d3bf",
+    "e3_edit_log": "0455cd684693eca72d1f283761d92004cf1b0c0268ea2ccaaf09a36bc255cb83",
+    "engine_input": "5c5c25cff8498178f4014f620be7a0473969c835427d03a5fd60817314aff141",
+    "independent_caller": "d71bafb5d621e252eb6a5231e47c98b27fd70037cc49f70ba47798b1aa3ed835",
+    "independent_preparation": "6254dd54716679d8afb1e5b9d26bf450b94ab7d9aabbee98a817fba6f2d8142b",
+    "lineage": "4651b2ba97a20eeb49ff59afb07b9e84cb7fae12558652d7b618fcab65c8b4b8",
+    "materials": "aafb0e8572a8a3aa544beedfcc9863a9c240e28fc4dcbe0e47d8b45e42982c5c",
+    "native_png_reader": "9892c694947b3fd22a2bced252058c030224e83116c9adc664d9ccca20157715",
+    "native_poses": "21296b8ff0c79a651a2bd165784ea72b3e595a34a121ad74cc4eb576aa794636",
+    "native_renderer": "065989bc85dfc713ce74ed766428b4a1c23789209796d5913e59224c9d6a7472",
+    "original_native_comparison": "fe71b93d90527615dec7342d9dc6b5f10b0a3585f18516b5ecb9f1833e8ea0c6",
+    "preparation": "e5af36dde9a242388985200cd6502b370dba87aba92ef152bec9e91b0f681e2a",
+    "prior_validation": "3d10cde0d05a0ce732a8d5120913e22bc99276aec788d6de3fa0488d6d849913",
+    "provenance": "eac6bd90fc2c9c596659f658fc140251aac3f2de7afe0d42d02ebc3bff987746",
+    "qualification": "d2ab32f244207b818de51cca2a54c6643e4c72f63a6feb434885fa355e366e96",
+    "raw": "769cbb11cd954d2132b69a78a023f24f63f95b1923f7b336aa8be892d826503f",
+    "raw_asset_0": "c64c0cb12926c707b55262a82fd324ccd09502f92b0c866801a00e9f3c89d9a3",
+    "raw_asset_1": "f42c7be3c52294ead4c69ac0e9ef1bbbbe6bdb4451382c89a65c386709df6171",
+    "raw_asset_2": "14ceba3d0329594e00458bc6ed2aeafa24d9228519994a60d758de2509fee1ad",
+    "raw_asset_3": "daf3f46f93f7364b1530ec468a7a1d5a02eda1cd0a118e41e93e9c4177791cc1",
+    "raw_asset_4": "85e34c6a6b917ade1cfbd2826127de4175c63317f3efbba1f7aaed3bf105a193",
+    "raw_asset_5": "eea2309518da196d86171dd0d78ecdcdc3a0510005790fa2beb8484744d8ae88",
+    "raw_asset_6": "c6a3c27b965f298da28c89c1a522b5ff3152321a97fcbe613aec2f9a6d8f66fa",
+    "reference": "b2c3f91727047fb4b37c5380550d8d213df2700d856a7aa49728fc43bde33039",
+    "run_receipt": "adb653f7e243468b7b86a3abd11e0cb83c0ee29009fb0eb9964e0fbb1b309222",
+    "source_input": "ac32d4d054bf10226803e84493db19bd794d2afe0fd98d85dc3451e5e87eaf25",
+    "stage_asset_0": "c64c0cb12926c707b55262a82fd324ccd09502f92b0c866801a00e9f3c89d9a3",
+    "stage_asset_1": "f42c7be3c52294ead4c69ac0e9ef1bbbbe6bdb4451382c89a65c386709df6171",
+    "stage_asset_2": "14ceba3d0329594e00458bc6ed2aeafa24d9228519994a60d758de2509fee1ad",
+    "stage_asset_3": "daf3f46f93f7364b1530ec468a7a1d5a02eda1cd0a118e41e93e9c4177791cc1",
+    "stage_asset_4": "85e34c6a6b917ade1cfbd2826127de4175c63317f3efbba1f7aaed3bf105a193",
+    "stage_asset_5": "eea2309518da196d86171dd0d78ecdcdc3a0510005790fa2beb8484744d8ae88",
+    "stage_asset_6": "c6a3c27b965f298da28c89c1a522b5ff3152321a97fcbe613aec2f9a6d8f66fa",
+    "strict_guard_helper": "bc7d45e280950df37e23f4bca38d2a78ce6007969dec9e6a2edeab72fdba39b2",
+    "targets": "4117f5e22045750fed7c4627ffa6324bf2efe5c14cf9629389a482c960036507",
+    "validator_targets": "4117f5e22045750fed7c4627ffa6324bf2efe5c14cf9629389a482c960036507",
+    "walking_poses": "9c3fc2836501d03c2bef4e698aaff966425d58a10a4eae3b9261783d250bd047",
+    "worker": "95e9c175248c59c6d4c058327a8ba03de8275a4d7a1bb4ba11e8f61c5a1aebdd"
+  },
+  "job_id": "MAIN-INFRA-CLEAN-20261023",
+  "original_source_triangles": 15856,
+  "output_triangles": 10578,
+  "paths": {
+    "asset_receipt": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261023-attempt3\\1F\\asset-receipt.json",
+    "baseline_asset_0": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLEAN-20261023\\data\\main-infra-fresh\\run-20261023\\normalized\\1F\\1st floor main infra.mtl",
+    "baseline_asset_1": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLEAN-20261023\\data\\main-infra-fresh\\run-20261023\\normalized\\1F\\textures\\minecraft\\concrete_white_-1.png",
+    "baseline_asset_2": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLEAN-20261023\\data\\main-infra-fresh\\run-20261023\\normalized\\1F\\textures\\minecraft\\concrete_white_-15579874.png",
+    "baseline_asset_3": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLEAN-20261023\\data\\main-infra-fresh\\run-20261023\\normalized\\1F\\textures\\minecraft\\quartz_block_bottom_-1.png",
+    "baseline_asset_4": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLEAN-20261023\\data\\main-infra-fresh\\run-20261023\\normalized\\1F\\textures\\minecraft\\quartz_block_side_-1.png",
+    "baseline_asset_5": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLEAN-20261023\\data\\main-infra-fresh\\run-20261023\\normalized\\1F\\textures\\minecraft\\quartz_block_top_-1.png",
+    "baseline_asset_6": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLEAN-20261023\\data\\main-infra-fresh\\run-20261023\\normalized\\1F\\textures\\minecraft\\wool_colored_orange_-1.png",
+    "baseline_engine": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLEAN-20261023\\data\\main-infra-fresh\\run-20261023\\normalized\\1F\\before.engine.obj",
+    "baseline_source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLEAN-20261023\\data\\main-infra-fresh\\run-20261023\\normalized\\1F\\before.source.obj",
+    "binding_asset_0": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLEAN-20261023\\data\\main-infra-fresh\\run-20261023\\raw\\1st floor main infra.mtl",
+    "binding_asset_1": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLEAN-20261023\\data\\main-infra-fresh\\run-20261023\\raw\\textures\\minecraft\\concrete_white_-1.png",
+    "binding_asset_2": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLEAN-20261023\\data\\main-infra-fresh\\run-20261023\\raw\\textures\\minecraft\\concrete_white_-15579874.png",
+    "binding_asset_3": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLEAN-20261023\\data\\main-infra-fresh\\run-20261023\\raw\\textures\\minecraft\\quartz_block_bottom_-1.png",
+    "binding_asset_4": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLEAN-20261023\\data\\main-infra-fresh\\run-20261023\\raw\\textures\\minecraft\\quartz_block_side_-1.png",
+    "binding_asset_5": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLEAN-20261023\\data\\main-infra-fresh\\run-20261023\\raw\\textures\\minecraft\\quartz_block_top_-1.png",
+    "binding_asset_6": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLEAN-20261023\\data\\main-infra-fresh\\run-20261023\\raw\\textures\\minecraft\\wool_colored_orange_-1.png",
+    "binding_baseline_engine": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLEAN-20261023\\data\\main-infra-fresh\\run-20261023\\normalized\\1F\\before.engine.obj",
+    "binding_baseline_source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLEAN-20261023\\data\\main-infra-fresh\\run-20261023\\normalized\\1F\\before.source.obj",
+    "binding_checked_outcome_receipt": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261023-attempt3\\execution-1F\\checked-outcome\\checkpoint-receipt.json",
+    "binding_donor_edit_log": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-run-1f-20261023\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261023-attempt2\\execution-1F\\edit-log.jsonl",
+    "binding_donor_preparation": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-run-1f-20261023\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261023-attempt2\\preparation-1F.json",
+    "binding_donor_worker": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-run-1f-20261023\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261023-attempt2\\execution-1F\\worker.json",
+    "binding_e3_audit": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-e3\\run-20261023\\1F\\stage-audit.json",
+    "binding_e3_edit_log": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-e3\\run-20261023\\1F\\edit-log.jsonl",
+    "binding_edit_log": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261023-attempt3\\execution-1F\\checked-outcome\\edit-log.jsonl",
+    "binding_engine_input": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-e3\\run-20261023\\1F\\candidate.engine.obj",
+    "binding_lineage": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-e3\\run-20261023\\1F\\source-faces.json",
+    "binding_materials": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLEAN-20261023\\data\\main-infra-fresh\\run-20261023\\independent-validator\\preflight-20261023\\materials-1F.json",
+    "binding_preparation": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261023-attempt3\\preparation-1F.json",
+    "binding_prior_validation": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-e3\\run-20261023\\independent-validator\\1F\\validation\\validation.json",
+    "binding_provenance": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLEAN-20261023\\data\\main-infra-fresh\\run-20261023\\normalized\\1F\\geometry-provenance.json",
+    "binding_qualification": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLEAN-20261023\\data\\main-infra-fresh\\run-20261023\\independent-validator\\import-audit\\qualification-1F.json",
+    "binding_raw": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLEAN-20261023\\data\\main-infra-fresh\\run-20261023\\raw\\1st floor main infra.obj",
+    "binding_reference": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLEAN-20261023\\data\\main-infra-fresh\\run-20261023\\reference\\1F.json",
+    "binding_source_input": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-e3\\run-20261023\\1F\\candidate.source.obj",
+    "binding_targets": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\validate\\targets.json",
+    "blender_executable": "C:\\Program Files\\Blender Foundation\\Blender 5.1\\blender.exe",
+    "camera_qualification": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-e3\\run-20261023\\independent-validator\\1F\\camera-qualification.json",
+    "candidate_asset_0": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261023-attempt3\\1F\\1st floor main infra.mtl",
+    "candidate_asset_1": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261023-attempt3\\1F\\textures\\minecraft\\concrete_white_-1.png",
+    "candidate_asset_2": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261023-attempt3\\1F\\textures\\minecraft\\concrete_white_-15579874.png",
+    "candidate_asset_3": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261023-attempt3\\1F\\textures\\minecraft\\quartz_block_bottom_-1.png",
+    "candidate_asset_4": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261023-attempt3\\1F\\textures\\minecraft\\quartz_block_side_-1.png",
+    "candidate_asset_5": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261023-attempt3\\1F\\textures\\minecraft\\quartz_block_top_-1.png",
+    "candidate_asset_6": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261023-attempt3\\1F\\textures\\minecraft\\wool_colored_orange_-1.png",
+    "candidate_candidate.engine.obj": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261023-attempt3\\1F\\candidate.engine.obj",
+    "candidate_candidate.source.obj": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261023-attempt3\\1F\\candidate.source.obj",
+    "candidate_checked-edits.json": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261023-attempt3\\1F\\checked-edits.json",
+    "candidate_cut-lineage.json": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261023-attempt3\\1F\\cut-lineage.json",
+    "candidate_edit-log.jsonl": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261023-attempt3\\1F\\edit-log.jsonl",
+    "checkpoint_arrays.npz": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261023-attempt3\\execution-1F\\checked-outcome\\arrays.npz",
+    "checkpoint_edit-log.jsonl": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261023-attempt3\\execution-1F\\checked-outcome\\edit-log.jsonl",
+    "checkpoint_receipt": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261023-attempt3\\execution-1F\\checked-outcome\\checkpoint-receipt.json",
+    "checkpoint_result.json": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261023-attempt3\\execution-1F\\checked-outcome\\result.json",
+    "code_engine/__init__.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\__init__.py",
+    "code_engine/campus/__init__.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\campus\\__init__.py",
+    "code_engine/campus/census.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\campus\\census.py",
+    "code_engine/campus/error_export.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\campus\\error_export.py",
+    "code_engine/campus/groups.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\campus\\groups.py",
+    "code_engine/campus/inventory.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\campus\\inventory.py",
+    "code_engine/campus/materials.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\campus\\materials.py",
+    "code_engine/campus/needs_modelling.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\campus\\needs_modelling.py",
+    "code_engine/campus/pixfont.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\campus\\pixfont.py",
+    "code_engine/campus/skp_check.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\campus\\skp_check.py",
+    "code_engine/campus/source.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\campus\\source.py",
+    "code_engine/campus/unit_before.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\campus\\unit_before.py",
+    "code_engine/campus/winprobe.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\campus\\winprobe.py",
+    "code_engine/cli.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\cli.py",
+    "code_engine/decide/__init__.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\decide\\__init__.py",
+    "code_engine/decide/decider.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\decide\\decider.py",
+    "code_engine/decide/jev.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\decide\\jev.py",
+    "code_engine/decide/pilot.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\decide\\pilot.py",
+    "code_engine/decide/pilot_import.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\decide\\pilot_import.py",
+    "code_engine/decide/providers.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\decide\\providers.py",
+    "code_engine/decide/remote.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\decide\\remote.py",
+    "code_engine/decide/wire.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\decide\\wire.py",
+    "code_engine/detectors/__init__.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\detectors\\__init__.py",
+    "code_engine/detectors/errors.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\detectors\\errors.py",
+    "code_engine/detectors/folds.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\detectors\\folds.py",
+    "code_engine/detectors/fragments.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\detectors\\fragments.py",
+    "code_engine/fill_review.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\fill_review.py",
+    "code_engine/fixes/__init__.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\fixes\\__init__.py",
+    "code_engine/fixes/merge.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\fixes\\merge.py",
+    "code_engine/fixes/orient.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\fixes\\orient.py",
+    "code_engine/fixes/overlap.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\fixes\\overlap.py",
+    "code_engine/fixes/pipeline.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\fixes\\pipeline.py",
+    "code_engine/fixes/precut_cleanup.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\fixes\\precut_cleanup.py",
+    "code_engine/fixes/remove.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\fixes\\remove.py",
+    "code_engine/fixes/solidify.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\fixes\\solidify.py",
+    "code_engine/guard/__init__.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\guard\\__init__.py",
+    "code_engine/guard/compare.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\guard\\compare.py",
+    "code_engine/guard/piece_rays.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\guard\\piece_rays.py",
+    "code_engine/guard/qa_render.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\guard\\qa_render.py",
+    "code_engine/guard/render.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\guard\\render.py",
+    "code_engine/guard/views.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\guard\\views.py",
+    "code_engine/io/__init__.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\io\\__init__.py",
+    "code_engine/io/minecraft_floor.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\io\\minecraft_floor.py",
+    "code_engine/io/mtl.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\io\\mtl.py",
+    "code_engine/io/obj_reader.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\io\\obj_reader.py",
+    "code_engine/io/obj_writer.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\io\\obj_writer.py",
+    "code_engine/io/protected.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\io\\protected.py",
+    "code_engine/io/skp_reader.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\io\\skp_reader.py",
+    "code_engine/io/skp_writer.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\io\\skp_writer.py",
+    "code_engine/io/snapshot.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\io\\snapshot.py",
+    "code_engine/model.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\model.py",
+    "code_engine/pipeline.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\pipeline.py",
+    "code_engine/rays/__init__.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\rays\\__init__.py",
+    "code_engine/rays/caster.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\rays\\caster.py",
+    "code_engine/repair/__init__.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\repair\\__init__.py",
+    "code_engine/repair/engines/__init__.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\repair\\engines\\__init__.py",
+    "code_engine/repair/engines/e1_loose.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\repair\\engines\\e1_loose.py",
+    "code_engine/repair/engines/e3_hidden.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\repair\\engines\\e3_hidden.py",
+    "code_engine/repair/engines/e7_thread.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\repair\\engines\\e7_thread.py",
+    "code_engine/repair/engines/e8_fill.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\repair\\engines\\e8_fill.py",
+    "code_engine/repair/engines/e8_solidify.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\repair\\engines\\e8_solidify.py",
+    "code_engine/repair/engines/legacy.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\repair\\engines\\legacy.py",
+    "code_engine/repair/kernel.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\repair\\kernel.py",
+    "code_engine/repair/types.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\repair\\types.py",
+    "code_engine/site_judge.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\site_judge.py",
+    "code_engine/tests/__init__.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\__init__.py",
+    "code_engine/tests/fixtures/__init__.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\fixtures\\__init__.py",
+    "code_engine/tests/fixtures/build.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\fixtures\\build.py",
+    "code_engine/tests/fixtures/holes.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\fixtures\\holes.py",
+    "code_engine/tests/skp_scene.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\skp_scene.py",
+    "code_engine/tests/test_campus_census.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_campus_census.py",
+    "code_engine/tests/test_campus_groups.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_campus_groups.py",
+    "code_engine/tests/test_campus_inventory.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_campus_inventory.py",
+    "code_engine/tests/test_campus_looks.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_campus_looks.py",
+    "code_engine/tests/test_campus_materials.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_campus_materials.py",
+    "code_engine/tests/test_campus_source.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_campus_source.py",
+    "code_engine/tests/test_caster.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_caster.py",
+    "code_engine/tests/test_caster_spatial_recovery.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_caster_spatial_recovery.py",
+    "code_engine/tests/test_census_materials_message.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_census_materials_message.py",
+    "code_engine/tests/test_cli.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_cli.py",
+    "code_engine/tests/test_cli_needs_modelling.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_cli_needs_modelling.py",
+    "code_engine/tests/test_cli_repair_unit.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_cli_repair_unit.py",
+    "code_engine/tests/test_cli_repair_unit_e1.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_cli_repair_unit_e1.py",
+    "code_engine/tests/test_cli_repair_unit_fills.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_cli_repair_unit_fills.py",
+    "code_engine/tests/test_cli_unity_check.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_cli_unity_check.py",
+    "code_engine/tests/test_cli_validate_sites.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_cli_validate_sites.py",
+    "code_engine/tests/test_decide_jev.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_decide_jev.py",
+    "code_engine/tests/test_decide_pilot.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_decide_pilot.py",
+    "code_engine/tests/test_decide_pilot_import.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_decide_pilot_import.py",
+    "code_engine/tests/test_decide_providers.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_decide_providers.py",
+    "code_engine/tests/test_decide_remote.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_decide_remote.py",
+    "code_engine/tests/test_decide_wire.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_decide_wire.py",
+    "code_engine/tests/test_decider.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_decider.py",
+    "code_engine/tests/test_decider_unavailable.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_decider_unavailable.py",
+    "code_engine/tests/test_double_layers_memory.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_double_layers_memory.py",
+    "code_engine/tests/test_double_layers_speed.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_double_layers_speed.py",
+    "code_engine/tests/test_e1_loose.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_e1_loose.py",
+    "code_engine/tests/test_e3_hidden.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_e3_hidden.py",
+    "code_engine/tests/test_e7_thread.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_e7_thread.py",
+    "code_engine/tests/test_e8_flat_fill.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_e8_flat_fill.py",
+    "code_engine/tests/test_e8_flat_fill_kernel.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_e8_flat_fill_kernel.py",
+    "code_engine/tests/test_e8_solidify.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_e8_solidify.py",
+    "code_engine/tests/test_edit_add_only_e8.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_edit_add_only_e8.py",
+    "code_engine/tests/test_error_export_cli.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_error_export_cli.py",
+    "code_engine/tests/test_error_export_plan.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_error_export_plan.py",
+    "code_engine/tests/test_error_export_skp.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_error_export_skp.py",
+    "code_engine/tests/test_errors.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_errors.py",
+    "code_engine/tests/test_exposure.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_exposure.py",
+    "code_engine/tests/test_fixtures.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_fixtures.py",
+    "code_engine/tests/test_folds.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_folds.py",
+    "code_engine/tests/test_fragments.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_fragments.py",
+    "code_engine/tests/test_guard.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_guard.py",
+    "code_engine/tests/test_kernel_edit_log_any_engine.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_kernel_edit_log_any_engine.py",
+    "code_engine/tests/test_kernel_observe.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_kernel_observe.py",
+    "code_engine/tests/test_kernel_site_checks.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_kernel_site_checks.py",
+    "code_engine/tests/test_kernel_stage_rollback.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_kernel_stage_rollback.py",
+    "code_engine/tests/test_merge.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_merge.py",
+    "code_engine/tests/test_meshbuf.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_meshbuf.py",
+    "code_engine/tests/test_minecraft_floor.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_minecraft_floor.py",
+    "code_engine/tests/test_mtl.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_mtl.py",
+    "code_engine/tests/test_needs_modelling.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_needs_modelling.py",
+    "code_engine/tests/test_no_material_is_its_own_look.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_no_material_is_its_own_look.py",
+    "code_engine/tests/test_obj_reader.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_obj_reader.py",
+    "code_engine/tests/test_obj_writer.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_obj_writer.py",
+    "code_engine/tests/test_orient.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_orient.py",
+    "code_engine/tests/test_overlap.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_overlap.py",
+    "code_engine/tests/test_p2_h2_minors.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_p2_h2_minors.py",
+    "code_engine/tests/test_physical_precision.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_physical_precision.py",
+    "code_engine/tests/test_piece_rays.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_piece_rays.py",
+    "code_engine/tests/test_pipeline.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_pipeline.py",
+    "code_engine/tests/test_pixfont.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_pixfont.py",
+    "code_engine/tests/test_qa_render.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_qa_render.py",
+    "code_engine/tests/test_refuse_protected.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_refuse_protected.py",
+    "code_engine/tests/test_regions.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_regions.py",
+    "code_engine/tests/test_remove.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_remove.py",
+    "code_engine/tests/test_repair_types.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_repair_types.py",
+    "code_engine/tests/test_repair_uv.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_repair_uv.py",
+    "code_engine/tests/test_repair_uv_observer.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_repair_uv_observer.py",
+    "code_engine/tests/test_site_attribution.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_site_attribution.py",
+    "code_engine/tests/test_site_judge.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_site_judge.py",
+    "code_engine/tests/test_site_judge_cover.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_site_judge_cover.py",
+    "code_engine/tests/test_site_judge_floor.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_site_judge_floor.py",
+    "code_engine/tests/test_site_judge_remove_only.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_site_judge_remove_only.py",
+    "code_engine/tests/test_skp_check.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_skp_check.py",
+    "code_engine/tests/test_skp_reader.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_skp_reader.py",
+    "code_engine/tests/test_skp_writer.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_skp_writer.py",
+    "code_engine/tests/test_snapshot.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_snapshot.py",
+    "code_engine/tests/test_solidify.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_solidify.py",
+    "code_engine/tests/test_t_vertex_search.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_t_vertex_search.py",
+    "code_engine/tests/test_topo_basics.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_topo_basics.py",
+    "code_engine/tests/test_topology_memo.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_topology_memo.py",
+    "code_engine/tests/test_unit_before.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_unit_before.py",
+    "code_engine/tests/test_unit_before_no_material.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_unit_before_no_material.py",
+    "code_engine/tests/test_unity_align.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_unity_align.py",
+    "code_engine/tests/test_unity_check.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_unity_check.py",
+    "code_engine/tests/test_unity_dump.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_unity_dump.py",
+    "code_engine/tests/test_unity_mirror.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_unity_mirror.py",
+    "code_engine/tests/test_validate_checks.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_validate_checks.py",
+    "code_engine/tests/test_validate_core.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_validate_core.py",
+    "code_engine/tests/test_validate_edit_log_fills.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_validate_edit_log_fills.py",
+    "code_engine/tests/test_validate_edit_log_new_faces.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_validate_edit_log_new_faces.py",
+    "code_engine/tests/test_validate_fill_site.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_validate_fill_site.py",
+    "code_engine/tests/test_validate_floor.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_validate_floor.py",
+    "code_engine/tests/test_validate_floor_checks.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_validate_floor_checks.py",
+    "code_engine/tests/test_validate_floor_corner.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_validate_floor_corner.py",
+    "code_engine/tests/test_validate_floor_covered.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_validate_floor_covered.py",
+    "code_engine/tests/test_validate_floor_speed.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_validate_floor_speed.py",
+    "code_engine/tests/test_validate_focus.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_validate_focus.py",
+    "code_engine/tests/test_validate_horizon.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_validate_horizon.py",
+    "code_engine/tests/test_validate_mutations.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_validate_mutations.py",
+    "code_engine/tests/test_validate_targets_shape.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_validate_targets_shape.py",
+    "code_engine/tests/test_validate_threaded_caster.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_validate_threaded_caster.py",
+    "code_engine/topo/__init__.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\topo\\__init__.py",
+    "code_engine/topo/adjacency.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\topo\\adjacency.py",
+    "code_engine/topo/edges.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\topo\\edges.py",
+    "code_engine/topo/planes.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\topo\\planes.py",
+    "code_engine/topo/weld.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\topo\\weld.py",
+    "code_engine/transport/__init__.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\transport\\__init__.py",
+    "code_engine/transport/meshbuf.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\transport\\meshbuf.py",
+    "code_engine/unity/__init__.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\unity\\__init__.py",
+    "code_engine/unity/align.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\unity\\align.py",
+    "code_engine/unity/check.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\unity\\check.py",
+    "code_engine/unity/dump.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\unity\\dump.py",
+    "code_engine/unity/mirror.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\unity\\mirror.py",
+    "code_engine/validate/__init__.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\validate\\__init__.py",
+    "code_engine/validate/checks.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\validate\\checks.py",
+    "code_engine/validate/evidence.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\validate\\evidence.py",
+    "code_engine/validate/floor.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\validate\\floor.py",
+    "code_engine/validate/sampling.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\validate\\sampling.py",
+    "code_engine/validate/viewpoints.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\validate\\viewpoints.py",
+    "code_engine/validate/visibility.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\validate\\visibility.py",
+    "code_engine/vis/__init__.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\vis\\__init__.py",
+    "code_engine/vis/exposure.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\vis\\exposure.py",
+    "code_tools/main_infra_e3_binding.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\tools\\main_infra_e3_binding.py",
+    "code_tools/main_infra_e7.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\tools\\main_infra_e7.py",
+    "code_tools/main_infra_e7_1f_run.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\tools\\main_infra_e7_1f_run.py",
+    "code_tools/main_infra_e7_attempt3.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\tools\\main_infra_e7_attempt3.py",
+    "code_tools/main_infra_e7_checkpoint.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\tools\\main_infra_e7_checkpoint.py",
+    "code_tools/main_infra_e7_serialization.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\tools\\main_infra_e7_serialization.py",
+    "code_tools/main_infra_e7_subset.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\tools\\main_infra_e7_subset.py",
+    "code_tools/main_infra_physical_validation.py": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\tools\\main_infra_physical_validation.py",
+    "cut_receipt": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261023-attempt3\\1F\\cut-receipt.json",
+    "e3_audit": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-e3\\run-20261023\\1F\\stage-audit.json",
+    "e3_edit_log": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-e3\\run-20261023\\1F\\edit-log.jsonl",
+    "engine_input": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-e3\\run-20261023\\1F\\candidate.engine.obj",
+    "independent_caller": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\tools\\main_infra_e7_independent_attempt3.py",
+    "independent_preparation": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261023-attempt3\\1F\\prepared-inputs.json",
+    "lineage": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-e3\\run-20261023\\1F\\source-faces.json",
+    "materials": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLEAN-20261023\\data\\main-infra-fresh\\run-20261023\\independent-validator\\preflight-20261023\\materials-1F.json",
+    "native_png_reader": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\docs\\superpowers\\records\\MAIN-INFRA-1F-VALIDATE-ATTEMPT3\\native-readback.py",
+    "native_poses": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\run-20261023-attempt3\\1F\\native-poses.json",
+    "native_renderer": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\docs\\superpowers\\records\\MAIN-INFRA-1F-VALIDATE-ATTEMPT3\\native-pairs.py",
+    "original_native_comparison": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-e3\\run-20261023\\independent-validator\\1F\\native-qa\\comparison.json",
+    "preparation": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261023-attempt3\\preparation-1F.json",
+    "prior_validation": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-e3\\run-20261023\\independent-validator\\1F\\validation\\validation.json",
+    "provenance": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLEAN-20261023\\data\\main-infra-fresh\\run-20261023\\normalized\\1F\\geometry-provenance.json",
+    "qualification": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLEAN-20261023\\data\\main-infra-fresh\\run-20261023\\independent-validator\\import-audit\\qualification-1F.json",
+    "raw": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLEAN-20261023\\data\\main-infra-fresh\\run-20261023\\raw\\1st floor main infra.obj",
+    "raw_asset_0": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLEAN-20261023\\data\\main-infra-fresh\\run-20261023\\raw\\1st floor main infra.mtl",
+    "raw_asset_1": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLEAN-20261023\\data\\main-infra-fresh\\run-20261023\\raw\\textures\\minecraft\\concrete_white_-1.png",
+    "raw_asset_2": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLEAN-20261023\\data\\main-infra-fresh\\run-20261023\\raw\\textures\\minecraft\\concrete_white_-15579874.png",
+    "raw_asset_3": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLEAN-20261023\\data\\main-infra-fresh\\run-20261023\\raw\\textures\\minecraft\\quartz_block_bottom_-1.png",
+    "raw_asset_4": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLEAN-20261023\\data\\main-infra-fresh\\run-20261023\\raw\\textures\\minecraft\\quartz_block_side_-1.png",
+    "raw_asset_5": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLEAN-20261023\\data\\main-infra-fresh\\run-20261023\\raw\\textures\\minecraft\\quartz_block_top_-1.png",
+    "raw_asset_6": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLEAN-20261023\\data\\main-infra-fresh\\run-20261023\\raw\\textures\\minecraft\\wool_colored_orange_-1.png",
+    "reference": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLEAN-20261023\\data\\main-infra-fresh\\run-20261023\\reference\\1F.json",
+    "run_receipt": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261023-attempt3\\1F\\run-receipt.json",
+    "source_input": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-e3\\run-20261023\\1F\\candidate.source.obj",
+    "stage_asset_0": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-e3\\run-20261023\\1F\\1st floor main infra.mtl",
+    "stage_asset_1": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-e3\\run-20261023\\1F\\textures\\minecraft\\concrete_white_-1.png",
+    "stage_asset_2": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-e3\\run-20261023\\1F\\textures\\minecraft\\concrete_white_-15579874.png",
+    "stage_asset_3": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-e3\\run-20261023\\1F\\textures\\minecraft\\quartz_block_bottom_-1.png",
+    "stage_asset_4": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-e3\\run-20261023\\1F\\textures\\minecraft\\quartz_block_side_-1.png",
+    "stage_asset_5": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-e3\\run-20261023\\1F\\textures\\minecraft\\quartz_block_top_-1.png",
+    "stage_asset_6": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-e3\\run-20261023\\1F\\textures\\minecraft\\wool_colored_orange_-1.png",
+    "strict_guard_helper": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\docs\\superpowers\\records\\MAIN-INFRA-1F-VALIDATE-ATTEMPT3\\strict-guard.py",
+    "targets": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\validate\\targets.json",
+    "validator_targets": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\validate\\targets.json",
+    "walking_poses": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-e3\\run-20261023\\independent-validator\\1F\\qualified-native-poses.json",
+    "worker": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261023-attempt3\\execution-1F\\worker.json"
+  },
+  "physical_axis_quanta_inches": [
+    3.937007874015748e-05,
+    3.937007874015748e-05,
+    3.937007874015748e-06
+  ],
+  "post_guard_input_hashes": {
+    "after": "cc8e67785116edd9132e5b75353479810265f051a1f98e8da4df89b1eea9d6f9",
+    "before": "bed4b7c24b7a3a164381b8e6e0ca0b7e7bf9998e1df7c2782878d23cd1796df3",
+    "matches_receipt": true
+  },
+  "precision": [
+    {
+      "added_cut_child_fingerprints": 715,
+      "depth_tolerance_inches": 0.05,
+      "grid": "stored",
+      "missing_original_fingerprints": 5993,
+      "step_inches": 1e-13
+    },
+    {
+      "added_cut_child_fingerprints": 712,
+      "depth_tolerance_inches": 0.05,
+      "grid": "physical",
+      "missing_original_fingerprints": 5990,
+      "step_inches": 3.937007874015748e-05
+    }
+  ],
+  "precision_coverage": {
+    "basis": {
+      "added": "checks.py1640/1719 uses stored new faces for overlays",
+      "all_before_samples": "checks.py1625/1703 samples and casts every BEFORE face independent of fingerprints",
+      "missing": "checks.py1710/1739 uses stored suspects for extra views and dense removed-face lattice",
+      "new_geometry": "checks.py1439/1752 uses exact float64 changed_faces independent of print step",
+      "scope": "Full default Validator; no focus or fills",
+      "signed_base": "33606ce9"
+    },
+    "counts": {
+      "physical": {
+        "added": 712,
+        "missing": 5990
+      },
+      "stored": {
+        "added": 715,
+        "missing": 5993
+      }
+    },
+    "depth_floor_inches": 0.05,
+    "masks_identical": false,
+    "method": "signed_stored_masks_cover_physical_suspects",
+    "passed": true,
+    "physical_only_added_ids": [],
+    "physical_only_missing_ids": [],
+    "stored_only_added_ids": [
+      10108,
+      10319,
+      10419
+    ],
+    "stored_only_missing_ids": [
+      4999,
+      8014,
+      10688
+    ]
+  },
+  "preparation": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261023-attempt3\\preparation-1F.json",
+  "preparation_sha256": "e5af36dde9a242388985200cd6502b370dba87aba92ef152bec9e91b0f681e2a",
+  "resolution": [
+    900,
+    600
+  ],
+  "reviewer": "/root/main_infra_independent_validator",
+  "run_receipt_sha256": "adb653f7e243468b7b86a3abd11e0cb83c0ee29009fb0eb9964e0fbb1b309222",
+  "selection_digest": "aa6069b890c6de069580d10ae004bf290247e93bd7577d8881db6ec40d8e526e",
+  "selection_seal": "1e6b5c7bcb573866d3c3376d0790e548037817d0e93f0c6d673eb20aaa28c3aa",
+  "shared_guard_positions": "Entire original position table unchanged, including dtype/shape/bytes; original vertex indices and bounds preserved",
+  "signed_base": "33606ce9",
+  "source_after_sha256": "feb331290528539e8e017ad7d412648c4b495eb320aeb4646ecaca5a3d6fb641",
+  "source_revision": "7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511",
+  "stage_input_triangles": 10136,
+  "validator_component_commit": "a0a8dbda70544d9e1dee90f0d52271a7321324dd",
+  "variant": "e3-e7",
+  "views": 26
+}

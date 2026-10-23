@@ -1,0 +1,339 @@
+{
+  "schema_version": 1,
+  "diagnostic_only": true,
+  "publication_eligible": false,
+  "native_preservation_passed": false,
+  "method": "Exact Fraction(binary64 OBJ coordinates and UVs); dominant-axis 2D barycentric solve, exact 3D plane/membership/winding; actual PNG width/height scales each UV component",
+  "counts": {
+    "original_faces": 15856,
+    "candidate_faces": 10578,
+    "cut_children": 715,
+    "cut_corners": 2145,
+    "cut_original_parents": 273,
+    "unchanged_faces_exact_uv_and_ordered_vertices": 9863,
+    "nonzero_error_cut_corners": 866
+  },
+  "whole_original_positions": {
+    "shape": [
+      6125,
+      3
+    ],
+    "dtype": "float64",
+    "bytes_unchanged": true
+  },
+  "material_parent_mismatches": 0,
+  "point_membership_or_winding_failures": 0,
+  "max_absolute_uv_component_error": 6.1573467678710525e-15,
+  "max_component_error_texels": 1.5762807725749894e-12,
+  "max_component_error_texels_exact": "113583/72057594037927936",
+  "max_euclidean_error_texels": 1.5762807725749894e-12,
+  "worst": {
+    "output_face": 10322,
+    "corner": 1,
+    "original_parent": 8062,
+    "stage_site": 5557,
+    "edit_index": 185,
+    "material": "minecraft_concrete_white_-1",
+    "texture_size": [
+      256,
+      256
+    ],
+    "vertex_id": 5646,
+    "weights": [
+      "1/4",
+      "0",
+      "3/4"
+    ],
+    "expected_uv": [
+      "13825826146092151889/18446744073709551616",
+      "4512607186913207/18014398509481984"
+    ],
+    "actual_uv": [
+      "3375445836448307/4503599627370496",
+      "4512607186913207/18014398509481984"
+    ],
+    "uv_error": [
+      "113583/18446744073709551616",
+      "0"
+    ],
+    "texel_error": [
+      "113583/72057594037927936",
+      "0"
+    ],
+    "max_texel_error": 1.5762807725749894e-12
+  },
+  "per_material_max_component_texels": {
+    "minecraft_quartz_block_side_-1": 1.0993705945594456e-12,
+    "minecraft_quartz_block_top_-1": 1.0999812172229895e-12,
+    "minecraft_concrete_white_-1": 1.5762807725749894e-12,
+    "minecraft_concrete_white_-15579874": 1.3842538226782608e-12,
+    "minecraft_quartz_block_bottom_-1": 4.762162886251531e-13
+  },
+  "texture_dimensions": {
+    "minecraft_wool_colored_orange_-1": [
+      256,
+      256
+    ],
+    "minecraft_quartz_block_bottom_-1": [
+      256,
+      256
+    ],
+    "minecraft_quartz_block_top_-1": [
+      256,
+      256
+    ],
+    "minecraft_quartz_block_side_-1": [
+      256,
+      256
+    ],
+    "minecraft_concrete_white_-15579874": [
+      256,
+      256
+    ],
+    "minecraft_concrete_white_-1": [
+      256,
+      256
+    ]
+  },
+  "causal_627_parent_7358_corners": [
+    {
+      "output_face": 10254,
+      "corner": 0,
+      "original_parent": 7358,
+      "stage_site": 4944,
+      "edit_index": 157,
+      "material": "minecraft_concrete_white_-1",
+      "texture_size": [
+        256,
+        256
+      ],
+      "vertex_id": 5474,
+      "weights": [
+        "0",
+        "1",
+        "0"
+      ],
+      "expected_uv": [
+        "4609512991975505/4611686018427387904",
+        "2305813263838875/2305843009213693952"
+      ],
+      "actual_uv": [
+        "4609512991975505/4611686018427387904",
+        "2305813263838875/2305843009213693952"
+      ],
+      "uv_error": [
+        "0",
+        "0"
+      ],
+      "texel_error": [
+        "0",
+        "0"
+      ],
+      "max_texel_error": 0.0
+    },
+    {
+      "output_face": 10254,
+      "corner": 1,
+      "original_parent": 7358,
+      "stage_site": 4944,
+      "edit_index": 157,
+      "material": "minecraft_concrete_white_-1",
+      "texture_size": [
+        256,
+        256
+      ],
+      "vertex_id": 3697,
+      "weights": [
+        "0",
+        "3/4",
+        "1/4"
+      ],
+      "expected_uv": [
+        "4620900750009318643/18446744073709551616",
+        "2305813263838875/2305843009213693952"
+      ],
+      "actual_uv": [
+        "4512598388680975/18014398509481984",
+        "2305813263838875/2305843009213693952"
+      ],
+      "uv_error": [
+        "-243/18446744073709551616",
+        "0"
+      ],
+      "texel_error": [
+        "243/72057594037927936",
+        "0"
+      ],
+      "max_texel_error": 3.372302437298913e-15
+    },
+    {
+      "output_face": 10254,
+      "corner": 2,
+      "original_parent": 7358,
+      "stage_site": 4944,
+      "edit_index": 157,
+      "material": "minecraft_concrete_white_-1",
+      "texture_size": [
+        256,
+        256
+      ],
+      "vertex_id": 5584,
+      "weights": [
+        "1",
+        "0",
+        "0"
+      ],
+      "expected_uv": [
+        "4609512991975505/4611686018427387904",
+        "8998192055486251/9007199254740992"
+      ],
+      "actual_uv": [
+        "4609512991975505/4611686018427387904",
+        "8998192055486251/9007199254740992"
+      ],
+      "uv_error": [
+        "0",
+        "0"
+      ],
+      "texel_error": [
+        "0",
+        "0"
+      ],
+      "max_texel_error": 0.0
+    },
+    {
+      "output_face": 10255,
+      "corner": 0,
+      "original_parent": 7358,
+      "stage_site": 4944,
+      "edit_index": 157,
+      "material": "minecraft_concrete_white_-1",
+      "texture_size": [
+        256,
+        256
+      ],
+      "vertex_id": 3697,
+      "weights": [
+        "0",
+        "3/4",
+        "1/4"
+      ],
+      "expected_uv": [
+        "4620900750009318643/18446744073709551616",
+        "2305813263838875/2305843009213693952"
+      ],
+      "actual_uv": [
+        "4512598388680975/18014398509481984",
+        "2305813263838875/2305843009213693952"
+      ],
+      "uv_error": [
+        "-243/18446744073709551616",
+        "0"
+      ],
+      "texel_error": [
+        "243/72057594037927936",
+        "0"
+      ],
+      "max_texel_error": 3.372302437298913e-15
+    },
+    {
+      "output_face": 10255,
+      "corner": 1,
+      "original_parent": 7358,
+      "stage_site": 4944,
+      "edit_index": 157,
+      "material": "minecraft_concrete_white_-1",
+      "texture_size": [
+        256,
+        256
+      ],
+      "vertex_id": 3698,
+      "weights": [
+        "0",
+        "0",
+        "1"
+      ],
+      "expected_uv": [
+        "4499093956087297/4503599627370496",
+        "2305813263838875/2305843009213693952"
+      ],
+      "actual_uv": [
+        "4499093956087297/4503599627370496",
+        "2305813263838875/2305843009213693952"
+      ],
+      "uv_error": [
+        "0",
+        "0"
+      ],
+      "texel_error": [
+        "0",
+        "0"
+      ],
+      "max_texel_error": 0.0
+    },
+    {
+      "output_face": 10255,
+      "corner": 2,
+      "original_parent": 7358,
+      "stage_site": 4944,
+      "edit_index": 157,
+      "material": "minecraft_concrete_white_-1",
+      "texture_size": [
+        256,
+        256
+      ],
+      "vertex_id": 5584,
+      "weights": [
+        "1",
+        "0",
+        "0"
+      ],
+      "expected_uv": [
+        "4609512991975505/4611686018427387904",
+        "8998192055486251/9007199254740992"
+      ],
+      "actual_uv": [
+        "4609512991975505/4611686018427387904",
+        "8998192055486251/9007199254740992"
+      ],
+      "uv_error": [
+        "0",
+        "0"
+      ],
+      "texel_error": [
+        "0",
+        "0"
+      ],
+      "max_texel_error": 0.0
+    }
+  ],
+  "input_hashes": {
+    "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-CLEAN-20261023\\data\\main-infra-fresh\\run-20261023\\normalized\\1F\\before.source.obj": "26eda65235ce9d1f8c82e97b00d4da21cc1e272d0817e769dddb6ca192f4aea5",
+    "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261023-attempt3\\1F\\candidate.source.obj": "feb331290528539e8e017ad7d412648c4b495eb320aeb4646ecaca5a3d6fb641",
+    "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261023-attempt3\\1F\\cut-lineage.json": "d39ce723763e33ecb9e289413b38d8ad34c93607048932fea07a817f48f3c1e2",
+    "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261023-attempt3\\1F\\asset-receipt.json": "019d965f6ded3630e9d957335fea8f33b98c7e8705a5017600ef1d66ae33eb3b",
+    "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261023-attempt3\\1F\\cut-receipt.json": "b587c3b95639cd51dfe5a1c82093f57b7492609de393c9f3c9830e4a398e813a",
+    "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\tmp\\main-infra-e7-source-uv-audit-20261023\\measure_source_uv.py": "cedbcae621e45b094b14f0010aea10b9a7709e3af66c337d939ef0d48a9ba8ca",
+    "D:\\LLM_BACKUP\\Codex session\\main-infra-2f-validation-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\io\\obj_reader.py": "72b300cdd8af9b3312369fb3ffe2064f07933298198ad0e8f438c91d1990a7fe",
+    "D:\\LLM_BACKUP\\Codex session\\main-infra-2f-validation-20261023\\05-Corllenium-UC-Building-Repair-Engine\\engine\\model.py": "4309d8ce5552ec295198f6f732d344842824e65ed1c300e63986e8c17a75be8b",
+    "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261023-attempt3\\1F\\1st floor main infra.mtl": "c64c0cb12926c707b55262a82fd324ccd09502f92b0c866801a00e9f3c89d9a3",
+    "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-CLEAN-20261023\\data\\main-infra-fresh\\run-20261023\\normalized\\1F\\1st floor main infra.mtl": "c64c0cb12926c707b55262a82fd324ccd09502f92b0c866801a00e9f3c89d9a3",
+    "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261023-attempt3\\1F\\textures\\minecraft\\concrete_white_-1.png": "f42c7be3c52294ead4c69ac0e9ef1bbbbe6bdb4451382c89a65c386709df6171",
+    "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-CLEAN-20261023\\data\\main-infra-fresh\\run-20261023\\normalized\\1F\\textures\\minecraft\\concrete_white_-1.png": "f42c7be3c52294ead4c69ac0e9ef1bbbbe6bdb4451382c89a65c386709df6171",
+    "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261023-attempt3\\1F\\textures\\minecraft\\concrete_white_-15579874.png": "14ceba3d0329594e00458bc6ed2aeafa24d9228519994a60d758de2509fee1ad",
+    "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-CLEAN-20261023\\data\\main-infra-fresh\\run-20261023\\normalized\\1F\\textures\\minecraft\\concrete_white_-15579874.png": "14ceba3d0329594e00458bc6ed2aeafa24d9228519994a60d758de2509fee1ad",
+    "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261023-attempt3\\1F\\textures\\minecraft\\quartz_block_bottom_-1.png": "daf3f46f93f7364b1530ec468a7a1d5a02eda1cd0a118e41e93e9c4177791cc1",
+    "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-CLEAN-20261023\\data\\main-infra-fresh\\run-20261023\\normalized\\1F\\textures\\minecraft\\quartz_block_bottom_-1.png": "daf3f46f93f7364b1530ec468a7a1d5a02eda1cd0a118e41e93e9c4177791cc1",
+    "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261023-attempt3\\1F\\textures\\minecraft\\quartz_block_side_-1.png": "85e34c6a6b917ade1cfbd2826127de4175c63317f3efbba1f7aaed3bf105a193",
+    "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-CLEAN-20261023\\data\\main-infra-fresh\\run-20261023\\normalized\\1F\\textures\\minecraft\\quartz_block_side_-1.png": "85e34c6a6b917ade1cfbd2826127de4175c63317f3efbba1f7aaed3bf105a193",
+    "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261023-attempt3\\1F\\textures\\minecraft\\quartz_block_top_-1.png": "eea2309518da196d86171dd0d78ecdcdc3a0510005790fa2beb8484744d8ae88",
+    "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-CLEAN-20261023\\data\\main-infra-fresh\\run-20261023\\normalized\\1F\\textures\\minecraft\\quartz_block_top_-1.png": "eea2309518da196d86171dd0d78ecdcdc3a0510005790fa2beb8484744d8ae88",
+    "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-attempt3-20261023\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261023-attempt3\\1F\\textures\\minecraft\\wool_colored_orange_-1.png": "c6a3c27b965f298da28c89c1a522b5ff3152321a97fcbe613aec2f9a6d8f66fa",
+    "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\MAIN-INFRA-CLEAN-20261023\\data\\main-infra-fresh\\run-20261023\\normalized\\1F\\textures\\minecraft\\wool_colored_orange_-1.png": "c6a3c27b965f298da28c89c1a522b5ff3152321a97fcbe613aec2f9a6d8f66fa"
+  },
+  "corner_evidence": {
+    "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\tmp\\main-infra-e7-source-uv-audit-20261023\\uv-corners.jsonl",
+    "sha256": "fa41486398305cde425a8aa0bb7bd011ff54538b753c6d0d5c668c0d6c6e2259"
+  },
+  "scope": "Affine UV error over each original planar child is bounded by its corner maximum. Does not model Float32/GPU interpolation/filtering, establish unchanged texel selection, or override native FAIL."
+}
