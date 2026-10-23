@@ -25,6 +25,21 @@ run the latest `.skp` of each file must be in `OBJ FIXED RESULT/` for the owner 
 
 ## 2. Current state (2026-09-26 00:15, written by the Claude controller)
 
+2026-10-23 21:50 +08 supersedes earlier running entries: actual 1F E7 attempt2
+exited 13:36:26 UTC after default kernel confirmation PASS (273 kept/355 rolled
+back), then failed source-frame serialization with ValueError: source boundary.
+No final or staged candidate exists; 10,578 triangles is an unsaved result.
+Independent failure receipt b0a5f202 binds actual console/log/resources; no guard,
+native or full Validator was run. Exact binary64 rational diagnosis proves all
+ten floating barycentric-union failures are boundary-equal, each floating
+normalized gap 2.7755575615628914e-17. Literal regression and strict serializer
+fix are assigned separately; no tolerance change or old-PASS replay allowed.
+Live publisher exec42942 readback13:47:02 reports actual source-boundary blocker;
+the prior 1F E3 inspection candidate stays unchanged. Tiny status regression
+RED failed/cleaning, GREEN1 passed. 2F/3F indexed retries remain prepared;
+13:47 memory gate held at 4.493GiB commit headroom. No foreign app stopped.
+Latest UI filter remains LIVE; Codex1F-3F / Claude4F-7F; no accepted floor.
+
 2026-10-23 21:05 +08: fresh mesh inspection is LIVE from Siege 58a0f34,
 durable evidence cd148fd (branch docs HEAD f43f3a5). Material colours/legend,
 original textures, X-ray and actual triangle edges work in both panes; actual

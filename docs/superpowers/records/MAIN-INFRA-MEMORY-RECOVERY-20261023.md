@@ -86,3 +86,40 @@ running1F PID43456, alive, CPU169.16s. The earlier E3candidate10136 remains
 explicit inspection only. No new E7 candidate is saved or accepted yet.
 2F/3F retries and independent heavy checks remain sequential after1F, each
 with a fresh resource gate. Ownership remains Codex1F-3F / Claude Code4F-7F.
+
+## 21:50 +08 — actual retry terminal and source-boundary diagnosis
+
+1F E7 attempt2 PID43456 ended13:36:26.253134UTC, wall2121.56s. Default
+kernel final PASS followed three rollback rounds:628planned,273kept,355rolled.
+Serializer then failed source-frame `_source_weights` boundary equality; final
+1F and staged candidate are both absent. 10,578 is UNSAVED, never a new After.
+Independent receipt b0a5f202d6b37628d8e5cc351bf9d221eb005ba3db24ecf833ff3f26fb1389f8
+binds failed artifacts and explicitly records independent checks NOT STARTED.
+1023 resource samples: observed worker peakcommit2,311,098,368B, minimum global
+headroom3,774,504,960B. This attempt passed the previous memory failure point.
+
+Bounded deterministic planner reconstruction matches all628 actual K1 records.
+263/273 kept source float proofs pass; ten fail only Shapely barycentric union
+by2.7755575615628914e-17 normalized area. Exact Fraction(original binary64)
+plane, nonnegative barycentrics, positive winding, exact area and oriented edge
+boundary cancellation pass all ten. Literal site2479 fixture SHA
+0ffab4d4c34b446a799ea0edc2af25e03dec4d89341161261b6689b0b3dee702;
+parent area3/32m². Source positions remain unchanged. A separate TDD serializer
+fix is in progress; no epsilon/snap/buffer/guard loosening is authorized.
+K1 logs omit exact UV/normal/output bytes: they cannot certify a recovered
+original candidate or justify attaching the old PASS to reconstructed geometry.
+
+Status runtime isolated RED reproduced retry reading obsolete worker path;
+GREEN1test passed after actual path binding, loading-state support, pending
+triangle counts and truthful per-floor failure summary. Owned publisher16316
+was creation-time verified then replaced by exec42942. Public13:47:02 readback
+reports actual1F source boundary and old2F/3F allocation failures, unchanged
+E3candidate URL; both remote roots hash b18c3d8f at13:46:24. Source/model/DB/server
+state untouched. Runtime and its bounded fixture are preserved beside this
+record under scripts/main-infra/live-worker-status-runtime.ps1 and
+scripts/main-infra/test_live_worker_runtime.py.
+
+2F retry wrapper a4898bdd / frozen component531769c / exact floor material maps
+remain prepared, not started. Launch gate13:43/13:47 had4.173/4.493GiB commit
+headroom; no new heavy job was started into that margin. No foreign app killed.
+Codex1F-3F and Claude4F-7F remain separate. UI filter LIVE; no floor accepted.
