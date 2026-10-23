@@ -1,5 +1,9 @@
 # SDD ledger - plan: docs/superpowers/plans/2026-10-23-main-infra-fresh-cleanup.md
 
+- Actual completed Before/After guard view events now publish per-floor step/time
+  after rendering, separate from heartbeat. Regression RED then GREEN on all52
+  fixture events; strict candidate tests4passed. Full4Foriginaloracle pilot next.
+
 - 2026-10-23: Final compiled dashboard build26pages and browser8.9s pass; pending
   After readback shows empty grid. Committed2800a66/de060b9 and46previewfiles
   matchGitblobs exactly. No production deployment or floor acceptance.

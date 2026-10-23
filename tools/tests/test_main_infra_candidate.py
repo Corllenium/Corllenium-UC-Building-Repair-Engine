@@ -66,7 +66,10 @@ def test_original_oracle_factory_runs_the_same_strict_guard_and_saves_its_identi
     from engine.rays.bounded_brute import BoundedBruteCaster
     from tools.main_infra_candidate import build_candidate
     baseline, qa = fixture(tmp_path)
-    report = build_candidate(baseline, qa, tmp_path / 'candidate', caster_factory=BoundedBruteCaster)
+    events = []
+    report = build_candidate(baseline, qa, tmp_path / 'candidate', caster_factory=BoundedBruteCaster,
+                             on_view=lambda label, index: events.append((label, index)))
     assert report['ray_caster'] == 'BoundedBruteCaster'
     assert report['guard']['passed'] and len(report['guard']['views']) == 26
     assert report['accepted'] is False and report['output_triangles'] == 2
+    assert events == [(label, index) for label in ('Before', 'After') for index in range(1, 27)]

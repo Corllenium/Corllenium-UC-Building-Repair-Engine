@@ -17,21 +17,23 @@ from engine.rays.caster import EmbreeCaster, ReusableCaster
 from engine.topo.weld import axis_quanta
 
 
-def strict_guard(before, after, source, provenance, *, caster_factory=EmbreeCaster):
+def strict_guard(before, after, source, provenance, *, caster_factory=EmbreeCaster, on_view=None):
     center = (before.positions.min(axis=0) + before.positions.max(axis=0)) / 2
     positions = before.positions - center
-    def render(mesh):
+    def render(mesh, label):
         factory = ReusableCaster(caster_factory)
         rendered = []
         for index, view in enumerate(VIEWS_26, 1):
             rendered.append((view, ortho_first_hit(positions, mesh.face_v, np.arange(mesh.n_faces),
                              view, positions, (900, 600), factory)))
             print(f'GUARD rendered {mesh.n_faces} triangles view {index}/26', flush=True)
+            if on_view:
+                on_view(label, index)
         return rendered
     quanta = np.abs(np.asarray(provenance['source_to_engine'])[:3, :3]) @ axis_quanta(source.positions, source.sig_digits)
     depth_tol = guard_depth_tol(quanta, FixProfile())
     print(f'GUARD original sig_digits={source.sig_digits}, transformed quanta={quanta.tolist()}, existing depth tolerance={depth_tol}in', flush=True)
-    before_views, after_views = render(before), render(after)
+    before_views, after_views = render(before, 'Before'), render(after, 'After')
     print('GUARD comparing saved 26-view buffers', flush=True)
     report = compare_views(before_views, after_views, before.face_material, after.face_material, (),
         depth_tol, strict=True, plane_before=face_planes(positions, before.face_v),
@@ -42,7 +44,7 @@ def strict_guard(before, after, source, provenance, *, caster_factory=EmbreeCast
     return report, depth_tol
 
 
-def build_candidate(baseline, qualification, out, *, caster_factory=EmbreeCaster):
+def build_candidate(baseline, qualification, out, *, caster_factory=EmbreeCaster, on_view=None):
     baseline, qualification, out = Path(baseline), Path(qualification), Path(out)
     proof = json.loads(qualification.read_text(encoding='utf-8'))
     provenance = json.loads((baseline / 'geometry-provenance.json').read_text(encoding='utf-8'))
@@ -65,7 +67,7 @@ def build_candidate(baseline, qualification, out, *, caster_factory=EmbreeCaster
     from engine.fixes.remove import remove_faces
     source_candidate, _ = remove_faces(source.mesh, ~keep)
     source_coverage = verify_exact_coverage(source.mesh, source_candidate)
-    guard, depth_tol = strict_guard(engine.mesh, result.mesh, source.mesh, provenance, caster_factory=caster_factory)
+    guard, depth_tol = strict_guard(engine.mesh, result.mesh, source.mesh, provenance, caster_factory=caster_factory, on_view=on_view)
     if not guard.passed:
         raise ValueError(f'Strict existing 26-view guard refused candidate: {guard.totals}')
     out.mkdir(parents=True)
@@ -134,8 +136,12 @@ def main():
     try:
         if args.original_oracle:
             from engine.rays.bounded_brute import BoundedBruteCaster
+        def publish_view(label, index):
+            if args.progress:
+                update_floor(args.progress, args.floor, 'cleaning', f'Strict guard {label} view {index}/26 rendered; comparing original floor geometry',
+                             published_path=args.publish_status)
         report = build_candidate(args.baseline, args.qualification, args.out,
-                                 caster_factory=BoundedBruteCaster if args.original_oracle else EmbreeCaster)
+                                 caster_factory=BoundedBruteCaster if args.original_oracle else EmbreeCaster, on_view=publish_view)
         if heartbeat_errors:
             raise ValueError(f'Worker progress publication failed: {heartbeat_errors}')
         if args.progress:
