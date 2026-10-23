@@ -1,0 +1,23 @@
+{
+  "command": [
+    "D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe",
+    "-B",
+    "-m",
+    "pytest",
+    "engine/tests/test_guard_f64_displacement.py",
+    "-q",
+    "-p",
+    "no:cacheprovider",
+    "--basetemp",
+    "D:\\TEMP\\guard-f64\\green\\pytest"
+  ],
+  "exit_code": 1,
+  "test_tree_private_peak": 52150272,
+  "observer_private_peak": 10473472,
+  "pid_private_peaks": {
+    "40832": 51224576,
+    "56100": 925696
+  },
+  "cap_bytes": 262144000,
+  "cap_exceeded": false
+}

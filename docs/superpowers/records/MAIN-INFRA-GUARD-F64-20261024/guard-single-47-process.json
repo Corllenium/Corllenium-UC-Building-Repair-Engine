@@ -1,0 +1,23 @@
+{
+  "command": [
+    "D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe",
+    "-B",
+    "-m",
+    "pytest",
+    "engine/tests/test_guard.py::test_a_zfight_tie_is_never_capped",
+    "-q",
+    "-p",
+    "no:cacheprovider",
+    "--basetemp",
+    "D:\\TEMP\\guard-f64\\guard-single-47\\pytest"
+  ],
+  "exit_code": 0,
+  "test_tree_private_peak": 91111424,
+  "observer_private_peak": 10428416,
+  "pid_private_peaks": {
+    "48768": 860160,
+    "58900": 90251264
+  },
+  "cap_bytes": 262144000,
+  "cap_exceeded": false
+}

@@ -1,0 +1,23 @@
+{
+  "command": [
+    "D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe",
+    "-B",
+    "-m",
+    "pytest",
+    "engine/tests/test_guard.py::test_save_triptych_shades_before_and_after_panels_by_face_normal",
+    "-q",
+    "-p",
+    "no:cacheprovider",
+    "--basetemp",
+    "D:\\TEMP\\guard-f64\\guard-single-39\\pytest"
+  ],
+  "exit_code": 0,
+  "test_tree_private_peak": 90640384,
+  "observer_private_peak": 10485760,
+  "pid_private_peaks": {
+    "56960": 843776,
+    "58872": 89796608
+  },
+  "cap_bytes": 262144000,
+  "cap_exceeded": false
+}

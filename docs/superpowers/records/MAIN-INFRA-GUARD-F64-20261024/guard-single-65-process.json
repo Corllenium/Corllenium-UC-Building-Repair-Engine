@@ -1,0 +1,23 @@
+{
+  "command": [
+    "D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe",
+    "-B",
+    "-m",
+    "pytest",
+    "engine/tests/test_guard.py::test_a_whole_triangle_lost_after_a_closed_slab_still_fails_with_the_border_tolerance",
+    "-q",
+    "-p",
+    "no:cacheprovider",
+    "--basetemp",
+    "D:\\TEMP\\guard-f64\\guard-single-65\\pytest"
+  ],
+  "exit_code": 99,
+  "test_tree_private_peak": 259063808,
+  "observer_private_peak": 10514432,
+  "pid_private_peaks": {
+    "29344": 856064,
+    "53312": 258207744
+  },
+  "cap_bytes": 262144000,
+  "cap_exceeded": true
+}

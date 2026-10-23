@@ -1,0 +1,95 @@
+FF.................FFF.                                                  [100%]
+================================== FAILURES ===================================
+____ test_actual_2f_unchanged_planes_do_not_move_at_the_original_tolerance ____
+
+    def test_actual_2f_unchanged_planes_do_not_move_at_the_original_tolerance():
+        data=actual_witnesses();rows=data['witnesses'];count=len(rows)
+        before=np.array([r['before_depth_inches'] for r in rows]);after=np.array([r['after_depth_inches'] for r in rows])
+        origins=np.array([r['origin_inches'] for r in rows]);pb=np.array([r['before_plane'] for r in rows]);pa=np.array([r['after_plane'] for r in rows])
+        assert count==24 and all(r['original_before_face']==r['after_original_face'] for r in rows)
+        np.testing.assert_array_equal(pb,pa)
+        assert min(r['old_plane_residual_inches'] for r in rows)>data['guard_depth_tol_inches']
+        moved=_displacement(before,np.arange(count),after,np.arange(count),np.ones(count,bool),origins,np.array(data['direction']),pb,pa)
+>       np.testing.assert_array_equal(moved,np.zeros(count))
+E       AssertionError: 
+E       Arrays are not equal
+E       
+E       Mismatched elements: 24 / 24 (100%)
+E       First 5 mismatches are at indices:
+E        [0]: 2.4029588985285955e-05 (ACTUAL), 0.0 (DESIRED)
+E        [1]: 2.4029589440033305e-05 (ACTUAL), 0.0 (DESIRED)
+E        [2]: 2.4029589894780656e-05 (ACTUAL), 0.0 (DESIRED)
+E        [3]: 1.4417754300666275e-05 (ACTUAL), 0.0 (DESIRED)
+E        [4]: 1.4417754300666275e-05 (ACTUAL), 0.0 (DESIRED)
+E       Max absolute difference among violations: 3.24184872e-05
+E       Max relative difference among violations: inf
+E        ACTUAL: array([2.402959e-05, 2.402959e-05, 2.402959e-05, 1.441775e-05,
+E              1.441775e-05, 6.968580e-06, 6.968580e-06, 6.968581e-06,
+E              1.393716e-05, 1.225509e-05, 7.013922e-06, 6.106732e-06,...
+E        DESIRED: array([0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+E              0., 0., 0., 0., 0., 0., 0.])
+
+engine\tests\test_guard_f64_displacement.py:33: AssertionError
+____ test_genuine_float32_render_of_unchanged_cube_is_not_surface_movement ____
+
+    def test_genuine_float32_render_of_unchanged_cube_is_not_surface_movement():
+        m=cube(1417.3228346456694);positions=m.positions-708.6614173228347;ids=np.arange(len(m.face_v));view=(-.987,.007,-.989)
+        b=ortho_first_hit(positions,m.face_v,ids,view,positions,(18,12));planes=face_planes(positions,m.face_v)
+        report=compare_views([(view,b)],[(view,b)],m.face_material,m.face_material,frozenset(),5.905511811023622e-6,strict=True,plane_before=planes,plane_after=planes)
+        assert report.totals['model_px']>0
+>       assert report.totals['moved_other']==0 and report.passed
+E       assert (96 == 0)
+
+engine\tests\test_guard_f64_displacement.py:43: AssertionError
+_ test_unreconstructable_original_plane_cannot_silently_pass[plane0-origin0-direction0] _
+
+plane = [0, 0, 1, -1], origin = (0, 0, 1), direction = (1, 0, 0)
+
+    @pytest.mark.parametrize('plane,origin,direction',[
+        ([0,0,1,-1],(0,0,1),(1,0,0)),
+        ([0,0,1,-1],(np.nan,0,0),(0,0,1)),
+        ([np.nan,0,1,-1],(0,0,0),(0,0,1)),
+    ])
+    def test_unreconstructable_original_plane_cannot_silently_pass(plane,origin,direction):
+>       assert classify_one(plane,plane,origin=origin,direction=direction)==PX_MOVED_OTHER
+E       assert np.uint8(0) == 4
+E        +  where np.uint8(0) = classify_one([0, 0, 1, -1], [0, 0, 1, -1], origin=(0, 0, 1), direction=(1, 0, 0))
+
+engine\tests\test_guard_f64_displacement.py:77: AssertionError
+_ test_unreconstructable_original_plane_cannot_silently_pass[plane1-origin1-direction1] _
+
+plane = [0, 0, 1, -1], origin = (nan, 0, 0), direction = (0, 0, 1)
+
+    @pytest.mark.parametrize('plane,origin,direction',[
+        ([0,0,1,-1],(0,0,1),(1,0,0)),
+        ([0,0,1,-1],(np.nan,0,0),(0,0,1)),
+        ([np.nan,0,1,-1],(0,0,0),(0,0,1)),
+    ])
+    def test_unreconstructable_original_plane_cannot_silently_pass(plane,origin,direction):
+>       assert classify_one(plane,plane,origin=origin,direction=direction)==PX_MOVED_OTHER
+E       assert np.uint8(0) == 4
+E        +  where np.uint8(0) = classify_one([0, 0, 1, -1], [0, 0, 1, -1], origin=(nan, 0, 0), direction=(0, 0, 1))
+
+engine\tests\test_guard_f64_displacement.py:77: AssertionError
+_ test_unreconstructable_original_plane_cannot_silently_pass[plane2-origin2-direction2] _
+
+plane = [nan, 0, 1, -1], origin = (0, 0, 0), direction = (0, 0, 1)
+
+    @pytest.mark.parametrize('plane,origin,direction',[
+        ([0,0,1,-1],(0,0,1),(1,0,0)),
+        ([0,0,1,-1],(np.nan,0,0),(0,0,1)),
+        ([np.nan,0,1,-1],(0,0,0),(0,0,1)),
+    ])
+    def test_unreconstructable_original_plane_cannot_silently_pass(plane,origin,direction):
+>       assert classify_one(plane,plane,origin=origin,direction=direction)==PX_MOVED_OTHER
+E       assert np.uint8(0) == 4
+E        +  where np.uint8(0) = classify_one([nan, 0, 1, -1], [nan, 0, 1, -1], origin=(0, 0, 0), direction=(0, 0, 1))
+
+engine\tests\test_guard_f64_displacement.py:77: AssertionError
+=========================== short test summary info ===========================
+FAILED engine/tests/test_guard_f64_displacement.py::test_actual_2f_unchanged_planes_do_not_move_at_the_original_tolerance
+FAILED engine/tests/test_guard_f64_displacement.py::test_genuine_float32_render_of_unchanged_cube_is_not_surface_movement
+FAILED engine/tests/test_guard_f64_displacement.py::test_unreconstructable_original_plane_cannot_silently_pass[plane0-origin0-direction0]
+FAILED engine/tests/test_guard_f64_displacement.py::test_unreconstructable_original_plane_cannot_silently_pass[plane1-origin1-direction1]
+FAILED engine/tests/test_guard_f64_displacement.py::test_unreconstructable_original_plane_cannot_silently_pass[plane2-origin2-direction2]
+5 failed, 18 passed in 1.16s

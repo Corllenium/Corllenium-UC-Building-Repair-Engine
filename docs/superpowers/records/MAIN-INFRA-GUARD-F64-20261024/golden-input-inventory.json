@@ -1,0 +1,989 @@
+{
+  "acceptance": false,
+  "inventory_only": true,
+  "pending": "Golden Validator phases require root resource GO; historical passed fields are not new results.",
+  "schema_version": 1,
+  "snapshot_rule": "Only existing frozen data/snapshots inputs read; no live export or master read.",
+  "units": [
+    {
+      "after": {
+        "bytes": 980984,
+        "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\out_chtm5\\chtm_5ft_floor\\chtm_5ft_floor.fixed.obj",
+        "sha256": "48af71c31c4b565c87a7b728e44d83d7643ccdff10714a9a54b4d6fcb4600c0d"
+      },
+      "assets": [
+        {
+          "bytes": 2487,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\snapshots\\c0c877002500-b7c2dc01\\materials.mtl",
+          "sha256": "aaf2a70af505034cdeaab06b63ef2cf75b8475cbb4c49f75c168f15abe9c6b84"
+        },
+        {
+          "bytes": 56010,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\snapshots\\c0c877002500-b7c2dc01\\source.mtl",
+          "sha256": "4f2983bd0b55268b7b6c2c2129dd06b91d9243007b5fd116d6d512401f3bc226"
+        },
+        {
+          "bytes": 395,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\snapshots\\c0c877002500-b7c2dc01\\tex\\kirosblocks_colored_metal_block_-2.png",
+          "sha256": "ff01fc9fe394e100f49ffcf1eb58207273c89ac6e6e22d4685cc4fa659460008"
+        },
+        {
+          "bytes": 130,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\snapshots\\c0c877002500-b7c2dc01\\tex\\littletiles_ltcolored0_-1.png",
+          "sha256": "70e99c4e48c03ae0a3971f81621808b42f83e23ce962688afdef9c66522fea56"
+        },
+        {
+          "bytes": 130,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\snapshots\\c0c877002500-b7c2dc01\\tex\\littletiles_ltcolored0_-88.png",
+          "sha256": "70e99c4e48c03ae0a3971f81621808b42f83e23ce962688afdef9c66522fea56"
+        },
+        {
+          "bytes": 226,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\snapshots\\c0c877002500-b7c2dc01\\tex\\littletiles_ltcolored6_-1.png",
+          "sha256": "6e73768b26cd19b3ce07aca883598039d289c39320f6f62438be4caa750708da"
+        },
+        {
+          "bytes": 117011,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\snapshots\\c0c877002500-b7c2dc01\\tex\\minecraft_concrete_gray_-25.png",
+          "sha256": "3cbd91fe7022f36f0153f93d1f5021dd7e918d62ee78b1f68c2a5d4b6da140e4"
+        },
+        {
+          "bytes": 114075,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\snapshots\\c0c877002500-b7c2dc01\\tex\\minecraft_concrete_green_-1.png",
+          "sha256": "d0f3020cb8f1d9db7c91d186f8362d626ff231c9690b0628006d81e6a0b12d8f"
+        },
+        {
+          "bytes": 98142,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\snapshots\\c0c877002500-b7c2dc01\\tex\\minecraft_concrete_white_-1.png",
+          "sha256": "402dfb90a3d21a02ee26466ef74776dad95c8d3a55007778fab6a1e7da40d79f"
+        },
+        {
+          "bytes": 82025,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\snapshots\\c0c877002500-b7c2dc01\\tex\\minecraft_concrete_white_-15579874.png",
+          "sha256": "3572c4d1b618f2cf9f8a07582bd23b3a7d8dc47bbfd8d8a489fdf356485626b2"
+        },
+        {
+          "bytes": 41180,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\snapshots\\c0c877002500-b7c2dc01\\tex\\minecraft_glass_white_-1.png",
+          "sha256": "899b9a1f08688eb13dd6dc980a743f5d335862615c49da8b2298ff3817933dd4"
+        },
+        {
+          "bytes": 93002,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\snapshots\\c0c877002500-b7c2dc01\\tex\\minecraft_iron_block_-1.png",
+          "sha256": "74208c29eae2365aaeb3c586678ec17842ac12f5a222ad9fa46a2bebf25855a8"
+        },
+        {
+          "bytes": 18493,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\snapshots\\c0c877002500-b7c2dc01\\tex\\minecraft_prismarine_dark_-1.png",
+          "sha256": "19e991af70cb1842cf53be46a39c7392db67169e0e963f179d2a982b649e03be"
+        },
+        {
+          "bytes": 25436,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\snapshots\\c0c877002500-b7c2dc01\\tex\\minecraft_quartz_block_bottom_-1.png",
+          "sha256": "e5434a78b577c75a8a026591d9754861ffcb955aa58625286e340e4919e8d7bd"
+        },
+        {
+          "bytes": 17249,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\snapshots\\c0c877002500-b7c2dc01\\tex\\minecraft_quartz_block_bottom_-15574983.png",
+          "sha256": "611a0aa4af15252cda9cd89343b7fc8f7d065c748d8fd9aa0e316e0c77ce12a3"
+        },
+        {
+          "bytes": 116393,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\snapshots\\c0c877002500-b7c2dc01\\tex\\minecraft_quartz_block_side_-1.png",
+          "sha256": "ec87e998852670c5d973e123227faee88678b11280664cd2923ab50a2afefe03"
+        },
+        {
+          "bytes": 67362,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\snapshots\\c0c877002500-b7c2dc01\\tex\\minecraft_quartz_block_side_-15574983.png",
+          "sha256": "3d9fd8cc68c565a40dcf63da405d477b79594b24835afdb3b435ca2d242cf493"
+        },
+        {
+          "bytes": 35357,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\snapshots\\c0c877002500-b7c2dc01\\tex\\minecraft_quartz_block_top_-1.png",
+          "sha256": "5583e46b2d6a65884a0c2a23892df5cfd699e3e47b10f7c6491643e8b305dd90"
+        },
+        {
+          "bytes": 24016,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\snapshots\\c0c877002500-b7c2dc01\\tex\\minecraft_quartz_block_top_-15574983.png",
+          "sha256": "1dd9bb4a7621404ef1427c180b2bb5f0f36c07438fd055e692c8b2fc44bb1d23"
+        },
+        {
+          "bytes": 35357,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\snapshots\\c0c877002500-b7c2dc01\\tex\\minecraft_quartz_block_top_-25.png",
+          "sha256": "5583e46b2d6a65884a0c2a23892df5cfd699e3e47b10f7c6491643e8b305dd90"
+        },
+        {
+          "bytes": 6901,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\out_chtm5\\chtm_5ft_floor\\guard_+x.png",
+          "sha256": "260f47898cdbf92ab984a55c345edb9411c3fc1030f75c3a53f1b4d93184970f"
+        },
+        {
+          "bytes": 7118,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\out_chtm5\\chtm_5ft_floor\\guard_+y.png",
+          "sha256": "b96919dcc1eb9eea4a8139c0112943e7bf514b40cd3b5974e8df26728a2204cd"
+        },
+        {
+          "bytes": 7119,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\out_chtm5\\chtm_5ft_floor\\guard_+z.png",
+          "sha256": "a434a0903260832d83e65ddd1c23c7fa869ea56afcbd41ce3c9fb59f48fc6e72"
+        },
+        {
+          "bytes": 7725,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\out_chtm5\\chtm_5ft_floor\\guard_-x.png",
+          "sha256": "2baecadc283aa79b2fc33575a471497aa67e25cafcdfc5d49478f2001994f590"
+        },
+        {
+          "bytes": 6613,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\out_chtm5\\chtm_5ft_floor\\guard_-y.png",
+          "sha256": "6b0e9c128174a01a8736a97adaf543358b91d4ec5d011a86bf05fd11e2fc7c0e"
+        },
+        {
+          "bytes": 8058,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\out_chtm5\\chtm_5ft_floor\\guard_-z.png",
+          "sha256": "a4c19df726370714121d21caa843b1720b12751c0155713899689fb91d1906ed"
+        },
+        {
+          "bytes": 2487,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\out_chtm5\\chtm_5ft_floor\\materials.mtl",
+          "sha256": "aaf2a70af505034cdeaab06b63ef2cf75b8475cbb4c49f75c168f15abe9c6b84"
+        },
+        {
+          "bytes": 11198,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\out_chtm5\\chtm_5ft_floor\\qa\\bottom.png",
+          "sha256": "b803bfa56c023c7a8fb34eb19dc840d75dc55ec5aad9904eb6acb95ff64f2a1c"
+        },
+        {
+          "bytes": 39657,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\out_chtm5\\chtm_5ft_floor\\qa\\chunk0_bottom.png",
+          "sha256": "8f2ce6cef0e3fc853179f1fddaa31d04e90bfbd9cac7510eb413864c86c50f66"
+        },
+        {
+          "bytes": 14519,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\out_chtm5\\chtm_5ft_floor\\qa\\chunk0_side.png",
+          "sha256": "08df55b4b251fcf8dea2f8ec31f9ae6764930c4921e5829909aa6210525034f1"
+        },
+        {
+          "bytes": 67663,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\out_chtm5\\chtm_5ft_floor\\qa\\chunk0_top.png",
+          "sha256": "c319b161da0aeef87b091a1e500fcd3df22cb79c5cd574d6ab4a06404f718a82"
+        },
+        {
+          "bytes": 46737,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\out_chtm5\\chtm_5ft_floor\\qa\\chunk1_bottom.png",
+          "sha256": "607ed9b4345375d667423ff1c0ecb91cdcb4303377307d5fd4247c2591b386dd"
+        },
+        {
+          "bytes": 14710,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\out_chtm5\\chtm_5ft_floor\\qa\\chunk1_side.png",
+          "sha256": "e8fe8df409b230496de0396775b9d3807379adc9f594ce488f2319610622826c"
+        },
+        {
+          "bytes": 79463,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\out_chtm5\\chtm_5ft_floor\\qa\\chunk1_top.png",
+          "sha256": "181b65f9844be43055ca4d2962e71f948c07950e83efb088dce998d1bacb6147"
+        },
+        {
+          "bytes": 34024,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\out_chtm5\\chtm_5ft_floor\\qa\\chunk2_bottom.png",
+          "sha256": "449047d961361c633f8e70d313dd270898d47a1415c7d8fd56c1797e6e50e34d"
+        },
+        {
+          "bytes": 15270,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\out_chtm5\\chtm_5ft_floor\\qa\\chunk2_side.png",
+          "sha256": "8e2804edf46a1866f0d602f70e6a47ee95a85fd43efbb7c81c7af130ac1bc00d"
+        },
+        {
+          "bytes": 56757,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\out_chtm5\\chtm_5ft_floor\\qa\\chunk2_top.png",
+          "sha256": "0996ec5bcb7046046131b4cec68f031284755999f1cbc21ede9c13b7647adf88"
+        },
+        {
+          "bytes": 12044,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\out_chtm5\\chtm_5ft_floor\\qa\\nx.png",
+          "sha256": "050de6063e5bc0d6f0922aa2ab623c262c3b992a41b458512700942c43c625b6"
+        },
+        {
+          "bytes": 13564,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\out_chtm5\\chtm_5ft_floor\\qa\\ny.png",
+          "sha256": "579ce002e9bef8e8c413d54c50a3d80ea3f51ca77b6c8ce64abfed743b67cc51"
+        },
+        {
+          "bytes": 39174,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\out_chtm5\\chtm_5ft_floor\\qa\\obl_bot_a.png",
+          "sha256": "f4dc382b31fabbaa1d2d68c44138dc34c09f3255ac7969272dda8be242d821b2"
+        },
+        {
+          "bytes": 41242,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\out_chtm5\\chtm_5ft_floor\\qa\\obl_bot_b.png",
+          "sha256": "dee5bd63464bfbef718ebe6e8c486f12a5a5da124492f0ad8585cfa079eb307c"
+        },
+        {
+          "bytes": 63096,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\out_chtm5\\chtm_5ft_floor\\qa\\obl_top_a.png",
+          "sha256": "36e508fde52c1690035fb213580a12e40cca8d68766054ecc82b2ac788d037ef"
+        },
+        {
+          "bytes": 64446,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\out_chtm5\\chtm_5ft_floor\\qa\\obl_top_b.png",
+          "sha256": "b94d3466a30e98a827c228b27cd45e896ca95b5ba1640c193e070afaaadcdcae"
+        },
+        {
+          "bytes": 13873,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\out_chtm5\\chtm_5ft_floor\\qa\\px.png",
+          "sha256": "6444f2914af22579186a0956bdd11ffcc2184a4aa80ac183bbf0dc1fd99a908d"
+        },
+        {
+          "bytes": 12067,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\out_chtm5\\chtm_5ft_floor\\qa\\py.png",
+          "sha256": "1f64ac514eba02c85533a1009002c2c07017db3aaf2dfaeea08001a42cded9c6"
+        },
+        {
+          "bytes": 14415,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\out_chtm5\\chtm_5ft_floor\\qa\\side_low_a.png",
+          "sha256": "74b974bbb3d99e44fc156e221d560253c293a6b0765e052652dec56b9970cef6"
+        },
+        {
+          "bytes": 14699,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\out_chtm5\\chtm_5ft_floor\\qa\\side_low_b.png",
+          "sha256": "1da96887cd270e3289ec7d685594e568c4b4911732f666419f8b354cdb795746"
+        },
+        {
+          "bytes": 10964,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\out_chtm5\\chtm_5ft_floor\\qa\\top.png",
+          "sha256": "5512970203e7939c958eda1beddc1808e56d8a593acf71031b3f8bcd82a5f243"
+        },
+        {
+          "bytes": 395,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\out_chtm5\\chtm_5ft_floor\\tex\\kirosblocks_colored_metal_block_-2.png",
+          "sha256": "ff01fc9fe394e100f49ffcf1eb58207273c89ac6e6e22d4685cc4fa659460008"
+        },
+        {
+          "bytes": 130,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\out_chtm5\\chtm_5ft_floor\\tex\\littletiles_ltcolored0_-1.png",
+          "sha256": "70e99c4e48c03ae0a3971f81621808b42f83e23ce962688afdef9c66522fea56"
+        },
+        {
+          "bytes": 130,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\out_chtm5\\chtm_5ft_floor\\tex\\littletiles_ltcolored0_-88.png",
+          "sha256": "70e99c4e48c03ae0a3971f81621808b42f83e23ce962688afdef9c66522fea56"
+        },
+        {
+          "bytes": 226,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\out_chtm5\\chtm_5ft_floor\\tex\\littletiles_ltcolored6_-1.png",
+          "sha256": "6e73768b26cd19b3ce07aca883598039d289c39320f6f62438be4caa750708da"
+        },
+        {
+          "bytes": 117011,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\out_chtm5\\chtm_5ft_floor\\tex\\minecraft_concrete_gray_-25.png",
+          "sha256": "3cbd91fe7022f36f0153f93d1f5021dd7e918d62ee78b1f68c2a5d4b6da140e4"
+        },
+        {
+          "bytes": 114075,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\out_chtm5\\chtm_5ft_floor\\tex\\minecraft_concrete_green_-1.png",
+          "sha256": "d0f3020cb8f1d9db7c91d186f8362d626ff231c9690b0628006d81e6a0b12d8f"
+        },
+        {
+          "bytes": 98142,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\out_chtm5\\chtm_5ft_floor\\tex\\minecraft_concrete_white_-1.png",
+          "sha256": "402dfb90a3d21a02ee26466ef74776dad95c8d3a55007778fab6a1e7da40d79f"
+        },
+        {
+          "bytes": 82025,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\out_chtm5\\chtm_5ft_floor\\tex\\minecraft_concrete_white_-15579874.png",
+          "sha256": "3572c4d1b618f2cf9f8a07582bd23b3a7d8dc47bbfd8d8a489fdf356485626b2"
+        },
+        {
+          "bytes": 41180,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\out_chtm5\\chtm_5ft_floor\\tex\\minecraft_glass_white_-1.png",
+          "sha256": "899b9a1f08688eb13dd6dc980a743f5d335862615c49da8b2298ff3817933dd4"
+        },
+        {
+          "bytes": 93002,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\out_chtm5\\chtm_5ft_floor\\tex\\minecraft_iron_block_-1.png",
+          "sha256": "74208c29eae2365aaeb3c586678ec17842ac12f5a222ad9fa46a2bebf25855a8"
+        },
+        {
+          "bytes": 18493,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\out_chtm5\\chtm_5ft_floor\\tex\\minecraft_prismarine_dark_-1.png",
+          "sha256": "19e991af70cb1842cf53be46a39c7392db67169e0e963f179d2a982b649e03be"
+        },
+        {
+          "bytes": 25436,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\out_chtm5\\chtm_5ft_floor\\tex\\minecraft_quartz_block_bottom_-1.png",
+          "sha256": "e5434a78b577c75a8a026591d9754861ffcb955aa58625286e340e4919e8d7bd"
+        },
+        {
+          "bytes": 17249,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\out_chtm5\\chtm_5ft_floor\\tex\\minecraft_quartz_block_bottom_-15574983.png",
+          "sha256": "611a0aa4af15252cda9cd89343b7fc8f7d065c748d8fd9aa0e316e0c77ce12a3"
+        },
+        {
+          "bytes": 116393,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\out_chtm5\\chtm_5ft_floor\\tex\\minecraft_quartz_block_side_-1.png",
+          "sha256": "ec87e998852670c5d973e123227faee88678b11280664cd2923ab50a2afefe03"
+        },
+        {
+          "bytes": 67362,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\out_chtm5\\chtm_5ft_floor\\tex\\minecraft_quartz_block_side_-15574983.png",
+          "sha256": "3d9fd8cc68c565a40dcf63da405d477b79594b24835afdb3b435ca2d242cf493"
+        },
+        {
+          "bytes": 35357,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\out_chtm5\\chtm_5ft_floor\\tex\\minecraft_quartz_block_top_-1.png",
+          "sha256": "5583e46b2d6a65884a0c2a23892df5cfd699e3e47b10f7c6491643e8b305dd90"
+        },
+        {
+          "bytes": 24016,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\out_chtm5\\chtm_5ft_floor\\tex\\minecraft_quartz_block_top_-15574983.png",
+          "sha256": "1dd9bb4a7621404ef1427c180b2bb5f0f36c07438fd055e692c8b2fc44bb1d23"
+        },
+        {
+          "bytes": 35357,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\out_chtm5\\chtm_5ft_floor\\tex\\minecraft_quartz_block_top_-25.png",
+          "sha256": "5583e46b2d6a65884a0c2a23892df5cfd699e3e47b10f7c6491643e8b305dd90"
+        }
+      ],
+      "before": {
+        "bytes": 1047849,
+        "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\snapshots\\c0c877002500-b7c2dc01\\chtm_5ft_floor.obj",
+        "sha256": "c0c877002500e14c09e45115b169d5b541168aa1487c61ee3d18888518de9f10"
+      },
+      "historical_report": {
+        "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\out_chtm5\\chtm_5ft_floor\\report.json",
+        "reported_after_triangles": 7428,
+        "reported_before_triangles": 20599,
+        "reported_passed": true,
+        "sha256": "ade969886af880b5078b7cd7c00d7e7daeb3f28412eb2f7fdc9c5fa87e2f3ced"
+      },
+      "source_anchor_matches_historical_report": true,
+      "unit": "chtm_5ft_floor"
+    },
+    {
+      "after": {
+        "bytes": 226716,
+        "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_sidewalk_zone\\CHTM_sidewalk_zone.fixed.obj",
+        "sha256": "d63ea4c20e77db21f9c3caceebcc13917f3776beefcc5c75d0717f8620817592"
+      },
+      "assets": [
+        {
+          "bytes": 543,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\snapshots\\b2fb9d29d026-ad3153f1\\materials.mtl",
+          "sha256": "504a508dba39b418c8ac596c07229c3a6b9e587a07727f67d6f2de56f26935aa"
+        },
+        {
+          "bytes": 56010,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\snapshots\\b2fb9d29d026-ad3153f1\\source.mtl",
+          "sha256": "4f2983bd0b55268b7b6c2c2129dd06b91d9243007b5fd116d6d512401f3bc226"
+        },
+        {
+          "bytes": 322,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\snapshots\\b2fb9d29d026-ad3153f1\\tex\\mumi_littletiles_ltstone_-3.png",
+          "sha256": "2e50e9d8fa86a0d1532a003077950802b9213876ea5aae88fbb7e161b2ab7993"
+        },
+        {
+          "bytes": 346,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\snapshots\\b2fb9d29d026-ad3153f1\\tex\\mumi_littletiles_ltstone_-5.png",
+          "sha256": "a477984f7dfb332e889faf59a6aea82983e2b2c6a36133e79a9189412fc477fa"
+        },
+        {
+          "bytes": 322,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\snapshots\\b2fb9d29d026-ad3153f1\\tex\\mumi_littletiles_ltstone_-8.png",
+          "sha256": "2e50e9d8fa86a0d1532a003077950802b9213876ea5aae88fbb7e161b2ab7993"
+        },
+        {
+          "bytes": 98142,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\snapshots\\b2fb9d29d026-ad3153f1\\tex\\mumi_minecraft_concrete_white_-21.png",
+          "sha256": "402dfb90a3d21a02ee26466ef74776dad95c8d3a55007778fab6a1e7da40d79f"
+        },
+        {
+          "bytes": 10464,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_sidewalk_zone\\guard_+x.png",
+          "sha256": "35717971e745ce36de09bc8934909114f22bb9245638c14bf60a384f32fc7d50"
+        },
+        {
+          "bytes": 10712,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_sidewalk_zone\\guard_+y.png",
+          "sha256": "0b970c6864ec32992fdd0332b1d6ca9a96e00745f53b8c65129e8f051154a386"
+        },
+        {
+          "bytes": 12661,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_sidewalk_zone\\guard_+z.png",
+          "sha256": "f763490566ce1ef48a8ba769bc0dbe03a0112f0bb318fcb71dbc5948ff5b65fd"
+        },
+        {
+          "bytes": 10015,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_sidewalk_zone\\guard_-x.png",
+          "sha256": "61dbcea7bac4ae39bb41466180566cf11d81e2ef02b4c8ea856f7e5297a2e8cf"
+        },
+        {
+          "bytes": 9267,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_sidewalk_zone\\guard_-y.png",
+          "sha256": "dc6b0b07b98adae8e101670ce4d133ca06d04d5cfaa1576b145d5d643a23278d"
+        },
+        {
+          "bytes": 13105,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_sidewalk_zone\\guard_-z.png",
+          "sha256": "fc45499edad56442d2d031f763e0527f08b354c899cf0412f19c5dedf5a20fed"
+        },
+        {
+          "bytes": 543,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_sidewalk_zone\\materials.mtl",
+          "sha256": "504a508dba39b418c8ac596c07229c3a6b9e587a07727f67d6f2de56f26935aa"
+        },
+        {
+          "bytes": 14832,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_sidewalk_zone\\qa\\bottom.png",
+          "sha256": "b58dc6490dd55fffd9256471a33fcbfb5ad8a5647e7c978a079c59d3fe9ab436"
+        },
+        {
+          "bytes": 18058,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_sidewalk_zone\\qa\\chunk0_bottom.png",
+          "sha256": "1baae99a4c4d8198e1c43fb30f07770e8664b04aa3e643bea665fd3f4b13aed3"
+        },
+        {
+          "bytes": 17479,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_sidewalk_zone\\qa\\chunk0_side.png",
+          "sha256": "97405b4a4d75ab709db37a5526183d389e8d5afc9fc8c66be8d5186513966d35"
+        },
+        {
+          "bytes": 18902,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_sidewalk_zone\\qa\\chunk0_top.png",
+          "sha256": "5d443c069165bb30b08bfc36bed78b77ced7dc40e00b523e0a0fdf1ba3d16d7f"
+        },
+        {
+          "bytes": 28688,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_sidewalk_zone\\qa\\chunk1_bottom.png",
+          "sha256": "af3ba5529d197aebe68c752a437abc8a5bad03727b07f13f451bf770f51c8db9"
+        },
+        {
+          "bytes": 19402,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_sidewalk_zone\\qa\\chunk1_side.png",
+          "sha256": "90545aa449f5eb66ad9868ce5e2d2a0a90b112a141351e3fce7ee603264dc159"
+        },
+        {
+          "bytes": 30557,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_sidewalk_zone\\qa\\chunk1_top.png",
+          "sha256": "3600e35efe1dccd79243035076d04e178ea38441b3048956e9a87a82205d6bc7"
+        },
+        {
+          "bytes": 29960,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_sidewalk_zone\\qa\\chunk2_bottom.png",
+          "sha256": "3bb63e99d99a112c7465581e15ce84ada9482d03abfbe8f664e8639f8beb4238"
+        },
+        {
+          "bytes": 21072,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_sidewalk_zone\\qa\\chunk2_side.png",
+          "sha256": "0f1e112054830068bb346e17a57e569fd3b8dd9da273fae614e3afca22538b22"
+        },
+        {
+          "bytes": 28461,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_sidewalk_zone\\qa\\chunk2_top.png",
+          "sha256": "c94d3d460e43a72473f4985531ec2bec28d86ab9d05178576ad317d9b4e7519f"
+        },
+        {
+          "bytes": 17896,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_sidewalk_zone\\qa\\nx.png",
+          "sha256": "876a378c0eb4ba84e2c2dbb2fc13d5e543d0093612f48fa3c6586a6da2bd1550"
+        },
+        {
+          "bytes": 16502,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_sidewalk_zone\\qa\\ny.png",
+          "sha256": "068ebc4e4a22351c92d8a28f33cb5f1f3e983e2b9d55a192702aff9a0b30f602"
+        },
+        {
+          "bytes": 28372,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_sidewalk_zone\\qa\\obl_bot_a.png",
+          "sha256": "8f44c3f63a7e9d8eb0a5b2eb2096ed0937797c5d4c7247460f0421eff518a11c"
+        },
+        {
+          "bytes": 22099,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_sidewalk_zone\\qa\\obl_bot_b.png",
+          "sha256": "9661b8c6f10e5bf6695c66445e0e1d16bfc9dad0ad5a3909cc11b8a227aef6b0"
+        },
+        {
+          "bytes": 24960,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_sidewalk_zone\\qa\\obl_top_a.png",
+          "sha256": "d4baf6fe95013f931a53edc730826f241c7c325b43ea3dffaa6ec1dd72538c47"
+        },
+        {
+          "bytes": 25634,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_sidewalk_zone\\qa\\obl_top_b.png",
+          "sha256": "deeeaabc0f4cf998ed05f9b21b2b6f4a6e68004ad4f04bfa9622a90b3f64dcbb"
+        },
+        {
+          "bytes": 11066,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_sidewalk_zone\\qa\\px.png",
+          "sha256": "f5c958ed033a6e5671996e8399ceda6f589345227beb89826e6c898aae4f9ab1"
+        },
+        {
+          "bytes": 11449,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_sidewalk_zone\\qa\\py.png",
+          "sha256": "eefeca1d796a1a28f6ed3929b0b20ae90e371b3eb7999a9450aed4178d50a3aa"
+        },
+        {
+          "bytes": 17897,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_sidewalk_zone\\qa\\side_low_a.png",
+          "sha256": "6580f2b29d08894bbdf2180da643cc846f2cc3a20dec750ac4b6c8a59181682b"
+        },
+        {
+          "bytes": 10992,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_sidewalk_zone\\qa\\side_low_b.png",
+          "sha256": "e0156eab0bffc161d8b70602b3aa118064d708b3d75de836f4ee53fd3a7931c5"
+        },
+        {
+          "bytes": 15791,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_sidewalk_zone\\qa\\top.png",
+          "sha256": "5151c663893915824bced4ee12842037aafe0422344acf0e57a26d32316de86a"
+        },
+        {
+          "bytes": 28341,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_sidewalk_zone\\qa_clean\\bottom.png",
+          "sha256": "1ad566aab1a18068b2d4cfd6eb6a3d96451a31b8eefe2bb6f58d95f22a615b50"
+        },
+        {
+          "bytes": 29286,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_sidewalk_zone\\qa_clean\\chunk0_bottom.png",
+          "sha256": "f4953a9d1616cec099888d87bf060e1014c62e3cd759a55aa189b8e9028bfb62"
+        },
+        {
+          "bytes": 19880,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_sidewalk_zone\\qa_clean\\chunk0_side.png",
+          "sha256": "68a0ac747618c9c8e359c7bba3f04f319ee3b7281f4c633431c4daa18cfdac90"
+        },
+        {
+          "bytes": 32647,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_sidewalk_zone\\qa_clean\\chunk0_top.png",
+          "sha256": "3a78bba4143eb1187c27b1a4a92259a934f6af73aeb3af4803043d0e61c7f617"
+        },
+        {
+          "bytes": 41802,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_sidewalk_zone\\qa_clean\\chunk1_bottom.png",
+          "sha256": "0f91f649444117a74a3c08b5a377ef3f966ac4d8884179d119c4b2335b046ecc"
+        },
+        {
+          "bytes": 23182,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_sidewalk_zone\\qa_clean\\chunk1_side.png",
+          "sha256": "4fd60ddb122a8c7f4121a6c0cc9fd2dbb5ce673a6ecd926123ac452f6a945153"
+        },
+        {
+          "bytes": 40032,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_sidewalk_zone\\qa_clean\\chunk1_top.png",
+          "sha256": "d10098554ac99ce32bddcf927cd75e9ced47cd3c4d2a35d579944713e2159227"
+        },
+        {
+          "bytes": 37533,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_sidewalk_zone\\qa_clean\\chunk2_bottom.png",
+          "sha256": "0a616f181664e0b590a20fa3faadd81122b45cf9773cccdd953e1fe8a6da0d9e"
+        },
+        {
+          "bytes": 24283,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_sidewalk_zone\\qa_clean\\chunk2_side.png",
+          "sha256": "9487782a87e1aeffa4e5b5d9f9b94145eb375dce9a7b15f98a3e7913538fc881"
+        },
+        {
+          "bytes": 37160,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_sidewalk_zone\\qa_clean\\chunk2_top.png",
+          "sha256": "8fdf606c39d8591d7cbed61627efb71e583b2af047596b074205e165942d430c"
+        },
+        {
+          "bytes": 24219,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_sidewalk_zone\\qa_clean\\nx.png",
+          "sha256": "1b03965df7751a3a43bc7be68d4f5df7f7099b4bf8d0b20a5b7252cf343eee23"
+        },
+        {
+          "bytes": 20311,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_sidewalk_zone\\qa_clean\\ny.png",
+          "sha256": "9fa5e6dac1a401affb7ab1b85b2079fb0fbfa2d47c2f99b0e8bb9c7cba5bdfbe"
+        },
+        {
+          "bytes": 38577,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_sidewalk_zone\\qa_clean\\obl_bot_a.png",
+          "sha256": "d062d6507668b5f4ace835fb9a046a1b9d558d6c18a7e3eebdb9d8449e4914b9"
+        },
+        {
+          "bytes": 31935,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_sidewalk_zone\\qa_clean\\obl_bot_b.png",
+          "sha256": "14272e66582eeaece24edf43b638390d1659f0ddd097f9d12c931b8a2eb44245"
+        },
+        {
+          "bytes": 35623,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_sidewalk_zone\\qa_clean\\obl_top_a.png",
+          "sha256": "23ec1da81217ea9f9a93546208398fdb7980de769652bf51ae7c7480b16f409a"
+        },
+        {
+          "bytes": 36768,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_sidewalk_zone\\qa_clean\\obl_top_b.png",
+          "sha256": "aa396540f688e5bb1270436167ef1078ded862a34df39e10d3e0c781977e2903"
+        },
+        {
+          "bytes": 16442,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_sidewalk_zone\\qa_clean\\px.png",
+          "sha256": "9099f98ab152669883620b7ad07f1a65ec951d2a5bec6ffec26829ffe2d1ab20"
+        },
+        {
+          "bytes": 16571,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_sidewalk_zone\\qa_clean\\py.png",
+          "sha256": "3c23902078a59ca67a132fa8f2d33f7b35bfa43c47706f9e68e2ae68759d61c6"
+        },
+        {
+          "bytes": 20084,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_sidewalk_zone\\qa_clean\\side_low_a.png",
+          "sha256": "f19de97fd2c268e1d6f9b73834d67624c3c69a9609efd2804f9cc6cae1281543"
+        },
+        {
+          "bytes": 14298,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_sidewalk_zone\\qa_clean\\side_low_b.png",
+          "sha256": "a4bd7bf6f326e217929cdee5c3d3b187b2ac36f4145322bfb4ffa47abb368af8"
+        },
+        {
+          "bytes": 29526,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_sidewalk_zone\\qa_clean\\top.png",
+          "sha256": "d2a32dbca47de7da4c37385d6ca48f1aaedaf477ee8e6a340a36f3ab5e89e145"
+        },
+        {
+          "bytes": 322,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_sidewalk_zone\\tex\\mumi_littletiles_ltstone_-3.png",
+          "sha256": "2e50e9d8fa86a0d1532a003077950802b9213876ea5aae88fbb7e161b2ab7993"
+        },
+        {
+          "bytes": 346,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_sidewalk_zone\\tex\\mumi_littletiles_ltstone_-5.png",
+          "sha256": "a477984f7dfb332e889faf59a6aea82983e2b2c6a36133e79a9189412fc477fa"
+        },
+        {
+          "bytes": 322,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_sidewalk_zone\\tex\\mumi_littletiles_ltstone_-8.png",
+          "sha256": "2e50e9d8fa86a0d1532a003077950802b9213876ea5aae88fbb7e161b2ab7993"
+        },
+        {
+          "bytes": 98142,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_sidewalk_zone\\tex\\mumi_minecraft_concrete_white_-21.png",
+          "sha256": "402dfb90a3d21a02ee26466ef74776dad95c8d3a55007778fab6a1e7da40d79f"
+        }
+      ],
+      "before": {
+        "bytes": 487967,
+        "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\snapshots\\b2fb9d29d026-ad3153f1\\CHTM_sidewalk_zone.obj",
+        "sha256": "b2fb9d29d0264e8552ee16ae0a4a1185da76bb98bab9a8983915ad7dec5ccbe7"
+      },
+      "historical_report": {
+        "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_sidewalk_zone\\report.json",
+        "reported_after_triangles": 1141,
+        "reported_before_triangles": 8593,
+        "reported_passed": true,
+        "sha256": "a7aa251ec42aef17f2a0b04cc13762c35f9333372ecda438afd5ea4f86898935"
+      },
+      "source_anchor_matches_historical_report": true,
+      "unit": "CHTM_sidewalk_zone"
+    },
+    {
+      "after": {
+        "bytes": 100390,
+        "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\CHTM_2nd_to_3rd_building_sidewalk_outside.fixed.obj",
+        "sha256": "de5dd0defac73c086d1a0654c0b15fe748aa30df76e653fd1f070050dbd9eab0"
+      },
+      "assets": [
+        {
+          "bytes": 398,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\snapshots\\0b290ec0bcb4-9015fb3b\\materials.mtl",
+          "sha256": "feafdd99d250b203e2b6032322f2f5c03954565f633f11e7ece09d0557d9b695"
+        },
+        {
+          "bytes": 560,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\snapshots\\0b290ec0bcb4-9015fb3b\\source.mtl",
+          "sha256": "6ddfa51c6d1827dec8990d6c3d8d28a4d11ae57fc4c3a9a720d669183e84e604"
+        },
+        {
+          "bytes": 322,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\snapshots\\0b290ec0bcb4-9015fb3b\\tex\\mumi_littletiles_ltstone_-3.png",
+          "sha256": "2e50e9d8fa86a0d1532a003077950802b9213876ea5aae88fbb7e161b2ab7993"
+        },
+        {
+          "bytes": 346,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\snapshots\\0b290ec0bcb4-9015fb3b\\tex\\mumi_littletiles_ltstone_-5.png",
+          "sha256": "a477984f7dfb332e889faf59a6aea82983e2b2c6a36133e79a9189412fc477fa"
+        },
+        {
+          "bytes": 322,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\snapshots\\0b290ec0bcb4-9015fb3b\\tex\\mumi_littletiles_ltstone_-8.png",
+          "sha256": "2e50e9d8fa86a0d1532a003077950802b9213876ea5aae88fbb7e161b2ab7993"
+        },
+        {
+          "bytes": 9735,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\guard_+x.png",
+          "sha256": "ed367f95b0eea7548355c5f70457bd46c02c9665d20a3eaa5c330a3856b06d9f"
+        },
+        {
+          "bytes": 8677,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\guard_+y.png",
+          "sha256": "d4fb31c693570eac3312a0b96048063dd9967351a5a337a8934dac92b30caf88"
+        },
+        {
+          "bytes": 10277,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\guard_+z.png",
+          "sha256": "a97c89338688405e8c27a70c18325da9a011fbaaaf10637807679b548fde8c15"
+        },
+        {
+          "bytes": 8512,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\guard_-x.png",
+          "sha256": "afcd018fa772edad83a493d2ae143665fa0da1204e8640b8b59aad1611f31a29"
+        },
+        {
+          "bytes": 8068,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\guard_-y.png",
+          "sha256": "6c5dd66c3a086c19c1790cdf766bcbfbf92513276b4222179bc5efb804de22d3"
+        },
+        {
+          "bytes": 10290,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\guard_-z.png",
+          "sha256": "e3f6dfaf9fec0874bd6aa380ff495d233c03f961ed1c5dbc29abf49d50a4b07d"
+        },
+        {
+          "bytes": 398,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\materials.mtl",
+          "sha256": "feafdd99d250b203e2b6032322f2f5c03954565f633f11e7ece09d0557d9b695"
+        },
+        {
+          "bytes": 10351,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\qa\\bottom.png",
+          "sha256": "bc1d1d08f30ba1b7ac938952f000e6c46ee610992184f64bf6495e1f105af3f4"
+        },
+        {
+          "bytes": 18348,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\qa\\chunk0_bottom.png",
+          "sha256": "d2b849a40e273a1043242c1f71ef20c68da37e3cfe95fb27548073e8abcbdc2a"
+        },
+        {
+          "bytes": 10084,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\qa\\chunk0_side.png",
+          "sha256": "dc258863620f3b6deecbb492090ea7446e1397fdf71d6068904007074ea9b9da"
+        },
+        {
+          "bytes": 16863,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\qa\\chunk0_top.png",
+          "sha256": "c3676e88014840d8b799efc194d5ad3bff321521be638793848ce724911f62a6"
+        },
+        {
+          "bytes": 22262,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\qa\\chunk1_bottom.png",
+          "sha256": "e062a1f7c58aec695f308d944f2941ab01f7743012f871a87468dce034bf5d87"
+        },
+        {
+          "bytes": 11800,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\qa\\chunk1_side.png",
+          "sha256": "c45b71f849ccb73e966d98ff5c33875df158a16272cf17e3280d446adae9ce54"
+        },
+        {
+          "bytes": 18364,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\qa\\chunk1_top.png",
+          "sha256": "82f4d654c300b4d71731db93bb23a97b3bdd394ed6fdcdeb4a98f04fbd1ca329"
+        },
+        {
+          "bytes": 22370,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\qa\\chunk2_bottom.png",
+          "sha256": "77b5c8a912f231444dc48f70dee8f27ff623c8190ae8d117afa1359c1fe54e7d"
+        },
+        {
+          "bytes": 13921,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\qa\\chunk2_side.png",
+          "sha256": "bee6cc0f994ef78e35fab95196ae5b35f58199e661db1fabd069bec3ba220698"
+        },
+        {
+          "bytes": 25387,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\qa\\chunk2_top.png",
+          "sha256": "4d1bf964b804654d5daf72cddc68b8b5fceb09f207409f69875730919cf39c61"
+        },
+        {
+          "bytes": 14324,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\qa\\nx.png",
+          "sha256": "35ed4d3377c67f155a8c2ae7d7c476fd84e3a774a8141f07f97d2b4ec93a6bfe"
+        },
+        {
+          "bytes": 12208,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\qa\\ny.png",
+          "sha256": "0d0b2aaff9fc7873bd1c37eec9c3db2389f00a1ca00587e064a2dda24a49488a"
+        },
+        {
+          "bytes": 22344,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\qa\\obl_bot_a.png",
+          "sha256": "6a7fcdf9b3137279d006814e70476f0f03604d2d2f76fab20828e62e535940c9"
+        },
+        {
+          "bytes": 21746,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\qa\\obl_bot_b.png",
+          "sha256": "9d6ada68bf44b4e43c99a0e1cca4ededdf7f883147268cad6db09042f8cd9e54"
+        },
+        {
+          "bytes": 24863,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\qa\\obl_top_a.png",
+          "sha256": "2761d56b09971ca3cf3748e3124a083415319b2c5f73386869ac3127d9bce20f"
+        },
+        {
+          "bytes": 21098,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\qa\\obl_top_b.png",
+          "sha256": "e6b95eb8149b1f5bbb63a54117a26240365f5426e3c7a1762cc17c706fc84600"
+        },
+        {
+          "bytes": 10100,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\qa\\px.png",
+          "sha256": "327797c048eac07faa2d0a6c413c1acc27b010678868f221d19a2343708b298f"
+        },
+        {
+          "bytes": 9792,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\qa\\py.png",
+          "sha256": "12f8313e3651c4f8786f9ea3ef929996cb7a8661f46bacbb27c7ff45112598e7"
+        },
+        {
+          "bytes": 13068,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\qa\\side_low_a.png",
+          "sha256": "fdbba7512f3ddc0f5ee4955e50e46aa9bc8133e9e624ff2b6615aefceadc814d"
+        },
+        {
+          "bytes": 9555,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\qa\\side_low_b.png",
+          "sha256": "8ff5597f16b3f897a8ce8a622703293da2ab53ea2dcb4df4bf6d2ce1c52c058d"
+        },
+        {
+          "bytes": 13896,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\qa\\top.png",
+          "sha256": "f214e4735a1937e46c7663d0174324ac09d1965e7faa064b119ef2342f4730ca"
+        },
+        {
+          "bytes": 19852,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\qa_clean\\bottom.png",
+          "sha256": "23bb63586670df20f6a470bc98a594ab8bc30286da67566f66d6de406227b1de"
+        },
+        {
+          "bytes": 19760,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\qa_clean\\chunk0_bottom.png",
+          "sha256": "cbbfde0543c0f074230341d3947a4ee037e476f98161c40c62d9faf6bd1f1e68"
+        },
+        {
+          "bytes": 12114,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\qa_clean\\chunk0_side.png",
+          "sha256": "794d2a3ef67190bcd6c178f64beb43e51e93e98eb209c68bb1d8218950d178e6"
+        },
+        {
+          "bytes": 20947,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\qa_clean\\chunk0_top.png",
+          "sha256": "ab683010894d909dfc814a75826ffe9fe6f485e32bdecbcdb4c840cf1cd0c677"
+        },
+        {
+          "bytes": 20909,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\qa_clean\\chunk1_bottom.png",
+          "sha256": "dd85680acde5843e1d774a70562a05df54b23756065659066f51a1064745cfa9"
+        },
+        {
+          "bytes": 14373,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\qa_clean\\chunk1_side.png",
+          "sha256": "6439030e9da3dd86cb8b179ff114ae5ac74b7d8cd4dd8ce4ca090f07a1cf2123"
+        },
+        {
+          "bytes": 21006,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\qa_clean\\chunk1_top.png",
+          "sha256": "ee7926c2cbe35be9be335e385f26e6a69b1c4e02eac23f90bf2d06cf05a011f2"
+        },
+        {
+          "bytes": 31354,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\qa_clean\\chunk2_bottom.png",
+          "sha256": "da79c3ab587aecf6063f50be086adc5276702b455b19987391298a8e6a2c5294"
+        },
+        {
+          "bytes": 16300,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\qa_clean\\chunk2_side.png",
+          "sha256": "661ae496d78f4ad544f7cf48894dc91cdf9d3044539d5fec1e437e45a56e0bdb"
+        },
+        {
+          "bytes": 31762,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\qa_clean\\chunk2_top.png",
+          "sha256": "371730b8af2da4cf50e2655acc1bbb31291718b5a05f16e148047e26c61f5a0e"
+        },
+        {
+          "bytes": 16930,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\qa_clean\\nx.png",
+          "sha256": "21a3e2354b392640b51b3b207db7b79cc1e549f95638ea98f9da7bf9c8a6faed"
+        },
+        {
+          "bytes": 14367,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\qa_clean\\ny.png",
+          "sha256": "29dea88875b65eeb894610b87635471e582375be8441e778c107c7802fb0c45d"
+        },
+        {
+          "bytes": 28595,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\qa_clean\\obl_bot_a.png",
+          "sha256": "003e36ea94357e1bba4fc43d31ad0fc2e50d22dab7d968047af1137eec182fea"
+        },
+        {
+          "bytes": 28926,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\qa_clean\\obl_bot_b.png",
+          "sha256": "324e98426ef3972caf08f5283b4803a3c902adf7b32d5cad9f60a5855c17032b"
+        },
+        {
+          "bytes": 30997,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\qa_clean\\obl_top_a.png",
+          "sha256": "35fbd4ca021fb61bf1ebf6b8da1caf02cf4415e05f14970e3e152b084cc76acf"
+        },
+        {
+          "bytes": 25490,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\qa_clean\\obl_top_b.png",
+          "sha256": "5c4b0e69f31af9a89767394f468e30848a0b901648769bbd50ce3d3c69498b35"
+        },
+        {
+          "bytes": 13905,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\qa_clean\\px.png",
+          "sha256": "fd8539c25772be7625de944ff46f9754e0217d35ee820aa64b091d80475014bd"
+        },
+        {
+          "bytes": 12211,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\qa_clean\\py.png",
+          "sha256": "793bdfd86ca3eae540d945fa37f9b83ee449dcc35c110d2b9c7bf63710d98f39"
+        },
+        {
+          "bytes": 14943,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\qa_clean\\side_low_a.png",
+          "sha256": "90fd647c1bcbfac06cdbb836152ee0db4f68459680a155a79e3fb437f072638a"
+        },
+        {
+          "bytes": 11565,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\qa_clean\\side_low_b.png",
+          "sha256": "81bcaae79764982ebdfe56b4450a87c35f6466b3888c983856773a5aada55efb"
+        },
+        {
+          "bytes": 20110,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\qa_clean\\top.png",
+          "sha256": "ead36c5528ef17c691f337ccbb6baf318a178e934b483188dfdcb54e7d64df46"
+        },
+        {
+          "bytes": 322,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\tex\\mumi_littletiles_ltstone_-3.png",
+          "sha256": "2e50e9d8fa86a0d1532a003077950802b9213876ea5aae88fbb7e161b2ab7993"
+        },
+        {
+          "bytes": 346,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\tex\\mumi_littletiles_ltstone_-5.png",
+          "sha256": "a477984f7dfb332e889faf59a6aea82983e2b2c6a36133e79a9189412fc477fa"
+        },
+        {
+          "bytes": 322,
+          "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\tex\\mumi_littletiles_ltstone_-8.png",
+          "sha256": "2e50e9d8fa86a0d1532a003077950802b9213876ea5aae88fbb7e161b2ab7993"
+        }
+      ],
+      "before": {
+        "bytes": 381864,
+        "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\snapshots\\0b290ec0bcb4-9015fb3b\\CHTM_2nd_to_3rd_building_sidewalk_outside.obj",
+        "sha256": "0b290ec0bcb47402a5fe661fc037eb7d457e01917a0d748d900b8551946b65e2"
+      },
+      "historical_report": {
+        "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\output_verified\\CHTM_2nd_to_3rd_building_sidewalk_outside\\report.json",
+        "reported_after_triangles": 513,
+        "reported_before_triangles": 7227,
+        "reported_passed": true,
+        "sha256": "2c169070dbde1947ac80a2ffd91b19c9ed27aa5fda6d927b53c2fcb381791d89"
+      },
+      "source_anchor_matches_historical_report": true,
+      "unit": "CHTM_2nd_to_3rd_building_sidewalk_outside"
+    }
+  ],
+  "validation_launched": false
+}

@@ -1,0 +1,23 @@
+{
+  "command": [
+    "D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe",
+    "-B",
+    "-m",
+    "pytest",
+    "engine/tests/test_guard.py::test_compare_views_refuses_renders_from_a_different_camera_frame",
+    "-q",
+    "-p",
+    "no:cacheprovider",
+    "--basetemp",
+    "D:\\TEMP\\guard-f64\\guard-single-32\\pytest"
+  ],
+  "exit_code": 0,
+  "test_tree_private_peak": 89935872,
+  "observer_private_peak": 10514432,
+  "pid_private_peaks": {
+    "29088": 88985600,
+    "59244": 950272
+  },
+  "cap_bytes": 262144000,
+  "cap_exceeded": false
+}

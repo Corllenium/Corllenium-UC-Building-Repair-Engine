@@ -1,0 +1,23 @@
+{
+  "command": [
+    "D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe",
+    "-B",
+    "-m",
+    "pytest",
+    "engine/tests/test_guard.py::test_a_crack_the_merge_opened_narrower_than_its_border_tolerance_is_a_border_shift",
+    "-q",
+    "-p",
+    "no:cacheprovider",
+    "--basetemp",
+    "D:\\TEMP\\guard-f64\\guard-single-61\\pytest"
+  ],
+  "exit_code": 0,
+  "test_tree_private_peak": 230629376,
+  "observer_private_peak": 10412032,
+  "pid_private_peaks": {
+    "54056": 229777408,
+    "26028": 851968
+  },
+  "cap_bytes": 262144000,
+  "cap_exceeded": false
+}

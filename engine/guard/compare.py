@@ -69,12 +69,12 @@ def face_planes(positions: np.ndarray, faces: np.ndarray) -> np.ndarray:
 def _displacement(before_depth: np.ndarray, before_tri: np.ndarray, after_depth: np.ndarray,
                    after_tri: np.ndarray, both: np.ndarray, origins, direction,
                    plane_before, plane_after) -> np.ndarray:
-    """How far the visible SURFACE moved at each both-hit pixel:
-    `max(dist(P_before, plane(face_after)), dist(P_after, plane(face_before)))`, where
-    `P = origins[px] + depth[px] * direction` is the hit point.
+    """Surface displacement between the two original supporting-plane ray intersections.
 
-    Falls back to `|t_before - t_after|` (depth along the ray) wherever the metric cannot be
-    evaluated: no geometry supplied, or either face's plane undefined (zero area)."""
+    Float32 caster depths can place even an unchanged hit off its float64 plane. Intersect the
+    shared ray with each original plane, then measure their perpendicular separation. Zero-area
+    faces retain the explicit depth fallback; undefined intersections fail conservatively.
+    """
     with np.errstate(invalid="ignore"):
         out = np.abs(after_depth - before_depth)
     if origins is None or plane_before is None or plane_after is None or not both.any():
@@ -82,16 +82,22 @@ def _displacement(before_depth: np.ndarray, before_tri: np.ndarray, after_depth:
 
     origins = np.asarray(origins, dtype=np.float64)[both]
     direction = np.asarray(direction, dtype=np.float64)
-    point_before = origins + before_depth[both][:, None] * direction
-    point_after = origins + after_depth[both][:, None] * direction
     n_before = np.asarray(plane_before, dtype=np.float64)[before_tri[both]]
     n_after = np.asarray(plane_after, dtype=np.float64)[after_tri[both]]
-
-    to_after = np.abs(np.einsum("ij,ij->i", point_before, n_after[:, :3]) + n_after[:, 3])
-    to_before = np.abs(np.einsum("ij,ij->i", point_after, n_before[:, :3]) + n_before[:, 3])
-    defined = (np.linalg.norm(n_before[:, :3], axis=1) > 0.0) & (np.linalg.norm(n_after[:, :3], axis=1) > 0.0)
-
-    out[both] = np.where(defined, np.maximum(to_after, to_before), out[both])
+    defined = ((np.linalg.norm(n_before[:, :3], axis=1) > 0.0)
+               & (np.linalg.norm(n_after[:, :3], axis=1) > 0.0))
+    finite_planes = np.isfinite(n_before).all(axis=1) & np.isfinite(n_after).all(axis=1)
+    along_before = n_before[:, :3] @ direction
+    along_after = n_after[:, :3] @ direction
+    with np.errstate(invalid="ignore", divide="ignore", over="ignore"):
+        t_before = -(np.einsum("ij,ij->i", origins, n_before[:, :3]) + n_before[:, 3]) / along_before
+        t_after = -(np.einsum("ij,ij->i", origins, n_after[:, :3]) + n_after[:, 3]) / along_after
+        distance = np.abs(t_after - t_before) * np.maximum(np.abs(along_before), np.abs(along_after))
+    usable = (finite_planes & np.isfinite(t_before) & np.isfinite(t_after)
+              & (t_before >= 0.0) & (t_after >= 0.0) & np.isfinite(distance)
+              & (along_before != 0.0) & (along_after != 0.0))
+    out[both] = np.where(~finite_planes | defined,
+                         np.where(usable, distance, np.inf), out[both])
     return out
 
 

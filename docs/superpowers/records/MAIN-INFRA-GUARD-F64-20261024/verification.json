@@ -1,0 +1,1009 @@
+{
+  "code_base": "1ac1de3ad71e6550e7b80a8732c6662831e7884d",
+  "existing_guard_cases_passed": 68,
+  "existing_guard_completed": [
+    {
+      "cap_exceeded": false,
+      "combined_private_peak_upper_bound": 245166080,
+      "command": [
+        "D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe",
+        "-B",
+        "-m",
+        "pytest",
+        "engine/tests/test_guard.py::test_views_26_are_the_26_nudged_axis_and_diagonal_directions",
+        "engine/tests/test_guard.py::test_ortho_first_hit_matches_cube_silhouette_and_miss_background",
+        "engine/tests/test_guard.py::test_ortho_first_hit_empty_faces_is_all_miss",
+        "engine/tests/test_guard.py::test_classify_pixels_priority_order",
+        "engine/tests/test_guard.py::test_classify_pixels_empty_flat_materials_treats_everything_as_patterned",
+        "engine/tests/test_guard.py::test_identity_all_counts_zero_and_passed",
+        "engine/tests/test_guard.py::test_delete_one_outer_face_fails",
+        "engine/tests/test_guard.py::test_delete_hidden_inner_tris_all_zero_and_passed",
+        "engine/tests/test_guard.py::test_material_change_on_visible_face_detected",
+        "engine/tests/test_guard.py::test_open_box_flat_vs_patterned_removal_of_near_partition",
+        "-q",
+        "-p",
+        "no:cacheprovider",
+        "--basetemp",
+        "D:\\TEMP\\guard-f64\\guard-group-1\\pytest"
+      ],
+      "exit_code": 0,
+      "label": "guard-group-1",
+      "passed": 10,
+      "process_sha256": "bbca911e2ca8d4bcdf25a56d51508be65b5ba74ad9fea60b08b23e59be30b339",
+      "stdout_sha256": "cf4676c3e9ad8109b188e6b0466f4190513aaf1df0e18224201b3d446236bc75"
+    },
+    {
+      "cap_exceeded": false,
+      "combined_private_peak_upper_bound": 102567936,
+      "command": [
+        "D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe",
+        "-B",
+        "-m",
+        "pytest",
+        "engine/tests/test_guard.py::test_grazing_view_does_not_report_a_coplanar_shift_as_moved",
+        "engine/tests/test_guard.py::test_grazing_view_still_catches_a_face_removed_over_a_surface_behind_it",
+        "engine/tests/test_guard.py::test_depth_along_the_ray_fallback_must_be_asked_for_explicitly",
+        "engine/tests/test_guard.py::test_compare_views_without_planes_needs_the_same_flag",
+        "engine/tests/test_guard.py::test_undefined_plane_falls_back_to_depth_along_the_ray",
+        "engine/tests/test_guard.py::test_a_would_be_hole_is_never_flicker_without_the_geometry_to_ring_test_it",
+        "engine/tests/test_guard.py::test_edge_flicker_cap_above_zero_without_geometry_is_an_error",
+        "engine/tests/test_guard.py::test_a_cap_above_zero_builds_the_planes_the_ring_needs_from_the_geometry",
+        "engine/tests/test_guard.py::test_a_cap_above_zero_with_planes_but_no_geometry_is_still_an_error",
+        "engine/tests/test_guard.py::test_interior_hole_fails_at_any_cap",
+        "-q",
+        "-p",
+        "no:cacheprovider",
+        "--basetemp",
+        "D:\\TEMP\\guard-f64\\guard-group-2\\pytest"
+      ],
+      "exit_code": 0,
+      "label": "guard-group-2",
+      "passed": 10,
+      "process_sha256": "358a049fdc7130f132ab9fbaa0793901a19217aa3ce80d0fe9952bfa38228754",
+      "stdout_sha256": "7f0e7eded81958aa18aff4ac1d3d799709bd64f77a1c9d6784add22f3b845b82"
+    },
+    {
+      "cap_exceeded": false,
+      "combined_private_peak_upper_bound": 104038400,
+      "command": [
+        "D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe",
+        "-B",
+        "-m",
+        "pytest",
+        "engine/tests/test_guard.py::test_a_thousandth_of_an_inch_of_boundary_shift_is_edge_flicker",
+        "engine/tests/test_guard.py::test_boundary_shift_under_tolerance_at_an_internal_silhouette_is_edge_flicker",
+        "engine/tests/test_guard.py::test_a_material_boundary_shift_under_tolerance_is_edge_flicker_material",
+        "engine/tests/test_guard.py::test_a_boundary_shift_far_beyond_tolerance_stays_a_failure_at_any_cap",
+        "engine/tests/test_guard.py::test_a_tolerated_moved_same_flat_pixel_is_never_promoted_to_flicker",
+        "engine/tests/test_guard.py::test_a_failing_base_class_is_still_promoted_when_not_strict",
+        "engine/tests/test_guard.py::test_overlapping_coplanar_faces_of_different_materials_are_a_zfight_tie",
+        "engine/tests/test_guard.py::test_a_zfight_member_that_was_removed_is_still_a_material_change",
+        "engine/tests/test_guard.py::test_a_coincident_same_material_pair_losing_one_member_is_no_change_at_all",
+        "engine/tests/test_guard.py::test_a_crack_the_merge_closed_is_reported_as_crack_closed_and_passes",
+        "-q",
+        "-p",
+        "no:cacheprovider",
+        "--basetemp",
+        "D:\\TEMP\\guard-f64\\guard-group-3\\pytest"
+      ],
+      "exit_code": 0,
+      "label": "guard-group-3",
+      "passed": 10,
+      "process_sha256": "1f0f5d053a014de6a6e31c051824b79aa33a86b072b01d63ab50096ce49121a4",
+      "stdout_sha256": "a6260bb189e068404883b8a06994cb58fe0d0e472b411616a3ae995f3c64b1a5"
+    },
+    {
+      "cap_exceeded": false,
+      "combined_private_peak_upper_bound": 100450304,
+      "command": [
+        "D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe",
+        "-B",
+        "-m",
+        "pytest",
+        "engine/tests/test_guard.py::test_compare_views_refuses_renders_from_a_different_camera_frame",
+        "-q",
+        "-p",
+        "no:cacheprovider",
+        "--basetemp",
+        "D:\\TEMP\\guard-f64\\guard-single-32\\pytest"
+      ],
+      "exit_code": 0,
+      "label": "guard-single-32",
+      "passed": 1,
+      "process_sha256": "e3e803c47fcc0f0bb451798e26e7b7a802016d1f3591332d1786847d30ff8dba",
+      "stdout_sha256": "596e7f140355c5607ac5c5298b636114cc5d2ebf3e28336b39e61beae47add43"
+    },
+    {
+      "cap_exceeded": false,
+      "combined_private_peak_upper_bound": 101531648,
+      "command": [
+        "D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe",
+        "-B",
+        "-m",
+        "pytest",
+        "engine/tests/test_guard.py::test_an_interior_hole_flanked_by_coplanar_survivors_fails_at_any_cap",
+        "-q",
+        "-p",
+        "no:cacheprovider",
+        "--basetemp",
+        "D:\\TEMP\\guard-f64\\guard-single-33\\pytest"
+      ],
+      "exit_code": 0,
+      "label": "guard-single-33",
+      "passed": 1,
+      "process_sha256": "8a23d8c61dccaa3ce449426cbd0e4c80f241803e52d7cfc50db344e260cd97cc",
+      "stdout_sha256": "b88748be948e9dbbff4105af7375d2686da1559a51dc7e3296d21021288cc404"
+    },
+    {
+      "cap_exceeded": false,
+      "combined_private_peak_upper_bound": 100773888,
+      "command": [
+        "D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe",
+        "-B",
+        "-m",
+        "pytest",
+        "engine/tests/test_guard.py::test_a_removed_face_beside_a_pre_existing_gap_is_a_hole_at_any_cap",
+        "-q",
+        "-p",
+        "no:cacheprovider",
+        "--basetemp",
+        "D:\\TEMP\\guard-f64\\guard-single-34\\pytest"
+      ],
+      "exit_code": 0,
+      "label": "guard-single-34",
+      "passed": 1,
+      "process_sha256": "e3d2653a88b3dfe6c29e0325c96ad73ee56f285fc6fec8c853af7e930ee2ddc0",
+      "stdout_sha256": "fe75e254695c0b4002f3a4ac1f7f9b05cf2568b91ad0c1142bb71b4a87dfe601"
+    },
+    {
+      "cap_exceeded": false,
+      "combined_private_peak_upper_bound": 245981184,
+      "command": [
+        "D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe",
+        "-B",
+        "-m",
+        "pytest",
+        "engine/tests/test_guard.py::test_guard_feedback_restores_wrong_face_keeps_only_hidden_tris",
+        "-q",
+        "-p",
+        "no:cacheprovider",
+        "--basetemp",
+        "D:\\TEMP\\guard-f64\\guard-single-35\\pytest"
+      ],
+      "exit_code": 0,
+      "label": "guard-single-35",
+      "passed": 1,
+      "process_sha256": "891d060cf3b24dd72a8ab3b74df802fb6c967f7a17556a3c74be22f035cb6903",
+      "stdout_sha256": "5786dea9b9d57d2c49ced7482e3658b77a7e714793519049750ca2544972398d"
+    },
+    {
+      "cap_exceeded": false,
+      "combined_private_peak_upper_bound": 241262592,
+      "command": [
+        "D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe",
+        "-B",
+        "-m",
+        "pytest",
+        "engine/tests/test_guard.py::test_guard_feedback_no_candidates_is_a_noop",
+        "-q",
+        "-p",
+        "no:cacheprovider",
+        "--basetemp",
+        "D:\\TEMP\\guard-f64\\guard-single-36\\pytest"
+      ],
+      "exit_code": 0,
+      "label": "guard-single-36",
+      "passed": 1,
+      "process_sha256": "74215b2810900c2a8f6d52f1cc50ab5a8f538e03cde04a96688cdb602eea426e",
+      "stdout_sha256": "4ee7f383f784b8eefce3633ee310a071a180eff115ea7b5024c13335652a74cc"
+    },
+    {
+      "cap_exceeded": false,
+      "combined_private_peak_upper_bound": 245186560,
+      "command": [
+        "D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe",
+        "-B",
+        "-m",
+        "pytest",
+        "engine/tests/test_guard.py::test_guard_feedback_reuses_one_caster_per_geometry_not_per_view",
+        "-q",
+        "-p",
+        "no:cacheprovider",
+        "--basetemp",
+        "D:\\TEMP\\guard-f64\\guard-single-37\\pytest"
+      ],
+      "exit_code": 0,
+      "label": "guard-single-37",
+      "passed": 1,
+      "process_sha256": "2e0468bfcad6602b22bd4e45b97a3e5dac398aea75872c5941de3b65124f2f8d",
+      "stdout_sha256": "833a6c8f4d9ce7a26fd1ac5c65561aa59846f84fd19c0eea4c2905066cb20b38"
+    },
+    {
+      "cap_exceeded": false,
+      "combined_private_peak_upper_bound": 100675584,
+      "command": [
+        "D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe",
+        "-B",
+        "-m",
+        "pytest",
+        "engine/tests/test_guard.py::test_save_triptych_writes_three_panel_png",
+        "-q",
+        "-p",
+        "no:cacheprovider",
+        "--basetemp",
+        "D:\\TEMP\\guard-f64\\guard-single-38\\pytest"
+      ],
+      "exit_code": 0,
+      "label": "guard-single-38",
+      "passed": 1,
+      "process_sha256": "56d985062b3a49831bf90c3e398bf430a6b6e178d736460fe36827d3c4adc1ff",
+      "stdout_sha256": "e8a8b9be750f03aa0c8d99433a229e729cc973a3cb234833b95202faa7b3ed2b"
+    },
+    {
+      "cap_exceeded": false,
+      "combined_private_peak_upper_bound": 101126144,
+      "command": [
+        "D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe",
+        "-B",
+        "-m",
+        "pytest",
+        "engine/tests/test_guard.py::test_save_triptych_shades_before_and_after_panels_by_face_normal",
+        "-q",
+        "-p",
+        "no:cacheprovider",
+        "--basetemp",
+        "D:\\TEMP\\guard-f64\\guard-single-39\\pytest"
+      ],
+      "exit_code": 0,
+      "label": "guard-single-39",
+      "passed": 1,
+      "process_sha256": "e3c9acf9929fa1188e6c10040623a01774194da0af41887794f1560901050a33",
+      "stdout_sha256": "64e0d33e08a54e45aab6fdd4aac9db8a4664af65fee05be28fd03b7fcd5f74c6"
+    },
+    {
+      "cap_exceeded": false,
+      "combined_private_peak_upper_bound": 101036032,
+      "command": [
+        "D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe",
+        "-B",
+        "-m",
+        "pytest",
+        "engine/tests/test_guard.py::test_save_triptych_diff_panel_is_unaffected_by_shading",
+        "-q",
+        "-p",
+        "no:cacheprovider",
+        "--basetemp",
+        "D:\\TEMP\\guard-f64\\guard-single-40\\pytest"
+      ],
+      "exit_code": 0,
+      "label": "guard-single-40",
+      "passed": 1,
+      "process_sha256": "797f59cccf9f532319e5bc733200b21128f428fbca78fda1eeaea379659d05d6",
+      "stdout_sha256": "a7421f760146405279528e5cb60adb1709a0741fb38c131f1251aaac34fdac35"
+    },
+    {
+      "cap_exceeded": false,
+      "combined_private_peak_upper_bound": 101703680,
+      "command": [
+        "D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe",
+        "-B",
+        "-m",
+        "pytest",
+        "engine/tests/test_guard.py::test_a_zfight_tie_is_found_between_faces_that_share_no_vertex",
+        "-q",
+        "-p",
+        "no:cacheprovider",
+        "--basetemp",
+        "D:\\TEMP\\guard-f64\\guard-single-41\\pytest"
+      ],
+      "exit_code": 0,
+      "label": "guard-single-41",
+      "passed": 1,
+      "process_sha256": "9880e21c9fdf7858b5055266d0943d9f3be440bce7ba57fbb3fd100a7a4cd637",
+      "stdout_sha256": "dd050e4f4fa7fa968db04cc03025f0d2d7105483b361d48bcfed6646359dc5d8"
+    },
+    {
+      "cap_exceeded": false,
+      "combined_private_peak_upper_bound": 74403840,
+      "command": [
+        "D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe",
+        "-B",
+        "-m",
+        "pytest",
+        "engine/tests/test_guard.py::test_save_triptych_gives_ties_and_closed_cracks_their_own_diff_colours",
+        "-q",
+        "-p",
+        "no:cacheprovider",
+        "--basetemp",
+        "D:\\TEMP\\guard-f64\\guard-single-42\\pytest"
+      ],
+      "exit_code": 0,
+      "label": "guard-single-42",
+      "passed": 1,
+      "process_sha256": "92c504957004d1549a4551c673e0cf3755645d01af0a0efad2ac26401e182fb7",
+      "stdout_sha256": "7f7fd0746504f9beed5b82ad674e06c38edc08af7b96466d64a5f7d677f346bd"
+    },
+    {
+      "cap_exceeded": false,
+      "combined_private_peak_upper_bound": 72650752,
+      "command": [
+        "D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe",
+        "-B",
+        "-m",
+        "pytest",
+        "engine/tests/test_guard.py::test_save_triptych_gives_grown_pixels_their_own_diff_colour",
+        "-q",
+        "-p",
+        "no:cacheprovider",
+        "--basetemp",
+        "D:\\TEMP\\guard-f64\\guard-single-43\\pytest"
+      ],
+      "exit_code": 0,
+      "label": "guard-single-43",
+      "passed": 1,
+      "process_sha256": "986841f441e4a9f26c00664fb2ccdd8dffccb1c46bc9fa552cc17bbe9e2f7015",
+      "stdout_sha256": "27a82b190ce9b281d25270a59cd462b8f87587d5abe515318eaf61f79339dbb2"
+    },
+    {
+      "cap_exceeded": false,
+      "combined_private_peak_upper_bound": 236990464,
+      "command": [
+        "D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe",
+        "-B",
+        "-m",
+        "pytest",
+        "engine/tests/test_guard.py::test_closed_cracks_under_the_cap_are_still_tolerated_and_reported",
+        "-q",
+        "-p",
+        "no:cacheprovider",
+        "--basetemp",
+        "D:\\TEMP\\guard-f64\\guard-single-44\\pytest"
+      ],
+      "exit_code": 0,
+      "label": "guard-single-44",
+      "passed": 1,
+      "process_sha256": "8b9806f1375a33816518b7cb8445ed1a828921257bd2182f2dadbf547116d878",
+      "stdout_sha256": "8d8dd318cfc1288d347f6c3a3ada790c896f73ed2d2b3e60fb17b6dfc79c18d3"
+    },
+    {
+      "cap_exceeded": false,
+      "combined_private_peak_upper_bound": 236023808,
+      "command": [
+        "D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe",
+        "-B",
+        "-m",
+        "pytest",
+        "engine/tests/test_guard.py::test_closed_cracks_over_the_cap_fall_back_to_their_base_class_and_fail",
+        "-q",
+        "-p",
+        "no:cacheprovider",
+        "--basetemp",
+        "D:\\TEMP\\guard-f64\\guard-single-45\\pytest"
+      ],
+      "exit_code": 0,
+      "label": "guard-single-45",
+      "passed": 1,
+      "process_sha256": "63899c17d3790cff85324752e323d195e61b80ead708c34a8165423fc803e035",
+      "stdout_sha256": "8d8dd318cfc1288d347f6c3a3ada790c896f73ed2d2b3e60fb17b6dfc79c18d3"
+    },
+    {
+      "cap_exceeded": false,
+      "combined_private_peak_upper_bound": 100106240,
+      "command": [
+        "D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe",
+        "-B",
+        "-m",
+        "pytest",
+        "engine/tests/test_guard.py::test_the_crack_cap_defaults_to_uncapped_so_existing_callers_are_unchanged",
+        "-q",
+        "-p",
+        "no:cacheprovider",
+        "--basetemp",
+        "D:\\TEMP\\guard-f64\\guard-single-46\\pytest"
+      ],
+      "exit_code": 0,
+      "label": "guard-single-46",
+      "passed": 1,
+      "process_sha256": "8b525a6f50ef504a699a45788a22a81358f6d56005fda094b1a2b3c637d65788",
+      "stdout_sha256": "97cc48e3342d8e80d864afe3dacb6aba1e724aa1f33b3b8bd9ba5723dc6d1c61"
+    },
+    {
+      "cap_exceeded": false,
+      "combined_private_peak_upper_bound": 101539840,
+      "command": [
+        "D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe",
+        "-B",
+        "-m",
+        "pytest",
+        "engine/tests/test_guard.py::test_a_zfight_tie_is_never_capped",
+        "-q",
+        "-p",
+        "no:cacheprovider",
+        "--basetemp",
+        "D:\\TEMP\\guard-f64\\guard-single-47\\pytest"
+      ],
+      "exit_code": 0,
+      "label": "guard-single-47",
+      "passed": 1,
+      "process_sha256": "cfda2ffb3decc2efdab1c33055199cda9190a8ee1ab5c5290205a14b9e8ad161",
+      "stdout_sha256": "b829d78937c8ce3e6832b658a654a2b78c477b0834d9cf1d20fadc38ddc057bd"
+    },
+    {
+      "cap_exceeded": false,
+      "combined_private_peak_upper_bound": 101289984,
+      "command": [
+        "D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe",
+        "-B",
+        "-m",
+        "pytest",
+        "engine/tests/test_guard.py::test_the_removal_guard_tolerates_a_zfight_tie_it_caused",
+        "-q",
+        "-p",
+        "no:cacheprovider",
+        "--basetemp",
+        "D:\\TEMP\\guard-f64\\guard-single-48\\pytest"
+      ],
+      "exit_code": 0,
+      "label": "guard-single-48",
+      "passed": 1,
+      "process_sha256": "7dacb8c136e5fdccd54a3025745fccab49bac81ee096134d274886e992e542dc",
+      "stdout_sha256": "7f7fd0746504f9beed5b82ad674e06c38edc08af7b96466d64a5f7d677f346bd"
+    },
+    {
+      "cap_exceeded": false,
+      "combined_private_peak_upper_bound": 237580288,
+      "command": [
+        "D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe",
+        "-B",
+        "-m",
+        "pytest",
+        "engine/tests/test_guard.py::test_the_removal_guard_still_fails_when_a_tie_member_was_the_one_removed",
+        "-q",
+        "-p",
+        "no:cacheprovider",
+        "--basetemp",
+        "D:\\TEMP\\guard-f64\\guard-single-49\\pytest"
+      ],
+      "exit_code": 0,
+      "label": "guard-single-49",
+      "passed": 1,
+      "process_sha256": "5ed5226c85be8c9ba76982bfcb035d3cb7b9b18319088b3da7c1b78e76df6c24",
+      "stdout_sha256": "e8a8b9be750f03aa0c8d99433a229e729cc973a3cb234833b95202faa7b3ed2b"
+    },
+    {
+      "cap_exceeded": false,
+      "combined_private_peak_upper_bound": 100524032,
+      "command": [
+        "D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe",
+        "-B",
+        "-m",
+        "pytest",
+        "engine/tests/test_guard.py::test_the_removal_guard_still_fails_a_flicker_pixel",
+        "-q",
+        "-p",
+        "no:cacheprovider",
+        "--basetemp",
+        "D:\\TEMP\\guard-f64\\guard-single-50\\pytest"
+      ],
+      "exit_code": 0,
+      "label": "guard-single-50",
+      "passed": 1,
+      "process_sha256": "2831c6f68fc67b88153cff4d19fadd11ace58960ee872f9a5075536323ac474f",
+      "stdout_sha256": "1e1fcccfb22688cc0923f68aef046b36d8e1054bcf52c783ee41a468d49f2ac0"
+    },
+    {
+      "cap_exceeded": false,
+      "combined_private_peak_upper_bound": 239906816,
+      "command": [
+        "D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe",
+        "-B",
+        "-m",
+        "pytest",
+        "engine/tests/test_guard.py::test_a_removed_face_narrower_than_the_ring_is_never_excused_as_a_closed_crack",
+        "-q",
+        "-p",
+        "no:cacheprovider",
+        "--basetemp",
+        "D:\\TEMP\\guard-f64\\guard-single-51\\pytest"
+      ],
+      "exit_code": 0,
+      "label": "guard-single-51",
+      "passed": 1,
+      "process_sha256": "b9a4eb48927be769c96fdc4af926afdc0a643c9c791472901d49aa54e40292ae",
+      "stdout_sha256": "ad4cf9a8b8e254a6d543410161fb0b33128d5496ad79b35f5994bb4e6104f4b0"
+    },
+    {
+      "cap_exceeded": false,
+      "combined_private_peak_upper_bound": 237187072,
+      "command": [
+        "D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe",
+        "-B",
+        "-m",
+        "pytest",
+        "engine/tests/test_guard.py::test_a_border_moved_a_hundredth_of_an_inch_along_a_pixel_row_is_a_border_shift",
+        "-q",
+        "-p",
+        "no:cacheprovider",
+        "--basetemp",
+        "D:\\TEMP\\guard-f64\\guard-single-52\\pytest"
+      ],
+      "exit_code": 0,
+      "label": "guard-single-52",
+      "passed": 1,
+      "process_sha256": "9b20f022ac221bf2bc7e62081c07e940f9d3b0bf06417db6473cf7c73f3a947f",
+      "stdout_sha256": "7586bbb7d181686f413da22837b82ba121403cfe041201e1ef02ea0840e5bbc3"
+    },
+    {
+      "cap_exceeded": false,
+      "combined_private_peak_upper_bound": 238993408,
+      "command": [
+        "D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe",
+        "-B",
+        "-m",
+        "pytest",
+        "engine/tests/test_guard.py::test_an_internal_border_moved_a_hundredth_of_an_inch_along_a_pixel_row_is_a_border_shift",
+        "-q",
+        "-p",
+        "no:cacheprovider",
+        "--basetemp",
+        "D:\\TEMP\\guard-f64\\guard-single-53\\pytest"
+      ],
+      "exit_code": 0,
+      "label": "guard-single-53",
+      "passed": 2,
+      "process_sha256": "8a244c2bf21c776ab421171dd1e44a433407993c9c27e8b3214bab1f5bd32e7e",
+      "stdout_sha256": "917c757405cc8c6902cd99e7731b5ad0efd49e7a15981268e410185e22c33cf0"
+    },
+    {
+      "cap_exceeded": false,
+      "combined_private_peak_upper_bound": 238411776,
+      "command": [
+        "D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe",
+        "-B",
+        "-m",
+        "pytest",
+        "engine/tests/test_guard.py::test_a_two_inch_strip_lost_at_a_border_still_fails_where_the_ring_calls_it_flicker",
+        "-q",
+        "-p",
+        "no:cacheprovider",
+        "--basetemp",
+        "D:\\TEMP\\guard-f64\\guard-single-54\\pytest"
+      ],
+      "exit_code": 0,
+      "label": "guard-single-54",
+      "passed": 1,
+      "process_sha256": "1060073ef1db059fada35f570fde8334f3e32847f63b4fd2bfed33ff5dd8e3b7",
+      "stdout_sha256": "27a82b190ce9b281d25270a59cd462b8f87587d5abe515318eaf61f79339dbb2"
+    },
+    {
+      "cap_exceeded": false,
+      "combined_private_peak_upper_bound": 100290560,
+      "command": [
+        "D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe",
+        "-B",
+        "-m",
+        "pytest",
+        "engine/tests/test_guard.py::test_a_two_inch_strip_lost_at_a_border_is_a_hole_even_beside_the_new_edge",
+        "-q",
+        "-p",
+        "no:cacheprovider",
+        "--basetemp",
+        "D:\\TEMP\\guard-f64\\guard-single-55\\pytest"
+      ],
+      "exit_code": 0,
+      "label": "guard-single-55",
+      "passed": 1,
+      "process_sha256": "87d5ab1427aeee0c1c1f53cf64bcea601006ad9f92c8e34ef7554d33d6368b9c",
+      "stdout_sha256": "e8c73a9e0689faeba94887f49eb3ac3c65fa9c6b3580857785ccca0fc4f6171c"
+    },
+    {
+      "cap_exceeded": false,
+      "combined_private_peak_upper_bound": 100970496,
+      "command": [
+        "D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe",
+        "-B",
+        "-m",
+        "pytest",
+        "engine/tests/test_guard.py::test_a_surface_appearing_an_inch_beyond_its_border_still_fails_where_the_ring_calls_it_flicker",
+        "-q",
+        "-p",
+        "no:cacheprovider",
+        "--basetemp",
+        "D:\\TEMP\\guard-f64\\guard-single-56\\pytest"
+      ],
+      "exit_code": 0,
+      "label": "guard-single-56",
+      "passed": 1,
+      "process_sha256": "dd7a58cf2124bc72637a59a881e7b899952a347d669cfd32c95b6f15e6de3f0f",
+      "stdout_sha256": "dc9dec0c71a2b5497940202d78f7726acc89f18b0f84dc8e068da34988c84d68"
+    },
+    {
+      "cap_exceeded": false,
+      "combined_private_peak_upper_bound": 241532928,
+      "command": [
+        "D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe",
+        "-B",
+        "-m",
+        "pytest",
+        "engine/tests/test_guard.py::test_a_material_change_is_never_measured_away_as_a_border_shift",
+        "-q",
+        "-p",
+        "no:cacheprovider",
+        "--basetemp",
+        "D:\\TEMP\\guard-f64\\guard-single-57\\pytest"
+      ],
+      "exit_code": 0,
+      "label": "guard-single-57",
+      "passed": 1,
+      "process_sha256": "6ad2c4d502a9ed7c605292e1f1fda163789f52109aee6d7de076d64e20b051d7",
+      "stdout_sha256": "b88748be948e9dbbff4105af7375d2686da1559a51dc7e3296d21021288cc404"
+    },
+    {
+      "cap_exceeded": false,
+      "combined_private_peak_upper_bound": 67850240,
+      "command": [
+        "D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe",
+        "-B",
+        "-m",
+        "pytest",
+        "engine/tests/test_guard.py::test_border_shift_tol_above_zero_without_both_geometries_is_an_error",
+        "-q",
+        "-p",
+        "no:cacheprovider",
+        "--basetemp",
+        "D:\\TEMP\\guard-f64\\guard-single-58\\pytest"
+      ],
+      "exit_code": 0,
+      "label": "guard-single-58",
+      "passed": 1,
+      "process_sha256": "942fa7d5b06bd42cfa7b7dc6accc4ea1979413077cd55f260766260cdb0e0862",
+      "stdout_sha256": "fdb54db4e81df3d58894d3cd891b7c9b9a6124822e9250647dfa7069752d4042"
+    },
+    {
+      "cap_exceeded": false,
+      "combined_private_peak_upper_bound": 74756096,
+      "command": [
+        "D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe",
+        "-B",
+        "-m",
+        "pytest",
+        "engine/tests/test_guard.py::test_the_border_shift_distance_is_exact_and_blind_to_which_plane_a_triangle_lies_in",
+        "-q",
+        "-p",
+        "no:cacheprovider",
+        "--basetemp",
+        "D:\\TEMP\\guard-f64\\guard-single-59\\pytest"
+      ],
+      "exit_code": 0,
+      "label": "guard-single-59",
+      "passed": 1,
+      "process_sha256": "72ec5e0af6c24d2fd5a95254ed446acae9da28e20f51dd2795e2921030f01bb4",
+      "stdout_sha256": "fdb54db4e81df3d58894d3cd891b7c9b9a6124822e9250647dfa7069752d4042"
+    },
+    {
+      "cap_exceeded": false,
+      "combined_private_peak_upper_bound": 100159488,
+      "command": [
+        "D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe",
+        "-B",
+        "-m",
+        "pytest",
+        "engine/tests/test_guard.py::test_growth_over_background_is_failing_base_and_excused_by_border_shift",
+        "-q",
+        "-p",
+        "no:cacheprovider",
+        "--basetemp",
+        "D:\\TEMP\\guard-f64\\guard-single-60\\pytest"
+      ],
+      "exit_code": 0,
+      "label": "guard-single-60",
+      "passed": 1,
+      "process_sha256": "9f1031adcf08dfea44072e054a1b5a942b8881286ae1b2f7573c1860bdca7823",
+      "stdout_sha256": "10a9efc0e4f046af1f97c5a0072a9edff680bcfaa7c784d8a64ced9ea08432a4"
+    },
+    {
+      "cap_exceeded": false,
+      "combined_private_peak_upper_bound": 241041408,
+      "command": [
+        "D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe",
+        "-B",
+        "-m",
+        "pytest",
+        "engine/tests/test_guard.py::test_a_crack_the_merge_opened_narrower_than_its_border_tolerance_is_a_border_shift",
+        "-q",
+        "-p",
+        "no:cacheprovider",
+        "--basetemp",
+        "D:\\TEMP\\guard-f64\\guard-single-61\\pytest"
+      ],
+      "exit_code": 0,
+      "label": "guard-single-61",
+      "passed": 1,
+      "process_sha256": "1f4d06b0fe30eadab4c55e77243cecafbe632a77d5d3477b7eea3c49a81b644f",
+      "stdout_sha256": "64ecebdae81c71d9e3b26af36e6ddecbc6f5dc50bdfb7d6690ca58c4939f09c6"
+    },
+    {
+      "cap_exceeded": false,
+      "combined_private_peak_upper_bound": 240607232,
+      "command": [
+        "D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe",
+        "-B",
+        "-m",
+        "pytest",
+        "engine/tests/test_guard.py::test_a_crack_the_merge_opened_onto_a_side_nobody_saw_is_never_a_border_shift",
+        "-q",
+        "-p",
+        "no:cacheprovider",
+        "--basetemp",
+        "D:\\TEMP\\guard-f64\\guard-single-62\\pytest"
+      ],
+      "exit_code": 0,
+      "label": "guard-single-62",
+      "passed": 1,
+      "process_sha256": "8a5d2bb513f250b6c43fe9c965dcd57b53c362bf2d4c4babe201e32b149c9c78",
+      "stdout_sha256": "e8a8b9be750f03aa0c8d99433a229e729cc973a3cb234833b95202faa7b3ed2b"
+    },
+    {
+      "cap_exceeded": false,
+      "combined_private_peak_upper_bound": 101294080,
+      "command": [
+        "D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe",
+        "-B",
+        "-m",
+        "pytest",
+        "engine/tests/test_guard.py::test_a_crack_wider_than_the_border_tolerance_is_never_a_border_shift",
+        "-q",
+        "-p",
+        "no:cacheprovider",
+        "--basetemp",
+        "D:\\TEMP\\guard-f64\\guard-single-63\\pytest"
+      ],
+      "exit_code": 0,
+      "label": "guard-single-63",
+      "passed": 1,
+      "process_sha256": "89a5069183c0e5784d06aaeaf76b22925c7cb2a662636fba23d31a6b98fd1e63",
+      "stdout_sha256": "88cc14068cf549aa4579a6c4d6836ababcff4d3fd0e8109cd7e4b4e035a328bd"
+    },
+    {
+      "cap_exceeded": false,
+      "combined_private_peak_upper_bound": 100851712,
+      "command": [
+        "D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe",
+        "-B",
+        "-m",
+        "pytest",
+        "engine/tests/test_guard.py::test_a_crack_the_merge_opened_onto_the_sky_is_a_border_shift",
+        "-q",
+        "-p",
+        "no:cacheprovider",
+        "--basetemp",
+        "D:\\TEMP\\guard-f64\\guard-single-64\\pytest"
+      ],
+      "exit_code": 0,
+      "label": "guard-single-64",
+      "passed": 1,
+      "process_sha256": "21730e3b4778c0e830b1e8b3c615c9cf291ee8b41b1d08e061f6b49f766e438f",
+      "stdout_sha256": "7cc3960525e1c8672f5a6debe3a898750e7ce6833493e1e0ea50a2286b27ec4b"
+    },
+    {
+      "cap_exceeded": false,
+      "combined_private_peak_upper_bound": 103735296,
+      "command": [
+        "D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe",
+        "-B",
+        "-m",
+        "pytest",
+        "engine/tests/test_guard.py::test_a_removed_fragment_that_opens_onto_the_inside_is_never_an_opened_crack",
+        "-q",
+        "-p",
+        "no:cacheprovider",
+        "--basetemp",
+        "D:\\TEMP\\guard-f64\\guard-single-66\\pytest"
+      ],
+      "exit_code": 0,
+      "label": "guard-single-66",
+      "passed": 1,
+      "process_sha256": "3b6955f59111e3db5f053a4b1fbbb539c075b7dc59d6b23c77e4a33e2ef929db",
+      "stdout_sha256": "af329afd0a4a79757ccb4cd8bb9aa07f6d9141299f87f9b1be75a904a68da310"
+    },
+    {
+      "cap_exceeded": false,
+      "combined_private_peak_upper_bound": 76787712,
+      "command": [
+        "D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe",
+        "-B",
+        "-m",
+        "pytest",
+        "engine/tests/test_guard.py::test_a_view_is_through_the_slab_only_between_two_kept_shell_faces_inside_it",
+        "-q",
+        "-p",
+        "no:cacheprovider",
+        "--basetemp",
+        "D:\\TEMP\\guard-f64\\guard-single-67\\pytest"
+      ],
+      "exit_code": 0,
+      "label": "guard-single-67",
+      "passed": 1,
+      "process_sha256": "3b15c9e49ab0949e2fa4c1a6badc270aa373a9de873eee357ffab68a6846b692",
+      "stdout_sha256": "74e6a48506ba840240c5a7476d1b513f0d5c6ce82e220ba1b3464840d9f7cde8"
+    },
+    {
+      "cap_exceeded": false,
+      "combined_private_peak_upper_bound": 66424832,
+      "command": [
+        "D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe",
+        "-B",
+        "-m",
+        "pytest",
+        "engine/tests/test_guard.py::test_a_face_held_up_by_a_refused_face_is_refused_with_it_unless_another_holds_it",
+        "-q",
+        "-p",
+        "no:cacheprovider",
+        "--basetemp",
+        "D:\\TEMP\\guard-f64\\guard-single-68\\pytest"
+      ],
+      "exit_code": 0,
+      "label": "guard-single-68",
+      "passed": 1,
+      "process_sha256": "caf00786f9f1c31c1835b94f841d5251e438aeef0767881d22038427d2b44665",
+      "stdout_sha256": "1e1fcccfb22688cc0923f68aef046b36d8e1054bcf52c783ee41a468d49f2ac0"
+    },
+    {
+      "cap_exceeded": false,
+      "combined_private_peak_upper_bound": 71176192,
+      "command": [
+        "D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe",
+        "-B",
+        "-m",
+        "pytest",
+        "engine/tests/test_guard.py::test_a_lost_rule_6_pixel_over_a_replaced_piece_always_restores_the_piece",
+        "-q",
+        "-p",
+        "no:cacheprovider",
+        "--basetemp",
+        "D:\\TEMP\\guard-f64\\guard-single-69\\pytest"
+      ],
+      "exit_code": 0,
+      "label": "guard-single-69",
+      "passed": 1,
+      "process_sha256": "6d754a9269955c90d3c0c0b88a335ee98c6828c2918d562c4cc5dba91517b8bd",
+      "stdout_sha256": "e8a8b9be750f03aa0c8d99433a229e729cc973a3cb234833b95202faa7b3ed2b"
+    }
+  ],
+  "existing_guard_resource_aborts": [
+    {
+      "cap_exceeded": true,
+      "combined_private_peak_upper_bound": 276946944,
+      "command": [
+        "D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe",
+        "-B",
+        "-m",
+        "pytest",
+        "engine/tests/test_guard.py::test_a_whole_triangle_lost_from_the_same_scene_is_still_a_failure",
+        "-q",
+        "-p",
+        "no:cacheprovider",
+        "--basetemp",
+        "D:\\TEMP\\guard-f64\\guard-single-31\\pytest"
+      ],
+      "exit_code": 99,
+      "label": "guard-single-31",
+      "process_sha256": "bd430bbde17d42c3c908e0ea24654c69fa89d68ec892f6daf45f51dfbb1afe26",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "cap_exceeded": true,
+      "combined_private_peak_upper_bound": 269578240,
+      "command": [
+        "D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe",
+        "-B",
+        "-m",
+        "pytest",
+        "engine/tests/test_guard.py::test_a_whole_triangle_lost_after_a_closed_slab_still_fails_with_the_border_tolerance",
+        "-q",
+        "-p",
+        "no:cacheprovider",
+        "--basetemp",
+        "D:\\TEMP\\guard-f64\\guard-single-65\\pytest"
+      ],
+      "exit_code": 99,
+      "label": "guard-single-65",
+      "process_sha256": "84c177bee4b1cfa00d48983cc65462f1bfab3160d0d18de6bac779bd2d4ae9ef",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "full_project_suite_run": false,
+  "golden_inventory_sha256": "e5eb6b96fa4b6de068bb55b89c930b2c45282d30efac69cdf5da2738917be2c1",
+  "golden_validator_run": false,
+  "implementation_scope": "Only supporting-plane displacement reconstruction; no threshold, epsilon, cap, camera, hit selection, guard promotion or signed policy changes.",
+  "job_id": "MAIN-INFRA-GUARD-F64-20261024",
+  "model_acceptance": false,
+  "new_tests": {
+    "green_passed": 23,
+    "green_seconds": 1.36,
+    "red_failed": 5,
+    "red_passed": 18
+  },
+  "operator": "Codex-Guard-F64",
+  "original_guard_passed": false,
+  "pending": [
+    "Two existing large ring fixtures require separately authorized resource window; current250MiB cap never increased.",
+    "Golden Validator phases on inventoried CHTM5 and both sidewalks require rootGO.",
+    "Independent frozen-code review and actual26/native/fullsigned remain required before preservation acceptance."
+  ],
+  "prior_combined_cap_aborts": [
+    "guard-area",
+    "guard-group-4"
+  ],
+  "schema_version": 1,
+  "unchanged_protected_raw_files": [
+    {
+      "path": "engine/guard/piece_rays.py",
+      "sha256": "b15824c2385c00c3df19d88b8f379194f6dd01a0aeb53c1f20796661cbbbf1e9"
+    },
+    {
+      "path": "engine/guard/qa_render.py",
+      "sha256": "a620795f0763af06420722daceb75c8dc62c62fda4787ffc911e9cde4b3cd74b"
+    },
+    {
+      "path": "engine/guard/render.py",
+      "sha256": "9c918de0b2d53621af3b5cecf0f567c89144c3829a18f408fdf72dd68612bcb3"
+    },
+    {
+      "path": "engine/guard/views.py",
+      "sha256": "d17931c6228909a6bd40f32a961db41c4d7b1e747100f1ea5e115d49f74ac66f"
+    },
+    {
+      "path": "engine/guard/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "engine/validate/checks.py",
+      "sha256": "3d3ebe288abab4afa73b26e8908047a8fbe71a36b8df31d3fed69fb190601606"
+    },
+    {
+      "path": "engine/validate/evidence.py",
+      "sha256": "914fff0f76b253ba999fae91e6373ed2ab43d491c98f44d5cc57384e8ecffbd7"
+    },
+    {
+      "path": "engine/validate/floor.py",
+      "sha256": "bde829b4832443ce159ae8d7937a5ed4b4207bd6d7e1b4b669b2df2b9b0e84e8"
+    },
+    {
+      "path": "engine/validate/sampling.py",
+      "sha256": "d81a9af913839666ae8e63afd29ed22492fd90f1741be03bf01b1eb95a52a73d"
+    },
+    {
+      "path": "engine/validate/targets.json",
+      "sha256": "4117f5e22045750fed7c4627ffa6324bf2efe5c14cf9629389a482c960036507"
+    },
+    {
+      "path": "engine/validate/viewpoints.py",
+      "sha256": "c62acfd255fd99c003fd54bf084a68bdb82442cf1c96ada2f0a50e7a7efa7e98"
+    },
+    {
+      "path": "engine/validate/visibility.py",
+      "sha256": "28cbad91da779c0a12155c3036a717db78e5629bb5fbf54e4e8ad2d95ca04821"
+    },
+    {
+      "path": "engine/validate/__init__.py",
+      "sha256": "6d8a1be3faac9a3804d42cdcb5fba170739a756204aa755d2a05a1a3dd84f00b"
+    },
+    {
+      "path": "engine/rays/caster.py",
+      "sha256": "62bde18bb12e0e3c8f690eb9c819750274e4924911770b6f7cffa399a704ddd5"
+    },
+    {
+      "path": "engine/rays/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "engine/fixes/pipeline.py",
+      "sha256": "20f72381d1ef2040bd90de928e21c3bfb0b5c4e534669e15207110ae7736f2aa"
+    },
+    {
+      "path": "engine/tests/test_guard.py",
+      "sha256": "73707e5208bd9568fc164420dbdc86f353c05668093b5a97e92950fb575f924e"
+    }
+  ]
+}

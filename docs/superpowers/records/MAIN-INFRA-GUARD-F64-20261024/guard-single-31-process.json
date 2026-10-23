@@ -1,0 +1,23 @@
+{
+  "command": [
+    "D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe",
+    "-B",
+    "-m",
+    "pytest",
+    "engine/tests/test_guard.py::test_a_whole_triangle_lost_from_the_same_scene_is_still_a_failure",
+    "-q",
+    "-p",
+    "no:cacheprovider",
+    "--basetemp",
+    "D:\\TEMP\\guard-f64\\guard-single-31\\pytest"
+  ],
+  "exit_code": 99,
+  "test_tree_private_peak": 266424320,
+  "observer_private_peak": 10522624,
+  "pid_private_peaks": {
+    "62472": 929792,
+    "55000": 265494528
+  },
+  "cap_bytes": 262144000,
+  "cap_exceeded": true
+}

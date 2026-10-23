@@ -1,0 +1,23 @@
+{
+  "command": [
+    "D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe",
+    "-B",
+    "-m",
+    "pytest",
+    "engine/tests/test_guard.py::test_closed_cracks_under_the_cap_are_still_tolerated_and_reported",
+    "-q",
+    "-p",
+    "no:cacheprovider",
+    "--basetemp",
+    "D:\\TEMP\\guard-f64\\guard-single-44\\pytest"
+  ],
+  "exit_code": 0,
+  "test_tree_private_peak": 226553856,
+  "observer_private_peak": 10436608,
+  "pid_private_peaks": {
+    "10608": 856064,
+    "39140": 225697792
+  },
+  "cap_bytes": 262144000,
+  "cap_exceeded": false
+}

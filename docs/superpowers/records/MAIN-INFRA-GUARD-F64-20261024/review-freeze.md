@@ -1,0 +1,11 @@
+# Guard F64 numerical review freeze
+
+The original 2F strict26 result remains FAIL. The saved view4 diagnostic reproduced118869 moved pixels even for identical Before/Before buffers. All452739 hit depths and original face IDs were identical;24 exact-F64 witness pairs also had zero depth delta.
+
+Only `compare._displacement` now intersects each shared camera ray with its original float64 supporting plane. If q_i=n_i·origin+d_i and s_i=n_i·direction, t_i=-q_i/s_i. The existing symmetric perpendicular metric becomes abs(t_after-t_before)*max(abs(s_before),abs(s_after)). Physical tolerance and every classification/promotion/cap stay unchanged. There is no epsilon or geometry change. Degenerate zero-area faces retain the existing explicit depth fallback; invalid/nonfinite/parallel/behind-ray intersections fail conservatively.
+
+TDD: initial5failed/18passed; final23passed in1.36s. The actual24 witnesses now return exact zero; a genuine unchanged Embree cube's96 false moved pixels become zero. Controls cover actual plane changes above/below the same tolerance across three scales, grazing/rotated planes, holes/material changes, degenerate fallback and undefined intersections. An initial edit-boundary command failed on inherited CRLF before writing; preliminary `green.txt` therefore honestly contains the same RED outcome, retained separately from `green-final.txt`.
+
+Existing guard area:68cases passed in fresh bounded subprocesses. Two existing large ring fixtures aborted at the authorized250MiB whole-tree cap, including isolated runs: `test_a_whole_triangle_lost_from_the_same_scene_is_still_a_failure` and `test_a_whole_triangle_lost_after_a_closed_slab_still_fails_with_the_border_tolerance`. No assertion failed. The full area is incomplete until those cases complete under a separately authorized resource window; no cap was raised.
+
+Golden frozen CHTM5 and both sidewalk input/candidate pairs are available and hash-inventoried. No golden Validator or actual floor phase has been launched. No model preservation/target/acceptance claim is made. Full-project suite is unrun under the current narrow resource authorization. Original signed targets SHA4117f5e2, old existing tests, other guard code, rays, FixProfile and Validator are raw-byte-equal to the frozen2F checkout.
