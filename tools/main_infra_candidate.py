@@ -15,7 +15,10 @@ from engine.io.minecraft_floor import parse_floor, write_floor
 from engine.io.snapshot import copy_verified, sha256_file, snapshot_object
 from engine.rays.caster import EmbreeCaster, ReusableCaster
 from engine.topo.weld import axis_quanta
-from tools.main_infra_progress import FLOORS as FLOOR_CHOICES
+try:
+    from tools.main_infra_progress import FLOORS as FLOOR_CHOICES
+except ImportError:  # loaded by path from a worktree without the progress helper (independent guard)
+    FLOOR_CHOICES = tuple(f'{n}F' for n in range(1, 8))
 
 
 def strict_guard(before, after, source, provenance, *, caster_factory=EmbreeCaster, on_view=None):
