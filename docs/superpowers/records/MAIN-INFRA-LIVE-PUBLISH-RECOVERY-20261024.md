@@ -1,0 +1,7 @@
+# Live publisher connection recovery
+
+The owned publisher57300 exited after an SSH connection timeout at20:01Z, leaving the public snapshot stale. A direct SSH check later succeeded. Root republished canonical actual status with the existing remote helper at20:50:53Z; public HTTP200 confirmed1F blocked with no candidate link,2F saved38134 awaiting validation, and3F diagnostic17092 with native failure retained.
+
+The network block now returns explicit upload/publish success or failure. A failed upload skips the remote publisher; failures and command exceptions return to the existing30-second retry loop. Both network commands use ConnectTimeout10 and bounded5-second keepalive/one failed reply. Publication health records the actual result and last successful delivery. Worker PID/creation and canonical-validation errors still terminate before publication. The false hardcoded global1F E3 preservation claim is removed.
+
+Test-first evidence: the isolated PowerShell behavior test failed with Missing retry-safe publication function on the original code. After implementation it passed upload failure, later retry recovery, remote failure, exception, successful upload-plus-publish, bounded networking and retained identity guards. The test extracts only the actual publication function and mocks scp/ssh; it performs no remote action or model operation. The complete runtime parsed without errors. Actual owned-publisher rollout and two public advancing timestamps are pending at this commit.

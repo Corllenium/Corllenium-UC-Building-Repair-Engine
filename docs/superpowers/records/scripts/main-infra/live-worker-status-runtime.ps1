@@ -1,3 +1,18 @@
+function Invoke-UcStatusPublication {
+    $stage='upload'
+    try {
+        $output=@(& scp -q -P 27015 -i 'C:/Users/Future26/.ssh/corllenium_siege_ed25519' -o IdentitiesOnly=yes -o BatchMode=yes -o ConnectTimeout=10 -o ServerAliveInterval=5 -o ServerAliveCountMax=1 -o LogLevel=ERROR -o StrictHostKeyChecking=yes -o UserKnownHostsFile=deploy/known_hosts "$taskRoot/data/main-infra-fresh/current.json" 'devenvir@sv70.ifastnet.com:/home/devenvir/corllenium/data/main-infra-current-codex-20261023.json' 2>&1)
+        $code=$LASTEXITCODE
+        if($code -ne 0){return [pscustomobject]@{Succeeded=$false;Stage=$stage;ExitCode=$code;Output=($output -join "`n")}}
+        $stage='publish'
+        $output=@(& ssh -p 27015 -i 'C:/Users/Future26/.ssh/corllenium_siege_ed25519' -o IdentitiesOnly=yes -o BatchMode=yes -o ConnectTimeout=10 -o ServerAliveInterval=5 -o ServerAliveCountMax=1 -o LogLevel=ERROR -o StrictHostKeyChecking=yes -o UserKnownHostsFile=deploy/known_hosts devenvir@sv70.ifastnet.com 'python3 /home/devenvir/corllenium/data/publish-workers-remote.py' 2>&1)
+        $code=$LASTEXITCODE
+        return [pscustomobject]@{Succeeded=($code -eq 0);Stage=$stage;ExitCode=$code;Output=($output -join "`n")}
+    } catch {
+        return [pscustomobject]@{Succeeded=$false;Stage=$stage;ExitCode=$null;Output=$_.Exception.Message}
+    }
+}
+
 $ErrorActionPreference='Stop'
 $taskRoot='D:/PROJECTS/UC MODEL FIXER'
 $taskRun="$taskRoot/.claude/worktrees/MAIN-INFRA-E3-20261023/data/main-infra-e3/run-20261023"
@@ -59,7 +74,7 @@ details='; '.join(f+': '+str(doc['floors'][f].get('blocker','failed')) for f in 
 doc.update(updated_at=now,heartbeat_at=now,state='running' if running else ('failed' if failed else 'reviewing'),step=('Actual checked engines running on '+','.join(running)+('; '+details if details else '')) if running else ('Engine checks stopped; '+details if failed else 'Engine workers finished; independent candidate review follows'))
 active=','.join(running)
 doc['next_action']=(f'Finish the active {active} repair and independently validate its saved output. ' if active else 'Independently validate saved output before publishing a new candidate. ')+ 'Run queued retries sequentially with fresh memory checks. Claude Code owns 4F-7F.'
-doc['step']+=';1F E3 preservation PASS, remaining targets awaiting new independent measurement;Claude Code owns4F-7F'
+doc['step']+='; Claude Code owns 4F-7F'
 source_refs=root/'data/siege-live-20261023/sources-published.json'
 if source_refs.exists():
     sources=json.loads(source_refs.read_text())
@@ -91,6 +106,7 @@ for floor in ('4F','5F','6F','7F'):
 write_progress(path,doc)
 print(json.dumps(dict(updated_at=now,running=running,floors={f:doc['floors'][f]['state'] for f in ('2F','3F')})))
 '@
+$taskLastSuccess=$null
 do {
     $taskObserved=@{}
     $taskAlive=0
@@ -133,9 +149,13 @@ do {
     $env:UC_MODEL_WORKER_OBSERVATIONS=ConvertTo-Json $taskObserved -Compress
     & "$taskRoot/.venv/Scripts/python.exe" -B -c $taskPython
     if($LASTEXITCODE -ne 0){throw 'Canonical progress validation failed'}
-    & scp -q -P 27015 -i 'C:/Users/Future26/.ssh/corllenium_siege_ed25519' -o IdentitiesOnly=yes -o BatchMode=yes -o LogLevel=ERROR -o StrictHostKeyChecking=yes -o UserKnownHostsFile=deploy/known_hosts "$taskRoot/data/main-infra-fresh/current.json" 'devenvir@sv70.ifastnet.com:/home/devenvir/corllenium/data/main-infra-current-codex-20261023.json'
-    if($LASTEXITCODE -ne 0){throw 'Worker feed upload failed'}
-    & ssh -p 27015 -i 'C:/Users/Future26/.ssh/corllenium_siege_ed25519' -o IdentitiesOnly=yes -o BatchMode=yes -o LogLevel=ERROR -o StrictHostKeyChecking=yes -o UserKnownHostsFile=deploy/known_hosts devenvir@sv70.ifastnet.com 'python3 /home/devenvir/corllenium/data/publish-workers-remote.py'
-    if($LASTEXITCODE -ne 0){throw 'Live worker status publication failed'}
+    $publication=Invoke-UcStatusPublication
+    if($publication.Succeeded){$taskLastSuccess=[datetime]::UtcNow.ToString('o')}
+    $health=[ordered]@{observed_utc=[datetime]::UtcNow.ToString('o');succeeded=$publication.Succeeded;stage=$publication.Stage;exit_code=$publication.ExitCode;last_success_utc=$taskLastSuccess;message=$publication.Output}
+    $healthPath="$taskRoot/data/siege-live-20261023/publish-health.json"
+    $healthTmp="$healthPath.$PID.tmp"
+    [IO.File]::WriteAllText($healthTmp,($health|ConvertTo-Json -Depth 4),[Text.UTF8Encoding]::new($false))
+    if([IO.File]::Exists($healthPath)){[IO.File]::Replace($healthTmp,$healthPath,$null)}else{[IO.File]::Move($healthTmp,$healthPath)}
+    Write-Output ($health|ConvertTo-Json -Depth 4 -Compress)
     Start-Sleep -Seconds 30
 } while($true)
