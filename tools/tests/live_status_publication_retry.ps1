@@ -47,3 +47,26 @@ $source=[IO.File]::ReadAllText($RuntimePath)
 Assert (-not $source.Contains('1F E3 preservation PASS')) 'Global status must not assert the withdrawn earlier pass'
 Assert ($source.Contains("throw 'Worker PID changed; refusing stale publication'") -and $source.Contains("throw 'Canonical progress validation failed'")) 'Identity and canonical-validation failures must remain terminal'
 'PASS: upload failure, retry recovery, remote failure, exception, success, bounded networking and retained identity guards'
+
+$healthCode=[regex]::Match($source,'(?ms)^    \$healthTmp=.*?(?=^    Write-Output \(\$health\|)').Value
+Assert (-not [string]::IsNullOrWhiteSpace($healthCode)) 'Real runtime health writer must be exercised'
+$fixture=Join-Path (Join-Path (Get-Location) 'data/tmp') ('status-health-'+[guid]::NewGuid().ToString('N'))
+$null=New-Item -ItemType Directory -Path $fixture
+$healthPath=Join-Path $fixture 'health.json'
+$health=[ordered]@{observed_utc='first';succeeded=$false;stage='upload';exit_code=255;last_success_utc=$null;message='first iteration'}
+Invoke-Expression $healthCode
+$firstText=[IO.File]::ReadAllText($healthPath)
+Assert ((ConvertFrom-Json $firstText).observed_utc -eq 'first') 'First health write must create readable JSON'
+$shared=[IO.FileShare]::ReadWrite -bor [IO.FileShare]::Delete
+$oldHandle=[IO.File]::Open($healthPath,[IO.FileMode]::Open,[IO.FileAccess]::Read,$shared)
+try {
+ $health=[ordered]@{observed_utc='second';succeeded=$true;stage='publish';exit_code=0;last_success_utc='second';message='recovered iteration'}
+ Invoke-Expression $healthCode
+ $actual=Get-Content -Raw -LiteralPath $healthPath|ConvertFrom-Json
+ Assert ($actual.observed_utc -eq 'second' -and $actual.succeeded -and $actual.exit_code -eq 0) 'Second health write must atomically replace readable JSON'
+ $oldReader=[IO.StreamReader]::new($oldHandle,[Text.Encoding]::UTF8,$true,1024,$true)
+ try {$oldText=$oldReader.ReadToEnd()}finally{$oldReader.Dispose()}
+ Assert ($oldText -eq $firstText) 'Open old-file handle must retain original content after atomic replacement'
+ Assert (-not (Test-Path -LiteralPath "$healthPath.$PID.tmp")) 'Successful replacement must consume temporary file'
+} finally {$oldHandle.Dispose()}
+'PASS: real first/second atomic health writes and old-handle preservation; fixture='+$fixture

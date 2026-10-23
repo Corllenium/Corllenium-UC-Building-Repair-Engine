@@ -155,7 +155,7 @@ do {
     $healthPath="$taskRoot/data/siege-live-20261023/publish-health.json"
     $healthTmp="$healthPath.$PID.tmp"
     [IO.File]::WriteAllText($healthTmp,($health|ConvertTo-Json -Depth 4),[Text.UTF8Encoding]::new($false))
-    if([IO.File]::Exists($healthPath)){[IO.File]::Replace($healthTmp,$healthPath,$null)}else{[IO.File]::Move($healthTmp,$healthPath)}
+    if([IO.File]::Exists($healthPath)){[IO.File]::Replace($healthTmp,$healthPath,[NullString]::Value)}else{[IO.File]::Move($healthTmp,$healthPath)}
     Write-Output ($health|ConvertTo-Json -Depth 4 -Compress)
     Start-Sleep -Seconds 30
 } while($true)
