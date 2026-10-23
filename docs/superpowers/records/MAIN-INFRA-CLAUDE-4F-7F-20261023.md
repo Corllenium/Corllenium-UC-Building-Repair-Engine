@@ -82,3 +82,12 @@ sites and 968 rolled back, every rollback reason `covered`; output 21,116 triang
 8-14 triangles). Wall 15,060 s. Renders E3 vs E4: at most 143 px per view. Conclusion: coincident twin layers (the
 flicker defects) block the merge because the merged triangle covers the twin's samples; a coincident-layer culling
 stage (E5) must run before E4, and E4 must refuse regions that grow. Candidate kept at `e4/7F/` as evidence only.
+
+## E5 trial on 7F and owner decision (2026-10-24 05:15 +08)
+E5 (coincident-layer cull, same-facing only) on the 7F E3 candidate: double_layers 4,783 pairs, all opposite-facing,
+0 same-facing → 0 edits (16 s). Error census on that candidate: 5,556 flicker faces, 4,974 of them also `hidden`
+(128-direction census): back-to-back coincident sheets, the solid-facing twin lying on its visible twin. E3 never
+proposes them (shared-plane depth tie makes their samples "seen"); E5 skipped them by the opposite-facing rule.
+Owner decision (chat): the engine may remove the solid-facing twin regardless of look, with an explicit, opt-in
+Validator allowed-change class `coincident_backface_removed` (strict default unchanged). Implementation on branch
+`claude/MAIN-INFRA-E4-MERGE-20261023`. The direct E4 run started from the unchanged E5 candidate was stopped.
