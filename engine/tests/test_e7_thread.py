@@ -14,7 +14,7 @@ def seam():
         [[0, 1, 2], [3, 0, 4]], [[0, 1, 2], [3, 4, 5]],
         materials=('wall', 'trim'), face_material=[0, 1], coord_decimals=12)
     mesh.physical_quanta = (.01, .01, .01)
-    mesh.normals = np.array([[0, 0, 1], [0, .6, .8], [.6, 0, .8], [0, 0, -1]], float)
+    mesh.normals = np.array([[0, 0, 1], [0, 0, 1], [0, 0, 1], [0, 0, -1]], float)
     mesh.face_vn = np.array([[0, 1, 2], [3, 3, 3]])
     return mesh
 
@@ -44,13 +44,13 @@ def test_existing_edge_is_split_at_used_vertex_without_rebuilding_neighbour():
         np.testing.assert_array_equal(getattr(mesh, key), value)
 
 
-def test_uv_and_normals_interpolate_source_triangle_and_keep_shared_seam():
+def test_uv_interpolates_source_triangle_and_constant_normals_keep_shared_seam():
     mesh = seam()
     edits, _ = planned(mesh)
     np.testing.assert_allclose(edits[0].new_face_uv,
         [[[.2, .1], [1.2, .1], [.2, 2.1]], [[1.2, .1], [2.2, .1], [.2, 2.1]]])
     np.testing.assert_allclose(edits[0].new_face_normal,
-        [[[0, 0, 1], [0, .3, .9], [.6, 0, .8]], [[0, .3, .9], [0, .6, .8], [.6, 0, .8]]])
+        [[[0, 0, 1]] * 3] * 2)
     after, _ = apply_edits(mesh, edits)
     np.testing.assert_array_equal(after.uvs[after.face_vt[0]], [[9, 9], [8, 9], [9, 8]])
     np.testing.assert_array_equal(after.normals[after.face_vn[0]], [[0, 0, -1]] * 3)
@@ -158,3 +158,36 @@ def test_default_checked_wrapper_rolls_back_faulty_visible_uv_cut(monkeypatch):
     assert result.checks[0]['final'] == 'NOTHING KEPT'
     np.testing.assert_array_equal(result.mesh.face_v, mesh.face_v)
     np.testing.assert_array_equal(result.mesh.face_vt, mesh.face_vt)
+
+
+@pytest.mark.parametrize('order', [(0, 1, 2, 3), (1, 0, 2, 3), (3, 2, 1, 0)])
+def test_pairwise_overlap_cannot_hide_behind_disjoint_tilted_seed(order):
+    from types import SimpleNamespace
+    import shapely
+    from engine.repair.engines.e7_thread import _overlapping_faces
+    positions = np.array([[-10, -100, -.1], [10, -100, .1], [-10, -90, -.1],
+                          [0, 0, 0], [4, 0, 0], [0, 4, 0], [1, 0, 0],
+                          [2, 0, 0], [2, -2, 0]], float)
+    original_faces = np.array([[0, 1, 2], [3, 4, 5], [4, 5, 6], [7, 3, 8]])
+    assert shapely.Polygon(positions[original_faces[1], :2]).intersection(
+        shapely.Polygon(positions[original_faces[2], :2])).area == 6.0
+    faces = original_faces[list(order)]
+    mesh = _mesh('tilted-seed', positions, [], faces, np.full((4, 3), -1),
+                 materials=('a', 'b', 'c', 'd'), face_material=list(order), coord_decimals=12)
+    mesh.physical_quanta = (.01, .01, .01)
+    topo = SimpleNamespace(positions_w=positions, face_w=faces, quanta=np.array([.01] * 3),
+                           face_region=np.arange(4))
+    expected = {order.index(1), order.index(2)}
+    assert _overlapping_faces(topo) == expected
+    edits, report = planned(mesh)
+    assert all(set(edit.faces).isdisjoint(expected) for edit in edits)
+    assert report['refused']['overlap'] == 2
+
+
+def test_varying_source_normals_are_refused_before_vertex_normalization_can_change_shading():
+    mesh = seam()
+    mesh.normals[1] = [0, .6, .8]
+    mesh.normals[2] = [.6, 0, .8]
+    edits, report = planned(mesh)
+    assert edits == []
+    assert report['refused']['varying source normals'] == 1

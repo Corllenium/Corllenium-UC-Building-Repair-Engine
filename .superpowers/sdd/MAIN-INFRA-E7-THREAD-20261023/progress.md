@@ -9,3 +9,7 @@
 - Related geometry/attribute/kernel verification: 191 passed in 67.52s, exit 0.
 - Small fixture readback and actual engine QA image inspected. 2 -> 3 triangles, one kept site, same material names/geometry; UV roundtrip max 2.22e-16, normal error 0. Generic six-decimal UV/vn writer is not claimed adequate for arbitrary fresh cuts.
 - API and required future input/serialization/native/full-validation proof recorded in MAIN-INFRA-E7-THREAD-20261023.md. No real floor run or candidate output.
+- Independent controller review requested changes: greedy plane representatives could hide a true 6.0-area overlap; varying source normals could change renderer shading after vertex normalization. Main queue status changes-requested retains Codex-E7 holder.
+- Regression RED: 2 failed, 2 passed, 17 deselected in 2.04s; focused corrected GREEN 21 passed in 2.35s. Pairwise two-plane admission replaces only greedy grouping; constant normals copied exactly, varying normals refused. No engine/guard/Validator thresholds changed.
+
+Corrected related verification: `195 passed in 80.12s (0:01:20)`, exit 0, using the same seven named test files with basetemp `data/test-tmp/e7-review-related/run`. No real-floor run.

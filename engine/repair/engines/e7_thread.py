@@ -8,7 +8,8 @@ import numpy as np
 import shapely
 
 from engine.fixes.merge import _barycentric, _thread_output, thread_tolerance
-from engine.fixes.overlap import _polygons, plane_groups
+from engine.detectors.fragments import _box_pairs
+from engine.fixes.overlap import PLANE_PARALLEL_DOT
 from engine.repair.types import Edit
 from engine.topo.adjacency import degenerate_mask
 from engine.topo.planes import plane_basis
@@ -16,16 +17,27 @@ from engine.topo.weld import axis_quanta
 
 
 def _overlapping_faces(topo):
+    ids = np.flatnonzero(topo.face_region >= 0)
+    triangles = topo.positions_w[topo.face_w[ids]]
+    if len(ids) < 2:
+        return set()
+    normal = np.cross(triangles[:, 1] - triangles[:, 0], triangles[:, 2] - triangles[:, 0])
+    normal /= np.linalg.norm(normal, axis=1)[:, None]
+    tolerance = 1.5 * float(topo.quanta.max())
+    pairs = _box_pairs(triangles.min(axis=1) - tolerance, triangles.max(axis=1) + tolerance)
     blocked = set()
-    for faces, normal, origin in plane_groups(topo, 1.5 * float(topo.quanta.max())):
-        basis = np.stack(plane_basis(normal), axis=1)
-        polys, _areas = _polygons(topo.positions_w, topo.face_w, faces, origin, basis)
-        left, right = shapely.STRtree(polys).query(polys, predicate='intersects')
-        upper = left < right
-        left, right = left[upper], right[upper]
-        shared = shapely.area(shapely.intersection(polys[left], polys[right])) > 0
-        blocked.update(int(face) for face in faces[left[shared]])
-        blocked.update(int(face) for face in faces[right[shared]])
+    for a, b in pairs:
+        if abs(float(normal[a] @ normal[b])) <= PLANE_PARALLEL_DOT:
+            continue
+        if (np.abs((triangles[b] - triangles[a, 0]) @ normal[a]).max() > tolerance
+                or np.abs((triangles[a] - triangles[b, 0]) @ normal[b]).max() > tolerance):
+            continue
+        for left, right in ((a, b), (b, a)):
+            basis = np.stack(plane_basis(normal[left]), axis=1)
+            polygons = shapely.polygons((triangles[[left, right]] - triangles[left, 0]) @ basis)
+            if shapely.area(shapely.intersection(polygons[0], polygons[1])) > 0:
+                blocked.update((int(ids[a]), int(ids[b])))
+                break
     return blocked
 
 
@@ -70,6 +82,10 @@ def _attributes(mesh, source, weights, index_name, table_name):
     values = getattr(mesh, table_name)[indices]
     if not np.isfinite(values).all():
         raise ValueError('nonfinite corner attributes')
+    if table_name == 'normals':
+        if not (values == values[0]).all():
+            raise ValueError('varying source normals')
+        return np.broadcast_to(values[0], (*weights.shape[:2], 3)).copy()
     return weights @ values
 
 
