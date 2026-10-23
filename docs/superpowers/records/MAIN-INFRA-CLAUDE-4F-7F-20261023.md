@@ -74,3 +74,11 @@ Dashboard state 7F: `blocked`, evidence under `/models/main-infra/<rev>/7F/main-
 - Codex's live-site uploader rebuilds the status file without `freshMainInfraUpper`; the live page needs the merged
   dashboard build (repo 02 branch `claude/main-infra-fresh-live-20261023`, 6ba80fd) and a separate upload of this key
   and the `models/main-infra/.../main-infra-claude-4f-7f-20261023/` previews.
+
+## E4 coplanar-merge trial on 7F (2026-10-24, branch claude/MAIN-INFRA-E4-MERGE-20261023)
+Input: 7F E3 candidate (20,625 triangles). 1,243 coplanar regions; a full merge would give 7,339 triangles.
+Site judge: first pass 1,096 failing (textures covered 194, nothing_deleted covered 194), confirm PASS with 275 kept
+sites and 968 rolled back, every rollback reason `covered`; output 21,116 triangles (123 kept regions grew, 2 faces →
+8-14 triangles). Wall 15,060 s. Renders E3 vs E4: at most 143 px per view. Conclusion: coincident twin layers (the
+flicker defects) block the merge because the merged triangle covers the twin's samples; a coincident-layer culling
+stage (E5) must run before E4, and E4 must refuse regions that grow. Candidate kept at `e4/7F/` as evidence only.
