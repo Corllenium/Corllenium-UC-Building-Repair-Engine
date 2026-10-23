@@ -103,3 +103,41 @@ scripts/main-infra/test_live_worker_runtime.py.
 remain prepared, not started. Launch gate13:43/13:47 had4.173/4.493GiB commit
 headroom; no new heavy job was started into that margin. No foreign app killed.
 Codex1F-3F and Claude4F-7F remain separate. UI filter LIVE; no floor accepted.
+
+## 22:15 +08 — source fix committed and actual 2F retry launched
+
+Source-saving fix94dc8a4b54da572c703f35678bc1165bbbda91a9 is committed in the
+separate main-infra-e7-source-proof worktree. Only production file changed is
+serializer tools/main_infra_e7_serialization.py, SHA6456ac625441ce9c2649e088247ba73e094995858b074a127d7a54292365a44a.
+49focused tests pass locally7.09s and independently5.77s. All273 source cuts
+accepted, zero rejected, all628 donor K1 records matched. Actual all273 receipt
+5ef4f7d5a395f26ba1284819a35223e0c83a45e2a2dd02f0e88637d4c21f9e3b;
+independent linkageb651f602beeee46ed55f4ddeb42804a7a50dc35b7cf954c9f517390ce0b53219.
+All11 committed evidence files read/hashchecked. Jobawaitingreview, no core,
+weights, guard, signedValidator or threshold change and no saved new1Fmodel.
+New attempt3 checked-subset/checkpoint implementation is in a separate claimed
+job/worktree; no old PASS may be attached to reconstructed geometry.
+
+Owner replied that they would free memory. Root measured recovery, initially
+7.607/7.736GiB; strict8 and7.5GiB trial gates returned NOTSTARTED and wrote no
+worker/candidate. After assessment the operational one-worker gate is7GiB,
+with three fresh samples; this is not a model guard tolerance. Actual successful
+launch samples at14:13:09/10/11 UTC were8.056/7.919/8.187GiB, physical available
+4926/4763/5031MiB. Frozen code531769cad83dd6d03214a94cbd21e0209f8f2f33,
+runtimea4898bdd79b192b20bb1c40afd31d1623dd3c3d28f06e8fd33c4c7a35ef9190f,
+2Fmaterialsf06c1c87d9ceee46e3a5d1c4241059d86dc2bf7e5bf06d09c9f3a95433024df8
+were checked before launch. No overwrite or prior failure deletion.
+
+ACTUAL2F E3 attempt2 PID41648, creation14:13:11.8254166Z, exec73109, input56828,
+state running_checked_E3. New private run is E3worktree/data/main-infra-e3/
+run-20261023-attempt2, console main/data/tmp/main-infra-2F-attempt2-console.txt.
+Observerexec37006 records resources-2F.jsonl. At14:15:10 workerprivate596MiB,
+peak1341MiB, systemheadroom6.555GiB. Bounded150-250MiB fixture window granted
+to attempt3builder; no second heavy geometry/guard/native/Validator/browser.
+
+Rootsolepublisher60916/start13:46:23.0224340Z/exec42942 reads new atomic
+extra-e3-workers.json PID/start/path. Actual public14:13:57 reports2Fcleaning,
+PID41648/alive/CPU41.75, overallrunning. 1Ffailure remains sourceboundary;
+prior preservedE3inspectionasset remains unchanged. 3F remains its old failed
+attempt until its actual serial retry. Separate independent2F caller is being
+prepared, not run. Codex1F-3F / Claude4F-7F; no accepted floor.

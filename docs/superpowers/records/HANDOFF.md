@@ -25,6 +25,22 @@ run the latest `.skp` of each file must be in `OBJ FIXED RESULT/` for the owner 
 
 ## 2. Current state (2026-09-26 00:15, written by the Claude controller)
 
+2026-10-23 22:15 +08: actual 2F indexed E3 attempt2 RUNNING PID41648,
+creation14:13:11.8254166Z, exec73109; frozen component531769c and runtimea4898bdd.
+Fresh56828 input, exact2F materialsf06c1c87, new run-20261023-attempt2 namespace.
+User freed memory; three launch samples8.056/7.919/8.187GiB. Operational gate
+is7GiB with one heavy worker; this changes no signed guard/validation threshold.
+Memory observerexec37006 logs actualprocesspeak/systemcommit. At14:15:10,
+workerprivate596MiB/peak1341MiB, headroom6.555GiB. Source-only After remains
+empty until actual saved candidate and independent proof. Public14:13:57
+confirms2Fcleaning/PID41648/alive/CPU41.75. Sole publisher60916 creation
+13:46:23.0224340Z/session42942 uses actual retry paths;3F remains oldfailed
+attempt awaiting serial retry, Claude4F-7F separate.
+1F source-saving fix committed94dc8a4 (serializer only), local/independent49
+tests pass, all273exactsourcepreflightaccepted/reject0, reviewclear. No new
+1Fcandidate saved. New attempt3 subset/checkpoint job is in bounded TDD;
+freshdefaultKernel checks and independent original15856 proof remain required.
+
 2026-10-23 21:50 +08 supersedes earlier running entries: actual 1F E7 attempt2
 exited 13:36:26 UTC after default kernel confirmation PASS (273 kept/355 rolled
 back), then failed source-frame serialization with ValueError: source boundary.
