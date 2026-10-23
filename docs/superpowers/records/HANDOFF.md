@@ -25,11 +25,13 @@ run the latest `.skp` of each file must be in `OBJ FIXED RESULT/` for the owner 
 
 ## 2. Current state (2026-09-26 00:15, written by the Claude controller)
 
-2026-10-23 checked E3 qualification: parent fresh1F/4F full independent physical
-precision runs preserve textures/visible coverage but fail signed flicker/crack
-targets. New isolated MAIN-INFRA-E3-PILOT-20261023 has18passing wrapper/source
-integrity tests, including real default E3 facade fixture. No real E3 repair has
-run. Saved survivor proof and independent review precede any real1F attempt.
+2026-10-23 17:40 +08: actual checked E3 engine is running on fresh 1F (15856
+triangles), PID28024. This is the real repair kernel, not another duplicate-only
+pass. Output is data/main-infra-e3/run-20261023/1F in this worktree; worker status
+is its sibling worker-1F.json. The separate validator will run the strict26 guard,
+native paired renders and full signed checks on saved output. Binding fbaa637 has
+70 focused passes; the source/candidate preview extension has7 passes. No repair
+result or floor acceptance yet. Preserve all earlier unchanged pilot evidence.
 
 **Update 2026-10-08 night (the Jev + mods controller session): "Jev on the VPS" is built and merged; Jev stays off.**
 - **`feat-dashboard` = e2a37ee:** `feat/jev-vps` is merged.

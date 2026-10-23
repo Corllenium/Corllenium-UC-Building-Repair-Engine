@@ -1,5 +1,22 @@
 # Ledger: MAIN-INFRA-E3-PILOT-20261023
 
+- Actual repair launched2026-10-23 17:40 +08: existing run_checked_e3 on verified
+  fresh1F,15856triangles, original1metre/block frame, default profile/site judge,
+  validate_sites=True. PID28024. One geometry worker; no original source write.
+  Saved pair will use exact source survivor indices. Independent guard/full
+  validation/native QA assigned. No result/acceptance claimed while running.
+- Binding fbaa637: RED10 then expanded RED19/1pass; GREEN70passed34.01s over
+  wrapper/serialization/physical/binding suites. Only E3 removals and confirmed
+  site checks; rollback retained; unknown contracts refused. Source map/log SHA
+  and saved arrays verified in both frames. No guard/target/default changes.
+- Preview extension: valid RED2 (earlier missing basetemp parent was setup error,
+  corrected); GREEN7passed2.69s including unchanged5 existing preview regressions.
+  Explicit checked-survivor route; no fabricated full-coverage assertion.
+- Prior full-suite evidence retained: parent availableengine/tools1916passed,
+  1skipped,1xfailed (two absent-module collection files ignored). Signedbase full
+  run2149passed,2failed,1xfailed: unchanged E1 imports Validator; Unity mirror
+  preflight lacks matching importer. Neither failure is hidden or fixed here.
+
 - Saved original-source pair: RED16 plus unsigned ordering RED1, then combined
   GREEN35passed19.69s. Exact original arrays, corner/winding/material-name mapping,
   no inverse positions, immutable outputs and mismatched frame refusal. Mapping
