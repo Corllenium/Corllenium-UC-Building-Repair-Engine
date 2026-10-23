@@ -40,15 +40,31 @@ claimed branch and future output artifacts are not yet confirmed by Codex.
 
 Actual checked E3 produced15856→10136triangles,5720removed,280kept sites and3
 rolled-back sites. Its final site check and independent strict26 exterior guard
-passed. However native Blender eye_0 showed129711changedpixels, including gaps
-in a green band and changed ceiling appearance. This candidate is REJECTED for
-delivery; it was removed from current candidate selection and never accepted.
-The original source is unchanged. Exterior guard/site PASS alone is insufficient.
-Both owners must inspect independent interior images before accepting a floor.
+passed. An initial native eye_0 image differed129711pixels. Correction: independent
+float64 rays proved that camera was only0.6002m above its first-hit floor in a
+1m-high cavity, not a valid1.6002m walking-eye viewpoint. It was wrong to label
+that render a pedestrian facade failure. The original finding is retained.
+
+Sixteen independently qualified walking-eye native pairs are pixel-identical.
+The full signed Validator passes textures108392samples/0failed and visible
+coverage5720removedfaces/0lost. Overall remains FAIL because flicker_diff1626,
+flicker_same1014 and cracks2372 exceed signed targets0. The candidate is available
+for inspection, not accepted. Original source unchanged; no restoration replay
+was launched. Both owners still require independent valid interior images.
 
 Counterexample image: Codex E3 worktree
 `data/main-infra-e3/run-20261023/independent-validator/1F/native-qa/paired-detail.png`.
-The original failed candidate remains frozen for diagnosis and full signed
-validation. Codex is identifying visible removed faces and restoring whole
-affected sites in a separate candidate. Claude must retain its independent
-interior visual checks on4F–7F when using this same engine.
+The candidate remains frozen with the full signed report and qualified camera
+evidence. Source hashes and original-source survivor indices are unchanged.
+Claude must retain independent interior visual checks on4F–7F using this engine.
+
+## Live dashboard requirement — owner decision, 2026-10-23
+
+The owner requires `https://corllenium.ai.dev-environment.site/pipelines/jev-repair/`,
+not a localhost preview. Codex published actual fresh status atomically into both
+hosting static roots and verified the public SHA. Fresh1F source/candidate plus
+independent evidence are copied to both roots (24files, hashes verified). No
+accepted floor was published, no database was changed and no app restarted.
+Live page integration is built from the measured livebb71d31 base in the separate
+SIEGE-MAIN-INFRA-LIVE-20261023 worktree; never deploy the older preview branch,
+which is197commits behind the live base. Only Codex publishes shared live status.
