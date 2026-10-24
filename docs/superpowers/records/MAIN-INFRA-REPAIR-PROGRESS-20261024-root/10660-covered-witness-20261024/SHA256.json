@@ -1,0 +1,28 @@
+{
+  "files": [
+    {
+      "file": "current-covered-witness.json",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-10660-covered-witness-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\current-covered-witness\\run-20261024\\current-covered-witness.json",
+      "sha256": "d0651f76d6fd558ba25f7b494de76780c65670a4015b7ed8dc59a9508eeb9525",
+      "bytes": 277622
+    },
+    {
+      "file": "actual-terminal.json",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-10660-covered-witness-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\covered-witness-preflight\\monitor-10660-covered-texture-current-witness-20261024T051634\\result.json",
+      "sha256": "192d82ac32b602d56e34cc6866bfdfa9a5fadb0480b3ecd6edab33cbcdb153f7",
+      "bytes": 756
+    },
+    {
+      "file": "private-delivery-package.json",
+      "source": "D:\\PROJECTS\\UC MODEL FIXER\\data\\tmp\\e10660-validation-evidence\\package.json",
+      "sha256": "3d868babc29785511a7983eee470174a4c80dd1c03545e2f71d8de9910d80a12",
+      "bytes": 85967
+    },
+    {
+      "file": "private-delivery-readback.json",
+      "source": "D:\\PROJECTS\\UC MODEL FIXER\\data\\tmp\\e10660-validation-evidence\\root-copy-readback.json",
+      "sha256": "0a8157e56821cd4db4f73ad423e9b6c06fe59c86f0ea9301a8eb2f8fb6a4b88c",
+      "bytes": 366
+    }
+  ]
+}

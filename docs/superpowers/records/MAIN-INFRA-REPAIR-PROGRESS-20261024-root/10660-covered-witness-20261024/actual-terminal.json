@@ -1,0 +1,16 @@
+{
+  "state": "PROCESS_EXITED_ZERO",
+  "phase": "10660-covered-texture-current-witness",
+  "abort_reason": null,
+  "actual_pid": 58624,
+  "actual_creation_utc": "2026-10-24T05:16:36.2175824Z",
+  "actual_exit_code": 0,
+  "launcher_exit_code": 0,
+  "wall_s": 46.3684115,
+  "HEAD": "33ac143c4e59bbae386398ba486d7020a17d1421",
+  "phase_plan_sha256": "a610b3ddde68472ceb85a57afb3ceaf2e37fc09fe8ce7ea2ed04bd782a2f0900",
+  "all_owned_exited": true,
+  "evidence": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-10660-covered-witness-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\covered-witness-preflight\\monitor-10660-covered-texture-current-witness-20261024T051634",
+  "ended_utc": "2026-10-24T05:17:22.5008348Z",
+  "acceptance": false
+}
