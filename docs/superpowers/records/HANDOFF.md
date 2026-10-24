@@ -25,6 +25,21 @@ run the latest `.skp` of each file must be in `OBJ FIXED RESULT/` for the owner 
 
 ## 2. Current state (2026-09-26 00:15, written by the Claude controller)
 
+### 2026-10-24T01:04:03.804925+00:00 - actual outputs, live reader, private destinations; 1F priority
+
+1F E7 worker61196 exited0/noabort/all-owned-gone at00:37:10.1904324Z. It saved10,831triangles from10,410preservedstage/original15,856:607admitted=265kept+342rollback;3separatequarantines. Root independently rehashed317savedartifactpaths0bad;7copiedassets match;274protectedparentsrepresented. This is savedoutput, not independentpreservation/targetPASS. Separate1F-E7-admission-validation job is claimed and preparing original-source guard/native/signed checks; no passclaim. New10831 privateinspectionpacket is preparing. Displayed10410/reportproof remains distinct.
+
+3F44,972 signed16dd3b: textures305,340samples/0fail;0visiblelost/covered;21ownerpixelviews0failed. ProblemsstillFAIL8305different/14690same/12579cracks; unaccepted. Newmodel and finalreports live:18intermediate+3finalmetadatafiles verified bothroots/publicHTTP. ActualauthenticatedQA35polls200/7materials/15events/triangleedgeschangeboth/noHTTP/pageerrors/no390overflow; root opened actualscreenshots. Old38691fail is historical.
+
+Reader259d4f3 fixed supportedValidator/Publisherroles that hidallfloorrows. ActualRED2FAIL5PASS then33PASS/typecheck/lint/reviewCLEAR/build33routes. Deployed95/95hashesbothroots+95public; APIbb71unchanged; heldstatuspreserved; rollbackbackups. Onlyownpublisher53812paused/resumed62724/start00:43:14.6957028Z/runtime35bfbc56. PrivateSiege f848446 pushed: pendingvsdisplayedcounts and defaultcandidateinspection, REDcount2FAIL1PASS/emptyAfter1FAIL3PASS then40PASS/typecheck/lint/reviewCLEAR. Its deployment waits narrowClaudeerrorfilterbee9709 integration. Fresherrorfacemaps currentlymissing; no fake0orlegacyseed.
+
+2F strict17FAIL remains official. Exactglobal17rays have identicaluniquetruehits; proposedcorrectiona01/cdd167testsPASS/reviewCLEAR. First2actualreferencepairs each26reports EXACTunchanged/strictFAILboth; thirdheldfor1Fpriority. Newindependent2Fprofilea9a2 frozen40PASS/metadata-only0parse, actualguard/native/signedHOLD. Codex1-3/Claude4-7ownershipunchanged.
+
+User requiresprivate delivery. ActualGitHub: SiegePlanningDashboardPRIVATE; BuildingModelRepairPRIVATE; UCBuildingRepairEnginePUBLIC.00c70d4remainslocal/unapproved; earlierc553enginepush alreadypublicbeforelatestrestriction. Allfurtherpublicengineuploadsheld; novisibility/remote/historyrewrite. Existingprivate04modelarchive dirtyforeignstaginguntouched. ActualconfiguredGitfilters reproduced44uniquepublishedpayloads across4manifests with0SHA mismatch:22LFSpaths/16uniqueobjects.
+
+Owner nowprioritizesfinal1Foutput/rightAfter/errorTYPEfilters, thennextfloor. Jevsettings/newcapabilities are being read directlyfromClaudehandoff/currentchanges; no settingssuccessclaimed. Evidence: delivery-update-20261024-0907/SHA256.json, privateSiege docs/handoff/main-infra-live-logs-20261024/. No app/containerrestart/liveDBwrite/sourcefolderwrites.
+
+
 ### 2026-10-24 07:50 SGT - new 3F native pass, 2F surviving-hit diagnosis, 1F source-plane refusal
 
 The new 44,972-triangle 3F native comparison passed all 33 qualified views with zero changed RGBA pixels. The 13 diagnostic views contain two changed pixels, each below ground. Native receipt 5435cf0daab6f12a40572545fbe600007e4b82a9b80f76cd4e94028e46f5f350 binds 647 saved inputs/images, all independently rehashed without mismatch. Root opened paired-detail.png: matched textured wall, floor and green-band geometry; inspected difference panels black. Actual native PID57208 exited0/noabort/all-owned-gone at23:38:31.4551395Z. Original signed validation is now running as actual28780/start23:43:51.7805326Z, phase916548/553pins/defaultSettings/target4117; approved native handle check confirmed its lifetime and CPU before live registration. A sandbox Get-Process false absence was corrected from the real native monitor; no rerun or interruption.

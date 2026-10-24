@@ -1,0 +1,37 @@
+[
+  {
+    "file": "1f-e7-saved-readback.json",
+    "bytes": 103205,
+    "sha256": "b5daaff3509629d08776fcb3db9c14eea9197280686b5e9b5d89fbf124541761"
+  },
+  {
+    "file": "3f-independent-review.json",
+    "bytes": 8719,
+    "sha256": "e40e2aa53128d63b0b52440f5ac1730292dbe642eeb123ae937e38afe4b884ab"
+  },
+  {
+    "file": "3f-live-browser.json",
+    "bytes": 1302,
+    "sha256": "7eab39cbe77deac8c9ddc814f4ea81d1afc47f76769c6086d1dba28d9a29f662"
+  },
+  {
+    "file": "3f-signed-validation.json",
+    "bytes": 494485,
+    "sha256": "16dd3bd6f1f5f52b39aeb07827ecfed131d17bd263a778d47398b439e5601819"
+  },
+  {
+    "file": "git-lfs-44-payloads.json",
+    "bytes": 15632,
+    "sha256": "1021d2f297cfb1df36e711f51ba45f120484fc4e9c5298ab8d83f8de7195a512"
+  },
+  {
+    "file": "publisher-identity.json",
+    "bytes": 693,
+    "sha256": "a0917d02c7fd98cde3c58762eb8320fc3af258137e61ae8b5a38808f3720b06c"
+  },
+  {
+    "file": "reader-live-deployment.log",
+    "bytes": 645,
+    "sha256": "aef5193a377c8e1f75ca3fd3a5d012f70663e2e07096e6e54b745b3b2222372e"
+  }
+]

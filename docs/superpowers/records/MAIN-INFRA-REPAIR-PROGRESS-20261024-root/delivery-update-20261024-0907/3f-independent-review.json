@@ -1,0 +1,163 @@
+{
+  "schema_version": 1,
+  "job_id": "MAIN-INFRA-CLEAN-20261023",
+  "validation_job_id": "MAIN-INFRA-3F-VALIDATE-RETAIN-VISIBLE-20261024",
+  "floor_id": "3F",
+  "source_revision": "7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511",
+  "attempt_namespace": "run-20261024-3F-retain-visible",
+  "reviewer": "/root/main_infra_independent_validator",
+  "verdict": "FAIL",
+  "validator_passed": false,
+  "preservation_passed": true,
+  "strict_guard_passed": true,
+  "native_preservation_passed": true,
+  "problems_passed": false,
+  "inspection_only": true,
+  "floor_accepted": false,
+  "acceptance": false,
+  "before_sha256": "740103bb4197a1270e4c00e38abe9971e12f5c80ebe14502e4acd75148afbc82",
+  "after_sha256": "d51863ee389e02f186b37f488d76fc2b2f500ea8059a27273d5f8118c5b655c3",
+  "source_after_sha256": "7b8a2f0dc74ec546d1ae389b50dc2b9ba4a555870150aae33a00a6a81a674a1c",
+  "input_triangles": 53602,
+  "output_triangles": 44972,
+  "validation_json_sha256": "16dd3bd6f1f5f52b39aeb07827ecfed131d17bd263a778d47398b439e5601819",
+  "validation_sha256": "16dd3bd6f1f5f52b39aeb07827ecfed131d17bd263a778d47398b439e5601819",
+  "post_validation_input_hashes": {
+    "before": "740103bb4197a1270e4c00e38abe9971e12f5c80ebe14502e4acd75148afbc82",
+    "after": "d51863ee389e02f186b37f488d76fc2b2f500ea8059a27273d5f8118c5b655c3",
+    "matches_report": true
+  },
+  "builder_component_commit": "c125cd8ab28fe648491676125e8bc8e67d1c5c3a",
+  "validator_core_commit": "c5537c15b128adbd8ca425e7a4b059029167cd90",
+  "validation_execution_commit": "00c70d444e352f47511dda11214bea390fd4009b",
+  "signed_validator_base": "33606ce94b7d08a09f72539a486aa5a3e293230b",
+  "targets_sha256": "4117f5e22045750fed7c4627ffa6324bf2efe5c14cf9629389a482c960036507",
+  "guard_calculation_commit": "735d762b06ab3d4d9743c81132a3507df54fb350",
+  "guard_compare_sha256": "0603150b2eebf9e3301688e825aef540575e8e688ee66180835df5c5e978dee8",
+  "problem_targets": {
+    "flicker_diff": {
+      "before": 12147,
+      "after": 8305,
+      "target": 0,
+      "status": "FAIL"
+    },
+    "flicker_same": {
+      "before": 20205,
+      "after": 14690,
+      "target": 0,
+      "status": "FAIL"
+    },
+    "reversed": {
+      "before": 0,
+      "after": 0,
+      "target": 0,
+      "status": "PASS"
+    },
+    "hidden": {
+      "before": 32278,
+      "after": 23647,
+      "target": "listed",
+      "status": "REPORT_ONLY"
+    },
+    "loose": {
+      "before": 0,
+      "after": 0,
+      "target": "listed",
+      "status": "REPORT_ONLY"
+    },
+    "open_edges": {
+      "before": 8745,
+      "after": 10540,
+      "target": "listed",
+      "status": "REPORT_ONLY"
+    },
+    "cracks": {
+      "before": 13782,
+      "after": 12579,
+      "target": 0,
+      "status": "FAIL"
+    }
+  },
+  "texture_samples": 305340,
+  "texture_failures": 0,
+  "deleted_floor_faces_measured": 21,
+  "deleted_floor_failures": 0,
+  "signed_evidence_png_count": 0,
+  "native_qualified_views": 33,
+  "native_qualified_different_pixels": 0,
+  "native_diagnostic_views": 13,
+  "native_diagnostic_different_pixels": 2,
+  "retention": {
+    "restored_sites": 263,
+    "original_faces": 6281,
+    "old_rollback_sites": 145,
+    "old_rollback_faces": 7818,
+    "fresh_kept": 1412,
+    "fresh_rolled_back": 0
+  },
+  "source_bindings": {
+    "builder_preparation": {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e3-3f-retain-visible-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e3\\attempt2\\run-20261024-3F-retain-visible\\preparation-3F.json",
+      "sha256": "b62f399728cd09e08cfbecc8306d61628d62d8f6aa972c8ecf26b008a4cd1f62"
+    },
+    "checkpoint_receipt": {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e3-3f-retain-visible-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e3\\attempt2\\run-20261024-3F-retain-visible\\execution-3F\\checked-outcome\\checkpoint-receipt.json",
+      "sha256": "0686c0d39373705c284a1ac9715676ab5cc834e832ee3f4d2b211a8d282f1bf4"
+    },
+    "retention_policy": {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e3-3f-retain-visible-20261024\\05-Corllenium-UC-Building-Repair-Engine\\docs\\superpowers\\records\\MAIN-INFRA-E3-3F-RETAIN-VISIBLE-20261024\\policy.json",
+      "sha256": "ffaf9bf6773076cef324aa5eb305fc4b38deccf173b5f6e4dd536ad15f214899"
+    },
+    "retention_receipt": {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e3-3f-retain-visible-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e3\\attempt2\\run-20261024-3F-retain-visible\\3F\\retention-receipt.json",
+      "sha256": "3eb10f02494a4ef7822fa8c04390ca145fdd4d3a65aa4fff2521fd2df2f212f9"
+    },
+    "run_receipt": {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e3-3f-retain-visible-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e3\\attempt2\\run-20261024-3F-retain-visible\\3F\\run-receipt.json",
+      "sha256": "0dcf07d61a329f31c533de350203988b248ae9e38e8309160718537be897d93f"
+    },
+    "audit": {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e3-3f-retain-visible-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e3\\attempt2\\run-20261024-3F-retain-visible\\3F\\stage-audit.json",
+      "sha256": "e0f54ecfb914ae116de72e6b198b46b9753d044a13a3151a4ee5aa2f44d6f133"
+    },
+    "worker": {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e3-3f-retain-visible-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e3\\attempt2\\run-20261024-3F-retain-visible\\execution-3F\\worker.json",
+      "sha256": "4bb529858706b36547b82851b5977b79562f5ec206a33af057562fddee984fbf"
+    },
+    "worker_terminal": {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e3-3f-retain-visible-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e3\\3f-retain-visible-preflight-attempt2\\monitor-e3-3F-retain-visible-execute-attempt2-20261023T224354\\result.json",
+      "sha256": "f82c09de548e5aca0fac042082c1749b06f19c49a22e9bb6f81ccab2c2ba1d4c"
+    },
+    "asset_receipt": {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e3-3f-retain-visible-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e3\\attempt2\\run-20261024-3F-retain-visible\\3F\\asset-receipt.json",
+      "sha256": "92abd7124a6412f6115e8a2ea18e011ab8bb5d004eab8a3f47e5c835b9724c81"
+    }
+  },
+  "evidence": {
+    "validation": {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-3f-validate-retain-visible-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\iv3f-retained\\run-20261024\\3F\\validation\\validation.json",
+      "sha256": "16dd3bd6f1f5f52b39aeb07827ecfed131d17bd263a778d47398b439e5601819"
+    },
+    "independent_guard": {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-3f-validate-retain-visible-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\iv3f-retained\\run-20261024\\3F\\guard\\independent-guard.json",
+      "sha256": "7f987622766e2c3402d2c03e68468137ed137fc3614cdc5a6d61129a6125ac2c"
+    },
+    "native_readback": {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-3f-validate-retain-visible-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\iv3f-retained\\run-20261024\\3F\\native\\native-readback.json",
+      "sha256": "5435cf0daab6f12a40572545fbe600007e4b82a9b80f76cd4e94028e46f5f350"
+    },
+    "native_paired": {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-3f-validate-retain-visible-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\iv3f-retained\\run-20261024\\3F\\native\\paired\\paired-detail.png",
+      "sha256": "a3c8ae597c6b7dc29ddedb85141835979e4bffb84527937012eaf33f35cdf9f3"
+    },
+    "native_all_views": {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-3f-validate-retain-visible-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\iv3f-retained\\run-20261024\\3F\\native\\paired\\all-views.png",
+      "sha256": "54098ccd66711b2ce7433b449af37a5d814e26bc68b4c7e420232ee5b6923352"
+    }
+  },
+  "terminal_readback": {
+    "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-3f-validate-retain-visible-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\iv3f-retained\\run-20261024\\3F\\terminal-readback.json",
+    "sha256": "698ca9b33ac1f55184c2ce653e14ded72302bc87a2dcb10406a453f979ab4c3b"
+  },
+  "limitation": "Signed target failure forbids floor acceptance. The signed writer emitted no PNGs because preservation failure sites are empty; actual saved native paired images and receipts are retained as visual evidence. Early private inspection receipt remains its immutable PENDING-signed snapshot."
+}

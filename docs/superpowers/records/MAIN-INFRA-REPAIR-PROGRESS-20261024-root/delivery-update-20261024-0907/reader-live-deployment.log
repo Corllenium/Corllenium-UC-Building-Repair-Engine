@@ -1,0 +1,6 @@
+PREFLIGHT_OK main-infra-reader-roles-259d4f3-20261024T003552Z; both old route trees backed up
+FILESYSTEM_OK 95/95 hashes in both roots
+PUBLIC_HASHES 25/95
+PUBLIC_HASHES 50/95
+PUBLIC_HASHES 75/95
+{"deploy_id":"main-infra-reader-roles-259d4f3-20261024T003552Z","build_sha":"259d4f3c3f2aa0b02e2d6ebebc221f61d8bd863d","api_sha_before_after":"bb71d3144c32e237133b4c7d995c39900508f9ab","status_sha256_preserved":"d49b2cd2e6d209f3e1e633fd4f4d4827e657b0cc214804bb4b444b709cfd0c3b","filesystem_hashes_per_root":95,"public_hashes":95,"backup":"/home/devenvir/corllenium/backups/main-infra-reader-roles-259d4f3-20261024T003552Z","app_restart":false}

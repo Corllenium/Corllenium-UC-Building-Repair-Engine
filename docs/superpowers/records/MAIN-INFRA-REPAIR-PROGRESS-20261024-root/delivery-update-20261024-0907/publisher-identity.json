@@ -1,0 +1,11 @@
+{
+  "pid": 62724,
+  "start_utc": "2026-10-24T00:43:14.6957028Z",
+  "runtime_sha256": "35bfbc560b18c2e0a466b44b43d6aa2560fdbac9aee9f369fc29d744161c284d",
+  "component_commit": "e1e95756372cd738c0119bc6644dd93ca6432826",
+  "runtime_path": "D:/PROJECTS/UC MODEL FIXER/data/siege-live-20261023/watch-actual-workers-observations-20261024.ps1",
+  "previous_pid": 53812,
+  "stdout": "D:/PROJECTS/UC MODEL FIXER/data/siege-live-20261023/publisher-after-reader-role-fix-20261024.stdout.log",
+  "stderr": "D:/PROJECTS/UC MODEL FIXER/data/siege-live-20261023/publisher-after-reader-role-fix-20261024.stderr.log",
+  "scope": "Resumed same owned publisher after scoped reader role deployment"
+}
