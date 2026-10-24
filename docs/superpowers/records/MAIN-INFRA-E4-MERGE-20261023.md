@@ -807,3 +807,57 @@ artifacts, which this worker did not do.
    re-judged. The replay keeps the whole region out.
 3. The interior gate (466 px in two views along the trim band edges) stays outside this loop until the renderer and
    the camera projection are available here.
+
+## The E5 independent guard, for the E5-only floors 6F / 5F / 4F (2026-10-24)
+
+The feature commit preceding this record, plus this record. Fixture chain only; no real-floor run from here.
+
+Measured by the coordinator (E5 on the real E3 candidates, `e3_then_e5_cull`): 6F 27,108 -> 24,378 (547 sites kept,
+61 rolled back), 5F 38,113 -> 33,482 (782 kept, 55 rolled back), 4F 52,865 -> 47,752 (785 kept, 91 rolled back). These
+are to be guarded, validated and delivered while the E4 loop runs on 7F.
+
+`tools/e5_independent_guard.py`: the same CLI as the E4 guard (`--root --floor --raw-name --candidate --out --helper
+--job-id --reviewer [--expected-revision] [--original-oracle]`), the same frozen-source manifest, qualification,
+provenance, snapshot and asset checks; the readback is `bind_saved_e5(..., require_guard=False)` (the guard produces the
+verdict the audit's `guard.passed` records; `e5_cull_only` over the baseline or `e3_then_e5_cull` chained through the
+E3 candidate the audit names), which proves positions, UV and normal rows identical, the kept faces identical in both
+frames and the survivor list exactly the BEFORE minus the kept remove sites of the log; then the guard itself re-asserts
+`before.n_faces == kept + e3_removed + e5_removed`, `after.n_faces == kept`, the kept faces' corners identical by the
+baseline ids (`baseline_kept_source_faces`) and the positions identical; assets, looks (`load_looks` over the snapshot
+MTL and the candidate's), material ids rebound by name; then the UNCHANGED `strict_guard` loaded by path from `--helper`
+(`--original-oracle` loads `engine/rays/bounded_brute.py` beside it). `input-readback.json` and
+`independent-guard.json` carry the E3/E4 guards' keys (`removed_triangles` = E3-removed + E5-removed, `new_triangles`
+0, `manifest_files` recorded, `acceptance: false`); exit 0 PASS, 2 FAIL, `failure.txt` on any refusal; the audit is
+never written (the reviewer records the receipt as `guard.passed`, then the Validator runs: `load_physical_pair` already
+dispatches both E5 modes).
+
+Tests `tools/tests/test_e5_independent_guard.py` (6, fixture chain E3 fixture -> real E5 `--from-e3`, fake
+`strict_guard`): chained readback and receipt (input 9, output 4, removed 5 = 1 + 4, kept = the panel, E3 files hashed);
+the original oracle on a pending audit, the audit untouched; a failing guard returns 2 and a changed frozen source is
+refused; tampered `source-faces.json` / `edit-log.jsonl` refused before the guard runs; an E5-only candidate accepted.
+
+### Output (2026-10-24, worktree root, `PYTHONPATH` = it, `-p no:cacheprovider`)
+
+```
+pytest tools/tests/test_e5_independent_guard.py -> 6 passed in 32.65s
+pytest tools/tests -> 371 passed in 283.22s (0:04:43), exit 0   (365 + 6)
+```
+
+### Commands (NOT run here)
+
+```powershell
+$env:PYTHONPATH=(Get-Location).Path
+$PY='D:/PROJECTS/05-Corllenium-UC-Building-Repair-Engine/.venv/Scripts/python.exe'
+$ROOT='D:/PROJECTS/05-Corllenium-UC-Building-Repair-Engine/.claude/worktrees/MAIN-INFRA-CLAUDE-4F-7F-20261023/data/main-infra-fresh/run-claude-4f-7f-20261023'
+$HELPER='D:/PROJECTS/05-Corllenium-UC-Building-Repair-Engine/.claude/worktrees/MAIN-INFRA-CLAUDE-4F-7F-20261023/tools/main_infra_candidate.py'
+# 6F (Embree default)
+& $PY -B -u tools/e5_independent_guard.py --root $ROOT --floor 6F --raw-name "6th floor main infra.obj" --candidate $ROOT/e5/6F --out $ROOT/independent-validator/e5-guard/6F --helper $HELPER --job-id <id> --reviewer <name> [--expected-revision <sha>]
+# 5F and 4F need the original oracle
+& $PY -B -u tools/e5_independent_guard.py --root $ROOT --floor 5F --raw-name "5th floor main infra.obj" --candidate $ROOT/e5/5F --out $ROOT/independent-validator/e5-guard/5F --helper $HELPER --job-id <id> --reviewer <name> --original-oracle
+& $PY -B -u tools/e5_independent_guard.py --root $ROOT --floor 4F --raw-name "4th floor main infra.obj" --candidate $ROOT/e5/4F --out $ROOT/independent-validator/e5-guard/4F --helper $HELPER --job-id <id> --reviewer <name> --original-oracle
+# after the receipt is recorded in the audit as guard.passed, the Validator (BEFORE = baseline, AFTER = the E5 candidate)
+& $PY tools/main_infra_physical_validation.py --raw "$ROOT/raw/6th floor main infra.obj" --reference $ROOT/reference/6F.json --baseline $ROOT/normalized/6F --qualification $ROOT/independent-validator/import-audit/qualification-6F.json --candidate $ROOT/e5/6F --materials $ROOT/independent-validator/preflight/materials-6F.json --out $ROOT/independent-validator/e5-validation/6F --allow coincident_backface_removed
+```
+
+The raw names for 6F / 5F / 4F above follow the 7F pattern and must be checked against `<root>/raw/`; the default
+`--expected-revision` is the E4 guard's frozen 7F revision and must match the floor's `raw-manifest.json`.
