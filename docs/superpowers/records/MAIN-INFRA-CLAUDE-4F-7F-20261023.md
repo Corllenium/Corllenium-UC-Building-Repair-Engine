@@ -100,3 +100,14 @@ proposes them (shared-plane depth tie makes their samples "seen"); E5 skipped th
 Owner decision (chat): the engine may remove the solid-facing twin regardless of look, with an explicit, opt-in
 Validator allowed-change class `coincident_backface_removed` (strict default unchanged). Implementation on branch
 `claude/MAIN-INFRA-E4-MERGE-20261023`. The direct E4 run started from the unchanged E5 candidate was stopped.
+
+## Stage 2 chain #2 on 7F (2026-10-24 07:00-09:30 +08, E4-MERGE branch 614794e)
+E5 (backface_twin 497 + interior_twins 3,738 planned; 412 sites, 223 kept, 189 rolled back: deleted 18,191, uv 3,174,
+look 1,861) 20,625 → 19,731. E4 --allow-growth (3,905 regions, 1,860 changed, refused uv_seam 636; 1,198 sites, 279 kept,
+919 rolled back all `covered`) 19,731 → 20,222. E4 independent guard PASS (holes 0, zfight_tie 2). Validator with
+`coincident_backface_removed`: textures PASS; nothing_deleted FAIL with all counters zero (bug under investigation);
+flicker_diff 1,739, flicker_same 2,772, cracks 4,301 (better than E3-only 2,310 / 3,289 / 4,705); reversed 0 → 36, all
+E4-appended triangles (winding bug). 16 walking-height interior pairs: 466 px (E3-only: 52). Not published.
+Dashboard: stage kinds exported in the E3-candidate id space and attached to the published 7F candidate errors.json
+(backface_twin 382, interior_seam 512, two_sided_sheet 6, e5_rolled_back 3,341, merge_region 1,080, merge_refused 1,145,
+e4_rolled_back 3,170). 6F E5: 27,108 → 25,809 (374 kept, 242 rolled back).
