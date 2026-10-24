@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "independent_job_id": "MAIN-INFRA-1F-E7-NATIVE-RETENTION-VALIDATE-20261024",
+  "reviewer": "/root/main_infra_independent_validator",
+  "validator_component_commit": "8a3307e6c4860a0306ea7c50c24456fb006e8a6e",
+  "source_revision": "7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511",
+  "floor_id": "1F",
+  "attempt_namespace": "run-20261024-1F-native-retention",
+  "counts": {
+    "admitted": 174,
+    "full": 610,
+    "kept": 161,
+    "original": 15856,
+    "output": 10662,
+    "quarantined": 3,
+    "rolled_back": 13,
+    "stage": 10410
+  },
+  "before_sha256": "bed4b7c24b7a3a164381b8e6e0ca0b7e7bf9998e1df7c2782878d23cd1796df3",
+  "after_sha256": "e77235b888bcbc6147cfe66b680c68cde78a3c07d207413780bedce57bb9998e",
+  "source_after_sha256": "4b50576827adceac0efc40a7456f75b6c1c39bc6380c1561bd278d4026880247",
+  "state": "BLOCKED_NATIVE_PRESERVATION",
+  "strict_guard_passed": true,
+  "native_preservation_passed": false,
+  "native_qualified_views": 33,
+  "native_qualified_different_pixels": 1,
+  "native_qualified_walking_different_pixels": 0,
+  "native_qualified_alpha_difference_pixels": 0,
+  "retained_floor_state": "NOT_RUN",
+  "full_signed_state": "NOT_RUN",
+  "mandatory_unchanged_original_count": 723,
+  "associated_kept_sites": [
+    5202
+  ],
+  "associated_original_parents": [
+    7559
+  ],
+  "gpu_cause_proven": false,
+  "acceptance": false,
+  "floor_accepted": false,
+  "evidence": {
+    "prepared": {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-native-retention-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\iv1f-e7-native-retention\\run-20261024\\1F\\prepared-inputs.json",
+      "sha256": "e16e7f49a523c828663457cd03afb9f1d8e5f1f0309f79b72548872b28c4e852"
+    },
+    "strict_guard": {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-native-retention-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\iv1f-e7-native-retention\\run-20261024\\1F\\guard\\independent-guard.json",
+      "sha256": "2dd97c31c0f91da319dcfbfb8ced416a215b0f1d124f2e863f00de3aefd8baee"
+    },
+    "native": {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-native-retention-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\iv1f-e7-native-retention\\run-20261024\\1F\\native\\native-readback.json",
+      "sha256": "fcf066c4f4985995bef64b566af538cda27241ea2d0200eaa222256c806fa2ce"
+    },
+    "native_terminal": {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-native-retention-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\native-retention-validation-preflight\\monitor-1F-E7-native-retention-native-20261024T024202\\result.json",
+      "sha256": "ea98874431621ca8197b14b9850855e0e0984afbeb0d59b3f6efbc3c9c316d31"
+    },
+    "pixel_readback": {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-native-retention-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\native-retention-validation-preflight\\native-saved-pixel-readback.json",
+      "sha256": "1c2a9c2ec350241cfe91718738d0f00fe95d064d7a1b02a061f474e3ed04d035"
+    },
+    "historical_context": {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-native-retention-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\native-retention-validation-preflight\\historical-pixel-context-readback.json",
+      "sha256": "f8eeea4bc53afb9c7bc5cc96120fbbaa289839592f9bfeba9ce0bb4bf8543c11"
+    },
+    "current_pixel_cohort": {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-native-retention-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\native-retention-validation-preflight\\current-single-pixel-cohort.json",
+      "sha256": "6fea0329db9ed72a55efcfe69ba87f220d152cbbb7794f8492621f84fc3dc4c4"
+    }
+  },
+  "hash_mismatches": 0
+}

@@ -1,0 +1,188 @@
+{
+  "schema_version": 1,
+  "census_path": "D:\\LLM_BACKUP\\Codex session\\main-infra-2f-error-census-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\2f-error-census\\run-20261024\\census-receipt.json",
+  "census_sha256": "4360512e07f82ca2ad84cb31769300687d5ad68ba2f05b8d5eb03a3b5ec1501d",
+  "code_commit": "c6e4c1ed6164f7a1120a68b5d51c03d459e03a1d",
+  "acceptance": false,
+  "validation_pass_not_claimed": true,
+  "files": [
+    {
+      "path": "models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/2F/main-infra-clean-20261023/source/errors-20261024-c6e4c1e.json",
+      "sha256": "e1da4288e09a87bf3774fae5e5a9c0ac587e10de00d2714dcd118acbd12e331e",
+      "bytes": 2610135
+    },
+    {
+      "path": "models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/2F/main-infra-clean-20261023/source/errors-20261024-c6e4c1e.raw.json",
+      "sha256": "96d6e3dd4bceea389544317d5631898f5f2be3e121fd31fde20f8328aa514c81",
+      "bytes": 5590097
+    },
+    {
+      "path": "models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/2F/main-infra-clean-20261023/source/preview-errors-20261024-c6e4c1e.json",
+      "sha256": "5060fa3fdf004fa9579292d1fe9b730a7614250b6f4a6b9e227376374668ad4e",
+      "bytes": 4290
+    },
+    {
+      "path": "models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/2F/main-infra-clean-20261023/candidate/errors-20261024-c6e4c1e.json",
+      "sha256": "c954cee05c1238183c0fae7a5e799c07e8885df5f2ea19dee678a50a993728d0",
+      "bytes": 2388951
+    },
+    {
+      "path": "models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/2F/main-infra-clean-20261023/candidate/errors-20261024-c6e4c1e.raw.json",
+      "sha256": "869a39e38130f6a052aff2b2c671a17765c08e43cc93b7376749ff6523276ee0",
+      "bytes": 3528030
+    },
+    {
+      "path": "models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/2F/main-infra-clean-20261023/candidate/preview-errors-20261024-c6e4c1e.json",
+      "sha256": "26509d0d20c1b892404c8befeed82856230e03ae749869433dee1bc7149dd561",
+      "bytes": 4979
+    }
+  ],
+  "roles": {
+    "source": {
+      "base_manifest_path": "D:\\LLM_BACKUP\\Codex session\\main-infra-2f-error-census-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\2f-census-delivery\\base-source-preview.json",
+      "base_manifest_sha256": "92eb78c48c45fbd4ba564023441a4668d17abb928e2c03a73ce876a1212fc7d5",
+      "preview_url": "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/2F/main-infra-clean-20261023/source/preview-errors-20261024-c6e4c1e.json",
+      "preview_file": "models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/2F/main-infra-clean-20261023/source/preview-errors-20261024-c6e4c1e.json",
+      "map_file": "models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/2F/main-infra-clean-20261023/source/errors-20261024-c6e4c1e.json",
+      "raw_file": "models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/2F/main-infra-clean-20261023/source/errors-20261024-c6e4c1e.raw.json",
+      "binding": {
+        "source_revision": "7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511",
+        "run_id": "main-infra-clean-20261023",
+        "floor_id": "MAIN_INFRA_2F",
+        "kind": "source",
+        "obj_sha256": "399663bed0a483cef1300f0df25d97c95f1b49790aa477ac27227f1728080253"
+      },
+      "counts": {
+        "flicker_diff": 20842,
+        "flicker_same": 15577,
+        "reversed": 0,
+        "hidden": 35789,
+        "loose": 0,
+        "open_edges": 7126,
+        "cracks": 9389
+      },
+      "n_faces": 56828,
+      "existing_visual_assets_unchanged": true,
+      "existing_assets": [
+        {
+          "url": "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/2F/main-infra-clean-20261023/source/2nd%20floor%20main%20infra.mtl",
+          "sha256": "f49e1587ca1be5efb8aca4d4b94ee8b5faf7f1067198be52d33271e75a8c2dac"
+        },
+        {
+          "url": "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/2F/main-infra-clean-20261023/source/model.obj",
+          "sha256": "399663bed0a483cef1300f0df25d97c95f1b49790aa477ac27227f1728080253"
+        },
+        {
+          "url": "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/2F/main-infra-clean-20261023/source/textures/littletiles/ltcolored0_-1.png",
+          "sha256": "84fa319f11ad9113f7bc2b1c76a14b62763893bead1b877bb1adf5c16c44e592"
+        },
+        {
+          "url": "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/2F/main-infra-clean-20261023/source/textures/minecraft/concrete_white_-1.png",
+          "sha256": "f42c7be3c52294ead4c69ac0e9ef1bbbbe6bdb4451382c89a65c386709df6171"
+        },
+        {
+          "url": "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/2F/main-infra-clean-20261023/source/textures/minecraft/concrete_white_-15579874.png",
+          "sha256": "14ceba3d0329594e00458bc6ed2aeafa24d9228519994a60d758de2509fee1ad"
+        },
+        {
+          "url": "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/2F/main-infra-clean-20261023/source/textures/minecraft/iron_block_-15586018.png",
+          "sha256": "bbe924f0daed84dd7d27ebf070435ee0b5da67582e3dabdeb01bff2827a236c3"
+        },
+        {
+          "url": "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/2F/main-infra-clean-20261023/source/textures/minecraft/quartz_block_bottom_-1.png",
+          "sha256": "daf3f46f93f7364b1530ec468a7a1d5a02eda1cd0a118e41e93e9c4177791cc1"
+        },
+        {
+          "url": "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/2F/main-infra-clean-20261023/source/textures/minecraft/quartz_block_side_-1.png",
+          "sha256": "85e34c6a6b917ade1cfbd2826127de4175c63317f3efbba1f7aaed3bf105a193"
+        },
+        {
+          "url": "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/2F/main-infra-clean-20261023/source/textures/minecraft/quartz_block_top_-1.png",
+          "sha256": "eea2309518da196d86171dd0d78ecdcdc3a0510005790fa2beb8484744d8ae88"
+        },
+        {
+          "url": "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/2F/main-infra-clean-20261023/source/textures/minecraft/stone_andesite_smooth_-1.png",
+          "sha256": "4d9ef68760a08f545ded902c5762ffab9ff852796502f8a26938f6aee430314a"
+        },
+        {
+          "url": "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/2F/main-infra-clean-20261023/source/textures/minecraft/wool_colored_orange_-1.png",
+          "sha256": "c6a3c27b965f298da28c89c1a522b5ff3152321a97fcbe613aec2f9a6d8f66fa"
+        }
+      ],
+      "raw_not_added_to_visual_asset_downloads": true
+    },
+    "candidate": {
+      "base_manifest_path": "D:\\LLM_BACKUP\\Codex session\\main-infra-2f-error-census-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\2f-census-delivery\\base-candidate-preview.json",
+      "base_manifest_sha256": "4030d27595f5770c8a6aab4fcc582606cfd084cfb814e0134b266d8aa1489869",
+      "preview_url": "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/2F/main-infra-clean-20261023/candidate/preview-errors-20261024-c6e4c1e.json",
+      "preview_file": "models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/2F/main-infra-clean-20261023/candidate/preview-errors-20261024-c6e4c1e.json",
+      "map_file": "models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/2F/main-infra-clean-20261023/candidate/errors-20261024-c6e4c1e.json",
+      "raw_file": "models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/2F/main-infra-clean-20261023/candidate/errors-20261024-c6e4c1e.raw.json",
+      "binding": {
+        "source_revision": "7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511",
+        "run_id": "main-infra-clean-20261023",
+        "floor_id": "MAIN_INFRA_2F",
+        "kind": "candidate",
+        "obj_sha256": "07bbaacc8c9e5fdf8e18fccd0911601aeaa6a2e61976a563bfb61b4d6970c37d"
+      },
+      "counts": {
+        "flicker_diff": 8517,
+        "flicker_same": 8660,
+        "reversed": 1,
+        "hidden": 17094,
+        "loose": 0,
+        "open_edges": 10024,
+        "cracks": 7611
+      },
+      "n_faces": 38134,
+      "existing_visual_assets_unchanged": true,
+      "existing_assets": [
+        {
+          "url": "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/2F/main-infra-clean-20261023/candidate/2nd%20floor%20main%20infra.mtl",
+          "sha256": "f49e1587ca1be5efb8aca4d4b94ee8b5faf7f1067198be52d33271e75a8c2dac"
+        },
+        {
+          "url": "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/2F/main-infra-clean-20261023/candidate/textures/littletiles/ltcolored0_-1.png",
+          "sha256": "84fa319f11ad9113f7bc2b1c76a14b62763893bead1b877bb1adf5c16c44e592"
+        },
+        {
+          "url": "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/2F/main-infra-clean-20261023/candidate/textures/minecraft/concrete_white_-1.png",
+          "sha256": "f42c7be3c52294ead4c69ac0e9ef1bbbbe6bdb4451382c89a65c386709df6171"
+        },
+        {
+          "url": "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/2F/main-infra-clean-20261023/candidate/textures/minecraft/concrete_white_-15579874.png",
+          "sha256": "14ceba3d0329594e00458bc6ed2aeafa24d9228519994a60d758de2509fee1ad"
+        },
+        {
+          "url": "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/2F/main-infra-clean-20261023/candidate/textures/minecraft/iron_block_-15586018.png",
+          "sha256": "bbe924f0daed84dd7d27ebf070435ee0b5da67582e3dabdeb01bff2827a236c3"
+        },
+        {
+          "url": "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/2F/main-infra-clean-20261023/candidate/textures/minecraft/quartz_block_bottom_-1.png",
+          "sha256": "daf3f46f93f7364b1530ec468a7a1d5a02eda1cd0a118e41e93e9c4177791cc1"
+        },
+        {
+          "url": "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/2F/main-infra-clean-20261023/candidate/textures/minecraft/quartz_block_side_-1.png",
+          "sha256": "85e34c6a6b917ade1cfbd2826127de4175c63317f3efbba1f7aaed3bf105a193"
+        },
+        {
+          "url": "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/2F/main-infra-clean-20261023/candidate/textures/minecraft/quartz_block_top_-1.png",
+          "sha256": "eea2309518da196d86171dd0d78ecdcdc3a0510005790fa2beb8484744d8ae88"
+        },
+        {
+          "url": "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/2F/main-infra-clean-20261023/candidate/textures/minecraft/stone_andesite_smooth_-1.png",
+          "sha256": "4d9ef68760a08f545ded902c5762ffab9ff852796502f8a26938f6aee430314a"
+        },
+        {
+          "url": "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/2F/main-infra-clean-20261023/candidate/textures/minecraft/wool_colored_orange_-1.png",
+          "sha256": "c6a3c27b965f298da28c89c1a522b5ff3152321a97fcbe613aec2f9a6d8f66fa"
+        },
+        {
+          "url": "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/2F/main-infra-clean-20261023/candidate/model-e3-failed-inspection-20261024.obj",
+          "sha256": "07bbaacc8c9e5fdf8e18fccd0911601aeaa6a2e61976a563bfb61b4d6970c37d"
+        }
+      ],
+      "raw_not_added_to_visual_asset_downloads": true
+    }
+  }
+}

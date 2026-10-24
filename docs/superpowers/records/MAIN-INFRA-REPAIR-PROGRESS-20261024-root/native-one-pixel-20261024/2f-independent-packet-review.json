@@ -1,0 +1,47 @@
+{
+  "packet": "D:\\PROJECTS\\UC MODEL FIXER\\data\\ec2\\packet-receipt.json",
+  "packet_sha256": "582e8d4b7b3d1fa69cf31febf6cedf3815c84d3597c7fad7b8aeebb2bbf8a175",
+  "six_files_hash_bytes_mismatches": 0,
+  "roles": {
+    "source": {
+      "n_faces": 56828,
+      "obj_sha256": "399663bed0a483cef1300f0df25d97c95f1b49790aa477ac27227f1728080253",
+      "counts": {
+        "flicker_diff": 20842,
+        "flicker_same": 15577,
+        "reversed": 0,
+        "hidden": 35789,
+        "loose": 0,
+        "open_edges": 7126,
+        "cracks": 9389
+      },
+      "existing_assets_unchanged": 11,
+      "only_map_asset_added": true,
+      "raw_not_downloaded": true,
+      "all_face_ids_raw_exact": true,
+      "all_line_point_inverse_coordinates_match": true
+    },
+    "candidate": {
+      "n_faces": 38134,
+      "obj_sha256": "07bbaacc8c9e5fdf8e18fccd0911601aeaa6a2e61976a563bfb61b4d6970c37d",
+      "counts": {
+        "flicker_diff": 8517,
+        "flicker_same": 8660,
+        "reversed": 1,
+        "hidden": 17094,
+        "loose": 0,
+        "open_edges": 10024,
+        "cracks": 7611
+      },
+      "existing_assets_unchanged": 11,
+      "only_map_asset_added": true,
+      "raw_not_downloaded": true,
+      "all_face_ids_raw_exact": true,
+      "all_line_point_inverse_coordinates_match": true
+    }
+  },
+  "no_model_imports": true,
+  "no_detector_run": true,
+  "no_network": true,
+  "acceptance": false
+}
