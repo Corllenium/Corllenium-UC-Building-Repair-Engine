@@ -721,3 +721,89 @@ the case for the attribution ruling), `nothing_deleted.failed_by` and `allowed_c
    caused each (faces 14087, 13114, 14059, 15438 of the baseline) is for the next run's `failed_by` and
    `floor.failing` with the chained face maps.
 4. The covered-attribution ruling (change 4) is proposed only; it is the judge's rule and the owner's call.
+
+## After real 7F chain run #3: the owner's flag -> site -> replay loop (2026-10-24)
+
+The feature commit preceding this record, plus this record. Fixture chain only; no real-floor run from here.
+
+### Run #3 as reported (coordinator, on 5912516)
+
+E5 20,625 -> 18,708 (interior_filtered seams 2,150 / seen 448 / planned 1,702; 350 sites kept, 49 rolled back:
+deleted 64, replaced 15). E4 `--allow-growth` 18,708 -> 19,009 (regions 3,429, changed 1,688, skipped twinned 676 /
+unchanged 639, refused uv_seam 433; 562 sites, 216 kept, 346 rolled back all covered: how box 2,069 / cover 756 /
+touched 90). E4 guard PASS (holes 0, grown 0). Validator `--allow coincident_backface_removed`: textures PASS, reversed 0,
+flicker_diff 852, flicker_same 2,089, cracks 4,216, hidden 3,770; nothing_deleted FAIL by the floor only: faces 8384
+(covered 196.8 px, probe 924), 14087 (covered 85 px, direction 15), 16674 (covered 61 px, direction 13), 14059 (covered
+14 px, direction 2), 15438 (removed 7 px, extra direction 326). Interior gate 466 px, same two views as run #2. Against
+run #2: the `deleted` 18,191 fell to 64 (the seam view), `reversed` 36 -> 0, box charges 7,589 -> 2,069.
+
+### The loop
+
+1. `tools/main_infra_e4_replay.py --candidate <e4 dir> --validation <validation.json> [--interior <renders dir>] --out
+   <json>`: for each failing floor face (baseline ids) the responsible regions are the one whose NEW triangles include a
+   `covering_faces` entry (`how: covering_face`), for `removed` the one whose source faces (the receipt's
+   `e4_region_source_faces`, baseline ids, carried in `validation.json` as `physical_precision`) contain it
+   (`source_face`), and every region whose new triangles lie within the depth tolerance of the face's plane with an
+   overlapping footprint (shapely, `coplanar_overlap`). The baseline snapshot (`physical_precision.before`) gives the
+   geometry; its positions must equal the candidate's. Output `{regions, reasons: {region: [{face, kind, pixels,
+   viewpoint, how, site}]}, unexplained, validation_sha256, region_map_sha256, depth_tolerance_in}`; a failure no region
+   explains is listed under `unexplained` and the command returns 2.
+2. `tools/run_checked_e4_floor.py --exclude-regions <json>`: the plan is every `e4_topology` region of the input minus
+   the listed ids (intersected with a crack judgement when both are given); the audit records `excluded_regions`,
+   `exclude_regions_file`, `exclude_regions_sha256`, and the file is copied into the candidate as
+   `exclude-regions.json`. The binding and the guard need no change: an excluded region is `not_allowed` in the plan and
+   its slivers are kept source faces (test: the excluded candidate binds with `e4_merged_regions 0`).
+3. `tools/run_e4_replay_loop.py --root --floor --raw-name [--rounds 3] [--allow <class>]... [--no-allow-growth]
+   --helper <tools/main_infra_candidate.py> --job-id --reviewer [--expected-revision] [--interior-poses <json>
+   --interior-px-max 60]`: per round k, E4 (`--from-e5 --allow-growth [--exclude-regions]`) moved to
+   `<root>/e4/<F>-round<k>`; the E4 independent guard (`independent-validator/e4-guard/<F>-round<k>`), a PASS recorded
+   into the round's audit as `guard.passed` with the receipt's path and hash (the Validator's binding requires it; the
+   loop is the reviewer's hand here); the Validator (`independent-validator/e4-validation/<F>-round<k>`). Check 3 PASS
+   stops `pass` and copies the round to `<root>/e4/<F>` for the chain; otherwise the failures are mapped
+   (`<F>-round<k>-explained.json`), an unexplained one stops the loop (`unexplained`), explained regions join the
+   exclusions (`<F>-round<k+1>-exclude.json`) and E4 reruns. Other stops: `guard_failed`, `validator_failed`,
+   `no_new_exclusions`, `rounds_exhausted`. `<root>/e4/<F>-replay-summary.json` records every round (candidate, guard,
+   validation, nothing_deleted, failed_by, explained / unexplained, exclusions) and the stop reason. INTERIOR: this
+   worktree holds no renderer (render_pair / the contact sheet live in the 4F-7F worktree), so `--interior-poses`
+   records `interior: unavailable` and stops the loop with `interior_unavailable`; with an injected `render_interior`
+   a view over `--interior-px-max` is recorded `unmapped` (the bbox-through-saved-camera projection is not implemented)
+   and stops the loop `interior_unmapped`.
+
+Tests `tools/tests/test_main_infra_e4_replay.py` (7, fixture chain, guard and Validator injected): three failure kinds
+mapped to the one region by covering face, geometry and source face; an unexplained failure (the far facade, coplanar but
+not overlapping) refused and listed; the runner's exclusion (audit, copied file, hash, `not_allowed 1`, the candidate
+binds with 0 merged regions); the loop excludes the covering region and passes on round 2 (round dirs, exclusion file,
+guard receipt in the audit, summary, final round copied to `e4/<F>`); an unexplained failure stops it after round 1;
+interior poses without a renderer stop it; the CLI parses.
+
+### Output (2026-10-24, worktree root, `PYTHONPATH` = it, `-p no:cacheprovider`)
+
+```
+pytest tools/tests/test_main_infra_e4_replay.py -> 1 failed, 6 passed in 35.58s (my test helper overwrote the guard
+  receipt the loop had recorded), corrected -> 1 passed in 6.89s   (7 tests)
+pytest tools/tests -> 365 passed in 210.36s (0:03:30), exit 0   (358 + 7)
+```
+
+### 7F command for the loop (NOT run here; move an existing `<root>/e4/7F` aside first)
+
+```powershell
+$env:PYTHONPATH=(Get-Location).Path
+$PY='D:/PROJECTS/05-Corllenium-UC-Building-Repair-Engine/.venv/Scripts/python.exe'
+& $PY -B -u tools/run_e4_replay_loop.py --root <claude run root> --floor 7F --raw-name "7th floor main infra.obj" --rounds 3 --allow coincident_backface_removed --helper D:/PROJECTS/05-Corllenium-UC-Building-Repair-Engine/.claude/worktrees/MAIN-INFRA-CLAUDE-4F-7F-20261023/tools/main_infra_candidate.py --job-id <id> --reviewer <name> --expected-revision <sha>
+# one round by hand instead:
+& $PY tools/main_infra_e4_replay.py --candidate <root>/e4/7F --validation <root>/independent-validator/e4-validation/7F/validation.json --interior <root>/independent-validator/e4-interior/7F/renders --out <root>/e4/7F-exclude.json
+& $PY -B -u tools/run_checked_e4_floor.py --root <root> --floor 7F --raw-name "7th floor main infra.obj" --from-e5 --allow-growth --exclude-regions <root>/e4/7F-exclude.json
+```
+
+On run #3's own validation the replay would map faces 8384, 14087, 16674, 14059 (covered: their `covering_faces` name
+the appended triangles) and 15438 (removed: its region's source faces) -- to be confirmed by running the mapper on the
+artifacts, which this worker did not do.
+
+### Open questions
+
+1. The loop records the guard's PASS into the audit itself (`guard.recorded_by`); until now the reviewer did that by
+   hand. The owner may want the hand step kept.
+2. Excluding a region drops its merge entirely; a region failing by one sliver's 7 px could instead be split or
+   re-judged. The replay keeps the whole region out.
+3. The interior gate (466 px in two views along the trim band edges) stays outside this loop until the renderer and
+   the camera projection are available here.
