@@ -1,0 +1,47 @@
+[
+  {
+    "engine": "Validator diagnostic",
+    "run_id": "MAIN-INFRA-1F-10660-COVERED-WITNESS-20261024",
+    "pid": 58624,
+    "start_utc": "2026-10-24T05:16:36.2175824Z",
+    "observed_at": "2026-10-24T05:17:23.709439Z",
+    "phase": "current_covered_witness_diagnostic",
+    "message": "Replaying actual failed source samples with unchanged Validator settings; comparing original,10410base and10660candidate hit depth/face lineage. Full signed report remains FAIL; diagnostic cannot approve output."
+  },
+  {
+    "engine": "Validator diagnostic",
+    "run_id": "MAIN-INFRA-1F-10660-COVERED-WITNESS-20261024",
+    "pid": 58624,
+    "observed_at": "2026-10-24T05:20:31.633700Z",
+    "phase": "covered_witness_completed_diagnostic",
+    "message": "Exact current10 covered samples/four unchanged originalfaces/232.5in2 reproduced;22blockedlines traced through original/base/candidate. Cause under independent review; signedFAIL remains authoritative."
+  },
+  {
+    "engine": "Engine repair preparation",
+    "run_id": "MAIN-INFRA-1F-E7-COVERED-RAY-RETENTION-20261024",
+    "observed_at": "2026-10-24T05:33:46.303771Z",
+    "phase": "test_first_saved_ray_retention_adapter",
+    "message": "Claimed isolated engine job; testing complete changed-child contributor selection and whole-parent retention. No model run yet. Exact22rays show nearer unchanged surfaces; Validator/defaultthresholds unchanged, fullsignedFAIL remains."
+  },
+  {
+    "engine": "Evidence delivery",
+    "observed_at": "2026-10-24T05:41:42.097417Z",
+    "phase": "completed_10660_actual_validation_evidence_live",
+    "message": "Published exact strict/native/focused/fullFAIL reports, 142images and actual renderer textlog. Both static roots306hashchecks and152public payloadhashesPASS;one .log\u2192.txt aliasexplicit. Model10660/materials/mapsunchanged. 8evidence linksnowbound; signedpreservationFAIL andremainingtargetsFAIL retained; no acceptedfinalmodel."
+  },
+  {
+    "engine": "Validator diagnostic",
+    "run_id": "MAIN-INFRA-1F-E7-COVERED-RAY-RETENTION-20261024",
+    "pid": 46960,
+    "start_utc": "2026-10-24T05:44:49.3217836Z",
+    "observed_at": "2026-10-24T05:45:32.691334Z",
+    "phase": "covered_ray_complete_retention_cohort",
+    "message": "Enumerating all410 changed children on22 saved rays; conservative whole-parent retention and unchanged blocker closure. Diagnostic only; source geometry and signedFAIL unchanged."
+  },
+  {
+    "engine": "Engine retention audit",
+    "observed_at": "2026-10-24T05:46:53.736139Z",
+    "phase": "complete_9020pairs_8wholeparents_local0",
+    "message": "Completed all410children\u00d722savedrays. Completeconservativecohort8sites/16children/8originalparents; unchangedblocker localclosure0/22. Preparingengineprofile with732protectedparents. No newmodel savedyet; actual10660/fullFAIL remains inspectable."
+  }
+]

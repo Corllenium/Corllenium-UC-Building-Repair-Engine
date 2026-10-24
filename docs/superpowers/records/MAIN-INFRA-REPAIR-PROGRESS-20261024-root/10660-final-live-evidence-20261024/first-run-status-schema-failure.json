@@ -1,0 +1,44 @@
+{
+  "error": "expect(locator).toHaveCount(expected) failed\n\nLocator:  getByRole('region', { name: 'MAIN INFRA floor progress' }).getByRole('button')\nExpected: 7\nReceived: 0\nTimeout:  30000ms\n\nCall log:\n  - Expect \"toHaveCount\" getByRole('region', { name: 'MAIN INFRA floor progress' }).getByRole('button') with timeout 30000ms\n  - waiting for getByRole('region', { name: 'MAIN INFRA floor progress' }).getByRole('button')\n    63 × locator resolved to 0 elements\n       - unexpected value \"0\"\n",
+  "errors": [],
+  "bad": [],
+  "polls": [
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200
+  ],
+  "expected_prelogin_unauthenticated_checks": [
+    {
+      "path": "/api/auth/session",
+      "status": 401,
+      "request_phase": {
+        "phase": "prelogin",
+        "started_at_ms": 5601.0173
+      },
+      "response_at_ms": 7183.3249
+    }
+  ],
+  "authenticated_session_probes": [
+    {
+      "phase": "postlogin",
+      "status": 200
+    }
+  ]
+}

@@ -1,0 +1,70 @@
+{
+  "files": [
+    {
+      "file": "actual-live-publication-receipt.json",
+      "source": "D:\\PROJECTS\\UC MODEL FIXER\\data\\tmp\\e10660-validation-evidence\\actual-live-publication-receipt.json",
+      "sha256": "3f4ec5e7b56208559c3772887863f7cc0e2ee5a685b4a3ba7d142155bd7de894",
+      "bytes": 2719
+    },
+    {
+      "file": "actual-browser-verification.json",
+      "source": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\.evidence\\live-logs-20261024\\live-measured-error-maps-1f-10660-final-evidence-status-schema\\verification.json",
+      "sha256": "52b9b0cba51975f7ea6f172b27190c39ec146fa746dfbd202ad83e34674a0907",
+      "bytes": 81238
+    },
+    {
+      "file": "1F-live-before-after-textures.png",
+      "source": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\.evidence\\live-logs-20261024\\live-measured-error-maps-1f-10660-final-evidence-status-schema\\1F-live-before-after-textures.png",
+      "sha256": "5326e37abb56242a7be1c3b42667f3d7bc7deac0a8d2c4f7f71b6b27714422c7",
+      "bytes": 276266
+    },
+    {
+      "file": "1F-live-measured-seven-error-filters.png",
+      "source": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\.evidence\\live-logs-20261024\\live-measured-error-maps-1f-10660-final-evidence-status-schema\\1F-live-measured-seven-error-filters.png",
+      "sha256": "de9742dbbd9456da7d8fff369f845098aba52aac2d05ee3de57d823bc7fa8adb",
+      "bytes": 19185
+    },
+    {
+      "file": "1F-live-final-evidence-links.png",
+      "source": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\.evidence\\live-logs-20261024\\live-measured-error-maps-1f-10660-final-evidence-status-schema\\1F-live-final-evidence-links.png",
+      "sha256": "1c6d878cc7c594c6984dfea1da27d3970dbeee95d3a0c07b4a818cf040078e65",
+      "bytes": 276176
+    },
+    {
+      "file": "first-run-status-schema-failure.json",
+      "source": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\.evidence\\live-logs-20261024\\live-measured-error-maps-1f-10660-final-evidence\\failure.json",
+      "sha256": "72ee233bc0b24d82973e9fb91900b4e1b894eddf8f2b00a51ea9e7f4fa3f5271",
+      "bytes": 1093
+    },
+    {
+      "file": "status-schema-original-invalid-events.json",
+      "source": "D:\\PROJECTS\\UC MODEL FIXER\\data\\tmp\\e10660-validation-evidence\\status-schema-correction\\original-invalid-events.json",
+      "sha256": "2fb25f66ab75bad26fbde3da31bcbe5e57d3be8e271c8b70f549f8ef81460aab",
+      "bytes": 2842
+    },
+    {
+      "file": "status-schema-readback.json",
+      "source": "D:\\PROJECTS\\UC MODEL FIXER\\data\\tmp\\e10660-validation-evidence\\status-schema-correction\\readback.json",
+      "sha256": "c03cb7938e40c957105c203a7b09f3e3cc3e8eab7a1c203802a2bd62acb65209",
+      "bytes": 415
+    },
+    {
+      "file": "complete-retention-cohort.json",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\covered-ray-retention\\run-20261024\\cohort.json",
+      "sha256": "21a853f4bb5473ba0fdea705b6d8d3f50001ab4b4893efb025792b1bfe26d2bb",
+      "bytes": 55939
+    },
+    {
+      "file": "actual-cohort-terminal.json",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\covered-ray-preflight\\monitor-10660-covered-ray-complete-retention-cohort-20261024T054447\\result.json",
+      "sha256": "da1c210937314170a87c747ec1ad6c86af20415d33638a896de97ce5b7538359",
+      "bytes": 764
+    },
+    {
+      "file": "actual-cohort-readback.json",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\docs\\superpowers\\records\\MAIN-INFRA-1F-E7-COVERED-RAY-RETENTION-20261024\\actual-readback.json",
+      "sha256": "ef3efb9c7ad8af0d1b6e1812446d237c51ae8420c515c2500d319106fb2612cb",
+      "bytes": 8660
+    }
+  ]
+}

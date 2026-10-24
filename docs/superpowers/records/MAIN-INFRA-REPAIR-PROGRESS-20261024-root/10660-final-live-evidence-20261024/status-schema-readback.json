@@ -1,0 +1,16 @@
+{
+  "actual_parser_red": {
+    "parser_accepts": false
+  },
+  "actual_parser_green": {
+    "parser_accepts": true
+  },
+  "invalid_entries_archived": 6,
+  "real_process_entries_corrected": 4,
+  "nonprocess_activity_entries": 2,
+  "model_and_validation_refs_unchanged": true,
+  "other_floors_unchanged": true,
+  "parser_source_unchanged": true,
+  "after_model_triangles": 10660,
+  "accepted": false
+}
