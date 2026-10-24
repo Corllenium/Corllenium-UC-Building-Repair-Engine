@@ -27,6 +27,9 @@ def main(argv=None):
     parser.add_argument('--from-e3', action='store_true')
     parser.add_argument('--from-e5', action='store_true')
     parser.add_argument('--crack-judgement', type=Path, default=None)
+    parser.add_argument('--exclude-regions', type=Path, default=None,
+                        help='tools/main_infra_e4_replay.py output: region ids NOT to merge (the replay loop); the plan '
+                             'is every region of the input minus these, recorded in the stage audit with the file hash')
     parser.add_argument('--allow-growth', action='store_true',
                         help='let a region come back with more triangles than it had faces (E4 grew refusal off): '
                              'coplanar same-material triangle edges are invisible in the textured game render, the '
@@ -107,6 +110,17 @@ def main(argv=None):
     if args.crack_judgement is not None:
         judgement = json.loads(args.crack_judgement.read_text(encoding='utf-8'))
         allowed = sorted(int(r) for r in judgement['merge'])
+    excluded, exclusion = None, None
+    if args.exclude_regions is not None:
+        # the replay loop's exclusions (tools/main_infra_e4_replay.py): the plan is every region of the input minus
+        # these, the ids being e4_topology's on this very input
+        from engine.fixes.pipeline import FixProfile
+        from engine.repair.engines.e4_merge import e4_topology
+        exclusion = json.loads(args.exclude_regions.read_text(encoding='utf-8'))
+        excluded = sorted({int(r) for r in exclusion['regions']})
+        _flat, topo = e4_topology(before, flatness, FixProfile())
+        every = sorted(set(int(r) for r in topo.face_region[topo.face_region >= 0].tolist()))
+        allowed = [r for r in (every if allowed is None else allowed) if r not in set(excluded)]
 
     out.parent.mkdir(parents=True, exist_ok=True)
     progress = out.parent / f'worker-{F}.json'
@@ -127,12 +141,17 @@ def main(argv=None):
     write_records(out / 'edit-log.jsonl', outcome.records)
     if judgement is not None:
         (out / 'crack-judgement.json').write_text(json.dumps(judgement, indent=2), encoding='utf-8')
+    if exclusion is not None:
+        (out / 'exclude-regions.json').write_text(json.dumps(exclusion, indent=2), encoding='utf-8')
     audit = dict(cleanup_mode=cleanup_mode, executed_stages=stages, checks=outcome.checks,
                  input_triangles=before.n_faces, output_triangles=outcome.mesh.n_faces,
                  kept_edits=len(outcome.kept), rolled_back_edits=len(outcome.rolled_back),
                  engine_report=mapping.get('engine_report'), e3_candidate=e3_binding, e5_candidate=e5_binding,
                  allow_growth=bool(args.allow_growth),
                  crack_judgement=None if args.crack_judgement is None else str(args.crack_judgement),
+                 excluded_regions=excluded,
+                 exclude_regions_file=None if args.exclude_regions is None else str(args.exclude_regions),
+                 exclude_regions_sha256=None if args.exclude_regions is None else sha256_file(args.exclude_regions),
                  engine_candidate_sha256=sha256_file(eng), source_candidate_sha256=sha256_file(src),
                  region_map_sha256=sha256_file(region_map), edit_log_sha256=sha256_file(out / 'edit-log.jsonl'),
                  qualification_sha256=sha256_file(qualification), assets=provenance['assets'],
