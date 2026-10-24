@@ -111,3 +111,14 @@ E4-appended triangles (winding bug). 16 walking-height interior pairs: 466 px (E
 Dashboard: stage kinds exported in the E3-candidate id space and attached to the published 7F candidate errors.json
 (backface_twin 382, interior_seam 512, two_sided_sheet 6, e5_rolled_back 3,341, merge_region 1,080, merge_refused 1,145,
 e4_rolled_back 3,170). 6F E5: 27,108 → 25,809 (374 kept, 242 rolled back).
+
+## Stage 2 chain #3 on 7F (2026-10-24 10:57-11:40 +08, E4-MERGE branch 5912516)
+E5: backface_twin 497 + interior_twins 2,986 planned (seams 2,150: seen by Validator viewpoints 448, planned 1,702);
+350 sites kept, 49 rolled back (deleted 64, replaced 15); 20,625 → 18,708. E4 --allow-growth: regions 3,429, changed
+1,688, skipped twinned 676 / unchanged 639, refused uv_seam 433; 562 sites, 216 kept, 346 rolled back (covered; how box
+2,069 / cover 756 / touched 90); 18,708 → 19,009. E4 independent guard PASS (holes 0, grown 0). Validator with
+`coincident_backface_removed` (607 samples, 1,163 faces excused): textures PASS, reversed 0, flicker_diff 852,
+flicker_same 2,089, cracks 4,216, hidden 3,770; nothing_deleted FAIL by the floor pixel measure on 5 faces (8384 covered
+196.8 px from probe 924; 14087 85 px, 16674 61 px, 14059 14 px from outside directions; 15438 removed 7 px). Interior
+gate 466 px (two views along the green trim band). Not published. Next: flag → region → replay loop on E4.
+First-pass E5 on 6F/5F/4F (pre-fix rules): 27,108 → 25,809; 38,113 → 36,347; 52,865 → 51,601 (superseded).
