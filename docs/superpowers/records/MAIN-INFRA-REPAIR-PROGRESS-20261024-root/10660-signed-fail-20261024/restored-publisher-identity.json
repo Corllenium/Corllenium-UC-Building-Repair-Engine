@@ -1,0 +1,11 @@
+{
+  "pid": 4056,
+  "start_utc": "2026-10-24T04:59:40.8686335Z",
+  "runtime_sha256": "35bfbc560b18c2e0a466b44b43d6aa2560fdbac9aee9f369fc29d744161c284d",
+  "runtime_path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\siege-live-20261023\\watch-actual-workers-observations-20261024.ps1",
+  "previous_pid": 61824,
+  "retired_completed_engine_pid": 4532,
+  "stdout": "D:\\PROJECTS\\UC MODEL FIXER\\data\\siege-live-20261023\\publisher-after-10660-completed-20261024T045940.stdout.log",
+  "stderr": "D:\\PROJECTS\\UC MODEL FIXER\\data\\siege-live-20261023\\publisher-after-10660-completed-20261024T045940.stderr.log",
+  "scope": "Same owned status publisher; completed engine watch retired; no foreign processes or application servers changed"
+}

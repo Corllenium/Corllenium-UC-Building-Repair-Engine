@@ -1,0 +1,52 @@
+{
+  "files": [
+    {
+      "file": "validation.json",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-single-pixel-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\iv1f-e7-single-pixel\\run-20261024\\1F\\validate\\validation.json",
+      "bytes": 406043,
+      "sha256": "38a3ea8961b827e465d43932ddf050f9db4116ad15d45258d602d07965a1771c"
+    },
+    {
+      "file": "independent-review.json",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-single-pixel-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\iv1f-e7-single-pixel\\run-20261024\\1F\\independent-review.json",
+      "bytes": 289818,
+      "sha256": "adb8815762c227b8d15f273b1213624668db6865a243ae173e01233b4c956e94"
+    },
+    {
+      "file": "site-01-before.png",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-single-pixel-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\iv1f-e7-single-pixel\\run-20261024\\1F\\validate\\evidence\\site-01-before.png",
+      "bytes": 940,
+      "sha256": "b07dcab1a5e6039f4a9335abf9c934b3233840fd46400ca68fa197e29ef4b334"
+    },
+    {
+      "file": "site-01-after.png",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-single-pixel-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\iv1f-e7-single-pixel\\run-20261024\\1F\\validate\\evidence\\site-01-after.png",
+      "bytes": 940,
+      "sha256": "b07dcab1a5e6039f4a9335abf9c934b3233840fd46400ca68fa197e29ef4b334"
+    },
+    {
+      "file": "actual-terminal.json",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-single-pixel-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\iv-single-pixel-preflight\\monitor-1F-E7-single-pixel-retention-full-signed-20261024T043429\\result.json",
+      "bytes": 758,
+      "sha256": "5bd801e9ce30b001ddcea22e2cd4c8e430d641cc42ae9050bf42e646946925d8"
+    },
+    {
+      "file": "full-signed-readback.json",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-single-pixel-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\iv-single-pixel-preflight\\full-signed-readback.json",
+      "bytes": 294593,
+      "sha256": "70aac77b3ed1086be20bf7901f15df7b770f1b734f9871f9aa6d6b2b2f1c48b5"
+    },
+    {
+      "file": "live-browser-verification.json",
+      "source": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\.evidence\\live-logs-20261024\\live-measured-error-maps-1f-10660-auth-timing\\verification.json",
+      "bytes": 63521,
+      "sha256": "3b790e9e3d16b80f886912c8b4366e357a7f96063d40a68c6c3081c38e9170e2"
+    },
+    {
+      "file": "restored-publisher-identity.json",
+      "source": "D:\\PROJECTS\\UC MODEL FIXER\\data\\siege-live-20261023\\publisher-after-10660-completed.identity.json",
+      "bytes": 741,
+      "sha256": "ea3f1f5f15d00ccd790cf3d837094b846810cc1d8df7ec56e0421fb141e87b88"
+    }
+  ]
+}
