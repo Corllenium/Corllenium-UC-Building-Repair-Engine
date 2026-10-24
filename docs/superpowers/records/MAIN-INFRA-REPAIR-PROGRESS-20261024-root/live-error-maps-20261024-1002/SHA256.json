@@ -1,0 +1,27 @@
+[
+  {
+    "path": "census-receipt.json",
+    "bytes": 175548,
+    "sha256": "bdef20bacef4a374f3d8754460fd35c70352ba584fffb1453dbae62cbc0c6ddd"
+  },
+  {
+    "path": "census-terminal.json",
+    "bytes": 598,
+    "sha256": "64d93e0a5dd3201357a5b2584cfeb6469788db17fc8d526c8116370db51e30ab"
+  },
+  {
+    "path": "live-ui-browser.json",
+    "bytes": 1487,
+    "sha256": "0989d8a3bd482d90fb77ba3855dcd5bcc2c95b2e35ec4070340056aadb97390b"
+  },
+  {
+    "path": "new10831-native-fail.json",
+    "bytes": 313288,
+    "sha256": "20b3fbf5615302eb9b5ed64d96d3c3b28a3e29fb88a2a30222baec48dac34ffb"
+  },
+  {
+    "path": "publisher-identity.json",
+    "bytes": 685,
+    "sha256": "fd27853ffaf1d89c9a8e004686c0647303d2f3287cfe261e44076c28e41fa77a"
+  }
+]

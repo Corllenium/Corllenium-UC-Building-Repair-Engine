@@ -1,0 +1,16 @@
+{
+  "state": "PROCESS_EXITED_ZERO",
+  "phase": "fresh1f-error-census",
+  "abort_reason": null,
+  "actual_pid": 29104,
+  "actual_creation_utc": "2026-10-24T01:54:20.0503358Z",
+  "actual_exit_code": 0,
+  "launcher_exit_code": 0,
+  "wall_s": 39.8246731,
+  "HEAD": "66afc1bd4303c62442afcc711d4d256841c5a411",
+  "phase_plan_sha256": "1202f6eab3598eacb793e7b28621ac453818d11daf637109d6151ab53bc59ae1",
+  "all_owned_exited": true,
+  "evidence": ".\\data\\census-preflight\\monitor-fresh1f-error-census-20261024T015418",
+  "ended_utc": "2026-10-24T01:54:59.7399753Z",
+  "acceptance": false
+}
