@@ -1,0 +1,103 @@
+{
+  "schema_version": 1,
+  "scope": "Metadata-only functional and lifetime-bound resource verification; no model phase",
+  "phase": "1F-single-pixel-metadata-tests-V5-certified",
+  "phase_plan_sha256": "10a4c5b3c34986861d2986f1667701eb1aacd3dff1304e310f939db35fb950c5",
+  "terminal": {
+    "state": "PROCESS_EXITED_ZERO",
+    "phase": "1F-single-pixel-metadata-tests-V5-certified",
+    "abort_reason": null,
+    "actual_pid": 52940,
+    "actual_creation_utc": "2026-10-24T03:52:44.6230164Z",
+    "actual_exit_code": 0,
+    "launcher_exit_code": 0,
+    "wall_s": 16.1616254,
+    "HEAD": "9288c7698f8ccc4ea44f72b82f15ca5e7c09450b",
+    "phase_plan_sha256": "10a4c5b3c34986861d2986f1667701eb1aacd3dff1304e310f939db35fb950c5",
+    "all_owned_exited": true,
+    "evidence": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-single-pixel-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\iv-single-pixel-preflight\\monitor-1F-single-pixel-metadata-tests-V5-certified-20261024T035243",
+    "ended_utc": "2026-10-24T03:53:00.7055077Z",
+    "acceptance": false
+  },
+  "timestamp_identity": "Exact UTC ticks; native terminal raw ISO string preserved",
+  "stdout": ".................................................................        [100%]\r\n65 passed in 15.08s\r\n",
+  "stderr": null,
+  "postphase_pin_count": 381,
+  "postphase_mismatches": [],
+  "launch_gate": {
+    "samples": [
+      {
+        "utc": "2026-10-24T03:52:43.4905181Z",
+        "commit_bytes": 54811074560,
+        "limit_bytes": 67197034496,
+        "headroom_bytes": 12385959936
+      },
+      {
+        "utc": "2026-10-24T03:52:44.006826Z",
+        "commit_bytes": 54900441088,
+        "limit_bytes": 67197034496,
+        "headroom_bytes": 12296593408
+      },
+      {
+        "utc": "2026-10-24T03:52:44.5113892Z",
+        "commit_bytes": 55084224512,
+        "limit_bytes": 67197034496,
+        "headroom_bytes": 12112809984
+      }
+    ],
+    "require8GiB": true,
+    "passed": true
+  },
+  "observed_resource_rows": 28,
+  "observed_max_actual_private_bytes": 95064064.0,
+  "observed_max_actual_os_peak_commit_bytes": 105992192.0,
+  "observed_max_tree_private_bytes": 98181120.0,
+  "observed_min_headroom_bytes": 10766684160.0,
+  "monitor": "V5 f158 retained lifetime-bound native handles",
+  "old_pid_only_certification_remains_withdrawn": true,
+  "prior_readback_failure": {
+    "reason": "PowerShell ConvertFrom-Json converted actual_creation_utc into DateTime; direct string comparison failed",
+    "corrected": "Exact UTC tick comparison only; no test/monitor rerun",
+    "raw_terminal_unchanged": true
+  },
+  "files": [
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-single-pixel-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\iv-single-pixel-preflight\\monitor-1F-single-pixel-metadata-tests-V5-certified-20261024T035243\\actual-identity.json",
+      "bytes": 926,
+      "sha256": "7a0d3a6b7cdb6e7a0850376db878c06ee6137b8512004607f53f1ab82fd63fcc"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-single-pixel-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\iv-single-pixel-preflight\\monitor-1F-single-pixel-metadata-tests-V5-certified-20261024T035243\\identities.jsonl",
+      "bytes": 1697,
+      "sha256": "7cbd3e85360afbaa5a4a3015cc06c00ae1610019f192a71ac262676f3c29d92e"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-single-pixel-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\iv-single-pixel-preflight\\monitor-1F-single-pixel-metadata-tests-V5-certified-20261024T035243\\launch-gate.json",
+      "bytes": 574,
+      "sha256": "cd4b151b71c07987a2cf08368cb2a2e6b6926a1e24f1fc5adf42d913e6be1477"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-single-pixel-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\iv-single-pixel-preflight\\monitor-1F-single-pixel-metadata-tests-V5-certified-20261024T035243\\resources.jsonl",
+      "bytes": 18461,
+      "sha256": "9b84d4087e193feedbd46d4f1909a6660e6b0924b14080e7cef6731871e31ebc"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-single-pixel-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\iv-single-pixel-preflight\\monitor-1F-single-pixel-metadata-tests-V5-certified-20261024T035243\\result.json",
+      "bytes": 768,
+      "sha256": "7e05f76eb91c559de03a731d69b0ae287919e895d3a875a32da690cc27197202"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-single-pixel-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\iv-single-pixel-preflight\\monitor-1F-single-pixel-metadata-tests-V5-certified-20261024T035243\\stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-single-pixel-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\iv-single-pixel-preflight\\monitor-1F-single-pixel-metadata-tests-V5-certified-20261024T035243\\stdout.txt",
+      "bytes": 102,
+      "sha256": "d29f9ad54ead091421399ba6f65489fbea92266b7816dea3e1897ab056cb35df"
+    }
+  ],
+  "future_candidate_replay": "NOT_RUN",
+  "acceptance": false,
+  "read_utc": "2026-10-24T03:54:35.4840176Z"
+}

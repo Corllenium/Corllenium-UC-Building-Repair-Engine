@@ -1,0 +1,124 @@
+{
+  "files": [
+    {
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-single-pixel-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\iv-single-pixel-preflight\\resource-audit-20261024.json",
+      "file": "withdrawn-pid-only-resource-claims.json",
+      "sha256": "ec11fb80a6ad935f832a08c7c67a51383298aeaf031d665679f9f1109bf42904",
+      "bytes": 7895
+    },
+    {
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-resource-monitor-v5-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\monitor-v5-preflight\\certified-readback.json",
+      "file": "native-v5-certified-readback.json",
+      "sha256": "3eb2465b5c49db627efc07fe0e9817531f9eccd16dc8ac87559ee9165f7640f2",
+      "bytes": 5289
+    },
+    {
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-resource-monitor-v5-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\monitor-v5-preflight\\monitor-monitor-V5-native-regression-certified-20261024T034544\\launch-gate.json",
+      "file": "native-00-launch-gate.json",
+      "sha256": "16ed0586a095b4453ff31ef5aef58c15ebc14fc8eaef4db689cc97f3999d8628",
+      "bytes": 921
+    },
+    {
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-resource-monitor-v5-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\monitor-v5-preflight\\monitor-monitor-V5-native-regression-certified-20261024T034544\\actual-identity.json",
+      "file": "native-01-actual-identity.json",
+      "sha256": "d0d7d82655207badfd7e87fadcfd659a43cfcb470435bf91686f5b1ebc672990",
+      "bytes": 1087
+    },
+    {
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-resource-monitor-v5-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\monitor-v5-preflight\\monitor-monitor-V5-native-regression-certified-20261024T034544\\identities.jsonl",
+      "file": "native-02-identities.jsonl",
+      "sha256": "1d34b6a093f29f16fb5895edfd441aaa00ede335fe14ee8cef3954e5ab50e455",
+      "bytes": 22833
+    },
+    {
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-resource-monitor-v5-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\monitor-v5-preflight\\monitor-monitor-V5-native-regression-certified-20261024T034544\\resources.jsonl",
+      "file": "native-03-resources.jsonl",
+      "sha256": "1afef744ac467844c1723d70cf3b598df1d1288f1a4b5a17d5e80dda3a907c2d",
+      "bytes": 48869
+    },
+    {
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-resource-monitor-v5-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\monitor-v5-preflight\\monitor-monitor-V5-native-regression-certified-20261024T034544\\result.json",
+      "file": "native-04-result.json",
+      "sha256": "1dbec07baefdaf2f027f418461d56eac76ec07d1eb8d2f7e881a841f62ef34c9",
+      "bytes": 677
+    },
+    {
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-resource-monitor-v5-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\monitor-v5-preflight\\monitor-monitor-V5-native-regression-certified-20261024T034544\\stdout.txt",
+      "file": "native-05-stdout.txt",
+      "sha256": "78122f57c8a57315282e6f8741e5a0f0dd0f29e449a6c76be7cb724b8e6be5f0",
+      "bytes": 101
+    },
+    {
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-resource-monitor-v5-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\monitor-v5-preflight\\monitor-monitor-V5-native-regression-certified-20261024T034544\\stderr.txt",
+      "file": "native-06-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-resource-monitor-v5-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\monitor-v5-test-results\\behavior-stdout.json",
+      "file": "native-07-behavior-stdout.json",
+      "sha256": "5b6951e32e00aac9960ab4bf028ddfd2dc8ff4156fc80bf77626aa3206194566",
+      "bytes": 3603
+    },
+    {
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-resource-monitor-v5-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\monitor-v5-test-results\\behavior-stderr.txt",
+      "file": "native-08-behavior-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-resource-monitor-v5-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\monitor-v5-test-results\\burst-stdout.json",
+      "file": "native-09-burst-stdout.json",
+      "sha256": "d2ead1fb9130287f41bd57cce4da2d8692add768e34950f926803aabcef1cee7",
+      "bytes": 3871
+    },
+    {
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-resource-monitor-v5-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\monitor-v5-test-results\\burst-stderr.txt",
+      "file": "native-10-burst-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-resource-monitor-v5-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\monitor-v5-test-results\\uncached-exit-probe.json",
+      "file": "native-11-uncached-exit-probe.json",
+      "sha256": "ae0bb70bb0a17307084ecee509fc2e78ce2eed100e7567c9592beb7e7b9da854",
+      "bytes": 9702
+    },
+    {
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-resource-monitor-v5-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\monitor-v5-test-results\\uncached-exit-probe-stderr.txt",
+      "file": "native-12-uncached-exit-probe-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-single-pixel-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\iv-single-pixel-preflight\\v5-certified-metadata-readback.json",
+      "file": "iv-v5-certified-metadata-readback.json",
+      "sha256": "03745ceaa4720aa03348630e4a8d0ee6ea96697577a0a9d348556be61c5353da",
+      "bytes": 5400
+    },
+    {
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-single-pixel-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\single-pixel-preflight\\saved-candidate-readback.json",
+      "file": "actual-10660-saved-readback.json",
+      "sha256": "cc604e6fd33d7faa3c32e5778690d5f3c69cd16a1fc7cd83a6fd93bf779d23f5",
+      "bytes": 14375
+    },
+    {
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-single-pixel-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\single-pixel-preflight\\monitor-execute-1F-E7-single-pixel-retention-20261024T034827\\result.json",
+      "file": "actual-10660-terminal.json",
+      "sha256": "9da0a9f2b7625325d7cecf760d3cb80e83270aa9ca62ba38c28848115e32d1b7",
+      "bytes": 755
+    },
+    {
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-single-pixel-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261024-1F-single-pixel-retention\\1F\\run-receipt.json",
+      "file": "actual-10660-run-receipt.json",
+      "sha256": "0432f1666c8788b1d4ad42edbbc5cccedeb4b905a923bf5a8f692c639a9e8650",
+      "bytes": 47544
+    },
+    {
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-single-pixel-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261024-1F-single-pixel-retention\\execution-1F\\checked-outcome\\checkpoint-receipt.json",
+      "file": "actual-10660-checkpoint.json",
+      "sha256": "822a785dc0f03860e60f885a3d1e805dccca9b169490db501c3b712dcf742b88",
+      "bytes": 94063
+    }
+  ]
+}

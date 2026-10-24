@@ -1,0 +1,16 @@
+{
+    "state":  "PROCESS_EXITED_ZERO",
+    "phase":  "monitor-V5-native-regression-certified",
+    "abort_reason":  null,
+    "actual_pid":  52300,
+    "actual_creation_utc":  "2026-10-24T03:45:45.5861484Z",
+    "actual_exit_code":  0,
+    "launcher_exit_code":  0,
+    "wall_s":  27.3233076,
+    "HEAD":  "0001d84eab47da3e3d8e77126f03ed3fed9b03a9",
+    "phase_plan_sha256":  "f1a4e396ab223fde5901d0b762abcb38780cae879d0b38ce883acebd23f97109",
+    "all_owned_exited":  true,
+    "evidence":  "data\\monitor-v5-preflight\\monitor-monitor-V5-native-regression-certified-20261024T034544",
+    "ended_utc":  "2026-10-24T03:46:12.8379699Z",
+    "acceptance":  false
+}

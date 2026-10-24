@@ -1,0 +1,12 @@
+{
+    "state":  "RUNNING",
+    "phase":  "monitor-V5-native-regression-certified",
+    "actual_pid":  52300,
+    "actual_creation_utc":  "2026-10-24T03:45:45.5861484Z",
+    "launcher_pid":  55836,
+    "monitor_pid":  34124,
+    "command":  "C:\\Users\\Future26\\AppData\\Local\\Programs\\Python\\Python312\\python.exe -B -u -m pytest D:\\LLM_BACKUP\\Codex session\\main-infra-resource-monitor-v5-20261024\\05-Corllenium-UC-Building-Repair-Engine\\docs\\superpowers\\records\\MAIN-INFRA-RESOURCE-MONITOR-V5-20261024\\test_monitor_v5.py D:\\LLM_BACKUP\\Codex session\\main-infra-resource-monitor-v5-20261024\\05-Corllenium-UC-Building-Repair-Engine\\docs\\superpowers\\records\\MAIN-INFRA-RESOURCE-MONITOR-V5-20261024\\test_probe.py -q -p no:cacheprovider --basetemp D:\\TEMP\\monitor-v5-native-certified-20261024",
+    "HEAD":  "0001d84eab47da3e3d8e77126f03ed3fed9b03a9",
+    "phase_plan_sha256":  "f1a4e396ab223fde5901d0b762abcb38780cae879d0b38ce883acebd23f97109",
+    "evidence":  "data\\monitor-v5-preflight\\monitor-monitor-V5-native-regression-certified-20261024T034544"
+}

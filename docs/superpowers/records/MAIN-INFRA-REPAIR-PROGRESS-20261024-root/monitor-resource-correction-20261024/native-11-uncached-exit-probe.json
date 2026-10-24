@@ -1,0 +1,152 @@
+{
+    "powershell":  "5.1.26100.9711",
+    "clr":  "4.0.30319.42000",
+    "probe_only":  true,
+    "rows":  [
+                 {
+                     "iteration":  0,
+                     "pid":  12988,
+                     "child_exit":  0,
+                     "acquired_before_exit":  true,
+                     "uncached_handle_before_wait":  true,
+                     "adapted":  {
+                                     "returned_null":  true,
+                                     "value":  null,
+                                     "error":  null,
+                                     "same_process_exit":  {
+                                                               "type":  "System.Boolean",
+                                                               "value":  true
+                                                           }
+                                 },
+                     "explicit":  {
+                                      "error":  [
+                                                    {
+                                                        "type":  "System.Management.Automation.MethodInvocationException",
+                                                        "message":  "Exception calling \"get_Handle\" with \"0\" argument(s): \"Cannot process request because the process (12988) has exited.\"",
+                                                        "hresult":  -2146233087,
+                                                        "native_error":  null
+                                                    },
+                                                    {
+                                                        "type":  "System.InvalidOperationException",
+                                                        "message":  "Cannot process request because the process (12988) has exited.",
+                                                        "hresult":  -2146233079,
+                                                        "native_error":  null
+                                                    }
+                                                ],
+                                      "same_process_exit":  {
+                                                                "type":  "System.Boolean",
+                                                                "value":  true
+                                                            }
+                                  }
+                 },
+                 {
+                     "iteration":  1,
+                     "pid":  28392,
+                     "child_exit":  0,
+                     "acquired_before_exit":  true,
+                     "uncached_handle_before_wait":  true,
+                     "adapted":  {
+                                     "returned_null":  true,
+                                     "value":  null,
+                                     "error":  null,
+                                     "same_process_exit":  {
+                                                               "type":  "System.Boolean",
+                                                               "value":  true
+                                                           }
+                                 },
+                     "explicit":  {
+                                      "error":  [
+                                                    {
+                                                        "type":  "System.Management.Automation.MethodInvocationException",
+                                                        "message":  "Exception calling \"get_Handle\" with \"0\" argument(s): \"Cannot process request because the process (28392) has exited.\"",
+                                                        "hresult":  -2146233087,
+                                                        "native_error":  null
+                                                    },
+                                                    {
+                                                        "type":  "System.InvalidOperationException",
+                                                        "message":  "Cannot process request because the process (28392) has exited.",
+                                                        "hresult":  -2146233079,
+                                                        "native_error":  null
+                                                    }
+                                                ],
+                                      "same_process_exit":  {
+                                                                "type":  "System.Boolean",
+                                                                "value":  true
+                                                            }
+                                  }
+                 },
+                 {
+                     "iteration":  2,
+                     "pid":  12948,
+                     "child_exit":  0,
+                     "acquired_before_exit":  true,
+                     "uncached_handle_before_wait":  true,
+                     "adapted":  {
+                                     "returned_null":  true,
+                                     "value":  null,
+                                     "error":  null,
+                                     "same_process_exit":  {
+                                                               "type":  "System.Boolean",
+                                                               "value":  true
+                                                           }
+                                 },
+                     "explicit":  {
+                                      "error":  [
+                                                    {
+                                                        "type":  "System.Management.Automation.MethodInvocationException",
+                                                        "message":  "Exception calling \"get_Handle\" with \"0\" argument(s): \"Cannot process request because the process (12948) has exited.\"",
+                                                        "hresult":  -2146233087,
+                                                        "native_error":  null
+                                                    },
+                                                    {
+                                                        "type":  "System.InvalidOperationException",
+                                                        "message":  "Cannot process request because the process (12948) has exited.",
+                                                        "hresult":  -2146233079,
+                                                        "native_error":  null
+                                                    }
+                                                ],
+                                      "same_process_exit":  {
+                                                                "type":  "System.Boolean",
+                                                                "value":  true
+                                                            }
+                                  }
+                 },
+                 {
+                     "iteration":  3,
+                     "pid":  62252,
+                     "child_exit":  0,
+                     "acquired_before_exit":  true,
+                     "uncached_handle_before_wait":  true,
+                     "adapted":  {
+                                     "returned_null":  true,
+                                     "value":  null,
+                                     "error":  null,
+                                     "same_process_exit":  {
+                                                               "type":  "System.Boolean",
+                                                               "value":  true
+                                                           }
+                                 },
+                     "explicit":  {
+                                      "error":  [
+                                                    {
+                                                        "type":  "System.Management.Automation.MethodInvocationException",
+                                                        "message":  "Exception calling \"get_Handle\" with \"0\" argument(s): \"Cannot process request because the process (62252) has exited.\"",
+                                                        "hresult":  -2146233087,
+                                                        "native_error":  null
+                                                    },
+                                                    {
+                                                        "type":  "System.InvalidOperationException",
+                                                        "message":  "Cannot process request because the process (62252) has exited.",
+                                                        "hresult":  -2146233079,
+                                                        "native_error":  null
+                                                    }
+                                                ],
+                                      "same_process_exit":  {
+                                                                "type":  "System.Boolean",
+                                                                "value":  true
+                                                            }
+                                  }
+                 }
+             ],
+    "all_owned_children_exited":  true
+}

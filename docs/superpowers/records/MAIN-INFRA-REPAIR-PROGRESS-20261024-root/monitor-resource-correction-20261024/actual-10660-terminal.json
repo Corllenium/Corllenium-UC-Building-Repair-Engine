@@ -1,0 +1,16 @@
+{
+  "state": "PROCESS_EXITED_ZERO",
+  "phase": "execute-1F-E7-single-pixel-retention",
+  "abort_reason": null,
+  "actual_pid": 4532,
+  "actual_creation_utc": "2026-10-24T03:48:29.1420273Z",
+  "actual_exit_code": 0,
+  "launcher_exit_code": 0,
+  "wall_s": 241.8780106,
+  "HEAD": "f12e1fd25fbb2324e6abe6592a3427acba93e4ad",
+  "phase_plan_sha256": "d164124ad1801871d75036f351785f088f5afd74f14759365f370f09fe948643",
+  "all_owned_exited": true,
+  "evidence": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-single-pixel-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\single-pixel-preflight\\monitor-execute-1F-E7-single-pixel-retention-20261024T034827",
+  "ended_utc": "2026-10-24T03:52:30.9515424Z",
+  "acceptance": false
+}

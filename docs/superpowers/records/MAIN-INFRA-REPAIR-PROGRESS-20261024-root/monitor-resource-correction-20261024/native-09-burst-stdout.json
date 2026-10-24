@@ -1,0 +1,108 @@
+{
+    "tests":  24,
+    "passed":  24,
+    "failed":  0,
+    "cases":  [
+                  {
+                      "name":  "confirmed-exit-capture-",
+                      "passed":  true
+                  },
+                  {
+                      "name":  "confirmed-exit-capture-0",
+                      "passed":  true
+                  },
+                  {
+                      "name":  "exact-exited-invalid-operation-skips",
+                      "passed":  true
+                  },
+                  {
+                      "name":  "arbitrary-or-win32-getter-failure-1",
+                      "passed":  true
+                  },
+                  {
+                      "name":  "arbitrary-or-win32-getter-failure-3",
+                      "passed":  true
+                  },
+                  {
+                      "name":  "arbitrary-or-win32-getter-failure-4",
+                      "passed":  true
+                  },
+                  {
+                      "name":  "arbitrary-or-win32-getter-failure-5",
+                      "passed":  true
+                  },
+                  {
+                      "name":  "invalid-operation-not-positive-exit-False",
+                      "passed":  true
+                  },
+                  {
+                      "name":  "invalid-operation-not-positive-exit-",
+                      "passed":  true
+                  },
+                  {
+                      "name":  "invalid-operation-not-positive-exit-true",
+                      "passed":  true
+                  },
+                  {
+                      "name":  "invalid-operation-exit-denied-fails",
+                      "passed":  true
+                  },
+                  {
+                      "name":  "null-handle-not-positive-bool-False",
+                      "passed":  true
+                  },
+                  {
+                      "name":  "null-handle-not-positive-bool-",
+                      "passed":  true
+                  },
+                  {
+                      "name":  "null-handle-not-positive-bool-true",
+                      "passed":  true
+                  },
+                  {
+                      "name":  "exit-status-denied-fails",
+                      "passed":  true
+                  },
+                  {
+                      "name":  "live-handle-getter-denied-fails",
+                      "passed":  true
+                  },
+                  {
+                      "name":  "exited-invalid-nonzero-native-handle-still-fails",
+                      "passed":  true
+                  },
+                  {
+                      "name":  "protected-pids-refused",
+                      "passed":  true
+                  },
+                  {
+                      "name":  "unknown-parent-not-queried",
+                      "passed":  true
+                  },
+                  {
+                      "name":  "retained-parent-native-error-still-fails",
+                      "passed":  true
+                  },
+                  {
+                      "name":  "four-genuine-uncached-exited-processes-skip",
+                      "passed":  true
+                  },
+                  {
+                      "name":  "resource-caps-unchanged",
+                      "passed":  true
+                  },
+                  {
+                      "name":  "native-valid-binding-parent-and-lifetime",
+                      "passed":  true
+                  },
+                  {
+                      "name":  "real-short-lived-child-burst",
+                      "passed":  true
+                  }
+              ],
+    "burst":  {
+                  "launched":  80,
+                  "bound":  80,
+                  "all_exited":  true
+              }
+}

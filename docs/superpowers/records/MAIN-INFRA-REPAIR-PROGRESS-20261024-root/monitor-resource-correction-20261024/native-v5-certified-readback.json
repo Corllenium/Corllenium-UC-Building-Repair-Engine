@@ -1,0 +1,94 @@
+{
+  "executed_HEAD": "0001d84eab47da3e3d8e77126f03ed3fed9b03a9",
+  "phase_sha256": "f1a4e396ab223fde5901d0b762abcb38780cae879d0b38ce883acebd23f97109",
+  "actual_pid": 52300,
+  "creation_utc": "2026-10-24T03:45:45.5861484Z",
+  "ended_utc": "2026-10-24T03:46:12.8379699Z",
+  "actual_exit_code": 0,
+  "launcher_exit_code": 0,
+  "all_owned_exited": true,
+  "abort_reason": null,
+  "pytest_output": "...                                                                      [100%]\n3 passed in 26.39s\n",
+  "behavior_cases": 23,
+  "burst_cases": 24,
+  "burst": {
+    "launched": 80,
+    "bound": 80,
+    "all_exited": true
+  },
+  "uncached_exit_probe_cases": 4,
+  "resource_samples": 49,
+  "native_identity_records": 56,
+  "max_tree_private_bytes": 133169152,
+  "max_owned_os_peak_bytes": 101027840,
+  "minimum_headroom_bytes": 11554127872,
+  "old_PID_only_evidence_certified": false,
+  "model_or_floor_phase": false,
+  "files": [
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-resource-monitor-v5-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\monitor-v5-preflight\\monitor-monitor-V5-native-regression-certified-20261024T034544\\launch-gate.json",
+      "sha256": "16ed0586a095b4453ff31ef5aef58c15ebc14fc8eaef4db689cc97f3999d8628",
+      "bytes": 921
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-resource-monitor-v5-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\monitor-v5-preflight\\monitor-monitor-V5-native-regression-certified-20261024T034544\\actual-identity.json",
+      "sha256": "d0d7d82655207badfd7e87fadcfd659a43cfcb470435bf91686f5b1ebc672990",
+      "bytes": 1087
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-resource-monitor-v5-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\monitor-v5-preflight\\monitor-monitor-V5-native-regression-certified-20261024T034544\\identities.jsonl",
+      "sha256": "1d34b6a093f29f16fb5895edfd441aaa00ede335fe14ee8cef3954e5ab50e455",
+      "bytes": 22833
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-resource-monitor-v5-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\monitor-v5-preflight\\monitor-monitor-V5-native-regression-certified-20261024T034544\\resources.jsonl",
+      "sha256": "1afef744ac467844c1723d70cf3b598df1d1288f1a4b5a17d5e80dda3a907c2d",
+      "bytes": 48869
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-resource-monitor-v5-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\monitor-v5-preflight\\monitor-monitor-V5-native-regression-certified-20261024T034544\\result.json",
+      "sha256": "1dbec07baefdaf2f027f418461d56eac76ec07d1eb8d2f7e881a841f62ef34c9",
+      "bytes": 677
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-resource-monitor-v5-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\monitor-v5-preflight\\monitor-monitor-V5-native-regression-certified-20261024T034544\\stdout.txt",
+      "sha256": "78122f57c8a57315282e6f8741e5a0f0dd0f29e449a6c76be7cb724b8e6be5f0",
+      "bytes": 101
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-resource-monitor-v5-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\monitor-v5-preflight\\monitor-monitor-V5-native-regression-certified-20261024T034544\\stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-resource-monitor-v5-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\monitor-v5-test-results\\behavior-stdout.json",
+      "sha256": "5b6951e32e00aac9960ab4bf028ddfd2dc8ff4156fc80bf77626aa3206194566",
+      "bytes": 3603
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-resource-monitor-v5-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\monitor-v5-test-results\\behavior-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-resource-monitor-v5-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\monitor-v5-test-results\\burst-stdout.json",
+      "sha256": "d2ead1fb9130287f41bd57cce4da2d8692add768e34950f926803aabcef1cee7",
+      "bytes": 3871
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-resource-monitor-v5-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\monitor-v5-test-results\\burst-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-resource-monitor-v5-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\monitor-v5-test-results\\uncached-exit-probe.json",
+      "sha256": "ae0bb70bb0a17307084ecee509fc2e78ce2eed100e7567c9592beb7e7b9da854",
+      "bytes": 9702
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-resource-monitor-v5-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\monitor-v5-test-results\\uncached-exit-probe-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    }
+  ]
+}

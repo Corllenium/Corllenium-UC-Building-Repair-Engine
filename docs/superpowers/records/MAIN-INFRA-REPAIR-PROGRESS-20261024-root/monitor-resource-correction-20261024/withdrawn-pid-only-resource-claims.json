@@ -1,0 +1,113 @@
+{
+  "schema_version": 1,
+  "observed_utc": "2026-10-24T03:42:21.7841537Z",
+  "validation_head": "14dc70a9d7bcd4c8c192bcf1fadc57dff8a950dd",
+  "observer": {
+    "path": "D:/LLM_BACKUP/Codex session/main-infra-1f-single-pixel-validate-20261024/05-Corllenium-UC-Building-Repair-Engine/docs/superpowers/records/MAIN-INFRA-1F-E7-SINGLE-PIXEL-VALIDATE-20261024/tiny_test_window.py",
+    "sha256": "3cbd926b40e13e92a4ec926cd889542797e21a557eed7a2c67fd3a8c6bdc5b19"
+  },
+  "findings": [
+    "PID/parent inventory has no process-creation identity or retained-handle binding",
+    "Counters reopen process by PID and return zero on failure",
+    "Termination reopens PID without lifetime ownership verification",
+    "V4 FunctionsOnly supplied admission samples only; no outer lifetime-bound phase wrapper governed these tests"
+  ],
+  "resource_and_ownership_certification": "withdrawn",
+  "functional_stdout": "preserved_unmodified",
+  "model_phase_evidence_affected": false,
+  "new_model_phases_executed": false,
+  "new_runs_performed_for_this_audit": false,
+  "affected_process_receipts": [
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-single-pixel-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\docs\\superpowers\\records\\MAIN-INFRA-1F-E7-SINGLE-PIXEL-VALIDATE-20261024\\final-new-anchors-process.json",
+      "sha256": "605381253e2930732f46942f91749ac48f724158564acbc1d12108ae69bc4e70",
+      "resource_certification": "invalid_pid_only_observer",
+      "functional_output_preserved": true
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-single-pixel-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\docs\\superpowers\\records\\MAIN-INFRA-1F-E7-SINGLE-PIXEL-VALIDATE-20261024\\final-new-process.json",
+      "sha256": "5fd0719f97efb1a73728af5406d95f3ed5a6524214f5172b8b803b68afb1c415",
+      "resource_certification": "invalid_pid_only_observer",
+      "functional_output_preserved": true
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-single-pixel-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\docs\\superpowers\\records\\MAIN-INFRA-1F-E7-SINGLE-PIXEL-VALIDATE-20261024\\green-context-process.json",
+      "sha256": "46e86d274c1163c400867691ea1f05c0051d50a5bf937884f96275e8724bb906",
+      "resource_certification": "invalid_pid_only_observer",
+      "functional_output_preserved": true
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-single-pixel-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\docs\\superpowers\\records\\MAIN-INFRA-1F-E7-SINGLE-PIXEL-VALIDATE-20261024\\green-proof-process.json",
+      "sha256": "8d1a7f2312f9132b34a72a5b82b36795a819f876a4f32f65c2c688f5a5308e4e",
+      "resource_certification": "invalid_pid_only_observer",
+      "functional_output_preserved": true
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-single-pixel-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\docs\\superpowers\\records\\MAIN-INFRA-1F-E7-SINGLE-PIXEL-VALIDATE-20261024\\green-proof2-process.json",
+      "sha256": "ff82e119c658f9d918e98a0a3754c506ceea1c58655a92efcc5dbde70e2ef93a",
+      "resource_certification": "invalid_pid_only_observer",
+      "functional_output_preserved": true
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-single-pixel-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\docs\\superpowers\\records\\MAIN-INFRA-1F-E7-SINGLE-PIXEL-VALIDATE-20261024\\green-selection-process.json",
+      "sha256": "cacf8d1d416ec542d16a0cb6a65f3c8626d1d603d348a4f615a857df572be24a",
+      "resource_certification": "invalid_pid_only_observer",
+      "functional_output_preserved": true
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-single-pixel-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\docs\\superpowers\\records\\MAIN-INFRA-1F-E7-SINGLE-PIXEL-VALIDATE-20261024\\legacy-native-process.json",
+      "sha256": "d0c1ebf92fe83632f11bc6492d1a44ffca8061be755a0b01a1c5a02bcd1f732a",
+      "resource_certification": "invalid_pid_only_observer",
+      "functional_output_preserved": true
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-single-pixel-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\docs\\superpowers\\records\\MAIN-INFRA-1F-E7-SINGLE-PIXEL-VALIDATE-20261024\\legacy-native2-process.json",
+      "sha256": "dced47f946736955bfab48dd09dc9e7620835f948d03f4819faa95d5d07619ce",
+      "resource_certification": "invalid_pid_only_observer",
+      "functional_output_preserved": true
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-single-pixel-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\docs\\superpowers\\records\\MAIN-INFRA-1F-E7-SINGLE-PIXEL-VALIDATE-20261024\\legacy-native3-process.json",
+      "sha256": "875d48492c2c2c6abdb65302e6a7111a212efb4939ea9324280e23cb4fb5bdc9",
+      "resource_certification": "invalid_pid_only_observer",
+      "functional_output_preserved": true
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-single-pixel-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\docs\\superpowers\\records\\MAIN-INFRA-1F-E7-SINGLE-PIXEL-VALIDATE-20261024\\new-help-process.json",
+      "sha256": "21715240744883dd2376c0701fc61798170c7962ac058b7bfe533578583d2c5d",
+      "resource_certification": "invalid_pid_only_observer",
+      "functional_output_preserved": true
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-single-pixel-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\docs\\superpowers\\records\\MAIN-INFRA-1F-E7-SINGLE-PIXEL-VALIDATE-20261024\\red-actual-anchors-process.json",
+      "sha256": "59987fc2b24661223227fe5fd182298c0d36682c4c2f8e5b2eca40a55ec08856",
+      "resource_certification": "invalid_pid_only_observer",
+      "functional_output_preserved": true
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-single-pixel-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\docs\\superpowers\\records\\MAIN-INFRA-1F-E7-SINGLE-PIXEL-VALIDATE-20261024\\red-context-process.json",
+      "sha256": "bb59bca7a63062513b6ca6ee2dd8ef4e603e51ab4aea37adf4ff03f5756641e6",
+      "resource_certification": "invalid_pid_only_observer",
+      "functional_output_preserved": true
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-single-pixel-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\docs\\superpowers\\records\\MAIN-INFRA-1F-E7-SINGLE-PIXEL-VALIDATE-20261024\\red-proof-process.json",
+      "sha256": "1bfe75f72fbd1e1638fdade06ea68fa7ac4878b9ad462e3ca80f80f70462614f",
+      "resource_certification": "invalid_pid_only_observer",
+      "functional_output_preserved": true
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-single-pixel-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\docs\\superpowers\\records\\MAIN-INFRA-1F-E7-SINGLE-PIXEL-VALIDATE-20261024\\red-runtime-process.json",
+      "sha256": "f48929e05b8c8bc44a2a9441f1881e7734656c16c5cf4249149c92cb886ed5c8",
+      "resource_certification": "invalid_pid_only_observer",
+      "functional_output_preserved": true
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-single-pixel-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\docs\\superpowers\\records\\MAIN-INFRA-1F-E7-SINGLE-PIXEL-VALIDATE-20261024\\red-selection-process.json",
+      "sha256": "fdc8397b31ef16d6f0f23b5d47b7a96edb3e3cf78745fd0ba8baae24e5d73ca4",
+      "resource_certification": "invalid_pid_only_observer",
+      "functional_output_preserved": true
+    }
+  ],
+  "next_action": "Hold resource-pass claims; rerun only under reviewed lifetime-bound wrapper after root release"
+}

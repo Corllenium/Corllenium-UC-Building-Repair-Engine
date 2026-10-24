@@ -25,6 +25,26 @@ run the latest `.skp` of each file must be in `OBJ FIXED RESULT/` for the owner 
 
 ## 2. Current state (2026-09-26 00:15, written by the Claude controller)
 
+### 2026-10-24T04:08:01.830013Z - independent10660 preparation hash stop
+
+Actual31788/start04:04:20.9979651Z stopped normally exit1/noabort/allownedgone04:05:00.3768799Z after39.472s. Inherited prior.prepare_native strict-guard.py raw SHA differs; no prepared-inputs, strict/native/floor/signed model phase ran. Terminale2e27c35 andstderr8c9848e0 retained in ownIV data. Saved10660 unchanged. Agent measuring exact historical successful helper/committedblob before any byte correction or re-run; no hash waiver. Canonical log now records actual stop and ended worker.
+
+
+### 2026-10-24T04:06:53.377784+00:00 - actual 1F 10,660 saved; V5 evidence and resource correction
+
+Correction: earlier PID-only tiny-test helpers did not bind retained process handles and creation times. Their resource/ownership/cleanup certifications are withdrawn; functional stdout is retained only as functional output. Neither foreign-process termination nor its absence was established. The helpers are retired. Heavy floor phases used separately bound native monitors; their evidence is distinct.
+
+Monitor V5 changes only Add-ExecOwned handle acquisition. Same-object typed HasExited true permits an already-exited uncached child; live, denied, unknown and native-Times errors remain fail-closed. No ownership, ancestry, lifetime, cleanup or memory policy is weakened. Actual four uncached-child probes reproduce the Windows PowerShell null-handle race. Root and Builder reviewed the complete function and confirmed bytes outside it match V4. Committed working-file V5 SHA f158802651c955b6b322140ff9567496c527cd1bac0e63598171c45eeea60e12; final records HEAD c05c9c2.
+
+Actual retained-handle V5 native regression52300/start03:45:45.5861484Z completed exit0/noabort/all_owned_exited03:46:12.8379699Z. Root read 3 passed26.39s: 23 behavior cases,24 burst checks,80 launched/bound children all gone,4 uncached-exit probes;49 resource samples/56 native identities. Certificate3eb2465b. Repeated independent metadata run52940/start03:52:44.6230164Z under exact250MiB native-handle wrapper completed65 passed15.08s, exit0/allgone/noabort03:53:00.7055077Z; certificate03745cea. This supersedes the invalid resource claims without retroactively certifying old samples.
+
+Actual corrective engine4532/start03:48:29.1420273Z completed exit0/allownedgone/noabort03:52:30.9515424Z after241.878s. Frozen f12/P647 executed exact ordered160 retained proposals:160kept,0freshrolled; output10,660. All724 protected original parents survive once unchanged, including original7559 retained whole;7 material/texture assets copied exactly. Root read both source/engine OBJ face counts10660 and rehashed346 phase/saved-artifact references with0 mismatch. Source f46b4e2dc85ec7f8e1d17e7f23df7151370f3762c0682af7fa5b763c3cbc6294; engine1b5765f5c2b6cad8e59759de293be816166bb4417dbad48d86074a8486efeb80; checkpoint822a785d; run0432f166; terminal9da0a9f2; savedreadbackcc604e6f. V5 wrapper7a4a kept3GiB own/fresh3x8GiB/global3.5GiB/BLAS1. Peak tree1,329,639,424B/OS1,390,727,168B; minimum headroom10,152,849,408B.
+
+Independent frozen14dc semantic/5461124 records preparation packet cfc24aea/3bfe6d85 reviewed:823 pins rehashed0bad. Actual prepare31788/start04:04:20.9979651Z now launched through exact7a4a/f158. Strict/native/floor/signed phases NOT_RUN at this checkpoint. No acceptance or target pass claimed. Canonical latest_saved_candidate now10660; old10662 FAIL1 and10831 FAIL334 retained in history. Displayed10410 and its matching maps stay distinct until new10660 inspection plus actual new error census are published together. 2F actual38134 After and7 measured filters remain live; Claude4-7 untouched. Public engine pushes held; private Siege PR39 remains draft.
+
+Evidence: monitor-resource-correction-20261024/SHA256.json.
+
+
 ### 2026-10-24T03:28:55.954754+00:00 - corrective1F input plan prepared; actual execution stopped by monitor
 
 Frozenbuilder f12e1fd25fbb2324e6abe6592a3427acba93e4ad adds only explicit single-pixel retention profile/runner dispatch+status and new tests; engine/guard/default targets unchanged. Root+Deliveryreadcode and14newhardpins CLEAR. Genuine16RED->16GREEN; extra inherited-context RED5->21focusedGREEN3.98s, legacy/new129GREEN24.68s before onlycontextfix, actualcomponent/CLI standalone1GREEN14.66s. Earlier combinedmonitor Times(null) stop preserved NOTPASS. Historical typed proof is regenerated in its own exact33-key input context; new14keys bind onlynewlayer, no proof relaxation.
