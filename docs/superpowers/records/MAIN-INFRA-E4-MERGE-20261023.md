@@ -613,3 +613,111 @@ AFTER model `<root>/e4/7F/candidate.engine.obj`. To fold the kinds into census f
 pytest tools/tests/test_main_infra_stage_errors.py -> 8 passed in 17.44s
 pytest tools/tests -> 358 passed in 228.54s (0:03:48), exit 0   (350 + the 8 stage-errors tests)
 ```
+
+## After real 7F chain run #2 (2026-10-24): E4 winding and twins, E5 seam visibility, check 3's deciding measure, the covered rollbacks measured
+
+The feature commit preceding this record, plus this record. The measurements below were made READ-ONLY on the run-2
+artifacts under `.claude/worktrees/MAIN-INFRA-CLAUDE-4F-7F-20261023/data/main-infra-fresh/run-claude-4f-7f-20261023`
+(`e5/7F`, `e4/7F`, `independent-validator/e4-validation/7F`); nothing ran on the floor from here.
+
+### Run #2 as reported (coordinator)
+
+E5: by_rule backface_twin 497, interior_twins 3,738; 412 sites, 223 kept, 189 rolled back {deleted 18,191, uv 3,174,
+look 1,861, replaced 80, side 62}; 20,625 -> 19,731. E4 (`--allow-growth`): regions 3,905, changed 1,860, refused
+uv_seam 636 / area_changed 16 / off_plane 6 / too_large 4; 1,198 sites, 279 kept, 919 rolled back, all {covered 9,372}
+(how: box 7,589, cover 1,341, touched 197); 19,731 -> 20,222. E4 independent guard PASS (holes 0, zfight_tie 2).
+Validator (`--allow coincident_backface_removed`): textures PASS; nothing_deleted FAIL with deleted = replaced =
+covered = overlaid = 0; problems flicker_diff 1,739, flicker_same 2,772, cracks 4,301, reversed 0 -> 36 (ids
+19860-19997, appended E4 triangles); 16 interior renders 466 changed px; allowed_changes excused 16 samples.
+
+### Measured here
+
+1. check 3's FAIL with zero sample counters WAS THE FLOOR: `nothing_deleted.floor.status == FAIL`, `faces_measured 108`,
+   `faces_failed 4` -- face 14087 (kind covered, 85 px `deleted`, direction 15), 13114 (27.1 px `covered` by appended
+   triangles 19794 / 19733, probe 758), 14059 (14 px deleted), 15438 (kind removed, 7 px deleted, extra direction 326);
+   lattice 7,491 faces / 1,936,028 points, candidates removed 38 / covered 70. The report never said which sub-measure
+   decided.
+2. E4 winding: over the 279 kept regions (1,571 new triangles), 0 new triangles wind against their source faces'
+   largest-face winding and 0 regions have mixed-winding sources. The 36 `reversed` census faces lie in 26 regions of
+   2 input faces -> 3-11 triangles (grown regions, `--allow-growth`), all `minecraft_concrete_white_-1`: the census's
+   `reversed` is `classify_orientation(front, back)` from sampled exposure, and a grown region's many small triangles
+   sample differently from its two slivers. NOT a winding flip of the merge.
+3. E4 covered rollbacks: 919 sites, 8,222 charged sample faces classified against each site's region: other 5,663
+   (69 %), neighbour (shares a vertex) 1,227, same-facing coplanar 681, opposite twin 472 (5.7 %), the region's own
+   faces 179. 578 of the 919 sites were charged by BOUNDING BOX ALONE (`how.cover + how.touched == 0`); 341 had a
+   cover or touched charge. The remaining twins are a minor cause; the box attribution is the major one.
+
+### Changes
+
+1. `engine/repair/engines/e4_merge.py`: the region normal is the input faces' OWN winding -- the largest face's cross
+   product is the reference, agreeing faces' cross products are summed (area-weighted), never a plane fit; a region
+   with a disagreeing face is refused `mixed_winding` BEFORE the `unchanged` skip, with `winding: {agreeing_area,
+   disagreeing_area, faces_disagreeing}` in every record. Measured: the merge already keeps a clockwise quad clockwise,
+   and `analyse_topology` never puts opposite normals in one region, so the guard is driven directly in its test and
+   cannot fire from today's topology. `skip_twinned: bool = True`: the Validator's `double_layers` opposite pairs are
+   read on the E4 input (as E5 reads them) and a region any input face of which still has an opposite partner is
+   SKIPPED `twinned` (`report.twinned_faces`, `seconds.twins`); `skip_twinned=False` restores the old plan.
+2. `engine/repair/engines/e5_coincident.py`: an interior seam is planned only when the Validator's own viewpoint set
+   sees NEITHER face: `seam_view(mesh, faces)` (default: the site judge's `lattice_seen` at `DENSE_POINTS_PER_FACE`
+   plus `probe_seen`, as E3-R7 / E3-R4); a seam with a seen face stays whole (`kept.seam_seen`, `points_seen` per face,
+   partners kept with it); with no view and no judge no seam is planned (`kept.seam_unverified`).
+   `report.interior_filtered = {seams, seen, unverified, planned}` says how many the filter took.
+3. `engine/validate/checks.py`: `checks.nothing_deleted.failed_by = {samples, floor, floor_faces_failed,
+   samples_failed}` names the deciding sub-measure. The class now asks EVERY sample of every removed hidden-front face
+   for its twin (tested or not) and excuses from the floor each face all of whose samples lie under an exposed opposite
+   twin (`allowed_changes[CBR].faces_eligible`); the sample reclassification stays limited to tested failing samples.
+   Run #2 excused 16 samples on 9 faces while 497 backface twins were culled: their samples were mostly never seen, so
+   never tested, so never excused, and the floor measured them.
+4. Proposed, NOT implemented (engine/site_judge.py attribution): charge a `covered` sample to a cut site only when one
+   of the site's NEW faces is the covering face (`how.cover` or `touched`), not by bounding box -- the E3-R8 ruling for
+   remove-only sites, extended to cuts. On run #2 that would have spared 578 of the 919 rolled-back E4 regions
+   (the 341 with a cover/touched charge would still roll back). The 179 self-charges (a merged triangle covering its
+   own replaced slivers' samples at a depth tie) are the Validator's cover test at the tolerance and also deserve a
+   look. Both need the owner's word: they loosen the judge.
+
+Tests: `engine/tests/test_e4_winding_and_twins.py` (6: clockwise quad merges clockwise with winding evidence;
+`mixed_winding` refusal driven through `merge_regions`; opposite-winding faces fall in separate single-winding regions;
+`twinned` skip, the switch, a plain quad not twinned), `engine/tests/test_e5_coincident.py` (+4: unseen seam planned
+with the view, a seen seam kept whole while the unseen one is planned, no view and no judge -> `seam_unverified`, the
+judge supplies the view), `engine/tests/test_validate_allowed_changes.py` (`failed_by` on the strict and the passing
+case, `faces_eligible == 2`).
+
+### Output (2026-10-24, worktree root, `PYTHONPATH` = it, `-p no:cacheprovider`)
+
+```
+pytest engine/tests/test_e4_winding_and_twins.py engine/tests/test_e4_merge.py engine/tests/test_e4_growth.py
+  -> 2 failed, 20 passed in 13.47s (the two mixed-winding tests expected a mixed REGION, which the topology never
+     builds), then engine/tests/test_e4_winding_and_twins.py alone, rewritten -> 6 passed in 10.23s
+pytest engine/tests/test_e5_coincident.py -> 1 failed, 21 passed in 192.85s (my assertion: the unseen seam is still
+  planned while the seen one stays), corrected test -> passed (22 tests)
+pytest engine/tests/test_validate_allowed_changes.py engine/tests/test_validate_checks.py -> 1 failed, 84 passed in
+  199.08s (my test read `allowed` before assigning it), corrected test -> passed; the two corrected tests together
+  -> 2 passed in 7.25s
+pytest tools/tests -> 358 passed in 213.18s (0:03:33), exit 0
+```
+
+### 7F commands (NOT run here; move an existing `<root>/e5/7F`, `<root>/e4/7F` aside first)
+
+```powershell
+$env:PYTHONPATH=(Get-Location).Path
+$PY='D:/PROJECTS/05-Corllenium-UC-Building-Repair-Engine/.venv/Scripts/python.exe'
+& $PY -B -u tools/run_checked_e5_floor.py --root <claude run root> --floor 7F --raw-name "7th floor main infra.obj" --from-e3
+& $PY -B -u tools/run_checked_e4_floor.py --root <claude run root> --floor 7F --raw-name "7th floor main infra.obj" --from-e5 --allow-growth
+& $PY -B -u tools/e4_independent_guard.py --root <root> --floor 7F --raw-name "7th floor main infra.obj" --candidate <root>/e4/7F --out <root>/e4/7F-independent-guard --helper D:/PROJECTS/05-Corllenium-UC-Building-Repair-Engine/.claude/worktrees/MAIN-INFRA-CLAUDE-4F-7F-20261023/tools/main_infra_candidate.py --job-id <id> --reviewer <name> [--original-oracle]
+& $PY tools/main_infra_physical_validation.py --raw "<root>/raw/7th floor main infra.obj" --reference <root>/reference/7F.json --baseline <root>/normalized/7F --qualification <root>/independent-validator/import-audit/qualification-7F.json --candidate <root>/e4/7F --materials <root>/independent-validator/preflight/materials-7F.json --out <root>/e4/7F-validation --allow coincident_backface_removed
+```
+
+What to read on run #3: E5 `interior_filtered` (how many of the 1,869 seams the judge's viewpoints see), E5 rolled-back
+reasons (expect the `deleted` 18,191 to fall), E4 `skipped.twinned` and the rolled-back `how` split (the box share is
+the case for the attribution ruling), `nothing_deleted.failed_by` and `allowed_changes[CBR].faces_eligible`.
+
+### Open questions
+
+1. The seam view costs the judge's lattice (36 points per seam face) and probes over every seam face per plan: on 7F
+   that is 3,738 faces; `seconds.seam_view` records it.
+2. `skip_twinned` runs `double_layers` (26 views) once more inside E4; `seconds.twins` records it. E5's own pair list
+   could be handed through the audit instead.
+3. The floor's 4 failing faces on run #2 (7-85 px) are real pixel losses the samples did not catch; whether E5 or E4
+   caused each (faces 14087, 13114, 14059, 15438 of the baseline) is for the next run's `failed_by` and
+   `floor.failing` with the chained face maps.
+4. The covered-attribution ruling (change 4) is proposed only; it is the judge's rule and the owner's call.
