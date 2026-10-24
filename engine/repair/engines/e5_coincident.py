@@ -29,7 +29,13 @@ exposures for the audit). Rule (d), `interior_twins` (coordinator, 2026-10-24, a
 faces as `no_backface_winner`): a back-to-back pair BOTH of whose fronts are hidden is an interior block-against-block
 seam, and BOTH faces are planned for removal as ONE site (the seam's faces are joined into one site even when their
 vertices are not welded together); the cover and only-coverage rules do not apply to it -- the site judge decides, and
-a seam any sample sees is rolled back as any site is. The coverage, anchoring and only-coverage rules apply to rule (c)'s
+a seam any sample sees is rolled back as any site is. The census alone is NOT sufficient (7F chain run #2: 3,738 seam
+faces planned, the judge saw 18,191 of their samples and rolled most seams back), so before a seam is planned the
+Validator's own viewpoint set must see NEITHER face: `seam_view(mesh, faces)` -- by default the site judge's
+`lattice_seen` (E3-R7's dense lattice, `DENSE_POINTS_PER_FACE`) plus `probe_seen` (E3-R4's eye-height probes) from
+`ctx.validator` -- and a seam with a seen face stays (`kept.seam_seen`, with `points_seen`), its partners with it;
+with no view and no judge no seam is planned (`kept.seam_unverified`). `report["interior_filtered"]` counts
+`seams`, `seen`, `unverified`, `planned`. The coverage, anchoring and only-coverage rules apply to rule (c)'s
 drop as to any other. With
 `cull_opposite_backfaces=False` opposite pairs are only counted. Treating an opposite pair as duplicates is otherwise
 blocked (AGENTS.md section 4); this rule is the owner's exception and the Validator judges it under its own
@@ -71,7 +77,7 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass, field
-from typing import Callable
+from typing import Any, Callable
 
 import numpy as np
 import shapely
@@ -81,7 +87,7 @@ from engine.fixes.pipeline import guard_depth_tol
 from engine.guard.views import VIEWS_26
 from engine.vis.exposure import compute_side_exposure
 from engine.pipeline import analyse_topology, flat_material_indices
-from engine.repair.engines.e3_hidden import MAX_SITE_FACES, _components, split_group
+from engine.repair.engines.e3_hidden import DENSE_POINTS_PER_FACE, MAX_SITE_FACES, _components, split_group
 from engine.repair.types import NO_MATERIAL_LOOK, Edit, RepairContext, UnitState
 from engine.topo.planes import plane_basis
 
@@ -97,7 +103,7 @@ DEFAULT_WIN_PATTERNS = ("UC_PAL_05", "UC_PAL_12", "UC_PAL_00", "quartz_block_top
 DEFAULT_LOSER_PATTERNS = ("concrete_white", "concrete_gray")
 RULES = ("same_look", "priority", "larger_area", "backface_twin", "interior_twins")
 KEPT_REASONS = ("uncovered", "no_winner", "both_exposed", "no_backface_winner", "anchored", "only_coverage",
-                "no_overlap")
+                "no_overlap", "seam_seen", "seam_unverified")
 #: How many kept opposite pairs `report["kept_pairs"]` lists (all are counted in `kept_pairs_total`).
 KEPT_PAIRS_LISTED = 500
 
@@ -155,7 +161,25 @@ class E5Coincident:
     facing_dot: float = FACING_DOT
     #: Rule c (owner decision 2026-10-24): drop the solid-facing twin of a back-to-back pair, whatever its look.
     cull_opposite_backfaces: bool = True
+    #: Rule d's visibility test: `seam_view(mesh, faces)` gives per face how many points the Validator's viewpoints see
+    #: (None: the site judge's `lattice_seen` at `DENSE_POINTS_PER_FACE` points plus `probe_seen`, from
+    #: `ctx.validator`; with neither, no seam is planned: `seam_unverified`).
+    seam_view: Callable[[Any, np.ndarray], Any] | None = None
     report: dict | None = field(default=None, repr=False)
+
+    def _seam_view(self, ctx: RepairContext):
+        if self.seam_view is not None:
+            return self.seam_view
+        lattice = getattr(ctx.validator, "lattice_seen", None)
+        probes = getattr(ctx.validator, "probe_seen", None)
+        if lattice is None or probes is None:
+            return None
+
+        def view(mesh, faces):
+            dense = lattice(mesh, faces, DENSE_POINTS_PER_FACE)
+            dense = dense["any"] if isinstance(dense, dict) else dense
+            return np.asarray(dense, np.int64) + np.asarray(probes(mesh, faces), np.int64)
+        return view
 
     def _priority(self, mesh, material: int) -> int:
         name = mesh.materials[material] if material >= 0 else ""
@@ -334,6 +358,52 @@ class E5Coincident:
         seconds["decide"] = time.perf_counter() - t0
 
         # ---- sites: edge-connected groups of the dropped faces, a big one split by a spatial grid
+        # ---- rule (d)'s visibility test: a seam is planned only when the Validator's own viewpoints see neither face
+        # (7F chain run #2: the census called 3,738 seam faces hidden, the judge saw 18,191 of their samples)
+        t0 = time.perf_counter()
+        interior_filtered = {"seams": len(interior_pairs), "seen": 0, "unverified": 0, "planned": 0}
+        if interior_pairs:
+            view = self._seam_view(ctx)
+            seam_faces = np.array(sorted(interior), np.int64)
+            points_seen: dict[int, int | None] = {int(f): None for f in seam_faces.tolist()}
+            if view is not None:
+                counts = np.asarray(view(mesh, seam_faces), np.int64)
+                if counts.shape != seam_faces.shape:
+                    raise ValueError(f"E5: seam_view gave {counts.shape} values for {seam_faces.shape} faces")
+                points_seen = {int(f): int(c) for f, c in zip(seam_faces.tolist(), counts.tolist())}
+            unplanned: dict[int, str] = {}
+            kept_pairs_d: list[tuple[int, int]] = []
+            for a, b in interior_pairs:
+                if view is None:
+                    reason = "seam_unverified"
+                    interior_filtered["unverified"] += 1
+                elif points_seen[a] > 0 or points_seen[b] > 0:
+                    reason = "seam_seen"
+                    interior_filtered["seen"] += 1
+                else:
+                    interior_filtered["planned"] += 1
+                    kept_pairs_d.append((a, b))
+                    continue
+                for h in (a, b):
+                    unplanned[h] = reason if unplanned.get(h) != "seam_seen" else "seam_seen"
+            # a face of a seen or unverified seam stays, and so does every partner of its seams (never one face alone)
+            changed = True
+            while changed:
+                changed = False
+                for a, b in interior_pairs:
+                    if (a in unplanned) != (b in unplanned):
+                        h, other = (b, a) if a in unplanned else (a, b)
+                        unplanned[h] = unplanned[other]
+                        changed = True
+            for h, reason in sorted(unplanned.items()):
+                if h in dropped:
+                    row = dropped.pop(h)
+                    kept_counts[reason] += 1
+                    kept_rows.append({**row, "kept": reason, "points_seen": points_seen[h]})
+            interior_pairs = [(a, b) for a, b in kept_pairs_d if a not in unplanned and b not in unplanned]
+            interior = {f for pair in interior_pairs for f in pair}
+        seconds["seam_view"] = time.perf_counter() - t0
+
         candidates = np.array(sorted(dropped), np.int64)
         centroid = tri.mean(axis=1)
         comps = _components(faces, candidates)
@@ -378,6 +448,7 @@ class E5Coincident:
             "by_rule": {r: sum(1 for row in dropped.values() if row["rule"] == r) for r in RULES},
             "kept": kept_counts, "kept_faces": kept_rows,
             "kept_pairs": kept_pairs[:KEPT_PAIRS_LISTED], "kept_pairs_total": len(kept_pairs),
+            "interior_filtered": interior_filtered,
             "planned": [list(e.faces) for e in edits], "sites": len(edits), "connected_groups": len(comps),
             "groups_split": split, "max_site_faces": int(self.max_site_faces),
             "seconds": {**{k: round(v, 2) for k, v in seconds.items()},

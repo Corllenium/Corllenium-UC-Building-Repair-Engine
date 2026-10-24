@@ -1583,15 +1583,19 @@ def _coincident_backface_allowed(b: MeshData, samples: Samples, tested: np.ndarr
               "rule": "the sample's face is gone, its front exposure in BEFORE was 0, and a kept opposite-facing face "
                       "exposed on its front in BEFORE lies on the sample within the depth tolerance (statuses deleted, "
                       "look and uv)"}
-    cand = np.flatnonzero(tested & ~covered & ((present == DELETED) | (present == LOOK) | (present == UV))
-                          & suspect[face])
-    report["candidates"] = int(len(cand))
-    if not len(cand) or not b.n_faces:
+    failing = tested & ~covered & ((present == DELETED) | (present == LOOK) | (present == UV)) & suspect[face]
+    report["candidates"] = int(failing.sum())
+    report["faces_eligible"] = 0
+    if not suspect.any() or not b.n_faces:
         return allowed, excused, report
     ok = np.linalg.norm(normals_b, axis=1) > 0.0
     front, _back = compute_side_exposure(b.positions, b.face_v, ok, n_dirs=n_directions)
     hidden_front = ok & (front <= 0.0)
-    cand = cand[hidden_front[face[cand]]]
+    # every sample of every removed hidden-front face is asked for its twin, tested or not: the floor's pixel measure
+    # looks at removed faces nobody sampled (7F chain run #2: 497 backface twins culled, only 16 samples excused and
+    # the floor still failing), so a face is excused from the floor when ALL its samples lie under an exposed twin
+    cand = np.flatnonzero(suspect[face] & hidden_front[face])
+    under_twin = np.zeros(n, dtype=bool)
     twins = np.flatnonzero(~suspect & ok & (front > 0.0))
     if len(cand) and len(twins):
         grid = _FaceGrid(b.positions, b.face_v, twins, tol)
@@ -1605,10 +1609,13 @@ def _coincident_backface_allowed(b: MeshData, samples: Samples, tested: np.ndarr
             q = p[r] - dist[:, None] * nf
             inside = (_barycentric(b.positions, b.face_v[f], q) >= -_INSIDE).all(axis=1)
             hit = opposite & (np.abs(dist) <= tol) & inside
-            allowed[cand[np.unique(r[hit])]] = True
+            under_twin[cand[np.unique(r[hit])]] = True
+    allowed = failing & under_twin
     per_face = lambda m: np.bincount(face[m], minlength=b.n_faces)
-    t_per, a_per = per_face(tested), per_face(allowed)
-    excused = (t_per > 0) & (a_per == t_per)
+    n_per, u_per, a_per = per_face(np.ones(n, dtype=bool)), per_face(under_twin), per_face(allowed)
+    eligible = suspect & hidden_front & (n_per > 0) & (u_per == n_per)
+    excused = eligible.copy()
+    report["faces_eligible"] = int(eligible.sum())
     report.update(samples=int(allowed.sum()), deleted=int((allowed & (present == DELETED)).sum()),
                   look=int((allowed & (present == LOOK)).sum()), uv=int((allowed & (present == UV)).sum()),
                   faces=int((a_per > 0).sum()),
@@ -1887,7 +1894,11 @@ def validate(before: MeshData, after: MeshData, looks: Looks, *, errors=None, ta
         "area_lost_in2": round(float(sample_area[unmet].sum()), 2),
         "area_covered_in2": round(float(sample_area[tested & covered].sum()), 2),
         "area_overlaid_in2": round(float(sample_area[tested & overlaid].sum()), 2),
-        "depth_tolerance_in": round(tol, 4), "floor": floor_report}
+        "depth_tolerance_in": round(tol, 4),
+        # which sub-measure decided the status: the samples, the floor's pixel measure, or neither
+        "failed_by": {"samples": bool(fail3.any()), "floor": floor_report["status"] == "FAIL",
+                      "floor_faces_failed": int(floor_report["faces_failed"]), "samples_failed": int(fail3.sum())},
+        "floor": floor_report}
     fill_report = []
     if fill_sites is not None:
         # only with fills: without them `validation.json` is exactly what it was before the fill_site class

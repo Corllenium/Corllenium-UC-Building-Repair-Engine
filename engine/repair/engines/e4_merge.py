@@ -26,6 +26,14 @@ EVERY site is checked here BEFORE the judge sees it, and refused (listed in `rep
   by more than `UV_RESIDUAL_MAX` (1e-3 UV units; the merge re-bases a FLAT material's UVs by whole tiles, which is
   invisible and only recorded);
 - `too_large`: the region has more input faces than `max_site_faces` (a region is one site: it cannot be split);
+- `mixed_winding` (checked first, before the `unchanged` skip): the region's input faces disagree in winding (a face's
+  cross product against the largest face's is negative). The region normal is the input faces' OWN winding, area-
+  weighted over the agreeing faces -- never a plane fit, which has no sign; 7F chain run #2 returned 36 appended
+  triangles `reversed` from regions whose slivers wound both ways. The merge keeps the input's winding (measured: a
+  clockwise quad merges clockwise), and `flipped` still refuses any new triangle that winds against the normal;
+- `twinned` (a SKIP, `skip_twinned`, on by default): an input face of the region still carries a coincident OPPOSITE
+  partner in the Validator's `double_layers` pairs (E5 could not drop it: both exposed, or a seen seam); the merged
+  surface would cover that twin's samples, so the region is left alone;
 - `grew` (unless `allow_growth`): the merge returned MORE triangles than the region had input faces. Measured on the
   7F E4 trial (2026-10-24): 123 of 275 kept regions grew, 2 input faces becoming 8-14 triangles, because the
   `keep_all` ring carries every vertex a neighbour threads into the border; such a region gains lines, not cleanliness.
@@ -51,6 +59,9 @@ from typing import Iterable
 import numpy as np
 
 from engine.fixes.merge import default_collinear_tol, merge_regions
+from engine.fixes.overlap import double_layers
+from engine.fixes.pipeline import guard_depth_tol
+from engine.guard.views import VIEWS_26
 from engine.pipeline import Topology, analyse_topology_memo, flat_material_indices
 from engine.repair.types import NO_MATERIAL_LOOK, Edit, RepairContext, UnitState
 from engine.topo.planes import fit_uv, plane_basis
@@ -62,8 +73,9 @@ AREA_REL_TOL = 1e-6
 #: The largest residual (UV units) of the region's one affine UV map against the input corners of a textured material.
 UV_RESIDUAL_MAX = 1e-3
 
-SKIP_REASONS = ("unchanged", "not_allowed")
-REFUSE_REASONS = ("area_changed", "off_plane", "flipped", "uv_lost", "uv_seam", "too_large", "mixed_material", "grew")
+SKIP_REASONS = ("unchanged", "not_allowed", "twinned")
+REFUSE_REASONS = ("area_changed", "off_plane", "flipped", "uv_lost", "uv_seam", "too_large", "mixed_material", "grew",
+                  "mixed_winding")
 
 
 def e4_topology(mesh, flatness: dict, profile) -> tuple[frozenset, Topology]:
@@ -107,6 +119,7 @@ class RegionChange:
     reason: str | None
     detail: str = ""
     normal: np.ndarray | None = None
+    winding: dict | None = None
 
     def record(self, mesh, looks: dict) -> dict:
         corners = mesh.positions[mesh.face_v[self.faces]].reshape(-1, 3)
@@ -115,16 +128,20 @@ class RegionChange:
                 "area_before": float(self.area_before), "area_after": float(self.area_after),
                 "ring_vertices": int(self.ring_vertices), "plane_offset": float(self.plane_offset),
                 "uv_residual": None if self.uv_residual is None else float(self.uv_residual),
+                "winding": self.winding,
                 "centroid": [round(float(v), 4) for v in corners.mean(axis=0)],
                 "bbox": [[round(float(v), 4) for v in corners.min(axis=0)],
                          [round(float(v), 4) for v in corners.max(axis=0)]]}
 
 
 def region_changes(mesh, topo: Topology, result, flat: Iterable[int], *, allowed_regions=None,
-                   max_site_faces: int = MAX_SITE_FACES, allow_growth: bool = False) -> list[RegionChange]:
+                   max_site_faces: int = MAX_SITE_FACES, allow_growth: bool = False,
+                   twinned: Iterable[int] = ()) -> list[RegionChange]:
     """One `RegionChange` per region the merge result holds, in ascending region id, each measured against the rules
-    of the module docstring (`allow_growth` lifts the `grew` refusal). Raises when `result` changed `positions` or a
-    region's rows disagree on their source."""
+    of the module docstring (`allow_growth` lifts the `grew` refusal; `twinned` are the input faces that still carry a
+    coincident opposite partner: a region holding one is skipped `twinned`). Raises when `result` changed `positions`
+    or a region's rows disagree on their source."""
+    twinned = set(int(f) for f in twinned)
     if not np.array_equal(result.mesh.positions, mesh.positions):
         raise ValueError("E4: merge_regions changed positions; the merge never moves, adds or re-indexes a vertex")
     flat = set(int(m) for m in flat)
@@ -151,7 +168,15 @@ def region_changes(mesh, topo: Topology, result, flat: Iterable[int], *, allowed
         materials = np.unique(mesh.face_material[source])
         material = int(materials[0])
         a_before, a_after = float(area_old[source].sum()), float(area_new[rows].sum())
-        normal = cross_old[source].sum(axis=0)
+        # the region normal is the input faces' OWN winding, area-weighted: the largest face's winding is the
+        # reference, every face agreeing with it adds its area, a face winding the other way is a disagreement
+        # (a plane fit has no sign; 36 appended triangles came back `reversed` on 7F from mixed-winding regions)
+        largest = source[int(np.argmax(area_old[source]))]
+        agree = (cross_old[source] @ cross_old[largest]) > 0.0
+        winding = {"agreeing_area": round(float(area_old[source][agree].sum()), 6),
+                   "disagreeing_area": round(float(area_old[source][~agree].sum()), 6),
+                   "faces_disagreeing": int((~agree).sum())}
+        normal = cross_old[source][agree].sum(axis=0)
         length = float(np.linalg.norm(normal))
         normal = normal / length if length > 0 else normal
         centre = mesh.positions[mesh.face_v[source]].reshape(-1, 3).mean(axis=0)
@@ -160,14 +185,26 @@ def region_changes(mesh, topo: Topology, result, flat: Iterable[int], *, allowed
         used = np.unique(out_v[rows])
         change = RegionChange(region=region, faces=source, rows=rows, material=material, area_before=a_before,
                               area_after=a_after, plane_offset=offset, ring_vertices=int(len(used)),
-                              uv_residual=None, reason=None, normal=normal)
+                              uv_residual=None, reason=None, normal=normal, winding=winding)
         changes.append(change)
 
+        if not agree.all():
+            change.reason = "mixed_winding"
+            change.detail = (f"the region's input faces disagree in winding: {winding['faces_disagreeing']} of "
+                             f"{len(source)} face(s) ({winding['disagreeing_area']:.4f} sq in) wind against the largest "
+                             f"face ({winding['agreeing_area']:.4f} sq in agreeing); one merged surface would reverse one "
+                             f"side")
+            continue
         if len(rows) == len(source) and (_canonical(out_v[rows]) == _canonical(mesh.face_v[source])
                                          or np.array_equal(used, np.unique(mesh.face_v[source]))):
             # the same triangles, or the same count over the same vertices: a re-diagonalisation removes no sliver,
             # no T-junction and no internal line, so the region is left as it is (and a second E4 run is a no-op)
             change.reason, change.detail = "unchanged", "the merge returned the region's own triangle count and vertices"
+            continue
+        if twinned and any(int(f) in twinned for f in source.tolist()):
+            change.reason = "twinned"
+            change.detail = (f"{sum(1 for f in source.tolist() if int(f) in twinned)} input face(s) still carry a "
+                             f"coincident opposite partner: the merged surface would cover its samples")
             continue
         if allowed_regions is not None and region not in allowed_regions:
             change.reason, change.detail = "not_allowed", "the crack judgement did not say to merge this region"
@@ -229,6 +266,10 @@ class E4Merge:
     allowed_regions: set | None = None
     max_site_faces: int = MAX_SITE_FACES
     allow_growth: bool = False
+    #: Skip a region any input face of which still carries a coincident OPPOSITE partner (the Validator's own
+    #: `double_layers` pairs, as E5 reads them): the merged surface would cover that twin's samples (7F chain run #2:
+    #: 472 of the 8,222 covered samples charged to rolled-back E4 sites lay on such twins).
+    skip_twinned: bool = True
     name: str = "E4"
     legacy: bool = False
     report: dict | None = field(default=None, repr=False)
@@ -238,11 +279,21 @@ class E4Merge:
         mesh = unit.mesh
         flat, topo = e4_topology(mesh, self.flatness, ctx.profile)
         t0 = time.perf_counter()
+        twinned: set[int] = set()
+        if self.skip_twinned:
+            # the Validator's double-layer pairs, exactly as find_errors and E5 read them; the opposite ones are the twins
+            pos = topo.positions_w
+            centre = (pos.min(axis=0) + pos.max(axis=0)) / 2.0
+            dl = double_layers(pos - centre, topo.face_w, guard_depth_tol(topo.quanta, ctx.profile), VIEWS_26,
+                               ctx.profile.guard_size, centre=centre)
+            twinned = {int(f) for i, j, _s, opposite in dl["pair_list"] if opposite for f in (i, j)}
+        twins_seconds = time.perf_counter() - t0
+        t0 = time.perf_counter()
         result = merge_regions(mesh, topo, flat)
         merge_seconds = time.perf_counter() - t0
         allowed = None if self.allowed_regions is None else {int(r) for r in self.allowed_regions}
         changes = region_changes(mesh, topo, result, flat, allowed_regions=allowed, max_site_faces=self.max_site_faces,
-                                 allow_growth=self.allow_growth)
+                                 allow_growth=self.allow_growth, twinned=twinned)
 
         edits: list[Edit] = []
         skipped = {k: 0 for k in SKIP_REASONS}
@@ -277,8 +328,10 @@ class E4Merge:
             "sites": len(edits), "skipped": skipped, "refused": refused,
             "allowed_regions": None if allowed is None else sorted(allowed),
             "max_site_faces": int(self.max_site_faces), "allow_growth": bool(self.allow_growth),
+            "skip_twinned": bool(self.skip_twinned), "twinned_faces": int(len(twinned)),
             "flat_materials": sorted(int(m) for m in flat),
             "merge_report": result.report,
-            "seconds": {"merge": round(merge_seconds, 2), "total": round(time.perf_counter() - started, 2)},
+            "seconds": {"merge": round(merge_seconds, 2), "twins": round(twins_seconds, 2),
+                        "total": round(time.perf_counter() - started, 2)},
         }
         return edits

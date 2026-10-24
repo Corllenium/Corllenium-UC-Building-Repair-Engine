@@ -215,9 +215,15 @@ def _partition_with_inward_twin():
         face_line=np.arange(1, base.n_faces + 3, dtype=np.int64))
 
 
+def _unseen(mesh, faces):
+    """A seam view that sees nothing: every face 0 points seen (the sealed partition's truth)."""
+    return np.zeros(len(faces), np.int64)
+
+
 def test_a_back_to_back_pair_both_hidden_is_an_interior_seam_and_both_faces_go_as_one_site():
     before = _partition_with_inward_twin()
-    edits, engine = _plan(before)
+    edits, engine = _plan(before, E5Coincident(flatness={}, seam_view=_unseen))
+    assert engine.report["interior_filtered"] == {"seams": 2, "seen": 0, "unverified": 0, "planned": 2}
     assert len(edits) == 1 and sorted(edits[0].faces) == [12, 13, 14, 15], "both faces of each pair, one site"
     rows = edits[0].evidence["pairs"]
     assert all(row["rule"] == "interior_twins" and row["front"] == 0.0 for row in rows)
@@ -241,8 +247,40 @@ def test_interior_twins_are_one_site_even_when_their_vertices_are_not_shared():
     fv = before.face_v.copy()
     fv[[14, 15]] = np.vectorize(remap.get)(copy_v)
     before = dataclasses.replace(before, positions=np.vstack([before.positions, before.positions[used]]), face_v=fv)
-    edits, _ = _plan(before)
+    edits, _ = _plan(before, E5Coincident(flatness={}, seam_view=_unseen))
     assert len(edits) == 1 and sorted(edits[0].faces) == [12, 13, 14, 15]
+
+
+def test_a_seam_some_viewpoint_sees_is_not_planned_and_is_counted():
+    # the census says both fronts are hidden, but the Validator's own viewpoints see a point of one face (7F chain
+    # run #2: 18,191 `deleted` samples on seams the census called hidden): the seam stays, both faces kept
+    before = _partition_with_inward_twin()
+    seen_one = lambda mesh, faces: np.array([3 if int(f) == 13 else 0 for f in faces], np.int64)
+    edits, engine = _plan(before, E5Coincident(flatness={}, seam_view=seen_one))
+    # the seen seam (13, 15) stays whole; the unseen seam (12, 14) is still planned, as one site
+    assert [sorted(e.faces) for e in edits] == [[12, 14]]
+    assert engine.report["interior_filtered"] == {"seams": 2, "seen": 1, "unverified": 0, "planned": 1}
+    assert engine.report["kept"]["seam_seen"] == 2 and engine.report["by_rule"]["interior_twins"] == 2
+    rows = [r for r in engine.report["kept_faces"] if r["kept"] == "seam_seen"]
+    assert {r["face"]: r["points_seen"] for r in rows} == {13: 3, 15: 0}, "the partner stays because its seam is seen"
+
+
+def test_without_a_seam_view_or_a_judge_no_seam_is_planned():
+    before = _partition_with_inward_twin()
+    edits, engine = _plan(before)                     # validator None, no seam_view: unverifiable, so not planned
+    assert edits == []
+    assert engine.report["interior_filtered"]["unverified"] == 2 and engine.report["kept"]["seam_unverified"] == 4
+
+
+def test_the_judge_provides_the_seam_view_when_no_callable_is_given():
+    from engine.validate.checks import CBR, Settings
+    before = _partition_with_inward_twin()
+    looks = _looks(*before.materials)
+    unit, ctx, _ = _ctx(before, judge=SiteJudge(looks, settings=Settings(allowed_changes={CBR}), margin=2.0))
+    engine = E5Coincident(flatness={})
+    edits = engine.plan(unit, ctx)
+    assert engine.report["interior_filtered"]["unverified"] == 0 and engine.report["interior_filtered"]["planned"] == 2
+    assert len(edits) == 1
 
 
 def test_the_judge_rolls_back_an_interior_seam_it_can_see_and_keeps_one_it_cannot():

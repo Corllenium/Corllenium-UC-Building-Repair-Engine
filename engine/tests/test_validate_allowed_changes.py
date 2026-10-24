@@ -66,6 +66,12 @@ def test_strict_default_still_fails_removing_the_inward_twin_of_another_look():
     t, g = v.report["checks"]["textures"], v.report["checks"]["nothing_deleted"]
     assert t["reasons"]["look"] + t["reasons"]["deleted"] > 0 or g["replaced"] + g["deleted"] > 0
     assert "allowed_changes" not in v.report and v.report["settings"]["allowed_changes"] == []
+    # the report says which sub-measure decided check 3 (7F chain run #2: FAIL with every sample counter at 0 was
+    # the floor's pixel measure, 4 faces at 7-85 px, and nothing said so)
+    assert g["failed_by"]["samples"] is True
+    assert g["failed_by"]["floor"] == (g["floor"]["status"] == "FAIL")
+    assert g["failed_by"]["floor_faces_failed"] == g["floor"]["faces_failed"]
+    assert g["failed_by"]["samples_failed"] == g["deleted"] + g["replaced"] + g["covered"] + g["overlaid"]
 
 
 def test_with_the_class_the_same_removal_passes_and_is_reported_under_allowed_changes():
@@ -76,7 +82,9 @@ def test_with_the_class_the_same_removal_passes_and_is_reported_under_allowed_ch
     t, g = v.report["checks"]["textures"], v.report["checks"]["nothing_deleted"]
     assert t["status"] == "PASS" and g["status"] == "PASS" and g["floor"]["status"] == "PASS"
     assert g["deleted"] == 0 and g["replaced"] == 0 and v.report["sites"] == []
+    assert g["failed_by"] == {"samples": False, "floor": False, "floor_faces_failed": 0, "samples_failed": 0}
     allowed = v.report["allowed_changes"][CBR]
+    assert allowed["faces_eligible"] == 2, "every removed face under an exposed opposite twin, sampled or not"
     assert allowed["samples"] > 0 and allowed["faces"] == 2 and allowed["faces_excused_from_floor"] == 2
     assert allowed["deleted"] + allowed["look"] == allowed["samples"]
     # exactly the samples that failed strictly were reclassified, nothing else changed
