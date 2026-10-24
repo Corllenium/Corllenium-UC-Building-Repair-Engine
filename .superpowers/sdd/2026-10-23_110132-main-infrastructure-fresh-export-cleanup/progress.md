@@ -621,3 +621,18 @@ The live 10,660-triangle candidate keeps its own error maps and failing full sig
 
 Evidence: 10652-engine-saved-20261024/SHA256.json.
 
+
+### 2026-10-24T07:01:00.349643+00:00 - actual 10,652 candidate passed independent component checks; full validation running
+
+Independent prepare 43372 completed exit 0/all owned processes gone, producing a4e60917; root freshly checked all 505 prepared inputs with no drift. Prepare v1 hit PS5 MAX_PATH before any worker launched. V2 938dcaee changed only 36 retained test archive paths to byte-identical short copies, retaining all 934 hashes/order/runtime paths. Root verified every alias and pin before GO; no validation or resource setting changed.
+
+Strict 26-view process 41196 completed exit 0/all gone at 06:42:23.547Z. Actual report 1201690a: all violation/tie totals zero across 3,924,929 model pixels. Native process 54396 completed exit 0/all gone at 06:51:34.490Z; actual report 6f88a3c0 shows all 33 qualified views with zero changed pixels. Thirteen diagnostic views remain separately reported with 129,755 differing pixels. Root opened the actual new paired-detail image: four walking views preserve white walls, green bands and tiled floors; the difference columns are black. Focused floor process 51496 completed exit 0/all gone at 06:53:57.428Z; report 46976e72 shows zero lost pixels for originals 9809/10366 and zero losses on all 14 saved sight lines. Default depth/pixel/view rules are unchanged.
+
+Actual default census 7076 completed exit 0/all gone at 06:48:41.260Z, receipt 72ed5484. New candidate map 34a7c9d4 reports 1,798 different-look overlaps, 1,153 same-look overlaps, 3,210 hidden, zero reversed, one loose, 2,181 open edges and 2,352 cracks. Original raw census is byte-identical to the retained source census; the new source map changes provenance only. New adapter tests 23 passed; inherited metadata run initially failed because ignored historical fixtures were absent. Exact fixtures restored without test edits, then all ten inherited cases passed. Failed runs remain recorded.
+
+Root freshly checked all 1,089 full-validation phase pins with no mismatches and read actual same-candidate receipts. Full default Validator process 56924 (OS creation 2026-10-24T06:57:54.2223501Z) is running under phase ae065140, frozen IV 1a8a903, Settings() and signed target 4117f5e2 unchanged. This new full report and verdict are pending. No previous 10,660 report is applied to 10,652. Candidate remains unaccepted; remaining overlap/crack targets are not solved.
+
+The live status follows actual worker identities; completed watches were retired or replaced. Windows briefly blocked one atomic census status replacement, which was retried from a fresh load. New nine-file inspection copy e2461956 is saved offline; new model and measured maps are being packaged before switching the live After selection. Existing 10,660 remains displayed with its own maps/evidence. Separate E4 preparation passed seven real default-kernel fixtures; its writer/group tests produced genuine expected RED failures before implementation. No actual floor E4 run has been admitted. Codex 1-3 / Claude 4-7 remain separate.
+
+Raw artifacts: 10652-independent-components-20261024/SHA256.json.
+

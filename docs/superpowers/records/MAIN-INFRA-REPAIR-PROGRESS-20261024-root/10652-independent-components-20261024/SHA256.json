@@ -1,0 +1,78 @@
+{
+  "schema_version": 1,
+  "artifacts": [
+    {
+      "path": "prepared-inputs.json",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\iv1f-e7-covered-ray\\run-20261024\\1F\\prepared-inputs.json",
+      "bytes": 305548,
+      "sha256": "a4e609175e04beb42df41464d0da507d63679090d52bbdaf371d578b698ace84"
+    },
+    {
+      "path": "strict26.json",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\iv1f-e7-covered-ray\\run-20261024\\1F\\guard\\independent-guard.json",
+      "bytes": 323678,
+      "sha256": "1201690a61cc13c4acf1f0ccc935f6546c9f4215ca6e9b2ed4049f9747480179"
+    },
+    {
+      "path": "native.json",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\iv1f-e7-covered-ray\\run-20261024\\1F\\native\\native-readback.json",
+      "bytes": 369280,
+      "sha256": "6f88a3c004450b22e40403000b06a26aa153bcb0ea24af1ca8c77bc0229f5ec1"
+    },
+    {
+      "path": "floor.json",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\iv1f-e7-covered-ray\\run-20261024\\1F\\retained-floor\\retained-floor.json",
+      "bytes": 309219,
+      "sha256": "46976e729b4f0f53697184858f10efb6c64ca9909ec2e1c9eeb3237b200fd09b"
+    },
+    {
+      "path": "census.json",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-10652-error-delivery-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\1f-10652-error-census\\run-20261024\\census-receipt.json",
+      "bytes": 164921,
+      "sha256": "72ed548477b64f0ec405461ceb4252bdda8f084d3b72fb9a558194f28082b62b"
+    },
+    {
+      "path": "census-terminal.json",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-10652-error-delivery-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\10652-census-preflight\\monitor-1F10652-default-error-census-20261024T064727\\result.json",
+      "bytes": 775,
+      "sha256": "dae67d3958c2de5ec8ae0351baabe49ed280a53060c8483201cd0cdff0ae6271"
+    },
+    {
+      "path": "prepare-terminal.json",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\covered-ray-validation-preflight\\monitor-prepare-independent-1F-E7-covered-ray-retention-20261024T063415\\result.json",
+      "bytes": 827,
+      "sha256": "fa7e41019698e51b9a89190caa772bdd8f4255b313e658eff21c38b7ea2a18b1"
+    },
+    {
+      "path": "strict-terminal.json",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\covered-ray-validation-preflight\\monitor-strict26-independent-1F-E7-covered-ray-retention-20261024T064120\\result.json",
+      "bytes": 829,
+      "sha256": "ce33a41e74db793ee3060322413f44f70188a6e784cd13bd52d28cdb89ab2ff6"
+    },
+    {
+      "path": "native-terminal.json",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\covered-ray-validation-preflight\\monitor-native-independent-1F-E7-covered-ray-retention-20261024T065016\\result.json",
+      "bytes": 825,
+      "sha256": "9d57b5cc11ad10c38e49631aec56bb723c81d118049966bd925e1649a3b35790"
+    },
+    {
+      "path": "floor-terminal.json",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\covered-ray-validation-preflight\\monitor-retained-floor-independent-1F-E7-covered-ray-retention-20261024T065301\\result.json",
+      "bytes": 849,
+      "sha256": "2a026dc4377dd64a6b666a4e5e7a29d3e7091f5d82d0112bee6b96d9d72b13bb"
+    },
+    {
+      "path": "fullsigned-phase.json",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\covered-ray-validation-preflight\\phase-fullsigned.json",
+      "bytes": 313182,
+      "sha256": "ae065140880aa4afb47e5037686bff9404b8dcfbb5c3d8cddb4d1fb02ffe394f"
+    },
+    {
+      "path": "fullsigned-actual-identity.json",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\covered-ray-validation-preflight\\monitor-fullsigned-independent-1F-E7-covered-ray-retention-20261024T065751\\actual-identity.json",
+      "bytes": 2418,
+      "sha256": "7db3355da7d3f0abc5bb65f378c82aa2c3364dae9f04ded24b9ab27b5e6a63e5"
+    }
+  ],
+  "acceptance": false
+}

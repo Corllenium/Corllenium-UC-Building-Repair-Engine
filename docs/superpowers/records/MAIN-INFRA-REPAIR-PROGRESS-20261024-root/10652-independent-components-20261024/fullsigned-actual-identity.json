@@ -1,0 +1,12 @@
+{
+    "state":  "RUNNING",
+    "phase":  "fullsigned-independent-1F-E7-covered-ray-retention",
+    "actual_pid":  56924,
+    "actual_creation_utc":  "2026-10-24T06:57:54.2223501Z",
+    "launcher_pid":  54760,
+    "monitor_pid":  57388,
+    "command":  "C:\\Users\\Future26\\AppData\\Local\\Programs\\Python\\Python312\\python.exe -B -u -m tools.main_infra_1f_e7_covered_ray_validation --binding D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\covered-ray-validation-preflight\\candidate-binding.json --binding-sha256 1d5bdc43cf35da8a6b330fe340cfef5232aff9331103bcca1651a80ea585ab55 validate --prepared D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\iv1f-e7-covered-ray\\run-20261024\\1F\\prepared-inputs.json --prepared-sha256 a4e609175e04beb42df41464d0da507d63679090d52bbdaf371d578b698ace84 --guard-receipt D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\iv1f-e7-covered-ray\\run-20261024\\1F\\guard\\independent-guard.json --guard-sha256 1201690a61cc13c4acf1f0ccc935f6546c9f4215ca6e9b2ed4049f9747480179 --native-receipt D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\iv1f-e7-covered-ray\\run-20261024\\1F\\native\\native-readback.json --native-sha256 6f88a3c004450b22e40403000b06a26aa153bcb0ea24af1ca8c77bc0229f5ec1 --floor-receipt D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\iv1f-e7-covered-ray\\run-20261024\\1F\\retained-floor\\retained-floor.json --floor-sha256 46976e729b4f0f53697184858f10efb6c64ca9909ec2e1c9eeb3237b200fd09b --out D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\iv1f-e7-covered-ray\\run-20261024\\1F",
+    "HEAD":  "1a8a903227ede0026995d1f9437c032db171c5b5",
+    "phase_plan_sha256":  "ae065140880aa4afb47e5037686bff9404b8dcfbb5c3d8cddb4d1fb02ffe394f",
+    "evidence":  "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\covered-ray-validation-preflight\\monitor-fullsigned-independent-1F-E7-covered-ray-retention-20261024T065751"
+}

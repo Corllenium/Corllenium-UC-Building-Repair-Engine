@@ -1,0 +1,16 @@
+{
+    "state":  "PROCESS_EXITED_ZERO",
+    "phase":  "1F10652-default-error-census",
+    "abort_reason":  null,
+    "actual_pid":  7076,
+    "actual_creation_utc":  "2026-10-24T06:47:29.6766592Z",
+    "actual_exit_code":  0,
+    "launcher_exit_code":  0,
+    "wall_s":  71.6720907,
+    "HEAD":  "1a8a903227ede0026995d1f9437c032db171c5b5",
+    "phase_plan_sha256":  "f486f22c45c94cb595fb1af7d0e561e5abd9850cfa118d762d4835cbc3c02c3a",
+    "all_owned_exited":  true,
+    "evidence":  "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-10652-error-delivery-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\10652-census-preflight\\monitor-1F10652-default-error-census-20261024T064727",
+    "ended_utc":  "2026-10-24T06:48:41.2604707Z",
+    "acceptance":  false
+}

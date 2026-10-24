@@ -1,0 +1,16 @@
+{
+    "state":  "PROCESS_EXITED_ZERO",
+    "phase":  "native-independent-1F-E7-covered-ray-retention",
+    "abort_reason":  null,
+    "actual_pid":  54396,
+    "actual_creation_utc":  "2026-10-24T06:50:19.3474934Z",
+    "actual_exit_code":  0,
+    "launcher_exit_code":  0,
+    "wall_s":  75.2220406,
+    "HEAD":  "1a8a903227ede0026995d1f9437c032db171c5b5",
+    "phase_plan_sha256":  "7bd143aa80eb306f8e7bdb186b72a3d70116d5dab1be9a4a1d0cc277286c1dbe",
+    "all_owned_exited":  true,
+    "evidence":  "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\covered-ray-validation-preflight\\monitor-native-independent-1F-E7-covered-ray-retention-20261024T065016",
+    "ended_utc":  "2026-10-24T06:51:34.4905599Z",
+    "acceptance":  false
+}
