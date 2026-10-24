@@ -1,0 +1,2713 @@
+{
+  "HEAD": "21e925289382c2952247828c190df420fb777672",
+  "args": [
+    "-B",
+    "-u",
+    "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e4-attribute-rounding-diag-20261024\\05-Corllenium-UC-Building-Repair-Engine\\tools\\main_infra_e4_attribute_diagnostic.py",
+    "--plan",
+    "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e4-attribute-rounding-diag-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\e4-attribute-diagnostic-preflight\\capture-plan.json",
+    "--plan-sha256",
+    "d74dab7b1f33969e8d1d9396c86458761a0fe29336124f2faac39a1e4216c33d"
+  ],
+  "gate_8gib": true,
+  "phase": "E4-35-source-attribute-rounding-diagnostic",
+  "pins": [
+    {
+      "path": "C:\\Program Files\\Blender Foundation\\Blender 5.1\\blender.exe",
+      "sha256": "1e6624af112b3c936f4b038b025ebd2bf00ae72c4b62881a6787166d71c58fa5"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e4-attribute-rounding-diag-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\e4-attribute-diagnostic-preflight\\capture-plan.json",
+      "sha256": "d74dab7b1f33969e8d1d9396c86458761a0fe29336124f2faac39a1e4216c33d"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e4-attribute-rounding-diag-20261024\\05-Corllenium-UC-Building-Repair-Engine\\tools\\main_infra_e4_attribute_diagnostic.py",
+      "sha256": "4e06412f7b2137ee09563e94c562240b79447438a64d50e3e292001dd80a659f"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-admission-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\iv1f-e7-admission\\run-20261024\\1F\\native\\changed-pixels-poses.json",
+      "sha256": "1670846760f36f7d100daa8156ee889ff18782b5966c05a581d01d4a38badba3"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-admission-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\iv1f-e7-admission\\run-20261024\\1F\\native\\contributor-cut-associations.json",
+      "sha256": "4b03385dd5f7de9542ec0bfe82e8b0233232f7568af367d71048cceffca6d631"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-admission-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\iv1f-e7-admission\\run-20261024\\1F\\native\\independent-pixel-audit.json",
+      "sha256": "b6ba3df03505cda296217e76b83517af2336f1005bbbe9754696c27f49d4e9f3"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-admission-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\iv1f-e7-admission\\run-20261024\\1F\\native\\native-readback.json",
+      "sha256": "20b3fbf5615302eb9b5ed64d96d3c3b28a3e29fb88a2a30222baec48dac34ffb"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\covered-ray-validation-preflight\\candidate-binding.json",
+      "sha256": "1d5bdc43cf35da8a6b330fe340cfef5232aff9331103bcca1651a80ea585ab55"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\iv1f-e7-covered-ray\\run-20261024\\1F\\guard\\independent-guard.json",
+      "sha256": "1201690a61cc13c4acf1f0ccc935f6546c9f4215ca6e9b2ed4049f9747480179"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\iv1f-e7-covered-ray\\run-20261024\\1F\\independent-review.json",
+      "sha256": "cafbd9f9456b6fbdf7d74927907770c9836dae6d3c6312eb539c99c50ade2091"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\iv1f-e7-covered-ray\\run-20261024\\1F\\native-poses.json",
+      "sha256": "21296b8ff0c79a651a2bd165784ea72b3e595a34a121ad74cc4eb576aa794636"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\iv1f-e7-covered-ray\\run-20261024\\1F\\native\\native-readback.json",
+      "sha256": "6f88a3c004450b22e40403000b06a26aa153bcb0ea24af1ca8c77bc0229f5ec1"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\iv1f-e7-covered-ray\\run-20261024\\1F\\native\\paired\\paired-detail.png",
+      "sha256": "1622e0e983c39082470a0e4141e4242353e708227853fdc3acd50cf2808e4a02"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\iv1f-e7-covered-ray\\run-20261024\\1F\\prepared-inputs.json",
+      "sha256": "a4e609175e04beb42df41464d0da507d63679090d52bbdaf371d578b698ace84"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\iv1f-e7-covered-ray\\run-20261024\\1F\\retained-floor\\retained-floor.json",
+      "sha256": "46976e729b4f0f53697184858f10efb6c64ca9909ec2e1c9eeb3237b200fd09b"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\iv1f-e7-covered-ray\\run-20261024\\1F\\validate\\validation.json",
+      "sha256": "1c00e817522e0d096dcbcd2649dc54ea7dd0cab5affa3e5afd9df305a5b3f9ce"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\docs\\superpowers\\records\\MAIN-INFRA-1F-VALIDATE-ATTEMPT3\\native-pairs.py",
+      "sha256": "065989bc85dfc713ce74ed766428b4a1c23789209796d5913e59224c9d6a7472"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\docs\\superpowers\\records\\MAIN-INFRA-1F-VALIDATE-ATTEMPT3\\native-readback.py",
+      "sha256": "9892c694947b3fd22a2bced252058c030224e83116c9adc664d9ccca20157715"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\docs\\superpowers\\records\\MAIN-INFRA-1F-VALIDATE-ATTEMPT3\\strict-guard.py",
+      "sha256": "bc7d45e280950df37e23f4bca38d2a78ce6007969dec9e6a2edeab72fdba39b2"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\campus\\__init__.py",
+      "sha256": "e47d53569bb287f38a3232bf9044dd2ede5fa493b7682ae756fd459da4bd50d2"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\campus\\census.py",
+      "sha256": "37bc6a44b5d768ba7518e78d123d65b40f52eff0828937dbd72c77a23088024c"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\campus\\error_export.py",
+      "sha256": "e88b726d242f3c68bd598efc4f957e5d4c59a151f86283afa447c977b69d68ab"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\campus\\groups.py",
+      "sha256": "7f0b05a8d1807bbbc5118d7a4acfd25975614f533d83264b978455eaffdb7e73"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\campus\\inventory.py",
+      "sha256": "144230f16f06b0dd6c9d5b01709f7f70f04faa94764aa76e3ab6e727fb42cf2f"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\campus\\materials.py",
+      "sha256": "2325873abf6efd0c67c894dcb9e3cb66eb72a584c93c79d46661bddfe0c2f221"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\campus\\needs_modelling.py",
+      "sha256": "857921b86475ff1f02c0fed5195840188e7e4bf86ed1a5ab691a5fe009677cb5"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\campus\\pixfont.py",
+      "sha256": "6c2554b6a2a15839525007a059425c0ff954d0e417669b2fc19a19704944e4e1"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\campus\\skp_check.py",
+      "sha256": "92d5477aa0284a5dab1dc550934763b25333a66f05dfab4b41798a2f88d22844"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\campus\\source.py",
+      "sha256": "25bc1a7bf19b511140135bde71474a668cb00614e1b30a488b86ea753768a737"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\campus\\unit_before.py",
+      "sha256": "fb0b4ace5010792740858933b8eac1bd59b674ea5c0e15ddebbb570ceacd4998"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\campus\\winprobe.py",
+      "sha256": "17ae7a4ae6856647cf670ec69ed3d00ac02ade629aff1b67ad59888dbae30759"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\cli.py",
+      "sha256": "22038f695aeef6f655a0409781993f2657e1a2507df8d3bb448c2faf1a3806c4"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\decide\\__init__.py",
+      "sha256": "35c706c776a73c97047b57abdb173b2c5a3b69e548cef0805be3e1858dd95ce1"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\decide\\decider.py",
+      "sha256": "63c318ae4e19d6130497207005d0e90c865875c6db8fef592dac6fd6eca0c9d0"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\decide\\jev.py",
+      "sha256": "6ee83f8a737f438b72bcc90a5d9ef58a198ea1b12e6e7d509d1b8ba3d8049534"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\decide\\pilot.py",
+      "sha256": "86e7a0545b9bce62fcd71e3259f177352a908b8d60fe34ce96fba08d1381e25a"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\decide\\pilot_import.py",
+      "sha256": "fb43df39144e95ea56a9b29dc0d4eba99473a6f99ebf059b6d471ed4fdabc959"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\decide\\providers.py",
+      "sha256": "f6d13f43daaef30e63798bfd0fb03455c81497b98d80098de90584deb31218e5"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\decide\\remote.py",
+      "sha256": "68444940c8fa733f9dacb29e264a33298fdfc8411c08aeeeecb58a0ba080ba2c"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\decide\\wire.py",
+      "sha256": "1350369bc601021eb0b13d5000da07c145cb12e28c61140483c938abde9eef27"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\detectors\\__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\detectors\\errors.py",
+      "sha256": "21823708b8f34ec42900008f7c16ac3b55fda5b213c8347abcb5057fe443610f"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\detectors\\folds.py",
+      "sha256": "6c78d57faf7eae8ed874cb25ca0a315362f5ac59f88d1543bbc23d310d7fb84e"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\detectors\\fragments.py",
+      "sha256": "63a9beac6a6dcb5826e13a120997ac172e3d809351269f939ee76b1308a012d5"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\fill_review.py",
+      "sha256": "dc04d19343736e6c062f73d5e6b9d8b642e545e7a1f9dd4547419b4bc1c2034f"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\fixes\\__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\fixes\\merge.py",
+      "sha256": "e11bfe7da7cfeb9c7cdad3da0c1e41306b124f4c42ed8f4099d9567118aff693"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\fixes\\orient.py",
+      "sha256": "0e15f196d51ff9d19c2e102baee0fc7966421275ead6bbcdb958850b37346855"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\fixes\\overlap.py",
+      "sha256": "ee8aab14411313b82e05da94c508a1d479ea00732f620bdb58fa92c2b9a8f8c9"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\fixes\\pipeline.py",
+      "sha256": "20f72381d1ef2040bd90de928e21c3bfb0b5c4e534669e15207110ae7736f2aa"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\fixes\\precut_cleanup.py",
+      "sha256": "faa4a8a2d921b83702d2cf53c04038cf4488168b6279cd66f6b49813ab40d6b4"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\fixes\\remove.py",
+      "sha256": "7ec0b682dc87cda8270fd157b1efa7bf34c5232e71963153b3fac7257ff02706"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\fixes\\solidify.py",
+      "sha256": "9201503de87813fdf34e1adc60b12d39340ee8f289f293ae8dd3b6abdc805e00"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\guard\\__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\guard\\compare.py",
+      "sha256": "8aca5a91a3d33af2bf0387a2fc6e5e13490ca337c2b3e24ea53b94cbe8722412"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\guard\\piece_rays.py",
+      "sha256": "b15824c2385c00c3df19d88b8f379194f6dd01a0aeb53c1f20796661cbbbf1e9"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\guard\\qa_render.py",
+      "sha256": "a620795f0763af06420722daceb75c8dc62c62fda4787ffc911e9cde4b3cd74b"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\guard\\render.py",
+      "sha256": "9c918de0b2d53621af3b5cecf0f567c89144c3829a18f408fdf72dd68612bcb3"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\guard\\views.py",
+      "sha256": "d17931c6228909a6bd40f32a961db41c4d7b1e747100f1ea5e115d49f74ac66f"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\io\\__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\io\\minecraft_floor.py",
+      "sha256": "f039309f3cd988ea92c7242f5c3c5085cfdee35d0a3a8075b214910dbd46d014"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\io\\mtl.py",
+      "sha256": "91492f26a43adf2ba368ade4580bcc562fe7b3d162fa3ce0e5ecf964edc70026"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\io\\obj_reader.py",
+      "sha256": "72b300cdd8af9b3312369fb3ffe2064f07933298198ad0e8f438c91d1990a7fe"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\io\\obj_writer.py",
+      "sha256": "9358f99c2362f4cc84d1e11fc073785bae58936f115c6c8fa87e4616fd073df1"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\io\\protected.py",
+      "sha256": "d17e46d0cd294a0c9e23a87476b25d1491cc11b390d74abaee8205400e6d9058"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\io\\skp_reader.py",
+      "sha256": "6142326ccf9ba6a44a563721c14a73deee2fa14cbac6c7f39a34f21638158719"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\io\\skp_writer.py",
+      "sha256": "94a2dd52f872ed06131d5f3ae0f1cb5db05363007333098a893f477be1247500"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\io\\snapshot.py",
+      "sha256": "05b586a87f896552b5081bc5e263e3b4de3ba2d856b76b43af63787794933ac9"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\model.py",
+      "sha256": "4309d8ce5552ec295198f6f732d344842824e65ed1c300e63986e8c17a75be8b"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\pipeline.py",
+      "sha256": "eef997061586ed4735d39d8ffd7b245aece780181fe8c070d34bd8a5ccb764a9"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\rays\\__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\rays\\caster.py",
+      "sha256": "62bde18bb12e0e3c8f690eb9c819750274e4924911770b6f7cffa399a704ddd5"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\repair\\__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\repair\\engines\\__init__.py",
+      "sha256": "8afb2ca146db093adccbc2ca8506262e6fe01f4ed98d4ee11773153aefd45207"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\repair\\engines\\e1_loose.py",
+      "sha256": "c844ffa6147facb54ee60efdba3978dc46f05ca2dde6811b24ca8a1419eea539"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\repair\\engines\\e3_hidden.py",
+      "sha256": "e4b2e2e00127683d1f8b0ec221aab35e9f3cb67407fb4f561760a6f12f1d8d92"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\repair\\engines\\e7_thread.py",
+      "sha256": "60ee872b283dfe0557afc6311f4f2ebfef854c136b18e3dfbeeb679789d717d9"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\repair\\engines\\e8_fill.py",
+      "sha256": "6784bf95a73de18c80b3404a4d79c233ca1fef5e5d5856a7bda05d7b68501a42"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\repair\\engines\\e8_solidify.py",
+      "sha256": "a9862d6420609a341d0c0132b1ddf4c639c01092a7a7d1c6af054c50af976f21"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\repair\\engines\\legacy.py",
+      "sha256": "4ae576b9e7d0e5a5f610771efda83cba93d8a3b6e277d156367900cc30522b57"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\repair\\kernel.py",
+      "sha256": "dca8042e6d562676589f6b2741ee178d58f48e3d61f767d718303641c1525ca5"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\repair\\types.py",
+      "sha256": "43ca308fa31942982666cbae7dbf0f7082e5dd3c747be901c0ca37c32dec4c0c"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\site_judge.py",
+      "sha256": "50cee322111f5bf192f1a20160e06234c61b71518a891684434d246faebd6993"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\topo\\__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\topo\\adjacency.py",
+      "sha256": "a4132a4025cec95bd004eeb174efa1e88950b4f86605ea972cec644a2479896e"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\topo\\edges.py",
+      "sha256": "e494c0ffee0b8a39cd5d5c2ac697ed7058f76b0838aac12928f2d03f0959c97b"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\topo\\planes.py",
+      "sha256": "1701d1ad46deb6bb90452159b312a7b94e8661bb33693143bf7825da39f17f93"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\topo\\weld.py",
+      "sha256": "e584a6ab2e46b20b7c4cf8da06516a4199978523ec68d3221263cd29cbf3bdea"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\transport\\__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\transport\\meshbuf.py",
+      "sha256": "2a24eaeaf1127a67ef1c87512147584a6a42761fb901fce0e6a634431ff28bd0"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\unity\\__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\unity\\align.py",
+      "sha256": "24af456f369a8a05444bb9fb7f1645d3068e957a437421e4eb048d776ed1e88a"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\unity\\check.py",
+      "sha256": "c244213fbf212afc092b37925797b4371606568fd745fce61b2377d03316f898"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\unity\\dump.py",
+      "sha256": "f710e519850f6aecab98de4ee3679cb58212ae407f1590fe4a2b3a4ea46d212d"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\unity\\mirror.py",
+      "sha256": "3c81e629e64a6ceb095c626d52fb92f35ab167ba0d9631a45bf17c5e4ab56ad5"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\validate\\__init__.py",
+      "sha256": "6d8a1be3faac9a3804d42cdcb5fba170739a756204aa755d2a05a1a3dd84f00b"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\validate\\checks.py",
+      "sha256": "3d3ebe288abab4afa73b26e8908047a8fbe71a36b8df31d3fed69fb190601606"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\validate\\evidence.py",
+      "sha256": "914fff0f76b253ba999fae91e6373ed2ab43d491c98f44d5cc57384e8ecffbd7"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\validate\\floor.py",
+      "sha256": "bde829b4832443ce159ae8d7937a5ed4b4207bd6d7e1b4b669b2df2b9b0e84e8"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\validate\\sampling.py",
+      "sha256": "d81a9af913839666ae8e63afd29ed22492fd90f1741be03bf01b1eb95a52a73d"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\validate\\targets.json",
+      "sha256": "4117f5e22045750fed7c4627ffa6324bf2efe5c14cf9629389a482c960036507"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\validate\\viewpoints.py",
+      "sha256": "c62acfd255fd99c003fd54bf084a68bdb82442cf1c96ada2f0a50e7a7efa7e98"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\validate\\visibility.py",
+      "sha256": "28cbad91da779c0a12155c3036a717db78e5629bb5fbf54e4e8ad2d95ca04821"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\vis\\__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\vis\\exposure.py",
+      "sha256": "ec922979de869284607ed067f71e8940465132db4eb020b49789b3d28547c34a"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\tools\\main_infra_1f_e7_admission_validation.py",
+      "sha256": "e91572ad2cac94c34ae69df0e3c908147d2dd3fb68ff79372ee4bb9582b0c0f7"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\tools\\main_infra_1f_e7_covered_ray_validation.py",
+      "sha256": "56b531fcfda579773bc684913230ff792a662a8581822fe08d85d4c0974d8b1c"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\tools\\main_infra_1f_e7_native_retention_validation.py",
+      "sha256": "6f1717906d8c6ec183a1913ed8c2a54ef8c9fe8ea366b8d3aa80a4d8ef12d150"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\tools\\main_infra_1f_e7_single_pixel_validation.py",
+      "sha256": "e52666645d54a8eb11df62e6b6267e5987cc562d8f1f2f98a2558dadbbb448f8"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\tools\\main_infra_1f_retained_validation.py",
+      "sha256": "5314d5c913fd270ae4b5fb16e89b5b0ff4dc496ee1ac04fcc21448b9069b2092"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\tools\\main_infra_2f_validation.py",
+      "sha256": "c849746efad9c3b2ce1e74db57e03c477aeca6895613acf02421f8b746c45ec6"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\tools\\main_infra_e3.py",
+      "sha256": "7e39fc3862479ec29060ed9f8c39ac44278b200e81ce0febe2d0115e53562f60"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\tools\\main_infra_e3_binding.py",
+      "sha256": "2eb413942d49b6f1a65b42fb929be365bcb544481388a7935d8277e4e263f44c"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\tools\\main_infra_e3_checkpoint.py",
+      "sha256": "c9390d3709694856207832c05f1b077ed0aa94f113782f7cdd9da87cbc53a2f0"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\tools\\main_infra_e7.py",
+      "sha256": "beb40710cef8e88af1d077a8ca5c1b4bd4171dd90c06fc9c13e409cfa4a553bd"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\tools\\main_infra_e7_checkpoint.py",
+      "sha256": "e1e9ca745f8d06b68dd643a46c873d22cafb22d594de87601671bf003aeeef93"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\tools\\main_infra_e7_covered_ray_profile.py",
+      "sha256": "b2dafca2f54686807c3306757b744f77043c2ecc8f851c6cabc8a787c6431170"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\tools\\main_infra_e7_independent_attempt3.py",
+      "sha256": "2e039eb4ee92fb18c076601e8f784f50380e88ff626f58d3ef743e1b54afc6c4"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\tools\\main_infra_e7_native_retention.py",
+      "sha256": "8a89d212c1a01255f085c1c7a1b6650402b18d5725c483a2fb027f7c46943164"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\tools\\main_infra_e7_retained_admission.py",
+      "sha256": "643ccabffdae64d410ca448428b858d60e726bed03b74c87e94f6eb5404b0730"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\tools\\main_infra_e7_retained_base.py",
+      "sha256": "3bfbdf6e73f0e38ceff99f9df934fc199bb7f5b2cf6b0aab19846c439da5a7d6"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\tools\\main_infra_e7_serialization.py",
+      "sha256": "f048c2b559deb59ad45f6d65f0323e0ceef3d21fc75ccca79c6fa0738cd687f3"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\tools\\main_infra_e7_single_pixel_retention.py",
+      "sha256": "f301b8c026275b658acefad2a95b834d5abaed6824e4c005f56e462d5af8bf78"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\tools\\main_infra_e7_source_admission.py",
+      "sha256": "e52ea264c1ae1f512fdee97f30a86a8d21232bad2b7354af29807476d5a1217a"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\tools\\main_infra_e7_subset.py",
+      "sha256": "8788f4b457a90d3d5350250f1078792e83a51b74036e0afdac2b54e76d874f31"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\tools\\main_infra_physical_validation.py",
+      "sha256": "e0be48fd466c12467189b361518aa026fd30dcc239a35f7e84bf8542120503d3"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-native-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261024-1F-native-retention\\1F\\asset-receipt.json",
+      "sha256": "019d965f6ded3630e9d957335fea8f33b98c7e8705a5017600ef1d66ae33eb3b"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-native-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261024-1F-native-retention\\1F\\candidate.engine.obj",
+      "sha256": "e77235b888bcbc6147cfe66b680c68cde78a3c07d207413780bedce57bb9998e"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-native-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261024-1F-native-retention\\1F\\candidate.source.obj",
+      "sha256": "4b50576827adceac0efc40a7456f75b6c1c39bc6380c1561bd278d4026880247"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-native-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261024-1F-native-retention\\1F\\checked-edits.json",
+      "sha256": "e0e1f6b7c7f06a891e81ee0e0fc514ca9690517f023b0cf3093417ef79e44ac6"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-native-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261024-1F-native-retention\\1F\\cut-lineage.json",
+      "sha256": "6b3db1dc3508397c20a99066e21ee709330a3ac0311ebd5158837aaec24081d1"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-native-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261024-1F-native-retention\\1F\\cut-receipt.json",
+      "sha256": "35be64b4b1c6a9a7345165c3d62b7c45f4055b3a20d9228fd5eb9312b66e7435"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-native-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261024-1F-native-retention\\1F\\run-receipt.json",
+      "sha256": "22a95972d85273bfaec9f2246f3187b4a184b14f4c4fe6719c9f6f6ed3cc4796"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-native-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261024-1F-native-retention\\execution-1F\\checked-outcome\\checkpoint-receipt.json",
+      "sha256": "6a9f0e22e8eef4b7b50806b27b200599998361da6f905207087901d222489dea"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-native-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261024-1F-native-retention\\preparation-1F.json",
+      "sha256": "b5ad5a8170ca09a4f2bb935fd62e36326ce56020dbc8ddbbac69923ab113c37c"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-native-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\native-retention-preflight\\terminal-saved-inventory.json",
+      "sha256": "0a4a317055f7a6a1a8e6ee40229abbca147f22c0f08c987aff4433fc4992c625"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-native-retention-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\iv1f-e7-native-retention\\run-20261024\\1F\\guard\\independent-guard.json",
+      "sha256": "2dd97c31c0f91da319dcfbfb8ced416a215b0f1d124f2e863f00de3aefd8baee"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-native-retention-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\iv1f-e7-native-retention\\run-20261024\\1F\\native\\native-readback.json",
+      "sha256": "fcf066c4f4985995bef64b566af538cda27241ea2d0200eaa222256c806fa2ce"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-native-retention-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\native-retention-validation-preflight\\current-single-pixel-cohort.json",
+      "sha256": "6fea0329db9ed72a55efcfe69ba87f220d152cbbb7794f8492621f84fc3dc4c4"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-native-retention-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\native-retention-validation-preflight\\native-saved-pixel-readback.json",
+      "sha256": "1c2a9c2ec350241cfe91718738d0f00fe95d064d7a1b02a061f474e3ed04d035"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-single-pixel-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261024-1F-single-pixel-retention\\1F\\candidate.engine.obj",
+      "sha256": "1b5765f5c2b6cad8e59759de293be816166bb4417dbad48d86074a8486efeb80"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-single-pixel-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261024-1F-single-pixel-retention\\1F\\candidate.source.obj",
+      "sha256": "f46b4e2dc85ec7f8e1d17e7f23df7151370f3762c0682af7fa5b763c3cbc6294"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-single-pixel-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261024-1F-single-pixel-retention\\1F\\checked-edits.json",
+      "sha256": "da5036d25204f64d040fe5d62db488c21c02dafdb55f2de2e186d4ca6ff937df"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-single-pixel-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261024-1F-single-pixel-retention\\1F\\cut-lineage.json",
+      "sha256": "ba4afccbe23e3238a8286a128ab618314e360a7878d0083b9a10352acfe3b7df"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-single-pixel-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261024-1F-single-pixel-retention\\1F\\cut-receipt.json",
+      "sha256": "173cd77c5482619d1f51e17a62c87324cebb98bad4eba1007fa6e8ae930bb6dd"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-single-pixel-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261024-1F-single-pixel-retention\\1F\\run-receipt.json",
+      "sha256": "0432f1666c8788b1d4ad42edbbc5cccedeb4b905a923bf5a8f692c639a9e8650"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-single-pixel-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261024-1F-single-pixel-retention\\execution-1F\\checked-outcome\\checkpoint-receipt.json",
+      "sha256": "822a785dc0f03860e60f885a3d1e805dccca9b169490db501c3b712dcf742b88"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-single-pixel-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261024-1F-single-pixel-retention\\preparation-1F.json",
+      "sha256": "64716664859bfc5ed4b86b7a54247c22a867109c5aca5d198479247427496191"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-single-pixel-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\single-pixel-preflight\\monitor-execute-1F-E7-single-pixel-retention-20261024T034827\\result.json",
+      "sha256": "9da0a9f2b7625325d7cecf760d3cb80e83270aa9ca62ba38c28848115e32d1b7"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-single-pixel-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\iv1f-e7-single-pixel\\run-20261024\\1F\\prepared-inputs.json",
+      "sha256": "6bce5b190386df2e18ff4d3bb03c1ee62bbfec945581fa3095147a08acdc61f8"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-single-pixel-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\iv1f-e7-single-pixel\\run-20261024\\1F\\validate\\validation.json",
+      "sha256": "38a3ea8961b827e465d43932ddf050f9db4116ad15d45258d602d07965a1771c"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validate-retain-visible-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-retain-visible-validation\\run-20261024\\1F\\guard\\independent-guard.json",
+      "sha256": "ec36e05bc42a1c446958cf054536ffac94f9222ba5118bf18e0699d62c92bca5"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validate-retain-visible-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-retain-visible-validation\\run-20261024\\1F\\independent-review.json",
+      "sha256": "4f32d479c2cdce5534dc4635e80658c4a5c793184ef096892e7cf6fe33d964e1"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validate-retain-visible-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-retain-visible-validation\\run-20261024\\1F\\native\\native-readback.json",
+      "sha256": "768e54ab59716ef718481eef1cca44ec61854f7286c498f14515f46cf7bbbd2a"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validate-retain-visible-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-retain-visible-validation\\run-20261024\\1F\\retained-floor\\retained-floor.json",
+      "sha256": "b35c6c6cf4a9db281544a34ed137c9430cac0d1b051b3e6b8376e95a05ef09cb"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validate-retain-visible-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-retain-visible-validation\\run-20261024\\1F\\validation\\validation.json",
+      "sha256": "70299e1f00f324168a0488ab401f1ea167307f9754366f8d271a918c78a74829"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\execution-ownership-attempt4\\deleted-floor-attribution\\attribution.json",
+      "sha256": "a84b7a535a90dcdcc5dd722dbf17a96a185a07f7977e227d8113f9bf1b9cf15a"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-validation-attempt4-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-1f-validation\\execution-ownership-attempt4\\deleted-floor-attribution\\lost-lines.jsonl",
+      "sha256": "7864e426fe4c9eae093cc9a3f066e563338b6d1f765e38c10aaf943aa54249d7"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e3-1f-retain-visible-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e3\\run-20261024-1F-retain-visible\\1F\\1st floor main infra.mtl",
+      "sha256": "c64c0cb12926c707b55262a82fd324ccd09502f92b0c866801a00e9f3c89d9a3"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e3-1f-retain-visible-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e3\\run-20261024-1F-retain-visible\\1F\\candidate.engine.obj",
+      "sha256": "b7e67b8cfdfb6c8ce2b9a850d2dd301a10e47897f461da5cbfa8de1fc49b2fb4"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e3-1f-retain-visible-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e3\\run-20261024-1F-retain-visible\\1F\\candidate.source.obj",
+      "sha256": "fef98d78ab5fb5c7be4462e9c68531b6b306b918d9152ed49c8b31a5bff4e2c4"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e3-1f-retain-visible-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e3\\run-20261024-1F-retain-visible\\1F\\edit-log.jsonl",
+      "sha256": "2650b5eeb9bf968c66c351ba40cb4e4fd442d248e569b713eb5e3167c8c020de"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e3-1f-retain-visible-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e3\\run-20261024-1F-retain-visible\\1F\\retention-receipt.json",
+      "sha256": "a1420b50796012a0ed44fae1b0f187098a17b3118367cf94418964559ebb6fa2"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e3-1f-retain-visible-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e3\\run-20261024-1F-retain-visible\\1F\\run-receipt.json",
+      "sha256": "f860a123385cd332011dd630f07aeda199c7c4d1f1da2d35bad3fdd92bdf301a"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e3-1f-retain-visible-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e3\\run-20261024-1F-retain-visible\\1F\\source-faces.json",
+      "sha256": "f561c6bd8bba11564cb9a05db5cbf89af30637d1c979a9065c990f4e073f359d"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e3-1f-retain-visible-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e3\\run-20261024-1F-retain-visible\\1F\\stage-audit.json",
+      "sha256": "5b9d16fa4bea05a24161ddd8f447d4990beac82db0b10206ce698a6c4b8cad4f"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e3-1f-retain-visible-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e3\\run-20261024-1F-retain-visible\\1F\\textures\\minecraft\\concrete_white_-1.png",
+      "sha256": "f42c7be3c52294ead4c69ac0e9ef1bbbbe6bdb4451382c89a65c386709df6171"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e3-1f-retain-visible-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e3\\run-20261024-1F-retain-visible\\1F\\textures\\minecraft\\concrete_white_-15579874.png",
+      "sha256": "14ceba3d0329594e00458bc6ed2aeafa24d9228519994a60d758de2509fee1ad"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e3-1f-retain-visible-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e3\\run-20261024-1F-retain-visible\\1F\\textures\\minecraft\\quartz_block_bottom_-1.png",
+      "sha256": "daf3f46f93f7364b1530ec468a7a1d5a02eda1cd0a118e41e93e9c4177791cc1"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e3-1f-retain-visible-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e3\\run-20261024-1F-retain-visible\\1F\\textures\\minecraft\\quartz_block_side_-1.png",
+      "sha256": "85e34c6a6b917ade1cfbd2826127de4175c63317f3efbba1f7aaed3bf105a193"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e3-1f-retain-visible-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e3\\run-20261024-1F-retain-visible\\1F\\textures\\minecraft\\quartz_block_top_-1.png",
+      "sha256": "eea2309518da196d86171dd0d78ecdcdc3a0510005790fa2beb8484744d8ae88"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e3-1f-retain-visible-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e3\\run-20261024-1F-retain-visible\\1F\\textures\\minecraft\\wool_colored_orange_-1.png",
+      "sha256": "c6a3c27b965f298da28c89c1a522b5ff3152321a97fcbe613aec2f9a6d8f66fa"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e3-1f-retain-visible-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e3\\run-20261024-1F-retain-visible\\execution-1F\\checked-outcome\\checkpoint-receipt.json",
+      "sha256": "83ec67d3392df974b1ed81c759245887ad59202f433cf8078ca05ff5da2ed416"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\e4-runner-writer-preflight\\actual-e4-readback.json",
+      "sha256": "cc635c7453e7cbb04654f4025104c4fbbb8211be90ce00fad561359262f22f9d"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\e4-runner-writer-preflight\\admission-10652.json",
+      "sha256": "77dc751ccb695b92d44f53fa12c435b58653c1676c5700ee9a7f35955b617897"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\e4-runner-writer-preflight\\monitor-E4-1F-strict-retained-10652-20261024T081451\\result.json",
+      "sha256": "67f43efc2b9f3448ddadda043acdaf909397e5e504977b298cdfcfed91a07335"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\e4-runner-writer-preflight\\phase-e4-1F-strict.json",
+      "sha256": "b1170abf5a4fd4383c16f705ccb6cebeaad0c5c3b6c1f9da49563b1f8cc5e024"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\e4-runner-writer-preflight\\run-e4-phase-v5.ps1",
+      "sha256": "7a4a9e8111ff8d74f972c9ea104da3c449d618efa36dd49320831217e7976afc"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e4\\run-20261024-1F-strict-retained-10652\\run-receipt.json",
+      "sha256": "38b79f71b15ccee5af334cdad5bfc8f2bd356d37cba5636583e9a0721968b909"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\campus\\__init__.py",
+      "sha256": "e47d53569bb287f38a3232bf9044dd2ede5fa493b7682ae756fd459da4bd50d2"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\campus\\census.py",
+      "sha256": "37bc6a44b5d768ba7518e78d123d65b40f52eff0828937dbd72c77a23088024c"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\campus\\error_export.py",
+      "sha256": "e88b726d242f3c68bd598efc4f957e5d4c59a151f86283afa447c977b69d68ab"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\campus\\groups.py",
+      "sha256": "7f0b05a8d1807bbbc5118d7a4acfd25975614f533d83264b978455eaffdb7e73"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\campus\\inventory.py",
+      "sha256": "144230f16f06b0dd6c9d5b01709f7f70f04faa94764aa76e3ab6e727fb42cf2f"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\campus\\materials.py",
+      "sha256": "2325873abf6efd0c67c894dcb9e3cb66eb72a584c93c79d46661bddfe0c2f221"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\campus\\needs_modelling.py",
+      "sha256": "857921b86475ff1f02c0fed5195840188e7e4bf86ed1a5ab691a5fe009677cb5"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\campus\\pixfont.py",
+      "sha256": "6c2554b6a2a15839525007a059425c0ff954d0e417669b2fc19a19704944e4e1"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\campus\\skp_check.py",
+      "sha256": "92d5477aa0284a5dab1dc550934763b25333a66f05dfab4b41798a2f88d22844"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\campus\\source.py",
+      "sha256": "25bc1a7bf19b511140135bde71474a668cb00614e1b30a488b86ea753768a737"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\campus\\unit_before.py",
+      "sha256": "fb0b4ace5010792740858933b8eac1bd59b674ea5c0e15ddebbb570ceacd4998"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\campus\\winprobe.py",
+      "sha256": "17ae7a4ae6856647cf670ec69ed3d00ac02ade629aff1b67ad59888dbae30759"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\cli.py",
+      "sha256": "22038f695aeef6f655a0409781993f2657e1a2507df8d3bb448c2faf1a3806c4"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\decide\\__init__.py",
+      "sha256": "35c706c776a73c97047b57abdb173b2c5a3b69e548cef0805be3e1858dd95ce1"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\decide\\decider.py",
+      "sha256": "63c318ae4e19d6130497207005d0e90c865875c6db8fef592dac6fd6eca0c9d0"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\decide\\jev.py",
+      "sha256": "6ee83f8a737f438b72bcc90a5d9ef58a198ea1b12e6e7d509d1b8ba3d8049534"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\decide\\pilot.py",
+      "sha256": "86e7a0545b9bce62fcd71e3259f177352a908b8d60fe34ce96fba08d1381e25a"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\decide\\pilot_import.py",
+      "sha256": "fb43df39144e95ea56a9b29dc0d4eba99473a6f99ebf059b6d471ed4fdabc959"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\decide\\providers.py",
+      "sha256": "f6d13f43daaef30e63798bfd0fb03455c81497b98d80098de90584deb31218e5"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\decide\\remote.py",
+      "sha256": "68444940c8fa733f9dacb29e264a33298fdfc8411c08aeeeecb58a0ba080ba2c"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\decide\\wire.py",
+      "sha256": "1350369bc601021eb0b13d5000da07c145cb12e28c61140483c938abde9eef27"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\detectors\\__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\detectors\\errors.py",
+      "sha256": "21823708b8f34ec42900008f7c16ac3b55fda5b213c8347abcb5057fe443610f"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\detectors\\folds.py",
+      "sha256": "6c78d57faf7eae8ed874cb25ca0a315362f5ac59f88d1543bbc23d310d7fb84e"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\detectors\\fragments.py",
+      "sha256": "63a9beac6a6dcb5826e13a120997ac172e3d809351269f939ee76b1308a012d5"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\fill_review.py",
+      "sha256": "dc04d19343736e6c062f73d5e6b9d8b642e545e7a1f9dd4547419b4bc1c2034f"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\fixes\\__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\fixes\\merge.py",
+      "sha256": "e11bfe7da7cfeb9c7cdad3da0c1e41306b124f4c42ed8f4099d9567118aff693"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\fixes\\orient.py",
+      "sha256": "0e15f196d51ff9d19c2e102baee0fc7966421275ead6bbcdb958850b37346855"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\fixes\\overlap.py",
+      "sha256": "ee8aab14411313b82e05da94c508a1d479ea00732f620bdb58fa92c2b9a8f8c9"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\fixes\\pipeline.py",
+      "sha256": "20f72381d1ef2040bd90de928e21c3bfb0b5c4e534669e15207110ae7736f2aa"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\fixes\\precut_cleanup.py",
+      "sha256": "faa4a8a2d921b83702d2cf53c04038cf4488168b6279cd66f6b49813ab40d6b4"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\fixes\\remove.py",
+      "sha256": "7ec0b682dc87cda8270fd157b1efa7bf34c5232e71963153b3fac7257ff02706"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\fixes\\solidify.py",
+      "sha256": "9201503de87813fdf34e1adc60b12d39340ee8f289f293ae8dd3b6abdc805e00"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\guard\\__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\guard\\compare.py",
+      "sha256": "8aca5a91a3d33af2bf0387a2fc6e5e13490ca337c2b3e24ea53b94cbe8722412"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\guard\\piece_rays.py",
+      "sha256": "b15824c2385c00c3df19d88b8f379194f6dd01a0aeb53c1f20796661cbbbf1e9"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\guard\\qa_render.py",
+      "sha256": "a620795f0763af06420722daceb75c8dc62c62fda4787ffc911e9cde4b3cd74b"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\guard\\render.py",
+      "sha256": "9c918de0b2d53621af3b5cecf0f567c89144c3829a18f408fdf72dd68612bcb3"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\guard\\views.py",
+      "sha256": "d17931c6228909a6bd40f32a961db41c4d7b1e747100f1ea5e115d49f74ac66f"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\io\\__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\io\\minecraft_floor.py",
+      "sha256": "f039309f3cd988ea92c7242f5c3c5085cfdee35d0a3a8075b214910dbd46d014"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\io\\mtl.py",
+      "sha256": "91492f26a43adf2ba368ade4580bcc562fe7b3d162fa3ce0e5ecf964edc70026"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\io\\obj_reader.py",
+      "sha256": "72b300cdd8af9b3312369fb3ffe2064f07933298198ad0e8f438c91d1990a7fe"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\io\\obj_writer.py",
+      "sha256": "9358f99c2362f4cc84d1e11fc073785bae58936f115c6c8fa87e4616fd073df1"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\io\\protected.py",
+      "sha256": "d17e46d0cd294a0c9e23a87476b25d1491cc11b390d74abaee8205400e6d9058"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\io\\skp_reader.py",
+      "sha256": "6142326ccf9ba6a44a563721c14a73deee2fa14cbac6c7f39a34f21638158719"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\io\\skp_writer.py",
+      "sha256": "94a2dd52f872ed06131d5f3ae0f1cb5db05363007333098a893f477be1247500"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\io\\snapshot.py",
+      "sha256": "05b586a87f896552b5081bc5e263e3b4de3ba2d856b76b43af63787794933ac9"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\model.py",
+      "sha256": "4309d8ce5552ec295198f6f732d344842824e65ed1c300e63986e8c17a75be8b"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\pipeline.py",
+      "sha256": "eef997061586ed4735d39d8ffd7b245aece780181fe8c070d34bd8a5ccb764a9"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\rays\\__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\rays\\caster.py",
+      "sha256": "62bde18bb12e0e3c8f690eb9c819750274e4924911770b6f7cffa399a704ddd5"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\repair\\__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\repair\\engines\\__init__.py",
+      "sha256": "8afb2ca146db093adccbc2ca8506262e6fe01f4ed98d4ee11773153aefd45207"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\repair\\engines\\e1_loose.py",
+      "sha256": "c844ffa6147facb54ee60efdba3978dc46f05ca2dde6811b24ca8a1419eea539"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\repair\\engines\\e3_hidden.py",
+      "sha256": "e4b2e2e00127683d1f8b0ec221aab35e9f3cb67407fb4f561760a6f12f1d8d92"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\repair\\engines\\e4_merge.py",
+      "sha256": "c3ca18dd8b51b825b8163e6a98f3203ed2f22c6c6d84a5a6e7869d241c293407"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\repair\\engines\\e7_thread.py",
+      "sha256": "60ee872b283dfe0557afc6311f4f2ebfef854c136b18e3dfbeeb679789d717d9"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\repair\\engines\\e8_fill.py",
+      "sha256": "6784bf95a73de18c80b3404a4d79c233ca1fef5e5d5856a7bda05d7b68501a42"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\repair\\engines\\e8_solidify.py",
+      "sha256": "a9862d6420609a341d0c0132b1ddf4c639c01092a7a7d1c6af054c50af976f21"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\repair\\engines\\legacy.py",
+      "sha256": "4ae576b9e7d0e5a5f610771efda83cba93d8a3b6e277d156367900cc30522b57"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\repair\\kernel.py",
+      "sha256": "dca8042e6d562676589f6b2741ee178d58f48e3d61f767d718303641c1525ca5"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\repair\\types.py",
+      "sha256": "43ca308fa31942982666cbae7dbf0f7082e5dd3c747be901c0ca37c32dec4c0c"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\site_judge.py",
+      "sha256": "50cee322111f5bf192f1a20160e06234c61b71518a891684434d246faebd6993"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\fixtures\\__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\fixtures\\build.py",
+      "sha256": "73685577a175ae6092cda4fcf0d5759d12147f0b6dd3e88de111bb1c18f3116f"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\fixtures\\holes.py",
+      "sha256": "2a54102ad9133212ab77dfbe96c8f674f6291d193fde8603b5a7df2071f47ccd"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\skp_scene.py",
+      "sha256": "8eadc03a62d67312c505e4ea4912bd1fba153f976dc0f042ae2db1e28e139690"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_campus_census.py",
+      "sha256": "6b127dcf0a7ebf702654b2985db65c5ac49cd2c84b181845f072aa2368d0c786"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_campus_groups.py",
+      "sha256": "aa4d8c9d1632bcb80feca99626a445d06033c0408f33e70ae84cf970b1a5c09b"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_campus_inventory.py",
+      "sha256": "3a0afaa80371c33c5bdbdb55944ea108e934038b6f267471a2e975db9a953cfa"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_campus_looks.py",
+      "sha256": "2595cf5152984094dd421b2db6d2eadd45a4831927588a2ee1790a78fc0daca8"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_campus_materials.py",
+      "sha256": "2d03d8b90903c4f729d9322f6abe6210138c876b44b82a806f11f237ede44326"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_campus_source.py",
+      "sha256": "acd9a6fa56827564ab11df06e3601528e794458e93530a56ebeca716c3c7ce7e"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_caster.py",
+      "sha256": "229880305bed4d8084a84258e9f7fca574f7472f69e500f4eb417a0bb5d9ca66"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_caster_spatial_recovery.py",
+      "sha256": "f2a0bff7e5be77878718fcb7a26bd7f922a7f3f83c9bfa6ae54ccac46249b9ff"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_census_materials_message.py",
+      "sha256": "55d2e50d6e2bb7aedb9f2e28bfebb0894070306a99ceda7f022197b17d844a62"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_cli.py",
+      "sha256": "12ccdbd8fa0354c7904c0e41ffb477a28cae461a4920329a8a0b62a17a8d3b6f"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_cli_needs_modelling.py",
+      "sha256": "96841fdd581329b853a2c4098b9c5d5d0e6d31834e5c0df10fb7bf75a7947d18"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_cli_repair_unit.py",
+      "sha256": "00a33f9b0ae5038586add8c3d5f2a4da340e59af70bc5834b47c65c9c148196f"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_cli_repair_unit_e1.py",
+      "sha256": "d600ab4c2e97d76422e0b0bc66d1b7c280b13335cff0159b33527e06323ccf17"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_cli_repair_unit_fills.py",
+      "sha256": "45719741a4c909d8126251b5cd12237588a881a7200de97116109bed75e28714"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_cli_unity_check.py",
+      "sha256": "5a1df437fc061c2b8be6af4e4331bc17e12cf4a395d6b4401c48f050dfbc17f1"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_cli_validate_sites.py",
+      "sha256": "2d5bf8f8ee3f16e95ec0bd0c5daa5b423f87c353ddfa4f3bb6800e13d36cf426"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_decide_jev.py",
+      "sha256": "c42029aad61a5728406b4038d36316ff5f324e39769a05e3b05aacabf1f7d2a4"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_decide_pilot.py",
+      "sha256": "2731cf2436360e73ee213322791d0f9c6e6d4ab0a1ca76bdd3192aa208f2f4a9"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_decide_pilot_import.py",
+      "sha256": "5a44ff3094c792146610f09d89bce8d2c9d7d8ec95d3bdba6e1cfe5bce02ef12"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_decide_providers.py",
+      "sha256": "1aae3c1d04588c2a1bf6f027fc918d4423e633eb47c51675d17a79e79e727a04"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_decide_remote.py",
+      "sha256": "d1a280cf9f8e4baa1c0753852d3e9a244d2be5c5386faee04fc639f71769a077"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_decide_wire.py",
+      "sha256": "7f144c30969207af00fc7d7d6e33cbd82fe7f26ca3a62cf7b477053ee4756df5"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_decider.py",
+      "sha256": "689379536ecc85286243b4071bf0e7296418b7fe83771e08cbbd2a5322fb3dfe"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_decider_unavailable.py",
+      "sha256": "4f2de6ef4de3bc8f40630e7169aafeee1b3fdd6dbd613deac148f8cb66aa6c6d"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_double_layers_memory.py",
+      "sha256": "4d70520fe77d88937c84c88e12cb5c991aa09d8aa8ba07c8a84d95e87febaa9e"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_double_layers_speed.py",
+      "sha256": "0ebf50864b75ab55ab4057f18d1b2208841c93a18ce750d73a14b5387a92c271"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_e1_loose.py",
+      "sha256": "274c8a1dc664223f72da3c3047370c6b3f994889fb15d8ee0a627a08e1bf5c81"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_e3_hidden.py",
+      "sha256": "16759a6de7d45b756e859e32100e5ad1955c5e8d5d540e83c159c0a7fa93130e"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_e4_growth.py",
+      "sha256": "f73372529627c60422d8dd6fe5f59d5068d1b19d1a2292a568cfdec1aebce7d5"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_e4_merge.py",
+      "sha256": "e4e4dafad05a3ed34b9d8fda92715040407ae739ee643fa5de6fc77a372086f3"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_e7_thread.py",
+      "sha256": "08fd96504ffe5201399e024cc3f20c38b344dcdacece78fd7a940c4e095b3f3b"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_e8_flat_fill.py",
+      "sha256": "451f3b990b73235b720536fa9ece4f9c537ec55bf013f9b1a302cca23ffddb9c"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_e8_flat_fill_kernel.py",
+      "sha256": "2d677250c6d6021ac81fd8d9e15ec89e232fb2d84f801ad54f7b5f99cdf4a91b"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_e8_solidify.py",
+      "sha256": "8b3f4eecc7a6234178f16adb80e26ad99b985aa68fc92dd434e0a49a4c8400ef"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_edit_add_only_e8.py",
+      "sha256": "ccf6e25d10bc63d56e0fa80ad12450a4be017e795f3b2f8f19b2f574c711a5e7"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_error_export_cli.py",
+      "sha256": "38c4143429341f514c1eda6e411ff61fff47309b8ec8cc326e8e4bd4e911be7e"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_error_export_plan.py",
+      "sha256": "0dd0c3dec9fb18e7493e92467c645abbd317ba63aefdf0c49866bf5e165303fa"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_error_export_skp.py",
+      "sha256": "edfd65ab4a0b554ad64f45d365ca519619df30ff218454556e8d6dc2305f81ff"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_errors.py",
+      "sha256": "78d012f7cf2f9992f820b409efb9199c7d815491548c64f09573c8a8f25bf965"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_exposure.py",
+      "sha256": "b242aada48faa0c90c623af24adcd8ef07898d2af2d5086a7960abba2a80c2e0"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_fixtures.py",
+      "sha256": "af1170cee09387d780aa8e34278e467cf9a8a71c9a1ffca3ff58e12cbd66bcbb"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_folds.py",
+      "sha256": "39dd0eca23b51c30e49c660d1895b432358827384cf45e1eed46281e525c1e13"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_fragments.py",
+      "sha256": "ecd142a13e9116a40f804cd8bbfb229dc829933b0504992f88f2c48528935361"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_guard.py",
+      "sha256": "73707e5208bd9568fc164420dbdc86f353c05668093b5a97e92950fb575f924e"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_kernel_edit_log_any_engine.py",
+      "sha256": "4ecb05b3bb84dafb9dc2738ba269b6a99731f4a34bc4f924bc303d80d563352f"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_kernel_observe.py",
+      "sha256": "d7665310782be7cacd75c682ecdf89a447489c8d3bfa35ab70fc5a166d7e35bf"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_kernel_site_checks.py",
+      "sha256": "359b3d4128ba2de19d1f2223bca94c5f825cbafb223470f597703942197f4740"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_kernel_stage_rollback.py",
+      "sha256": "b16a246ee8b9447b04b4904f9efa58485b7d2c4dfff9ca5e6d3a69e834100e30"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_merge.py",
+      "sha256": "a0c44820f7dd10f86ec17ffe528642657031ccad7977a0a518775e80705fcc4b"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_meshbuf.py",
+      "sha256": "f58389906c22049fb8721262f593cad574b266ca581cdb2a2ef7c912c050c55b"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_minecraft_floor.py",
+      "sha256": "9e743b6b1da2dbb7a70be286030220342c40925ea0fed4541814092c3e11ab75"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_mtl.py",
+      "sha256": "ad5b288a61e4bef63395e4a19c3a541a5fd1ad4a79772ddf1d231cce0ad35ab5"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_needs_modelling.py",
+      "sha256": "cd16f82a47c3ae9bfdc63a1c329a76744ae1de778c4b34c0f80d6a13b02e7a60"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_no_material_is_its_own_look.py",
+      "sha256": "d7e303df9066bd083f01b28bd45adcf571eddf512dff339bf1fd30035cfbbc5c"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_obj_reader.py",
+      "sha256": "3d233308c9d3cbcdbaab05f59717dff3612c883cb9ca833064c25f0f00e063ea"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_obj_writer.py",
+      "sha256": "ac1dc701337e64750cac906b69f07d72d9075c6d9dacce81311f318da57c7eb7"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_orient.py",
+      "sha256": "78fe624d863a8119ef67ecb60044af1c467f8132390fd45d2ddac2d1b92f7177"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_overlap.py",
+      "sha256": "f7ef0c18902a11de9315f960d27100ea5379383692e79f60c53f2031d7a36d01"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_p2_h2_minors.py",
+      "sha256": "0186523a0afa76ad7f269369230b9fd29ebcb6daa8169bc7a032e6e3abf48a3e"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_physical_precision.py",
+      "sha256": "5a7d804395f0b9c89d82d15bd4258ae349dacae8f4f0dc70a648595037d23400"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_piece_rays.py",
+      "sha256": "b7407ce17b3e69cf07a96d65f40dc089863a05d22597d674066beffa77b0134d"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_pipeline.py",
+      "sha256": "87767e05a989db711e775351c9f0488224d2323eb29b0f8e52ca7757f193c870"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_pixfont.py",
+      "sha256": "5b3cd7df80c09afb4d76d00a159c167ced4a0028b677dc6f5e8f51d4a9ad2c91"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_qa_render.py",
+      "sha256": "9c461b9a2373860603e54fa17b334b18ab60be91021802906b2eb06b0e46e71a"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_refuse_protected.py",
+      "sha256": "dad7fb88fa92107472a9d2f9069e589d50b9015ae6d718dc6665ab214689a123"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_regions.py",
+      "sha256": "8d8643d62ca5783a35e2056db51936006165551c0e49115ec71c92857a3a36b0"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_remove.py",
+      "sha256": "61085a40b2d5cbeb0f56bfcec43ea53eb5793cdcca5270a245dc346010e02ced"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_repair_types.py",
+      "sha256": "60c666e646ddeb1a930fb0298fb68f6e059f38d16a7cb8a3685da7e217452f90"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_repair_uv.py",
+      "sha256": "b69077a6ac965be17648a5d1159db9ad7466b1cccea9f9318f34b6ff817100db"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_repair_uv_observer.py",
+      "sha256": "7122b30cc34b92fd404fd2136271f08873539dda0129e3f14644a893e8b690ca"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_site_attribution.py",
+      "sha256": "22f206570d63993f2430ce41aa90d5d4462a41388155f533caa0ae0c85f22dd6"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_site_judge.py",
+      "sha256": "4d53260ae3f89ebea689e70854f6999bf6f036083b3e78a4f750804df4c8b1e3"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_site_judge_cover.py",
+      "sha256": "c0f59446ad1736aa8be46a33daa3fd5311725ac3cccad7a845bade038b00733c"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_site_judge_floor.py",
+      "sha256": "206f8ff3f9982cfec9bbc65040438809e30b887e9b67f4928b57c4ecc81019e0"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_site_judge_remove_only.py",
+      "sha256": "f424d7a5267719056f96d4f2601509ccd01613bb4189b14417a9c9b541942656"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_skp_check.py",
+      "sha256": "5e10950dd2665d3a04301d0297e9cbf67812a39e96130471805c65a16f993a06"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_skp_reader.py",
+      "sha256": "1d3cfa294130ea8688f54cd21c25872bd0c72ca13a9e10dca58464f1157cb9ac"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_skp_writer.py",
+      "sha256": "30ed8fe7fcda42c40092ed93b9b8733951ca7af2fc331bca6e4ad301e4a38ac9"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_snapshot.py",
+      "sha256": "427f7d91764be117b4a6d2563754b0d1771b6bf77628795615dde6fc6b2f0b4c"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_solidify.py",
+      "sha256": "77f97480f7e74b7a1795a6f3b2918a99a14f611a3992a272da3573a3159865af"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_t_vertex_search.py",
+      "sha256": "b07fba23c37d52027264c1d8af5fd6a5d513a2629bb9a76858e68cef513504f4"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_topo_basics.py",
+      "sha256": "ab1d3cdf4b709b552b4750866c6d7b4117d476f6a4abb60f408aa77119c82d43"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_topology_memo.py",
+      "sha256": "166b5c95ef6d2663dba8fa1c25a84f1f8e19c9b6c488d971e44ed93c293b0321"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_unit_before.py",
+      "sha256": "ca9a610405da94dd3a8d06b5550e90b35b4c081e1f5bcd76ad4282666aceff3f"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_unit_before_no_material.py",
+      "sha256": "f8cac9a0483e673bca842235e79723f314927d9fc1eb3bf683ef6d146bb640c0"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_unity_align.py",
+      "sha256": "e3452da4f7cd421a1de79eb8c12101aaaa35e43d5f0907b966c756650d6abb0c"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_unity_check.py",
+      "sha256": "091790f4680396067e5d12c3a32f1e96176eb63bd24d22d31fd39d6329d25521"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_unity_dump.py",
+      "sha256": "6a707cb3207f5ba8ab90a2a109b2440a2af37b8522280a0b4e34488294d3c65f"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_unity_mirror.py",
+      "sha256": "479c9a61a19e83074a8a07c775552af1e6055a3b4f3fe9d977ea0d3bea96e8a5"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_validate_checks.py",
+      "sha256": "6651373a7493eb34c90e5b25b15fa0622fa03b9f0c35ea6eb3889c1070313654"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_validate_core.py",
+      "sha256": "e5adf885cecde0fa9773faff954c3807a7cfef24345b1709abac335ba67a5f14"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_validate_edit_log_fills.py",
+      "sha256": "e30385e5f6d21be70bdd03a4825ea569cdc3cfbc82f4ada272a450bf6ca1a824"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_validate_edit_log_new_faces.py",
+      "sha256": "9d01a4431082f4bdd7c1574a1e2a35efb44960dfb48011d523ab3416d494fff0"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_validate_fill_site.py",
+      "sha256": "759a64f16d03cbea5cbe7886b26e786ad4f148bccf3d64a4a501883dd1e841df"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_validate_floor.py",
+      "sha256": "97f41cab8b26e5eff85a63544ac64fd7d9c85a8c153cbe3e7dce7812b8f484c1"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_validate_floor_checks.py",
+      "sha256": "d6f9436f4853023734346fd2f7683853ad407a728b051fc9a29e22f8e99c8c0a"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_validate_floor_corner.py",
+      "sha256": "2d50cf05296d598e0f2d7227ac7344eeb30e51827906815140401bdcf856cda6"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_validate_floor_covered.py",
+      "sha256": "098cf5a6e82660d040d959b490bd7266fba52fd604cec22aa71007ed7fa2baaa"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_validate_floor_speed.py",
+      "sha256": "b62840972300bd3defc767a4aa17d1dfa54a2e0403d91c9416fc5bf083efb8d1"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_validate_focus.py",
+      "sha256": "dd80f07a214138250dca3790db078c6216524a13bd60d3edde9a63a05d3738aa"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_validate_horizon.py",
+      "sha256": "15f8537c97e251aa2b8f16342c6d9c0479f1651a30454a46c672d675557d6561"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_validate_mutations.py",
+      "sha256": "d7e00886a258dc761f5bf2ee052fa615f6e0c2c34c996f95fdca965fc561b5b0"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_validate_targets_shape.py",
+      "sha256": "4e351103057d405d730bc38475a2a42a0bc4fb26b7d90cbc381131f445de7e31"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_validate_threaded_caster.py",
+      "sha256": "fcea48d220b73f017c3dc919c527aeae1e9924203a9f07488ec63822f19635c3"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\topo\\__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\topo\\adjacency.py",
+      "sha256": "a4132a4025cec95bd004eeb174efa1e88950b4f86605ea972cec644a2479896e"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\topo\\edges.py",
+      "sha256": "e494c0ffee0b8a39cd5d5c2ac697ed7058f76b0838aac12928f2d03f0959c97b"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\topo\\planes.py",
+      "sha256": "1701d1ad46deb6bb90452159b312a7b94e8661bb33693143bf7825da39f17f93"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\topo\\weld.py",
+      "sha256": "e584a6ab2e46b20b7c4cf8da06516a4199978523ec68d3221263cd29cbf3bdea"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\transport\\__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\transport\\meshbuf.py",
+      "sha256": "2a24eaeaf1127a67ef1c87512147584a6a42761fb901fce0e6a634431ff28bd0"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\unity\\__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\unity\\align.py",
+      "sha256": "24af456f369a8a05444bb9fb7f1645d3068e957a437421e4eb048d776ed1e88a"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\unity\\check.py",
+      "sha256": "c244213fbf212afc092b37925797b4371606568fd745fce61b2377d03316f898"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\unity\\dump.py",
+      "sha256": "f710e519850f6aecab98de4ee3679cb58212ae407f1590fe4a2b3a4ea46d212d"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\unity\\mirror.py",
+      "sha256": "3c81e629e64a6ceb095c626d52fb92f35ab167ba0d9631a45bf17c5e4ab56ad5"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\validate\\__init__.py",
+      "sha256": "6d8a1be3faac9a3804d42cdcb5fba170739a756204aa755d2a05a1a3dd84f00b"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\validate\\checks.py",
+      "sha256": "3d3ebe288abab4afa73b26e8908047a8fbe71a36b8df31d3fed69fb190601606"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\validate\\evidence.py",
+      "sha256": "914fff0f76b253ba999fae91e6373ed2ab43d491c98f44d5cc57384e8ecffbd7"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\validate\\floor.py",
+      "sha256": "bde829b4832443ce159ae8d7937a5ed4b4207bd6d7e1b4b669b2df2b9b0e84e8"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\validate\\sampling.py",
+      "sha256": "d81a9af913839666ae8e63afd29ed22492fd90f1741be03bf01b1eb95a52a73d"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\validate\\targets.json",
+      "sha256": "4117f5e22045750fed7c4627ffa6324bf2efe5c14cf9629389a482c960036507"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\validate\\viewpoints.py",
+      "sha256": "c62acfd255fd99c003fd54bf084a68bdb82442cf1c96ada2f0a50e7a7efa7e98"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\validate\\visibility.py",
+      "sha256": "28cbad91da779c0a12155c3036a717db78e5629bb5fbf54e4e8ad2d95ca04821"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\vis\\__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\vis\\exposure.py",
+      "sha256": "ec922979de869284607ed067f71e8940465132db4eb020b49789b3d28547c34a"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\tools\\main_infra_e3.py",
+      "sha256": "7e39fc3862479ec29060ed9f8c39ac44278b200e81ce0febe2d0115e53562f60"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\tools\\main_infra_e3_binding.py",
+      "sha256": "2eb413942d49b6f1a65b42fb929be365bcb544481388a7935d8277e4e263f44c"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\tools\\main_infra_e3_checkpoint.py",
+      "sha256": "bd184049a8527137367b9f5baeb722ba7c55e0e66b44e9d306618ca48a85ae93"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\tools\\main_infra_e3_replay.py",
+      "sha256": "fcdd09614803f415bd5d64a0a4a31e8bad7cc0f6808a0767d7eb3e06471e6b64"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\tools\\main_infra_e3_visible_run.py",
+      "sha256": "bf13bd66237cea59533497fd782c043550eb6b193c3d7e46dea8f01659d8e7c9"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\tools\\main_infra_e4_checkpoint.py",
+      "sha256": "d2486d5b8c8bcbccd412b1a67b1cf50eb6fbb6546b9bd65d016e7c33a444fe1e"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\tools\\main_infra_e4_crack_regions.py",
+      "sha256": "93d2959fc73b942f85598def689d0d903f8c38553528897ab634625f684946ec"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\tools\\main_infra_e4_input.py",
+      "sha256": "3381df7e72e2a7d22acefccc9d75169247a5780ab2c7db32b23ba58be57f296b"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\tools\\main_infra_e4_lineage.py",
+      "sha256": "a4c9b516b6ac3af8564c4fba0a94e770236b9315afb93aebd60c6956dd16d1a7"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\tools\\main_infra_e4_run.py",
+      "sha256": "69984ca30b6dda42e976341f410054b91496535174ae5d4db792e9ce10efa110"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\tools\\main_infra_e4_serialization.py",
+      "sha256": "455aba619667c057c01608d0959cc0c4fd808dc9aec182e1b97efd6188df9443"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\tools\\main_infra_e4_source.py",
+      "sha256": "00f8cdf7247a70fbd56037e4531d98c79636515afe58194f0511fbb688f1700c"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\tools\\main_infra_e4_strict.py",
+      "sha256": "4e7e18c1bcd7a1b3218f40d841af1e259814e1fcb5b9e6725de3b154e0f196b5"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\tools\\main_infra_e7.py",
+      "sha256": "beb40710cef8e88af1d077a8ca5c1b4bd4171dd90c06fc9c13e409cfa4a553bd"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\tools\\main_infra_e7_1f_run.py",
+      "sha256": "4de870e5bde9da1de7ff16c9bb15cd0f831fae0fa211a107f3284a047a49b83e"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\tools\\main_infra_e7_attempt3.py",
+      "sha256": "69e633cb66bf32dec619a0d26c43d81b26b3020846dfa2852a40807471e2952e"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\tools\\main_infra_e7_attempt4.py",
+      "sha256": "48cc81d7622cc069a58d64cf2618fc512a966da436b352e01a33321f5dab7343"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\tools\\main_infra_e7_checkpoint.py",
+      "sha256": "e1e9ca745f8d06b68dd643a46c873d22cafb22d594de87601671bf003aeeef93"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\tools\\main_infra_e7_native_policy.py",
+      "sha256": "a4492943c686bebec9881c61c5458500366a7bb481d07a80b6edae4db287ea9e"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\tools\\main_infra_e7_native_retention.py",
+      "sha256": "8a89d212c1a01255f085c1c7a1b6650402b18d5725c483a2fb027f7c46943164"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\tools\\main_infra_e7_retained_admission.py",
+      "sha256": "643ccabffdae64d410ca448428b858d60e726bed03b74c87e94f6eb5404b0730"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\tools\\main_infra_e7_retained_base.py",
+      "sha256": "3bfbdf6e73f0e38ceff99f9df934fc199bb7f5b2cf6b0aab19846c439da5a7d6"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\tools\\main_infra_e7_serialization.py",
+      "sha256": "f048c2b559deb59ad45f6d65f0323e0ceef3d21fc75ccca79c6fa0738cd687f3"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\tools\\main_infra_e7_single_pixel_retention.py",
+      "sha256": "f301b8c026275b658acefad2a95b834d5abaed6824e4c005f56e462d5af8bf78"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\tools\\main_infra_e7_source_admission.py",
+      "sha256": "e52ea264c1ae1f512fdee97f30a86a8d21232bad2b7354af29807476d5a1217a"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\tools\\main_infra_e7_subset.py",
+      "sha256": "8788f4b457a90d3d5350250f1078792e83a51b74036e0afdac2b54e76d874f31"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\tools\\main_infra_physical_validation.py",
+      "sha256": "e0be48fd466c12467189b361518aa026fd30dcc239a35f7e84bf8542120503d3"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\tools\\main_infra_preview.py",
+      "sha256": "7eb48fe58bb4897857794dd931f64713144900b6644aaa3f692b2c2c5a226729"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-1f-retained-admission-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261024-1F-retained-base-attempt2\\1F\\candidate.engine.obj",
+      "sha256": "4c3bc6f288891421f2f05998cd1988c7f24d0f6ceaaf5b78de545565d9cc8267"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-1f-retained-admission-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261024-1F-retained-base-attempt2\\1F\\candidate.source.obj",
+      "sha256": "986b3f934f5de6080c1bfbc553d30dada5325a506cfe48253b779bfa24cc87f5"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-1f-retained-admission-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261024-1F-retained-base-attempt2\\1F\\checked-edits.json",
+      "sha256": "82bef6b7df478340508376ef26e740e7783aec8bfb372e8a2ad546e6866a20b6"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-1f-retained-admission-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261024-1F-retained-base-attempt2\\1F\\cut-receipt.json",
+      "sha256": "30026fb06809a76b3ee1d271abc2172528816497fae7af2fa8cb7b437cd46b30"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-1f-retained-admission-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261024-1F-retained-base-attempt2\\execution-1F\\checked-outcome\\checkpoint-receipt.json",
+      "sha256": "79ec8e5eaec9989d47d3a7da7e29f70f4078d35dc10f7a713159a7ef46485f6a"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-1f-retained-admission-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261024-1F-retained-base-attempt2\\preparation-1F.json",
+      "sha256": "7e8b5a21e7950a9a8b70c85f4c9562a7168cd6ea01f713288cbc1cb9c8b45e83"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-1f-retained-base-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\retained-base-source-admission-attribution\\fresh-proposals.json",
+      "sha256": "216da8ab94341f5f3c3d978f8ff9a3d2d761a19b64152c1b636f29f8f0eed8d8"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-1f-retained-base-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\retained-base-source-admission-attribution\\source-admission-report.json",
+      "sha256": "694af402dec94337f3a914ba71e36bd05dd9ca0cbf77cb1295dfb5b884c76191"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\covered-ray-preflight\\monitor-10660-covered-ray-complete-retention-cohort-20261024T054447\\result.json",
+      "sha256": "da1c210937314170a87c747ec1ad6c86af20415d33638a896de97ce5b7538359"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\covered-ray-preflight\\monitor-execute-1F-E7-covered-ray-retention-20261024T061718\\result.json",
+      "sha256": "c9ea0980eb59d7cfbd75e2ece1068274c68cc69eda6130142c5718852f5ad9b3"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\covered-ray-preflight\\phase-cohort.json",
+      "sha256": "82edd27df252462d4c36bec0ba4f857fb527542237910f491bee4adeebe15558"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\covered-ray-preflight\\plan.json",
+      "sha256": "f51ddd0669fd1951ec5e533a4507b38c2084d16b76bdba88941b1d07a9da0360"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\covered-ray-retention\\run-20261024\\cohort.json",
+      "sha256": "21a853f4bb5473ba0fdea705b6d8d3f50001ab4b4893efb025792b1bfe26d2bb"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261024-1F-covered-ray-retention\\1F\\1st floor main infra.mtl",
+      "sha256": "c64c0cb12926c707b55262a82fd324ccd09502f92b0c866801a00e9f3c89d9a3"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261024-1F-covered-ray-retention\\1F\\asset-receipt.json",
+      "sha256": "019d965f6ded3630e9d957335fea8f33b98c7e8705a5017600ef1d66ae33eb3b"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261024-1F-covered-ray-retention\\1F\\candidate.engine.obj",
+      "sha256": "0ef9796dbb05e35d315612a7e87cd97529366c2e12d7b85b661483fefadf9e04"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261024-1F-covered-ray-retention\\1F\\candidate.source.obj",
+      "sha256": "1620d971fca99d55a8b7cf07884203a9a24fab17bcaf638e4cc5a3f32ef73490"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261024-1F-covered-ray-retention\\1F\\checked-edits.json",
+      "sha256": "6a575338f0e73a71d381ecea6a00af67e85bb6ec3a13259a43533be1a5900644"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261024-1F-covered-ray-retention\\1F\\cut-lineage.json",
+      "sha256": "c22339d483de526679cdd958c54d9f3ec9ef91bdd33aee3f762612170ccda423"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261024-1F-covered-ray-retention\\1F\\cut-receipt.json",
+      "sha256": "f5d71d7eb27af5475db87389a0f245b2fba457affcbc21af6b3262d90cc72231"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261024-1F-covered-ray-retention\\1F\\edit-log.jsonl",
+      "sha256": "c86aea708f3d969c6cd9c0a23d0f338944b8bd4495d688a89ac759b9156cf75b"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261024-1F-covered-ray-retention\\1F\\run-receipt.json",
+      "sha256": "78f0dabb58fe222fbe64ba31eada245bd03d4d4b97816244041ec92ad343efdb"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261024-1F-covered-ray-retention\\1F\\textures\\minecraft\\concrete_white_-1.png",
+      "sha256": "f42c7be3c52294ead4c69ac0e9ef1bbbbe6bdb4451382c89a65c386709df6171"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261024-1F-covered-ray-retention\\1F\\textures\\minecraft\\concrete_white_-15579874.png",
+      "sha256": "14ceba3d0329594e00458bc6ed2aeafa24d9228519994a60d758de2509fee1ad"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261024-1F-covered-ray-retention\\1F\\textures\\minecraft\\quartz_block_bottom_-1.png",
+      "sha256": "daf3f46f93f7364b1530ec468a7a1d5a02eda1cd0a118e41e93e9c4177791cc1"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261024-1F-covered-ray-retention\\1F\\textures\\minecraft\\quartz_block_side_-1.png",
+      "sha256": "85e34c6a6b917ade1cfbd2826127de4175c63317f3efbba1f7aaed3bf105a193"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261024-1F-covered-ray-retention\\1F\\textures\\minecraft\\quartz_block_top_-1.png",
+      "sha256": "eea2309518da196d86171dd0d78ecdcdc3a0510005790fa2beb8484744d8ae88"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261024-1F-covered-ray-retention\\1F\\textures\\minecraft\\wool_colored_orange_-1.png",
+      "sha256": "c6a3c27b965f298da28c89c1a522b5ff3152321a97fcbe613aec2f9a6d8f66fa"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261024-1F-covered-ray-retention\\execution-1F\\checked-outcome\\arrays.npz",
+      "sha256": "9bc7a3b09f07dcf438b055d0a55a6cfe4c81587159a2e62f86332230001280f8"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261024-1F-covered-ray-retention\\execution-1F\\checked-outcome\\checkpoint-receipt.json",
+      "sha256": "02c7323b92c740d49862500b51031ddf3fb77bb4743a666126cdf006a6fcab23"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261024-1F-covered-ray-retention\\execution-1F\\checked-outcome\\edit-log.jsonl",
+      "sha256": "5d82b78a903e26fe22ec83b004db877406475156223bd3224edbb5f58f805a18"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261024-1F-covered-ray-retention\\execution-1F\\checked-outcome\\result.json",
+      "sha256": "d75739267250f34fcca85c056862672ff5ea5fa6055b7c5cd8b77a957771c259"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261024-1F-covered-ray-retention\\execution-1F\\edit-log.jsonl",
+      "sha256": "c86aea708f3d969c6cd9c0a23d0f338944b8bd4495d688a89ac759b9156cf75b"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261024-1F-covered-ray-retention\\execution-1F\\source-admission-plan.json",
+      "sha256": "a9029180ec6896fde66f5733aa4c18206ea60f17ed3a3221ce0003f79fe8db67"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261024-1F-covered-ray-retention\\execution-1F\\worker.json",
+      "sha256": "8464d283870ab9bfcc1fdaf37e681fa3921f31b1c29dbe3934c583cff5de8763"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261024-1F-covered-ray-retention\\preparation-1F.json",
+      "sha256": "a8318faaf0e7b951baa8cc659cf0749e1fcdfa608f5ab132757fc0a0a4015573"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\campus\\__init__.py",
+      "sha256": "e47d53569bb287f38a3232bf9044dd2ede5fa493b7682ae756fd459da4bd50d2"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\campus\\census.py",
+      "sha256": "37bc6a44b5d768ba7518e78d123d65b40f52eff0828937dbd72c77a23088024c"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\campus\\error_export.py",
+      "sha256": "e88b726d242f3c68bd598efc4f957e5d4c59a151f86283afa447c977b69d68ab"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\campus\\groups.py",
+      "sha256": "7f0b05a8d1807bbbc5118d7a4acfd25975614f533d83264b978455eaffdb7e73"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\campus\\inventory.py",
+      "sha256": "144230f16f06b0dd6c9d5b01709f7f70f04faa94764aa76e3ab6e727fb42cf2f"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\campus\\materials.py",
+      "sha256": "2325873abf6efd0c67c894dcb9e3cb66eb72a584c93c79d46661bddfe0c2f221"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\campus\\needs_modelling.py",
+      "sha256": "857921b86475ff1f02c0fed5195840188e7e4bf86ed1a5ab691a5fe009677cb5"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\campus\\pixfont.py",
+      "sha256": "6c2554b6a2a15839525007a059425c0ff954d0e417669b2fc19a19704944e4e1"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\campus\\skp_check.py",
+      "sha256": "92d5477aa0284a5dab1dc550934763b25333a66f05dfab4b41798a2f88d22844"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\campus\\source.py",
+      "sha256": "25bc1a7bf19b511140135bde71474a668cb00614e1b30a488b86ea753768a737"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\campus\\unit_before.py",
+      "sha256": "fb0b4ace5010792740858933b8eac1bd59b674ea5c0e15ddebbb570ceacd4998"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\campus\\winprobe.py",
+      "sha256": "17ae7a4ae6856647cf670ec69ed3d00ac02ade629aff1b67ad59888dbae30759"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\cli.py",
+      "sha256": "22038f695aeef6f655a0409781993f2657e1a2507df8d3bb448c2faf1a3806c4"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\decide\\__init__.py",
+      "sha256": "35c706c776a73c97047b57abdb173b2c5a3b69e548cef0805be3e1858dd95ce1"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\decide\\decider.py",
+      "sha256": "63c318ae4e19d6130497207005d0e90c865875c6db8fef592dac6fd6eca0c9d0"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\decide\\jev.py",
+      "sha256": "6ee83f8a737f438b72bcc90a5d9ef58a198ea1b12e6e7d509d1b8ba3d8049534"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\decide\\pilot.py",
+      "sha256": "86e7a0545b9bce62fcd71e3259f177352a908b8d60fe34ce96fba08d1381e25a"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\decide\\pilot_import.py",
+      "sha256": "fb43df39144e95ea56a9b29dc0d4eba99473a6f99ebf059b6d471ed4fdabc959"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\decide\\providers.py",
+      "sha256": "f6d13f43daaef30e63798bfd0fb03455c81497b98d80098de90584deb31218e5"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\decide\\remote.py",
+      "sha256": "68444940c8fa733f9dacb29e264a33298fdfc8411c08aeeeecb58a0ba080ba2c"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\decide\\wire.py",
+      "sha256": "1350369bc601021eb0b13d5000da07c145cb12e28c61140483c938abde9eef27"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\detectors\\__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\detectors\\errors.py",
+      "sha256": "21823708b8f34ec42900008f7c16ac3b55fda5b213c8347abcb5057fe443610f"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\detectors\\folds.py",
+      "sha256": "6c78d57faf7eae8ed874cb25ca0a315362f5ac59f88d1543bbc23d310d7fb84e"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\detectors\\fragments.py",
+      "sha256": "63a9beac6a6dcb5826e13a120997ac172e3d809351269f939ee76b1308a012d5"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\fill_review.py",
+      "sha256": "dc04d19343736e6c062f73d5e6b9d8b642e545e7a1f9dd4547419b4bc1c2034f"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\fixes\\__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\fixes\\merge.py",
+      "sha256": "e11bfe7da7cfeb9c7cdad3da0c1e41306b124f4c42ed8f4099d9567118aff693"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\fixes\\orient.py",
+      "sha256": "0e15f196d51ff9d19c2e102baee0fc7966421275ead6bbcdb958850b37346855"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\fixes\\overlap.py",
+      "sha256": "ee8aab14411313b82e05da94c508a1d479ea00732f620bdb58fa92c2b9a8f8c9"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\fixes\\pipeline.py",
+      "sha256": "20f72381d1ef2040bd90de928e21c3bfb0b5c4e534669e15207110ae7736f2aa"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\fixes\\precut_cleanup.py",
+      "sha256": "faa4a8a2d921b83702d2cf53c04038cf4488168b6279cd66f6b49813ab40d6b4"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\fixes\\remove.py",
+      "sha256": "7ec0b682dc87cda8270fd157b1efa7bf34c5232e71963153b3fac7257ff02706"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\fixes\\solidify.py",
+      "sha256": "9201503de87813fdf34e1adc60b12d39340ee8f289f293ae8dd3b6abdc805e00"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\guard\\__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\guard\\compare.py",
+      "sha256": "8aca5a91a3d33af2bf0387a2fc6e5e13490ca337c2b3e24ea53b94cbe8722412"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\guard\\piece_rays.py",
+      "sha256": "b15824c2385c00c3df19d88b8f379194f6dd01a0aeb53c1f20796661cbbbf1e9"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\guard\\qa_render.py",
+      "sha256": "a620795f0763af06420722daceb75c8dc62c62fda4787ffc911e9cde4b3cd74b"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\guard\\render.py",
+      "sha256": "9c918de0b2d53621af3b5cecf0f567c89144c3829a18f408fdf72dd68612bcb3"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\guard\\views.py",
+      "sha256": "d17931c6228909a6bd40f32a961db41c4d7b1e747100f1ea5e115d49f74ac66f"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\io\\__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\io\\minecraft_floor.py",
+      "sha256": "f039309f3cd988ea92c7242f5c3c5085cfdee35d0a3a8075b214910dbd46d014"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\io\\mtl.py",
+      "sha256": "91492f26a43adf2ba368ade4580bcc562fe7b3d162fa3ce0e5ecf964edc70026"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\io\\obj_reader.py",
+      "sha256": "72b300cdd8af9b3312369fb3ffe2064f07933298198ad0e8f438c91d1990a7fe"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\io\\obj_writer.py",
+      "sha256": "9358f99c2362f4cc84d1e11fc073785bae58936f115c6c8fa87e4616fd073df1"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\io\\protected.py",
+      "sha256": "d17e46d0cd294a0c9e23a87476b25d1491cc11b390d74abaee8205400e6d9058"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\io\\skp_reader.py",
+      "sha256": "6142326ccf9ba6a44a563721c14a73deee2fa14cbac6c7f39a34f21638158719"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\io\\skp_writer.py",
+      "sha256": "94a2dd52f872ed06131d5f3ae0f1cb5db05363007333098a893f477be1247500"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\io\\snapshot.py",
+      "sha256": "05b586a87f896552b5081bc5e263e3b4de3ba2d856b76b43af63787794933ac9"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\model.py",
+      "sha256": "4309d8ce5552ec295198f6f732d344842824e65ed1c300e63986e8c17a75be8b"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\pipeline.py",
+      "sha256": "eef997061586ed4735d39d8ffd7b245aece780181fe8c070d34bd8a5ccb764a9"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\rays\\__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\rays\\caster.py",
+      "sha256": "62bde18bb12e0e3c8f690eb9c819750274e4924911770b6f7cffa399a704ddd5"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\repair\\__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\repair\\engines\\__init__.py",
+      "sha256": "8afb2ca146db093adccbc2ca8506262e6fe01f4ed98d4ee11773153aefd45207"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\repair\\engines\\e1_loose.py",
+      "sha256": "c844ffa6147facb54ee60efdba3978dc46f05ca2dde6811b24ca8a1419eea539"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\repair\\engines\\e3_hidden.py",
+      "sha256": "e4b2e2e00127683d1f8b0ec221aab35e9f3cb67407fb4f561760a6f12f1d8d92"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\repair\\engines\\e7_thread.py",
+      "sha256": "60ee872b283dfe0557afc6311f4f2ebfef854c136b18e3dfbeeb679789d717d9"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\repair\\engines\\e8_fill.py",
+      "sha256": "6784bf95a73de18c80b3404a4d79c233ca1fef5e5d5856a7bda05d7b68501a42"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\repair\\engines\\e8_solidify.py",
+      "sha256": "a9862d6420609a341d0c0132b1ddf4c639c01092a7a7d1c6af054c50af976f21"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\repair\\engines\\legacy.py",
+      "sha256": "4ae576b9e7d0e5a5f610771efda83cba93d8a3b6e277d156367900cc30522b57"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\repair\\kernel.py",
+      "sha256": "dca8042e6d562676589f6b2741ee178d58f48e3d61f767d718303641c1525ca5"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\repair\\types.py",
+      "sha256": "43ca308fa31942982666cbae7dbf0f7082e5dd3c747be901c0ca37c32dec4c0c"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\site_judge.py",
+      "sha256": "50cee322111f5bf192f1a20160e06234c61b71518a891684434d246faebd6993"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\fixtures\\__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\fixtures\\build.py",
+      "sha256": "73685577a175ae6092cda4fcf0d5759d12147f0b6dd3e88de111bb1c18f3116f"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\fixtures\\holes.py",
+      "sha256": "2a54102ad9133212ab77dfbe96c8f674f6291d193fde8603b5a7df2071f47ccd"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\skp_scene.py",
+      "sha256": "8eadc03a62d67312c505e4ea4912bd1fba153f976dc0f042ae2db1e28e139690"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_campus_census.py",
+      "sha256": "6b127dcf0a7ebf702654b2985db65c5ac49cd2c84b181845f072aa2368d0c786"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_campus_groups.py",
+      "sha256": "aa4d8c9d1632bcb80feca99626a445d06033c0408f33e70ae84cf970b1a5c09b"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_campus_inventory.py",
+      "sha256": "3a0afaa80371c33c5bdbdb55944ea108e934038b6f267471a2e975db9a953cfa"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_campus_looks.py",
+      "sha256": "2595cf5152984094dd421b2db6d2eadd45a4831927588a2ee1790a78fc0daca8"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_campus_materials.py",
+      "sha256": "2d03d8b90903c4f729d9322f6abe6210138c876b44b82a806f11f237ede44326"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_campus_source.py",
+      "sha256": "acd9a6fa56827564ab11df06e3601528e794458e93530a56ebeca716c3c7ce7e"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_caster.py",
+      "sha256": "229880305bed4d8084a84258e9f7fca574f7472f69e500f4eb417a0bb5d9ca66"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_caster_spatial_recovery.py",
+      "sha256": "f2a0bff7e5be77878718fcb7a26bd7f922a7f3f83c9bfa6ae54ccac46249b9ff"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_census_materials_message.py",
+      "sha256": "55d2e50d6e2bb7aedb9f2e28bfebb0894070306a99ceda7f022197b17d844a62"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_cli.py",
+      "sha256": "12ccdbd8fa0354c7904c0e41ffb477a28cae461a4920329a8a0b62a17a8d3b6f"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_cli_needs_modelling.py",
+      "sha256": "96841fdd581329b853a2c4098b9c5d5d0e6d31834e5c0df10fb7bf75a7947d18"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_cli_repair_unit.py",
+      "sha256": "00a33f9b0ae5038586add8c3d5f2a4da340e59af70bc5834b47c65c9c148196f"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_cli_repair_unit_e1.py",
+      "sha256": "d600ab4c2e97d76422e0b0bc66d1b7c280b13335cff0159b33527e06323ccf17"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_cli_repair_unit_fills.py",
+      "sha256": "45719741a4c909d8126251b5cd12237588a881a7200de97116109bed75e28714"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_cli_unity_check.py",
+      "sha256": "5a1df437fc061c2b8be6af4e4331bc17e12cf4a395d6b4401c48f050dfbc17f1"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_cli_validate_sites.py",
+      "sha256": "2d5bf8f8ee3f16e95ec0bd0c5daa5b423f87c353ddfa4f3bb6800e13d36cf426"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_decide_jev.py",
+      "sha256": "c42029aad61a5728406b4038d36316ff5f324e39769a05e3b05aacabf1f7d2a4"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_decide_pilot.py",
+      "sha256": "2731cf2436360e73ee213322791d0f9c6e6d4ab0a1ca76bdd3192aa208f2f4a9"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_decide_pilot_import.py",
+      "sha256": "5a44ff3094c792146610f09d89bce8d2c9d7d8ec95d3bdba6e1cfe5bce02ef12"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_decide_providers.py",
+      "sha256": "1aae3c1d04588c2a1bf6f027fc918d4423e633eb47c51675d17a79e79e727a04"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_decide_remote.py",
+      "sha256": "d1a280cf9f8e4baa1c0753852d3e9a244d2be5c5386faee04fc639f71769a077"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_decide_wire.py",
+      "sha256": "7f144c30969207af00fc7d7d6e33cbd82fe7f26ca3a62cf7b477053ee4756df5"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_decider.py",
+      "sha256": "689379536ecc85286243b4071bf0e7296418b7fe83771e08cbbd2a5322fb3dfe"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_decider_unavailable.py",
+      "sha256": "4f2de6ef4de3bc8f40630e7169aafeee1b3fdd6dbd613deac148f8cb66aa6c6d"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_double_layers_memory.py",
+      "sha256": "4d70520fe77d88937c84c88e12cb5c991aa09d8aa8ba07c8a84d95e87febaa9e"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_double_layers_speed.py",
+      "sha256": "0ebf50864b75ab55ab4057f18d1b2208841c93a18ce750d73a14b5387a92c271"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_e1_loose.py",
+      "sha256": "274c8a1dc664223f72da3c3047370c6b3f994889fb15d8ee0a627a08e1bf5c81"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_e3_hidden.py",
+      "sha256": "16759a6de7d45b756e859e32100e5ad1955c5e8d5d540e83c159c0a7fa93130e"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_e8_flat_fill.py",
+      "sha256": "451f3b990b73235b720536fa9ece4f9c537ec55bf013f9b1a302cca23ffddb9c"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_e8_flat_fill_kernel.py",
+      "sha256": "2d677250c6d6021ac81fd8d9e15ec89e232fb2d84f801ad54f7b5f99cdf4a91b"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_e8_solidify.py",
+      "sha256": "8b3f4eecc7a6234178f16adb80e26ad99b985aa68fc92dd434e0a49a4c8400ef"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_edit_add_only_e8.py",
+      "sha256": "ccf6e25d10bc63d56e0fa80ad12450a4be017e795f3b2f8f19b2f574c711a5e7"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_error_export_cli.py",
+      "sha256": "38c4143429341f514c1eda6e411ff61fff47309b8ec8cc326e8e4bd4e911be7e"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_error_export_plan.py",
+      "sha256": "0dd0c3dec9fb18e7493e92467c645abbd317ba63aefdf0c49866bf5e165303fa"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_error_export_skp.py",
+      "sha256": "edfd65ab4a0b554ad64f45d365ca519619df30ff218454556e8d6dc2305f81ff"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_errors.py",
+      "sha256": "78d012f7cf2f9992f820b409efb9199c7d815491548c64f09573c8a8f25bf965"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_exposure.py",
+      "sha256": "b242aada48faa0c90c623af24adcd8ef07898d2af2d5086a7960abba2a80c2e0"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_fixtures.py",
+      "sha256": "af1170cee09387d780aa8e34278e467cf9a8a71c9a1ffca3ff58e12cbd66bcbb"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_folds.py",
+      "sha256": "39dd0eca23b51c30e49c660d1895b432358827384cf45e1eed46281e525c1e13"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_fragments.py",
+      "sha256": "ecd142a13e9116a40f804cd8bbfb229dc829933b0504992f88f2c48528935361"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_guard.py",
+      "sha256": "73707e5208bd9568fc164420dbdc86f353c05668093b5a97e92950fb575f924e"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_kernel_edit_log_any_engine.py",
+      "sha256": "4ecb05b3bb84dafb9dc2738ba269b6a99731f4a34bc4f924bc303d80d563352f"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_kernel_observe.py",
+      "sha256": "d7665310782be7cacd75c682ecdf89a447489c8d3bfa35ab70fc5a166d7e35bf"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_kernel_site_checks.py",
+      "sha256": "359b3d4128ba2de19d1f2223bca94c5f825cbafb223470f597703942197f4740"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_kernel_stage_rollback.py",
+      "sha256": "b16a246ee8b9447b04b4904f9efa58485b7d2c4dfff9ca5e6d3a69e834100e30"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_merge.py",
+      "sha256": "a0c44820f7dd10f86ec17ffe528642657031ccad7977a0a518775e80705fcc4b"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_meshbuf.py",
+      "sha256": "f58389906c22049fb8721262f593cad574b266ca581cdb2a2ef7c912c050c55b"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_minecraft_floor.py",
+      "sha256": "9e743b6b1da2dbb7a70be286030220342c40925ea0fed4541814092c3e11ab75"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_mtl.py",
+      "sha256": "ad5b288a61e4bef63395e4a19c3a541a5fd1ad4a79772ddf1d231cce0ad35ab5"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_needs_modelling.py",
+      "sha256": "cd16f82a47c3ae9bfdc63a1c329a76744ae1de778c4b34c0f80d6a13b02e7a60"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_no_material_is_its_own_look.py",
+      "sha256": "d7e303df9066bd083f01b28bd45adcf571eddf512dff339bf1fd30035cfbbc5c"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_obj_reader.py",
+      "sha256": "3d233308c9d3cbcdbaab05f59717dff3612c883cb9ca833064c25f0f00e063ea"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_obj_writer.py",
+      "sha256": "ac1dc701337e64750cac906b69f07d72d9075c6d9dacce81311f318da57c7eb7"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_orient.py",
+      "sha256": "78fe624d863a8119ef67ecb60044af1c467f8132390fd45d2ddac2d1b92f7177"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_overlap.py",
+      "sha256": "f7ef0c18902a11de9315f960d27100ea5379383692e79f60c53f2031d7a36d01"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_p2_h2_minors.py",
+      "sha256": "0186523a0afa76ad7f269369230b9fd29ebcb6daa8169bc7a032e6e3abf48a3e"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_physical_precision.py",
+      "sha256": "5a7d804395f0b9c89d82d15bd4258ae349dacae8f4f0dc70a648595037d23400"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_piece_rays.py",
+      "sha256": "b7407ce17b3e69cf07a96d65f40dc089863a05d22597d674066beffa77b0134d"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_pipeline.py",
+      "sha256": "87767e05a989db711e775351c9f0488224d2323eb29b0f8e52ca7757f193c870"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_pixfont.py",
+      "sha256": "5b3cd7df80c09afb4d76d00a159c167ced4a0028b677dc6f5e8f51d4a9ad2c91"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_qa_render.py",
+      "sha256": "9c461b9a2373860603e54fa17b334b18ab60be91021802906b2eb06b0e46e71a"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_refuse_protected.py",
+      "sha256": "dad7fb88fa92107472a9d2f9069e589d50b9015ae6d718dc6665ab214689a123"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_regions.py",
+      "sha256": "8d8643d62ca5783a35e2056db51936006165551c0e49115ec71c92857a3a36b0"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_remove.py",
+      "sha256": "61085a40b2d5cbeb0f56bfcec43ea53eb5793cdcca5270a245dc346010e02ced"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_repair_types.py",
+      "sha256": "60c666e646ddeb1a930fb0298fb68f6e059f38d16a7cb8a3685da7e217452f90"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_repair_uv.py",
+      "sha256": "b69077a6ac965be17648a5d1159db9ad7466b1cccea9f9318f34b6ff817100db"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_repair_uv_observer.py",
+      "sha256": "7122b30cc34b92fd404fd2136271f08873539dda0129e3f14644a893e8b690ca"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_site_attribution.py",
+      "sha256": "22f206570d63993f2430ce41aa90d5d4462a41388155f533caa0ae0c85f22dd6"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_site_judge.py",
+      "sha256": "4d53260ae3f89ebea689e70854f6999bf6f036083b3e78a4f750804df4c8b1e3"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_site_judge_cover.py",
+      "sha256": "c0f59446ad1736aa8be46a33daa3fd5311725ac3cccad7a845bade038b00733c"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_site_judge_floor.py",
+      "sha256": "206f8ff3f9982cfec9bbc65040438809e30b887e9b67f4928b57c4ecc81019e0"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_site_judge_remove_only.py",
+      "sha256": "f424d7a5267719056f96d4f2601509ccd01613bb4189b14417a9c9b541942656"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_skp_check.py",
+      "sha256": "5e10950dd2665d3a04301d0297e9cbf67812a39e96130471805c65a16f993a06"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_skp_reader.py",
+      "sha256": "1d3cfa294130ea8688f54cd21c25872bd0c72ca13a9e10dca58464f1157cb9ac"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_skp_writer.py",
+      "sha256": "30ed8fe7fcda42c40092ed93b9b8733951ca7af2fc331bca6e4ad301e4a38ac9"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_snapshot.py",
+      "sha256": "427f7d91764be117b4a6d2563754b0d1771b6bf77628795615dde6fc6b2f0b4c"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_solidify.py",
+      "sha256": "77f97480f7e74b7a1795a6f3b2918a99a14f611a3992a272da3573a3159865af"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_t_vertex_search.py",
+      "sha256": "b07fba23c37d52027264c1d8af5fd6a5d513a2629bb9a76858e68cef513504f4"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_topo_basics.py",
+      "sha256": "ab1d3cdf4b709b552b4750866c6d7b4117d476f6a4abb60f408aa77119c82d43"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_topology_memo.py",
+      "sha256": "166b5c95ef6d2663dba8fa1c25a84f1f8e19c9b6c488d971e44ed93c293b0321"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_unit_before.py",
+      "sha256": "ca9a610405da94dd3a8d06b5550e90b35b4c081e1f5bcd76ad4282666aceff3f"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_unit_before_no_material.py",
+      "sha256": "f8cac9a0483e673bca842235e79723f314927d9fc1eb3bf683ef6d146bb640c0"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_unity_align.py",
+      "sha256": "e3452da4f7cd421a1de79eb8c12101aaaa35e43d5f0907b966c756650d6abb0c"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_unity_check.py",
+      "sha256": "091790f4680396067e5d12c3a32f1e96176eb63bd24d22d31fd39d6329d25521"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_unity_dump.py",
+      "sha256": "6a707cb3207f5ba8ab90a2a109b2440a2af37b8522280a0b4e34488294d3c65f"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_unity_mirror.py",
+      "sha256": "479c9a61a19e83074a8a07c775552af1e6055a3b4f3fe9d977ea0d3bea96e8a5"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_validate_checks.py",
+      "sha256": "6651373a7493eb34c90e5b25b15fa0622fa03b9f0c35ea6eb3889c1070313654"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_validate_core.py",
+      "sha256": "e5adf885cecde0fa9773faff954c3807a7cfef24345b1709abac335ba67a5f14"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_validate_edit_log_fills.py",
+      "sha256": "e30385e5f6d21be70bdd03a4825ea569cdc3cfbc82f4ada272a450bf6ca1a824"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_validate_edit_log_new_faces.py",
+      "sha256": "9d01a4431082f4bdd7c1574a1e2a35efb44960dfb48011d523ab3416d494fff0"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_validate_fill_site.py",
+      "sha256": "759a64f16d03cbea5cbe7886b26e786ad4f148bccf3d64a4a501883dd1e841df"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_validate_floor.py",
+      "sha256": "97f41cab8b26e5eff85a63544ac64fd7d9c85a8c153cbe3e7dce7812b8f484c1"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_validate_floor_checks.py",
+      "sha256": "d6f9436f4853023734346fd2f7683853ad407a728b051fc9a29e22f8e99c8c0a"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_validate_floor_corner.py",
+      "sha256": "2d50cf05296d598e0f2d7227ac7344eeb30e51827906815140401bdcf856cda6"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_validate_floor_covered.py",
+      "sha256": "098cf5a6e82660d040d959b490bd7266fba52fd604cec22aa71007ed7fa2baaa"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_validate_floor_speed.py",
+      "sha256": "b62840972300bd3defc767a4aa17d1dfa54a2e0403d91c9416fc5bf083efb8d1"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_validate_focus.py",
+      "sha256": "dd80f07a214138250dca3790db078c6216524a13bd60d3edde9a63a05d3738aa"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_validate_horizon.py",
+      "sha256": "15f8537c97e251aa2b8f16342c6d9c0479f1651a30454a46c672d675557d6561"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_validate_mutations.py",
+      "sha256": "d7e00886a258dc761f5bf2ee052fa615f6e0c2c34c996f95fdca965fc561b5b0"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_validate_targets_shape.py",
+      "sha256": "4e351103057d405d730bc38475a2a42a0bc4fb26b7d90cbc381131f445de7e31"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\tests\\test_validate_threaded_caster.py",
+      "sha256": "fcea48d220b73f017c3dc919c527aeae1e9924203a9f07488ec63822f19635c3"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\topo\\__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\topo\\adjacency.py",
+      "sha256": "a4132a4025cec95bd004eeb174efa1e88950b4f86605ea972cec644a2479896e"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\topo\\edges.py",
+      "sha256": "e494c0ffee0b8a39cd5d5c2ac697ed7058f76b0838aac12928f2d03f0959c97b"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\topo\\planes.py",
+      "sha256": "1701d1ad46deb6bb90452159b312a7b94e8661bb33693143bf7825da39f17f93"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\topo\\weld.py",
+      "sha256": "e584a6ab2e46b20b7c4cf8da06516a4199978523ec68d3221263cd29cbf3bdea"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\transport\\__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\transport\\meshbuf.py",
+      "sha256": "2a24eaeaf1127a67ef1c87512147584a6a42761fb901fce0e6a634431ff28bd0"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\unity\\__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\unity\\align.py",
+      "sha256": "24af456f369a8a05444bb9fb7f1645d3068e957a437421e4eb048d776ed1e88a"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\unity\\check.py",
+      "sha256": "c244213fbf212afc092b37925797b4371606568fd745fce61b2377d03316f898"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\unity\\dump.py",
+      "sha256": "f710e519850f6aecab98de4ee3679cb58212ae407f1590fe4a2b3a4ea46d212d"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\unity\\mirror.py",
+      "sha256": "3c81e629e64a6ceb095c626d52fb92f35ab167ba0d9631a45bf17c5e4ab56ad5"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\validate\\__init__.py",
+      "sha256": "6d8a1be3faac9a3804d42cdcb5fba170739a756204aa755d2a05a1a3dd84f00b"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\validate\\checks.py",
+      "sha256": "3d3ebe288abab4afa73b26e8908047a8fbe71a36b8df31d3fed69fb190601606"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\validate\\evidence.py",
+      "sha256": "914fff0f76b253ba999fae91e6373ed2ab43d491c98f44d5cc57384e8ecffbd7"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\validate\\floor.py",
+      "sha256": "bde829b4832443ce159ae8d7937a5ed4b4207bd6d7e1b4b669b2df2b9b0e84e8"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\validate\\sampling.py",
+      "sha256": "d81a9af913839666ae8e63afd29ed22492fd90f1741be03bf01b1eb95a52a73d"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\validate\\targets.json",
+      "sha256": "4117f5e22045750fed7c4627ffa6324bf2efe5c14cf9629389a482c960036507"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\validate\\viewpoints.py",
+      "sha256": "c62acfd255fd99c003fd54bf084a68bdb82442cf1c96ada2f0a50e7a7efa7e98"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\validate\\visibility.py",
+      "sha256": "28cbad91da779c0a12155c3036a717db78e5629bb5fbf54e4e8ad2d95ca04821"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\vis\\__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\engine\\vis\\exposure.py",
+      "sha256": "ec922979de869284607ed067f71e8940465132db4eb020b49789b3d28547c34a"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\tools\\main_infra_e3.py",
+      "sha256": "7e39fc3862479ec29060ed9f8c39ac44278b200e81ce0febe2d0115e53562f60"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\tools\\main_infra_e3_binding.py",
+      "sha256": "2eb413942d49b6f1a65b42fb929be365bcb544481388a7935d8277e4e263f44c"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\tools\\main_infra_e3_checkpoint.py",
+      "sha256": "c9390d3709694856207832c05f1b077ed0aa94f113782f7cdd9da87cbc53a2f0"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\tools\\main_infra_e7.py",
+      "sha256": "beb40710cef8e88af1d077a8ca5c1b4bd4171dd90c06fc9c13e409cfa4a553bd"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\tools\\main_infra_e7_1f_run.py",
+      "sha256": "b19cb52b4b764109fffae7c8607302d02fff6cb56a930902b9d4e98b7dbe469f"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\tools\\main_infra_e7_checkpoint.py",
+      "sha256": "e1e9ca745f8d06b68dd643a46c873d22cafb22d594de87601671bf003aeeef93"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\tools\\main_infra_e7_covered_ray_profile.py",
+      "sha256": "b2dafca2f54686807c3306757b744f77043c2ecc8f851c6cabc8a787c6431170"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\tools\\main_infra_e7_native_retention.py",
+      "sha256": "8a89d212c1a01255f085c1c7a1b6650402b18d5725c483a2fb027f7c46943164"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\tools\\main_infra_e7_retained_admission.py",
+      "sha256": "643ccabffdae64d410ca448428b858d60e726bed03b74c87e94f6eb5404b0730"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\tools\\main_infra_e7_retained_base.py",
+      "sha256": "3bfbdf6e73f0e38ceff99f9df934fc199bb7f5b2cf6b0aab19846c439da5a7d6"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\tools\\main_infra_e7_serialization.py",
+      "sha256": "f048c2b559deb59ad45f6d65f0323e0ceef3d21fc75ccca79c6fa0738cd687f3"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\tools\\main_infra_e7_single_pixel_retention.py",
+      "sha256": "f301b8c026275b658acefad2a95b834d5abaed6824e4c005f56e462d5af8bf78"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\tools\\main_infra_e7_source_admission.py",
+      "sha256": "e52ea264c1ae1f512fdee97f30a86a8d21232bad2b7354af29807476d5a1217a"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\tools\\main_infra_e7_subset.py",
+      "sha256": "8788f4b457a90d3d5350250f1078792e83a51b74036e0afdac2b54e76d874f31"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\tools\\main_infra_physical_validation.py",
+      "sha256": "e0be48fd466c12467189b361518aa026fd30dcc239a35f7e84bf8542120503d3"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-resource-monitor-v5-20261024\\05-Corllenium-UC-Building-Repair-Engine\\docs\\superpowers\\records\\MAIN-INFRA-RESOURCE-MONITOR-V5-20261024\\execute-resource-guard-v5.ps1",
+      "sha256": "f158802651c955b6b322140ff9567496c527cd1bac0e63598171c45eeea60e12"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLEAN-20261023\\data\\main-infra-fresh\\run-20261023\\independent-validator\\import-audit\\qualification-1F.json",
+      "sha256": "d2ab32f244207b818de51cca2a54c6643e4c72f63a6feb434885fa355e366e96"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLEAN-20261023\\data\\main-infra-fresh\\run-20261023\\independent-validator\\preflight-20261023\\materials-1F.json",
+      "sha256": "aafb0e8572a8a3aa544beedfcc9863a9c240e28fc4dcbe0e47d8b45e42982c5c"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLEAN-20261023\\data\\main-infra-fresh\\run-20261023\\normalized\\1F\\1st floor main infra.mtl",
+      "sha256": "c64c0cb12926c707b55262a82fd324ccd09502f92b0c866801a00e9f3c89d9a3"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLEAN-20261023\\data\\main-infra-fresh\\run-20261023\\normalized\\1F\\before.engine.obj",
+      "sha256": "bed4b7c24b7a3a164381b8e6e0ca0b7e7bf9998e1df7c2782878d23cd1796df3"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLEAN-20261023\\data\\main-infra-fresh\\run-20261023\\normalized\\1F\\before.source.obj",
+      "sha256": "26eda65235ce9d1f8c82e97b00d4da21cc1e272d0817e769dddb6ca192f4aea5"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLEAN-20261023\\data\\main-infra-fresh\\run-20261023\\normalized\\1F\\geometry-provenance.json",
+      "sha256": "eac6bd90fc2c9c596659f658fc140251aac3f2de7afe0d42d02ebc3bff987746"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLEAN-20261023\\data\\main-infra-fresh\\run-20261023\\normalized\\1F\\textures\\minecraft\\concrete_white_-1.png",
+      "sha256": "f42c7be3c52294ead4c69ac0e9ef1bbbbe6bdb4451382c89a65c386709df6171"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLEAN-20261023\\data\\main-infra-fresh\\run-20261023\\normalized\\1F\\textures\\minecraft\\concrete_white_-15579874.png",
+      "sha256": "14ceba3d0329594e00458bc6ed2aeafa24d9228519994a60d758de2509fee1ad"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLEAN-20261023\\data\\main-infra-fresh\\run-20261023\\normalized\\1F\\textures\\minecraft\\quartz_block_bottom_-1.png",
+      "sha256": "daf3f46f93f7364b1530ec468a7a1d5a02eda1cd0a118e41e93e9c4177791cc1"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLEAN-20261023\\data\\main-infra-fresh\\run-20261023\\normalized\\1F\\textures\\minecraft\\quartz_block_side_-1.png",
+      "sha256": "85e34c6a6b917ade1cfbd2826127de4175c63317f3efbba1f7aaed3bf105a193"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLEAN-20261023\\data\\main-infra-fresh\\run-20261023\\normalized\\1F\\textures\\minecraft\\quartz_block_top_-1.png",
+      "sha256": "eea2309518da196d86171dd0d78ecdcdc3a0510005790fa2beb8484744d8ae88"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLEAN-20261023\\data\\main-infra-fresh\\run-20261023\\normalized\\1F\\textures\\minecraft\\wool_colored_orange_-1.png",
+      "sha256": "c6a3c27b965f298da28c89c1a522b5ff3152321a97fcbe613aec2f9a6d8f66fa"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLEAN-20261023\\data\\main-infra-fresh\\run-20261023\\raw\\1st floor main infra.mtl",
+      "sha256": "c64c0cb12926c707b55262a82fd324ccd09502f92b0c866801a00e9f3c89d9a3"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLEAN-20261023\\data\\main-infra-fresh\\run-20261023\\raw\\1st floor main infra.obj",
+      "sha256": "769cbb11cd954d2132b69a78a023f24f63f95b1923f7b336aa8be892d826503f"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLEAN-20261023\\data\\main-infra-fresh\\run-20261023\\raw\\textures\\minecraft\\concrete_white_-1.png",
+      "sha256": "f42c7be3c52294ead4c69ac0e9ef1bbbbe6bdb4451382c89a65c386709df6171"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLEAN-20261023\\data\\main-infra-fresh\\run-20261023\\raw\\textures\\minecraft\\concrete_white_-15579874.png",
+      "sha256": "14ceba3d0329594e00458bc6ed2aeafa24d9228519994a60d758de2509fee1ad"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLEAN-20261023\\data\\main-infra-fresh\\run-20261023\\raw\\textures\\minecraft\\quartz_block_bottom_-1.png",
+      "sha256": "daf3f46f93f7364b1530ec468a7a1d5a02eda1cd0a118e41e93e9c4177791cc1"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLEAN-20261023\\data\\main-infra-fresh\\run-20261023\\raw\\textures\\minecraft\\quartz_block_side_-1.png",
+      "sha256": "85e34c6a6b917ade1cfbd2826127de4175c63317f3efbba1f7aaed3bf105a193"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLEAN-20261023\\data\\main-infra-fresh\\run-20261023\\raw\\textures\\minecraft\\quartz_block_top_-1.png",
+      "sha256": "eea2309518da196d86171dd0d78ecdcdc3a0510005790fa2beb8484744d8ae88"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLEAN-20261023\\data\\main-infra-fresh\\run-20261023\\raw\\textures\\minecraft\\wool_colored_orange_-1.png",
+      "sha256": "c6a3c27b965f298da28c89c1a522b5ff3152321a97fcbe613aec2f9a6d8f66fa"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLEAN-20261023\\data\\main-infra-fresh\\run-20261023\\reference\\1F.json",
+      "sha256": "b2c3f91727047fb4b37c5380550d8d213df2700d856a7aa49728fc43bde33039"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-e3\\run-20261023\\independent-validator\\1F\\camera-qualification.json",
+      "sha256": "ba770ca39b80a352cbebf546b1ee951bb523efba1b5fbe451736ba2c6ec900f3"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-e3\\run-20261023\\independent-validator\\1F\\native-qa\\comparison.json",
+      "sha256": "fe71b93d90527615dec7342d9dc6b5f10b0a3585f18516b5ecb9f1833e8ea0c6"
+    },
+    {
+      "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-e3\\run-20261023\\independent-validator\\1F\\qualified-native-poses.json",
+      "sha256": "9c3fc2836501d03c2bef4e698aaff966425d58a10a4eae3b9261783d250bd047"
+    }
+  ],
+  "schema_version": 1
+}

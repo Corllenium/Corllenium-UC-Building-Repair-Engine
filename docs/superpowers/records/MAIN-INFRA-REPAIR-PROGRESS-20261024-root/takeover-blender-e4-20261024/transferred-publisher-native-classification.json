@@ -1,0 +1,57 @@
+{
+  "observed_at_utc": "2026-10-24T08:59:02.6485703Z",
+  "read_only": true,
+  "native_source_sha256": "f158802651c955b6b322140ff9567496c527cd1bac0e63598171c45eeea60e12",
+  "pid": 33720,
+  "creation_utc": "2026-10-24T01:54:16.5213028Z",
+  "native_creation_ticks": 639284036565213028,
+  "image": "C:\\Users\\Future26\\AppData\\Local\\Programs\\Python\\Python312\\python.exe",
+  "native_command": "\"C:\\Users\\Future26\\AppData\\Local\\Programs\\Python\\Python312\\python.exe\" -B -u -m tools.publish_upper_status_live --progress data/main-infra-fresh/current-upper.json --interval 30",
+  "native_command_sha256": "0d106f2f1010deaa603dffabc0caeb496e0628eebdd91642006946126b98b4ee",
+  "parent": 40264,
+  "snapshots": [
+    {
+      "observed_at_utc": "2026-10-24T08:59:01.4989734Z",
+      "alive": true,
+      "children": []
+    },
+    {
+      "observed_at_utc": "2026-10-24T08:59:02.0283533Z",
+      "alive": true,
+      "children": []
+    },
+    {
+      "observed_at_utc": "2026-10-24T08:59:02.5616358Z",
+      "alive": true,
+      "children": []
+    }
+  ],
+  "interval_seconds": 30,
+  "local_progress": "D:/PROJECTS/UC MODEL FIXER/.claude/worktrees/MAIN-INFRA-CLAUDE-4F-7F-20261023/data/main-infra-fresh/current-upper.json",
+  "log": {
+    "path": "D:/PROJECTS/UC MODEL FIXER/.claude/worktrees/MAIN-INFRA-CLAUDE-4F-7F-20261023/data/main-infra-fresh/run-claude-4f-7f-20261023/logs/live-publisher.log",
+    "sha256": "7a4435a98e2d2c7a8731da1933bc4a0881720a0fdc83b6067bbad1cacd2d3aaf",
+    "bytes": 189655,
+    "tail": [
+      "16:55:15 live publish failed: Command '['ssh', '-i', 'C:\\\\Users\\\\Future26\\\\.ssh\\\\corllenium_siege_ed25519', '-o', 'IdentitiesOnly=yes', '-o', 'BatchMode=yes', '-o', 'StrictHostKeyChecking=yes', '-o', 'UserKnownHostsFile=D:/PROJECTS/02-Corllenium-Siege/deploy/known_hosts', '-o', 'LogLevel=ERROR', '-o', 'ConnectTimeout=30', '-p', '27015', 'devenvir@dev-environment.site', 'cat > ~/corllenium/app/public/building-repair-status.json && cp -f ~/corllenium/app/public/building-repair-status.json ~/corllenium/web/building-repair-status.json']' returned non-zero exit status 3221225794.",
+      "16:55:46 live publish failed: Command '['ssh', '-i', 'C:\\\\Users\\\\Future26\\\\.ssh\\\\corllenium_siege_ed25519', '-o', 'IdentitiesOnly=yes', '-o', 'BatchMode=yes', '-o', 'StrictHostKeyChecking=yes', '-o', 'UserKnownHostsFile=D:/PROJECTS/02-Corllenium-Siege/deploy/known_hosts', '-o', 'LogLevel=ERROR', '-o', 'ConnectTimeout=30', '-p', '27015', 'devenvir@dev-environment.site', 'cat > ~/corllenium/app/public/building-repair-status.json && cp -f ~/corllenium/app/public/building-repair-status.json ~/corllenium/web/building-repair-status.json']' returned non-zero exit status 3221225794.",
+      "16:56:18 live publish failed: Command '['ssh', '-i', 'C:\\\\Users\\\\Future26\\\\.ssh\\\\corllenium_siege_ed25519', '-o', 'IdentitiesOnly=yes', '-o', 'BatchMode=yes', '-o', 'StrictHostKeyChecking=yes', '-o', 'UserKnownHostsFile=D:/PROJECTS/02-Corllenium-Siege/deploy/known_hosts', '-o', 'LogLevel=ERROR', '-o', 'ConnectTimeout=30', '-p', '27015', 'devenvir@dev-environment.site', 'cat > ~/corllenium/app/public/building-repair-status.json && cp -f ~/corllenium/app/public/building-repair-status.json ~/corllenium/web/building-repair-status.json']' returned non-zero exit status 3221225794.",
+      "16:56:49 live publish failed: Command '['ssh', '-i', 'C:\\\\Users\\\\Future26\\\\.ssh\\\\corllenium_siege_ed25519', '-o', 'IdentitiesOnly=yes', '-o', 'BatchMode=yes', '-o', 'StrictHostKeyChecking=yes', '-o', 'UserKnownHostsFile=D:/PROJECTS/02-Corllenium-Siege/deploy/known_hosts', '-o', 'LogLevel=ERROR', '-o', 'ConnectTimeout=30', '-p', '27015', 'devenvir@dev-environment.site', 'cat > ~/corllenium/app/public/building-repair-status.json && cp -f ~/corllenium/app/public/building-repair-status.json ~/corllenium/web/building-repair-status.json']' returned non-zero exit status 3221225794.",
+      "16:57:21 live publish failed: Command '['ssh', '-i', 'C:\\\\Users\\\\Future26\\\\.ssh\\\\corllenium_siege_ed25519', '-o', 'IdentitiesOnly=yes', '-o', 'BatchMode=yes', '-o', 'StrictHostKeyChecking=yes', '-o', 'UserKnownHostsFile=D:/PROJECTS/02-Corllenium-Siege/deploy/known_hosts', '-o', 'LogLevel=ERROR', '-o', 'ConnectTimeout=30', '-p', '27015', 'devenvir@dev-environment.site', 'cat > ~/corllenium/app/public/building-repair-status.json && cp -f ~/corllenium/app/public/building-repair-status.json ~/corllenium/web/building-repair-status.json']' returned non-zero exit status 3221225794.",
+      "16:57:52 live publish failed: Command '['ssh', '-i', 'C:\\\\Users\\\\Future26\\\\.ssh\\\\corllenium_siege_ed25519', '-o', 'IdentitiesOnly=yes', '-o', 'BatchMode=yes', '-o', 'StrictHostKeyChecking=yes', '-o', 'UserKnownHostsFile=D:/PROJECTS/02-Corllenium-Siege/deploy/known_hosts', '-o', 'LogLevel=ERROR', '-o', 'ConnectTimeout=30', '-p', '27015', 'devenvir@dev-environment.site', 'cat > ~/corllenium/app/public/building-repair-status.json && cp -f ~/corllenium/app/public/building-repair-status.json ~/corllenium/web/building-repair-status.json']' returned non-zero exit status 3221225794.",
+      "16:58:23 live publish failed: Command '['ssh', '-i', 'C:\\\\Users\\\\Future26\\\\.ssh\\\\corllenium_siege_ed25519', '-o', 'IdentitiesOnly=yes', '-o', 'BatchMode=yes', '-o', 'StrictHostKeyChecking=yes', '-o', 'UserKnownHostsFile=D:/PROJECTS/02-Corllenium-Siege/deploy/known_hosts', '-o', 'LogLevel=ERROR', '-o', 'ConnectTimeout=30', '-p', '27015', 'devenvir@dev-environment.site', 'cat > ~/corllenium/app/public/building-repair-status.json && cp -f ~/corllenium/app/public/building-repair-status.json ~/corllenium/web/building-repair-status.json']' returned non-zero exit status 3221225794.",
+      "16:58:55 live publish failed: Command '['ssh', '-i', 'C:\\\\Users\\\\Future26\\\\.ssh\\\\corllenium_siege_ed25519', '-o', 'IdentitiesOnly=yes', '-o', 'BatchMode=yes', '-o', 'StrictHostKeyChecking=yes', '-o', 'UserKnownHostsFile=D:/PROJECTS/02-Corllenium-Siege/deploy/known_hosts', '-o', 'LogLevel=ERROR', '-o', 'ConnectTimeout=30', '-p', '27015', 'devenvir@dev-environment.site', 'cat > ~/corllenium/app/public/building-repair-status.json && cp -f ~/corllenium/app/public/building-repair-status.json ~/corllenium/web/building-repair-status.json']' returned non-zero exit status 3221225794.",
+      ""
+    ],
+    "lastwrite_utc": "2026-10-24T08:58:55.5234653Z",
+    "read_mode": "read-only FileShare.ReadWrite|Delete; live file snapshot"
+  },
+  "remote_targets": [
+    "~/corllenium/app/public/building-repair-status.json",
+    "~/corllenium/web/building-repair-status.json"
+  ],
+  "mode": "whole-file read-modify-write; freshMainInfraUpper key",
+  "process_action": "none",
+  "capture_correction": "Native creation100ns=.5213028; CIM truncated=.5213020; earlier read-only comparisons refused without action.",
+  "idle_limitation": "Root must reverify exact native lifetime and a completed-publish zero-child window immediately before any owned-handle action"
+}

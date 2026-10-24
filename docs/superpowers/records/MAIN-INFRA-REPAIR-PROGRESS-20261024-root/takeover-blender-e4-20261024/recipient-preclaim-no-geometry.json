@@ -1,0 +1,13 @@
+{
+  "observed_at_utc": "2026-10-24T09:00:39.1542827Z",
+  "scoped_geometry_workers": [],
+  "known_non_geometry_preserved": [
+    33720,
+    40264,
+    52472,
+    56224,
+    4056
+  ],
+  "process_action": "none",
+  "qualification": "Controller humanSTOP plus current scoped no-geometry command inventory; historical OS exit code/time remain unknown"
+}

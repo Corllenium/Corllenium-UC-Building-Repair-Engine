@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "recorded_at": "2026-10-24T08:48:58.905982+00:00",
+  "controller": "Codex root",
+  "project": "UC MODEL FIXER",
+  "scope": [
+    "MAIN_INFRA_4F",
+    "MAIN_INFRA_5F",
+    "MAIN_INFRA_6F",
+    "MAIN_INFRA_7F"
+  ],
+  "owner_confirmation": {
+    "question": "Are Claude Code\u2019s floor 4\u20137 repair sessions fully stopped, with no automatic resume?",
+    "answer": "Claude is stopped; continue floors 4\u20137",
+    "authority": "Direct human reply in this task"
+  },
+  "source_checkpoint": {
+    "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\iv-handoff-audit-20261024\\claude-upper-handoff-checkpoint-v3.json",
+    "sha256": "1213c86df9198764db87033521d105a13837fb4fc51d99ad165151e004b31709"
+  },
+  "source_stop": {
+    "verified_by_owner": true,
+    "prior_native_geometry_workers_remaining": 0,
+    "os_exit_code": null,
+    "os_end_time": null,
+    "note": "Human confirms fully stopped/no automatic resume; unknown historical exit status is not fabricated."
+  },
+  "recipient": "Codex coordinated upper-floor worker",
+  "admission": "AUTHORIZED_AFTER_ATOMIC_QUEUE_CLAIM",
+  "constraints": [
+    "Preserve old Claude worktrees, candidates and evidence",
+    "Claim only scoped upper-floor work through the authoritative queue",
+    "New isolated branch/worktree; fresh exports are read only",
+    "Use the repair engine and unchanged strict validation/preservation rules",
+    "Existing narrow backface-twin owner decision is recorded; strict-26 extension is not approved",
+    "No blind replay, generic mesh cleanup, live database write or server restart",
+    "Actual floor execution requires independent code/input review and normal native resource gates"
+  ],
+  "first_step": "Inspect and restore complete upstream edit sites implicated in the five 7F preservation failures, then independently validate; remaining floors follow measured current evidence",
+  "model_acceptance": false
+}

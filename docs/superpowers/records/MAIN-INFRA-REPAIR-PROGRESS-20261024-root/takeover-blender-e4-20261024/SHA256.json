@@ -1,0 +1,97 @@
+{
+  "schema_version": 1,
+  "artifacts": [
+    {
+      "path": "controller-grant-floors4-7.json",
+      "source": "D:\\PROJECTS\\UC MODEL FIXER\\data\\iv-handoff-audit-20261024\\controller-grant-floors4-7.json",
+      "bytes": 1921,
+      "sha256": "bbeb6a7f7a21e4d4556e9f2bc5a0365f3ce7d0b90e6a154527be2f78937f6dfa"
+    },
+    {
+      "path": "recipient-atomic-claim.json",
+      "source": "D:\\PROJECTS\\UC MODEL FIXER\\data\\iv-handoff-audit-20261024\\recipient-atomic-claim.json",
+      "bytes": 2849,
+      "sha256": "e1b4cdbc9625cb01cc30f72b99aacd64f53e8d0195ac2d36c72a701ec26196b6"
+    },
+    {
+      "path": "recipient-preclaim-no-geometry.json",
+      "source": "D:\\PROJECTS\\UC MODEL FIXER\\data\\iv-handoff-audit-20261024\\recipient-preclaim-no-geometry.json",
+      "bytes": 360,
+      "sha256": "842eb165612031b375b80281475897a53f0b4b76b6c4367f3d348c4d328deffd"
+    },
+    {
+      "path": "transferred-publisher-native-classification.json",
+      "source": "D:\\PROJECTS\\UC MODEL FIXER\\data\\iv-handoff-audit-20261024\\transferred-publisher-native-classification.json",
+      "bytes": 7033,
+      "sha256": "18cba4dbc7a4b3aca1c064ddaaaf42e673815885c1f260d8daf3d3196b5d7543"
+    },
+    {
+      "path": "transferred-publisher-retirement.json",
+      "source": "D:\\PROJECTS\\UC MODEL FIXER\\data\\iv-handoff-audit-20261024\\transferred-publisher-retirement.json",
+      "bytes": 1470,
+      "sha256": "29b7aec3d45e484d3179286ca4f79cc892d76af2352ebd1ba09524d8324c819d"
+    },
+    {
+      "path": "retire-transferred-upper-publisher.ps1",
+      "source": "D:\\PROJECTS\\UC MODEL FIXER\\data\\iv-handoff-audit-20261024\\retire-transferred-upper-publisher.ps1",
+      "bytes": 5583,
+      "sha256": "701707e8b9682175e5fb286b8ed87aaf9d5bc40c9b975fa943d7f1c519743157"
+    },
+    {
+      "path": "blender-save-receipt.json",
+      "source": "D:\\PROJECTS\\UC MODEL FIXER\\data\\blender-review\\MAIN-INFRA-7FLOORS-NOT_FINAL-20261024\\review-NOT_FINAL.receipt.json",
+      "bytes": 222921,
+      "sha256": "eb47cf249f8a91f535461e9520fcdf3b7e0955dde4ae88e12ec2dd6366638dea"
+    },
+    {
+      "path": "blender-reopened-readback.json",
+      "source": "D:\\PROJECTS\\UC MODEL FIXER\\data\\blender-review\\MAIN-INFRA-7FLOORS-NOT_FINAL-20261024\\reopened-evidence-v2\\readback.json",
+      "bytes": 117787,
+      "sha256": "6c4d66e6e24097b0f9f86313991ce3432e46e3bd88450a03678f507f63864048"
+    },
+    {
+      "path": "blender-gui-readback.json",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-blender-review-build-20261024\\05-Corllenium-UC-Building-Repair-Engine\\docs\\superpowers\\records\\MAIN-INFRA-BLENDER-REVIEW-BUILD-20261024\\gui\\gui-readback.json",
+      "bytes": 1950,
+      "sha256": "6222db26c2b5fd087f4b87705c8ebdb58a05a1ecaae3059669848fe6fc7d94d2"
+    },
+    {
+      "path": "blender-gui-capture.png",
+      "source": "D:\\PROJECTS\\UC MODEL FIXER\\data\\blender-review\\MAIN-INFRA-7FLOORS-NOT_FINAL-20261024\\gui-debug\\blender14540-readonly-window.png",
+      "bytes": 1168598,
+      "sha256": "f826879388a5913728cd7ae1953de1f5eae6e436ed172392fb764b66eda1ef29"
+    },
+    {
+      "path": "seven-floor-fresh-source-contact-sheet.png",
+      "source": "D:\\PROJECTS\\UC MODEL FIXER\\data\\blender-review\\MAIN-INFRA-7FLOORS-NOT_FINAL-20261024\\contact-sheet-v2\\seven-floor-NOT_FINAL-fresh-source-contact-sheet.png",
+      "bytes": 487991,
+      "sha256": "be7a8b8fd1e185d9bf30d60760b5a33a1ca95688bbb1850d9e8a2486d9bac17f"
+    },
+    {
+      "path": "e4-attribute-measurement.json",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e4-attribute-rounding-diag-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\e4-attribute-rounding\\actual-58-proposal-35-attribute-measurements\\attribute-measurement.json",
+      "bytes": 1522319,
+      "sha256": "f08783c8482355dece15282bb23719052a6c1a156dce29b5b4b1e4cc2c3b2a86"
+    },
+    {
+      "path": "e4-capture-readback.json",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e4-attribute-rounding-diag-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\e4-attribute-diagnostic-preflight\\actual-capture-readback.json",
+      "bytes": 31961,
+      "sha256": "06dfb1035f722667a05c0348936aec028a79c2270bf1f3bf04840b7d5a0e56eb"
+    },
+    {
+      "path": "e4-capture-plan.json",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e4-attribute-rounding-diag-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\e4-attribute-diagnostic-preflight\\capture-plan.json",
+      "bytes": 1957,
+      "sha256": "d74dab7b1f33969e8d1d9396c86458761a0fe29336124f2faac39a1e4216c33d"
+    },
+    {
+      "path": "e4-capture-phase.json",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e4-attribute-rounding-diag-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\e4-attribute-diagnostic-preflight\\phase-capture.json",
+      "bytes": 184760,
+      "sha256": "71b0d2986f0dce74631413e3edced335b7e86fb6543d1cd5421750466a200dfa"
+    }
+  ],
+  "model_acceptance": false,
+  "images_local_only": true
+}

@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "recorded_at_utc": "2026-10-24T09:00:39.480754+00:00",
+  "mode": "controller-authorized single Locked/load/save transaction; release+claim in-memory; no ready gap",
+  "grant": {
+    "controller-grant-floors4-7.json": "bbeb6a7f7a21e4d4556e9f2bc5a0365f3ce7d0b90e6a154527be2f78937f6dfa",
+    "claude-upper-handoff-checkpoint-v3.json": "1213c86df9198764db87033521d105a13837fb4fc51d99ad165151e004b31709"
+  },
+  "job_id": "MAIN-INFRA-CLAUDE-4F-7F-20261023",
+  "old_record": {
+    "id": "MAIN-INFRA-CLAUDE-4F-7F-20261023",
+    "title": "Claude Code: repair fresh MAIN INFRA floors4F\u20137F using the repair engine",
+    "brief": "docs/superpowers/records/MAIN-INFRA-FLOOR-OWNERSHIP-20261023.md",
+    "type": "build",
+    "who": "claude",
+    "depends_on": [],
+    "status": "claimed",
+    "holder": "Claude",
+    "branch": "claude/MAIN-INFRA-CLAUDE-4F-7F-20261023",
+    "since": "2026-10-23T18:16+08:00",
+    "notes": []
+  },
+  "recipient_record": {
+    "id": "MAIN-INFRA-CLAUDE-4F-7F-20261023",
+    "title": "Claude Code: repair fresh MAIN INFRA floors4F\u20137F using the repair engine",
+    "brief": "docs/superpowers/records/MAIN-INFRA-FLOOR-OWNERSHIP-20261023.md",
+    "type": "build",
+    "who": "claude",
+    "depends_on": [],
+    "status": "claimed",
+    "holder": "Codex-Upper-Floors",
+    "branch": "codex/main-infra-upper-floor-retention-20261024",
+    "since": "2026-10-24T17:00+08:00",
+    "notes": [
+      "2026-10-24T17:00+08:00 Controller-authorized transfer after direct human STOP. Original holder Claude, branch claude/MAIN-INFRA-CLAUDE-4F-7F-20261023; source checkpoint1213c86d/controller grantbbeb6a7f. Recipient claim is the same single locked atomic save; old artifacts remain read-only."
+    ]
+  },
+  "queue_sha256_before": "6b5c42e32bb0006caa7fbde230a19ce246c44ab47718baa50e7056f285278a2b",
+  "queue_sha256_after": "6e4a39e3a496ef6d8a9a10f2052f53b12b8d556a141943310bd71dc0dd001056",
+  "other_jobs_unchanged": true,
+  "source_worktrees_modified": false,
+  "geometry_workers_at_preclaim": 0,
+  "geometry_inventory": {
+    "path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\iv-handoff-audit-20261024\\recipient-preclaim-no-geometry.json",
+    "sha256": "842eb165612031b375b80281475897a53f0b4b76b6c4367f3d348c4d328deffd"
+  },
+  "new_worktree": "D:/LLM_BACKUP/Codex session/main-infra-upper-floor-retention-20261024/05-Corllenium-UC-Building-Repair-Engine",
+  "qualified_component_base": "73c9c812cf61369c2907a5190431d9b40f895273",
+  "historical_worker_os_exit_code": null,
+  "historical_worker_os_end_time": null,
+  "model_route": {
+    "runtime": "Codex current assigned subagent",
+    "requested_model": "not separately specified",
+    "effective_exact_model": "not exposed by runtime",
+    "effort": "inherited; exact value not exposed"
+  },
+  "process_action": "none",
+  "model_execution_authorized": false
+}

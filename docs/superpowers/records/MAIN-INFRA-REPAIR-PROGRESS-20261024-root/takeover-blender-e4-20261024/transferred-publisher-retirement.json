@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "action": "retire transferred upper-floor status publisher after human STOP and atomic recipient claim",
+  "pid": 33720,
+  "creation_utc": "2026-10-24T01:54:16.5213028Z",
+  "end_utc": "2026-10-24T09:10:34.0077765Z",
+  "exit_code": 231,
+  "command_sha256": "0d106f2f1010deaa603dffabc0caeb496e0628eebdd91642006946126b98b4ee",
+  "source_claim_sha256": "e1b4cdbc9625cb01cc30f72b99aacd64f53e8d0195ac2d36c72a701ec26196b6",
+  "completed_log_line": "17:10:28 live publish failed: Command '['ssh', '-i', 'C:\\\\Users\\\\Future26\\\\.ssh\\\\corllenium_siege_ed25519', '-o', 'IdentitiesOnly=yes', '-o', 'BatchMode=yes', '-o', 'StrictHostKeyChecking=yes', '-o', 'UserKnownHostsFile=D:/PROJECTS/02-Corllenium-Siege/deploy/known_hosts', '-o', 'LogLevel=ERROR', '-o', 'ConnectTimeout=30', '-p', '27015', 'devenvir@dev-environment.site', 'cat > ~/corllenium/app/public/building-repair-status.json && cp -f ~/corllenium/app/public/building-repair-status.json ~/corllenium/web/building-repair-status.json']' returned non-zero exit status 3221225794.",
+  "completed_log_write_utc": "2026-10-24T09:10:28.4037907Z",
+  "action_at_utc": "2026-10-24T09:10:34.0054424Z",
+  "immediate_children_at_action": 0,
+  "native_handle_bound": true,
+  "pid_only_kill": false,
+  "protected_root_publisher_4056_touched": false,
+  "other_helper_52472_touched": false,
+  "blender_14540_touched": false,
+  "no_source_model_changes": true,
+  "remote_write": false
+}

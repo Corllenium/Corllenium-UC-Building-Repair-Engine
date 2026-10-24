@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "mode": "existing_review_GUI_readonly_diagnosis",
+  "acceptance": false,
+  "pid": 14540,
+  "creation_utc": "2026-10-24T08:56:55.1322722Z",
+  "window_handle": 1706788,
+  "observed_at_utc": "2026-10-24T09:04:56.8160919Z",
+  "process_alive": true,
+  "responding": true,
+  "file_loaded": true,
+  "file_sha256": "74cae9bf4d625f325981b65755f722cf044e647da9a1e32f073fd98e47c23b4c",
+  "gui_pixels_verified": true,
+  "actual_visible_scene": "1F_NOT_FINAL",
+  "visible_content": "Centered upright textured white walls, green bands, stairs and stone/tiled surfaces; SOURCE/CANDIDATE collections visible in Outliner",
+  "capture": {
+    "height": 1408,
+    "path": "D:/PROJECTS/UC MODEL FIXER/data/blender-review/MAIN-INFRA-7FLOORS-NOT_FINAL-20261024/gui-debug/blender14540-readonly-window.png",
+    "sha256": "f826879388a5913728cd7ae1953de1f5eae6e436ed172392fb764b66eda1ef29",
+    "width": 3456
+  },
+  "correction": "Earlier default-sandbox absence was a visibility limitation; elevated CIM/Get-Process and exact lifetime/window evidence show the same process remained alive. No close or crash was established.",
+  "temporary_directory": {
+    "children": 0,
+    "path": "D:/TEMP/blender_a54528"
+  },
+  "matching_application_error1000_1001_for_pid": 0,
+  "private_bytes_observed": 3001470976,
+  "os_peak_commit_bytes_observed": 3465469952,
+  "peak_exceeds_3GiB": true,
+  "GUI_resource_PASS_claimed": false,
+  "new_Blender_launched_by_this_debug_task": false,
+  "window_focused_or_moved": false,
+  "scene_or_file_changed": false,
+  "conditional_second_launcher_experiment_run": false,
+  "OS_exit_code": null,
+  "OS_end_utc": null,
+  "limitations": [
+    "Snapshot is one observed moment, not a continuous resource monitor",
+    "Interactive GUI peak was uncapped in this readback; no lifetime-bound resource PASS is claimed",
+    "The seven-floor file remains NOT_FINAL and unaccepted"
+  ]
+}

@@ -1,0 +1,909 @@
+{
+  "acceptance": false,
+  "admission_changed": false,
+  "candidate_created": false,
+  "common_exact_source_field_sites": [],
+  "counts": {
+    "measure": 35,
+    "proposed": 58,
+    "protected_refused": 14,
+    "seam_refused": 9
+  },
+  "kernel_called": false,
+  "max_actual_os_peak_commit_bytes": 311422976,
+  "max_owned_tree_private_bytes": 136888320,
+  "measurement_only": true,
+  "min_system_commit_headroom_bytes": 13622681600,
+  "nearest_rounding": {
+    "absolute_float": 3.625572064791527e-16,
+    "row": {
+      "exact": "-4026578671662242607/576460752303423488",
+      "material": "minecraft_concrete_white_-15579874",
+      "proposed": 0.9999672765161307,
+      "proposed_error": "4603020560161536815/576460752303423488",
+      "proposed_error_ulp": "4603020560161536815/512",
+      "proposed_exact": "70366441467199/70368744177664",
+      "proposed_texture_pixel_error": "4603020560161536815/2251799813685248",
+      "region": 1111,
+      "representable": false,
+      "rounded": -6.9850005496000005,
+      "rounded_exact": "-3932205734045159/562949953421312",
+      "rounded_hex": "-0x1.bf0a3fbec4bcep+2",
+      "rounding_error": "-209/576460752303423488",
+      "rounding_error_ulp": "-209/512",
+      "site": 28,
+      "texture_pixel_error": "-209/2251799813685248",
+      "texture_pixels": 256
+    },
+    "value_exact": "-209/576460752303423488"
+  },
+  "nearest_rounding_texture_pixels": {
+    "absolute_float": 9.281464485866309e-14,
+    "row": {
+      "exact": "-4026578671662242607/576460752303423488",
+      "material": "minecraft_concrete_white_-15579874",
+      "proposed": 0.9999672765161307,
+      "proposed_error": "4603020560161536815/576460752303423488",
+      "proposed_error_ulp": "4603020560161536815/512",
+      "proposed_exact": "70366441467199/70368744177664",
+      "proposed_texture_pixel_error": "4603020560161536815/2251799813685248",
+      "region": 1111,
+      "representable": false,
+      "rounded": -6.9850005496000005,
+      "rounded_exact": "-3932205734045159/562949953421312",
+      "rounded_hex": "-0x1.bf0a3fbec4bcep+2",
+      "rounding_error": "-209/576460752303423488",
+      "rounding_error_ulp": "-209/512",
+      "site": 28,
+      "texture_pixel_error": "-209/2251799813685248",
+      "texture_pixels": 256
+    },
+    "value_exact": "-209/2251799813685248"
+  },
+  "nearest_rounding_ulp": {
+    "absolute_float": 0.5,
+    "row": {
+      "exact": "13501791322568777/18014398509481984",
+      "material": "minecraft_concrete_white_-1",
+      "proposed": 0.7495000134308162,
+      "proposed_error": "602236045/18014398509481984",
+      "proposed_error_ulp": "602236045/2",
+      "proposed_exact": "6750895962402411/9007199254740992",
+      "proposed_texture_pixel_error": "602236045/70368744177664",
+      "region": 521,
+      "representable": false,
+      "rounded": 0.74949998,
+      "rounded_exact": "1687723915321097/2251799813685248",
+      "rounded_hex": "0x1.7fbe761ce7c24p-1",
+      "rounding_error": "-1/18014398509481984",
+      "rounding_error_ulp": "-1/2",
+      "site": 0,
+      "texture_pixel_error": "-1/70368744177664",
+      "texture_pixels": 256
+    },
+    "value_exact": "-1/2"
+  },
+  "normal_absent_count": 35,
+  "output_files": [
+    {
+      "bytes": 1522319,
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e4-attribute-rounding-diag-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\e4-attribute-rounding\\actual-58-proposal-35-attribute-measurements\\attribute-measurement.json",
+      "sha256": "f08783c8482355dece15282bb23719052a6c1a156dce29b5b4b1e4cc2c3b2a86"
+    },
+    {
+      "bytes": 56054,
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e4-attribute-rounding-diag-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\e4-attribute-rounding\\actual-58-proposal-35-attribute-measurements\\regenerated-proposal-arrays.npz",
+      "sha256": "c50086335a933222b814cd3b1651fc7644c21fe10ef2bc79f15b64c7f20ff382"
+    },
+    {
+      "bytes": 74814,
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e4-attribute-rounding-diag-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\e4-attribute-rounding\\actual-58-proposal-35-attribute-measurements\\regenerated-proposals.json",
+      "sha256": "2ce97162368bc1bf99126b713904d2173bd064f4bb41c0cc22b522e9b7bcc200"
+    }
+  ],
+  "phase_pin_count": 674,
+  "positions_unchanged": true,
+  "post_phase_mismatches": [],
+  "proposed_corner_error": {
+    "absolute_float": 8.003032241083874,
+    "row": {
+      "exact": "9209534909074808751/4611686018427387904",
+      "material": "minecraft_concrete_white_-15579874",
+      "proposed": 10.000031792283874,
+      "proposed_error": "36907471891230105681/4611686018427387904",
+      "proposed_error_ulp": "36907471891230105681/1024",
+      "proposed_exact": "2814758715838923/281474976710656",
+      "proposed_texture_pixel_error": "36907471891230105681/18014398509481984",
+      "region": 1111,
+      "representable": false,
+      "rounded": 1.9969995512,
+      "rounded_exact": "1124210804330421/562949953421312",
+      "rounded_hex": "0x1.ff3b5cd287da8p+0",
+      "rounding_error": "81/4611686018427387904",
+      "rounding_error_ulp": "81/1024",
+      "site": 28,
+      "texture_pixel_error": "81/18014398509481984",
+      "texture_pixels": 256
+    },
+    "value_exact": "36907471891230105681/4611686018427387904"
+  },
+  "proposed_corner_texture_pixels": {
+    "absolute_float": 2048.7762537174717,
+    "row": {
+      "exact": "9209534909074808751/4611686018427387904",
+      "material": "minecraft_concrete_white_-15579874",
+      "proposed": 10.000031792283874,
+      "proposed_error": "36907471891230105681/4611686018427387904",
+      "proposed_error_ulp": "36907471891230105681/1024",
+      "proposed_exact": "2814758715838923/281474976710656",
+      "proposed_texture_pixel_error": "36907471891230105681/18014398509481984",
+      "region": 1111,
+      "representable": false,
+      "rounded": 1.9969995512,
+      "rounded_exact": "1124210804330421/562949953421312",
+      "rounded_hex": "0x1.ff3b5cd287da8p+0",
+      "rounding_error": "81/4611686018427387904",
+      "rounding_error_ulp": "81/1024",
+      "site": 28,
+      "texture_pixel_error": "81/18014398509481984",
+      "texture_pixels": 256
+    },
+    "value_exact": "36907471891230105681/18014398509481984"
+  },
+  "regenerated_typed_plan_digest": "0258ae3d7215fc5349eec05bdbf76fccfade7a1aea7db784cb72c02d82d6352e",
+  "report_sha256": "f08783c8482355dece15282bb23719052a6c1a156dce29b5b4b1e4cc2c3b2a86",
+  "schema_version": 1,
+  "sites": [
+    {
+      "material": "minecraft_concrete_white_-1",
+      "max_nearest_rounding_error": 5.551115123125783e-17,
+      "max_nearest_rounding_error_ulp": 0.5,
+      "max_nearest_rounding_pixel_error": 1.4210854715202004e-14,
+      "max_source_field_error": 6.00000000239298e-08,
+      "max_source_field_pixel_error": 1.536000000612603e-05,
+      "max_typed_proposal_pixel_error": 1.5283183842029757e-05,
+      "nonrepresentable_components": 5,
+      "normal_absent": true,
+      "region": 521,
+      "site": 0,
+      "source_faces": 8,
+      "source_field_mismatches": 15,
+      "texture_size": [
+        256,
+        256
+      ]
+    },
+    {
+      "material": "minecraft_concrete_white_-15579874",
+      "max_nearest_rounding_error": 8.782037597132586e-17,
+      "max_nearest_rounding_error_ulp": 0.19775390625,
+      "max_nearest_rounding_pixel_error": 2.248201624865942e-14,
+      "max_source_field_error": 3.9920000448,
+      "max_source_field_pixel_error": 1021.9520114688,
+      "max_typed_proposal_pixel_error": 1024.7385445366936,
+      "nonrepresentable_components": 6,
+      "normal_absent": true,
+      "region": 972,
+      "site": 4,
+      "source_faces": 12,
+      "source_field_mismatches": 30,
+      "texture_size": [
+        256,
+        256
+      ]
+    },
+    {
+      "material": "minecraft_concrete_white_-15579874",
+      "max_nearest_rounding_error": 1.8691645453650096e-16,
+      "max_nearest_rounding_error_ulp": 0.4208984375,
+      "max_nearest_rounding_pixel_error": 4.785061236134425e-14,
+      "max_source_field_error": 4.990000056,
+      "max_source_field_pixel_error": 1277.440014336,
+      "max_typed_proposal_pixel_error": 2.7865330678939926,
+      "nonrepresentable_components": 15,
+      "normal_absent": true,
+      "region": 979,
+      "site": 6,
+      "source_faces": 12,
+      "source_field_mismatches": 30,
+      "texture_size": [
+        256,
+        256
+      ]
+    },
+    {
+      "material": "minecraft_concrete_white_-15579874",
+      "max_nearest_rounding_error": 6.440160904563896e-17,
+      "max_nearest_rounding_error_ulp": 0.2900390625,
+      "max_nearest_rounding_pixel_error": 1.6486811915683575e-14,
+      "max_source_field_error": 1.9960005632,
+      "max_source_field_pixel_error": 510.9761441792,
+      "max_typed_proposal_pixel_error": 512.0828492144112,
+      "nonrepresentable_components": 3,
+      "normal_absent": true,
+      "region": 980,
+      "site": 7,
+      "source_faces": 6,
+      "source_field_mismatches": 12,
+      "texture_size": [
+        256,
+        256
+      ]
+    },
+    {
+      "material": "minecraft_concrete_white_-15579874",
+      "max_nearest_rounding_error": 2.220446049250313e-16,
+      "max_nearest_rounding_error_ulp": 0.5,
+      "max_nearest_rounding_pixel_error": 5.684341886080802e-14,
+      "max_source_field_error": 1.9959992600000003,
+      "max_source_field_pixel_error": 510.97581056000007,
+      "max_typed_proposal_pixel_error": 513.2715689380677,
+      "nonrepresentable_components": 81,
+      "normal_absent": true,
+      "region": 982,
+      "site": 8,
+      "source_faces": 42,
+      "source_field_mismatches": 207,
+      "texture_size": [
+        256,
+        256
+      ]
+    },
+    {
+      "material": "minecraft_concrete_white_-15579874",
+      "max_nearest_rounding_error": 1.0234868508263162e-16,
+      "max_nearest_rounding_error_ulp": 0.4609375,
+      "max_nearest_rounding_pixel_error": 2.6201263381153694e-14,
+      "max_source_field_error": 0.9980001316,
+      "max_source_field_pixel_error": 255.4880336896,
+      "max_typed_proposal_pixel_error": 256.41687290233244,
+      "nonrepresentable_components": 21,
+      "normal_absent": true,
+      "region": 987,
+      "site": 9,
+      "source_faces": 12,
+      "source_field_mismatches": 27,
+      "texture_size": [
+        256,
+        256
+      ]
+    },
+    {
+      "material": "minecraft_concrete_white_-15579874",
+      "max_nearest_rounding_error": 3.122502256758253e-17,
+      "max_nearest_rounding_error_ulp": 0.25390625,
+      "max_nearest_rounding_pixel_error": 7.993605777301127e-15,
+      "max_source_field_error": 1.9960001410666668,
+      "max_source_field_pixel_error": 510.9760361130667,
+      "max_typed_proposal_pixel_error": 512.1291065346222,
+      "nonrepresentable_components": 12,
+      "normal_absent": true,
+      "region": 1010,
+      "site": 14,
+      "source_faces": 8,
+      "source_field_mismatches": 18,
+      "texture_size": [
+        256,
+        256
+      ]
+    },
+    {
+      "material": "minecraft_concrete_white_-15579874",
+      "max_nearest_rounding_error": 1.0224026486538307e-16,
+      "max_nearest_rounding_error_ulp": 0.46044921875,
+      "max_nearest_rounding_pixel_error": 2.6173507805538065e-14,
+      "max_source_field_error": 1.9960000224,
+      "max_source_field_pixel_error": 510.9760057344,
+      "max_typed_proposal_pixel_error": 512.5491902643754,
+      "nonrepresentable_components": 6,
+      "normal_absent": true,
+      "region": 1027,
+      "site": 16,
+      "source_faces": 8,
+      "source_field_mismatches": 18,
+      "texture_size": [
+        256,
+        256
+      ]
+    },
+    {
+      "material": "minecraft_concrete_white_-15579874",
+      "max_nearest_rounding_error": 3.5128150388530344e-17,
+      "max_nearest_rounding_error_ulp": 0.31640625,
+      "max_nearest_rounding_pixel_error": 8.992806499463768e-15,
+      "max_source_field_error": 0.9980000112,
+      "max_source_field_pixel_error": 255.4880028672,
+      "max_typed_proposal_pixel_error": 256.6399964160007,
+      "nonrepresentable_components": 6,
+      "normal_absent": true,
+      "region": 1072,
+      "site": 18,
+      "source_faces": 6,
+      "source_field_mismatches": 12,
+      "texture_size": [
+        256,
+        256
+      ]
+    },
+    {
+      "material": "minecraft_concrete_white_-15579874",
+      "max_nearest_rounding_error": 8.760353553682876e-17,
+      "max_nearest_rounding_error_ulp": 0.39453125,
+      "max_nearest_rounding_pixel_error": 2.2426505097428162e-14,
+      "max_source_field_error": 0.9980000258,
+      "max_source_field_pixel_error": 255.4880066048,
+      "max_typed_proposal_pixel_error": 0.5375924044798583,
+      "nonrepresentable_components": 3,
+      "normal_absent": true,
+      "region": 1075,
+      "site": 20,
+      "source_faces": 5,
+      "source_field_mismatches": 9,
+      "texture_size": [
+        256,
+        256
+      ]
+    },
+    {
+      "material": "minecraft_concrete_white_-15579874",
+      "max_nearest_rounding_error": 1.8691645453650096e-16,
+      "max_nearest_rounding_error_ulp": 0.4208984375,
+      "max_nearest_rounding_pixel_error": 4.785061236134425e-14,
+      "max_source_field_error": 1.9960000224,
+      "max_source_field_pixel_error": 510.9760057344,
+      "max_typed_proposal_pixel_error": 513.2287931187194,
+      "nonrepresentable_components": 6,
+      "normal_absent": true,
+      "region": 1081,
+      "site": 21,
+      "source_faces": 10,
+      "source_field_mismatches": 24,
+      "texture_size": [
+        256,
+        256
+      ]
+    },
+    {
+      "material": "minecraft_concrete_white_-15579874",
+      "max_nearest_rounding_error": 3.9705235287455007e-17,
+      "max_nearest_rounding_error_ulp": 0.3576329656904805,
+      "max_nearest_rounding_pixel_error": 1.0164540233588482e-14,
+      "max_source_field_error": 0.99800003,
+      "max_source_field_pixel_error": 255.48800768,
+      "max_typed_proposal_pixel_error": 0.5722287436174724,
+      "nonrepresentable_components": 6,
+      "normal_absent": true,
+      "region": 1085,
+      "site": 22,
+      "source_faces": 4,
+      "source_field_mismatches": 13,
+      "texture_size": [
+        256,
+        256
+      ]
+    },
+    {
+      "material": "minecraft_concrete_white_-15579874",
+      "max_nearest_rounding_error": 1.519249773713228e-17,
+      "max_nearest_rounding_error_ulp": 0.27368370859110414,
+      "max_nearest_rounding_pixel_error": 3.889279420705863e-15,
+      "max_source_field_error": 5.2899999979875295e-08,
+      "max_source_field_pixel_error": 1.3542399994848076e-05,
+      "max_typed_proposal_pixel_error": 1.1736746728274738e-05,
+      "nonrepresentable_components": 2,
+      "normal_absent": true,
+      "region": 1095,
+      "site": 23,
+      "source_faces": 3,
+      "source_field_mismatches": 3,
+      "texture_size": [
+        256,
+        256
+      ]
+    },
+    {
+      "material": "minecraft_concrete_white_-15579874",
+      "max_nearest_rounding_error": 2.675268860607982e-16,
+      "max_nearest_rounding_error_ulp": 0.30120849609375,
+      "max_nearest_rounding_pixel_error": 6.848688283156434e-14,
+      "max_source_field_error": 4.990000056,
+      "max_source_field_pixel_error": 1277.440014336,
+      "max_typed_proposal_pixel_error": 1280.76983295983,
+      "nonrepresentable_components": 12,
+      "normal_absent": true,
+      "region": 1102,
+      "site": 24,
+      "source_faces": 14,
+      "source_field_mismatches": 36,
+      "texture_size": [
+        256,
+        256
+      ]
+    },
+    {
+      "material": "minecraft_concrete_white_-15579874",
+      "max_nearest_rounding_error": 8.782037597132586e-17,
+      "max_nearest_rounding_error_ulp": 0.19775390625,
+      "max_nearest_rounding_pixel_error": 2.248201624865942e-14,
+      "max_source_field_error": 3.9920000448,
+      "max_source_field_pixel_error": 1021.9520114688,
+      "max_typed_proposal_pixel_error": 1024.7385445366942,
+      "nonrepresentable_components": 6,
+      "normal_absent": true,
+      "region": 1108,
+      "site": 25,
+      "source_faces": 12,
+      "source_field_mismatches": 30,
+      "texture_size": [
+        256,
+        256
+      ]
+    },
+    {
+      "material": "minecraft_concrete_white_-15579874",
+      "max_nearest_rounding_error": 1.8691645453650096e-16,
+      "max_nearest_rounding_error_ulp": 0.4208984375,
+      "max_nearest_rounding_pixel_error": 4.785061236134425e-14,
+      "max_source_field_error": 2.9940000336,
+      "max_source_field_pixel_error": 766.4640086016,
+      "max_typed_proposal_pixel_error": 769.2505416694936,
+      "nonrepresentable_components": 6,
+      "normal_absent": true,
+      "region": 1109,
+      "site": 26,
+      "source_faces": 12,
+      "source_field_mismatches": 30,
+      "texture_size": [
+        256,
+        256
+      ]
+    },
+    {
+      "material": "minecraft_concrete_white_-15579874",
+      "max_nearest_rounding_error": 5.2692225582795515e-17,
+      "max_nearest_rounding_error_ulp": 0.11865234375,
+      "max_nearest_rounding_pixel_error": 1.3489209749195652e-14,
+      "max_source_field_error": 2.9940000336,
+      "max_source_field_pixel_error": 766.4640086016,
+      "max_typed_proposal_pixel_error": 1.709877217086855,
+      "nonrepresentable_components": 3,
+      "normal_absent": true,
+      "region": 1110,
+      "site": 27,
+      "source_faces": 8,
+      "source_field_mismatches": 18,
+      "texture_size": [
+        256,
+        256
+      ]
+    },
+    {
+      "material": "minecraft_concrete_white_-15579874",
+      "max_nearest_rounding_error": 3.625572064791527e-16,
+      "max_nearest_rounding_error_ulp": 0.408203125,
+      "max_nearest_rounding_pixel_error": 9.281464485866309e-14,
+      "max_source_field_error": 6.9860000784,
+      "max_source_field_pixel_error": 1788.4160200704,
+      "max_typed_proposal_pixel_error": 2048.7762537174717,
+      "nonrepresentable_components": 6,
+      "normal_absent": true,
+      "region": 1111,
+      "site": 28,
+      "source_faces": 18,
+      "source_field_mismatches": 48,
+      "texture_size": [
+        256,
+        256
+      ]
+    },
+    {
+      "material": "minecraft_concrete_white_-15579874",
+      "max_nearest_rounding_error": 2.0383000842727483e-17,
+      "max_nearest_rounding_error_ulp": 0.265625,
+      "max_nearest_rounding_pixel_error": 5.218048215738236e-15,
+      "max_source_field_error": 0.9980000787000001,
+      "max_source_field_pixel_error": 255.48802014720002,
+      "max_typed_proposal_pixel_error": 256.1645582831243,
+      "nonrepresentable_components": 6,
+      "normal_absent": true,
+      "region": 1112,
+      "site": 29,
+      "source_faces": 6,
+      "source_field_mismatches": 9,
+      "texture_size": [
+        256,
+        256
+      ]
+    },
+    {
+      "material": "minecraft_concrete_white_-15579874",
+      "max_nearest_rounding_error": 1.0224026486538307e-16,
+      "max_nearest_rounding_error_ulp": 0.46044921875,
+      "max_nearest_rounding_pixel_error": 2.6173507805538065e-14,
+      "max_source_field_error": 1.996000488,
+      "max_source_field_pixel_error": 510.976124928,
+      "max_typed_proposal_pixel_error": 512.5884444137073,
+      "nonrepresentable_components": 12,
+      "normal_absent": true,
+      "region": 1122,
+      "site": 31,
+      "source_faces": 8,
+      "source_field_mismatches": 18,
+      "texture_size": [
+        256,
+        256
+      ]
+    },
+    {
+      "material": "minecraft_concrete_white_-15579874",
+      "max_nearest_rounding_error": 2.323987356722679e-16,
+      "max_nearest_rounding_error_ulp": 0.31640625,
+      "max_nearest_rounding_pixel_error": 5.949407633210058e-14,
+      "max_source_field_error": 3.9920000448,
+      "max_source_field_pixel_error": 1021.9520114688,
+      "max_typed_proposal_pixel_error": 258.19079184302547,
+      "nonrepresentable_components": 6,
+      "normal_absent": true,
+      "region": 1182,
+      "site": 33,
+      "source_faces": 12,
+      "source_field_mismatches": 30,
+      "texture_size": [
+        256,
+        256
+      ]
+    },
+    {
+      "material": "minecraft_concrete_white_-15579874",
+      "max_nearest_rounding_error": 1.3835033186381909e-17,
+      "max_nearest_rounding_error_ulp": 0.4984596024227841,
+      "max_nearest_rounding_pixel_error": 3.5417684957137687e-15,
+      "max_source_field_error": 9.979990383666958e-08,
+      "max_source_field_pixel_error": 2.5548775382187412e-05,
+      "max_typed_proposal_pixel_error": 2.161817426936679e-05,
+      "nonrepresentable_components": 2,
+      "normal_absent": true,
+      "region": 1183,
+      "site": 34,
+      "source_faces": 3,
+      "source_field_mismatches": 3,
+      "texture_size": [
+        256,
+        256
+      ]
+    },
+    {
+      "material": "minecraft_concrete_white_-15579874",
+      "max_nearest_rounding_error": 2.8189256484623115e-18,
+      "max_nearest_rounding_error_ulp": 0.1015625,
+      "max_nearest_rounding_pixel_error": 7.216449660063518e-16,
+      "max_source_field_error": 0.9980009336,
+      "max_source_field_pixel_error": 255.4882390016,
+      "max_typed_proposal_pixel_error": 255.99994752568915,
+      "nonrepresentable_components": 3,
+      "normal_absent": true,
+      "region": 1189,
+      "site": 35,
+      "source_faces": 4,
+      "source_field_mismatches": 6,
+      "texture_size": [
+        256,
+        256
+      ]
+    },
+    {
+      "material": "minecraft_concrete_white_-15579874",
+      "max_nearest_rounding_error": 1.4094628242311558e-18,
+      "max_nearest_rounding_error_ulp": 0.1015625,
+      "max_nearest_rounding_pixel_error": 3.608224830031759e-16,
+      "max_source_field_error": 0.9980000112,
+      "max_source_field_pixel_error": 255.4880028672,
+      "max_typed_proposal_pixel_error": 256.08535676776296,
+      "nonrepresentable_components": 3,
+      "normal_absent": true,
+      "region": 1192,
+      "site": 36,
+      "source_faces": 4,
+      "source_field_mismatches": 6,
+      "texture_size": [
+        256,
+        256
+      ]
+    },
+    {
+      "material": "minecraft_concrete_white_-15579874",
+      "max_nearest_rounding_error": 6.711211447685272e-17,
+      "max_nearest_rounding_error_ulp": 0.30224609375,
+      "max_nearest_rounding_pixel_error": 1.7180701306074297e-14,
+      "max_source_field_error": 2.9940000336,
+      "max_source_field_pixel_error": 766.4640086016,
+      "max_typed_proposal_pixel_error": 513.7799340492594,
+      "nonrepresentable_components": 12,
+      "normal_absent": true,
+      "region": 1199,
+      "site": 37,
+      "source_faces": 12,
+      "source_field_mismatches": 30,
+      "texture_size": [
+        256,
+        256
+      ]
+    },
+    {
+      "material": "minecraft_concrete_white_-15579874",
+      "max_nearest_rounding_error": 7.746624522408929e-17,
+      "max_nearest_rounding_error_ulp": 0.1744384765625,
+      "max_nearest_rounding_pixel_error": 1.983135877736686e-14,
+      "max_source_field_error": 1.996000274,
+      "max_source_field_pixel_error": 510.976070144,
+      "max_typed_proposal_pixel_error": 0.9710070815389343,
+      "nonrepresentable_components": 9,
+      "normal_absent": true,
+      "region": 1212,
+      "site": 40,
+      "source_faces": 6,
+      "source_field_mismatches": 12,
+      "texture_size": [
+        256,
+        256
+      ]
+    },
+    {
+      "material": "minecraft_concrete_white_-15579874",
+      "max_nearest_rounding_error": 8.760353553682876e-17,
+      "max_nearest_rounding_error_ulp": 0.39453125,
+      "max_nearest_rounding_pixel_error": 2.2426505097428162e-14,
+      "max_source_field_error": 0.9980000258,
+      "max_source_field_pixel_error": 255.4880066048,
+      "max_typed_proposal_pixel_error": 0.5375924044797447,
+      "nonrepresentable_components": 3,
+      "normal_absent": true,
+      "region": 1219,
+      "site": 41,
+      "source_faces": 5,
+      "source_field_mismatches": 9,
+      "texture_size": [
+        256,
+        256
+      ]
+    },
+    {
+      "material": "minecraft_concrete_white_-15579874",
+      "max_nearest_rounding_error": 1.5178830414797062e-16,
+      "max_nearest_rounding_error_ulp": 0.341796875,
+      "max_nearest_rounding_pixel_error": 3.885780586188048e-14,
+      "max_source_field_error": 2.9940000336,
+      "max_source_field_pixel_error": 766.4640086016,
+      "max_typed_proposal_pixel_error": 768.1738870531519,
+      "nonrepresentable_components": 15,
+      "normal_absent": true,
+      "region": 1223,
+      "site": 42,
+      "source_faces": 8,
+      "source_field_mismatches": 18,
+      "texture_size": [
+        256,
+        256
+      ]
+    },
+    {
+      "material": "minecraft_concrete_white_-15579874",
+      "max_nearest_rounding_error": 1.7564075194265172e-17,
+      "max_nearest_rounding_error_ulp": 0.0791015625,
+      "max_nearest_rounding_pixel_error": 4.496403249731884e-15,
+      "max_source_field_error": 0.9980000112,
+      "max_source_field_pixel_error": 255.4880028672,
+      "max_typed_proposal_pixel_error": 0.5722315377752283,
+      "nonrepresentable_components": 3,
+      "normal_absent": true,
+      "region": 1227,
+      "site": 43,
+      "source_faces": 4,
+      "source_field_mismatches": 6,
+      "texture_size": [
+        256,
+        256
+      ]
+    },
+    {
+      "material": "minecraft_concrete_white_-15579874",
+      "max_nearest_rounding_error": 1.1102230246251565e-16,
+      "max_nearest_rounding_error_ulp": 0.5,
+      "max_nearest_rounding_pixel_error": 2.842170943040401e-14,
+      "max_source_field_error": 0.9980000129,
+      "max_source_field_pixel_error": 255.4880033024,
+      "max_typed_proposal_pixel_error": 0.6765886703242074,
+      "nonrepresentable_components": 9,
+      "normal_absent": true,
+      "region": 1248,
+      "site": 45,
+      "source_faces": 6,
+      "source_field_mismatches": 12,
+      "texture_size": [
+        256,
+        256
+      ]
+    },
+    {
+      "material": "minecraft_concrete_white_-15579874",
+      "max_nearest_rounding_error": 2.220446049250313e-16,
+      "max_nearest_rounding_error_ulp": 0.5,
+      "max_nearest_rounding_pixel_error": 5.684341886080802e-14,
+      "max_source_field_error": 2.9939981712,
+      "max_source_field_pixel_error": 766.4635318272,
+      "max_typed_proposal_pixel_error": 1.7505813896765972,
+      "nonrepresentable_components": 3,
+      "normal_absent": true,
+      "region": 1266,
+      "site": 46,
+      "source_faces": 8,
+      "source_field_mismatches": 18,
+      "texture_size": [
+        256,
+        256
+      ]
+    },
+    {
+      "material": "minecraft_concrete_white_-15579874",
+      "max_nearest_rounding_error": 2.3418766925686896e-17,
+      "max_nearest_rounding_error_ulp": 0.421875,
+      "max_nearest_rounding_pixel_error": 5.995204332975845e-15,
+      "max_source_field_error": 0.9980000258,
+      "max_source_field_pixel_error": 255.4880066048,
+      "max_typed_proposal_pixel_error": 255.9999992661331,
+      "nonrepresentable_components": 9,
+      "normal_absent": true,
+      "region": 1374,
+      "site": 50,
+      "source_faces": 4,
+      "source_field_mismatches": 6,
+      "texture_size": [
+        256,
+        256
+      ]
+    },
+    {
+      "material": "minecraft_concrete_white_-15579874",
+      "max_nearest_rounding_error": 2.3418766925686896e-17,
+      "max_nearest_rounding_error_ulp": 0.421875,
+      "max_nearest_rounding_pixel_error": 5.995204332975845e-15,
+      "max_source_field_error": 0.9980000258,
+      "max_source_field_pixel_error": 255.4880066048,
+      "max_typed_proposal_pixel_error": 255.99999926613333,
+      "nonrepresentable_components": 9,
+      "normal_absent": true,
+      "region": 1404,
+      "site": 51,
+      "source_faces": 4,
+      "source_field_mismatches": 6,
+      "texture_size": [
+        256,
+        256
+      ]
+    },
+    {
+      "material": "minecraft_concrete_white_-15579874",
+      "max_nearest_rounding_error": 1.1102230246251565e-16,
+      "max_nearest_rounding_error_ulp": 0.5,
+      "max_nearest_rounding_pixel_error": 2.842170943040401e-14,
+      "max_source_field_error": 0.9980000600000001,
+      "max_source_field_pixel_error": 255.48801536000002,
+      "max_typed_proposal_pixel_error": 0.5722227199995871,
+      "nonrepresentable_components": 3,
+      "normal_absent": true,
+      "region": 1470,
+      "site": 56,
+      "source_faces": 4,
+      "source_field_mismatches": 6,
+      "texture_size": [
+        256,
+        256
+      ]
+    },
+    {
+      "material": "minecraft_concrete_white_-15579874",
+      "max_nearest_rounding_error": 6.5052130349130266e-18,
+      "max_nearest_rounding_error_ulp": 0.46875,
+      "max_nearest_rounding_pixel_error": 1.6653345369377348e-15,
+      "max_source_field_error": 0.9980000112,
+      "max_source_field_pixel_error": 255.4880028672,
+      "max_typed_proposal_pixel_error": 256.0602361600001,
+      "nonrepresentable_components": 3,
+      "normal_absent": true,
+      "region": 1548,
+      "site": 57,
+      "source_faces": 4,
+      "source_field_mismatches": 6,
+      "texture_size": [
+        256,
+        256
+      ]
+    }
+  ],
+  "source_field_mismatch_sites": [
+    0,
+    4,
+    6,
+    7,
+    8,
+    9,
+    14,
+    16,
+    18,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    31,
+    33,
+    34,
+    35,
+    36,
+    37,
+    40,
+    41,
+    42,
+    43,
+    45,
+    46,
+    50,
+    51,
+    56,
+    57
+  ],
+  "source_input_field_error": {
+    "absolute_float": 6.9860000784,
+    "row": {
+      "actual": "4609512991975505/4611686018427387904",
+      "component": 0,
+      "corner": 0,
+      "difference": "32217238886289916361/4611686018427387904",
+      "expected": "-4026578671662242607/576460752303423488",
+      "face": 7820,
+      "pixel_error": "32217238886289916361/18014398509481984",
+      "region": 1111,
+      "site": 28,
+      "vertex": 4560
+    },
+    "value_exact": "32217238886289916361/4611686018427387904"
+  },
+  "source_input_field_texture_pixels": {
+    "absolute_float": 1788.4160200704,
+    "row": {
+      "actual": "4609512991975505/4611686018427387904",
+      "component": 0,
+      "corner": 0,
+      "difference": "32217238886289916361/4611686018427387904",
+      "expected": "-4026578671662242607/576460752303423488",
+      "face": 7820,
+      "pixel_error": "32217238886289916361/18014398509481984",
+      "region": 1111,
+      "site": 28,
+      "vertex": 4560
+    },
+    "value_exact": "32217238886289916361/18014398509481984"
+  },
+  "terminal": {
+    "HEAD": "21e925289382c2952247828c190df420fb777672",
+    "abort_reason": null,
+    "acceptance": false,
+    "actual_creation_utc": "2026-10-24T09:07:06.8814224Z",
+    "actual_exit_code": 0,
+    "actual_pid": 41492,
+    "all_owned_exited": true,
+    "ended_utc": "2026-10-24T09:07:57.5148798Z",
+    "evidence": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e4-attribute-rounding-diag-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\e4-attribute-diagnostic-preflight\\monitor-E4-35-source-attribute-rounding-diagnostic-20261024T090705",
+    "launcher_exit_code": 0,
+    "phase": "E4-35-source-attribute-rounding-diagnostic",
+    "phase_plan_sha256": "71b0d2986f0dce74631413e3edced335b7e86fb6543d1cd5421750466a200dfa",
+    "state": "PROCESS_EXITED_ZERO",
+    "wall_s": 50.7031374
+  },
+  "terminal_sha256": "1ee3328ffb6b27152a9dd02ce773a37803b01312648a909943b2aeb7697c57a7"
+}

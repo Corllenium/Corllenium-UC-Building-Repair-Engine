@@ -1,0 +1,26 @@
+{
+  "admission": {
+    "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\e4-runner-writer-preflight\\admission-10652.json",
+    "sha256": "77dc751ccb695b92d44f53fa12c435b58653c1676c5700ee9a7f35955b617897"
+  },
+  "completed_run": {
+    "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e4\\run-20261024-1F-strict-retained-10652\\run-receipt.json",
+    "sha256": "38b79f71b15ccee5af334cdad5bfc8f2bd356d37cba5636583e9a0721968b909"
+  },
+  "mode": "e4_source_attribute_rounding_diagnostic",
+  "output": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e4-attribute-rounding-diag-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\e4-attribute-rounding\\actual-58-proposal-35-attribute-measurements",
+  "producer_phase": {
+    "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\e4-runner-writer-preflight\\phase-e4-1F-strict.json",
+    "sha256": "b1170abf5a4fd4383c16f705ccb6cebeaad0c5c3b6c1f9da49563b1f8cc5e024"
+  },
+  "readback": {
+    "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\e4-runner-writer-preflight\\actual-e4-readback.json",
+    "sha256": "cc635c7453e7cbb04654f4025104c4fbbb8211be90ce00fad561359262f22f9d"
+  },
+  "runtime_root": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine",
+  "schema_version": 1,
+  "terminal": {
+    "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\e4-runner-writer-preflight\\monitor-E4-1F-strict-retained-10652-20261024T081451\\result.json",
+    "sha256": "67f43efc2b9f3448ddadda043acdaf909397e5e504977b298cdfcfed91a07335"
+  }
+}
