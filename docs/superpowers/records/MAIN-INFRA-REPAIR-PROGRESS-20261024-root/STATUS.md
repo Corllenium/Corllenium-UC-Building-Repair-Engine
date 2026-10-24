@@ -1,3 +1,17 @@
+### 2026-10-24T04:41:33.011718+00:00 - actual 10,660 live After/maps; preservation passes; signed Validator running
+
+Inherited3 helper failure was exact LF/CRLF checkout conversion: expected==successful oldruntime==committed LF; normalizedcontents identical. Restored only those exact bytes, no semantic/hash/guard waiver. New cf6db prepare62192/start04:11:08.9640638Z exited0/allgone/noabort04:11:47.2461189Z. P6bce5b19 independently replays actual160kept0rolled checkpoint and all724 protected parents. Stored suspect masks conservatively cover physical suspect sets; masks are explicitly not identical.
+
+Actual strict62208/start04:23:37.5083537Z PASS26/3,924,929modelpixels, allhole/growth/material/movement/tie totals0 (6c338160). Actual native38296/start04:26:44.1082974Z plus Blender49700 completed exit0/allgone/noabort04:27:43.2383232Z: all33qualified(16walking/17outside) savedRGBA pairs differ0pixels;13diagnostics separate (12236296). Root opened actualpaired detail: walls/greenbands/tiles match,4diffpanels black. Retained-floor7996/start04:30:42.1766992Z PASS with exact.02in/4pixel/probe422, bothoriginalfaces9809/10366 lost0, all14previouslostlines now0 (8fbd3516). Actualfullsigned31596/start04:34:30.7278469Z now runs defaultSettings/unchanged4117targets, original15856 vs10660; no finalverdict yet.
+
+Actual census62776/start04:21:26.5761424Z exited0/allgone/noabort04:22:23.1950612Z. Source->candidate counts: different5684->1798,same3347->1153,hidden8548->3213,reversed0->0,loose0->1,open312->2179,cracks2819->2350. AllrawIDs/counts and30,453 inverseFramecomponents reviewed(0bad,maxerror7.1054e-15m). Worseningcounts notmasked. Seven realfilters use actualnew10660maps, notold10410/10662proofs.
+
+Private Siege2b28241 model/LFS and49e3637 sixJSON maps committed+pushed. All9modelassets and6mapfiles verified inbothlivehostingroots/publicHTTP. Onlyimmutableassets; no app/container restart/DBwrite. CanonicalBefore/After switchedtogether to new10660-d9729b4 URLs; previous10410proof storedinhistory, currentguard/native/floor hashes nowactualnewones, signedfieldsnull andaccepted_previewnull. RootpublicHTTP04:37:27 confirmsdisplayed10660/newURLs/filterspublished/actualsigned31596alive.
+
+Actualowner-loginbrowser21367 reached all7enabledfilterlabels, face/open/crack overlaysbothcanvases, isolation,6materials/triangleedgesboth/Xray/mobilechecks and saved13artifacts; then failed at finalbad-responses assertion on one session401 whose requeststarttiming was notcaptured.0pageerrors/32statuspollsall200. This run is NOT fullbrowserPASS. Rootopened actual liveoverlay screenshot: source15856left/new10660right/filtercounts visible; shared image withowner. Preservefirst-runfailure/screenshots, correct QA to trackrequest-startauthphase and requirepostlogin/end session200; unknown/postlogin401 remainsfailure. Correctedactualrun pending. Finalfloor remainsunaccepted, signedproblem targets nonzero, no accepted/finalownerfolder claim. Claude4-7 untouched/publicenginepushesheld.
+
+Evidence:10660-live-preservation-20261024/SHA256.json.
+
 
 ### 2026-10-24T04:08:01.830013Z - independent10660 preparation hash stop
 

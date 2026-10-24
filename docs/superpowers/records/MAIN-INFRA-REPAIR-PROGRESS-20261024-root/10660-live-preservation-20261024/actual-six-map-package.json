@@ -1,0 +1,180 @@
+{
+  "schema_version": 1,
+  "census_path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-10660-error-census-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\1f-10660-error-census\\run-20261024\\census-receipt.json",
+  "census_sha256": "6cff3556da4d5ec56405cb0d9adb74e121b0729159977138b224b90764a15259",
+  "code_commit": "d9729b40f85d103502de71947dc78eab2f6cd2b7",
+  "acceptance": false,
+  "validation_pass_not_claimed": true,
+  "files": [
+    {
+      "path": "models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/1F/main-infra-clean-20261023/source/errors-10660-20261024-d9729b4.json",
+      "sha256": "932f886166438e398c8602b62007bc9bdc11b343965e1a9f83c2f6b58a38a5b2",
+      "bytes": 471686
+    },
+    {
+      "path": "models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/1F/main-infra-clean-20261023/source/errors-10660-20261024-d9729b4.raw.json",
+      "sha256": "2530916fbdff847bfd47c6fec3df582490abbf74c812691c223acdb44cdda3fc",
+      "bytes": 1354869
+    },
+    {
+      "path": "models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/1F/main-infra-clean-20261023/source/preview-errors-10660-20261024-d9729b4.json",
+      "sha256": "8f460d3d1c58d44d2cabf3b5fac6de545b54287205610e3c29d614124bd33046",
+      "bytes": 3463
+    },
+    {
+      "path": "models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/1F/main-infra-clean-20261023/candidate/errors-10660-20261024-d9729b4.json",
+      "sha256": "274256dc1de8bf2f6cc6eb78f35ad6c6987a4679a0f162f63ef0dc883598907e",
+      "bytes": 554032
+    },
+    {
+      "path": "models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/1F/main-infra-clean-20261023/candidate/errors-10660-20261024-d9729b4.raw.json",
+      "sha256": "9aab51c1a4a1c09c83899c053215b31c9193ad7bda4c187c54b7d7cf4d4e8ca9",
+      "bytes": 800940
+    },
+    {
+      "path": "models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/1F/main-infra-clean-20261023/candidate/preview-errors-10660-20261024-d9729b4.json",
+      "sha256": "5cd33d43213b93de30722c9e003e6791cad66485e63f629083c322b3c1a1ddec",
+      "bytes": 4156
+    }
+  ],
+  "roles": {
+    "source": {
+      "base_manifest_path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-10660-error-census-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\10660-census-preflight\\base-source-preview.json",
+      "base_manifest_sha256": "99c3e225bb3aa6c2b6d46dc6e94bab71840d0f0474f6f651844c1a29c3d4dfd8",
+      "preview_url": "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/1F/main-infra-clean-20261023/source/preview-errors-10660-20261024-d9729b4.json",
+      "preview_file": "models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/1F/main-infra-clean-20261023/source/preview-errors-10660-20261024-d9729b4.json",
+      "map_file": "models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/1F/main-infra-clean-20261023/source/errors-10660-20261024-d9729b4.json",
+      "raw_file": "models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/1F/main-infra-clean-20261023/source/errors-10660-20261024-d9729b4.raw.json",
+      "binding": {
+        "source_revision": "7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511",
+        "run_id": "main-infra-clean-20261023",
+        "floor_id": "MAIN_INFRA_1F",
+        "kind": "source",
+        "obj_sha256": "26eda65235ce9d1f8c82e97b00d4da21cc1e272d0817e769dddb6ca192f4aea5"
+      },
+      "counts": {
+        "flicker_diff": 5684,
+        "flicker_same": 3347,
+        "reversed": 0,
+        "hidden": 8548,
+        "loose": 0,
+        "open_edges": 312,
+        "cracks": 2819
+      },
+      "n_faces": 15856,
+      "existing_visual_assets_unchanged": true,
+      "existing_assets": [
+        {
+          "url": "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/1F/main-infra-clean-20261023/source/1st%20floor%20main%20infra.mtl",
+          "sha256": "c64c0cb12926c707b55262a82fd324ccd09502f92b0c866801a00e9f3c89d9a3"
+        },
+        {
+          "url": "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/1F/main-infra-clean-20261023/source/model.obj",
+          "sha256": "26eda65235ce9d1f8c82e97b00d4da21cc1e272d0817e769dddb6ca192f4aea5"
+        },
+        {
+          "url": "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/1F/main-infra-clean-20261023/source/textures/minecraft/concrete_white_-1.png",
+          "sha256": "f42c7be3c52294ead4c69ac0e9ef1bbbbe6bdb4451382c89a65c386709df6171"
+        },
+        {
+          "url": "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/1F/main-infra-clean-20261023/source/textures/minecraft/concrete_white_-15579874.png",
+          "sha256": "14ceba3d0329594e00458bc6ed2aeafa24d9228519994a60d758de2509fee1ad"
+        },
+        {
+          "url": "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/1F/main-infra-clean-20261023/source/textures/minecraft/quartz_block_bottom_-1.png",
+          "sha256": "daf3f46f93f7364b1530ec468a7a1d5a02eda1cd0a118e41e93e9c4177791cc1"
+        },
+        {
+          "url": "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/1F/main-infra-clean-20261023/source/textures/minecraft/quartz_block_side_-1.png",
+          "sha256": "85e34c6a6b917ade1cfbd2826127de4175c63317f3efbba1f7aaed3bf105a193"
+        },
+        {
+          "url": "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/1F/main-infra-clean-20261023/source/textures/minecraft/quartz_block_top_-1.png",
+          "sha256": "eea2309518da196d86171dd0d78ecdcdc3a0510005790fa2beb8484744d8ae88"
+        },
+        {
+          "url": "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/1F/main-infra-clean-20261023/source/textures/minecraft/wool_colored_orange_-1.png",
+          "sha256": "c6a3c27b965f298da28c89c1a522b5ff3152321a97fcbe613aec2f9a6d8f66fa"
+        }
+      ],
+      "raw_not_added_to_visual_asset_downloads": true
+    },
+    "candidate": {
+      "base_manifest_path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-10660-error-census-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\10660-census-preflight\\base-candidate-preview.json",
+      "base_manifest_sha256": "9fbfce4e68eaea93fb4fabdb7e27041243b8c39fcc5e0ffa7413c944bf5b18b1",
+      "preview_url": "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/1F/main-infra-clean-20261023/candidate/preview-errors-10660-20261024-d9729b4.json",
+      "preview_file": "models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/1F/main-infra-clean-20261023/candidate/preview-errors-10660-20261024-d9729b4.json",
+      "map_file": "models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/1F/main-infra-clean-20261023/candidate/errors-10660-20261024-d9729b4.json",
+      "raw_file": "models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/1F/main-infra-clean-20261023/candidate/errors-10660-20261024-d9729b4.raw.json",
+      "binding": {
+        "source_revision": "7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511",
+        "run_id": "main-infra-clean-20261023",
+        "floor_id": "MAIN_INFRA_1F",
+        "kind": "candidate",
+        "obj_sha256": "f46b4e2dc85ec7f8e1d17e7f23df7151370f3762c0682af7fa5b763c3cbc6294"
+      },
+      "counts": {
+        "flicker_diff": 1798,
+        "flicker_same": 1153,
+        "reversed": 0,
+        "hidden": 3213,
+        "loose": 1,
+        "open_edges": 2179,
+        "cracks": 2350
+      },
+      "n_faces": 10660,
+      "existing_visual_assets_unchanged": true,
+      "existing_assets": [
+        {
+          "url": "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/1F/main-infra-clean-20261023/candidate/1st%20floor%20main%20infra.mtl",
+          "sha256": "c64c0cb12926c707b55262a82fd324ccd09502f92b0c866801a00e9f3c89d9a3"
+        },
+        {
+          "url": "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/1F/main-infra-clean-20261023/candidate/textures/minecraft/concrete_white_-1.png",
+          "sha256": "f42c7be3c52294ead4c69ac0e9ef1bbbbe6bdb4451382c89a65c386709df6171"
+        },
+        {
+          "url": "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/1F/main-infra-clean-20261023/candidate/textures/minecraft/concrete_white_-15579874.png",
+          "sha256": "14ceba3d0329594e00458bc6ed2aeafa24d9228519994a60d758de2509fee1ad"
+        },
+        {
+          "url": "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/1F/main-infra-clean-20261023/candidate/textures/minecraft/quartz_block_bottom_-1.png",
+          "sha256": "daf3f46f93f7364b1530ec468a7a1d5a02eda1cd0a118e41e93e9c4177791cc1"
+        },
+        {
+          "url": "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/1F/main-infra-clean-20261023/candidate/textures/minecraft/quartz_block_side_-1.png",
+          "sha256": "85e34c6a6b917ade1cfbd2826127de4175c63317f3efbba1f7aaed3bf105a193"
+        },
+        {
+          "url": "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/1F/main-infra-clean-20261023/candidate/textures/minecraft/quartz_block_top_-1.png",
+          "sha256": "eea2309518da196d86171dd0d78ecdcdc3a0510005790fa2beb8484744d8ae88"
+        },
+        {
+          "url": "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/1F/main-infra-clean-20261023/candidate/textures/minecraft/wool_colored_orange_-1.png",
+          "sha256": "c6a3c27b965f298da28c89c1a522b5ff3152321a97fcbe613aec2f9a6d8f66fa"
+        },
+        {
+          "url": "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/1F/main-infra-clean-20261023/candidate/model-e7-single-pixel-inspection-20261024.obj",
+          "sha256": "f46b4e2dc85ec7f8e1d17e7f23df7151370f3762c0682af7fa5b763c3cbc6294"
+        }
+      ],
+      "raw_not_added_to_visual_asset_downloads": true
+    }
+  },
+  "archive_path": "D:\\PROJECTS\\UC MODEL FIXER\\data\\tmp\\e10660.tar.gz",
+  "archive_sha256": "21eab62384718ce9c2f83c8e35a0878e6d65bd46f0e1c4201008b6b4a63e3c0c",
+  "archive_bytes": 363555,
+  "input_triangles": 15856,
+  "output_triangles": 10660,
+  "state": "inspection",
+  "validation_state": "PENDING_VALIDATION",
+  "inspection_only": true,
+  "publication_eligible": false,
+  "native_preservation_passed": null,
+  "validator_passed": null,
+  "guard": null,
+  "native": null,
+  "signed": null,
+  "source_preview_url": "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/1F/main-infra-clean-20261023/source/preview-errors-10660-20261024-d9729b4.json",
+  "preview_url": "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/1F/main-infra-clean-20261023/candidate/preview-errors-10660-20261024-d9729b4.json"
+}

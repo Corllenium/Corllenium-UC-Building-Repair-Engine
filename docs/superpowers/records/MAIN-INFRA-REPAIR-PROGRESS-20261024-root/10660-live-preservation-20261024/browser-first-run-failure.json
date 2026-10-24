@@ -1,0 +1,44 @@
+{
+  "error": "expect(received).toEqual(expected) // deep equality\n\n- Expected  - 1\n+ Received  + 6\n\n- Array []\n+ Array [\n+   Object {\n+     \"path\": \"/api/auth/session\",\n+     \"status\": 401,\n+   },\n+ ]",
+  "errors": [],
+  "bad": [
+    {
+      "path": "/api/auth/session",
+      "status": 401
+    }
+  ],
+  "polls": [
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200
+  ]
+}

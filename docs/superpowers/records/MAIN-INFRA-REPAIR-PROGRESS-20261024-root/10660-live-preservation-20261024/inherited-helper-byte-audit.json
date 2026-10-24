@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "scope": "Read-only audit; no helper restored yet",
+  "rows": [
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-ATTEMPT3/strict-guard.py",
+      "expected_sha256": "bc7d45e280950df37e23f4bca38d2a78ce6007969dec9e6a2edeab72fdba39b2",
+      "before_sha256": "8f381d8d83cc2c0f115fffa356930336b0fddc3c6c8a2d6e48f8d03e52e7612b",
+      "retained_source": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-native-retention-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\docs\\superpowers\\records\\MAIN-INFRA-1F-VALIDATE-ATTEMPT3\\strict-guard.py",
+      "retained_sha256": "bc7d45e280950df37e23f4bca38d2a78ce6007969dec9e6a2edeab72fdba39b2",
+      "HEAD_blob_sha256": "bc7d45e280950df37e23f4bca38d2a78ce6007969dec9e6a2edeab72fdba39b2",
+      "normalized_equal": true,
+      "actual_crlf": 164,
+      "source_crlf": 0
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-ATTEMPT3/native-pairs.py",
+      "expected_sha256": "065989bc85dfc713ce74ed766428b4a1c23789209796d5913e59224c9d6a7472",
+      "before_sha256": "0236bcbe11e32e2a7d6472022463acee0b27c674d7d9c6864bfeaa3a8238cfca",
+      "retained_source": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-native-retention-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\docs\\superpowers\\records\\MAIN-INFRA-1F-VALIDATE-ATTEMPT3\\native-pairs.py",
+      "retained_sha256": "065989bc85dfc713ce74ed766428b4a1c23789209796d5913e59224c9d6a7472",
+      "HEAD_blob_sha256": "065989bc85dfc713ce74ed766428b4a1c23789209796d5913e59224c9d6a7472",
+      "normalized_equal": true,
+      "actual_crlf": 163,
+      "source_crlf": 0
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-1F-VALIDATE-ATTEMPT3/native-readback.py",
+      "expected_sha256": "9892c694947b3fd22a2bced252058c030224e83116c9adc664d9ccca20157715",
+      "before_sha256": "cf19bf2189637cfd2f0553f9280328338ab846510b0ba57b681a25f569d95032",
+      "retained_source": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-native-retention-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\docs\\superpowers\\records\\MAIN-INFRA-1F-VALIDATE-ATTEMPT3\\native-readback.py",
+      "retained_sha256": "9892c694947b3fd22a2bced252058c030224e83116c9adc664d9ccca20157715",
+      "HEAD_blob_sha256": "9892c694947b3fd22a2bced252058c030224e83116c9adc664d9ccca20157715",
+      "normalized_equal": true,
+      "actual_crlf": 50,
+      "source_crlf": 0
+    }
+  ],
+  "no_model_rerun": true,
+  "acceptance": false
+}

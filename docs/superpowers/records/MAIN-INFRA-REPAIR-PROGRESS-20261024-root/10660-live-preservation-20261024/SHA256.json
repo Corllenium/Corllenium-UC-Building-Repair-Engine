@@ -1,0 +1,64 @@
+{
+  "files": [
+    {
+      "file": "independent-prepared.json",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-single-pixel-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\iv1f-e7-single-pixel\\run-20261024\\1F\\prepared-inputs.json",
+      "sha256": "6bce5b190386df2e18ff4d3bb03c1ee62bbfec945581fa3095147a08acdc61f8",
+      "bytes": 285670
+    },
+    {
+      "file": "inherited-helper-byte-audit.json",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-single-pixel-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\iv-single-pixel-preflight\\inherited-native-helper-byte-audit.json",
+      "sha256": "497aea353c3177dc86adcd5cefa8f9ff85e55a8db12ce1ab0ed0db99c49923fc",
+      "bytes": 2546
+    },
+    {
+      "file": "independent-guard.json",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-single-pixel-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\iv1f-e7-single-pixel\\run-20261024\\1F\\guard\\independent-guard.json",
+      "sha256": "6c338160af0dda7d736416ec779b400e550dade998181c930c3b077d4a441a00",
+      "bytes": 303799
+    },
+    {
+      "file": "native-readback.json",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-single-pixel-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\iv1f-e7-single-pixel\\run-20261024\\1F\\native\\native-readback.json",
+      "sha256": "12236296c75be799ecb4abad2ce35fb39b9dba57ad53ed1d94a469c239adc363",
+      "bytes": 349256
+    },
+    {
+      "file": "actual-native-paired-detail.png",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-single-pixel-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\iv1f-e7-single-pixel\\run-20261024\\1F\\native\\paired\\paired-detail.png",
+      "sha256": "1622e0e983c39082470a0e4141e4242353e708227853fdc3acd50cf2808e4a02",
+      "bytes": 907272
+    },
+    {
+      "file": "retained-floor.json",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-single-pixel-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\iv1f-e7-single-pixel\\run-20261024\\1F\\retained-floor\\retained-floor.json",
+      "sha256": "8fbd35169ceca9ac38df40f53f56e4e7b4398910da92032e420dacf81f9f8cc2",
+      "bytes": 289340
+    },
+    {
+      "file": "actual-census-receipt.json",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-10660-error-census-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\1f-10660-error-census\\run-20261024\\census-receipt.json",
+      "sha256": "6cff3556da4d5ec56405cb0d9adb74e121b0729159977138b224b90764a15259",
+      "bytes": 154736
+    },
+    {
+      "file": "actual-six-map-package.json",
+      "source": "D:\\PROJECTS\\UC MODEL FIXER\\data\\tmp\\e10660-delivery.json",
+      "sha256": "118934904b4eb82ce1d944b5b0d2727520af5ec7d92ea6e43b3c532abc65bf43",
+      "bytes": 11252
+    },
+    {
+      "file": "browser-first-run-failure.json",
+      "source": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\.evidence\\live-logs-20261024\\live-measured-error-maps-1f-10660\\failure.json",
+      "sha256": "f72dc8aae11f753d302a097e713071fffcb79a2989ddda041a6e549cd18719ac",
+      "bytes": 625
+    },
+    {
+      "file": "actual-live-10660-overlay.png",
+      "source": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\.evidence\\live-logs-20261024\\live-measured-error-maps-1f-10660\\1F-live-overlay-Flicker--Diff-.png",
+      "sha256": "7e01bf09c93bcbbc9cbd79732d58633a9ac3bfe2002d370960cd4b9f5af2e828",
+      "bytes": 260898
+    }
+  ]
+}
