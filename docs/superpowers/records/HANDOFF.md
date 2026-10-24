@@ -25,6 +25,16 @@ run the latest `.skp` of each file must be in `OBJ FIXED RESULT/` for the owner 
 
 ## 2. Current state (2026-09-26 00:15, written by the Claude controller)
 
+### 2026-10-24 10:15 SGT — measured error filters live; actual 1F repair is running
+
+Six immutable map/raw/preview JSON files from private Siege commit9ce7147 are live. All six hashes passed in both hosting roots and over public HTTP. The source preview still binds the fresh15,856-triangle OBJ; After still binds the preserved10,410-triangle OBJ. Existing model/texture asset URLs and bytes are unchanged. Acceptance remains false.
+
+Real authenticated browser verification at02:11:26Z passed all seven exact Before→After counts; face, open-edge and crack controls each changed both canvas screenshots. Isolate errors changed the actual line-only After view. Six materials, both triangle-edge controls and X-ray remained functional.20saved worker events,26HTTP200status polls, zero page/authenticated HTTP errors, no390px overflow, logout204. Root opened the actual red face-overlay screenshot and saw both saved models. Private proof commit2d257f1 is pushed. The312→2,223open-edge increase is visible, not masked.
+
+Conservative E7 retry started as actual PID29104 at02:07:39.2223934Z, a different process lifetime from the completed census PID29104 at01:54:20.0503358Z. Frozen c67b68a/Pb5ad5a81/execute phase0eb2c044:174freshly checked proposals,91whole native-associated parents retained,710original parents protected. Native OS identity and saved worker matched before registration. Public status readback at02:14:39/43Z shows cleaning/worker_alive true/CPU559.05s and both new preview-errors URLs. New output/kept/rollback counts remain unknown. Qualified failed10831 remains separate; no new preservation pass claimed.
+
+2F's screenshot gap is confirmed: source is linked, candidate_preview is null. Its actual saved38,134-triangle candidate audit says guard.failed/pending and independent strict guard still fails17pixels. A distinct failed-inspection-only packaging contract is preparing in its own claimed job; existing eligible-repair packer refusal will not be bypassed and its audit will not be edited. No 2F repair/validation rerun and no Claude4–7changes.
+
 ### 2026-10-24 10:02 SGT — live After restored, seven controls deployed; actual census complete, retention retry preparing
 
 Private Siege880cd2e built33routes/deployed95scopedfiles. Actual95/95FS hashes inbothroots and95publicHTTP pass; healthyAPIcedb7c53c35b0599585c17b214f3c29e1dfb7b9f unchanged, heldstatus a2811bb228ed7f4eedafdf1a379e7e6f2130535f27308ed24cd7c2c87137aaae unchanged; noAPI/containerrestart/liveDBwrite. Same ownedpublisher35bfbc56 resumed61824/start01:51:10.2277198Z after61544pause. Private evidence commit4c6dde0 pushed.
