@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "HEAD": "f12e1fd25fbb2324e6abe6592a3427acba93e4ad",
+  "preparation_sha256": "64716664859bfc5ed4b86b7a54247c22a867109c5aca5d198479247427496191",
+  "terminal": {
+    "state": "RESOURCE_OR_MONITOR_ABORT",
+    "phase": "execute-1F-E7-single-pixel-retention",
+    "abort_reason": "Cannot convert argument \"h\", with value: \"\", for \"Times\" to type \"System.IntPtr\": \"Cannot convert null to type \"System.IntPtr\".\"",
+    "actual_pid": 62184,
+    "actual_creation_utc": "2026-10-24T03:24:01.820542Z",
+    "actual_exit_code": null,
+    "launcher_exit_code": null,
+    "wall_s": 12.2774879,
+    "HEAD": "f12e1fd25fbb2324e6abe6592a3427acba93e4ad",
+    "phase_plan_sha256": "105483cf59e2e5e1dcfbc03f70504bb7d6a5e35a2b109e78be4d185fc092f860",
+    "all_owned_exited": true,
+    "evidence": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-single-pixel-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\single-pixel-preflight\\monitor-execute-1F-E7-single-pixel-retention-20261024T032400",
+    "ended_utc": "2026-10-24T03:24:14.0206958Z",
+    "acceptance": false
+  },
+  "terminal_sha256": "a9d8c19667bdde5cdc599983fc8e5fdeed60aa3cbf96491666667547c1bc1f04",
+  "cleanup_sha256": "7f62b48a1acbc65df0470a89d544a2bf34aef0c10f0690e2b10d21bf89bbf765",
+  "identities_sha256": "d4202e7346d2f64d0c85fa7d4940a6521f1c39fe2b9f4729f993fdb4e6148d49",
+  "paths": [
+    {
+      "exists": false,
+      "path": "D:/LLM_BACKUP/Codex session/main-infra-1f-e7-single-pixel-retention-20261024/05-Corllenium-UC-Building-Repair-Engine/data/main-infra-e7/run-20261024-1F-single-pixel-retention/execution-1F"
+    },
+    {
+      "exists": false,
+      "path": "D:/LLM_BACKUP/Codex session/main-infra-1f-e7-single-pixel-retention-20261024/05-Corllenium-UC-Building-Repair-Engine/data/main-infra-e7/run-20261024-1F-single-pixel-retention/execution-1F/worker.json"
+    },
+    {
+      "exists": false,
+      "path": "D:/LLM_BACKUP/Codex session/main-infra-1f-e7-single-pixel-retention-20261024/05-Corllenium-UC-Building-Repair-Engine/data/main-infra-e7/run-20261024-1F-single-pixel-retention/execution-1F/checked-outcome"
+    },
+    {
+      "exists": false,
+      "path": "D:/LLM_BACKUP/Codex session/main-infra-1f-e7-single-pixel-retention-20261024/05-Corllenium-UC-Building-Repair-Engine/data/main-infra-e7/run-20261024-1F-single-pixel-retention/1F"
+    }
+  ],
+  "stdout_bytes": 0,
+  "stderr_bytes": 0,
+  "classification": "monitor failure before worker; no geometry verdict",
+  "retry_authorized": false,
+  "acceptance": false
+}

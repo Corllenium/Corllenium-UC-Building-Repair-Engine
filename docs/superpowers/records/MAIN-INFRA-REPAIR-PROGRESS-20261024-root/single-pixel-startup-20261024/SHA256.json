@@ -1,0 +1,32 @@
+[
+  {
+    "path": "prepare-readiness.json",
+    "bytes": 13898,
+    "sha256": "6fb08b60550af20eadacea00ce27ae272229c2458cbe9eb7fafa72dcb8cf6dac"
+  },
+  {
+    "path": "preparation-readback.json",
+    "bytes": 22051,
+    "sha256": "bf3732a9dce10576d2b1fff489d7398c2a26d6b4079dcfaa06ca7e3838d31205"
+  },
+  {
+    "path": "execute-abort-readback.json",
+    "bytes": 2583,
+    "sha256": "9194cd7cb463d0452f4e51bf36065c665836644e2cd7ecf494e83d92447d2dae"
+  },
+  {
+    "path": "actual-execute-terminal.json",
+    "bytes": 905,
+    "sha256": "a9d8c19667bdde5cdc599983fc8e5fdeed60aa3cbf96491666667547c1bc1f04"
+  },
+  {
+    "path": "actual-execute-cleanup.json",
+    "bytes": 328,
+    "sha256": "7f62b48a1acbc65df0470a89d544a2bf34aef0c10f0690e2b10d21bf89bbf765"
+  },
+  {
+    "path": "actual-prepare-terminal.json",
+    "bytes": 755,
+    "sha256": "639df0acb2e8e7a6c31af5e71e6ffa41d40616b90332233eb79e5b402bf3ef98"
+  }
+]

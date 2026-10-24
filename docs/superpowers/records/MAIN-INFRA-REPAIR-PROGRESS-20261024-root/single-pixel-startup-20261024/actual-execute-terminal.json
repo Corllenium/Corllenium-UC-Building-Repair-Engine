@@ -1,0 +1,16 @@
+{
+  "state": "RESOURCE_OR_MONITOR_ABORT",
+  "phase": "execute-1F-E7-single-pixel-retention",
+  "abort_reason": "Cannot convert argument \"h\", with value: \"\", for \"Times\" to type \"System.IntPtr\": \"Cannot convert null to type \"System.IntPtr\".\"",
+  "actual_pid": 62184,
+  "actual_creation_utc": "2026-10-24T03:24:01.8205420Z",
+  "actual_exit_code": null,
+  "launcher_exit_code": null,
+  "wall_s": 12.2774879,
+  "HEAD": "f12e1fd25fbb2324e6abe6592a3427acba93e4ad",
+  "phase_plan_sha256": "105483cf59e2e5e1dcfbc03f70504bb7d6a5e35a2b109e78be4d185fc092f860",
+  "all_owned_exited": true,
+  "evidence": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-single-pixel-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\single-pixel-preflight\\monitor-execute-1F-E7-single-pixel-retention-20261024T032400",
+  "ended_utc": "2026-10-24T03:24:14.0206958Z",
+  "acceptance": false
+}
