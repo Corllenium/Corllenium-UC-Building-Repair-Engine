@@ -1,0 +1,22 @@
+[
+  {
+    "path": "live-verification.json",
+    "bytes": 3414,
+    "sha256": "fd62ef6beb3146828afbb0d293eff28c32dd60855bbcc4214a1f03ee13c2b49c"
+  },
+  {
+    "path": "publication.log",
+    "bytes": 961,
+    "sha256": "9494f9e24aa48199f70c362332b7f27e4ad60daaeb9c5728890fb1793845f0ee"
+  },
+  {
+    "path": "2F-live-face-overlay.png",
+    "bytes": 330290,
+    "sha256": "b377cc10aba8741450be222e1453c4cd535cd5a71e257a1eec85f3bf1b163bf4"
+  },
+  {
+    "path": "live-source-SHA256.json",
+    "bytes": 2099,
+    "sha256": "b4f71fc5c12444aac1cfd19c50f1b8ef0a47088e4d9af5d75f860712881f6ffc"
+  }
+]

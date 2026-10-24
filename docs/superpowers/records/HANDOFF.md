@@ -25,6 +25,15 @@ run the latest `.skp` of each file must be in `OBJ FIXED RESULT/` for the owner 
 
 ## 2. Current state (2026-09-26 00:15, written by the Claude controller)
 
+### 2026-10-24T03:09:47.965880+00:00 - 2F After and all seven measured error filters verified live
+
+Six new2F JSON maps/raw/previews published from committed private source with6/6hashes inbothhostingroots and6/6publicHTTP (archive840f32ba). Source56828/399663bed andsavedcandidate38134/07bbaacc remainunchanged,9materials; Failed17/native+signedNOT_RUN/unaccepted preserved. Rootfound old sources-published.json was replacing source_preview everyheartbeat; updatedonly2Freference to actualnewsource mapmanifest, preserving3F. No publisher/runtimecodechange/restart needed. Canonical source+candidate preview-errors-c6e4c1e URLs and actualcensus31036terminal/countsevent nowlive.
+
+Actualauthenticatedbrowser2026-10-24T03:06:28.676Z exit0:7exactBefore/Afterlabels/all8checkboxesenabled;FlickerDiff/OpenEdges/Cracks eachchangebothcanvases,isolatedOpenEdgeschangeboth;9originalmaterials,triangleedgesboth,Xray;7realworker-events,55HTTP200statuspolls,0page/authenticatedHTTPerrors,no390pxoverflow,logout204. Manifest+mapHTTPsha/OBJbindings reverified inbrowser. Rootopenedactualred-overlayimage:BeforeleftanddistinctsavedAfterrightbothrendered. Public2Fopen7126->10024/reversed0->1increases remainvisible. Browserclosed/allownedQAresourcesgone. LiveQA requiredrunningcopyundertheexistingdashboarddependencyroot; firstdocs-onlyrunfailedESMpackage resolutionbeforebrowserlaunch, preservedfailure, noinstall. Copiedharnesslogoutassertion correctedto actual204beforeactualrun.
+
+PrivateSiege62c6dcd30344415a80c3c3f7258c4cf572ac4394 pushed;existingdraftPR39 title/bodyupdatedactualscope/validationlimits; no merge/publicenginepush. SameUI880cd2e; onlyimmutablemodelsJSONdelivery. RootopenednewliveURLinCodexpanel,toolqueued; no claimthatuser'sexistingtabrefreshed. Evidencecopiedunderlive-2f-errors-20261024/SHA256.json. 1F remainsdisplayed10410withitsownmaps; new10662nativeFAIL1preserved. Corrective1Fsinglepixelprofile1c53e51 testsactual16PASS4.20s; modelprepare/execute notrunatthischeckpoint. Codex1-3/Claude4-7unchanged;noacceptedfloor.
+
+
 ### 2026-10-24 11:02 SGT - actual 1F saved output and one-pixel native failure; 2F After live
 
 Actual E7 repair 29104/start02:07:39.2223934Z completed exit0/noabort/allgone02:19:10.3330430Z after691.27s. Frozen c67b68a/Pb5ad5a81 saved 10,662 triangles from161kept/13freshrolled cuts. Source4b505768/enginee77235b8/checkpoint6a9f0e22 and7texture assets were read back; all723 protected/rollback original parents survive unchanged. These are actual saved files, separate from the displayed10,410 inspection.
