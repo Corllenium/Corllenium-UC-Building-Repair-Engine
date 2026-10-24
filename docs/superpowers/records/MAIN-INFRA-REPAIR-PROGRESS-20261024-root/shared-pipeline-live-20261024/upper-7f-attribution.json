@@ -1,0 +1,213 @@
+{
+  "schema_version": 1,
+  "mode": "read_only_saved_lineage_attribution",
+  "acceptance": false,
+  "casts_run": false,
+  "floor": "7F",
+  "source_ownership_released": false,
+  "os_exit_code": null,
+  "os_end_utc": null,
+  "rows": [
+    {
+      "original": 8384,
+      "kind": "covered",
+      "pixels": 196.8,
+      "e3_index": 6396,
+      "e5_index": -1,
+      "first_absent_stage": "E5",
+      "removals": [
+        {
+          "stage": "E5",
+          "site": 233,
+          "faces": [
+            6396,
+            6397,
+            12818
+          ],
+          "n_removed": 3,
+          "reason": "E5 coincident layer: 3 face(s) of connected group 233 lying on the same plane as, facing the same way as, and covered at least 98% by larger or higher-priority faces that stay ({'interior_twins': 3}); the Validator's own double-layer pairs at depth tolerance 0.0001 in"
+        }
+      ],
+      "covering_faces": [],
+      "viewpoint": {
+        "kind": "probe",
+        "index": 924,
+        "at": [
+          925.195,
+          -1358.2685,
+          402.5669
+        ]
+      },
+      "crop": "floor/face-08384.png"
+    },
+    {
+      "original": 14087,
+      "kind": "covered",
+      "pixels": 85.0,
+      "e3_index": -1,
+      "e5_index": -1,
+      "first_absent_stage": "E3",
+      "removals": [
+        {
+          "stage": "E3",
+          "site": 1165,
+          "faces": [
+            14087,
+            14088
+          ],
+          "n_removed": 2,
+          "reason": "E3 hidden: 2 face(s) of connected group 1165 (2 faces) that the legacy pass 1 removes (exposure 0 from every outside direction, confirmed by its strict guard); none of zero area (E1's), none a slab side, none seen by an eye-height probe, none seen at any point of its 36-point lattice"
+        }
+      ],
+      "covering_faces": [],
+      "viewpoint": {
+        "kind": "direction",
+        "index": 15,
+        "at": [
+          -0.6475,
+          -0.7225,
+          -0.2422
+        ]
+      },
+      "crop": "floor/face-14087.png"
+    },
+    {
+      "original": 16674,
+      "kind": "covered",
+      "pixels": 61.0,
+      "e3_index": 12818,
+      "e5_index": -1,
+      "first_absent_stage": "E5",
+      "removals": [
+        {
+          "stage": "E5",
+          "site": 233,
+          "faces": [
+            6396,
+            6397,
+            12818
+          ],
+          "n_removed": 3,
+          "reason": "E5 coincident layer: 3 face(s) of connected group 233 lying on the same plane as, facing the same way as, and covered at least 98% by larger or higher-priority faces that stay ({'interior_twins': 3}); the Validator's own double-layer pairs at depth tolerance 0.0001 in"
+        }
+      ],
+      "covering_faces": [],
+      "viewpoint": {
+        "kind": "direction",
+        "index": 13,
+        "at": [
+          -0.7822,
+          0.5863,
+          -0.2109
+        ]
+      },
+      "crop": "floor/face-16674.png"
+    },
+    {
+      "original": 14059,
+      "kind": "covered",
+      "pixels": 14.0,
+      "e3_index": -1,
+      "e5_index": -1,
+      "first_absent_stage": "E3",
+      "removals": [
+        {
+          "stage": "E3",
+          "site": 1163,
+          "faces": [
+            14059,
+            14060
+          ],
+          "n_removed": 2,
+          "reason": "E3 hidden: 2 face(s) of connected group 1163 (2 faces) that the legacy pass 1 removes (exposure 0 from every outside direction, confirmed by its strict guard); none of zero area (E1's), none a slab side, none seen by an eye-height probe, none seen at any point of its 36-point lattice"
+        }
+      ],
+      "covering_faces": [],
+      "viewpoint": {
+        "kind": "direction",
+        "index": 2,
+        "at": [
+          -0.8111,
+          -0.5836,
+          -0.0391
+        ]
+      },
+      "crop": "floor/face-14059.png"
+    },
+    {
+      "original": 15438,
+      "kind": "removed",
+      "pixels": 7.0,
+      "e3_index": -1,
+      "e5_index": -1,
+      "first_absent_stage": "E3",
+      "removals": [
+        {
+          "stage": "E3",
+          "site": 1201,
+          "faces": [
+            15438
+          ],
+          "n_removed": 1,
+          "reason": "E3 hidden: 1 face(s) of connected group 1201 (1 faces) that the legacy pass 1 removes (exposure 0 from every outside direction, confirmed by its strict guard); none of zero area (E1's), none a slab side, none seen by an eye-height probe, none seen at any point of its 36-point lattice"
+        }
+      ],
+      "covering_faces": [],
+      "viewpoint": {
+        "kind": "extra direction",
+        "index": 326,
+        "at": [
+          -0.1372,
+          -0.758,
+          -0.6377
+        ]
+      },
+      "crop": "floor/face-15438.png"
+    }
+  ],
+  "counts": {
+    "retained_into_e4": 0,
+    "first_absent_e3": 3,
+    "failed_originals": 5,
+    "first_absent_e5": 2
+  },
+  "limitations": [
+    "Saved report has empty covering_faces for all five; no causal E4 coverer can be inferred",
+    "Face IDs composed through E3 original-survivor map then E5 E3-input-survivor map; no new visibility measurement",
+    "E4 excludes or replay alone cannot recreate parents already absent in its input"
+  ],
+  "pins": [
+    {
+      "path": "D:/PROJECTS/05-Corllenium-UC-Building-Repair-Engine/.claude/worktrees/MAIN-INFRA-CLAUDE-4F-7F-20261023/data/main-infra-fresh/run-claude-4f-7f-20261023/e3/7F/source-faces.json",
+      "sha256": "641d52e8c5e2a2e695008507cc4cdd9a6b73dc5fb0d7e9c30c17ef6574e5393b"
+    },
+    {
+      "path": "D:/PROJECTS/05-Corllenium-UC-Building-Repair-Engine/.claude/worktrees/MAIN-INFRA-CLAUDE-4F-7F-20261023/data/main-infra-fresh/run-claude-4f-7f-20261023/e5/7F/source-faces.json",
+      "sha256": "3229953025f5cd51acb73aa29d0c79c50defeb08875f100e65a824b4b27ed61b"
+    },
+    {
+      "path": "D:/PROJECTS/05-Corllenium-UC-Building-Repair-Engine/.claude/worktrees/MAIN-INFRA-CLAUDE-4F-7F-20261023/data/main-infra-fresh/run-claude-4f-7f-20261023/e4/7F-round1/region-map.json",
+      "sha256": "d1688f8e7a4ed03492e203b1d211097866d3613c4351aa022b13ba76f9f721c5"
+    },
+    {
+      "path": "D:/PROJECTS/05-Corllenium-UC-Building-Repair-Engine/.claude/worktrees/MAIN-INFRA-CLAUDE-4F-7F-20261023/data/main-infra-fresh/run-claude-4f-7f-20261023/e3/7F/edit-log.jsonl",
+      "sha256": "1aa97f9aee52a6451d89e701f6f2d7f9c3de1342f048a1a3d94586ed52f76d63"
+    },
+    {
+      "path": "D:/PROJECTS/05-Corllenium-UC-Building-Repair-Engine/.claude/worktrees/MAIN-INFRA-CLAUDE-4F-7F-20261023/data/main-infra-fresh/run-claude-4f-7f-20261023/e5/7F/edit-log.jsonl",
+      "sha256": "4bd40b99d3a7b1492e477692d07ff7d810bb3891643df72f6476ef9f6e1da475"
+    },
+    {
+      "path": "D:/PROJECTS/05-Corllenium-UC-Building-Repair-Engine/.claude/worktrees/MAIN-INFRA-CLAUDE-4F-7F-20261023/data/main-infra-fresh/run-claude-4f-7f-20261023/e4/7F-round1/edit-log.jsonl",
+      "sha256": "f9e1ded9c8c5d74ab6f31fc2c2533a20c50a44449a5162b8be792691052256e5"
+    },
+    {
+      "path": "D:/PROJECTS/05-Corllenium-UC-Building-Repair-Engine/.claude/worktrees/MAIN-INFRA-CLAUDE-4F-7F-20261023/data/main-infra-fresh/run-claude-4f-7f-20261023/independent-validator/e4-validation/7F-round1/validation.json",
+      "sha256": "2f988d0f525670d3f5589a7c8fce3232c11f22c886a8a3df3faba37076f10462"
+    },
+    {
+      "path": "D:/PROJECTS/05-Corllenium-UC-Building-Repair-Engine/.claude/worktrees/MAIN-INFRA-CLAUDE-4F-7F-20261023/data/main-infra-fresh/run-claude-4f-7f-20261023/e4/7F-replay-summary.json",
+      "sha256": "cb92f79b995d35f150d52951646de8a0f7e4d9611af0ca56ee187fc3aaefd362"
+    }
+  ]
+}

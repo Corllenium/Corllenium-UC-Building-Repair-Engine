@@ -1,0 +1,12 @@
+{
+  "state": "RUNNING",
+  "phase": "shared-layout-focused-checks-and-production-build",
+  "actual_pid": 48228,
+  "actual_creation_utc": "2026-10-24T08:11:16.0790172Z",
+  "launcher_pid": 53868,
+  "monitor_pid": 23932,
+  "command": "C:\\Users\\Future26\\AppData\\Local\\Programs\\Python\\Python312\\python.exe -B -u dashboard\\.evidence\\run-shared-layout-checks-build.py",
+  "HEAD": "fc06aea5c2e7b3083d56ea58c18ea236f18421d7",
+  "phase_plan_sha256": "6a2e6547984dcefc60dd48f94d793fa5a2a32f9dfe739530cf99e3e67a649464",
+  "evidence": "dashboard\\.evidence\\shared-layout-build-20261024\\monitor-shared-layout-focused-checks-and-production-build-20261024T081114"
+}

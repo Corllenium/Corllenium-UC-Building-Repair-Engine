@@ -1,0 +1,171 @@
+{
+  "schema_version": 1,
+  "artifacts": [
+    {
+      "path": "1F-actual-engine-log.png",
+      "source": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\.evidence\\live-logs-20261024\\live-shared-pipeline-main-infra-10652\\1F-actual-engine-log.png",
+      "bytes": 93286,
+      "sha256": "dc4904d8147d0584059513a579aaf477591b68558c5e86f5627500b6ff759275"
+    },
+    {
+      "path": "1F-live-before-after-textures.png",
+      "source": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\.evidence\\live-logs-20261024\\live-shared-pipeline-main-infra-10652\\1F-live-before-after-textures.png",
+      "bytes": 321147,
+      "sha256": "e5b1e728cf191fb3c8b7842cdc2bbde976900089ada3229c5dfd6c44e3f1a11f"
+    },
+    {
+      "path": "1F-live-error-filters-mobile-390.png",
+      "source": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\.evidence\\live-logs-20261024\\live-shared-pipeline-main-infra-10652\\1F-live-error-filters-mobile-390.png",
+      "bytes": 18851,
+      "sha256": "78d02c40dc67574a7359cd8f41105ebc4c37bb18e4a969d96a93b08d75f4f024"
+    },
+    {
+      "path": "1F-live-isolated-open-edges.png",
+      "source": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\.evidence\\live-logs-20261024\\live-shared-pipeline-main-infra-10652\\1F-live-isolated-open-edges.png",
+      "bytes": 336715,
+      "sha256": "cb4571f2ac4a5c54c60d414fb4dcceca78d897af8e2b2f947473398d576058bc"
+    },
+    {
+      "path": "1F-live-material-colours-triangle-edges.png",
+      "source": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\.evidence\\live-logs-20261024\\live-shared-pipeline-main-infra-10652\\1F-live-material-colours-triangle-edges.png",
+      "bytes": 342393,
+      "sha256": "272dd7f5da855505a5dd2573f8e125ab29c70b5b218b4877fdf1d0cc5339b624"
+    },
+    {
+      "path": "1F-live-measured-seven-error-filters.png",
+      "source": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\.evidence\\live-logs-20261024\\live-shared-pipeline-main-infra-10652\\1F-live-measured-seven-error-filters.png",
+      "bytes": 19198,
+      "sha256": "352dc7bb87d24be362c005b8ba9e0f95ceebb537d869ac8fb54ae832484d7f1e"
+    },
+    {
+      "path": "1F-live-overlay-Cracks--T-Junc-.png",
+      "source": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\.evidence\\live-logs-20261024\\live-shared-pipeline-main-infra-10652\\1F-live-overlay-Cracks--T-Junc-.png",
+      "bytes": 316129,
+      "sha256": "5d1f4ec5e8b4289b6526b3359503414baecdb95a664a0fd2055dd5d6e23fa940"
+    },
+    {
+      "path": "1F-live-overlay-Flicker--Diff-.png",
+      "source": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\.evidence\\live-logs-20261024\\live-shared-pipeline-main-infra-10652\\1F-live-overlay-Flicker--Diff-.png",
+      "bytes": 321734,
+      "sha256": "92abb8b6582d1b47ca2c51e23ebba6e05275838b9d51368f0cb909114878d07b"
+    },
+    {
+      "path": "1F-live-overlay-Open-Edges.png",
+      "source": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\.evidence\\live-logs-20261024\\live-shared-pipeline-main-infra-10652\\1F-live-overlay-Open-Edges.png",
+      "bytes": 328307,
+      "sha256": "a6350a5e547255757f76775010479af4aaa889187bc23c0f00610518783ccf45"
+    },
+    {
+      "path": "1F-live-pending-inspection.png",
+      "source": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\.evidence\\live-logs-20261024\\live-shared-pipeline-main-infra-10652\\1F-live-pending-inspection.png",
+      "bytes": 321145,
+      "sha256": "6b88129491ce8c425f5c008adb9a6bb1cee0bf6a2e13582cbdf7fa3e47386abb"
+    },
+    {
+      "path": "1F-live-xray.png",
+      "source": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\.evidence\\live-logs-20261024\\live-shared-pipeline-main-infra-10652\\1F-live-xray.png",
+      "bytes": 353220,
+      "sha256": "234e9d249ef31027a96c936374bf0f2009af7e4a38da2f3ed6d705909783ca40"
+    },
+    {
+      "path": "1F-shared-horizontal-six-stages.png",
+      "source": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\.evidence\\live-logs-20261024\\live-shared-pipeline-main-infra-10652\\1F-shared-horizontal-six-stages.png",
+      "bytes": 93006,
+      "sha256": "614e4545ba7451d78eaa8d8f59989eb4daa2508fa7db814eebf83700fa247644"
+    },
+    {
+      "path": "1F-shared-left-filters-and-models.png",
+      "source": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\.evidence\\live-logs-20261024\\live-shared-pipeline-main-infra-10652\\1F-shared-left-filters-and-models.png",
+      "bytes": 321145,
+      "sha256": "6b88129491ce8c425f5c008adb9a6bb1cee0bf6a2e13582cbdf7fa3e47386abb"
+    },
+    {
+      "path": "CHTM-shared-horizontal-six-stages.png",
+      "source": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\.evidence\\live-logs-20261024\\live-shared-pipeline-main-infra-10652\\CHTM-shared-horizontal-six-stages.png",
+      "bytes": 166166,
+      "sha256": "d3fc69c98d3556b3525323f4ebf9540bad2ba9d67ad03a5a38b33d67c19dc70d"
+    },
+    {
+      "path": "CHTM-shared-left-error-table.png",
+      "source": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\.evidence\\live-logs-20261024\\live-shared-pipeline-main-infra-10652\\CHTM-shared-left-error-table.png",
+      "bytes": 52550,
+      "sha256": "b7fe604c0d43a03be968c83ec1521806ad06560dd5e7aa4fdf02b52194018b7d"
+    },
+    {
+      "path": "live-floor-status.png",
+      "source": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\.evidence\\live-logs-20261024\\live-shared-pipeline-main-infra-10652\\live-floor-status.png",
+      "bytes": 144963,
+      "sha256": "995e6068966660a63ed166ba34227459b5ef943411cd92b206fc266c6be6bdd1"
+    },
+    {
+      "path": "live-log-mobile-390.png",
+      "source": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\.evidence\\live-logs-20261024\\live-shared-pipeline-main-infra-10652\\live-log-mobile-390.png",
+      "bytes": 77867,
+      "sha256": "7453cf1c6dc2c22e0316e71bf5b147bbb4938f3e904cb72065da5f34fc7589fd"
+    },
+    {
+      "path": "verification.json",
+      "source": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\.evidence\\live-logs-20261024\\live-shared-pipeline-main-infra-10652\\verification.json",
+      "bytes": 100468,
+      "sha256": "42ed825324a740528217e707a8e7cfa80b87aa22f674d261b3e637ba2940ff27"
+    },
+    {
+      "path": "build-phase.json",
+      "source": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\.evidence\\shared-layout-build-20261024\\phase-build.json",
+      "bytes": 115755,
+      "sha256": "6a2e6547984dcefc60dd48f94d793fa5a2a32f9dfe739530cf99e3e67a649464"
+    },
+    {
+      "path": "build-terminal.json",
+      "source": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\.evidence\\shared-layout-build-20261024\\monitor-shared-layout-focused-checks-and-production-build-20261024T081114\\result.json",
+      "bytes": 681,
+      "sha256": "2446ad8c6171ee580c52676c84f020efebf46bd383ba1bf8c40fc1d8a2d269bb"
+    },
+    {
+      "path": "build-identity.json",
+      "source": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\.evidence\\shared-layout-build-20261024\\monitor-shared-layout-focused-checks-and-production-build-20261024T081114\\actual-identity.json",
+      "bytes": 671,
+      "sha256": "acba65b849340c096360a33227cd1f51e090a01d6cecd56e1b582e793deb1396"
+    },
+    {
+      "path": "build-stdout.txt",
+      "source": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\.evidence\\shared-layout-build-20261024\\monitor-shared-layout-focused-checks-and-production-build-20261024T081114\\stdout.txt",
+      "bytes": 2119,
+      "sha256": "61b130ad3428bb045132d9079150193ef40b2f121f8f49755604bdac13607ae8"
+    },
+    {
+      "path": "build-stderr.txt",
+      "source": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\.evidence\\shared-layout-build-20261024\\monitor-shared-layout-focused-checks-and-production-build-20261024T081114\\stderr.txt",
+      "bytes": 974,
+      "sha256": "83f4d28900caf795f1edef7d0d1ca2c362cbaaa4ac9b63b91af768d7c6c35cd8"
+    },
+    {
+      "path": "live-deploy.txt",
+      "source": "D:\\PROJECTS\\UC MODEL FIXER\\data\\siege-live-20261023\\ui-shared-layout-deploy-20261024.log",
+      "bytes": 1113,
+      "sha256": "fa5302f40277d0511f0cb5d792a72eb9841b1d62cf5340d0f222619d0872193b"
+    },
+    {
+      "path": "actual-e4-noop.json",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-e4-strict-runner-writer-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\e4-runner-writer-preflight\\actual-e4-readback.json",
+      "bytes": 34784,
+      "sha256": "cc635c7453e7cbb04654f4025104c4fbbb8211be90ce00fad561359262f22f9d"
+    },
+    {
+      "path": "upper-handoff-v3.json",
+      "source": "D:\\PROJECTS\\UC MODEL FIXER\\data\\iv-handoff-audit-20261024\\claude-upper-handoff-checkpoint-v3.json",
+      "bytes": 57551,
+      "sha256": "1213c86df9198764db87033521d105a13837fb4fc51d99ad165151e004b31709"
+    },
+    {
+      "path": "upper-7f-attribution.json",
+      "source": "D:\\PROJECTS\\UC MODEL FIXER\\data\\iv-handoff-audit-20261024\\7f-five-failed-saved-lineage.json",
+      "bytes": 7712,
+      "sha256": "d380e1a44c8b76c182cd808bc71d10fce00238b28ea3dfab5a9cdd9dec79f76f"
+    }
+  ],
+  "model_acceptance": false,
+  "visuals_local_only": true,
+  "live_ui_build": "fc06aea5c2e7b3083d56ea58c18ea236f18421d7",
+  "private_code_commit": "c88600b"
+}

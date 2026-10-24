@@ -1,0 +1,7 @@
+/tmp/main-infra-shared-pipeline-fc06aea-20261024T081816Z.deploy.sh: OK
+CAPTURED_HEALTHY_API cedb7c53c35b0599585c17b214f3c29e1dfb7b9f
+PREFLIGHT_OK main-infra-shared-pipeline-fc06aea-20261024T081816Z; both old route trees backed up
+FILESYSTEM_OK 69/69 hashes in both roots
+PUBLIC_HASHES 25/69
+PUBLIC_HASHES 50/69
+{"deploy_id":"main-infra-shared-pipeline-fc06aea-20261024T081816Z","build_sha":"fc06aea5c2e7b3083d56ea58c18ea236f18421d7","api_sha_before_after":"cedb7c53c35b0599585c17b214f3c29e1dfb7b9f","status_binding_preserved":true,"status_timestamps_may_change":true,"status_files_written":false,"status_sha_before":["4c349af92ce3ca70a423f1a3098057999c3d5c587759a7616436a66998a50cbd","4c349af92ce3ca70a423f1a3098057999c3d5c587759a7616436a66998a50cbd"],"status_sha_after":["4c349af92ce3ca70a423f1a3098057999c3d5c587759a7616436a66998a50cbd","4c349af92ce3ca70a423f1a3098057999c3d5c587759a7616436a66998a50cbd"],"filesystem_hashes_per_root":69,"public_hashes":69,"backup":"/home/devenvir/corllenium/backups/main-infra-shared-pipeline-fc06aea-20261024T081816Z","app_restart":false,"live_producer_action":"none"}

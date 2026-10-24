@@ -1,0 +1,71 @@
+2026-10-24T08:11:16.169462+00:00 building_regressions START
+
+ RUN  v5.0.3 D:/PROJECTS/05-Corllenium-UC-Building-Repair-Engine/.claude/worktrees/SIEGE-MAIN-INFRA-LIVE-20261023/dashboard
+
+
+ Test Files  15 passed (15)
+      Tests  87 passed (87)
+   Start at  16:11:19
+   Duration  36.24s (environment 68%, setup 21%, tests 6%, import 4%, transform 1%)
+
+Environment  jsdom was created 15 times · 23.29s total, 68% of tracked time
+             create it once per worker with pool: 'vmThreads' (keeps per-file isolation) or isolate: false (shares it across files)
+             learn more: https://vitest.dev/guide/improving-performance#test-environments
+
+building_regressions EXIT 0
+2026-10-24T08:11:56.060635+00:00 write_build_identity START
+write_build_identity EXIT 0
+2026-10-24T08:11:56.154901+00:00 production_static_build START
+▲ Next.js 16.3.8 (Turbopack)
+✓ Running next.config.ts took 97ms
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 10.6s
+  Running TypeScript ...
+  Finished TypeScript in 7.8s ...
+  Collecting page data using 15 workers ...
+  Generating static pages using 15 workers (0/33) ...
+  Generating static pages using 15 workers (8/33) 
+  Generating static pages using 15 workers (16/33) 
+  Generating static pages using 15 workers (24/33) 
+✓ Generating static pages using 15 workers (33/33) in 426ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ○ /
+├ ○ /_not-found
+├ ○ /agents
+├ ○ /archive
+├ ○ /assets
+├ ○ /buildings
+├ ○ /characters
+├ ○ /characters/library
+├ ○ /docs
+├ ○ /home
+├ ○ /inbox
+├ ○ /jobs
+├ ○ /legacy
+├ ○ /login
+├ ○ /map
+├ ○ /model-review
+├ ○ /pipelines
+├ ○ /pipelines/abilities
+├ ○ /pipelines/buildings
+├ ○ /pipelines/floorplans
+├ ○ /pipelines/jev-repair
+├ ○ /pipelines/pipeline-mapping
+├ ○ /questions
+├ ○ /review
+├ ○ /roadmap
+├ ○ /schedule
+├ ○ /settings
+├ ○ /studio
+├ ○ /tasks
+├ ○ /tools
+└ ○ /universe
+
+
+○  (Static)  prerendered as static content
+
+production_static_build EXIT 0
+SHARED_LAYOUT_CHECKS_AND_BUILD_PASS

@@ -1,0 +1,16 @@
+{
+  "state": "PROCESS_EXITED_ZERO",
+  "phase": "shared-layout-focused-checks-and-production-build",
+  "abort_reason": null,
+  "actual_pid": 48228,
+  "actual_creation_utc": "2026-10-24T08:11:16.0790172Z",
+  "actual_exit_code": 0,
+  "launcher_exit_code": 0,
+  "wall_s": 70.1346582,
+  "HEAD": "fc06aea5c2e7b3083d56ea58c18ea236f18421d7",
+  "phase_plan_sha256": "6a2e6547984dcefc60dd48f94d793fa5a2a32f9dfe739530cf99e3e67a649464",
+  "all_owned_exited": true,
+  "evidence": "dashboard\\.evidence\\shared-layout-build-20261024\\monitor-shared-layout-focused-checks-and-production-build-20261024T081114",
+  "ended_utc": "2026-10-24T08:12:26.1449178Z",
+  "acceptance": false
+}

@@ -1,0 +1,1943 @@
+{
+  "schema_version": 1,
+  "phase": "shared-layout-focused-checks-and-production-build",
+  "HEAD": "fc06aea5c2e7b3083d56ea58c18ea236f18421d7",
+  "gate_8gib": true,
+  "args": [
+    "-B",
+    "-u",
+    "dashboard/.evidence/run-shared-layout-checks-build.py"
+  ],
+  "pins": [
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\.evidence\\run-shared-layout-checks-build.py",
+      "sha256": "7162da4f3202af2d7d7102b6b050aa34a334ed3bb1d471cab8c0391183450fcf"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\.evidence\\shared-layout-build-20261024\\run-diagnostic-v5.ps1",
+      "sha256": "7a4a9e8111ff8d74f972c9ea104da3c449d618efa36dd49320831217e7976afc"
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-resource-monitor-v5-20261024\\05-Corllenium-UC-Building-Repair-Engine\\docs\\superpowers\\records\\MAIN-INFRA-RESOURCE-MONITOR-V5-20261024\\execute-resource-guard-v5.ps1",
+      "sha256": "f158802651c955b6b322140ff9567496c527cd1bac0e63598171c45eeea60e12"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.venv\\Scripts\\python.exe",
+      "sha256": "0b471133e110cfb53a061cad528ce8e517d7b9ac41a0a396c39ad795a487fc14"
+    },
+    {
+      "path": "C:\\Users\\Future26\\AppData\\Local\\Programs\\Python\\Python312\\python.exe",
+      "sha256": "4d6f5f81a4bca11191c4c7c6b43632694d0a4ce74e068619d8fdc161d469859a"
+    },
+    {
+      "path": "C:\\Program Files\\nodejs\\node.exe",
+      "sha256": "9a4eb5f1c29c6a2e93852ead46b999e284a6a5ca8bab4d4e241d587d025a52de"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\app\\(auth)\\login\\page.tsx",
+      "sha256": "9625b969592561c03ea898ee671b250afcc82402a6edf2c6157cb7a4d51a43f1"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\app\\(dash)\\agents\\page.tsx",
+      "sha256": "a875f6fb4023941d939ac7b045034b4099498850601cf22630f6541c92690c7f"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\app\\(dash)\\archive\\page.test.tsx",
+      "sha256": "aec91acdc59baf84fcf9fe1ab9c4d575c2f2ef9af897785e0db034a35f4fa60e"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\app\\(dash)\\archive\\page.tsx",
+      "sha256": "e962ccd302116ed3d1c817d9ee3b3b434938710beb3af0ee7e25b2975f8b6a55"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\app\\(dash)\\assets\\page.test.tsx",
+      "sha256": "4439dd38e868720d75082925bd7f3275a20b12d07f8d28273d9d5de340ba660c"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\app\\(dash)\\assets\\page.tsx",
+      "sha256": "a94cdb7c0ff15890536c1228037c1d71bbacdc1dfb5ce1dd695230877dff4e15"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\app\\(dash)\\buildings\\page.tsx",
+      "sha256": "19dd2c526b4a5f943ed71735204447a82cbe8ae307488f5665504aeb47683131"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\app\\(dash)\\characters\\layout.tsx",
+      "sha256": "8e4adfe4deb57d7462667dc995e7ed2b04399c5c22166b85f28fc0f2da28273f"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\app\\(dash)\\characters\\library\\layout.tsx",
+      "sha256": "9216a03bb0aa8ca666708ad1fafb4910067f07d63d48cedcf82ad4d8ebe958f4"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\app\\(dash)\\characters\\library\\library.css",
+      "sha256": "b65a7bbaa62a43f3f74eeee29ee23493fa58fdf64b4a99c8405490e44b558058"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\app\\(dash)\\characters\\library\\page.test.tsx",
+      "sha256": "c345155d7108697ba152353c3207ae46d8e0f4268665355057de73a931bc99a1"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\app\\(dash)\\characters\\library\\page.tsx",
+      "sha256": "44a344cdcdce455c7574979fdf8cda53e281281d2c5a01e9e3ef2eef89f6ef0c"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\app\\(dash)\\characters\\page.tsx",
+      "sha256": "c7f9f71956a3137a47aabb2c1ce331eedd3b52360318ac03447fbfd1bb7320a9"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\app\\(dash)\\docs\\page.test.tsx",
+      "sha256": "b947a1de87e307a18ee933182aa6b1b356bf2205a917a5be0897786f2ebc68ca"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\app\\(dash)\\docs\\page.tsx",
+      "sha256": "a60513a6c451c41a75ebc13465c6e4d3a0d35204a9cb497e29e56a045476d90f"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\app\\(dash)\\home\\page.test.tsx",
+      "sha256": "928c334295237298fd7c4e5c67e6f3a693e2fd96a97103cfb22b3171057dfd30"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\app\\(dash)\\home\\page.tsx",
+      "sha256": "3f9540a2ff7a037381de31dca84d903d12ef5646b063e6636cc81efb76c7693e"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\app\\(dash)\\inbox\\page.tsx",
+      "sha256": "12b66a915874162bfdf8fa53722130ec5ca033ffcde8dc8038386bfbf43389df"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\app\\(dash)\\jobs\\page.tsx",
+      "sha256": "5b7c1a81a345c60731242a7e11c5a934f790581a0333b4dcfd93e714bf21068c"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\app\\(dash)\\layout.tsx",
+      "sha256": "257ac5574434829f57b45855b0c7d15890ffb6d1e9e2db071b71e2c1af7ee9d4"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\app\\(dash)\\legacy\\page.test.tsx",
+      "sha256": "8de91db199f27a4c991cf3f1efe45e6c24d591320b0d9109d32f77839c582419"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\app\\(dash)\\legacy\\page.tsx",
+      "sha256": "cb4b3d6e0e812ed7be2763833b5c480b5277493f9ee8a0bd048e8e959d407eb3"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\app\\(dash)\\map\\page.test.tsx",
+      "sha256": "a6fbbbb294d9fe88be1443954104c41b45ebeaad7599ac3986b804bbaf38e01d"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\app\\(dash)\\map\\page.tsx",
+      "sha256": "2e4a34c37209a6827c15273c4179f69f02b15f3b62de559fab32f312c8380013"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\app\\(dash)\\model-review\\page.test.tsx",
+      "sha256": "5a7aa4e8fff493b6f7b43b4a72a4a64cfe61ee2df78ebed551180471c87aab6c"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\app\\(dash)\\model-review\\page.tsx",
+      "sha256": "d1d19d229ffa81c7982e9bffa218f280afe8ccfb85c020c6fc8a414fa2f54dd2"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\app\\(dash)\\pipelines\\abilities\\page.tsx",
+      "sha256": "931ea226ce05132d18234345366cb339187f8d908fd7a79fcb84cd44d8376b93"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\app\\(dash)\\pipelines\\buildings\\page.tsx",
+      "sha256": "99d8ae6b0e90228edf2c98a10697b84f69cd30134709c88fc887e5628dab6a85"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\app\\(dash)\\pipelines\\floorplans\\page.tsx",
+      "sha256": "f56f54e4297a228aac31de36069d68c7e0a913af0809a5f43d51c615534def39"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\app\\(dash)\\pipelines\\jev-repair\\page.test.tsx",
+      "sha256": "5983cdeeee0b3889fc7f52ecabd2bd735ff041b8d3c3e04fdd8a9287713c90e5"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\app\\(dash)\\pipelines\\jev-repair\\page.tsx",
+      "sha256": "e787588acdf25f166e1a74e93c8346da2babd0a71c568430ae46597cf9f2303e"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\app\\(dash)\\pipelines\\page.tsx",
+      "sha256": "0e5d831de5d247f0fe2a9e5e3d729389ef6b28ac2d40b50958d36c59ecb518af"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\app\\(dash)\\pipelines\\pipeline-mapping\\page.tsx",
+      "sha256": "aab559b1496178b50ec065be054a464585cc3eb3d207a37a0c3356b93bfd166f"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\app\\(dash)\\questions\\page.tsx",
+      "sha256": "80f836ad9806b02d596a2598547f61235892155efc909f1dc6449e2edcaa9bce"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\app\\(dash)\\review\\page.tsx",
+      "sha256": "3ba710f78da449664b4f09ace0e0c3eaa7b363802556b7a94295a5b4e22e1112"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\app\\(dash)\\roadmap\\page.test.tsx",
+      "sha256": "3d6d28e12c1eeaab2aa4ca5666c99a272d8c550ec6262489d3a404fbd4f6b280"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\app\\(dash)\\roadmap\\page.tsx",
+      "sha256": "5d36119fcb227158704600c87d93e157a4d1bb79b907fb16d96aa1edb14666a3"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\app\\(dash)\\schedule\\page.test.tsx",
+      "sha256": "93da16798d70464720862390cea3f2f9b442892e46eb6bfb06cf0a1ceb463661"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\app\\(dash)\\schedule\\page.tsx",
+      "sha256": "7904faf759acf1497640046114b5fab2a5a0d9117432c8abe905ac2ec1c67ec6"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\app\\(dash)\\settings\\page.tsx",
+      "sha256": "c116bf879eab88c9ad130a2bae871d081ab4e1f4da80a949ba70c18e6636abb7"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\app\\(dash)\\studio\\page.tsx",
+      "sha256": "21b2b208a5f5c76ce787ba26b109ec4db0b1dee2893b9a7754e6c4660670ae82"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\app\\(dash)\\tasks\\page.test.tsx",
+      "sha256": "7593a24133e57d6100ae308fd5e827549548920b7411f09a6357681aaf887779"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\app\\(dash)\\tasks\\page.tsx",
+      "sha256": "8c8f22112ebbd7f5577dbe0db49b88adbd846400ba1ed659fcdefebcf6c61f20"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\app\\(dash)\\tools\\page.test.tsx",
+      "sha256": "b970fe8b1b83da6b30d6be99dc5529ea8a96d8b17b4d26ab16958c3a36453a3f"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\app\\(dash)\\tools\\page.tsx",
+      "sha256": "4b1b9ec641e33d7bbbf6bd21d6718810b65a32e1c09bad9782d14db260bab4ab"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\app\\(dash)\\universe\\page.tsx",
+      "sha256": "032385ba9ddb31ad1b557eabe45eb627046cf7d50b8efacbc2b8c539362e2959"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\app\\(site)\\page.tsx",
+      "sha256": "ae0cb5be160e51f5448631258fae6e6efd4ecc549da98f51babb3d59c117d558"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\app\\globals.css",
+      "sha256": "c38ecf40e0e43e58ba8e88741b8c4b31f641f2507b129fb616836793fea429e7"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\app\\layout.tsx",
+      "sha256": "be38e30502067e074397a97b47259b882e6610b7429fbccabe152026392cb6d6"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\archive\\ArchiveFromUrl.tsx",
+      "sha256": "ad471d1f7728072da98b3895a440e171a2245d6b570b48f0db59d37307a5779a"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\archive\\ArchiveImage.tsx",
+      "sha256": "354126e8813198fa4657d6a6783d6c4f085dda90f4a67ff41c1202a0e8f557e6"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\archive\\ArchiveSearch.test.tsx",
+      "sha256": "7cea244bba550968303f38667df9c97cc6e0de3b0652123a991d5fbf6be69d61"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\archive\\ArchiveSearch.tsx",
+      "sha256": "eeffe78aac5a531722154c7ed5177af7322908a3984cdce5faa6fd9703cec930"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\archive\\ArchiveView.test.tsx",
+      "sha256": "b4469b8664bb268efc4c64e9cdaf2f1898fff8f24a21214c1fbf6b7d273bec9a"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\archive\\ArchiveView.tsx",
+      "sha256": "9107232bff7028b7b5422d4e620f9591b0336976118f95a27e139d4b6a35b607"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\archive\\MessageBody.tsx",
+      "sha256": "9d4895ec099f1d90ef443318ce966061769b77e78c0ec57b6da3796b980caac2"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\archive\\SessionList.test.tsx",
+      "sha256": "80a391be85505870f6eb4575562eaa3c20753d9e1988ed941da9742c570a7cee"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\archive\\SessionList.tsx",
+      "sha256": "e7c09a5d583ba38483c106ef310d5959da497c938c657f046ae0633a7f89bbc7"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\archive\\Thread.test.tsx",
+      "sha256": "d6d8223779b94a6821ea1b6931acc1a1c5d0e4949875b0910658ca463df2a203"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\archive\\Thread.tsx",
+      "sha256": "8dd99b7fa27051624285d09863527775b52c4b4a19579c3600fc8978d0212be5"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\archive\\testData.ts",
+      "sha256": "d1ca52e0e252ea98367cc4d6a3acb9add445e4cd6aca5d6dc22b0a254bfd088a"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\assets\\AssetsView.test.tsx",
+      "sha256": "0c6e5951a7242f7e82c2b95de39a812c1c2b20b2b4a84733dbdf6376149be78b"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\assets\\AssetsView.tsx",
+      "sha256": "decb50a81e70e998d4e33715dbf76c5e2de1ba165e4aef51f2b69e732a6b9a72"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\auth\\AuthGate.test.tsx",
+      "sha256": "38755679ad212a3a69d75f33d14443923ba77e47a9e8dcca764a3528e27cf07f"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\auth\\AuthGate.tsx",
+      "sha256": "3d53b19779236bdf5b5f458568705b1bb366d4fabbb3ed11c2bbd9f1bcf4867d"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\auth\\AuthProvider.test.tsx",
+      "sha256": "aa492f7a773eedd3a72e4df6423d16a3d5020c2435e3455feb17714a87c182fa"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\auth\\AuthProvider.tsx",
+      "sha256": "fa44daebe98ed5dbb350f153c8ad65fae8eeb237276cc10ef8e7f22cfe3ab2e2"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\auth\\LoginForm.test.tsx",
+      "sha256": "69bc0141eee795d0fa28aa8e98b493654bf5288ca6467ec01fcb78c5f4c40c2e"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\auth\\LoginForm.tsx",
+      "sha256": "511507880dd72dbc3a93386ec13dd89a19e27a13a88f964bb55cd5732a82f9ac"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\buildings\\BuildingPipelineView.fresh.test.tsx",
+      "sha256": "815644ae857373607ecca0f9d12da94946bd3cb7a8e11d4e7f35f4b7cb1637c0"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\buildings\\BuildingPipelineView.test.tsx",
+      "sha256": "0633fb63af7acbbd3be928ce8787806c5ef5e88db140ccf0a039fdfb635a9bfe"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\buildings\\BuildingPipelineView.tsx",
+      "sha256": "f8f14cf8438820accfe50bcca1317f8394c3394cd29363536a2904ae0b726f6e"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\buildings\\BuildingsFromUrl.test.tsx",
+      "sha256": "50eaf80db2d4bb236aa77c4dd472d032f857e441ff981a0f7280cdf66d05c5f0"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\buildings\\BuildingsFromUrl.tsx",
+      "sha256": "d26001dd2258152dff0bbc776c763a632bde3b697a667f42ab2fbca70d095477"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\buildings\\DualModelCanvas.fresh.test.ts",
+      "sha256": "40eb7b6688fe199f24ef156db78b5d3373d6c890293306834fbfcf7f8502f879"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\buildings\\DualModelCanvas.tsx",
+      "sha256": "380ea48290d151a7bb95f007091c7245b84dccbd225009c621bea51b972642dd"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\buildings\\ErrorFilterTable.tsx",
+      "sha256": "89e57c50623d9396a95c64af32411eb42abadb69795e7d8a8ae0f7f0b3710456"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\buildings\\ErrorsCataloguePanel.tsx",
+      "sha256": "4619da4ad4b9a87f24b0f5212230d7c74cb28fd59df40777925767e318af9809"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\buildings\\FloorPipeline.tsx",
+      "sha256": "1465e8215ae1663b7c2fd61a72d05f49be7ab45fe2dac0cfd2470ac281150354"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\buildings\\FreshMainInfraErrors.test.tsx",
+      "sha256": "353f78921fcd0a8b0c5434846e7430008b6c6cb3e64aad3511833683299885fb"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\buildings\\FreshMainInfraMarkers.test.tsx",
+      "sha256": "783188027f4bdbc3281cccdbcea032aff1d932e2d4a03de42665a6fcbcaa1e27"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\buildings\\FreshMainInfraPending.test.tsx",
+      "sha256": "3ab35d572f1787fd440b444a1c325ba9f14672a9f071d5ff10df26207a59064c"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\buildings\\FreshMainInfraPipeline.test.tsx",
+      "sha256": "d9daffe1f2f794cbb1db7512a77ba93cda5be6365b59f633b871947e9312f77d"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\buildings\\FreshMainInfraPreview.test.tsx",
+      "sha256": "f42a167169b2998a8995178274efaa26125610c8afe141ba14739da66cbbac62"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\buildings\\FreshMainInfraPreview.tsx",
+      "sha256": "ca5517cda473c964ed6fda7cf7a8e2bc5761a02b433737c5a085e791cf4867f0"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\buildings\\FreshMainInfraView.tsx",
+      "sha256": "116ab582ccec8a8340a053fea753b46ffe3f3b5cd10b1d8496f652f73a8151d0"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\buildings\\InspectionWorkspace.tsx",
+      "sha256": "44e96ddc5c69f30821379416e9787f2dabb2ccbe21e23d0b200e7a7fb72d3c5b"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\buildings\\fixtures\\fresh-main-infra-10652.json",
+      "sha256": "e05e1f7d08e7b94d69c79d187a6244be131208edd6ddc29394edfee41c83054f"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\characters\\AddCharacter.tsx",
+      "sha256": "54be9742738610c76aca7749a5fbbd0be5ba3c64803369805876bbc0c60bd2fe"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\characters\\CharacterCards.tsx",
+      "sha256": "6b5e127a89ebb9b381cef6668378f860c7c7996cd9d32cdcb70fdbc3a85cbe0d"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\characters\\CharacterChip.tsx",
+      "sha256": "3ce2162ae53442c3c2cb69702fc2a362825b1ecf6699961552ae9ca4e1a5c760"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\characters\\CharacterInbox.test.tsx",
+      "sha256": "0e1a033c12767e802cc86561537ec499c161f0f762f128a4e608b41f91c8e256"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\characters\\CharacterInbox.tsx",
+      "sha256": "645e586a1b70f3d9142e75bff1a2efca5f1968c87a474c1142763942afebadeb"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\characters\\CharacterTable.tsx",
+      "sha256": "f46859e893011d19a5b3357b151fade5cb1dae39676179657a4f96661c9246c4"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\characters\\CharacterWindow.tsx",
+      "sha256": "7ade5f56d0c298ddfbe5303b985a4b2a1ddb46ecbe00dc25853e7a3fb6acebde"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\characters\\CharactersFromUrl.tsx",
+      "sha256": "5ffda94b082b3c49f9d5f7b32c1aeae37e0fd690397cd440a80adda2d9ec0eb0"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\characters\\CharactersView.test.tsx",
+      "sha256": "02bc28bf6b4cad61bd7ebc0ee7ee1edbd5201d36738e31deada789be9141ec83"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\characters\\CharactersView.tsx",
+      "sha256": "8c3931a68969a55e5e95e5716dee160f99d848042b89638decf3c8f9192101da"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\characters\\ChatLogTab.test.tsx",
+      "sha256": "77b3840448af1ebb08eaed58124684490d987ad3941596c89e65bb03c87f8546"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\characters\\ChatLogTab.tsx",
+      "sha256": "12afb5bfae04c15987ef4734658c2a1c1773e3985a698e602e28516faf156714"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\characters\\DetailsTab.tsx",
+      "sha256": "aed19f259677c6ea8ff3c110f42c5fa20b9f1248d85683aa11ba67137bb14e25"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\characters\\GenerateSection.tsx",
+      "sha256": "0c61c7cb87f7283d6bd294de7d7bdf871f63eed24fa1f114598010c547f8c4cf"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\characters\\ImagesTab.tsx",
+      "sha256": "d328d193923dcdb3f6db0272df47d058fad1092df093bb7823e31e88893f6ecc"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\characters\\MoreSections.tsx",
+      "sha256": "1d419b6480aa4c25fb940149818877a06fe64bcec75dec75d5b07a920759cf26"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\characters\\ProfileSection.tsx",
+      "sha256": "ff34e50dbd63aef089f7c8e85f66822f33052364f265ecc9a856d053d8753669"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\characters\\Section.tsx",
+      "sha256": "08a401d09e3bb2c01e1be453fb0a89cc48adb3321fc877aff52ec197765ffc02"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\characters\\library\\GalleryLightbox.tsx",
+      "sha256": "c2e93741cfb15f286fc4de4a97c276c8976180dd48335c05286ef3ded48edeff"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\characters\\library\\GroupFilter.test.tsx",
+      "sha256": "7c52177c328297b38597eec34ffe2134c0e262227546dfb99926d720db141fb9"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\characters\\library\\GroupFilter.tsx",
+      "sha256": "f63b317c66461e63a2ae8862518b55cb8524aaf77cde2b11da0a05b9b975d9d7"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\characters\\library\\HeroCard.test.tsx",
+      "sha256": "7771bd092ec016476593ee307224a3b42fd213a14b4f493f2d5477a5d494c1d4"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\characters\\library\\HeroCard.tsx",
+      "sha256": "9931c12239d7fb0cab27805cde44e3d32a9f3c8d31d008d4e3933990ee7648e3"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\characters\\library\\LibraryArtwork.test.tsx",
+      "sha256": "e4b3141455ec76cbca3cfa12a8b89e8241eb1da7ca0fef4d36ba5c319aa4599b"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\characters\\library\\LibraryArtwork.tsx",
+      "sha256": "920e1e54d0ced10cfe1b528d88275d634d62b6f39e0f28723ead714d42554ac2"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\characters\\library\\LibraryBackdrop.test.tsx",
+      "sha256": "b9b37c1134d232896d3b47e7e1f8db8b64b14148b0222475d7c71bed51ea99f4"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\characters\\library\\LibraryBackdrop.tsx",
+      "sha256": "29c1c254de4eee36c2a1e345f23ed47d85d64e57aa6a4151d4c916dce8de079b"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\characters\\library\\LibraryBehavior.test.tsx",
+      "sha256": "64301a53b0727c0417de64a235baab2fd1cdf721b0f3c485fc4f26dee1898056"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\characters\\library\\LibraryFromUrl.test.tsx",
+      "sha256": "188ad8c0c7206dfd64597dd02fba773babf2b669983e5ff0634d1467a8655f25"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\characters\\library\\LibraryFromUrl.tsx",
+      "sha256": "4da9298e7e2e5d3015f7379c86e780c7703bd7229528335dba428c3a66e3a3d5"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\characters\\library\\LibraryMotion.test.tsx",
+      "sha256": "3453df9ddfc85eb0471a75177531a1af4a0a605e656cd6ea8b18fed50037c0e7"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\characters\\library\\LibraryMotion.tsx",
+      "sha256": "634b3527adfd40524828e19fb2333fe0cea5941c2d53cc87579fc56b2b8ad04a"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\characters\\library\\LibraryTabs.test.tsx",
+      "sha256": "059bd13e7a513b2642ac0d1a3b512051cf2186efd99a109990460063c33be675"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\characters\\library\\LibraryTabs.tsx",
+      "sha256": "f932ed741769ec983ce994e04efea234493aeaca5021acb2afba3196895c49bb"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\characters\\library\\LibraryTabsBehavior.test.tsx",
+      "sha256": "3ce113273de9de704b67df1ebe2636963fe82e5d468c2dd197cb732997de1b31"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\characters\\library\\LibraryView.test.tsx",
+      "sha256": "6c56422ece144e26640f2c5f5597185d4ef26af7674d7cc48b4b59f4fcb0866c"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\characters\\library\\LibraryView.tsx",
+      "sha256": "a385cbe59d3aa10fba1ae29f4e7f5a20cb2882c3c223817c62b98af5ea7b6123"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\characters\\library\\PortraitRail.test.tsx",
+      "sha256": "8c808d1247f84243808405fbe7f2b3ef3b59fecc4be80eb28e2cc093aff5d390"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\characters\\library\\PortraitRail.tsx",
+      "sha256": "fd71e87e6d497dd9707e83e63f1c70b501ae5d537bb66b14e2810a11a3571e75"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\characters\\library\\QuoteBlock.test.tsx",
+      "sha256": "a1e5cf28fe481681f1bc720d645185db051e2c33681d1caaffe1e8aa681c1eab"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\characters\\library\\QuoteBlock.tsx",
+      "sha256": "566783ad179c96d0be754295dc60cd960f7890acb94957af4f52dca68399e77e"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\characters\\testData.ts",
+      "sha256": "59dd9cdd5645ad57acc4e03e246c7b5a4fb7e57b668c44f625c4087b3da896a5"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\docs\\DocsFromUrl.tsx",
+      "sha256": "293dd8472a7d94fdc2e6f77fe8e270f61f201889490b9db741f127bec0450784"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\docs\\DocsView.test.tsx",
+      "sha256": "caef886efa6129b46f24039650d85085c7ef8489719fd1958cd6b9d680ea620b"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\docs\\DocsView.tsx",
+      "sha256": "ca4495404939a8abb8a835ef334636fc40229ddc5acf04d03cb99a1440417cdf"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\docs\\EditionIndex.test.tsx",
+      "sha256": "9bba7580df7366a1f08e0360732193f9aac64864f906e79da48ea5eb4c2b4c98"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\docs\\EditionIndex.tsx",
+      "sha256": "c55e4b679aaeeb2cc095150d99628af511b81aa4022ad2682aa4d7bf6eac4dc0"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\docs\\EditionSwitcher.test.tsx",
+      "sha256": "e0f918435713ec02f8ee62f8b2cc8f0214a55ac817a786bb872d5de2d934168d"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\docs\\EditionSwitcher.tsx",
+      "sha256": "695928411f6d619e5bb290450add17f062eb3bda84eabac374c8cbf1c4bf92e1"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\docs\\ProvenanceChip.tsx",
+      "sha256": "10af051e31daf7e2927ad824a11ef51cbc80f7b0641169a881f78babae6da90c"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\docs\\testData.ts",
+      "sha256": "942d0c5636dc2101b718327c60335621de8e5b8fd36861923540b394a51d0354"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\floorplans\\FloorModel3DPinpoint.tsx",
+      "sha256": "e04a6aef7f7bca8b8bd145778c0a3c4484fafac2cff7e06cbed9764ba2865e05"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\floorplans\\FloorModelTexturePreview.tsx",
+      "sha256": "0161546cf0fb8480db297fa68bdf8f4e3dc1445848431c771e2e203347412deb"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\floorplans\\FloorplanPipelineView.test.tsx",
+      "sha256": "b7e836e9618dd7b425c91e05a1b76ea4ed0481368d626317de51061db35ce5b9"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\floorplans\\FloorplanPipelineView.tsx",
+      "sha256": "0e5931a6423ca5a707465b70dd623b1399f626c81f0c734fa489860392ae17c7"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\floorplans\\FloorplanStudioFromUrl.tsx",
+      "sha256": "ccc47ecd78ed957f6bb80eb94978d223692ac1a986e341767b6728a567eef881"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\floorplans\\FourOutputsBoard.tsx",
+      "sha256": "3c9e6f61225207d2df03664aaf8972cf44eb3dc10a657659641bdc32fa5f3990"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\floorplans\\PipelineMappingFromUrl.tsx",
+      "sha256": "02941b745c01238e253b0b6a504fa0d895bf62bd532db906937d55eb3c5683f7"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\floorplans\\PipelineMappingView.test.tsx",
+      "sha256": "bf59c97f85af1a04dc9ff03b29ad161cc206905ff86629e5b6b3c7f5997a948d"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\floorplans\\PipelineMappingView.tsx",
+      "sha256": "28d08c29a5f86d5f805b1d73eea7587aa75bc9eccd3860eb6176142d928b3aff"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\floorplans\\ReferenceMapValidator.tsx",
+      "sha256": "75c3b94734ecd321c61cdb651a1791c38fbde8d294424bf5c23e9dbabf7b1776"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\legacy\\LegacyView.test.tsx",
+      "sha256": "1f16f3ca6c9f68bdae652846ffe609790286b7fb4929cca849ff5a61cdd888ac"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\legacy\\LegacyView.tsx",
+      "sha256": "047842200e0d64a764c401f5c6186290c9700da393df800595f790542a75e1e6"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\map\\MapView.test.tsx",
+      "sha256": "38ce782a5a83a65fdbef47302e44b2f509cebabd85142de492d42c6b1faa273f"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\map\\MapView.tsx",
+      "sha256": "14130fa0b8c1d7a187942d9804f0c386d58eb9f3df21b08013b250b6c7db9759"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\model-review\\CampusReviewSection.tsx",
+      "sha256": "3431ba3811a51fde45c5cc991a586f9ad7a8df7dd2c47bf9fda612b5e57d5c54"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\model-review\\ReviewViewer.tsx",
+      "sha256": "2699f89c0619c0fa8ed262ca1e654f4de98f7fc739d8d63b4d964239545a26bc"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\pipelines\\ChecklistSection.test.tsx",
+      "sha256": "70791ca4c66f4a47de99c0b6ed820c8b91c7668e9d8b66165704e70dd528956c"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\pipelines\\ChecklistSection.tsx",
+      "sha256": "b3695b52104a4a162f84ccd903a974e81adb14bea983abc8be5cf6ffc5e6da14"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\pipelines\\DecisionList.test.tsx",
+      "sha256": "da3c5b2ba40e3faa7afc98f18ce0781da296fff515801fa148105c255b78d7b9"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\pipelines\\DecisionList.tsx",
+      "sha256": "7bebcd3c88d5485430a506853dbc49cb41cc7f096082815d22ec407326064583"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\pipelines\\DeliverablesSection.test.tsx",
+      "sha256": "d6e9dc7d6f857f31296725d6aab7c79589152072f4c0019b704f5a8f27283fe1"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\pipelines\\DeliverablesSection.tsx",
+      "sha256": "c239f6014deebbd4b33b81afdba9c582ab97a9c0e6db0ff1964f3f450c2519e0"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\pipelines\\FoundryHubBanner.tsx",
+      "sha256": "ca957bf612f6e08beb0c403013d3656239e392f0f2b3fbb3032e9ff996f17e12"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\pipelines\\FoundrySubNav.test.tsx",
+      "sha256": "8b60630bd8666eaa91867b3b0ff944ee3e443b4e53ae1023c5adb2e187ad5d17"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\pipelines\\FoundrySubNav.tsx",
+      "sha256": "762731a66b7b97f78aadf2fc0c8519d3874bd1bde27fc60cf725107b55747692"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\pipelines\\GapList.test.tsx",
+      "sha256": "107d4839c5521dc29e59059362fb2b638e2e39da8694eca7b8fefd3ccfb52559"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\pipelines\\GapList.tsx",
+      "sha256": "6c6bd3f53be30a7b3204fe47b630533d72eb1589bfc693daeabaa048cc18830c"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\pipelines\\GateBox.test.tsx",
+      "sha256": "23db283bc1df8f6eff2bd89a9ef8555a2f23886b75da210f6102d4402503a2a4"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\pipelines\\GateBox.tsx",
+      "sha256": "c36d7bd280e6fc5056b4a70ddf3e86f2349f1c9748627e86e4e9d757c8539e14"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\pipelines\\OriginChip.test.tsx",
+      "sha256": "5f92510a4dc3d6854e16396be59ceb8a860e5d88128473538c917283ca773706"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\pipelines\\OriginChip.tsx",
+      "sha256": "9ceff5059153c413c8bd3479bee3f328f7d28a7c5424af0ba10e3f6aef921338"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\pipelines\\PipelineBoard.test.tsx",
+      "sha256": "859d6d6d449f51fc7fab0642f63237391570908f7efa606b38eec51111cc41e0"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\pipelines\\PipelineBoard.tsx",
+      "sha256": "98fa9cfd6a8904c08328ceffadfc060f5d4973807bd014163ac41bc9afb35bfb"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\pipelines\\PipelinesFromUrl.tsx",
+      "sha256": "f3623ddab760aff458b3d52ae7664490f6a5bf715d5fc02016b081ba04044184"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\pipelines\\PipelinesView.test.tsx",
+      "sha256": "c2bfeb05632018586df86010de1c0926bbd1919c68f8bf47a498b1ba85e2251e"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\pipelines\\PipelinesView.tsx",
+      "sha256": "52954ee9c9dbf690e91ffafc581b46de38e6e818682d04ea597bcfc41225d221"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\pipelines\\StageColumn.test.tsx",
+      "sha256": "ebf14cbc954083ee5724baaa93c483cc609eba521287d5ad6cb9c3c2626363d1"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\pipelines\\StageColumn.tsx",
+      "sha256": "94251eeef7340d3dbaa66039db82ff3cea948a575b3c0b2efef0230589d2bf10"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\pipelines\\StageNodes.test.tsx",
+      "sha256": "ec78b3c16191bfc2fe2a5347acbf4e088eaf3f84ca547094f114669e7bb8b546"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\pipelines\\StageNodes.tsx",
+      "sha256": "dc2f0e834f52ebbab81193cab18e94ccaa50bb4dc1920bbbf7f448e3433060b9"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\pipelines\\StageStatus.test.tsx",
+      "sha256": "9a27c5d1403a66ffcb2bc20db150d831573581bd929bde997c5783787328683e"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\pipelines\\StageStatus.tsx",
+      "sha256": "45a8c0c2c0f573407a13217b94e717f499851887e9185d184812d745e250dc2e"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\pipelines\\StageStrip.test.tsx",
+      "sha256": "876adb45278e07fd8b6126dcb5bd6252feb45ff4b663634d3c8beef0a90061d9"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\pipelines\\StageStrip.tsx",
+      "sha256": "c1690caae42047280635bd8de493f3176ad0f21bb0c9e51c39d9ae59a5a5b962"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\pipelines\\testData.ts",
+      "sha256": "0fea3c0739f38d78a8c2a8330ddfbd6d76df4bdd7a905821959aa9ab200140f8"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\plan\\PlanSwitch.test.tsx",
+      "sha256": "dbde35bab5d53ac641da5518a2ed92b81c2365d51e84a5a7210e047c6ab06311"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\plan\\PlanSwitch.tsx",
+      "sha256": "6796aac9fbd0255f821b739b3cf2cf1bdf224bb410eb73bf7160e0e24e6dbf40"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\plan\\PreviousPlanNote.test.tsx",
+      "sha256": "08e895f88f4afa79fc787ac26673dc83fcb772d0e17ffdd92d8f783b0d5f7534"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\plan\\PreviousPlanNote.tsx",
+      "sha256": "e76d7aa9e0aa15e919f4b564e77d6f75424eaaa8a9872d4d5cd46b3c5a96e8db"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\plan\\testData.ts",
+      "sha256": "3c6d6c10de47a77b0521ad67e827970a069b96fc928c5a75a211c9b59ef24d9c"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\roadmap\\RoadmapView.test.tsx",
+      "sha256": "e07b421cece4a6e829eeeb997d514f3e9461cb5d482057a4fc613d152df6739b"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\roadmap\\RoadmapView.tsx",
+      "sha256": "2e7da25b67ebb8a9ec250e044e5892bed0ca5dd7b207f9d8a5fdb08aab20a348"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\schedule\\Gantt.test.tsx",
+      "sha256": "bfeb2345b2510a98d2746990d06a6ed9b302c9422f2c4371299d90e446e63263"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\schedule\\Gantt.tsx",
+      "sha256": "d7740d999876854e19ddab6dfc5f2f8e58fcca72dfbd56c6414b740593cd6916"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\schedule\\ScheduleView.test.tsx",
+      "sha256": "dd9dfc94c7920bf692cc7b411a9054e584a89cfae312476c3919609ecbfb7323"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\schedule\\ScheduleView.tsx",
+      "sha256": "724458dbd15936df027ed5730107385583322870e3840d6d053d791ae6681f25"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\settings\\SettingsPanel.test.tsx",
+      "sha256": "23dd6bb1d528f9d6963334a2c95042f12830e0b6892fc77e60e0824394e1db8c"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\settings\\SettingsPanel.tsx",
+      "sha256": "f2757cac06e5097a35d160070840943766fc1a44e5666c7cd79e721a2fbf60c6"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\shell\\AppShell.test.tsx",
+      "sha256": "bbbcf9ba6975bac22766c7b729ee3f3cf76c3a8f7f7dc4c752b5eccb3c468a57"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\shell\\AppShell.tsx",
+      "sha256": "391cbca90cb84bbd314540f8e77fb4b8adcfe113a4ac6850eaa7f708e13d546b"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\shell\\DashFrame.tsx",
+      "sha256": "bd879e5829e813f0209f2c01919177aa8c3c249102becf17a36b89f3a0cd4f70"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\shell\\NavIconGlyph.tsx",
+      "sha256": "32dc22ac57ab020dfbdecd2544f3a246e82d985e29d7a84a64214a03a4aee0a3"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\shell\\Sidebar.test.tsx",
+      "sha256": "493e7b91026a5fdaad47a1e15d2b5a1a0e3fe01f0d44cc4adafbb12d97f0fae3"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\shell\\Sidebar.tsx",
+      "sha256": "4573f086bb36e5ef405d3334ea299e0d0e0b338d74cc104a8d25d56d00df37d6"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\tasks\\TasksView.test.tsx",
+      "sha256": "e8c0042428e2d53b876e35bc16b54674f168664aa9c97072db3781638328d017"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\tasks\\TasksView.tsx",
+      "sha256": "967ff53912a20fdc68bff28844f6dd9e07f387c4f726d254bac6bdf2f0dc38c6"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\tools\\ToolsView.test.tsx",
+      "sha256": "5224c8044520f13d2a76e4355eb451933aec1070070e9d83eb1c4c48e5eeb960"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\tools\\ToolsView.tsx",
+      "sha256": "0dd70b171f7a085e89854f85ee179a32d2115d43a5856155bbfa29e4fec38983"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\ui\\DataTable.test.tsx",
+      "sha256": "01bfa1f868265224c2d64dda8fb01de7d1ae16adda98e6d3e9c5c8c862a6b174"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\ui\\DataTable.tsx",
+      "sha256": "3eb98697c9ce9641f81cb5076d5d9571d6fb936bd156d40c8c1a25ad188cfe22"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\ui\\PhasePlaceholder.test.tsx",
+      "sha256": "8b04c10a74375e878a55365ee46e8638866f830bc7e07de0d5ab6930ba9c50e6"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\ui\\PhasePlaceholder.tsx",
+      "sha256": "5be5312e61f16d27c72afa48605667a744dbd627289f434ede7efe2a93a759c6"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\ui\\SlidePanel.test.tsx",
+      "sha256": "ab03e38bcff70c181184f96e3f04655739ceca365bfa4b5122ef5f2f54d7c2a7"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\ui\\SlidePanel.tsx",
+      "sha256": "7d8bd350a85ffe90d9b68c2bdd4729929054b3c745d8fac09fc8ddf71d012a81"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\ui\\StatCard.test.tsx",
+      "sha256": "80dc46d20da910560dc7c791b484f84ce75e4f89114af92eca79a91ea8ccac82"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\ui\\StatCard.tsx",
+      "sha256": "816c7b404578e38844e402a55c671d96e32c87c1f3fbbe9c56ea974880c90bc7"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\ui\\StatusPill.test.tsx",
+      "sha256": "0b6d83a202117e6b7e91004abe7b74327a2a9c89d6821f14a5de126100902312"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\ui\\StatusPill.tsx",
+      "sha256": "ed95fef480937297791cb7344aea19aac5f334f4dd84877d721cf1a6e38bd52b"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\ui\\VerbatimText.test.tsx",
+      "sha256": "1b161ad035d812536623fd798c66c8dc1daf02f9448ea6979b8fccc74c75cf1b"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\ui\\VerbatimText.tsx",
+      "sha256": "70eb90aa1f13b582cfe75255c30a12030ea6812dc3c1c2043d61415b9908e6ca"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\universe\\UniverseCanvas.tsx",
+      "sha256": "e2f303c7fa0f0655c4484db2261dc6d5138f03bcd4543277c93c58914f5ed458"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\universe\\UniverseView.test.tsx",
+      "sha256": "0b8de99e5acc813db9a69a8e0e3a1a0697f3fd4b33b23b6a5f4a691ba8e2784c"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\components\\universe\\UniverseView.tsx",
+      "sha256": "b3099e62dff5ad1900ba4177aa83694254031b207bd175166da3eaff88cc5c65"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\e2e\\archive-fixture.ts",
+      "sha256": "aec56d587a0b6a2de491425bbcffd025ac86824009fc16cec5fe5f6c5e848217"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\e2e\\archive.spec.ts",
+      "sha256": "756151673635a81cc867f31c06aa3fdcc4ef1b25131121490bb89d03a415152f"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\e2e\\auth.setup.ts",
+      "sha256": "a36017da86c9c1cbb576b2b322afd7d062b495326ff319f4a236720247f85548"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\e2e\\character-artwork.spec.ts",
+      "sha256": "3a44da10a8a62d8b8c250221ad3acd2b48c92fd72723dc20ffbd93fabd65a6b3"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\e2e\\characters-library.spec.ts",
+      "sha256": "594949bd3fdef1aa96989df3cf8470839f8bd477aed8487a56fe80eccc3c7195"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\e2e\\characters.spec.ts",
+      "sha256": "def7ae01f01b5286acb4f691b39fb5a1c5a44237c351feaf9f32f0f404aa8d36"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\e2e\\docs.spec.ts",
+      "sha256": "b4b2c7ee4d4cd545a73e44bd87a1d124e1b2e13b2394a862e0a08983cb81c6d2"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\e2e\\global-setup.ts",
+      "sha256": "0c41d36cae38a258a7b3647893471094b819fe51bac0874a368d02352b71414d"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\e2e\\helpers.ts",
+      "sha256": "3414d3d2ca5982428a703715aa46075b32ca186c3fc0439383f15e2edb6f15e9"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\e2e\\model-review-page.spec.ts",
+      "sha256": "8b00c60df981e13154a86509bb49e64d66772a499e735a920f517b10abed64a7"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\e2e\\pipelines.spec.ts",
+      "sha256": "b8e3716282fe97fbfa2d2ec1eeb223082a799dfcc6f508f180b43bef97c279fb"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\e2e\\plan.spec.ts",
+      "sha256": "0ab0a463206bf31b58681eefef063461a7ce2ff7833c51924776b7274425af90"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\e2e\\smoke.spec.ts",
+      "sha256": "f9bf9f3ed8a9a9f27814a356f0bf1a231ce716202fe5a2d5c0e6cd1bc05a26d6"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\e2e\\test-accounts.ts",
+      "sha256": "4b61e69e4a64ce92239dd97bb5c4a5a402317875d50588654d3fe3ef5a023e73"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\eslint.config.mjs",
+      "sha256": "9205ff1c69909677f6d5c9e6b848ba739df1be17939ab5ef442966ea002c7914"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\lib\\api.test.ts",
+      "sha256": "9bc0db714fd1a17727233511972ab619f6b351e3561c3b80f4b94c50f990a050"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\lib\\api.ts",
+      "sha256": "31c0b8a4202214e98b202386c6e24a59e5a89f9d50fc890b54bdeb59c135b6f3"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\lib\\archive\\api.test.ts",
+      "sha256": "211df245447a869d7814cfb9d4e6b1e7a149559c782d36b69645139fcd511050"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\lib\\archive\\api.ts",
+      "sha256": "7569a60cddf0ab889f01e6a8ae4ccb820f0454326636380fa3cfbcc4ccac28b6"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\lib\\archive\\format.test.ts",
+      "sha256": "78fec68cf4f3d146b4d4008566c44da3a5841021f4694ed52e852620498b5b33"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\lib\\archive\\format.ts",
+      "sha256": "f4c279b83fdcee8951b30d158baa776c9aee7d7c75d6c6f461ec0a237c36e3f8"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\lib\\assets\\plan.test.ts",
+      "sha256": "d2712bb0517430cf87e197785a4892b656673662d9c12a2db0ff213fc62d3b2a"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\lib\\assets\\plan.ts",
+      "sha256": "cf485b0ca942c45d890cf773f726fe019b466c9aa263508687645e04bba9c2bc"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\lib\\auth\\role.test.ts",
+      "sha256": "4b2aaa092f666bd2404951731761bf8176dfb9c32e6f411eca186a641003c1e3"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\lib\\auth\\role.ts",
+      "sha256": "2ec72a35212c23ce1e0aaba9cf4ffa2b4a7afb04f8068eaba11b38fec611e65b"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\lib\\buildings\\buildings.test.ts",
+      "sha256": "87caa8ff91f49b07ac3c67dc9b2dafb8ac8e188e31a5b795aadfdffb4607c387"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\lib\\buildings\\freshMainInfraErrors.test.ts",
+      "sha256": "4b337ae97d7d59035c6527631c6f82f0e15b696ba53e64b343fdac2562fe2a3f"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\lib\\buildings\\freshMainInfraPipeline.test.ts",
+      "sha256": "2f1bbf5022537208b6c38f4945a61badd47d9d0be71638d6cdf9a83c11a9c033"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\lib\\buildings\\freshMainInfraPipeline.ts",
+      "sha256": "3a9464bd8998ef4a883b012497c485e220f24f1f9cec08a314c1f884359230d2"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\lib\\buildings\\freshMainInfraPreview.test.ts",
+      "sha256": "d5e42b23951826a4ddc02dc55add8e3e635c1eadb3a19ec03392b7a5ffe0c5de"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\lib\\buildings\\freshMainInfraPreview.ts",
+      "sha256": "aa9df553ad2f4bab4b23f9d01007dd575a25bfb550994e5d9759e68bb0f7ab9c"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\lib\\buildings\\freshMainInfraStatus.test.ts",
+      "sha256": "8ac37170163933dc69b662c7ca8dcc36287f142a527a6d7622ead06ecb1431ef"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\lib\\buildings\\freshMainInfraStatus.ts",
+      "sha256": "a19f0de7c1803f91b76424e9ce23f0a9fcb2a69d1434991c60950da22e1fee14"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\lib\\buildings\\freshMainInfraWorkerRoles.test.ts",
+      "sha256": "1c16f2dcd6bd31595cadbf9f5454579c1ee2d2d92c48bc0661c784acfb091a91"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\lib\\buildings\\meshbuf.ts",
+      "sha256": "7b396c0db1dbf459f757a272c9436d3cd04ed1e400f1815356870bd6cc7ef1e1"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\lib\\buildings\\seedData.ts",
+      "sha256": "30a1a46334d02f8f9c996155a4a769efb2c931119ce5ef83a8985b6a7605d630"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\lib\\buildings\\types.ts",
+      "sha256": "4b222462aed4caafafba6d8f20c4f98e63a5a80748cf1056c2dad4e71b255b6e"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\lib\\characters\\api.test.ts",
+      "sha256": "383f309f604d26c4eab147e43a8ebd137d8b96b11c30f614b3cbe1805a7c91e9"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\lib\\characters\\api.ts",
+      "sha256": "a07022dc2e09977d977ce07f8c577842a61bd3bacb9309550515af199e7cd9a4"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\lib\\characters\\library.test.ts",
+      "sha256": "55475fd1acba0e06e0cdf31b6f1beb5606fdbb3eb67ff8b4cfdf2a9fcb103b05"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\lib\\characters\\library.ts",
+      "sha256": "97ee2624ad45bda3b4ec573474392c48ec29d565f6d770bdbdc5b20c37b49675"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\lib\\characters\\libraryArtwork.json",
+      "sha256": "88f966e5e23dbff839b584a8473df24ae523d3a4a2e7e977550bff3274af5dd7"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\lib\\characters\\libraryArtwork.test.ts",
+      "sha256": "246c8182e0aa411e2602eb3123c57b882149ce0d109c5273e15bcb16e982c7e9"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\lib\\characters\\libraryArtwork.ts",
+      "sha256": "1c312725d1cb8f2145e5b2f79c3152e73e5eae999222e7c14966e39dcee81ae1"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\lib\\characters\\libraryBackdrop.test.ts",
+      "sha256": "53c4cb8bf035946f126ef0228b1f6f44fa7bb8a9f03c0ec8801732f25ece89fc"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\lib\\characters\\libraryBackdrop.ts",
+      "sha256": "20e3127284c45b901e18de7a939724d148bd84743ca77844ac5e2cbf6fa37161"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\lib\\characters\\libraryMotion.test.ts",
+      "sha256": "3bffab6f486d3943dbb86d4d459f57a9791bea48bc506ed14ca4c028fabaaf74"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\lib\\characters\\libraryMotion.ts",
+      "sha256": "5f7d4547aab907ada242f5d14eac9d9749cd279b89ae8f9707f7f6305abd1bbf"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\lib\\docs\\api.test.ts",
+      "sha256": "36214c7d23fb91db3e0bb29e6b262eb5673b130630c9bd2ef22824371a046d83"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\lib\\docs\\api.ts",
+      "sha256": "30f3dafa5ca84fe0e6a7b792b28736658b3fe4e0c2fc743c3d25bdae706c6cb2"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\lib\\floorplans\\api.test.ts",
+      "sha256": "ae179c50acc7a1c8242d1858cdada5faf7472f139879287a20fa16bf99e10721"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\lib\\floorplans\\api.ts",
+      "sha256": "00f2163bb3a1f26cfd5422f43958306b8b347c4a7fb7a87512e8cf5af1824ef4"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\lib\\health.test.ts",
+      "sha256": "050166408207248905e712dbe615375ae1222ab60af8f46a727ed3b608c5cdea"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\lib\\health.ts",
+      "sha256": "2c1acaa5b2bf68692ecb971fb1376064e8e454d8f66a8ad57280563099f5803f"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\lib\\map\\fitView.ts",
+      "sha256": "4bc3cc85be2433df82794e8b37c83d59afbd2c18382ffe874257b7b8ceca4f9c"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\lib\\map\\layout.test.ts",
+      "sha256": "82bf481884a47d9317c031405183066a6a19d7d37ea757bfa49c983ab0f6a3ca"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\lib\\map\\layout.ts",
+      "sha256": "e94797ec6d3ff527b538728b291cb83e57d3477f7ff2f37d58ba51920d7a1c1e"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\lib\\map\\planGraph.test.ts",
+      "sha256": "b1d2b44f707671f97163f01a3325e4111606bc2394177e254ec75a4b222caaef"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\lib\\map\\planGraph.ts",
+      "sha256": "b17fbe057981c589ba6dbf1a389ad3620ee42547c61e76b32e7ddbf82a6a6bff"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\lib\\map\\viewport.test.ts",
+      "sha256": "075e7aad47b8f5663f9621632ebf2c49767284e73c3ebe9ea8112c3e9517614a"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\lib\\map\\viewport.ts",
+      "sha256": "7be993d69cd26ac41a23de1330ae3d8d83266d37268ce4e2ce6d5ebb2a23a888"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\lib\\markdown\\render.test.ts",
+      "sha256": "8fb9fad0ab59520d6949265eb6f435b21726cb3f4987600412b9a7a7ee3a0f4e"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\lib\\markdown\\render.ts",
+      "sha256": "535e03198680618aa27bfc1f74c3efcaf1bab3fd0c063662e7a57289d2784786"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\lib\\markdown\\sanitize.test.ts",
+      "sha256": "be0302ead2b9c8fc0ce6f23044532b9f1deed43f2f021073c92475755419c5c2"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\lib\\markdown\\sanitize.ts",
+      "sha256": "6da102b0bcac08d63ab9d8218dd94d72ec26f2ccb0283ca6d0a98ce94dfc0cd4"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\lib\\model-review.test.ts",
+      "sha256": "602f2166401985726548427b08e189136223a5da68d6ecf84b964dea48976f5b"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\lib\\model-review.ts",
+      "sha256": "9e8f1e18110852b0899ba7fdd5566ffdbc72418c1687daf6003a401b0c2ee0b0"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\lib\\nav.test.ts",
+      "sha256": "279b0a2ba9dc7c70c4d2652713a58715c1c9c8de1f1da405276b3e9515388d26"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\lib\\nav.ts",
+      "sha256": "3cdd1d4f6ea8870ff797141df137c613a13b6944a4a94ec79d07a4f816eaf312"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\lib\\phases.test.ts",
+      "sha256": "8534fb7e928aefbf8640e0be5d99433ba44587fb7719d1d7dcc7ae1e6315edb2"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\lib\\phases.ts",
+      "sha256": "c8b85bb96621a43d39b9dfcc531ec56753ee68ad264c2b774ec1a1dd45c5842f"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\lib\\pipelines\\api.test.ts",
+      "sha256": "2e8165d6cf3fa2382380148a928b5dbab8843c61410e4010d520685dea90fbbc"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\lib\\pipelines\\api.ts",
+      "sha256": "d308bb8956b2fd6160432233564ee08d7c29162e178e826335ace997e554752d"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\lib\\plan\\api.test.ts",
+      "sha256": "1cc3afae6f6fd2b3f781f51c96e95b370c20eaeab486b912c1eecf3f4ccff36e"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\lib\\plan\\api.ts",
+      "sha256": "01f555bf6550acef30f21077fc7f86c5183a5950c391a69fcfcf9a1518d081d5"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\lib\\plan\\fromCanon.test.ts",
+      "sha256": "46a6f9a1099b58ce7be1f06242cd2836c400b7cc831d8d51b2a04d7c4b72281c"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\lib\\plan\\fromCanon.ts",
+      "sha256": "a0376381f0389abe08c4975a904059583eea0fc0167892e8d38956ded93ceddf"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\lib\\plan\\fromLegacy.test.ts",
+      "sha256": "40e18a37c745b770001333de54b81fa154849b344bc0103160c67945b6f98deb"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\lib\\plan\\fromLegacy.ts",
+      "sha256": "ca461369617e79f0a9d2300f9812486bab16fc54cac5c8685af4269fd200200d"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\lib\\plan\\roadmap.test.ts",
+      "sha256": "6039feea8fa74662547b0a5ec4e8dddd65922d7e303735862d0a2f83ec64184d"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\lib\\plan\\roadmap.ts",
+      "sha256": "187c6cef901707e565e0181bccb76db610d4b7d189b2e6410c9e7f8a18a563d9"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\lib\\plan\\schedule.test.ts",
+      "sha256": "6157439983473fd8492d4e6f31f4bc67c1305517dc09f29cf0e4772c54a8bea5"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\lib\\plan\\schedule.ts",
+      "sha256": "f8c502bf454cabcd40435d87b881ba86772a37d0033afdb4c7efe46b72ffb242"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\lib\\plan\\taskGraph.test.ts",
+      "sha256": "349eb94eaab280cc7f9307dff959243ab4617cce62d78cb43178965726375e94"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\lib\\plan\\taskGraph.ts",
+      "sha256": "878cc887a67d16cb2a80629f5e9fc8cb9fca2960fe67d3615d0ef7ddf846d586"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\lib\\plan\\types.ts",
+      "sha256": "03e43d54a54d2289be3e342f43c20e4ee53d4624524d1cfca36522cc0cf32759"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\lib\\plan\\usePlan.test.tsx",
+      "sha256": "9b0489858ba4785e6d1e585ce37d76de21a1f67fc716caca99e2f0ec4e1ab405"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\lib\\plan\\usePlan.ts",
+      "sha256": "840ad4e2a2f21c0c02c08c2e852bee269a8ede384472c431995bccbf5dd75697"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\lib\\planAlign\\math.test.ts",
+      "sha256": "52d387c2d89a6b0e630e70501f562b02f21fe2a75da4328f343ebdbf86f1b6c6"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\lib\\planAlign\\math.ts",
+      "sha256": "c62e643d76ea8068f65670798a1924fe1d3b282ad28949fe68c8362fab625b0a"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\lib\\tooling\\matrix.test.ts",
+      "sha256": "2cd9085dae63588231f933c584f0002bb717dec2558073b789c990b986e7dc01"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\lib\\tooling\\matrix.ts",
+      "sha256": "172d1b5e8b8ec808f103e9a7d089af40cd78b40829912cfb23fd1dcb471e3b02"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\lib\\tooling\\tools.test.ts",
+      "sha256": "765c261e1eda92fd30561c6634da9ebc1f2d7819a187e15a3e53e1d6fc314bd0"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\lib\\tooling\\tools.ts",
+      "sha256": "a5f225250f0bc3e0329742ed3801db896d9df2ebcb35e2f8c92e30852ee0c8b3"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\lib\\universe\\engine.ts",
+      "sha256": "05351f098e6062a6e5870a60169d6cc5be7487c827a44acc44c7ca0987bf0aa3"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\lib\\universe\\galaxy.test.ts",
+      "sha256": "780e76d7295caa070cd2e6b9104ac661c03c615c0b65c9f4ffc2c04bb0b5a253"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\lib\\universe\\galaxy.ts",
+      "sha256": "334ad5651dd4eadba95511a455ba3e23e2e6ad649253a9882a117d7df6656b46"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\lib\\universe\\mapGraph.test.ts",
+      "sha256": "feb3a520edf15a23493d92f3edeabdb2f408884d6a847046a54a0366c99c598e"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\lib\\universe\\mapGraph.ts",
+      "sha256": "eca70c42d84c33634483b898f350d10e8215e278be415d6eb73c33fcf66860b2"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\lib\\universe\\palette.test.ts",
+      "sha256": "1ad345495505dc87e9410d39b0369d10d21ff0555c9023119eb1a16c4bd92b3f"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\lib\\universe\\palette.ts",
+      "sha256": "ebc69e13fe62743694a180ed555f9eb1e3a6ea34471bfd3e652c7e1e708068bb"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\lib\\universe\\types.ts",
+      "sha256": "dd236fa36ee0c85a8013b4e9986183fa0eed9da291bdef2084255a7194ccead7"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\lib\\useStoredFlag.test.tsx",
+      "sha256": "e5081e56aa97a1b1b31d99cc5db7b02f2e3e5634dd38b96767329d30c3f1f19b"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\lib\\useStoredFlag.ts",
+      "sha256": "3d7e61ffb59489cef795dbec7ce7150ac49067f5f16425ddc590cc553a92c800"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\next.config.ts",
+      "sha256": "ad07fe3fe602d66265b614dbc23095465f3afaf519ee8e060441cae019bf7028"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\package-lock.json",
+      "sha256": "0b64fb039ea38c5dd2c1a939d139eb18e46b6cf6d5ed4f48a42a14cba5588ac2"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\package.json",
+      "sha256": "ae60787e44e9f35feb53eaeb3a959d69cac31920766f93d91f9dc52df1a99974"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\playwright.config.ts",
+      "sha256": "36bf408942fddb534a6a26dede05fce1a4f41d2a8e97c450dc08023496a2e7b2"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\playwright.model-review.config.ts",
+      "sha256": "d747fcc73dd2215fec436ff1d81d342c42f6fa0d18b5786873178bc1cd645f7d"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\postcss.config.mjs",
+      "sha256": "dfac7ac2d86d326a0e5adb024e7943c181393ed17a5fcb8f0315b24c7da6ddde"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\scripts\\build-server.mjs",
+      "sha256": "699231d5a85fcc4cf52e390d947e1774dba31bbee32177f01df5b19ea281aa6d"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\scripts\\characters-setup.mjs",
+      "sha256": "b95dc03838f5f2b8d8c3e98ab9ea603fcd6588a0567a7bf1bc128aa68e992f19"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\scripts\\check-campus-home.mjs",
+      "sha256": "75d91b91b2b51cdea1dd53a30386f6ab305dbe0dfa2192d1d068a1033820106b"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\scripts\\cpanel-authorize-key.mjs",
+      "sha256": "41b4f049007c35a5f755cd905bb7e0f9eb34dbf3107e31726dcf3366c0076cd3"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\scripts\\cpanel-preflight.mjs",
+      "sha256": "c4d5a9c44c748b9e2dfdcefff8d47603f3dec669f0f81a8d5f866973fe73bcc6"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\scripts\\hash-password.mjs",
+      "sha256": "7cb726d9547d57c2d4fc951804e5d7dc61f9970126c00233dddfe338b8b77d8c"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\scripts\\import-legacy-local.mjs",
+      "sha256": "d543d7a64828b78cab387d5b4ca5fa64ff5c785d8a47141ded7fbce076c581c3"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\scripts\\import-legacy.mjs",
+      "sha256": "8b7ca5cc88312d5cc6f42d795baa52a544a9cfcf6fc74f4b3ca59ee4258df693"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\scripts\\ingest-auto.mjs",
+      "sha256": "701e3456dc263096339d5567430d3d38cb4d995552c613f785c33cbabebf28b3"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\scripts\\ingest-local.mjs",
+      "sha256": "09bdaf2c177fb85a319104116c1d7796525b7c20ec8ac1f1ac67a53b09f09c2b"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\scripts\\ingest-via.mjs",
+      "sha256": "678dd12fc803b4d3aec6d0ae35bda612b7958cbad12b0242ea6ac3fb0a8d7a4b"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\scripts\\ingest.mjs",
+      "sha256": "efa1fda30e786cc0103420a9b785c26dd94db762ad32e942f6de7b5216784351"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\scripts\\leonardo-character-watcher.mjs",
+      "sha256": "3cf32e18ca6b77df5d869b154600a26abfa329efbef303acfa1b72e4b0c801b0"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\scripts\\package-campus-webgl.mjs",
+      "sha256": "381302bd138c0a386735df2cb6f68db9199f27baf1266753d7377164ad686029"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\scripts\\pipeline-ability-001.mjs",
+      "sha256": "6b8617ced6e9c94c941b7010ce8158e3b823cc0521e05a4b972555326ba85c10"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\scripts\\push-server-env.mjs",
+      "sha256": "074aeba7ccf0d55b5b0993e4046a71afe33ced24c288659d574be06f3a586e4d"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\scripts\\start-local.mjs",
+      "sha256": "c424c650e990a6fa2fd0a703c53b28b7e46b8c6083683f6f8f7c3d96ba5d5245"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\scripts\\sync-ecc-skills.mjs",
+      "sha256": "4d3e744b2ea90f84d00d6276a446e0f2979ce1b68116d5b3abedd781c7700385"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\scripts\\verify-campus-package.mjs",
+      "sha256": "3afaeffcc83b64595c7739d7fb00a0d1ab4b86ec9567042b6dd2c17af714e340"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\scripts\\with-env.mjs",
+      "sha256": "7b6f3f285bdc3ea30e2208bf4e61c3e30ffdaee233e57ec7e693fabbdf832d3a"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\scripts\\write-health.mjs",
+      "sha256": "1cadacb1d8b2367de1b0469bf4253d20bf95b6c7428d12353c2b7aa3dbf76602"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\server\\app.test.ts",
+      "sha256": "2f3ba27b7489c61e417acdd68d435cc2a094271b1926a8b7630a52dfd5d14bbe"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\server\\app.ts",
+      "sha256": "c7c38e707ecff220dcdfaf3b8dfb12cb4b08c126ec14f9a6b26a4e4ed1375083"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\server\\archiveDb.test.ts",
+      "sha256": "e495136ca121062b2836b84a041d9c739a24edb12bd04b801d0f40ec480442ee"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\server\\archiveDb.ts",
+      "sha256": "b7672d934bf796fa92ca9d23e9c50d0c48059ddd2bb8db2da44f13b764332d84"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\server\\archiveRoutes.test.ts",
+      "sha256": "241f5f684ed7560a146e10d2e02dd844c3a2bd774f499348daa7e81a688a4773"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\server\\archiveRoutes.ts",
+      "sha256": "06c788da1d4786d0f36cc80260b373082858eb69236042a9783c62c54d034637"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\server\\assetStore.test.ts",
+      "sha256": "e89d4b0bf5aad44bce89f317a7223751d5e90bec00c0e577490eba24cfa42fb2"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\server\\assetStore.ts",
+      "sha256": "134e181c4f20cdd222c7b3427e4cb8a46addc692f05d1a274e15a94f1a40c933"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\server\\characterDb.test.ts",
+      "sha256": "97bbc1d7afcc00fd11d8d2d6c78a3449b4da356f06575119d1d38147aa3cefe2"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\server\\characterDb.ts",
+      "sha256": "d89250ac806da03c3a1fe3c8b904b8d12dc6255da282cb49d0472e7334c18335"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\server\\characterManagement.test.ts",
+      "sha256": "1ec540806e6d5ee2db080ea187573c4d52d9d1bd26ac292cfaa8358c8dc8f9e1"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\server\\characterManagementRoutes.test.ts",
+      "sha256": "5e7a25546e9e81fee0c9f0137b4c90d6c9813a3489aa80631e49b78513e4f5f6"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\server\\characterProfiles.test.ts",
+      "sha256": "72d19b7e67f3715c05b1f723f1a108705802723fc99a0d1225f03557d0ee8d85"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\server\\characterProfiles.ts",
+      "sha256": "8fff65090658689e968fe875d9539b1cc247de71e82cebc163b3880f29113df0"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\server\\characterRoutes.test.ts",
+      "sha256": "83eee021883f602b359f78b2b5663617b315503a816e6c4a2a41f6d2eeac36d9"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\server\\characterRoutes.ts",
+      "sha256": "76d75de9573f91c791a0eaac86c8417ccfdf1555f86430bd1059e2f328513c82"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\server\\characterTestData.ts",
+      "sha256": "9a2e06e02f637067523fe8612428c320d53309c2baa6a15e231906add2cf7fcc"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\server\\config.test.ts",
+      "sha256": "be1e4ddcd808ef48c1fb1acda8febf4b3d42a0178bc2c52e9ec443b189087e3a"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\server\\config.ts",
+      "sha256": "ebec6f4c6b4b30f5b7ef850967767fc60705a4e63ac2142f93e43d02a5ff0654"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\server\\db.test.ts",
+      "sha256": "05127fd38a6591f045a7a69cf85bed536b593eac35564cf14720f7f58b325db6"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\server\\db.ts",
+      "sha256": "57d4fe02b94b22e77976490e30a3e01089c86caaac214fdef97485fa68a57ad6"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\server\\docsIndex.test.ts",
+      "sha256": "76957d196919fa402ad1ab1208e7427d38bee738163b0d10217175b1eeafd9bb"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\server\\docsIndex.ts",
+      "sha256": "4bd48313f34f8a548d4b0932fff50ebe1d101698e2905fd18271a9b7417e1e96"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\server\\docsRoutes.test.ts",
+      "sha256": "0d2783414858709da03b620096cc012aada61f6f0c8ce32a00818c2eeeadfbea"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\server\\docsRoutes.ts",
+      "sha256": "282d7b56aabbdb32eb0dbd79b03a7df7b785f9beff09f302a1f472cbea0c46c8"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\server\\floorplanDb.test.ts",
+      "sha256": "76b52b9ca515ec4dd8c35587b17d22af03b4a56e56ad762aca10682e6e528212"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\server\\floorplanDb.ts",
+      "sha256": "7b05cfe96270a99f82321e35639b073264831911d45e597ea4591b502643139a"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\server\\floorplanPrompts.test.ts",
+      "sha256": "a5a41c09cdb64ec4727b1015704bfc96dac4571613a366346f7c6e55a13a4446"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\server\\floorplanPrompts.ts",
+      "sha256": "b1f4945ec502415b787e8d54512902bd2f8b5c609003fe28e86d486c5640b91f"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\server\\floorplanRoutes.test.ts",
+      "sha256": "466fd04fd3ddbc0c80cdbddb8dc1fc5e66c5b3a6e897c284f02122d14382fd5b"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\server\\floorplanRoutes.ts",
+      "sha256": "9343764390fdbe5446a7019c764d2d97b222d6499761f2c4456286923d9c838a"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\server\\generation\\geminiImage.test.ts",
+      "sha256": "e5c84706c7d6389685738b482e8b7e458aae94871088795287fbe041ba0b072c"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\server\\generation\\geminiImage.ts",
+      "sha256": "b4cb5fd20fd00d03f3ca8bc6e8556cb10105724401d8d91890f06ae0adc3e9b8"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\server\\generation\\geminiVideo.test.ts",
+      "sha256": "881b4f9365ac8bf40d14b8ac0f82424fee1470a08b238cdbc0c7cb0dc45c1d4e"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\server\\generation\\geminiVideo.ts",
+      "sha256": "764b9bfa5d355cfad3a4580e574dc783a087ff4ab1b3d0f7c1f7f2a62a07ac0f"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\server\\generation\\http.ts",
+      "sha256": "f7ef54dea97f18ea06c10a73d253b29c8c64d2aa162ea26c14e569fdd1f7806c"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\server\\generation\\leonardo.test.ts",
+      "sha256": "0761037d5a06252db4ad5328b8f5d5625d14c7b9c24bf034f853a01db17eef3b"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\server\\generation\\leonardo.ts",
+      "sha256": "9c9c6d229303d199bbf4ebe8cb2faa557509f9861b09ddbdd2a0771d49486551"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\server\\generation\\listings.ts",
+      "sha256": "811ac8da3cf5b7b3b106aeba67b9923eb98546dbcb87c4c4a63fa0307e8c735d"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\server\\generation\\openaiImage.test.ts",
+      "sha256": "f478b71587d4ddd7e5079083aac952bbc68f02a1ae51183f493f0e71686e1d42"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\server\\generation\\openaiImage.ts",
+      "sha256": "4a2df1241bad96d7fa1bf31136960b203e5e6a3f246cc2a27ee97f1655152c7f"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\server\\generation\\openaiVideo.test.ts",
+      "sha256": "4e41fc2ff09b000e76f550bf6e3c197687862de8db38404e0bc8cba3be4440c2"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\server\\generation\\openaiVideo.ts",
+      "sha256": "2c747b67a4b5626fcc4a3d108f412dd1b0192886cb0bb448f8349e14dae1ef47"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\server\\generation\\prices.test.ts",
+      "sha256": "f603d1cd008eeff41d0f0381dcdba0df18ab14cf51c62dab8c296cae7f92d023"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\server\\generation\\prices.ts",
+      "sha256": "def30f65fee88dbd610269a834354975fc1cdb15ae2d4a750333fbc5d293daff"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\server\\generation\\providers.test.ts",
+      "sha256": "8c0faa0df448510833c2b80f0373f6a1ce2556f59b1017bc54820bdf556d8b5e"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\server\\generation\\providers.ts",
+      "sha256": "125c9ef2c5ef747bdeabba2b0d8c230fb5f0543a8eff958157477769d5e9d150"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\server\\generation\\standInFetch.ts",
+      "sha256": "6b9f24c5c12c6da95470d1cdefd19b111b9672417aa3c5da8be9ecb044ba676e"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\server\\generation\\types.ts",
+      "sha256": "1fe8756bc590400a7e144a5a512491962bc845ece54d4e77bfcac2ca0d1929af"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\server\\guard.ts",
+      "sha256": "8a04543d88b8deed6ac0ea55b6084532e4f25026c55613f8adf70c8b9b7b51e2"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\server\\http.test.ts",
+      "sha256": "00cfa3ab226e8e4972c60e93ab9fa8222109839d62c933fc09342ad76858a08f"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\server\\imageInfo.test.ts",
+      "sha256": "732b8cef427c97ba4045a550e22b6075bb99a4ae75d3211791ce36eb2bdd65c8"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\server\\imageInfo.ts",
+      "sha256": "36df3ae350f7b355d9044fc360187a62fe67059594648f2802262e06c26724db"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\server\\legacyDb.test.ts",
+      "sha256": "5afaa10da1bd7ea8655a5ff6823072d9cf2c1331a47e1f6420e224cd2b7f3417"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\server\\legacyDb.ts",
+      "sha256": "c705102fd82a72ff411ae0458752de8532d478720f3718dc7c896ae645bb5100"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\server\\main.ts",
+      "sha256": "89a632dfe21e20cebf8fe5641752fbea6ab47792763d7a37d9e0b648a9e0294e"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\server\\modelReviewArtifacts.ts",
+      "sha256": "e62f449fb4ba24bcbf9524fa33fb82353934bccce076484c3b477ec36d63e4bb"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\server\\modelReviewCatalog.test.ts",
+      "sha256": "76b6c33c6efe2cfd83a991282af3ff3926adb17c06f11df816c531225b2c9567"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\server\\modelReviewCatalog.ts",
+      "sha256": "cf235ffcc52fc78c0bab091b6aa4d220afdb3c67e0cd9e4eb11abcedf7d42425"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\server\\modelReviewDb.test.ts",
+      "sha256": "e46434f89e4833f49c8ed7f654d90b7a720ce0235fa9a469aab3c2d04b2f43e2"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\server\\modelReviewDb.ts",
+      "sha256": "7bd4328c823bd8a0b2a8b93e586ee0b2330ef3318ef97d7a647dea2bb3225ff2"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\server\\modelReviewHistory.test.ts",
+      "sha256": "491643140869e7e5ae0573dcba2e91b8fcdd775c5900c0db6c8d2be9d3f15222"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\server\\modelReviewRoutes.test.ts",
+      "sha256": "a42e3224c00554e3856f93557ca7753f65e5982712cd9e7d64a27c62ed012185"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\server\\modelReviewRoutes.ts",
+      "sha256": "de51cde0bfc780e2607b573c659fc5f062f70cbff1ecc875edc2190d97e5d32b"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\server\\modelReviewTestData.ts",
+      "sha256": "752491c347231e350527291fbad31126fe821ec5b14bfff69ce07a2443e37ff2"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\server\\password.test.ts",
+      "sha256": "26b3083c0522d83b0cc758fa26ff92b2b772a72fd2bcf089ce9bdb192548c744"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\server\\password.ts",
+      "sha256": "fecdb44d484f9be84b63888b35b74372352dca16abbe5e25def841150320389e"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\server\\pipelineDb.test.ts",
+      "sha256": "6aeb529575b2238bdfdadeae6b8c7a47598b2cc4278cde14725f91d5b6369c4b"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\server\\pipelineDb.ts",
+      "sha256": "51e05300d74b039e19f0b3af0b751a81c8b96193c85413643949acbda2a57e9a"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\server\\pipelineMigration.test.ts",
+      "sha256": "cace7c72d741692e571de0032cb5c7e30dfd14cbd0d0392fbe87a9f020d26308"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\server\\pipelineRoutes.test.ts",
+      "sha256": "5f31998d9a3c6853c6e35ee305cfd617a6f6e192b06b81e20b61821d55a1bfa7"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\server\\pipelineRoutes.ts",
+      "sha256": "ac365f5d644ffd0bfef358e8fc05deb9b68b02d15d5af0f438cb42f88c454513"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\server\\pipelineTestData.ts",
+      "sha256": "d6fa5934b3b19234797e2387842e147d9699db661cc33cbb0284d98e036299e9"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\server\\pipelineText.test.ts",
+      "sha256": "d83cfc72b9dd4ecc7ecf9d4000b9450c3f82a03afab8318d2a6c217e3a095c5b"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\server\\pipelineText.ts",
+      "sha256": "2745d98719a893818ad9f9696d55e336100e69a71d38e7a3c5b16123c433f6dc"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\server\\planDb.test.ts",
+      "sha256": "43f68860c1cd9c8b3476c01a1eeb423d30b24a92657dad8d36ea282a9f26ce38"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\server\\planDb.ts",
+      "sha256": "98c46bf40c965f94cc52f3205eb58fdb6716b14a04c10cabfb67b64f9b88c9fc"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\server\\planRoutes.test.ts",
+      "sha256": "968bf0232c2a0078e318ff9ec4b259faa72752d45c43147a57a4eb9a972b4d8e"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\server\\planRoutes.ts",
+      "sha256": "623954eda2a9292312831f8f0b86281b32d19094cb58f46911fb7accfcef0b81"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\server\\profileFields.test.ts",
+      "sha256": "f3f987eaa390caae3fd624dac90a1d1a7a719597ebaae18de379ed842e22ff63"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\server\\profileFields.ts",
+      "sha256": "f248d9e046960b93bfc5db22a9bee0c37a7ad0d91e8c98fd3f4756d5d1d47b4f"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\server\\rateLimit.test.ts",
+      "sha256": "5022a48f2563cd6c27496429a6c22f30d8277a3e6c46f5f0a46af209ea2b9355"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\server\\rateLimit.ts",
+      "sha256": "8207198c439618c8b10dd58dcf3c150b698d14ce52c61842802977c4b4ed4875"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\server\\requestBody.ts",
+      "sha256": "22db7ff902b2d23e836899339ccceaf1e920ce7e80de2eb8d44c83f6b2f0994a"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\server\\signinFailures.test.ts",
+      "sha256": "12486b071da29fd245aa9cb8b47ef450140c5037294d52deac30426fc1db0709"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\server\\signinFailures.ts",
+      "sha256": "47481708d6de91876fece9dfa5cc5af06f38d575f7c48da1978132543d444630"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\server\\static.test.ts",
+      "sha256": "e527fda8e42e5d0b95c87170e24734872307925c72f8605e46fae4e66d23f7b6"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\server\\static.ts",
+      "sha256": "738564e64e24aa4b8d214be07f290b5622f1513c236dbb4abb32bf7bde8b31fb"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\server\\testDb.ts",
+      "sha256": "df7fd32123a3f36a420b7a6a2076b52a1785fd91f37e861c35e079aca852ce31"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\tools\\characters\\setup.test.ts",
+      "sha256": "50b2d652f41bcb813eee6d273426d85d9af80b4426a37b578ad4eaa62810c53c"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\tools\\characters\\setup.ts",
+      "sha256": "e3b72358e719c270c73bdeb8dc876ff7e0b1699c8ad25c2d8419db1d6a18f2ce"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\tools\\cpanel\\api2.test.ts",
+      "sha256": "5b413a504626f56d50e43bd6676104ec0c57dc2ac221a68fea96b3ca38be163b"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\tools\\cpanel\\api2.ts",
+      "sha256": "7e6f0be032e9e2a1e38c7fd2f611032ab14fd789d479da90d8cbbfb74a3f6961"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\tools\\cpanel\\preflight.test.ts",
+      "sha256": "f8a7232e38a87449dab7e7efa1525e54dd4cec57f88723b089c4b735ee89c9bc"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\tools\\cpanel\\preflight.ts",
+      "sha256": "853912f2ad38d2ace3bc2e21caa5e226d8f162ce42cfa1a8d0ab6ed670d70b26"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\tools\\env.test.ts",
+      "sha256": "a3a946c2f17f08602cf6d50f83221176996c01a073fa4a78d665b3aa6159d848"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\tools\\env.ts",
+      "sha256": "6d4fb73324bd97546e525458e1c11cd3de30fc6406c5dfd7889e14070db33161"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\tools\\floorplan\\phone_codex_floorplan_config.json",
+      "sha256": "ffb956a772417d5513daa31f80250f801c1c533e4a8d538774e2d4fa59fa1be6"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\tools\\ingest\\client.test.ts",
+      "sha256": "e274c11d50db915b02506bad7bcd5e8b625988d7d201f25831c5d528c140caba"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\tools\\ingest\\client.ts",
+      "sha256": "c6aa8aa30a70ef2e2a8d70197e0e85fd85f6e50a97d985a065302715a91496c0"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\tools\\ingest\\fingerprint.test.ts",
+      "sha256": "7dcfa1b440b4be2946e2bbda4a8ba2d4d65272b515700128ac8372e576bd5533"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\tools\\ingest\\fingerprint.ts",
+      "sha256": "e4a5f3dc30b13f42428b30e3e7397fb5449301d9b52de3cac158cb87f5ce49d8"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\tools\\ingest\\readArchive.test.ts",
+      "sha256": "59d62a4871a59165fc99987c38da1ce692a552b816746b113d1c2e96bc425f3b"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\tools\\ingest\\readArchive.ts",
+      "sha256": "d4f514e275ec9bb12b73e64c9c2788f76f256b3079d75f3f467de350f64458de"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\tools\\ingest\\run.test.ts",
+      "sha256": "65de232e2725cb1a31d32a503557be8dcedfef20576b92463fbaa7c9ba15320d"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\tools\\ingest\\run.ts",
+      "sha256": "1e74453c04ea96f14c057966cbcc282dad7f9cee010940d16a10e4096a48d337"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\tools\\legacy\\readUcPlan.test.ts",
+      "sha256": "43cd7f08960b3521aec34068a30c46e0b974ce5a705f3e2b462458839e0629e1"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\tools\\legacy\\readUcPlan.ts",
+      "sha256": "ebb92d904f9f4762ad0bb1879bf33cf032f9a6e57e8a57b4f84d84932e4b6170"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\tools\\legacy\\run.test.ts",
+      "sha256": "1e6e44fd494fe80768adfa7b6486f18c2c18cef56bfb5283575d6df3daf278e7"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\tools\\legacy\\run.ts",
+      "sha256": "0fe79b9df3e811005ee51cb1de06f5da35c5da756c990227fd6f14fc8748b93a"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\tools\\legacy\\toolingSection.test.ts",
+      "sha256": "f2eb49598edcc83a78c11571f88e157b5e786d4098ebb42a33646a7323c65415"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\tools\\legacy\\toolingSection.ts",
+      "sha256": "a79af5058492be6c599b0ccecb53cb9ba642f5735f745e6c1c0fdc6c1f26c6c0"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\tools\\pipeline\\ability001.test.ts",
+      "sha256": "ef60457a0bfb540036f79a08334b0d0b6a42c06da0429cd61a5126367c8e4f4e"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\tools\\pipeline\\ability001.ts",
+      "sha256": "72085797c8ba08e79ed458b981baf1943fd741d7261764e88826843c4090b77b"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\tools\\pipeline\\plan001.test.ts",
+      "sha256": "8eebcd2dd2887b872d55ce547804f3e8e1d40642f2ed222b92ee4ce1c0fbc3bd"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\tools\\pipeline\\plan001.ts",
+      "sha256": "0d20fe2a8f7d282cfd426e3abb66d9d3182aed1b8b31e011a22b3506139bd3a0"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\tools\\serverEnv.test.ts",
+      "sha256": "56291e5c384e7e612c79219e618c7fbbafb2ba780a877c5eb49afa63899a700c"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\tools\\serverEnv.ts",
+      "sha256": "df0f038856c95a380f62e14dff20e49a6e46070c0def23dd581587236e30b053"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\tools\\siteSession.test.ts",
+      "sha256": "0e5788546b98691dd0d980d855e3843b275659a521e5d7cfaac351f5ae22400c"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\tools\\siteSession.ts",
+      "sha256": "43b1f529813bfbdee9b712c0573def3d052eb0405ba6dddb93008d8c02214a20"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\tsconfig.json",
+      "sha256": "e1f2b4ec806c55ba0cc71369588733fe427a277990cccfd44ef62c9b6e9fe49d"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\vitest.config.ts",
+      "sha256": "5177f80db998826d4d90457d1efe0d5a5f41568809c4286f4d5127fbdf715dff"
+    },
+    {
+      "path": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\dashboard\\vitest.setup.ts",
+      "sha256": "f6dacd0c48caa5c15c870a23f157a9801eea0c792f9c6e4d9a29374fa10b3e39"
+    }
+  ],
+  "scope": "Local static frontend tests/build only; no network/server/DB/model mutation",
+  "acceptance": false
+}
