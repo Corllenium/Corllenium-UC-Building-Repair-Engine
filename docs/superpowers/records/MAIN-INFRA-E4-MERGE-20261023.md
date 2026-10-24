@@ -545,3 +545,71 @@ $PY='D:/PROJECTS/05-Corllenium-UC-Building-Repair-Engine/.venv/Scripts/python.ex
    item 2 they should hold -- to be measured on the next chain run.
 3. `--allow-growth` trades invisible coplanar edges for merged regions; the E4 `grew` numbers of the next run say how
    many of the 1,250 come back and what the judge does with them.
+
+## Dashboard kinds: the per-face stage classifications (2026-10-24)
+
+`tools/main_infra_stage_errors.py` writes, for the BEFORE model (the first given stage's input) and the AFTER model (the
+last given stage's output), an errors.json in the dashboard's census shape -- `{"schema_version": 1, "n_faces": N,
+"counts": {kind: n}, "faces": {kind: [triangle ids]}, "details": {...}}`, triangle ids in the OBJ face order of the model
+the dashboard loads -- carrying these ten kinds beside the census's seven (flicker_diff, flicker_same, reversed, hidden,
+loose, open_edges, cracks; `tools/main_infra_errors.py` in the 4F-7F worktree). It reads only saved artifacts: the E5
+run dir (stage-audit.json, edit-log.jsonl, source-faces.json), the E4 run dir (region-map.json, stage-audit.json,
+edit-log.jsonl) and the crack judgement. Every id is checked against the face count of the OBJ the audits name (the E5
+input is the audit's `e3_candidate`, else the baseline snapshot; the E4 input the `e5_candidate`, else `e3_candidate`,
+else the snapshot) and refused when out of range.
+
+| kind | source | BEFORE ids | AFTER ids | colour proposal |
+| --- | --- | --- | --- | --- |
+| `backface_twin` | E5 edit log, kept remove sites whose rule is `backface_twin` | the removed faces | none (removed) | `#d94f4f` red: the solid-facing twin that went |
+| `interior_seam` | E5 edit log, kept remove sites whose rule is `interior_twins` | both faces of each interior seam | none (removed) | `#8e44ad` purple: block-against-block seam |
+| `two_sided_sheet` | E5 audit `engine_report.kept_pairs` with reason `both_exposed` | both faces of each kept pair | the same faces as survivors (then through E4) | `#2e86de` blue: a legitimate zero-thickness slab, kept |
+| `e5_rolled_back` | E5 edit log lines with `rolled_back: true`; reasons from the check record | the site's faces | the same faces (they survive) | `#f39c12` amber: the judge refused the drop |
+| `merge_region` | E4 region-map `regions[].source_faces` / `new_triangles` | the kept regions' source faces | the regions' new triangles | `#27ae60` green: re-triangulated as one surface |
+| `merge_refused` | E4 audit `engine_report.refused` (region ids -> faces via the E4 input's coplanar regions, `flat_materials` from the audit) | the refused regions' faces | the same faces (kept) | `#e67e22` orange: the engine refused the merge |
+| `e4_rolled_back` | E4 edit log lines with `rolled_back: true`; reasons from the check record | the site's source faces | the same faces (kept) | `#c0392b` dark red: the judge refused the merge |
+| `jev_merge` | crack judgement regions with decision `merge` | every face of the region | the region's new triangles when E4 merged it, else the faces | `#1abc9c` teal |
+| `jev_keep` | crack judgement regions with decision `keep` | every face of the region | the same faces | `#34495e` slate |
+| `jev_unsure` | crack judgement regions with decision `unsure` (owner queue) | every face of the region | the same faces | `#f1c40f` yellow: owner decision pending |
+
+`details`: `e5_rolled_back[face]` and `e4_rolled_back[face]` = `{site, reasons: {validator reason: samples},
+stage_rolled_back}`; `merge_refused[face]` = the E4 refusal reason (`area_changed`, `off_plane`, `flipped`, `uv_lost`,
+`uv_seam`, `too_large`, `mixed_material`, `grew`); `jev[face]` = `{provider, reason}` (the rule that decided, or
+"rules could not say" with Jev's recorded suggestion). The judgement's ids are the E4 input's (what
+`main_infra_crack_judge.py --before` read) and are carried back to the BEFORE model through the E5 survivors.
+
+Id mapping: the edit log, the survivor map and the region map carry each stage's own input ids. E4 ids go back to the
+BEFORE model through `source-faces.json` (output i = input `source_faces[i]`); everything goes forward to the AFTER model
+through the survivors, then E4's `kept_source_faces` (kept face -> its position) and the kept regions'
+`source_faces -> new_triangles`. A removed face has no AFTER id.
+
+Known limit: the E5 edit log does not record the rule per face (it is in the plan's evidence, which the log drops), only
+the site's `by_rule` counts in its reason text. A single-rule site is that rule; in a mixed site the coincident opposite
+pairs (same three corner positions) are the interior seams and the rest take the one remaining rule; a site that still
+mixes two rules is listed in `details.e5_unresolved` and classified nowhere. Persisting `evidence["rules"]` in the log
+line would remove the limit.
+
+`--with-census` runs `find_errors` on each model so one errors.json carries all seventeen kinds;
+`--merge-into-before/--merge-into-after <existing>` keep the existing file's other kinds and keys, replace the stage
+kinds and refuse a different `n_faces`. Tests: `tools/tests/test_main_infra_stage_errors.py` (a synthetic
+E3 -> E5 -> E4 tree with a mixed E5 site, a rolled-back site per stage, a refused region and a three-decision judgement;
+the real fixture chain through both runners with `--with-census`; merge-into; out-of-range refusals).
+
+### 7F command (NOT run here; root = the 4F-7F worktree's `data/main-infra-fresh/run-claude-4f-7f-20261023`)
+
+```powershell
+$env:PYTHONPATH=(Get-Location).Path
+$PY='D:/PROJECTS/05-Corllenium-UC-Building-Repair-Engine/.venv/Scripts/python.exe'
+$ROOT='D:/PROJECTS/05-Corllenium-UC-Building-Repair-Engine/.claude/worktrees/MAIN-INFRA-CLAUDE-4F-7F-20261023/data/main-infra-fresh/run-claude-4f-7f-20261023'
+& $PY -B -u tools/main_infra_stage_errors.py --e5 "$ROOT/e5/7F" --e4 "$ROOT/e4/7F" --judgement "$ROOT/e4/7F/crack-judgement.json" --before-out "$ROOT/e4/7F-dashboard/errors_before.json" --after-out "$ROOT/e4/7F-dashboard/errors_after.json" --with-census
+```
+
+(Drop `--judgement` when the E4 run was not judged; the BEFORE model is then `<root>/e3/7F/candidate.engine.obj`, the
+AFTER model `<root>/e4/7F/candidate.engine.obj`. To fold the kinds into census files the dashboard already has, replace
+`--with-census` by `--merge-into-before <its errors_before.json> --merge-into-after <its errors_after.json>`.)
+
+### Output (2026-10-24, worktree root, `PYTHONPATH` = it, `-p no:cacheprovider`)
+
+```
+pytest tools/tests/test_main_infra_stage_errors.py -> 8 passed in 17.44s
+pytest tools/tests -> 358 passed in 228.54s (0:03:48), exit 0   (350 + the 8 stage-errors tests)
+```
