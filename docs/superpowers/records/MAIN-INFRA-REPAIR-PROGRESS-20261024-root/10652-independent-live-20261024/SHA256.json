@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "artifacts": [
+    {
+      "path": "validation.json",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\iv1f-e7-covered-ray\\run-20261024\\1F\\validate\\validation.json",
+      "bytes": 423248,
+      "sha256": "1c00e817522e0d096dcbcd2649dc54ea7dd0cab5affa3e5afd9df305a5b3f9ce"
+    },
+    {
+      "path": "independent-review.json",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\iv1f-e7-covered-ray\\run-20261024\\1F\\independent-review.json",
+      "bytes": 309706,
+      "sha256": "cafbd9f9456b6fbdf7d74927907770c9836dae6d3c6312eb539c99c50ade2091"
+    },
+    {
+      "path": "fullsigned-terminal.json",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\covered-ray-validation-preflight\\monitor-fullsigned-independent-1F-E7-covered-ray-retention-20261024T065751\\result.json",
+      "bytes": 829,
+      "sha256": "479898b69d3ba44e8b362752aa0218fa6ae410d88877add8d4ea5372e10b516b"
+    },
+    {
+      "path": "fullsigned-readback.json",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\covered-ray-validation-preflight\\actual-fullsigned-readback.json",
+      "bytes": 5011,
+      "sha256": "bf505c6071e3f2484d1f49942556596b954c555c45bbdd637030586b5673c133"
+    },
+    {
+      "path": "live-model-publication.json",
+      "source": "D:\\PROJECTS\\UC MODEL FIXER\\data\\tmp\\i10652-model\\live-model-publication-receipt.json",
+      "bytes": 610,
+      "sha256": "f05e7e5e3411dad342d774172ece956f5c7a0016576114ec0d321fbf49d5b144"
+    },
+    {
+      "path": "live-map-publication.json",
+      "source": "D:\\PROJECTS\\UC MODEL FIXER\\data\\tmp\\e10652-live-maps-receipt.json",
+      "bytes": 1073,
+      "sha256": "ca50347b7997a82f48f207b6e7f7f1827704d65acaf9d270fca429d04e1ce07c"
+    },
+    {
+      "path": "live-browser-verification.json",
+      "source": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\docs\\handoff\\main-infra-live-logs-20261024\\1f-10652-live-browser-qa\\verification.json",
+      "bytes": 97346,
+      "sha256": "36daecca81c8ccef5127ac998fb284dbefa49943bd56ceb97d186b8fc4a6a08e"
+    },
+    {
+      "path": "live-browser-SHA256.json",
+      "source": "D:\\PROJECTS\\UC MODEL FIXER\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\docs\\handoff\\main-infra-live-logs-20261024\\1f-10652-live-browser-qa\\SHA256.json",
+      "bytes": 2560,
+      "sha256": "b87862327fa706af080df22066df7c26d88943a20525d9e61d6f54e9bbc003d4"
+    },
+    {
+      "path": "live-canonical-snapshot.json",
+      "source": "D:\\PROJECTS\\UC MODEL FIXER\\data\\main-infra-fresh\\current.json",
+      "bytes": 128850,
+      "sha256": "b857a4e0df237bcf968cc7390681152679b2146fed901ab098f54e3d9422fe23"
+    },
+    {
+      "path": "claude-handoff-checkpoint.json",
+      "source": "D:\\PROJECTS\\UC MODEL FIXER\\data\\iv-handoff-audit-20261024\\claude-upper-handoff-checkpoint-v2.json",
+      "bytes": 50852,
+      "sha256": "f294541ec1c33ea5d0861574638019a1f40eba2d19cc03340aa234528547c48d"
+    },
+    {
+      "path": "1f-proof-seal.json",
+      "source": "D:\\PROJECTS\\UC MODEL FIXER\\data\\iv-handoff-audit-20261024\\1f-proof-seal.json",
+      "bytes": 3403,
+      "sha256": "f59db761ffea72dee3efdf9f41cdb7b81188248a27d923b3c44d0f25b02cb85e"
+    }
+  ],
+  "floor_accepted": false
+}

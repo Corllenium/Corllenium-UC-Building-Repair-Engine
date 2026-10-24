@@ -1,0 +1,2638 @@
+{
+  "schema_version": 1,
+  "building_id": "MAIN_INFRA",
+  "job_id": "MAIN-INFRA-CLEAN-20261023",
+  "source_revision": "7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511",
+  "run_id": "main-infra-clean-20261023",
+  "source_label": "Fresh Minecraft export",
+  "source_path": "Z:\\PC-4-STORAGE\\UC MODELS\\UPDATED MINECRAFT MODEL\\MAIN INFRUSTRUCTURE",
+  "source_state": "frozen",
+  "scale_metres_per_block": 1,
+  "scale_authority": "Owner confirmation in this chat, 2026-10-23",
+  "state": "reviewing",
+  "step": "Engine workers finished; independent candidate review follows; Claude Code owns 4F-7F",
+  "updated_at": "2026-10-24T07:50:14.391301Z",
+  "last_work_event_at": "2026-10-24T07:35:00.007242Z",
+  "heartbeat_at": "2026-10-24T07:50:14.391301Z",
+  "dashboard_connected": false,
+  "implementation_started": true,
+  "inventory": {
+    "obj": 7,
+    "mtl": 7,
+    "png": 22,
+    "files": 36
+  },
+  "retired_job_count": 5,
+  "deleted_failed_obj_count": 6,
+  "deleted_plan_count": 4,
+  "plan": "docs/superpowers/plans/2026-10-23-main-infra-fresh-cleanup.md",
+  "report": "docs/superpowers/records/MAIN-INFRA-CLEAN-20261023.md",
+  "next_action": "Independently validate saved output before publishing a new candidate. Run queued retries sequentially with fresh memory checks. Claude Code owns 4F-7F.",
+  "floors": {
+    "1F": {
+      "floor_id": "MAIN_INFRA_1F",
+      "state": "blocked",
+      "step": "New 10,652-triangle model is live in After with all seven measured filters; textures and visible surfaces pass, remaining overlap/crack targets need repair",
+      "blocker": "Preservation PASS; remaining targets: 1,798 different-look overlaps, 1,153 same-look overlaps, 2,352 cracks",
+      "source_preview": "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/1F/main-infra-clean-20261023/source/preview-errors-10660-20261024-d9729b4.json",
+      "candidate_preview": "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/1F/main-infra-clean-20261023/candidate/preview-errors-10652-20261024-4ebfdcb.json",
+      "accepted_preview": null,
+      "evidence_refs": [],
+      "owner_decision_ref": null,
+      "input_triangles": 15856,
+      "last_work_event_at": "2026-10-24T07:35:00.007242Z",
+      "worker_pid": 56924,
+      "worker_alive": false,
+      "worker_observed_at": "2026-10-24T07:15:34.583340Z",
+      "worker_cpu_seconds": null,
+      "worker_start_utc": "2026-10-24T06:57:54.2223501Z",
+      "engine_stage": "E7",
+      "previous_failed_attempt": {
+        "worker_pid": 43456,
+        "step": "E7 worker stopped: ValueError: source boundary",
+        "recorded_at": "2026-10-23T15:07:50.053267Z",
+        "local_backup": "D:\\PROJECTS\\UC MODEL FIXER\\data\\siege-live-20261023\\queued-retry-prior-states-20261023T1508.json"
+      },
+      "queued_builder_commit": "17247d295d809a6405fae8271a4d3d290e04bb59",
+      "preparation_sha256": "a8318faaf0e7b951baa8cc659cf0749e1fcdfa608f5ab132757fc0a0a4015573",
+      "prepared_component_commit": "235b7b759a7131dc2f6f56a79dd14adf1323bfea",
+      "independent_validator_stage": "full_signed_complete_10652",
+      "independent_validator_worker_pid": 56924,
+      "independent_validator_worker_alive": false,
+      "engine_worker_pid": 59756,
+      "independent_caller_commit": "1a8a903227ede0026995d1f9437c032db171c5b5",
+      "independent_prepared_sha256": "a4e609175e04beb42df41464d0da507d63679090d52bbdaf371d578b698ace84",
+      "failed_attempts": [
+        {
+          "pending_output_triangles": 10578,
+          "independent_guard_passed": true,
+          "independent_guard_sha256": "489f5c2397e889356520ac9b29807f4e22ad0d1d4e15970aa01f25e474a2a010",
+          "guard_views_done": 26,
+          "guard_views_total": 26,
+          "native_preservation_passed": false,
+          "native_qualified_changed_pixels": 335,
+          "native_qualified_changed_views": 17,
+          "native_qualified_total_views": 33,
+          "native_alpha_changed_pixels": 0,
+          "native_silhouette_changed_pixels": 0,
+          "native_readback_sha256": "e80bf8848328ab4067e9e0c7c219a9378fb9cdfb092b6588e4b3723f4c415d97",
+          "diagnostic_only": true,
+          "independent_signed_diagnostic_sha256": "967e49df61b2d67e078d18c806285e635a04ed9cd2857222033553d7e155d209",
+          "independent_signed_diagnostic_verdict": "FAIL",
+          "independent_signed_diagnostic_exit_code": 2,
+          "independent_signed_texture_failed_samples": 10,
+          "independent_signed_coverage_failed_faces": 2,
+          "attempt_namespace": "run-20261023-attempt3",
+          "preparation_sha256": "e5af36dde9a242388985200cd6502b370dba87aba92ef152bec9e91b0f681e2a",
+          "builder_commit": "18c8ae993cfed71ad7e978d7b253cecb8a1ec5c5",
+          "state": "blocked",
+          "signed_diagnostic_sha256": "967e49df61b2d67e078d18c806285e635a04ed9cd2857222033553d7e155d209"
+        }
+      ],
+      "current_attempt_namespace": "run-20261024-1F-covered-ray-retention",
+      "current_attempt_retained_proposals": 279,
+      "preflight_source_positions_unchanged": true,
+      "pending_output_triangles": 10652,
+      "current_attempt_kept_sites": 160,
+      "current_attempt_fresh_rollback_sites": 0,
+      "independent_before_triangles": 15856,
+      "independent_after_triangles": 10660,
+      "guard_views_total": 26,
+      "independent_guard_passed": true,
+      "independent_guard_sha256": "1201690a61cc13c4acf1f0ccc935f6546c9f4215ca6e9b2ed4049f9747480179",
+      "guard_views_done": 26,
+      "diagnostic_only": true,
+      "publication_eligible": false,
+      "focused_floor_attribution": {
+        "actual_pid": 38372,
+        "actual_start_utc": "2026-10-23T20:23:54.3841257Z",
+        "actual_alive": false,
+        "script_sha256": "e6dbc84e17772d2ec82ab794dc56f5d66fb62cabfffcd9a9cfc2f9af1e4cbcd0",
+        "phase_config_sha256": "954e05db4a83495664a22e3d8a34f2a8738bf6859d752ee50b591cf223a3b541",
+        "terminal_sha256": null,
+        "diagnostic_only": true,
+        "accepted": false,
+        "verdict": "baseline_loss_reproduced",
+        "report_sha256": "a84b7a535a90dcdcc5dd722dbf17a96a185a07f7977e227d8113f9bf1b9cf15a",
+        "lost_lines": 14,
+        "all_actual_lost_lines_already_lost_in_E3": true,
+        "E7_contributors_unresolved": true
+      },
+      "earlier_E3_new_preservation_finding": {
+        "original_faces": [
+          9809,
+          10366
+        ],
+        "lost_pixels": [
+          10.5,
+          4.1
+        ],
+        "actual_lost_lines": 14,
+        "attribution_sha256": "a84b7a535a90dcdcc5dd722dbf17a96a185a07f7977e227d8113f9bf1b9cf15a",
+        "cause": "Earlier E3 removed original source faces; original removal sites under diagnosis",
+        "acceptance": false
+      },
+      "withdrawn_candidate_preview": {
+        "url": "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/1F/main-infra-clean-20261023/candidate/preview-e3-20261023.json",
+        "output_triangles": 10136,
+        "reason": "New exact pixel evidence proves earlier E3 removed visible source faces9809/10366 in site5",
+        "attribution_sha256": "a84b7a535a90dcdcc5dd722dbf17a96a185a07f7977e227d8113f9bf1b9cf15a"
+      },
+      "failed_E7_attempt4_output_triangles": 10393,
+      "next_engine_job_id": "MAIN-INFRA-1F-E7-NATIVE-RETENTION-20261024",
+      "next_independent_job_id": "MAIN-INFRA-1F-VALIDATE-RETAIN-VISIBLE-20261024",
+      "preparation_review_pending": false,
+      "current_attempt_retained_source_faces": 724,
+      "current_attempt_selected_sites": 160,
+      "retained_e3_preparation_run": {
+        "pid": 54296,
+        "exit_code": 0,
+        "completed_utc": "2026-10-23T21:13:06.8573867Z",
+        "resource_aborted": false,
+        "all_owned_exited": true,
+        "preparation_sha256": "41fcb9a8146891da633289c57c097baba419a59fbafd068ce54951be6fdc583b",
+        "execute_phase_sha256": "4e2091563e767fb8b92420927d2d79921cbe4e3f33f5ccd1a603343f50d7dc28"
+      },
+      "worker_events": [
+        {
+          "engine": "E3",
+          "run_id": "main-infra-clean-20261023",
+          "pid": 54296,
+          "start_utc": "2026-10-23T21:12:57.0979970Z",
+          "observed_at": "2026-10-23T21:13:06.8573867Z",
+          "phase": "prepared",
+          "message": "Fresh original source verified; whole visible site 5 retained."
+        },
+        {
+          "engine": "E3",
+          "run_id": "main-infra-clean-20261023",
+          "pid": 40476,
+          "start_utc": "2026-10-23T21:15:39.9150019Z",
+          "observed_at": "2026-10-23T21:28:49.1646881Z",
+          "phase": "candidate_saved",
+          "message": "Engine saved 15,856 to 10,410 triangles; 279 checked sites kept; all 274 protected original faces retained."
+        },
+        {
+          "engine": "E3",
+          "run_id": "main-infra-clean-20261023",
+          "pid": 13184,
+          "start_utc": "2026-10-23T21:56:13.9988547Z",
+          "observed_at": "2026-10-23T21:56:27.6391275Z",
+          "phase": "strict26_passed",
+          "message": "Independent 26-view guard passed across 3,924,929 model pixels."
+        },
+        {
+          "engine": "E3",
+          "run_id": "main-infra-clean-20261023",
+          "pid": 23392,
+          "start_utc": "2026-10-23T22:01:25.7857894Z",
+          "observed_at": "2026-10-23T22:01:32.2941362Z",
+          "phase": "retained_floor_passed",
+          "message": "Exact missing-face replay passed: original faces 9809 and 10366 preserved, and all 14 previously lost sightlines now have zero loss."
+        },
+        {
+          "engine": "E3",
+          "run_id": "main-infra-clean-20261023",
+          "pid": 64232,
+          "start_utc": "2026-10-23T22:11:00.3841151Z",
+          "observed_at": "2026-10-23T22:11:24.0296603Z",
+          "phase": "native_receipt_adapter_error",
+          "message": "Renderer saved all 46 before/after image pairs; operational receipt adapter used the wrong 1F class labels. Saved-image-only readback is prepared; signed validation pending."
+        },
+        {
+          "engine": "E3",
+          "run_id": "main-infra-clean-20261023",
+          "pid": 27424,
+          "start_utc": "2026-10-23T22:16:21.4244705Z",
+          "observed_at": "2026-10-23T22:16:24.2775740Z",
+          "phase": "native_preservation_passed",
+          "message": "Saved native images read back: zero changed pixels in all 33 qualified views (16 walking and 17 outside). Thirteen diagnostic views remain separately recorded."
+        },
+        {
+          "engine": "E3",
+          "run_id": "main-infra-clean-20261023",
+          "pid": 25704,
+          "start_utc": "2026-10-23T22:19:08.3391513Z",
+          "observed_at": "2026-10-23T22:19:08.3391513Z",
+          "phase": "full_signed_running",
+          "message": "Independent full signed Validator running on original 15,856-triangle fresh source against saved 10,410-triangle candidate; default targets and texture/coverage rules unchanged."
+        },
+        {
+          "engine": "E3",
+          "run_id": "main-infra-clean-20261023",
+          "pid": 25704,
+          "start_utc": "2026-10-23T22:19:08.3391513Z",
+          "observed_at": "2026-10-23T22:33:10.1508821Z",
+          "phase": "full_signed_complete_failed_targets",
+          "message": "Full Validator completed: 108,392 texture samples passed; visible coverage and pixel-floor checks passed. Problems remain: different-look flicker 1,798, same-look 1,153, cracks 2,378. Candidate is unaccepted; no evidence PNGs were emitted by this signed run."
+        },
+        {
+          "engine": "E3",
+          "run_id": "MAIN-INFRA-E3-1F-retain-visible-20261024",
+          "pid": 53784,
+          "start_utc": "2026-10-23T22:49:50.3465576Z",
+          "observed_at": "2026-10-23T22:59:41.384844Z",
+          "phase": "inspection_published",
+          "message": "New10,410-triangle model, original textures, actual signed report and native before/after images are live for explicit inspection. Preservation passed; remaining problem targets failed; acceptance stays false."
+        },
+        {
+          "engine": "E7",
+          "run_id": "MAIN-INFRA-E7-1F-RETAINED-BASE-20261024",
+          "pid": 52392,
+          "start_utc": "2026-10-23T23:45:03.7539730Z",
+          "observed_at": "2026-10-23T23:45:44.9957951Z",
+          "phase": "prepare_source_plane_refusal",
+          "message": "Next E7 preparation stopped at exact source-plane admission; preserved model remains available"
+        },
+        {
+          "engine": "E7",
+          "run_id": "MAIN-INFRA-E7-1F-retained-base-attempt2-20261024",
+          "pid": 61196,
+          "start_utc": "2026-10-24T00:15:05.9615925Z",
+          "observed_at": "2026-10-24T00:17:22.083588Z",
+          "phase": "checking_admitted607",
+          "message": "Actual existing E7 engine running607 fresh exact-source valid proposals;3 recorded unresolved; kept/rollback not known yet"
+        },
+        {
+          "engine": "E7",
+          "run_id": "MAIN-INFRA-E7-1F-retained-base-attempt2-20261024",
+          "pid": 61196,
+          "start_utc": "2026-10-24T00:15:05.9615925Z",
+          "observed_at": "2026-10-24T00:37:10.1904324Z",
+          "phase": "candidate_saved",
+          "message": "Actual E7 saved10,831 triangles:265 cuts kept;342 rolled back;3 quarantined. Independent original-source validation pending. Displayed10,410-triangle E3 model and its reports remain a separate inspected candidate.",
+          "kept_edits": 265,
+          "rolled_back_edits": 342,
+          "output_triangles": 10831
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-1F-E7-ADMISSION-VALIDATE-20261024",
+          "pid": 33600,
+          "start_utc": "2026-10-24T01:15:39.1474324Z",
+          "observed_at": "2026-10-24T01:16:48.6752998Z",
+          "phase": "e7_original_source_binding_pass",
+          "message": "Independent original-source binding passed for the new 10,831-triangle output: 419 input hashes match; 619 protected, rolled-back and quarantined source parents remain unchanged. Native and signed checks pending."
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-1F-E7-ADMISSION-VALIDATE-20261024",
+          "pid": 55876,
+          "start_utc": "2026-10-24T01:18:53.4001302Z",
+          "observed_at": "2026-10-24T01:20:16.7124481Z",
+          "phase": "e7_strict26_pass",
+          "message": "New 10,831-triangle output passed the independent 26-view guard against your 15,856-triangle original: 3,924,929 model pixels; zero holes, growth, material or displacement violations. Texture, interior and full signed checks pending."
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-1F-E7-ADMISSION-VALIDATE-20261024",
+          "pid": 63936,
+          "start_utc": "2026-10-24T01:22:47.5719007Z",
+          "observed_at": "2026-10-24T01:23:40.347348Z",
+          "phase": "independent_validation:native46",
+          "message": "Independent validation: native46"
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-1F-E7-ADMISSION-VALIDATE-20261024",
+          "pid": 63936,
+          "start_utc": "2026-10-24T01:22:47.5719007Z",
+          "observed_at": "2026-10-24T01:24:17.637703Z",
+          "phase": "e7_native_preservation_failed",
+          "message": "New 10,831-triangle output failed texture preservation: 334 changed RGB pixels in 17 of 33 qualified views; no alpha/coverage change. Saved images retained. Floor and signed validation stopped. The displayed 10,410-triangle candidate is a separate earlier output."
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-1F-E7-ADMISSION-VALIDATE-20261024",
+          "pid": 63936,
+          "start_utc": "2026-10-24T01:22:47.5719007Z",
+          "observed_at": "2026-10-24T01:30:07.498037Z",
+          "phase": "independent_validation:native46",
+          "message": "Independent validation: native46"
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-1F-ERROR-CENSUS-20261024",
+          "pid": 29104,
+          "start_utc": "2026-10-24T01:54:20.0503358Z",
+          "observed_at": "2026-10-24T01:54:59.7399753Z",
+          "phase": "error_census_saved",
+          "message": "Actual detector capture completed in39.8s: Before/After real face maps saved. Different-look5684 to1798, same-look3347 to1153, hidden8548 to3102, openedges312 to2223, cracks2819 to2378; reversed/loose0. No model mutation or validation pass; overlay publication preparing."
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-1F-E7-ADMISSION-VALIDATE-20261024",
+          "pid": 63936,
+          "start_utc": "2026-10-24T01:22:47.5719007Z",
+          "observed_at": "2026-10-24T01:58:13.361361Z",
+          "phase": "independent_validation:native46",
+          "message": "Independent validation: native46"
+        },
+        {
+          "engine": "E7",
+          "run_id": "MAIN-INFRA-E7-1F-native-retention-20261024",
+          "pid": 29104,
+          "start_utc": "2026-10-24T02:07:39.2223934Z",
+          "observed_at": "2026-10-24T02:10:12.465847Z",
+          "phase": "checking_native_retained174",
+          "message": "Actual repair engine running174 selected proposals under unchanged checks. All91 source parents associated with failed native pixels remain whole;710 original parents protected. Prior342 rollbacks and3 source quarantines remain unresolved. Newkept/outputcounts not known yet."
+        },
+        {
+          "engine": "E7",
+          "run_id": "MAIN-INFRA-E7-1F-native-retention-20261024",
+          "pid": 29104,
+          "start_utc": "2026-10-24T02:07:39.2223934Z",
+          "observed_at": "2026-10-24T02:19:10.3330430Z",
+          "phase": "native_retained_candidate_saved",
+          "message": "Engine saved actual10,662-triangle source+engine pair after161kept/13fresh rollback edits;710protected originals unchanged and7texture assets copiedexactly. Independent preservation/target checks pending. Displayed10,410 inspection remains separate.",
+          "kept_edits": 161,
+          "rolled_back_edits": 13,
+          "output_triangles": 10662
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-1F-E7-NATIVE-RETENTION-VALIDATE-20261024",
+          "pid": 28464,
+          "start_utc": "2026-10-24T02:35:41.8205041Z",
+          "observed_at": "2026-10-24T02:36:24.634276Z",
+          "phase": "native_retained_original_source_binding_running",
+          "message": "Independent validator is binding original15,856 to new10,662 and replaying actual161kept/13rollback typedcheckpoint;723whole protected/rollback parents must remain unchanged. No preservation pass or acceptance yet."
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-1F-E7-NATIVE-RETENTION-VALIDATE-20261024",
+          "pid": 28464,
+          "start_utc": "2026-10-24T02:35:41.8205041Z",
+          "observed_at": "2026-10-24T02:36:56.477312Z",
+          "phase": "independent_validation:prepare_native_retained",
+          "message": "Independent validation: prepare_native_retained"
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-1F-E7-NATIVE-RETENTION-VALIDATE-20261024",
+          "pid": 28464,
+          "start_utc": "2026-10-24T02:35:41.8205041Z",
+          "observed_at": "2026-10-24T02:36:39.9644472Z",
+          "phase": "native_retained_original_source_binding_pass",
+          "message": "Independent original-source and typed-checkpoint binding passed for new10,662:723whole protected/rollback parents remain unchanged;442savedinputhashes match. Strict/native/floor/fullsigned checks pending."
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-1F-E7-NATIVE-RETENTION-VALIDATE-20261024",
+          "pid": 240,
+          "start_utc": "2026-10-24T02:38:47.5006593Z",
+          "observed_at": "2026-10-24T02:40:08.413905Z",
+          "phase": "independent_validation:strict26_native_retained",
+          "message": "Independent validation: strict26_native_retained"
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-1F-E7-NATIVE-RETENTION-VALIDATE-20261024",
+          "pid": 240,
+          "start_utc": "2026-10-24T02:38:47.5006593Z",
+          "observed_at": "2026-10-24T02:39:55.9454472Z",
+          "phase": "native_retained_strict26_pass",
+          "message": "New10,662 passed all26independent strict views:3,924,929modelpixels; holes,growth,material,movement,ties allzero. Native texture/floor/fullsigned preservation andproblem targets stillpending."
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-1F-E7-NATIVE-RETENTION-VALIDATE-20261024",
+          "pid": 23392,
+          "start_utc": "2026-10-24T02:42:03.8067304Z",
+          "observed_at": "2026-10-24T02:43:22.606026Z",
+          "phase": "independent_validation:native46_native_retained",
+          "message": "Independent validation: native46_native_retained"
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-1F-E7-NATIVE-RETENTION-VALIDATE-20261024",
+          "pid": 23392,
+          "start_utc": "2026-10-24T02:42:03.8067304Z",
+          "observed_at": "2026-10-24T02:43:11.9687588Z",
+          "phase": "native_retained_native_failed_one_pixel",
+          "message": "New 10,662 saved candidate: strict26 PASS; native FAIL on one outside RGB pixel (334 in prior attempt). All 16 walking views, alpha and coverage match. Floor/full signed checks NOT_RUN; acceptance false. Associated cut site5202/parent7559 will remain whole in next engine pass."
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-1F-E7-NATIVE-RETENTION-VALIDATE-20261024",
+          "pid": 23392,
+          "start_utc": "2026-10-24T02:42:03.8067304Z",
+          "observed_at": "2026-10-24T02:55:41.068270Z",
+          "phase": "independent_validation:native46_native_retained",
+          "message": "Independent validation: native46_native_retained"
+        },
+        {
+          "engine": "E7",
+          "run_id": "MAIN-INFRA-E7-1F-single-pixel-retention-20261024",
+          "pid": 60248,
+          "start_utc": "2026-10-24T03:19:27.6432634Z",
+          "observed_at": "2026-10-24T03:19:27.6432634Z",
+          "phase": "single_pixel_input_preparation_running",
+          "message": "Actual input preparation started from frozen f12e1fd: verify original source and all typed donor receipts, select160cuts while retaining whole parent7559 and724protected originals. No kernel repair or newoutput count yet."
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-1F-E7-NATIVE-RETENTION-VALIDATE-20261024",
+          "pid": 23392,
+          "start_utc": "2026-10-24T02:42:03.8067304Z",
+          "observed_at": "2026-10-24T03:21:01.158995Z",
+          "phase": "independent_validation:native46_native_retained",
+          "message": "Independent validation: native46_native_retained"
+        },
+        {
+          "engine": "E7",
+          "run_id": "MAIN-INFRA-E7-1F-single-pixel-retention-20261024",
+          "pid": 60248,
+          "start_utc": "2026-10-24T03:19:27.6432634Z",
+          "observed_at": "2026-10-24T03:20:11.4545905Z",
+          "phase": "single_pixel_input_preparation_complete",
+          "message": "Input preparation completed exit0: exact ordered160 selected cuts and724 original parents protected;208 code components and47 direct inputs rehashed without mismatch. New kernel repair not started yet."
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-1F-E7-NATIVE-RETENTION-VALIDATE-20261024",
+          "pid": 23392,
+          "start_utc": "2026-10-24T02:42:03.8067304Z",
+          "observed_at": "2026-10-24T03:22:55.874422Z",
+          "phase": "independent_validation:native46_native_retained",
+          "message": "Independent validation: native46_native_retained"
+        },
+        {
+          "engine": "E7",
+          "run_id": "MAIN-INFRA-E7-1F-single-pixel-retention-20261024",
+          "pid": 62184,
+          "start_utc": "2026-10-24T03:24:01.8205420Z",
+          "observed_at": "2026-10-24T03:24:14.0206958Z",
+          "phase": "single_pixel_startup_monitor_abort",
+          "message": "Actual corrective engine launch stopped after12.28s during component-check startup: monitor Times(null handle) error. All owned processes exited; no worker/checkpoint/candidate was created. Saved160-cut plan and724 original protections unchanged. Monitor repair now under test; no model pass claimed."
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-1F-E7-NATIVE-RETENTION-VALIDATE-20261024",
+          "pid": 23392,
+          "start_utc": "2026-10-24T02:42:03.8067304Z",
+          "observed_at": "2026-10-24T03:27:26.695009Z",
+          "phase": "independent_validation:native46_native_retained",
+          "message": "Independent validation: native46_native_retained"
+        },
+        {
+          "engine": "E7",
+          "run_id": "MAIN-INFRA-E7-1F-single-pixel-retention-20261024",
+          "pid": 4532,
+          "start_utc": "2026-10-24T03:48:29.1420273Z",
+          "observed_at": "2026-10-24T03:50:32.588310Z",
+          "phase": "single_pixel_checked_repair_running",
+          "message": "Actual engine4532 is checking160 freshly selected cuts with all724 protected original faces and default preservation/rollback checks. Whole sourceparent7559 remains intact. V5 process-exit fix passed verified native tests; all geometry guards unchanged. Newkept/output counts are not known yet."
+        },
+        {
+          "engine": "E7",
+          "run_id": "MAIN-INFRA-E7-1F-single-pixel-retention-20261024",
+          "pid": 4532,
+          "start_utc": "2026-10-24T03:48:29.1420273Z",
+          "observed_at": "2026-10-24T03:52:30.9515424Z",
+          "phase": "single_pixel_candidate_saved",
+          "message": "Engine saved actual 10,660 triangles: 160 cuts kept, zero fresh rollbacks; all 724 protected original faces and seven texture assets retained. Independent preservation and problem checks pending.",
+          "kept_edits": 160,
+          "rolled_back_edits": 0,
+          "output_triangles": 10660
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-1F-E7-SINGLE-PIXEL-VALIDATE-20261024",
+          "pid": 31788,
+          "start_utc": "2026-10-24T04:04:20.9979651Z",
+          "observed_at": "2026-10-24T04:05:16.296943Z",
+          "phase": "single_pixel_prepare_running",
+          "message": "Independent validator binding original 15,856 triangles to saved 10,660 and replaying the 160-cut checkpoint with 724 whole original parents. No model validation pass yet."
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-1F-E7-SINGLE-PIXEL-VALIDATE-20261024",
+          "pid": 31788,
+          "start_utc": "2026-10-24T04:04:20.9979651Z",
+          "observed_at": "2026-10-24T04:05:00.3768799Z",
+          "phase": "single_pixel_prepare_hash_stop",
+          "message": "Independent input replay stopped on an inherited strict-guard helper hash mismatch; no guard/native/signed checks ran. Saved 10,660 geometry remains unchanged; exact-byte mismatch is under diagnosis."
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-1F-E7-SINGLE-PIXEL-VALIDATE-20261024",
+          "pid": 62192,
+          "start_utc": "2026-10-24T04:11:08.9640638Z",
+          "observed_at": "2026-10-24T04:11:47.2461189Z",
+          "phase": "single_pixel_original_source_binding_pass",
+          "message": "Independent actual source/checkpoint replay passed: original 15,856 to saved 10,660, 160 cuts kept, all 724 protected original faces unchanged. Measured error census next; strict/native/floor/signed checks pending."
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-1F-10660-ERROR-CENSUS-20261024",
+          "pid": 62776,
+          "start_utc": "2026-10-24T04:21:26.5761424Z",
+          "observed_at": "2026-10-24T04:22:16.074277Z",
+          "phase": "10660_error_census_running",
+          "message": "Actual default engine detector is measuring original 15,856 and new saved 10,660 for matching real face/edge maps. No model mutation or validation pass claimed."
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-1F-10660-ERROR-CENSUS-20261024",
+          "pid": 62776,
+          "start_utc": "2026-10-24T04:21:26.5761424Z",
+          "observed_at": "2026-10-24T04:22:23.1950612Z",
+          "phase": "10660_error_census_saved",
+          "message": "Actual default detector saved new 10,660 maps: different-look 5684 to1798, same-look3347 to1153, hidden8548 to3213, reversed0 to0, loose0 to1, open edges312 to2179, cracks2819 to2350. No model mutation; no validation pass."
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-1F-E7-SINGLE-PIXEL-VALIDATE-20261024",
+          "pid": 62208,
+          "start_utc": "2026-10-24T04:23:37.5083537Z",
+          "observed_at": "2026-10-24T04:24:31.943583Z",
+          "phase": "10660_strict26_running",
+          "message": "Independent original-source strict guard is checking all 26 unchanged viewpoints against actual saved 10,660. Native/floor/signed checks pending; no acceptance."
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-1F-E7-SINGLE-PIXEL-VALIDATE-20261024",
+          "pid": 38296,
+          "start_utc": "2026-10-24T04:26:44.1082974Z",
+          "observed_at": "2026-10-24T04:27:30.818925Z",
+          "phase": "10660_native46_running",
+          "message": "New 10,660 passed strict26 with zero violations across3,924,929pixels. Native renderer now compares33 qualified walking/exterior views plus13 separate diagnostics. Floor/signed pending; no acceptance."
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-1F-E7-SINGLE-PIXEL-VALIDATE-20261024",
+          "pid": 7996,
+          "start_utc": "2026-10-24T04:30:42.1766992Z",
+          "observed_at": "2026-10-24T04:31:19.102511Z",
+          "phase": "10660_retained_floor_running",
+          "message": "New10,660 passed all33 qualified native images with ZERO differingRGBA pixels; strict26 passed. Actual focused floor check now replays14 previously lost sightlines for sourcefaces9809/10366. Full signed check pending; not accepted."
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-1F-E7-SINGLE-PIXEL-VALIDATE-20261024",
+          "pid": 31596,
+          "start_utc": "2026-10-24T04:34:30.7278469Z",
+          "observed_at": "2026-10-24T04:35:54.016649Z",
+          "phase": "10660_full_signed_running_after_live_bind",
+          "message": "Actual new 10,660 model and matching seven error filters are live in After. Strict26 passed, native33 has zero RGBA differences, focused14 sightlines have zero loss. Full signed Validator31596 now runs original15,856 against saved10,660 with unchanged targets; no acceptance."
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-1F-E7-SINGLE-PIXEL-VALIDATE-20261024",
+          "pid": 31596,
+          "start_utc": "2026-10-24T04:34:30.7278469Z",
+          "observed_at": "2026-10-24T04:48:10.0981404Z",
+          "phase": "completed_failed_covered10_faces4",
+          "message": "Full Validator completed FAIL:10 covered samples on source faces8563/8564/8633/8634, which remain unchanged in output. Deleted/UV/look failures0; owner pixel-floor35/0failed. Problems1798different/1153same/2350cracks remain. Strict/native/focused passes stay separate; not accepted. Current covering contributors are being traced."
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-1F-10660-COVERED-WITNESS-20261024",
+          "pid": 58624,
+          "start_utc": "2026-10-24T05:16:36.2175824Z",
+          "observed_at": "2026-10-24T05:17:23.709439Z",
+          "phase": "current_covered_witness_diagnostic",
+          "message": "Replaying actual failed source samples with unchanged Validator settings; comparing original,10410base and10660candidate hit depth/face lineage. Full signed report remains FAIL; diagnostic cannot approve output."
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-1F-10660-COVERED-WITNESS-20261024",
+          "pid": 58624,
+          "start_utc": "2026-10-24T05:16:36.2175824Z",
+          "observed_at": "2026-10-24T05:17:58.587131Z",
+          "phase": "independent_validation:current_covered_witness_diagnostic",
+          "message": "Independent validation: current_covered_witness_diagnostic"
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-1F-10660-COVERED-WITNESS-20261024",
+          "pid": 58624,
+          "observed_at": "2026-10-24T05:20:31.633700Z",
+          "phase": "covered_witness_completed_diagnostic",
+          "message": "Exact current10 covered samples/four unchanged originalfaces/232.5in2 reproduced;22blockedlines traced through original/base/candidate. Cause under independent review; signedFAIL remains authoritative.",
+          "start_utc": "2026-10-24T05:16:36.2175824Z"
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-1F-E7-COVERED-RAY-RETENTION-20261024",
+          "pid": 46960,
+          "start_utc": "2026-10-24T05:44:49.3217836Z",
+          "observed_at": "2026-10-24T05:45:32.691334Z",
+          "phase": "covered_ray_complete_retention_cohort",
+          "message": "Enumerating all410 changed children on22 saved rays; conservative whole-parent retention and unchanged blocker closure. Diagnostic only; source geometry and signedFAIL unchanged."
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-1F-E7-COVERED-RAY-RETENTION-20261024",
+          "pid": 46960,
+          "start_utc": "2026-10-24T05:44:49.3217836Z",
+          "observed_at": "2026-10-24T05:45:54.144421Z",
+          "phase": "independent_validation:covered_ray_complete_retention_cohort",
+          "message": "Independent validation: covered_ray_complete_retention_cohort"
+        },
+        {
+          "engine": "Validator",
+          "observed_at": "2026-10-24T05:46:53.736139Z",
+          "phase": "complete_9020pairs_8wholeparents_local0",
+          "message": "Completed all410children×22savedrays. Completeconservativecohort8sites/16children/8originalparents; unchangedblocker localclosure0/22. Preparingengineprofile with732protectedparents. No newmodel savedyet; actual10660/fullFAIL remains inspectable.",
+          "pid": 46960,
+          "start_utc": "2026-10-24T05:44:49.3217836Z",
+          "run_id": "MAIN-INFRA-1F-E7-COVERED-RAY-RETENTION-20261024"
+        },
+        {
+          "engine": "E7",
+          "run_id": "MAIN-INFRA-E7-1F-covered-ray-retention-20261024",
+          "pid": 53648,
+          "start_utc": "2026-10-24T06:12:03.0490830Z",
+          "observed_at": "2026-10-24T06:12:56.217892Z",
+          "phase": "engine_preparation_152_planned_732_protected",
+          "message": "Preparing exact152-edit E7 plan;732original parents protected; currentAfter10660 remains inspectable"
+        },
+        {
+          "engine": "E7",
+          "run_id": "MAIN-INFRA-E7-1F-covered-ray-retention-20261024",
+          "pid": 53648,
+          "start_utc": "2026-10-24T06:12:03.0490830Z",
+          "observed_at": "2026-10-24T06:17:02.030770Z",
+          "phase": "engine_preparation_completed_152_732",
+          "message": "Engine preparation complete:152exact planned edits,732protected original faces; checked repair launching"
+        },
+        {
+          "engine": "E7",
+          "run_id": "MAIN-INFRA-E7-1F-covered-ray-retention-20261024",
+          "pid": 59756,
+          "start_utc": "2026-10-24T06:17:20.4809272Z",
+          "observed_at": "2026-10-24T06:18:02.108705Z",
+          "phase": "checked_engine_repair_starting_152_732",
+          "message": "E7 repair running:152planned edits,732protected original faces; rechecking source and typed history"
+        },
+        {
+          "engine": "E7",
+          "run_id": "MAIN-INFRA-E7-1F-covered-ray-retention-20261024",
+          "pid": 59756,
+          "start_utc": "2026-10-24T06:17:20.4809272Z",
+          "observed_at": "2026-10-24T06:23:52.445250Z",
+          "phase": "candidate_saved_10652_152kept_732protected",
+          "message": "Saved new1F candidate:10,652triangles,152kept edits,0rollbacks; checking saved assets and independent validation next"
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-1F-E7-COVERED-RAY-VALIDATE-20261024",
+          "pid": 43372,
+          "start_utc": "2026-10-24T06:34:18.6287448Z",
+          "observed_at": "2026-10-24T06:35:13.893590Z",
+          "phase": "prepare_independent_10652",
+          "message": "Independent validator preparing the saved 10,652-triangle 1F candidate; error-map delivery is being prepared separately"
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-1F-E7-COVERED-RAY-VALIDATE-20261024",
+          "pid": 43372,
+          "start_utc": "2026-10-24T06:34:18.6287448Z",
+          "observed_at": "2026-10-24T06:35:47.470845Z",
+          "phase": "independent_validation:prepare_independent_10652",
+          "message": "Independent validation: prepare_independent_10652"
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-1F-E7-COVERED-RAY-VALIDATE-20261024",
+          "pid": 43372,
+          "start_utc": "2026-10-24T06:34:18.6287448Z",
+          "observed_at": "2026-10-24T06:36:33.178960Z",
+          "phase": "independent_preparation_complete_10652",
+          "message": "Independent input replay complete: 10,652 saved triangles and all 732 protected faces verified; strict view checks and new error maps are next"
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-1F-E7-COVERED-RAY-VALIDATE-20261024",
+          "pid": 41196,
+          "start_utc": "2026-10-24T06:41:23.5271831Z",
+          "observed_at": "2026-10-24T06:41:49.585667Z",
+          "phase": "strict26_independent_10652",
+          "message": "Independent 26-view visibility and texture comparison running on the new 10,652-triangle 1F candidate"
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-1F-E7-COVERED-RAY-VALIDATE-20261024",
+          "pid": 41196,
+          "start_utc": "2026-10-24T06:41:23.5271831Z",
+          "observed_at": "2026-10-24T06:42:19.242321Z",
+          "phase": "independent_validation:strict26_independent_10652",
+          "message": "Independent validation: strict26_independent_10652"
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-1F-E7-COVERED-RAY-VALIDATE-20261024",
+          "pid": 41196,
+          "start_utc": "2026-10-24T06:41:23.5271831Z",
+          "observed_at": "2026-10-24T06:43:32.784812Z",
+          "phase": "strict26_complete_10652",
+          "message": "New 1F candidate passed all 26 strict views with zero measured violations; native renders, floor rays and full validation remain pending"
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-1F-10652-ERROR-DELIVERY-20261024",
+          "pid": 7076,
+          "start_utc": "2026-10-24T06:47:29.6766592Z",
+          "observed_at": "2026-10-24T06:48:25.110915Z",
+          "phase": "error_census_10652",
+          "message": "Measuring all seven error filters on the fresh source and the new 10,652-triangle 1F candidate; strict 26-view comparison has passed"
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-1F-10652-ERROR-DELIVERY-20261024",
+          "pid": 7076,
+          "start_utc": "2026-10-24T06:47:29.6766592Z",
+          "observed_at": "2026-10-24T06:48:44.376265Z",
+          "phase": "independent_validation:error_census_10652",
+          "message": "Independent validation: error_census_10652"
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-1F-10652-ERROR-DELIVERY-20261024",
+          "pid": 7076,
+          "start_utc": "2026-10-24T06:47:29.6766592Z",
+          "observed_at": "2026-10-24T06:49:35.327845Z",
+          "phase": "error_census_complete_10652",
+          "message": "New 1F error maps saved: 1,798 different-look overlaps, 1,153 same-look overlaps and 2,352 cracks remain; preparing the new After inspection"
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-1F-E7-COVERED-RAY-VALIDATE-20261024",
+          "pid": 54396,
+          "start_utc": "2026-10-24T06:50:19.3474934Z",
+          "observed_at": "2026-10-24T06:50:51.174916Z",
+          "phase": "native_comparison_10652",
+          "message": "Rendering the new 1F candidate against the original: 33 exterior and walking views, plus 13 separate diagnostic views"
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-1F-E7-COVERED-RAY-VALIDATE-20261024",
+          "pid": 54396,
+          "start_utc": "2026-10-24T06:50:19.3474934Z",
+          "observed_at": "2026-10-24T06:51:19.516806Z",
+          "phase": "independent_validation:native_comparison_10652",
+          "message": "Independent validation: native_comparison_10652"
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-1F-E7-COVERED-RAY-VALIDATE-20261024",
+          "pid": 51496,
+          "start_utc": "2026-10-24T06:53:04.0081133Z",
+          "observed_at": "2026-10-24T06:53:33.923060Z",
+          "phase": "interior_floor_rays_10652",
+          "message": "New 1F renders match in all 33 qualified views with zero changed pixels; independent interior floor-ray checks are running"
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-1F-E7-COVERED-RAY-VALIDATE-20261024",
+          "pid": 51496,
+          "start_utc": "2026-10-24T06:53:04.0081133Z",
+          "observed_at": "2026-10-24T06:53:54.715745Z",
+          "phase": "independent_validation:interior_floor_rays_10652",
+          "message": "Independent validation: interior_floor_rays_10652"
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-1F-E7-COVERED-RAY-VALIDATE-20261024",
+          "pid": 56924,
+          "start_utc": "2026-10-24T06:57:54.2223501Z",
+          "observed_at": "2026-10-24T06:58:36.725070Z",
+          "phase": "full_signed_validation_10652",
+          "message": "Full independent validation running on the new 1F candidate; strict views, 33 native comparisons and interior floor checks have passed"
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-1F-E7-COVERED-RAY-VALIDATE-20261024",
+          "pid": 56924,
+          "start_utc": "2026-10-24T06:57:54.2223501Z",
+          "observed_at": "2026-10-24T06:59:05.421768Z",
+          "phase": "independent_validation:full_signed_validation_10652",
+          "message": "Independent validation: full_signed_validation_10652"
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-1F-E7-COVERED-RAY-VALIDATE-20261024",
+          "pid": 56924,
+          "start_utc": "2026-10-24T06:57:54.2223501Z",
+          "observed_at": "2026-10-24T07:15:34.583340Z",
+          "phase": "full_signed_complete_10652",
+          "message": "New 1F preservation PASS: textures and visible surfaces intact; 1,798 different-look overlaps, 1,153 same-look overlaps and 2,352 cracks still require repair"
+        }
+      ],
+      "worker_cpu_samples": [
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-1F-E7-ADMISSION-VALIDATE-20261024",
+          "pid": 63936,
+          "start_utc": "2026-10-24T01:22:47.5719007Z",
+          "observed_at": "2026-10-24T01:23:40.347348Z",
+          "cpu_seconds": 46.55
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-1F-E7-COVERED-RAY-VALIDATE-20261024",
+          "pid": 41196,
+          "start_utc": "2026-10-24T06:41:23.5271831Z",
+          "observed_at": "2026-10-24T06:42:19.242321Z",
+          "cpu_seconds": 51.3
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-1F-E7-COVERED-RAY-VALIDATE-20261024",
+          "pid": 54396,
+          "start_utc": "2026-10-24T06:50:19.3474934Z",
+          "observed_at": "2026-10-24T06:51:19.516806Z",
+          "cpu_seconds": 45.88
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-1F-E7-COVERED-RAY-VALIDATE-20261024",
+          "pid": 51496,
+          "start_utc": "2026-10-24T06:53:04.0081133Z",
+          "observed_at": "2026-10-24T06:53:54.715745Z",
+          "cpu_seconds": 46.62
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-1F-E7-COVERED-RAY-VALIDATE-20261024",
+          "pid": 56924,
+          "start_utc": "2026-10-24T06:57:54.2223501Z",
+          "observed_at": "2026-10-24T06:59:05.421768Z",
+          "cpu_seconds": 93.34
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-1F-E7-COVERED-RAY-VALIDATE-20261024",
+          "pid": 56924,
+          "start_utc": "2026-10-24T06:57:54.2223501Z",
+          "observed_at": "2026-10-24T06:59:43.944613Z",
+          "cpu_seconds": 181.53
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-1F-E7-COVERED-RAY-VALIDATE-20261024",
+          "pid": 56924,
+          "start_utc": "2026-10-24T06:57:54.2223501Z",
+          "observed_at": "2026-10-24T07:00:22.751093Z",
+          "cpu_seconds": 292.78
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-1F-E7-COVERED-RAY-VALIDATE-20261024",
+          "pid": 56924,
+          "start_utc": "2026-10-24T06:57:54.2223501Z",
+          "observed_at": "2026-10-24T07:01:01.605175Z",
+          "cpu_seconds": 410.14
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-1F-E7-COVERED-RAY-VALIDATE-20261024",
+          "pid": 56924,
+          "start_utc": "2026-10-24T06:57:54.2223501Z",
+          "observed_at": "2026-10-24T07:01:40.308641Z",
+          "cpu_seconds": 527.39
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-1F-E7-COVERED-RAY-VALIDATE-20261024",
+          "pid": 56924,
+          "start_utc": "2026-10-24T06:57:54.2223501Z",
+          "observed_at": "2026-10-24T07:02:18.798328Z",
+          "cpu_seconds": 645.03
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-1F-E7-COVERED-RAY-VALIDATE-20261024",
+          "pid": 56924,
+          "start_utc": "2026-10-24T06:57:54.2223501Z",
+          "observed_at": "2026-10-24T07:02:57.363497Z",
+          "cpu_seconds": 765.09
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-1F-E7-COVERED-RAY-VALIDATE-20261024",
+          "pid": 56924,
+          "start_utc": "2026-10-24T06:57:54.2223501Z",
+          "observed_at": "2026-10-24T07:03:35.631003Z",
+          "cpu_seconds": 888.06
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-1F-E7-COVERED-RAY-VALIDATE-20261024",
+          "pid": 56924,
+          "start_utc": "2026-10-24T06:57:54.2223501Z",
+          "observed_at": "2026-10-24T07:04:13.748416Z",
+          "cpu_seconds": 1007.67
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-1F-E7-COVERED-RAY-VALIDATE-20261024",
+          "pid": 56924,
+          "start_utc": "2026-10-24T06:57:54.2223501Z",
+          "observed_at": "2026-10-24T07:04:52.938735Z",
+          "cpu_seconds": 1119.81
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-1F-E7-COVERED-RAY-VALIDATE-20261024",
+          "pid": 56924,
+          "start_utc": "2026-10-24T06:57:54.2223501Z",
+          "observed_at": "2026-10-24T07:05:31.353967Z",
+          "cpu_seconds": 1235.5
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-1F-E7-COVERED-RAY-VALIDATE-20261024",
+          "pid": 56924,
+          "start_utc": "2026-10-24T06:57:54.2223501Z",
+          "observed_at": "2026-10-24T07:06:10.385763Z",
+          "cpu_seconds": 1347.98
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-1F-E7-COVERED-RAY-VALIDATE-20261024",
+          "pid": 56924,
+          "start_utc": "2026-10-24T06:57:54.2223501Z",
+          "observed_at": "2026-10-24T07:06:48.820104Z",
+          "cpu_seconds": 1467.61
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-1F-E7-COVERED-RAY-VALIDATE-20261024",
+          "pid": 56924,
+          "start_utc": "2026-10-24T06:57:54.2223501Z",
+          "observed_at": "2026-10-24T07:07:27.232365Z",
+          "cpu_seconds": 1583.03
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-1F-E7-COVERED-RAY-VALIDATE-20261024",
+          "pid": 56924,
+          "start_utc": "2026-10-24T06:57:54.2223501Z",
+          "observed_at": "2026-10-24T07:08:05.759338Z",
+          "cpu_seconds": 1698.0
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-1F-E7-COVERED-RAY-VALIDATE-20261024",
+          "pid": 56924,
+          "start_utc": "2026-10-24T06:57:54.2223501Z",
+          "observed_at": "2026-10-24T07:08:44.569673Z",
+          "cpu_seconds": 1817.2
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-1F-E7-COVERED-RAY-VALIDATE-20261024",
+          "pid": 56924,
+          "start_utc": "2026-10-24T06:57:54.2223501Z",
+          "observed_at": "2026-10-24T07:09:22.903096Z",
+          "cpu_seconds": 1936.11
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-1F-E7-COVERED-RAY-VALIDATE-20261024",
+          "pid": 56924,
+          "start_utc": "2026-10-24T06:57:54.2223501Z",
+          "observed_at": "2026-10-24T07:10:01.818049Z",
+          "cpu_seconds": 2026.67
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-1F-E7-COVERED-RAY-VALIDATE-20261024",
+          "pid": 56924,
+          "start_utc": "2026-10-24T06:57:54.2223501Z",
+          "observed_at": "2026-10-24T07:10:44.325097Z",
+          "cpu_seconds": 2086.27
+        }
+      ],
+      "prior_failed_attempt4_current_fields": {
+        "validator_ref": "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/1F/main-infra-clean-20261023/evidence/e3/validation.json",
+        "preflight_exact_source_cuts": 172,
+        "preflight_engine_cuts": 172,
+        "current_attempt_excluded_sites": 101,
+        "current_attempt_worker_sha256": "cfe7767fe4b9700297ff28aafe083796e88a99422d34df82a23ac6253920bde1",
+        "native_preservation_passed": false,
+        "native_qualified_changed_pixels": 1,
+        "native_qualified_changed_views": 1,
+        "native_qualified_total_views": 33,
+        "native_alpha_changed_pixels": 0,
+        "native_silhouette_changed_pixels": 0,
+        "native_readback_sha256": "eed21d6471660e612cf4b861fff15a08acc3e43b8885b7d16fdd19f20759d049",
+        "native_failure_diagnostic": {
+          "actual_pid": 57652,
+          "actual_start_utc": "2026-10-23T19:50:43.2943031Z",
+          "script_sha256": "63b18bdfa7db88ffa0fb7f89d1e7e8511e9d1264729d502092eb1a20f07dec7b",
+          "phase_config_sha256": "9221c689b44ec3a4a7cb7e80e548d17aca4c6982fc064395c16210a0ede26ad8",
+          "terminal_sha256": "ed11aeab93aa509f9603cdfeaf6a30297a7cc7d4111a3c2fde6e8a1479261994",
+          "diagnostic_only": true,
+          "native_preservation_passed": false,
+          "publication_eligible": false,
+          "actual_worker_alive": false,
+          "verdict": "FAIL",
+          "report_sha256": "b1865442179e278dde9993ee35922991bb73bbb8c2b11addbd4a8bc0040c5c43",
+          "textures_status": "PASS",
+          "nothing_deleted_status": "FAIL",
+          "failed_faces": [
+            {
+              "at_least": true,
+              "covering_faces": [],
+              "crop": "floor/face-09809.png",
+              "face": 9809,
+              "fails": true,
+              "kind": "covered",
+              "pixels": 10.5,
+              "pixels_estimate": 12.0,
+              "reasons": {
+                "deleted": 10.5
+              },
+              "viewpoint": {
+                "at": [
+                  59.055,
+                  -728.3484,
+                  259.8504
+                ],
+                "index": 422,
+                "kind": "probe"
+              },
+              "viewpoints_measured": 1,
+              "viewpoints_seen": 2,
+              "visible_px": 20.9
+            },
+            {
+              "at_least": true,
+              "covering_faces": [],
+              "crop": "floor/face-10366.png",
+              "face": 10366,
+              "fails": true,
+              "kind": "covered",
+              "pixels": 4.1,
+              "pixels_estimate": 4.4,
+              "reasons": {
+                "deleted": 4.1
+              },
+              "viewpoint": {
+                "at": [
+                  59.055,
+                  -728.3484,
+                  259.8504
+                ],
+                "index": 422,
+                "kind": "probe"
+              },
+              "viewpoints_measured": 1,
+              "viewpoints_seen": 2,
+              "visible_px": 26.3
+            }
+          ],
+          "ended_utc": "2026-10-23T20:09:17.6134655Z"
+        },
+        "validator_texture_preservation_passed": true,
+        "validator_nothing_deleted_passed": false,
+        "validator_passed": false,
+        "signed_diagnostic_sha256": "b1865442179e278dde9993ee35922991bb73bbb8c2b11addbd4a8bc0040c5c43"
+      },
+      "withdrawn_prior_E3_evidence_refs": [
+        "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/1F/main-infra-clean-20261023/evidence/e3/validation.json",
+        "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/1F/main-infra-clean-20261023/evidence/e3/independent-review.json",
+        "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/1F/main-infra-clean-20261023/evidence/e3/independent-guard.json",
+        "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/1F/main-infra-clean-20261023/evidence/e3/camera-qualification.json",
+        "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/1F/main-infra-clean-20261023/evidence/e3/qualified-native-readback.json",
+        "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/1F/main-infra-clean-20261023/evidence/e3/qualified-native-paired.png"
+      ],
+      "validator_ref": null,
+      "independent_preparation_sha256": "6bce5b190386df2e18ff4d3bb03c1ee62bbfec945581fa3095147a08acdc61f8",
+      "guard_model_pixels": 3924929,
+      "retained_floor_passed": true,
+      "retained_floor_sha256": "46976e729b4f0f53697184858f10efb6c64ca9909ec2e1c9eeb3237b200fd09b",
+      "retained_original_faces": 724,
+      "retained_lost_lines": 14,
+      "retained_lost_lines_after": 0,
+      "native_preservation_passed": true,
+      "native_readback_sha256": "6f88a3c004450b22e40403000b06a26aa153bcb0ea24af1ca8c77bc0229f5ec1",
+      "native_qualified_changed_pixels": 0,
+      "native_qualified_total_views": 33,
+      "validator_passed": false,
+      "validator_texture_preservation_passed": true,
+      "validator_nothing_deleted_passed": true,
+      "validator_pixel_floor_passed": true,
+      "signed_validation_sha256": "1c00e817522e0d096dcbcd2649dc54ea7dd0cab5affa3e5afd9df305a5b3f9ce",
+      "remaining_problem_targets": {
+        "flicker_diff": 1798,
+        "flicker_same": 1153,
+        "cracks": 2352
+      },
+      "output_triangles": 10652,
+      "inspection_published": true,
+      "inspection_acceptance": false,
+      "inspection_receipt_sha256": "f05e7e5e3411dad342d774172ece956f5c7a0016576114ec0d321fbf49d5b144",
+      "active_engine_run_id": "MAIN-INFRA-E7-1F-covered-ray-retention-20261024",
+      "active_engine_component_commit": "235b7b759a7131dc2f6f56a79dd14adf1323bfea",
+      "active_engine_preparation_sha256": "a8318faaf0e7b951baa8cc659cf0749e1fcdfa608f5ab132757fc0a0a4015573",
+      "e7_full_proposals": 610,
+      "e7_admitted_proposals": 607,
+      "e7_unresolved_proposals": 3,
+      "latest_saved_candidate": {
+        "engine": "E7",
+        "run_id": "MAIN-INFRA-E7-1F-covered-ray-retention-20261024",
+        "builder_commit": "235b7b759a7131dc2f6f56a79dd14adf1323bfea",
+        "triangles": 10652,
+        "base_triangles": 10410,
+        "original_triangles": 15856,
+        "kept_cuts": 152,
+        "rolled_back_cuts": 0,
+        "protected_original_parents": 732,
+        "source_candidate_sha256": "1620d971fca99d55a8b7cf07884203a9a24fab17bcaf638e4cc5a3f32ef73490",
+        "engine_candidate_sha256": "0ef9796dbb05e35d315612a7e87cd97529366c2e12d7b85b661483fefadf9e04",
+        "checkpoint_sha256": "02c7323b92c740d49862500b51031ddf3fb77bb4743a666126cdf006a6fcab23",
+        "independent_validation": "preservation_passed_problem_targets_failed",
+        "preservation_passed": true,
+        "full_signed": "FAIL",
+        "full_signed_preservation": "PASS",
+        "full_signed_sha256": "1c00e817522e0d096dcbcd2649dc54ea7dd0cab5affa3e5afd9df305a5b3f9ce",
+        "acceptance": false,
+        "displayed_candidate_triangles": 10652,
+        "remaining_problems": {
+          "flicker_diff": 1798,
+          "flicker_same": 1153,
+          "reversed": 0,
+          "hidden": 3210,
+          "loose": 1,
+          "open_edges": 2181,
+          "cracks": 2352
+        }
+      },
+      "validator_pid": 56924,
+      "validator_alive": false,
+      "validator_cpu_seconds": null,
+      "validator_start_utc": "2026-10-24T06:57:54.2223501Z",
+      "validator_observed_at": "2026-10-24T07:15:13.825078Z",
+      "validator_run_id": "MAIN-INFRA-1F-E7-COVERED-RAY-VALIDATE-20261024",
+      "validator_phase": "full_signed_validation_10652",
+      "error_census": {
+        "receipt_sha256": "72ed548477b64f0ec405461ceb4252bdda8f084d3b72fb9a558194f28082b62b",
+        "candidate_map_sha256": "34a7c9d40b19a1d8913fcc67466b6c7ff44b6af16357b2cfc4e92812e98dd5c6",
+        "counts": {
+          "source": {
+            "flicker_diff": 5684,
+            "flicker_same": 3347,
+            "reversed": 0,
+            "hidden": 8548,
+            "loose": 0,
+            "open_edges": 312,
+            "cracks": 2819
+          },
+          "candidate": {
+            "flicker_diff": 1798,
+            "flicker_same": 1153,
+            "reversed": 0,
+            "hidden": 3210,
+            "loose": 1,
+            "open_edges": 2181,
+            "cracks": 2352
+          }
+        },
+        "publication_receipt_sha256": "ca50347b7997a82f48f207b6e7f7f1827704d65acaf9d270fca429d04e1ce07c"
+      },
+      "active_native_retention": {
+        "selected": 174,
+        "native_retained": 91,
+        "mandatory_original_parents": 710,
+        "prior_rolled_back": 342,
+        "source_quarantined": 3,
+        "new_kept": 161,
+        "new_rolled_back": 13,
+        "output_triangles": 10662,
+        "acceptance": false
+      },
+      "saved_candidate_history": [
+        {
+          "engine": "E7",
+          "run_id": "MAIN-INFRA-E7-1F-retained-base-attempt2-20261024",
+          "builder_commit": "21eef96c10a3d4b879b98371473ed934b292d5f9",
+          "triangles": 10831,
+          "base_triangles": 10410,
+          "original_triangles": 15856,
+          "kept_cuts": 265,
+          "rolled_back_cuts": 342,
+          "quarantined_proposals": 3,
+          "saved_readback_sha256": "b5daaff3509629d08776fcb3db9c14eea9197280686b5e9b5d89fbf124541761",
+          "checkpoint_sha256": "79ec8e5eaec9989d47d3a7da7e29f70f4078d35dc10f7a713159a7ef46485f6a",
+          "independent_validation": "native_failed",
+          "acceptance": false,
+          "displayed_candidate_triangles": 10410,
+          "independent_guard_sha256": "eef3ad203eca0f6f641a7d7933615abaf6e1c2017403bff31afda7799a8eb824",
+          "native_changed_pixels": 334,
+          "native_changed_views": 17,
+          "native_alpha_changed_pixels": 0,
+          "native_coverage_changed_pixels": 0,
+          "native_receipt_sha256": "20b3fbf5615302eb9b5ed64d96d3c3b28a3e29fb88a2a30222baec48dac34ffb"
+        },
+        {
+          "engine": "E7",
+          "run_id": "MAIN-INFRA-E7-1F-native-retention-20261024",
+          "builder_commit": "c67b68a47a0691e7097b0bdae0a7229a5bcd69ca",
+          "triangles": 10662,
+          "base_triangles": 10410,
+          "original_triangles": 15856,
+          "kept_cuts": 161,
+          "rolled_back_cuts": 13,
+          "prior_rolled_back_cuts": 342,
+          "quarantined_proposals": 3,
+          "native_retained_cuts": 91,
+          "protected_original_parents": 710,
+          "saved_readback_sha256": "5b54c6931eabe6b083148a1619bc5b68320cb9fe567992e942f0e1f6733cbf22",
+          "checkpoint_sha256": "6a9f0e22e8eef4b7b50806b27b200599998361da6f905207087901d222489dea",
+          "independent_validation": "native_failed",
+          "acceptance": false,
+          "displayed_candidate_triangles": 10410,
+          "independent_prepared_sha256": "e16e7f49a523c828663457cd03afb9f1d8e5f1f0309f79b72548872b28c4e852",
+          "independent_unchanged_parents": 723,
+          "independent_guard_passed": true,
+          "independent_guard_sha256": "2dd97c31c0f91da319dcfbfb8ced416a215b0f1d124f2e863f00de3aefd8baee",
+          "native_changed_pixels": 1,
+          "native_changed_views": 1,
+          "native_alpha_changed_pixels": 0,
+          "native_coverage_changed_pixels": 0,
+          "native_walking_changed_pixels": 0,
+          "native_receipt_sha256": "fcf066c4f4985995bef64b566af538cda27241ea2d0200eaa222256c806fa2ce",
+          "native_stop_receipt_sha256": "2f9b9f9a74458dd790bdfc13f8af74ddb6c43acfcb1c56875aea6cd6fb043e6d",
+          "retained_floor": "NOT_RUN",
+          "full_signed": "NOT_RUN",
+          "associated_original_parent": 7559,
+          "associated_kept_site": 5202,
+          "gpu_cause_proven": false
+        },
+        {
+          "engine": "E7",
+          "run_id": "MAIN-INFRA-E7-1F-single-pixel-retention-20261024",
+          "builder_commit": "f12e1fd25fbb2324e6abe6592a3427acba93e4ad",
+          "triangles": 10660,
+          "base_triangles": 10410,
+          "original_triangles": 15856,
+          "kept_cuts": 160,
+          "rolled_back_cuts": 0,
+          "prior_rolled_back_cuts": 342,
+          "current_prior_rolled_back_cuts": 13,
+          "quarantined_proposals": 3,
+          "native_retained_cuts": 91,
+          "protected_original_parents": 724,
+          "saved_readback_sha256": "cc604e6fd33d7faa3c32e5778690d5f3c69cd16a1fc7cd83a6fd93bf779d23f5",
+          "checkpoint_sha256": "822a785dc0f03860e60f885a3d1e805dccca9b169490db501c3b712dcf742b88",
+          "source_candidate_sha256": "f46b4e2dc85ec7f8e1d17e7f23df7151370f3762c0682af7fa5b763c3cbc6294",
+          "engine_candidate_sha256": "1b5765f5c2b6cad8e59759de293be816166bb4417dbad48d86074a8486efeb80",
+          "independent_validation": "full_signed_failed_preservation",
+          "acceptance": false,
+          "displayed_candidate_triangles": 10660,
+          "strict26": "PASS",
+          "retained_floor": "PASS",
+          "full_signed": "FAIL",
+          "independent_prepared_sha256": "6bce5b190386df2e18ff4d3bb03c1ee62bbfec945581fa3095147a08acdc61f8",
+          "independent_unchanged_parents": 724,
+          "error_census_receipt_sha256": "6cff3556da4d5ec56405cb0d9adb74e121b0729159977138b224b90764a15259",
+          "remaining_problems": {
+            "flicker_diff": 1798,
+            "flicker_same": 1153,
+            "hidden": 3213,
+            "reversed": 0,
+            "loose": 1,
+            "open_edges": 2179,
+            "cracks": 2350
+          },
+          "independent_guard_passed": true,
+          "independent_guard_sha256": "6c338160af0dda7d736416ec779b400e550dade998181c930c3b077d4a441a00",
+          "guard_views": 26,
+          "guard_model_pixels": 3924929,
+          "native_preservation_passed": true,
+          "native_changed_pixels": 0,
+          "native_changed_views": 0,
+          "native_receipt_sha256": "12236296c75be799ecb4abad2ce35fb39b9dba57ad53ed1d94a469c239adc363",
+          "retained_floor_sha256": "8fbd35169ceca9ac38df40f53f56e4e7b4398910da92032e420dacf81f9f8cc2",
+          "full_signed_sha256": "38a3ea8961b827e465d43932ddf050f9db4116ad15d45258d602d07965a1771c",
+          "full_signed_failed_samples": 10,
+          "full_signed_failed_faces": [
+            8563,
+            8564,
+            8633,
+            8634
+          ],
+          "preservation_passed": false,
+          "native_qualified_views": 33,
+          "native_qualified_preservation": "PASS",
+          "native_total_rendered_views": 46,
+          "native_diagnostic_views": 13,
+          "native_diagnostic_differing_pixels": 129756
+        }
+      ],
+      "next_engine_preparation": {
+        "run_id": "MAIN-INFRA-E7-1F-single-pixel-retention-20261024",
+        "pid": 60248,
+        "start_utc": "2026-10-24T03:19:27.6432634Z",
+        "component_commit": "f12e1fd25fbb2324e6abe6592a3427acba93e4ad",
+        "phase_sha256": "4559aaa624dcaeac0dcf85cda2100942fe7c243d826bf573cae62378f3a83791",
+        "selected_proposals": 160,
+        "protected_original_parents": 724,
+        "model_repair_started": true,
+        "state": "completed",
+        "ended_utc": "2026-10-24T03:20:11.4545905Z",
+        "exit_code": 0,
+        "all_owned_exited": true,
+        "preparation_sha256": "64716664859bfc5ed4b86b7a54247c22a867109c5aca5d198479247427496191"
+      },
+      "latest_execution_attempt": {
+        "run_id": "MAIN-INFRA-E7-1F-single-pixel-retention-20261024",
+        "pid": 4532,
+        "start_utc": "2026-10-24T03:48:29.1420273Z",
+        "state": "candidate_saved",
+        "phase_plan_sha256": "d164124ad1801871d75036f351785f088f5afd74f14759365f370f09fe948643",
+        "monitor_sha256": "f158802651c955b6b322140ff9567496c527cd1bac0e63598171c45eeea60e12",
+        "new_candidate_saved": true,
+        "ended_utc": "2026-10-24T03:52:30.9515424Z",
+        "exit_code": 0,
+        "all_owned_exited": true,
+        "terminal_sha256": "9da0a9f2b7625325d7cecf760d3cb80e83270aa9ca62ba38c28848115e32d1b7"
+      },
+      "active_single_pixel_retention": {
+        "selected": 160,
+        "protected_original_parents": 724,
+        "single_pixel_retained": 1,
+        "prior_kernel_rollbacks": 342,
+        "native_retained": 91,
+        "current_prior_kernel_rollbacks": 13,
+        "source_quarantined": 3,
+        "output_triangles": 10660,
+        "acceptance": false,
+        "new_kept": 160,
+        "new_rolled_back": 0
+      },
+      "latest_independent_attempt": {
+        "pid": 62192,
+        "start_utc": "2026-10-24T04:11:08.9640638Z",
+        "ended_utc": "2026-10-24T04:11:47.2461189Z",
+        "phase": "prepare_single_pixel_v2",
+        "exit_code": 0,
+        "resource_aborted": false,
+        "all_owned_exited": true,
+        "terminal_sha256": "bb7fb5a09d66036a6644718d25949e02e07b72bd3ec5464d351b90071c8ad948",
+        "prepared_sha256": "6bce5b190386df2e18ff4d3bb03c1ee62bbfec945581fa3095147a08acdc61f8",
+        "acceptance": false
+      },
+      "displayed_candidate_history": [
+        {
+          "output_triangles": 10410,
+          "source_preview": "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/1F/main-infra-clean-20261023/source/preview-errors-20261024-66afc1b.json",
+          "candidate_preview": "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/1F/main-infra-clean-20261023/candidate/preview-errors-20261024-66afc1b.json",
+          "evidence_refs": [
+            "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/1F/main-infra-clean-20261023/candidate/evidence-e3-retain-visible-20261024/validation.json",
+            "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/1F/main-infra-clean-20261023/candidate/evidence-e3-retain-visible-20261024/independent-guard.json",
+            "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/1F/main-infra-clean-20261023/candidate/evidence-e3-retain-visible-20261024/native-readback.json",
+            "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/1F/main-infra-clean-20261023/candidate/evidence-e3-retain-visible-20261024/retained-floor.json",
+            "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/1F/main-infra-clean-20261023/candidate/evidence-e3-retain-visible-20261024/all-views.png",
+            "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/1F/main-infra-clean-20261023/candidate/evidence-e3-retain-visible-20261024/paired-detail.png",
+            "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/1F/main-infra-clean-20261023/candidate/evidence-e3-retain-visible-20261024/independent-review.json",
+            "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/1F/main-infra-clean-20261023/candidate/evidence-e3-retain-visible-20261024/inspection-receipt.json"
+          ],
+          "validator_ref": "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/1F/main-infra-clean-20261023/candidate/evidence-e3-retain-visible-20261024/validation.json",
+          "inspection_receipt_sha256": "283e69c2056b0b55c7490bf3e679c0a957329d77850337b760ff99212b9d9d22",
+          "error_census": {
+            "run_id": "MAIN-INFRA-1F-ERROR-CENSUS-20261024",
+            "pid": 29104,
+            "start_utc": "2026-10-24T01:54:20.0503358Z",
+            "ended_utc": "2026-10-24T01:54:59.7399753Z",
+            "exit_code": 0,
+            "resource_aborted": false,
+            "all_owned_exited": true,
+            "receipt_sha256": "bdef20bacef4a374f3d8754460fd35c70352ba584fffb1453dbae62cbc0c6ddd",
+            "before": {
+              "flicker_diff": 5684,
+              "flicker_same": 3347,
+              "hidden": 8548,
+              "reversed": 0,
+              "loose": 0,
+              "open_edges": 312,
+              "cracks": 2819
+            },
+            "after": {
+              "flicker_diff": 1798,
+              "flicker_same": 1153,
+              "hidden": 3102,
+              "reversed": 0,
+              "loose": 0,
+              "open_edges": 2223,
+              "cracks": 2378
+            },
+            "original_triangles": 15856,
+            "displayed_candidate_triangles": 10410,
+            "validation_pass_not_claimed": true,
+            "published": true,
+            "files_per_root": 6,
+            "http_hashes": 6,
+            "packet_sha256": "657e2601769f5449ee1fe5e0ef1abd7d474e37a6f133e90d709db47b3a32944f",
+            "archive_sha256": "f7f2e15a70a3effe570187136462ea268769192ff80bb22832edf4e8e186de2e"
+          },
+          "independent_guard_sha256": "ec36e05bc42a1c446958cf054536ffac94f9222ba5118bf18e0699d62c92bca5",
+          "native_readback_sha256": "768e54ab59716ef718481eef1cca44ec61854f7286c498f14515f46cf7bbbd2a",
+          "retained_floor_sha256": "b35c6c6cf4a9db281544a34ed137c9430cac0d1b051b3e6b8376e95a05ef09cb",
+          "signed_validation_sha256": "70299e1f00f324168a0488ab401f1ea167307f9754366f8d271a918c78a74829",
+          "validator_passed": false,
+          "remaining_problem_targets": {
+            "flicker_diff": 1798,
+            "flicker_same": 1153,
+            "cracks": 2378
+          }
+        },
+        {
+          "at": "2026-10-24T07:35:00.007242Z",
+          "triangles": 10660,
+          "preview": "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/1F/main-infra-clean-20261023/candidate/preview-e7-single-pixel-evidence-20261024.json",
+          "validator_ref": "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/1F/main-infra-clean-20261023/evidence/e7-single-pixel-20261024/validation.json",
+          "evidence_refs": [
+            "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/1F/main-infra-clean-20261023/evidence/e7-single-pixel-20261024/independent-guard.json",
+            "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/1F/main-infra-clean-20261023/evidence/e7-single-pixel-20261024/native-readback.json",
+            "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/1F/main-infra-clean-20261023/evidence/e7-single-pixel-20261024/retained-floor.json",
+            "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/1F/main-infra-clean-20261023/evidence/e7-single-pixel-20261024/validation.json",
+            "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/1F/main-infra-clean-20261023/evidence/e7-single-pixel-20261024/independent-review.json",
+            "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/1F/main-infra-clean-20261023/evidence/e7-single-pixel-20261024/native/paired/paired-detail.png",
+            "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/1F/main-infra-clean-20261023/evidence/e7-single-pixel-20261024/evidence/site-01-after.png",
+            "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/1F/main-infra-clean-20261023/evidence/e7-single-pixel-20261024/evidence/site-01-before.png"
+          ],
+          "signed_validation_sha256": "38a3ea8961b827e465d43932ddf050f9db4116ad15d45258d602d07965a1771c",
+          "signed_failure": {
+            "report_sha256": "38a3ea8961b827e465d43932ddf050f9db4116ad15d45258d602d07965a1771c",
+            "review_sha256": "adb8815762c227b8d15f273b1213624668db6865a243ae173e01233b4c956e94",
+            "terminal_sha256": "5bd801e9ce30b001ddcea22e2cd4c8e430d641cc42ae9050bf42e646946925d8",
+            "pid": 31596,
+            "start_utc": "2026-10-24T04:34:30.7278469Z",
+            "ended_utc": "2026-10-24T04:48:10.0981404Z",
+            "exit_code": 2,
+            "resource_aborted": false,
+            "all_owned_exited": true,
+            "covered_samples": 10,
+            "covered_source_faces": [
+              8563,
+              8564,
+              8633,
+              8634
+            ],
+            "deleted_samples": 0,
+            "look_failures": 0,
+            "uv_failures": 0,
+            "pixel_floor_failed_faces": 0,
+            "pixel_floor_measured_faces": 35,
+            "before_texture_samples": 108392,
+            "before_all_samples": 231919,
+            "signed_pngs": 2,
+            "preservation_passed": false,
+            "accepted": false
+          },
+          "snapshot_sha256": "3f6e1dfc53def34a31c1f9a48ce9a64a1e0dfff252f7b57f60e85c6f21943e0a"
+        }
+      ],
+      "inspection_publication": {
+        "model_receipt_sha256": "f05e7e5e3411dad342d774172ece956f5c7a0016576114ec0d321fbf49d5b144",
+        "maps_receipt_sha256": "ca50347b7997a82f48f207b6e7f7f1827704d65acaf9d270fca429d04e1ce07c",
+        "private_commit": "710b732",
+        "preview_sha256": "95c255fd9ed220f9923be0b364b4e0023bdde312834202faf90a697f85660a10",
+        "live_selection_changed": true,
+        "acceptance": false
+      },
+      "signed_failure": {
+        "reason": "remaining_problem_targets",
+        "preservation_passed": true,
+        "validator_passed": false,
+        "counts": {
+          "flicker_diff": 1798,
+          "flicker_same": 1153,
+          "cracks": 2352
+        },
+        "validation_sha256": "1c00e817522e0d096dcbcd2649dc54ea7dd0cab5affa3e5afd9df305a5b3f9ce"
+      },
+      "covered_witness": {
+        "report_sha256": "d0651f76d6fd558ba25f7b494de76780c65670a4015b7ed8dc59a9508eeb9525",
+        "pid": 58624,
+        "start_utc": "2026-10-24T05:16:36.2175824Z",
+        "ended_utc": "2026-10-24T05:17:22.5008348Z",
+        "exit_code": 0,
+        "all_owned_exited": true,
+        "resource_aborted": false,
+        "covered_samples": 10,
+        "blocked_lines": 22,
+        "source_faces": [
+          8563,
+          8564,
+          8633,
+          8634
+        ],
+        "contributor_sites": [
+          2539,
+          2540,
+          2660,
+          2973,
+          5267,
+          9255,
+          9256,
+          9738
+        ],
+        "diagnostic_only": true,
+        "validation_pass_not_claimed": true,
+        "original_default_misses": 22,
+        "original_float64_hits": 22,
+        "nearer_unchanged_hits": 22,
+        "nearer_unchanged_source_faces": [
+          3251,
+          3551,
+          2649
+        ],
+        "numerical_disagreement_measured": true,
+        "validation_waiver": false
+      },
+      "inspection_manifest_history": [
+        {
+          "url": "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/1F/main-infra-clean-20261023/candidate/preview-errors-10660-20261024-d9729b4.json",
+          "reason": "Superseded by actual completed independent validation evidence; model/material/map assets unchanged."
+        }
+      ],
+      "evidence_publication": {
+        "receipt_sha256": "3f4ec5e7b56208559c3772887863f7cc0e2ee5a685b4a3ba7d142155bd7de894",
+        "packet_files": 152,
+        "files_per_root": 153,
+        "filesystem_hashes": 306,
+        "http_payload_hashes": 152,
+        "http_aliases": [
+          {
+            "original_url": "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/1F/main-infra-clean-20261023/evidence/e7-single-pixel-20261024/native/renderer.log",
+            "served_url": "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/1F/main-infra-clean-20261023/evidence/e7-single-pixel-20261024/native/renderer-log.txt",
+            "sha256": "0c7edf55b84adf0ad35b1fe5dac8df29ba51c3508b9a8ea994d2788ee43b3507"
+          }
+        ],
+        "preview_sha256": "895350823c5565ef873b916447d4a3287ee1180ab05abf9432c725ade791d41a",
+        "validator_sha256": "38a3ea8961b827e465d43932ddf050f9db4116ad15d45258d602d07965a1771c",
+        "validation_state": "FAILED",
+        "preservation_passed": false,
+        "accepted": false
+      },
+      "covered_ray_retention": {
+        "cohort_sha256": "21a853f4bb5473ba0fdea705b6d8d3f50001ab4b4893efb025792b1bfe26d2bb",
+        "terminal_sha256": "da1c210937314170a87c747ec1ad6c86af20415d33638a896de97ce5b7538359",
+        "pid": 46960,
+        "ended_utc": "2026-10-24T05:45:34.4028216Z",
+        "actual_exit_code": 0,
+        "all_owned_exited": true,
+        "resource_aborted": false,
+        "tested_pairs": 9020,
+        "retained_sites": [
+          2539,
+          2540,
+          2660,
+          2973,
+          5267,
+          9255,
+          9256,
+          9738
+        ],
+        "retained_original_parents": [
+          3542,
+          3543,
+          3691,
+          4179,
+          7634,
+          13748,
+          13749,
+          14546
+        ],
+        "proposed_protected_count": 732,
+        "local_blockers": 0,
+        "diagnostic_only": true,
+        "validation_pass_not_claimed": true
+      },
+      "activity_events": [
+        {
+          "engine": "Engine repair preparation",
+          "run_id": "MAIN-INFRA-1F-E7-COVERED-RAY-RETENTION-20261024",
+          "observed_at": "2026-10-24T05:33:46.303771Z",
+          "phase": "test_first_saved_ray_retention_adapter",
+          "message": "Claimed isolated engine job; testing complete changed-child contributor selection and whole-parent retention. No model run yet. Exact22rays show nearer unchanged surfaces; Validator/defaultthresholds unchanged, fullsignedFAIL remains."
+        },
+        {
+          "engine": "Evidence delivery",
+          "observed_at": "2026-10-24T05:41:42.097417Z",
+          "phase": "completed_10660_actual_validation_evidence_live",
+          "message": "Published exact strict/native/focused/fullFAIL reports, 142images and actual renderer textlog. Both static roots306hashchecks and152public payloadhashesPASS;one .log→.txt aliasexplicit. Model10660/materials/mapsunchanged. 8evidence linksnowbound; signedpreservationFAIL andremainingtargetsFAIL retained; no acceptedfinalmodel."
+        },
+        {
+          "at": "2026-10-24T07:35:00.007242Z",
+          "phase": "published_10652",
+          "message": "Verified both live static roots and all fifteen HTTP hashes before selecting the new model and filters"
+        }
+      ],
+      "engine_worker_start_utc": "2026-10-24T06:17:20.4809272Z",
+      "engine_worker_alive": false
+    },
+    "2F": {
+      "floor_id": "MAIN_INFRA_2F",
+      "state": "blocked",
+      "step": "Saved 38,134-triangle model is visible in After with measured seven-kind error filters; strict guard FAIL17 remains",
+      "blocker": "Strict guard still FAIL17; four-view reproduction passed with all original hit faces retained; no geometry change or validation waiver",
+      "source_preview": "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/2F/main-infra-clean-20261023/source/preview-errors-20261024-c6e4c1e.json",
+      "candidate_preview": "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/2F/main-infra-clean-20261023/candidate/preview-errors-20261024-c6e4c1e.json",
+      "accepted_preview": null,
+      "evidence_refs": [],
+      "validator_ref": null,
+      "owner_decision_ref": null,
+      "last_work_event_at": "2026-10-24T03:02:28.012381Z",
+      "input_triangles": 56828,
+      "worker_pid": 32916,
+      "engine_input_receipt": {
+        "source_obj_sha256": "8ddcfb98f162ab19f2c345c5c3e8f9f727edf3b7753e43fda6a370b32d93346f",
+        "native_reference_sha256": "0f0f94f6d17566fd841c82729741f6a0c05ebcaad599b53dc97f60f2a3caf1b9",
+        "source_triangles_sha256": "399663bed0a483cef1300f0df25d97c95f1b49790aa477ac27227f1728080253",
+        "engine_obj_sha256": "c228c7b039be8090caa3d68eb5b1762a0deb29979a8dac4ee48902f2327aa3ae",
+        "floor_id": "2F",
+        "source_revision": "7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511",
+        "qualification_sha256": "f37cac1ec1842f324409802e67a424b3a7864783f5b52143dc5c7f4a7697069c",
+        "assets": [
+          {
+            "path": "2nd floor main infra.mtl",
+            "sha256": "f49e1587ca1be5efb8aca4d4b94ee8b5faf7f1067198be52d33271e75a8c2dac"
+          },
+          {
+            "path": "textures\\littletiles\\ltcolored0_-1.png",
+            "sha256": "84fa319f11ad9113f7bc2b1c76a14b62763893bead1b877bb1adf5c16c44e592"
+          },
+          {
+            "path": "textures\\minecraft\\concrete_white_-1.png",
+            "sha256": "f42c7be3c52294ead4c69ac0e9ef1bbbbe6bdb4451382c89a65c386709df6171"
+          },
+          {
+            "path": "textures\\minecraft\\concrete_white_-15579874.png",
+            "sha256": "14ceba3d0329594e00458bc6ed2aeafa24d9228519994a60d758de2509fee1ad"
+          },
+          {
+            "path": "textures\\minecraft\\iron_block_-15586018.png",
+            "sha256": "bbe924f0daed84dd7d27ebf070435ee0b5da67582e3dabdeb01bff2827a236c3"
+          },
+          {
+            "path": "textures\\minecraft\\quartz_block_bottom_-1.png",
+            "sha256": "daf3f46f93f7364b1530ec468a7a1d5a02eda1cd0a118e41e93e9c4177791cc1"
+          },
+          {
+            "path": "textures\\minecraft\\quartz_block_side_-1.png",
+            "sha256": "85e34c6a6b917ade1cfbd2826127de4175c63317f3efbba1f7aaed3bf105a193"
+          },
+          {
+            "path": "textures\\minecraft\\quartz_block_top_-1.png",
+            "sha256": "eea2309518da196d86171dd0d78ecdcdc3a0510005790fa2beb8484744d8ae88"
+          },
+          {
+            "path": "textures\\minecraft\\stone_andesite_smooth_-1.png",
+            "sha256": "4d9ef68760a08f545ded902c5762ffab9ff852796502f8a26938f6aee430314a"
+          },
+          {
+            "path": "textures\\minecraft\\wool_colored_orange_-1.png",
+            "sha256": "c6a3c27b965f298da28c89c1a522b5ff3152321a97fcbe613aec2f9a6d8f66fa"
+          }
+        ],
+        "physical_axis_quanta_inches": [
+          3.937007874015748e-06,
+          3.937007874015748e-06,
+          3.937007874015748e-07
+        ],
+        "source_to_engine": [
+          [
+            39.37007874015748,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            -39.37007874015748,
+            0.0
+          ],
+          [
+            0.0,
+            39.37007874015748,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "source_sig_digits": 9
+      },
+      "builder_component_commit": "fec7b3ef9aed4ec983ac5e3cf8b262044fbdf6f8",
+      "worker_alive": false,
+      "worker_observed_at": "2026-10-23T23:45:09.7956000Z",
+      "worker_cpu_seconds": null,
+      "worker_start_utc": "2026-10-23T23:44:42.6048126Z",
+      "observed_kernel_phase": {
+        "phase": "rollback_confirmation",
+        "evidence_sha256": "e1a124324020d935bd0b1ea5a313c96f76b31a569ae5ddf83399271c2510091f",
+        "pid": 41648,
+        "creation_utc": "2026-10-23T14:13:11.8254166Z",
+        "source": "nonblocking stack kernel.py353 run confirm; no locals",
+        "acceptance": false
+      },
+      "pending_output_triangles": 38134,
+      "engine_worker_pid": 41648,
+      "independent_validator_worker_pid": 37932,
+      "independent_validator_worker_alive": false,
+      "independent_validator_stage": "strict26_f64_complete_failed17",
+      "independent_guard_passed": false,
+      "independent_guard_sha256": "a7097da888c70c072332e83cc4ce56be4ee454036e339984f4b33c6e1aea2462",
+      "guard_views_total": 26,
+      "guard_model_pixels": 6270353,
+      "guard_moved_other": 1683106,
+      "publication_eligible": false,
+      "independent_guard_run": {
+        "pid": 51584,
+        "exit_code": 2,
+        "resource_aborted": false,
+        "all_owned_exited": true,
+        "completed_utc": "2026-10-23T21:03:53.765Z"
+      },
+      "worker_events": [
+        {
+          "engine": "E3",
+          "run_id": "main-infra-clean-20261023",
+          "pid": 41648,
+          "start_utc": "2026-10-23T14:13:11.8254166Z",
+          "observed_at": "2026-10-23T20:16:04.163911Z",
+          "phase": "candidate_saved",
+          "message": "Engine saved 56,828 to 38,134 triangles; 1,065 sites kept and 95 rolled back."
+        },
+        {
+          "engine": "E3",
+          "run_id": "main-infra-clean-20261023",
+          "pid": 51584,
+          "start_utc": "2026-10-23T21:00:34.6242438Z",
+          "observed_at": "2026-10-23T21:03:53.765Z",
+          "phase": "strict26_failed",
+          "message": "Independent 26-view visibility guard failed: 1,683,106 moved_other samples. Candidate withheld."
+        },
+        {
+          "engine": "E3",
+          "run_id": "main-infra-clean-20261023",
+          "pid": 62296,
+          "start_utc": "2026-10-23T21:28:00.5103413Z",
+          "observed_at": "2026-10-23T21:28:20.548Z",
+          "phase": "diagnostic_resource_abort",
+          "message": "One-view numerical diagnostic stopped at its 1 GiB process limit. A smaller row-strip replay is being reviewed; the original failed guard remains blocking."
+        },
+        {
+          "engine": "E3",
+          "run_id": "MAIN-INFRA-2F-GUARD-F64-VALIDATE-20261024",
+          "pid": 37932,
+          "start_utc": "2026-10-23T23:06:50.7193982Z",
+          "observed_at": "2026-10-23T23:08:34.882265Z",
+          "phase": "independent_strict26_running",
+          "message": "Actual strict26 rerun of unchanged56,828→38,134 saved candidate with reviewed F64 plane-distance calculation.99guard cases passed;78reference views unchanged. Original failed guard remains recorded; new verdict pending."
+        },
+        {
+          "engine": "E3",
+          "run_id": "MAIN-INFRA-2F-GUARD-F64-VALIDATE-20261024",
+          "pid": 37932,
+          "start_utc": "2026-10-23T23:06:50.7193982Z",
+          "observed_at": "2026-10-23T23:07:16.9397982Z",
+          "phase": "independent_strict26_failed17",
+          "message": "Actual strict26 completed: 17 moved-surface pixels remain (previous1,683,106). No holes/material changes/growth. Unchanged strict guard fails; four-view diagnosis follows."
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-2F-GUARD17-DIAGNOSTIC-20261024",
+          "pid": 32916,
+          "start_utc": "2026-10-23T23:44:42.6048126Z",
+          "observed_at": "2026-10-23T23:45:09.7956000Z",
+          "phase": "guard17_diagnostic_complete",
+          "message": "All17 failing ray hits still have their original faces; numerical edge selection under diagnosis"
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-2F-ERROR-CENSUS-20261024",
+          "pid": 31036,
+          "start_utc": "2026-10-24T02:45:54.6256542Z",
+          "observed_at": "2026-10-24T02:48:02.1338394Z",
+          "phase": "measured_error_census_complete",
+          "message": "Measured fresh 56,828 and saved 38,134 with unchanged default find_errors. Diff20,842 to8,517; same15,577 to8,660; hidden35,789 to17,094; reversed0 to1; open7,126 to10,024; cracks9,389 to7,611. No model change or validation waiver. Both error maps are now published."
+        }
+      ],
+      "prior_guard_failure_1d95": {
+        "independent_guard_run": {
+          "pid": 51584,
+          "exit_code": 2,
+          "resource_aborted": false,
+          "all_owned_exited": true,
+          "completed_utc": "2026-10-23T21:03:53.765Z"
+        },
+        "independent_guard_sha256": "1d95e1c4c03b7bd0209308690b06acfe01d95128564fdfdfaa4ca0fa652c96dc",
+        "independent_guard_passed": false,
+        "blocker": "Strict 26-view guard failed: 1,683,106 moved_other samples. Exact surviving source records do not prove visibility preservation. Candidate is withheld.",
+        "step": "Saved E3 output failed independent visibility check; diagnosis in progress"
+      },
+      "independent_caller_commit": "a15444c153f661870859995f98d80feed425daec",
+      "independent_preparation_sha256": "7ae71e433bb6728a4877fb2e572ca9a8dece6c5e1895eb0530d1c37c31f79b47",
+      "active_validation_job_id": "MAIN-INFRA-2F-GUARD-F64-VALIDATE-20261024",
+      "guard_moved_other_pixels": 17,
+      "guard_failed_views": 4,
+      "guard17_diagnostic_sha256": "61dde6f969bd17d8e2b72419b69aca0dba113e98b1ab2f54b0a3ae948a966ea8",
+      "output_triangles": 38134,
+      "inspection_published": true,
+      "inspection_acceptance": false,
+      "validator_passed": false,
+      "native_preservation_passed": null,
+      "saved_inspection_publication": {
+        "files_per_root": 12,
+        "http_hashes": 12,
+        "archive_sha256": "3c6776a3f373170c940837d13838847e05c86471fde3935a7738a8dfafc4c83b",
+        "source_obj_sha256": "07bbaacc8c9e5fdf8e18fccd0911601aeaa6a2e61976a563bfb61b4d6970c37d",
+        "actual_strict_failed_pixels": 17,
+        "native": "NOT_RUN",
+        "signed": "NOT_RUN",
+        "acceptance": false,
+        "publication_eligible": false
+      },
+      "error_census": {
+        "run_id": "MAIN-INFRA-2F-ERROR-CENSUS-20261024",
+        "pid": 31036,
+        "start_utc": "2026-10-24T02:45:54.6256542Z",
+        "ended_utc": "2026-10-24T02:48:02.1338394Z",
+        "exit_code": 0,
+        "resource_aborted": false,
+        "all_owned_exited": true,
+        "receipt_sha256": "4360512e07f82ca2ad84cb31769300687d5ad68ba2f05b8d5eb03a3b5ec1501d",
+        "before": {
+          "flicker_diff": 20842,
+          "flicker_same": 15577,
+          "reversed": 0,
+          "hidden": 35789,
+          "loose": 0,
+          "open_edges": 7126,
+          "cracks": 9389
+        },
+        "after": {
+          "flicker_diff": 8517,
+          "flicker_same": 8660,
+          "reversed": 1,
+          "hidden": 17094,
+          "loose": 0,
+          "open_edges": 10024,
+          "cracks": 7611
+        },
+        "original_triangles": 56828,
+        "displayed_candidate_triangles": 38134,
+        "validation_pass_not_claimed": true,
+        "published": true,
+        "files_per_root": 6,
+        "http_hashes": 6,
+        "packet_sha256": "582e8d4b7b3d1fa69cf31febf6cedf3815c84d3597c7fad7b8aeebb2bbf8a175",
+        "archive_sha256": "840f32ba0f6f117109b9ee2ebd5b9468ef766c00280c37681c3655351a2c44ff"
+      }
+    },
+    "3F": {
+      "floor_id": "MAIN_INFRA_3F",
+      "state": "blocked",
+      "step": "New44972 model live: preservation passed; remaining overlaps and cracks need cleanup",
+      "blocker": "Signed targets remain:8,305 different-look overlaps,14,690 same-look overlaps,12,579 cracks; all preservation checks passed; not accepted",
+      "source_preview": "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/3F/main-infra-clean-20261023/source/preview.json",
+      "candidate_preview": "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/3F/main-infra-clean-20261023/candidate/preview-e3-retain-visible-inspection-20261024.json",
+      "accepted_preview": null,
+      "evidence_refs": [
+        "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/3F/main-infra-clean-20261023/candidate/evidence-e3-retain-visible-20261024/validation.json",
+        "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/3F/main-infra-clean-20261023/candidate/evidence-e3-retain-visible-20261024/independent-review.json",
+        "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/3F/main-infra-clean-20261023/candidate/evidence-e3-retain-visible-pending-20261024/independent-guard.json",
+        "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/3F/main-infra-clean-20261023/candidate/evidence-e3-retain-visible-pending-20261024/native-readback.json",
+        "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/3F/main-infra-clean-20261023/candidate/evidence-e3-retain-visible-pending-20261024/retained-floor.json",
+        "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/3F/main-infra-clean-20261023/candidate/evidence-e3-retain-visible-pending-20261024/all-views.png",
+        "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/3F/main-infra-clean-20261023/candidate/evidence-e3-retain-visible-pending-20261024/paired-detail.png",
+        "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/3F/main-infra-clean-20261023/candidate/evidence-e3-retain-visible-pending-20261024/private-inspection-receipt.json",
+        "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/3F/main-infra-clean-20261023/candidate/evidence-e3-retain-visible-pending-20261024/checkpoint-receipt.json",
+        "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/3F/main-infra-clean-20261023/candidate/evidence-e3-retain-visible-pending-20261024/retention-policy.json"
+      ],
+      "validator_ref": "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/3F/main-infra-clean-20261023/candidate/evidence-e3-retain-visible-20261024/validation.json",
+      "owner_decision_ref": null,
+      "last_work_event_at": "2026-10-24T00:17:22.083588Z",
+      "input_triangles": 53602,
+      "worker_pid": 28780,
+      "engine_input_receipt": {
+        "source_obj_sha256": "f63c079408bd42fec7b9e5b5d10b0b8a8e4bc7077da006739bf5cfa1fdb5cf25",
+        "native_reference_sha256": "9597fcfa0e1a76e4a460a9e54f5a8b79c7bdb76c4f1030afb56914dfa97a1dfe",
+        "source_triangles_sha256": "f9f2f90eb52083233ab8c9baad7e8e9e61e9d528f95b90df743475afc5a39bc8",
+        "engine_obj_sha256": "740103bb4197a1270e4c00e38abe9971e12f5c80ebe14502e4acd75148afbc82",
+        "floor_id": "3F",
+        "source_revision": "7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511",
+        "qualification_sha256": "5e1880c494bb4fa532a1d50bce5515d20cc02e532d82c5e55db69e59a83a7424",
+        "assets": [
+          {
+            "path": "3rd floor main infra.mtl",
+            "sha256": "c021e8faec66f4d705a70b0caf7ea49d467bdc829b7680263bda02e3660c9b07"
+          },
+          {
+            "path": "textures\\minecraft\\concrete_white_-1.png",
+            "sha256": "f42c7be3c52294ead4c69ac0e9ef1bbbbe6bdb4451382c89a65c386709df6171"
+          },
+          {
+            "path": "textures\\minecraft\\concrete_white_-15579874.png",
+            "sha256": "14ceba3d0329594e00458bc6ed2aeafa24d9228519994a60d758de2509fee1ad"
+          },
+          {
+            "path": "textures\\minecraft\\glass_white_-1.png",
+            "sha256": "899b9a1f08688eb13dd6dc980a743f5d335862615c49da8b2298ff3817933dd4"
+          },
+          {
+            "path": "textures\\minecraft\\quartz_block_bottom_-1.png",
+            "sha256": "daf3f46f93f7364b1530ec468a7a1d5a02eda1cd0a118e41e93e9c4177791cc1"
+          },
+          {
+            "path": "textures\\minecraft\\quartz_block_side_-1.png",
+            "sha256": "85e34c6a6b917ade1cfbd2826127de4175c63317f3efbba1f7aaed3bf105a193"
+          },
+          {
+            "path": "textures\\minecraft\\quartz_block_top_-1.png",
+            "sha256": "eea2309518da196d86171dd0d78ecdcdc3a0510005790fa2beb8484744d8ae88"
+          },
+          {
+            "path": "textures\\minecraft\\wool_colored_orange_-1.png",
+            "sha256": "c6a3c27b965f298da28c89c1a522b5ff3152321a97fcbe613aec2f9a6d8f66fa"
+          }
+        ],
+        "physical_axis_quanta_inches": [
+          3.937007874015748e-05,
+          3.937007874015748e-05,
+          3.937007874015748e-06
+        ],
+        "source_to_engine": [
+          [
+            39.37007874015748,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            -39.37007874015748,
+            0.0
+          ],
+          [
+            0.0,
+            39.37007874015748,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "source_sig_digits": 8
+      },
+      "builder_component_commit": "c125cd8ab28fe648491676125e8bc8e67d1c5c3a",
+      "worker_alive": false,
+      "worker_observed_at": "2026-10-24T00:05:08.4415528Z",
+      "worker_cpu_seconds": null,
+      "worker_start_utc": "2026-10-23T23:43:51.7805326Z",
+      "previous_failed_attempt": {
+        "worker_pid": 56832,
+        "step": "Engine worker stopped: Unable to allocate 1.46 MiB for an array with shape (63691, 3) and data type float64",
+        "recorded_at": "2026-10-23T15:07:50.053267Z",
+        "local_backup": "D:\\PROJECTS\\UC MODEL FIXER\\data\\siege-live-20261023\\queued-retry-prior-states-20261023T1508.json"
+      },
+      "queued_builder_commit": "531769cad83dd6d03214a94cbd21e0209f8f2f33",
+      "pending_output_triangles": 44972,
+      "engine_worker_pid": 22268,
+      "engine_stage": "E3",
+      "independent_validator_stage": "signed_targets_failed_preservation_passed",
+      "independent_validator_worker_pid": 28780,
+      "independent_validator_worker_alive": false,
+      "publication_eligible": false,
+      "diagnostic_only": true,
+      "worker_events": [
+        {
+          "engine": "E3",
+          "run_id": "main-infra-clean-20261023",
+          "pid": 22268,
+          "start_utc": "2026-10-23T17:36:13.8205790Z",
+          "observed_at": "2026-10-23T19:50:28.0941785Z",
+          "phase": "candidate_saved",
+          "message": "Engine saved 53,602 to 38,691 triangles; 1,675 sites kept and 145 rolled back."
+        },
+        {
+          "engine": "E3",
+          "run_id": "main-infra-clean-20261023",
+          "pid": 60004,
+          "start_utc": "2026-10-23T20:23:41.9680715Z",
+          "observed_at": "2026-10-23T20:24:01.3682605Z",
+          "phase": "strict26_passed",
+          "message": "Independent 26-view guard passed across 4,717,188 model pixels."
+        },
+        {
+          "engine": "E3",
+          "run_id": "main-infra-clean-20261023",
+          "pid": 23216,
+          "start_utc": "2026-10-23T20:38:04.3203283Z",
+          "observed_at": "2026-10-23T20:38:27Z",
+          "phase": "native_failed",
+          "message": "Native inspection failed: 119 RGB pixels changed across 8 qualified views, including one walking view. No alpha or silhouette changes."
+        },
+        {
+          "engine": "E3",
+          "run_id": "main-infra-clean-20261023",
+          "pid": 17092,
+          "start_utc": "2026-10-23T20:44:32.3337348Z",
+          "observed_at": "2026-10-23T21:16:56.082Z",
+          "phase": "signed_diagnostic_complete",
+          "message": "Textures and visible coverage passed the full signed diagnostic. Problem targets failed: flicker_diff 5,833; flicker_same 10,833; cracks 10,877. Candidate remains blocked."
+        },
+        {
+          "engine": "E3",
+          "run_id": "main-infra-clean-20261023",
+          "pid": 17092,
+          "start_utc": "2026-10-23T20:44:32.3337348Z",
+          "observed_at": "2026-10-23T22:16:28.689318Z",
+          "phase": "inspection_published",
+          "message": "Saved 38,691-triangle candidate, original materials and evidence published for explicit inspection; native failure and failed problem targets remain."
+        },
+        {
+          "engine": "E3",
+          "run_id": "MAIN-INFRA-E3-3F-retain-visible-20261024",
+          "pid": 60376,
+          "start_utc": "2026-10-23T22:43:56.2456960Z",
+          "observed_at": "2026-10-23T22:46:17.6233942Z",
+          "phase": "checking",
+          "message": "Actual corrective E3 replay started with1,412 checked proposals.263 whole sites/6,281 original faces are retained; original145 rollbacks remain. New output/validation pending; displayed38,691-triangle inspection belongs to prior failed attempt."
+        },
+        {
+          "engine": "E3",
+          "run_id": "MAIN-INFRA-E3-3F-retain-visible-20261024",
+          "pid": 60376,
+          "start_utc": "2026-10-23T22:43:56.2456960Z",
+          "observed_at": "2026-10-23T23:06:54.7080520Z",
+          "phase": "candidate_saved",
+          "message": "Actual corrective E3 saved53,602→44,972 triangles:1,412 checked edits kept,0new rollbacks. All6,281 protected original faces and145old rollback sites retained. New independent validation pending; displayed38,691inspection is the previous failed candidate."
+        },
+        {
+          "engine": "E3",
+          "run_id": "MAIN-INFRA-E3-3F-retain-visible-20261024",
+          "pid": 60376,
+          "start_utc": "2026-10-23T22:43:56.245696Z",
+          "observed_at": "2026-10-23T23:17:20.831251Z",
+          "phase": "candidate_saved",
+          "message": "E3 retention candidate saved; independent preservation and signed validation pending",
+          "kept_edits": 1412,
+          "rolled_back_edits": 0,
+          "output_triangles": 44972
+        },
+        {
+          "pid": 55272,
+          "run_id": "MAIN-INFRA-3F-VALIDATE-RETAIN-VISIBLE-20261024",
+          "engine": "Validator",
+          "message": "Actual strict26 PASS on saved44,972;4,717,188modelpixels/allviolations0; native and signed pending",
+          "phase": "strict26_pass",
+          "observed_at": "2026-10-23T23:33:42.295225Z",
+          "start_utc": "2026-10-23T23:31:55.8455340Z"
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-3F-VALIDATE-RETAIN-VISIBLE-20261024",
+          "pid": 57208,
+          "start_utc": "2026-10-23T23:38:10.5726269Z",
+          "observed_at": "2026-10-23T23:38:49.720016Z",
+          "phase": "independent_validation:native46",
+          "message": "Independent validation: native46"
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-3F-VALIDATE-RETAIN-VISIBLE-20261024",
+          "pid": 57208,
+          "start_utc": "2026-10-23T23:38:10.5726269Z",
+          "observed_at": "2026-10-23T23:38:31.4551395Z",
+          "phase": "native46_pass",
+          "message": "Actual native33qualifiedviewsPASS/0changedpixels;13diagnosticviewsseparate; fullsignedpending"
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-3F-VALIDATE-RETAIN-VISIBLE-20261024",
+          "pid": 28780,
+          "start_utc": "2026-10-23T23:43:51.7805326Z",
+          "observed_at": "2026-10-23T23:47:05.575065Z",
+          "phase": "independent_validation:full_signed",
+          "message": "Independent validation: full_signed"
+        },
+        {
+          "engine": "Publisher",
+          "run_id": "MAIN-INFRA-CLEAN-20261023",
+          "pid": 8016,
+          "start_utc": "2026-10-23T23:56:26.1726037Z",
+          "observed_at": "2026-10-24T00:05:48.552882Z",
+          "phase": "new44972_inspection_live",
+          "output_triangles": 44972,
+          "message": "Published actual44,972-triangle model and8current proof links;18files/18publicSHAchecksPASS; guard/nativePASS/signedPENDING/acceptancefalse"
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-3F-VALIDATE-RETAIN-VISIBLE-20261024",
+          "pid": 28780,
+          "start_utc": "2026-10-23T23:43:51.7805326Z",
+          "observed_at": "2026-10-24T00:06:16.919467Z",
+          "phase": "independent_validation:full_signed",
+          "message": "Independent validation: full_signed"
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-3F-VALIDATE-RETAIN-VISIBLE-20261024",
+          "pid": 28780,
+          "start_utc": "2026-10-23T23:43:51.7805326Z",
+          "observed_at": "2026-10-24T00:05:08.4415528Z",
+          "phase": "signed_preservation_pass_targets_fail",
+          "message": "Actual signed validation complete:305,340 visible texture samples/0 failures;0 lost or covered surfaces; targets8,305/14,690/12,579 remainFAIL; acceptancefalse"
+        }
+      ],
+      "output_triangles": 44972,
+      "inspection_published": true,
+      "inspection_acceptance": false,
+      "inspection_receipt_sha256": "e40e2aa53128d63b0b52440f5ac1730292dbe642eeb123ae937e38afe4b884ab",
+      "active_engine_run_id": "MAIN-INFRA-E3-3F-retain-visible-20261024",
+      "active_engine_component_commit": "c125cd8ab28fe648491676125e8bc8e67d1c5c3a",
+      "active_engine_preparation_sha256": "b62f399728cd09e08cfbecc8306d61628d62d8f6aa972c8ecf26b008a4cd1f62",
+      "previous_inspection_output_triangles": 38691,
+      "active_source_candidate_sha256": "7b8a2f0dc74ec546d1ae389b50dc2b9ba4a555870150aae33a00a6a81a674a1c",
+      "active_engine_candidate_sha256": "d51863ee389e02f186b37f488d76fc2b2f500ea8059a27273d5f8118c5b655c3",
+      "worker_cpu_samples": [
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-3F-VALIDATE-RETAIN-VISIBLE-20261024",
+          "pid": 28780,
+          "start_utc": "2026-10-23T23:43:51.7805326Z",
+          "observed_at": "2026-10-23T23:47:05.575065Z",
+          "cpu_seconds": 452.06
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-3F-VALIDATE-RETAIN-VISIBLE-20261024",
+          "pid": 28780,
+          "start_utc": "2026-10-23T23:43:51.7805326Z",
+          "observed_at": "2026-10-23T23:47:43.578819Z",
+          "cpu_seconds": 546.16
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-3F-VALIDATE-RETAIN-VISIBLE-20261024",
+          "pid": 28780,
+          "start_utc": "2026-10-23T23:43:51.7805326Z",
+          "observed_at": "2026-10-23T23:48:21.848704Z",
+          "cpu_seconds": 646.89
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-3F-VALIDATE-RETAIN-VISIBLE-20261024",
+          "pid": 28780,
+          "start_utc": "2026-10-23T23:43:51.7805326Z",
+          "observed_at": "2026-10-23T23:49:00.132878Z",
+          "cpu_seconds": 746.16
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-3F-VALIDATE-RETAIN-VISIBLE-20261024",
+          "pid": 28780,
+          "start_utc": "2026-10-23T23:43:51.7805326Z",
+          "observed_at": "2026-10-23T23:49:38.396871Z",
+          "cpu_seconds": 853.14
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-3F-VALIDATE-RETAIN-VISIBLE-20261024",
+          "pid": 28780,
+          "start_utc": "2026-10-23T23:43:51.7805326Z",
+          "observed_at": "2026-10-23T23:50:16.735244Z",
+          "cpu_seconds": 963.58
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-3F-VALIDATE-RETAIN-VISIBLE-20261024",
+          "pid": 28780,
+          "start_utc": "2026-10-23T23:43:51.7805326Z",
+          "observed_at": "2026-10-23T23:50:54.931837Z",
+          "cpu_seconds": 1080.34
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-3F-VALIDATE-RETAIN-VISIBLE-20261024",
+          "pid": 28780,
+          "start_utc": "2026-10-23T23:43:51.7805326Z",
+          "observed_at": "2026-10-23T23:51:32.719709Z",
+          "cpu_seconds": 1204.34
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-3F-VALIDATE-RETAIN-VISIBLE-20261024",
+          "pid": 28780,
+          "start_utc": "2026-10-23T23:43:51.7805326Z",
+          "observed_at": "2026-10-23T23:52:10.811918Z",
+          "cpu_seconds": 1324.8
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-3F-VALIDATE-RETAIN-VISIBLE-20261024",
+          "pid": 28780,
+          "start_utc": "2026-10-23T23:43:51.7805326Z",
+          "observed_at": "2026-10-23T23:52:48.494780Z",
+          "cpu_seconds": 1440.41
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-3F-VALIDATE-RETAIN-VISIBLE-20261024",
+          "pid": 28780,
+          "start_utc": "2026-10-23T23:43:51.7805326Z",
+          "observed_at": "2026-10-23T23:53:26.508343Z",
+          "cpu_seconds": 1558.8
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-3F-VALIDATE-RETAIN-VISIBLE-20261024",
+          "pid": 28780,
+          "start_utc": "2026-10-23T23:43:51.7805326Z",
+          "observed_at": "2026-10-23T23:54:04.686419Z",
+          "cpu_seconds": 1676.14
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-3F-VALIDATE-RETAIN-VISIBLE-20261024",
+          "pid": 28780,
+          "start_utc": "2026-10-23T23:43:51.7805326Z",
+          "observed_at": "2026-10-23T23:54:42.640074Z",
+          "cpu_seconds": 1795.5
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-3F-VALIDATE-RETAIN-VISIBLE-20261024",
+          "pid": 28780,
+          "start_utc": "2026-10-23T23:43:51.7805326Z",
+          "observed_at": "2026-10-23T23:55:20.728658Z",
+          "cpu_seconds": 1912.3
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-3F-VALIDATE-RETAIN-VISIBLE-20261024",
+          "pid": 28780,
+          "start_utc": "2026-10-23T23:43:51.7805326Z",
+          "observed_at": "2026-10-23T23:55:59.716753Z",
+          "cpu_seconds": 2032.36
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-3F-VALIDATE-RETAIN-VISIBLE-20261024",
+          "pid": 28780,
+          "start_utc": "2026-10-23T23:43:51.7805326Z",
+          "observed_at": "2026-10-23T23:56:37.614783Z",
+          "cpu_seconds": 2150.98
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-3F-VALIDATE-RETAIN-VISIBLE-20261024",
+          "pid": 28780,
+          "start_utc": "2026-10-23T23:43:51.7805326Z",
+          "observed_at": "2026-10-23T23:57:15.513323Z",
+          "cpu_seconds": 2269.75
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-3F-VALIDATE-RETAIN-VISIBLE-20261024",
+          "pid": 28780,
+          "start_utc": "2026-10-23T23:43:51.7805326Z",
+          "observed_at": "2026-10-23T23:57:53.695700Z",
+          "cpu_seconds": 2388.05
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-3F-VALIDATE-RETAIN-VISIBLE-20261024",
+          "pid": 28780,
+          "start_utc": "2026-10-23T23:43:51.7805326Z",
+          "observed_at": "2026-10-23T23:58:31.668146Z",
+          "cpu_seconds": 2503.27
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-3F-VALIDATE-RETAIN-VISIBLE-20261024",
+          "pid": 28780,
+          "start_utc": "2026-10-23T23:43:51.7805326Z",
+          "observed_at": "2026-10-23T23:59:11.422542Z",
+          "cpu_seconds": 2629.33
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-3F-VALIDATE-RETAIN-VISIBLE-20261024",
+          "pid": 28780,
+          "start_utc": "2026-10-23T23:43:51.7805326Z",
+          "observed_at": "2026-10-23T23:59:49.595963Z",
+          "cpu_seconds": 2749.44
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-3F-VALIDATE-RETAIN-VISIBLE-20261024",
+          "pid": 28780,
+          "start_utc": "2026-10-23T23:43:51.7805326Z",
+          "observed_at": "2026-10-24T00:00:28.118949Z",
+          "cpu_seconds": 2866.73
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-3F-VALIDATE-RETAIN-VISIBLE-20261024",
+          "pid": 28780,
+          "start_utc": "2026-10-23T23:43:51.7805326Z",
+          "observed_at": "2026-10-24T00:01:10.339247Z",
+          "cpu_seconds": 2995.66
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-3F-VALIDATE-RETAIN-VISIBLE-20261024",
+          "pid": 28780,
+          "start_utc": "2026-10-23T23:43:51.7805326Z",
+          "observed_at": "2026-10-24T00:01:49.695800Z",
+          "cpu_seconds": 3116.41
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-3F-VALIDATE-RETAIN-VISIBLE-20261024",
+          "pid": 28780,
+          "start_utc": "2026-10-23T23:43:51.7805326Z",
+          "observed_at": "2026-10-24T00:02:27.721333Z",
+          "cpu_seconds": 3235.39
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-3F-VALIDATE-RETAIN-VISIBLE-20261024",
+          "pid": 28780,
+          "start_utc": "2026-10-23T23:43:51.7805326Z",
+          "observed_at": "2026-10-24T00:03:06.562057Z",
+          "cpu_seconds": 3355.59
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-3F-VALIDATE-RETAIN-VISIBLE-20261024",
+          "pid": 28780,
+          "start_utc": "2026-10-23T23:43:51.7805326Z",
+          "observed_at": "2026-10-24T00:03:44.694369Z",
+          "cpu_seconds": 3449.64
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-3F-VALIDATE-RETAIN-VISIBLE-20261024",
+          "pid": 28780,
+          "start_utc": "2026-10-23T23:43:51.7805326Z",
+          "observed_at": "2026-10-24T00:04:22.834393Z",
+          "cpu_seconds": 3487.16
+        },
+        {
+          "engine": "Validator",
+          "run_id": "MAIN-INFRA-3F-VALIDATE-RETAIN-VISIBLE-20261024",
+          "pid": 28780,
+          "start_utc": "2026-10-23T23:43:51.7805326Z",
+          "observed_at": "2026-10-24T00:05:00.950654Z",
+          "cpu_seconds": 3524.94
+        }
+      ],
+      "previous_inspection_validation": {
+        "independent_caller_commit": "a4c78e33e048d861ed938f76a718cf54f298239c",
+        "independent_preparation_sha256": "00b13d36cb32997dccb1e0bfd94130c6ed90dba43c2884f9c8723f604c357ada",
+        "independent_before_triangles": 53602,
+        "independent_after_triangles": 38691,
+        "independent_guard_run": {
+          "phase_config_sha256": "4bac0cccba69a8ed6fa2dec3f1dcd6b932097c28e135684704505982dd215df3",
+          "actual_pid": 60004,
+          "actual_start_utc": "2026-10-23T20:23:41.9680715Z",
+          "terminal_sha256": null,
+          "accepted": false,
+          "actual_alive": false,
+          "verdict": "PASS",
+          "receipt_sha256": "01dc21dcc6362247698b5f898503dcb78b543c96344b96d57f8de0135c2a3e7f"
+        },
+        "independent_guard_passed": true,
+        "independent_guard_sha256": "01dc21dcc6362247698b5f898503dcb78b543c96344b96d57f8de0135c2a3e7f",
+        "guard_views_passed": 26,
+        "guard_views_total": 26,
+        "guard_model_pixels": 4717188,
+        "native_preservation_passed": false,
+        "native_readback_sha256": "33d60ae794dac1d43033083d63f2365409f72573ec82ef1fd6bb5a6e2533d94a",
+        "native_qualified_changed_pixels": 119,
+        "native_qualified_changed_views": 8,
+        "native_qualified_total_views": 33,
+        "native_alpha_changed_pixels": 0,
+        "native_silhouette_changed_pixels": 0,
+        "native_failed_views": [
+          {
+            "name": "view_-1_-1_0",
+            "different_pixels": 7
+          },
+          {
+            "name": "view_-1_-1_1",
+            "different_pixels": 15
+          },
+          {
+            "name": "view_-1_0_1",
+            "different_pixels": 34
+          },
+          {
+            "name": "view_-1_1_1",
+            "different_pixels": 2
+          },
+          {
+            "name": "view_0_0_1",
+            "different_pixels": 7
+          },
+          {
+            "name": "view_0_1_1",
+            "different_pixels": 1
+          },
+          {
+            "name": "view_1_0_1",
+            "different_pixels": 11
+          },
+          {
+            "name": "eye_3_qualified_1_probe_295",
+            "different_pixels": 42
+          }
+        ],
+        "native_failure_diagnostic": {
+          "actual_pid": 17092,
+          "actual_start_utc": "2026-10-23T20:44:32.3337348Z",
+          "phase_config_sha256": "50c9985a7a165516b43a8126e86e57d0f7c7424f6989ba710ef99e64540eac0d",
+          "script_sha256": "873d6a0a68b2412d9c5e444c5ce7cbf71cab67b67818233b97550976c1ffa7ef",
+          "terminal_sha256": null,
+          "diagnostic_only": true,
+          "publication_eligible": false,
+          "native_preservation_passed": false
+        },
+        "validator_texture_preservation_passed": true,
+        "validator_nothing_deleted_passed": true,
+        "validator_passed": false,
+        "signed_diagnostic_sha256": "524876c6a356898d8136e9647562317f6f89a74edb752d81080c0a9b51a689e0"
+      },
+      "independent_caller_commit": "c5537c15b128adbd8ca425e7a4b059029167cd90",
+      "independent_preparation_sha256": "e92fe4349124b42c4af93d17379d761a47d4cb5312430e2bf6d269f8bb3335ad",
+      "independent_before_triangles": 53602,
+      "independent_after_triangles": 44972,
+      "independent_guard_passed": true,
+      "independent_guard_sha256": "7f987622766e2c3402d2c03e68468137ed137fc3614cdc5a6d61129a6125ac2c",
+      "guard_views_passed": 26,
+      "guard_views_total": 26,
+      "guard_model_pixels": 4717188,
+      "native_preservation_passed": true,
+      "validator_passed": false,
+      "validator_pid": 28780,
+      "validator_alive": false,
+      "validator_cpu_seconds": null,
+      "validator_start_utc": "2026-10-23T23:43:51.7805326Z",
+      "validator_observed_at": "2026-10-24T00:17:03.592333Z",
+      "validator_run_id": "MAIN-INFRA-3F-VALIDATE-RETAIN-VISIBLE-20261024",
+      "validator_phase": "full_signed",
+      "native_readback_sha256": "5435cf0daab6f12a40572545fbe600007e4b82a9b80f76cd4e94028e46f5f350",
+      "native_qualified_changed_pixels": 0,
+      "native_qualified_changed_views": 0,
+      "native_qualified_total_views": 33,
+      "native_diagnostic_changed_pixels": 2,
+      "previous_inspection_preview": {
+        "preview": "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/3F/main-infra-clean-20261023/candidate/preview-e3-native-failed-inspection-20261024.json",
+        "evidence_refs": [
+          "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/3F/main-infra-clean-20261023/evidence/inspection-20261024/inspection-receipt.json",
+          "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/3F/main-infra-clean-20261023/evidence/inspection-20261024/guard.json",
+          "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/3F/main-infra-clean-20261023/evidence/inspection-20261024/native-failed.json",
+          "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/3F/main-infra-clean-20261023/evidence/inspection-20261024/signed-diagnostic.json"
+        ],
+        "validator_ref": "/models/main-infra/7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511/3F/main-infra-clean-20261023/evidence/inspection-20261024/signed-diagnostic.json",
+        "output_triangles": 38691,
+        "acceptance": false
+      },
+      "public_inspection_manifest_sha256": "23fb0aef314d715487e60aed568607835de6d98f111f836fab59883dbf4c7579",
+      "inspection_output_triangles": 44972,
+      "validator_texture_preservation_passed": true,
+      "validator_nothing_deleted_passed": true,
+      "signed_validation_sha256": "16dd3bd6f1f5f52b39aeb07827ecfed131d17bd263a778d47398b439e5601819",
+      "signed_targets_remaining": {
+        "flicker_diff": {
+          "before": 12147,
+          "after": 8305,
+          "target": 0,
+          "status": "FAIL"
+        },
+        "flicker_same": {
+          "before": 20205,
+          "after": 14690,
+          "target": 0,
+          "status": "FAIL"
+        },
+        "reversed": {
+          "before": 0,
+          "after": 0,
+          "target": 0,
+          "status": "PASS"
+        },
+        "hidden": {
+          "before": 32278,
+          "after": 23647,
+          "target": "listed",
+          "status": "REPORT_ONLY"
+        },
+        "loose": {
+          "before": 0,
+          "after": 0,
+          "target": "listed",
+          "status": "REPORT_ONLY"
+        },
+        "open_edges": {
+          "before": 8745,
+          "after": 10540,
+          "target": "listed",
+          "status": "REPORT_ONLY"
+        },
+        "cracks": {
+          "before": 13782,
+          "after": 12579,
+          "target": 0,
+          "status": "FAIL"
+        }
+      }
+    },
+    "4F": {
+      "floor_id": "MAIN_INFRA_4F",
+      "state": "validating",
+      "step": "Claude Code E3 candidate saved; independent preservation and signed targets pending",
+      "blocker": "Independent validation FAIL: textures PASS; visible coverage PASS; signed problem targets FAIL; remaining flicker_diff=8868, flicker_same=11223, cracks=14425 (before E3: flicker_diff=21701, flicker_same=24737, cracks=17688). Strict-26 guard PASS; 16 walking-height interior pairs: 5 changed px, no holes.",
+      "source_preview": null,
+      "candidate_preview": null,
+      "accepted_preview": null,
+      "evidence_refs": [],
+      "validator_ref": null,
+      "owner_decision_ref": null,
+      "input_triangles": 78160,
+      "last_work_event_at": "2026-10-24T07:01:51.066068Z",
+      "owner_run_id": "main-infra-claude-4f-7f-20261023",
+      "owner_reported_at": "2026-10-24T07:50:09.647987Z",
+      "output_triangles": 52865,
+      "owner_worker_pid": 8892
+    },
+    "5F": {
+      "floor_id": "MAIN_INFRA_5F",
+      "state": "validating",
+      "step": "Claude Code E3 candidate saved; independent preservation and signed targets pending",
+      "blocker": "Independent validation FAIL: textures PASS; visible coverage PASS; signed problem targets FAIL; remaining flicker_diff=4976, flicker_same=6500, reversed=1, cracks=10623 (before E3: flicker_diff=14412, flicker_same=16317, cracks=12985). Strict-26 guard PASS; 16 walking-height interior pairs: 2 changed px, no holes.",
+      "source_preview": null,
+      "candidate_preview": null,
+      "accepted_preview": null,
+      "evidence_refs": [],
+      "validator_ref": null,
+      "owner_decision_ref": null,
+      "owner_run_id": "main-infra-claude-4f-7f-20261023",
+      "owner_reported_at": "2026-10-24T07:50:09.647987Z",
+      "input_triangles": 56368,
+      "last_work_event_at": "2026-10-24T07:01:51.053693Z",
+      "output_triangles": 38113,
+      "owner_worker_pid": 52020
+    },
+    "6F": {
+      "floor_id": "MAIN_INFRA_6F",
+      "state": "validating",
+      "step": "Claude Code E3 candidate saved; independent preservation and signed targets pending",
+      "blocker": "Independent validation FAIL: textures PASS; visible coverage PASS; signed problem targets FAIL; remaining flicker_diff=3236, flicker_same=4934, cracks=6659 (before E3: flicker_diff=6918, flicker_same=9922, cracks=7480). Strict-26 guard PASS; 16 walking-height interior pairs: 3 changed px, no holes.",
+      "source_preview": null,
+      "candidate_preview": null,
+      "accepted_preview": null,
+      "evidence_refs": [],
+      "validator_ref": null,
+      "owner_decision_ref": null,
+      "owner_run_id": "main-infra-claude-4f-7f-20261023",
+      "owner_reported_at": "2026-10-24T07:50:09.647987Z",
+      "input_triangles": 34862,
+      "last_work_event_at": "2026-10-24T07:01:51.034891Z",
+      "output_triangles": 27108,
+      "owner_worker_pid": 62584
+    },
+    "7F": {
+      "floor_id": "MAIN_INFRA_7F",
+      "state": "validating",
+      "step": "Claude Code E3 candidate saved; independent preservation and signed targets pending",
+      "blocker": "Independent validation FAIL: textures PASS; visible coverage PASS; signed problem targets FAIL; remaining flicker_diff=2310, flicker_same=3289, cracks=4705 (before E3: flicker_diff=4518, flicker_same=7091, cracks=5429). Strict-26 guard PASS; 16 walking-height interior pairs: 52 changed px, no holes.",
+      "source_preview": null,
+      "candidate_preview": null,
+      "accepted_preview": null,
+      "evidence_refs": [],
+      "validator_ref": null,
+      "owner_decision_ref": null,
+      "owner_run_id": "main-infra-claude-4f-7f-20261023",
+      "owner_reported_at": "2026-10-24T07:50:09.647987Z",
+      "input_triangles": 26152,
+      "output_triangles": 20625,
+      "last_work_event_at": "2026-10-24T07:01:51.086240Z",
+      "owner_worker_pid": 37588
+    }
+  },
+  "replaces_run_id": "reset-20261023",
+  "dashboard_connection": "isolated_preview"
+}

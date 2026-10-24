@@ -1,0 +1,79 @@
+{
+  "schema_version": 1,
+  "checked_at": "2026-10-24T07:39:28.910Z",
+  "source_revision": "7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511",
+  "artifacts": [
+    {
+      "path": "1F-actual-engine-log.png",
+      "bytes": 93286,
+      "sha256": "dc4904d8147d0584059513a579aaf477591b68558c5e86f5627500b6ff759275"
+    },
+    {
+      "path": "1F-live-before-after-textures.png",
+      "bytes": 270839,
+      "sha256": "55d3a5e15749fead2e455654599520946a257f47fe6f340c1bcedf9c39d0ae54"
+    },
+    {
+      "path": "1F-live-error-filters-mobile-390.png",
+      "bytes": 22617,
+      "sha256": "99ec22d21ea7db8e5de68544a020ab2defe8f22a85e7f9e35c528a31386f7df1"
+    },
+    {
+      "path": "1F-live-isolated-open-edges.png",
+      "bytes": 309212,
+      "sha256": "4cc69ca9babb2d6fbcd00cf6446bf13d9e6a573cd584a36a8363773777a222b8"
+    },
+    {
+      "path": "1F-live-material-colours-triangle-edges.png",
+      "bytes": 297360,
+      "sha256": "d9d8610ed73f6c179898b249905f42bdee8e19d92222d1435125fa3b8cdd5e77"
+    },
+    {
+      "path": "1F-live-measured-seven-error-filters.png",
+      "bytes": 19289,
+      "sha256": "386e1d623b48b6c386de1d385a5f1c7b201b80ea23fd222f641f316504992d95"
+    },
+    {
+      "path": "1F-live-overlay-Cracks--T-Junc-.png",
+      "bytes": 267581,
+      "sha256": "8db5257ca28e34df526e5b60dab7b5003897bd0b30aba5baaec8001f703f47e4"
+    },
+    {
+      "path": "1F-live-overlay-Flicker--Diff-.png",
+      "bytes": 271869,
+      "sha256": "c064d6e67b3e04a94a2219fb754f79ffc4835a3eb9f02cc46c2480e6b301b8d4"
+    },
+    {
+      "path": "1F-live-overlay-Open-Edges.png",
+      "bytes": 288347,
+      "sha256": "b7861cc904da3d2f91fb8615be199263bd0425c2972cfeed94603b7f0a448801"
+    },
+    {
+      "path": "1F-live-pending-inspection.png",
+      "bytes": 270721,
+      "sha256": "5d2b63796aedd3b5294a37026ea20f03c71d57f45aa73f031394bce0ef416f79"
+    },
+    {
+      "path": "1F-live-xray.png",
+      "bytes": 348825,
+      "sha256": "f13b526f5d27235326faafbce7ad1c172516270f071972af164aed7d41f3d68d"
+    },
+    {
+      "path": "live-floor-status.png",
+      "bytes": 144963,
+      "sha256": "995e6068966660a63ed166ba34227459b5ef943411cd92b206fc266c6be6bdd1"
+    },
+    {
+      "path": "live-log-mobile-390.png",
+      "bytes": 77648,
+      "sha256": "b83bd5aa3a58c20bbdd3ebe5c61498e459b30fc82b0881613b0d44643342e3fb"
+    },
+    {
+      "path": "verification.json",
+      "bytes": 97346,
+      "sha256": "36daecca81c8ccef5127ac998fb284dbefa49943bd56ceb97d186b8fc4a6a08e"
+    }
+  ],
+  "inspection_only": true,
+  "floor_accepted": false
+}

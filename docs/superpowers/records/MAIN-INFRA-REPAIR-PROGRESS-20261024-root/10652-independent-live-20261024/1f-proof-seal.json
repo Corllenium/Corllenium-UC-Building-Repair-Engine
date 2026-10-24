@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "record_type": "independent_validation_evidence_seal",
+  "saved_at_utc": "2026-10-24T07:26:17.4834377Z",
+  "worktree": "D:/LLM_BACKUP/Codex session/main-infra-1f-e7-covered-ray-validate-20261024/05-Corllenium-UC-Building-Repair-Engine",
+  "head": "1a8a903227ede0026995d1f9437c032db171c5b5",
+  "tracked_dirty": [],
+  "phase_pins": 1089,
+  "phase_mismatches": [],
+  "review_pins": 511,
+  "review_mismatches": [],
+  "files": [
+    {
+      "path": "D:/LLM_BACKUP/Codex session/main-infra-1f-e7-covered-ray-validate-20261024/05-Corllenium-UC-Building-Repair-Engine/data/iv1f-e7-covered-ray/run-20261024/1F/independent-review.json",
+      "sha256": "cafbd9f9456b6fbdf7d74927907770c9836dae6d3c6312eb539c99c50ade2091",
+      "bytes": 309706
+    },
+    {
+      "path": "D:/LLM_BACKUP/Codex session/main-infra-1f-e7-covered-ray-validate-20261024/05-Corllenium-UC-Building-Repair-Engine/data/covered-ray-validation-preflight/actual-fullsigned-readback.json",
+      "sha256": "bf505c6071e3f2484d1f49942556596b954c555c45bbdd637030586b5673c133",
+      "bytes": 5011
+    },
+    {
+      "path": "D:/LLM_BACKUP/Codex session/main-infra-1f-e7-covered-ray-validate-20261024/05-Corllenium-UC-Building-Repair-Engine/data/iv1f-e7-covered-ray/run-20261024/1F/validate/validation.json",
+      "sha256": "1c00e817522e0d096dcbcd2649dc54ea7dd0cab5affa3e5afd9df305a5b3f9ce",
+      "bytes": 423248
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\iv1f-e7-covered-ray\\run-20261024\\1F\\retained-floor\\retained-floor.json",
+      "sha256": "46976e729b4f0f53697184858f10efb6c64ca9909ec2e1c9eeb3237b200fd09b",
+      "bytes": 309219
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\iv1f-e7-covered-ray\\run-20261024\\1F\\guard\\independent-guard.json",
+      "sha256": "1201690a61cc13c4acf1f0ccc935f6546c9f4215ca6e9b2ed4049f9747480179",
+      "bytes": 323678
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\iv1f-e7-covered-ray\\run-20261024\\1F\\native\\paired\\paired-detail.png",
+      "sha256": "1622e0e983c39082470a0e4141e4242353e708227853fdc3acd50cf2808e4a02",
+      "bytes": 907272
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\iv1f-e7-covered-ray\\run-20261024\\1F\\native\\native-readback.json",
+      "sha256": "6f88a3c004450b22e40403000b06a26aa153bcb0ea24af1ca8c77bc0229f5ec1",
+      "bytes": 369280
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\iv1f-e7-covered-ray\\run-20261024\\1F\\validate\\validation.json",
+      "sha256": "1c00e817522e0d096dcbcd2649dc54ea7dd0cab5affa3e5afd9df305a5b3f9ce",
+      "bytes": 423248
+    }
+  ],
+  "preservation_passed": true,
+  "validator_passed": false,
+  "acceptance": false,
+  "target_counts": {
+    "flicker_same": 1153,
+    "cracks": 2352,
+    "flicker_diff": 1798
+  },
+  "signed_images": 0,
+  "runtime_remains_frozen": true,
+  "no_new_model_or_test_run": true
+}

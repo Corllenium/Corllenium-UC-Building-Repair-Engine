@@ -1,0 +1,954 @@
+{
+  "schemaVersion": 1,
+  "recordType": "sanitized-handoff-checkpoint-not-a-grant",
+  "taskId": "MAIN-INFRA-CLAUDE-4F-7F-20261023",
+  "project": "Corllenium-UC-Building-Repair-Engine",
+  "role": "read-only-review",
+  "source": {
+    "repository": "https://github.com/Corllenium/Corllenium-UC-Building-Repair-Engine.git",
+    "root": "D:/PROJECTS/05-Corllenium-UC-Building-Repair-Engine/.claude/worktrees/MAIN-INFRA-CLAUDE-4F-7F-20261023",
+    "branch": "claude/MAIN-INFRA-CLAUDE-4F-7F-20261023",
+    "head": "78d4cc37a58be424732f4e6b6b5d9312a9152ca5",
+    "dirtyFileHashes": {},
+    "status_rows": []
+  },
+  "sourceOwner": "Claude",
+  "sourceRuntime": "Claude Code",
+  "sourceSessionId": "d255cdd0-d609-403c-96a1-dca71e1a0220",
+  "sourceSessionEvidence": {
+    "transcriptRef": "C:/Users/Future26/.claude/projects/D--PROJECTS-01-Corllenium-Agent-Hub/d255cdd0-d609-403c-96a1-dca71e1a0220.jsonl",
+    "last_assistant_turn_utc": "2026-10-24T07:14:48.306Z",
+    "last_stop_hook_utc": "2026-10-24T07:14:51.972Z",
+    "note": "Conversation end_turn is not process stop. No raw transcript copied."
+  },
+  "sourceStop": {
+    "status": "unverified",
+    "reason": "Live repair interpreter59668 same OS lifetime observed; no worker terminal or release",
+    "evidenceRef": "active_processes"
+  },
+  "active_processes": [
+    {
+      "pid": 52472,
+      "parent_pid": 56224,
+      "creation_utc": "2026-10-23T10:49:41.70146Z",
+      "image": "C:\\Users\\Future26\\AppData\\Local\\Programs\\Python\\Python312\\python.exe",
+      "operation": "old dashboard helper"
+    },
+    {
+      "pid": 33720,
+      "parent_pid": 40264,
+      "creation_utc": "2026-10-24T01:54:16.521302Z",
+      "image": "C:\\Users\\Future26\\AppData\\Local\\Programs\\Python\\Python312\\python.exe",
+      "operation": "upper-status publisher"
+    },
+    {
+      "pid": 59628,
+      "parent_pid": 53328,
+      "creation_utc": "2026-10-24T05:17:50.568602Z",
+      "image": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.venv\\Scripts\\python.exe",
+      "operation": "7F E4 replay loop; rounds3; CBR opt-in"
+    },
+    {
+      "pid": 59668,
+      "parent_pid": 59628,
+      "creation_utc": "2026-10-24T05:17:50.60664Z",
+      "image": "C:\\Users\\Future26\\AppData\\Local\\Programs\\Python\\Python312\\python.exe",
+      "operation": "7F E4 replay loop; rounds3; CBR opt-in"
+    }
+  ],
+  "source_secondary_worktree": {
+    "root": "D:/PROJECTS/05-Corllenium-UC-Building-Repair-Engine/.claude/worktrees/MAIN-INFRA-E4-MERGE-20261023",
+    "head": "73c9c812cf61369c2907a5190431d9b40f895273",
+    "branch": "claude/MAIN-INFRA-E4-MERGE-20261023",
+    "status_rows": [],
+    "runner": {
+      "path": "D:/PROJECTS/05-Corllenium-UC-Building-Repair-Engine/.claude/worktrees/MAIN-INFRA-E4-MERGE-20261023/tools/run_e4_replay_loop.py",
+      "sha256": "879eca0d595e6f0ce5b675681caeb6935ef7cd2af7c7ccca5e9c023e5e0f06be",
+      "bytes": 12077
+    }
+  },
+  "target": {
+    "runtime": "Codex",
+    "sessionMode": "new",
+    "exactSessionId": null,
+    "profileBindingRef": null
+  },
+  "model": {
+    "requested": null,
+    "requestedEffort": null,
+    "effective": null,
+    "effectiveEffort": null,
+    "evidenceRef": null
+  },
+  "scope": {
+    "acceptedPlanRef": "Owner takeover steering via root; read-only investigation only until verified stop and atomic claim",
+    "allowedReadPaths": [
+      "D:/PROJECTS/05-Corllenium-UC-Building-Repair-Engine/.claude/worktrees/MAIN-INFRA-CLAUDE-4F-7F-20261023",
+      "D:/PROJECTS/05-Corllenium-UC-Building-Repair-Engine/.claude/worktrees/MAIN-INFRA-E4-MERGE-20261023"
+    ],
+    "allowedWritePaths": [],
+    "tools": [
+      "read-only filesystem and process lifetime inventory"
+    ],
+    "acceptanceChecks": [
+      "source stop and exact lifetime",
+      "root atomic ownership admission",
+      "existing strict guards and owner policy remain required"
+    ]
+  },
+  "completed": [
+    "Measured original and published E3 source candidates4F-7F with actual qualification/audit/guard/validation receipts",
+    "Sealed independent1Fproof separately; runtime1a8 unchanged"
+  ],
+  "floors": [
+    {
+      "floor": "4F",
+      "source": {
+        "path": "D:/PROJECTS/05-Corllenium-UC-Building-Repair-Engine/.claude/worktrees/MAIN-INFRA-CLAUDE-4F-7F-20261023/data/main-infra-fresh/run-claude-4f-7f-20261023/normalized/4F/before.source.obj",
+        "sha256": "37e7a7af64e568cb9d94620e8f5eeed95331a72bad07040e1cc225289b0c2f81",
+        "bytes": 3021939
+      },
+      "source_triangles": 78160,
+      "published_e3_candidate": {
+        "path": "D:/PROJECTS/05-Corllenium-UC-Building-Repair-Engine/.claude/worktrees/MAIN-INFRA-CLAUDE-4F-7F-20261023/data/main-infra-fresh/run-claude-4f-7f-20261023/e3/4F/candidate.source.obj",
+        "sha256": "f1fc0e0a9440e03e6d89c479105b691d90b9253d7c9cf8327e83d01e97f814ed",
+        "bytes": 2275347
+      },
+      "candidate_triangles": 52865,
+      "source_frame": "Y-up metres; use SOURCE OBJ, never ENGINE OBJ",
+      "qualification": {
+        "path": "D:/PROJECTS/05-Corllenium-UC-Building-Repair-Engine/.claude/worktrees/MAIN-INFRA-CLAUDE-4F-7F-20261023/data/main-infra-fresh/run-claude-4f-7f-20261023/independent-validator/import-audit/qualification-4F.json",
+        "sha256": "4f86ec801a3d92ad1f743ff9b46493ccd5fbd944a099720a3707c1700ce01a11",
+        "bytes": 926
+      },
+      "qualified": true,
+      "qualified_before_hash_matches": true,
+      "audit": {
+        "path": "D:/PROJECTS/05-Corllenium-UC-Building-Repair-Engine/.claude/worktrees/MAIN-INFRA-CLAUDE-4F-7F-20261023/data/main-infra-fresh/run-claude-4f-7f-20261023/e3/4F/stage-audit.json",
+        "sha256": "880ac1ce320471b559955ecab88ba1a0ac0a0241dc57e5d24c1c03a97c2e658b",
+        "bytes": 133388
+      },
+      "audit_accepted": false,
+      "binding_mismatches": [],
+      "strict_guard": {
+        "path": "D:/PROJECTS/05-Corllenium-UC-Building-Repair-Engine/.claude/worktrees/MAIN-INFRA-CLAUDE-4F-7F-20261023/data/main-infra-fresh/run-claude-4f-7f-20261023/independent-validator/e3-guard/4F/independent-guard.json",
+        "sha256": "aff2e76fb90028a0174785d6d5d0adf6740e6908788459e47b3c404f05590351",
+        "bytes": 28202
+      },
+      "strict_passed": true,
+      "validation": {
+        "path": "D:/PROJECTS/05-Corllenium-UC-Building-Repair-Engine/.claude/worktrees/MAIN-INFRA-CLAUDE-4F-7F-20261023/data/main-infra-fresh/run-claude-4f-7f-20261023/independent-validator/e3-validation/4F/validation.json",
+        "sha256": "ceb5b299d92ae51ec5ecd0d4dfe44935136590b9fa4f9118ab65a33d1ae491f2",
+        "bytes": 310217
+      },
+      "verdict": "FAIL",
+      "textures": "PASS",
+      "visible_coverage": "PASS",
+      "problems": [
+        {
+          "kind": "flicker_diff",
+          "before": 21701,
+          "after": 8868,
+          "status": "FAIL"
+        },
+        {
+          "kind": "flicker_same",
+          "before": 24737,
+          "after": 11223,
+          "status": "FAIL"
+        },
+        {
+          "kind": "reversed",
+          "before": 0,
+          "after": 0,
+          "status": "PASS"
+        },
+        {
+          "kind": "hidden",
+          "before": 45967,
+          "after": 20672,
+          "status": "REPORT_ONLY"
+        },
+        {
+          "kind": "loose",
+          "before": 0,
+          "after": 0,
+          "status": "REPORT_ONLY"
+        },
+        {
+          "kind": "open_edges",
+          "before": 14329,
+          "after": 19511,
+          "status": "REPORT_ONLY"
+        },
+        {
+          "kind": "cracks",
+          "before": 17688,
+          "after": 14425,
+          "status": "FAIL"
+        }
+      ],
+      "candidate_assets": [
+        {
+          "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLAUDE-4F-7F-20261023\\data\\main-infra-fresh\\run-claude-4f-7f-20261023\\e3\\4F\\4th floor main infra.mtl",
+          "sha256": "a454c0ab18ba86d560f3d718c5c6fc6df24f22d5ac4974e3b54a72ecfea0d9b3",
+          "bytes": 2654
+        },
+        {
+          "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLAUDE-4F-7F-20261023\\data\\main-infra-fresh\\run-claude-4f-7f-20261023\\e3\\4F\\textures\\littletiles\\ltcolored0_-1.png",
+          "sha256": "84fa319f11ad9113f7bc2b1c76a14b62763893bead1b877bb1adf5c16c44e592",
+          "bytes": 79
+        },
+        {
+          "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLAUDE-4F-7F-20261023\\data\\main-infra-fresh\\run-claude-4f-7f-20261023\\e3\\4F\\textures\\minecraft\\concrete_gray_-1.png",
+          "sha256": "ef3492d1459e4757bd60f9608ede34324bcbda430336219e13181e735b218729",
+          "bytes": 92048
+        },
+        {
+          "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLAUDE-4F-7F-20261023\\data\\main-infra-fresh\\run-claude-4f-7f-20261023\\e3\\4F\\textures\\minecraft\\concrete_white_-1.png",
+          "sha256": "f42c7be3c52294ead4c69ac0e9ef1bbbbe6bdb4451382c89a65c386709df6171",
+          "bytes": 95365
+        },
+        {
+          "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLAUDE-4F-7F-20261023\\data\\main-infra-fresh\\run-claude-4f-7f-20261023\\e3\\4F\\textures\\minecraft\\concrete_white_-15579874.png",
+          "sha256": "14ceba3d0329594e00458bc6ed2aeafa24d9228519994a60d758de2509fee1ad",
+          "bytes": 70773
+        },
+        {
+          "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLAUDE-4F-7F-20261023\\data\\main-infra-fresh\\run-claude-4f-7f-20261023\\e3\\4F\\textures\\minecraft\\concrete_white_-24564.png",
+          "sha256": "1a858612a95e40a7065ac77896538eb22766099a842017719b30db22d4f3a3fd",
+          "bytes": 89739
+        },
+        {
+          "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLAUDE-4F-7F-20261023\\data\\main-infra-fresh\\run-claude-4f-7f-20261023\\e3\\4F\\textures\\minecraft\\concrete_yellow_-1.png",
+          "sha256": "0c0b9b776a48880ecec5055149b8a1cea0165b7bda234494b44a77956f18d0e3",
+          "bytes": 105777
+        },
+        {
+          "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLAUDE-4F-7F-20261023\\data\\main-infra-fresh\\run-claude-4f-7f-20261023\\e3\\4F\\textures\\minecraft\\concrete_yellow_-15579874.png",
+          "sha256": "20c99f5591077d7c4a674a55cb91a1537a767f23ca0e1ffb48377066b505330d",
+          "bytes": 70843
+        },
+        {
+          "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLAUDE-4F-7F-20261023\\data\\main-infra-fresh\\run-claude-4f-7f-20261023\\e3\\4F\\textures\\minecraft\\glass_white_-1.png",
+          "sha256": "899b9a1f08688eb13dd6dc980a743f5d335862615c49da8b2298ff3817933dd4",
+          "bytes": 41180
+        },
+        {
+          "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLAUDE-4F-7F-20261023\\data\\main-infra-fresh\\run-claude-4f-7f-20261023\\e3\\4F\\textures\\minecraft\\hardened_clay_-1.png",
+          "sha256": "ac64752fd29d89677777f9c3af3843232c624b039cd817e71991ff0bb8493aee",
+          "bytes": 163449
+        },
+        {
+          "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLAUDE-4F-7F-20261023\\data\\main-infra-fresh\\run-claude-4f-7f-20261023\\e3\\4F\\textures\\minecraft\\hardened_clay_top_-1.png",
+          "sha256": "bb770bd99c4e51b183662efd9f2af9614a46b74193fbc149c7e0134f3c361423",
+          "bytes": 163744
+        },
+        {
+          "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLAUDE-4F-7F-20261023\\data\\main-infra-fresh\\run-claude-4f-7f-20261023\\e3\\4F\\textures\\minecraft\\iron_block_-15586018.png",
+          "sha256": "bbe924f0daed84dd7d27ebf070435ee0b5da67582e3dabdeb01bff2827a236c3",
+          "bytes": 37731
+        },
+        {
+          "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLAUDE-4F-7F-20261023\\data\\main-infra-fresh\\run-claude-4f-7f-20261023\\e3\\4F\\textures\\minecraft\\planks_acacia_-3835567.png",
+          "sha256": "9a96480a51497abbbb53a29d0c6536cd311e8b53d5c3d1015ad316dba8c34aa7",
+          "bytes": 105641
+        },
+        {
+          "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLAUDE-4F-7F-20261023\\data\\main-infra-fresh\\run-claude-4f-7f-20261023\\e3\\4F\\textures\\minecraft\\quartz_block_bottom_-1.png",
+          "sha256": "daf3f46f93f7364b1530ec468a7a1d5a02eda1cd0a118e41e93e9c4177791cc1",
+          "bytes": 13240
+        },
+        {
+          "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLAUDE-4F-7F-20261023\\data\\main-infra-fresh\\run-claude-4f-7f-20261023\\e3\\4F\\textures\\minecraft\\quartz_block_side_-1.png",
+          "sha256": "85e34c6a6b917ade1cfbd2826127de4175c63317f3efbba1f7aaed3bf105a193",
+          "bytes": 168804
+        },
+        {
+          "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLAUDE-4F-7F-20261023\\data\\main-infra-fresh\\run-claude-4f-7f-20261023\\e3\\4F\\textures\\minecraft\\quartz_block_top_-1.png",
+          "sha256": "eea2309518da196d86171dd0d78ecdcdc3a0510005790fa2beb8484744d8ae88",
+          "bytes": 19337
+        },
+        {
+          "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLAUDE-4F-7F-20261023\\data\\main-infra-fresh\\run-claude-4f-7f-20261023\\e3\\4F\\textures\\minecraft\\sandstone_smooth_-1.png",
+          "sha256": "7be52f6ada27e9922d7df615fc652488e7fd3a9d120dd29430e2e9a139bf4dde",
+          "bytes": 107042
+        },
+        {
+          "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLAUDE-4F-7F-20261023\\data\\main-infra-fresh\\run-claude-4f-7f-20261023\\e3\\4F\\textures\\minecraft\\sandstone_top_-1.png",
+          "sha256": "e4bb549ba36e0e69d1f79fedf95832866c7ae1eb8cb6114f4921bb8fdd82a397",
+          "bytes": 106960
+        },
+        {
+          "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLAUDE-4F-7F-20261023\\data\\main-infra-fresh\\run-claude-4f-7f-20261023\\e3\\4F\\textures\\minecraft\\wool_colored_orange_-1.png",
+          "sha256": "c6a3c27b965f298da28c89c1a522b5ff3152321a97fcbe613aec2f9a6d8f66fa",
+          "bytes": 78114
+        }
+      ],
+      "newer_unqualified_e5": {
+        "candidate": {
+          "path": "D:/PROJECTS/05-Corllenium-UC-Building-Repair-Engine/.claude/worktrees/MAIN-INFRA-CLAUDE-4F-7F-20261023/data/main-infra-fresh/run-claude-4f-7f-20261023/e5/4F/candidate.source.obj",
+          "sha256": "96bdadb1044e1e92cc466d04baa023eb030c149eb0392c9d3a568b68e0718f90",
+          "bytes": 2119335
+        },
+        "triangles": 47752,
+        "guard": null,
+        "policy": "CBR opt-in; do not apply original-default verdict to this candidate"
+      },
+      "inspection_label": "NOT_FINAL; problems remain; not accepted",
+      "qualified_raw_source": {
+        "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLAUDE-4F-7F-20261023\\data\\main-infra-fresh\\run-claude-4f-7f-20261023\\raw\\4th floor main infra.obj",
+        "sha256": "edbfb3b161840f9e36ee3ee16632b5d02707c4573737ec9a15f54097c0100357",
+        "bytes": 2252808
+      },
+      "geometry_provenance": {
+        "path": "D:/PROJECTS/05-Corllenium-UC-Building-Repair-Engine/.claude/worktrees/MAIN-INFRA-CLAUDE-4F-7F-20261023/data/main-infra-fresh/run-claude-4f-7f-20261023/normalized/4F/geometry-provenance.json",
+        "sha256": "786083a8a90e366c6a1d3e0393eb8b4c2d74b3a2cc3a785bea1bf18b1533b64d",
+        "bytes": 4738
+      }
+    },
+    {
+      "floor": "5F",
+      "source": {
+        "path": "D:/PROJECTS/05-Corllenium-UC-Building-Repair-Engine/.claude/worktrees/MAIN-INFRA-CLAUDE-4F-7F-20261023/data/main-infra-fresh/run-claude-4f-7f-20261023/normalized/5F/before.source.obj",
+        "sha256": "f02a30d576be5416e7dfd3189e50f9d09ba4d0c3d342ffa3754f471dde3235c2",
+        "bytes": 2206284
+      },
+      "source_triangles": 56368,
+      "published_e3_candidate": {
+        "path": "D:/PROJECTS/05-Corllenium-UC-Building-Repair-Engine/.claude/worktrees/MAIN-INFRA-CLAUDE-4F-7F-20261023/data/main-infra-fresh/run-claude-4f-7f-20261023/e3/5F/candidate.source.obj",
+        "sha256": "52fed18fd14f51dbbe1c92f175384ad2b0459ed1fc3249a9fa9adde3aa379c64",
+        "bytes": 1661771
+      },
+      "candidate_triangles": 38113,
+      "source_frame": "Y-up metres; use SOURCE OBJ, never ENGINE OBJ",
+      "qualification": {
+        "path": "D:/PROJECTS/05-Corllenium-UC-Building-Repair-Engine/.claude/worktrees/MAIN-INFRA-CLAUDE-4F-7F-20261023/data/main-infra-fresh/run-claude-4f-7f-20261023/independent-validator/import-audit/qualification-5F.json",
+        "sha256": "1262dce1bca06944be8c4341d570cccab623f6c8e6a71a5af6d1d878dd0c5f24",
+        "bytes": 942
+      },
+      "qualified": true,
+      "qualified_before_hash_matches": true,
+      "audit": {
+        "path": "D:/PROJECTS/05-Corllenium-UC-Building-Repair-Engine/.claude/worktrees/MAIN-INFRA-CLAUDE-4F-7F-20261023/data/main-infra-fresh/run-claude-4f-7f-20261023/e3/5F/stage-audit.json",
+        "sha256": "9cf38b8dd500d2ee30cc2a2979b68e1017a2ccab58abf046a18a31a563fbe024",
+        "bytes": 43001
+      },
+      "audit_accepted": false,
+      "binding_mismatches": [],
+      "strict_guard": {
+        "path": "D:/PROJECTS/05-Corllenium-UC-Building-Repair-Engine/.claude/worktrees/MAIN-INFRA-CLAUDE-4F-7F-20261023/data/main-infra-fresh/run-claude-4f-7f-20261023/independent-validator/e3-guard/5F/independent-guard.json",
+        "sha256": "41162a29380c100c2db8a7498052811e57126e540b70646e5aa2808815022aa2",
+        "bytes": 27396
+      },
+      "strict_passed": true,
+      "validation": {
+        "path": "D:/PROJECTS/05-Corllenium-UC-Building-Repair-Engine/.claude/worktrees/MAIN-INFRA-CLAUDE-4F-7F-20261023/data/main-infra-fresh/run-claude-4f-7f-20261023/independent-validator/e3-validation/5F/validation.json",
+        "sha256": "a7e159f36aeb74a4a78c2129dbf85fa8df7bfbcbae231839340d6f7968e5d3fa",
+        "bytes": 191681
+      },
+      "verdict": "FAIL",
+      "textures": "PASS",
+      "visible_coverage": "PASS",
+      "problems": [
+        {
+          "kind": "flicker_diff",
+          "before": 14412,
+          "after": 4976,
+          "status": "FAIL"
+        },
+        {
+          "kind": "flicker_same",
+          "before": 16317,
+          "after": 6500,
+          "status": "FAIL"
+        },
+        {
+          "kind": "reversed",
+          "before": 0,
+          "after": 1,
+          "status": "FAIL"
+        },
+        {
+          "kind": "hidden",
+          "before": 29067,
+          "after": 10810,
+          "status": "REPORT_ONLY"
+        },
+        {
+          "kind": "loose",
+          "before": 0,
+          "after": 1,
+          "status": "REPORT_ONLY"
+        },
+        {
+          "kind": "open_edges",
+          "before": 7605,
+          "after": 12102,
+          "status": "REPORT_ONLY"
+        },
+        {
+          "kind": "cracks",
+          "before": 12985,
+          "after": 10623,
+          "status": "FAIL"
+        }
+      ],
+      "candidate_assets": [
+        {
+          "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLAUDE-4F-7F-20261023\\data\\main-infra-fresh\\run-claude-4f-7f-20261023\\e3\\5F\\5th floor main infra.mtl",
+          "sha256": "2522b9384a4318dd7b17fc116d3eaf859bad42b6545122459a1f9fc18c639c46",
+          "bytes": 1927
+        },
+        {
+          "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLAUDE-4F-7F-20261023\\data\\main-infra-fresh\\run-claude-4f-7f-20261023\\e3\\5F\\textures\\littletiles\\ltcolored0_-1.png",
+          "sha256": "84fa319f11ad9113f7bc2b1c76a14b62763893bead1b877bb1adf5c16c44e592",
+          "bytes": 79
+        },
+        {
+          "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLAUDE-4F-7F-20261023\\data\\main-infra-fresh\\run-claude-4f-7f-20261023\\e3\\5F\\textures\\minecraft\\concrete_white_-1.png",
+          "sha256": "f42c7be3c52294ead4c69ac0e9ef1bbbbe6bdb4451382c89a65c386709df6171",
+          "bytes": 95365
+        },
+        {
+          "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLAUDE-4F-7F-20261023\\data\\main-infra-fresh\\run-claude-4f-7f-20261023\\e3\\5F\\textures\\minecraft\\concrete_white_-15574983.png",
+          "sha256": "cbd25051aed56361b4cb4ad0db2f513e1c8522f7e3272d9640bfe37c02992f68",
+          "bytes": 79112
+        },
+        {
+          "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLAUDE-4F-7F-20261023\\data\\main-infra-fresh\\run-claude-4f-7f-20261023\\e3\\5F\\textures\\minecraft\\concrete_white_-15579874.png",
+          "sha256": "14ceba3d0329594e00458bc6ed2aeafa24d9228519994a60d758de2509fee1ad",
+          "bytes": 70773
+        },
+        {
+          "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLAUDE-4F-7F-20261023\\data\\main-infra-fresh\\run-claude-4f-7f-20261023\\e3\\5F\\textures\\minecraft\\concrete_yellow_-1.png",
+          "sha256": "0c0b9b776a48880ecec5055149b8a1cea0165b7bda234494b44a77956f18d0e3",
+          "bytes": 105777
+        },
+        {
+          "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLAUDE-4F-7F-20261023\\data\\main-infra-fresh\\run-claude-4f-7f-20261023\\e3\\5F\\textures\\minecraft\\glass_white_-1.png",
+          "sha256": "899b9a1f08688eb13dd6dc980a743f5d335862615c49da8b2298ff3817933dd4",
+          "bytes": 41180
+        },
+        {
+          "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLAUDE-4F-7F-20261023\\data\\main-infra-fresh\\run-claude-4f-7f-20261023\\e3\\5F\\textures\\minecraft\\iron_block_-15571947.png",
+          "sha256": "ccc80f5538b17e2f7aacb9be7007a2de8faa83d0e8f8aa3d3566b621d6774e54",
+          "bytes": 46482
+        },
+        {
+          "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLAUDE-4F-7F-20261023\\data\\main-infra-fresh\\run-claude-4f-7f-20261023\\e3\\5F\\textures\\minecraft\\iron_block_-15579874.png",
+          "sha256": "01b8a5861a57e485868b8bd620caf8e1ecd14095089830e2e3f7422c6ffb5d5e",
+          "bytes": 41992
+        },
+        {
+          "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLAUDE-4F-7F-20261023\\data\\main-infra-fresh\\run-claude-4f-7f-20261023\\e3\\5F\\textures\\minecraft\\iron_block_-15586018.png",
+          "sha256": "bbe924f0daed84dd7d27ebf070435ee0b5da67582e3dabdeb01bff2827a236c3",
+          "bytes": 37731
+        },
+        {
+          "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLAUDE-4F-7F-20261023\\data\\main-infra-fresh\\run-claude-4f-7f-20261023\\e3\\5F\\textures\\minecraft\\quartz_block_bottom_-1.png",
+          "sha256": "daf3f46f93f7364b1530ec468a7a1d5a02eda1cd0a118e41e93e9c4177791cc1",
+          "bytes": 13240
+        },
+        {
+          "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLAUDE-4F-7F-20261023\\data\\main-infra-fresh\\run-claude-4f-7f-20261023\\e3\\5F\\textures\\minecraft\\quartz_block_side_-1.png",
+          "sha256": "85e34c6a6b917ade1cfbd2826127de4175c63317f3efbba1f7aaed3bf105a193",
+          "bytes": 168804
+        },
+        {
+          "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLAUDE-4F-7F-20261023\\data\\main-infra-fresh\\run-claude-4f-7f-20261023\\e3\\5F\\textures\\minecraft\\quartz_block_top_-1.png",
+          "sha256": "eea2309518da196d86171dd0d78ecdcdc3a0510005790fa2beb8484744d8ae88",
+          "bytes": 19337
+        },
+        {
+          "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLAUDE-4F-7F-20261023\\data\\main-infra-fresh\\run-claude-4f-7f-20261023\\e3\\5F\\textures\\minecraft\\wool_colored_orange_-1.png",
+          "sha256": "c6a3c27b965f298da28c89c1a522b5ff3152321a97fcbe613aec2f9a6d8f66fa",
+          "bytes": 78114
+        }
+      ],
+      "newer_unqualified_e5": {
+        "candidate": {
+          "path": "D:/PROJECTS/05-Corllenium-UC-Building-Repair-Engine/.claude/worktrees/MAIN-INFRA-CLAUDE-4F-7F-20261023/data/main-infra-fresh/run-claude-4f-7f-20261023/e5/5F/candidate.source.obj",
+          "sha256": "d92ac76374dc50a82768ba02682e21c52f46025e085dd49180075639a41c23c0",
+          "bytes": 1522270
+        },
+        "triangles": 33482,
+        "guard": {
+          "receipt": {
+            "path": "D:/PROJECTS/05-Corllenium-UC-Building-Repair-Engine/.claude/worktrees/MAIN-INFRA-CLAUDE-4F-7F-20261023/data/main-infra-fresh/run-claude-4f-7f-20261023/independent-validator/e5-guard/5F/independent-guard.json",
+            "sha256": "724172bc61c1935f8a3d7c814cc3cc0eb97b0fc8566353f5bc70546645c26970",
+            "bytes": 952938
+          },
+          "passed": false,
+          "totals": {
+            "model_px": 4661566,
+            "holes": 0,
+            "material_changed": 14,
+            "moved_same_flat": 0,
+            "moved_other": 302,
+            "zfight_tie": 0,
+            "crack_closed": 0,
+            "edge_flicker": 0,
+            "fragment_removed": 0,
+            "edge_flicker_hole": 0,
+            "edge_flicker_moved": 0,
+            "edge_flicker_material": 0,
+            "border_shift": 0,
+            "grown": 0,
+            "edge_flicker_grown": 0,
+            "grown_base": 0,
+            "border_shift_grown": 0,
+            "crack_closed_grown": 0,
+            "zfight_tie_grown": 0
+          }
+        },
+        "policy": "CBR opt-in; do not apply original-default verdict to this candidate"
+      },
+      "inspection_label": "NOT_FINAL; problems remain; not accepted",
+      "qualified_raw_source": {
+        "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLAUDE-4F-7F-20261023\\data\\main-infra-fresh\\run-claude-4f-7f-20261023\\raw\\5th floor main infra.obj",
+        "sha256": "36af4a752bf314249ddd0688a40cbd655ae936efae19fd61e5cd477d6536995d",
+        "bytes": 1651333
+      },
+      "geometry_provenance": {
+        "path": "D:/PROJECTS/05-Corllenium-UC-Building-Repair-Engine/.claude/worktrees/MAIN-INFRA-CLAUDE-4F-7F-20261023/data/main-infra-fresh/run-claude-4f-7f-20261023/normalized/5F/geometry-provenance.json",
+        "sha256": "81613e9664974b8221940e3c6e966e70cb25917aa8758ee17ba0e83a6e3da156",
+        "bytes": 3932
+      }
+    },
+    {
+      "floor": "6F",
+      "source": {
+        "path": "D:/PROJECTS/05-Corllenium-UC-Building-Repair-Engine/.claude/worktrees/MAIN-INFRA-CLAUDE-4F-7F-20261023/data/main-infra-fresh/run-claude-4f-7f-20261023/normalized/6F/before.source.obj",
+        "sha256": "b50d98962aee52ed3fa011915cbe9d41ef30387f9c46056ae79775792179b792",
+        "bytes": 1242080
+      },
+      "source_triangles": 34862,
+      "published_e3_candidate": {
+        "path": "D:/PROJECTS/05-Corllenium-UC-Building-Repair-Engine/.claude/worktrees/MAIN-INFRA-CLAUDE-4F-7F-20261023/data/main-infra-fresh/run-claude-4f-7f-20261023/e3/6F/candidate.source.obj",
+        "sha256": "f84234485e63cc510f9d6e7fa49893652ac8749bb27ffe6e7a7954a21db0a9b0",
+        "bytes": 1031106
+      },
+      "candidate_triangles": 27108,
+      "source_frame": "Y-up metres; use SOURCE OBJ, never ENGINE OBJ",
+      "qualification": {
+        "path": "D:/PROJECTS/05-Corllenium-UC-Building-Repair-Engine/.claude/worktrees/MAIN-INFRA-CLAUDE-4F-7F-20261023/data/main-infra-fresh/run-claude-4f-7f-20261023/independent-validator/import-audit/qualification-6F.json",
+        "sha256": "b7372a6217ae5fb6fbf1d34a538cf2b9d364966dfbef74b7a90bb76dd58c640a",
+        "bytes": 926
+      },
+      "qualified": true,
+      "qualified_before_hash_matches": true,
+      "audit": {
+        "path": "D:/PROJECTS/05-Corllenium-UC-Building-Repair-Engine/.claude/worktrees/MAIN-INFRA-CLAUDE-4F-7F-20261023/data/main-infra-fresh/run-claude-4f-7f-20261023/e3/6F/stage-audit.json",
+        "sha256": "84623c53e7751caa2de3f543d5ebfeaf1b8dbadbc8325007eb08e7f6a535224e",
+        "bytes": 99370
+      },
+      "audit_accepted": false,
+      "binding_mismatches": [],
+      "strict_guard": {
+        "path": "D:/PROJECTS/05-Corllenium-UC-Building-Repair-Engine/.claude/worktrees/MAIN-INFRA-CLAUDE-4F-7F-20261023/data/main-infra-fresh/run-claude-4f-7f-20261023/independent-validator/e3-guard/6F/independent-guard.json",
+        "sha256": "2c28dec856158006596df2d8c7f273ff45f1644138264a4253f37f978a76b02a",
+        "bytes": 27066
+      },
+      "strict_passed": true,
+      "validation": {
+        "path": "D:/PROJECTS/05-Corllenium-UC-Building-Repair-Engine/.claude/worktrees/MAIN-INFRA-CLAUDE-4F-7F-20261023/data/main-infra-fresh/run-claude-4f-7f-20261023/independent-validator/e3-validation/6F/validation.json",
+        "sha256": "f114d05cdf0a61dcfe93bc98d63334cd381b635f1067d465121b9942acc0282f",
+        "bytes": 149012
+      },
+      "verdict": "FAIL",
+      "textures": "PASS",
+      "visible_coverage": "PASS",
+      "problems": [
+        {
+          "kind": "flicker_diff",
+          "before": 6918,
+          "after": 3236,
+          "status": "FAIL"
+        },
+        {
+          "kind": "flicker_same",
+          "before": 9922,
+          "after": 4934,
+          "status": "FAIL"
+        },
+        {
+          "kind": "reversed",
+          "before": 0,
+          "after": 0,
+          "status": "PASS"
+        },
+        {
+          "kind": "hidden",
+          "before": 15518,
+          "after": 7763,
+          "status": "REPORT_ONLY"
+        },
+        {
+          "kind": "loose",
+          "before": 0,
+          "after": 0,
+          "status": "REPORT_ONLY"
+        },
+        {
+          "kind": "open_edges",
+          "before": 4720,
+          "after": 7868,
+          "status": "REPORT_ONLY"
+        },
+        {
+          "kind": "cracks",
+          "before": 7480,
+          "after": 6659,
+          "status": "FAIL"
+        }
+      ],
+      "candidate_assets": [
+        {
+          "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLAUDE-4F-7F-20261023\\data\\main-infra-fresh\\run-claude-4f-7f-20261023\\e3\\6F\\6th floor main infra.mtl",
+          "sha256": "3f236cafc901d58545e049d00338c7d1052819a23910a920d796349902d1440d",
+          "bytes": 1637
+        },
+        {
+          "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLAUDE-4F-7F-20261023\\data\\main-infra-fresh\\run-claude-4f-7f-20261023\\e3\\6F\\textures\\littletiles\\ltcolored0_-1.png",
+          "sha256": "84fa319f11ad9113f7bc2b1c76a14b62763893bead1b877bb1adf5c16c44e592",
+          "bytes": 79
+        },
+        {
+          "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLAUDE-4F-7F-20261023\\data\\main-infra-fresh\\run-claude-4f-7f-20261023\\e3\\6F\\textures\\minecraft\\concrete_gray_-1.png",
+          "sha256": "ef3492d1459e4757bd60f9608ede34324bcbda430336219e13181e735b218729",
+          "bytes": 92048
+        },
+        {
+          "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLAUDE-4F-7F-20261023\\data\\main-infra-fresh\\run-claude-4f-7f-20261023\\e3\\6F\\textures\\minecraft\\concrete_white_-1.png",
+          "sha256": "f42c7be3c52294ead4c69ac0e9ef1bbbbe6bdb4451382c89a65c386709df6171",
+          "bytes": 95365
+        },
+        {
+          "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLAUDE-4F-7F-20261023\\data\\main-infra-fresh\\run-claude-4f-7f-20261023\\e3\\6F\\textures\\minecraft\\concrete_white_-15574983.png",
+          "sha256": "cbd25051aed56361b4cb4ad0db2f513e1c8522f7e3272d9640bfe37c02992f68",
+          "bytes": 79112
+        },
+        {
+          "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLAUDE-4F-7F-20261023\\data\\main-infra-fresh\\run-claude-4f-7f-20261023\\e3\\6F\\textures\\minecraft\\concrete_white_-15579874.png",
+          "sha256": "14ceba3d0329594e00458bc6ed2aeafa24d9228519994a60d758de2509fee1ad",
+          "bytes": 70773
+        },
+        {
+          "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLAUDE-4F-7F-20261023\\data\\main-infra-fresh\\run-claude-4f-7f-20261023\\e3\\6F\\textures\\minecraft\\iron_block_-15571947.png",
+          "sha256": "ccc80f5538b17e2f7aacb9be7007a2de8faa83d0e8f8aa3d3566b621d6774e54",
+          "bytes": 46482
+        },
+        {
+          "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLAUDE-4F-7F-20261023\\data\\main-infra-fresh\\run-claude-4f-7f-20261023\\e3\\6F\\textures\\minecraft\\iron_block_-15586018.png",
+          "sha256": "bbe924f0daed84dd7d27ebf070435ee0b5da67582e3dabdeb01bff2827a236c3",
+          "bytes": 37731
+        },
+        {
+          "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLAUDE-4F-7F-20261023\\data\\main-infra-fresh\\run-claude-4f-7f-20261023\\e3\\6F\\textures\\minecraft\\quartz_block_bottom_-1.png",
+          "sha256": "daf3f46f93f7364b1530ec468a7a1d5a02eda1cd0a118e41e93e9c4177791cc1",
+          "bytes": 13240
+        },
+        {
+          "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLAUDE-4F-7F-20261023\\data\\main-infra-fresh\\run-claude-4f-7f-20261023\\e3\\6F\\textures\\minecraft\\quartz_block_side_-1.png",
+          "sha256": "85e34c6a6b917ade1cfbd2826127de4175c63317f3efbba1f7aaed3bf105a193",
+          "bytes": 168804
+        },
+        {
+          "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLAUDE-4F-7F-20261023\\data\\main-infra-fresh\\run-claude-4f-7f-20261023\\e3\\6F\\textures\\minecraft\\quartz_block_top_-1.png",
+          "sha256": "eea2309518da196d86171dd0d78ecdcdc3a0510005790fa2beb8484744d8ae88",
+          "bytes": 19337
+        },
+        {
+          "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLAUDE-4F-7F-20261023\\data\\main-infra-fresh\\run-claude-4f-7f-20261023\\e3\\6F\\textures\\minecraft\\wool_colored_orange_-1.png",
+          "sha256": "c6a3c27b965f298da28c89c1a522b5ff3152321a97fcbe613aec2f9a6d8f66fa",
+          "bytes": 78114
+        }
+      ],
+      "newer_unqualified_e5": {
+        "candidate": {
+          "path": "D:/PROJECTS/05-Corllenium-UC-Building-Repair-Engine/.claude/worktrees/MAIN-INFRA-CLAUDE-4F-7F-20261023/data/main-infra-fresh/run-claude-4f-7f-20261023/e5/6F/candidate.source.obj",
+          "sha256": "bf61d95f085ea72e0ab462deb6ac980e572d5b09c931f2694f37e9b277226af8",
+          "bytes": 955883
+        },
+        "triangles": 24378,
+        "guard": {
+          "receipt": {
+            "path": "D:/PROJECTS/05-Corllenium-UC-Building-Repair-Engine/.claude/worktrees/MAIN-INFRA-CLAUDE-4F-7F-20261023/data/main-infra-fresh/run-claude-4f-7f-20261023/independent-validator/e5-guard/6F/independent-guard.json",
+            "sha256": "488bbf2e297a05cea5e36872fe9aecaf531ce31893982f3a38dff55a79c36488",
+            "bytes": 694354
+          },
+          "passed": false,
+          "totals": {
+            "model_px": 4808177,
+            "holes": 0,
+            "material_changed": 2,
+            "moved_same_flat": 0,
+            "moved_other": 9,
+            "zfight_tie": 3,
+            "crack_closed": 0,
+            "edge_flicker": 0,
+            "fragment_removed": 0,
+            "edge_flicker_hole": 0,
+            "edge_flicker_moved": 0,
+            "edge_flicker_material": 0,
+            "border_shift": 0,
+            "grown": 0,
+            "edge_flicker_grown": 0,
+            "grown_base": 0,
+            "border_shift_grown": 0,
+            "crack_closed_grown": 0,
+            "zfight_tie_grown": 0
+          }
+        },
+        "policy": "CBR opt-in; do not apply original-default verdict to this candidate"
+      },
+      "inspection_label": "NOT_FINAL; problems remain; not accepted",
+      "qualified_raw_source": {
+        "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLAUDE-4F-7F-20261023\\data\\main-infra-fresh\\run-claude-4f-7f-20261023\\raw\\6th floor main infra.obj",
+        "sha256": "2b8776efd7a601107970b3824f9cd5b039e6cef969fcb36f5d6162c2399bf6ba",
+        "bytes": 925545
+      },
+      "geometry_provenance": {
+        "path": "D:/PROJECTS/05-Corllenium-UC-Building-Repair-Engine/.claude/worktrees/MAIN-INFRA-CLAUDE-4F-7F-20261023/data/main-infra-fresh/run-claude-4f-7f-20261023/normalized/6F/geometry-provenance.json",
+        "sha256": "9ff58b0f703e89ffc67ccb488a0995eb3899eb0173d4325c3a1659d4995911b4",
+        "bytes": 3611
+      }
+    },
+    {
+      "floor": "7F",
+      "source": {
+        "path": "D:/PROJECTS/05-Corllenium-UC-Building-Repair-Engine/.claude/worktrees/MAIN-INFRA-CLAUDE-4F-7F-20261023/data/main-infra-fresh/run-claude-4f-7f-20261023/normalized/7F/before.source.obj",
+        "sha256": "92da1779e8328dfab4e0bd1f987581e4ce60b3d99a26622f4252a861de05c8a3",
+        "bytes": 921991
+      },
+      "source_triangles": 26152,
+      "published_e3_candidate": {
+        "path": "D:/PROJECTS/05-Corllenium-UC-Building-Repair-Engine/.claude/worktrees/MAIN-INFRA-CLAUDE-4F-7F-20261023/data/main-infra-fresh/run-claude-4f-7f-20261023/e3/7F/candidate.source.obj",
+        "sha256": "dcba9c2773fcfa413338ff3c0b68259d1fbfa8e480c47877d48b3d94cef6e3da",
+        "bytes": 774556
+      },
+      "candidate_triangles": 20625,
+      "source_frame": "Y-up metres; use SOURCE OBJ, never ENGINE OBJ",
+      "qualification": {
+        "path": "D:/PROJECTS/05-Corllenium-UC-Building-Repair-Engine/.claude/worktrees/MAIN-INFRA-CLAUDE-4F-7F-20261023/data/main-infra-fresh/run-claude-4f-7f-20261023/independent-validator/import-audit/qualification-7F.json",
+        "sha256": "ec213c772390336ea9cb552d10bc8ee7692a3135da8254cc73d48e3c07f970eb",
+        "bytes": 926
+      },
+      "qualified": true,
+      "qualified_before_hash_matches": true,
+      "audit": {
+        "path": "D:/PROJECTS/05-Corllenium-UC-Building-Repair-Engine/.claude/worktrees/MAIN-INFRA-CLAUDE-4F-7F-20261023/data/main-infra-fresh/run-claude-4f-7f-20261023/e3/7F/stage-audit.json",
+        "sha256": "7cb1655873ef257a1c26259cbb7c14dc59b1fb6b71d772a180c02a84908acdc3",
+        "bytes": 64162
+      },
+      "audit_accepted": false,
+      "binding_mismatches": [],
+      "strict_guard": {
+        "path": "D:/PROJECTS/05-Corllenium-UC-Building-Repair-Engine/.claude/worktrees/MAIN-INFRA-CLAUDE-4F-7F-20261023/data/main-infra-fresh/run-claude-4f-7f-20261023/independent-validator/e3-guard/7F/independent-guard.json",
+        "sha256": "6cafab2cdc374f6a50facaf66b02744f48321b6c6d650f9185655798e445a1fc",
+        "bytes": 26735
+      },
+      "strict_passed": true,
+      "validation": {
+        "path": "D:/PROJECTS/05-Corllenium-UC-Building-Repair-Engine/.claude/worktrees/MAIN-INFRA-CLAUDE-4F-7F-20261023/data/main-infra-fresh/run-claude-4f-7f-20261023/independent-validator/e3-validation/7F/validation.json",
+        "sha256": "f0f7c820493cb188febcf25478c380f12be89fcbedc3392def03bf4795c38612",
+        "bytes": 141306
+      },
+      "verdict": "FAIL",
+      "textures": "PASS",
+      "visible_coverage": "PASS",
+      "problems": [
+        {
+          "kind": "flicker_diff",
+          "before": 4518,
+          "after": 2310,
+          "status": "FAIL"
+        },
+        {
+          "kind": "flicker_same",
+          "before": 7091,
+          "after": 3289,
+          "status": "FAIL"
+        },
+        {
+          "kind": "reversed",
+          "before": 0,
+          "after": 0,
+          "status": "PASS"
+        },
+        {
+          "kind": "hidden",
+          "before": 10988,
+          "after": 5461,
+          "status": "REPORT_ONLY"
+        },
+        {
+          "kind": "loose",
+          "before": 0,
+          "after": 0,
+          "status": "REPORT_ONLY"
+        },
+        {
+          "kind": "open_edges",
+          "before": 4279,
+          "after": 6432,
+          "status": "REPORT_ONLY"
+        },
+        {
+          "kind": "cracks",
+          "before": 5429,
+          "after": 4705,
+          "status": "FAIL"
+        }
+      ],
+      "candidate_assets": [
+        {
+          "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLAUDE-4F-7F-20261023\\data\\main-infra-fresh\\run-claude-4f-7f-20261023\\e3\\7F\\7th floor main infra.mtl",
+          "sha256": "6171541601c2cb701a780164281ab4a4069aa61bf99408d703fe247d9438b5c5",
+          "bytes": 1331
+        },
+        {
+          "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLAUDE-4F-7F-20261023\\data\\main-infra-fresh\\run-claude-4f-7f-20261023\\e3\\7F\\textures\\littletiles\\ltcolored0_-1.png",
+          "sha256": "84fa319f11ad9113f7bc2b1c76a14b62763893bead1b877bb1adf5c16c44e592",
+          "bytes": 79
+        },
+        {
+          "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLAUDE-4F-7F-20261023\\data\\main-infra-fresh\\run-claude-4f-7f-20261023\\e3\\7F\\textures\\minecraft\\concrete_gray_-1.png",
+          "sha256": "ef3492d1459e4757bd60f9608ede34324bcbda430336219e13181e735b218729",
+          "bytes": 92048
+        },
+        {
+          "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLAUDE-4F-7F-20261023\\data\\main-infra-fresh\\run-claude-4f-7f-20261023\\e3\\7F\\textures\\minecraft\\concrete_white_-1.png",
+          "sha256": "f42c7be3c52294ead4c69ac0e9ef1bbbbe6bdb4451382c89a65c386709df6171",
+          "bytes": 95365
+        },
+        {
+          "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLAUDE-4F-7F-20261023\\data\\main-infra-fresh\\run-claude-4f-7f-20261023\\e3\\7F\\textures\\minecraft\\concrete_white_-15579874.png",
+          "sha256": "14ceba3d0329594e00458bc6ed2aeafa24d9228519994a60d758de2509fee1ad",
+          "bytes": 70773
+        },
+        {
+          "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLAUDE-4F-7F-20261023\\data\\main-infra-fresh\\run-claude-4f-7f-20261023\\e3\\7F\\textures\\minecraft\\iron_block_-15586018.png",
+          "sha256": "bbe924f0daed84dd7d27ebf070435ee0b5da67582e3dabdeb01bff2827a236c3",
+          "bytes": 37731
+        },
+        {
+          "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLAUDE-4F-7F-20261023\\data\\main-infra-fresh\\run-claude-4f-7f-20261023\\e3\\7F\\textures\\minecraft\\quartz_block_bottom_-1.png",
+          "sha256": "daf3f46f93f7364b1530ec468a7a1d5a02eda1cd0a118e41e93e9c4177791cc1",
+          "bytes": 13240
+        },
+        {
+          "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLAUDE-4F-7F-20261023\\data\\main-infra-fresh\\run-claude-4f-7f-20261023\\e3\\7F\\textures\\minecraft\\quartz_block_side_-1.png",
+          "sha256": "85e34c6a6b917ade1cfbd2826127de4175c63317f3efbba1f7aaed3bf105a193",
+          "bytes": 168804
+        },
+        {
+          "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLAUDE-4F-7F-20261023\\data\\main-infra-fresh\\run-claude-4f-7f-20261023\\e3\\7F\\textures\\minecraft\\quartz_block_top_-1.png",
+          "sha256": "eea2309518da196d86171dd0d78ecdcdc3a0510005790fa2beb8484744d8ae88",
+          "bytes": 19337
+        },
+        {
+          "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLAUDE-4F-7F-20261023\\data\\main-infra-fresh\\run-claude-4f-7f-20261023\\e3\\7F\\textures\\minecraft\\wool_colored_orange_-1.png",
+          "sha256": "c6a3c27b965f298da28c89c1a522b5ff3152321a97fcbe613aec2f9a6d8f66fa",
+          "bytes": 78114
+        }
+      ],
+      "newer_unqualified_e5": {
+        "candidate": {
+          "path": "D:/PROJECTS/05-Corllenium-UC-Building-Repair-Engine/.claude/worktrees/MAIN-INFRA-CLAUDE-4F-7F-20261023/data/main-infra-fresh/run-claude-4f-7f-20261023/e5/7F/candidate.source.obj",
+          "sha256": "36e9508fdf3a6bb81bdc08459e7730b368d4f63e5102deb2afe306bc116f277e",
+          "bytes": 723486
+        },
+        "triangles": 18708,
+        "guard": null,
+        "policy": "CBR opt-in; do not apply original-default verdict to this candidate"
+      },
+      "inspection_label": "NOT_FINAL; problems remain; not accepted",
+      "qualified_raw_source": {
+        "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLAUDE-4F-7F-20261023\\data\\main-infra-fresh\\run-claude-4f-7f-20261023\\raw\\7th floor main infra.obj",
+        "sha256": "9e45357b1029dde4d6f6c98f8fb79049cb043108015855b8b4343f21cbbc5b60",
+        "bytes": 690314
+      },
+      "geometry_provenance": {
+        "path": "D:/PROJECTS/05-Corllenium-UC-Building-Repair-Engine/.claude/worktrees/MAIN-INFRA-CLAUDE-4F-7F-20261023/data/main-infra-fresh/run-claude-4f-7f-20261023/normalized/7F/geometry-provenance.json",
+        "sha256": "636ae2659ba2d764fbe81f9c1c66c96600270137127f78f1675a8b6b4ee36efe",
+        "bytes": 3280
+      }
+    }
+  ],
+  "active_round1": {
+    "candidate": {
+      "path": "D:/PROJECTS/05-Corllenium-UC-Building-Repair-Engine/.claude/worktrees/MAIN-INFRA-CLAUDE-4F-7F-20261023/data/main-infra-fresh/run-claude-4f-7f-20261023/e4/7F-round1/candidate.source.obj",
+      "sha256": "409947a74848543202c642afe8d40fa8e1eadeacecbcbb598e763c9abd768d53",
+      "bytes": 781505
+    },
+    "triangles": 19009,
+    "validation_exists": false,
+    "loop_summary_exists": false,
+    "background_task": "b1j722qdn",
+    "task_output": "C:/Users/Future26/AppData/Local/Temp/claude/D--PROJECTS-01-Corllenium-Agent-Hub/d255cdd0-d609-403c-96a1-dca71e1a0220/tasks/b1j722qdn.output",
+    "launch_tool_ref": "toolu_01EyiBQ53kmrXLiX5X8V3MTR"
+  },
+  "policy": {
+    "verified_owner_choice": {
+      "sessionId": "d255cdd0-d609-403c-96a1-dca71e1a0220",
+      "timestamp": "2026-10-23T21:20:12.739Z",
+      "record_uuid": "a043acbf-6107-42d5-8ba9-7b4021f84d14",
+      "tool_use_id": "toolu_01UXodm3T7t1ZegXQQjKhdDA",
+      "answer": "Remove solid-facing twin, any look (Recommended)"
+    },
+    "validator_class": "coincident_backface_removed",
+    "strict_guard_extension": "Requested at07:14:48, no later owner answer found. Not granted by this checkpoint.",
+    "no_new_permission_inferred": true
+  },
+  "handoff_route": {
+    "connected_request_handoff_tool": false,
+    "trusted_task_assignment": null,
+    "hub_head": "40d01f6012acacd26ea9ac8b63b3f63e4ad14f16",
+    "qualification": "source-integrated-runtime-handoff-pending",
+    "qualified_native_transfer_proven": false,
+    "safe_action": "Root/coordinator preserves source ownership until actual worker stop and release; then atomically claim recipient with a new scoped worktree. No kill/reclaim performed."
+  },
+  "jev": {
+    "current_settings_mutation_proven": false,
+    "observed_work": "Stage E5/E4/Jev per-face classification and dashboard filters, not a demonstrated model/provider settings change",
+    "engine_stage_classifier_commit": "28ad2ba84c8929799a77d2b17c8bebd8e96361ed",
+    "dashboard_commit": "3876655",
+    "credential_files_read": false,
+    "queue_note": "M2 old claimed; M3 blocked. No fresh Jev-settings job found in repair queue."
+  },
+  "nextSteps": [
+    "Do not duplicate active7F replay. Read its genuine round1/loop terminal once saved, preserving all failed guard/native/CBR evidence.",
+    "After verified writer stop, controller makes atomic ownership transfer; bind exact current revisions and raw byte inventories before any resumed model phase.",
+    "Diagnose actual5F/6F E5 strict material/movement failures; do not extend the guard from this handoff.",
+    "Use published E3 SOURCE candidates as explicitly NOT_FINAL Blender inspection inputs, keeping newer E5/E4 diagnostics separate."
+  ],
+  "unresolved": [
+    "Repair writer remains active; source stop/release absent",
+    "7F current round1 signed result and loop terminal pending",
+    "No task-bound qualified automated handoff adapter/grant connected",
+    "Strict26 CBR extension pending owner answer",
+    "All4-7 signed problem targets remain failed; no floor accepted"
+  ],
+  "ownership": {
+    "leaseId": null,
+    "status": "source-claimed-not-transferred",
+    "admissionRef": null,
+    "queue": {
+      "path": "D:/PROJECTS/UC MODEL FIXER/data/jobs/queue.json",
+      "sha256": "32af109a88c42ace78bf43b5a4b82fe8b6c24c0ec5414bc415197448d343092d",
+      "bytes": 73726
+    }
+  },
+  "savedAtUtc": "2026-10-24T07:36:30.9977171Z",
+  "status": "waiting-source-stop-and-controller-admission",
+  "correction": {
+    "prior_receipt": {
+      "path": "D:/PROJECTS/UC MODEL FIXER/data/iv-handoff-audit-20261024/claude-upper-handoff-checkpoint.json",
+      "sha256": "15ea25aff83f7d4268c6234e6e5a24516e1ae189c102ca932ee3f90d2bfeda34",
+      "bytes": 47524
+    },
+    "explanation": "The preliminary receipt compared normalized triangle OBJ to qualification.source_obj_sha256, which anchors raw polygon OBJ. Corrected to source_triangles_sha256, verifying raw source and geometry-provenance separately. Four preliminary false mismatches are audit-schema errors, not source corruption."
+  }
+}

@@ -1,0 +1,126 @@
+{
+  "schema_version": 1,
+  "job_id": "MAIN-INFRA-1F-E7-COVERED-RAY-VALIDATE-20261024",
+  "semantic_component_commit": "1a8a903227ede0026995d1f9437c032db171c5b5",
+  "phase_plan_sha256": "ae065140880aa4afb47e5037686bff9404b8dcfbb5c3d8cddb4d1fb02ffe394f",
+  "report_path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\iv1f-e7-covered-ray\\run-20261024\\1F\\validate\\validation.json",
+  "report_sha256": "1c00e817522e0d096dcbcd2649dc54ea7dd0cab5affa3e5afd9df305a5b3f9ce",
+  "review_path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\iv1f-e7-covered-ray\\run-20261024\\1F\\independent-review.json",
+  "review_sha256": "cafbd9f9456b6fbdf7d74927907770c9836dae6d3c6312eb539c99c50ade2091",
+  "terminal_path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\covered-ray-validation-preflight\\monitor-fullsigned-independent-1F-E7-covered-ray-retention-20261024T065751\\result.json",
+  "terminal_sha256": "479898b69d3ba44e8b362752aa0218fa6ae410d88877add8d4ea5372e10b516b",
+  "actual_pid": 56924,
+  "actual_creation_utc": "2026-10-24T06:57:54.2223501Z",
+  "actual_exit_code": 2,
+  "launcher_exit_code": 2,
+  "abort_reason": null,
+  "all_owned_exited": true,
+  "ended_utc": "2026-10-24T07:10:53.085454Z",
+  "wall_s": 779.0054096,
+  "verdict": "FAIL",
+  "textures": {
+    "samples": 108392,
+    "status": "PASS",
+    "reasons": {
+      "covered": 0,
+      "deleted": 0,
+      "look": 0,
+      "overlaid": 0,
+      "side": 0,
+      "uv": 0
+    },
+    "samples_failed": 0,
+    "faces": 7314,
+    "faces_failed": 0
+  },
+  "nothing_deleted": {
+    "floor_failed": 0,
+    "area_lost_in2": 0.0,
+    "covered": 0,
+    "floor_measured": 31,
+    "area_overlaid_in2": 0.0,
+    "area_covered_in2": 0.0,
+    "status": "PASS",
+    "overlaid": 0,
+    "deleted": 0
+  },
+  "problems": {
+    "loose": {
+      "after": 1,
+      "target": "listed",
+      "status": "REPORT_ONLY",
+      "before": 0
+    },
+    "flicker_same": {
+      "after": 1153,
+      "target": 0,
+      "status": "FAIL",
+      "before": 3347
+    },
+    "flicker_diff": {
+      "after": 1798,
+      "target": 0,
+      "status": "FAIL",
+      "before": 5684
+    },
+    "reversed": {
+      "after": 0,
+      "target": 0,
+      "status": "PASS",
+      "before": 0
+    },
+    "cracks": {
+      "after": 2352,
+      "target": 0,
+      "status": "FAIL",
+      "before": 2819
+    },
+    "open_edges": {
+      "after": 2181,
+      "target": "listed",
+      "status": "REPORT_ONLY",
+      "before": 312
+    },
+    "hidden": {
+      "after": 3210,
+      "target": "listed",
+      "status": "REPORT_ONLY",
+      "before": 8548
+    }
+  },
+  "review_pins": 511,
+  "review_pin_mismatches": [],
+  "phase_pins": 1089,
+  "phase_pin_mismatches": [],
+  "evidence": {
+    "forced_floor": {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\iv1f-e7-covered-ray\\run-20261024\\1F\\retained-floor\\retained-floor.json",
+      "sha256": "46976e729b4f0f53697184858f10efb6c64ca9909ec2e1c9eeb3237b200fd09b"
+    },
+    "independent_guard": {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\iv1f-e7-covered-ray\\run-20261024\\1F\\guard\\independent-guard.json",
+      "sha256": "1201690a61cc13c4acf1f0ccc935f6546c9f4215ca6e9b2ed4049f9747480179"
+    },
+    "native_paired": {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\iv1f-e7-covered-ray\\run-20261024\\1F\\native\\paired\\paired-detail.png",
+      "sha256": "1622e0e983c39082470a0e4141e4242353e708227853fdc3acd50cf2808e4a02"
+    },
+    "native_readback": {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\iv1f-e7-covered-ray\\run-20261024\\1F\\native\\native-readback.json",
+      "sha256": "6f88a3c004450b22e40403000b06a26aa153bcb0ea24af1ca8c77bc0229f5ec1"
+    },
+    "validation": {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-1f-e7-covered-ray-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\iv1f-e7-covered-ray\\run-20261024\\1F\\validate\\validation.json",
+      "sha256": "1c00e817522e0d096dcbcd2649dc54ea7dd0cab5affa3e5afd9df305a5b3f9ce"
+    }
+  },
+  "emitted_signed_pngs": 0,
+  "native_paired_png_viewed": true,
+  "maximum_owned_private_bytes": 1010356224.0,
+  "maximum_actual_peak_commit_bytes": 1374629888.0,
+  "minimum_system_headroom_bytes": 9988407296.0,
+  "preservation_passed": true,
+  "validator_passed": false,
+  "floor_accepted": false,
+  "acceptance": false
+}
