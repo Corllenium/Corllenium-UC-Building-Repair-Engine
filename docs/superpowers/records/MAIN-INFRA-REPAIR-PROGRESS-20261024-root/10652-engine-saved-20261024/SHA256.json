@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "artifacts": [
+    {
+      "path": "preparation.json",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261024-1F-covered-ray-retention\\preparation-1F.json",
+      "bytes": 1497213,
+      "sha256": "a8318faaf0e7b951baa8cc659cf0749e1fcdfa608f5ab132757fc0a0a4015573"
+    },
+    {
+      "path": "preparation-readback.json",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\covered-ray-preflight\\preparation-readback.json",
+      "bytes": 1294,
+      "sha256": "0825ea0f51c51d79ea2191250697319c5e3474d6836676869c5fdf99c3108175"
+    },
+    {
+      "path": "execute-terminal.json",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\covered-ray-preflight\\monitor-execute-1F-E7-covered-ray-retention-20261024T061718\\result.json",
+      "bytes": 749,
+      "sha256": "c9ea0980eb59d7cfbd75e2ece1068274c68cc69eda6130142c5718852f5ad9b3"
+    },
+    {
+      "path": "terminal-saved-inventory.json",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\covered-ray-preflight\\terminal-saved-inventory.json",
+      "bytes": 6230,
+      "sha256": "e028d6c91096ef5a2a81392585e1ea55ff359850929eb434d3dc59f0bcd9c494"
+    },
+    {
+      "path": "saved-obj-readback.json",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\covered-ray-preflight\\saved-obj-readback.json",
+      "bytes": 9621,
+      "sha256": "b714238e7397d6d4b9699bf55cd9b448e06b68cf95e086cf3d9753cd6f27a588"
+    },
+    {
+      "path": "run-receipt.json",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261024-1F-covered-ray-retention\\1F\\run-receipt.json",
+      "bytes": 47570,
+      "sha256": "78f0dabb58fe222fbe64ba31eada245bd03d4d4b97816244041ec92ad343efdb"
+    },
+    {
+      "path": "cut-receipt.json",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261024-1F-covered-ray-retention\\1F\\cut-receipt.json",
+      "bytes": 23985,
+      "sha256": "f5d71d7eb27af5475db87389a0f245b2fba457affcbc21af6b3262d90cc72231"
+    },
+    {
+      "path": "asset-receipt.json",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261024-1F-covered-ray-retention\\1F\\asset-receipt.json",
+      "bytes": 1356,
+      "sha256": "019d965f6ded3630e9d957335fea8f33b98c7e8705a5017600ef1d66ae33eb3b"
+    },
+    {
+      "path": "checkpoint-receipt.json",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261024-1F-covered-ray-retention\\execution-1F\\checked-outcome\\checkpoint-receipt.json",
+      "bytes": 96570,
+      "sha256": "02c7323b92c740d49862500b51031ddf3fb77bb4743a666126cdf006a6fcab23"
+    }
+  ],
+  "acceptance": false
+}

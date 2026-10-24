@@ -1,0 +1,129 @@
+{
+  "schema_version": 1,
+  "job_id": "MAIN-INFRA-1F-E7-COVERED-RAY-RETENTION-20261024",
+  "builder_HEAD": "235b7b759a7131dc2f6f56a79dd14adf1323bfea",
+  "actual_pid": 59756,
+  "actual_creation_utc": "2026-10-24T06:17:20.4809272Z",
+  "ended_utc": "2026-10-24T06:22:03.2605825Z",
+  "wall_s": 282.8598743,
+  "actual_exit_code": 0,
+  "all_owned_exited": true,
+  "counts": {
+    "original": 15856,
+    "stage": 10410,
+    "planned": 152,
+    "kept": 152,
+    "rolled_back": 0,
+    "output": 10652,
+    "protected": 732
+  },
+  "checkpoint_verified": true,
+  "files": [
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261024-1F-covered-ray-retention\\preparation-1F.json",
+      "sha256": "a8318faaf0e7b951baa8cc659cf0749e1fcdfa608f5ab132757fc0a0a4015573",
+      "bytes": 1497213
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261024-1F-covered-ray-retention\\execution-1F\\worker.json",
+      "sha256": "8464d283870ab9bfcc1fdaf37e681fa3921f31b1c29dbe3934c583cff5de8763",
+      "bytes": 47663
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261024-1F-covered-ray-retention\\execution-1F\\checked-outcome\\checkpoint-receipt.json",
+      "sha256": "02c7323b92c740d49862500b51031ddf3fb77bb4743a666126cdf006a6fcab23",
+      "bytes": 96570
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261024-1F-covered-ray-retention\\1F\\cut-receipt.json",
+      "sha256": "f5d71d7eb27af5475db87389a0f245b2fba457affcbc21af6b3262d90cc72231",
+      "bytes": 23985
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261024-1F-covered-ray-retention\\1F\\run-receipt.json",
+      "sha256": "78f0dabb58fe222fbe64ba31eada245bd03d4d4b97816244041ec92ad343efdb",
+      "bytes": 47570
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261024-1F-covered-ray-retention\\1F\\asset-receipt.json",
+      "sha256": "019d965f6ded3630e9d957335fea8f33b98c7e8705a5017600ef1d66ae33eb3b",
+      "bytes": 1356
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261024-1F-covered-ray-retention\\1F\\candidate.source.obj",
+      "sha256": "1620d971fca99d55a8b7cf07884203a9a24fab17bcaf638e4cc5a3f32ef73490",
+      "bytes": 388098
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261024-1F-covered-ray-retention\\1F\\candidate.engine.obj",
+      "sha256": "0ef9796dbb05e35d315612a7e87cd97529366c2e12d7b85b661483fefadf9e04",
+      "bytes": 633606
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261024-1F-covered-ray-retention\\1F\\cut-lineage.json",
+      "sha256": "c22339d483de526679cdd958c54d9f3ec9ef91bdd33aee3f762612170ccda423",
+      "bytes": 4235176
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261024-1F-covered-ray-retention\\1F\\checked-edits.json",
+      "sha256": "6a575338f0e73a71d381ecea6a00af67e85bb6ec3a13259a43533be1a5900644",
+      "bytes": 100341
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e7\\run-20261024-1F-covered-ray-retention\\1F\\edit-log.jsonl",
+      "sha256": "c86aea708f3d969c6cd9c0a23d0f338944b8bd4495d688a89ac759b9156cf75b",
+      "bytes": 71266
+    },
+    {
+      "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e7-covered-ray-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\covered-ray-preflight\\monitor-execute-1F-E7-covered-ray-retention-20261024T061718\\result.json",
+      "sha256": "c9ea0980eb59d7cfbd75e2ece1068274c68cc69eda6130142c5718852f5ad9b3",
+      "bytes": 749
+    }
+  ],
+  "assets": [
+    {
+      "bytes": 902,
+      "path": "1st floor main infra.mtl",
+      "sha256": "c64c0cb12926c707b55262a82fd324ccd09502f92b0c866801a00e9f3c89d9a3"
+    },
+    {
+      "bytes": 95365,
+      "path": "textures\\minecraft\\concrete_white_-1.png",
+      "sha256": "f42c7be3c52294ead4c69ac0e9ef1bbbbe6bdb4451382c89a65c386709df6171"
+    },
+    {
+      "bytes": 70773,
+      "path": "textures\\minecraft\\concrete_white_-15579874.png",
+      "sha256": "14ceba3d0329594e00458bc6ed2aeafa24d9228519994a60d758de2509fee1ad"
+    },
+    {
+      "bytes": 13240,
+      "path": "textures\\minecraft\\quartz_block_bottom_-1.png",
+      "sha256": "daf3f46f93f7364b1530ec468a7a1d5a02eda1cd0a118e41e93e9c4177791cc1"
+    },
+    {
+      "bytes": 168804,
+      "path": "textures\\minecraft\\quartz_block_side_-1.png",
+      "sha256": "85e34c6a6b917ade1cfbd2826127de4175c63317f3efbba1f7aaed3bf105a193"
+    },
+    {
+      "bytes": 19337,
+      "path": "textures\\minecraft\\quartz_block_top_-1.png",
+      "sha256": "eea2309518da196d86171dd0d78ecdcdc3a0510005790fa2beb8484744d8ae88"
+    },
+    {
+      "bytes": 78114,
+      "path": "textures\\minecraft\\wool_colored_orange_-1.png",
+      "sha256": "c6a3c27b965f298da28c89c1a522b5ff3152321a97fcbe613aec2f9a6d8f66fa"
+    }
+  ],
+  "post_phase_pins": 640,
+  "post_pin_mismatches": [],
+  "components_verified": 208,
+  "inputs_verified": 62,
+  "maximum_owned_private_bytes": 1201786880,
+  "maximum_actual_os_peak_commit_bytes": 1367277568,
+  "minimum_headroom_bytes": 10863616000,
+  "independent_validation": "pending",
+  "floor_accepted": false
+}
