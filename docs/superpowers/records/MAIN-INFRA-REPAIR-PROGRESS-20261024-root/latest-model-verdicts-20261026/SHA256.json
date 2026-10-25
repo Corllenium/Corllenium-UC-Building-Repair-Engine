@@ -1,0 +1,134 @@
+{
+  "artifacts": [
+    {
+      "path": "1f-model-and-map-delivery.tar.gz",
+      "source": "D:\\LLM_BACKUP\\Codex session\\i10571\\05-Corllenium-UC-Building-Repair-Engine\\data\\transport-10571\\inspection-10571.tar.gz",
+      "bytes": 2583780,
+      "sha256": "8338ea1f5f0fc0cbfa5163580e698c467426fcf8d871dea2c0b20d5a00b9ae47"
+    },
+    {
+      "path": "1f-delivery-package.json",
+      "source": "D:\\LLM_BACKUP\\Codex session\\i10571\\05-Corllenium-UC-Building-Repair-Engine\\data\\transport-10571\\package.json",
+      "bytes": 16301,
+      "sha256": "851135faa4a999e075d4cd4697092858b2a14538e9c3d9f48c6afb9f9ae264bb"
+    },
+    {
+      "path": "1f-live-deployment.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261026\\inspection-10571-deployment.log",
+      "bytes": 837,
+      "sha256": "0b11ab8db9073f719d7cf0316e84245a20f9e95fbacca1fa8f6aeab2906194c7"
+    },
+    {
+      "path": "1f-validation.json",
+      "source": "D:\\LLM_BACKUP\\Codex session\\e5vb\\05-Corllenium-UC-Building-Repair-Engine\\data\\iv1f-e5-batch\\run-20261025-attempt2\\validate\\validation.json",
+      "bytes": 273959,
+      "sha256": "ec233f6d178c5e71755a61d360ecd92db5f6eca35e602bc3facc04480e755a80"
+    },
+    {
+      "path": "1f-fullsigned-terminal.json",
+      "source": "D:\\LLM_BACKUP\\Codex session\\e5vb\\05-Corllenium-UC-Building-Repair-Engine\\data\\batch-iv-preflight\\monitor-10571-original-fullsigned-20261025T191229\\result.json",
+      "bytes": 681,
+      "sha256": "ba73bdcad07f7ff3e79372050ad6793ab0721ac36e49752fb12ea849f52436c1"
+    },
+    {
+      "path": "7f-fullsigned-evidence.zip",
+      "source": "D:\\LLM_BACKUP\\Codex session\\iv7n\\05-Corllenium-UC-Building-Repair-Engine\\docs\\superpowers\\records\\MAIN-INFRA-7F-19695-VALIDATE-20261025\\actual-fullsigned-retry-20261026.zip",
+      "bytes": 999576,
+      "sha256": "580f36143102da78790eb6a0acb0f83d08aa37a1f271433df477b5d02876b4cf"
+    },
+    {
+      "path": "7f-validation.json",
+      "source": "D:\\LLM_BACKUP\\Codex session\\iv7n\\05-Corllenium-UC-Building-Repair-Engine\\data\\iv7f-validation\\attempt19695-target-local\\validation-retry-20261026\\validation.json",
+      "bytes": 1541839,
+      "sha256": "5abac22a931e88626ecff754c3fa065c8350c00c6434ac63efc865bb22d22750"
+    },
+    {
+      "path": "7f-render-fields-equivalence.json",
+      "source": "D:\\LLM_BACKUP\\Codex session\\iv7n\\05-Corllenium-UC-Building-Repair-Engine\\data\\iv7n-preflight\\c7-versus-fullsigned-render-fields-20261026.json",
+      "bytes": 5365,
+      "sha256": "e79597e0bb18d903a57b0103eee9130c69fb0b81728cad86e93b291bebf26121"
+    },
+    {
+      "path": "4f-context-diagnostic.json",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-4f-native-retention-20261026\\05-Corllenium-UC-Building-Repair-Engine\\data\\4f-native-preflight\\key-context-diagnostic.json",
+      "bytes": 169705,
+      "sha256": "2d5adce225a4972e6ad39bccd2ba9d341fca57693a6cf7e431c5d6be06532f8e"
+    },
+    {
+      "path": "4f-identity-regression-evidence.zip",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-4f-native-retention-20261026\\05-Corllenium-UC-Building-Repair-Engine\\docs\\superpowers\\records\\MAIN-INFRA-4F-NATIVE-RETENTION-20261026\\identity-context-fixtures.zip",
+      "bytes": 1411901,
+      "sha256": "be904794fbcd8c3e69733b9381e07c7a6b0d406417fc0c981b2b5c89f3caeef3"
+    },
+    {
+      "path": "4f-actual-preparation.json",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-4f-native-retention-20261026\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-4f-native-retention\\run-20261026\\preparation-4F.json",
+      "bytes": 278372,
+      "sha256": "a6f7eb97ec5761d51278a15f0b6650ed533a4f47dbc8a542b6f7b487e5e53068"
+    },
+    {
+      "path": "4f-engine-phase.json",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-4f-native-retention-20261026\\05-Corllenium-UC-Building-Repair-Engine\\data\\4f-native-preflight\\phase-restore-execute.json",
+      "bytes": 150123,
+      "sha256": "1faabbdb973aa6fc8a20bed131fa886cacc9f7b5bc7a99227f4adaefc60f26ac"
+    },
+    {
+      "path": "4f-active-native-observation.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261026\\4f-engine-observation.json",
+      "bytes": 272,
+      "sha256": "0eafee4a9bf150622593cc3e7790496098e8ababc7656dbea704d403a24dc9fa"
+    },
+    {
+      "path": "5f-actual-native33-evidence.zip",
+      "source": "D:\\LLM_BACKUP\\Codex session\\f5n\\05-Corllenium-UC-Building-Repair-Engine\\docs\\superpowers\\records\\MAIN-INFRA-5F-NATIVE-RETENTION-20261026\\actual-native-20261026\\actual-native33-evidence.zip",
+      "bytes": 32151263,
+      "sha256": "868caee2d5b524ccdfcd609f4d6b74340d245b31d0203c92f4b7932a25b751a4"
+    },
+    {
+      "path": "5f-footprint.json",
+      "source": "D:\\LLM_BACKUP\\Codex session\\f5n\\05-Corllenium-UC-Building-Repair-Engine\\data\\5f-native-footprint\\attempt1\\footprint.json",
+      "bytes": 258364,
+      "sha256": "2c8835aa44a637ebe1b8fcdc9e95587e8255d3814f30cee90c14844e17a2c3b2"
+    },
+    {
+      "path": "live-status-snapshot.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-fresh\\current.json",
+      "bytes": 161909,
+      "sha256": "7c06f40d674cc7a1bb15cc04d22c2e69e2a0d42edabde6d3ba334607d07ce5b1"
+    },
+    {
+      "path": "bind-1f-live.py",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261026\\bind-inspection-10571-live.py",
+      "bytes": 6196,
+      "sha256": "f1544cc1e61205932f4152cca8f43bc7d8e2618b8bbcdf838872f9467cfaceb7"
+    },
+    {
+      "path": "record-7f-5f.py",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261026\\record-7f-verdict-5f-trace.py",
+      "bytes": 5276,
+      "sha256": "0b75db28d08986cf0b3038d39ca1f23736a2fb40aa7e9b45791451938c3c051a"
+    },
+    {
+      "path": "observe-owned-phase.ps1",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261026\\observe-owned-phase.ps1",
+      "bytes": 1996,
+      "sha256": "85347970c13858056c98cf4ef7b2c67db053e07b8a469dffba57ff5e7a6336bd"
+    },
+    {
+      "path": "record-4f-active.py",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261026\\record-4f-active.py",
+      "bytes": 2583,
+      "sha256": "5f800ae1d74bc29bbd8452f8838e4d4ae4532efbdf71738d0a8d68c9c4929cb8"
+    },
+    {
+      "path": "record.md",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261026\\latest-model-verdict-record.md",
+      "bytes": 5577,
+      "sha256": "5d42190f03cf7fac6cf4928f002493d2d297091fd7bc5effc511db85f185b40f"
+    }
+  ],
+  "archive_sha256": "15f827ff074c2598d834cd7e68cdef5701240501defbddeba026db2b9a9bfaf9",
+  "all_members_read_back": true,
+  "local_only": true,
+  "acceptance": false
+}
