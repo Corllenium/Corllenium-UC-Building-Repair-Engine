@@ -1,0 +1,66 @@
+{
+  "parent_HEAD": "37dd60db6e8e8385d5e3f141b1dd22084df66508",
+  "archive_sha256": "2301fbd206cffb0ee0ca1a247adbff52c8f0ebdebe469177b9e8acd65e45b7a4",
+  "inventory_sha256": "03cec472a5a994978b25f7cf3dfb724cf939ab4655d4c0aeecebe7387db7cb89",
+  "members_verified": 40,
+  "render_count": 14,
+  "blend_unchanged": true,
+  "source_records": [
+    {
+      "path": "docs/superpowers/records/HANDOFF.md",
+      "before_sha256": "2104b191271e97eb66452ae1b77596fe77dbe2bc8284cc68d784e86b482f6ea0",
+      "before_bytes": 174669,
+      "after_sha256": "6bf5a4193dc085980118f274634763a0bd95637a60ed3e2a9949cfce2e5e65d2",
+      "after_bytes": 176059,
+      "original_bytes_preserved": true
+    },
+    {
+      "path": "docs/superpowers/records/2026-09-24-session-record.md",
+      "before_sha256": "5fd4f5d461e5587e71a195ceb0665ef9ccf157af94883097973191279d390de4",
+      "before_bytes": 171277,
+      "after_sha256": "0265d63533aacb13113b926407b6dedbf3a1bbd9a19816c54a6ca3ba70428070",
+      "after_bytes": 172667,
+      "original_bytes_preserved": true
+    },
+    {
+      "path": ".superpowers/sdd/2026-10-23_110132-main-infrastructure-fresh-export-cleanup/progress.md",
+      "before_sha256": "885621e2436997a0c961108e4a01e1a2ac6f257a4a7751ae5a8b2e88202df83d",
+      "before_bytes": 142963,
+      "after_sha256": "32ce9c2acce010bcaae32c8ed8fdf199e2a5b5dc1c7c26cf896027f7dced8bc4",
+      "after_bytes": 144353,
+      "original_bytes_preserved": true
+    },
+    {
+      "path": "docs/superpowers/records/MAIN-INFRA-REPAIR-PROGRESS-20261024-root/STATUS.md",
+      "before_sha256": "9083fc80dc3771ba566c6ef00a87f55545e89578b4ff16510233e3805f8803f0",
+      "before_bytes": 96578,
+      "after_sha256": "9f1fdb2b9513ebff1c78fef6323b531a077e71507224c4f92e64c25492d7a7df",
+      "after_bytes": 97968,
+      "original_bytes_preserved": true
+    }
+  ],
+  "staged_before": [],
+  "foreign_tracked_paths": [
+    ".gitignore",
+    ".superpowers/sdd/2026-10-03-repair-engine-p1-p2/task-P2-V2-report.md",
+    "docker-compose.yml",
+    "docs/superpowers/records/QUEUE.md",
+    "docs/superpowers/records/briefs/MAIN-INFRA-E7-1F-RETAINED-BASE-20261024.md",
+    "docs/superpowers/records/briefs/STAGING-ENGINE-1-6-7-V2.md",
+    "docs/superpowers/records/briefs/STAGING-ENGINE-4-5-V2.md",
+    "engine/cli.py",
+    "engine/topo/planes.py"
+  ],
+  "foreign_diff_sha256_before": "1347934eebbb2f3c7944c68bb1fd871660b3651be76cbc493ec65898d8b5e54e",
+  "bookkeeping_only": true,
+  "no_geometry_run": true,
+  "no_blender_action": true,
+  "no_network": true,
+  "acceptance": false,
+  "phase_pin_rehash_counts": {
+    "build": 181,
+    "readback": 183
+  },
+  "phase_pin_mismatches": 0,
+  "archive_members_verified": 40
+}
