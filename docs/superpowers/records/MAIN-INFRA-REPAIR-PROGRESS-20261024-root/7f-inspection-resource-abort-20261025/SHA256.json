@@ -1,0 +1,62 @@
+{
+  "artifacts": [
+    {
+      "path": "7f-inspection.tar",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\p7n\\inspection-19695.tar",
+      "bytes": 5120000,
+      "sha256": "22e827935eb7465cccc5be72650b7f4fdc9dfefeca2d4ea83422074cc6463834"
+    },
+    {
+      "path": "7f-inspection-package.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\p7n\\package.json",
+      "bytes": 9470,
+      "sha256": "380c6138bc73d01af190abd670b89b454b33e569cfec3338c591a665fa155b8f"
+    },
+    {
+      "path": "7f-live-publication.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261025\\inspection-19695-deployment.log",
+      "bytes": 908,
+      "sha256": "93e2534cac0438a1e4454279bfc20735850eea955ccbde5c3afee3cb426802e7"
+    },
+    {
+      "path": "7f-resource-abort-evidence.zip",
+      "source": "D:\\LLM_BACKUP\\Codex session\\iv7n\\05-Corllenium-UC-Building-Repair-Engine\\docs\\superpowers\\records\\MAIN-INFRA-7F-19695-VALIDATE-20261025\\actual-resource-abort-20261025.zip",
+      "bytes": 408022,
+      "sha256": "94fb4d67baa0181080a6adc9b532daadd600e4bcab1504509b412bdf880e3918"
+    },
+    {
+      "path": "live-status-snapshot.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-fresh\\current.json",
+      "bytes": 146367,
+      "sha256": "1600475e86c3e8431a2e6f0cab42f135ad1f714632ce183f7e51f9be9aaeaaa7"
+    },
+    {
+      "path": "1f-textured-after-live.png",
+      "source": "D:\\SOFTWARE\\CODEX DATA\\visualizations\\2026\\10\\23\\01a1670e-6ddc-76d1-9c49-1786e1cdc955\\1f-after-10651-live-20261025.png",
+      "bytes": 159275,
+      "sha256": "c86fc8c457c45308d2b3b1698134e0ff7353991ba4018b4b2f45897873aa7688"
+    },
+    {
+      "path": "1f-measured-filter-live.png",
+      "source": "D:\\SOFTWARE\\CODEX DATA\\visualizations\\2026\\10\\23\\01a1670e-6ddc-76d1-9c49-1786e1cdc955\\1f-after-10651-filter-live-20261025.png",
+      "bytes": 268698,
+      "sha256": "0b6ea0ab6252e20536d3bf878bbf9f36de6a773915042aacf0cb91cd046e2fb4"
+    },
+    {
+      "path": "7f-candidate-after-live.png",
+      "source": "D:\\SOFTWARE\\CODEX DATA\\visualizations\\2026\\10\\23\\01a1670e-6ddc-76d1-9c49-1786e1cdc955\\7f-after-19695-live-20261025.png",
+      "bytes": 259057,
+      "sha256": "7378ceed6f0301b6428fb4e06a8829036f286b49249fc9a7a6f44891c36e4ede"
+    },
+    {
+      "path": "record.md",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261025\\7f-inspection-resource-abort-record.md",
+      "bytes": 3181,
+      "sha256": "ad8349d0f260326680d7f7a05926ae2fe0089302522425a1c0569b890867ec80"
+    }
+  ],
+  "archive_sha256": "7e51527066f9ee50b2a015fdee406dbc4eb831eedc89573e21993c39c6674033",
+  "all_members_read_back": true,
+  "local_only": true,
+  "acceptance": false
+}
