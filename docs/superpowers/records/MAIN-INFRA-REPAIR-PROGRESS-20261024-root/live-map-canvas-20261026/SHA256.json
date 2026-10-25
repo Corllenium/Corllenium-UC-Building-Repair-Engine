@@ -1,0 +1,140 @@
+{
+  "artifacts": [
+    {
+      "path": "1f-prepared.json",
+      "source": "D:\\LLM_BACKUP\\Codex session\\e5vb\\05-Corllenium-UC-Building-Repair-Engine\\data\\iv1f-e5-batch\\run-20261025-attempt2\\prepared-inputs.json",
+      "bytes": 158464,
+      "sha256": "14166dae91a238d8a2d6172d96e907a12c51df639a347c55f694a1cd3df77bfe"
+    },
+    {
+      "path": "1f-strict26.json",
+      "source": "D:\\LLM_BACKUP\\Codex session\\e5vb\\05-Corllenium-UC-Building-Repair-Engine\\data\\iv1f-e5-batch\\run-20261025-attempt2\\guard\\independent-guard.json",
+      "bytes": 176551,
+      "sha256": "f62244507ea5e97da76f7437db52f9313413c3d1525a5eed8272c8497691c343"
+    },
+    {
+      "path": "1f-native46.json",
+      "source": "D:\\LLM_BACKUP\\Codex session\\e5vb\\05-Corllenium-UC-Building-Repair-Engine\\data\\iv1f-e5-batch\\run-20261025-attempt2\\native\\native-readback.json",
+      "bytes": 268626,
+      "sha256": "80eca258873402e290094554814ea715d99c93345adb7728398504d7b5a7f727"
+    },
+    {
+      "path": "1f-focused-floor14.json",
+      "source": "D:\\LLM_BACKUP\\Codex session\\e5vb\\05-Corllenium-UC-Building-Repair-Engine\\data\\iv1f-e5-batch\\run-20261025-attempt2\\retained-floor\\retained-floor.json",
+      "bytes": 162092,
+      "sha256": "ec140141c2575ec953719cf3f9bef3fa4d8dd8661f326d54b1a096c27feff520"
+    },
+    {
+      "path": "1f-focused-floor-terminal.json",
+      "source": "D:\\LLM_BACKUP\\Codex session\\e5vb\\05-Corllenium-UC-Building-Repair-Engine\\data\\batch-iv-preflight\\monitor-10571-original-retained-floor-20261025T190827\\result.json",
+      "bytes": 693,
+      "sha256": "74b8e1b6ac5a1c1704940c64619259080bb17374839219609143a7abcdd76972"
+    },
+    {
+      "path": "1f-fullsigned-active-observation.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261026\\1f-10571-fullsigned-observation.json",
+      "bytes": 253,
+      "sha256": "4ad4d1f29a33abdc499e6998eb30c723cb497bf63aa34401d5cc7aa5aac7f7d4"
+    },
+    {
+      "path": "1f-fullsigned-phase.json",
+      "source": "D:\\LLM_BACKUP\\Codex session\\e5vb\\05-Corllenium-UC-Building-Repair-Engine\\data\\batch-iv-preflight\\phase-fullsigned.json",
+      "bytes": 171702,
+      "sha256": "aa4a6dd2a2743526908dc45660a291fbe6be52d2c8046a1b8f0b9e2a41da7259"
+    },
+    {
+      "path": "4f-actual-native33-evidence.zip",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-4f-native-retention-20261026\\05-Corllenium-UC-Building-Repair-Engine\\docs\\superpowers\\records\\MAIN-INFRA-4F-NATIVE-RETENTION-20261026\\actual-native33-20261026.zip",
+      "bytes": 31891535,
+      "sha256": "aa84f2f995633aaccaf5205efb176f562c963943a0927c14eaf19f8e4db34f2d"
+    },
+    {
+      "path": "4f-footprint.json",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-4f-native-retention-20261026\\05-Corllenium-UC-Building-Repair-Engine\\data\\4f-native-footprint\\run-20261026\\source-footprint.json",
+      "bytes": 7914255,
+      "sha256": "3e5993ebc0dc81a31532801746a6ea9cdddf98ee70c526bf96be7e8afe028067"
+    },
+    {
+      "path": "4f-footprint-terminal.json",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-4f-native-retention-20261026\\05-Corllenium-UC-Building-Repair-Engine\\data\\4f-native-preflight\\monitor-4F-native109-source-footprint-20261025T191034\\result.json",
+      "bytes": 658,
+      "sha256": "7df9fee3cab3393dc11968400f968948c9b52d0fd4b5569e5c16b6deadfd4ef3"
+    },
+    {
+      "path": "7f-map-evidence.zip",
+      "source": "D:\\LLM_BACKUP\\Codex session\\m7n\\05-Corllenium-UC-Building-Repair-Engine\\docs\\superpowers\\records\\MAIN-INFRA-7F-19695-MAP-DELIVERY-20261026\\actual-map-delivery-evidence.zip",
+      "bytes": 919629,
+      "sha256": "a003a542e3a131d2bbedbf76341f2195c920aff2bb642692520ad419e63a6620"
+    },
+    {
+      "path": "7f-map-package.json",
+      "source": "D:\\LLM_BACKUP\\Codex session\\m7n\\05-Corllenium-UC-Building-Repair-Engine\\data\\transport-19695-maps\\package.json",
+      "bytes": 19794,
+      "sha256": "5bb4dcccf195c96b16b92d25cdf2a4cbfd26aa88ec1e8399752f1f62bcde09b0"
+    },
+    {
+      "path": "7f-live-publication.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261026\\inspection-19695-maps-deployment.log",
+      "bytes": 1197,
+      "sha256": "847bd7edc95d4710f302123ea29780131625cc084f6a616bccdbd3cd9024cebe"
+    },
+    {
+      "path": "canvas-dpr-tests-evidence.zip",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\docs\\handoff\\main-infra-live-logs-20261024\\canvas-sizing-20261026\\evidence.zip",
+      "bytes": 52859,
+      "sha256": "8c938d3572da6a65d8d15907e5352664d7225d9d06f334b9e33cdf630bdcd86e"
+    },
+    {
+      "path": "canvas-build-terminal.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261026\\canvas-build\\monitor-canvas-production-static-build-20261025T184435\\result.json",
+      "bytes": 686,
+      "sha256": "3a883572f5678ba35afc6b329b5b54888fd4d2f6eafe8e027806ae4be7b1bdb0"
+    },
+    {
+      "path": "canvas-static-package.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261026\\canvas-ui\\package.json",
+      "bytes": 13084,
+      "sha256": "dd448019c55dc4acd4685c475dea34aaff7330e8413927992e03ef0585111ef1"
+    },
+    {
+      "path": "canvas-live-deployment.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261026\\canvas-ui-deployment.log",
+      "bytes": 514,
+      "sha256": "930bf00e429ca617ee20058f1349f0feb1af9389085cc26c4dcff95872f92dc5"
+    },
+    {
+      "path": "live-status-snapshot.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-fresh\\current.json",
+      "bytes": 152963,
+      "sha256": "b78793b1f9754c2a080a7e04d94dbb6879379be35fdcebea876edd7008156278"
+    },
+    {
+      "path": "1f-live-after.png",
+      "source": "D:\\SOFTWARE\\CODEX DATA\\visualizations\\2026\\10\\23\\01a1670e-6ddc-76d1-9c49-1786e1cdc955\\live-canvas-after-20261026.png",
+      "bytes": 61288,
+      "sha256": "85ca90bae1c7c8a58dd67a7abc12b581f8f2d93a2a2c50c39e7316655c035048"
+    },
+    {
+      "path": "7f-live-filters.png",
+      "source": "D:\\SOFTWARE\\CODEX DATA\\visualizations\\2026\\10\\23\\01a1670e-6ddc-76d1-9c49-1786e1cdc955\\7f-measured-maps-live-20261026.png",
+      "bytes": 78050,
+      "sha256": "62eb4587d2e3d90abdae2762ef66c6cb0dbecf9a2d1afcf20db2aa969e3190c8"
+    },
+    {
+      "path": "7f-live-overlay.png",
+      "source": "D:\\SOFTWARE\\CODEX DATA\\visualizations\\2026\\10\\23\\01a1670e-6ddc-76d1-9c49-1786e1cdc955\\7f-measured-overlay-live-20261026.png",
+      "bytes": 66079,
+      "sha256": "82c218b4195df738288058780fc374d291de0ac4dd193bda2f00d549d25a1246"
+    },
+    {
+      "path": "record.md",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261026\\live-map-canvas-record.md",
+      "bytes": 3679,
+      "sha256": "e28c5a5861a93d924914beea418d0428fc338e00f7501bfd891aa212f2625bfe"
+    }
+  ],
+  "archive_sha256": "1146ace69cf16f1fa5fa71c0ad8ae7d40ec4dcb44035be6fd5a80121ef155886",
+  "all_members_read_back": true,
+  "local_only": true,
+  "acceptance": false
+}
