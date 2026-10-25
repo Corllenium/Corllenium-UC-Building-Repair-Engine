@@ -1,0 +1,249 @@
+{
+  "artifacts": [
+    {
+      "path": "1f-actual-e5-evidence.zip",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-e5-resume-20261025\\05-Corllenium-UC-Building-Repair-Engine\\docs\\superpowers\\records\\MAIN-INFRA-1F-E5-EXACT-DUPLICATES-20261025\\actual-e5-one-fullcover-evidence.zip",
+      "bytes": 2241364,
+      "sha256": "50fccf4057e197f7f30ac6fa808331966accebd4712b41701f434bb815f562c4"
+    },
+    {
+      "path": "1f-actual-readback.json",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-e5-resume-20261025\\05-Corllenium-UC-Building-Repair-Engine\\data\\e5-exact-preflight\\actual-one-site-readback.json",
+      "bytes": 14008,
+      "sha256": "f11cf00e9e5ed47536edd7cf810533422ecb7b4e0566b734b1d9975c4ec5e9ce"
+    },
+    {
+      "path": "1f-run-receipt.json",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-e5-resume-20261025\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e5\\run-20261025-1F-one-fullcover\\run-receipt.json",
+      "bytes": 5362,
+      "sha256": "c459b58b5759fc21416daa29de385fecb3d76023e93ba38270ffafbbe51aa68e"
+    },
+    {
+      "path": "7f-strict26.json",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-7f-restoration-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\iv7f-validation\\attempt1\\guard\\independent-guard.json",
+      "bytes": 960618,
+      "sha256": "982835704014b1660653557a19938d69c7ba4fe70e9ab2a39f947851c3ff8cff"
+    },
+    {
+      "path": "7f-native-preservation.json",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-7f-restoration-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\iv7f-validation\\attempt1\\native\\native-preservation.json",
+      "bytes": 1352488,
+      "sha256": "5bd467090f72c659f4712fc3943dd6031e6c3ea04b50087f57fc5f7003c28ec6"
+    },
+    {
+      "path": "7f-attribution.json",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-upper-floor-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\upper7-attribution\\source-footprint.json",
+      "bytes": 1623005,
+      "sha256": "ee9306af57e2cdc2e7188b9084a57c13704731f92d465f58704210216c9d9682"
+    },
+    {
+      "path": "7f-census-receipt.json",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-7f-error-census-20261025\\05-Corllenium-UC-Building-Repair-Engine\\data\\7f-error-census\\run-20261025\\census-receipt.json",
+      "bytes": 167079,
+      "sha256": "1ef78c45dbb6a898c78edc2978ed170822bb9e95531485400f9139844e9e0bf1"
+    },
+    {
+      "path": "7f-census-before.raw.json",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-7f-error-census-20261025\\05-Corllenium-UC-Building-Repair-Engine\\data\\7f-error-census\\run-20261025\\census-before.raw.json",
+      "bytes": 2188665,
+      "sha256": "09f8d2901d9ee2b43f27f964032362399b18f94c751a5298623d424418523b64"
+    },
+    {
+      "path": "7f-census-after.raw.json",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-7f-error-census-20261025\\05-Corllenium-UC-Building-Repair-Engine\\data\\7f-error-census\\run-20261025\\census-after.raw.json",
+      "bytes": 1437745,
+      "sha256": "0cf739a07e66fb569f3663881f1cc91397988fa6777a0ab88ee0d873bf9d6900"
+    },
+    {
+      "path": "7f-qualified-source.tar.gz",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261025\\source-7f-delivery\\source-7f-20261025.tar.gz",
+      "bytes": 830946,
+      "sha256": "2fad2e1c65b9cf3130c2857915c6971fc084e629052ba7c1aa14f26405aad581"
+    },
+    {
+      "path": "7f-source-delivery.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261025\\source-7f-delivery\\source-7f-20261025.json",
+      "bytes": 4053,
+      "sha256": "04294d2a9e8d81ff0d6637e3033b755008f2300dc6ab2eb639069f47b10f0b3f"
+    },
+    {
+      "path": "7f-source-deployment.log",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261025\\source-7f-deployment-v2.log",
+      "bytes": 493,
+      "sha256": "73170c1f99bac8653df582bf5f5ea207ff28cb0bad0790c018410c8e6e936a20"
+    },
+    {
+      "path": "live-canonical-snapshot.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-fresh\\current.json",
+      "bytes": 133109,
+      "sha256": "b90b99ee3f923a72538cb8663eee4c67d2397d1ea77b60062911ba6f50d0cd03"
+    },
+    {
+      "path": "worst-walking.before.png",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-7f-restoration-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\iv7f-validation\\attempt1\\native-plan\\paired\\eye_0_qualified_2_probe_1014.before.png",
+      "bytes": 400918,
+      "sha256": "5eb7ee9d56391953cfa73446bb2cdc4b4193ad0b76d188dd6f9108db37f632ac"
+    },
+    {
+      "path": "worst-walking.after.png",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-7f-restoration-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\iv7f-validation\\attempt1\\native-plan\\paired\\eye_0_qualified_2_probe_1014.after.png",
+      "bytes": 400907,
+      "sha256": "74bdfe0eacfc4022e3680296cd9cbde1907384f615a83d4637397d7a30a1140f"
+    },
+    {
+      "path": "worst-walking.diff.png",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-7f-restoration-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\iv7f-validation\\attempt1\\native-plan\\paired\\eye_0_qualified_2_probe_1014.diff.png",
+      "bytes": 6373,
+      "sha256": "be170c62e7ef2d993b2790fa09f7f0a66aed52cf371074ecda0cd848971785ef"
+    },
+    {
+      "path": "7f-strict/result.json",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-7f-restoration-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\7f-validation-preflight\\monitor-7F-independent-default-strict26-20261025T143139\\result.json",
+      "bytes": 627,
+      "sha256": "e07bbcefe0fd80897f9b3f65365bedcb93c1154bfa8171dd0faaa88b95f05851"
+    },
+    {
+      "path": "7f-strict/actual-identity.json",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-7f-restoration-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\7f-validation-preflight\\monitor-7F-independent-default-strict26-20261025T143139\\actual-identity.json",
+      "bytes": 1385,
+      "sha256": "d577bcd979e69165fb40feb09a13669f395c9f463aba25018c2f4ee5209ba012"
+    },
+    {
+      "path": "7f-strict/stdout.txt",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-7f-restoration-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\7f-validation-preflight\\monitor-7F-independent-default-strict26-20261025T143139\\stdout.txt",
+      "bytes": 2642,
+      "sha256": "77fe4e84e4ddd6f7fefa6a98348eeece763ede98898171c5b4d9f3c55b47bfff"
+    },
+    {
+      "path": "7f-strict/stderr.txt",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-7f-restoration-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\7f-validation-preflight\\monitor-7F-independent-default-strict26-20261025T143139\\stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "7f-native/result.json",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-7f-restoration-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\7f-validation-preflight\\monitor-7F-independent-native46-with-source-control-20261025T143517\\result.json",
+      "bytes": 646,
+      "sha256": "1e039aed43ca89db6be368a663d6723ff845f148545bb730193b06fa0906725a"
+    },
+    {
+      "path": "7f-native/actual-identity.json",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-7f-restoration-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\7f-validation-preflight\\monitor-7F-independent-native46-with-source-control-20261025T143517\\actual-identity.json",
+      "bytes": 1345,
+      "sha256": "3a250befc1a07ca8779486d3377f39a8cd766e03cd9bec45fabb6ed3e0341536"
+    },
+    {
+      "path": "7f-native/stdout.txt",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-7f-restoration-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\7f-validation-preflight\\monitor-7F-independent-native46-with-source-control-20261025T143517\\stdout.txt",
+      "bytes": 803,
+      "sha256": "e88b8411aa6f93029694c9044969c5718f878ef3bca3e9ef85b8ad737a1ec785"
+    },
+    {
+      "path": "7f-native/stderr.txt",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-7f-restoration-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\7f-validation-preflight\\monitor-7F-independent-native46-with-source-control-20261025T143517\\stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "7f-census/result.json",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-7f-error-census-20261025\\05-Corllenium-UC-Building-Repair-Engine\\data\\7f-census-preflight\\monitor-7F-default-before-after-error-census-20261025T144933\\result.json",
+      "bytes": 739,
+      "sha256": "89eaeb45bfaa76d62240d2a781a4a1ec0cb68a8cc4e6bd10a490355361ed2f06"
+    },
+    {
+      "path": "7f-census/actual-identity.json",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-7f-error-census-20261025\\05-Corllenium-UC-Building-Repair-Engine\\data\\7f-census-preflight\\monitor-7F-default-before-after-error-census-20261025T144933\\actual-identity.json",
+      "bytes": 1095,
+      "sha256": "2c4fbb13b456ddc6feb2dee09331f642a6c7d7fe05eadb06872bdb75662bcd4f"
+    },
+    {
+      "path": "7f-census/stdout.txt",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-7f-error-census-20261025\\05-Corllenium-UC-Building-Repair-Engine\\data\\7f-census-preflight\\monitor-7F-default-before-after-error-census-20261025T144933\\stdout.txt",
+      "bytes": 952,
+      "sha256": "55a79e0cb3c234235a5790b536f7538acef7140cf48104f016509907bf5939a2"
+    },
+    {
+      "path": "7f-census/stderr.txt",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-7f-error-census-20261025\\05-Corllenium-UC-Building-Repair-Engine\\data\\7f-census-preflight\\monitor-7F-default-before-after-error-census-20261025T144933\\stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "7f-attribution/result.json",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-upper-floor-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\upper7-attribution\\monitor-7F-native97-source-footprint-20261025T145334\\result.json",
+      "bytes": 728,
+      "sha256": "adc4968efb20f6ba343e2be4a5ed3e58a80b657661686b2117ef81f70e852255"
+    },
+    {
+      "path": "7f-attribution/actual-identity.json",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-upper-floor-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\upper7-attribution\\monitor-7F-native97-source-footprint-20261025T145334\\actual-identity.json",
+      "bytes": 1370,
+      "sha256": "b25ebc9232bbdbb00ed1c6e7cd8e4ac6a7d94aeec7e235ff7fc915aadf38229a"
+    },
+    {
+      "path": "7f-attribution/stdout.txt",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-upper-floor-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\upper7-attribution\\monitor-7F-native97-source-footprint-20261025T145334\\stdout.txt",
+      "bytes": 1246,
+      "sha256": "9a9e14d0cd642760940639f17c04f78f29edb99c9352ee2621068bf3db2290c4"
+    },
+    {
+      "path": "7f-attribution/stderr.txt",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-upper-floor-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\upper7-attribution\\monitor-7F-native97-source-footprint-20261025T145334\\stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "1f-e5/result.json",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-e5-resume-20261025\\05-Corllenium-UC-Building-Repair-Engine\\data\\e5-exact-preflight\\monitor-E5-one-fullcover-actual-test-20261025T145908\\result.json",
+      "bytes": 616,
+      "sha256": "22a198c1bbccc4621bff678ba3faa7774b73f0c8f62729c4dc1d27a997ed36e0"
+    },
+    {
+      "path": "1f-e5/actual-identity.json",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-e5-resume-20261025\\05-Corllenium-UC-Building-Repair-Engine\\data\\e5-exact-preflight\\monitor-E5-one-fullcover-actual-test-20261025T145908\\actual-identity.json",
+      "bytes": 822,
+      "sha256": "75952eaef497a6038ed85d80d8910105d68e53405e0ff2588ed7ee7f0adcbcb5"
+    },
+    {
+      "path": "1f-e5/stdout.txt",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-e5-resume-20261025\\05-Corllenium-UC-Building-Repair-Engine\\data\\e5-exact-preflight\\monitor-E5-one-fullcover-actual-test-20261025T145908\\stdout.txt",
+      "bytes": 4021,
+      "sha256": "d0b15173d77264f2c4b0c14b54461ba320622f282468e71886f570b3fd1b9dde"
+    },
+    {
+      "path": "1f-e5/stderr.txt",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-e5-resume-20261025\\05-Corllenium-UC-Building-Repair-Engine\\data\\e5-exact-preflight\\monitor-E5-one-fullcover-actual-test-20261025T145908\\stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "7f-source-package/result.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261025\\monitor-7F-qualified-source-preview-package-20261025T144619\\result.json",
+      "bytes": 681,
+      "sha256": "d792f7d8f0e5e9d5c787e06c10411198400b2c8d1acc257a71a9d1392a723cd2"
+    },
+    {
+      "path": "7f-source-package/actual-identity.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261025\\monitor-7F-qualified-source-preview-package-20261025T144619\\actual-identity.json",
+      "bytes": 1309,
+      "sha256": "3e651ba7e7a37f3cfa5b9b1e5a404dde0c7b17e70b26b4626362e9d022d64d3f"
+    },
+    {
+      "path": "7f-source-package/stdout.txt",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261025\\monitor-7F-qualified-source-preview-package-20261025T144619\\stdout.txt",
+      "bytes": 555,
+      "sha256": "eb204d91f47834a861876be10f522fbdcd25b13f8faebbf306c225cf718d5465"
+    },
+    {
+      "path": "7f-source-package/stderr.txt",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261025\\monitor-7F-qualified-source-preview-package-20261025T144619\\stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "archive_sha256": "5abb7cef77dd08a2b0a6c82553d2e2d29cd04ea4fb34dc041a9cbd2585513c26",
+  "archive_bytes": 4725323,
+  "all_members_read_back": true,
+  "acceptance": false,
+  "local_only": true
+}
