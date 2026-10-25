@@ -1,0 +1,206 @@
+{
+  "artifacts": [
+    {
+      "path": "record.md",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261026\\continued-repair-record.md",
+      "bytes": 2373,
+      "sha256": "b4120081972c05ad479faefa25a098b5f21300e5117603bf1b5d7cc2fe255e62"
+    },
+    {
+      "path": "1f-fresh-e7-plan.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\l1e\\data\\e7-current\\plan-only.json",
+      "bytes": 930875,
+      "sha256": "7c263db002fc1925609612e9ba22d25936aa8ca49750c995e36beacce97e5c87"
+    },
+    {
+      "path": "1f-e7-source.py",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\l1e\\tools\\main_infra_10571_e7_plan.py",
+      "bytes": 7382,
+      "sha256": "7f07838a25815ae6fea20b4f7daebd0ff8fc710ba87484301e48dc0cad31654b"
+    },
+    {
+      "path": "1f-e7-tests.py",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\l1e\\tools\\tests\\test_main_infra_10571_e7_plan.py",
+      "bytes": 2746,
+      "sha256": "f6a66ad330e9baeb1e4963cc0143a2c0bc3b8a096879cf62424ce4e43c6c196c"
+    },
+    {
+      "path": "1f-input-reference.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\1f10571-e7-planning-inputs-20261026\\input-reference.json",
+      "bytes": 28784,
+      "sha256": "0b2c81f959ee35fe4a14f96077f4e81cd554f441911f29945508fdb4eb4c5ec0"
+    },
+    {
+      "path": "1f-plan-input.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\1f10571-e7-planning-inputs-20261026\\plan-input.json",
+      "bytes": 6672,
+      "sha256": "0199533ca44ff73ba098faef3e2d7a586c06e079e4d8b17b49b897611eb02878"
+    },
+    {
+      "path": "7f-publication.tar.gz",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\p7s\\signed-19695.tar.gz",
+      "bytes": 1079930,
+      "sha256": "3d7451f8e0f8863481264d98395848c34acfbefb2f7b6cfd170ccebb37a6d44a"
+    },
+    {
+      "path": "7f-publication-package.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\p7s\\package.json",
+      "bytes": 2181,
+      "sha256": "2bc74b9ee378fba8b3fb85d817b2447787c64540c58ef6bb826b99fefd4545bd"
+    },
+    {
+      "path": "7f-publication-deployment.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261026\\signed-19695-deployment.log",
+      "bytes": 658,
+      "sha256": "c5679071ca9d9898fbc1c776463e70772975d9f470c26d6660f863212a284819"
+    },
+    {
+      "path": "7f-bind-6f-native.py",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261026\\bind-7f-signed-6f-native.py",
+      "bytes": 4301,
+      "sha256": "44e4941b3465c3a0c16c5962704a0f47298679381e9423adb28dd657db7c4ffd"
+    },
+    {
+      "path": "6f-native-result.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\6f-delivery-readback-20261026\\native-diagnostic.json",
+      "bytes": 65788,
+      "sha256": "6e0de6def9413dad0145ff8cdb8aa48d1809c3c5e0f4e0a9e6f42d9b30374dbd"
+    },
+    {
+      "path": "6f-native-terminal.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\6f-delivery-readback-20261026\\actual-native-terminal.json",
+      "bytes": 721,
+      "sha256": "0624ba82b45d7a2dec1df8ee16f2fc90a3ec515f5651987d7ef41869b6951a0a"
+    },
+    {
+      "path": "5f-prepare-progress-readback.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261026\\5f-prepare-terminal-progress-readback.json",
+      "bytes": 527,
+      "sha256": "1bf59d337c5a51f21aa50a74eae0c4bbf5044b35292d032b862a8aeeb359faf6"
+    },
+    {
+      "path": "live-status-snapshot.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-fresh\\current.json",
+      "bytes": 168004,
+      "sha256": "3afda3e6e1abc44838544e8c9909378dfceb03f1b4338dfe98d04fa7c2629eee"
+    },
+    {
+      "path": "live-publish-health.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261023\\publish-health.json",
+      "bytes": 554,
+      "sha256": "4dea1cd863955d485d82d74a19b37a43cbad7f69ba403901e9afb608e8ff448a"
+    },
+    {
+      "path": "1f-phase-red.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\l1e\\data\\e7-current-preflight\\phase-red.json",
+      "bytes": 61439,
+      "sha256": "6841a72a9db6b4c2f586a0befba6e23f94caed04d2807a2575fd297ac5d27da3"
+    },
+    {
+      "path": "1f-red/result.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\l1e\\data\\e7-current-preflight\\monitor-1F10571-E7-red-20261025T234441\\result.json",
+      "bytes": 661,
+      "sha256": "c6f1b582f09bfcef968583ec3aec1e51f66a3c2591c3b66d0da93a4e3f7dc409"
+    },
+    {
+      "path": "1f-red/stdout.txt",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\l1e\\data\\e7-current-preflight\\monitor-1F10571-E7-red-20261025T234441\\stdout.txt",
+      "bytes": 13591,
+      "sha256": "30fa8f3c28a815b95f5e2227ec9bffc58ec2bfb8b65c62de90e36174887e2aeb"
+    },
+    {
+      "path": "1f-red/stderr.txt",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\l1e\\data\\e7-current-preflight\\monitor-1F10571-E7-red-20261025T234441\\stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "1f-red/launch-gate.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\l1e\\data\\e7-current-preflight\\monitor-1F10571-E7-red-20261025T234441\\launch-gate.json",
+      "bytes": 574,
+      "sha256": "702a4755249be24cd3f4c13f63e9f1a152f9a17f1e5e9bf915ee6963fc42fcda"
+    },
+    {
+      "path": "1f-red/resources.jsonl",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\l1e\\data\\e7-current-preflight\\monitor-1F10571-E7-red-20261025T234441\\resources.jsonl",
+      "bytes": 1648,
+      "sha256": "b743e6e1589510c11f5dca4a615c6f16b0fbd3293fc2a46063909da310c740fd"
+    },
+    {
+      "path": "1f-phase-green.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\l1e\\data\\e7-current-preflight\\phase-green.json",
+      "bytes": 61673,
+      "sha256": "6b21d13eb3585160c7afdba9172e03474495fbcd8faaa2ceb7247de19d2a6b59"
+    },
+    {
+      "path": "1f-green/result.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\l1e\\data\\e7-current-preflight\\monitor-1F10571-E7-green-20261025T234706\\result.json",
+      "bytes": 670,
+      "sha256": "5034158447078de45e5ea6129e0ca07d326779fa8ec07386cc7ced8e9453cf83"
+    },
+    {
+      "path": "1f-green/stdout.txt",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\l1e\\data\\e7-current-preflight\\monitor-1F10571-E7-green-20261025T234706\\stdout.txt",
+      "bytes": 101,
+      "sha256": "3962e9dafd530c26de1138341570a84826b51f65e5780f11aaaa0d89028d5912"
+    },
+    {
+      "path": "1f-green/stderr.txt",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\l1e\\data\\e7-current-preflight\\monitor-1F10571-E7-green-20261025T234706\\stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "1f-green/launch-gate.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\l1e\\data\\e7-current-preflight\\monitor-1F10571-E7-green-20261025T234706\\launch-gate.json",
+      "bytes": 574,
+      "sha256": "5a243a1ecb55742dcb97bb2d055df9edfa8364a3383ce7845aec98d50682bab1"
+    },
+    {
+      "path": "1f-green/resources.jsonl",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\l1e\\data\\e7-current-preflight\\monitor-1F10571-E7-green-20261025T234706\\resources.jsonl",
+      "bytes": 2990,
+      "sha256": "bafe266ea16de1ff3cdafee9080f44e1e6bb13d9de10f70a8e3bed2cf459c528"
+    },
+    {
+      "path": "1f-phase-plan.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\l1e\\data\\e7-current-preflight\\phase-plan.json",
+      "bytes": 68175,
+      "sha256": "3dac27b1139e1969439a6c6f7234a8597bc7922a097849862ad373cdec96101c"
+    },
+    {
+      "path": "1f-plan/result.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\l1e\\data\\e7-current-preflight\\monitor-1F10571-E7-plan-20261025T234813\\result.json",
+      "bytes": 669,
+      "sha256": "6e2a06f4538caa7f7811fe916321ea9129b7c0584f39b54ab560128916901d4e"
+    },
+    {
+      "path": "1f-plan/stdout.txt",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\l1e\\data\\e7-current-preflight\\monitor-1F10571-E7-plan-20261025T234813\\stdout.txt",
+      "bytes": 489,
+      "sha256": "0fca68686b41487bc75b2f3bea51c9f17ab1bad35cce4eb639e698c198963cfa"
+    },
+    {
+      "path": "1f-plan/stderr.txt",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\l1e\\data\\e7-current-preflight\\monitor-1F10571-E7-plan-20261025T234813\\stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "1f-plan/launch-gate.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\l1e\\data\\e7-current-preflight\\monitor-1F10571-E7-plan-20261025T234813\\launch-gate.json",
+      "bytes": 574,
+      "sha256": "71a5db1e6313dc6ad93c96e5a76deca120706ab345bd5dfa677855e1ad7103ba"
+    },
+    {
+      "path": "1f-plan/resources.jsonl",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\l1e\\data\\e7-current-preflight\\monitor-1F10571-E7-plan-20261025T234813\\resources.jsonl",
+      "bytes": 12454,
+      "sha256": "2b50d58e34909ef53f6d3d99ee1bbc17e0eebc80564259b760a28de32405b5f2"
+    }
+  ],
+  "archive_sha256": "2315a08022af4af665607d6ba114770ed085e4452913996b7abb67e9fb5255b0",
+  "all_members_read_back": true,
+  "local_only": true,
+  "acceptance": false
+}

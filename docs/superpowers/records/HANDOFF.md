@@ -25,6 +25,17 @@ run the latest `.skp` of each file must be in `OBJ FIXED RESULT/` for the owner 
 
 ## 2. Current state (2026-09-26 00:15, written by the Claude controller)
 
+2026-10-26 continuation: the owner requested all seven final fresh MAIN INFRA floors, Blender and live dashboard updates, preserving cuts/facades/textures. Still no accepted final clean floors.
+
+7F19695 completed independent signed evidence is now published: five immutable files verified in both static roots and HTTP; unchanged API cedb/db healthy/no restart. New signed preview retains actual model and seven measured maps; textures/visible preservation PASS, targets FAIL8701 (1522 different-look,2629 same-look,4550 cracks). Original resource-abort history remains. Publication archive3d7451f8; completed validation5abac22a. An initial package missing publication_eligible stopped before any static install; corrected package and local preflight passed, actual installer exit0.
+
+6F canonical status corrected to actual12168 native diagnostic: raw source control33exact, historicalE327108 candidate5changedpixels across walking784/747/760 and two outside views. Zero diagnostic exit certifies source control only. No new6F model/pass claimed.
+
+1F new claimed MAIN-INFRA-1F-10571-E7-20261026 in locked .claude/worktrees/l1e, branch codex/main-infra-1f-10571-e7-20261026. Committed e510a89 RED11missingmodule+1constructorcontrol, implementation294ac67 GREEN12PASS0.98s, actual57688 exit0. Fresh E7 plan actual10752 started2026-10-25T23:48:14.9821885Z/ended23:48:25.1348982Z, exit0/noabort/allgone, V5 own3/global3.5/fresh8. Authentic CPb9f8/source d8ee/engine604b/composed lineage eee378 and current independent preservationec233 bound. Actual459 proposals:458 mandatory original parents,1 priority anchor,0admissible. All754 whole originals/829locked faces preserved. No repair kernel called and no new model saved; report7c263db0. Current10571 still FAIL5198 signed targets. Next source-qualified overlap cuts under investigation.
+
+4F stable r4f/v4f recovery and CP3-to-E5 continuation are in separate builder/independent roles; actual saved E360496 retained, no E5 yet. 5F measured identity preparation44588 completed14.362s/Pddda with all837 historical keys and4188protected; identity-checkpoint compatibility is being corrected before expensive replay. No modified guards or targets. Blender review eb2a8f70 remains open with latest actual candidates; it is explicitly NOT_FINAL. Other agents' dirty files and user GUI preserved. Public engine origin never pushed.
+
+
 ### 2026-10-26: latest1F10571 delivered, full7F verdict completed, protected4F repair running
 
 - Actual1F10571 full independent validation18052 completed exit2/all-owned-exited at2026-10-25T19:27:25.7804711Z. Validation ec233f6d178c5e71755a61d360ecd92db5f6eca35e602bc3facc04480e755a80 shows textures PASS108392samples/0fail, visible preservation PASS and full pixel-floor31faces/0fail. Strict26/native33/focusedfloor14 had passed separately. Signed targets FAIL5198:1708 different-look overlaps,1155 same-look overlaps,2335 cracks. Total improved104 from10651; same-look increased2. Hidden3129/loose1/open2240 are report-only. New754 original-parent protections remain exact. This is an unaccepted candidate.
