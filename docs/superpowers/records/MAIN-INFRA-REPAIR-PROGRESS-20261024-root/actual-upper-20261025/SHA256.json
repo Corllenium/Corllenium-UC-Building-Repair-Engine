@@ -1,0 +1,92 @@
+{
+  "schema_version": 1,
+  "artifacts": [
+    {
+      "path": "actual-7F-restoration.zip",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-upper-floor-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\docs\\superpowers\\records\\MAIN-INFRA-UPPER-FLOOR-RETENTION-20261024\\actual-20261025\\actual-7F-restoration.zip",
+      "bytes": 3123971,
+      "sha256": "12853c1d73786d0a9d71e566d0214ea049a42b20a09df1ce5a44c6365a7bc62c"
+    },
+    {
+      "path": "7f-archive-manifest.json",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-upper-floor-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\docs\\superpowers\\records\\MAIN-INFRA-UPPER-FLOOR-RETENTION-20261024\\actual-20261025\\archive-manifest.json",
+      "bytes": 25802,
+      "sha256": "11a3b25399777f8f1d692b83a38108654f58affc2461f5aada2392ad03e81681"
+    },
+    {
+      "path": "7f-execution-result.json",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-upper-floor-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\upper7\\monitor-7F-whole-site-restoration-execute-20261025T134238\\result.json",
+      "bytes": 615,
+      "sha256": "b6caf58ebbf7b4d5a02fec9e09e18772269574f7fad1cc9779c609e9522339cf"
+    },
+    {
+      "path": "7f-saved-readback.json",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-upper-floor-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\upper7\\saved-candidate-readback.json",
+      "bytes": 23773,
+      "sha256": "a5e6768bb593f4992367cba89d796ecfd68fae34ec988034834a0c50311104db"
+    },
+    {
+      "path": "7f-independent-prepared.json",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-7f-restoration-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\iv7f-validation\\attempt1\\preparation\\prepared.json",
+      "bytes": 942144,
+      "sha256": "f7a010e16146595e4994ced6e60f729558c9b8d8e4fdeeccf8ac9683634ba508"
+    },
+    {
+      "path": "7f-independent-guard-phase.json",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-7f-restoration-validate-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\7f-validation-preflight\\phase-guard.json",
+      "bytes": 178492,
+      "sha256": "73553c85f9f0e7e9279d7ff231e1cc4cad4dd97265d39cafb3ce4d662cdca104"
+    },
+    {
+      "path": "4f-6f-retained-metadata.json",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-upper-floor-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\docs\\superpowers\\records\\MAIN-INFRA-UPPER-FLOOR-RETENTION-20261024\\upper4-6-retained-metadata-20261025.json",
+      "bytes": 88824,
+      "sha256": "88ffe0b0efa53fe11942c5e3273825a376bb7d3f91f3d89d99341bf00e28d443"
+    },
+    {
+      "path": "4f-6f-restoration-plan.md",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-upper-floor-retention-20261024\\05-Corllenium-UC-Building-Repair-Engine\\docs\\superpowers\\plans\\2026-10-25-upper-4f-6f-checked-restoration.md",
+      "bytes": 12243,
+      "sha256": "fc5c5aee60e62373da0e3a06af0aa3728999aca9bbaa61b4116ad22ee5d3bc86"
+    },
+    {
+      "path": "1f-saved-pair-relations.json",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-e5-resume-20261025\\05-Corllenium-UC-Building-Repair-Engine\\data\\e5-exact-coverage\\current-10652\\saved-pair-relations.json",
+      "bytes": 3729554,
+      "sha256": "4297bae59e657afa86d02ca6e6472fc5c749584a748f5f371080d441d45f2edd"
+    },
+    {
+      "path": "1f-saved-neighbor-border-geometry.json",
+      "source": "D:\\LLM_BACKUP\\Codex session\\main-infra-e5-resume-20261025\\05-Corllenium-UC-Building-Repair-Engine\\data\\e5-exact-coverage\\current-10652\\saved-neighbor-border-geometry.json",
+      "bytes": 162870,
+      "sha256": "1fd0c060753b50442f0810f5cb2afe3810c094f2145f18b91958c299fd7d6562"
+    },
+    {
+      "path": "publisher-takeover-v2.identity.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261025\\publisher-takeover-v2.identity.json",
+      "bytes": 1393,
+      "sha256": "c0e8e34f8c355eead5462174fb64fb1edab57861db0b9163225927abfa33e929"
+    },
+    {
+      "path": "ui-repair-engine-roles-deploy.log",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261025\\ui-repair-engine-roles-deploy.log",
+      "bytes": 1053,
+      "sha256": "c185d2a7c6590652d69b6b877872d55db3b46c2fa1b8a85dce142fb12dcc6342"
+    },
+    {
+      "path": "live-candidate-saved-readback.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261025\\live-candidate-saved-readback.json",
+      "bytes": 179597,
+      "sha256": "91c25ed03743b0222a8d110d26f51c42c3e45c0d5c11a4b24642d97e10713de3"
+    }
+  ],
+  "accepted": false,
+  "local_only": true,
+  "compressed_evidence": {
+    "path": "evidence.zip",
+    "sha256": "c1375d66f71e57b9be8ffe57f7bb30efe57a53716d917c32a1fbd83a5744b9d0",
+    "bytes": 446390,
+    "members": 12,
+    "all_members_read_back": true
+  }
+}
