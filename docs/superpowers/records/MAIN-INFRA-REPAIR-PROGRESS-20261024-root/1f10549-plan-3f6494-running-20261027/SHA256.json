@@ -1,0 +1,134 @@
+{
+  "artifacts": [
+    {
+      "path": "record.md",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261026\\1f-plan-3f-running-root-record.md",
+      "bytes": 4107,
+      "sha256": "052c90164d4cd4e82f49460af04ab013ee432296917c24f4351276f7a9f41074"
+    },
+    {
+      "path": "3f/review-packet.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\3f-two-witness-preparation-20261027\\attempt2\\review-packet.json",
+      "bytes": 961,
+      "sha256": "fd258799821aeb3b343a7cb81be5fa6025d0b8fa48168100dbb57835fa960a6d"
+    },
+    {
+      "path": "3f/delta-from-reviewed-d843.diff",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\3f-two-witness-preparation-20261027\\attempt2\\delta-from-reviewed-d843.diff",
+      "bytes": 4411,
+      "sha256": "1091c830df7fdfe39dc2892bbbcbd8b3e037a39c6d504bff0a0059b4b90085cb"
+    },
+    {
+      "path": "3f/phase-e3.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\3f-two-witness-preparation-20261027\\attempt2\\phase-e3.json",
+      "bytes": 4009,
+      "sha256": "9db078e939e92c174dcb4493fcaef0a56add5a0c935cde68a463fc766ed95f5b"
+    },
+    {
+      "path": "3f/actual-engine-observation.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\3f-two-witness-preparation-20261027\\attempt2\\actual-engine-observation.json",
+      "bytes": 252,
+      "sha256": "e49e50293c461a5ab08386a316d855a317899f5d1bce7bd5e0fda7673ab09e0c"
+    },
+    {
+      "path": "3f/bind-active.py",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\3f-two-witness-preparation-20261027\\attempt2\\bind-active.py",
+      "bytes": 3610,
+      "sha256": "ae9f94c7ee3a8fea28d62869d34e149b9dda9d84e56897e03ff51661059e5c8e"
+    },
+    {
+      "path": "3f/active-status-readback.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\3f-two-witness-preparation-20261027\\attempt2\\active-status-readback.json",
+      "bytes": 521,
+      "sha256": "f22a6a8b4fa3917189ba08ab7b3242549f6ed8c6d26c782fa6ad2b9afd94a86c"
+    },
+    {
+      "path": "3f/actual-identity.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\3f-two-witness-preparation-20261027\\attempt2\\monitor-3f-two-witness-fresh-e3-attempt2-20261026T185754\\actual-identity.json",
+      "bytes": 900,
+      "sha256": "b638ca18bc790c0a72a0983202c57bfbc3927eee3a7a1bae8145516eecb6646d"
+    },
+    {
+      "path": "1f/main_infra_10549_e7_plan.py",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\l1n\\tools\\main_infra_10549_e7_plan.py",
+      "bytes": 11553,
+      "sha256": "e3843f754e35e4e46cb72215b58f85edf2d544c83883fa38066dba336c844d0b"
+    },
+    {
+      "path": "1f/test_main_infra_10549_e7_plan.py",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\l1n\\tools\\tests\\test_main_infra_10549_e7_plan.py",
+      "bytes": 4781,
+      "sha256": "739f8b85519eb5164cdb0b04795df598ea152101c8420ea0b612b175769e244f"
+    },
+    {
+      "path": "1f/phase-plan.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\l1n\\data\\10549-e7-preflight\\phase-plan.json",
+      "bytes": 76125,
+      "sha256": "0611172faf94ac66e58a10b427f8f9d786de34670bd9c5f3373d4e866b5eec00"
+    },
+    {
+      "path": "1f/readiness.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\l1n\\data\\10549-e7-preflight\\readiness.json",
+      "bytes": 1166,
+      "sha256": "e0f980396544a04db2a27d3e1c54a77d1863eac356c7d5297ead6bcfd0baf0f4"
+    },
+    {
+      "path": "1f/plan-only.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\l1n\\data\\10549-e7-plan\\run-20261027\\plan-only.json",
+      "bytes": 939830,
+      "sha256": "c444de7af7a82d8da68591b5ae0fad967879761f7b8d9d9b5651712231e178d3"
+    },
+    {
+      "path": "1f/result.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\l1n\\data\\10549-e7-preflight\\monitor-1F10549-authenticated-fresh-E7-readonly-plan-20261026T190131\\result.json",
+      "bytes": 695,
+      "sha256": "31d551ddab96f50ee102ab6fb9595296701c0cf12c43966e9e03ebbcb5490df9"
+    },
+    {
+      "path": "1f/plan-input.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\l1n\\docs\\superpowers\\records\\MAIN-INFRA-1F-10549-E7-PLAN-20261027\\plan-input.json",
+      "bytes": 12270,
+      "sha256": "718f0d04b3f7902c15b03f11f82c2a2b5a28276b88944f2adc84d5b157ff0a4b"
+    },
+    {
+      "path": "1f/runtime-inventory.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\l1n\\docs\\superpowers\\records\\MAIN-INFRA-1F-10549-E7-PLAN-20261027\\runtime-inventory.json",
+      "bytes": 67510,
+      "sha256": "d959950f7d43b859b1e0d828ccff4ad19d2cf931297eb86ff7d550502768bf80"
+    },
+    {
+      "path": "controller/1f10549-plan-draft.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261026\\1f10549-plan-draft.json",
+      "bytes": 351161,
+      "sha256": "7ecf8cc296b83008225453db784fe99ed7e22ebb78a05026d01fad21ff27e765"
+    },
+    {
+      "path": "controller/1f10549-plan-readback.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261026\\1f10549-plan-readback.json",
+      "bytes": 233,
+      "sha256": "805db8ec4958fa84d5644877ed5042f4630a0e5433121c11f4314366f535a8d5"
+    },
+    {
+      "path": "ui/checks.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\docs\\handoff\\main-infra-facade-filter-20261027\\checks.json",
+      "bytes": 2949,
+      "sha256": "72f69648f821019acf5faa5f465db9cf32415b758da380cb4c515e82b4609918"
+    },
+    {
+      "path": "ui/live-readback.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\SIEGE-MAIN-INFRA-LIVE-20261023\\docs\\handoff\\main-infra-facade-filter-20261027\\live-readback.json",
+      "bytes": 1423,
+      "sha256": "498451a308a720d54d498e57f1a3569185798acac2f6b0f082fc1b2d822bb918"
+    },
+    {
+      "path": "current-status.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-fresh\\current.json",
+      "bytes": 351121,
+      "sha256": "40601eb4e4a626052f7ec46192b7d374e50350ab9319f1f514b311365da3caba"
+    }
+  ],
+  "archive_sha256": "081653bba59c85adae3e85dc0657ab39b6df1753d241f28d32a383716c78d171",
+  "all_members_read_back": true,
+  "local_only": true,
+  "acceptance": false
+}
