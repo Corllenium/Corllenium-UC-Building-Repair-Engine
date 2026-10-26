@@ -1,0 +1,212 @@
+{
+  "artifacts": [
+    {
+      "path": "record.md",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261026\\orange-blender-delivery-record.md",
+      "bytes": 4929,
+      "sha256": "80eb171285ed272a2d075a4eaafad3a90d62f4b41587640f4b405df8da1e2e17"
+    },
+    {
+      "path": "MAIN-INFRA-NOT_FINAL-ALL-FLOORS.blend",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\blender-review\\MAIN-INFRA-7FLOORS-NOT_FINAL-20261026-ORANGE-REMOVED-R3\\MAIN-INFRA-NOT_FINAL-ALL-FLOORS.blend",
+      "bytes": 16138815,
+      "sha256": "9b681781e68fd2715ab0a1cbe3f1588858ae1f70283ee92f397acdd9f32e3c47"
+    },
+    {
+      "path": "blender-receipt.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\blender-review\\MAIN-INFRA-7FLOORS-NOT_FINAL-20261026-ORANGE-REMOVED-R3\\MAIN-INFRA-NOT_FINAL-ALL-FLOORS.receipt.json",
+      "bytes": 228338,
+      "sha256": "adea05db1558759060aab35673f7e2f1e476e53b655f8ed113e4aebbf5323ad1"
+    },
+    {
+      "path": "reopened-readback.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\blender-review\\MAIN-INFRA-7FLOORS-NOT_FINAL-20261026-ORANGE-REMOVED-R3\\reopened-evidence\\readback.json",
+      "bytes": 131091,
+      "sha256": "27b7e8b4aec8390cdb325995d5d8aad9105f7e3e0662b40430ec7db8dca7f896"
+    },
+    {
+      "path": "visual-inspection.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\blender-review\\MAIN-INFRA-7FLOORS-NOT_FINAL-20261026-ORANGE-REMOVED-R3\\visual-inspection.json",
+      "bytes": 399,
+      "sha256": "4c2231b7d3f9a822ab65eeb556179a280c7ac1d245e616e90a68355dbef27cb1"
+    },
+    {
+      "path": "interactive-open.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\blender-review\\MAIN-INFRA-7FLOORS-NOT_FINAL-20261026-ORANGE-REMOVED-R3\\interactive-open.json",
+      "bytes": 1077,
+      "sha256": "11445c5f893944494a9c2b2d5bbdf769bf2b4357c0a0b7016b71dda5a96e0776"
+    },
+    {
+      "path": "inventory.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\blender-review\\MAIN-INFRA-7FLOORS-NOT_FINAL-20261026-ORANGE-REMOVED-inputs\\floor-inventory.json",
+      "bytes": 109714,
+      "sha256": "3033c4ee856bf56ba1015728bc636584b175151d400fda1f005610e16f851db4"
+    },
+    {
+      "path": "independent-marker-proof.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\omv\\data\\orange-independent\\run-20261026\\independent-marker-proof.json",
+      "bytes": 21946408,
+      "sha256": "d8b5dc6bd6be262d0e2522ffd787b2f9e1692d31f3d772588248cacbce5c4f57"
+    },
+    {
+      "path": "root-authority.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\omv\\docs\\superpowers\\records\\MAIN-INFRA-ORANGE-BOX-VALIDATE-20261026\\root-exact-selection.json",
+      "bytes": 17526,
+      "sha256": "81c02db5fca5eda121549533cca06a23e14c160860246af9613deedc652b6dfb"
+    },
+    {
+      "path": "cleanup-receipt.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\omb\\data\\orange-cleanup\\run-20261026\\cleanup-receipt.json",
+      "bytes": 32536,
+      "sha256": "b2714d57a26f7786ed3ad93ff33fde8bb18866544abb8a2ce401ed69caeca78b"
+    },
+    {
+      "path": "cleanup-postreadback.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\omb\\data\\orange-preflight\\cleanup-postreadback.json",
+      "bytes": 91071,
+      "sha256": "12b6b7b04977130e336639aefa1f11551bf435c604c68a2d6759f8e1b380a553"
+    },
+    {
+      "path": "review-code.py",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\omv\\tools\\main_infra_blender_review.py",
+      "bytes": 35417,
+      "sha256": "d61a938ed84b418a830f70a245cf88694a40503d4395ceae2031f02e61a13753"
+    },
+    {
+      "path": "survivor-proof.py",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\omv\\tools\\main_infra_orange_survivor_proof.py",
+      "bytes": 2011,
+      "sha256": "057dead686b853d01796ab401480f364087512fe4e9b11033482f5e6e2cf2fe1"
+    },
+    {
+      "path": "actual-saved-proof.py",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\omv\\tools\\main_infra_orange_saved_proof.py",
+      "bytes": 5482,
+      "sha256": "2e851f9472f986125310c40000d7098273b0fab1b0534022082fa57255c214d6"
+    },
+    {
+      "path": "review-tests.py",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\omv\\tools\\tests\\test_main_infra_orange_review.py",
+      "bytes": 4634,
+      "sha256": "afa6c5fcef1b1471717d4028b0ecdbac94dccd2b48ac6a4baf7371f954d61cc4"
+    },
+    {
+      "path": "60-green.txt",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\omv\\data\\orange-proof-preflight\\monitor-orange-used-material-slot-GREEN-20261026T031513\\stdout.txt",
+      "bytes": 115,
+      "sha256": "a5d4511a64337aeeb1bd053ae55bd752af49ee0fd78bca25dbc903205789a521"
+    },
+    {
+      "path": "build-terminal.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\omv\\data\\orange-proof-preflight\\monitor-orange-free-seven-floor-Blender-build-r3-20261026T032235\\result.json",
+      "bytes": 721,
+      "sha256": "69330a8a44f34f10462829adb5e58d534e7b244b641161c95b5b118d21df2a61"
+    },
+    {
+      "path": "reopen-terminal.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\omv\\data\\orange-proof-preflight\\monitor-orange-free-seven-floor-Blender-reopen-render-20261026T032450\\result.json",
+      "bytes": 730,
+      "sha256": "571bba60cb76b714ff9c31b772a0e6b88119a7b67722556264ec7d852ec6160a"
+    },
+    {
+      "path": "open-new-file.ps1",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\blender-review\\open-orange-free-overview.ps1",
+      "bytes": 2837,
+      "sha256": "aa0048de7a55a5576537b1a8ce580f88219771e9e6c1c74cfe07d7b5c7781888"
+    },
+    {
+      "path": "images/1F-candidate.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\blender-review\\MAIN-INFRA-7FLOORS-NOT_FINAL-20261026-ORANGE-REMOVED-R3\\reopened-evidence\\1F-candidate.png",
+      "bytes": 256970,
+      "sha256": "75b796ace5468ae26b646f16bb35913398c2a4edb8190c778916454837c83ac9"
+    },
+    {
+      "path": "images/1F-source.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\blender-review\\MAIN-INFRA-7FLOORS-NOT_FINAL-20261026-ORANGE-REMOVED-R3\\reopened-evidence\\1F-source.png",
+      "bytes": 260607,
+      "sha256": "a108fbedf72224fa8b7aea0496a8d12374a3e7d7d65f55cee9cb2c04547ee2fe"
+    },
+    {
+      "path": "images/2F-candidate.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\blender-review\\MAIN-INFRA-7FLOORS-NOT_FINAL-20261026-ORANGE-REMOVED-R3\\reopened-evidence\\2F-candidate.png",
+      "bytes": 385554,
+      "sha256": "8cb42a3506baccf6dd757741b3b3b13949a3d918170e69372f511dc2ae6d103c"
+    },
+    {
+      "path": "images/2F-source.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\blender-review\\MAIN-INFRA-7FLOORS-NOT_FINAL-20261026-ORANGE-REMOVED-R3\\reopened-evidence\\2F-source.png",
+      "bytes": 387557,
+      "sha256": "c67c90c0cb4bfc97fa5d6f196064ea23c74f70f4aca8f7307b693d3efe9c23b7"
+    },
+    {
+      "path": "images/3F-candidate.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\blender-review\\MAIN-INFRA-7FLOORS-NOT_FINAL-20261026-ORANGE-REMOVED-R3\\reopened-evidence\\3F-candidate.png",
+      "bytes": 238738,
+      "sha256": "89244116cedfd528eec93f81284d67c6cf9e882e14bce7bd16cd85add99d88a5"
+    },
+    {
+      "path": "images/3F-source.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\blender-review\\MAIN-INFRA-7FLOORS-NOT_FINAL-20261026-ORANGE-REMOVED-R3\\reopened-evidence\\3F-source.png",
+      "bytes": 241104,
+      "sha256": "70354b5eb58842603de13ef8c20c4b727a0bbc85085fcf4b178908de3d07868b"
+    },
+    {
+      "path": "images/4F-candidate.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\blender-review\\MAIN-INFRA-7FLOORS-NOT_FINAL-20261026-ORANGE-REMOVED-R3\\reopened-evidence\\4F-candidate.png",
+      "bytes": 253847,
+      "sha256": "517e3e749149031a361c7194b43e12159efcfd33e6e9bea5b20e79de90365ead"
+    },
+    {
+      "path": "images/4F-source.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\blender-review\\MAIN-INFRA-7FLOORS-NOT_FINAL-20261026-ORANGE-REMOVED-R3\\reopened-evidence\\4F-source.png",
+      "bytes": 256300,
+      "sha256": "56fdd32aa7378bfe1c22cac8beff0acd85f6e7a0e2dfac082ae2f7d8db29b16e"
+    },
+    {
+      "path": "images/5F-candidate.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\blender-review\\MAIN-INFRA-7FLOORS-NOT_FINAL-20261026-ORANGE-REMOVED-R3\\reopened-evidence\\5F-candidate.png",
+      "bytes": 233303,
+      "sha256": "cba849db5156cb6828c0dbcb048d90f34e16d0ece48113397bbd316dce4f5559"
+    },
+    {
+      "path": "images/5F-source.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\blender-review\\MAIN-INFRA-7FLOORS-NOT_FINAL-20261026-ORANGE-REMOVED-R3\\reopened-evidence\\5F-source.png",
+      "bytes": 235276,
+      "sha256": "bcdf805584dcbed8410d5f1ed5a774a7edb95409dbbdde3deb20b0990d6f3df0"
+    },
+    {
+      "path": "images/6F-candidate.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\blender-review\\MAIN-INFRA-7FLOORS-NOT_FINAL-20261026-ORANGE-REMOVED-R3\\reopened-evidence\\6F-candidate.png",
+      "bytes": 239641,
+      "sha256": "2facde91afe4478b640a54e9f9b8bb991cf111fb655d2587e9a98487433db6b5"
+    },
+    {
+      "path": "images/6F-source.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\blender-review\\MAIN-INFRA-7FLOORS-NOT_FINAL-20261026-ORANGE-REMOVED-R3\\reopened-evidence\\6F-source.png",
+      "bytes": 241548,
+      "sha256": "85179056ede5e20b2d227d6813e9e16c51eb62960c5dbe0dfd4b79bf922d8738"
+    },
+    {
+      "path": "images/7F-candidate.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\blender-review\\MAIN-INFRA-7FLOORS-NOT_FINAL-20261026-ORANGE-REMOVED-R3\\reopened-evidence\\7F-candidate.png",
+      "bytes": 250797,
+      "sha256": "84b33637a3e864119b444758400604f0d27354e7cabcd3653ab7aab92ea4debf"
+    },
+    {
+      "path": "images/7F-source.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\blender-review\\MAIN-INFRA-7FLOORS-NOT_FINAL-20261026-ORANGE-REMOVED-R3\\reopened-evidence\\7F-source.png",
+      "bytes": 252695,
+      "sha256": "ccdbfcf557eed01b514b4f7796bcfb5df8fede7203f7a929c7c07946b01682a1"
+    },
+    {
+      "path": "images/all-floors-overview.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\blender-review\\MAIN-INFRA-7FLOORS-NOT_FINAL-20261026-ORANGE-REMOVED-R3\\reopened-evidence\\all-floors-overview.png",
+      "bytes": 345034,
+      "sha256": "4a392d3df6128bfe4fb5b0c3c704ca081817773cbdda19c056483afba5caba5a"
+    }
+  ],
+  "archive_sha256": "a08549b669efaed4da8e42456fcf368fdf227add21e89d994d846d2c0093ae69",
+  "all_members_read_back": true,
+  "local_only": true,
+  "acceptance": false
+}
