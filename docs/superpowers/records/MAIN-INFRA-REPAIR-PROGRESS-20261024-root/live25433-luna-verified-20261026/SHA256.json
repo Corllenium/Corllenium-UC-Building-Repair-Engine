@@ -1,0 +1,1952 @@
+{
+  "artifacts": [
+    {
+      "path": "record.md",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261026\\live25433-luna-record.md",
+      "bytes": 3911,
+      "sha256": "049dc04eccb4e6ba4e98ac2c717a6f2f9e659bd1f7305127c3987f6bbfc11e8a"
+    },
+    {
+      "path": "live/package.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\live-6f25433\\package.json",
+      "bytes": 7943,
+      "sha256": "2d417346e5c247175dda96392a97434d20a5d2872a96a09ad2b2b23631580be6"
+    },
+    {
+      "path": "live/models.tar.gz",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\live-6f25433\\models.tar.gz",
+      "bytes": 1123327,
+      "sha256": "425c5deb4fc77588e5722a08f825391bb883e80d393dd8ead8021c8f56af156b"
+    },
+    {
+      "path": "live/deployment.log",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\live-6f25433\\deployment.log",
+      "bytes": 262,
+      "sha256": "eb79612ff5dd45f10e35bb8273a0b1baa5a174bcddd3875feac9d85815c6b780"
+    },
+    {
+      "path": "live/client-preview-qa.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\live-6f25433\\client-preview-qa.json",
+      "bytes": 319,
+      "sha256": "7b031757821bf1f06d3c8448c68f5c9dde8188d43ebbd0c403fdada34c6dbd51"
+    },
+    {
+      "path": "live/canonical-readback.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\live-6f25433\\canonical-readback.json",
+      "bytes": 486,
+      "sha256": "2f66fb2186c40ed627a15f644cc5abc01beba54bd24500586d3a116fdf245536"
+    },
+    {
+      "path": "live/native-canonical-readback.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\live-6f25433\\native-canonical-readback.json",
+      "bytes": 158,
+      "sha256": "951fa2876e215c318bc4257502a30c7f258d72548038c06275b98a01c6b9f2a8"
+    },
+    {
+      "path": "live/live-after-25433.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\live-6f25433\\live-after-25433.png",
+      "bytes": 22001,
+      "sha256": "406469f05d74109f36e4443d9152722e5f6b36070d3f5b03c4205e3132e19015"
+    },
+    {
+      "path": "controller/build-live-6f25433.py",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261026\\build-live-6f25433.py",
+      "bytes": 6121,
+      "sha256": "e952185b54a5789b2080d1bd6507db792a56effd55c3795b3cad7fb0ce6a412d"
+    },
+    {
+      "path": "controller/check-live-6f25433.mjs",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261026\\check-live-6f25433.mjs",
+      "bytes": 2585,
+      "sha256": "319496d2989262e40b548fc5948920eda667f198ba0b3f304eadcfcf42f9bcb6"
+    },
+    {
+      "path": "controller/publish-live-6f25433.py",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261026\\publish-live-6f25433.py",
+      "bytes": 3647,
+      "sha256": "7c3c10547700693bd2ae9021c5f8257fbe9fea55e512df4724eb454dbb4dc57b"
+    },
+    {
+      "path": "controller/publish-live-6f25433.ps1",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261026\\publish-live-6f25433.ps1",
+      "bytes": 1761,
+      "sha256": "36c8fa5fd02c8d6e239a1e00c49685094d917e028f443c70e6ff4a19cd48ab7a"
+    },
+    {
+      "path": "controller/bind-live-6f25433.py",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261026\\bind-live-6f25433.py",
+      "bytes": 5665,
+      "sha256": "fdec99f7e1d92496b58ed2e17301ee41cea34c4efd04e021d54503f0b7006404"
+    },
+    {
+      "path": "controller/CONTINUATION-20261026-1345.md",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261026\\CONTINUATION-20261026-1345.md",
+      "bytes": 8145,
+      "sha256": "8068caafb65dcf693e501f12dffa447d71dffe454a0476cefdd4dabccc521fbd"
+    },
+    {
+      "path": "publisher/publish-readonly.ps1",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261026\\status-publisher-readonly\\publish-readonly.ps1",
+      "bytes": 3079,
+      "sha256": "a60476565977cb21996d24162d8921df54023930268b627ce94ac86a1dc3c65e"
+    },
+    {
+      "path": "publisher/identity.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261026\\status-publisher-readonly\\identity.json",
+      "bytes": 378,
+      "sha256": "ba60e8d7cfbf0cfcf02f3517e100881b3d33f0a30b51fb243b81c0dbfbfdeebb"
+    },
+    {
+      "path": "publisher/health.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261026\\status-publisher-readonly\\health.json",
+      "bytes": 530,
+      "sha256": "f1c0ed0f7ba9ca40ce03f7edc5baecc59962951305fe531ff37a706d2b9ea254"
+    },
+    {
+      "path": "publisher/old-stale-guard-failure.log",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261025\\publisher-takeover-v3-resume2-20261026.stderr.log",
+      "bytes": 784,
+      "sha256": "356b5e821958bdc3bf73db92602ffc6f7fd7454e5f51113bf002a8022bc91761"
+    },
+    {
+      "path": "native/actual-commands.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\actual-commands.json",
+      "bytes": 2354,
+      "sha256": "a9cceb26cbef3633b959b6fe34344a2c8cd92c5b979bae38b60bf1507cfe8e7c"
+    },
+    {
+      "path": "native/candidate.stderr.txt",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate.stderr.txt",
+      "bytes": 284,
+      "sha256": "2694fbe36c1f3d0b2022e865f512c3fc372fa565392bd3caec0206ef1aafb987"
+    },
+    {
+      "path": "native/candidate.stdout.txt",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate.stdout.txt",
+      "bytes": 17573,
+      "sha256": "138020879c420425783d4f40059169b0e8c752605629666b9581932fc18837e4"
+    },
+    {
+      "path": "native/native-preservation.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\native-preservation.json",
+      "bytes": 53375,
+      "sha256": "db5cb06ee46a941c0b09fad447b86b85a377761122249656871ab39bdd2a8ae7"
+    },
+    {
+      "path": "native/poses.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\poses.json",
+      "bytes": 16728,
+      "sha256": "a891a7984d194bdb6bda960e73d19cccae91a0ae77e72ba8c5254114e3319e6f"
+    },
+    {
+      "path": "native/source_control.stderr.txt",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control.stderr.txt",
+      "bytes": 284,
+      "sha256": "2694fbe36c1f3d0b2022e865f512c3fc372fa565392bd3caec0206ef1aafb987"
+    },
+    {
+      "path": "native/source_control.stdout.txt",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control.stdout.txt",
+      "bytes": 18036,
+      "sha256": "472727a2d9e1e17a74f54ac9ce19e02e5e09d4f54b5101a122e9981892002612"
+    },
+    {
+      "path": "native/candidate/all-views.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\all-views.png",
+      "bytes": 1212241,
+      "sha256": "91e3e203c698f1f2491f3a36b8e9f8d4a7e5845eda6c36fcbca9300c247fa873"
+    },
+    {
+      "path": "native/candidate/comparison.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\comparison.json",
+      "bytes": 21493,
+      "sha256": "7f7a3bc5c749e0a3c51dc980a6d6802e33fb3aad19a71f2cea39bda36059f9de"
+    },
+    {
+      "path": "native/candidate/eye_0.after.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\eye_0.after.png",
+      "bytes": 280270,
+      "sha256": "92de3ea1faa6faaea262c5e93d93db84a87f7ba824edf6c28e1e99b7cb431dc1"
+    },
+    {
+      "path": "native/candidate/eye_0.before.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\eye_0.before.png",
+      "bytes": 280270,
+      "sha256": "95da422b10376f4e451b4d0519136172b4d0bfd118ceb275b3da943b780f6f1e"
+    },
+    {
+      "path": "native/candidate/eye_0.diff.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\eye_0.diff.png",
+      "bytes": 5807,
+      "sha256": "55aea7bfe6f9c90c71df2379611c12eada3014444ccbce4f3352d3303077a44f"
+    },
+    {
+      "path": "native/candidate/eye_0_qualified_0_probe_154.after.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\eye_0_qualified_0_probe_154.after.png",
+      "bytes": 431685,
+      "sha256": "b8c5725e4c9c5af1e90b1f70c56a575791da678762f42531aedbc11b29663967"
+    },
+    {
+      "path": "native/candidate/eye_0_qualified_0_probe_154.before.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\eye_0_qualified_0_probe_154.before.png",
+      "bytes": 431685,
+      "sha256": "fcf3fac09e34db83d7dd6ec719b44fa3e7b26626d515e1185102d493f32b6a37"
+    },
+    {
+      "path": "native/candidate/eye_0_qualified_0_probe_154.diff.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\eye_0_qualified_0_probe_154.diff.png",
+      "bytes": 5807,
+      "sha256": "55aea7bfe6f9c90c71df2379611c12eada3014444ccbce4f3352d3303077a44f"
+    },
+    {
+      "path": "native/candidate/eye_0_qualified_1_probe_478.after.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\eye_0_qualified_1_probe_478.after.png",
+      "bytes": 431904,
+      "sha256": "8e9506af47d022d40a5310dee2e83af28bbbe6e765a5786feba5ea3ffc3e1d47"
+    },
+    {
+      "path": "native/candidate/eye_0_qualified_1_probe_478.before.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\eye_0_qualified_1_probe_478.before.png",
+      "bytes": 431904,
+      "sha256": "8e9506af47d022d40a5310dee2e83af28bbbe6e765a5786feba5ea3ffc3e1d47"
+    },
+    {
+      "path": "native/candidate/eye_0_qualified_1_probe_478.diff.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\eye_0_qualified_1_probe_478.diff.png",
+      "bytes": 5807,
+      "sha256": "55aea7bfe6f9c90c71df2379611c12eada3014444ccbce4f3352d3303077a44f"
+    },
+    {
+      "path": "native/candidate/eye_0_qualified_2_probe_717.after.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\eye_0_qualified_2_probe_717.after.png",
+      "bytes": 395866,
+      "sha256": "f4b5dbc84dcb2c68f6080f8b2e70bf4580bc038b02c8b5bc2caae829766d9998"
+    },
+    {
+      "path": "native/candidate/eye_0_qualified_2_probe_717.before.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\eye_0_qualified_2_probe_717.before.png",
+      "bytes": 395866,
+      "sha256": "f4b5dbc84dcb2c68f6080f8b2e70bf4580bc038b02c8b5bc2caae829766d9998"
+    },
+    {
+      "path": "native/candidate/eye_0_qualified_2_probe_717.diff.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\eye_0_qualified_2_probe_717.diff.png",
+      "bytes": 5807,
+      "sha256": "55aea7bfe6f9c90c71df2379611c12eada3014444ccbce4f3352d3303077a44f"
+    },
+    {
+      "path": "native/candidate/eye_0_qualified_3_probe_166.after.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\eye_0_qualified_3_probe_166.after.png",
+      "bytes": 395771,
+      "sha256": "47e839d16889df4f718d4c501a88478357d12bc6dc6000dc65e81bebab2db985"
+    },
+    {
+      "path": "native/candidate/eye_0_qualified_3_probe_166.before.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\eye_0_qualified_3_probe_166.before.png",
+      "bytes": 395771,
+      "sha256": "b60d3abf72831eaebd0ae40ff6aa2bcdaac056e138d7833a7faa406bbcc2eb36"
+    },
+    {
+      "path": "native/candidate/eye_0_qualified_3_probe_166.diff.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\eye_0_qualified_3_probe_166.diff.png",
+      "bytes": 5807,
+      "sha256": "55aea7bfe6f9c90c71df2379611c12eada3014444ccbce4f3352d3303077a44f"
+    },
+    {
+      "path": "native/candidate/eye_1.after.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\eye_1.after.png",
+      "bytes": 241342,
+      "sha256": "f5430e59bac318e94bc4ad22887e69d74d2cc3ce1a7f371d5d1c75ac24297ddf"
+    },
+    {
+      "path": "native/candidate/eye_1.before.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\eye_1.before.png",
+      "bytes": 241342,
+      "sha256": "830e63a0a469fd143476ba6fd4a1de0a99156287aa076745f2f0070d3731174d"
+    },
+    {
+      "path": "native/candidate/eye_1.diff.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\eye_1.diff.png",
+      "bytes": 5807,
+      "sha256": "55aea7bfe6f9c90c71df2379611c12eada3014444ccbce4f3352d3303077a44f"
+    },
+    {
+      "path": "native/candidate/eye_1_qualified_0_probe_840.after.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\eye_1_qualified_0_probe_840.after.png",
+      "bytes": 367037,
+      "sha256": "64989f300f2ad11d5c9f6b852f1f5e712dc31d3ce518dcdce1ccae20aa221b1d"
+    },
+    {
+      "path": "native/candidate/eye_1_qualified_0_probe_840.before.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\eye_1_qualified_0_probe_840.before.png",
+      "bytes": 367037,
+      "sha256": "aec1304029ea8084b07c6e8c8978587e624f2b07e8e46aeadd73efc4187af814"
+    },
+    {
+      "path": "native/candidate/eye_1_qualified_0_probe_840.diff.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\eye_1_qualified_0_probe_840.diff.png",
+      "bytes": 5807,
+      "sha256": "55aea7bfe6f9c90c71df2379611c12eada3014444ccbce4f3352d3303077a44f"
+    },
+    {
+      "path": "native/candidate/eye_1_qualified_1_probe_784.after.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\eye_1_qualified_1_probe_784.after.png",
+      "bytes": 363760,
+      "sha256": "d98f1c3951f53ddc56b53d2cc29bd35c2b24f0659e22c92bf9d7dcc516bc0f33"
+    },
+    {
+      "path": "native/candidate/eye_1_qualified_1_probe_784.before.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\eye_1_qualified_1_probe_784.before.png",
+      "bytes": 363760,
+      "sha256": "d98f1c3951f53ddc56b53d2cc29bd35c2b24f0659e22c92bf9d7dcc516bc0f33"
+    },
+    {
+      "path": "native/candidate/eye_1_qualified_1_probe_784.diff.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\eye_1_qualified_1_probe_784.diff.png",
+      "bytes": 5807,
+      "sha256": "55aea7bfe6f9c90c71df2379611c12eada3014444ccbce4f3352d3303077a44f"
+    },
+    {
+      "path": "native/candidate/eye_1_qualified_2_probe_747.after.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\eye_1_qualified_2_probe_747.after.png",
+      "bytes": 374457,
+      "sha256": "bfa81086e1411c5d83b769ba1f7f7a8dce9a472ae0adbaac4405db69351516cd"
+    },
+    {
+      "path": "native/candidate/eye_1_qualified_2_probe_747.before.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\eye_1_qualified_2_probe_747.before.png",
+      "bytes": 374457,
+      "sha256": "bfa81086e1411c5d83b769ba1f7f7a8dce9a472ae0adbaac4405db69351516cd"
+    },
+    {
+      "path": "native/candidate/eye_1_qualified_2_probe_747.diff.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\eye_1_qualified_2_probe_747.diff.png",
+      "bytes": 5807,
+      "sha256": "55aea7bfe6f9c90c71df2379611c12eada3014444ccbce4f3352d3303077a44f"
+    },
+    {
+      "path": "native/candidate/eye_1_qualified_3_probe_1220.after.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\eye_1_qualified_3_probe_1220.after.png",
+      "bytes": 366511,
+      "sha256": "859c327e3649ca189102594384ab5a44931622ac56f00c11bde26136946c963e"
+    },
+    {
+      "path": "native/candidate/eye_1_qualified_3_probe_1220.before.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\eye_1_qualified_3_probe_1220.before.png",
+      "bytes": 366511,
+      "sha256": "659851dc744acdf36e89e662a3fbffe9d1af7386e98e1ac54cbe90b428adebb8"
+    },
+    {
+      "path": "native/candidate/eye_1_qualified_3_probe_1220.diff.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\eye_1_qualified_3_probe_1220.diff.png",
+      "bytes": 5807,
+      "sha256": "55aea7bfe6f9c90c71df2379611c12eada3014444ccbce4f3352d3303077a44f"
+    },
+    {
+      "path": "native/candidate/eye_2.after.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\eye_2.after.png",
+      "bytes": 346630,
+      "sha256": "74a91434784b0c727f3171fa913dd3e834571e776e1d1c02a47c37fda08250b7"
+    },
+    {
+      "path": "native/candidate/eye_2.before.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\eye_2.before.png",
+      "bytes": 346630,
+      "sha256": "8355cbc677929f1845516e39b9300a3a6508305793332106c58da3f1906c9e7b"
+    },
+    {
+      "path": "native/candidate/eye_2.diff.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\eye_2.diff.png",
+      "bytes": 5807,
+      "sha256": "55aea7bfe6f9c90c71df2379611c12eada3014444ccbce4f3352d3303077a44f"
+    },
+    {
+      "path": "native/candidate/eye_2_qualified_0_probe_146.after.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\eye_2_qualified_0_probe_146.after.png",
+      "bytes": 373609,
+      "sha256": "a20e5eb90e5ce3354748a55d4d69d30b708b5fe0e200e1527e38970f8af3fa88"
+    },
+    {
+      "path": "native/candidate/eye_2_qualified_0_probe_146.before.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\eye_2_qualified_0_probe_146.before.png",
+      "bytes": 373609,
+      "sha256": "39950d678662d029aeb417742fb4d42b983834cdbb11d5031d6717b09b2df313"
+    },
+    {
+      "path": "native/candidate/eye_2_qualified_0_probe_146.diff.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\eye_2_qualified_0_probe_146.diff.png",
+      "bytes": 5807,
+      "sha256": "55aea7bfe6f9c90c71df2379611c12eada3014444ccbce4f3352d3303077a44f"
+    },
+    {
+      "path": "native/candidate/eye_2_qualified_1_probe_760.after.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\eye_2_qualified_1_probe_760.after.png",
+      "bytes": 387405,
+      "sha256": "b0033c1bbc44f85cf2e28fa0dae9144423e93e38723dee56e37df102a2bd9395"
+    },
+    {
+      "path": "native/candidate/eye_2_qualified_1_probe_760.before.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\eye_2_qualified_1_probe_760.before.png",
+      "bytes": 387405,
+      "sha256": "b0033c1bbc44f85cf2e28fa0dae9144423e93e38723dee56e37df102a2bd9395"
+    },
+    {
+      "path": "native/candidate/eye_2_qualified_1_probe_760.diff.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\eye_2_qualified_1_probe_760.diff.png",
+      "bytes": 5807,
+      "sha256": "55aea7bfe6f9c90c71df2379611c12eada3014444ccbce4f3352d3303077a44f"
+    },
+    {
+      "path": "native/candidate/eye_2_qualified_2_probe_475.after.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\eye_2_qualified_2_probe_475.after.png",
+      "bytes": 378442,
+      "sha256": "4f320342ad07c5fb42bf95dd8f9260479277b7c382aaf27a7da589fed37d926e"
+    },
+    {
+      "path": "native/candidate/eye_2_qualified_2_probe_475.before.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\eye_2_qualified_2_probe_475.before.png",
+      "bytes": 378442,
+      "sha256": "89c50ad593777b836e07d18917462ed37fb56bdcf04ad57b4df50b5d3a08b3e5"
+    },
+    {
+      "path": "native/candidate/eye_2_qualified_2_probe_475.diff.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\eye_2_qualified_2_probe_475.diff.png",
+      "bytes": 5807,
+      "sha256": "55aea7bfe6f9c90c71df2379611c12eada3014444ccbce4f3352d3303077a44f"
+    },
+    {
+      "path": "native/candidate/eye_2_qualified_3_probe_160.after.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\eye_2_qualified_3_probe_160.after.png",
+      "bytes": 393078,
+      "sha256": "a3bcec9353fbcd9d56de5a086987fac5d2c10b1a958180159a7377628309a999"
+    },
+    {
+      "path": "native/candidate/eye_2_qualified_3_probe_160.before.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\eye_2_qualified_3_probe_160.before.png",
+      "bytes": 393078,
+      "sha256": "dd14cb53342a06ddc3080f3a0b7b82eee4d3c467213b5d5cd1baed6392e02726"
+    },
+    {
+      "path": "native/candidate/eye_2_qualified_3_probe_160.diff.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\eye_2_qualified_3_probe_160.diff.png",
+      "bytes": 5807,
+      "sha256": "55aea7bfe6f9c90c71df2379611c12eada3014444ccbce4f3352d3303077a44f"
+    },
+    {
+      "path": "native/candidate/eye_3.after.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\eye_3.after.png",
+      "bytes": 149907,
+      "sha256": "d852fa3a0069f5a51533a65dde378927f709f6da92f5540ac7582aef62c5555c"
+    },
+    {
+      "path": "native/candidate/eye_3.before.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\eye_3.before.png",
+      "bytes": 149907,
+      "sha256": "53d7be1e9a3ca36301e7fa9110a77f2ee15346bd967987d812cfdbfbbb30e85e"
+    },
+    {
+      "path": "native/candidate/eye_3.diff.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\eye_3.diff.png",
+      "bytes": 5807,
+      "sha256": "55aea7bfe6f9c90c71df2379611c12eada3014444ccbce4f3352d3303077a44f"
+    },
+    {
+      "path": "native/candidate/eye_3_qualified_0_probe_832.after.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\eye_3_qualified_0_probe_832.after.png",
+      "bytes": 386308,
+      "sha256": "20752a8fc74c0c82d5b5158aa92765e43281658804ccc37b2eabbf642db451e8"
+    },
+    {
+      "path": "native/candidate/eye_3_qualified_0_probe_832.before.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\eye_3_qualified_0_probe_832.before.png",
+      "bytes": 386308,
+      "sha256": "20752a8fc74c0c82d5b5158aa92765e43281658804ccc37b2eabbf642db451e8"
+    },
+    {
+      "path": "native/candidate/eye_3_qualified_0_probe_832.diff.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\eye_3_qualified_0_probe_832.diff.png",
+      "bytes": 5807,
+      "sha256": "55aea7bfe6f9c90c71df2379611c12eada3014444ccbce4f3352d3303077a44f"
+    },
+    {
+      "path": "native/candidate/eye_3_qualified_1_probe_737.after.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\eye_3_qualified_1_probe_737.after.png",
+      "bytes": 395267,
+      "sha256": "479957b06c716f4f90875fb2dd34720135e841dc746807765b7f30bdd1c0f380"
+    },
+    {
+      "path": "native/candidate/eye_3_qualified_1_probe_737.before.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\eye_3_qualified_1_probe_737.before.png",
+      "bytes": 395267,
+      "sha256": "99b34e6dfe4956ccf4f29a83b8a4de688e0af12be594b6e70f46e9a87d657568"
+    },
+    {
+      "path": "native/candidate/eye_3_qualified_1_probe_737.diff.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\eye_3_qualified_1_probe_737.diff.png",
+      "bytes": 5807,
+      "sha256": "55aea7bfe6f9c90c71df2379611c12eada3014444ccbce4f3352d3303077a44f"
+    },
+    {
+      "path": "native/candidate/eye_3_qualified_2_probe_370.after.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\eye_3_qualified_2_probe_370.after.png",
+      "bytes": 399876,
+      "sha256": "d2b6d9139d94431e471211cb96f5792220d829f1d38464221a526351d4507524"
+    },
+    {
+      "path": "native/candidate/eye_3_qualified_2_probe_370.before.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\eye_3_qualified_2_probe_370.before.png",
+      "bytes": 399876,
+      "sha256": "d2b6d9139d94431e471211cb96f5792220d829f1d38464221a526351d4507524"
+    },
+    {
+      "path": "native/candidate/eye_3_qualified_2_probe_370.diff.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\eye_3_qualified_2_probe_370.diff.png",
+      "bytes": 5807,
+      "sha256": "55aea7bfe6f9c90c71df2379611c12eada3014444ccbce4f3352d3303077a44f"
+    },
+    {
+      "path": "native/candidate/eye_3_qualified_3_probe_319.after.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\eye_3_qualified_3_probe_319.after.png",
+      "bytes": 378252,
+      "sha256": "9b331f37708e68d6e68d9ab62f23d244a317a22fe0e600e5dc7c47f4c40067c1"
+    },
+    {
+      "path": "native/candidate/eye_3_qualified_3_probe_319.before.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\eye_3_qualified_3_probe_319.before.png",
+      "bytes": 378252,
+      "sha256": "cd4f491da64774ad1a370324bc59ce1d3f455248dfef6756e3a8751e74040736"
+    },
+    {
+      "path": "native/candidate/eye_3_qualified_3_probe_319.diff.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\eye_3_qualified_3_probe_319.diff.png",
+      "bytes": 5807,
+      "sha256": "55aea7bfe6f9c90c71df2379611c12eada3014444ccbce4f3352d3303077a44f"
+    },
+    {
+      "path": "native/candidate/paired-detail.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\paired-detail.png",
+      "bytes": 421391,
+      "sha256": "b6f13e6fed776113d76485dcbd184c2d8a485036f5d08782e8eff52dc653ac42"
+    },
+    {
+      "path": "native/candidate/png-readback.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\png-readback.json",
+      "bytes": 5009,
+      "sha256": "5b1fe90d603f44fca76a06da760a02da6ae80b0e154fdc8f5cc42077d353b060"
+    },
+    {
+      "path": "native/candidate/view_-1_-1_-1.after.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\view_-1_-1_-1.after.png",
+      "bytes": 124792,
+      "sha256": "6ef865da9c48ae8d879e753caae88a6e09a74ff9ba4c81559bfaacdd0549eb79"
+    },
+    {
+      "path": "native/candidate/view_-1_-1_-1.before.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\view_-1_-1_-1.before.png",
+      "bytes": 124792,
+      "sha256": "43b0a5b45185ad8475c71609bc3729fa70792780ddfa533189df9ba5e03e1b5b"
+    },
+    {
+      "path": "native/candidate/view_-1_-1_-1.diff.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\view_-1_-1_-1.diff.png",
+      "bytes": 5807,
+      "sha256": "55aea7bfe6f9c90c71df2379611c12eada3014444ccbce4f3352d3303077a44f"
+    },
+    {
+      "path": "native/candidate/view_-1_-1_0.after.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\view_-1_-1_0.after.png",
+      "bytes": 55606,
+      "sha256": "5681c34cc9ac2c53697cbd4a373ed29cff209a31ad0e2a5d984e9aca5b9ecaa1"
+    },
+    {
+      "path": "native/candidate/view_-1_-1_0.before.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\view_-1_-1_0.before.png",
+      "bytes": 55606,
+      "sha256": "6b9b3bf29d2db80b44428b6b7a585e7c83932d6be302944f30579b497a550db9"
+    },
+    {
+      "path": "native/candidate/view_-1_-1_0.diff.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\view_-1_-1_0.diff.png",
+      "bytes": 5807,
+      "sha256": "55aea7bfe6f9c90c71df2379611c12eada3014444ccbce4f3352d3303077a44f"
+    },
+    {
+      "path": "native/candidate/view_-1_-1_1.after.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\view_-1_-1_1.after.png",
+      "bytes": 146834,
+      "sha256": "ccc3ddd0fa88e7dcad64c401f343ea9870f6f34da8b57e91a1b21f1e17c8f762"
+    },
+    {
+      "path": "native/candidate/view_-1_-1_1.before.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\view_-1_-1_1.before.png",
+      "bytes": 146834,
+      "sha256": "6c8bb232d4793475a93743cce9877650ebf02b0a3498e889031214212210294c"
+    },
+    {
+      "path": "native/candidate/view_-1_-1_1.diff.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\view_-1_-1_1.diff.png",
+      "bytes": 5807,
+      "sha256": "55aea7bfe6f9c90c71df2379611c12eada3014444ccbce4f3352d3303077a44f"
+    },
+    {
+      "path": "native/candidate/view_-1_0_-1.after.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\view_-1_0_-1.after.png",
+      "bytes": 111294,
+      "sha256": "ae06b8e3d815ad6075682394e5807d7630808a33700aab9d47bdb44e11585e39"
+    },
+    {
+      "path": "native/candidate/view_-1_0_-1.before.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\view_-1_0_-1.before.png",
+      "bytes": 111294,
+      "sha256": "4577f47923e68d36b1255278309167d59b2dfc0f0e7837f0d51731e345f4e805"
+    },
+    {
+      "path": "native/candidate/view_-1_0_-1.diff.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\view_-1_0_-1.diff.png",
+      "bytes": 5807,
+      "sha256": "55aea7bfe6f9c90c71df2379611c12eada3014444ccbce4f3352d3303077a44f"
+    },
+    {
+      "path": "native/candidate/view_-1_0_0.after.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\view_-1_0_0.after.png",
+      "bytes": 56909,
+      "sha256": "643f02ab4b623000cca9aa89adab5537821d56f57afa7d0fd9c139db4cfc74d2"
+    },
+    {
+      "path": "native/candidate/view_-1_0_0.before.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\view_-1_0_0.before.png",
+      "bytes": 56909,
+      "sha256": "ed8daacb5c62d1ed9e0b14b727755275ef4c5ee5de355d0978756b58fc87140d"
+    },
+    {
+      "path": "native/candidate/view_-1_0_0.diff.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\view_-1_0_0.diff.png",
+      "bytes": 5807,
+      "sha256": "55aea7bfe6f9c90c71df2379611c12eada3014444ccbce4f3352d3303077a44f"
+    },
+    {
+      "path": "native/candidate/view_-1_0_1.after.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\view_-1_0_1.after.png",
+      "bytes": 146108,
+      "sha256": "d6992bd9261d3b69ce7ea6480d8efadf02e687108028f858af131e68d05dcb98"
+    },
+    {
+      "path": "native/candidate/view_-1_0_1.before.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\view_-1_0_1.before.png",
+      "bytes": 146108,
+      "sha256": "d6992bd9261d3b69ce7ea6480d8efadf02e687108028f858af131e68d05dcb98"
+    },
+    {
+      "path": "native/candidate/view_-1_0_1.diff.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\view_-1_0_1.diff.png",
+      "bytes": 5807,
+      "sha256": "55aea7bfe6f9c90c71df2379611c12eada3014444ccbce4f3352d3303077a44f"
+    },
+    {
+      "path": "native/candidate/view_-1_1_-1.after.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\view_-1_1_-1.after.png",
+      "bytes": 125887,
+      "sha256": "4aac11fdeec87e9202e8df384a142044a4b8b568585de5e15379f37cec26474f"
+    },
+    {
+      "path": "native/candidate/view_-1_1_-1.before.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\view_-1_1_-1.before.png",
+      "bytes": 125887,
+      "sha256": "238897d4c9e4a942ecbcadc99a931ad6dfdc4ea04c3a0a906de1d2780c643a2b"
+    },
+    {
+      "path": "native/candidate/view_-1_1_-1.diff.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\view_-1_1_-1.diff.png",
+      "bytes": 5807,
+      "sha256": "55aea7bfe6f9c90c71df2379611c12eada3014444ccbce4f3352d3303077a44f"
+    },
+    {
+      "path": "native/candidate/view_-1_1_0.after.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\view_-1_1_0.after.png",
+      "bytes": 62935,
+      "sha256": "507012086779ce8a666a42129d750293a95cd72c30d452cf07bd703c4b7cf634"
+    },
+    {
+      "path": "native/candidate/view_-1_1_0.before.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\view_-1_1_0.before.png",
+      "bytes": 62935,
+      "sha256": "299e0400ef6fac7ea1476fb75e3c13bf2110692cef4bd58b75d9b91584cf14a0"
+    },
+    {
+      "path": "native/candidate/view_-1_1_0.diff.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\view_-1_1_0.diff.png",
+      "bytes": 5807,
+      "sha256": "55aea7bfe6f9c90c71df2379611c12eada3014444ccbce4f3352d3303077a44f"
+    },
+    {
+      "path": "native/candidate/view_-1_1_1.after.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\view_-1_1_1.after.png",
+      "bytes": 154134,
+      "sha256": "5dded00c3abb01b7c644c1ab6e808e2218ac78716a0621c03d33e80d71f1daac"
+    },
+    {
+      "path": "native/candidate/view_-1_1_1.before.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\view_-1_1_1.before.png",
+      "bytes": 154134,
+      "sha256": "1dcc6bec01da0e7a5059f7ad981a9275edc59a377f18a06d9c54a7ae4c03eade"
+    },
+    {
+      "path": "native/candidate/view_-1_1_1.diff.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\view_-1_1_1.diff.png",
+      "bytes": 5807,
+      "sha256": "55aea7bfe6f9c90c71df2379611c12eada3014444ccbce4f3352d3303077a44f"
+    },
+    {
+      "path": "native/candidate/view_0_-1_-1.after.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\view_0_-1_-1.after.png",
+      "bytes": 119281,
+      "sha256": "1fab99e6975f379f95fa97aeb1c903a8b38f0b1404f45b91cb2755073836a79f"
+    },
+    {
+      "path": "native/candidate/view_0_-1_-1.before.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\view_0_-1_-1.before.png",
+      "bytes": 119281,
+      "sha256": "01f71f7505307f97cd53e0051cc64c1ce247366d4c4fda74de15fb1c407666f1"
+    },
+    {
+      "path": "native/candidate/view_0_-1_-1.diff.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\view_0_-1_-1.diff.png",
+      "bytes": 5807,
+      "sha256": "55aea7bfe6f9c90c71df2379611c12eada3014444ccbce4f3352d3303077a44f"
+    },
+    {
+      "path": "native/candidate/view_0_-1_0.after.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\view_0_-1_0.after.png",
+      "bytes": 42496,
+      "sha256": "a425e7d42483d4505c94c49ba90c530d3e3b31e5dce8633e2292f9824ace94fd"
+    },
+    {
+      "path": "native/candidate/view_0_-1_0.before.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\view_0_-1_0.before.png",
+      "bytes": 42496,
+      "sha256": "bf0d5f35a01d9595f76c7453d48ddd8d310c927b47e801934709bed521abc7d2"
+    },
+    {
+      "path": "native/candidate/view_0_-1_0.diff.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\view_0_-1_0.diff.png",
+      "bytes": 5807,
+      "sha256": "55aea7bfe6f9c90c71df2379611c12eada3014444ccbce4f3352d3303077a44f"
+    },
+    {
+      "path": "native/candidate/view_0_-1_1.after.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\view_0_-1_1.after.png",
+      "bytes": 137291,
+      "sha256": "e1da37b0caf2d643c2ed61738ee3855c5d9faa2368520ecc7ff43db496c08640"
+    },
+    {
+      "path": "native/candidate/view_0_-1_1.before.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\view_0_-1_1.before.png",
+      "bytes": 137291,
+      "sha256": "ec28e1d3f932ca8f2c355c871579e079f1c4242b43cf692f711248808de9ca05"
+    },
+    {
+      "path": "native/candidate/view_0_-1_1.diff.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\view_0_-1_1.diff.png",
+      "bytes": 5807,
+      "sha256": "55aea7bfe6f9c90c71df2379611c12eada3014444ccbce4f3352d3303077a44f"
+    },
+    {
+      "path": "native/candidate/view_0_0_-1.after.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\view_0_0_-1.after.png",
+      "bytes": 124588,
+      "sha256": "d241b96d92fb92e3bb9ab413536974489f90fd16f7412fc3366fa245bbf0be58"
+    },
+    {
+      "path": "native/candidate/view_0_0_-1.before.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\view_0_0_-1.before.png",
+      "bytes": 124588,
+      "sha256": "7bf725033ccba930dcac7086bf20f05908b1acf774373723386ffd0734e33a52"
+    },
+    {
+      "path": "native/candidate/view_0_0_-1.diff.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\view_0_0_-1.diff.png",
+      "bytes": 5807,
+      "sha256": "55aea7bfe6f9c90c71df2379611c12eada3014444ccbce4f3352d3303077a44f"
+    },
+    {
+      "path": "native/candidate/view_0_0_1.after.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\view_0_0_1.after.png",
+      "bytes": 135607,
+      "sha256": "c630e568a01baeb406c2ccfede63f8135ed7a13b1d57faea1400d29c5483635b"
+    },
+    {
+      "path": "native/candidate/view_0_0_1.before.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\view_0_0_1.before.png",
+      "bytes": 135607,
+      "sha256": "c630e568a01baeb406c2ccfede63f8135ed7a13b1d57faea1400d29c5483635b"
+    },
+    {
+      "path": "native/candidate/view_0_0_1.diff.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\view_0_0_1.diff.png",
+      "bytes": 5807,
+      "sha256": "55aea7bfe6f9c90c71df2379611c12eada3014444ccbce4f3352d3303077a44f"
+    },
+    {
+      "path": "native/candidate/view_0_1_-1.after.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\view_0_1_-1.after.png",
+      "bytes": 113343,
+      "sha256": "0f7498e11e3c3120c5720bf329b5b15bec85d22f22918ded27da8803b2989c9c"
+    },
+    {
+      "path": "native/candidate/view_0_1_-1.before.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\view_0_1_-1.before.png",
+      "bytes": 113343,
+      "sha256": "0f7498e11e3c3120c5720bf329b5b15bec85d22f22918ded27da8803b2989c9c"
+    },
+    {
+      "path": "native/candidate/view_0_1_-1.diff.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\view_0_1_-1.diff.png",
+      "bytes": 5807,
+      "sha256": "55aea7bfe6f9c90c71df2379611c12eada3014444ccbce4f3352d3303077a44f"
+    },
+    {
+      "path": "native/candidate/view_0_1_0.after.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\view_0_1_0.after.png",
+      "bytes": 39958,
+      "sha256": "7862e15215994f16fd48b4d990f2cb4573cecc618136195c5df9f83b8c87e693"
+    },
+    {
+      "path": "native/candidate/view_0_1_0.before.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\view_0_1_0.before.png",
+      "bytes": 39958,
+      "sha256": "456f0d7ea126d2a79f7efe50d4b6f88e22076fabeee25d2dd1930ce246a68bde"
+    },
+    {
+      "path": "native/candidate/view_0_1_0.diff.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\view_0_1_0.diff.png",
+      "bytes": 5807,
+      "sha256": "55aea7bfe6f9c90c71df2379611c12eada3014444ccbce4f3352d3303077a44f"
+    },
+    {
+      "path": "native/candidate/view_0_1_1.after.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\view_0_1_1.after.png",
+      "bytes": 135382,
+      "sha256": "f2fef8a662ab8692e8c00d13f5404cc266f610ec105828925ae4742e067c8769"
+    },
+    {
+      "path": "native/candidate/view_0_1_1.before.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\view_0_1_1.before.png",
+      "bytes": 135382,
+      "sha256": "c1990b983ef6cd5b58fe0937fe3702feb24cb6e7194e410bc11ec43592bca782"
+    },
+    {
+      "path": "native/candidate/view_0_1_1.diff.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\view_0_1_1.diff.png",
+      "bytes": 5807,
+      "sha256": "55aea7bfe6f9c90c71df2379611c12eada3014444ccbce4f3352d3303077a44f"
+    },
+    {
+      "path": "native/candidate/view_1_-1_-1.after.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\view_1_-1_-1.after.png",
+      "bytes": 151434,
+      "sha256": "2aa305cf351b41bfd9cf9daa25aaaf22d1651c4f3b8ee94685d422cbaecbb4f3"
+    },
+    {
+      "path": "native/candidate/view_1_-1_-1.before.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\view_1_-1_-1.before.png",
+      "bytes": 151434,
+      "sha256": "d74f68c8d2702fb974121c0d2d91c984539801371aa59bd38cf9c07e24954786"
+    },
+    {
+      "path": "native/candidate/view_1_-1_-1.diff.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\view_1_-1_-1.diff.png",
+      "bytes": 5807,
+      "sha256": "55aea7bfe6f9c90c71df2379611c12eada3014444ccbce4f3352d3303077a44f"
+    },
+    {
+      "path": "native/candidate/view_1_-1_0.after.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\view_1_-1_0.after.png",
+      "bytes": 61115,
+      "sha256": "18bfda4f4142133defcc715d672ea82420bcdd9cbdf365041321dfb0f8a435e6"
+    },
+    {
+      "path": "native/candidate/view_1_-1_0.before.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\view_1_-1_0.before.png",
+      "bytes": 61115,
+      "sha256": "56f4a9f2c05ce855eb136b985dbecbf3a8535724837810b6862883e0c9b733be"
+    },
+    {
+      "path": "native/candidate/view_1_-1_0.diff.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\view_1_-1_0.diff.png",
+      "bytes": 5807,
+      "sha256": "55aea7bfe6f9c90c71df2379611c12eada3014444ccbce4f3352d3303077a44f"
+    },
+    {
+      "path": "native/candidate/view_1_-1_1.after.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\view_1_-1_1.after.png",
+      "bytes": 131121,
+      "sha256": "7843f1e1bd52d5aa9bf4c47a4025b538f56c3e1834fd115f6a87b64c82882e9b"
+    },
+    {
+      "path": "native/candidate/view_1_-1_1.before.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\view_1_-1_1.before.png",
+      "bytes": 131121,
+      "sha256": "92f406f6726afd2db1cf7d8c44e2651c8dc199a70299d1fd54484bc32d641e10"
+    },
+    {
+      "path": "native/candidate/view_1_-1_1.diff.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\view_1_-1_1.diff.png",
+      "bytes": 5807,
+      "sha256": "55aea7bfe6f9c90c71df2379611c12eada3014444ccbce4f3352d3303077a44f"
+    },
+    {
+      "path": "native/candidate/view_1_0_-1.after.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\view_1_0_-1.after.png",
+      "bytes": 133831,
+      "sha256": "492944a9a952f32188a0ffdffbc89aa049b57ab7b09e7334068ef1b1f8028bce"
+    },
+    {
+      "path": "native/candidate/view_1_0_-1.before.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\view_1_0_-1.before.png",
+      "bytes": 133831,
+      "sha256": "c8164d6ea2529463653e7254d1c300e6400ef8045ebd10b308a8b4cfd4466a89"
+    },
+    {
+      "path": "native/candidate/view_1_0_-1.diff.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\view_1_0_-1.diff.png",
+      "bytes": 5807,
+      "sha256": "55aea7bfe6f9c90c71df2379611c12eada3014444ccbce4f3352d3303077a44f"
+    },
+    {
+      "path": "native/candidate/view_1_0_0.after.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\view_1_0_0.after.png",
+      "bytes": 58422,
+      "sha256": "fde7705e11626ffa477d53505f74d83f4534f4834ee88f8b71174bdaa90f0c2d"
+    },
+    {
+      "path": "native/candidate/view_1_0_0.before.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\view_1_0_0.before.png",
+      "bytes": 58422,
+      "sha256": "b5336c56077b3d74f65f16a5e49f96e1fd89fab5310da0ded0bffa252f212557"
+    },
+    {
+      "path": "native/candidate/view_1_0_0.diff.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\view_1_0_0.diff.png",
+      "bytes": 5807,
+      "sha256": "55aea7bfe6f9c90c71df2379611c12eada3014444ccbce4f3352d3303077a44f"
+    },
+    {
+      "path": "native/candidate/view_1_0_1.after.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\view_1_0_1.after.png",
+      "bytes": 127418,
+      "sha256": "96c50988b97098cba52d7e0d799343c5d8b664a609d9c94ce50ad77d97d0dd02"
+    },
+    {
+      "path": "native/candidate/view_1_0_1.before.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\view_1_0_1.before.png",
+      "bytes": 127418,
+      "sha256": "96c50988b97098cba52d7e0d799343c5d8b664a609d9c94ce50ad77d97d0dd02"
+    },
+    {
+      "path": "native/candidate/view_1_0_1.diff.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\view_1_0_1.diff.png",
+      "bytes": 5807,
+      "sha256": "55aea7bfe6f9c90c71df2379611c12eada3014444ccbce4f3352d3303077a44f"
+    },
+    {
+      "path": "native/candidate/view_1_1_-1.after.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\view_1_1_-1.after.png",
+      "bytes": 142959,
+      "sha256": "527be2c5331f0004d8169de85e8b66032206d6d6e89ea0f89a11f79b9659c206"
+    },
+    {
+      "path": "native/candidate/view_1_1_-1.before.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\view_1_1_-1.before.png",
+      "bytes": 142959,
+      "sha256": "d57e89499cc8fa2ec089c26ddcbb426085003d0340652e84f45ed03418735bc9"
+    },
+    {
+      "path": "native/candidate/view_1_1_-1.diff.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\view_1_1_-1.diff.png",
+      "bytes": 5807,
+      "sha256": "55aea7bfe6f9c90c71df2379611c12eada3014444ccbce4f3352d3303077a44f"
+    },
+    {
+      "path": "native/candidate/view_1_1_0.after.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\view_1_1_0.after.png",
+      "bytes": 56302,
+      "sha256": "381c49e42031a8a25cf9d3a466445cde143dbe4d775223e5d3f5049b9a1ef535"
+    },
+    {
+      "path": "native/candidate/view_1_1_0.before.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\view_1_1_0.before.png",
+      "bytes": 56302,
+      "sha256": "ba9a18c3bbc1fcf4071f06c25efb1c1caa1eec2d828ae13f17ce76cf90311110"
+    },
+    {
+      "path": "native/candidate/view_1_1_0.diff.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\view_1_1_0.diff.png",
+      "bytes": 5807,
+      "sha256": "55aea7bfe6f9c90c71df2379611c12eada3014444ccbce4f3352d3303077a44f"
+    },
+    {
+      "path": "native/candidate/view_1_1_1.after.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\view_1_1_1.after.png",
+      "bytes": 130299,
+      "sha256": "7528d5863708af3bb8c89af22f3a0ed97ac9d8bec0b1bd268b183740432cc5ab"
+    },
+    {
+      "path": "native/candidate/view_1_1_1.before.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\view_1_1_1.before.png",
+      "bytes": 130299,
+      "sha256": "8d3b4b25133d8e831ab0b31d78292fb87c508c4b75680a06cfb4b65fbb1a305b"
+    },
+    {
+      "path": "native/candidate/view_1_1_1.diff.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\candidate\\view_1_1_1.diff.png",
+      "bytes": 5807,
+      "sha256": "55aea7bfe6f9c90c71df2379611c12eada3014444ccbce4f3352d3303077a44f"
+    },
+    {
+      "path": "native/source_control/all-views.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\all-views.png",
+      "bytes": 1156551,
+      "sha256": "29bedbe6a66bca621ab79f8d41b99471a1b10aee11acdb1d4a9c7f8d274d9832"
+    },
+    {
+      "path": "native/source_control/comparison.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\comparison.json",
+      "bytes": 21506,
+      "sha256": "912c9e645d0139c526d37af7047877595d44fa95a2485a55d093b563d245fe62"
+    },
+    {
+      "path": "native/source_control/eye_0.after.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\eye_0.after.png",
+      "bytes": 280270,
+      "sha256": "c46b9ecabf4368186e00e65ae66198a07b87278ee11d1da5f741c96a93f2b545"
+    },
+    {
+      "path": "native/source_control/eye_0.before.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\eye_0.before.png",
+      "bytes": 280270,
+      "sha256": "7639b1804a0bfade81acbf47a2d8364273232ce15d5bb25de6dad772ca832086"
+    },
+    {
+      "path": "native/source_control/eye_0.diff.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\eye_0.diff.png",
+      "bytes": 5807,
+      "sha256": "55aea7bfe6f9c90c71df2379611c12eada3014444ccbce4f3352d3303077a44f"
+    },
+    {
+      "path": "native/source_control/eye_0_qualified_0_probe_154.after.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\eye_0_qualified_0_probe_154.after.png",
+      "bytes": 431685,
+      "sha256": "8d480c3ed36521a2cc58a4d6fa6a0a1a60bae51c12fc3d57cb22dab14093754f"
+    },
+    {
+      "path": "native/source_control/eye_0_qualified_0_probe_154.before.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\eye_0_qualified_0_probe_154.before.png",
+      "bytes": 431685,
+      "sha256": "8d480c3ed36521a2cc58a4d6fa6a0a1a60bae51c12fc3d57cb22dab14093754f"
+    },
+    {
+      "path": "native/source_control/eye_0_qualified_0_probe_154.diff.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\eye_0_qualified_0_probe_154.diff.png",
+      "bytes": 5807,
+      "sha256": "55aea7bfe6f9c90c71df2379611c12eada3014444ccbce4f3352d3303077a44f"
+    },
+    {
+      "path": "native/source_control/eye_0_qualified_1_probe_478.after.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\eye_0_qualified_1_probe_478.after.png",
+      "bytes": 431904,
+      "sha256": "a00ad67a5b230ac10b7912e52ae6ae4c79b857952697c44942c5f561bf7836db"
+    },
+    {
+      "path": "native/source_control/eye_0_qualified_1_probe_478.before.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\eye_0_qualified_1_probe_478.before.png",
+      "bytes": 431904,
+      "sha256": "a00ad67a5b230ac10b7912e52ae6ae4c79b857952697c44942c5f561bf7836db"
+    },
+    {
+      "path": "native/source_control/eye_0_qualified_1_probe_478.diff.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\eye_0_qualified_1_probe_478.diff.png",
+      "bytes": 5807,
+      "sha256": "55aea7bfe6f9c90c71df2379611c12eada3014444ccbce4f3352d3303077a44f"
+    },
+    {
+      "path": "native/source_control/eye_0_qualified_2_probe_717.after.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\eye_0_qualified_2_probe_717.after.png",
+      "bytes": 395866,
+      "sha256": "46e33f9e9d97d9a086a35d01ce34fe63f8b871c94c41560d2801faf94276436b"
+    },
+    {
+      "path": "native/source_control/eye_0_qualified_2_probe_717.before.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\eye_0_qualified_2_probe_717.before.png",
+      "bytes": 395866,
+      "sha256": "0fc580de07b57490eb43e1ae4dc56e614a458f17e5c0d42abb3ad8b702c38645"
+    },
+    {
+      "path": "native/source_control/eye_0_qualified_2_probe_717.diff.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\eye_0_qualified_2_probe_717.diff.png",
+      "bytes": 5807,
+      "sha256": "55aea7bfe6f9c90c71df2379611c12eada3014444ccbce4f3352d3303077a44f"
+    },
+    {
+      "path": "native/source_control/eye_0_qualified_3_probe_166.after.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\eye_0_qualified_3_probe_166.after.png",
+      "bytes": 395771,
+      "sha256": "97c0695074347a3657d2939ea1ae29d0a87dbf6eb376fc247f1e5c0ba20ecfd1"
+    },
+    {
+      "path": "native/source_control/eye_0_qualified_3_probe_166.before.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\eye_0_qualified_3_probe_166.before.png",
+      "bytes": 395771,
+      "sha256": "97c0695074347a3657d2939ea1ae29d0a87dbf6eb376fc247f1e5c0ba20ecfd1"
+    },
+    {
+      "path": "native/source_control/eye_0_qualified_3_probe_166.diff.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\eye_0_qualified_3_probe_166.diff.png",
+      "bytes": 5807,
+      "sha256": "55aea7bfe6f9c90c71df2379611c12eada3014444ccbce4f3352d3303077a44f"
+    },
+    {
+      "path": "native/source_control/eye_1.after.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\eye_1.after.png",
+      "bytes": 241342,
+      "sha256": "1eb3619ffe1490223826f36dea936d5921a23965acfa34c37330289ef73e2545"
+    },
+    {
+      "path": "native/source_control/eye_1.before.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\eye_1.before.png",
+      "bytes": 241342,
+      "sha256": "934c677d90e425cdc69afcc915d31a0e66427393aff78b8ba1c6fdd89b1df8a8"
+    },
+    {
+      "path": "native/source_control/eye_1.diff.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\eye_1.diff.png",
+      "bytes": 5807,
+      "sha256": "55aea7bfe6f9c90c71df2379611c12eada3014444ccbce4f3352d3303077a44f"
+    },
+    {
+      "path": "native/source_control/eye_1_qualified_0_probe_840.after.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\eye_1_qualified_0_probe_840.after.png",
+      "bytes": 367040,
+      "sha256": "05cd8ccc51a945938cabc38bfb96f43a96322fb28aff178c1ef49ddcc0cd2cf2"
+    },
+    {
+      "path": "native/source_control/eye_1_qualified_0_probe_840.before.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\eye_1_qualified_0_probe_840.before.png",
+      "bytes": 367040,
+      "sha256": "05cd8ccc51a945938cabc38bfb96f43a96322fb28aff178c1ef49ddcc0cd2cf2"
+    },
+    {
+      "path": "native/source_control/eye_1_qualified_0_probe_840.diff.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\eye_1_qualified_0_probe_840.diff.png",
+      "bytes": 5807,
+      "sha256": "55aea7bfe6f9c90c71df2379611c12eada3014444ccbce4f3352d3303077a44f"
+    },
+    {
+      "path": "native/source_control/eye_1_qualified_1_probe_784.after.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\eye_1_qualified_1_probe_784.after.png",
+      "bytes": 363759,
+      "sha256": "3142d77733b29bdc0d96468597b9d6d266f449dd736a21d965a4aee824a1bff5"
+    },
+    {
+      "path": "native/source_control/eye_1_qualified_1_probe_784.before.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\eye_1_qualified_1_probe_784.before.png",
+      "bytes": 363759,
+      "sha256": "f89cb14f66525dcd75f65b44df1bb7e6065592bc5cfb614211453c21471d2fb3"
+    },
+    {
+      "path": "native/source_control/eye_1_qualified_1_probe_784.diff.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\eye_1_qualified_1_probe_784.diff.png",
+      "bytes": 5807,
+      "sha256": "55aea7bfe6f9c90c71df2379611c12eada3014444ccbce4f3352d3303077a44f"
+    },
+    {
+      "path": "native/source_control/eye_1_qualified_2_probe_747.after.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\eye_1_qualified_2_probe_747.after.png",
+      "bytes": 374472,
+      "sha256": "cc12cb8f287b3812ed78aefcf8e8e2c2acb66b1231a030b6f23decab341b2122"
+    },
+    {
+      "path": "native/source_control/eye_1_qualified_2_probe_747.before.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\eye_1_qualified_2_probe_747.before.png",
+      "bytes": 374472,
+      "sha256": "6bcfdf1e8ce51d57868444ae9daa370d827657619b69126860bb951cb935d655"
+    },
+    {
+      "path": "native/source_control/eye_1_qualified_2_probe_747.diff.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\eye_1_qualified_2_probe_747.diff.png",
+      "bytes": 5807,
+      "sha256": "55aea7bfe6f9c90c71df2379611c12eada3014444ccbce4f3352d3303077a44f"
+    },
+    {
+      "path": "native/source_control/eye_1_qualified_3_probe_1220.after.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\eye_1_qualified_3_probe_1220.after.png",
+      "bytes": 366511,
+      "sha256": "a72a6a6250e8cb345126c7b86de34557ee3db8e7ce67f5e375906cc5c015f36f"
+    },
+    {
+      "path": "native/source_control/eye_1_qualified_3_probe_1220.before.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\eye_1_qualified_3_probe_1220.before.png",
+      "bytes": 366511,
+      "sha256": "a72a6a6250e8cb345126c7b86de34557ee3db8e7ce67f5e375906cc5c015f36f"
+    },
+    {
+      "path": "native/source_control/eye_1_qualified_3_probe_1220.diff.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\eye_1_qualified_3_probe_1220.diff.png",
+      "bytes": 5807,
+      "sha256": "55aea7bfe6f9c90c71df2379611c12eada3014444ccbce4f3352d3303077a44f"
+    },
+    {
+      "path": "native/source_control/eye_2.after.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\eye_2.after.png",
+      "bytes": 346646,
+      "sha256": "e37e5ad47cc334125697f9f5feb10343f8301bef8db5ebdbbcb9fb990a26b1ab"
+    },
+    {
+      "path": "native/source_control/eye_2.before.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\eye_2.before.png",
+      "bytes": 346646,
+      "sha256": "e37e5ad47cc334125697f9f5feb10343f8301bef8db5ebdbbcb9fb990a26b1ab"
+    },
+    {
+      "path": "native/source_control/eye_2.diff.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\eye_2.diff.png",
+      "bytes": 5807,
+      "sha256": "55aea7bfe6f9c90c71df2379611c12eada3014444ccbce4f3352d3303077a44f"
+    },
+    {
+      "path": "native/source_control/eye_2_qualified_0_probe_146.after.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\eye_2_qualified_0_probe_146.after.png",
+      "bytes": 373617,
+      "sha256": "d09db1c0c0e2b335eeee0545d0f0850b5540985cc641075d13f77554159f911d"
+    },
+    {
+      "path": "native/source_control/eye_2_qualified_0_probe_146.before.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\eye_2_qualified_0_probe_146.before.png",
+      "bytes": 373617,
+      "sha256": "4806c7abb7b29709aff5d4eb6340624bda8a0904509fc4ab66977b81e3921323"
+    },
+    {
+      "path": "native/source_control/eye_2_qualified_0_probe_146.diff.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\eye_2_qualified_0_probe_146.diff.png",
+      "bytes": 5807,
+      "sha256": "55aea7bfe6f9c90c71df2379611c12eada3014444ccbce4f3352d3303077a44f"
+    },
+    {
+      "path": "native/source_control/eye_2_qualified_1_probe_760.after.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\eye_2_qualified_1_probe_760.after.png",
+      "bytes": 387413,
+      "sha256": "ffb9fdc810ab6bb2d76a3746c71efc4d43c372602af1ca94a65d3d594c9c0d3e"
+    },
+    {
+      "path": "native/source_control/eye_2_qualified_1_probe_760.before.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\eye_2_qualified_1_probe_760.before.png",
+      "bytes": 387413,
+      "sha256": "8e55c943748ad84a0c3648ff155761a93ede3c8429d14d93120a0a94781c373e"
+    },
+    {
+      "path": "native/source_control/eye_2_qualified_1_probe_760.diff.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\eye_2_qualified_1_probe_760.diff.png",
+      "bytes": 5807,
+      "sha256": "55aea7bfe6f9c90c71df2379611c12eada3014444ccbce4f3352d3303077a44f"
+    },
+    {
+      "path": "native/source_control/eye_2_qualified_2_probe_475.after.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\eye_2_qualified_2_probe_475.after.png",
+      "bytes": 378442,
+      "sha256": "0f2c9db9580bd4ebe6aafc3fbeb32911b2a8d092b5137d20338db106e30c7f2c"
+    },
+    {
+      "path": "native/source_control/eye_2_qualified_2_probe_475.before.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\eye_2_qualified_2_probe_475.before.png",
+      "bytes": 378442,
+      "sha256": "1d047b362798eed24985d662b2ff6ad361870f1154c14660816ce7879f0e116e"
+    },
+    {
+      "path": "native/source_control/eye_2_qualified_2_probe_475.diff.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\eye_2_qualified_2_probe_475.diff.png",
+      "bytes": 5807,
+      "sha256": "55aea7bfe6f9c90c71df2379611c12eada3014444ccbce4f3352d3303077a44f"
+    },
+    {
+      "path": "native/source_control/eye_2_qualified_3_probe_160.after.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\eye_2_qualified_3_probe_160.after.png",
+      "bytes": 393078,
+      "sha256": "56673f95ef31f80017bbc4d647a1a643e036d160e4ca7154af4949a2eca3cbfd"
+    },
+    {
+      "path": "native/source_control/eye_2_qualified_3_probe_160.before.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\eye_2_qualified_3_probe_160.before.png",
+      "bytes": 393078,
+      "sha256": "56673f95ef31f80017bbc4d647a1a643e036d160e4ca7154af4949a2eca3cbfd"
+    },
+    {
+      "path": "native/source_control/eye_2_qualified_3_probe_160.diff.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\eye_2_qualified_3_probe_160.diff.png",
+      "bytes": 5807,
+      "sha256": "55aea7bfe6f9c90c71df2379611c12eada3014444ccbce4f3352d3303077a44f"
+    },
+    {
+      "path": "native/source_control/eye_3.after.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\eye_3.after.png",
+      "bytes": 149907,
+      "sha256": "73dc91b280b8dfe0336cf3ab3d25a231d416f14f97721efa20c5a9f62bd2feba"
+    },
+    {
+      "path": "native/source_control/eye_3.before.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\eye_3.before.png",
+      "bytes": 149907,
+      "sha256": "9a1a1076dbe9b84f5d45cd1cbfb745aa4e4b516f2d01c7e765a05b3546e96c18"
+    },
+    {
+      "path": "native/source_control/eye_3.diff.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\eye_3.diff.png",
+      "bytes": 5807,
+      "sha256": "55aea7bfe6f9c90c71df2379611c12eada3014444ccbce4f3352d3303077a44f"
+    },
+    {
+      "path": "native/source_control/eye_3_qualified_0_probe_832.after.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\eye_3_qualified_0_probe_832.after.png",
+      "bytes": 386308,
+      "sha256": "e505f9be3eca2674d3a37d9d8ad5f8c1e391d943be3ad2674ca324ca8b3a99c7"
+    },
+    {
+      "path": "native/source_control/eye_3_qualified_0_probe_832.before.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\eye_3_qualified_0_probe_832.before.png",
+      "bytes": 386308,
+      "sha256": "a66dc807300c4812d190e5aa74ddbb9f403895f1f5bce0338f095d6c7515f9bc"
+    },
+    {
+      "path": "native/source_control/eye_3_qualified_0_probe_832.diff.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\eye_3_qualified_0_probe_832.diff.png",
+      "bytes": 5807,
+      "sha256": "55aea7bfe6f9c90c71df2379611c12eada3014444ccbce4f3352d3303077a44f"
+    },
+    {
+      "path": "native/source_control/eye_3_qualified_1_probe_737.after.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\eye_3_qualified_1_probe_737.after.png",
+      "bytes": 395267,
+      "sha256": "2919b0c8e0b22e811df38fef9f8da028d8b07423b322d526ec06a4e5f4df24f8"
+    },
+    {
+      "path": "native/source_control/eye_3_qualified_1_probe_737.before.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\eye_3_qualified_1_probe_737.before.png",
+      "bytes": 395267,
+      "sha256": "9ba352ae42e4e4c8ce7238a86a8003d88c195ca27e1c6e1e692dcf9c244a6669"
+    },
+    {
+      "path": "native/source_control/eye_3_qualified_1_probe_737.diff.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\eye_3_qualified_1_probe_737.diff.png",
+      "bytes": 5807,
+      "sha256": "55aea7bfe6f9c90c71df2379611c12eada3014444ccbce4f3352d3303077a44f"
+    },
+    {
+      "path": "native/source_control/eye_3_qualified_2_probe_370.after.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\eye_3_qualified_2_probe_370.after.png",
+      "bytes": 399876,
+      "sha256": "325735fb1a99bcaaa141931577c4b36c011ed58d0ec72af5e65c0b6e0d8b3330"
+    },
+    {
+      "path": "native/source_control/eye_3_qualified_2_probe_370.before.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\eye_3_qualified_2_probe_370.before.png",
+      "bytes": 399876,
+      "sha256": "ac3b8adefdf22267fa179dca7e7417d9972e2b636472d6ca5a31d42c462a37c5"
+    },
+    {
+      "path": "native/source_control/eye_3_qualified_2_probe_370.diff.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\eye_3_qualified_2_probe_370.diff.png",
+      "bytes": 5807,
+      "sha256": "55aea7bfe6f9c90c71df2379611c12eada3014444ccbce4f3352d3303077a44f"
+    },
+    {
+      "path": "native/source_control/eye_3_qualified_3_probe_319.after.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\eye_3_qualified_3_probe_319.after.png",
+      "bytes": 378252,
+      "sha256": "a6aa5504c9b3991eb17ea3b6d6946e3d4e0b7ccf1b30b7ca53c185d98c543a2b"
+    },
+    {
+      "path": "native/source_control/eye_3_qualified_3_probe_319.before.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\eye_3_qualified_3_probe_319.before.png",
+      "bytes": 378252,
+      "sha256": "215f912261da6474ce3c77ac033f98fc9e9e8e899afd2fe4f4d9a8ddf0dbd7e5"
+    },
+    {
+      "path": "native/source_control/eye_3_qualified_3_probe_319.diff.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\eye_3_qualified_3_probe_319.diff.png",
+      "bytes": 5807,
+      "sha256": "55aea7bfe6f9c90c71df2379611c12eada3014444ccbce4f3352d3303077a44f"
+    },
+    {
+      "path": "native/source_control/paired-detail.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\paired-detail.png",
+      "bytes": 392535,
+      "sha256": "1a41c93adffdd6674245c028c6b2d63b6778d3bcb6ec904f97f042d4e0d89aa2"
+    },
+    {
+      "path": "native/source_control/png-readback.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\png-readback.json",
+      "bytes": 5009,
+      "sha256": "5b1fe90d603f44fca76a06da760a02da6ae80b0e154fdc8f5cc42077d353b060"
+    },
+    {
+      "path": "native/source_control/view_-1_-1_-1.after.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\view_-1_-1_-1.after.png",
+      "bytes": 107470,
+      "sha256": "392deeb5274f67496135182ca7d21d9489d032cbb36c72640d8dccf5527782ea"
+    },
+    {
+      "path": "native/source_control/view_-1_-1_-1.before.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\view_-1_-1_-1.before.png",
+      "bytes": 107470,
+      "sha256": "5cdb2752d2debe30bf205f684f39626498a439ff5f25e9cc869d7b732e68f1da"
+    },
+    {
+      "path": "native/source_control/view_-1_-1_-1.diff.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\view_-1_-1_-1.diff.png",
+      "bytes": 5807,
+      "sha256": "55aea7bfe6f9c90c71df2379611c12eada3014444ccbce4f3352d3303077a44f"
+    },
+    {
+      "path": "native/source_control/view_-1_-1_0.after.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\view_-1_-1_0.after.png",
+      "bytes": 48826,
+      "sha256": "2d44b483b38eba52bfd40e9c70ddf63b86ba9137cc6c23f896e9aa7d0fc5bbc5"
+    },
+    {
+      "path": "native/source_control/view_-1_-1_0.before.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\view_-1_-1_0.before.png",
+      "bytes": 48826,
+      "sha256": "e98ac61b0c672732bf7d9608df7e71a4cab89aa331fc4afb1fdf1c88f67ea84d"
+    },
+    {
+      "path": "native/source_control/view_-1_-1_0.diff.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\view_-1_-1_0.diff.png",
+      "bytes": 5807,
+      "sha256": "55aea7bfe6f9c90c71df2379611c12eada3014444ccbce4f3352d3303077a44f"
+    },
+    {
+      "path": "native/source_control/view_-1_-1_1.after.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\view_-1_-1_1.after.png",
+      "bytes": 127322,
+      "sha256": "59be2b269d5142518113d6c5a062e109d86b6b52267e766274d1277d92b75f13"
+    },
+    {
+      "path": "native/source_control/view_-1_-1_1.before.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\view_-1_-1_1.before.png",
+      "bytes": 127322,
+      "sha256": "5e36b8be9a43784b77a3a411376151ace58868bda2e54b5f310e8fff3cf68249"
+    },
+    {
+      "path": "native/source_control/view_-1_-1_1.diff.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\view_-1_-1_1.diff.png",
+      "bytes": 5807,
+      "sha256": "55aea7bfe6f9c90c71df2379611c12eada3014444ccbce4f3352d3303077a44f"
+    },
+    {
+      "path": "native/source_control/view_-1_0_-1.after.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\view_-1_0_-1.after.png",
+      "bytes": 100417,
+      "sha256": "dfcd333e6b9fa2978a7a3edc3777e9cf4ae07e85f79f0b51fa5ef335bca18e7e"
+    },
+    {
+      "path": "native/source_control/view_-1_0_-1.before.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\view_-1_0_-1.before.png",
+      "bytes": 100417,
+      "sha256": "dfcd333e6b9fa2978a7a3edc3777e9cf4ae07e85f79f0b51fa5ef335bca18e7e"
+    },
+    {
+      "path": "native/source_control/view_-1_0_-1.diff.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\view_-1_0_-1.diff.png",
+      "bytes": 5807,
+      "sha256": "55aea7bfe6f9c90c71df2379611c12eada3014444ccbce4f3352d3303077a44f"
+    },
+    {
+      "path": "native/source_control/view_-1_0_0.after.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\view_-1_0_0.after.png",
+      "bytes": 51853,
+      "sha256": "8ed16b8567ba88956d78f34f358a136fe98895bb4ef3b856d253967ec5496b80"
+    },
+    {
+      "path": "native/source_control/view_-1_0_0.before.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\view_-1_0_0.before.png",
+      "bytes": 51853,
+      "sha256": "8ed16b8567ba88956d78f34f358a136fe98895bb4ef3b856d253967ec5496b80"
+    },
+    {
+      "path": "native/source_control/view_-1_0_0.diff.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\view_-1_0_0.diff.png",
+      "bytes": 5807,
+      "sha256": "55aea7bfe6f9c90c71df2379611c12eada3014444ccbce4f3352d3303077a44f"
+    },
+    {
+      "path": "native/source_control/view_-1_0_1.after.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\view_-1_0_1.after.png",
+      "bytes": 130750,
+      "sha256": "cb5170880856d443d672bc471f4ffd59d4ac4db0c53f908538f5efbc1b2130a5"
+    },
+    {
+      "path": "native/source_control/view_-1_0_1.before.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\view_-1_0_1.before.png",
+      "bytes": 130750,
+      "sha256": "cb5170880856d443d672bc471f4ffd59d4ac4db0c53f908538f5efbc1b2130a5"
+    },
+    {
+      "path": "native/source_control/view_-1_0_1.diff.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\view_-1_0_1.diff.png",
+      "bytes": 5807,
+      "sha256": "55aea7bfe6f9c90c71df2379611c12eada3014444ccbce4f3352d3303077a44f"
+    },
+    {
+      "path": "native/source_control/view_-1_1_-1.after.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\view_-1_1_-1.after.png",
+      "bytes": 109103,
+      "sha256": "799003e69d12d1ec6dbf316b62eed24800340f620bda494268ab5501a99d1f5a"
+    },
+    {
+      "path": "native/source_control/view_-1_1_-1.before.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\view_-1_1_-1.before.png",
+      "bytes": 109103,
+      "sha256": "799003e69d12d1ec6dbf316b62eed24800340f620bda494268ab5501a99d1f5a"
+    },
+    {
+      "path": "native/source_control/view_-1_1_-1.diff.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\view_-1_1_-1.diff.png",
+      "bytes": 5807,
+      "sha256": "55aea7bfe6f9c90c71df2379611c12eada3014444ccbce4f3352d3303077a44f"
+    },
+    {
+      "path": "native/source_control/view_-1_1_0.after.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\view_-1_1_0.after.png",
+      "bytes": 55358,
+      "sha256": "9212b13ad65889615d7f787b63354c473f5618b5eeb21df55c6db10ec779f8f8"
+    },
+    {
+      "path": "native/source_control/view_-1_1_0.before.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\view_-1_1_0.before.png",
+      "bytes": 55358,
+      "sha256": "9212b13ad65889615d7f787b63354c473f5618b5eeb21df55c6db10ec779f8f8"
+    },
+    {
+      "path": "native/source_control/view_-1_1_0.diff.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\view_-1_1_0.diff.png",
+      "bytes": 5807,
+      "sha256": "55aea7bfe6f9c90c71df2379611c12eada3014444ccbce4f3352d3303077a44f"
+    },
+    {
+      "path": "native/source_control/view_-1_1_1.after.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\view_-1_1_1.after.png",
+      "bytes": 133444,
+      "sha256": "ff4669b49b0c5c61ba2d32adc2c1974d9059d21b68752db970016de3bfe454d2"
+    },
+    {
+      "path": "native/source_control/view_-1_1_1.before.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\view_-1_1_1.before.png",
+      "bytes": 133444,
+      "sha256": "070d441d4fbadc3ba5baba6a9faf11d0f256102efe8b62273c560c2b272dfdd6"
+    },
+    {
+      "path": "native/source_control/view_-1_1_1.diff.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\view_-1_1_1.diff.png",
+      "bytes": 5807,
+      "sha256": "55aea7bfe6f9c90c71df2379611c12eada3014444ccbce4f3352d3303077a44f"
+    },
+    {
+      "path": "native/source_control/view_0_-1_-1.after.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\view_0_-1_-1.after.png",
+      "bytes": 104440,
+      "sha256": "2f1a75d91173c410ef65e9d84fede50ec4ecb86f02d60ba050c36496d2e4784b"
+    },
+    {
+      "path": "native/source_control/view_0_-1_-1.before.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\view_0_-1_-1.before.png",
+      "bytes": 104440,
+      "sha256": "d56c77b6f315c9a58d2b1fdb94b656f1425bb89a2b45544b8512d998a13f66d9"
+    },
+    {
+      "path": "native/source_control/view_0_-1_-1.diff.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\view_0_-1_-1.diff.png",
+      "bytes": 5807,
+      "sha256": "55aea7bfe6f9c90c71df2379611c12eada3014444ccbce4f3352d3303077a44f"
+    },
+    {
+      "path": "native/source_control/view_0_-1_0.after.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\view_0_-1_0.after.png",
+      "bytes": 37003,
+      "sha256": "031b7cc4337ef31dddfb4561de6a4a5fe51fc3a1375097648f0b71759959d3ce"
+    },
+    {
+      "path": "native/source_control/view_0_-1_0.before.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\view_0_-1_0.before.png",
+      "bytes": 37003,
+      "sha256": "e4e3949488a348dc3382a7288be0dfeca8941b93f4dea3cbe8393785dcc6ca3c"
+    },
+    {
+      "path": "native/source_control/view_0_-1_0.diff.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\view_0_-1_0.diff.png",
+      "bytes": 5807,
+      "sha256": "55aea7bfe6f9c90c71df2379611c12eada3014444ccbce4f3352d3303077a44f"
+    },
+    {
+      "path": "native/source_control/view_0_-1_1.after.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\view_0_-1_1.after.png",
+      "bytes": 117667,
+      "sha256": "e54f127402d9adb71b7fc38b2152fb62b9570d0d1f9a9d0200210874fdc995d6"
+    },
+    {
+      "path": "native/source_control/view_0_-1_1.before.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\view_0_-1_1.before.png",
+      "bytes": 117667,
+      "sha256": "7686050691f0013100922c24d28834268d6d38c6be55ee5bd1c5d9f059a670f8"
+    },
+    {
+      "path": "native/source_control/view_0_-1_1.diff.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\view_0_-1_1.diff.png",
+      "bytes": 5807,
+      "sha256": "55aea7bfe6f9c90c71df2379611c12eada3014444ccbce4f3352d3303077a44f"
+    },
+    {
+      "path": "native/source_control/view_0_0_-1.after.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\view_0_0_-1.after.png",
+      "bytes": 112913,
+      "sha256": "d0c4a8b2ac0220f69c757a227d9c51cdf6cd4d4adbc748fe8ae5cee7447f27a3"
+    },
+    {
+      "path": "native/source_control/view_0_0_-1.before.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\view_0_0_-1.before.png",
+      "bytes": 112913,
+      "sha256": "d0c4a8b2ac0220f69c757a227d9c51cdf6cd4d4adbc748fe8ae5cee7447f27a3"
+    },
+    {
+      "path": "native/source_control/view_0_0_-1.diff.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\view_0_0_-1.diff.png",
+      "bytes": 5807,
+      "sha256": "55aea7bfe6f9c90c71df2379611c12eada3014444ccbce4f3352d3303077a44f"
+    },
+    {
+      "path": "native/source_control/view_0_0_1.after.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\view_0_0_1.after.png",
+      "bytes": 124971,
+      "sha256": "9db5c6d9cecb1bfbb5fd71cd080d4ffa89c2326d75ac389ba882e32dc30942b8"
+    },
+    {
+      "path": "native/source_control/view_0_0_1.before.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\view_0_0_1.before.png",
+      "bytes": 124971,
+      "sha256": "6328d79e708b37c8122e740e3bf5d52ec5c030178a1242152a574442241dba0c"
+    },
+    {
+      "path": "native/source_control/view_0_0_1.diff.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\view_0_0_1.diff.png",
+      "bytes": 5807,
+      "sha256": "55aea7bfe6f9c90c71df2379611c12eada3014444ccbce4f3352d3303077a44f"
+    },
+    {
+      "path": "native/source_control/view_0_1_-1.after.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\view_0_1_-1.after.png",
+      "bytes": 101194,
+      "sha256": "c2bec37fc53b2aa52515bf43503b312277877c4be0e98921161c56b5f1d63e5b"
+    },
+    {
+      "path": "native/source_control/view_0_1_-1.before.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\view_0_1_-1.before.png",
+      "bytes": 101194,
+      "sha256": "c2bec37fc53b2aa52515bf43503b312277877c4be0e98921161c56b5f1d63e5b"
+    },
+    {
+      "path": "native/source_control/view_0_1_-1.diff.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\view_0_1_-1.diff.png",
+      "bytes": 5807,
+      "sha256": "55aea7bfe6f9c90c71df2379611c12eada3014444ccbce4f3352d3303077a44f"
+    },
+    {
+      "path": "native/source_control/view_0_1_0.after.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\view_0_1_0.after.png",
+      "bytes": 35323,
+      "sha256": "829b93b87d34fda8ed000168b492e5ef9baed06c1f500bd76a819b9fe4b3290c"
+    },
+    {
+      "path": "native/source_control/view_0_1_0.before.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\view_0_1_0.before.png",
+      "bytes": 35323,
+      "sha256": "829b93b87d34fda8ed000168b492e5ef9baed06c1f500bd76a819b9fe4b3290c"
+    },
+    {
+      "path": "native/source_control/view_0_1_0.diff.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\view_0_1_0.diff.png",
+      "bytes": 5807,
+      "sha256": "55aea7bfe6f9c90c71df2379611c12eada3014444ccbce4f3352d3303077a44f"
+    },
+    {
+      "path": "native/source_control/view_0_1_1.after.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\view_0_1_1.after.png",
+      "bytes": 115782,
+      "sha256": "82962ce6f10df5e1db7ec4d807e462144946a35048b6fd893124c40ac473562b"
+    },
+    {
+      "path": "native/source_control/view_0_1_1.before.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\view_0_1_1.before.png",
+      "bytes": 115782,
+      "sha256": "82962ce6f10df5e1db7ec4d807e462144946a35048b6fd893124c40ac473562b"
+    },
+    {
+      "path": "native/source_control/view_0_1_1.diff.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\view_0_1_1.diff.png",
+      "bytes": 5807,
+      "sha256": "55aea7bfe6f9c90c71df2379611c12eada3014444ccbce4f3352d3303077a44f"
+    },
+    {
+      "path": "native/source_control/view_1_-1_-1.after.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\view_1_-1_-1.after.png",
+      "bytes": 130778,
+      "sha256": "c011555f5b3d3973217888482422b7e967bdf9d746d6559798a32244aee27360"
+    },
+    {
+      "path": "native/source_control/view_1_-1_-1.before.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\view_1_-1_-1.before.png",
+      "bytes": 130778,
+      "sha256": "0188aa285078408f83a2576012abea5ac336d0b77489237d19718e866b61fc72"
+    },
+    {
+      "path": "native/source_control/view_1_-1_-1.diff.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\view_1_-1_-1.diff.png",
+      "bytes": 5807,
+      "sha256": "55aea7bfe6f9c90c71df2379611c12eada3014444ccbce4f3352d3303077a44f"
+    },
+    {
+      "path": "native/source_control/view_1_-1_0.after.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\view_1_-1_0.after.png",
+      "bytes": 55485,
+      "sha256": "ae834b63f03f4e9a62977f0a7e0480362d915ef312e13e89e8cb8fe5c4449b49"
+    },
+    {
+      "path": "native/source_control/view_1_-1_0.before.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\view_1_-1_0.before.png",
+      "bytes": 55485,
+      "sha256": "cfa87c52ec0be91b3b7731d3666a8670e70b87a37df571b5a351d10f8ae24825"
+    },
+    {
+      "path": "native/source_control/view_1_-1_0.diff.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\view_1_-1_0.diff.png",
+      "bytes": 5807,
+      "sha256": "55aea7bfe6f9c90c71df2379611c12eada3014444ccbce4f3352d3303077a44f"
+    },
+    {
+      "path": "native/source_control/view_1_-1_1.after.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\view_1_-1_1.after.png",
+      "bytes": 112629,
+      "sha256": "194933faa6feb598e0ff4aaea65d38428f6e3a8ed9772f9f94590092116ce88a"
+    },
+    {
+      "path": "native/source_control/view_1_-1_1.before.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\view_1_-1_1.before.png",
+      "bytes": 112629,
+      "sha256": "5179ab4869cb1b3c533718627a847023997850c16e48a558da88b5b426a59e95"
+    },
+    {
+      "path": "native/source_control/view_1_-1_1.diff.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\view_1_-1_1.diff.png",
+      "bytes": 5807,
+      "sha256": "55aea7bfe6f9c90c71df2379611c12eada3014444ccbce4f3352d3303077a44f"
+    },
+    {
+      "path": "native/source_control/view_1_0_-1.after.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\view_1_0_-1.after.png",
+      "bytes": 119436,
+      "sha256": "6b98f6fa636b1042509318dc0b2c30462b6c6460b55bdfc8fa5e5452c8428d15"
+    },
+    {
+      "path": "native/source_control/view_1_0_-1.before.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\view_1_0_-1.before.png",
+      "bytes": 119436,
+      "sha256": "68cf48f8b0beb45b99dd9223676806741a8d3f8582743123ea426f10196de46c"
+    },
+    {
+      "path": "native/source_control/view_1_0_-1.diff.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\view_1_0_-1.diff.png",
+      "bytes": 5807,
+      "sha256": "55aea7bfe6f9c90c71df2379611c12eada3014444ccbce4f3352d3303077a44f"
+    },
+    {
+      "path": "native/source_control/view_1_0_0.after.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\view_1_0_0.after.png",
+      "bytes": 52795,
+      "sha256": "724ddce9902477dfcf16741afde7557bc96b048569b85773c060f906ff3eaade"
+    },
+    {
+      "path": "native/source_control/view_1_0_0.before.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\view_1_0_0.before.png",
+      "bytes": 52795,
+      "sha256": "1279d17088bea72dd7eb84a8c3567fb27241dffa5f6417d32ab0e7a2956796df"
+    },
+    {
+      "path": "native/source_control/view_1_0_0.diff.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\view_1_0_0.diff.png",
+      "bytes": 5807,
+      "sha256": "55aea7bfe6f9c90c71df2379611c12eada3014444ccbce4f3352d3303077a44f"
+    },
+    {
+      "path": "native/source_control/view_1_0_1.after.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\view_1_0_1.after.png",
+      "bytes": 112512,
+      "sha256": "34f01ce785a03afd08bcce1e3a7dc3b523cfbd6b0050494c69039e232e746b60"
+    },
+    {
+      "path": "native/source_control/view_1_0_1.before.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\view_1_0_1.before.png",
+      "bytes": 112512,
+      "sha256": "5b263af0a5fe57c507065a7932c4b1f328bd91d6b63f5955c19be086e456ea69"
+    },
+    {
+      "path": "native/source_control/view_1_0_1.diff.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\view_1_0_1.diff.png",
+      "bytes": 5807,
+      "sha256": "55aea7bfe6f9c90c71df2379611c12eada3014444ccbce4f3352d3303077a44f"
+    },
+    {
+      "path": "native/source_control/view_1_1_-1.after.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\view_1_1_-1.after.png",
+      "bytes": 123326,
+      "sha256": "42a90f7870bff513240ac2bf1d56b83a6b2203d066b4e0b092956e0c6915eae3"
+    },
+    {
+      "path": "native/source_control/view_1_1_-1.before.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\view_1_1_-1.before.png",
+      "bytes": 123326,
+      "sha256": "42a90f7870bff513240ac2bf1d56b83a6b2203d066b4e0b092956e0c6915eae3"
+    },
+    {
+      "path": "native/source_control/view_1_1_-1.diff.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\view_1_1_-1.diff.png",
+      "bytes": 5807,
+      "sha256": "55aea7bfe6f9c90c71df2379611c12eada3014444ccbce4f3352d3303077a44f"
+    },
+    {
+      "path": "native/source_control/view_1_1_0.after.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\view_1_1_0.after.png",
+      "bytes": 49355,
+      "sha256": "45479c559be754e47185b0570bc3154acfaca352a2149980b138573b72079f49"
+    },
+    {
+      "path": "native/source_control/view_1_1_0.before.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\view_1_1_0.before.png",
+      "bytes": 49355,
+      "sha256": "45479c559be754e47185b0570bc3154acfaca352a2149980b138573b72079f49"
+    },
+    {
+      "path": "native/source_control/view_1_1_0.diff.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\view_1_1_0.diff.png",
+      "bytes": 5807,
+      "sha256": "55aea7bfe6f9c90c71df2379611c12eada3014444ccbce4f3352d3303077a44f"
+    },
+    {
+      "path": "native/source_control/view_1_1_1.after.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\view_1_1_1.after.png",
+      "bytes": 111920,
+      "sha256": "5ea6553acf4fe99075ea4506823e52bdf2aa9c693aa383d6567872f7bd39ebf6"
+    },
+    {
+      "path": "native/source_control/view_1_1_1.before.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\view_1_1_1.before.png",
+      "bytes": 111920,
+      "sha256": "065fe741a54d057895ba510d5b045dd73947a27ab2d4b90d07326b26f72b2580"
+    },
+    {
+      "path": "native/source_control/view_1_1_1.diff.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6h\\data\\iv6h\\native\\source_control\\view_1_1_1.diff.png",
+      "bytes": 5807,
+      "sha256": "55aea7bfe6f9c90c71df2379611c12eada3014444ccbce4f3352d3303077a44f"
+    },
+    {
+      "path": "memory/LUNA-SETUP-HANDOFF.md",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\memory-provider-audit-20261026\\LUNA-SETUP-HANDOFF.md",
+      "bytes": 2821,
+      "sha256": "c6ef044403d213efd2c68f1fe6d9aa0d9327ea638991816ea737522df719becb"
+    },
+    {
+      "path": "memory/codex_memory_bridge.py",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\memory-provider-audit-20261026\\codex_memory_bridge.py",
+      "bytes": 24807,
+      "sha256": "d68873420f064a17a7d3efc92472e33fec6905148e0e1b9fcd42f30574201616"
+    },
+    {
+      "path": "memory/startup_bridge.ps1",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\memory-provider-audit-20261026\\startup_bridge.ps1",
+      "bytes": 6870,
+      "sha256": "db6e003fd572d31f69d9205fd3b4f80f07cef0a6bb1f4fffa56a50430e9cc6b9"
+    },
+    {
+      "path": "memory/test_codex_memory_bridge.py",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\memory-provider-audit-20261026\\test_codex_memory_bridge.py",
+      "bytes": 20753,
+      "sha256": "78e65138859dc7ca51aba3a9ee508d4addd399e0de391dd4ee07c90b08e7e58d"
+    },
+    {
+      "path": "memory/native_idle_sampler.ps1",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\memory-provider-audit-20261026\\native_idle_sampler.ps1",
+      "bytes": 3470,
+      "sha256": "ad528b2bbc79532193b78d0c26cf3d0e4feda6c6d784dc50e62168750a218775"
+    },
+    {
+      "path": "memory/test_native_idle_sampler.ps1",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\memory-provider-audit-20261026\\test_native_idle_sampler.ps1",
+      "bytes": 3200,
+      "sha256": "a783306767f3c86f2fd4fea1ef7bf457aed25b199b537823828fc1b0fcee5bd5"
+    },
+    {
+      "path": "memory/luna-legacy-metadata-test-receipt.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\memory-provider-audit-20261026\\luna-legacy-metadata-test-receipt.json",
+      "bytes": 467,
+      "sha256": "248db4540806f9c84ef52df9a467d1b41a03e6d6d076a609bf6bc3767793b686"
+    },
+    {
+      "path": "memory/luna-switch-receipt.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\memory-provider-audit-20261026\\luna-switch-receipt.json",
+      "bytes": 1458,
+      "sha256": "87386b4dfa26485d8812d5d28d41188194c4318b15384dbc7dd6729fadcbbe19"
+    },
+    {
+      "path": "memory/luna-real-completion-receipt.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\memory-provider-audit-20261026\\luna-real-completion-receipt.json",
+      "bytes": 663,
+      "sha256": "c9d8d17c3aea6c0d02e1b52d13475e6488d1fb354efeb24b42c8f779bb631a35"
+    },
+    {
+      "path": "memory/luna-worker-persistence-receipt.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\memory-provider-audit-20261026\\luna-worker-persistence-receipt.json",
+      "bytes": 995,
+      "sha256": "cc4c7dbaf8e72cb9a31334def5fda5f60628471595c9f0c3d51eb6db1abee7c1"
+    },
+    {
+      "path": "memory/switch_luna_bridge_native_root.ps1",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\memory-provider-audit-20261026\\switch_luna_bridge_native_root.ps1",
+      "bytes": 10212,
+      "sha256": "9100223948c08950cae290c4e0fd12ae38b91e2c150bc4499eb390298dc97a41"
+    },
+    {
+      "path": "memory/recover-luna-staged-files.py",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\memory-provider-audit-20261026\\recover-luna-staged-files.py",
+      "bytes": 1474,
+      "sha256": "d602cff737f4f618eeb590c8648489b15e39e01cbe4ae13fabac30eb3d115373"
+    },
+    {
+      "path": "memory/recover-luna-after-stop.ps1",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\memory-provider-audit-20261026\\recover-luna-after-stop.ps1",
+      "bytes": 6222,
+      "sha256": "ed373a624d9f1776ee01161732b90e959f301f5c691d4f6839ff05be921309b1"
+    },
+    {
+      "path": "memory/worker-path-userenv-receipt.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\memory-provider-audit-20261026\\worker-path-userenv-receipt.json",
+      "bytes": 868,
+      "sha256": "9af402626190f687b613b97b96da1b1093a9708c1ad28b6726753d290f2bee2a"
+    },
+    {
+      "path": "current-status.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-fresh\\current.json",
+      "bytes": 323059,
+      "sha256": "a6cbc2b0a5fee51055707e34564b7fb3a637394e37f8b0075a794277905428c8"
+    }
+  ],
+  "archive_sha256": "036735c54afa922eb841eb5c1ff8ea4e7176398f2bc4e0cb872ff17c6515b089",
+  "all_members_read_back": true,
+  "local_only": true,
+  "acceptance": false
+}
