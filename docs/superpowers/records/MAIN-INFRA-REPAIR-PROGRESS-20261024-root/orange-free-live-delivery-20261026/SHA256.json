@@ -1,0 +1,86 @@
+{
+  "artifacts": [
+    {
+      "path": "record.md",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261026\\orange-live-delivery-record.md",
+      "bytes": 3858,
+      "sha256": "f0f376c3f31b5091d1edfc3afd2491595ddfe02b7d397ab705dad22ec039acd3"
+    },
+    {
+      "path": "all-assets-package.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\olr\\all-package.json",
+      "bytes": 80109,
+      "sha256": "17103f45ccbc9cfabe8bcd89c201a804274bf481a24e722ccdf8e4c245dd680d"
+    },
+    {
+      "path": "all-static-assets.tar.gz",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\olr\\all.tar.gz",
+      "bytes": 19348902,
+      "sha256": "66e2e3d35c45f030c4f9dcc3027fe52f344af72a97bd0548f8e369bf3776dd0e"
+    },
+    {
+      "path": "client-preview-loader-qa.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\olr\\preview-loader-qa.json",
+      "bytes": 1171,
+      "sha256": "774b00563f05c858edf1ab3cbbafe9fd213e1a861f62f8f823563551414591bf"
+    },
+    {
+      "path": "deployment.log",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261026\\orange-role-deployment.log",
+      "bytes": 11979,
+      "sha256": "d035bfba89e6dc0df8c0412e650781a1fb869dc59df12a4b1e7b3df246efeead"
+    },
+    {
+      "path": "canonical-readback.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261026\\orange-role-canonical-readback.json",
+      "bytes": 3546,
+      "sha256": "f22fe780163185d5ed839105da541fbb57a8e73a3f50e368ac499bfa7aebc238"
+    },
+    {
+      "path": "live-viewer-dom.txt",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261026\\live-orange-1F-inspection.txt",
+      "bytes": 2604,
+      "sha256": "d2b24b07efc4ee3dee9a8fe9d7ad952965d911d6d454eb6c3e41187b511fcf84"
+    },
+    {
+      "path": "live-1F-after.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261026\\live-orange-1F-after-candidate.png",
+      "bytes": 20392,
+      "sha256": "2d7c452029d58ce11e2ec34ca6ae4acd67afd4fd62f40be48b63900fbd72a343"
+    },
+    {
+      "path": "build-static-package.py",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261026\\build-orange-live-package-role-paths.py",
+      "bytes": 7834,
+      "sha256": "7c44b6a12d5e710e0e63afaf4147687542fc52d88bb043dd702034d07526e631"
+    },
+    {
+      "path": "publish-static.py",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261026\\publish-orange-role.py",
+      "bytes": 3771,
+      "sha256": "b6841798622a36de649118cf806fed934a5d212552a563dc563e54db777ac5c6"
+    },
+    {
+      "path": "publish-static.ps1",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261026\\publish-orange-role.ps1",
+      "bytes": 1851,
+      "sha256": "ad3038efde798076862e5067791aed723ea7c220571f44f13401d8b96f09459a"
+    },
+    {
+      "path": "bind-state.py",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261026\\bind-orange-role-live.py",
+      "bytes": 5492,
+      "sha256": "77e902a356c2fe0cf8401b262f0a1d3cbfbb8a7c8dff3acd72bb247a0885f9f1"
+    },
+    {
+      "path": "actual-seven-floor-censuses.zip",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\ocn\\docs\\superpowers\\records\\MAIN-INFRA-ORANGE-FREE-CENSUS-20261026\\actual-seven-floor-censuses-20261026.zip",
+      "bytes": 27118673,
+      "sha256": "38cd55e5a95eee08dde42f0940d77b15d09d95e188a130567fb819ff00d97aaf"
+    }
+  ],
+  "archive_sha256": "93b54c69b04b3229fc4b3178da8167bcd5bdaf7d9986bf189d72b5551a9ab19f",
+  "all_members_read_back": true,
+  "local_only": true,
+  "acceptance": false
+}
