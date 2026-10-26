@@ -1,0 +1,80 @@
+{
+  "artifacts": [
+    {
+      "path": "record.md",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261026\\26354-strict-pass-44958-edge-fail-root-record.md",
+      "bytes": 4098,
+      "sha256": "cfd690efa5efa97b7518aa7b415fcb223818ed66bd891c9d70df47869225bf96"
+    },
+    {
+      "path": "6f/readback.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6j\\data\\iv6j\\attempt1\\independent-saved-readback.json",
+      "bytes": 1139,
+      "sha256": "0e3b4d7794ef5d4299c4f28b629ee43ebd7e053574558624c4f89b0e1c1d28e9"
+    },
+    {
+      "path": "6f/strict.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6j\\data\\iv6j\\attempt1\\independent-guard.json",
+      "bytes": 19296,
+      "sha256": "84186c2aa8303c1a96a0248be043a4b9ac9d9b479023290b7af395ac2a42dfd2"
+    },
+    {
+      "path": "6f/census.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6j\\data\\iv6j\\attempt1\\census\\census-receipt.json",
+      "bytes": 2251,
+      "sha256": "d1e311895d4bfa9cad1a05d1998be4e40ba8c0564319ecfe9ccba8000f28d280"
+    },
+    {
+      "path": "6f/native-source-review.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\iv6j-preflight\\native-phase-review-packet.json",
+      "bytes": 2220,
+      "sha256": "dae55d943a928b33ac78a9112873db26191db4e01a6f4f52d274b763c3b1367a"
+    },
+    {
+      "path": "6f/native-phase.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\iv6j-preflight\\phase-native-attempt1.json",
+      "bytes": 7252,
+      "sha256": "0b084f19749a81a054f1b564f0d255a5c3b470f83436ac22506f7ddad088aad1"
+    },
+    {
+      "path": "6f/native-source.py",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6j\\tools\\main_infra_6f26354_native.py",
+      "bytes": 2754,
+      "sha256": "f7cdfa475e8ec68b93fee95a99b5ea8721d179462de356dadf645967986ec955"
+    },
+    {
+      "path": "6f/signed-source.py",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6j\\tools\\main_infra_6f26354_signed.py",
+      "bytes": 6862,
+      "sha256": "a31d53533371c502a961ebf5e025ddb2d10cc70fe19565b77f83b09aeb495445"
+    },
+    {
+      "path": "3f/actual-independent-evidence.zip",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\i3q\\data\\iv3q-preflight\\actual-new3f44958-independent-evidence.zip",
+      "bytes": 26200822,
+      "sha256": "b18d9c0e72a58504e71067e0f3f023b71eec4c42562a2fd734f550370c8b0af5"
+    },
+    {
+      "path": "1f/metadata-ancestry-trace.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\1f10552-missing-original-ancestry-20261027\\metadata-ancestry-trace.json",
+      "bytes": 63662,
+      "sha256": "9d413e04cdef5d1f3723af4ebcca39b5f26405299186e648d98002a3e2726777"
+    },
+    {
+      "path": "1f/root-trace-readback.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\1f10552-missing-original-ancestry-20261027\\root-readback.json",
+      "bytes": 320,
+      "sha256": "d3680a55c08ebfc84401b4957ffcabb526b4586720a1a90c76f8296509761aff"
+    },
+    {
+      "path": "current-status.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-fresh\\current.json",
+      "bytes": 372833,
+      "sha256": "ce9619e8b07cb8719b7cda8db035075c3cd5c4fe21f10d767b1b6fe4a0751bc8"
+    }
+  ],
+  "archive_sha256": "5f90ce406424796d38aec11f5c24c4df80f926daa271726be2884d17a6aee6a8",
+  "all_members_read_back": true,
+  "local_only": true,
+  "acceptance": false
+}
