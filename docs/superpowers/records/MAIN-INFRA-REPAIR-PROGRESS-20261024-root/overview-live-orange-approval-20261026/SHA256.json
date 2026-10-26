@@ -1,0 +1,86 @@
+{
+  "artifacts": [
+    {
+      "path": "record.md",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261026\\overview-live-orange-approval-record.md",
+      "bytes": 4228,
+      "sha256": "7fa9dd1e4bf67ac1c2596bdb8db53b8edeb04bf65423f3a05de1e23be62f5750"
+    },
+    {
+      "path": "interactive-open.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\blender-review\\MAIN-INFRA-7FLOORS-NOT_FINAL-20261026-OVERVIEW-LATEST\\interactive-open.json",
+      "bytes": 1073,
+      "sha256": "2ca386f4a61fde0694ca58146ca06c50cc86ff61cb315f37a80e9ea88654f5fb"
+    },
+    {
+      "path": "blender-receipt.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\blender-review\\MAIN-INFRA-7FLOORS-NOT_FINAL-20261026-OVERVIEW-LATEST\\MAIN-INFRA-NOT_FINAL-ALL-FLOORS.receipt.json",
+      "bytes": 226935,
+      "sha256": "adb2cdebe13282cf8fd8f0c42e4790481d6e880f33e989dd5df774d6c0be697c"
+    },
+    {
+      "path": "blender-readback.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\blender-review\\MAIN-INFRA-7FLOORS-NOT_FINAL-20261026-OVERVIEW-LATEST\\reopened-evidence\\readback.json",
+      "bytes": 134879,
+      "sha256": "1ef0bc12b19a80a9fbde36639c2e2cb01c68453c71d1eb09eb25dbed9013fcad"
+    },
+    {
+      "path": "all-floors-overview.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\blender-review\\MAIN-INFRA-7FLOORS-NOT_FINAL-20261026-OVERVIEW-LATEST\\reopened-evidence\\all-floors-overview.png",
+      "bytes": 347469,
+      "sha256": "0686d5b5302e5ab404d6c50d327d8a674cde92e4abf99269f44e59aaefd1fcea"
+    },
+    {
+      "path": "overview-inventory.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\blender-review\\MAIN-INFRA-7FLOORS-NOT_FINAL-20261026-OVERVIEW-LATEST-inputs\\floor-inventory.json",
+      "bytes": 102044,
+      "sha256": "3e8b95850a1af5fd256111fca3ea3264389f0aeacb544a434545cc3bbd851c94"
+    },
+    {
+      "path": "inspection-10573.tar",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\t573\\inspection-10573.tar",
+      "bytes": 5294080,
+      "sha256": "67e1208bd79746d2d93a40c3644c2e568deb536dba468f1cf2492d2e6c89e366"
+    },
+    {
+      "path": "inspection-package.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\t573\\package.json",
+      "bytes": 9760,
+      "sha256": "cb7a40d0c0b695129c6f4357da61aab52dfcf407570198c3a886ddb732510750"
+    },
+    {
+      "path": "inspection-deployment.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261026\\inspection-10573-deployment.log",
+      "bytes": 863,
+      "sha256": "48eb7579cfe6cfd7a474c2d1d0e694ae836c1efcdeb7530f77633f3604cf23d8"
+    },
+    {
+      "path": "inspection-bind.py",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261026\\bind-inspection-10573-live.py",
+      "bytes": 5761,
+      "sha256": "82d85b82f933ac2819bc51d6ff7f407b590a70601548330904c32e703f3bb098"
+    },
+    {
+      "path": "inspection-publish.py",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261026\\publish-inspection-10573.py",
+      "bytes": 4754,
+      "sha256": "4b63d9408021287c815d90ef09649f02648b365ca3762716b500ef2a677934e2"
+    },
+    {
+      "path": "current-status.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-fresh\\current.json",
+      "bytes": 177751,
+      "sha256": "0b12e5139b40693d5ee3d48c4cde1ef1ddb7aca896f9893eff0ca5ed21ffdcf0"
+    },
+    {
+      "path": "publish-health.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261023\\publish-health.json",
+      "bytes": 558,
+      "sha256": "985f7d7e5ea7fcfe5224249e52e63aa5982a0dd0ad9018881de04c7785fd5726"
+    }
+  ],
+  "archive_sha256": "886a28d708922276f9c8d9f19f2463fd059fa5f7db86f3b0770a92b152e77cf4",
+  "all_members_read_back": true,
+  "local_only": true,
+  "acceptance": false
+}
