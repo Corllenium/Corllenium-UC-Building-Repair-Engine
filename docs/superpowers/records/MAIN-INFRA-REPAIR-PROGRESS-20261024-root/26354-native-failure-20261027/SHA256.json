@@ -1,0 +1,56 @@
+{
+  "artifacts": [
+    {
+      "path": "record.md",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261026\\26354-native-failure-root-record.md",
+      "bytes": 2652,
+      "sha256": "4d09f99c355d3341aa521ae2937fe0de77ec751241624ae0f9afd52f38bddbc6"
+    },
+    {
+      "path": "native-evidence.zip",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6j\\data\\iv6j\\delivery-20261027\\actual26354-native.zip",
+      "bytes": 42266575,
+      "sha256": "c6553ed352f141c05e7a4aa2fc1264a5cf5bb6deda6f659fa1dd93913e1cd73e"
+    },
+    {
+      "path": "readback-census-strict.zip",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6j\\data\\iv6j\\delivery-20261027\\actual26354-readback-census-strict-schema.zip",
+      "bytes": 1169887,
+      "sha256": "6ef5a5854ab2e9931e81f7d0873efd3994cfdfaae7bd59b312a5eaaea75eb957"
+    },
+    {
+      "path": "native-preservation.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6j\\data\\iv6j\\native\\native-preservation.json",
+      "bytes": 53380,
+      "sha256": "1b7cd304addb029ec579485d56cf2e655e639951b2763560bdb3f7c952d7e045"
+    },
+    {
+      "path": "root-png-pixel-readback.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\iv6j-preflight\\root-png-pixel-readback.json",
+      "bytes": 29117,
+      "sha256": "98dffd938d11a8450fce79f05f0c144b613dcabcd160e766a5f9054d71ba4dec"
+    },
+    {
+      "path": "handoff.md",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6j\\docs\\superpowers\\records\\MAIN-INFRA-6F-26354-INDEPENDENT-20261027\\DELIVERY-HANDOFF.md",
+      "bytes": 2738,
+      "sha256": "f9b3b98f376b33fbb1d362e5792d1163e2519df9022b97826ac05b7612ea787c"
+    },
+    {
+      "path": "native-status-readback.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\iv6j-preflight\\live-status-native-fail-readback.json",
+      "bytes": 387,
+      "sha256": "f22038dabe897afab40b314f74c9afc5edf57e5e79695fb5dacfd6a55b544188"
+    },
+    {
+      "path": "current-status.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-fresh\\current.json",
+      "bytes": 374202,
+      "sha256": "242b3514afe733808fab65a3e7479a8bf14b8ccb34492764a15005f1c87fac82"
+    }
+  ],
+  "archive_sha256": "dbf4b8eb3b783585478f828ef9771375e11bf3a183f011e58f596be5911f8de9",
+  "all_members_read_back": true,
+  "local_only": true,
+  "acceptance": false
+}
