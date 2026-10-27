@@ -1,0 +1,26 @@
+{
+  "artifacts": [
+    {
+      "path": "native-readback.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261026\\edge-already-closed-20261027-native-readback.json",
+      "bytes": 1087,
+      "sha256": "d544e0246f87765fb42f42d54bba4ba09b2395f65c17f5482bb74e017b7a2fdc"
+    },
+    {
+      "path": "record.md",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261026\\edge-already-closed-20261027-record.md",
+      "bytes": 1069,
+      "sha256": "5440d863c24e5cd6653511866ded5047ade891522efe76cb56db8669537807cd"
+    },
+    {
+      "path": "canonical-status.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-fresh\\current.json",
+      "bytes": 424906,
+      "sha256": "3c0f275e7975b9837f240100d7bd581bea93f2f8e865691b1d47d4b0bef7ff28"
+    }
+  ],
+  "archive_sha256": "f9358e308904179a0cf23226604d271655e078a0718c4c64ca259cc99cee5e4f",
+  "all_members_read_back": true,
+  "local_only": true,
+  "acceptance": false
+}
