@@ -1,0 +1,104 @@
+{
+  "artifacts": [
+    {
+      "path": "3f-terminal.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\b3e\\data\\edge299-prep\\monitor-3F45257-checked-E7-execute-20261027T075852\\result.json",
+      "bytes": 1024,
+      "sha256": "3808f893529b1edef2493dd037191b46b75d0b440c612b740a41d7c7546c31e9"
+    },
+    {
+      "path": "3f-actual-runtime.jsonl",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\b3e\\data\\edge299-prep\\monitor-3F45257-checked-E7-execute-20261027T075852\\resources.jsonl",
+      "bytes": 1767873,
+      "sha256": "4e38127ff0eb768ac6d125f9f4fff8193bd8dd0c9196abb36cfd7a1919de457b"
+    },
+    {
+      "path": "3f-slot-release.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\b3e\\data\\edge299-prep\\single-owner-E7-execute-release.json",
+      "bytes": 543,
+      "sha256": "f9b80a35f1d573c6ade9cd5d5c3c3c0f42b61db5aa3ba7f924fce5cc6d551109"
+    },
+    {
+      "path": "3f-zero-output-and-owner-readback.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\b3e\\data\\edge299-prep\\E7-abort-and-slot-release-readback.json",
+      "bytes": 46150,
+      "sha256": "18fa9306c54a9823e651922a6e50fb22dda262661799eb510a176b2f6dc60cb5"
+    },
+    {
+      "path": "memory-report.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\r2n\\data\\retention-preflight-v2\\resource-diagnosis-20261027T084426\\measured-resource-report.json",
+      "bytes": 19291,
+      "sha256": "5094380e66b16716da1507b2867afffe7a9eeb95f4a8eaa391209d0223c06d34"
+    },
+    {
+      "path": "memory-families.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\r2n\\data\\retention-preflight-v2\\resource-diagnosis-20261027T084426\\birth-qualified-app-families.json",
+      "bytes": 1126,
+      "sha256": "4cfd6d31d1d0e3d39f10e617bc20f086dcad2baceb86fb028b96a20914deff67"
+    },
+    {
+      "path": "2f-corrected-source-review.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\r2n\\data\\retention-preflight-v2\\source-phase-review.json",
+      "bytes": 3621,
+      "sha256": "f71a33549e4f98aff156939fab2d4c89dd4542aedc358005aec866ff8264e65d"
+    },
+    {
+      "path": "2f-root-admission.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261026\\2f-attempt2-root-admission-20261027\\ROOT-ADMISSION-RECEIPT.json",
+      "bytes": 1452,
+      "sha256": "94b7a00901bf31a1235b1a2cfd3ebb9360d25569ec9674da6114a2bd80b5a2c5"
+    },
+    {
+      "path": "2f-memory-canonical-readback.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\r2n\\data\\retention-preflight-v2\\live-attempt2-post3F-memory-readback.json",
+      "bytes": 491,
+      "sha256": "5466534d85ae5c0fac79ee55e90dba335ebe5b6c709428ef77fc91fcb8df0d68"
+    },
+    {
+      "path": "6f-diagnostic-source-review.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6n\\data\\26291-four-sample-prep\\source-phase-review.json",
+      "bytes": 2853,
+      "sha256": "b0c76653879e7b28d7aa27b4385d6bf33d6ea1492f1b9d51cee34ffdd634b0ec"
+    },
+    {
+      "path": "7f-source-plan-review.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\s7p\\data\\source-plan-preflight\\frozen\\source-phase-review.json",
+      "bytes": 6417,
+      "sha256": "4e484778e4bdfb9f045e520d6c13657c664f37b4e5e44cfdbc0c12c4ce119d44"
+    },
+    {
+      "path": "canonical-status.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-fresh\\current.json",
+      "bytes": 424906,
+      "sha256": "3c0f275e7975b9837f240100d7bd581bea93f2f8e865691b1d47d4b0bef7ff28"
+    },
+    {
+      "path": "memory-sample-0.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\r2n\\data\\retention-preflight-v2\\resource-diagnosis-20261027T084426\\sample-0.json",
+      "bytes": 288495,
+      "sha256": "756918777e26d6a8fff0508510ab881687838127ec6f71ddcd251ffc182b2bdf"
+    },
+    {
+      "path": "memory-sample-1.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\r2n\\data\\retention-preflight-v2\\resource-diagnosis-20261027T084426\\sample-1.json",
+      "bytes": 287514,
+      "sha256": "458f1aa63dd2b0518b3130662ba360b12f3072e29786ea6116a0c7f4a165dd5b"
+    },
+    {
+      "path": "memory-sample-2.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\r2n\\data\\retention-preflight-v2\\resource-diagnosis-20261027T084426\\sample-2.json",
+      "bytes": 287694,
+      "sha256": "975d9feb58faaecb28f208ae87d1efa87e0a7aa7d6d1160def5ce5fe78d0bcd4"
+    },
+    {
+      "path": "record.md",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261026\\e7-abort-memory-20261027-record.md",
+      "bytes": 4189,
+      "sha256": "b62a44a2572f5c10e26b4c022aaae50f0addf78660a6aaf85249f981e7faeed7"
+    }
+  ],
+  "archive_sha256": "b95feac1d458e9ce73afd986bcfbde164b42eb515da9fd7a077fe6beab29fd6f",
+  "all_members_read_back": true,
+  "local_only": true,
+  "acceptance": false
+}
