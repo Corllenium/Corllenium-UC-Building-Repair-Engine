@@ -1,0 +1,80 @@
+{
+  "artifacts": [
+    {
+      "path": "component-proof.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v2n\\data\\iv2n-preflight\\frozen39334\\component-proof-through-guard-HOLD.json",
+      "bytes": 3488,
+      "sha256": "8fcf06892d22f5f44412c937507811a257b05cae87375d18e8a156401f62595c"
+    },
+    {
+      "path": "census-receipt.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v2n\\data\\iv2n\\actual\\census\\census-receipt.json",
+      "bytes": 1730,
+      "sha256": "b3eafad8a3bc0da6d93fb2b241ad63f97dd7e1fc27ac86ab989fc646899a9a0a"
+    },
+    {
+      "path": "census-terminal.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v2n\\data\\iv2n-preflight\\frozen39334\\monitor-2F-native14-independent39334-census-20261027T104154\\result.json",
+      "bytes": 717,
+      "sha256": "1d2a2a499156205d17b2a9b9635a0c99f7cb0e4515df9a97cc34ea0e82c60fae"
+    },
+    {
+      "path": "guard-hold.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v2n\\data\\iv2n-preflight\\frozen39334\\monitor-2F-native14-independent39334-guard-20261027T104549\\result.json",
+      "bytes": 118,
+      "sha256": "c4b6d19bdc92fd7576061439a0e516c49a463abed4513e0ba04023a6fd1e15f3"
+    },
+    {
+      "path": "guard-gate.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v2n\\data\\iv2n-preflight\\frozen39334\\monitor-2F-native14-independent39334-guard-20261027T104549\\launch-gate.json",
+      "bytes": 787,
+      "sha256": "6e2545edfa22cae186a3bfe8969bca7c366600b3d3fb59f112aa84921937c206"
+    },
+    {
+      "path": "guard-canonical-readback.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\r2n\\data\\retention-preflight-v2\\live-independent39334-guard-hold-readback.json",
+      "bytes": 450,
+      "sha256": "dcfcc43b03a3865e919d91abc01bb46cf7d4235510f5e3eea6c4b203a8b1b0d2"
+    },
+    {
+      "path": "canonical-snapshot.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-fresh\\current.json",
+      "bytes": 433661,
+      "sha256": "85ef2d90c78983d7fcc3d92e7ac1c5b406d2968695bf1e86649eec422e802ddf"
+    },
+    {
+      "path": "source-census-raw.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v2n\\data\\iv2n\\actual\\census\\census-before.raw.json",
+      "bytes": 5590097,
+      "sha256": "96d6e3dd4bceea389544317d5631898f5f2be3e121fd31fde20f8328aa514c81"
+    },
+    {
+      "path": "source-errors-display.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v2n\\data\\iv2n\\actual\\census\\errors-source.json",
+      "bytes": 2786255,
+      "sha256": "14859196f888ccd3e75741984acfa723c5da040472cd166ad01e24a646ec8eff"
+    },
+    {
+      "path": "candidate-census-raw.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v2n\\data\\iv2n\\actual\\census\\census-after.raw.json",
+      "bytes": 3677960,
+      "sha256": "5f3d25bb72e9fed493d139e7b1a9b04443e39616a4c150f8d5330d00027e2928"
+    },
+    {
+      "path": "candidate-errors-display.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v2n\\data\\iv2n\\actual\\census\\errors-candidate.json",
+      "bytes": 2585099,
+      "sha256": "a0b2431ec4683879728805a5524cedb4a41ef8b0002a64e0adeb1542a2c09213"
+    },
+    {
+      "path": "record.md",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261026\\2f39334-census-and-guard-hold-20261027-record.md",
+      "bytes": 1964,
+      "sha256": "b78a5d8b0da498cd6ea779e5a9810dbe0c167e467b8520660b017e3e71263274"
+    }
+  ],
+  "archive_sha256": "c51632a3b8540ba1ab8423814f3a19a9c0a12cf3a8e4882bc927b2a0055c2bf5",
+  "all_members_read_back": true,
+  "local_only": true,
+  "acceptance": false
+}
