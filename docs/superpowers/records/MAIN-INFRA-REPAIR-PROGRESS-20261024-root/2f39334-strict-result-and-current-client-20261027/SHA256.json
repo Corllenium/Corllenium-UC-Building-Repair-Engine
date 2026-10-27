@@ -1,0 +1,122 @@
+{
+  "artifacts": [
+    {
+      "path": "guard-chain-source-review.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v2n\\data\\iv2n-preflight\\guard-hold-chain-v1\\source-review-packet.json",
+      "bytes": 4103,
+      "sha256": "e51297290a79214acbbe0b576e33210072fc32585fee374d2272a818da32fe41"
+    },
+    {
+      "path": "guard-chain-qualifier.py",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v2n\\data\\iv2n-preflight\\guard-hold-chain-v1\\hold_chain.py",
+      "bytes": 8466,
+      "sha256": "b985d37456e2edf872ff0af74b8500cb38e3ac4ff9dec602cca791d35f216f91"
+    },
+    {
+      "path": "guard-chain-admission.ps1",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v2n\\data\\iv2n-preflight\\guard-hold-chain-v1\\admit-guard-hold-chain-v1.ps1",
+      "bytes": 7906,
+      "sha256": "97f29567f9a2de1a6ce9b652649d308f74b6de3c7e20b7a437ff48372b90d0f1"
+    },
+    {
+      "path": "guard-chain-spec.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v2n\\data\\iv2n-preflight\\guard-hold-chain-v1\\chain-spec-0002.json",
+      "bytes": 16116,
+      "sha256": "8b0cdffe6469ce25be8bad930ffb5e03324226a4d22902adf0d410f1e2e81218"
+    },
+    {
+      "path": "guard-chain-TDD.zip",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v2n\\data\\iv2n-preflight\\guard-hold-chain-v1\\chain-source-and-stdlib-TDD.zip",
+      "bytes": 10936,
+      "sha256": "67fcfe43e53ecd9dae2b3ecac1a13ef32660dd22a2f60653bf37dbbd35fd5e93"
+    },
+    {
+      "path": "Root-chain-GO.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261026\\2f39334-guard-hold-chain-root-admission-20261027\\ROOT-CHAIN-GO-0002.json",
+      "bytes": 1155,
+      "sha256": "d99b856a20cf93936e246f6869a7e3b5b54fde68aaa42b5d9b090edcd18e340d"
+    },
+    {
+      "path": "guard-actual-terminal.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v2n\\data\\iv2n-preflight\\frozen39334\\monitor-2F-native14-independent39334-guard-20261027T124049\\result.json",
+      "bytes": 708,
+      "sha256": "24af1087494a0a345d2115bca4700cb78a078eae265655a7d7b8570735e6ed4f"
+    },
+    {
+      "path": "guard-actual-report.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v2n\\data\\iv2n\\actual\\independent-guard.json",
+      "bytes": 1056143,
+      "sha256": "1de410dfb2c76a4b6677e5da877f8e31e1e0c658ff90c3ef195ace12c1e0495c"
+    },
+    {
+      "path": "guard-live-readback.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\r2n\\data\\retention-preflight-v2\\live-independent39334-strict-fail-readback.json",
+      "bytes": 1278,
+      "sha256": "07e1c7f4124af51088641224e8819abbce306c848a37f3290efbbd2a7d3ae883"
+    },
+    {
+      "path": "current-client-source-review.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\i2f\\data\\inspection-current-v2\\source-phase-review.json",
+      "bytes": 5099,
+      "sha256": "bfa13621ee908dd13bb77c4ecfa633c455897bc886bd4431fd5960ef95388a6a"
+    },
+    {
+      "path": "current-package.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\i2c\\package.json",
+      "bytes": 7164,
+      "sha256": "49e318891b9dc4fd4dfffe20840543f7c22e1a28444d2ccf39c6151f2c5c545c"
+    },
+    {
+      "path": "current-package.tar.gz",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\i2c\\models.tar.gz",
+      "bytes": 1304178,
+      "sha256": "c83b58990ae239b534cf58eb9a923e6c9e6ef4d82bc496b42f024d5c877ac6ca"
+    },
+    {
+      "path": "current-client-certificate.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\i2c\\client-preview-qa.json",
+      "bytes": 2589,
+      "sha256": "136065640e84170ff00b38270fb141313d84cfb79c911c22b772537fee09ff2a"
+    },
+    {
+      "path": "current-client-terminal.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\i2f\\data\\inspection-current-v2\\monitor-inspection-2F39334-current-production-client-20261027T125710\\result.json",
+      "bytes": 727,
+      "sha256": "daef6de7b53e04c6d343f0ffbb21335e38be69749c293304742f0a62791b2160"
+    },
+    {
+      "path": "current-client-released-lease.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\i2f\\data\\inspection-current-v2\\actual-client-released-lease.json",
+      "bytes": 551,
+      "sha256": "0984b0d02235e11ce636bee5fa1b77301c9a51eacda0ad1c30d0d2104cfb53b4"
+    },
+    {
+      "path": "Root-current-client-admission.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261026\\2f39334-current-client-root-admission-20261027\\ROOT-ADMISSION-RECEIPT.json",
+      "bytes": 1684,
+      "sha256": "ebd9557dc34d700d041f6db4d589c27f75b5627063b04195879249c1a71ab7b0"
+    },
+    {
+      "path": "readonly-host-trace.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261026\\hermes-readonly-trace-20261027T123642.json",
+      "bytes": 5705,
+      "sha256": "73ed74f189c4d67693785839ac7ec64a6f305ab06d81f51fdc01533f68f7f2aa"
+    },
+    {
+      "path": "canonical-status.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-fresh\\current.json",
+      "bytes": 438372,
+      "sha256": "745afea1db1b631f2b313e5e3b52de609688bbf421c1ee92a418ee11c1f4de11"
+    },
+    {
+      "path": "record.md",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261026\\2f39334-strict-result-and-current-client-20261027-record.md",
+      "bytes": 3986,
+      "sha256": "36f4580633ac897c3a63a3c6ea4167cf8d72871c7b2a51b32ed9bdb20354c22a"
+    }
+  ],
+  "archive_sha256": "da8c66052ac94e5d44ca833c1bea6986207f6b21c885e917964bf3708162c402",
+  "all_members_read_back": true,
+  "local_only": true,
+  "acceptance": false
+}
