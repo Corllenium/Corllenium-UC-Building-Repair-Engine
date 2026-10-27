@@ -1,0 +1,86 @@
+{
+  "artifacts": [
+    {
+      "path": "actual-terminal.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\r2n\\data\\retention-preflight-v2\\monitor-2F-native14-retention-attempt2-engine-20261027T091624\\result.json",
+      "bytes": 716,
+      "sha256": "099c2f5bd39349e7fcc04e4297865c8feb5d5e13686ffb2c65bd1bf4d90aebf5"
+    },
+    {
+      "path": "actual-stdout.txt",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\r2n\\data\\retention-preflight-v2\\monitor-2F-native14-retention-attempt2-engine-20261027T091624\\stdout.txt",
+      "bytes": 447,
+      "sha256": "49bfffd5c666ebc02006a277b858021d05262127685ba9c4274584cdb4e16b04"
+    },
+    {
+      "path": "actual-stderr.txt",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\r2n\\data\\retention-preflight-v2\\monitor-2F-native14-retention-attempt2-engine-20261027T091624\\stderr.txt",
+      "bytes": 263,
+      "sha256": "d073e6a23b19b9aec2c2bebcfa79a70d7d0e6b2e75cb2cdbe1a11af47328a045"
+    },
+    {
+      "path": "released-lease.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\r2n\\data\\retention-preflight-v2\\attempt2-single-owner-release.json",
+      "bytes": 551,
+      "sha256": "c478bf92fad21e175f22c53405643f6aeb9861057e995cfe7e7356e87f77cad5"
+    },
+    {
+      "path": "builder-byte-readback.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\r2n\\docs\\superpowers\\records\\MAIN-INFRA-2F-NATIVE14-RETENTION-20261027\\actual-attempt2-byte-readback.json",
+      "bytes": 4256,
+      "sha256": "09c53dabbe6f56815786edbf11dfa853b3f5bffe70ba546dc1f192509cd99ceb"
+    },
+    {
+      "path": "independent-role.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\r2n\\docs\\superpowers\\records\\MAIN-INFRA-2F-NATIVE14-RETENTION-20261027\\independent-attempt2-role-inputs.json",
+      "bytes": 805058,
+      "sha256": "2799ca4b91a06f29b2a94283893ee71f4a362042f6f6a37d4fcf3fcd451ed904"
+    },
+    {
+      "path": "sealer-v2-source.py",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\r2n\\data\\retention-preflight-v2\\readback-saved-attempt2-v2.py",
+      "bytes": 6797,
+      "sha256": "32474e6cd2f1e12a0eab9dd1821d06c14a7e04ebaba0b31227bec42b7793e162"
+    },
+    {
+      "path": "pure-execution-qualifier.py",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\r2n\\data\\retention-preflight-v2\\qualify_attempt2_execution.py",
+      "bytes": 2742,
+      "sha256": "a3b02d381f31f31cdce91a58f7839d3606ba5c591745613d98c1877f5574936b"
+    },
+    {
+      "path": "sealer-v2-test-proof.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\r2n\\data\\retention-preflight-v2\\sealer-v2-source-and-TDD-proof.json",
+      "bytes": 3638,
+      "sha256": "209df96eec506997a389f574585c3eccb6c5a0b15fcf704dc883d0a3619848dc"
+    },
+    {
+      "path": "sealer-v2-tests.zip",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\r2n\\data\\retention-preflight-v2\\actual-sealer-identity-TDD.zip",
+      "bytes": 28955,
+      "sha256": "afe3c8dff2b6dfafd27b265f2e2c9560ffca9f6bb2ecdd1bf84c4860bbec7b4a"
+    },
+    {
+      "path": "canonical-saved-readback.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\r2n\\data\\retention-preflight-v2\\live-attempt2-saved-readback.json",
+      "bytes": 462,
+      "sha256": "7c07139f30043992cc6d3dfd043a16714f367f47509423c4fbfebb10b1c092a2"
+    },
+    {
+      "path": "canonical-snapshot.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-fresh\\current.json",
+      "bytes": 431173,
+      "sha256": "e7e50a86c096ba151a9d4e4c18c3637ad076577bd46411c32238f076421b763a"
+    },
+    {
+      "path": "record.md",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261026\\2f39334-saved-20261027-record.md",
+      "bytes": 2136,
+      "sha256": "2c09841fce2f3177045f91942f708e268319a6eb5a4cfeb46be32aae8a80b089"
+    }
+  ],
+  "archive_sha256": "2bbf8c0d60d4b6c3539d4a63bc00dc8241e9fceb253a7f7efa2a474c6bb38de0",
+  "all_members_read_back": true,
+  "local_only": true,
+  "acceptance": false
+}
