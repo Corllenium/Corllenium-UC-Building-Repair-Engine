@@ -1,0 +1,140 @@
+{
+  "artifacts": [
+    {
+      "path": "k1-final-source-review.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\k1i\\data\\k1-prep\\source-review-final.json",
+      "bytes": 3771,
+      "sha256": "90624b176dc77a36e0f2a6ae82e914f7a121c063783fd00c8438a1f7e0e4812e"
+    },
+    {
+      "path": "k1-source.py",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\k1i\\engine\\repair\\types.py",
+      "bytes": 20968,
+      "sha256": "2c6a47c8ef5a5a20183c06db916262525b44f40daca7b5fad3d761e52707b73c"
+    },
+    {
+      "path": "k1-regression-tests.py",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\k1i\\engine\\tests\\test_face_keys_wide_integer.py",
+      "bytes": 5594,
+      "sha256": "32da78818fc567b4c35f6a0ea628dd51dddea089e15037b6317d02ed9737019f"
+    },
+    {
+      "path": "k1-review.md",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\k1i\\docs\\superpowers\\records\\MAIN-INFRA-K1-SAFE-INTEGER-KEYS-20261027\\SOURCE-REVIEW.md",
+      "bytes": 2944,
+      "sha256": "8ec4333ac06a0e0d99ce1a5199a89892dafbe7ba522ddb68747e21e418a4fb83"
+    },
+    {
+      "path": "k1-focused-evidence.zip",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\k1i\\data\\k1-prep\\actual-K1-green-focused-inputs-output.zip",
+      "bytes": 1052577,
+      "sha256": "c17ba3bf2eb027208eb3c799f811877b33ebc14da6f585352dc3d4bbed0bd612"
+    },
+    {
+      "path": "k1-consumer-evidence.zip",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\k1i\\data\\k1-prep\\actual-K1-direct-consumers-inputs-output.zip",
+      "bytes": 1057332,
+      "sha256": "da09a4f25a82035a2f760df99db3942c7adfc6e1777996eac21e404535e43892"
+    },
+    {
+      "path": "client-source-review.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\i2f\\data\\inspection-preflight\\source-phase-review.json",
+      "bytes": 3616,
+      "sha256": "fad17acc917f109ceb9a1575f5d37a42c3fe08735e368eeab1a7ad276ba42b96"
+    },
+    {
+      "path": "client-queue-correction.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\i2f\\data\\inspection-preflight\\owned-queue-branch-correction-readback.json",
+      "bytes": 1441,
+      "sha256": "58f3aab8346587fe19eda8eecb7b2527d8e4451788481930248b1faa672c69cf"
+    },
+    {
+      "path": "client-package.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\i2n\\package.json",
+      "bytes": 7092,
+      "sha256": "a14296df24682c9dfa5daf79a3ec7dff4118325c98aff72f6e3cf6a6b141a645"
+    },
+    {
+      "path": "client-model-map-package.tar.gz",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\i2n\\models.tar.gz",
+      "bytes": 1303827,
+      "sha256": "dc93319eee93d70bdf76a21ab0ebc49ad45e76692f8ac990dc592d1158560cfb"
+    },
+    {
+      "path": "client-Root-admission.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261026\\2f39334-client-root-admission-20261027\\ROOT-ADMISSION-RECEIPT.json",
+      "bytes": 1677,
+      "sha256": "4a26104e4ec587e4c720ffc6f8b5b24f2c04c6ea7b90d1de49586781a85011be"
+    },
+    {
+      "path": "guard-continuation-source-review.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v2n\\data\\iv2n-preflight\\guard-continuation-v1\\source-review-packet.json",
+      "bytes": 4486,
+      "sha256": "d539f92c170bfd7d6365306b9e4e7501d3e220de90b1c0acb5d79ef1d8f826fc"
+    },
+    {
+      "path": "guard-continuation-spec.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v2n\\data\\iv2n-preflight\\guard-continuation-v1\\continuation-spec.json",
+      "bytes": 10730,
+      "sha256": "14eff6cf9291f397d74913beee9dc908720f55229c1522dbc9c55052de861439"
+    },
+    {
+      "path": "guard-continuation-qualifier.py",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v2n\\data\\iv2n-preflight\\guard-continuation-v1\\guard_hold_qualifier.py",
+      "bytes": 6498,
+      "sha256": "8fda21162c6a0de0f1bcdff5620643982d72456a04d903a3635634730a1e5f95"
+    },
+    {
+      "path": "guard-continuation-admission.ps1",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v2n\\data\\iv2n-preflight\\guard-continuation-v1\\admit-guard-continuation-v1.ps1",
+      "bytes": 6876,
+      "sha256": "936bb67d2bad008c40e09846a38deb1974ff35a5395e10b4637886b50f893396"
+    },
+    {
+      "path": "guard-continuation-41tests.txt",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v2n\\data\\iv2n-preflight\\guard-continuation-v1\\FINAL-GREEN.txt",
+      "bytes": 3440,
+      "sha256": "0ce9872439c3deb18d195e7def654a07159fce11c9ef55581f40cf080a398e3f"
+    },
+    {
+      "path": "guard-Root-GO.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261026\\2f39334-guard-continuation-root-admission-20261027\\ROOT-CONTINUATION-GO.json",
+      "bytes": 1120,
+      "sha256": "a749942e6ff709d585321d7605071238ad06a9e5e97c890aa3dc2720b5cf9899"
+    },
+    {
+      "path": "guard-one-attempt-result-review.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v2n\\data\\iv2n-preflight\\guard-continuation-v1\\continuation-result-review.json",
+      "bytes": 2279,
+      "sha256": "95f378f640272ad096baa9d3442a3338b69b2d9197f6d22368476c3bdcfe02c6"
+    },
+    {
+      "path": "guard-real-hold.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v2n\\data\\iv2n-preflight\\frozen39334\\monitor-2F-native14-independent39334-guard-20261027T122452\\result.json",
+      "bytes": 118,
+      "sha256": "e5b693052b5c92a5f89ab05c67b38ab5eded993b60ce200fd788eb1fbc48abcc"
+    },
+    {
+      "path": "guard-real-launch-gate.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v2n\\data\\iv2n-preflight\\frozen39334\\monitor-2F-native14-independent39334-guard-20261027T122452\\launch-gate.json",
+      "bytes": 787,
+      "sha256": "d9df6da1a0ea13602ca557a73e842b14f0c66cdd8c1e20ade47ee6e0c71f4f06"
+    },
+    {
+      "path": "canonical-status-snapshot.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-fresh\\current.json",
+      "bytes": 433661,
+      "sha256": "85ef2d90c78983d7fcc3d92e7ac1c5b406d2968695bf1e86649eec422e802ddf"
+    },
+    {
+      "path": "record.md",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261026\\review-and-guard-continuation-20261027-record.md",
+      "bytes": 3612,
+      "sha256": "014d27d2e289f9987d88a25cc4c77512c3e52d4ef7e215cd68b89926ef4f4325"
+    }
+  ],
+  "archive_sha256": "6af38182fd3882e493746a882ba3fb7bc703da9c2b626c2ba3d4a269a164de56",
+  "all_members_read_back": true,
+  "local_only": true,
+  "acceptance": false
+}
