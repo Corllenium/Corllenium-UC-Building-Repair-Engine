@@ -1,0 +1,122 @@
+{
+  "artifacts": [
+    {
+      "path": "pixel-capture-source-review.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\c2p\\data\\pixel1-preflight\\frozen\\source-phase-review.json",
+      "bytes": 4397,
+      "sha256": "dee5d90d4c3528e5016989bd73007a3b6047450ebfe1cc07df42fd4c7906de58"
+    },
+    {
+      "path": "pixel-metadata-hold-resume.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\c2p\\data\\pixel1-preflight\\frozen\\metadata-HOLD-resume.json",
+      "bytes": 1581,
+      "sha256": "18cbf0f75ae71a63c0ccc7075d7d9964aa4092119ac0d752db742b59ccbc3900"
+    },
+    {
+      "path": "pixel-held-released-lease.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\c2p\\data\\pixel1-preflight\\frozen\\metadata-HOLD-released-lease.json",
+      "bytes": 605,
+      "sha256": "242a6c591a96885336921302199934b7c0c7170a9927b3d6d504b2299b8c4c97"
+    },
+    {
+      "path": "pixel-real-hold.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\c2p\\data\\pixel1-preflight\\frozen\\monitor-2F39334-pixel1-metadata-20261027T131215\\result.json",
+      "bytes": 118,
+      "sha256": "8a3c5b56003ac93b30bc03faf560fa4251c00496c4401b70ac3092eea00c8de2"
+    },
+    {
+      "path": "pixel-real-gate.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\c2p\\data\\pixel1-preflight\\frozen\\monitor-2F39334-pixel1-metadata-20261027T131215\\launch-gate.json",
+      "bytes": 787,
+      "sha256": "8394a38e606bd13dc0f6bf06de0ac63bebb11b711b055beb13fc6e6b2c5f44a9"
+    },
+    {
+      "path": "Root-pixel-admission.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261026\\2f39334-pixel1-root-admission-20261027\\ROOT-ADMISSION-RECEIPT.json",
+      "bytes": 1658,
+      "sha256": "293329b9a92141fa7d62af74a793c1942c7ae8a1ec7e4d74b9ead7cbce4d2049"
+    },
+    {
+      "path": "installer-review.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\i2f\\data\\inspection-current-installer-v1\\review-packet-v2.json",
+      "bytes": 3242,
+      "sha256": "033ddbef9d2889f4a0f333726446ba2913fbae2b58a934cbcd1a4f9442ef0b8f"
+    },
+    {
+      "path": "installer-source.py",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\i2f\\data\\inspection-current-installer-v1\\publish_inspection_39334_current.py",
+      "bytes": 7094,
+      "sha256": "6f8b4c17a42e6fd1c826e797bedb96dab4a8d7b34a8f680f2b38f224fec376f8"
+    },
+    {
+      "path": "binder-source.py",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\i2f\\data\\inspection-current-installer-v1\\bind_inspection_39334_current.py",
+      "bytes": 8382,
+      "sha256": "f9918a47ccb3b15f11934a532947599edf37cb8699f77ec353c65845fc3363b3"
+    },
+    {
+      "path": "exact-public-upload-plan.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\i2f\\data\\inspection-current-installer-v1\\exact-public-upload-plan.json",
+      "bytes": 4992,
+      "sha256": "c6ed9a46af0f8c83ce7b0e2b6032b6e164171a4ece8d046e19358401aa83ccfe"
+    },
+    {
+      "path": "upload-public-paths.md",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\i2f\\data\\inspection-current-installer-v1\\public-upload-files.md",
+      "bytes": 3552,
+      "sha256": "3e904436cc23006f29a8fe7d8be7d1ead53f0cb8ba3a574a4f6393328dbb4c54"
+    },
+    {
+      "path": "Root-reviewed-waiting-approval.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\i2f\\data\\inspection-current-installer-v1\\ROOT-REVIEWED-WAITING-EXACT-UPLOAD-APPROVAL.json",
+      "bytes": 1202,
+      "sha256": "dbb30dcedb96dfaca4bada46100735eb20fce9ece9289c9a56d45b2c4fb26b85"
+    },
+    {
+      "path": "installer-local-TDD-and-artifacts.zip",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\i2f\\data\\inspection-current-installer-v1\\prepared-current-install-review-v2.zip",
+      "bytes": 1534766,
+      "sha256": "1d3945be47cb166891a304d69dc21bac58f1f409f9e5845b07e12bad53c6dbdf"
+    },
+    {
+      "path": "current-source-adoption-v4.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\c2s\\data\\current39334-prep\\SOURCE-ADOPTION-PACKET-v4.json",
+      "bytes": 6330,
+      "sha256": "fefc9d91b91035b97b3041b830852cc6087a77bf0015910144972b558d5e3044"
+    },
+    {
+      "path": "current-codec-adoption-proof.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\c2s\\docs\\superpowers\\records\\MAIN-INFRA-2F-CURRENT-SAFEKEY-20261027\\SOURCE-CODEC-ADOPTION.json",
+      "bytes": 1244,
+      "sha256": "afaf2da03a742da6f700c922e5156926ba39797125f60e83f58094c2f738e53f"
+    },
+    {
+      "path": "Root-readonly-code-adoption.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261026\\2f39334-safekey-readonly-root-adoption-20261027\\ROOT-READONLY-ADOPTION.json",
+      "bytes": 598,
+      "sha256": "24a25d2dad25e20ae5cb9552e7161ca481dd79699a41ad292169a605c83be703"
+    },
+    {
+      "path": "Root-readonly-owner-conditions.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261026\\2f39334-safekey-readonly-root-adoption-20261027\\ROOT-SOURCE-REVIEW-CONDITIONS.json",
+      "bytes": 717,
+      "sha256": "7ef42c6f9dc463ebbcf2be00f481bd672099bf6d71631ee07e3f231de7ca1a17"
+    },
+    {
+      "path": "canonical-status.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-fresh\\current.json",
+      "bytes": 438372,
+      "sha256": "745afea1db1b631f2b313e5e3b52de609688bbf421c1ee92a418ee11c1f4de11"
+    },
+    {
+      "path": "record.md",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261026\\2f-pixel-hold-and-pending-delivery-approval-20261027-record.md",
+      "bytes": 4196,
+      "sha256": "7a138e4badd42f4076debbc2eea40384cd3b409335d054cba95f5a633da629ee"
+    }
+  ],
+  "archive_sha256": "75da7ebbb8950f03074a5b3011339ec83b8cda6ff7dab41c8ccdd59ca684b505",
+  "all_members_read_back": true,
+  "local_only": true,
+  "acceptance": false
+}
