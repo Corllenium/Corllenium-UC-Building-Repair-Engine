@@ -1,0 +1,92 @@
+{
+  "artifacts": [
+    {
+      "path": "serial-profile.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6n\\data\\single-owner-8gib-prep\\single-owner-profile.json",
+      "bytes": 3746,
+      "sha256": "82500f4421d3d00daac19948fd5d0aa669761fee18eef82c5006a0c9ad0044f8"
+    },
+    {
+      "path": "human-approval.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6n\\data\\single-owner-8gib-prep\\HUMAN-APPROVED.json",
+      "bytes": 665,
+      "sha256": "705d9e42cdbe84c635ec7d754c9e228ddd8ad3adf567ce2ea884ade879bfcd18"
+    },
+    {
+      "path": "serial-helper.ps1",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6n\\tools\\main-infra-single-owner-profile.ps1",
+      "bytes": 7909,
+      "sha256": "e604ddf7245fd338142a53aca9a8e2b73c3367824bb0e895e4bbcb1bccd7e133"
+    },
+    {
+      "path": "serial-launcher.ps1",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6n\\tools\\run-main-infra-single-owner-8gib.ps1",
+      "bytes": 8165,
+      "sha256": "c7f664350afd1486a5bb465c4020ca867b612fb909e12e8286dba8c43883a72d"
+    },
+    {
+      "path": "serial-synthetic-tests.ps1",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6n\\tools\\tests\\test-main-infra-single-owner-profile.ps1",
+      "bytes": 7063,
+      "sha256": "b3c0f97016ecbfd2649e53fa63d03f0a48a17610e9ae5f3e27c50154ad9fb1a1"
+    },
+    {
+      "path": "2f-actual-terminal.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\r2n\\data\\retention-preflight\\monitor-2F-native14-retention-engine-20261027T075330\\result.json",
+      "bytes": 688,
+      "sha256": "85e93604f5f5a9f5fb91b686eeab7761ca733cc3122aa324f4419026ed417a00"
+    },
+    {
+      "path": "2f-actual-stderr.txt",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\r2n\\data\\retention-preflight\\monitor-2F-native14-retention-engine-20261027T075330\\stderr.txt",
+      "bytes": 2347,
+      "sha256": "85153e2efd26162406348d0514d3c3b2270390985277a943c67eb02433a82ab6"
+    },
+    {
+      "path": "2f-actual-failure-canonical-readback.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\r2n\\data\\retention-preflight\\live-E3-failed-readback.json",
+      "bytes": 502,
+      "sha256": "65a79e0d55eacea6468b22335e98153412012a5a73f7068d4f181a0beddf744c"
+    },
+    {
+      "path": "3f-current-identity.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\b3e\\data\\edge299-prep\\monitor-3F45257-checked-E7-execute-20261027T075852\\actual-identity.json",
+      "bytes": 865,
+      "sha256": "9bacf6a76ddb30e03a25cf9d6852df17a7bd1e27e817066867fcfeaad502686c"
+    },
+    {
+      "path": "3f-launch-admission.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\b3e\\data\\edge299-prep\\monitor-3F45257-checked-E7-execute-20261027T075852\\launch-gate.json",
+      "bytes": 789,
+      "sha256": "8f10e1cd558c672fac9b5325fd7d490b1f489928047f056b68f50b5f88ecbe88"
+    },
+    {
+      "path": "3f-independent-components-canonical.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261026\\3f45257-independent-status-readback.json",
+      "bytes": 366,
+      "sha256": "fc688ada47872362643588a62d387a4c2027f3101d4cd69a021bf32dfc376fb3"
+    },
+    {
+      "path": "3f-independent-records-manifest.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v3s\\docs\\superpowers\\records\\MAIN-INFRA-3F-45257-INDEPENDENT-20261027\\actual-completed-components\\SHA256.json",
+      "bytes": 139439,
+      "sha256": "fa1c0d2dbd7c4dda5e684e4be3e71c6a911c185760c218772700a91f4cfc1d85"
+    },
+    {
+      "path": "live-status-snapshot.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-fresh\\current.json",
+      "bytes": 422063,
+      "sha256": "974c157a88d0c71331a4865c1b2b6ee4bcb217da642e68c3738f6a7d71f5bb2c"
+    },
+    {
+      "path": "record.md",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261026\\serial-orchestration-20261027-record.md",
+      "bytes": 3555,
+      "sha256": "a42d33cdd6b47ed2382ec2b078c1b4e30666728f203cb1d22b4ff83e42ed6d28"
+    }
+  ],
+  "archive_sha256": "b2c43022f150104c5f6d1fd9caa3827c59896d22aa6c7e0c3ac97157e095f3df",
+  "all_members_read_back": true,
+  "local_only": true,
+  "acceptance": false
+}
