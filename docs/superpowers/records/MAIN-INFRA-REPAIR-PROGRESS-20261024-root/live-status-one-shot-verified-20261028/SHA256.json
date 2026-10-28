@@ -1,0 +1,26 @@
+{
+  "artifacts": [
+    {
+      "path": "record.md",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261026\\actual-resume-20261028\\live-status-record.md",
+      "bytes": 1796,
+      "sha256": "ced6f641250e1c518773b909cb4ea58d0ce473f9dca0401046d4fce12f30f5e9"
+    },
+    {
+      "path": "live-status-publication.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261026\\actual-resume-20261028\\live-status-publication.json",
+      "bytes": 328,
+      "sha256": "d41d1ce19264f1c8549a95d9ee6120f39662addaef97447850b0ed4dc1b37ec4"
+    },
+    {
+      "path": "live-status-readback.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261026\\actual-resume-20261028\\live-status-readback.json",
+      "bytes": 573,
+      "sha256": "7bf57ed1eafb05703ec1c05a99f1c8c085cce9fb668574c07c9ad9539d2a853d"
+    }
+  ],
+  "archive_sha256": "68a09a1351d7620a22a822e37eea3e853c6a2a27161a442beb327e6cdb791a22",
+  "all_members_read_back": true,
+  "local_only": true,
+  "acceptance": false
+}

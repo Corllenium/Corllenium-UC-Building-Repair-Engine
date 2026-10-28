@@ -25,6 +25,15 @@ run the latest `.skp` of each file must be in `OBJ FIXED RESULT/` for the owner 
 
 ## 2. Current state (2026-09-26 00:15, written by the Claude controller)
 
+2026-10-28 LIVE DASHBOARD STATUS PUBLICATION VERIFIED AFTER STOPPED PUBLISHER AUDIT.
+
+Authenticated host inspection found zero matching status publishers and no old PID26220. The former watcher uses stale worker/config observations and had stopped with Older progress cannot replace a newer event. It was NOT restarted. Root fully read the existing paid one-shot remote publisher source; installed SHA3cded5fc exactly matched. Root uploaded only canonical status642df67a to the existing configured data path, then invoked that installed status publisher. No model, image, buffer, application code or new program was uploaded.
+
+Both actual live static roots now contain identical status SHA768232e176c78aca3b714395a694f3e035d2cfa6dc5f6a39e9555b190c7d156a. Independent SSH readback compared each freshMainInfra object to the exact canonical input, asserted actual3F55740/cleaning/E7 log, 2F current safe-K1 qualified but blocked with displayed38110/pending39334, and zero accepted floors. Existing source/After/acceptance refs are unchanged. Both feeds contain60 retained logs. This is static-file readback, NOT a browser/WebGL render verification. No browser-origin denial was bypassed.
+
+The paid merge preserves other feed keys, rejects older source/run/events and atomically replaces both static files with rollback/readback. No server restart or live database write occurred. Exact14file2Fmodel upload approval remains pending; that separate payload was not uploaded. Actual3F engine55740 birth06:34:26.6481949Z was independently alive at06:42:47Z with759.90625 CPU seconds/private534867968 bytes and fresh-source bounded32 E7 output. All seven floors remain unaccepted/not Unity-ready. Continue authenticated terminal/checkpoint review before further batch admission; Blender remains closed.
+
+
 2026-10-28 ACTUAL2F PIXEL DIAGNOSIS AND SAFE-KEY QUALIFICATION COMPLETE; ACTUAL3F CHECKED BATCH STARTED.
 
 Memory recovered to22.50GiB at06:22:11Z. Root authenticated the prior13:12 no-startHOLD/releasedlease without resetting it; all owner operators paused and actualnative model-worker count0. Exact c2p110b/1241pins unchanged. Metadata70596/birth06:25:11.5214808Z exited0/allgone06:25:12.9160554Z; capture28744/birth06:26:21.9759317Z exited0/noabort/allgone06:27:04.0920456Z after42.2256392s. Leases normally released after each actualphase; profileb52e/8GiB admission/own3/reserve3.5/max1 unchanged.
