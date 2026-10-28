@@ -2,7 +2,9 @@
 
 This is the single rules file for Claude, Hermes and every other agent working in this repo.
 `CLAUDE.md` imports it; `HERMES.md`, `docs/superpowers/records/HANDOFF.md` and the skills link to it.
-If anything elsewhere disagrees with this file, this file wins. Change it only with the owner's OK.
+If anything elsewhere disagrees with this file, this file wins. Sections 3-6 (the binding rules, the blocked
+operations, the owner's decisions, the validation rule) change only with the owner's OK. Claude may fix
+wording, pointers and consistency elsewhere in this file, and reports each such fix to the owner.
 
 ## 1. What this project is
 
@@ -34,12 +36,16 @@ If anything elsewhere disagrees with this file, this file wins. Change it only w
   `"/d/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe"` from the worktree root, and set
   `PYTHONPATH` to the worktree root for any plain `python script.py` (otherwise it imports the main
   checkout's engine).
-- **Never touch**: any untracked file you did not create, the live export folder
-  `D:\PROJECTS\UC ENVIRONMENT BUILDING\...`, the owner's campus model
-  `D:\PROJECTS\UC\02-SKETCHUP\current\...skp`, and the running servers: the Docker containers
-  `fixer-api` (8190), `fixer-web` (5190 and 5180, nginx) and `fixer-db` (Postgres 16, 5490).
-  Rebuilding or restarting them, and any write to the live database `fixer`, is the owner's decision.
-  The owner approved the 2026-09-25 rebuild (section 8).
+- **Never touch**:
+  - any untracked file you did not create;
+  - the live export folder `D:\PROJECTS\UC ENVIRONMENT BUILDING\...`: never write there, and read it only
+    through `engine/io/snapshot.py`;
+  - the owner's campus model `D:\PROJECTS\UC\02-SKETCHUP\current\...skp`;
+  - the running servers, the Docker containers `fixer-api` (8190), `fixer-web` (5190 and 5180, nginx) and
+    `fixer-db` (Postgres 16, 5490).
+
+  Rebuilding or restarting them, and any write to the live database `fixer`, is the owner's decision, and
+  each rebuild needs its own OK (section 8).
 - **API tests** (`pytest api`): since cba42a5 each session makes its own `fixer_test_<pid>_*` database
   and drops only its own (and ones left by dead processes), so runs of this code may overlap. A
   worktree or container on an older commit still drops the one shared `fixer_test`: never overlap two
@@ -55,13 +61,13 @@ If anything elsewhere disagrees with this file, this file wins. Change it only w
   item so a cut loses nothing.
 - **Guards are never loosened by argument.** A change to what the guard tolerates must name the
   change and MEASURE it (example: border shifts are tolerated only up to the merge's own 0.15 in,
-  measured per pixel). Only `engine/fixes/solidify.py` may invent vertices; the merge never moves or
-  invents one.
+  measured per pixel). Only `engine/fixes/solidify.py` may invent vertices, except the E5 cut's points
+  on the winning face's border (§4). The merge never moves or invents one.
 - **Visual pass every round**: read `data/output/<name>/qa/*.png` and render the `.skp` with
   `docs/superpowers/records/scripts/render_skp.py`, audit it with `skp_edge_audit.py`, and say what
   you see. A log line is not evidence.
-- **Records**: after every step append to the ledger, update section 2 of this page and the session
-  record's history, and commit them (`git add -f` for files under `.superpowers/sdd/`).
+- **Records**: after every step append to the ledger, update HANDOFF §2 and the session record's
+  history, and commit them (`git add -f` for files under `.superpowers/sdd/`).
 
 (The references to "section 2" and "section 8" in this list point to `docs/superpowers/records/HANDOFF.md`.)
 
@@ -93,7 +99,8 @@ named, measured and tested:
 | Source | CHECKPOINT-17 (its backup is the source of truth); the master is never touched |
 | Reference for "visible" | CHECKPOINT-17 itself, before against after. The Minecraft export is old and not a reference |
 | Visible rule | **Strict.** Nothing that can be seen is deleted or covered. Visible debris stays and is listed with a picture; a rebuilt side may cover only faces that are 0 % visible |
-| Viewpoints | Outside, **and inside at eye height**, because players walk the floors |
+| Visible rule, measured (owner, 2026-10-10) | The Validator counts the pixels that a removed or covered face shows in CHECKPOINT-17 (before), at **0.02 in per pixel** at the face, one count per viewpoint, on every line of sight and from both sides (Unity draws both). From any one viewpoint of the Viewpoints row, **more than 4 pixels** (4 × 0.02 × 0.02 = 0.0016 sq in, as projected across the line of sight) fails check 3 of §6; counts from different viewpoints are not added. "Cannot be seen" and "0 % visible" in the row above mean at or below this floor. The floor is the Validator's tolerance: it loosens no guard (§3), and builders aim for zero |
+| Viewpoints | Outside, **and inside at eye height**, because players walk the floors. **Owner, 2026-10-10:** outside views come only from directions **at or above the horizon** (ground level and up), plus the pedestrian ring cameras; nobody looks up from under the ground, so a surface seen only from below the ground (for example a slab's open underside) does not count as visible |
 | Back-to-back faces | They flicker in Unity (`_Cull = 0`). Keep the side facing a viewer and remove the inward copy. Where both sides are seen with different looks, the owner decides |
 | Flicker, different looks | The loser is cut along the winner's border (E5). The winner, in order: a patch inside a bigger face of the same source group; the look and UV continuing the plane's neighbours; otherwise the owner |
 | Holes | The narrow flat fill (E8); anything else goes to the per-floor "needs modelling" queue |
@@ -110,8 +117,8 @@ shows all three:
 1. **every facade texture is still there**: every visible sample keeps its surface, its look (texture
    plus colour) and its UV;
 2. **the problems are solved**: `find_errors` after the fix meets the targets the owner signed;
-3. **nothing visible to the eye was deleted or covered**: from outside, and from **eye height** inside
-   every floor.
+3. **nothing visible to the eye was deleted or covered**, measured as §5 "Visible rule, measured" says: from
+   outside, and from **eye height** inside every floor.
 
 Then the owner confirms the floor. A log line or a self-report is not a pass. The pass is the
 Validator's `validation.json` together with its evidence images.
@@ -124,7 +131,8 @@ Validator's `validation.json` together with its evidence images.
    - Never work a job you have not claimed; never take a job someone else holds.
 2. **One job is one brief, one branch and one worktree.**
    - Claude: `claude/<id>` in `.claude/worktrees/<id>`. Hermes: `hermes/<id>` in `.hermes/worktrees/<id>`.
-   - Branches are made from the phase's integration branch (P0: `feat/repair-p0`).
+   - Branches are made from the branch the brief names; if it names none, from the phase's
+     integration branch for code (P0: `feat/repair-p0`) and from `feat-dashboard` for a records-only job.
 3. **Follow the brief item by item, test first.** Each item says when it is done and names its tests.
 4. **The report carries real output.**
    - Hermes writes `docs/superpowers/records/hermes/<id>-report.md`; Claude writes its ledger.
@@ -135,6 +143,10 @@ Validator's `validation.json` together with its evidence images.
    - Changes that touch `engine/guard/**`, `FixProfile` thresholds or existing tests are rejected unless
      the brief asked for them.
 6. **Records after every step:** the ledger, HANDOFF §2, the session record, `QUEUE.md`.
+7. **Prompt audit:** when an agent prompt file changes (this file, `CLAUDE.md`, `HERMES.md`,
+   `.claude/agents`, `.claude/skills`, brief templates, Hermes or Jev prompts), Claude runs the
+   `prompt-auditor` subagent on it (skill `uc-prompt-audit`; the owner asked 2026-10-03). Its diff is only
+   proposed; changes to §3-6 need the owner.
 
 ## 8. Commands
 
@@ -148,3 +160,15 @@ PY="D:/PROJECTS/UC MODEL FIXER/.venv/Scripts/python.exe"
 
 - A bare `cd` in a shared terminal moves everyone's working directory: use subshells or `git -C`.
 - Commit messages end with `Co-Authored-By: <model> <noreply@anthropic.com>` (Claude) or `Hermes-Job: <id>` (Hermes).
+
+## 9. Model repair requests require engine output
+
+A direct request to fix or clean a supplied model requires running the relevant repair engine on a
+verified copy of the owner's supplied fresh source, within the authorized scope and per floor or
+element. Save the candidate model and its actual before/after error counts, measurements and validation
+evidence. Preserve the source's cuts, facades, textures, UVs and visible geometry under sections 3-6.
+
+Setup, diagnostics, plans and dashboard updates support delivery; they do not complete a repair request.
+A no-op or a candidate that misses signed targets is not repaired. Report the saved candidate's file
+paths and remaining errors, or the concrete engine/validation blocker, and continue authorized guarded
+work while it can progress. Acceptance and publication still follow sections 3-6.

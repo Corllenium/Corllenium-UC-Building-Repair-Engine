@@ -1,0 +1,15 @@
+{
+  "signed": true,
+  "signed_by": "owner",
+  "signed_at": "2026-10-08",
+  "source": "docs/superpowers/records/campus/decision-sheet-p0.md, question 2",
+  "kinds": {
+    "flicker_diff": 0,
+    "flicker_same": 0,
+    "reversed": 0,
+    "cracks": 0,
+    "hidden": {"max": null, "note": "owner: 0 except protected faces (side meshes, room surfaces seen from inside). find_errors counts room surfaces as hidden from outside, so a number is set once E3's interior-aware count exists."},
+    "loose": {"max": null, "note": "owner: zero-area 0; visible debris is kept and listed with a picture. loose mixes both, so it is listed."},
+    "open_edges": {"max": null, "note": "owner: listed; narrow flat fills are done, the rest go to the needs-modelling queue."}
+  }
+}

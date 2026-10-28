@@ -16,11 +16,35 @@
     names another folder, `--no-skp` skips it. Without SketchUp the run still succeeds and
     report.json's `skp` says why no file was written.
 
+    `--kernel` runs the same fix through the observe-only repair kernel
+    (`engine.repair.kernel.repair_unit`): the same files, byte for byte, plus `edit_log.jsonl` next to
+    report.json -- one line per edit each stage was observed to make.
+
+    `--kernel --validate-sites [--materials data/campus/materials.json]` also checks every stage with
+    the Validator's focus mode (`engine.site_judge.SiteJudge`, the owner's settings; job P1-K3b): one
+    focus run per stage, each failing sample charged to the stage's sites. The legacy stages are one
+    site each and are NOT rolled back (ruling K3-R2), so the files are the `--kernel` run's, and
+    `edit_log.jsonl` gains one `{"check": {...}}` line per stage: its verdict, the failing counts by
+    reason and the run times. It prints each stage's verdict and the total time.
+
 `python -m engine.cli preview-data <snapshot_dir> --out preview/data`
     Writes the JSON `preview/index.html` reads (see `spike/12_export_preview.py` for the shape
     this mirrors), with AFTER built from the REAL fixed mesh and the REAL guard numbers, and
     `stats` extended with the new counts (flipped, thin_sheets, one_sided_holes_before/after,
     outline_edges_after, unavoidable_diagonals_after, guard_passed).
+
+`python -m engine.cli validate --before <snapshot_dir> --after <obj> --materials <materials.json> --out <dir>`
+    Judges a repaired floor by the owner's rule (AGENTS.md section 6, `engine.validate`): are the facade
+    textures still there, are the problems solved, was nothing visible deleted or covered. Writes
+    `<dir>/validation.json` (`{"checks": {"textures", "problems", "nothing_deleted"}, "verdict": "PASS" or
+    "FAIL", "sites": [...]}` and everything the run was made from) and `<dir>/evidence/*.png`, two
+    256 px crops (BEFORE, AFTER) of each of the 20 worst failing sites. Exit code 0 on PASS, 2 on FAIL
+    or when an input is missing. Nothing is changed or fixed; the inputs are only read.
+
+`python -m engine.cli campus-unit-before --unit <UNIT> --out <dir>`
+    Writes a campus unit's BEFORE as a snapshot-shaped folder (`<UNIT>.obj`, `materials.mtl`) from its members'
+    frozen snapshots, banded members cut by face-centre z, so `validate --before <dir>` takes a whole unit.
+    Exit 0 when each member's face count is the campus map's, 1 when one differs, 2 on a refused input.
 
 A snapshot directory is the layout `engine.io.snapshot.snapshot_object` produces: one `<name>.obj`,
 `materials.mtl`, and a `tex/` folder of the textures it references.
@@ -32,9 +56,12 @@ confined to `engine/rays/` -- this module never imports them directly, only thro
 from __future__ import annotations
 
 import argparse
+import collections
 import json
+import os
 import shutil
 import sys
+import time
 from dataclasses import replace
 from pathlib import Path
 
@@ -50,15 +77,26 @@ from engine.guard.views import VIEWS_26, ortho_first_hit
 from engine.io.mtl import MtlMaterial, parse_mtl, texture_flatness
 from engine.io.obj_reader import read_obj
 from engine.io.obj_writer import write_obj, write_obj_polygons
+from engine.io.protected import refuse_protected
 from engine.io.skp_writer import SketchUpError, check_skp_validity, write_skp
 from engine.io.snapshot import sha256_file
 from engine.model import MeshData
-from engine.pipeline import (Topology, analyse_topology, coplanar_region_borders,
-                             flat_material_indices)
+from engine.pipeline import (Topology, analyse_topology, analyse_topology_memo,
+                             coplanar_region_borders, flat_material_indices)  # noqa: F401 -- analyse_topology stays importable from here
 from engine.rays.caster import ReusableCaster
 from engine.topo.adjacency import build_edge_table, edge_face_lists
 from engine.topo.edges import EDGE_SOFT
 from engine.topo.weld import weld_exact
+
+
+def _repo_root() -> Path:
+    """The directory that holds this engine's pyproject.toml (the repo or worktree root)."""
+    here = Path(__file__).resolve()
+    return next((p for p in here.parents if (p / "pyproject.toml").is_file()), here.parents[1])
+
+
+#: decide-pull writes only inside this folder (tests point it at a tmp folder).
+DATA_DIR: Path = _repo_root() / "data"
 
 #: The 6 axis-aligned views (of the 26 the guard itself uses) reported as before/after/diff PNGs.
 _AXIS_VIEWS = [v for v in VIEWS_26 if sum(1 for c in (round(x) for x in v) if c != 0) == 1]
@@ -418,8 +456,8 @@ def _write_skp(result: FixResult, name: str, out_dir: Path, flat_materials: froz
     path = out_dir / f"{name}.fixed.skp"
     mtl_path = out_dir / "materials.mtl"
     # the hidden edges are decided on the shipped mesh's own topology, with the run's thresholds
-    topo = analyse_topology(result.mesh, flat_materials, coplanar_angle=profile.coplanar_angle,
-                            soft_angle=profile.soft_angle)
+    topo = analyse_topology_memo(result.mesh, flat_materials, coplanar_angle=profile.coplanar_angle,
+                                 soft_angle=profile.soft_angle)
     try:
         written = write_skp(result.mesh, result.rings, result.face_region_final, topo,
                             parse_mtl(mtl_path) if mtl_path.exists() else {}, path,
@@ -441,12 +479,35 @@ def _write_skp(result: FixResult, name: str, out_dir: Path, flat_materials: froz
 # --------------------------------------------------------------------------------- fix command
 
 
+def _print_checks(name: str, checks: list[dict], seconds: float) -> None:
+    """One line per checked stage: its verdict, the failing samples by reason, what was rolled back."""
+    for c in checks:
+        if "skipped" in c:
+            print(f"{name}: check {c['stage']}: skipped ({c['skipped']})")
+            continue
+        runs = c["runs"]
+        first = runs[0] if runs else None
+        reasons = {} if first is None else {k: v for k, v in {**first["textures"], **first["nothing_deleted"]}.items() if v}
+        took = sum(r["seconds"] + r["focus_seconds"] + r["cover_seconds"] for r in runs)
+        print(f"{name}: check {c['stage']} ({c['engine']}, {c['edits']} edits, {c['sites']} sites): "
+              f"{c['first']} -> {c['final']}; failing {0 if first is None else first['failing']} {reasons}; "
+              f"unknown {c['unknown']['samples']}; rolled back {[r['site'] for r in c['rolled_back']]}; "
+              f"{len(runs)} run(s), {took:.1f} s")
+    print(f"{name}: site checks done in {seconds:.1f} s (the whole kernel run)")
+
+
 def cmd_fix(snapshot_dir: Path, out_root: Path, accept_slit: bool,
             profile: FixProfile | None = None, solidify: bool = True,
-            fragments: bool = True, skp: bool = True, skp_dir: Path | None = None) -> int:
+            fragments: bool = True, skp: bool = True, skp_dir: Path | None = None,
+            kernel: bool = False, validate_sites: bool = False, materials: Path | None = None) -> int:
     """`skp_dir` receives a copy of the `.skp`; `None` (the default here) copies it nowhere --
-    `main` passes `default_skp_dir()` unless `--skp-dir` names another folder."""
-    obj_path, mesh, flatness, _mtl_materials = _load_snapshot(snapshot_dir)
+    `main` passes `default_skp_dir()` unless `--skp-dir` names another folder. `kernel` runs the
+    fix through `engine.repair.kernel.repair_unit` and also writes `edit_log.jsonl`;
+    `validate_sites` (with `kernel`) checks each stage with the Validator's looks from `materials`
+    (materials.json) and the snapshot's own MTL, and logs the checks in `edit_log.jsonl`."""
+    obj_path, mesh, flatness, mtl_materials = _load_snapshot(snapshot_dir)
+    if validate_sites and not kernel:
+        raise ValueError("validate_sites needs kernel")
     if profile is None:
         profile = FixProfile(accept_slit=accept_slit, solidify=solidify,
                              accept_fragments=fragments)
@@ -454,12 +515,35 @@ def cmd_fix(snapshot_dir: Path, out_root: Path, accept_slit: bool,
         profile = replace(profile, accept_slit=accept_slit, solidify=solidify,
                           accept_fragments=fragments)
 
-    result = fix_object(mesh, flatness, profile)
+    kernel_result = None
+    if kernel:
+        from engine.repair.kernel import repair_unit, write_edit_log, write_records
+        from engine.repair.types import RepairContext, UnitState
+        judge = None
+        if validate_sites:
+            from engine.site_judge import SiteJudge
+            from engine.validate.checks import load_looks
+            judge = SiteJudge(load_looks(Path(materials or "data/campus/materials.json"),
+                                         [(mtl_materials, Path(snapshot_dir))]))
+        started = time.perf_counter()
+        kernel_result = repair_unit(UnitState(mesh=mesh, topo=None, looks={}, viewpoints=None),
+                                    RepairContext(profile=profile, decider=None, validator=judge),
+                                    flatness=flatness, obj_path=obj_path,
+                                    validate_sites=validate_sites)
+        result = kernel_result.result
+        if validate_sites:
+            _print_checks(mesh.name, kernel_result.checks, time.perf_counter() - started)
+    else:
+        result = fix_object(mesh, flatness, profile)
 
     name = mesh.name
     out_dir = Path(out_root) / name
     out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / "report.json").unlink(missing_ok=True)
+    if kernel_result is not None and validate_sites:
+        write_records(out_dir / "edit_log.jsonl", kernel_result.records)
+    elif kernel_result is not None:
+        write_edit_log(out_dir / "edit_log.jsonl", kernel_result.edits)
 
     write_obj(result.mesh, out_dir / f"{name}.fixed.obj")
     write_obj_polygons(result.mesh, result.rings, out_dir / f"{name}.fixed.ngon.obj")
@@ -469,7 +553,7 @@ def cmd_fix(snapshot_dir: Path, out_root: Path, accept_slit: bool,
     # against: the solidified mesh when `profile.solidify` is on, the input otherwise.
     flat_materials = flat_material_indices(mesh, flatness, profile.flat_texture_std)
     reference = result.reference_mesh
-    topo = analyse_topology(reference, flat_materials)
+    topo = analyse_topology_memo(reference, flat_materials)
     centre = (topo.positions_w.min(axis=0) + topo.positions_w.max(axis=0)) / 2.0
     positions_c = topo.positions_w - centre
     _write_guard_images(reference, result, profile, flat_materials, topo, positions_c, out_dir)
@@ -494,7 +578,8 @@ def cmd_fix(snapshot_dir: Path, out_root: Path, accept_slit: bool,
 
     skp_report = _write_skp(result, name, out_dir, flat_materials, profile, skp, skp_dir)
 
-    report = _build_report(name, obj_path, mesh, result, profile)
+    report = (_build_report(name, obj_path, mesh, result, profile) if kernel_result is None
+              else kernel_result.report)
     report["qa"] = qa_report
     report["skp"] = skp_report
     (out_dir / "report.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
@@ -658,11 +743,11 @@ def cmd_preview_data(snapshot_dir: Path, out_dir: Path, profile: FixProfile | No
     # centre so the two panes stay registered.
     input_mesh, mesh = mesh, result.reference_mesh
     flat_materials = flat_material_indices(mesh, flatness, profile.flat_texture_std)
-    topo = analyse_topology(mesh, flat_materials)
+    topo = analyse_topology_memo(mesh, flat_materials)
     centre = (topo.positions_w.min(axis=0) + topo.positions_w.max(axis=0)) / 2.0
     positions_c_w = topo.positions_w - centre       # welded frame (topo.face_w indexes it)
     positions_c_o = mesh.positions - centre          # original frame: AFTER (result.mesh.face_v indexes it)
-    topo_input = analyse_topology(input_mesh, flat_materials)
+    topo_input = analyse_topology_memo(input_mesh, flat_materials)
 
     replaced = np.asarray(result.replaced_input, dtype=bool)
     n_kept = int((~replaced).sum())                  # reference rows below this are input faces
@@ -693,9 +778,9 @@ def cmd_preview_data(snapshot_dir: Path, out_dir: Path, profile: FixProfile | No
 
     # The SHIPPED mesh's own topology: `result.mesh.positions` IS `mesh.positions` (nothing in
     # the pipeline ever touches it), so it welds to the same frame `positions_c_w` is in.
-    topo_after = analyse_topology(result.mesh, flat_materials,
-                                  coplanar_angle=profile.coplanar_angle,
-                                  soft_angle=profile.soft_angle)
+    topo_after = analyse_topology_memo(result.mesh, flat_materials,
+                                       coplanar_angle=profile.coplanar_angle,
+                                       soft_angle=profile.soft_angle)
     soft_after = _soft_edges(topo_after, positions_c_w)
 
     guard_final = result.guard_final.totals
@@ -821,6 +906,83 @@ def cmd_errors(snapshot_dir: Path, out_file: Path, profile: FixProfile | None = 
     return result
 
 
+# -------------------------------------------------------------------------------------- validate
+
+
+def cmd_validate(before_dir: Path, after_path: Path, materials: Path, out_dir: Path,
+                 targets: Path | None = None, settings=None) -> int:
+    """Judge `after_path` (an OBJ) against the snapshot `before_dir` by the owner's three checks and write
+    `<out_dir>/validation.json` and `<out_dir>/evidence/*.png`. Returns 0 on PASS, 2 on FAIL or on an
+    input that is missing or unreadable (a message on stderr, and no verdict written)."""
+    # The process counters (peak memory) come from winprobe: only the SketchUp binding modules and winprobe may
+    # import ctypes (test_skp_writer.test_ctypes_is_imported_only_by_the_sketchup_binding_modules).
+    from engine.campus.winprobe import peak_memory_mb
+    from engine.validate.checks import Settings, default_targets_path, load_looks, load_targets, validate
+    from engine.validate.evidence import write_evidence
+
+    started = time.perf_counter()
+    settings = settings or Settings()
+    before_dir, after_path, materials, out_dir = Path(before_dir), Path(after_path), Path(materials), Path(out_dir)
+    try:
+        refuse_protected(out_dir)
+        if not after_path.is_file():
+            raise FileNotFoundError(f"--after {after_path} is not a file")
+        if not materials.is_file():
+            raise FileNotFoundError(f"--materials {materials} is not a file")
+        before_obj, before, _flatness, before_mtl = _load_snapshot(before_dir)
+        after = read_obj(after_path)
+        sources = [(before_mtl, before_dir)]
+        after_mtl = after_path.parent / after.mtllib if after.mtllib else None
+        if after_mtl is not None and after_mtl.is_file():
+            sources.append((parse_mtl(after_mtl), after_path.parent))
+        looks = load_looks(materials, sources)
+        signed = load_targets(targets)
+    except (FileNotFoundError, ValueError, OSError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+
+    shown = {"tenth": -1}
+
+    def progress(done: int, total: int) -> None:
+        tenth = int(10 * done / max(total, 1))
+        if tenth != shown["tenth"]:
+            shown["tenth"] = tenth
+            print(f"  {done}/{total} samples cast", file=sys.stderr, flush=True)
+
+    try:
+        result = validate(before, after, looks, targets=signed, settings=settings, progress=progress)
+    except ValueError as exc:                              # e.g. a mesh too far from the origin to cast rays at
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+    out_dir.mkdir(parents=True, exist_ok=True)
+    write_evidence(result, out_dir)
+    report = result.report
+    peak, commit = peak_memory_mb()
+    targets_used = Path(targets) if targets is not None else default_targets_path()     # what load_targets read
+    report["inputs"] = {"before": str(before_obj), "after": str(after_path), "materials": str(materials),
+                        "targets": str(targets_used) if targets_used.is_file() else None,
+                        "before_sha256": sha256_file(before_obj), "after_sha256": sha256_file(after_path)}
+    report["peak_working_set_mb"], report["peak_commit_mb"] = peak, commit
+    report["wall_s"] = round(time.perf_counter() - started, 2)
+    (out_dir / "validation.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
+
+    checks = report["checks"]
+    t, p, g = checks["textures"], checks["problems"], checks["nothing_deleted"]
+    print(f"validate {before.name}: verdict {report['verdict']}")
+    print(f"  textures        {t['status']:<11} {t['samples']} samples seen in BEFORE, {t['samples_failed']} failed {t['reasons']}")
+    print(f"  problems        {p['status']:<11} " + ("targets signed" if p["signed"] else "targets unsigned: counts only")
+          + "; before -> after: " + ", ".join(f"{k} {v['before']}->{v['after']}" for k, v in p["kinds"].items()))
+    print(f"  nothing_deleted {g['status']:<11} {g['deleted']} deleted, {g['replaced']} replaced, {g['covered']} covered, "
+          f"{g['overlaid']} overlaid "
+          f"({g['samples_extra']} samples only the {report['viewpoints']['extra_directions']} extra directions saw)")
+    print(f"  {report['sites_total']} sites, {sum(1 for s in report['sites'] if s['evidence'])} with evidence crops; "
+          f"wrote {out_dir / 'validation.json'}")
+    for note in report["notes"]:
+        print(f"  note: {note}")
+    print(f"  time {report['wall_s']} s, peak working set {peak} MB, peak commit {commit} MB")
+    return 0 if result.passed else 2
+
+
 # ------------------------------------------------------------------------------------------ main
 
 
@@ -842,6 +1004,14 @@ def build_parser() -> argparse.ArgumentParser:
     fix_p.add_argument("--skp-dir", default=None,
                        help="folder that receives a copy of the latest .skp "
                             "(default: <repo root>/OBJ FIXED RESULT)")
+    fix_p.add_argument("--kernel", action="store_true",
+                       help="run through the observe-only repair kernel; the same files, plus "
+                            "edit_log.jsonl next to report.json")
+    fix_p.add_argument("--validate-sites", dest="validate_sites", action="store_true",
+                       help="with --kernel: check every stage with the Validator's focus mode and log "
+                            "the checks in edit_log.jsonl (legacy stages are not rolled back)")
+    fix_p.add_argument("--materials", type=Path, default=Path("data/campus/materials.json"),
+                       help="materials.json for --validate-sites")
 
     preview_p = sub.add_parser("preview-data", help="write the JSON preview/index.html reads")
     preview_p.add_argument("snapshot_dir")
@@ -860,26 +1030,401 @@ def build_parser() -> argparse.ArgumentParser:
     freeze_p.add_argument("--out", type=Path, default=Path("data/campus"))
     freeze_p.add_argument("--snapshots", type=Path, default=Path("data/snapshots"))
 
+    index_p = sub.add_parser("campus-index",
+                             help="index every face of CKPT17-CLEAN.obj by its SketchUp group path")
+    index_p.add_argument("--source", type=Path, default=Path("data/campus/source.json"),
+                         help="the source.json file from campus-freeze")
+    index_p.add_argument("--out", type=Path, default=Path("data/campus/group_index.json"),
+                         help="output group_index.json")
+
+    mat_p = sub.add_parser("campus-materials",
+                           help="build material look keys for texture and color comparison")
+    mat_p.add_argument("--source", type=Path, default=Path("data/campus/source.json"),
+                       help="the campus source.json path")
+    mat_p.add_argument("--out", type=Path, default=Path("data/campus/materials.json"),
+                       help="destination path for materials.json")
+    mat_p.add_argument("--mtl", type=Path, default=None,
+                       help="optional explicit path to MTL file (overrides source.json)")
+    mat_p.add_argument("--tex-dir", type=Path, default=None,
+                       help="optional explicit path to texture directory")
+
+    skp_check_p = sub.add_parser(
+        "campus-skp-check",
+        help="check the frozen export against the CHECKPOINT-17 backup through the SketchUp SDK "
+             "(read only: the SDK opens a sha256-verified copy of the backup and cannot save)")
+    skp_check_p.add_argument("--source", type=Path, default=Path("data/campus/source.json"),
+                             help="the freeze (campus-freeze) whose files are checked")
+    skp_check_p.add_argument("--backup", type=Path, required=True,
+                             help="the CHECKPOINT-17 backup folder (read only)")
+    skp_check_p.add_argument("--out", type=Path, default=Path("data/campus"),
+                             help="receives skp_copy/, skp_walk.json and skp_check.json")
+    skp_check_p.add_argument("--summary", type=Path, default=None,
+                             help="also write a short markdown summary here")
+    skp_check_p.add_argument("--name", default=None,
+                             help="the backup .skp, when source.json lists more than one")
+    skp_check_p.add_argument("--timeout-min", type=float, default=None,
+                             help="minutes the SketchUp walk may take before it is killed (default 30)")
+    skp_check_p.add_argument("--min-free-commit-mb", type=float, default=None,
+                             help="MB of commit memory that must be free to start the walk "
+                                  "(default 3500; the walk peaks at about 2.5 GB)")
+    skp_check_p.add_argument("--dll", type=Path, default=None, help="SketchUpAPI.dll, if not the default")
+
+    validate_p = sub.add_parser(
+        "validate",
+        help="judge a repaired floor by the owner's rule: textures there, problems solved, nothing visible "
+             "deleted or covered")
+    validate_p.add_argument("--before", type=Path, required=True,
+                            help="BEFORE: a snapshot directory (one .obj, materials.mtl, tex/)")
+    validate_p.add_argument("--after", type=Path, required=True, help="AFTER: an OBJ file")
+    validate_p.add_argument("--materials", type=Path, default=Path("data/campus/materials.json"),
+                            help="the campus look keys (default data/campus/materials.json)")
+    validate_p.add_argument("--out", type=Path, required=True,
+                            help="receives validation.json and evidence/*.png")
+    validate_p.add_argument("--targets", type=Path, default=None,
+                            help="the owner's signed targets (default engine/validate/targets.json when it exists; "
+                                 "without it check 2 only reports)")
+    validate_p.add_argument("--area-per-sample", type=float, default=36.0,
+                            help="one sample per this many sq in of face (owner's value 36). Any other value is a "
+                                 "development run and the report says it is not an owner verdict")
+    validate_p.add_argument("--min-per-face", type=int, default=4,
+                            help="at least this many samples on every face (owner's value 4; see --area-per-sample)")
+
+    before_p = sub.add_parser(
+        "campus-unit-before",
+        help="write a campus unit's BEFORE (its members' frozen snapshots, bands cut by face-centre z) as a "
+             "folder that `validate --before` takes")
+    before_p.add_argument("--unit", required=True, help="the unit's name in the campus map, e.g. CHTM-L05")
+    before_p.add_argument("--map", type=Path, default=Path("data/campus/campus_map.json"),
+                          help="the owner-confirmed campus map")
+    before_p.add_argument("--source", type=Path, default=Path("data/campus/source.json"),
+                          help="the source.json file from campus-freeze (snapshot folders)")
+    before_p.add_argument("--out", type=Path, required=True,
+                          help="receives <unit>.obj and materials.mtl (a short temp folder)")
+    before_p.add_argument("--copy-textures", action="store_true",
+                          help="copy the textures to <out>/tex (default: the MTL points at the snapshots')")
+
+    census_p = sub.add_parser("census", help="run find_errors census over units with timings, peak memory and fix plan")
+    census_p.add_argument("units", nargs="*", default=None, help="snapshot directories (default: all snapshots in source.json)")
+    census_p.add_argument("--out", type=Path, default=Path("data/campus/census.json"), help="output census JSON path")
+    census_p.add_argument("--errors-dir", type=Path, default=None, help="output directory for per-unit error JSONs")
+    census_p.add_argument("--md", type=Path, default=None, help="output path for markdown census table")
+    census_p.add_argument("--jobs", type=int, default=4, help="number of parallel worker processes")
+    census_p.add_argument("--timeout", type=float, default=1800.0, help="timeout per unit in seconds")
+    census_p.add_argument("--materials", type=Path, default=Path("data/campus/materials.json"), help="path to materials.json")
+
+    inv_p = sub.add_parser("campus-inventory",
+                           help="buildings, level tables, floor/element units, duplicates, misnamed and missing "
+                                "levels: the draft campus map for the owner to confirm")
+    inv_p.add_argument("--source", type=Path, default=Path("data/campus/source.json"),
+                       help="the source.json file from campus-freeze")
+    inv_p.add_argument("--index", type=Path, default=Path("data/campus/group_index.json"),
+                       help="the group_index.json file from campus-index")
+    inv_p.add_argument("--materials", type=Path, default=Path("data/campus/materials.json"),
+                       help="the materials.json file from campus-materials")
+    inv_p.add_argument("--out", type=Path, default=Path("data/campus/campus_map.draft.json"),
+                       help="the draft campus map (JSON)")
+    inv_p.add_argument("--md", type=Path, default=Path("data/campus/campus_map.draft.md"),
+                       help="the owner-readable table (under data/ by default; copying it into "
+                            "docs/superpowers/records/campus/ is a deliberate step)")
+    inv_p.add_argument("--literal", action="store_true",
+                       help="use the brief's constants as written (24 in slab window, nearest base, 20 in merge, "
+                            "print-step duplicates) instead of the measured ones")
+
+    col_p = sub.add_parser("campus-errors-skp",
+                           help="one colour-coded SketchUp file per building: every error kind and grouping "
+                                "problem on its own tag (read-only export)")
+    col_p.add_argument("--map", type=Path, default=Path("data/campus/campus_map.json"),
+                       help="the owner-confirmed campus map")
+    col_p.add_argument("--source", type=Path, default=Path("data/campus/source.json"),
+                       help="the source.json file from campus-freeze (snapshot folders)")
+    col_p.add_argument("--errors", type=Path, default=Path("data/campus/errors"),
+                       help="the census error maps, one <group>.json per split")
+    col_p.add_argument("--skp-check", type=Path, default=Path("data/campus/skp_check.json"),
+                       help="the export-vs-backup check (mismatches become grouping flags)")
+    col_p.add_argument("--out", type=Path, default=Path("data/coloring_scratch"),
+                       help="writes <out>/<BUILDING>/<BUILDING>-errors.skp and .json")
+    col_p.add_argument("--materials", type=Path, default=Path("data/campus/materials.json"),
+                       help="the materials.json file from campus-materials (flicker is split by look)")
+    col_p.add_argument("--buildings", nargs="*", default=None, help="only these buildings (default: all)")
+    col_p.add_argument("--dll", default=None, help="SketchUpAPI.dll (default: $FIXER_SKETCHUP_DLL or SketchUp 2026)")
+
+    pilot_p = sub.add_parser("decide-pilot",
+                             help="measure TypeSafe's Jev on the 85 group names and 391 materials (suggest-only; "
+                                  "needs TYPESAFE_API_KEY, runs without a key and reports source none)")
+    pilot_p.add_argument("--source", type=Path, default=Path("data/campus/source.json"))
+    pilot_p.add_argument("--materials", type=Path, default=Path("data/campus/materials.json"))
+    pilot_p.add_argument("--map", type=Path, default=Path("data/campus/campus_map.json"),
+                         help="the owner-confirmed campus map: the ground truth")
+    pilot_p.add_argument("--out", type=Path, default=Path("data/campus/jev_pilot.json"))
+    pilot_p.add_argument("--env-file", type=Path, default=None,
+                         help="read TYPESAFE_API_KEY from this file when the environment has none "
+                              "(default: the repo-root .env; only that one line is read)")
+    pilot_p.add_argument("--min-confidence", type=float, default=0.8)
+    pilot_p.add_argument("--batch", type=int, default=20, help="questions per Jev call")
+
+    pull_p = sub.add_parser("decide-pull",
+                            help="fetch the owner-confirmed answers of one question type from the VPS decide "
+                                 "service and write <out>/<type>.json as {subject: answer} (needs "
+                                 "UC_DECIDE_PASSWORD)")
+    pull_p.add_argument("--url", default=None,
+                        help="the service base URL, e.g. https://host (https unless localhost); "
+                             "default: the environment variable UC_DECIDE_URL")
+    pull_p.add_argument("--type", required=True, dest="qtype", help="the question type, e.g. mat.category")
+    pull_p.add_argument("--out", type=Path, default=None,
+                        help="a folder inside <repo>/data (default: <repo>/data/decide/confirmed)")
+    pull_p.add_argument("--env-file", type=Path, default=None,
+                        help="read UC_DECIDE_PASSWORD from this file when the environment has none "
+                             "(default: the repo-root .env; only that one line is read)")
+
+    imp_p = sub.add_parser("decide-import-pilot",
+                           help="load the paid Jev pilot answers (jev_pilot.json) into the VPS decide service as "
+                                "pending suggestions, with the exact questions the classifiers ask (needs "
+                                "UC_DECIDE_PASSWORD; --dry-run sends nothing)")
+    imp_p.add_argument("--url", default=None,
+                       help="the service base URL, e.g. https://host (https unless localhost); "
+                            "default: the environment variable UC_DECIDE_URL")
+    imp_p.add_argument("--source", type=Path, default=Path("data/campus/source.json"))
+    imp_p.add_argument("--materials", type=Path, default=Path("data/campus/materials.json"))
+    imp_p.add_argument("--pilot", type=Path, default=Path("data/campus/jev_pilot.json"))
+    imp_p.add_argument("--env-file", type=Path, default=None,
+                       help="read UC_DECIDE_PASSWORD from this file when the environment has none "
+                            "(default: the repo-root .env; only that one line is read)")
+    imp_p.add_argument("--dry-run", action="store_true", help="print the counts and send nothing")
+
     return parser
 
 
+#: Where each writing command puts its files (argparse names); the commands that write nothing are not here.
+#: campus-errors-skp checks its own output (error_export raises, as its tests expect).
+_OUTPUT_ARGS = {"fix": ("out", "skp_dir"), "preview-data": ("out",), "errors": ("out",),
+                "campus-skp-check": ("out", "summary"), "validate": ("out",),
+                "census": ("out", "md", "errors_dir"), "campus-freeze": ("out", "snapshots"),
+                "campus-index": ("out",), "campus-materials": ("out",), "campus-inventory": ("out", "md"),
+                "decide-pilot": ("out",), "campus-unit-before": ("out",)}
+
+
+def _refuse_protected_outputs(args) -> str | None:
+    """The refusal text when a writing command's output lies in a protected folder, else None; checked before
+    the command does anything."""
+    try:
+        for name in _OUTPUT_ARGS.get(args.command, ()):
+            if getattr(args, name, None) is not None:
+                refuse_protected(getattr(args, name))
+    except ValueError as exc:
+        return str(exc)
+    return None
+
+
 def main(argv: list[str] | None = None) -> int:
-    args = build_parser().parse_args(argv)
+    parser = build_parser()
+    args = parser.parse_args(argv)
+    refusal = _refuse_protected_outputs(args)
+    if refusal is not None:
+        print(f"error: {refusal}", file=sys.stderr)
+        return 2
     if args.command == "fix":
+        if args.validate_sites and not args.kernel:
+            parser.error("--validate-sites needs --kernel")
         return cmd_fix(Path(args.snapshot_dir), Path(args.out), args.accept_slit,
                        solidify=args.solidify, fragments=args.fragments, skp=args.skp,
-                       skp_dir=Path(args.skp_dir) if args.skp_dir else default_skp_dir())
+                       skp_dir=Path(args.skp_dir) if args.skp_dir else default_skp_dir(),
+                       kernel=args.kernel, validate_sites=args.validate_sites,
+                       materials=args.materials)
     if args.command == "preview-data":
         return cmd_preview_data(Path(args.snapshot_dir), Path(args.out),
                                 solidify=args.solidify)
     elif args.command == "errors":
         cmd_errors(args.snapshot, args.out)
         return 0
+    elif args.command == "validate":
+        from engine.validate.checks import Settings
+        return cmd_validate(args.before, args.after, args.materials, args.out, targets=args.targets,
+                            settings=Settings(area_per_sample=args.area_per_sample, min_per_face=args.min_per_face))
     elif args.command == "campus-freeze":
         from engine.campus.source import freeze_source
         res = freeze_source(args.export, args.backup, args.out, args.snapshots)
         totals = json.loads(res.json_path.read_text(encoding="utf-8"))["totals"]
         print(f"froze {totals['files']} files, {totals['tris']} triangles -> {res.json_path}")
+        return 0
+    elif args.command == "campus-index":
+        from engine.campus.groups import cmd_campus_index
+        res = cmd_campus_index(args.source, args.out)
+        print(f"indexed {len(res['paths'])} paths, {len(res['faces'])} runs, {len(res['split'])} splits -> {args.out}")
+        return 0
+    elif args.command == "campus-materials":
+        from engine.campus.materials import build_materials
+        if args.mtl:
+            mtl_path = Path(args.mtl)
+            tex_dir = Path(args.tex_dir) if args.tex_dir else mtl_path.parent
+        else:
+            source_path = Path(args.source)
+            source_data = json.loads(source_path.read_text(encoding="utf-8"))
+            mtl_path = Path(source_data["clean_mtl"]["path"])
+            if args.tex_dir:
+                tex_dir = Path(args.tex_dir)
+            elif (mtl_path.parent / "SRC-TEX").is_dir():
+                tex_dir = mtl_path.parent / "SRC-TEX"
+            else:
+                tex_dir = mtl_path.parent
+
+        out_path = Path(args.out)
+
+        res = build_materials(mtl_path, tex_dir)
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        out_path.write_text(json.dumps(res, indent=2), encoding="utf-8")
+        stats = res["stats"]
+        print(f"materials: {stats['materials']}, textured: {stats['textured']}, images: {stats['images']}, looks: {stats['looks']}")
+        print(f"looks ({len(res['looks'])}):")
+        sorted_looks = sorted(res["looks"].items(), key=lambda kv: len(kv[1]), reverse=True)
+        for key, mats in sorted_looks[:10]:
+            print(f"  {key} ({len(mats)} materials): {mats}")
+        print(f"wrote materials to {out_path}")
+        return 0
+    elif args.command == "campus-unit-before":
+        from engine.campus.unit_before import build_unit_before
+        try:
+            cmap = json.loads(Path(args.map).read_text(encoding="utf-8"))
+            source = json.loads(Path(args.source).read_text(encoding="utf-8"))
+            report = build_unit_before(cmap, source, args.unit, args.out, copy_textures=args.copy_textures)
+        except (ValueError, OSError, KeyError) as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            return 2
+        parts = ", ".join(f"{m['group']} [{m['band']}] {m['faces']}" for m in report["members"])
+        print(f"{report['unit']}: {report['faces']} faces from {len(report['members'])} members ({parts}); "
+              + ("equals the campus map's tris" if report["matches_campus_map"]
+                 else "DIFFERS from the campus map's tris") + f" -> {report['obj']}")
+        return 0 if report["matches_campus_map"] else 1
+    elif args.command == "campus-skp-check":
+        from engine.campus import skp_check
+        from engine.io.snapshot import SourceUnstable
+        extra = {}
+        if args.timeout_min is not None:
+            extra["timeout_s"] = args.timeout_min * 60.0
+        if args.min_free_commit_mb is not None:
+            extra["min_free_commit_mb"] = args.min_free_commit_mb
+        try:
+            report = skp_check.check_source(args.source, args.backup, args.out, summary=args.summary,
+                                            name=args.name, dll_path=args.dll, **extra)
+        except (skp_check.BackupMismatch, skp_check.WalkFailed, SourceUnstable, ValueError,
+                FileNotFoundError) as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            return 2
+        c = report["counts"]
+        print(f"checked {c['files']} files against {report['source']['backup']}: {c['matches']} match, "
+              f"{c['mismatches']} mismatch, {c['ambiguous_files']} ambiguous, {c['misses']} miss "
+              f"-> {args.out / 'skp_check.json'}")
+        return 0
+    elif args.command == "census":
+        from engine.campus.census import census
+        units = [Path(u) for u in args.units] if args.units else None
+        res = census(units=units, out_json=args.out, jobs=args.jobs, timeout_s=args.timeout,
+                     errors_dir=args.errors_dir, out_md=args.md, materials_path=args.materials)
+        totals = res["totals"]
+        wall_sec = totals.get("wall_seconds", totals["seconds"])
+        print(f"census completed: {totals['units']} units ({totals['ok']} ok, {totals['timeout']} timeout, {totals['error']} error), "
+              f"{totals['triangles']:,} triangles in {wall_sec:.2f} s wall ({totals['seconds']:.2f} s unit sum) -> {args.out}")
+        if totals.get("error", 0) > 0:
+            return 1
+        return 0
+    elif args.command == "campus-inventory":
+        from engine.campus.inventory import BRIEF_PARAMS, cmd_campus_inventory
+        res = cmd_campus_inventory(args.source, args.index, args.materials, args.out, args.md,
+                                   BRIEF_PARAMS if args.literal else None)
+        by_type = collections.Counter(u["type"] for u in res["units"])
+        by_kind = collections.Counter(f["kind"] for f in res["flags"])
+        cov = res["coverage"]
+        print(f"campus inventory: {cov['groups']} splits, {cov['tris']:,} triangles -> {len(res['units'])} units "
+              f"(floor {by_type['floor']}, element {by_type['element']}, site {by_type['site']}), "
+              f"{len(res['proposals'])} split proposals")
+        for name, b in res["buildings"].items():
+            a = b["anchor"]
+            print(f"  {name}: {len(b['groups'])} groups, {len(b['levels'])} levels"
+                  + (f", numbered from L{1 + a['offset']:02d}" if a["offset"] else ""))
+        print("  flags: " + ", ".join(f"{k} {by_kind[k]}"
+                                      for k in ("duplicate", "misnamed", "missing", "shared", "footprint", "split")))
+        print(f"  coverage: {cov['whole']} whole + {cov['split']} split = {cov['whole'] + cov['split']} of {cov['groups']} "
+              f"splits, {cov['unit_tris']:,} of {cov['tris']:,} triangles in units ({'ok' if cov['ok'] else 'NOT ok'})")
+        print(f"wrote {args.out} and {args.md}")
+        return 0
+    elif args.command == "campus-errors-skp":
+        from engine.campus.error_export import cmd_campus_errors_skp
+        for r in cmd_campus_errors_skp(args.map, args.source, args.errors, args.skp_check, args.out,
+                                       args.buildings, args.dll, args.materials):
+            back = r["read_back"]["faces_by_tag"]
+            dups, odd = sum(r["duplicates_by_tag"].values()), r["unexplained_by_tag"]
+            same = "as written" if not odd else f"UNEXPLAINED {odd}"
+            print(f"{r['building']}: {len(r['columns'])} columns, {sum(back.values()):,} faces read back "
+                  f"({same}; {dups:,} exact duplicate triangles kept once), "
+                  f"{r['written']['rejected_faces']} refused -> {r['skp']}")
+        return 0
+    elif args.command == "decide-pilot":
+        from engine.decide.jev import JevDecider
+        from engine.decide.pilot import run_pilot
+        decider = JevDecider(min_confidence=args.min_confidence, batch=args.batch, env_file=args.env_file)
+        if not decider.available:
+            print("Jev is not available (no TYPESAFE_API_KEY or no typesafe-sdk): every answer is source none, "
+                  "nothing is sent")
+        rep = run_pilot(args.source, args.materials, args.map, args.out, decider)
+        g, m, c = rep["groups"], rep["materials"], rep["calls"]
+        print(f"group names: {g['n']}, sources {g['sources']}")
+
+        def fmt(v):
+            return "n/a" if v is None else f"{v:.3f}"
+        for k in ("building", "type", "type_strict", "floor"):
+            s = g[k]
+            print(f"  {k}: accuracy {fmt(s['accuracy'])}, coverage {fmt(s['coverage'])} at confidence >= "
+                  f"{rep['min_confidence']}, accuracy within coverage {fmt(s['accuracy_within_coverage'])} "
+                  f"({s['n_truth']} with truth, {s['unknown_truth']} unknown)")
+        print(f"materials: {m['n']}, sources {m['sources']}, categories {m['histogram']}")
+        print(f"calls: {c['n']} ({c['failed']} failed), tokens in/out {c['input_tokens']}/{c['output_tokens']}")
+        print(f"wrote {args.out}")
+        return 0
+    elif args.command == "decide-pull":
+        from engine.decide.remote import pull_confirmed
+        url = args.url or os.environ.get("UC_DECIDE_URL")
+        if not url:
+            print("error: no service URL: pass --url or set UC_DECIDE_URL", file=sys.stderr)
+            return 2
+        out = DATA_DIR / "decide" / "confirmed" if args.out is None else Path(args.out)
+        if not out.resolve().is_relative_to(DATA_DIR.resolve()):
+            print(f"error: --out must be inside {DATA_DIR} (decide-pull writes to data/ only), got {out}",
+                  file=sys.stderr)
+            return 2
+        try:
+            path = pull_confirmed(url, args.qtype, out, env_file=args.env_file)
+        except (ValueError, RuntimeError) as exc:      # their texts carry no secret
+            print(f"error: {exc}", file=sys.stderr)
+            return 2
+        print(f"wrote {len(json.loads(path.read_text(encoding='utf-8')))} confirmed answers -> {path}")
+        return 0
+    elif args.command == "decide-import-pilot":
+        from engine.decide import pilot_import
+        read = lambda p: json.loads(Path(p).read_text(encoding="utf-8"))
+        try:
+            items, unreproducible = pilot_import.build_import_report(read(args.source), read(args.materials),
+                                                                     read(args.pilot))
+        except (OSError, ValueError, KeyError) as exc:
+            print(f"error: could not build the pilot questions: {type(exc).__name__}: {exc}", file=sys.stderr)
+            return 2
+        n = pilot_import.counts(items, unreproducible)
+        print(f"groups: {n['groups']} items from {n['group_rows']} groups, materials: {n['materials']} items from "
+              f"{n['material_names']} spot-check materials, unreproducible: {n['unreproducible']}")
+        if unreproducible:
+            print(f"skipped, not reproducible from today's snapshots: {', '.join(unreproducible)}")
+        if args.dry_run:
+            print("dry run: nothing sent")
+            return 0
+        url = args.url or os.environ.get("UC_DECIDE_URL")
+        if not url:
+            print("error: no service URL: pass --url or set UC_DECIDE_URL", file=sys.stderr)
+            return 2
+        try:
+            total = pilot_import.import_items(items, url, env_file=args.env_file)
+        except (ValueError, RuntimeError) as exc:      # their texts carry no secret
+            print(f"error: {exc}", file=sys.stderr)
+            return 2
+        print(f"imported: added {total['added']}, skipped {total['skipped']}, invalid {total['invalid']}, "
+              f"unreproducible {n['unreproducible']}")
         return 0
     return 1
 

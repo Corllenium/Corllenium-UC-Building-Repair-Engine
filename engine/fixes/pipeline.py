@@ -46,6 +46,7 @@ modules).
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any
 
 import numpy as np
 
@@ -62,7 +63,7 @@ from engine.guard.compare import (GuardReport, compare_views, face_planes, fragm
 from engine.guard.piece_rays import judge_alone, piece_ray_check
 from engine.guard.views import VIEWS_26, ortho_first_hit
 from engine.model import MeshData
-from engine.pipeline import analyse_topology, flat_material_indices
+from engine.pipeline import analyse_topology, analyse_topology_memo, flat_material_indices  # noqa: F401
 from engine.topo.edges import COPLANAR_ANGLE, SOFT_ANGLE
 from engine.rays.caster import ReusableCaster
 from engine.topo.weld import weld_exact
@@ -618,12 +619,116 @@ def _confirm_debris(units: list[tuple[str, np.ndarray]], positions_c: np.ndarray
     return removed, ray_check, int(refused_by_rays.sum()), fragment_history, ray_history
 
 
-def fix_object(mesh: MeshData, flatness: dict[str, float], profile: FixProfile = FixProfile()) -> FixResult:
+@dataclass
+class FixState:
+    """Everything `fix_object` carries from one stage to the next (P1-K2): the mesh each stage
+    hands on, the reference ids, the accumulated report numbers and whatever later stages read.
+
+    `start_fix` fills the inputs; each stage in `FIX_STAGES` reads what earlier stages wrote and
+    writes its own fields; `finish_fix` measures the shipped mesh and builds the `FixResult`.
+    A field is `None` until the stage that writes it has run. The stages are a pure split of the
+    one function `fix_object` used to be: no computation, order, parameter, guard or tolerance
+    differs from it."""
+    profile: FixProfile
+    flatness: dict
+    input_mesh: MeshData
+    #: the input until `stage_solidify` runs, then the REFERENCE (solidified) mesh
+    mesh: MeshData
+    flat_materials: Any = None
+    angles: Any = None
+    topo_input: Any = None
+    # ---- stage_solidify
+    solidify_result: Any = None
+    solidify_report: Any = None
+    replaced_input: Any = None
+    seen_through_shell: Any = None
+    # ---- stage_hidden: the reference's own measurements, then pass 1
+    topo: Any = None
+    depth_tol: Any = None
+    centre: Any = None
+    positions_c: Any = None
+    remap: Any = None
+    front: Any = None
+    back: Any = None
+    side_exposure: Any = None
+    normal_reference: Any = None
+    exposure_class: Any = None
+    flip_candidates_full: Any = None
+    thin_sheets_full: Any = None
+    backface_input: Any = None
+    one_sided_holes_before: Any = None
+    render_faces: Any = None
+    render_material: Any = None
+    n_hidden_candidates: Any = None
+    removed_pass1: Any = None
+    history_hidden: Any = None
+    removed_hidden_full: Any = None
+    removed_degenerate_full: Any = None
+    restored_degenerate_full: Any = None
+    n_removed_hidden: Any = None
+    n_restored_by_guard: Any = None
+    n_zero_area_dropped: Any = None
+    n_degenerate_restored: Any = None
+    # ---- stage_slit
+    removed_slit_full: Any = None
+    history_slit: Any = None
+    n_removed_slit: Any = None
+    drop: Any = None
+    mesh_removed: Any = None
+    source_from_removal: Any = None
+    # ---- stage_fragments
+    removed_fragments_full: Any = None
+    fragment_report: Any = None
+    fold_report: Any = None
+    fragment_removals: Any = None
+    fragment_ray_check: Any = None
+    fragment_history: Any = None
+    ray_history: Any = None
+    n_removed_fragments: Any = None
+    n_removed_slivers: Any = None
+    n_removed_folds: Any = None
+    n_restored_fragments: Any = None
+    n_refused_by_rays: Any = None
+    mesh_fragments: Any = None
+    source_after_fragments: Any = None
+    # ---- stage_orientation
+    sheets: Any = None
+    sheet_flipped_full: Any = None
+    mesh_flipped: Any = None
+    flipped_full: Any = None
+    # ---- stage_overlap
+    overlap_result: Any = None
+    mesh_overlapped: Any = None
+    source_from_overlap: Any = None
+    removed_overlap_full: Any = None
+    restored_overlap_full: Any = None
+    overlap_pairs_diff_material: Any = None
+    # ---- stage_merge
+    border_shift_tol: Any = None
+    strict_final: Any = None
+    backface_reference: Any = None
+    guard_after_removal: Any = None
+    merge_report: Any = None
+    guard_merge_attempt: Any = None
+    final_mesh: Any = None
+    final_source_faces: Any = None
+    final_rings: Any = None
+    final_face_region: Any = None
+    guard_final: Any = None
+
+
+def start_fix(mesh: MeshData, flatness: dict[str, float], profile: FixProfile = FixProfile()) -> FixState:
+    """The state `FIX_STAGES` run over: the input mesh, its flat materials and its topology."""
     flat_materials = flat_material_indices(mesh, flatness, profile.flat_texture_std)
     angles = {"coplanar_angle": profile.coplanar_angle, "soft_angle": profile.soft_angle}
     input_mesh = mesh
-    topo_input = analyse_topology(mesh, flat_materials, **angles)
+    topo_input = analyse_topology_memo(mesh, flat_materials, **angles)
+    return FixState(profile=profile, flatness=flatness, input_mesh=input_mesh, mesh=mesh,
+                    flat_materials=flat_materials, angles=angles, topo_input=topo_input)
 
+
+def stage_solidify(s: FixState) -> FixState:
+    mesh, profile, topo_input = s.mesh, s.profile, s.topo_input
     # ---- solidify: close each slab, so its interior can become hidden at all ------------------
     # The only step that invents a vertex, and everything after it works on the SOLIDIFIED mesh:
     # exposure, both removal guards and the final guard all take it as the reference, because it
@@ -632,12 +737,24 @@ def fix_object(mesh: MeshData, flatness: dict[str, float], profile: FixProfile =
     solidify_report: dict = {}
     replaced_input = np.zeros(mesh.n_faces, dtype=bool)
     seen_through_shell = None
+    result = None
     if profile.solidify:
         result = solidify(mesh, topo_input, profile)
         mesh, solidify_report, replaced_input = result.mesh, result.report, result.replaced
         seen_through_shell = getattr(result, "seen_through_shell", None)
 
-    topo = analyse_topology(mesh, flat_materials, **angles)
+    s.mesh, s.solidify_result, s.solidify_report = mesh, result, solidify_report
+    s.replaced_input, s.seen_through_shell = replaced_input, seen_through_shell
+    return s
+
+
+def stage_hidden(s: FixState) -> FixState:
+    mesh, profile, input_mesh = s.mesh, s.profile, s.input_mesh
+    flat_materials, angles = s.flat_materials, s.angles
+    solidify_report, seen_through_shell = s.solidify_report, s.seen_through_shell
+    replaced_input = s.replaced_input
+
+    topo = analyse_topology_memo(mesh, flat_materials, **angles)
     depth_tol = guard_depth_tol(topo.quanta, profile)
     # Recentre once, to the REFERENCE mesh's bbox centre; the same recentred frame renders every
     # side, before and after, at every stage -- vertices never move after this point, so one
@@ -703,6 +820,27 @@ def fix_object(mesh: MeshData, flatness: dict[str, float], profile: FixProfile =
     n_zero_area_dropped = int(removed_degenerate_full.sum())
     n_degenerate_restored = int(restored_degenerate_full.sum())
 
+    s.topo, s.depth_tol, s.centre, s.positions_c, s.remap = topo, depth_tol, centre, positions_c, remap
+    s.front, s.back, s.side_exposure, s.normal_reference = front, back, side_exposure, normal_reference
+    s.exposure_class = exposure_class
+    s.flip_candidates_full, s.thin_sheets_full = flip_candidates_full, thin_sheets_full
+    s.backface_input, s.one_sided_holes_before = backface_input, one_sided_holes_before
+    s.render_faces, s.render_material = render_faces, render_material
+    s.n_hidden_candidates, s.removed_pass1, s.history_hidden = (n_hidden_candidates, removed_pass1,
+                                                                history_hidden)
+    s.removed_hidden_full, s.removed_degenerate_full = removed_hidden_full, removed_degenerate_full
+    s.restored_degenerate_full = restored_degenerate_full
+    s.n_removed_hidden, s.n_restored_by_guard = n_removed_hidden, n_restored_by_guard
+    s.n_zero_area_dropped, s.n_degenerate_restored = n_zero_area_dropped, n_degenerate_restored
+    return s
+
+
+def stage_slit(s: FixState) -> FixState:
+    mesh, profile, exposure_class = s.mesh, s.profile, s.exposure_class
+    removed_pass1, positions_c, render_faces = s.removed_pass1, s.positions_c, s.render_faces
+    render_material, flat_materials, depth_tol = s.render_material, s.flat_materials, s.depth_tol
+    removed_hidden_full, removed_degenerate_full = s.removed_hidden_full, s.removed_degenerate_full
+
     # ---- pass 2: slit faces, colour-tolerant guard, over the state pass 1 leaves behind -----
     slit_full = exposure_class == EXP_SLIT
     removed_slit_full = np.zeros(mesh.n_faces, dtype=bool)
@@ -719,6 +857,18 @@ def fix_object(mesh: MeshData, flatness: dict[str, float], profile: FixProfile =
 
     drop = removed_hidden_full | removed_slit_full | removed_degenerate_full
     mesh_removed, source_from_removal = remove_faces(mesh, drop)
+
+    s.removed_slit_full, s.history_slit, s.n_removed_slit = removed_slit_full, history_slit, n_removed_slit
+    s.drop, s.mesh_removed, s.source_from_removal = drop, mesh_removed, source_from_removal
+    return s
+
+
+def stage_fragments(s: FixState) -> FixState:
+    mesh, profile, result = s.mesh, s.profile, s.solidify_result
+    drop, mesh_removed, source_from_removal = s.drop, s.mesh_removed, s.source_from_removal
+    topo, positions_c, centre = s.topo, s.positions_c, s.centre
+    render_faces, render_material = s.render_faces, s.render_material
+    flat_materials, depth_tol, side_exposure = s.flat_materials, s.depth_tol, s.side_exposure
 
     # ---- stray fragments and attached slivers, under a guard of their OWN --------------------
     # After the hidden pass, because a stray only stands out once what is genuinely invisible is
@@ -795,6 +945,23 @@ def fix_object(mesh: MeshData, flatness: dict[str, float], profile: FixProfile =
                                    fragment_ray_check, positions_c, centre)
     source_after_fragments = source_from_removal[source_from_fragments]
 
+    s.removed_fragments_full, s.fragment_report, s.fold_report = (removed_fragments_full,
+                                                                  fragment_report, fold_report)
+    s.fragment_removals, s.fragment_ray_check = fragment_removals, fragment_ray_check
+    s.fragment_history, s.ray_history = fragment_history, ray_history
+    s.n_removed_fragments, s.n_removed_slivers, s.n_removed_folds = (n_removed_fragments,
+                                                                     n_removed_slivers, n_removed_folds)
+    s.n_restored_fragments, s.n_refused_by_rays = n_restored_fragments, n_refused_by_rays
+    s.mesh_fragments, s.source_after_fragments = mesh_fragments, source_after_fragments
+    return s
+
+
+def stage_orientation(s: FixState) -> FixState:
+    mesh, profile, source_after_fragments = s.mesh, s.profile, s.source_after_fragments
+    positions_c, remap, mesh_fragments = s.positions_c, s.remap, s.mesh_fragments
+    front, back, topo, depth_tol, centre = s.front, s.back, s.topo, s.depth_tol, s.centre
+    flip_candidates_full, thin_sheets_full = s.flip_candidates_full, s.thin_sheets_full
+
     # ---- orientation: correct any survivor whose only real exposure was on its BACK ----------
     flip_removed = flip_candidates_full[source_after_fragments]
     # ...and wind a THIN survivor like the connected near-coplanar sheet it belongs to, where
@@ -814,11 +981,21 @@ def fix_object(mesh: MeshData, flatness: dict[str, float], profile: FixProfile =
     flipped_full = np.zeros(mesh.n_faces, dtype=bool)
     flipped_full[source_after_fragments[flip_removed]] = True
 
+    s.sheets, s.sheet_flipped_full = sheets, sheet_flipped_full
+    s.mesh_flipped, s.flipped_full = mesh_flipped, flipped_full
+    return s
+
+
+def stage_overlap(s: FixState) -> FixState:
+    mesh, flat_materials, angles, profile = s.mesh, s.flat_materials, s.angles, s.profile
+    mesh_flipped, positions_c, depth_tol = s.mesh_flipped, s.positions_c, s.depth_tol
+    source_after_fragments = s.source_after_fragments
+
     # ---- covered same-material duplicate layers, under the same strict guard -----------------
     # Before the merge and after the flip: the merge cannot do anything with a region that
     # overlaps itself (rule 3 excludes the triangles, and a region whose union still overlaps is
     # skipped outright), and flipping first means a face is judged in the winding it will ship in.
-    topo2 = analyse_topology(mesh_flipped, flat_materials, **angles)
+    topo2 = analyse_topology_memo(mesh_flipped, flat_materials, **angles)
     overlap_result = remove_overlaps(
         mesh_flipped, topo2, positions_c, flat_materials, depth_tol,
         guard_size=profile.guard_size, crack_closed_cap=profile.crack_closed_cap)
@@ -836,7 +1013,21 @@ def fix_object(mesh: MeshData, flatness: dict[str, float], profile: FixProfile =
          "materials": e["materials"], "area": e["area"]}
         for e in overlap_result.report["overlap_pairs_diff_material"]]
 
-    topo3 = analyse_topology(mesh_overlapped, flat_materials, **angles)
+    s.overlap_result, s.mesh_overlapped, s.source_from_overlap = (overlap_result, mesh_overlapped,
+                                                                  source_from_overlap)
+    s.removed_overlap_full, s.restored_overlap_full = removed_overlap_full, restored_overlap_full
+    s.overlap_pairs_diff_material = overlap_pairs_diff_material
+    return s
+
+
+def stage_merge(s: FixState) -> FixState:
+    mesh, flat_materials, angles, profile = s.mesh, s.flat_materials, s.angles, s.profile
+    mesh_overlapped, source_from_overlap = s.mesh_overlapped, s.source_from_overlap
+    n_removed_slit, topo, positions_c, remap = s.n_removed_slit, s.topo, s.positions_c, s.remap
+    depth_tol, removed_fragments_full = s.depth_tol, s.removed_fragments_full
+    normal_reference, side_exposure = s.normal_reference, s.side_exposure
+
+    topo3 = analyse_topology_memo(mesh_overlapped, flat_materials, **angles)
     merge_result = merge_regions(mesh_overlapped, topo3, flat_materials)
     # How far the merge may move a border: its corner pass drops a border vertex while the whole
     # original polyline stays within `collinear_tol` of the chord that replaces it, so a merged
@@ -927,6 +1118,40 @@ def fix_object(mesh: MeshData, flatness: dict[str, float], profile: FixProfile =
         final_rings = merge_result.rings
         final_face_region = merge_result.face_region
         guard_final = guard_merge_attempt   # the merged mesh IS the shipped mesh
+
+    s.border_shift_tol, s.strict_final = border_shift_tol, strict_final
+    s.backface_reference, s.guard_after_removal = backface_reference, guard_after_removal
+    s.merge_report, s.guard_merge_attempt = merge_report, guard_merge_attempt
+    s.final_mesh, s.final_source_faces = final_mesh, final_source_faces
+    s.final_rings, s.final_face_region = final_rings, final_face_region
+    s.guard_final = guard_final
+    return s
+
+
+#: `fix_object`'s stages, in the order it runs them. Each takes the `FixState` and returns it.
+FIX_STAGES = (
+    ("solidify", stage_solidify),
+    ("hidden", stage_hidden),          # pass 1: hidden AND degenerate faces
+    ("slit", stage_slit),              # pass 2: slit faces (opt-in), then both passes' removal
+    ("fragments", stage_fragments),    # stray fragments, attached slivers and folds
+    ("orientation", stage_orientation),
+    ("overlap", stage_overlap),        # covered same-material duplicate layers
+    ("merge", stage_merge),            # the region merge, with its rollback
+)
+
+
+def finish_fix(s: FixState) -> FixResult:
+    """Measure what the stages shipped and build `fix_object`'s `FixResult`."""
+    mesh, profile, positions_c, remap = s.mesh, s.profile, s.positions_c, s.remap
+    final_mesh, final_source_faces = s.final_mesh, s.final_source_faces
+    normal_reference, side_exposure = s.normal_reference, s.side_exposure
+    depth_tol, centre, border_shift_tol = s.depth_tol, s.centre, s.border_shift_tol
+    backface_input, backface_reference = s.backface_input, s.backface_reference
+    drop, removed_fragments_full, removed_overlap_full = (s.drop, s.removed_fragments_full,
+                                                          s.removed_overlap_full)
+    solidify_report, guard_final = s.solidify_report, s.guard_final
+    overlap_result, sheets = s.overlap_result, s.sheets
+
     exposed_final = _exposed_sides(positions_c, remap[final_mesh.face_v], final_source_faces,
                                    normal_reference, side_exposure)
 
@@ -984,37 +1209,46 @@ def fix_object(mesh: MeshData, flatness: dict[str, float], profile: FixProfile =
     passed = all(invariants.values())
 
     return FixResult(
-        mesh=final_mesh, source_faces=final_source_faces, exposure_class=exposure_class,
-        removed_hidden=removed_hidden_full, removed_slit=removed_slit_full,
-        n_hidden_candidates=n_hidden_candidates, n_restored_by_guard=n_restored_by_guard,
-        n_removed_hidden=n_removed_hidden, n_removed_slit=n_removed_slit,
-        n_zero_area_dropped=n_zero_area_dropped, n_degenerate_restored=n_degenerate_restored,
-        restored_degenerate=restored_degenerate_full,
-        flipped=flipped_full, thin_sheets=thin_sheets_full,
-        sheet_flipped=sheet_flipped_full, sheet_report=sheets.report,
+        mesh=final_mesh, source_faces=final_source_faces, exposure_class=s.exposure_class,
+        removed_hidden=s.removed_hidden_full, removed_slit=s.removed_slit_full,
+        n_hidden_candidates=s.n_hidden_candidates, n_restored_by_guard=s.n_restored_by_guard,
+        n_removed_hidden=s.n_removed_hidden, n_removed_slit=s.n_removed_slit,
+        n_zero_area_dropped=s.n_zero_area_dropped, n_degenerate_restored=s.n_degenerate_restored,
+        restored_degenerate=s.restored_degenerate_full,
+        flipped=s.flipped_full, thin_sheets=s.thin_sheets_full,
+        sheet_flipped=s.sheet_flipped_full, sheet_report=sheets.report,
         removed_fragments=removed_fragments_full,
-        n_fragment_components=int(fragment_report.get("n_components", 0)),
-        n_removed_fragments=n_removed_fragments, n_removed_slivers=n_removed_slivers,
-        n_restored_fragments=n_restored_fragments, n_refused_by_rays=n_refused_by_rays,
-        fragment_report=fragment_report, fragment_removals=fragment_removals,
-        fragment_ray_check=fragment_ray_check, n_removed_folds=n_removed_folds,
-        fold_report=fold_report,
-        removed_overlap=removed_overlap_full, restored_overlap=restored_overlap_full,
+        n_fragment_components=int(s.fragment_report.get("n_components", 0)),
+        n_removed_fragments=s.n_removed_fragments, n_removed_slivers=s.n_removed_slivers,
+        n_restored_fragments=s.n_restored_fragments, n_refused_by_rays=s.n_refused_by_rays,
+        fragment_report=s.fragment_report, fragment_removals=s.fragment_removals,
+        fragment_ray_check=s.fragment_ray_check, n_removed_folds=s.n_removed_folds,
+        fold_report=s.fold_report,
+        removed_overlap=removed_overlap_full, restored_overlap=s.restored_overlap_full,
         n_overlap_pairs_same=overlap_result.report["n_overlap_pairs_same"],
         n_overlap_pairs_diff=overlap_result.report["n_overlap_pairs_diff"],
         n_removed_overlap=overlap_result.report["n_removed_overlap"],
         n_restored_overlap=overlap_result.report["n_restored_overlap"],
-        overlap_pairs_diff_material=overlap_pairs_diff_material,
-        one_sided_holes_before=one_sided_holes_before, one_sided_holes_after=one_sided_holes_after,
+        overlap_pairs_diff_material=s.overlap_pairs_diff_material,
+        one_sided_holes_before=s.one_sided_holes_before, one_sided_holes_after=one_sided_holes_after,
         backface_px=backface_px,
-        feedback_history={"hidden": history_hidden, "slit": history_slit,
-                          "fragments": fragment_history, "fragment_rays": ray_history,
+        feedback_history={"hidden": s.history_hidden, "slit": s.history_slit,
+                          "fragments": s.fragment_history, "fragment_rays": s.ray_history,
                           "overlap": overlap_result.history},
-        guard_after_removal=guard_after_removal, guard_merge_attempt=guard_merge_attempt,
-        guard_final=guard_final, strict_final=strict_final,
+        guard_after_removal=s.guard_after_removal, guard_merge_attempt=s.guard_merge_attempt,
+        guard_final=guard_final, strict_final=s.strict_final,
         exposed_final=exposed_final,
-        face_region_final=final_face_region,
-        solidify_report=solidify_report, reference_mesh=mesh, replaced_input=replaced_input,
+        face_region_final=s.final_face_region,
+        solidify_report=solidify_report, reference_mesh=mesh, replaced_input=s.replaced_input,
         guard_solidify=solidify_report.get("cap_guard") if solidify_report else None,
-        merge_report=merge_report, rings=final_rings, invariants=invariants, passed=passed,
+        merge_report=s.merge_report, rings=s.final_rings, invariants=invariants, passed=passed,
         double_layers=double)
+
+
+def fix_object(mesh: MeshData, flatness: dict[str, float], profile: FixProfile = FixProfile()) -> FixResult:
+    """The automatic fix (see the module docstring): `start_fix`, every stage of `FIX_STAGES` in
+    order, then `finish_fix`."""
+    state = start_fix(mesh, flatness, profile)
+    for _, stage in FIX_STAGES:
+        state = stage(state)
+    return finish_fix(state)
