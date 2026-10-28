@@ -1,0 +1,134 @@
+{
+  "artifacts": [
+    {
+      "path": "6f/validation.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6r\\data\\iv6r\\fullsigned-attempt2\\validation.json",
+      "bytes": 143340,
+      "sha256": "35437f53307e943ff5187437c188b08c98f54043e8de6ac5bd58e1a3e3920e94"
+    },
+    {
+      "path": "6f/independent-review.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6r\\data\\iv6r\\fullsigned-attempt2\\independent-review.json",
+      "bytes": 126601,
+      "sha256": "b4c298de802a31b8049b725d4e0d3d9073331a2a7e265b4147b6f85d68d99430"
+    },
+    {
+      "path": "6f-worker/result.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6r\\data\\edit86-iv-preflight\\native-r1\\monitor-6F26290-fullsigned-run-20261028T112754\\result.json",
+      "bytes": 690,
+      "sha256": "1c6f9316e03f7dd4c4ec934b37304eafb9feb38e3de108c0d564deda3fb2bdb0"
+    },
+    {
+      "path": "6f-worker/actual-identity.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6r\\data\\edit86-iv-preflight\\native-r1\\monitor-6F26290-fullsigned-run-20261028T112754\\actual-identity.json",
+      "bytes": 908,
+      "sha256": "57499601dcdeffb3624d8a46f5c75b8d03764f88ea46e62dc8b2a65f5cd192f4"
+    },
+    {
+      "path": "6f-worker/stdout.txt",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6r\\data\\edit86-iv-preflight\\native-r1\\monitor-6F26290-fullsigned-run-20261028T112754\\stdout.txt",
+      "bytes": 802,
+      "sha256": "41e1892f5e87971dfc9cee41a3c5cda979e82efee100c36cf32b6d071f08f657"
+    },
+    {
+      "path": "6f-worker/stderr.txt",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6r\\data\\edit86-iv-preflight\\native-r1\\monitor-6F26290-fullsigned-run-20261028T112754\\stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "6f-worker/launch-gate.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6r\\data\\edit86-iv-preflight\\native-r1\\monitor-6F26290-fullsigned-run-20261028T112754\\launch-gate.json",
+      "bytes": 575,
+      "sha256": "4c8e69a611b5ed45d2b79f803932162b66061e63cea8d6a1e2a3562bca043e1d"
+    },
+    {
+      "path": "6f-frozen/fullsigned-input-ACTUAL-NATIVE.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6r\\data\\edit86-iv-preflight\\native-r1\\fullsigned-input-ACTUAL-NATIVE.json",
+      "bytes": 4559,
+      "sha256": "bd3504ae6241078a10e826ba7ab7da8d1c877928fb31fb0b5e22873b7be20c9d"
+    },
+    {
+      "path": "6f-frozen/phase-fullsigned-run.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6r\\data\\edit86-iv-preflight\\native-r1\\phase-fullsigned-run.json",
+      "bytes": 333483,
+      "sha256": "85ec5a2d5f4b24377d44b3fac727f5c4a1cdb1df9cd7f0eb4efb42c0fd9f6168"
+    },
+    {
+      "path": "6f-frozen/FULLSIGNED-ACTUAL-NATIVE-PACKET.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6r\\data\\edit86-iv-preflight\\native-r1\\FULLSIGNED-ACTUAL-NATIVE-PACKET.json",
+      "bytes": 2705,
+      "sha256": "66a536593965218c7fe25570e267a319b64d30cdebc4b3ade2ae244130d1b774"
+    },
+    {
+      "path": "2f-frozen/fullsigned-binding.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\n2s57\\data\\native-signed-prep\\frozen-fullsigned41940\\fullsigned-binding.json",
+      "bytes": 321701,
+      "sha256": "ffaa3ac8f87cc3a1b5c3fe652c93fd025e05a659fba4789e8b8efa85052a5aa4"
+    },
+    {
+      "path": "2f-frozen/phase-fullsigned.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\n2s57\\data\\native-signed-prep\\frozen-fullsigned41940\\phase-fullsigned.json",
+      "bytes": 304400,
+      "sha256": "3f697440c871f26742a3ad2f9a868900d7fa36a7a09a031563301bb777f260be"
+    },
+    {
+      "path": "2f-frozen/READY-FULLSIGNED-PREPARED-NO-GO.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\n2s57\\data\\native-signed-prep\\frozen-fullsigned41940\\READY-FULLSIGNED-PREPARED-NO-GO.json",
+      "bytes": 313115,
+      "sha256": "94fdbc3778c62269a5d3d87b4a62172b2c5f6fcce0e983becf25293fba37b368"
+    },
+    {
+      "path": "2f-worker/actual-identity.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\n2s57\\data\\native-signed-prep\\frozen-fullsigned41940\\monitor-2F41940-fullsigned-fullsigned-20261028T115052\\actual-identity.json",
+      "bytes": 956,
+      "sha256": "893a2e43108b932bdb4f3c7c9e8f09d02f655912575f1d7203f6ac46d301330f"
+    },
+    {
+      "path": "2f-worker/launch-gate.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\n2s57\\data\\native-signed-prep\\frozen-fullsigned41940\\monitor-2F41940-fullsigned-fullsigned-20261028T115052\\launch-gate.json",
+      "bytes": 789,
+      "sha256": "eb753f37b4a373cb311414fef35c572906a7d00d26c48bda074c3bac6a71f787"
+    },
+    {
+      "path": "status/CANONICAL-CAS-READBACK.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261026\\6f26290-preservation-pass-targets-fail-2f-signed-running-20261028\\CANONICAL-CAS-READBACK.json",
+      "bytes": 1997,
+      "sha256": "68b7bc8817a84b5f2cedb594c1dd87de91d94d4cd8ad44b5e38b509b0fcdeb54"
+    },
+    {
+      "path": "status/draft-current.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261026\\6f26290-preservation-pass-targets-fail-2f-signed-running-20261028\\draft-current.json",
+      "bytes": 515759,
+      "sha256": "06bf7820b292e46571f9a07175e76c133aba6fa8b1017687a84b324981d4c7e6"
+    },
+    {
+      "path": "status/live-status-publication.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261026\\6f26290-preservation-pass-targets-fail-2f-signed-running-20261028\\live-status-publication.json",
+      "bytes": 333,
+      "sha256": "aef9cdb0ed3f1a1e2e9970c3512dbc8e4aaf6794311fbf31d193acd07b2ec33f"
+    },
+    {
+      "path": "status/live-status-readback.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261026\\6f26290-preservation-pass-targets-fail-2f-signed-running-20261028\\live-status-readback.json",
+      "bytes": 528,
+      "sha256": "cc271020142568f414b919e7320538c06f7b82b7138a8adb540aea4325fed382"
+    },
+    {
+      "path": "2f-actual-observation.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261026\\2f41940-signed-root-admission-20261028\\actual-worker-observation-1150.json",
+      "bytes": 573,
+      "sha256": "9d5561bf2f9d395f5d33be1ad422855a310bf8107562c9a4652a35f8b8eb9ea5"
+    },
+    {
+      "path": "record.md",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261026\\6f26290-preservation-pass-targets-fail-2f-signed-running-20261028\\record.md",
+      "bytes": 2384,
+      "sha256": "19350bc5da5eac2a7a99649ea94344f741c4f4c939a9c14185e855aee7ecd0d0"
+    }
+  ],
+  "archive_sha256": "07566f39d678be7d99299294fa1faeceda3bc19cb0618075106404893a923e34",
+  "all_members_read_back": true,
+  "local_only": true,
+  "acceptance": false
+}

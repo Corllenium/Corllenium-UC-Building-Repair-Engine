@@ -1557,3 +1557,16 @@ After45292fullyexited, RootFULL-reviewed and applied the isolated one-line obser
 With3Fmemoryreleased, onefresh original12GiB admission passed for6F fullsigned18456/birth11:28:00.8922299Z, phase85ec5a2d, actualnew26290 pair. Running under unchangedf044source andexactbbebgrant/8922Settings/defaulttargets afteractualnative33zeroPASS; observedalivebyexactPIDbirth+command11:29:48.9922685Z. No finalsignedverdict claimed.2Ffullsignednextpacket94fdbc37,1138reviewpins/1132phasepins, reviewed/admittedc94c3a8f onunchanged6d837; pendingexclusiveexecutionafter6F. Original2F8/3/3.5/max1 retained.
 
 Canonical8c93028e andbothstaticfeedsb2f99806 readbackexactly, otherfivefloorrows/allpreviewrefs preserved. ExistingAftermodelsremainpreviousinspectedversions; newmodelsarenotuploaded.0/7finalaccepted. BlenderUIstaysclosed, no publicpush/serverrestart/liveDBmutation/Gemini.
+
+
+### 28 October 2026 — 6F full signed preservation passed; cleanup targets remain
+
+The current 6F 26,290-triangle SOURCE ae08a366 / ENGINE 5d7ab1b2 pair completed independent full signed validation. Textures PASS: 261,935 samples, zero failures. Nothing deleted PASS: 261,937 samples, zero deleted, covered or overlaid; zero area lost. The forced floor check also passed. Validation SHA35437f53307e943ff5187437c188b08c98f54043e8de6ac5bd58e1a3e3920e94; independent review b4c298de802a31b8049b725d4e0d3d9073331a2a7e265b4147b6f85d68d99430. All saved report members were reopened and hashed. The prior four texture failures are resolved for this current pair.
+
+Overall verdict remains FAIL because signed cleanup targets are not met: 2,147 different-look overlaps, 4,159 same-look overlaps, zero reversed, 6,581 cracks; total 12,887. Hidden 6,854, loose zero and open edges 7,658 are report-only under the unchanged owner targets. Existing native33 zero-pixel and strict26 preservation passes remain bound to the same model. Exact existing grant, Settings, RAW frame/quanta and default targets were retained. No floor acceptance or Unity-ready claim.
+
+Actual validator18456, birth11:28:00.8922299Z, ended11:48:55.0039485Z after1254.1824012s: exit2 for target failure, no resource abort, all owned processes gone. Terminal SHA1c6f9316e03f7dd4c4ec934b37304eafb9feb38e3de108c0d564deda3fb2bdb0.
+
+After that terminal, 2F current41,940 default signed metadata56504 passed; actual signed worker47484 started11:50:54.5017275Z, phase3f697440 on frozen6d837 source under approved serial8/own3/reserve3.5/max1. Exact PID birth/command observed11:56:09.5994590Z. No 6F backface exception is transferred to 2F. Its final result is pending; no parallel geometry worker was launched.
+
+Canonical5d6fbe43 and both live static status feeds dba8cf2f were read back exactly, preserving the other five floor rows and all preview refs. New candidate packages remain pending actual build/client QA/upload approval; After still displays earlier inspected versions. i26p successor83c8f959 binds actual6F preservation PASS and target FAIL, with all packaging phases NO_GO. 3F next batch7 packet30361008 remains NO_GO on77d0; latest saved45,504 has173 kept/19 rolled/1080 pending. All seven final acceptances remain false. Blender stays closed; no public push, server restart, live database write or Gemini call.
