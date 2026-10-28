@@ -1,0 +1,248 @@
+{
+  "artifacts": [
+    {
+      "path": "actual-saved/fresh-lineage.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\r2s57\\data\\site57\\attempt0001\\fresh-lineage.json",
+      "bytes": 28847825,
+      "sha256": "771de70212ab5915f03553c2fc1dee615bd5afad9040f82f3d2e2ebe5eceea7e"
+    },
+    {
+      "path": "actual-saved/run-receipt.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\r2s57\\data\\site57\\attempt0001\\run-receipt.json",
+      "bytes": 3809687,
+      "sha256": "cfa57795dad057803381f1c2d31fda0f1af8c9858f80baa481d4c3fb009e3223"
+    },
+    {
+      "path": "actual-saved/candidate/2nd floor main infra.mtl",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\r2s57\\data\\site57\\attempt0001\\candidate\\2nd floor main infra.mtl",
+      "bytes": 1347,
+      "sha256": "f49e1587ca1be5efb8aca4d4b94ee8b5faf7f1067198be52d33271e75a8c2dac"
+    },
+    {
+      "path": "actual-saved/candidate/candidate.engine.obj",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\r2s57\\data\\site57\\attempt0001\\candidate\\candidate.engine.obj",
+      "bytes": 2448644,
+      "sha256": "a4973acd1c5833c6c79c5e45f3e0207f1d3d65913a8c29e57479be65236a23b2"
+    },
+    {
+      "path": "actual-saved/candidate/candidate.source.obj",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\r2s57\\data\\site57\\attempt0001\\candidate\\candidate.source.obj",
+      "bytes": 1631903,
+      "sha256": "b334bc0dafb95d155b1b67209c7283b1452e44819f845ea6cd088ae1ad729cbf"
+    },
+    {
+      "path": "actual-saved/candidate/source-faces.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\r2s57\\data\\site57\\attempt0001\\candidate\\source-faces.json",
+      "bytes": 494591,
+      "sha256": "41b35ede479cf4c762fc83ad86b07c1fc874a071ae226466cf0e8a31841433f3"
+    },
+    {
+      "path": "actual-saved/candidate/textures/littletiles/ltcolored0_-1.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\r2s57\\data\\site57\\attempt0001\\candidate\\textures\\littletiles\\ltcolored0_-1.png",
+      "bytes": 79,
+      "sha256": "84fa319f11ad9113f7bc2b1c76a14b62763893bead1b877bb1adf5c16c44e592"
+    },
+    {
+      "path": "actual-saved/candidate/textures/minecraft/concrete_white_-1.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\r2s57\\data\\site57\\attempt0001\\candidate\\textures\\minecraft\\concrete_white_-1.png",
+      "bytes": 95365,
+      "sha256": "f42c7be3c52294ead4c69ac0e9ef1bbbbe6bdb4451382c89a65c386709df6171"
+    },
+    {
+      "path": "actual-saved/candidate/textures/minecraft/concrete_white_-15579874.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\r2s57\\data\\site57\\attempt0001\\candidate\\textures\\minecraft\\concrete_white_-15579874.png",
+      "bytes": 70773,
+      "sha256": "14ceba3d0329594e00458bc6ed2aeafa24d9228519994a60d758de2509fee1ad"
+    },
+    {
+      "path": "actual-saved/candidate/textures/minecraft/iron_block_-15586018.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\r2s57\\data\\site57\\attempt0001\\candidate\\textures\\minecraft\\iron_block_-15586018.png",
+      "bytes": 37731,
+      "sha256": "bbe924f0daed84dd7d27ebf070435ee0b5da67582e3dabdeb01bff2827a236c3"
+    },
+    {
+      "path": "actual-saved/candidate/textures/minecraft/quartz_block_bottom_-1.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\r2s57\\data\\site57\\attempt0001\\candidate\\textures\\minecraft\\quartz_block_bottom_-1.png",
+      "bytes": 13240,
+      "sha256": "daf3f46f93f7364b1530ec468a7a1d5a02eda1cd0a118e41e93e9c4177791cc1"
+    },
+    {
+      "path": "actual-saved/candidate/textures/minecraft/quartz_block_side_-1.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\r2s57\\data\\site57\\attempt0001\\candidate\\textures\\minecraft\\quartz_block_side_-1.png",
+      "bytes": 168804,
+      "sha256": "85e34c6a6b917ade1cfbd2826127de4175c63317f3efbba1f7aaed3bf105a193"
+    },
+    {
+      "path": "actual-saved/candidate/textures/minecraft/quartz_block_top_-1.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\r2s57\\data\\site57\\attempt0001\\candidate\\textures\\minecraft\\quartz_block_top_-1.png",
+      "bytes": 19337,
+      "sha256": "eea2309518da196d86171dd0d78ecdcdc3a0510005790fa2beb8484744d8ae88"
+    },
+    {
+      "path": "actual-saved/candidate/textures/minecraft/stone_andesite_smooth_-1.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\r2s57\\data\\site57\\attempt0001\\candidate\\textures\\minecraft\\stone_andesite_smooth_-1.png",
+      "bytes": 167001,
+      "sha256": "4d9ef68760a08f545ded902c5762ffab9ff852796502f8a26938f6aee430314a"
+    },
+    {
+      "path": "actual-saved/candidate/textures/minecraft/wool_colored_orange_-1.png",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\r2s57\\data\\site57\\attempt0001\\candidate\\textures\\minecraft\\wool_colored_orange_-1.png",
+      "bytes": 78114,
+      "sha256": "c6a3c27b965f298da28c89c1a522b5ff3152321a97fcbe613aec2f9a6d8f66fa"
+    },
+    {
+      "path": "frozen/READY-NO-GO.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\r2s57\\data\\site57-prep\\frozen\\READY-NO-GO.json",
+      "bytes": 3485,
+      "sha256": "d80671a6bdb475be5add48bb0d300c150bc86470e5f4f99453cb94254c5ee31d"
+    },
+    {
+      "path": "frozen/binding-site57.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\r2s57\\data\\site57-prep\\frozen\\binding-site57.json",
+      "bytes": 82038,
+      "sha256": "9a02e38072b43e1d5c96989c96525feda3326e5c282576d7ea2fb6eae9d6b1cd"
+    },
+    {
+      "path": "frozen/phase-metadata.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\r2s57\\data\\site57-prep\\frozen\\phase-metadata.json",
+      "bytes": 75776,
+      "sha256": "ccb488dbf1f20937734e3368bf0c7333e3fcc5ef109b4067a93438948c8506b8"
+    },
+    {
+      "path": "frozen/phase-execute.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\r2s57\\data\\site57-prep\\frozen\\phase-execute.json",
+      "bytes": 75774,
+      "sha256": "efa9f35f3ec0bde4cb1d13ab374773726e9c4df8613814c76e7ff234845eba70"
+    },
+    {
+      "path": "frozen/single-owner-profile.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\r2s57\\data\\site57-prep\\frozen\\single-owner-profile.json",
+      "bytes": 3143,
+      "sha256": "fcea9d348e879b8008bd34bd74c340341bf6e71160664396958b69bafe90e668"
+    },
+    {
+      "path": "worker-metadata/result.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\r2s57\\data\\site57-prep\\frozen\\monitor-2F-57sites-retention-metadata-20261028T103452\\result.json",
+      "bytes": 697,
+      "sha256": "97a84d4d01b6c76ef8709d36d65aff066422f3e1327f38f5b0a29225acd8fa1e"
+    },
+    {
+      "path": "worker-metadata/actual-identity.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\r2s57\\data\\site57-prep\\frozen\\monitor-2F-57sites-retention-metadata-20261028T103452\\actual-identity.json",
+      "bytes": 903,
+      "sha256": "927e99f53000562d65b5a2e73fbffad4841586066bb127199c35c39a68429cb1"
+    },
+    {
+      "path": "worker-metadata/stdout.txt",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\r2s57\\data\\site57-prep\\frozen\\monitor-2F-57sites-retention-metadata-20261028T103452\\stdout.txt",
+      "bytes": 169,
+      "sha256": "6a6395cb0a385a3c2fe07a20f84eb4ab1ff0c468799a166f385f521e14e89b4c"
+    },
+    {
+      "path": "worker-metadata/stderr.txt",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\r2s57\\data\\site57-prep\\frozen\\monitor-2F-57sites-retention-metadata-20261028T103452\\stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "worker-metadata/launch-gate.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\r2s57\\data\\site57-prep\\frozen\\monitor-2F-57sites-retention-metadata-20261028T103452\\launch-gate.json",
+      "bytes": 789,
+      "sha256": "bfea2d2b7f350b7f4cdd173a78fb6909543230e39149b41c8d6606c96d816d4e"
+    },
+    {
+      "path": "worker-execute/result.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\r2s57\\data\\site57-prep\\frozen\\monitor-2F-57sites-retention-execute-20261028T103509\\result.json",
+      "bytes": 696,
+      "sha256": "76715ffee1fecad6d826a4622821d344bfe46647f73d33c31d7f70d6a750fcc7"
+    },
+    {
+      "path": "worker-execute/actual-identity.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\r2s57\\data\\site57-prep\\frozen\\monitor-2F-57sites-retention-execute-20261028T103509\\actual-identity.json",
+      "bytes": 900,
+      "sha256": "54627d74cbbcf5f2b757705618255943c6ff9324daab9e24719d67444a6ed1b9"
+    },
+    {
+      "path": "worker-execute/stdout.txt",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\r2s57\\data\\site57-prep\\frozen\\monitor-2F-57sites-retention-execute-20261028T103509\\stdout.txt",
+      "bytes": 303,
+      "sha256": "90d5b0199b32d4bc701251eab461deb34e54827ea623f06d4daa853fdfbb1314"
+    },
+    {
+      "path": "worker-execute/stderr.txt",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\r2s57\\data\\site57-prep\\frozen\\monitor-2F-57sites-retention-execute-20261028T103509\\stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "worker-execute/launch-gate.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\r2s57\\data\\site57-prep\\frozen\\monitor-2F-57sites-retention-execute-20261028T103509\\launch-gate.json",
+      "bytes": 789,
+      "sha256": "040c370c3aeb8a0b2f9a2af1b590d4e0fd3254eba3154157fc1c44d2b2f25d56"
+    },
+    {
+      "path": "status/CANONICAL-CAS-READBACK.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261026\\2f41940-saved-20261028\\CANONICAL-CAS-READBACK.json",
+      "bytes": 2908,
+      "sha256": "bb341bcd4914eb634c9fc0fc2cd0763865615b3547a8ea2195b224df5a37b06a"
+    },
+    {
+      "path": "status/live-status-publication.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261026\\2f41940-saved-20261028\\live-status-publication.json",
+      "bytes": 336,
+      "sha256": "fa5d2986bd6097985f062b130df3ad0c2b529348071ed687604196a4abd626de"
+    },
+    {
+      "path": "status/live-status-readback.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261026\\2f41940-saved-20261028\\live-status-readback.json",
+      "bytes": 528,
+      "sha256": "62f06acccf57c564169df35d589a592cca3c7b9c7db5c3f837b4cb6be9e260d8"
+    },
+    {
+      "path": "status/draft-current.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261026\\2f41940-saved-20261028\\draft-current.json",
+      "bytes": 493971,
+      "sha256": "cd0f1a895f36e500320451a04822c6715938e597917f6ae50da0a994b0d3d86f"
+    },
+    {
+      "path": "observer/ADOPTION-READBACK.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\b3e\\data\\edge299-prep\\observer-root-adoption-20261028\\ADOPTION-READBACK.json",
+      "bytes": 1026,
+      "sha256": "d9405313c184da1288b8b5ead03beaffdbf2aa679de7e7ab473bc4b94eab315f"
+    },
+    {
+      "path": "observer/ROOT-SOURCE-REVIEW.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\b3e\\data\\edge299-prep\\observer-root-adoption-20261028\\ROOT-SOURCE-REVIEW.json",
+      "bytes": 776,
+      "sha256": "0d276bc0bf2a8e9c2f018bf935800f4b4d5bb854d7825262dc34915ea3086f56"
+    },
+    {
+      "path": "observer/GREEN-stdout.txt",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\b3e\\data\\edge299-prep\\observer-root-adoption-20261028\\GREEN-stdout.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "observer/GREEN-stderr.txt",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\b3e\\data\\edge299-prep\\observer-root-adoption-20261028\\GREEN-stderr.txt",
+      "bytes": 2055,
+      "sha256": "b16c176147221ac6e0d8e52be2f1784d107521972a114de47f8cc73e86750a4a"
+    },
+    {
+      "path": "root-admission.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261026\\2f-57sites-root-admission-20261028\\ROOT-ADMISSION-RECEIPT.json",
+      "bytes": 1621,
+      "sha256": "5f43501ff912273b18fc5d6cb3a8d6b0c3b44a242a8984ff37f8c726dfad58d2"
+    },
+    {
+      "path": "record.md",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261026\\2f41940-saved-20261028\\record.md",
+      "bytes": 2001,
+      "sha256": "5eaeeb0f6abd7e710de3a7f3c760d24b69b97a652ef97e270b3a8af5ddc9762d"
+    }
+  ],
+  "archive_sha256": "7b95ef7ef366b1f1d45b7b3fff9c7e58272cfaf614a9c70d9fadc9e7dc1e1e8a",
+  "all_members_read_back": true,
+  "local_only": true,
+  "acceptance": false
+}

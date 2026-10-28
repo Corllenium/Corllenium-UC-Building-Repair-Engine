@@ -26,6 +26,17 @@ run the latest `.skp` of each file must be in `OBJ FIXED RESULT/` for the owner 
 ## 2. Current state (2026-09-26 00:15, written by the Claude controller)
 
 
+### 28 October 2026 — 2F new 41,940 correction actually saved; 3F timing observer adopted
+
+Actual2F engine survivor writer at f5bdd5c1 completed PID44948/birth10:35:11.3309455Z at10:35:43.0706339Z, exit0/noabort/allownedgone32.6715741s, under the approved serial8/own3/reserve3.5/max1 profile. Metadata45212 passed. New SOURCEb334bc0d (1,631,903B), ENGINEa4973acd (2,448,644B), run cfa57795 and fresh lineage771de702 were read back; both actual OBJ face-record counts are41,940. All prior39,614 originals plus2,326 whole originals across57 conservative sites survive.11,323mandatory originals,280prior-site100 originals,7contacts,10assets retained; exactly24orange markers absent. Paid engine survivor writer called; fullkernel not called. Footprint is conservative, not GPU causal proof.
+
+Independent readback/strict26/census/native/fullsigned for41940 remain NOT_RUN; no predecessor verdict transferred. Corrected v2s57 independent source now binds strict provenance to the actual authenticated RAW baseline and derives current metadata counts; both review findings were corrected with genuine RED and25stdlibGREEN before owner execution. Current2F displayedAfter remains inspected38,110. Status-only canonicald7722204 and both staticfeeds4eb3cd30 read back exactly; allotherfloorrows andpreviewrefs preserved.
+
+Root also FULL-reviewed the isolated E7 timing observer and11stubtests, verified paid signatures and identical driver function-body AST, copied only3namedfiles to idle b3e, reran11stdlibGREEN, and committedda387f33 locally. No geometry/guard policy/caching change and no performance gain claimed. The old0ffbatch6 phase packet is obsolete; a new exactHEAD/observer-source packet is required.
+
+6F26290 independently passed saved reconstruction and strict26; native/fullsigned pending,12,887targetinstances remain.3F45478 latest saved/150kept/10rolled/1112pending; allsevenfinalacceptancesfalse. No publicpush, newmodelupload, serverrestart, liveDBmutation, Gemini or BlenderUI launch.
+
+
 ### 28 October 2026 — 6F 26,290 independent saved reconstruction and strict-26 PASS
 
 Fresh independent v6r execution at d59be130 verified the saved ae08a366 SOURCE / 5d7ab1b2 ENGINE pair: 26,290 triangles, exact source partition and original indexed corner/UV/normal/group/object reconstruction, 4,334 protected whole originals, 12 identical assets, and exactly the approved 24 orange marker faces absent. No prior 26,291 verdict was transferred.
