@@ -26,6 +26,19 @@ run the latest `.skp` of each file must be in `OBJ FIXED RESULT/` for the owner 
 ## 2. Current state (2026-09-26 00:15, written by the Claude controller)
 
 
+### 28 October 2026 — 2F dense signed preservation failed; original-site restoration preparing
+
+The current 2F 41,940 SOURCE b334bc0d / ENGINE a4973acd completed default full independent signed validation with preservation FAIL. Texture check:323,679 samples,2,876 failed across298 faces (2,087 deleted,199 look,589 UV,1 side). Nothing-deleted check:323,680 samples,2,088 deleted and199 replaced; zero covered/overlaid. Forced floor check FAIL:271 removed originals exceed4px. Actual report bccd6fafdbc4755832985efe3669ea2befff53ab6157d06e0ad2b1f72d87513e and review a73b017c490ba8b0a2a2027a9f4b887e928123b2ab4bdd8d8871dc02bf24664c; all323 saved evidence members reopened/rehashed. Existing strict26/native33 passes are limited-view results and do not override this dense failure. All28,985 signed cleanup targets also remain. No settings or backface grant was changed or inherited from6F.
+
+Worker47484,birth11:50:54.5017275Z, ended13:12:57.5155691Z after4923.0671652s: actual/launcherexit2, no abort, all owned gone. Terminal65a7469769c2666836f9143fa7933581c3174b327ea1991a6d978bf4af9eed03. Execsession73428 also closed with that exit. The bad current candidate remains unaccepted and is not uploaded or substituted into After.
+
+Agent saved-JSON diagnosis found320 distinct exposed-failure originals, all absent from current41,940 and mapped to31 whole E3 sites containing2,760 absent originals; none is a retained/mandatory original. This covers the serialized failure witnesses only:two site lists are capped50 and complete298 texturefailed IDs are not serialized. Source-only paid survivor-writer restoration is preparing in isolatedr2fs31; predicted44,700/14,083mandatory is not an actual saved result yet. Preserve all current41,940, prior57 restored sites, site100 originals, contacts, assets and exact24 approved marker removals. Fresh independent validation remains required.
+
+Canonical95d287febcf2028739e49494cc79ee7e6f7263a57028df4761bfea58e5f35d63 records workerfalse and preservationFAIL; other six floor rows and all preview refs exact. Both live static roots read back current status SHA b7c5a846a2c64468c96de333f7eab9e9b387b7e91ef005ea3626a4f74cace464. Browser render unverified; no models/images uploaded.
+
+6F26,290 preservation remains PASS with12,887 cleanup targets remaining. Root FULL-read exact current inspection wrapper/tests/profile and unchanged paid factory;326 phase pins rehashed. Only6F metadata/package admitted;2F package held because its actual signed failure invalidates earlier NOT_RUN preparation. A single original12GiB metadata admission attempt at13:29:38Z held without creating a worker:three samples10.71/10.72/10.46GiB. No reduced6F admission or repeated launch attempted. 3F current45,504 has173kept/19rolled/1080pending; nextbatch7 remains prepared. 0/7 final accepted; Blender stays closed. No public push/server restart/live DB write/Gemini call.
+
+
 ### 28 October 2026 — 6F full signed preservation passed; cleanup targets remain
 
 The current 6F 26,290-triangle SOURCE ae08a366 / ENGINE 5d7ab1b2 pair completed independent full signed validation. Textures PASS: 261,935 samples, zero failures. Nothing deleted PASS: 261,937 samples, zero deleted, covered or overlaid; zero area lost. The forced floor check also passed. Validation SHA35437f53307e943ff5187437c188b08c98f54043e8de6ac5bd58e1a3e3920e94; independent review b4c298de802a31b8049b725d4e0d3d9073331a2a7e265b4147b6f85d68d99430. All saved report members were reopened and hashed. The prior four texture failures are resolved for this current pair.
