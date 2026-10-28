@@ -25,6 +25,17 @@ run the latest `.skp` of each file must be in `OBJ FIXED RESULT/` for the owner 
 
 ## 2. Current state (2026-09-26 00:15, written by the Claude controller)
 
+
+### 28 October 2026 — 6F 26,290 independent saved reconstruction and strict-26 PASS
+
+Fresh independent v6r execution at d59be130 verified the saved ae08a366 SOURCE / 5d7ab1b2 ENGINE pair: 26,290 triangles, exact source partition and original indexed corner/UV/normal/group/object reconstruction, 4,334 protected whole originals, 12 identical assets, and exactly the approved 24 orange marker faces absent. No prior 26,291 verdict was transferred.
+
+Metadata PID 62668, readback 58440, census 33176 and strict guard 44400 each terminated exit 0 with no resource abort and all owned processes gone. Readback SHA 4cff2ead; strict SHA b0c9b697: PASS in 26 views across 4,791,106 model pixels, zero holes/material changes/movement/growth, one diagnostic tie, unchanged 5.9055118110236214e-05 inch tolerance. Census f593c41e measures diff=2,147 / same=4,159 / reversed=0 / cracks=6,581 (12,887 signed target instances), hidden=6,854 / loose=0 / open edges=7,658.
+
+Native and full signed checks remain NOT_RUN for this pair. Historical prelaunch unused-report drift and qualification adapter KeyError are preserved, corrected and superseded by these actual phases; no numerical policy was relaxed. Canonical CAS 5a92a7f0 and both remote static status roots e3f90229 read back exactly. Other six floor rows and all model preview refs remain unchanged; displayed 6F After is still the earlier inspected 26,291 model. Browser rendering is unverified; this status-only publication uploaded no models or images.
+
+2F 57-site conservative retention source and its independent source prepare next; actual 41,940 model not yet saved. 3F batch 5 saved 45,478, 150 kept / 10 rolled back / 1,112 pending; batch 6 is prepared but not admitted. All seven final acceptances remain false; no Unity-ready claim, Blender stays closed, no public push/server restart/database mutation/Gemini.
+
 2026-10-28 3F FIFTH ENGINE BATCH SAVED45,478; 6F INDEPENDENT METADATA PASSED, READBACK ADAPTER LOOKUP UNDER CORRECTION.
 
 Actual3F35524/birth09:16:12.4032743Z ended09:32:06.8942624Z exit0/noabort/allgone954.5750947s. Newmanifest102183ad24cccbb446244245737d76392a2f179b1fa00c9c013b50f4c5fea41d verifies18savedfiles. SOURCEea1e87001f08dd7edefaaf965abd4551946ee43c1f7df37f5fb4b80954f41651, ENGINE8777d8a5eb460b0aed55e8c339cc3cbf685503a1272f2a311176ead3fd052396 both45,478triangle records; CP77c8b99ee82c2ff5312ec911c2110cb567aafb6ffdcd43d8eecedc6cfa11ed53. Thisbatch28kept/4rolled; cumulative150kept/10rolled/1112pending. Freshrollbackoriginals7820/7822/7886/8058remainwhole. IndependentJSONauditcoversfivemanifests/90entries andcomposed6795whole/280anchors/8assets/24markerabsence; thisisnotnumericgeometry/visibilityPASS. Batch6packet619807af remainsNO_GO,597pins andexcludesall160previousselectedsitesincluding10rollbacks. No next3Fworkerlaunched while6FIV haspriority.

@@ -1,0 +1,122 @@
+{
+  "artifacts": [
+    {
+      "path": "actual/independent-saved-readback.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6r\\data\\iv6r\\attempt2-qualification\\independent-saved-readback.json",
+      "bytes": 1139,
+      "sha256": "4cff2ead3f9cb25ab08e8ae159419eff8e007cdb8bdbf1d51a53fed4e7b1ad2b"
+    },
+    {
+      "path": "actual/independent-guard.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6r\\data\\iv6r\\attempt2-qualification\\independent-guard.json",
+      "bytes": 19296,
+      "sha256": "b0c9b6971dfdd0a2d78a5716e0864af570e6271a67c7359693518dc29a4149bf"
+    },
+    {
+      "path": "actual/census/census-receipt.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6r\\data\\iv6r\\attempt2-qualification\\census\\census-receipt.json",
+      "bytes": 2308,
+      "sha256": "f593c41ef2d054a33746b78528394910d0d26447fe48812dcb92c3e934220b0d"
+    },
+    {
+      "path": "actual/census/errors-source.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6r\\data\\iv6r\\attempt2-qualification\\census\\errors-source.json",
+      "bytes": 1629343,
+      "sha256": "f50acd0bf1800ca76230e4fae2805d35a5a32812e4b6d015c20fe7d3530fefd8"
+    },
+    {
+      "path": "actual/census/errors-candidate.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6r\\data\\iv6r\\attempt2-qualification\\census\\errors-candidate.json",
+      "bytes": 1717937,
+      "sha256": "c7a990a35a23cf1774e34e3ef92650ae57d1e85c97ae952678bba97e7ed1e40b"
+    },
+    {
+      "path": "actual/census/census-before.raw.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6r\\data\\iv6r\\attempt2-qualification\\census\\census-before.raw.json",
+      "bytes": 2954775,
+      "sha256": "807e748615fda01e898c89fcf3ddf6ac213273fdc0d26351ae3d26d4b9ecd613"
+    },
+    {
+      "path": "actual/census/census-after.raw.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6r\\data\\iv6r\\attempt2-qualification\\census\\census-after.raw.json",
+      "bytes": 2134873,
+      "sha256": "aa4e927950dbabd135fa4416ff82d88232485d6b72e548f65357cace3ec3e606"
+    },
+    {
+      "path": "frozen/SOURCE-REVIEW-PACKET.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6r\\data\\edit86-iv-preflight\\qualification-r2\\SOURCE-REVIEW-PACKET.json",
+      "bytes": 2824,
+      "sha256": "7c2070ca7be1e72f020192b0b4fab101caeb92fa612abb1c6f27dd6dc0e4542e"
+    },
+    {
+      "path": "frozen/validation-input.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6r\\data\\edit86-iv-preflight\\qualification-r2\\validation-input.json",
+      "bytes": 258137,
+      "sha256": "a9e8708a00dc7d760e3dc74fe75a9d83dc38ce138e83c306aa75d7ca33225817"
+    },
+    {
+      "path": "worker-metadata/result.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6r\\data\\edit86-iv-preflight\\qualification-r2\\monitor-6F-edit86-qualified-r2-metadata-20261028T100906\\result.json",
+      "bytes": 717,
+      "sha256": "39891f844a1700f82f216a92e90cfd5c8b2591f234a1b938f9d98f2efd47893b"
+    },
+    {
+      "path": "worker-readback/result.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6r\\data\\edit86-iv-preflight\\qualification-r2\\monitor-6F-edit86-qualified-r2-readback-20261028T100949\\result.json",
+      "bytes": 718,
+      "sha256": "72a1da3184cec5ba65959e29c3f7cc642759368c2a0fb963246949b9ae162384"
+    },
+    {
+      "path": "worker-census/result.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6r\\data\\edit86-iv-preflight\\qualification-r2\\monitor-6F-edit86-qualified-r2-census-20261028T101128\\result.json",
+      "bytes": 714,
+      "sha256": "e4c7d907a9ffa34c95bc7d78957317d1099610bc488ebf8346c31fbdb91aaee6"
+    },
+    {
+      "path": "worker-guard/result.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\v6r\\data\\edit86-iv-preflight\\qualification-r2\\monitor-6F-edit86-qualified-r2-guard-20261028T101403\\result.json",
+      "bytes": 712,
+      "sha256": "f5b0678ff27f9cb477a452a9c2a7093a87b7192c7f44f8f5ad6146b369f75cfd"
+    },
+    {
+      "path": "status/CANONICAL-CAS-READBACK.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261026\\6f26290-independent-strict26-pass-20261028\\CANONICAL-CAS-READBACK.json",
+      "bytes": 2949,
+      "sha256": "a0d185a42ba721a66bc66eae8b687e3c2ae60e958a33ef36190aed3c04946de0"
+    },
+    {
+      "path": "status/draft-current.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261026\\6f26290-independent-strict26-pass-20261028\\draft-current.json",
+      "bytes": 490337,
+      "sha256": "3a8654c6aa2eaf4d59e5e415cec7b32552e46b452474c82dd0ec16192f63f881"
+    },
+    {
+      "path": "status/live-status-publication.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261026\\6f26290-independent-strict26-pass-20261028\\live-status-publication.json",
+      "bytes": 333,
+      "sha256": "106732c04fad7981454bef6ace76284904f204350a3134623e974535aa06bdf1"
+    },
+    {
+      "path": "status/live-status-readback.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261026\\6f26290-independent-strict26-pass-20261028\\live-status-readback.json",
+      "bytes": 528,
+      "sha256": "6dea45acfa0863324a177110fdc4d9826cfade228a83a1115593a8ba55cb8f7f"
+    },
+    {
+      "path": "root-source-review.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261026\\6f26290-independent-qualification-root-review-20261028\\ROOT-SOURCE-PHASE-REVIEW.json",
+      "bytes": 1477,
+      "sha256": "98ae78b032504a41699b84ee8ee1c1f37e5d569abfdafa67ff51e0c1b7ecfb29"
+    },
+    {
+      "path": "record.md",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261026\\6f26290-independent-strict26-pass-20261028\\record.md",
+      "bytes": 1868,
+      "sha256": "a0b4da3d9f32dfbeb109d98bc21190673b2df618201451c0066e4e59f2dd0c14"
+    }
+  ],
+  "archive_sha256": "dd6fdbee6f1ef4ee981dd1aeb9a7a580f013732579a6db5a975601fb9ca5a7cb",
+  "all_members_read_back": true,
+  "local_only": true,
+  "acceptance": false
+}
