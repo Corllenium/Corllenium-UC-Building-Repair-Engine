@@ -1,4 +1,14 @@
 
+### 28 October 2026 — 3F batch 6 saved 45,504; 6F signed validation actually running
+
+3F actual worker 45292/birth10:58:55.0894659Z completed11:18:55.5494401Z, exit0/noabort/allownedgone,1200.555804s. Completed manifest0119124271a9a2de5f6931445ff7a492bc4768bbe2574a7410537d653109c33f reopened all18savedfiles exactly. Both actual OBJ files contain45,504triangle records: SOURCE828a4b52a3e560755c0e9bddd0f0fdb294f83ee8ec0a5c92c95d5d7be70cd776 / ENGINEe084e3b2ba4b42c4d34d389616b839bfdb04bbdb5ce001191c26c2409e28171b; checkpoint0e37cec5ba081cb36fe3189764b4429a1f8e169bf85c2a3d76754361a57697d0. This32-sitebatch kept23 androlled9; cumulative173kept/19rolled/1080pending. Fresh independent saved-model/strict/native/signed/census remainNOT_RUN for45504; no inheritedPASS.
+
+After45292fullyexited, RootFULL-reviewed and applied the isolated one-line observer tuple fix fromec146911 plus exacttestupdate, verified neitherfileisinactive6F1255pins, ran11stdlibGREEN and committedb3e77d0f09e4030aa6c0d052cb2ed20355e24e434fb. Original da387 observations retained: settingscapture AttributeError causedby calling tolist() on normalizedtuple. New list(tuple) preserves values/signedzero; no floatcasts/cache/kernel/guardpolicychange. Nextbatch7source/data preparation explicitly preservesmixed0ff+da387history andallrollbacks; Rootexecutionnotyetadmitted.
+
+With3Fmemoryreleased, onefresh original12GiB admission passed for6F fullsigned18456/birth11:28:00.8922299Z, phase85ec5a2d, actualnew26290 pair. Running under unchangedf044source andexactbbebgrant/8922Settings/defaulttargets afteractualnative33zeroPASS; observedalivebyexactPIDbirth+command11:29:48.9922685Z. No finalsignedverdict claimed.2Ffullsignednextpacket94fdbc37,1138reviewpins/1132phasepins, reviewed/admittedc94c3a8f onunchanged6d837; pendingexclusiveexecutionafter6F. Original2F8/3/3.5/max1 retained.
+
+Canonical8c93028e andbothstaticfeedsb2f99806 readbackexactly, otherfivefloorrows/allpreviewrefs preserved. ExistingAftermodelsremainpreviousinspectedversions; newmodelsarenotuploaded.0/7finalaccepted. BlenderUIstaysclosed, no publicpush/serverrestart/liveDBmutation/Gemini.
+
 ### 28 October 2026 — 2F and 6F current native33 zero-pixel PASS; actual 3F batch6 running
 
 New2F41,940 (SOURCEb334/ENGINEa497) independently passed direct saved tables/corners/UV/group/object and10assets reconstruction (bc4213b8), strict26 c0f3a69e across6,255,399 modelpixels with0baseerrors/1diagnostic tie/unchanged5.905511811e-6in. Actualmetadata46160/readback34532/guard42272/census5756 all exit0/noabort/allgone. Freshcensus5ed97b6a: diff10,917 /same10,002 /reversed0 /cracks8,066=28,985targetinstances; hidden20,925/loose0/open9,832.
