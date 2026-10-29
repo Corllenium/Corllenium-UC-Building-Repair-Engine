@@ -3,7 +3,41 @@ import numpy as np
 import pytest
 
 from engine.tests.fixtures.build import _mesh
-from tools.main_infra_external_validate import drop_faces, face_rows, membership, orange_face_ids
+from tools.main_infra_external_validate import (added_faces_contained, drop_faces, face_rows, membership, orange_face_ids,
+                                                 table_extends)
+
+
+def test_table_extends_accepts_in_order_growth_only():
+    base = np.array([[0.0, 0.0], [1.0, 0.0]])
+    assert table_extends(base, base) == 0
+    assert table_extends(base, np.vstack([base, [[2.0, 2.0]]])) == 1
+    with pytest.raises(ValueError):
+        table_extends(base, base[:1])
+    with pytest.raises(ValueError):
+        table_extends(base, np.array([[1.0, 0.0], [0.0, 0.0]]))
+
+
+def test_added_cut_faces_must_lie_inside_a_before_face():
+    before = _quad_pair()
+    cut = drop_faces(before, [0])
+    # split BEFORE face 0 (corners 0,1,2) at the midpoint of edge 1-2: two faces inside it
+    cut.positions = np.vstack([cut.positions, [[1.0, 0.5, 0.0]]])
+    cut.uvs = np.vstack([cut.uvs, [[1.0, 0.5]]])
+    cut.face_v = np.vstack([cut.face_v, [[0, 1, 6], [0, 6, 2]]])
+    cut.face_vt = np.vstack([cut.face_vt, [[0, 1, 6], [0, 6, 2]]])
+    cut.face_vn = np.vstack([cut.face_vn, [[-1, -1, -1], [-1, -1, -1]]])
+    cut.face_material = np.append(cut.face_material, [0, 0])
+    cut.face_line = np.append(cut.face_line, [5, 6])
+    _, _, added = membership(before, cut)
+    assert added.sum() == 2
+    assert added_faces_contained(before, cut, added) == dict(added=2, contained=2)
+    cut.face_material[-1] = 1  # other material: no BEFORE face of that look contains it
+    with pytest.raises(ValueError):
+        added_faces_contained(before, cut, added)
+    cut.face_material[-1] = 0
+    cut.positions[6] = [1.0, 1.5, 0.0]  # outside every BEFORE face
+    with pytest.raises(ValueError):
+        added_faces_contained(before, cut, added)
 
 
 def _quad_pair():

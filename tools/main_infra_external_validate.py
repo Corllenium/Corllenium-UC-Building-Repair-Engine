@@ -7,9 +7,9 @@ needed. What is checked, in order:
 
 1. The qualified baseline (frozen raw OBJ, Blender reference, normalized BEFORE pair, import qualification,
    geometry provenance) is hash-bound exactly as `tools.main_infra_physical_validation.load_physical_pair` binds it.
-2. The candidate keeps the baseline's vertex, UV, normal and material tables; every AFTER face lies on a BEFORE face
-   (`verify_exact_coverage`, engine and source frames); face membership (retained / removed / added) is counted in
-   both frames and must agree.
+2. The candidate keeps the baseline's vertex positions and material table; UV / normal tables may only be extended in
+   order (cuts add corners). Face membership (retained / removed / added) is counted in the engine and source frames
+   and must agree; every added face (a cut) must lie inside one BEFORE face of the same material.
 3. The candidate's MTL and textures hash-equal the qualified baseline assets.
 4. Optional `--drop-before-faces`: the owner-authorized orange marker faces (approved-selection.json, 24 per floor)
    are removed from BEFORE first, so a candidate that dropped them is not charged for them; they must all be gone
@@ -38,7 +38,6 @@ from pathlib import Path
 
 import numpy as np
 
-from engine.fixes.precut_cleanup import verify_exact_coverage
 from engine.io.minecraft_floor import Frame, parse_floor
 from engine.io.mtl import parse_mtl
 from engine.io.obj_reader import read_obj
@@ -80,6 +79,55 @@ def drop_faces(mesh: MeshData, ids) -> MeshData:
     keep[ids] = False
     return replace(mesh, face_v=mesh.face_v[keep].copy(), face_vt=mesh.face_vt[keep].copy(), face_vn=mesh.face_vn[keep].copy(),
                    face_material=mesh.face_material[keep].copy(), face_line=mesh.face_line[keep].copy())
+
+
+def table_extends(before_rows: np.ndarray, after_rows: np.ndarray) -> int:
+    """`after_rows` must start with every row of `before_rows` in order (a cut may append UV corners; nothing may
+    change or vanish). Returns the number of appended rows."""
+    if len(after_rows) < len(before_rows) or not np.array_equal(after_rows[:len(before_rows)], before_rows):
+        raise ValueError('corner table changed: rows are not an in-order extension of the baseline')
+    return int(len(after_rows) - len(before_rows))
+
+
+def added_faces_contained(before: MeshData, after: MeshData, added: np.ndarray, *, tol: float = 1e-6) -> dict:
+    """Every added AFTER face (a cut) must lie inside one BEFORE face of the same material: coplanar within `tol`
+    inches and all three corners inside that triangle. Returns counts; raises when any added face is not."""
+    ids = np.flatnonzero(added)
+    if not len(ids):
+        return dict(added=0, contained=0)
+    P = before.positions
+    A = P[before.face_v]                       # (nb, 3, 3)
+    e0, e1 = A[:, 1] - A[:, 0], A[:, 2] - A[:, 0]
+    n = np.cross(e0, e1)
+    norm = np.linalg.norm(n, axis=1)
+    live = norm > 0
+    n[live] /= norm[live, None]
+    d00, d01, d11 = (e0 * e0).sum(1), (e0 * e1).sum(1), (e1 * e1).sum(1)
+    denom = d00 * d11 - d01 * d01
+    contained, loose = 0, []
+    for f in ids:
+        C = after.positions[after.face_v[f]]   # (3, 3)
+        D = C[None, :, :] - A[:, 0][:, None, :]
+        dist = np.abs(np.einsum('bcj,bj->bc', D, n))
+        same_material = before.face_material == after.face_material[f]
+        coplanar = live & same_material & (dist <= tol).all(axis=1) & (denom > 0)
+        found = False
+        for b in np.flatnonzero(coplanar):
+            d20 = (D[b] * e0[b]).sum(1)
+            d21 = (D[b] * e1[b]).sum(1)
+            u = (d11[b] * d20 - d01[b] * d21) / denom[b]
+            v = (d00[b] * d21 - d01[b] * d20) / denom[b]
+            eps = 1e-9
+            if (u >= -eps).all() and (v >= -eps).all() and (u + v <= 1 + eps).all():
+                found = True
+                break
+        if found:
+            contained += 1
+        else:
+            loose.append(int(f))
+    if loose:
+        raise ValueError(f'{len(loose)} added faces lie on no BEFORE face of the same material (first: {loose[:8]})')
+    return dict(added=int(len(ids)), contained=contained)
 
 
 def orange_face_ids(selection: Path, floor: str) -> list[int]:
@@ -214,17 +262,23 @@ def main(argv=None):
         before, after, source_after = read_obj(paths['before']), read_obj(paths['after']), read_obj(paths['source_after'])
         _same_mesh(before, expected)
         _same_mesh(read_obj(paths['source_baseline']), source.mesh)
-        for field in ('positions', 'uvs', 'normals'):
-            assert np.array_equal(getattr(before, field), getattr(after, field)), 'engine vertex table differs: ' + field
-            assert np.array_equal(getattr(source.mesh, field), getattr(source_after, field)), 'source vertex table differs: ' + field
+        # vertex tables: positions identical; UV and normal tables may only be extended in order (cuts add UV corners)
+        assert np.array_equal(before.positions, after.positions), 'engine vertex positions differ'
+        assert np.array_equal(source.mesh.positions, source_after.positions), 'source vertex positions differ'
+        tables = dict(engine_uv_rows_added=table_extends(before.uvs, after.uvs),
+                      engine_normal_rows_added=table_extends(before.normals, after.normals),
+                      source_uv_rows_added=table_extends(source.mesh.uvs, source_after.uvs),
+                      source_normal_rows_added=table_extends(source.mesh.normals, source_after.normals))
         assert before.materials == after.materials, 'engine material order differs'
         assert source.mesh.materials == source_after.materials, 'source material order differs'
-        verify_exact_coverage(expected, after)
-        verify_exact_coverage(source.mesh, source_after)
         engine_counts, removed_engine, added_engine = membership(before, after)
         source_counts, removed_source, added_source = membership(source.mesh, source_after)
         assert engine_counts == source_counts, f'engine/source membership differ: {engine_counts} vs {source_counts}'
         assert np.array_equal(removed_engine, removed_source), 'engine/source removed faces differ'
+        if engine_counts['added'] == 0:
+            assert tables['engine_uv_rows_added'] == 0 and tables['source_uv_rows_added'] == 0, 'UV rows added without added faces'
+        containment = added_faces_contained(before, after, added_engine)
+        containment['source'] = added_faces_contained(source.mesh, source_after, added_source)
         assets = verify_candidate_assets(provenance, candidate)
         dropped = None
         before_judged = before
@@ -245,6 +299,7 @@ def main(argv=None):
                        candidate_dir=str(candidate), candidate_engine_sha256=hashes['after'], candidate_source_sha256=hashes['source_after'],
                        input_triangles=int(len(before.face_v)), output_triangles=int(len(after.face_v)),
                        membership=engine_counts, membership_after_drop=judged_counts, dropped_before_faces=dropped,
+                       corner_tables=tables, added_faces_containment=containment,
                        assets=assets, physical_axis_quanta_inches=list(expected.physical_quanta),
                        source_to_engine=frame.matrix.tolist(), allowed_changes=sorted(args.allow), acceptance=False)
         (out / 'external-validation.json').write_text(json.dumps(receipt, indent=2), encoding='utf-8')
