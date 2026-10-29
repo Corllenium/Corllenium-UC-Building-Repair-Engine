@@ -31,14 +31,21 @@ from engine.io.snapshot import sha256_file
 CBR = 'coincident_backface_removed'
 
 
-def _run_e4(*, root, floor, raw_name, exclude, allow_growth, **_kw):
+def _run_e4(*, root, floor, raw_name, exclude, allow_growth, e5_candidate, out, **_kw):
     from tools.run_checked_e4_floor import main
-    argv = ['--root', str(root), '--floor', floor, '--raw-name', raw_name, '--from-e5']
+    argv = ['--root', str(root), '--floor', floor, '--raw-name', raw_name, '--from-e5',
+            '--e5-candidate', str(e5_candidate), '--out', str(out)]
     if allow_growth:
         argv.append('--allow-growth')
     if exclude is not None:
         argv += ['--exclude-regions', str(exclude)]
     return main(argv)
+
+
+def _run_e5(*, root, floor, raw_name, exclude, out, **_kw):
+    from tools.run_checked_e5_floor import main
+    return main(['--root', str(root), '--floor', floor, '--raw-name', raw_name, '--from-e3',
+                 '--exclude-sites', str(exclude), '--out', str(out)])
 
 
 def _run_guard(*, root, floor, raw_name, candidate, out, helper, job_id, reviewer, expected_revision, **_kw):
@@ -75,40 +82,61 @@ def _record_guard(candidate: Path, receipt_path: Path) -> None:
 
 def run_loop(*, root, floor, raw_name, rounds=3, allow=(CBR,), allow_growth=True, helper=None, job_id='e4-replay',
              reviewer='replay-loop', expected_revision=None, interior_poses=None, interior_px_max=60,
-             run_e4=None, run_guard=None, run_validator=None, render_interior=None, inputs=None) -> dict:
-    """Run the loop (see the module docstring); returns the summary it also writes. `run_e4`, `run_guard`,
-    `run_validator` and `render_interior` are the steps, injectable for tests; `inputs` is passed through to them."""
+             run_e4=None, run_e5=None, run_guard=None, run_validator=None, render_interior=None, inputs=None) -> dict:
+    """Run the loop (see the module docstring); returns the summary it also writes. `run_e4`, `run_e5`, `run_guard`,
+    `run_validator` and `render_interior` are the steps, injectable for tests; `inputs` is passed through to them.
+    When a round's failures name E5 sites, the next round reruns E5 (`--from-e3 --exclude-sites`) into
+    `<root>/e5/<F>-round<k>` and E4 reads that candidate."""
     root = Path(root).resolve()
     run_e4 = run_e4 or _run_e4
+    run_e5 = run_e5 or _run_e5
     run_guard = run_guard or _run_guard
     run_validator = run_validator or _run_validator
-    e4_root = root / 'e4'
+    e4_root, e5_root = root / 'e4', root / 'e5'
     e4_root.mkdir(parents=True, exist_ok=True)
     live = e4_root / floor
     if live.exists():
         raise ValueError(f'{live} exists: move the previous E4 candidate aside before the replay loop')
+    current_e5 = e5_root / floor
+    if not (current_e5 / 'stage-audit.json').exists():
+        raise ValueError(f'{current_e5} holds no E5 candidate: run E5 (--from-e3) first')
     started = time.perf_counter()
-    summary = dict(schema_version=1, root=str(root), floor=floor, raw_name=raw_name, allow=sorted(allow),
+    summary = dict(schema_version=2, root=str(root), floor=floor, raw_name=raw_name, allow=sorted(allow),
                    allow_growth=bool(allow_growth), rounds_requested=int(rounds), rounds=[], excluded_regions=[],
-                   exclusion_reasons={}, status='rounds_exhausted', final_candidate=None, interior=None)
+                   excluded_sites=[], exclusion_reasons={}, e5_exclusion_reasons={}, status='rounds_exhausted',
+                   final_candidate=None, final_e5_candidate=str(current_e5), interior=None)
     excluded: set[int] = set()
+    excluded_sites: set[int] = set()
     reasons: dict[str, list] = {}
+    site_reasons: dict[str, list] = {}
+    e5_dirty = False                                         # new E5 exclusions since the last E5 run
     for k in range(1, int(rounds) + 1):
+        if e5_dirty:
+            e5_exclude = e5_root / f'{floor}-round{k}-exclude-sites.json'
+            e5_exclude.write_text(json.dumps(dict(e5_sites=sorted(excluded_sites), reasons=site_reasons, round=k), indent=2),
+                                  encoding='utf-8')
+            e5_out = e5_root / f'{floor}-round{k}'
+            code = run_e5(root=root, floor=floor, raw_name=raw_name, exclude=e5_exclude, out=e5_out, inputs=inputs)
+            if code != 0 or not (e5_out / 'stage-audit.json').exists():
+                summary['status'] = 'e5_failed'
+                break
+            current_e5 = e5_out
+            e5_dirty = False
         exclude_path = None
         if excluded:
             exclude_path = e4_root / f'{floor}-round{k}-exclude.json'
             exclude_path.write_text(json.dumps(dict(regions=sorted(excluded), reasons=reasons, round=k), indent=2),
                                     encoding='utf-8')
+        candidate = e4_root / f'{floor}-round{k}'
         code = run_e4(root=root, floor=floor, raw_name=raw_name, exclude=exclude_path, allow_growth=allow_growth,
-                      inputs=inputs)
-        if code != 0 or not live.exists():
+                      e5_candidate=current_e5, out=candidate, inputs=inputs)
+        if code != 0 or not candidate.exists():
             summary['status'] = 'e4_failed'
             break
-        candidate = e4_root / f'{floor}-round{k}'
-        shutil.move(str(live), str(candidate))
-        row = dict(round=k, candidate=str(candidate), excluded_regions=sorted(excluded), exclude_file=None if exclude_path is None
-                   else str(exclude_path), guard=None, validation=None, nothing_deleted=None, verdict=None,
-                   explained_regions=[], unexplained=[])
+        row = dict(round=k, candidate=str(candidate), e5_candidate=str(current_e5), excluded_regions=sorted(excluded),
+                   excluded_sites=sorted(excluded_sites), exclude_file=None if exclude_path is None else str(exclude_path),
+                   guard=None, validation=None, nothing_deleted=None, verdict=None,
+                   explained_regions=[], explained_e5_sites=[], unexplained=[])
         summary['rounds'].append(row)
         guard_out = root / 'independent-validator' / 'e4-guard' / f'{floor}-round{k}'
         code = run_guard(root=root, floor=floor, raw_name=raw_name, candidate=candidate, out=guard_out, helper=helper,
@@ -150,24 +178,33 @@ def run_loop(*, root, floor, raw_name, rounds=3, allow=(CBR,), allow_growth=True
         if g['status'] == 'PASS':
             summary['status'] = 'pass'
             summary['final_candidate'] = str(candidate)
+            summary['final_e5_candidate'] = str(current_e5)
             shutil.copytree(candidate, live)
             break
         from tools.main_infra_e4_replay import explain_failures
         explained = explain_failures(candidate=candidate, validation=validation)
         (e4_root / f'{floor}-round{k}-explained.json').write_text(json.dumps(explained, indent=2), encoding='utf-8')
-        row['explained_regions'] = explained['regions']
+        row['explained_regions'] = explained['e4_regions']
+        row['explained_e5_sites'] = explained['e5_sites']
         row['unexplained'] = explained['unexplained']
         if explained['unexplained']:
             summary['status'] = 'unexplained'
             break
-        new = set(explained['regions']) - excluded
-        if not new:
+        new = set(explained['e4_regions']) - excluded
+        new_sites = set(explained['e5_sites']) - excluded_sites
+        if not new and not new_sites:
             summary['status'] = 'no_new_exclusions'
             break
         excluded |= new
-        for r, rows in explained['reasons'].items():
+        for r, rows in explained['reasons']['e4_regions'].items():
             reasons.setdefault(r, []).extend(dict(row_, round=k) for row_ in rows)
+        if new_sites:
+            excluded_sites |= new_sites
+            e5_dirty = True
+            for s, rows in explained['reasons']['e5_sites'].items():
+                site_reasons.setdefault(s, []).extend(dict(row_, round=k) for row_ in rows)
     summary.update(rounds_run=len(summary['rounds']), excluded_regions=sorted(excluded), exclusion_reasons=reasons,
+                   excluded_sites=sorted(excluded_sites), e5_exclusion_reasons=site_reasons,
                    wall_s=round(time.perf_counter() - started, 2))
     (e4_root / f'{floor}-replay-summary.json').write_text(json.dumps(summary, indent=2), encoding='utf-8')
     return summary

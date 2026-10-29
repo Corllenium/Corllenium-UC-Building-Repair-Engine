@@ -23,10 +23,14 @@ def main(argv=None):
     parser.add_argument('--floor', required=True)
     parser.add_argument('--raw-name', required=True)
     parser.add_argument('--from-e3', action='store_true')
+    parser.add_argument('--exclude-sites', type=Path, default=None,
+                        help='tools/main_infra_e4_replay.py output: E5 site ids NOT to plan (the replay loop; `e5_sites`), '
+                             'recorded in the stage audit with the file hash')
+    parser.add_argument('--out', type=Path, default=None, help='output directory (default <root>/e5/<floor>)')
     args = parser.parse_args(argv)
     root = args.root.resolve()
     F = args.floor
-    out = root / 'e5' / F
+    out = (root / 'e5' / F) if args.out is None else args.out.resolve()
     if out.exists():
         raise ValueError('Refusing existing attempt output')
 
@@ -58,7 +62,7 @@ def main(argv=None):
     flatness = {name: texture_flatness(base / mat.map_kd.replace(chr(92), '/'))
                 for name, mat in mtl.items() if mat.map_kd}
 
-    e3_binding = None
+    e3_binding, prior_removed, prior_faces = None, None, []
     if args.from_e3:
         e3_dir = root / 'e3' / F
         e3_audit = json.loads((e3_dir / 'stage-audit.json').read_text(encoding='utf-8'))
@@ -69,6 +73,10 @@ def main(argv=None):
         source_floor = floor_from_candidate(e3_dir / 'candidate.source.obj')
         engine_floor = source_floor.in_frame(frame)
         _same_mesh(read_obj(e3_dir / 'candidate.engine.obj'), engine_floor.mesh)
+        # the faces E3 removed, as triangles of the baseline (engine frame): E5's covers_prior_removal rule
+        survivors = set(json.loads((e3_dir / 'source-faces.json').read_text(encoding='utf-8'))['source_faces'])
+        prior_faces = [f for f in range(baseline.n_faces) if f not in survivors]
+        prior_removed = baseline.positions[baseline.face_v[prior_faces]] if prior_faces else None
         e3_binding = dict(candidate=str(e3_dir), engine_candidate_sha256=e3_engine, source_candidate_sha256=e3_source,
                           source_faces_sha256=sha256_file(e3_dir / 'source-faces.json'),
                           stage_audit_sha256=sha256_file(e3_dir / 'stage-audit.json'))
@@ -88,8 +96,13 @@ def main(argv=None):
     print(f'ENGINE E5 starting on fresh {F} ({cleanup_mode}): {before.n_faces} triangles; site checks and rollback '
           f'enabled', flush=True)
     started = time.perf_counter()
+    exclusion, excluded = None, None
+    if args.exclude_sites is not None:
+        exclusion = json.loads(args.exclude_sites.read_text(encoding='utf-8'))
+        excluded = sorted({int(s) for s in exclusion.get('e5_sites', exclusion.get('sites', []))})
     report = {}
-    outcome, indices = run_checked_e5(before, looks, flatness, report=report)
+    outcome, indices = run_checked_e5(before, looks, flatness, report=report, prior_removed=prior_removed,
+                                      exclude_sites=excluded)
     print(f'ENGINE E5 finished: {before.n_faces}->{outcome.mesh.n_faces}; kept sites={len(outcome.kept)}, '
           f'rolled back={len(outcome.rolled_back)}; pairs={report.get("pairs")}; dropped={report.get("dropped")}; '
           f'checks={outcome.checks}', flush=True)
@@ -99,10 +112,15 @@ def main(argv=None):
         target.parent.mkdir(parents=True, exist_ok=True)
         copy_verified(base / asset['path'], target, interval_s=0)
     write_records(out / 'edit-log.jsonl', outcome.records)
+    if exclusion is not None:
+        (out / 'exclude-sites.json').write_text(json.dumps(exclusion, indent=2), encoding='utf-8')
     audit = dict(cleanup_mode=cleanup_mode, executed_stages=stages, checks=outcome.checks,
                  input_triangles=before.n_faces, output_triangles=outcome.mesh.n_faces,
                  kept_edits=len(outcome.kept), rolled_back_edits=len(outcome.rolled_back),
                  engine_report=audit_report(report), e3_candidate=e3_binding,
+                 prior_removed_triangles=len(prior_faces), excluded_sites=excluded,
+                 exclude_sites_file=None if args.exclude_sites is None else str(args.exclude_sites),
+                 exclude_sites_sha256=None if args.exclude_sites is None else sha256_file(args.exclude_sites),
                  engine_candidate_sha256=sha256_file(eng), source_candidate_sha256=sha256_file(src),
                  source_faces_sha256=sha256_file(mapping), edit_log_sha256=sha256_file(out / 'edit-log.jsonl'),
                  qualification_sha256=sha256_file(qualification), assets=provenance['assets'],

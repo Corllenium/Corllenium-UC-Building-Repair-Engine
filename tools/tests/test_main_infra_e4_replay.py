@@ -62,6 +62,168 @@ def _region(e4_dir):
     return region
 
 
+#: Three layers: the glass panel's 4 slivers (0-3), an identical copy A (4-7), an identical copy B (8-11), the far
+#: facade (12). E3 removes B's second sliver (9) and the facade; E5 then drops copy A's slivers as same-look twins.
+RAW3 = '''mtllib source.mtl
+v 0 0 0
+v 2 0 0
+v 2 0 1
+v 0 0 1
+v 0.6666666666666666 0 0.3333333333333333
+v 1.3333333333333333 0 0.6666666666666666
+v 10 0 0
+v 11 0 0
+v 10 0 1
+vt 0 0
+vt 1 0
+vt 1 0.5
+vt 0 0.5
+vt 0.3333333333333333 0.16666666666666666
+vt 0.6666666666666666 0.3333333333333333
+vn 0 1 0
+o panel
+g glass_panel
+usemtl glass
+f 1/1/1 2/2/1 3/3/1
+f 1/1/1 5/5/1 4/4/1
+f 5/5/1 6/6/1 4/4/1
+f 6/6/1 3/3/1 4/4/1
+o panel_copy_a
+g glass_a
+usemtl glass
+f 1/1/1 2/2/1 3/3/1
+f 1/1/1 5/5/1 4/4/1
+f 5/5/1 6/6/1 4/4/1
+f 6/6/1 3/3/1 4/4/1
+o panel_copy_b
+g glass_b
+usemtl glass
+f 1/1/1 2/2/1 3/3/1
+f 1/1/1 5/5/1 4/4/1
+f 5/5/1 6/6/1 4/4/1
+f 6/6/1 3/3/1 4/4/1
+o far
+g facade_bit
+usemtl facade
+f 7/1/1 8/2/1 9/4/1
+'''
+E3_REMOVED_B, FACADE3 = 9, 12
+
+
+def triple_chain(tmp_path, *, e4=True):
+    """RAW3 root + an E3 fixture that removed faces 9 and 12 + real E5 (`--from-e3`) [+ real E4]: `(root, inputs)`."""
+    from tools.main_infra_e3 import save_survivor_pair
+    from tools.run_checked_e4_floor import main as e4_main
+    from tools.run_checked_e5_floor import main as e5_main
+    from tools.tests.test_main_infra_e5 import FRAME, _common_audit, _source
+    root = tmp_path / 'run'
+    inputs = run_root(root, RAW3)
+    source = _source(inputs)
+    e3_dir = root / 'e3' / '7F'
+    survivors = [f for f in range(13) if f not in (E3_REMOVED_B, FACADE3)]
+    save_survivor_pair(source.in_frame(FRAME), source, survivors, e3_dir)
+    records = [dict(stage='E3', engine='E3', kind='remove', site=0, faces=[E3_REMOVED_B, FACADE3], n_removed=2,
+                    removed=['k1', 'k2'], added=[], n_added=0, n_new_points=0, material=None),
+               {'check': dict(stage='E3', engine='E3', legacy=False, rollback=True, final='PASS',
+                              runs=[{'status': 'PASS', 'failing': 0}])}]
+    log = e3_dir / 'edit-log.jsonl'
+    log.write_text(''.join(json.dumps(row) + '\n' for row in records))
+    audit = dict(_common_audit(inputs, e3_dir), cleanup_mode='e3_remove_only', executed_stages=['E3'],
+                 source_faces_sha256=sha256_file(e3_dir / 'source-faces.json'), edit_log_sha256=sha256_file(log),
+                 checks=[records[-1]['check']])
+    (e3_dir / 'stage-audit.json').write_text(json.dumps(audit))
+    assert e5_main(['--root', str(root)] + COMMON + ['--from-e3']) == 0
+    if e4:
+        assert e4_main(['--root', str(root)] + COMMON + ['--from-e5', '--allow-growth']) == 0
+    return root, inputs
+
+
+def _e5_site_of(e5_dir, e3_dir, baseline_face):
+    """The E5 site (kept) that removed `baseline_face`, through the E3 survivor list."""
+    e3_faces = json.loads((e3_dir / 'source-faces.json').read_text())['source_faces']
+    local = e3_faces.index(baseline_face)
+    rows = [json.loads(l) for l in (e5_dir / 'edit-log.jsonl').read_text().splitlines() if l.strip()]
+    (site,) = [r['site'] for r in rows if 'check' not in r and local in r['faces'] and not r.get('rolled_back')]
+    return site
+
+
+def test_e5_attribution_names_the_site_that_removed_a_face_or_that_was_its_cover(tmp_path):
+    from tools.main_infra_e4_replay import explain_failures
+    root, inputs = triple_chain(tmp_path)
+    e4_dir, e5_dir, e3_dir = root / 'e4' / '7F', root / 'e5' / '7F', root / 'e3' / '7F'
+    receipt = receipt_for(inputs, e4_dir)
+    e5_audit = json.loads((e5_dir / 'stage-audit.json').read_text())
+    assert e5_audit['engine_report']['dropped'] == 4, 'copy A (faces 4-7) went as same-look twins'
+    site_5 = _e5_site_of(e5_dir, e3_dir, 5)
+    failing = [_entry(E3_REMOVED_B, 'covered', 85.0),            # E3 removed it; copy A's sliver 5 was its cover
+               _entry(5, 'removed', 7.0),                         # E5 removed it
+               _entry(FACADE3, 'covered', 61.0)]                  # E3 removed it; nothing of E5 lay on it
+    validation = fake_validation(tmp_path / 'v' / 'validation.json', receipt, failing)
+    got = explain_failures(candidate=e4_dir, validation=validation)
+    assert got['e5_sites'] == [site_5] and got['e4_regions'] == got['regions']
+    rows = got['reasons']['e5_sites'][str(site_5)]
+    assert [(r['face'], r['how']) for r in rows] == [(E3_REMOVED_B, 'e5_removed_its_cover'), (5, 'e5_removed')]
+    assert [u['face'] for u in got['unexplained']] == [FACADE3]
+    assert got['e5_candidate'] == str(e5_dir) and got['e3_candidate'] == str(e3_dir)
+
+
+def test_the_e5_runner_excludes_sites_and_writes_where_it_is_told(tmp_path):
+    from tools.main_infra_physical_validation import load_physical_pair
+    from tools.run_checked_e5_floor import main as e5_main
+    root, inputs = triple_chain(tmp_path, e4=False)
+    e5_dir, e3_dir = root / 'e5' / '7F', root / 'e3' / '7F'
+    site_5 = _e5_site_of(e5_dir, e3_dir, 5)
+    exclude = root / 'e5' / 'exclude.json'
+    exclude.write_text(json.dumps({'e5_sites': [site_5], 'reasons': {}}))
+    out = root / 'e5' / '7F-round2'
+    assert e5_main(['--root', str(root)] + COMMON + ['--from-e3', '--exclude-sites', str(exclude), '--out', str(out)]) == 0
+    audit = json.loads((out / 'stage-audit.json').read_text())
+    assert audit['excluded_sites'] == [site_5] and audit['exclude_sites_sha256'] == sha256_file(exclude)
+    assert audit['engine_report']['excluded_sites'] == [site_5]
+    assert (out / 'exclude-sites.json').exists()
+    survivors = json.loads((out / 'source-faces.json').read_text())['source_faces']
+    e3_faces = json.loads((e3_dir / 'source-faces.json').read_text())['source_faces']
+    assert e3_faces.index(5) in survivors, 'the excluded site kept its face'
+    assert audit['output_triangles'] == json.loads((e5_dir / 'stage-audit.json').read_text())['output_triangles'] + len(
+        [r for r in (json.loads(l) for l in (e5_dir / 'edit-log.jsonl').read_text().splitlines() if l.strip())
+         if 'check' not in r and r['site'] == site_5][0]['faces'])
+    audit['guard'] = {'passed': True}
+    (out / 'stage-audit.json').write_text(json.dumps(audit))
+    _b, after, receipt = load_physical_pair(**dict(inputs, candidate=out))
+    assert receipt['candidate_contract'] == 'e3_then_e5_cull' and after.n_faces == audit['output_triangles']
+
+
+def test_the_e4_runner_can_read_a_named_e5_candidate_and_write_where_it_is_told(tmp_path):
+    from tools.run_checked_e4_floor import main as e4_main
+    root, inputs = triple_chain(tmp_path, e4=False)
+    shutil.copytree(root / 'e5' / '7F', root / 'e5' / '7F-round2')
+    out = root / 'e4' / '7F-round2'
+    assert e4_main(['--root', str(root)] + COMMON + ['--from-e5', '--e5-candidate', str(root / 'e5' / '7F-round2'),
+                    '--out', str(out)]) == 0
+    audit = json.loads((out / 'stage-audit.json').read_text())
+    assert audit['e5_candidate']['candidate'] == str(root / 'e5' / '7F-round2')
+    assert not (root / 'e4' / '7F').exists()
+
+
+def test_the_loop_reruns_e5_without_the_covering_site_and_passes(tmp_path):
+    from tools.run_e4_replay_loop import run_loop
+    root, inputs = triple_chain(tmp_path, e4=False)
+    e5_dir, e3_dir = root / 'e5' / '7F', root / 'e3' / '7F'
+    site_5 = _e5_site_of(e5_dir, e3_dir, 5)
+    validator = _validator_script([[_entry(E3_REMOVED_B, 'covered', 85.0)], []])
+    summary = run_loop(root=root, floor='7F', raw_name='source.obj', rounds=3, allow=(CBR,), allow_growth=True,
+                       run_guard=_fake_guard(root), run_validator=validator, inputs=inputs)
+    assert summary['status'] == 'pass' and summary['rounds_run'] == 2
+    r1, r2 = summary['rounds']
+    assert r1['explained_e5_sites'] == [site_5] and r1['e5_candidate'] == str(e5_dir)
+    assert r2['e5_candidate'] == str(root / 'e5' / '7F-round2') and r2['excluded_sites'] == [site_5]
+    e5_audit2 = json.loads((root / 'e5' / '7F-round2' / 'stage-audit.json').read_text())
+    assert e5_audit2['excluded_sites'] == [site_5] and e5_audit2['cleanup_mode'] == 'e3_then_e5_cull'
+    e4_audit2 = json.loads((root / 'e4' / '7F-round2' / 'stage-audit.json').read_text())
+    assert e4_audit2['e5_candidate']['candidate'] == str(root / 'e5' / '7F-round2')
+    assert summary['excluded_sites'] == [site_5] and summary['final_e5_candidate'] == str(root / 'e5' / '7F-round2')
+
+
 def _entry(face, kind, pixels, covering=(), viewpoint=None):
     return dict(face=face, kind=kind, pixels=pixels, at_least=False, visible_px=pixels,
                 reasons={'covered' if kind == 'covered' else 'deleted': pixels},
@@ -83,8 +245,9 @@ def test_failing_floor_faces_are_mapped_to_the_regions_that_cover_or_replaced_th
                _entry(PANEL[2], 'removed', 7.0)]                                            # a source face of the region
     validation = fake_validation(tmp_path / 'v1' / 'validation.json', receipt, failing)
     got = explain_failures(candidate=e4_dir, validation=validation)
-    assert got['regions'] == [rid] and got['unexplained'] == [] and got['failing'] == 3
-    reasons = got['reasons'][str(rid)]
+    assert got['regions'] == [rid] and got['e4_regions'] == [rid] and got['e5_sites'] == []
+    assert got['unexplained'] == [] and got['failing'] == 3
+    reasons = got['reasons']['e4_regions'][str(rid)]
     assert [(r['face'], r['kind'], r['pixels']) for r in reasons] == [(PANEL[0], 'covered', 85.0), (PANEL[1], 'covered', 27.1),
                                                                         (PANEL[2], 'removed', 7.0)]
     assert {r['how'] for r in reasons} == {'covering_face', 'coplanar_overlap', 'source_face'}

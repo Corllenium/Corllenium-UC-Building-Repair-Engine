@@ -66,23 +66,24 @@ def looks():
     return _looks('glass', 'facade')
 
 
-def run_root(root):
+def run_root(root, raw_text=RAW):
     """A qualified fresh-floor run root in the layout the floor runners read (raw/, reference/, normalized/7F/,
-    independent-validator/{import-audit,preflight}/, candidates/7F/), around RAW. Returns `load_physical_pair`'s
-    inputs for the duplicate-only candidate."""
+    independent-validator/{import-audit,preflight}/, candidates/7F/), around `raw_text` (RAW by default). Returns
+    `load_physical_pair`'s inputs for the duplicate-only candidate."""
     from tools.repair_fresh_main_infra import normalize_reference
     root = Path(root)
     (root / 'raw').mkdir(parents=True)
     raw = root / 'raw' / 'source.obj'
-    raw.write_text(RAW, encoding='utf-8')
+    raw.write_text(raw_text, encoding='utf-8')
     (root / 'raw' / 'source.mtl').write_text('newmtl glass\nKd 1 1 1\nmap_Kd glass.png\nnewmtl facade\nKd 0.5 0.5 0.5\n')
     Image.new('RGB', (2, 2), (20, 80, 30)).save(root / 'raw' / 'glass.png')
-    polygons = {str(i): [[0, 1, 2]] for i, line in enumerate(RAW.splitlines(), 1) if line.startswith('f ')}
+    polygons = {str(i): [[0, 1, 2]] for i, line in enumerate(raw_text.splitlines(), 1) if line.startswith('f ')}
+    n = len(polygons)
     (root / 'reference').mkdir()
     reference = root / 'reference' / '7F.json'
     reference.write_text(json.dumps(dict(schema_version=1, source_sha256=sha256_file(raw), unmatched_polygons=0,
-                                         blender_version='fixture', raw_polygon_count=9, imported_polygon_count=9,
-                                         triangle_count=9, polygons=polygons)))
+                                         blender_version='fixture', raw_polygon_count=n, imported_polygon_count=n,
+                                         triangle_count=n, polygons=polygons)))
     base = root / 'normalized' / '7F'
     normalize_reference(raw, reference, base, FRAME)
     (root / 'independent-validator' / 'import-audit').mkdir(parents=True)

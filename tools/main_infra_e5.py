@@ -23,15 +23,18 @@ KEPT_FACES_LISTED = 1000
 ALLOWED_CHANGES = (CBR,)
 
 
-def run_checked_e5(before, looks, flatness, priority=None, *, report=None, allowed_changes=ALLOWED_CHANGES):
+def run_checked_e5(before, looks, flatness, priority=None, *, report=None, allowed_changes=ALLOWED_CHANGES,
+                   prior_removed=None, exclude_sites=None):
     """`(outcome, survivor indices)` of one checked E5 stage over `before` with the Validator as site judge, judging
     under the owner-approved classes `allowed_changes` (`()` for the strict Validator). `priority(material name) ->
-    int` overrides the default facade-wins rule; `report`, a dict, receives the engine's report (`audit_report` trims
-    it for the stage audit)."""
+    int` overrides the default facade-wins rule; `prior_removed` are the triangles (k, 3, 3) an earlier stage removed
+    (the `covers_prior_removal` rule); `exclude_sites` the E5 site ids not to plan (the replay loop); `report`, a dict,
+    receives the engine's report (`audit_report` trims it for the stage audit)."""
     original = _source_digest(before)
     unit = UnitState(mesh=before, topo=None,
                      looks={i: looks.key_of(name) for i, name in enumerate(before.materials)}, viewpoints=None)
-    engine = E5Coincident(flatness=flatness, priority=priority)
+    engine = E5Coincident(flatness=flatness, priority=priority, prior_removed=prior_removed,
+                          exclude_sites=None if exclude_sites is None else {int(s) for s in exclude_sites})
     judge = SiteJudge(looks, settings=Settings(allowed_changes=frozenset(allowed_changes)))
     context = RepairContext(profile=FixProfile(), decider=None, validator=judge)
     outcome = repair_unit(unit, context, engines=[engine], validate_sites=True)

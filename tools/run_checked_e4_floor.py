@@ -34,10 +34,14 @@ def main(argv=None):
                         help='let a region come back with more triangles than it had faces (E4 grew refusal off): '
                              'coplanar same-material triangle edges are invisible in the textured game render, the '
                              'slit (crack) is the visible defect; recorded in the stage audit')
+    parser.add_argument('--e5-candidate', type=Path, default=None,
+                        help='with --from-e5: the E5 candidate directory to read (default <root>/e5/<floor>; the replay '
+                             'loop names its per-round E5 candidates)')
+    parser.add_argument('--out', type=Path, default=None, help='output directory (default <root>/e4/<floor>)')
     args = parser.parse_args(argv)
     root = args.root.resolve()
     F = args.floor
-    out = root / 'e4' / F
+    out = (root / 'e4' / F) if args.out is None else args.out.resolve()
     if out.exists():
         raise ValueError('Refusing existing attempt output')
     if args.from_e3 and args.from_e5:
@@ -71,7 +75,7 @@ def main(argv=None):
 
     e3_binding, e5_binding = None, None
     if args.from_e5:
-        e5_dir = root / 'e5' / F
+        e5_dir = (root / 'e5' / F) if args.e5_candidate is None else args.e5_candidate.resolve()
         e5_audit = json.loads((e5_dir / 'stage-audit.json').read_text(encoding='utf-8'))
         if e5_audit.get('cleanup_mode') != 'e3_then_e5_cull':
             raise ValueError('--from-e5 needs the checked E3 -> E5 candidate (cleanup_mode e3_then_e5_cull)')

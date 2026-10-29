@@ -67,27 +67,47 @@ def explain_failures(*, candidate, validation, interior=None) -> dict:
     by_new_face = {int(t): k for k, r in enumerate(regions) for t in r['new_triangles']}
     by_source = {int(f): k for k, faces in enumerate(region_sources) for f in faces}
     tri_after = after.positions[after.face_v]
+    tri_before = before.positions[before.face_v]
+    e5 = _e5_chain(candidate, before.n_faces)
     reasons: dict[int, list] = {}
+    e5_reasons: dict[int, list] = {}
     unexplained = []
     for entry in failing:
         f, kind = int(entry['face']), entry.get('kind')
         row = {'face': f, 'kind': kind, 'pixels': entry.get('pixels'), 'viewpoint': entry.get('viewpoint'),
                'reasons': entry.get('reasons')}
+        t = tri_before[f]
+        n = np.cross(t[1] - t[0], t[2] - t[0])
+        length = float(np.linalg.norm(n))
+        n = n / length if length > 0 else None
+        basis = centre = poly_f = None
+        if n is not None:
+            e1, e2 = plane_basis(n)
+            basis = np.stack([e1, e2], axis=1)
+            centre = t.mean(axis=0)
+            poly_f = shapely.Polygon((t - centre) @ basis)
+        # E5 first: a face E5 removed names its site; a face E3 removed names the E5 site(s) whose removed faces lay
+        # on it (they were its cover)
+        e5_hits: dict[int, str] = {}
+        if e5 is not None:
+            if f in e5['site_of']:
+                e5_hits[e5['site_of'][f]] = 'e5_removed'
+            elif f in e5['removed_by_e3'] and n is not None:
+                for site, faces in e5['faces_of'].items():
+                    tris = tri_before[np.asarray(faces, np.int64)]
+                    coplanar = np.abs((tris - centre) @ n).max(axis=1) <= tol
+                    if not coplanar.any():
+                        continue
+                    union = shapely.unary_union([shapely.Polygon((tr - centre) @ basis) for tr in tris[coplanar]])
+                    if shapely.intersection(poly_f, union).area > MIN_OVERLAP:
+                        e5_hits[site] = 'e5_removed_its_cover'
         hits: dict[int, str] = {}
         for c in entry.get('covering_faces') or []:
             if int(c) in by_new_face:
                 hits.setdefault(by_new_face[int(c)], 'covering_face')
         if kind == 'removed' and f in by_source:
             hits.setdefault(by_source[f], 'source_face')
-        t = before.positions[before.face_v[f]]
-        n = np.cross(t[1] - t[0], t[2] - t[0])
-        length = float(np.linalg.norm(n))
-        if length > 0:
-            n = n / length
-            e1, e2 = plane_basis(n)
-            basis = np.stack([e1, e2], axis=1)
-            centre = t.mean(axis=0)
-            poly_f = shapely.Polygon((t - centre) @ basis)
+        if n is not None and not e5_hits:
             for k, r in enumerate(regions):
                 if k in hits:
                     continue
@@ -97,16 +117,56 @@ def explain_failures(*, candidate, validation, interior=None) -> dict:
                 union = shapely.unary_union([shapely.Polygon((tr - centre) @ basis) for tr in new])
                 if shapely.intersection(poly_f, union).area > MIN_OVERLAP:
                     hits[k] = 'coplanar_overlap'
-        if not hits:
+        if not hits and not e5_hits:
             unexplained.append(row)
             continue
         for k, how in hits.items():
             reasons.setdefault(int(regions[k]['region']), []).append({**row, 'how': how, 'site': int(regions[k]['site'])})
-    return dict(schema_version=1, candidate=str(candidate), validation=str(validation),
+        for site, how in e5_hits.items():
+            e5_reasons.setdefault(int(site), []).append({**row, 'how': how, 'e5_faces': e5['faces_of'][site]})
+    return dict(schema_version=2, candidate=str(candidate), validation=str(validation),
                 validation_sha256=sha256_file(validation), region_map_sha256=sha256_file(candidate / 'region-map.json'),
-                depth_tolerance_in=tol, failing=len(failing), regions=sorted(reasons),
-                reasons={str(r): rows for r, rows in sorted(reasons.items())}, unexplained=unexplained,
+                depth_tolerance_in=tol, failing=len(failing),
+                e4_regions=sorted(reasons), regions=sorted(reasons), e5_sites=sorted(e5_reasons),
+                reasons={'e4_regions': {str(r): rows for r, rows in sorted(reasons.items())},
+                         'e5_sites': {str(s): rows for s, rows in sorted(e5_reasons.items())}},
+                unexplained=unexplained,
+                e5_candidate=None if e5 is None else e5['e5_candidate'],
+                e3_candidate=None if e5 is None else e5['e3_candidate'],
                 interior=_interior(interior))
+
+
+def _e5_chain(candidate: Path, n_baseline: int):
+    """The E5 stage the E4 audit chains through, in BASELINE face ids: `site_of` (baseline face -> the kept E5 site that
+    removed it), `faces_of` (site -> its removed baseline faces), `removed_by_e3`, the two candidate dirs. None when
+    the audit names no E5 candidate."""
+    audit = json.loads((candidate / 'stage-audit.json').read_text(encoding='utf-8'))
+    binding = audit.get('e5_candidate')
+    if not isinstance(binding, dict) or not binding.get('candidate'):
+        return None
+    e5_dir = Path(binding['candidate'])
+    e5_audit = json.loads((e5_dir / 'stage-audit.json').read_text(encoding='utf-8'))
+    e3_binding = e5_audit.get('e3_candidate') or audit.get('e3_candidate')
+    if isinstance(e3_binding, dict) and e3_binding.get('candidate'):
+        e3_dir = Path(e3_binding['candidate'])
+        e3_faces = [int(f) for f in json.loads((e3_dir / 'source-faces.json').read_text(encoding='utf-8'))['source_faces']]
+    else:
+        e3_dir, e3_faces = None, list(range(n_baseline))
+    site_of: dict[int, int] = {}
+    faces_of: dict[int, list] = {}
+    for line in (e5_dir / 'edit-log.jsonl').read_text(encoding='utf-8').splitlines():
+        if not line.strip():
+            continue
+        row = json.loads(line)
+        if 'check' in row or row.get('rolled_back', False) or row.get('engine') != 'E5':
+            continue
+        site = int(row['site'])
+        for local in row['faces']:
+            base = int(e3_faces[int(local)])
+            site_of[base] = site
+            faces_of.setdefault(site, []).append(base)
+    return dict(site_of=site_of, faces_of=faces_of, removed_by_e3=set(range(n_baseline)) - set(e3_faces),
+                e5_candidate=str(e5_dir), e3_candidate=None if e3_dir is None else str(e3_dir))
 
 
 def build_parser():

@@ -251,6 +251,40 @@ def test_interior_twins_are_one_site_even_when_their_vertices_are_not_shared():
     assert len(edits) == 1 and sorted(edits[0].faces) == [12, 13, 14, 15]
 
 
+def test_a_seam_that_was_the_only_cover_of_a_prior_removed_face_is_kept_covers_prior_removal():
+    # real 7F replay round 1: faces E3 removed stayed covered by a coincident pair, E5 dropped that pair as an interior
+    # seam, and from some directions nothing covered them any more. The prior stage's removed triangles come in as
+    # `prior_removed` (their corners, in the engine frame) and the only-coverage rule extends to them.
+    before = _partition_with_inward_twin()
+    prior = before.positions[before.face_v[[12, 13]]]                 # removed faces lying exactly on the partition
+    edits, engine = _plan(before, E5Coincident(flatness={}, seam_view=_unseen, prior_removed=prior))
+    assert edits == []
+    assert engine.report["kept"]["covers_prior_removal"] == 4, "both seams and their partners stay"
+    # two faces examined (12, then 13 after the first refusal); each refusal takes its seam partner along unexamined
+    assert engine.report["prior_removed"] == {"triangles": 2, "faces_checked": 2, "faces_refused": 4}
+    rows = [r for r in engine.report["kept_faces"] if r["kept"] == "covers_prior_removal"]
+    assert {r["face"] for r in rows} == {12, 13, 14, 15} and all(r["prior_cover"] < 0.98 for r in rows)
+
+
+def test_a_prior_removed_face_off_the_plane_does_not_hold_the_seam():
+    before = _partition_with_inward_twin()
+    prior = before.positions[before.face_v[[12]]] + np.array([0.0, 0.0, 100.0])   # lifted off the partition's plane
+    edits, engine = _plan(before, E5Coincident(flatness={}, seam_view=_unseen, prior_removed=prior))
+    assert len(edits) == 1 and sorted(edits[0].faces) == [12, 13, 14, 15]
+    assert engine.report["kept"]["covers_prior_removal"] == 0
+    assert engine.report["prior_removed"] == {"triangles": 1, "faces_checked": 4, "faces_refused": 0}
+
+
+def test_a_prior_removed_face_still_covered_by_the_kept_twin_lets_the_drop_through():
+    # the small same-look copy goes; a removed face under it is still covered by the big face that stays
+    before = plate(_quad(0, 0, 40, 20), _quad(10, 5, 20, 15))
+    prior = before.positions[before.face_v[[2]]]
+    edits, engine = _plan(before, E5Coincident(flatness={}, prior_removed=prior))
+    assert _dropped(edits) == [2, 3]
+    assert engine.report["prior_removed"] == {"triangles": 1, "faces_checked": 2, "faces_refused": 0}
+    assert engine.report["kept"]["covers_prior_removal"] == 0
+
+
 def test_a_seam_some_viewpoint_sees_is_not_planned_and_is_counted():
     # the census says both fronts are hidden, but the Validator's own viewpoints see a point of one face (7F chain
     # run #2: 18,191 `deleted` samples on seams the census called hidden): the seam stays, both faces kept

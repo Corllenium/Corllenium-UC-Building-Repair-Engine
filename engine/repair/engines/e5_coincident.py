@@ -103,7 +103,7 @@ DEFAULT_WIN_PATTERNS = ("UC_PAL_05", "UC_PAL_12", "UC_PAL_00", "quartz_block_top
 DEFAULT_LOSER_PATTERNS = ("concrete_white", "concrete_gray")
 RULES = ("same_look", "priority", "larger_area", "backface_twin", "interior_twins")
 KEPT_REASONS = ("uncovered", "no_winner", "both_exposed", "no_backface_winner", "anchored", "only_coverage",
-                "no_overlap", "seam_seen", "seam_unverified")
+                "no_overlap", "seam_seen", "seam_unverified", "covers_prior_removal")
 #: How many kept opposite pairs `report["kept_pairs"]` lists (all are counted in `kept_pairs_total`).
 KEPT_PAIRS_LISTED = 500
 
@@ -165,6 +165,14 @@ class E5Coincident:
     #: (None: the site judge's `lattice_seen` at `DENSE_POINTS_PER_FACE` points plus `probe_seen`, from
     #: `ctx.validator`; with neither, no seam is planned: `seam_unverified`).
     seam_view: Callable[[Any, np.ndarray], Any] | None = None
+    #: The triangles (k, 3, 3 corners, engine frame) an EARLIER stage of the chain removed (E3's, read from the
+    #: baseline through the E3 candidate's `source-faces.json`): a face is dropped only while every such triangle on
+    #: its plane that overlaps its footprint stays covered 98 % by faces kept after the drop (`covers_prior_removal`
+    #: otherwise). Real 7F replay round 1: E3-removed faces had stayed covered by a coincident pair, E5 dropped the pair
+    #: as an interior seam, and nothing covered them any more.
+    prior_removed: Any = None
+    #: Site ids (this engine's numbering on this input) NOT to plan: the replay loop's E5 exclusions.
+    exclude_sites: set | None = None
     report: dict | None = field(default=None, repr=False)
 
     def _seam_view(self, ctx: RepairContext):
@@ -404,6 +412,67 @@ class E5Coincident:
             interior = {f for pair in interior_pairs for f in pair}
         seconds["seam_view"] = time.perf_counter() - t0
 
+        # ---- the only-coverage rule extended to the prior stage's removals: a drop may not uncover a triangle an
+        # earlier stage removed on the same plane (its cover was this pair); a refused seam face takes its partners
+        t0 = time.perf_counter()
+        prior_report = {"triangles": 0, "faces_checked": 0, "faces_refused": 0}
+        if self.prior_removed is not None and dropped:
+            P = np.asarray(self.prior_removed, float).reshape(-1, 3, 3)
+            prior_report["triangles"] = int(len(P))
+            checked: set[int] = set()
+            if len(P):
+                p_lo, p_hi = P.min(axis=1), P.max(axis=1)
+                f_lo, f_hi = tri.min(axis=1), tri.max(axis=1)
+                while True:
+                    refused = None
+                    for f in sorted(dropped):
+                        checked.add(f)
+                        n_f, c = normal[f], tri[f].mean(axis=0)
+                        coplanar = np.abs((P - c) @ n_f).max(axis=1) <= depth_tol
+                        near_f = (p_hi >= f_lo[f] - depth_tol).all(axis=1) & (p_lo <= f_hi[f] + depth_tol).all(axis=1)
+                        idx = np.flatnonzero(coplanar & near_f)
+                        if not len(idx):
+                            continue
+                        e1, e2 = plane_basis(n_f)
+                        basis = np.stack([e1, e2], axis=1)
+                        poly_f = shapely.Polygon((tri[f] - c) @ basis)
+                        on_plane = np.flatnonzero((np.abs((tri - c) @ n_f).max(axis=1) <= depth_tol) & ok)
+                        on_plane = [int(g) for g in on_plane.tolist() if int(g) not in dropped]
+                        worst = None
+                        for k in idx.tolist():
+                            poly_p = shapely.Polygon((P[k] - c) @ basis)
+                            if poly_p.area <= 0 or shapely.intersection(poly_p, poly_f).area <= 1e-6:
+                                continue
+                            near = [g for g in on_plane if (f_hi[g] >= p_lo[k] - depth_tol).all()
+                                    and (f_lo[g] <= p_hi[k] + depth_tol).all()]
+                            cover = self._coverage(poly_p, [shapely.Polygon((tri[g] - c) @ basis) for g in near])
+                            if cover < self.cover_fraction:
+                                worst = cover if worst is None else min(worst, cover)
+                        if worst is not None:
+                            refused = (f, worst)
+                            break
+                    if refused is None:
+                        break
+                    f, cover = refused
+                    group = {f}
+                    changed = True
+                    while changed:                            # never one face of a seam alone
+                        changed = False
+                        for a, b in interior_pairs:
+                            if (a in group) != (b in group):
+                                group |= {a, b}
+                                changed = True
+                    for h in sorted(group):
+                        if h in dropped:
+                            row = dropped.pop(h)
+                            kept_counts["covers_prior_removal"] += 1
+                            prior_report["faces_refused"] += 1
+                            kept_rows.append({**row, "kept": "covers_prior_removal", "prior_cover": round(cover, 6)})
+                    interior_pairs = [(a, b) for a, b in interior_pairs if a not in group and b not in group]
+                    interior = {x for pair in interior_pairs for x in pair}
+            prior_report["faces_checked"] = len(checked)
+        seconds["prior_removed"] = time.perf_counter() - t0
+
         candidates = np.array(sorted(dropped), np.int64)
         centroid = tri.mean(axis=1)
         comps = _components(faces, candidates)
@@ -438,8 +507,16 @@ class E5Coincident:
                             f"pairs at depth tolerance {depth_tol:.4f} in"),
                     evidence=evidence))
 
+        # ---- the replay loop's exclusions: sites NOT to plan (numbering kept, so the ids stay stable between runs)
+        excluded_sites = sorted(int(s) for s in (self.exclude_sites or ()))
+        excluded_faces: list[int] = []
+        if excluded_sites:
+            taken = set(excluded_sites)
+            excluded_faces = sorted(f for e in edits if e.site in taken for f in e.faces)
+            edits = [e for e in edits if e.site not in taken]
         self.report = {
             "pairs": pair_counts, "depth_tol": float(depth_tol), "facing_dot": float(self.facing_dot),
+            "prior_removed": prior_report, "excluded_sites": excluded_sites, "excluded_faces": excluded_faces,
             "cover_fraction": float(self.cover_fraction), "cull_opposite_backfaces": bool(self.cull_opposite_backfaces),
             "exposure_n_dirs": int(profile.n_dirs) if front is not None else None,
             "flat_materials": sorted(int(m) for m in flat),
