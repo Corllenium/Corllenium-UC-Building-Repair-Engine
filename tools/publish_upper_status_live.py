@@ -68,12 +68,38 @@ def salvage_live(raw: bytes) -> dict:
     return salvaged
 
 
+CODEX_PROGRESS = Path(__file__).resolve().parents[4] / 'data' / 'main-infra-fresh' / 'current.json'
+
+
+def codex_document():
+    """Codex's own progress document (ENG/data/main-infra-fresh/current.json), validated, or None.
+
+    Carried verbatim under `freshMainInfra` when it is newer than the live copy (2026-10-29: the live file held a
+    23 Oct snapshot after the truncated-upload salvage while Codex's file was from 28 Oct). Nothing in it is edited.
+    """
+    try:
+        return load_progress(CODEX_PROGRESS)
+    except Exception:
+        return None
+
+
+def _newer(candidate, current):
+    try:
+        return candidate['updated_at'] > current['updated_at']
+    except (KeyError, TypeError):
+        return True
+
+
 def publish_once(progress, key, known_hosts):
     doc = load_progress(progress)
     live = salvage_live(urllib.request.urlopen(LIVE, timeout=30).read())
     current = live.get('freshMainInfraUpper')
-    if current == doc and '_salvaged_from_truncated_upload_utc' not in live:
+    codex = codex_document()
+    codex_stale = codex is not None and _newer(codex, live.get('freshMainInfra')) and live.get('freshMainInfra') != codex
+    if current == doc and '_salvaged_from_truncated_upload_utc' not in live and not codex_stale:
         return 'unchanged', doc
+    if codex_stale:
+        live['freshMainInfra'] = codex
     live['freshMainInfraUpper'] = doc
     payload = json.dumps(live, indent=2, ensure_ascii=False).encode('utf-8')
     json.loads(payload)
