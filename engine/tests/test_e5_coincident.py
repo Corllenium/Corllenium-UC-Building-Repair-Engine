@@ -49,7 +49,9 @@ def _ctx(mesh, judge=None):
     looks = _looks(*mesh.materials)
     unit = UnitState(mesh=mesh, topo=None, looks={i: looks.key_of(m) for i, m in enumerate(mesh.materials)},
                      viewpoints=None)
-    return unit, RepairContext(profile=FixProfile(), decider=None, validator=judge), looks
+    # a 90 x 60 guard grid: the fixtures are a few faces; the guard-direction pixel test at 900 x 600 (and 2x) costs
+    # seconds per plan and proves nothing more on them
+    return unit, RepairContext(profile=FixProfile(guard_size=(90, 60)), decider=None, validator=judge), looks
 
 
 def _plan(mesh, engine=None):
@@ -403,3 +405,98 @@ def test_the_judge_keeps_the_identical_twin_drop_and_rolls_back_the_different_lo
     np.testing.assert_array_equal(got.mesh.face_v, before.face_v[[0, 1, 4, 5, 6, 7]])
     lines = [r for r in got.records if "check" not in r]
     assert [(line["kind"], line.get("rolled_back", False)) for line in lines] == [("remove", False), ("remove", True)]
+
+
+# ------------------------------------------------------------- the strict guard's own directions (2026-10-29)
+
+def below_oblique_sliver(side=4.0, hole=0.3, depth=30.0, lid=0.5, ext=100.0, view=(-0.987, -0.993, 1.011)):
+    """A back-to-back white pair (faces 0, 1: one triangle each, A facing -z, B facing +z) under a lid at `z = lid`
+    and over a plate at `z = -depth` with one `2 * hole` square hole placed on A's centroid ray toward the camera of
+    ONE below-oblique strict-guard view (`view`, rays travelling along it: the camera is below, looking up). Side
+    walls join the lid and the plate. No 128-direction Fibonacci ray escapes either front (the hole subtends about
+    1 degree at the pair, narrower than the lattice spacing), so the 2026-10-23 census calls both faces hidden
+    (`interior_twins`); the guard's own ray through the hole sees A's front: the real 4F failure (20 sites, 328 px
+    from the eight below-oblique views, diagnosis-below-oblique.json 2026-10-29)."""
+    d = np.asarray(view, float)
+    d = d / np.linalg.norm(d)
+    w = -d                                                   # the escape direction, toward the camera
+    centroid = np.array([side / 3, side / 3, 0.0])
+    cross = centroid + w * (depth / -w[2])                   # where A's centroid ray crosses the plate
+    hx, hy = float(cross[0]), float(cross[1])
+
+    def rect(x0, y0, x1, y1, z, flip=False):
+        c = [[x0, y0, z], [x1, y0, z], [x1, y1, z], [x0, y1, z]]
+        return c[::-1] if flip else c
+    tri_a = [[0, 0, 0.0], [0, side, 0.0], [side, 0, 0.0]]
+    tri_b = [[0, 0, 0.0], [side, 0, 0.0], [0, side, 0.0]]
+    r = hole
+    quads = [rect(-ext, -ext, ext, ext, lid),
+             rect(-ext, -ext, hx - r, ext, -depth, flip=True), rect(hx + r, -ext, ext, ext, -depth, flip=True),
+             rect(hx - r, -ext, hx + r, hy - r, -depth, flip=True), rect(hx - r, hy + r, hx + r, ext, -depth, flip=True),
+             [[-ext, -ext, -depth], [ext, -ext, -depth], [ext, -ext, lid], [-ext, -ext, lid]],
+             [[ext, ext, -depth], [-ext, ext, -depth], [-ext, ext, lid], [ext, ext, lid]],
+             [[-ext, ext, -depth], [-ext, -ext, -depth], [-ext, -ext, lid], [-ext, ext, lid]],
+             [[ext, -ext, -depth], [ext, ext, -depth], [ext, ext, lid], [ext, -ext, lid]]]
+    P, uvs, fv, fvt, fm = [], [], [], [], []
+    for corners, mat in [(tri_a, 1), (tri_b, 1)] + [(q, 0) for q in quads]:
+        b = len(P)
+        P.extend(corners)
+        for f in ([0, 1, 2], [0, 2, 3])[:1 if len(corners) == 3 else 2]:
+            t0 = len(uvs)
+            fv.append([b + i for i in f])
+            fvt.append([t0, t0 + 1, t0 + 2])
+            uvs.extend([[P[b + i][0] * UV_PER_IN, P[b + i][1] * UV_PER_IN] for i in f])
+            fm.append(mat)
+    return _mesh("below_oblique_sliver", P, uvs, fv, fvt, materials=("m0", "minecraft_concrete_white_-1"),
+                 face_material=fm, coord_decimals=6)
+
+
+def test_the_sliver_fixture_is_hidden_from_the_census_and_seen_by_one_guard_view():
+    from engine.vis.exposure import compute_side_exposure
+    from engine.vis.guard_exposure import guard_escape_directions, guard_front_escapes
+    before = below_oblique_sliver()
+    pos = before.positions
+    centre = (pos.min(axis=0) + pos.max(axis=0)) / 2
+    ok = np.ones(before.n_faces, bool)
+    front, _back = compute_side_exposure(pos - centre, before.face_v, ok)
+    assert front[0] == 0.0 and front[1] == 0.0, "the 128-direction census calls both fronts hidden"
+    dirs = guard_escape_directions()
+    assert dirs.shape == (52, 3), "the 26 guard views, both signs"
+    escapes = guard_front_escapes(pos - centre, before.face_v, ok, dirs, faces=np.array([0, 1]))
+    assert escapes[0] > 0 and escapes[1] == 0, "the guard's ray through the hole sees A's front, not B's"
+
+
+def test_a_seam_the_strict_guard_can_see_from_a_below_oblique_view_is_kept():
+    # the real 4F failure: both fronts hidden from the 128 Fibonacci directions, the Validator's seam view sees
+    # nothing, and the strict guard's own below-oblique ray sees A's front through the hole. E5 must keep the pair.
+    before = below_oblique_sliver()
+    edits, engine = _plan(before, E5Coincident(flatness={}, seam_view=_unseen))
+    # A (face 0) is guard-seen and stays; B's front is under the lid, so rule (c) may still drop B alone as the
+    # solid-facing twin (the owner's allowed class: the guard's pixel then hits A at the same depth) -- never as an
+    # interior seam, and never A
+    assert 0 not in _dropped(edits), "a face the guard can see is never removed"
+    assert all(row["rule"] == "backface_twin" for e in edits for row in e.evidence["pairs"])
+    report = engine.report
+    assert report["exposure_n_dirs"] == 128 and report["exposure_directions_total"] == 128 + 52
+    guard = report["guard_exposure"]
+    assert guard["views"] == 26 and guard["directions"] == 52 and guard["samples_per_face"] >= 7
+    assert guard["faces_tested"] >= 2 and guard["seen_front"] >= 1
+    assert guard["census_hidden_guard_seen"] >= 1, "A: census front 0, guard-seen"
+    assert report["by_rule"]["interior_twins"] == 0 and report["interior_filtered"]["planned"] == 0
+    rows = [row for e in edits for row in e.evidence["pairs"]]
+    assert all(row["face"] == 1 and row["guard_front"] == 0 and row["front"] == 0.0 for row in rows), "only B, hidden in both tests"
+    assert all(row["winners"] == [0] for row in rows), "A, which the guard sees, is the winner"
+
+
+def test_the_guard_pixel_grid_sees_the_outer_faces_of_a_box_and_not_its_partition():
+    from engine.tests.fixtures.build import box_with_partition
+    from engine.vis.guard_exposure import guard_pixel_hits
+    mesh = box_with_partition()
+    pos = mesh.positions
+    centre = (pos.min(axis=0) + pos.max(axis=0)) / 2
+    ok = np.ones(mesh.n_faces, bool)
+    front_px, back_px = guard_pixel_hits(pos - centre, mesh.face_v, ok, size=(90, 60), scales=(1, 2))
+    assert front_px.shape == (14,) and back_px.shape == (14,)
+    assert (front_px[:12] > 0).all(), "every outward cube face owns a pixel from its front in some view"
+    assert front_px[12] == 0 and front_px[13] == 0 and back_px[12] == 0 and back_px[13] == 0, "the sealed partition owns none"
+    assert (back_px[:12] == 0).all(), "a closed box's faces are never hit from the back"
