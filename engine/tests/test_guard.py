@@ -130,7 +130,10 @@ def test_identity_all_counts_zero_and_passed():
                               "edge_flicker_moved": 0, "edge_flicker_material": 0,
                               "border_shift": 0, "grown": 0, "edge_flicker_grown": 0,
                               "grown_base": 0, "border_shift_grown": 0, "crack_closed_grown": 0,
-                              "zfight_tie_grown": 0}
+                              "zfight_tie_grown": 0, "allowed_backface_twin": 0,
+                              "allowed_backface_twin_material": 0, "allowed_backface_twin_moved_other": 0,
+                              "allowed_backface_twin_moved_same_flat": 0}
+    assert report.raw_totals == report.totals and report.failed_by == {}
     assert report.totals["model_px"] > 0
     assert len(report.views) == 26
 

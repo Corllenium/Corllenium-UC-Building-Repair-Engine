@@ -8,7 +8,7 @@ surface is tracked separately from a real hole or a material swap.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Iterable, Sequence
 
 import numpy as np
@@ -28,6 +28,13 @@ PX_CRACK_CLOSED = 7
 PX_FRAGMENT_REMOVED = 8
 PX_BORDER_SHIFT = 9
 PX_GROWN = 10
+#: OPT-IN (`compare_views(allowed_pairs=...)`, owner decision 2026-10-24 / 2026-10-29): a would-be `material_changed`,
+#: `moved_other` or `moved_same_flat` pixel whose BEFORE first hit is a removed back-face and whose AFTER first hit is
+#: that face's kept coincident twin, at the same depth within `depth_tol`. Never a failure. The pairs are computed
+#: OUTSIDE the guard (`tools/strict_guard_allowed.py`); the guard only checks them pixel by pixel.
+PX_ALLOWED_BACKFACE_TWIN = 11
+#: Pair keys pack `(BEFORE face, AFTER face)` as `before * _PAIR_STRIDE + after`; face counts never reach 2**32.
+_PAIR_STRIDE = 1 << 32
 
 #: `(view, HitBuffers)` for one `ortho_first_hit` render.
 RenderedView = tuple[Sequence[float], HitBuffers]
@@ -821,6 +828,13 @@ class ViewVerdict:
     border_shift_grown: int = 0
     crack_closed_grown: int = 0
     zfight_tie_grown: int = 0
+    #: `PX_ALLOWED_BACKFACE_TWIN` pixels: excused under `compare_views`' opt-in `allowed_pairs`. Never a failure;
+    #: always 0 without the class. Split by the class each pixel was excused FROM (the three always sum to it), so
+    #: the raw count of that class is `<class> + allowed_backface_twin_<class>`.
+    allowed_backface_twin: int = 0
+    allowed_backface_twin_material: int = 0
+    allowed_backface_twin_moved_other: int = 0
+    allowed_backface_twin_moved_same_flat: int = 0
 
 
 @dataclass
@@ -828,6 +842,12 @@ class GuardReport:
     views: list[ViewVerdict]
     passed: bool
     totals: dict
+    #: `totals` BEFORE the `allowed_pairs` exclusion: every excused pixel put back in the class it came from,
+    #: `allowed_backface_twin` 0. Equal to `totals` without the class.
+    raw_totals: dict = field(default_factory=dict)
+    #: The failing classes and their pixel counts AFTER the exclusion (`holes`, `material_changed`, `moved_other`,
+    #: `grown`, `moved_same_flat` when strict, `edge_flicker` of the views over the cap); empty iff `passed`.
+    failed_by: dict = field(default_factory=dict)
 
 
 def _zero_totals() -> dict:
@@ -837,7 +857,24 @@ def _zero_totals() -> dict:
             "edge_flicker_material": 0, "border_shift": 0,
             "grown": 0, "edge_flicker_grown": 0,
             "grown_base": 0, "border_shift_grown": 0, "crack_closed_grown": 0,
-            "zfight_tie_grown": 0}
+            "zfight_tie_grown": 0, "allowed_backface_twin": 0, "allowed_backface_twin_material": 0,
+            "allowed_backface_twin_moved_other": 0, "allowed_backface_twin_moved_same_flat": 0}
+
+
+def _excuse_backface_twins(codes: np.ndarray, b: HitBuffers, a: HitBuffers, pair_keys: np.ndarray,
+                           depth_tol: float) -> np.ndarray:
+    """The `allowed_backface_twin` reclassification (see `PX_ALLOWED_BACKFACE_TWIN`): only a `material_changed`,
+    `moved_other` or `moved_same_flat` pixel, only where `(b.tri, a.tri)` is a listed pair, only at the same depth
+    within `depth_tol`. Every other class, holes and growth included, is left exactly as classified."""
+    eligible = (codes == PX_MATERIAL_CHANGED) | (codes == PX_MOVED_OTHER) | (codes == PX_MOVED_SAME_FLAT)
+    eligible &= (b.tri >= 0) & (a.tri >= 0)
+    if not eligible.any():
+        return codes
+    with np.errstate(invalid="ignore"):
+        eligible &= np.abs(b.depth - a.depth) <= depth_tol
+    keys = b.tri.astype(np.int64) * _PAIR_STRIDE + a.tri.astype(np.int64)
+    hit = eligible & np.isin(keys, pair_keys)
+    return np.where(hit, PX_ALLOWED_BACKFACE_TWIN, codes)
 
 
 def _fail_mask(codes: np.ndarray, strict: bool, flicker_fails: bool = True) -> np.ndarray:
@@ -865,7 +902,8 @@ def compare_views(before: Sequence[RenderedView], after: Sequence[RenderedView],
                    removed_before: np.ndarray | None = None,
                    border_shift_tol: float = 0.0,
                    exposed_after: np.ndarray | None = None,
-                   fragment_removed_cap: float = float("inf")) -> GuardReport:
+                   fragment_removed_cap: float = float("inf"),
+                   allowed_pairs: np.ndarray | None = None) -> GuardReport:
     """Compare a BEFORE/AFTER pair of `ortho_first_hit` renders, one `(view, HitBuffers)` pair per
     view, paired by position (`before[i]` and `after[i]` must be the same view, and both sequences
     the same length). Each pair must share the whole CAMERA FRAME -- direction, image size and the
@@ -944,6 +982,17 @@ def compare_views(before: Sequence[RenderedView], after: Sequence[RenderedView],
     re-classes needs both meshes for its ring, so without them a tolerance would excuse nothing
     while looking as though it excused something.
 
+    `allowed_pairs` is the OPT-IN allowed-change class `allowed_backface_twin` (the strict guard's
+    counterpart of the Validator's `coincident_backface_removed`; owner decision 2026-10-24,
+    extended to this guard 2026-10-29): an `(K, 2)` int array of `(BEFORE face id, AFTER face id)`
+    pairs, each a removed back-face and its kept coincident twin, COMPUTED OUTSIDE this module
+    (`tools/strict_guard_allowed.py`: twin within the depth tolerance, normals opposite, the twin
+    front-exposed in BEFORE, the removed face's front exposure 0). A `material_changed`,
+    `moved_other` or `moved_same_flat` pixel is reclassified `PX_ALLOWED_BACKFACE_TWIN` iff
+    `(b.tri, a.tri)` is a listed pair and the two depths agree within `depth_tol`; holes, growth,
+    flicker and every other class are untouched. Counted as `allowed_backface_twin`, never a
+    failure. The default `None` (or an empty array) changes nothing.
+
     `passed` is `holes + material_changed + moved_other == 0`, plus `moved_same_flat` when
     `strict`, plus the flicker pixels of any view over the cap; `border_shift` never counts.
     Every count -- `moved_same_flat`, `edge_flicker` and its `edge_flicker_hole` / `_moved` /
@@ -984,10 +1033,18 @@ def compare_views(before: Sequence[RenderedView], after: Sequence[RenderedView],
     border = (_border_probe(geometry_before, geometry_after, border_shift_tol,
                             face_material_before, face_material_after, depth_tol)
               if border_shift_tol > 0.0 else None)
+    pair_keys = None
+    if allowed_pairs is not None:
+        allowed_pairs = np.asarray(allowed_pairs, dtype=np.int64).reshape(-1, 2)
+        if len(allowed_pairs):
+            if (allowed_pairs < 0).any():
+                raise ValueError("allowed_pairs must hold non-negative (BEFORE face, AFTER face) ids")
+            pair_keys = np.unique(allowed_pairs[:, 0] * _PAIR_STRIDE + allowed_pairs[:, 1])
 
     view_verdicts = []
     totals = _zero_totals()
     fail_total = 0
+    failed_by: dict = {}
     for (view, b), (_, a) in zip(before, after):
         mismatch = _frame_mismatch(b, a)
         if mismatch is not None:
@@ -1015,6 +1072,10 @@ def compare_views(before: Sequence[RenderedView], after: Sequence[RenderedView],
         fragment = codes == PX_FRAGMENT_REMOVED
         if fragment.any() and int(fragment.sum()) > fragment_removed_cap * int((b.tri >= 0).sum()):
             codes = np.where(fragment, base, codes)
+        pre = codes
+        if pair_keys is not None:
+            codes = _excuse_backface_twins(codes, b, a, pair_keys, depth_tol)
+        excused = codes == PX_ALLOWED_BACKFACE_TWIN
         flicker = codes == PX_EDGE_FLICKER
         grown_base = base == PX_GROWN
         counts = {
@@ -1038,17 +1099,30 @@ def compare_views(before: Sequence[RenderedView], after: Sequence[RenderedView],
             "border_shift_grown": int(((codes == PX_BORDER_SHIFT) & grown_base).sum()),
             "crack_closed_grown": int(((codes == PX_CRACK_CLOSED) & grown_base).sum()),
             "zfight_tie_grown": int(((codes == PX_ZFIGHT_TIE) & grown_base).sum()),
+            "allowed_backface_twin": int(excused.sum()),
+            "allowed_backface_twin_material": int((excused & (pre == PX_MATERIAL_CHANGED)).sum()),
+            "allowed_backface_twin_moved_other": int((excused & (pre == PX_MOVED_OTHER)).sum()),
+            "allowed_backface_twin_moved_same_flat": int((excused & (pre == PX_MOVED_SAME_FLAT)).sum()),
         }
         view_verdicts.append(ViewVerdict(view=tuple(view), **counts))
         for k, v in counts.items():
             totals[k] += v
-        fail_total += counts["holes"] + counts["material_changed"] + counts["moved_other"] + counts["grown"]
-        if strict:
-            fail_total += counts["moved_same_flat"]
+        failing = ["holes", "material_changed", "moved_other", "grown"] + (["moved_same_flat"] if strict else [])
         if counts["edge_flicker"] > edge_flicker_cap * counts["model_px"]:
-            fail_total += counts["edge_flicker"]
+            failing.append("edge_flicker")
+        for k in failing:
+            fail_total += counts[k]
+            failed_by[k] = failed_by.get(k, 0) + counts[k]
 
-    return GuardReport(views=view_verdicts, passed=fail_total == 0, totals=totals)
+    raw_totals = dict(totals)
+    for k, excused_from in (("material_changed", "allowed_backface_twin_material"),
+                            ("moved_other", "allowed_backface_twin_moved_other"),
+                            ("moved_same_flat", "allowed_backface_twin_moved_same_flat")):
+        raw_totals[k] += totals[excused_from]
+        raw_totals[excused_from] = 0
+    raw_totals["allowed_backface_twin"] = 0
+    return GuardReport(views=view_verdicts, passed=fail_total == 0, totals=totals, raw_totals=raw_totals,
+                       failed_by={k: v for k, v in failed_by.items() if v})
 
 
 def guard_feedback(candidates: np.ndarray, positions_c: np.ndarray, faces: np.ndarray,

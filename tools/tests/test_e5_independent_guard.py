@@ -118,3 +118,76 @@ def test_an_e5_only_candidate_without_the_e3_chain_is_also_accepted(tmp_path):
     assert readback['contract']['candidate_contract'] == 'e5_cull_only' and readback['removed_triangles'] == 4
     assert readback['input_triangles'] == 9 and readback['output_triangles'] == 5
     assert 'e3_candidate' not in readback['paths']
+
+
+def _fake_allowance(monkeypatch, excused=7):
+    """Fake `backface_twin_pairs` and `strict_guard_allowed` (no real render) in `tools.strict_guard_allowed`,
+    which `run_strict_guard` looks up at call time. Returns the calls seen."""
+    from dataclasses import dataclass
+    import numpy as np
+    from tools import strict_guard_allowed as sga
+    seen = {}
+
+    @dataclass
+    class Report:
+        passed: bool
+        totals: dict
+        raw_totals: dict
+        failed_by: dict
+
+    def fake_pairs(positions, face_v, kept_faces, after_face_v, depth_tol, *, caster_factory, n_dirs):
+        seen.update(before_faces=len(face_v), after_faces=len(after_face_v), kept=len(kept_faces), n_dirs=n_dirs,
+                    depth_tol=depth_tol)
+        return np.array([[8, 0], [8, 1]]), {'pairs': 2, 'excused_faces': 1, 'rule': 'coincident_backface_removed'}
+
+    def fake_allowed(before, after, source, provenance, *, allowed_pairs, caster_factory=None, on_view=None):
+        seen.update(pairs=allowed_pairs.tolist(), caster=getattr(caster_factory, '__name__', 'default'))
+        for label in ('Before', 'After'):
+            for index in (1, 26):
+                if on_view:
+                    on_view(label, index)
+        return Report(True, {'allowed_backface_twin': excused, 'material_changed': 0},
+                      {'allowed_backface_twin': 0, 'material_changed': excused}, {}), 0.15
+
+    monkeypatch.setattr(sga, 'backface_twin_pairs', fake_pairs)
+    monkeypatch.setattr(sga, 'strict_guard_allowed', fake_allowed)
+    return seen
+
+
+def test_without_allow_the_receipt_says_the_unchanged_helper_judged_and_excused_nothing(tmp_path):
+    from tools.e5_independent_guard import main
+    root, candidate, helper = layout(tmp_path)
+    out = tmp_path / 'guard'
+    assert main(_args(root, candidate, helper, out)) == 0
+    receipt = json.loads((out / 'independent-guard.json').read_text())
+    assert receipt['allowed_changes'] == [] and receipt['guard_class'] is None and receipt['allowed_pairs'] is None
+    assert receipt['excused_px'] == 0 and receipt['guard_caller'] == 'unchanged helper strict_guard'
+    assert receipt['caster'] == 'unchanged helper EmbreeCaster default'
+
+
+def test_allow_coincident_backface_removed_computes_the_exemption_set_and_records_it(tmp_path, monkeypatch):
+    from tools.e5_independent_guard import main
+    seen = _fake_allowance(monkeypatch)
+    root, candidate, helper = layout(tmp_path)
+    out = tmp_path / 'guard'
+    assert main(_args(root, candidate, helper, out, '--allow', 'coincident_backface_removed', '--original-oracle')) == 0
+    receipt = json.loads((out / 'independent-guard.json').read_text())
+    assert seen['before_faces'] == 9 and seen['after_faces'] == 4 and seen['kept'] == 4, 'BEFORE = baseline, kept = contract'
+    assert seen['pairs'] == [[8, 0], [8, 1]] and seen['caster'] == 'BoundedBruteCaster' and seen['n_dirs'] == 128
+    assert receipt['allowed_changes'] == ['coincident_backface_removed']
+    assert receipt['guard_class'] == 'allowed_backface_twin' and receipt['excused_px'] == 7
+    assert receipt['allowed_pairs'] == {'pairs': 2, 'excused_faces': 1, 'rule': 'coincident_backface_removed'}
+    assert receipt['guard']['passed'] is True and receipt['guard']['totals']['allowed_backface_twin'] == 7
+    assert receipt['raw_totals'] == {'allowed_backface_twin': 0, 'material_changed': 7} and receipt['failed_by'] == {}
+    assert receipt['guard']['raw_totals'] == receipt['raw_totals'] and receipt['guard']['failed_by'] == {}
+    assert receipt['caster'].startswith('BoundedBruteCaster (original float64 oracle) via tools/strict_guard_allowed')
+    assert 'BoundedBruteCaster' in receipt['guard_caller'] and 'allowed_pairs' in receipt['guard_caller']
+    assert json.loads((out / 'guard-progress.json').read_text())['pair'] == 'After'
+
+
+def test_an_unknown_allow_name_is_refused_before_anything_is_written(tmp_path):
+    from tools.e5_independent_guard import main
+    root, candidate, helper = layout(tmp_path)
+    with pytest.raises(ValueError, match='unknown allowed-change class'):
+        main(_args(root, candidate, helper, tmp_path / 'guard', '--allow', 'growth'))
+    assert not (tmp_path / 'guard').exists()

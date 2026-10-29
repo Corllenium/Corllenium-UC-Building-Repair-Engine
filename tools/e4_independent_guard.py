@@ -33,6 +33,7 @@ from engine.io.snapshot import sha256_file
 from engine.validate.checks import depth_tolerance, load_looks, print_step
 from tools.main_infra_e4_binding import bind_saved_e4
 from tools.main_infra_physical_validation import _same_mesh, _verify_assets
+from tools.strict_guard_allowed import parse_allow, run_strict_guard
 
 DEFAULT_REVISION = '7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511'
 
@@ -64,7 +65,12 @@ def main(argv=None):
     parser.add_argument('--expected-revision', default=DEFAULT_REVISION)
     parser.add_argument('--original-oracle', action='store_true',
                         help='bounded float64 caster (engine/rays/bounded_brute.py beside --helper) for precision-sensitive floors')
+    parser.add_argument('--allow', action='append', default=[], metavar='CLASS',
+                        help="owner-approved allowed-change class, the Validator's names (repeatable): "
+                             "coincident_backface_removed excuses pixels where a removed back-face's kept coincident twin "
+                             "shows (tools/strict_guard_allowed.py; the helper's strict_guard is then not the caller)")
     args = parser.parse_args(argv)
+    allowed_changes = parse_allow(args.allow)
     run, F = args.root.resolve(), args.floor
     candidate, out = args.candidate.resolve(), args.out.resolve()
     if out.exists():
@@ -131,7 +137,8 @@ def main(argv=None):
         # `before` is the qualified baseline: its faces are the kept ones plus everything the chained stages took
         # (E3 removed, E5 culled) plus what E4 replaced; `bind_saved_e4` has already proven the kept faces against the
         # chained BEFORE and mapped them back to the baseline's ids
-        kept = int(len(contract['baseline_kept_source_faces']))
+        kept_faces = [int(f) for f in contract['baseline_kept_source_faces']]
+        kept = len(kept_faces)
         replaced = int(contract['e3_removed_triangles'] + contract.get('e5_removed_triangles', 0)
                        + contract['e4_replaced_triangles'])
         new = int(contract['e4_new_triangles'])
@@ -169,13 +176,16 @@ def main(argv=None):
             (out / 'guard-progress.json').write_text(json.dumps(dict(job_id=args.job_id, floor_id=F, phase='strict26 guard',
                 pair=label, completed_views=index, views_per_pair=26, pid=os.getpid(), observed_utc=now())), encoding='utf-8')
 
-        report, tol = module.strict_guard(before, after_bound, source.mesh, provenance, on_view=view_done, **caster_kwargs)
+        report, tol, allowance = run_strict_guard(module, before, after_bound, source.mesh, provenance, kept_faces=kept_faces,
+                                                  allowed_changes=allowed_changes, audit=audit, on_view=view_done, **caster_kwargs)
         for key, path in paths.items():
             assert sha256_file(path) == hashes[key], 'guard input changed: ' + key
         _verify_assets(paths['raw'], run / 'normalized' / F, candidate, paths['before'].parent, source.mesh, provenance, audit)
+        caster = 'BoundedBruteCaster (original float64 oracle)' if args.original_oracle else 'unchanged helper EmbreeCaster default'
+        if allowed_changes:
+            caster += ' via ' + allowance['guard_caller']
         receipt = dict(**readback, guard=asdict(report), guard_depth_tol_inches=tol,
-                       resolution=[900, 600], views=26,
-                       caster='BoundedBruteCaster (original float64 oracle)' if args.original_oracle else 'unchanged helper EmbreeCaster default',
+                       resolution=[900, 600], views=26, caster=caster, **allowance,
                        wall_s=round(time.perf_counter() - started, 3), finished_utc=now(),
                        post_guard_input_hashes=dict(before=sha256_file(paths['before']), after=sha256_file(paths['after']),
                                                     source_after=sha256_file(paths['source_after']), matches_receipt=True))

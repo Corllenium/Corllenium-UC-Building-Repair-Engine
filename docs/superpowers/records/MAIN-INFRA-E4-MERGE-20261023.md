@@ -961,3 +961,143 @@ mapper would otherwise exclude site by site.
    union of every earlier stage's removals.
 3. The rerun E5 candidate has no independent guard run inside the loop (the E5 guard exists; the loop runs the E4
    guard on the E4 candidate, whose binding chains through the E5 audit).
+
+## The guard-side class `allowed_backface_twin`: `coincident_backface_removed` extended to the strict 26-view guard (2026-10-29)
+
+Owner-approved (chat 2026-10-24, re-confirmed 2026-10-29). Worktree `MAIN-INFRA-GUARD-CLASS-20261029` (branch
+`claude/MAIN-INFRA-GUARD-CLASS-20261029`, based on E4-MERGE `eb5c7cf1`; E4-MERGE itself was not edited, a validation
+queue was running from it). Fixture only; no real-floor run from here.
+
+### Measured problem
+
+The E5 independent guard REFUSED the E5 candidates of the E5-only floors on a handful of pixels, all of one kind
+(receipts under `<root>/independent-validator/e5-guard/<F>/independent-guard.json`):
+
+| floor | caster | depth tol (in) | model px | holes | material_changed | moved_other | grown | passed |
+|---|---|---|---|---|---|---|---|---|
+| 6F | unchanged helper EmbreeCaster | 5.9e-5 | 4,808,177 | 0 | 2 | 9 | 0 | False |
+| 5F | BoundedBruteCaster (original float64 oracle) | 5.9e-6 | 4,661,566 | 0 | 14 | 302 | 0 | False |
+| 4F | (no receipt yet) | | | | | | | |
+
+Where E5 dropped a solid-facing back-face (rule (c), `backface_twin`), BEFORE's double-sided render had let that face win
+a depth-tied pixel; AFTER the kept opposite twin wins it and shows ITS material (or, with a planar residual over the
+tolerance, a move). The Validator already excuses exactly this under `coincident_backface_removed`
+(`engine.validate.checks.CBR`); the strict guard had no notion of the class.
+
+### The change (the one owner-approved touch under `engine/guard/**`: `engine/guard/compare.py`)
+
+`compare_views(..., allowed_pairs=None)`, OPT-IN, strict by default: `allowed_pairs` is an `(K, 2)` int array of
+`(BEFORE face id, AFTER face id)` pairs -- a removed back-face and its kept coincident twin -- COMPUTED OUTSIDE the guard.
+After the crack and fragment caps and before the counts, a pixel whose class is `material_changed`, `moved_other` or
+`moved_same_flat` is reclassified to the new counted class `PX_ALLOWED_BACKFACE_TWIN` (11) iff `(b.tri, a.tri)` is a
+listed pair AND `|b.depth - a.depth| <= depth_tol` (the same depth within the guard's tolerance). Holes, grown,
+border_shift, crack_closed, fragment_removed, zfight_tie, edge_flicker and every other class are untouched; thresholds,
+`VIEWS_26`, the resolution and every existing classification path are unchanged. `passed` ignores only that class.
+
+Counts, RAW and AFTER the exclusion: `ViewVerdict` and `totals` gain `allowed_backface_twin` and its breakdown by the
+class each pixel was excused from (`allowed_backface_twin_material` / `_moved_other` / `_moved_same_flat`, summing to
+it; all 0 without the class). `GuardReport` gains `raw_totals` (`totals` with every excused pixel put back in its class
+and `allowed_backface_twin` 0; equal to `totals` without the class) and `failed_by` (the failing classes and their
+pixel counts after the exclusion: `holes`, `material_changed`, `moved_other`, `grown`, `moved_same_flat` when strict,
+`edge_flicker` of the views over the cap; empty iff `passed`). Both have defaults, so every existing
+`GuardReport(views=, passed=, totals=)` construction stands. `None` or an empty array is the default behaviour exactly
+(`test_an_empty_pair_list_is_the_default`). `engine/tests/test_guard.py` only gained the new zero keys in its
+exact-totals assertion and `raw_totals == totals`, `failed_by == {}`.
+
+### The exemption set and the plumbing (`tools/strict_guard_allowed.py`, new)
+
+The clean worktree's `strict_guard` (`tools/main_infra_candidate.py` of the 4F-7F worktree, NOT edited) forwards nothing
+to `compare_views` beyond its fixed arguments, so:
+
+* `strict_guard_allowed(before, after, source, provenance, *, allowed_pairs, caster_factory, on_view)` replicates its
+  render loop line for line (bbox-centre recentring, `VIEWS_26`, 900 x 600, `ReusableCaster`,
+  `guard_depth_tol(|source_to_engine| @ axis_quanta(source), FixProfile())`, `strict=True`, planes and geometry,
+  `crack_closed_cap=0.0`, `fragment_removed_cap=0.0`) and adds `allowed_pairs=`.
+* `backface_twin_pairs(positions_c, face_v, kept_faces, after_face_v, depth_tol, caster_factory, n_dirs)` is the
+  Validator's class face by face: a BEFORE face is a removed back-face iff it is not kept in AFTER and its FRONT exposure
+  in BEFORE is 0 (`engine.vis.exposure.compute_side_exposure` over the WHOLE mesh, the error census's and E5's own
+  measure; `n_dirs` from the audit's `engine_report.exposure_n_dirs`, else 128); its twins are the KEPT faces with front
+  exposure > 0, normal OPPOSITE (dot < -0.7, `checks._OPPOSITE_DOT`), whose plane lies within `depth_tol` of 7 sample
+  points of the removed face (centroid, 3 near the corners, 3 near the edges; `checks._FaceGrid` lookup, projected sample
+  inside the twin by `checks._barycentric`). Every `(removed face, twin's AFTER id)` is listed, so a pixel over either
+  triangle of a twin quad is covered. `after_index_of_kept` maps kept BEFORE ids to AFTER ids by exact vertex rows (E5:
+  kept first, in order; E4: kept before the new triangles). It returns a report: `removed_faces`,
+  `removed_hidden_front`, `kept_front_exposed`, `excused_faces`, `twin_faces`, `pairs`, `opposite_dot`, `depth_tol_inches`,
+  `exposure_n_dirs`, `exposure_caster`. The exposure caster is `EmbreeCaster` whatever `--original-oracle` says (the
+  measure E5 and the Validator use); the renders use the oracle when asked.
+* `run_strict_guard(helper, ...)`: without `--allow` the helper's own, unchanged `strict_guard` is the caller, as before;
+  with `--allow coincident_backface_removed` the exemption set is computed from the BEFORE geometry and the contract's
+  `baseline_kept_source_faces`, then `strict_guard_allowed` judges.
+* `tools/e5_independent_guard.py` and `tools/e4_independent_guard.py`: `--allow CLASS` (repeatable, the Validator's
+  names, validated by `parse_allow` BEFORE anything is written). The receipt gains `guard_caller`, `allowed_changes`,
+  `guard_class`, `allowed_pairs` (the report above), `excused_px` (= `totals.allowed_backface_twin`), `raw_totals` and
+  `failed_by` (also inside `guard`, the `asdict` of the report); `caster` says `... via
+  tools/strict_guard_allowed.strict_guard_allowed (...)` when the helper is not the caller. Without `--allow` the receipt
+  says `allowed_changes: []`, `excused_px: 0`, `guard_caller: unchanged helper strict_guard`, `raw_totals == guard.totals`.
+
+Tests: `engine/tests/test_guard_allowed_backface_twin.py` (6; a +z twin quad and its -z back-face 0.01 in nearer the
+camera, rendered: the default strict guard refuses on `material_changed`, `raw_totals == totals`, `failed_by` names it;
+the class reclassifies exactly those pixels, the breakdown says `_material`, `raw_totals` equals the plain run's
+totals and the guard passes with `failed_by {}`; holes still fail; an AFTER face not listed as the twin still fails, the
+two counts summing to the plain `material_changed`; a listed pair 1 in apart is not excused; an empty list is the
+default). `tools/tests/test_strict_guard_allowed.py` (8; real geometry on a closed cube with a reversed copy of its top:
+both triangles excused against the top quad by AFTER id, 12 kept faces front-exposed; a same-facing copy is not a twin
+and is front-exposed; a removed front-exposed face is never excused; a copy 1 in below the top is hidden but not
+coincident; the two AFTER layouts; the fake-renderer replication: 52 renders at 900 x 600, `on_view` order,
+`strict=True`, both caps 0, the pairs and the planes forwarded, the depth tolerance `guard_frame`'s;
+`run_strict_guard`'s two paths with the audit's `exposure_n_dirs`, `raw_totals` and `failed_by` carried; `parse_allow`).
+`tools/tests/test_e5_independent_guard.py` +3 and `tools/tests/test_e4_independent_guard.py` +1 (fake exemption set
+and fake `strict_guard_allowed`: the BEFORE, AFTER and kept counts handed over, the oracle as render caster, the
+receipt fields, the unknown class refused before `--out` exists).
+
+### Output (2026-10-29, worktree root, `PYTHONPATH` = it, `-p no:cacheprovider`, OPENBLAS/OMP/MKL_NUM_THREADS=1)
+
+```
+(in E4-MERGE, before the move) pytest engine/tests/test_guard_allowed_backface_twin.py -> ImportError (red), after
+  compare.py -> 6 passed in 1.26s; tools/tests/test_strict_guard_allowed.py -> 8 passed in 0.92s;
+  test_e5_independent_guard.py test_e4_independent_guard.py -> 2 failed (fake report was not a dataclass; asdict),
+  fixed -> 15 passed in 30.62s; pytest tools/tests -> 387 passed in 183.26s; engine/tests/test_guard.py + the new
+  file -> 76 passed in 4.54s
+(in E4-MERGE, read-only check) pytest engine/tests/test_cli.py test_fragments.py test_pipeline.py test_validate_core.py
+  -> 1 failed, 197 passed in 86.77s: test_validate_core.py::test_the_validator_imports_nothing_it_judges, which FAILS
+  ON THE CLEAN TREE TOO (stashed check: 1 failed in 0.76s) -- `engine/validate/checks.py` imports
+  `engine.vis.exposure` for the Validator's own class; pre-existing, not this change
+(in MAIN-INFRA-GUARD-CLASS-20261029, with raw_totals / failed_by)
+PYTHONPATH=$PWD ../../../.venv/Scripts/python.exe -B -m pytest engine/tests/test_guard.py engine/tests/test_guard_allowed_backface_twin.py tools/tests -q -p no:cacheprovider
+  -> 470 passed in 347.48s (0:05:47)
+```
+
+### Commands (NOT run here; a fresh `--out`, the guard refuses an existing one; PYTHONPATH = this worktree)
+
+```powershell
+$env:PYTHONPATH=(Get-Location).Path
+$env:OPENBLAS_NUM_THREADS='1'; $env:OMP_NUM_THREADS='1'; $env:MKL_NUM_THREADS='1'
+$PY='D:/PROJECTS/05-Corllenium-UC-Building-Repair-Engine/.venv/Scripts/python.exe'
+$ROOT='D:/PROJECTS/05-Corllenium-UC-Building-Repair-Engine/.claude/worktrees/MAIN-INFRA-CLAUDE-4F-7F-20261023/data/main-infra-fresh/run-claude-4f-7f-20261023'
+$HELPER='D:/PROJECTS/05-Corllenium-UC-Building-Repair-Engine/.claude/worktrees/MAIN-INFRA-CLAUDE-4F-7F-20261023/tools/main_infra_candidate.py'
+# 6F (Embree default)
+& $PY -B -u tools/e5_independent_guard.py --root $ROOT --floor 6F --raw-name "6th floor main infra.obj" --candidate $ROOT/e5/6F --out $ROOT/independent-validator/e5-guard-allow/6F --helper $HELPER --job-id <id> --reviewer <name> --allow coincident_backface_removed [--expected-revision <sha>]
+# 5F and 4F need the original oracle
+& $PY -B -u tools/e5_independent_guard.py --root $ROOT --floor 5F --raw-name "5th floor main infra.obj" --candidate $ROOT/e5/5F --out $ROOT/independent-validator/e5-guard-allow/5F --helper $HELPER --job-id <id> --reviewer <name> --original-oracle --allow coincident_backface_removed
+& $PY -B -u tools/e5_independent_guard.py --root $ROOT --floor 4F --raw-name "4th floor main infra.obj" --candidate $ROOT/e5/4F --out $ROOT/independent-validator/e5-guard-allow/4F --helper $HELPER --job-id <id> --reviewer <name> --original-oracle --allow coincident_backface_removed
+# the E4 guard takes the same flag
+& $PY -B -u tools/e4_independent_guard.py --root $ROOT --floor 7F --raw-name "7th floor main infra.obj" --candidate $ROOT/e4/7F --out $ROOT/independent-validator/e4-guard-allow/7F --helper $HELPER --job-id <id> --reviewer <name> --allow coincident_backface_removed
+```
+
+Read the receipt's `raw_totals` (what the guard counted), `totals` (after the exclusion), `excused_px` and `failed_by`
+together with `allowed_pairs` (how many removed faces were hidden-front, how many found an exposed twin): the class
+excuses only what it names, and a pixel in `failed_by` is still a refusal to be explained.
+
+### Open questions
+
+1. The depth tie is `|b.depth - a.depth| <= depth_tol` along the ray, as specified. At 6F's tolerance (5.9e-5 in) the
+   Embree float32 depths of two coplanar faces may differ by more than that from precision alone, which would leave
+   such pixels in `failed_by` with the class active. If 6F still refuses with `excused_px` below the 11, rerun it
+   `--original-oracle` (float64) before reading anything else into the numbers.
+2. The exemption set is computed over ALL removed BEFORE faces (E3-removed and E4-replaced included on a chained
+   candidate), exactly as the Validator's class judges any removed sample; an E3-removed hidden face under an exposed
+   opposite twin would also be excused. The receipt's `removed_hidden_front` / `excused_faces` say how many.
+3. The exposure pass renders the whole BEFORE once more (128 directions x 7 samples per face, Embree): minutes on a
+   real floor, on top of the guard's own 52 renders.
+4. `test_validate_core.py::test_the_validator_imports_nothing_it_judges` fails on E4-MERGE HEAD without this change
+   (`checks.py` imports `engine.vis.exposure` for `coincident_backface_removed`); not touched here.

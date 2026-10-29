@@ -148,3 +148,24 @@ def test_a_tampered_candidate_is_refused_before_the_guard_runs(tmp_path):
     with pytest.raises(ValueError, match='hash'):
         main(_args(run, candidate, helper, tmp_path / 'guard'))
     assert not (tmp_path / 'guard' / 'guard-progress.json').exists()
+
+
+def test_allow_coincident_backface_removed_on_the_e4_guard_records_the_class_and_the_excused_pixels(tmp_path, monkeypatch):
+    from tools.e4_independent_guard import main
+    from tools.tests.test_e5_independent_guard import _fake_allowance
+    seen = _fake_allowance(monkeypatch, excused=3)
+    run, candidate, helper = run_layout(tmp_path, chained=True)
+    out = tmp_path / 'guard'
+    assert main(_args(run, candidate, helper, out, '--allow', 'coincident_backface_removed')) == 0
+    readback = json.loads((out / 'input-readback.json').read_text())
+    receipt = json.loads((out / 'independent-guard.json').read_text())
+    assert seen['before_faces'] == readback['input_triangles'] and seen['after_faces'] == readback['output_triangles']
+    assert seen['kept'] == len(readback['contract']['baseline_kept_source_faces']) and seen['caster'] == 'default'
+    assert receipt['allowed_changes'] == ['coincident_backface_removed'] and receipt['guard_class'] == 'allowed_backface_twin'
+    assert receipt['excused_px'] == 3 and receipt['allowed_pairs']['pairs'] == 2
+    assert receipt['caster'].startswith('unchanged helper EmbreeCaster default via tools/strict_guard_allowed')
+    plain = tmp_path / 'plain'
+    assert main(_args(run, candidate, helper, plain)) == 0
+    plain_receipt = json.loads((plain / 'independent-guard.json').read_text())
+    assert plain_receipt['allowed_changes'] == [] and plain_receipt['excused_px'] == 0
+    assert plain_receipt['caster'] == 'unchanged helper EmbreeCaster default'
