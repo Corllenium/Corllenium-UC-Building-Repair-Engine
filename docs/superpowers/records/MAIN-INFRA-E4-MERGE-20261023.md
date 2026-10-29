@@ -861,3 +861,103 @@ $HELPER='D:/PROJECTS/05-Corllenium-UC-Building-Repair-Engine/.claude/worktrees/M
 
 The raw names for 6F / 5F / 4F above follow the 7F pattern and must be checked against `<root>/raw/`; the default
 `--expected-revision` is the E4 guard's frozen 7F revision and must match the floor's `raw-manifest.json`.
+
+## After real 7F replay round 1: `covers_prior_removal`, E5 site attribution, E5 reruns in the loop (2026-10-29)
+
+The feature commit preceding this record, plus this record. Fixture chain only here; the item-4 numbers were measured
+READ-ONLY on the run-1 artifacts (`e4/7F-round1`, `independent-validator/e4-validation/7F-round1/validation.json`,
+`e5/7F`, `e3/7F`). Not touched, by agreement with the agent working on them: `engine/guard/compare.py`,
+`tools/e5_independent_guard.py`, `tools/e4_independent_guard.py`.
+
+### Round 1 as reported (coordinator)
+
+The loop stopped `unexplained`: the five failing floor faces map to NO E4 region. 14087 (85 px, direction 15), 14059
+(14 px, direction 2), 15438 (removed 7 px, extra direction 326) were removed by E3; 8384 (196.8 px, probe 924) and
+16674 (61 px, direction 13) by E5. The E3-removed ones had passed the E3-only Validator because a coincident pair still
+covered their footprint; E5 dropped that pair, and from those directions nothing covers them now. The two E5-removed
+ones were not excused by `coincident_backface_removed`.
+
+### Item 4, measured: why 8384 and 16674 were not excused
+
+On the baseline (`compute_side_exposure`, 128 directions, the class's own measure) both faces have front 0.0 AND back
+0.0 (fully enclosed), and their kept coplanar OPPOSITE faces -- 12584 for 8384; 11355, 11356, 15690, 15691 for 16674 --
+have front exposure 0.0 as well. Condition (c) holds (own front 0); condition (b) FAILS: the kept twin was never the
+exposed surface. These were `interior_twins` seams (both fronts hidden; the seam view, 36 lattice points plus the
+probes, saw nothing), not backface twins, and the class is written for a backface under an exposed twin. The class
+judged correctly and is not loosened. What saw them was the floor's denser lattice (36 points plus one per sq in, up to
+4,096, and the 1,024 extra directions): the seam view is coarser than the floor, which is the measured reason the two
+seams passed E5's gate and failed check 3. The three E3-removed faces (14087, 14059, 15438: front 0, back 0) have NO
+coplanar kept face left at all -- the pair that covered them was the dropped seam.
+
+### 1. E5 rule `covers_prior_removal` (`E5Coincident.prior_removed`)
+
+Before a face is dropped, every triangle an EARLIER stage of the chain removed that lies on the same plane (all corners
+within the depth tolerance) and overlaps the face's footprint must stay covered >= 98 % by faces kept after the drop
+(every mesh face on that plane that is not dropped, shapely in-plane); otherwise the face is kept
+`covers_prior_removal` (its `prior_cover` recorded) and, for a seam face, its partners with it. The pass runs after the
+seam view, repeats until stable, and reports `prior_removed: {triangles, faces_checked, faces_refused}`.
+`run_checked_e5(..., prior_removed=...)`; `run_checked_e5_floor.py --from-e3` reads the E3-removed faces as the
+complement of the E3 candidate's `source-faces.json` and hands their baseline triangles in (audit:
+`prior_removed_triangles`). This is the only-coverage rule extended to the prior stage's removals.
+
+### 2. The replay mapper attributes to E5 (`tools/main_infra_e4_replay.py`, schema 2)
+
+Through the E4 audit's `e5_candidate` (its edit log and `source-faces.json`) and the E5 audit's `e3_candidate`
+(`source-faces.json`, baseline ids): a failing face E5 removed names the kept E5 site that removed it
+(`how: e5_removed`); a failing face E3 removed names the E5 site(s) whose removed faces are coplanar with it and
+overlap its footprint (`e5_removed_its_cover` -- they were its cover). E4 attribution stays (covering face, source
+face; the coplanar-overlap geometry only when no E5 site explains the face). Output `{e4_regions, regions (alias),
+e5_sites, reasons: {e4_regions, e5_sites}, unexplained, e5_candidate, e3_candidate, ...}`.
+
+### 3. E5 exclusions and the loop
+
+`run_checked_e5_floor.py --exclude-sites <json>` (`e5_sites` ids of this engine's numbering on this input; the planned
+sites are numbered before the exclusion so ids stay stable) and `--out <dir>`; the audit records `excluded_sites`,
+`exclude_sites_file`, `exclude_sites_sha256`, the file is copied in as `exclude-sites.json`, the engine report lists
+`excluded_sites` / `excluded_faces`. `run_checked_e4_floor.py --e5-candidate <dir>` and `--out <dir>`.
+`run_e4_replay_loop.py`: when a round's failures name E5 sites, the next round first reruns E5 (`--from-e3
+--exclude-sites <union>` into `<root>/e5/<F>-round<k>`, the file `<F>-round<k>-exclude-sites.json`), then E4 on that
+candidate (`--e5-candidate`), writing `e4/<F>-round<k>` directly; the Validator's binding chains through the new E5
+audit as before. Summary adds `excluded_sites`, `e5_exclusion_reasons`, `final_e5_candidate`, per round `e5_candidate`,
+`explained_e5_sites`; stop `e5_failed` added.
+
+Tests: `engine/tests/test_e5_coincident.py` +3 (a seam that was the only cover of two prior-removed triangles is kept
+with its partners -- `faces_checked 2, faces_refused 4`; a prior triangle off the footprint does not hold the seam; a
+prior face still covered by the kept twin lets the drop through); `tools/tests/test_main_infra_e4_replay.py` +4 on a
+three-layer fixture (RAW3: the panel, an identical copy A, an identical copy B, the facade; E3 removes B's sliver 9 and
+the facade, E5 drops copy A): the mapper names the E5 site that removed face 5 and, for the E3-removed face 9, the same
+site as its cover, the facade stays unexplained; the E5 runner excludes the site and writes where it is told, the
+candidate binds; the E4 runner reads a named E5 candidate; the loop reruns E5 without the covering site and passes on
+round 2. `run_root` takes the raw text.
+
+### Output (2026-10-29, worktree root, `PYTHONPATH` = it, `-p no:cacheprovider`)
+
+```
+pytest engine/tests/test_e5_coincident.py -> 1 failed, 24 passed in 155.33s (my fixture gave one prior triangle, which
+  holds one seam only; and faces_checked counts examined faces, a refusal takes the partner unexamined), corrected
+  test -> 1 passed in 6.05s   (25 tests)
+pytest tools/tests/test_main_infra_e4_replay.py -> 11 passed in 69.08s
+pytest tools/tests -> 375 passed in 209.64s (0:03:29), exit 0   (371 + 4)
+```
+
+### 7F loop command (NOT run here; move an existing `<root>/e4/7F` aside first; `<root>/e5/7F` is round 1's E5)
+
+```powershell
+$env:PYTHONPATH=(Get-Location).Path
+$PY='D:/PROJECTS/05-Corllenium-UC-Building-Repair-Engine/.venv/Scripts/python.exe'
+& $PY -B -u tools/run_e4_replay_loop.py --root <claude run root> --floor 7F --raw-name "7th floor main infra.obj" --rounds 3 --allow coincident_backface_removed --helper D:/PROJECTS/05-Corllenium-UC-Building-Repair-Engine/.claude/worktrees/MAIN-INFRA-CLAUDE-4F-7F-20261023/tools/main_infra_candidate.py --job-id <id> --reviewer <name> --expected-revision <sha>
+```
+
+Since E5 itself changed (`covers_prior_removal`), a fresh E5 (`run_checked_e5_floor.py --from-e3`) before the loop is
+the cleaner start: it reads the E3-removed triangles and keeps the seams that covered them, which is what round 1's
+mapper would otherwise exclude site by site.
+
+### Open questions
+
+1. The seam view (36 lattice points + probes) is coarser than the floor's measure (up to 4,096 points + 1,024 extra
+   directions): seams it passes can still fail check 3. Raising the seam view's density to the floor's is a measured
+   option (cost: per seam face).
+2. `covers_prior_removal` reads only the E3 candidate's removals when run `--from-e3`; a longer chain would need the
+   union of every earlier stage's removals.
+3. The rerun E5 candidate has no independent guard run inside the loop (the E5 guard exists; the loop runs the E4
+   guard on the E4 candidate, whose binding chains through the E5 audit).
