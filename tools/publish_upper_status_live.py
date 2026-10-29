@@ -28,17 +28,56 @@ def ssh_args(key, known_hosts):
             'devenvir@dev-environment.site']
 
 
+LOCAL_FEED = Path(__file__).resolve().parents[2] / 'SIEGE-MAIN-INFRA-20261023' / 'dashboard' / 'public' / 'building-repair-status.json'
+BROKEN_DIR = Path(__file__).resolve().parents[1] / 'data' / 'main-infra-fresh' / 'live-broken'
+
+
+def salvage_live(raw: bytes) -> dict:
+    """Parse the live feed; when it is truncated (an interrupted upload), keep every complete top-level key.
+
+    The legacy keys come first and the fresh blocks last, so a cut inside `freshMainInfra` still leaves the
+    other buildings' `completedUnits` intact. Missing fresh blocks are filled from the local SIEGE feed.
+    """
+    text = raw.decode('utf-8', errors='replace')
+    try:
+        live = json.loads(text)
+        if not isinstance(live, dict):
+            raise ValueError('live status is not an object')
+        return live
+    except ValueError:
+        pass
+    BROKEN_DIR.mkdir(parents=True, exist_ok=True)
+    (BROKEN_DIR / time.strftime('live-%Y%m%d-%H%M%S.json')).write_bytes(raw)
+    salvaged = None
+    for key_name in ('freshMainInfraUpper', 'freshMainInfra'):
+        cut = text.rfind(f'"{key_name}"')
+        if cut > 0:
+            prefix = text[:cut].rstrip().rstrip(',')
+            try:
+                salvaged = json.loads(prefix + '}')
+                break
+            except ValueError:
+                continue
+    if not isinstance(salvaged, dict):
+        raise ValueError('live status unparsable and not salvageable')
+    local = json.loads(LOCAL_FEED.read_text(encoding='utf-8')) if LOCAL_FEED.exists() else {}
+    for key_name in ('freshMainInfra',):
+        if key_name not in salvaged and key_name in local:
+            salvaged[key_name] = local[key_name]
+    salvaged['_salvaged_from_truncated_upload_utc'] = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
+    return salvaged
+
+
 def publish_once(progress, key, known_hosts):
     doc = load_progress(progress)
-    live = json.load(urllib.request.urlopen(LIVE, timeout=30))
-    if not isinstance(live, dict):
-        raise ValueError('live status is not an object')
+    live = salvage_live(urllib.request.urlopen(LIVE, timeout=30).read())
     current = live.get('freshMainInfraUpper')
-    if current == doc:
+    if current == doc and '_salvaged_from_truncated_upload_utc' not in live:
         return 'unchanged', doc
     live['freshMainInfraUpper'] = doc
     payload = json.dumps(live, indent=2, ensure_ascii=False).encode('utf-8')
-    remote = f"cat > {REMOTE[0]} && cp -f {REMOTE[0]} {REMOTE[1]}"
+    json.loads(payload)
+    remote = f"cat > {REMOTE[0]}.tmp && mv -f {REMOTE[0]}.tmp {REMOTE[0]} && cp -f {REMOTE[0]} {REMOTE[1]}"
     subprocess.run(ssh_args(key, known_hosts) + [remote], input=payload, check=True, timeout=120)
     return 'uploaded', doc
 
