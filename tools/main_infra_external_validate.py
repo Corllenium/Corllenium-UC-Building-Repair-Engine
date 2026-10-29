@@ -44,6 +44,7 @@ from engine.io.obj_reader import read_obj
 from engine.io.snapshot import sha256_file
 from engine.model import MeshData
 from engine.validate.checks import _rows_in, load_looks
+from tools.e4_independent_guard import rebind_materials
 from tools.main_infra_physical_validation import _same_mesh, settings_for
 
 DEFAULT_REVISION = '7b2f7451b5723f724a1e074fdedc07dbcf7291d330ae550066f4926886136511'
@@ -269,8 +270,12 @@ def main(argv=None):
                       engine_normal_rows_added=table_extends(before.normals, after.normals),
                       source_uv_rows_added=table_extends(source.mesh.uvs, source_after.uvs),
                       source_normal_rows_added=table_extends(source.mesh.normals, source_after.normals))
-        assert before.materials == after.materials, 'engine material order differs'
-        assert source.mesh.materials == source_after.materials, 'source material order differs'
+        # a candidate may list its materials in another order or drop an unused one (Codex's E7 output does):
+        # renumber by name onto the baseline's table, as the E4/E5 guards do; unknown names are refused
+        material_order = dict(engine=list(after.materials), source=list(source_after.materials))
+        after = rebind_materials(before, after)
+        source_after = rebind_materials(source.mesh, source_after)
+        assert before.materials == after.materials and source.mesh.materials == source_after.materials
         engine_counts, removed_engine, added_engine = membership(before, after)
         source_counts, removed_source, added_source = membership(source.mesh, source_after)
         assert engine_counts == source_counts, f'engine/source membership differ: {engine_counts} vs {source_counts}'
@@ -299,7 +304,7 @@ def main(argv=None):
                        candidate_dir=str(candidate), candidate_engine_sha256=hashes['after'], candidate_source_sha256=hashes['source_after'],
                        input_triangles=int(len(before.face_v)), output_triangles=int(len(after.face_v)),
                        membership=engine_counts, membership_after_drop=judged_counts, dropped_before_faces=dropped,
-                       corner_tables=tables, added_faces_containment=containment,
+                       corner_tables=tables, added_faces_containment=containment, candidate_material_order=material_order,
                        assets=assets, physical_axis_quanta_inches=list(expected.physical_quanta),
                        source_to_engine=frame.matrix.tolist(), allowed_changes=sorted(args.allow), acceptance=False)
         (out / 'external-validation.json').write_text(json.dumps(receipt, indent=2), encoding='utf-8')
