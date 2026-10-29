@@ -145,3 +145,18 @@ marker drop (24 faces per floor, approved-selection.json 81c02db5), 6F E7 strict
   there, hashes unchanged. Codex's pins need the new path, nothing was lost.
 - Stage-2 E5 results (covers_prior_removal rule): 7F 20,625 to 19,345 (232 kept / 24 rolled back); 6F 27,108 to
   25,063 (446 / 38); 4F 52,865 to 47,752 (785 / 91); 5F running. 7F E4 coplanar merge running on 19,345.
+
+### 7F decided by the identical measurement (29 Oct, 23:05)
+
+| candidate | guard | textures | coverage | flicker_diff | flicker_same | cracks | interior gate |
+|---|---|---|---|---|---|---|---|
+| Codex omb 19,671 (orange markers dropped from BEFORE) | FAIL 4 px (2 material, 2 moved; 3 ties) | FAIL 275 samples (223 deleted, 43 uv, 9 side) | FAIL 32 faces, 4,634 sq in lost | 4518 to 1522 | 7091 to 2629 | 5429 to 4550 | not run |
+| Claude fresh E5 19,345 | PASS 0 px (2 ties) | PASS 0 | PASS 0 | 4518 to 1199 | 7091 to 2454 | 5429 to 4631 | 16 pairs, 45 px, max 43 |
+
+Claude 19,345 meets the owner's guard-pass bar (invariants, strict guard, textures, visible coverage) and is the
+published 7F candidate: guard receipt bound into `e5/7F/stage-audit.json` (backup `stage-audit.pre-guard-bind-*.json`),
+dashboard preview repackaged with `tools/main_infra_preview_stage2.py` (E3 preview kept as `candidate-e3-20625/`,
+E3 evidence as `evidence-e3-20625/`, both uploaded live), repo 04 record `upper-floors/7F` (E3 record moved to
+`7F-e3-20625`, E3 export copied to `Model-Floor_07-e3-20625`), repo 03 `Model-Floor_07` now 19,345 triangles,
+Z `MAIN INFRUSTRUCTURE - FIXED\7F\E5-candidate-19345\`. Signed targets still FAIL; not accepted.
+Codex 6F E7 candidates failed to bind on material order (fixed in E4-MERGE 8bd7a938, rerun queued after the queue).
