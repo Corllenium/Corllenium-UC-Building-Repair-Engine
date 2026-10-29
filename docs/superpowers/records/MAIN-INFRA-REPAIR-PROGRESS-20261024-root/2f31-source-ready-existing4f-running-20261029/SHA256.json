@@ -1,0 +1,50 @@
+{
+  "artifacts": [
+    {
+      "path": "2f/SOURCE-ONLY-PREPARED-NO_GO.zip",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\r2fs31\\data\\fullsigned31-prep\\frozen\\SOURCE-ONLY-PREPARED-NO_GO.zip",
+      "bytes": 164079,
+      "sha256": "f9b720d3fbed3245a8a112f581fcafbb1124d10d68d0fbe0a698096d454cf5d3"
+    },
+    {
+      "path": "2f/ROOT-SOURCE-PHASE-REVIEW.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261026\\2f-fullsigned31-root-source-review-20261029\\ROOT-SOURCE-PHASE-REVIEW.json",
+      "bytes": 4058,
+      "sha256": "36ed996aed9ebd5679c549ac985fa3e2b7f8213d8fde0027f2d9acd48d2c3214"
+    },
+    {
+      "path": "2f/CALLER-FIX.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\r2fs31\\docs\\superpowers\\records\\MAIN-INFRA-2F-FULLSIGNED31-RETENTION-20261028\\CALLER-FIX.json",
+      "bytes": 7308,
+      "sha256": "be60a3ed8375cd748b66743aa8626b92e06ff733eb2810cfc1b3f2329cf0720b"
+    },
+    {
+      "path": "2f/CALLER-RED-GREEN-EVIDENCE.zip",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\r2fs31\\docs\\superpowers\\records\\MAIN-INFRA-2F-FULLSIGNED31-RETENTION-20261028\\CALLER-RED-GREEN-EVIDENCE.zip",
+      "bytes": 13789,
+      "sha256": "d9d527b68680e71463fca0f12d3a5a4fa969e1070fe8953a3dc2ea8bfee45442"
+    },
+    {
+      "path": "canonical-current.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-fresh\\current.json",
+      "bytes": 519843,
+      "sha256": "95d287febcf2028739e49494cc79ee7e6f7263a57028df4761bfea58e5f35d63"
+    },
+    {
+      "path": "existing-4f/worker-observation.json",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261026\\resume-existing-4f-workers-20261029\\actual-worker-observation-20261029T170643.json",
+      "bytes": 2859,
+      "sha256": "c28ce63a1ad9e7e8edf57a9ce7936e0bf8306d9e14a805d314caa56ca366f418"
+    },
+    {
+      "path": "record.md",
+      "source": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\siege-live-20261026\\2f-fullsigned31-root-source-review-20261029\\record.md",
+      "bytes": 2436,
+      "sha256": "fbfaf589a7fd15665640cdafb4ed5bb952299a088a2bd0d9db493366b3b69042"
+    }
+  ],
+  "archive_sha256": "56a72171214d7075c9aff743cc79ad0ed48036a48603e325d31e19912b94875e",
+  "all_members_read_back": true,
+  "local_only": true,
+  "acceptance": false
+}

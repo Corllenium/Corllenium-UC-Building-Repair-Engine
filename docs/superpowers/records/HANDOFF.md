@@ -26,6 +26,17 @@ run the latest `.skp` of each file must be in `OBJ FIXED RESULT/` for the owner 
 ## 2. Current state (2026-09-26 00:15, written by the Claude controller)
 
 
+### 29 October 2026 — 2F31-site restoration source ready; existing4F model workers active
+
+Interrupted2F caller was corrected in isolatedr2fs31 at cleanbc1c24dea710127bfecd0ff21dfc23f601f1f939. Sole production diff passes old approved_absent_markers into failure_scope. Two genuine documents() regressions reproduced missing-argument TypeError before the change; all19 stdlib tests then passed in0.114s. Caller56c59e882ebb7d91cabc30df38b0b68a7b9344a92ae5de75d9269bf1bd7084f9; paid selector/writer/guards/settings unchanged. Root read the complete diff and both new real caller regressions. Source-only qualification does not prove a new model.
+
+Frozen binding299e2b413bb7eecab2e0be6b7401de2e939a051ae054ee0e68b6d1300c494233, metadata2ddab285a67f4d1c68094a41133ca1c661dfc7ff8e962e4f3eb3bc8d402ac34d and executee631263d66c8a216f68ed446fac87ee16f9dceaaa2baa5da0d5d259dd43a315a each rechecked519 pins with zero mismatch. Profile8c639277b157493c3e803e1443a174cdc560239d75488e32320fd208b5f65439 preserves existing2F serial8GiB/own3/reserve3.5/max1 adapter and original12GiB phase contract. Actual metadata CLI/model/NumPy/NPZ/native execution NOT_RUN. All operating/envelope GO flags remain false until Root confirms a free runtime and fresh memory.12-member preparation archivef9b720d3fbed3245a8a112f581fcafbb1124d10d68d0fbe0a698096d454cf5d3 reopened and all members read. Root source review36ed996aed9ebd5679c549ac985fa3e2b7f8213d8fde0027f2d9acd48d2c3214.
+
+New model44,700 and14,083 mandatory remain predictions only. All current41,940, prior57sites,280site100 originals,7contacts,10assets and exact24 marker removals must survive.31 sites/2,760 restorations cover exposed saved-JSON failures only, not complete dense attribution. Existing41,940 signed preservation FAIL remains current; no acceptance transferred.
+
+Fresh process checks at17:23Z authenticated existing4F E5 worker47644,birth15:39:40.4889151Z,CPU6451.25s, and validator32736,birth16:32:39.3114637Z,CPU7133.359375s; both advancing. No additional Root model phase launched. Upper-floor current-upper publisher is active and owns its feed; no overwrite of its4F/5F/7F work or canonical preview references. Canonical95d287fe remains unchanged;0/7 final accepted. Continue2F metadata and restoration with existing guarded profile after authenticated owner workers release; then independent validation. No Gemini/public push/server restart/live DB write. Blender stays closed.
+
+
 ### 28 October 2026 — 2F dense signed preservation failed; original-site restoration preparing
 
 The current 2F 41,940 SOURCE b334bc0d / ENGINE a4973acd completed default full independent signed validation with preservation FAIL. Texture check:323,679 samples,2,876 failed across298 faces (2,087 deleted,199 look,589 UV,1 side). Nothing-deleted check:323,680 samples,2,088 deleted and199 replaced; zero covered/overlaid. Forced floor check FAIL:271 removed originals exceed4px. Actual report bccd6fafdbc4755832985efe3669ea2befff53ab6157d06e0ad2b1f72d87513e and review a73b017c490ba8b0a2a2027a9f4b887e928123b2ab4bdd8d8871dc02bf24664c; all323 saved evidence members reopened/rehashed. Existing strict26/native33 passes are limited-view results and do not override this dense failure. All28,985 signed cleanup targets also remain. No settings or backface grant was changed or inherited from6F.
