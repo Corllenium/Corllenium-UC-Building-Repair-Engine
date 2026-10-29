@@ -160,3 +160,17 @@ E3 evidence as `evidence-e3-20625/`, both uploaded live), repo 04 record `upper-
 `7F-e3-20625`, E3 export copied to `Model-Floor_07-e3-20625`), repo 03 `Model-Floor_07` now 19,345 triangles,
 Z `MAIN INFRUSTRUCTURE - FIXED\7F\E5-candidate-19345\`. Signed targets still FAIL; not accepted.
 Codex 6F E7 candidates failed to bind on material order (fixed in E4-MERGE 8bd7a938, rerun queued after the queue).
+
+### 4F stage-2 guard failure diagnosed (29 Oct, 23:50)
+
+Fresh E5 47,752 fails the strict guard on 328 px (8 material, 320 moved; float64 oracle; `e5-guard-allow/4F`,
+class excuses 0). Diagnosis (`e5-guard-allow/4F/diagnosis-below-oblique.json`, read-only re-render of the failing
+views): every failing pixel sits in the eight below-oblique views (direction z = +1.011, camera under the floor
+looking up) and its BEFORE first hit is a face E5 removed under rule (d) interior_twins: 20 sites, 21 faces of
+62, all `minecraft_concrete_white_-1`; after removal the ray travels 0.65 to 62 in deeper (median 14.1 in) to the
+back of another face. Genuine slivers, no twin tie, no orange marker. Codex's 4F 58,064 fails on the same 325
+pixel positions with the same BEFORE faces (its E5 removed the same 19 faces); the "328 = 328" is 325 shared
+plus 3 site-291 px (Claude) vs 3 pixels from Codex's own guard build.
+Action: E5 rerun on 4F with `e5/exclusions/4F-below-oblique-20261029.json` (20 sites, expected 47,814);
+previous output kept as `e5/4F-covers1-*`. Engine follow-up: E5 rule (d) exposure (128 directions, 7 samples)
+misses what the 26-view guard's below-oblique views see; the exposure set should include the guard directions.
