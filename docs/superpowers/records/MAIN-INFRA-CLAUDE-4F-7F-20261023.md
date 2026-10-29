@@ -122,3 +122,26 @@ flicker_same 2,089, cracks 4,216, hidden 3,770; nothing_deleted FAIL by the floo
 196.8 px from probe 924; 14087 85 px, 16674 61 px, 14059 14 px from outside directions; 15438 removed 7 px). Interior
 gate 466 px (two views along the green trim band). Not published. Next: flag → region → replay loop on E4.
 First-pass E5 on 6F/5F/4F (pre-fix rules): 27,108 → 25,809; 38,113 → 36,347; 52,865 → 51,601 (superseded).
+
+## 2026-10-29 evening: side-by-side validation of Codex's and Claude's 4F-7F candidates
+
+Owner decision (chat, 29 Oct): "Validate both, keep the better". Codex also produced 4F-7F candidates through 28 Oct
+(explorer report, read-only): displayed 4F 58,064 (omb), 5F 34,977 (omb), 6F 26,291 (nr6, E7 cuts), 7F 19,671 (omb);
+newer saved 4F 58,169 (r4g), 5F 35,343 (r5g), 6F 26,290 (r6r). Codex's chains: E3, E5, owner-authorized orange
+marker drop (24 faces per floor, approved-selection.json 81c02db5), 6F E7 strict cuts.
+
+- Live dashboard build 7e170cf (side-by-side Codex / Claude rows per floor) deployed 22:17; api health sha matches.
+- New tool `tools/main_infra_external_validate.py` (E4-MERGE worktree, commits 5e789dbe, eb5c7cf1): binds the
+  qualified baseline, checks positions / in-order UV table extension / membership / cut containment / assets for any
+  candidate pair, optionally drops the orange marker faces from BEFORE, then runs the unchanged `strict_guard`
+  (helper = this worktree's tools/main_infra_candidate.py; float64 oracle on 4F/5F) and `validate` with
+  `--allow coincident_backface_removed`. Receipts under `independent-validator/external/<label>/`.
+- Queue `logs/external-queue.sh` (frozen copy `.running.sh`), sequential, RAM gate 5 GB: Codex displayed + Claude
+  stage-2 E5 (7F 19,345; 6F 25,063; 4F 47,752), then Codex newer, then Claude 5F E5 and checked-E3 candidates under
+  the same tool. First attempt failed at bind on every candidate (`verify_exact_coverage` is the duplicate-only
+  equality check); fixed in eb5c7cf1 and relaunched 22:24.
+- Pinned-file note: Codex's v6r/nr6/r6r phase plans pin `e5/6F/edit-log.jsonl` (66e1c698) and `e5/6F/stage-audit.json`
+  (aff8d33f) in this run root. The fresh 6F E5 rerun moved that directory to `e5/6F-fixed1-10292108/`; both files are
+  there, hashes unchanged. Codex's pins need the new path, nothing was lost.
+- Stage-2 E5 results (covers_prior_removal rule): 7F 20,625 to 19,345 (232 kept / 24 rolled back); 6F 27,108 to
+  25,063 (446 / 38); 4F 52,865 to 47,752 (785 / 91); 5F running. 7F E4 coplanar merge running on 19,345.
