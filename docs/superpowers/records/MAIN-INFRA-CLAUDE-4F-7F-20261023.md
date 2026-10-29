@@ -174,3 +174,15 @@ plus 3 site-291 px (Claude) vs 3 pixels from Codex's own guard build.
 Action: E5 rerun on 4F with `e5/exclusions/4F-below-oblique-20261029.json` (20 sites, expected 47,814);
 previous output kept as `e5/4F-covers1-*`. Engine follow-up: E5 rule (d) exposure (128 directions, 7 samples)
 misses what the 26-view guard's below-oblique views see; the exposure set should include the guard directions.
+
+### 6F published from the stage-2 E5 candidate (30 Oct, 00:05)
+
+Claude fresh E5 25,063 (27,108 checked E3 minus 446 kept E5 sites, 38 rolled back): strict guard PASS 0 px under
+the float64 oracle (`e5-guard-allow/6F-oracle`; the Embree guard in the external queue flags one depth-noise
+pixel), textures PASS (0 of 261,915), visible coverage PASS, interior gate 16 pairs 4 px (max 1), native QA 30
+views 16 px; signed targets FAIL: flicker_diff 6918 to 1859, flicker_same 9922 to 3001, cracks 7480 to 6512.
+Codex's 6F 26,291 / 26,290 (E7 cuts) are measured in pass 2 under the oracle after the material-order fix; their
+own full-signed receipts report flicker_diff 2147, flicker_same 4159, cracks 6581.
+Published: guard bound into `e5/6F/stage-audit.json`, dashboard preview + evidence (E3 kept as
+`candidate-e3-27108/`, `evidence-e3-27108/`), repo 04 record `upper-floors/6F` (E3 record `6F-e3-27108`, export
+`Model-Floor_06-e3-27108`), repo 03 `Model-Floor_06` 25,063, Z `6F\E5-candidate-25063\`, live. Not accepted.
