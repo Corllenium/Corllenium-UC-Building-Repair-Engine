@@ -186,3 +186,21 @@ own full-signed receipts report flicker_diff 2147, flicker_same 4159, cracks 658
 Published: guard bound into `e5/6F/stage-audit.json`, dashboard preview + evidence (E3 kept as
 `candidate-e3-27108/`, `evidence-e3-27108/`), repo 04 record `upper-floors/6F` (E3 record `6F-e3-27108`, export
 `Model-Floor_06-e3-27108`), repo 03 `Model-Floor_06` 25,063, Z `6F\E5-candidate-25063\`, live. Not accepted.
+
+### 5F stage-2 (30 Oct, 07:30)
+
+Fresh E5 (cover rule) 38,113 to 34,815 (556 sites kept, 27 rolled back, 8,488 s). Strict guard (oracle, allowed class):
+FAIL 119 moved px, excused 0 (`e5-guard-allow/5F`). Diagnosis (`e5-guard-allow/5F/diagnosis-below-oblique.json`):
+all 119 px in six below views; BEFORE first hits are 7 vertical white-concrete wall faces (194 to 775 sq in) removed
+by E5 interior_twins in 4 sites (2, 13, 48, 479); rays travel 1.3 to 98 in deeper afterwards; genuine, no twin tie,
+no marker. Codex 34,977 fails on 115 of the same pixels plus 193 more from 13 faces only Codex removed. Exclusion
+list written (`e5/exclusions/5F-below-oblique-20261030.json`, 253 faces, expected 35,068) but held: the engine
+session on branch `claude/MAIN-INFRA-E5-GUARDDIR-20261029` (633081ca, PR 32) makes E5 test exposure along the 26
+guard directions, which removes the need for per-floor exclusion lists; its 4F trial decides which route 4F and 5F take.
+Identical measurement so far (comparison.md): 5F best = Claude checked E3 38,113 (guard PASS, textures and coverage
+PASS); Codex r5g 35,343 guard PASS but textures FAIL 1,948 samples and coverage FAIL; Codex omb 34,977 guard FAIL
+308 px, textures FAIL, 15 reversed. 4F so far: Codex r4g 58,169 guard PASS but textures FAIL 618 and coverage FAIL;
+Codex omb 58,064 guard FAIL 325 px; Claude E3 52,865 measuring. 6F: Codex r6r 26,290 (E7 cuts) passes guard,
+textures and coverage with residual 12,887; Claude E5 25,063 residual 11,372 but Embree guard 1 px (oracle PASS),
+pass 2 reruns all 6F candidates under the oracle. The 4F E5 exclusion rerun has run 7.5 h of CPU (previous run
+3,333 s) with no output yet.
