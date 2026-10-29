@@ -61,7 +61,10 @@ def package_preview(*, baseline, qualification, public, revision, run_id, floor,
             receipt_path = Path(receipt.get('path', ''))
             if not receipt_path.is_file() or sha256_file(receipt_path) != receipt.get('sha256'):
                 raise ValueError('Stage-2 candidate needs a hash-bound independent guard receipt')
-            if json.loads(receipt_path.read_text(encoding='utf-8')).get('passed') is not True:
+            receipt_doc = json.loads(receipt_path.read_text(encoding='utf-8'))
+            # external guard.json carries `passed` at the top; an e5/e4 independent-guard receipt under `guard`
+            passed = receipt_doc.get('passed') if 'passed' in receipt_doc else receipt_doc.get('guard', {}).get('passed')
+            if passed is not True:
                 raise ValueError('Stage-2 candidate independent guard did not pass')
         elif contract != 'exact_duplicates' or not audit.get('source_coverage', {}).get('exact_coverage'):
             raise ValueError('Candidate coverage contract mismatch')
