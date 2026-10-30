@@ -105,7 +105,7 @@ def added_faces_contained(before: MeshData, after: MeshData, added: np.ndarray, 
     n[live] /= norm[live, None]
     d00, d01, d11 = (e0 * e0).sum(1), (e0 * e1).sum(1), (e1 * e1).sum(1)
     denom = d00 * d11 - d01 * d01
-    contained, loose = 0, []
+    contained, coplanar_only, loose = 0, 0, []
     for f in ids:
         C = after.positions[after.face_v[f]]   # (3, 3)
         D = C[None, :, :] - A[:, 0][:, None, :]
@@ -123,12 +123,15 @@ def added_faces_contained(before: MeshData, after: MeshData, added: np.ndarray, 
                 found = True
                 break
         if found:
-            contained += 1
+            contained += 1            # a cut: inside one BEFORE face
+        elif coplanar.any():
+            coplanar_only += 1        # a merge: spans several BEFORE faces of the same material in one plane;
+                                      # whether it covers exactly their union is the guard's and the Validator's call
         else:
             loose.append(int(f))
     if loose:
-        raise ValueError(f'{len(loose)} added faces lie on no BEFORE face of the same material (first: {loose[:8]})')
-    return dict(added=int(len(ids)), contained=contained)
+        raise ValueError(f'{len(loose)} added faces lie in no plane of a BEFORE face of the same material (first: {loose[:8]})')
+    return dict(added=int(len(ids)), contained=contained, coplanar_merge=coplanar_only)
 
 
 def orange_face_ids(selection: Path, floor: str) -> list[int]:
