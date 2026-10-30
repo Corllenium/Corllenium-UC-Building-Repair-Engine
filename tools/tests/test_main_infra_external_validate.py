@@ -31,12 +31,11 @@ def test_added_cut_faces_must_lie_inside_a_before_face():
     _, _, added = membership(before, cut)
     assert added.sum() == 2
     assert added_faces_contained(before, cut, added) == dict(added=2, contained=2, coplanar_merge=0)
-    cut.face_material[-1] = 1  # other material: no BEFORE face of that look shares its plane
-    with pytest.raises(ValueError):
-        added_faces_contained(before, cut, added)
-    cut.face_material[-1] = 0
-    cut.positions[6] = [1.0, 1.5, 0.0]  # outside every BEFORE face but in their plane: a merge spanning faces
+    cut.face_material[-1] = 1  # other material: not inside a material-1 face, but material-1 faces share the plane
     assert added_faces_contained(before, cut, added) == dict(added=2, contained=1, coplanar_merge=1)
+    cut.face_material[-1] = 0
+    cut.positions[6] = [1.0, 1.5, 0.0]  # both cut faces now reach outside any single BEFORE face but stay in its plane
+    assert added_faces_contained(before, cut, added) == dict(added=2, contained=0, coplanar_merge=2)
     cut.positions[6] = [1.0, 0.5, 0.5]  # off the plane: new geometry, refused
     with pytest.raises(ValueError):
         added_faces_contained(before, cut, added)
