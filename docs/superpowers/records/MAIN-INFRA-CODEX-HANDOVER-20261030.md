@@ -94,3 +94,13 @@ Live results: `R\logs\pipeline-<F>-summary.json`. Comparison of every candidate 
 3. **Finish PR 32**, then rerun E5 on 4F and 5F without exclusion lists.
 4. **Merge the branches.** The four engine branches are separate and none is merged to main.
 5. **Owner decisions still open:** accepting any floor; rollback attribution by bounding box or covering face.
+
+## 7. Dashboard deploys: read before deploying
+
+Live runs `38b8754` from branch `claude/main-infra-fresh-live-20261023` in `D:\PROJECTS\02-Corllenium-Siege\.worktrees\claude-main-infra-live`.
+That branch is the only one holding all of these: the engine-worker Agent Monitor (`5242c88`), the fresh-floor workspace, the Unity-ready
+state, the stage bars and the texture fix. Deploying any other branch removes the missing parts from production: on 30 Oct a deploy
+without `5242c88` removed the engine-worker monitor. Merge your work into this branch first, for example
+`codex/main-infra-dashboard-status-fix`, then build and deploy from there.
+
+The local preview on port 4192 uses `tools/serve_dashboard.py`, because `python -m http.server` returns 404 for paths over 260 characters.
