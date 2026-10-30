@@ -1,8 +1,8 @@
 """Keep the live site's status file carrying Claude's `freshMainInfraUpper` key (owner request 2026-10-24).
 
-Every interval: heartbeat the local progress file, download the live building-repair-status.json, set only the
-`freshMainInfraUpper` key to the validated local document, and upload it to both web roots over the same SSH
-path deploy.sh uses. Codex's uploader rewrites the whole file without this key; this loop re-adds it within one
+Every interval: heartbeat the local progress file, read the live building-repair-status.json over SSH, set only the
+`freshMainInfraUpper` key to the validated local document, and write it back over the same SSH path deploy.sh uses.
+The feed lives outside the web roots, where the dashboard serves it to signed-in accounts only. Codex's uploader rewrites the whole file without this key; this loop re-adds it within one
 interval. Nothing else in the live file is changed.
 """
 from __future__ import annotations
@@ -13,12 +13,11 @@ import os
 import subprocess
 import tempfile
 import time
-import urllib.request
 from pathlib import Path
 
 from tools.main_infra_progress import heartbeat_progress, load_progress
 
-LIVE = 'https://corllenium.ai.dev-environment.site/building-repair-status.json'
+FEED = '~/corllenium/corllenium-data/building-repair-status.json'
 REMOTE = ('~/corllenium/app/public/building-repair-status.json', '~/corllenium/web/building-repair-status.json')
 
 
@@ -90,9 +89,13 @@ def _newer(candidate, current):
         return True
 
 
+def read_feed(key, known_hosts):
+    return subprocess.run(ssh_args(key, known_hosts) + [f'cat {FEED}'], capture_output=True, check=True, timeout=120).stdout
+
+
 def publish_once(progress, key, known_hosts):
     doc = load_progress(progress)
-    live = salvage_live(urllib.request.urlopen(LIVE, timeout=30).read())
+    live = salvage_live(read_feed(key, known_hosts))
     current = live.get('freshMainInfraUpper')
     codex = codex_document()
     codex_stale = codex is not None and _newer(codex, live.get('freshMainInfra')) and live.get('freshMainInfra') != codex
@@ -103,7 +106,7 @@ def publish_once(progress, key, known_hosts):
     live['freshMainInfraUpper'] = doc
     payload = json.dumps(live, indent=2, ensure_ascii=False).encode('utf-8')
     json.loads(payload)
-    remote = f"cat > {REMOTE[0]}.tmp && mv -f {REMOTE[0]}.tmp {REMOTE[0]} && cp -f {REMOTE[0]} {REMOTE[1]}"
+    remote = f"cat > {FEED}.tmp && mv -f {FEED}.tmp {FEED}"
     subprocess.run(ssh_args(key, known_hosts) + [remote], input=payload, check=True, timeout=120)
     return 'uploaded', doc
 
