@@ -200,7 +200,7 @@ def default_services() -> list:
             Service('publisher-local', 'tools.publish_upper_status --',
                     [PYTHON, '-B', '-u', '-m', 'tools.publish_upper_status', '--progress', progress, '--feed', public / 'public' / 'building-repair-status.json',
                      '--feed', public / 'out' / 'building-repair-status.json', '--interval', '5'], CLAUDE),
-            Service('preview-4192', None, [PYTHON, '-B', '-m', 'http.server', '4192', '--bind', '127.0.0.1'], DASHBOARD_OUT, port=4192)]
+            Service('preview-4192', None, [PYTHON, '-B', ENGINE / 'tools' / 'serve_dashboard.py', '--port', '4192', '--root', '.'], DASHBOARD_OUT, port=4192)]
 
 
 def main(argv=None) -> int:
