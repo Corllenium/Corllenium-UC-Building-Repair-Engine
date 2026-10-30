@@ -2,7 +2,7 @@
 
 Branch `claude/MAIN-INFRA-E5-GUARDDIR-20261029` (worktree `.claude/worktrees/MAIN-INFRA-E5-GUARDDIR-20261029`, from
 `claude/MAIN-INFRA-GUARD-CLASS-20261029` at 60d87fab). Implementation commit 633081ca. Nothing under `engine/guard/**`
-changed. Not pushed.
+changed. Pushed to `corllenium`.
 
 ## Result
 
