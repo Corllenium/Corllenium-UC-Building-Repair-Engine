@@ -41,6 +41,21 @@ drop as to any other. With
 blocked (AGENTS.md section 4); this rule is the owner's exception and the Validator judges it under its own
 allowed-change class `coincident_backface_removed` (`engine.validate.checks.CBR`, opt-in).
 
+THE GUARD'S OWN DIRECTIONS (MAIN-INFRA-E5-GUARDDIR-20261029, after the 4F strict guard failed on 328 px: rule (d)
+removed 20 sites whose fronts the 128-direction census called hidden and the seam view did not see, but which the
+eight below-oblique guard views hit, 0.65-62 in in front of the next surface; `diagnosis-below-oblique.json`). Every
+face of an opposite pair is ALSO tested along the strict guard's 26 view directions, both signs (52), with
+`engine.vis.guard_exposure.guard_visibility`: 10 sample points per face (the census's 4 plus near-corner and
+edge-mid) cast from the front, plus the guard's own orthographic pixel grid at `profile.guard_size` (and 2x) in
+every view, counting the pixels each face owns from its front and from its back. A face the guard sees is never
+called hidden: rule (c) drops a twin only when its front is hidden in BOTH tests (and its winner is exposed in
+either); rule (d) plans a seam only when neither face is seen by the census, the guard (front OR back: a pixel
+whose first hit is the face changes when it goes, whichever side) or the seam view. A face the census called
+hidden but the guard sees is kept `guard_seen` (`kept.guard_seen`, with `guard_front` / `guard_back` on its row).
+`report["exposure_n_dirs"]` stays the census's 128; `report["exposure_directions_total"]` is 128 + 52;
+`report["guard_exposure"]` records `views`, `directions`, `samples_per_face`, `pixel_grid`, `faces_tested`,
+`seen_front`, `seen_back_only`, `census_hidden_guard_seen` and `seconds`.
+
 WHO LOSES. The same-facing pairs join faces into coincident groups (union-find over the pairs). Within a group every
 face is considered in ascending (area, -id) order -- the smaller face first, an exact copy by its higher id -- against
 the faces of its group that are still kept and overlap it (`O`). The faces of `O` that BEAT it are:
@@ -86,6 +101,7 @@ from engine.fixes.overlap import double_layers
 from engine.fixes.pipeline import guard_depth_tol
 from engine.guard.views import VIEWS_26
 from engine.vis.exposure import compute_side_exposure
+from engine.vis.guard_exposure import guard_visibility
 from engine.pipeline import analyse_topology, flat_material_indices
 from engine.repair.engines.e3_hidden import DENSE_POINTS_PER_FACE, MAX_SITE_FACES, _components, split_group
 from engine.repair.types import NO_MATERIAL_LOOK, Edit, RepairContext, UnitState
@@ -102,8 +118,8 @@ DEFAULT_WIN_PATTERNS = ("UC_PAL_05", "UC_PAL_12", "UC_PAL_00", "quartz_block_top
 #: Material-name patterns that LOSE a different-look pair: the generic concrete surfaces.
 DEFAULT_LOSER_PATTERNS = ("concrete_white", "concrete_gray")
 RULES = ("same_look", "priority", "larger_area", "backface_twin", "interior_twins")
-KEPT_REASONS = ("uncovered", "no_winner", "both_exposed", "no_backface_winner", "anchored", "only_coverage",
-                "no_overlap", "seam_seen", "seam_unverified", "covers_prior_removal")
+KEPT_REASONS = ("uncovered", "no_winner", "both_exposed", "no_backface_winner", "guard_seen", "anchored",
+                "only_coverage", "no_overlap", "seam_seen", "seam_unverified", "covers_prior_removal")
 #: How many kept opposite pairs `report["kept_pairs"]` lists (all are counted in `kept_pairs_total`).
 KEPT_PAIRS_LISTED = 500
 
@@ -241,6 +257,20 @@ class E5Coincident:
             front, back = compute_side_exposure(pos - centre, faces, ok, n_dirs=profile.n_dirs)
         seconds["exposure"] = time.perf_counter() - t0
 
+        # ---- and along the strict guard's own 26 view directions (both signs) and its own pixel grid: a face the
+        # guard can see is never called hidden (4F, 2026-10-29: 20 seams visible only from the below-oblique views)
+        t0 = time.perf_counter()
+        guard = None
+        opposite_faces = np.array(sorted({f for pair in opposite_of for f in pair}), np.int64)
+        if len(opposite_faces):
+            guard = guard_visibility(pos - centre, faces, ok, opposite_faces, views=VIEWS_26, size=profile.guard_size)
+        seconds["guard_exposure"] = time.perf_counter() - t0
+        guard_front = {int(f): (int(guard["front"][f]) if guard is not None else 0) for f in opposite_faces.tolist()}
+        guard_back = {int(f): (int(guard["back"][f]) if guard is not None else 0) for f in opposite_faces.tolist()}
+
+        def guard_seen(f: int) -> bool:
+            return guard_front.get(f, 0) > 0 or guard_back.get(f, 0) > 0
+
         # ---- the coincident groups, and who loses in each
         t0 = time.perf_counter()
         involved = sorted({f for i, j, _s in pairs for f in (i, j)})
@@ -254,6 +284,9 @@ class E5Coincident:
         look_of = {f: _look(mesh, looks, int(material[f])) for f in involved}
         prio_of = {f: self._priority(mesh, int(material[f])) for f in involved}
         exposure = {f: (float(front[f]), float(back[f])) if front is not None else (None, None) for f in involved}
+        for f in involved:
+            guard_front.setdefault(f, 0)
+            guard_back.setdefault(f, 0)
         dropped: dict[int, dict] = {}
         kept_rows: list[dict] = []
         kept_counts = {k: 0 for k in KEPT_REASONS}
@@ -284,14 +317,18 @@ class E5Coincident:
                 if not others:
                     kept_counts["no_overlap"] += 1
                     continue
-                winners = [g for g in others if self._beats(g, f, area, look_of, prio_of, opposite_of, exposure)]
+                winners = [g for g in others if self._beats(g, f, area, look_of, prio_of, opposite_of, exposure,
+                                                           guard_front)]
                 if not winners:
                     opposite_only = all((g, f) in opposite_of for g in others)
                     f_front = exposure[f][0]
-                    if opposite_only and f_front is not None and f_front <= 0.0 and f not in anchored:
-                        # rule (d), interior_twins: a back-to-back pair BOTH of whose fronts are hidden is an interior
-                        # block-against-block seam; both faces go, as one site, and the judge decides
-                        partners = [g for g in others if exposure[g][0] <= 0.0 and g not in anchored]
+                    census_hidden = f_front is not None and f_front <= 0.0
+                    if opposite_only and census_hidden and not guard_seen(f) and f not in anchored:
+                        # rule (d), interior_twins: a back-to-back pair BOTH of whose fronts are hidden -- from the
+                        # census's directions and from the strict guard's own -- is an interior block-against-block
+                        # seam; both faces go, as one site, and the judge decides
+                        partners = [g for g in others if exposure[g][0] <= 0.0 and not guard_seen(g)
+                                    and g not in anchored]
                         if partners:
                             seam = [f] + partners
                             for h in seam:
@@ -301,6 +338,7 @@ class E5Coincident:
                                               "winner_looks": [look_of[g] for g in mates],
                                               "winner_areas": [round(float(area[g]), 4) for g in mates],
                                               "front": exposure[h][0], "back": exposure[h][1],
+                                              "guard_front": guard_front[h], "guard_back": guard_back[h],
                                               "winner_front": [exposure[g][0] for g in mates],
                                               "winner_back": [exposure[g][1] for g in mates],
                                               "overlap_fraction": round(self._coverage(poly[h], [poly[g] for g in mates]), 6),
@@ -309,8 +347,10 @@ class E5Coincident:
                             for h in seam[1:]:
                                 interior_pairs.append((min(f, h), max(f, h)))
                             continue
-                    if opposite_only and f_front is not None and f_front > 0.0 \
-                            and all(exposure[g][0] > 0.0 for g in others):
+                    if opposite_only and census_hidden and guard_seen(f):
+                        reason = "guard_seen"                 # the census called it hidden; the guard's directions see it
+                    elif opposite_only and f_front is not None and (f_front > 0.0 or guard_front[f] > 0) \
+                            and all(exposure[g][0] > 0.0 or guard_front[g] > 0 for g in others):
                         reason = "both_exposed"               # a legitimate two-sided zero-thickness slab
                     elif opposite_only:
                         reason = "no_backface_winner"
@@ -319,7 +359,7 @@ class E5Coincident:
                     kept_counts[reason] += 1
                     kept_rows.append(self._kept_row(f, reason, others,
                                                     self._coverage(poly[f], [poly[g] for g in others]), look_of, area,
-                                                    exposure))
+                                                    exposure, guard_front, guard_back))
                     if opposite_only:
                         for g in others:
                             key = (min(f, g), max(f, g))
@@ -333,11 +373,13 @@ class E5Coincident:
                 cover = self._coverage(poly[f], [poly[g] for g in winners])
                 if f in anchored:
                     kept_counts["anchored"] += 1
-                    kept_rows.append(self._kept_row(f, "anchored", winners, cover, look_of, area, exposure))
+                    kept_rows.append(self._kept_row(f, "anchored", winners, cover, look_of, area, exposure,
+                                                    guard_front, guard_back))
                     continue
                 if cover < self.cover_fraction:
                     kept_counts["uncovered"] += 1
-                    kept_rows.append(self._kept_row(f, "uncovered", winners, cover, look_of, area, exposure))
+                    kept_rows.append(self._kept_row(f, "uncovered", winners, cover, look_of, area, exposure,
+                                                    guard_front, guard_back))
                     continue
                 rule = ("backface_twin" if any((g, f) in opposite_of for g in winners)
                         else "same_look" if all(look_of[g] == look_of[f] for g in winners)
@@ -348,6 +390,7 @@ class E5Coincident:
                               "winner_looks": [look_of[g] for g in winners],
                               "winner_areas": [round(float(area[g]), 4) for g in winners],
                               "front": exposure[f][0], "back": exposure[f][1],
+                              "guard_front": guard_front[f], "guard_back": guard_back[f],
                               "winner_front": [exposure[g][0] for g in winners],
                               "winner_back": [exposure[g][1] for g in winners],
                               "overlap_fraction": round(cover, 6), "rule": rule}
@@ -519,6 +562,17 @@ class E5Coincident:
             "prior_removed": prior_report, "excluded_sites": excluded_sites, "excluded_faces": excluded_faces,
             "cover_fraction": float(self.cover_fraction), "cull_opposite_backfaces": bool(self.cull_opposite_backfaces),
             "exposure_n_dirs": int(profile.n_dirs) if front is not None else None,
+            "exposure_directions_total": (int(profile.n_dirs) + int(guard["directions"])) if guard is not None else None,
+            "guard_exposure": None if guard is None else {
+                "views": int(guard["views"]), "directions": int(guard["directions"]),
+                "samples_per_face": int(guard["samples_per_face"]), "pixel_grid": guard["pixel_grid"],
+                "faces_tested": int(len(opposite_faces)),
+                "seen_front": int(sum(1 for f in opposite_faces.tolist() if guard_front[f] > 0)),
+                "seen_back_only": int(sum(1 for f in opposite_faces.tolist()
+                                          if guard_front[f] == 0 and guard_back[f] > 0)),
+                "census_hidden_guard_seen": int(sum(1 for f in opposite_faces.tolist()
+                                                    if float(front[f]) <= 0.0 and guard_seen(f))),
+                "seconds": round(seconds["guard_exposure"], 2)},
             "flat_materials": sorted(int(m) for m in flat),
             "faces_in_pairs": len(involved), "groups": sum(1 for g in groups if len(g) > 1),
             "dropped": len(dropped),
@@ -534,13 +588,16 @@ class E5Coincident:
         return edits
 
     @staticmethod
-    def _beats(g: int, f: int, area, look_of, prio_of, opposite_of, exposure) -> bool:
+    def _beats(g: int, f: int, area, look_of, prio_of, opposite_of, exposure, guard_front=None) -> bool:
         """Does the kept face `g` beat `f`? A back-to-back pair (rule c, `backface_twin`): `g` wins iff `f`'s front
-        exposure is 0 and `g`'s is above 0, whatever the looks. A same-facing pair: the module docstring's rules a
-        and b."""
+        is hidden from the census's directions AND from the strict guard's own (`guard_front`, front hits per face,
+        0 when absent), and `g`'s front is seen by either, whatever the looks. A same-facing pair: the module
+        docstring's rules a and b."""
         if (g, f) in opposite_of:
             f_front, g_front = exposure[f][0], exposure[g][0]
-            return f_front is not None and g_front is not None and f_front <= 0.0 < g_front
+            guard_front = guard_front or {}
+            return (f_front is not None and g_front is not None and f_front <= 0.0 and guard_front.get(f, 0) == 0
+                    and (g_front > 0.0 or guard_front.get(g, 0) > 0))
         if look_of[g] == look_of[f]:
             return area[g] > area[f] or (area[g] == area[f] and g < f)
         if prio_of[g] != prio_of[f]:
@@ -554,9 +611,11 @@ class E5Coincident:
         return float(shapely.intersection(target, shapely.unary_union(covers)).area / target.area)
 
     @staticmethod
-    def _kept_row(f, reason, others, cover, look_of, area, exposure) -> dict:
+    def _kept_row(f, reason, others, cover, look_of, area, exposure, guard_front=None, guard_back=None) -> dict:
+        guard_front, guard_back = guard_front or {}, guard_back or {}
         return {"face": int(f), "look": look_of[f], "area": round(float(area[f]), 4), "kept": reason,
                 "winners": [int(g) for g in others], "winner_looks": [look_of[g] for g in others],
                 "front": exposure[f][0], "back": exposure[f][1],
+                "guard_front": int(guard_front.get(f, 0)), "guard_back": int(guard_back.get(f, 0)),
                 "winner_front": [exposure[g][0] for g in others],
                 "overlap_fraction": round(float(cover), 6)}
