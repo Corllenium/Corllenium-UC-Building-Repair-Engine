@@ -553,6 +553,18 @@ def finished_receipt(path: Path) -> dict | None:
     return doc if doc.get('finished_utc') and isinstance(doc.get('validator'), dict) else None
 
 
+def is_oracle(receipt: dict) -> bool:
+    caster = str((receipt.get('guard') or {}).get('caster') or '')
+    return 'BoundedBrute' in caster or 'oracle' in caster.lower()
+
+
+def receipt_rank(receipt: dict):
+    """Best first: guard passed, textures + nothing_deleted PASS, float64 oracle caster, newest."""
+    checks = receipt['validator'].get('checks') or {}
+    both = checks.get('textures', {}).get('status') == 'PASS' and checks.get('nothing_deleted', {}).get('status') == 'PASS'
+    return (bool(receipt['guard'].get('passed')), both, is_oracle(receipt), str(receipt.get('finished_utc') or ''))
+
+
 def measurement_summary(out: Path, candidate: Path, *, reused: bool) -> dict:
     receipt = finished_receipt(out)
     if receipt is None:
@@ -564,11 +576,13 @@ def measurement_summary(out: Path, candidate: Path, *, reused: bool) -> dict:
     validation = Path(receipt['validator'].get('path') or (out / 'validation' / 'validation.json'))
     if not validation.is_file():
         validation = out / 'validation' / 'validation.json'
+    nd = checks['nothing_deleted']
     return dict(out=str(out), label=receipt.get('label'), receipt=str(out / 'external-validation.json'), guard_path=str(out / 'guard.json'),
                 validation=str(validation), candidate=str(candidate), engine_sha=receipt['candidate_engine_sha256'], reused=reused,
-                guard_passed=bool(guard.get('passed')), guard_px=guard_px,
+                guard_passed=bool(guard.get('passed')), guard_px=guard_px, guard_totals=totals, caster=guard.get('caster'), oracle=is_oracle(receipt),
                 textures=checks['textures']['status'], textures_failed=checks['textures'].get('samples_failed'),
-                nothing_deleted=checks['nothing_deleted']['status'], deleted=checks['nothing_deleted'].get('deleted'),
+                nothing_deleted=nd['status'], deleted=nd.get('deleted'), faces_unmet=nd.get('faces_unmet'), area_lost_in2=nd.get('area_lost_in2'),
+                failed_by=nd.get('failed_by'),
                 problems=checks.get('problems', {}).get('status'), verdict_validator=receipt['validator'].get('verdict'),
                 kinds={k: dict(before=v.get('before'), after=v.get('after')) for k, v in (checks.get('problems', {}).get('kinds') or {}).items()
                        if isinstance(v, dict)})
@@ -675,7 +689,8 @@ class FloorPipeline:
                     + (f' ({m["textures_failed"]} samples)' if m['textures'] != 'PASS' else '')
                     + f'; coverage {m["nothing_deleted"]}' + (f' ({m["deleted"]} deleted)' if m['nothing_deleted'] != 'PASS' else '')
                     + f'; interior {interior_px} px' + (f' over {cfg.interior_px_max}' if interior_px > cfg.interior_px_max else '')
-                    + f'; native QA {native_px} px' + (' (reused receipt)' if m['reused'] else ''))
+                    + f'; native QA {native_px} px'
+                    + (f' (reused receipt {m["label"]}, {"float64 oracle" if m["oracle"] else "Embree"})' if m['reused'] else ''))
             self.note(stage, line)
             bar = m['guard_passed'] and m['textures'] == 'PASS' and m['nothing_deleted'] == 'PASS' and interior_px <= cfg.interior_px_max
             if bar:
@@ -707,6 +722,9 @@ class FloorPipeline:
         cfg = self.cfg
         validation = read_json(m['validation'])
         faces = sorted({int(f) for site in validation.get('sites', []) for f in site.get('faces', [])})
+        if m['textures'] == 'PASS' and m['nothing_deleted'] != 'PASS' and not m.get('faces_unmet') and not m.get('area_lost_in2'):
+            raise StageFailed('e5', f'{m["label"]}: coverage FAIL by the floor pixel measure (failed_by {json.dumps(m.get("failed_by"))}; '
+                                    f'faces_unmet 0, area_lost_in2 0): not healable by a face restore; diagnosis needed')
         if not faces:
             raise StageFailed('e5', f'{m["label"]} fails textures/coverage but validation.json names no site faces; diagnosis needed')
         n = 1
@@ -731,6 +749,15 @@ class FloorPipeline:
 
     def heal_e4(self, candidate: Path, m: dict, round_no: int, excluded: set) -> Path:
         cfg = self.cfg
+        validation = read_json(m['validation'])
+        if 'e4_region_source_faces' not in (validation.get('physical_precision') or {}):
+            row = self.summary['measurements']['e4'][-1]
+            raise StageFailed('e4', f'{m["label"]} on {candidate.name}: guard {"PASS" if m["guard_passed"] else "FAIL"} {m["guard_px"]} px '
+                                    f'(totals {json.dumps({k: v for k, v in (m.get("guard_totals") or {}).items() if v})}); '
+                                    f'textures {m["textures"]} ({m["textures_failed"]} samples); coverage {m["nothing_deleted"]} ({m["deleted"]} deleted, '
+                                    f'faces_unmet {m.get("faces_unmet")}, area_lost_in2 {m.get("area_lost_in2")}, failed_by {json.dumps(m.get("failed_by"))}); '
+                                    f'interior {row["interior_px"]} px. E4 heal needs the E4-bound Validator receipt (tools/run_e4_replay_loop.py); '
+                                    f'kept the E5 result')
         explained = self.steps['explain_e4'](candidate=candidate, validation=Path(m['validation']))
         write_json(cfg.root / 'e4' / f'{candidate.name}-explained.json', explained)
         if explained.get('unexplained'):
@@ -757,12 +784,16 @@ class FloorPipeline:
         audit = candidate_audit(candidate)
         engine_sha, triangles = audit['engine_candidate_sha256'], audit['output_triangles']
         self.stage('measure', 'running', 10, note=f'{stage}: measuring {candidate.name} ({triangles} triangles)')
-        existing = self.find_receipt(engine_sha)
+        existing = self.find_receipt(engine_sha, stage)
         if existing is not None:
             m = measurement_summary(existing, candidate, reused=True)
         else:
             suffix = '' if candidate.name == cfg.floor else '-' + candidate.name.split('-', 1)[1]
             label = f'{cfg.worker}-{stage}{suffix}-{triangles}'          # claude-e5-19345, claude-e5-restore1-19348, claude-e4-round1-19641
+            if finished_receipt(cfg.external / label) is not None:     # that label already holds a finished receipt (another caster): keep it
+                label += '-oracle' if cfg.oracle else '-embree'
+                while finished_receipt(cfg.external / label) is not None:
+                    label += '-' + stamp()
             out = cfg.external / label
             self.wait_in_progress(engine_sha)                        # another process measuring this candidate finishes first
             self.make_room(out, engine_sha)
@@ -785,14 +816,28 @@ class FloorPipeline:
                         f'coverage {m["nothing_deleted"]}; interior {interior_px} px; native QA {native_px} px')
         return m, interior_px, native_px
 
-    def find_receipt(self, engine_sha: str) -> Path | None:
+    def find_receipt(self, engine_sha: str, stage: str | None = None) -> Path | None:
+        """The best finished receipt for the candidate hash (guard passed, textures + coverage PASS, oracle, newest). On a floor where
+        the oracle is the default an Embree guard failure is never the answer: with no oracle receipt the candidate is measured again."""
         if not self.cfg.external.is_dir():
             return None
+        rows = []
         for folder in sorted(self.cfg.external.iterdir()):
             receipt = finished_receipt(folder)
             if receipt is not None and receipt.get('candidate_engine_sha256') == engine_sha:
-                return folder
-        return None
+                rows.append((receipt_rank(receipt), folder, receipt))
+        if not rows:
+            return None
+        rows.sort(key=lambda row: row[0], reverse=True)
+        rank, folder, receipt = rows[0]
+        if self.cfg.oracle and not receipt['guard'].get('passed') and not is_oracle(receipt):
+            if stage:
+                self.note(stage, f'{folder.name}: Embree guard FAIL {receipt["guard"].get("totals", {}).get("moved_other", "?")} px and no oracle '
+                                 f'receipt; measuring again with the float64 oracle')
+            return None
+        if stage and len(rows) > 1:
+            self.note(stage, f'chose receipt {folder.name} of {len(rows)} for this candidate ({", ".join(r[1].name for r in rows[1:])} ranked lower)')
+        return folder
 
     @staticmethod
     def writer_pid(folder: Path):
@@ -931,6 +976,10 @@ class FloorPipeline:
             self.note('e4', failure.note)
             self.note('e4', f'E4 failed the bar; the E5 candidate {e5_candidate.name} stays the floor result')
             self.stage('e4', 'failed', self.summary['stages']['e4']['percent'])
+            e5_rows = self.summary['measurements']['e5']
+            self.stage('measure', 'done', 100, note=f'e5: {e5_candidate.name} is the floor result ({e5_rows[-1]["label"]}: guard PASS '
+                                                    f'{e5_rows[-1]["guard_px"]} px, textures PASS, coverage PASS, interior {e5_rows[-1]["interior_px"]} px); '
+                                                    f'e4 failed: {failure.note}')
             self.summary['e4_candidate'] = None
             return None
         self.summary['e4_candidate'] = str(passing)
@@ -948,6 +997,15 @@ class FloorPipeline:
         doc = self.progress.floor(cfg.floor)
         head = read_json(cfg.progress) if cfg.progress.is_file() else {}
         revision, run_id = head.get('source_revision', ''), head.get('run_id', '')
+        published = self.published_engine_sha(revision, run_id)
+        if published == audit['engine_candidate_sha256']:
+            self.note('publish', f'{candidate.name} ({triangles} triangles) is already published (the evidence stage-audit carries its engine hash); '
+                                 f'only the stage health and the floor state are refreshed')
+            self.summary['publish'].update(already_published=True, game_dir=str(cfg.game_dir))
+            self.stage('publish', 'done', 100)
+            self.set_final_state(candidate, stage, m, audit, triangles, doc)
+            return
+        self.summary['publish']['already_published'] = False
         self.stage('publish', 'running', 10, note=f'binding the guard into {candidate.name}')
         self.steps['bind_guard'](candidate=candidate, measurement=m)
         self.summary['publish']['bound'] = True
@@ -1005,11 +1063,26 @@ class FloorPipeline:
         self.note('publish', f'{stage.upper()} {triangles:,} triangles published; guard PASS {m["guard_px"]} px, textures PASS, coverage PASS, '
                              f'interior {m.get("interior_px", self.summary["measurements"][stage][-1]["interior_px"])} px; signed targets {m["problems"]}: {kinds}')
         self.stage('publish', 'done', 100)
+        self.set_final_state(candidate, stage, m, audit, triangles, doc)
+
+    def set_final_state(self, candidate: Path, stage: str, m: dict, audit: dict, triangles: int, doc: dict):
         step = self.step_text(candidate, stage, m, triangles)
         state = 'unity_ready' if self.progress.supports_state('unity_ready') else 'validating'
-        self.progress.set_floor(cfg.floor, state, step, blocker=doc.get('blocker'), input_triangles=int(audit.get('input_triangles', 0)),
+        self.progress.set_floor(self.cfg.floor, state, step, blocker=doc.get('blocker'), input_triangles=int(audit.get('input_triangles', 0)),
                                 output_triangles=int(triangles))
         self.summary['publish'].update(state=state, step=step)
+
+    def published_engine_sha(self, revision: str, run_id: str):
+        """The engine hash of the candidate whose evidence is published in the first dashboard root, or None."""
+        if not self.cfg.public or not revision or not run_id:
+            return None
+        path = self.cfg.public[0] / 'models' / 'main-infra' / revision / self.cfg.floor / run_id / 'evidence' / 'stage-audit.json'
+        if os.name == 'nt' and path.is_absolute():
+            path = Path('\\\\?\\' + str(path.resolve()))
+        try:
+            return read_json(path).get('engine_candidate_sha256') if path.is_file() else None
+        except (OSError, ValueError):
+            return None
 
     def move_preview_aside(self, floor_dir: Path) -> list:
         """<floor_dir>/candidate -> candidate-<stage>-<triangles> (from the published evidence's stage-audit), same for evidence."""

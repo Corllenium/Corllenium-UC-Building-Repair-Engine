@@ -39,14 +39,14 @@ def make_candidate(path, *, triangles, cleanup_mode, text, input_triangles=20625
     return path
 
 
-def make_root(tmp_path):
+def make_root(tmp_path, floor=FLOOR):
     root = tmp_path / 'run'
-    e3 = make_candidate(root / 'e3' / FLOOR, triangles=20625, cleanup_mode='e3_remove_only', text='e3', input_triangles=26152,
+    e3 = make_candidate(root / 'e3' / floor, triangles=20625, cleanup_mode='e3_remove_only', text='e3', input_triangles=26152,
                         extra=dict(before_snapshot=str(tmp_path / 'snap')))
     (tmp_path / 'snap').mkdir()
-    (root / 'normalized' / FLOOR).mkdir(parents=True)
-    (root / 'normalized' / FLOOR / 'before.engine.obj').write_text('before', encoding='utf-8')
-    interior = root / 'independent-validator' / 'e3-interior' / FLOOR
+    (root / 'normalized' / floor).mkdir(parents=True)
+    (root / 'normalized' / floor / 'before.engine.obj').write_text('before', encoding='utf-8')
+    interior = root / 'independent-validator' / 'e3-interior' / floor
     write_json(interior / 'camera-qualification.json', dict(qualified=True))
     write_json(interior / 'qualified-native-poses.json', dict(poses=[dict(name=f'eye_{i}') for i in range(16)]))
     write_json(interior / 'renders' / 'comparison.json', dict(after_sha256=sha('e3'), views=[dict(name='eye_0', different_pixels=0)]))
@@ -111,22 +111,27 @@ class Fakes:
         candidate, out = Path(candidate), Path(out)
         engine_sha = json.loads((candidate / 'stage-audit.json').read_text())['engine_candidate_sha256']
         v = dict(self.verdicts[engine_sha])
+        deleted = v.get('deleted', 0)
         checks = dict(textures=dict(status=v.get('textures', 'PASS'), samples_failed=v.get('samples_failed', 0)),
-                      nothing_deleted=dict(status=v.get('nothing_deleted', 'PASS'), deleted=v.get('deleted', 0)),
+                      nothing_deleted=dict(status=v.get('nothing_deleted', 'PASS'), deleted=deleted, faces_unmet=v.get('faces_unmet', deleted),
+                                           area_lost_in2=v.get('area_lost_in2', 1.5 if deleted else 0.0), failed_by=v.get('failed_by')),
                       problems=dict(status='FAIL', kinds=dict(flicker_diff=dict(before=4518, after=1199, target=100),
                                                                 cracks=dict(before=5429, after=4631, target=100))))
+        caster = 'BoundedBruteCaster (original float64 oracle)' if (oracle or v.get('caster') == 'oracle') else 'EmbreeCaster default'
+        finished = v.get('finished_utc', '2026-10-30T00:00:00Z')
         out.mkdir(parents=True)
         write_json(out / 'guard.json', dict(passed=v.get('guard', True), totals=dict(moved_other=v.get('moved', 0)),
-                                             report=dict(views=[]), caster='EmbreeCaster default', depth_tol_inches=5.9e-05,
-                                             finished_utc='2026-10-30T00:00:00Z'))
+                                             report=dict(views=[]), caster=caster, depth_tol_inches=5.9e-05, finished_utc=finished))
         validation = dict(verdict='FAIL', checks=checks, sites=v.get('sites', []), inputs=dict(after_sha256=engine_sha))
+        if v.get('e4_bound'):
+            validation['physical_precision'] = dict(before='before.engine.obj', e4_region_source_faces={})
         write_json(out / 'validation' / 'validation.json', validation)
         write_json(out / 'external-validation.json', dict(
             label=label, worker='claude', reviewer='test', candidate_engine_sha256=engine_sha, output_triangles=1,
-            guard=dict(passed=v.get('guard', True), totals=dict(moved_other=v.get('moved', 0)), caster='EmbreeCaster default'),
+            guard=dict(passed=v.get('guard', True), totals=dict(moved_other=v.get('moved', 0)), caster=caster),
             validator=dict(verdict='FAIL', checks=checks, allowed_changes_active=['coincident_backface_removed'],
                            path=str(out / 'validation' / 'validation.json')),
-            finished_utc='2026-10-30T00:00:00Z'))
+            finished_utc=finished))
         return 0 if v.get('guard', True) and checks['textures']['status'] == 'PASS' else 2
 
     def render(self, *, before, after, out, poses=None, **kw):
@@ -180,8 +185,8 @@ class Fakes:
         return {name: getattr(self, name) for name in rfp.STEP_NAMES}
 
 
-def config_for(root, tmp_path, **kw):
-    return rfp.Config(floor=FLOOR, root=root, worker='claude', claude_worktree=tmp_path / 'cl', progress=tmp_path / 'progress.json',
+def config_for(root, tmp_path, floor=FLOOR, **kw):
+    return rfp.Config(floor=floor, root=root, worker='claude', claude_worktree=tmp_path / 'cl', progress=tmp_path / 'progress.json',
                       public=[tmp_path / 'pub1', tmp_path / 'pub2'], repo04=tmp_path / 'r04', repo03=tmp_path / 'r03',
                       z_root=tmp_path / 'z', blender=tmp_path / 'blender.exe', **{**dict(max_rounds=3, min_free_gb=5.0), **kw})
 
@@ -367,7 +372,7 @@ def test_heal_rounds_are_bounded(tmp_path):
 
 def test_an_e4_failure_keeps_the_e5_result_and_publishes_it(tmp_path):
     root, _ = make_root(tmp_path)
-    verdicts = {sha('e5'): PASS, sha('e4-merge'): dict(guard=True, textures='FAIL', samples_failed=12, sites=[dict(id=1, faces=[7])]),
+    verdicts = {sha('e5'): PASS, sha('e4-merge'): dict(guard=True, textures='FAIL', samples_failed=12, sites=[dict(id=1, faces=[7])], e4_bound=True),
                 'explain': dict(e4_regions=[], e5_sites=[], unexplained=[dict(face=7)], reasons=dict(e4_regions={}, e5_sites={}))}
     fakes = Fakes(root, verdicts)
     summary, progress = run(root, tmp_path, fakes)
@@ -387,7 +392,7 @@ def test_an_e4_failure_keeps_the_e5_result_and_publishes_it(tmp_path):
 def test_e4_reruns_without_the_explained_regions(tmp_path):
     root, _ = make_root(tmp_path)
     verdicts = {sha('e5'): PASS,
-                sha('e4-merge'): dict(guard=True, nothing_deleted='FAIL', deleted=3, sites=[dict(id=1, faces=[7])]),
+                sha('e4-merge'): dict(guard=True, nothing_deleted='FAIL', deleted=3, sites=[dict(id=1, faces=[7])], e4_bound=True),
                 sha('e4-merge-x7F-round2-exclude.json'): PASS,
                 'explain': dict(e4_regions=[12], e5_sites=[], unexplained=[], reasons=dict(e4_regions={'12': [dict(face=7)]}, e5_sites={}))}
     fakes = Fakes(root, verdicts)
@@ -399,6 +404,84 @@ def test_e4_reruns_without_the_explained_regions(tmp_path):
     assert json.loads(e4_runs[1]['exclude'].read_text())['regions'] == [12]
     assert summary['final_candidate'] == str(root / 'e4' / '7F-round2')
     assert 'round 2' in progress.stages['e4']['note'] and 'excluded regions [12]' in progress.stages['e4']['note']
+
+
+def test_e4_heal_without_the_e4_bound_receipt_keeps_the_e5_result(tmp_path):
+    root, _ = make_root(tmp_path)
+    fail = dict(guard=True, textures='FAIL', samples_failed=12, nothing_deleted='FAIL', deleted=5, faces_unmet=2, area_lost_in2=40.5,
+                failed_by=dict(measure='floor_pixels', threshold=0.001), sites=[dict(id=1, faces=[7])], interior_px=9)
+    fakes = Fakes(root, {sha('e5'): PASS, sha('e4-merge'): fail})      # the external receipt: no physical_precision block
+    summary, progress = run(root, tmp_path, fakes)
+    assert summary['status'] == 'published' and summary['final_stage'] == 'e5'
+    assert 'explain_e4' not in fakes.names() and 'restore_faces' not in fakes.names()
+    note = progress.stages['e4']['note']
+    assert 'E4 heal needs the E4-bound Validator receipt (tools/run_e4_replay_loop.py); kept the E5 result' in note
+    assert 'guard PASS 0 px' in note and 'textures FAIL (12 samples)' in note and 'coverage FAIL (5 deleted' in note
+    assert 'faces_unmet 2' in note and 'area_lost_in2 40.5' in note and 'floor_pixels' in note and 'interior 9 px' in note
+    assert progress.stages['e4']['status'] == 'failed' and progress.stages['publish']['status'] == 'done'
+    assert next(c for n, c in fakes.calls if n == 'archive')['candidate'] == root / 'e5' / FLOOR
+
+
+def test_publishing_the_already_published_e5_only_refreshes_the_state(tmp_path):
+    root, _ = make_root(tmp_path)
+    make_candidate(root / 'e5' / FLOOR, triangles=19345, cleanup_mode='e3_then_e5_cull', text='e5')
+    write_json(tmp_path / 'progress.json', dict(source_revision='r' * 64, run_id='run-x', floors={}))
+    for pub in ('pub1', 'pub2'):
+        write_json(tmp_path / pub / 'models' / 'main-infra' / ('r' * 64) / FLOOR / 'run-x' / 'evidence' / 'stage-audit.json',
+                   dict(engine_candidate_sha256=sha('e5'), cleanup_mode='e3_then_e5_cull', output_triangles=19345))
+    fail = dict(guard=True, textures='FAIL', samples_failed=3, sites=[dict(id=1, faces=[7])])
+    fakes = Fakes(root, {sha('e5'): PASS, sha('e4-merge'): fail})
+    summary, progress = run(root, tmp_path, fakes)
+    assert summary['status'] == 'published' and summary['final_stage'] == 'e5' and summary['publish']['already_published'] is True
+    assert not {'bind_guard', 'package_preview', 'publish_evidence', 'stage_errors', 'archive', 'mirror_z', 'upload_live', 'rebuild_library'} & set(fakes.names())
+    assert progress.stages['publish']['status'] == 'done' and progress.stages['publish']['percent'] == 100
+    assert 'already published' in progress.stages['publish']['note']
+    assert progress.state['state'] == 'unity_ready' and progress.state['step'].startswith('LOCAL FIXED OBJ, Unity-ready: ')
+    assert {k: v['status'] for k, v in progress.stages.items()} == dict(e3='done', e5='done', e4='failed', measure='done', publish='done')
+
+
+def test_a_floor_pixel_coverage_failure_is_not_healed_by_a_face_restore(tmp_path):
+    root, _ = make_root(tmp_path)
+    fail = dict(guard=True, textures='PASS', nothing_deleted='FAIL', deleted=0, faces_unmet=0, area_lost_in2=0.0,
+                failed_by=dict(measure='floor_pixels', changed=412), sites=[dict(id=1, faces=[7, 8])])
+    fakes = Fakes(root, {sha('e5'): fail})
+    summary, progress = run(root, tmp_path, fakes)
+    assert summary['status'] == 'e5_failed' and 'restore_faces' not in fakes.names()
+    note = progress.stages['e5']['note']
+    assert 'floor pixel measure' in note and 'floor_pixels' in note and 'faces_unmet 0' in note and 'not healable by a face restore' in note
+
+
+def test_the_best_finished_receipt_is_chosen_for_a_candidate_hash(tmp_path):
+    root, _ = make_root(tmp_path, floor='6F')
+    make_candidate(root / 'e5' / '6F', triangles=25063, cleanup_mode='e3_then_e5_cull', text='e5')
+    fakes = Fakes(root, {sha('e5'): dict(guard=False, moved=1, caster='embree', finished_utc='2026-10-30T02:00:00Z'), sha('e4-merge'): PASS})
+    fakes.measure(candidate=root / 'e5' / '6F', out=root / 'independent-validator' / 'external' / 'claude-e5-25063', label='claude-e5-25063', oracle=False)
+    fakes.verdicts[sha('e5')] = dict(PASS, caster='oracle', finished_utc='2026-10-30T01:00:00Z')      # older, but oracle and passing
+    fakes.measure(candidate=root / 'e5' / '6F', out=root / 'independent-validator' / 'external' / 'claude-e5-25063-oracle', label='claude-e5-25063-oracle', oracle=True)
+    fakes.calls.clear()
+    summary, progress = run(root, tmp_path, fakes, floor='6F')
+    assert summary['status'] == 'published'
+    assert [c['candidate'] for n, c in fakes.calls if n == 'measure'] == [root / 'e4' / '6F-round1']
+    assert summary['measurements']['e5'][0]['label'] == 'claude-e5-25063-oracle'
+    assert 'claude-e5-25063-oracle' in progress.stages['e5']['note'] and 'float64 oracle' in progress.stages['e5']['note']
+    assert [c['oracle'] for n, c in fakes.calls if n == 'measure'] == [True]
+
+
+def test_an_embree_failed_receipt_on_an_oracle_floor_is_remeasured_with_the_oracle(tmp_path):
+    root, _ = make_root(tmp_path, floor='6F')
+    make_candidate(root / 'e5' / '6F', triangles=25063, cleanup_mode='e3_then_e5_cull', text='e5')
+    fakes = Fakes(root, {sha('e5'): dict(guard=False, moved=1, caster='embree'), sha('e4-merge'): PASS})
+    embree = root / 'independent-validator' / 'external' / 'claude-e5-25063'
+    fakes.measure(candidate=root / 'e5' / '6F', out=embree, label='claude-e5-25063', oracle=False)
+    fakes.calls.clear()
+    fakes.verdicts[sha('e5')] = PASS
+    summary, progress = run(root, tmp_path, fakes, floor='6F')
+    assert summary['status'] == 'published'
+    measures = [c for n, c in fakes.calls if n == 'measure']
+    assert measures[0]['candidate'] == root / 'e5' / '6F' and measures[0]['oracle'] is True
+    assert measures[0]['out'] == embree.with_name('claude-e5-25063-oracle') and measures[0]['label'] == 'claude-e5-25063-oracle'
+    assert finished_receipt(embree) is not None                   # the Embree receipt stays where it was
+    assert 'Embree guard FAIL' in progress.stages['e5']['note'] and 'claude-e5-25063-oracle' in progress.stages['e5']['note']
 
 
 def test_the_interior_gate_over_threshold_fails_the_candidate(tmp_path):
