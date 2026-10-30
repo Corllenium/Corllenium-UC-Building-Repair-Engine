@@ -25,6 +25,44 @@ this one keeps only the faces the guard sees, and rule (c) may still drop their 
 `e5/4F-covers1-10292339` predates the `covers_prior_removal` run, so its 47,752 is not a like-for-like triangle count: it
 is the candidate that failed. `e5/4F` is the like-for-like comparison.
 
+The full Validator then failed this candidate on `textures` and `nothing_deleted`, on the same 13 faces that failed
+48,232. The guard-direction fix does not reach them. See "Validator on 47,943".
+
+## Validator on 47,943 (2026-10-30)
+
+Same signed Validator and allowed class as the 48,232 and 48,245 receipts, run through
+`tools/main_infra_external_validate.py` with the float64 oracle. Its own guard run agrees with the trial's receipt: PASS,
+every total 0 over 4,853,024 px.
+
+| Check | 47,943 (this trial) | 48,232 (`e5/4F`) | 48,245 (`e5/4F-restore1`) |
+| :--- | :--- | :--- | :--- |
+| Verdict | FAIL | FAIL | FAIL |
+| `textures` failed samples (of 322,351) | 79 | 79 | 0 |
+| `textures` failed faces | 13 | 13 | 0 |
+| `nothing_deleted` | FAIL | FAIL | PASS |
+| `area_lost_in2` | 1,095.22 | 1,095.22 | 0 |
+| Failing sites | 2 | 2 | 0 |
+| `flicker_diff` (before 21,701) | 5,159 | 5,389 | 5,389 |
+| `flicker_same` (before 24,737) | 7,076 | 7,266 | 7,285 |
+| `cracks` (before 17,688) | 13,744 | 13,857 | 13,860 |
+| `reversed` | 0 | 0 | 0 |
+| `hidden`, report only (before 45,967) | 15,750 | 16,039 | 16,052 |
+
+The 13 faces are 21504, 25451, 25452, 29044, 34754, 34756, 34757, 34759, 36508, 36509, 39710, 43071 and 43072. They sit
+in edit-log sites 17, 21, 293 and 416. Sites 293 and 416 are `interior_twins` only and hold 9 of the 13; sites 17 and 21 mix
+`backface_twin` and `interior_twins`. The three faces that fail the floor pixel test fail from a `probe` viewpoint, and the guard
+passes with all 13 gone, so these are faces the Validator's probes see and the guard's 26 orthographic views do not. Rule (d)
+tests the census, the guard directions and the seam view, none of which is a probe.
+
+`e5/4F-restore1` is 48,232 with exactly these 13 faces put back by `tools/main_infra_restore_faces.py`. The same restore on
+this trial should give 47,956 triangles. That is expected, not measured: it was not run.
+
+So the signed targets that still fail improve a little (flicker_diff by 230, flicker_same by 209, cracks by 116 against
+48,245), but this candidate as it stands is worse than 48,245 on the two checks 48,245 passes.
+
+Peak working set 1,281 MB (Validator receipt: 1,281.3 MB, commit 1,528.4 MB; the 30 s sampler agrees), under the 3 GB limit.
+System free RAM fell to 1.91 GB during the run. Wall 6,031 s.
+
 ## The 20 diagnosed sites
 
 `data/main-infra-fresh/run-claude-4f-7f-20261023/independent-validator/e5-guard-allow/4F/diagnosis-below-oblique.json`
@@ -97,13 +135,14 @@ The whole of `engine/tests` and `tools/tests` was not run, only the E5 and guard
 - `data/e5-exposure-trial/4F-guard/independent-guard.json`, sha256
   `a04d4d88e89a0377fa5c99146eefbcdabb7f73c195bef8a9824c0568741cf195`, caster `BoundedBruteCaster` (float64 oracle),
   `--allow coincident_backface_removed`, depth tolerance 5.9e-6 in.
+- `data/e5-exposure-trial/4F-external/external-validation.json`, `guard.json`, `validation/validation.json` and
+  `validation/evidence/site-0*.png`; log `4F-external.log`; RAM samples `4F-external-ram.csv`.
 
 ## Not done or not verified
 
 - 5F, 6F and 7F were not rerun. They still carry the old exposure test.
-- The Validator was not run on this candidate. `stage-audit.json` still says guard `pending`; this trial did not bind the
-  receipt into it, and E4 was not run on it.
-- Peak RAM was not measured, so the 3 GB limit is unverified.
+- The 13 faces were not restored into this candidate, so no 47,956 candidate exists or has been measured.
+- `stage-audit.json` still says guard `pending`; this trial did not bind the receipt into it, and E4 was not run on it.
 - A 40 s timing script and short read-only scripts ran beside the trial and guard, so "one process" was not strictly held.
 - Commit 633081ca was made with `core.hooksPath=/dev/null`, unrequested, which skipped the `post-commit` hook. The repo has no
   `pre-commit` hook, so no validation was bypassed. This record was committed normally.
