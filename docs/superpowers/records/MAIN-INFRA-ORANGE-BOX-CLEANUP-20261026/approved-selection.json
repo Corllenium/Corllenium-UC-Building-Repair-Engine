@@ -1,0 +1,814 @@
+{
+  "schema_version": 1,
+  "job_id": "MAIN-INFRA-ORANGE-BOX-CLEANUP-20261026",
+  "owner_authority": {
+    "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\omb\\docs\\superpowers\\records\\MAIN-INFRA-ORANGE-BOX-CLEANUP-20261026\\owner-exception.json",
+    "sha256": "cc50de48d4ce44448d9c6dead08a99ee1df0b2b7fe6de7fe74b01727d6cf618e"
+  },
+  "owner_quote": "also you can delete the orange box okay thats fine to delete for all floors",
+  "controller_approval_received_utc": "2026-10-26T02:36:35.936160+00:00",
+  "controller_approval": "Root reviewed actual05da233a and seven reports; BOTH exact1m closed cuboid componentIDs per floor approved.2F first marker contact does not authorize any contact face deletion.",
+  "inventory_receipt": {
+    "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\omb\\data\\orange-inventory\\run-20261026\\inventory-receipt.json",
+    "sha256": "05da233a7440ef3db9e426a05dff8fe6fce52f62aa693f645af6cf5797988d86"
+  },
+  "floors": [
+    {
+      "floor": "1F",
+      "report": {
+        "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\omb\\data\\orange-inventory\\run-20261026\\1F-inventory.json",
+        "sha256": "a41a1838b40ea3daa75b8b33a680de879d6cdf26374f725ff1877d96917c3bf7"
+      },
+      "source": {
+        "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\blender-review\\MAIN-INFRA-7FLOORS-NOT_FINAL-20261026-R2-inputs\\1F\\source\\before.source.obj",
+        "sha256": "26eda65235ce9d1f8c82e97b00d4da21cc1e272d0817e769dddb6ca192f4aea5",
+        "bytes": 512090
+      },
+      "candidate": {
+        "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\blender-review\\MAIN-INFRA-7FLOORS-NOT_FINAL-20261026-R2-inputs\\1F\\candidate\\candidate.source.obj",
+        "sha256": "9d8d3718dcd4f41f84483d0e2e1957cd96ac6a7bcc6627bce94c906d81d71008",
+        "bytes": 386420
+      },
+      "lineage": {
+        "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\p1e\\data\\e5-partial-execute\\attempt1\\candidate\\source-faces.json",
+        "sha256": "bd4efa7999c00b26cdfb4ab8d6efc735996864c36ecb168962d749bb3c15252d",
+        "floor": "1F",
+        "mode": "exact_SOURCE_partial_composed_lineage",
+        "checkpoint": "c6e2d803c32293afd6865d1e70cd0a597f3242b1a240b5c16015ab67b487622e"
+      },
+      "component_ids": [
+        "d07a2c99f4a7917ed990946bee7780ee7e86500c3ccb11818089670a4b8aa56c",
+        "710b244d073df25a8ad7a11ce26290dddaf6fe328dd3b4a3ded314cadfb55f99"
+      ],
+      "original_face_ids": [
+        15832,
+        15833,
+        15834,
+        15835,
+        15836,
+        15837,
+        15838,
+        15839,
+        15840,
+        15841,
+        15842,
+        15843,
+        15844,
+        15845,
+        15846,
+        15847,
+        15848,
+        15849,
+        15850,
+        15851,
+        15852,
+        15853,
+        15854,
+        15855
+      ],
+      "candidate_face_ids": [
+        10149,
+        10150,
+        10151,
+        10152,
+        10153,
+        10154,
+        10155,
+        10156,
+        10157,
+        10158,
+        10159,
+        10160,
+        10161,
+        10162,
+        10163,
+        10164,
+        10165,
+        10166,
+        10167,
+        10168,
+        10169,
+        10170,
+        10171,
+        10172
+      ],
+      "original_bounds": [
+        [
+          [
+            0.0,
+            0.0,
+            42.0
+          ],
+          [
+            1.0,
+            1.0,
+            43.0
+          ]
+        ],
+        [
+          [
+            14.0,
+            5.0,
+            0.0
+          ],
+          [
+            15.0,
+            6.0,
+            1.0
+          ]
+        ]
+      ],
+      "preserve_contact_original_face_ids": [],
+      "preserve_contact_current_face_ids": [],
+      "expected_kept_current_indices_sha256": "37249020e844b6fe652dd361484575e836de33cd34057e51d18bc9d7f20e8a6f",
+      "input_triangles": 10573,
+      "expected_output_triangles": 10549
+    },
+    {
+      "floor": "2F",
+      "report": {
+        "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\omb\\data\\orange-inventory\\run-20261026\\2F-inventory.json",
+        "sha256": "dff7b60590ece2771d1c1ff33862a23cc7669848e0a64be412a189b47b7eb2c9"
+      },
+      "source": {
+        "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\blender-review\\MAIN-INFRA-7FLOORS-NOT_FINAL-20261026-R2-inputs\\2F\\source\\before.source.obj",
+        "sha256": "399663bed0a483cef1300f0df25d97c95f1b49790aa477ac27227f1728080253",
+        "bytes": 2047793
+      },
+      "candidate": {
+        "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\blender-review\\MAIN-INFRA-7FLOORS-NOT_FINAL-20261026-R2-inputs\\2F\\candidate\\candidate.source.obj",
+        "sha256": "07bbaacc8c9e5fdf8e18fccd0911601aeaa6a2e61976a563bfb61b4d6970c37d",
+        "bytes": 1524684
+      },
+      "lineage": {
+        "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-E3-20261023\\data\\main-infra-e3\\run-20261023-attempt2\\2F\\source-faces.json",
+        "sha256": "8145e727e2675538339cac06eee2a9bd9d48cb86020779229758ca0c487d0ec2",
+        "floor": "2F",
+        "mode": "original_source_survivors"
+      },
+      "component_ids": [
+        "7989ff8502d23070f4575432a182969b284a75abe0f88a6320221c3cfbaec81e",
+        "c20bbca698ddf72934a35214f5e183d516e7027c3b319b90c35c1752aec88d89"
+      ],
+      "original_face_ids": [
+        56804,
+        56805,
+        56806,
+        56807,
+        56808,
+        56809,
+        56810,
+        56811,
+        56812,
+        56813,
+        56814,
+        56815,
+        56816,
+        56817,
+        56818,
+        56819,
+        56820,
+        56821,
+        56822,
+        56823,
+        56824,
+        56825,
+        56826,
+        56827
+      ],
+      "candidate_face_ids": [
+        38110,
+        38111,
+        38112,
+        38113,
+        38114,
+        38115,
+        38116,
+        38117,
+        38118,
+        38119,
+        38120,
+        38121,
+        38122,
+        38123,
+        38124,
+        38125,
+        38126,
+        38127,
+        38128,
+        38129,
+        38130,
+        38131,
+        38132,
+        38133
+      ],
+      "original_bounds": [
+        [
+          [
+            0.0,
+            0.0,
+            44.0
+          ],
+          [
+            1.0,
+            1.0,
+            45.0
+          ]
+        ],
+        [
+          [
+            35.0,
+            6.0,
+            0.0
+          ],
+          [
+            36.0,
+            7.0,
+            1.0
+          ]
+        ]
+      ],
+      "preserve_contact_original_face_ids": [
+        1913,
+        1914,
+        2212,
+        2213,
+        14339,
+        56363,
+        56364
+      ],
+      "preserve_contact_current_face_ids": [
+        1618,
+        1619,
+        1877,
+        1878,
+        9946,
+        37865,
+        37866
+      ],
+      "expected_kept_current_indices_sha256": "5f47ad9437ea75d61a48c46ec336c8915b751041e801bc6abdc290a619aacf1c",
+      "input_triangles": 38134,
+      "expected_output_triangles": 38110
+    },
+    {
+      "floor": "3F",
+      "report": {
+        "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\omb\\data\\orange-inventory\\run-20261026\\3F-inventory.json",
+        "sha256": "1c98ebb4d688feb62effc7a18f694c9c2d530987503a6106bc12cdfcb7eb318b"
+      },
+      "source": {
+        "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\blender-review\\MAIN-INFRA-7FLOORS-NOT_FINAL-20261026-R2-inputs\\3F\\source\\before.source.obj",
+        "sha256": "f9f2f90eb52083233ab8c9baad7e8e9e61e9d528f95b90df743475afc5a39bc8",
+        "bytes": 2022804
+      },
+      "candidate": {
+        "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\blender-review\\MAIN-INFRA-7FLOORS-NOT_FINAL-20261026-R2-inputs\\3F\\candidate\\candidate.source.obj",
+        "sha256": "7b8a2f0dc74ec546d1ae389b50dc2b9ba4a555870150aae33a00a6a81a674a1c",
+        "bytes": 1777902
+      },
+      "lineage": {
+        "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-e3-3f-retain-visible-20261024\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-e3\\attempt2\\run-20261024-3F-retain-visible\\3F\\source-faces.json",
+        "sha256": "05c591b7721355ba2a3a3cd0897f2c49e379c85a1ad279bae442c285cb0a0370",
+        "floor": "3F",
+        "mode": "original_source_survivors"
+      },
+      "component_ids": [
+        "654a29233696d4dc2b16db48f12f1ff8913a5a52a65a11d87f18c9416278aaf2",
+        "225d94f8477ba9ba144bd42a696e30f4bedf720fb991434073ea3831046f1dbc"
+      ],
+      "original_face_ids": [
+        53318,
+        53319,
+        53320,
+        53321,
+        53322,
+        53323,
+        53324,
+        53325,
+        53326,
+        53327,
+        53328,
+        53329,
+        53330,
+        53331,
+        53332,
+        53333,
+        53334,
+        53335,
+        53336,
+        53337,
+        53338,
+        53339,
+        53340,
+        53341
+      ],
+      "candidate_face_ids": [
+        44700,
+        44701,
+        44702,
+        44703,
+        44704,
+        44705,
+        44706,
+        44707,
+        44708,
+        44709,
+        44710,
+        44711,
+        44712,
+        44713,
+        44714,
+        44715,
+        44716,
+        44717,
+        44718,
+        44719,
+        44720,
+        44721,
+        44722,
+        44723
+      ],
+      "original_bounds": [
+        [
+          [
+            0.0,
+            0.0,
+            44.0
+          ],
+          [
+            1.0,
+            1.0,
+            45.0
+          ]
+        ],
+        [
+          [
+            35.0,
+            7.0,
+            0.0
+          ],
+          [
+            36.0,
+            8.0,
+            1.0
+          ]
+        ]
+      ],
+      "preserve_contact_original_face_ids": [],
+      "preserve_contact_current_face_ids": [],
+      "expected_kept_current_indices_sha256": "9d117db2fd433de955620b835e4eb0a90e8fa1422a13929a7e2454fa87952661",
+      "input_triangles": 44972,
+      "expected_output_triangles": 44948
+    },
+    {
+      "floor": "4F",
+      "report": {
+        "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\omb\\data\\orange-inventory\\run-20261026\\4F-inventory.json",
+        "sha256": "0a451da74c40940999eebabac2878e6f5609a743339442e773097095e94e76f7"
+      },
+      "source": {
+        "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\blender-review\\MAIN-INFRA-7FLOORS-NOT_FINAL-20261026-R2-inputs\\4F\\source\\before.source.obj",
+        "sha256": "37e7a7af64e568cb9d94620e8f5eeed95331a72bad07040e1cc225289b0c2f81",
+        "bytes": 3021939
+      },
+      "candidate": {
+        "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\blender-review\\MAIN-INFRA-7FLOORS-NOT_FINAL-20261026-R2-inputs\\4F\\candidate\\candidate.source.obj",
+        "sha256": "f5c1a613604a731d7874b7e275a8502cbeb87b599f36e8e4c36371895aca0c60",
+        "bytes": 2422611
+      },
+      "lineage": {
+        "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\r4f\\data\\main-infra-4f-native-retention\\run-20261026\\e5\\4F\\baseline-source-faces.json",
+        "sha256": "900093e5590d5c37609e768d7466ddaa0905e2167fb4550d3ecb527a2bd87e79",
+        "floor": "4F",
+        "mode": "original_source_survivors"
+      },
+      "component_ids": [
+        "4d89d08226037936348a24c310188911599532ed8631d68089182950eb876a2b",
+        "8e70202026139d51bd3b26b8cd6c691b35cbb014ebceef846471dfc7a31b70f0"
+      ],
+      "original_face_ids": [
+        78136,
+        78137,
+        78138,
+        78139,
+        78140,
+        78141,
+        78142,
+        78143,
+        78144,
+        78145,
+        78146,
+        78147,
+        78148,
+        78149,
+        78150,
+        78151,
+        78152,
+        78153,
+        78154,
+        78155,
+        78156,
+        78157,
+        78158,
+        78159
+      ],
+      "candidate_face_ids": [
+        58064,
+        58065,
+        58066,
+        58067,
+        58068,
+        58069,
+        58070,
+        58071,
+        58072,
+        58073,
+        58074,
+        58075,
+        58076,
+        58077,
+        58078,
+        58079,
+        58080,
+        58081,
+        58082,
+        58083,
+        58084,
+        58085,
+        58086,
+        58087
+      ],
+      "original_bounds": [
+        [
+          [
+            0.0,
+            0.0,
+            44.0
+          ],
+          [
+            1.0,
+            1.0,
+            45.0
+          ]
+        ],
+        [
+          [
+            35.0,
+            8.0,
+            0.0
+          ],
+          [
+            36.0,
+            9.0,
+            1.0
+          ]
+        ]
+      ],
+      "preserve_contact_original_face_ids": [],
+      "preserve_contact_current_face_ids": [],
+      "expected_kept_current_indices_sha256": "e34d84bf6a1ebb084fec0954eee45514256388df229f417ae0da8132ae7c3c16",
+      "input_triangles": 58088,
+      "expected_output_triangles": 58064
+    },
+    {
+      "floor": "5F",
+      "report": {
+        "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\omb\\data\\orange-inventory\\run-20261026\\5F-inventory.json",
+        "sha256": "f9067ef7a438787ff64345c93dc8956190ca423b6adea380a0db2331d315620b"
+      },
+      "source": {
+        "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\blender-review\\MAIN-INFRA-7FLOORS-NOT_FINAL-20261026-R2-inputs\\5F\\source\\before.source.obj",
+        "sha256": "f02a30d576be5416e7dfd3189e50f9d09ba4d0c3d342ffa3754f471dde3235c2",
+        "bytes": 2206284
+      },
+      "candidate": {
+        "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\blender-review\\MAIN-INFRA-7FLOORS-NOT_FINAL-20261026-OVERVIEW-LATEST-inputs\\5F\\candidate\\candidate.source.obj",
+        "sha256": "f01435a6ecfafc55c9f63ef154195c41f8cc307b8290c63d983c00ed1382a0d3",
+        "bytes": 1565975
+      },
+      "lineage": {
+        "path": "D:\\LLM_BACKUP\\Codex session\\f5n\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-5f-native-retention\\run-20261026-r2\\e5\\5F\\baseline-source-faces.json",
+        "sha256": "38a0dc975232d0503cc15604e2f8aaa2e7df7ed074d0d6d571faef185fcab890",
+        "floor": "5F",
+        "mode": "original_source_survivors"
+      },
+      "component_ids": [
+        "77f10dd61e68872eaac022933056c2509204a9a0a04431aad6c37acadc5b0359",
+        "b634931003b2ecfa5a2c9aaeb19bfbe1b0b86c2fa0c8e55ce3d789b4944f3576"
+      ],
+      "original_face_ids": [
+        56344,
+        56345,
+        56346,
+        56347,
+        56348,
+        56349,
+        56350,
+        56351,
+        56352,
+        56353,
+        56354,
+        56355,
+        56356,
+        56357,
+        56358,
+        56359,
+        56360,
+        56361,
+        56362,
+        56363,
+        56364,
+        56365,
+        56366,
+        56367
+      ],
+      "candidate_face_ids": [
+        34977,
+        34978,
+        34979,
+        34980,
+        34981,
+        34982,
+        34983,
+        34984,
+        34985,
+        34986,
+        34987,
+        34988,
+        34989,
+        34990,
+        34991,
+        34992,
+        34993,
+        34994,
+        34995,
+        34996,
+        34997,
+        34998,
+        34999,
+        35000
+      ],
+      "original_bounds": [
+        [
+          [
+            0.0,
+            0.0,
+            45.0
+          ],
+          [
+            1.0,
+            1.0,
+            46.0
+          ]
+        ],
+        [
+          [
+            34.0,
+            7.0,
+            0.0
+          ],
+          [
+            35.0,
+            8.0,
+            1.0
+          ]
+        ]
+      ],
+      "preserve_contact_original_face_ids": [],
+      "preserve_contact_current_face_ids": [],
+      "expected_kept_current_indices_sha256": "82cdd2aff4bcf2e78c44ae14d0475787b14b428c46b5c931e05369311047f7f8",
+      "input_triangles": 35001,
+      "expected_output_triangles": 34977
+    },
+    {
+      "floor": "6F",
+      "report": {
+        "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\omb\\data\\orange-inventory\\run-20261026\\6F-inventory.json",
+        "sha256": "72a3f9a0cdfc5a5a65f1e6d61214e451e9773772910d93dd3842f1707a5ca684"
+      },
+      "source": {
+        "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\blender-review\\MAIN-INFRA-7FLOORS-NOT_FINAL-20261026-R2-inputs\\6F\\source\\before.source.obj",
+        "sha256": "b50d98962aee52ed3fa011915cbe9d41ef30387f9c46056ae79775792179b792",
+        "bytes": 1242080
+      },
+      "candidate": {
+        "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\blender-review\\MAIN-INFRA-7FLOORS-NOT_FINAL-20261026-R2-inputs\\6F\\candidate\\candidate.source.obj",
+        "sha256": "f84234485e63cc510f9d6e7fa49893652ac8749bb27ffe6e7a7954a21db0a9b0",
+        "bytes": 1031106
+      },
+      "lineage": {
+        "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\MAIN-INFRA-CLAUDE-4F-7F-20261023\\data\\main-infra-fresh\\run-claude-4f-7f-20261023\\e3\\6F\\source-faces.json",
+        "sha256": "38888a5e9a091071bef69a4c57a55066f3dfb45d7e5dc06f8683ae70a8c3e373",
+        "floor": "6F",
+        "mode": "original_source_survivors"
+      },
+      "component_ids": [
+        "99b5824e30b2af674ca3dabf2eac1840ceedadd2d99dd056dbcdeb4b98398546",
+        "7b99ddd7964ca0185e59a5035ea258413d3d02b285489220636fc222a5f91a9c"
+      ],
+      "original_face_ids": [
+        34838,
+        34839,
+        34840,
+        34841,
+        34842,
+        34843,
+        34844,
+        34845,
+        34846,
+        34847,
+        34848,
+        34849,
+        34850,
+        34851,
+        34852,
+        34853,
+        34854,
+        34855,
+        34856,
+        34857,
+        34858,
+        34859,
+        34860,
+        34861
+      ],
+      "candidate_face_ids": [
+        27084,
+        27085,
+        27086,
+        27087,
+        27088,
+        27089,
+        27090,
+        27091,
+        27092,
+        27093,
+        27094,
+        27095,
+        27096,
+        27097,
+        27098,
+        27099,
+        27100,
+        27101,
+        27102,
+        27103,
+        27104,
+        27105,
+        27106,
+        27107
+      ],
+      "original_bounds": [
+        [
+          [
+            0.0,
+            0.0,
+            45.0
+          ],
+          [
+            1.0,
+            1.0,
+            46.0
+          ]
+        ],
+        [
+          [
+            35.0,
+            10.0,
+            0.0
+          ],
+          [
+            36.0,
+            11.0,
+            1.0
+          ]
+        ]
+      ],
+      "preserve_contact_original_face_ids": [],
+      "preserve_contact_current_face_ids": [],
+      "expected_kept_current_indices_sha256": "e637aad505f93e8f9155c9662596203f7d21afd1e5ac00e5c23fb94a3fe54626",
+      "input_triangles": 27108,
+      "expected_output_triangles": 27084
+    },
+    {
+      "floor": "7F",
+      "report": {
+        "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\.claude\\worktrees\\omb\\data\\orange-inventory\\run-20261026\\7F-inventory.json",
+        "sha256": "1d34cd5ae373995c8f60a868c83dba5d058829d6a2c519098055e27eb959a8f5"
+      },
+      "source": {
+        "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\blender-review\\MAIN-INFRA-7FLOORS-NOT_FINAL-20261026-R2-inputs\\7F\\source\\before.source.obj",
+        "sha256": "92da1779e8328dfab4e0bd1f987581e4ce60b3d99a26622f4252a861de05c8a3",
+        "bytes": 921991
+      },
+      "candidate": {
+        "path": "D:\\PROJECTS\\05-Corllenium-UC-Building-Repair-Engine\\data\\blender-review\\MAIN-INFRA-7FLOORS-NOT_FINAL-20261026-R2-inputs\\7F\\candidate\\candidate.source.obj",
+        "sha256": "849b082378f93055f723a2b23913473eebf94ab5094f56c58eb4a06830526328",
+        "bytes": 750098
+      },
+      "lineage": {
+        "path": "D:\\LLM_BACKUP\\Codex session\\main-infra-7f-native97-retention-20261025\\05-Corllenium-UC-Building-Repair-Engine\\data\\main-infra-7f-native97\\run-20261025\\e5\\7F\\baseline-source-faces.json",
+        "sha256": "4a3ddca3bf486362bfd493649150bd73e496278eaea9d2f9e1602a4f1ab10ee6",
+        "floor": "7F",
+        "mode": "original_source_survivors"
+      },
+      "component_ids": [
+        "a366d228f984b3181aeb670306865e914574a5ff7bae881db1d8ec4f380a2776",
+        "d502c14860d6bfc662b5374852a09c372b4e8d4b1ab58840830ccaad0b5c79f9"
+      ],
+      "original_face_ids": [
+        26128,
+        26129,
+        26130,
+        26131,
+        26132,
+        26133,
+        26134,
+        26135,
+        26136,
+        26137,
+        26138,
+        26139,
+        26140,
+        26141,
+        26142,
+        26143,
+        26144,
+        26145,
+        26146,
+        26147,
+        26148,
+        26149,
+        26150,
+        26151
+      ],
+      "candidate_face_ids": [
+        19671,
+        19672,
+        19673,
+        19674,
+        19675,
+        19676,
+        19677,
+        19678,
+        19679,
+        19680,
+        19681,
+        19682,
+        19683,
+        19684,
+        19685,
+        19686,
+        19687,
+        19688,
+        19689,
+        19690,
+        19691,
+        19692,
+        19693,
+        19694
+      ],
+      "original_bounds": [
+        [
+          [
+            0.0,
+            0.0,
+            44.0
+          ],
+          [
+            1.0,
+            1.0,
+            45.0
+          ]
+        ],
+        [
+          [
+            35.0,
+            8.0,
+            0.0
+          ],
+          [
+            36.0,
+            9.0,
+            1.0
+          ]
+        ]
+      ],
+      "preserve_contact_original_face_ids": [],
+      "preserve_contact_current_face_ids": [],
+      "expected_kept_current_indices_sha256": "88d6ef41483a2d5a14bdbbc692198ae36a23a046360617cc4820e4fd490d11b0",
+      "input_triangles": 19695,
+      "expected_output_triangles": 19671
+    }
+  ],
+  "approved_components": 14,
+  "approved_original_faces": 168,
+  "approved_candidate_faces": 168,
+  "whole_original_sources_immutable": true,
+  "only_explicit_faces_may_be_filtered_from_new_reference": true,
+  "other_orange_surfaces_authorized": false,
+  "guard_and_signed_targets_unchanged": true,
+  "all_other_current_faces_must_be_byte_exact": true,
+  "independent_validation_required": true,
+  "acceptance": false
+}

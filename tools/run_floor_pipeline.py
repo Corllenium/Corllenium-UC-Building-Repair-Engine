@@ -149,6 +149,7 @@ class Config:
     blender: Path = DEFAULT_BLENDER
     python: str = sys.executable
     exclude_sites: Path | None = None
+    drop_before_faces: Path | None = None   # approved-selection.json, for candidates made by main_infra_drop_markers
     max_rounds: int = 3
     min_free_gb: float = 5.0
     max_wait_s: float = 7200.0
@@ -333,6 +334,8 @@ class Commands:
                           '--reviewer', self.cfg.reviewer, '--allow', CBR, '--min-free-gb', self.cfg.min_free_gb]
         if oracle:
             argv.append('--original-oracle')
+        if self.cfg.drop_before_faces:
+            argv += ['--drop-before-faces', self.cfg.drop_before_faces]
         return argv
 
     def render(self, before, after, out, poses=None):
@@ -1256,6 +1259,7 @@ def build_parser():
     parser.add_argument('--blender', type=Path, default=DEFAULT_BLENDER)
     parser.add_argument('--python', default=sys.executable)
     parser.add_argument('--exclude-sites', type=Path, default=None, help='R/e5/exclusions/<file> for a fresh E5 run')
+    parser.add_argument('--drop-before-faces', type=Path, default=None, help='approved-selection.json: judge against a BEFORE without the owner-authorized marker faces')
     parser.add_argument('--max-rounds', type=int, default=3)
     parser.add_argument('--min-free-gb', type=float, default=5.0)
     parser.add_argument('--max-wait-s', type=float, default=7200.0)
@@ -1271,7 +1275,7 @@ def build_parser():
 def config_from_args(args) -> Config:
     return Config(floor=args.floor, root=args.root, worker=args.worker, claude_worktree=args.claude_worktree, progress=args.progress,
                   public=list(args.public) if args.public else list(DEFAULT_PUBLIC), repo04=args.repo04, repo03=args.repo03,
-                  z_root=args.z_root, blender=args.blender, python=args.python, exclude_sites=args.exclude_sites, max_rounds=args.max_rounds,
+                  z_root=args.z_root, blender=args.blender, python=args.python, exclude_sites=args.exclude_sites, drop_before_faces=args.drop_before_faces, max_rounds=args.max_rounds,
                   min_free_gb=args.min_free_gb, max_wait_s=args.max_wait_s, interior_px_max=args.interior_px_max, job_id=args.job_id,
                   reviewer=args.reviewer, oracle=args.oracle, dry_run=args.dry_run)
 

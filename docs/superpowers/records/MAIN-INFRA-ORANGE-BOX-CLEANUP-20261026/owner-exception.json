@@ -1,0 +1,15 @@
+{
+  "owner_quote": "also you can delete the orange box okay thats fine to delete for all floors",
+  "owner_message_date": "2026-10-26",
+  "controller_received_utc": "2026-10-26T02:00:02.107259+00:00",
+  "authority": "Direct owner instruction forwarded by Root in this team task",
+  "scope": "Only identified orange BOX marker components on MAIN INFRA1F-7F",
+  "original_sources_mutable": false,
+  "all_orange_material_deletion_authorized": false,
+  "facade_deletion_authorized": false,
+  "approved_original_face_sets": null,
+  "approval_of_exact_selection_pending": true,
+  "guard_or_signed_target_change": false,
+  "independent_validation_required": true,
+  "acceptance": false
+}
