@@ -29,7 +29,7 @@ Do not start a second copy of a floor. The supervisor adopts a running pipeline,
 | Engine stages, driver, supervisor, shared measurement | `W\MAIN-INFRA-E4-MERGE-20261023` (call it E4) | `claude/MAIN-INFRA-E4-MERGE-20261023` |
 | Run data, progress tools, publishers | `W\MAIN-INFRA-CLAUDE-4F-7F-20261023` (CLAUDE) | `claude/MAIN-INFRA-CLAUDE-4F-7F-20261023` |
 | Strict guard allowed-change class | `W\MAIN-INFRA-GUARD-CLASS-20261029` | `claude/MAIN-INFRA-GUARD-CLASS-20261029` |
-| Unfinished E5 exposure fix (PR 32) | `W\MAIN-INFRA-E5-GUARDDIR-20261029` | `claude/MAIN-INFRA-E5-GUARDDIR-20261029` |
+| E5 exposure fix, draft PR 1, stacked on the guard branch | `W\MAIN-INFRA-E5-GUARDDIR-20261029` | `claude/MAIN-INFRA-E5-GUARDDIR-20261029` |
 | Dashboard source, local preview | `W\SIEGE-MAIN-INFRA-20261023\dashboard` | `claude/main-infra-fresh-upper-20261023` |
 | Live dashboard build | `D:\PROJECTS\02-Corllenium-Siege\.worktrees\claude-main-infra-live` | `claude/main-infra-fresh-live-20261023` |
 
@@ -68,7 +68,7 @@ reported, not blocking. `unity_ready` means saved locally and passed that bar. I
 | 7F | E5, 19,345 | failed: coverage floor measure, interior 457 px |
 | 6F | E5, 25,063 | failed: interior 1,623 px |
 | 5F | E5, 35,068 | crashed: "a region triangle lies outside the footprint of its source faces" |
-| 4F | E3, 52,865 for now | running; restore candidate 48,245 already meets the bar and publishes when the run ends |
+| 4F | E5 guard-direction fix plus 13 restored faces, 47,956 (31 Oct, replaced 48,245) | failed on 48,245; not run on 47,956 |
 
 Files: `D:\PROJECTS\03-Corllenium-UC-Game\Assets\Models\Campus\Repaired\Main-Infrastructure\Floor\Model-Floor_0N\`.
 Live results: `R\logs\pipeline-<F>-summary.json`. Comparison of every candidate from both workers: `R\independent-validator\external\comparison.md`.
@@ -76,8 +76,8 @@ Live results: `R\logs\pipeline-<F>-summary.json`. Comparison of every candidate 
 ## 5. What we learned
 
 - **Interior-twin slivers:** E5 rule (d) removed back-to-back faces that the guard's below-oblique views can see. 4F (20 sites) and
-  5F (4 sites) needed `e5/exclusions/*.json`. The proper fix is PR 32: test exposure along the 26 guard directions. It is unfinished:
-  its tests, 4F trial and guard receipt are not done.
+  5F (4 sites) needed `e5/exclusions/*.json`. The proper fix is PR 1 (draft, not merged): test exposure along the 26 guard directions. 4F needed no
+  exclusion list with it. 5F, 6F and 7F have not been rerun with it, and the full test suites have not been run on it.
 - **Your candidates under the same measurement:** 7F 19,671, 5F 34,977 and 35,343, 4F 58,064 and 58,169 fail textures and coverage.
   6F 26,290 passes both with higher residuals than Claude's 25,063. See `comparison.md`.
 - **Embree on 6F:** one depth-noise pixel. Use the oracle.
@@ -91,7 +91,7 @@ Live results: `R\logs\pipeline-<F>-summary.json`. Comparison of every candidate 
    Claude run root, which holds no references or normalized floors for 1F-3F. Pass your own `--root`, `--progress` and `--public`
    and use `--dry-run` first. The supervisor always launches `--worker claude` with the defaults, so do not queue 1F-3F there
    until that is changed.
-3. **Finish PR 32**, then rerun E5 on 4F and 5F without exclusion lists.
+3. **Merge PR 1**, then rerun E5 on 5F, 6F and 7F without exclusion lists.
 4. **Merge the branches.** The four engine branches are separate and none is merged to main.
 5. **Owner decisions still open:** accepting any floor; rollback attribution by bounding box or covering face.
 
