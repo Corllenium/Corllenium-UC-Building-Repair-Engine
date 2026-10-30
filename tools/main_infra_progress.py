@@ -12,7 +12,16 @@ import tempfile
 import threading
 
 FLOORS = tuple(f'{n}F' for n in range(1, 8))
-STATES = {'queued', 'importing', 'cleaning', 'validating', 'blocked', 'needs_review', 'accepted', 'failed', 'cancelled'}
+# 'unity_ready' (owner instruction 2026-10-30): the floor's fixed OBJ is saved locally in repo 03 and the dashboard reads
+# "Ready for Unity import". The signed flicker/crack targets are reported, not blocking; nothing is accepted by the owner yet,
+# so it is a distinct state from 'needs_review' and 'accepted' and does not carry an acceptance proof.
+STATES = {'queued', 'importing', 'cleaning', 'validating', 'blocked', 'needs_review', 'unity_ready', 'accepted', 'failed', 'cancelled'}
+# Owner instruction 2026-10-30: per-stage horizontal progress bars and a floor completion percent on the dashboard cards.
+# Both fields are optional on a floor row; when absent the dashboard renders nothing new.
+STAGE_ORDER = ('e3', 'e5', 'e4', 'measure', 'publish')
+STAGE_LABELS = {'e3': 'Hidden faces', 'e5': 'Coincident layers', 'e4': 'Coplanar merge',
+                'measure': 'Guard + textures + coverage + Validator', 'publish': 'Unity-ready file'}
+STAGE_STATUSES = {'pending', 'running', 'done', 'failed', 'skipped'}
 _LOCK = threading.RLock()
 
 
@@ -27,6 +36,25 @@ def _date(value):
     if parsed.tzinfo is None:
         raise ValueError('Progress timestamps must include a timezone')
     return parsed
+
+
+def _percent(value):
+    return type(value) in (int, float) and value == value and 0 <= value <= 100
+
+
+def _validate_stages(floor):
+    stages = floor.get('stages')
+    if stages is not None:
+        if not isinstance(stages, list):
+            raise ValueError('Floor stages must be a list')
+        for stage in stages:
+            if (not isinstance(stage, dict) or not isinstance(stage.get('id'), str) or not stage['id'].strip()
+                    or not isinstance(stage.get('label'), str) or not stage['label'].strip()
+                    or stage.get('status') not in STAGE_STATUSES or not _percent(stage.get('percent'))
+                    or not (stage.get('note') is None or isinstance(stage['note'], str))):
+                raise ValueError('Invalid floor stage')
+    if 'percent_complete' in floor and not _percent(floor['percent_complete']):
+        raise ValueError('Floor completion percent must be a number from 0 to 100')
 
 
 def validate_progress(doc):
@@ -65,6 +93,7 @@ def validate_progress(doc):
         for key in ('input_triangles', 'output_triangles'):
             if key in floor and (type(floor[key]) is not int or floor[key] < 0):
                 raise ValueError('Invalid measured triangle count')
+        _validate_stages(floor)
         if floor['state'] in ('needs_review', 'accepted'):
             proof = floor.get('validation_proof', {})
             if not isinstance(proof, dict):
@@ -159,6 +188,39 @@ def update_floor(path, floor_id, state, step, *, blocker=None, published_path=No
         doc['updated_at'] = doc['last_work_event_at'] = doc['heartbeat_at'] = stamp
         doc['state'], doc['step'] = 'running', f'{floor_id}: {step}'
         doc['floors'][floor_id].update(state=state, step=step, blocker=blocker, last_work_event_at=stamp, **measured)
+        return write_progress(path, doc, published_path=published_path)
+
+
+def percent_complete(stages):
+    """Mean of the stage percents, counting done stages as 100 and leaving skipped stages out."""
+    counted = [100 if stage['status'] == 'done' else stage['percent'] for stage in stages if stage['status'] != 'skipped']
+    return round(sum(counted) / len(counted), 1) if counted else 0
+
+
+def set_stage(path, floor_id, stage_id, status, percent, note=None, label=None, *, published_path=None, now=None):
+    """Update or append one stage of a floor, keep the stages in pipeline order and recompute percent_complete."""
+    with _LOCK:
+        doc = load_progress(path)
+        if floor_id not in FLOORS:
+            raise ValueError('Unknown fresh floor')
+        if status not in STAGE_STATUSES or not _percent(percent):
+            raise ValueError('Invalid floor stage')
+        row = doc['floors'][floor_id]
+        stages = list(row.get('stages') or [])
+        existing = next((stage for stage in stages if stage['id'] == stage_id), None)
+        if existing is None:
+            existing = {'id': stage_id, 'label': label or STAGE_LABELS.get(stage_id, stage_id), 'status': status, 'percent': percent, 'note': note}
+            stages.append(existing)
+        else:
+            existing.update(status=status, percent=percent, note=note)
+            if label:
+                existing['label'] = label
+        known = {stage_id: index for index, stage_id in enumerate(STAGE_ORDER)}
+        unknown_order = {id(stage): index for index, stage in enumerate(stages)}
+        stages.sort(key=lambda stage: (known.get(stage['id'], len(STAGE_ORDER)), 0 if stage['id'] in known else unknown_order[id(stage)]))
+        row['stages'], row['percent_complete'] = stages, percent_complete(stages)
+        stamp = now or utc_now()
+        row['last_work_event_at'] = doc['updated_at'] = doc['last_work_event_at'] = doc['heartbeat_at'] = stamp
         return write_progress(path, doc, published_path=published_path)
 
 
