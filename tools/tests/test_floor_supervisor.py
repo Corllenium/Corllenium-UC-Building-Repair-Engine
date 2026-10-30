@@ -80,6 +80,15 @@ def test_a_failed_floor_is_blocked_at_once_and_the_queue_continues(tmp_path):
     assert started[-1] == ['driver', '3F']
 
 
+def test_an_adopted_run_with_a_failed_summary_is_blocked_not_rerun(tmp_path):
+    sup, started, box = make(tmp_path, processes=['tools/run_floor_pipeline.py --floor 4F'])
+    sup.tick()
+    box['processes'] = []
+    (sup.run_root / 'logs' / 'pipeline-4F-summary.json').write_text(json.dumps({'status': 'e5_failed'}), encoding='utf-8')
+    sup.tick()
+    assert load_queue(sup.queue_path)['floors'][0]['state'] == 'blocked' and started == []
+
+
 def test_stop_file_starts_nothing_new(tmp_path):
     sup, started, _ = make(tmp_path)
     (sup.state_dir / 'STOP').write_text('', encoding='utf-8')

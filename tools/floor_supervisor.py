@@ -137,7 +137,10 @@ class Supervisor:
 
     def finish(self, entry: dict, code: int | None) -> None:
         floor = entry['floor']
-        if code == 0 or self.summary_status(floor) == 'published':
+        status = self.summary_status(floor)
+        if code is None and status not in (None, 'published'):
+            code = 2              # an adopted run has no exit code; its summary says it ended on a measured failure
+        if code == 0 or status == 'published':
             entry.update(state='done', note='published', finished_utc=now())
         elif code == 2:
             entry.update(state='blocked', note=f'measured failure; see logs/pipeline-{floor}-summary.json', finished_utc=now())
