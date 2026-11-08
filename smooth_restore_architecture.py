@@ -200,21 +200,22 @@ def repair_unit_with_skp_ref(uid: str, s11_folder: str) -> MeshData:
                 drop_b[bf] = True
                 continue
 
-        # Strictly enclosed cavity faces (< 2.5 in on both sides) are always dropped
-        if tf_b[bf] < 2.5 and tb_b[bf] < 2.5:
-            drop_b[bf] = True
+        # Reference Guard: if verified by skp_ref.obj (and area > 0.05) OR is an exterior white louver slat, keep!
+        # Checked BEFORE the < 2.5 in cavity drop so thin reference-verified trim/stair/wall faces are never dropped.
+        if (ref_verified[bf] and areas_b[bf] > 0.05) or mid in white_louver_mids:
             continue
 
-        # Reference Guard: if verified by skp_ref.obj OR is an exterior white louver slat, keep!
-        if ref_verified[bf] or mid in white_louver_mids:
+        # Strictly enclosed cavity faces (< 2.5 in on both sides) not in skp_ref.obj are dropped
+        if tf_b[bf] < 2.5 and tb_b[bf] < 2.5:
+            drop_b[bf] = True
             continue
 
         # If not in skp_ref.obj, drop internal wall cavity faces (clearance < 36 in on both sides or buried on one side < 8 in)
         if not (np.isinf(max_open_b[bf]) and min_open_b[bf] > 8.0):
             drop_b[bf] = True
 
-    # Deduplicate coincident flicker pairs in BEFORE (prefer non-green horizontal ceiling/floor tiles & open-facing normals)
-    seen_keys: dict[tuple[tuple[int, int, int], ...], int] = {}
+    # Deduplicate same-normal coincident flicker pairs in BEFORE (include quantized normal so opposite-normal faces stay distinct)
+    seen_keys: dict[tuple[tuple[tuple[int, int, int], ...], tuple[int, int, int]], int] = {}
 
     def _b_prio(bf: int) -> tuple[int, int, float]:
         mid = int(b_mesh.face_material[bf])
@@ -223,7 +224,9 @@ def repair_unit_with_skp_ref(uid: str, s11_folder: str) -> MeshData:
         return (not_green_h, r_flag, float(tf_b[bf]))
 
     for bf in sorted(np.flatnonzero(~drop_b).tolist(), key=_b_prio, reverse=True):
-        tri_key = tuple(sorted(map(tuple, np.round(pts_b[bf] * 10.0).astype(int).tolist())))
+        verts_key = tuple(sorted(map(tuple, np.round(pts_b[bf] * 10.0).astype(int).tolist())))
+        norm_key = tuple(np.round(fn_b[bf] * 10.0).astype(int).tolist())
+        tri_key = (verts_key, norm_key)
         if tri_key in seen_keys:
             drop_b[bf] = True
         else:
