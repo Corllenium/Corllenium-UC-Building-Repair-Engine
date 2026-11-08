@@ -44,8 +44,7 @@ ORDERED_CATALOG = [
     ("EDS", "Eds_9th_Floor_obj", "EDS · 9th Floor (Level 9F)"),
     ("EDS", "Eds_10th_Floor_obj", "EDS · 10th Floor (Mezzanine 9M)"),
     ("EDS", "Eds_11th_Floor_obj", "EDS · 11th Floor & Roof (Level RF)"),
-    # MAIN (8 units: 1st -> 8th Floor + Shared Building Shell)
-    ("MAIN", "Main_1st_Floor_obj", "Main · 1st Floor"),
+    # MAIN (7 units: 2nd -> 8th Floor + Shared Building Shell; broken Main_1st_Floor_obj fragment removed)
     ("MAIN", "Main_2nd_Floor_obj", "Main · 2nd Floor"),
     ("MAIN", "Main_3RD_Floor_obj", "Main · 3rd Floor (Part A)"),
     ("MAIN", "Main_3RD_Floor_obj1", "Main · 3rd Floor (Part B)"),
@@ -274,6 +273,7 @@ def main() -> None:
 
     new_b_list = """export const BUILDING_LIST: readonly { code: BuildingCode; label: string }[] = [
   { code: "ALL", label: "All Buildings" },
+  { code: "SKP_R5_REF", label: "★ SketchUp R5 Ref Basis (Gym · PE · Archi · Main Infra · Main)" },
   { code: "CHTM", label: "CHTM Building" },
   { code: "EDS", label: "EDS Building" },
   { code: "MAIN", label: "Main Building" },
@@ -297,6 +297,7 @@ def main() -> None:
     st_path = PRIMARY_SIEGE / "dashboard/public/building-repair-status.json"
     if st_path.is_file():
         st = json.loads(st_path.read_text(encoding="utf-8"))
+        st.pop("_salvaged_from_truncated_upload_utc", None)
         old_comp = st.get("completedUnits") or {}
         comp_u = {}
         for bcode, uid, _label in ORDERED_CATALOG:
@@ -314,9 +315,9 @@ def main() -> None:
         st["activeUnit"] = "Architecture_dep_2nd_Floor_obj"
         st["building"] = "ARCHITECTURE"
         st["stageNo"] = 6
-        st["stageName"] = f"Stage 6 · All {len(comp_u)} / {len(ORDERED_CATALOG)} Campus Units Smooth-Merged & Staged in Blender 5.1 (02_STAGING_DEVELOPMENT)"
+        st["stageName"] = f"Stage 6 · All {len(comp_u)} / {len(ORDERED_CATALOG)} Campus Units Repaired & Staged in Blender 5.1 (02_STAGING_DEVELOPMENT)"
         st["progressPct"] = 100
-        st["message"] = f"All {len(comp_u)} / {len(ORDERED_CATALOG)} campus building & site units are smooth-merged, visible stairs/floors/textures restored, and staged in 02_STAGING_DEVELOPMENT."
+        st["message"] = f"All {len(comp_u)} / {len(ORDERED_CATALOG)} campus building & site units are repaired with strict small-part & reference validation and staged in 02_STAGING_DEVELOPMENT."
         st["completedUnits"] = comp_u
         st["totalUnitsCount"] = len(comp_u)
         if st.get("activeUnit") in comp_u:
