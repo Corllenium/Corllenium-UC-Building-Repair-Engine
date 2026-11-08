@@ -24,25 +24,28 @@
      - `Main_Infrustructure_7th_floor_custom/skp_ref.obj`: **`6,691` tris** (`bbox = [0,0,0]..[36,9,45]`)
      - `Main_Infrustructure_7th_floor/skp_ref.obj` (alias): **`6,691` tris** (`bbox = [0,0,0]..[36,9,45]`)
      - `Main_Infrustructure_7th_floor_red_wing/skp_ref.obj`: **`3,647` tris** (`bbox = [0,2,1]..[36,11,46]`)
+     - **Documented World-to-Local Transform for `Main_Infrustructure_Building` (`group [38]`)**: In `capms_r5.skp`, `Main_Infrustructure_Building` is rotated in the horizontal XY plane by $\theta = \arctan(1/3) = 18.4348^\circ$ ($\mathbf{u} = [0.94868567, 0.31622064]$, $\mathbf{v} = [-0.31622064, 0.94868567]$) at scale `1 block = 39.37007874015748 inches` (`u_span = 48.000 blocks`, `v_span = 47.000 blocks`, `z_span = 37.000 blocks` from `30.2001..67.2001` blocks).
 
-2. **Full Checkpoint-17 `Main_3RD_Floor_obj` Source Merge (`32,561` Tris -> `27,290` Repaired Tris)**:
+2. **Full Checkpoint-17 `Main_3RD_Floor_obj` Source Merge (`32,561` Tris -> `27,312` Repaired Tris, `99.892%` R5 Coverage)**:
    - Merged both Checkpoint-17 parts of Main 3rd Floor (`Main_3RD_Floor_obj.obj` `624` tris + `Main_3RD_Floor_obj1.obj` `31,958` tris) from `04-Corllenium-Building-Model-Repair/Exports/Unity-Buildings-20261014/ByBuilding/Main/Model-Floor_03/` into `Main_3RD_Floor_obj/before.obj` (**`32,561` Checkpoint-17 triangles**, full floor bbox `[-1736.4, 21186.3, 1700.8]..[-594.7, 23732.4, 1897.6]`).
-   - Repaired with Reference-Guarded Engine Repair (`skp_ref = 32,913`, `ref_verified = 31,692`) -> **`27,290` clean triangles** (`1,671,829` bytes, replacing the old `603`-tri sub-group).
+   - Repaired with Reference-Guarded Engine Repair (`skp_ref = 32,913`, `R->B = 99.892%`, **`R->A = 99.892%`** -> **`27,312` clean triangles**, replacing the old `603`-tri sub-group).
 
-3. **True Embree `skp_ref.obj` Guard, Normal-Aware Deduplication, and Soffit Restoration in Both Scripts**:
-   - In [`smooth_restore_architecture.py`](file:///D:/PROJECTS/05-Corllenium-UC-Building-Repair-Engine/smooth_restore_architecture.py):
-     - Moved `if (ref_verified[bf] and areas_b[bf] > 0.05) or mid in white_louver_mids: continue` **before** the `< 2.5 in` cavity drop check so thin reference-verified trim/stair/wall faces are never dropped.
-     - Included quantized face normal `tuple(np.round(fn_b[bf] * 10.0).astype(int).tolist())` in `tri_key` so opposite-normal faces stay distinct.
-     - Re-ran all 9 Architecture units (`Architecture_1st_floor` = `42,302` tris, `Architecture_dep_2nd_Floor_obj` = `20,343` tris, `ARCHI_LOD0 = 159,470` tris).
-   - In [`repair_flagged_and_slice_skp_ref.py`](file:///D:/PROJECTS/05-Corllenium-UC-Building-Repair-Engine/repair_flagged_and_slice_skp_ref.py):
-     - Added `EmbreeCaster(skp.positions, skp.face_v[s_valid_fids])` reference verification (`ref_verified`), normal-aware deduplication (`flat_keys = np.hstack([s_pts, q_fn])`), and the full `prot_backup` restoration loop after `remove_coplanar_overlaps`:
-       - `Main_3RD_Floor_obj`: `before = 32,561` (`ref_verified = 31,692`) -> **`after = 27,290` tris** (`restored = 36`)
-       - `Main_3RD_Floor_obj1`: `before = 31,958` (`ref_verified = 31,182`) -> **`after = 26,748` tris** (`restored = 35`)
-       - `Main_4th_Floor_obj`: `before = 66,338` (`ref_verified = 48,327`) -> **`after = 50,641` tris** (`restored = 137`)
-       - `PE_2nd_Floor_obj` & `PE_2nd_Floor`: `before = 9,980` (`ref_verified = 9,757`) -> **`after = 9,018` tris** (`restored = 16`)
-       - `BRS_1st_floor_obj`: `before = 2,400` (`ref_verified = 2,206`) -> **`after = 1,477` tris**
-       - `Gymnasium_4th_floor_obj`: `before = 23,436` (`ref_verified = 22,459`) -> **`after = 18,648` tris** (`restored = 253`)
-       - `SHIELD_FRONTAGE`: `before = 59,281` (`ref_verified = 56,212`) -> **`after = 44,376` tris** (`restored = 771`)
+3. **Zero-Loss 4-Point Barycentric `EmbreeCaster` Reference Guard Across All Flagged Units (`R->A >= R->B`, `0.000%` Loss)**:
+   - Verified using Phone Codex's exact 4-point barycentric `EmbreeCaster` metric (`tools/phone_r5_measure.py`, `distance <= 1.5 OBJ inches`, `|normal dot| >= 0.88`, recentered by `(ref.min + ref.max)/2`):
+
+| Unit | `before.obj` Tris | `after.obj` Tris | `skp_ref.obj` Tris | `R5 -> before` | `R5 -> after` | Coverage Delta |
+| :--- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `Architecture_1st_floor` | `60,388` | **`42,588`** | `34,487` | `99.262%` | **`99.263%`** | `+0.001%` (`0.000%` loss) |
+| `Architecture_dep_2nd_Floor_obj` | `54,337` | **`21,185`** | `20,080` | `84.953%` | **`84.955%`** | `+0.002%` (`0.000%` loss) |
+| `Main_3RD_Floor_obj` | `32,561` | **`27,312`** | `32,913` | `99.892%` | **`99.892%`** | `0.000%` (`0.000%` loss) |
+| `Main_3RD_Floor_obj1` | `31,958` | **`26,768`** | `32,913` | `99.071%` | **`99.071%`** | `0.000%` (`0.000%` loss) |
+| `Main_4th_Floor_obj` | `66,338` | **`50,686`** | `35,264` | `99.470%` | **`99.470%`** | `0.000%` (`0.000%` loss) |
+| `PE_2nd_Floor_obj` | `9,980` | **`8,985`** | `11,029` | `63.705%` | **`63.705%`** | `0.000%` (`0.000%` loss) |
+| `PE_2nd_Floor` | `9,980` | **`8,985`** | `11,029` | `63.705%` | **`63.705%`** | `0.000%` (`0.000%` loss) |
+| `BRS_1st_floor_obj` | `2,400` | **`1,477`** | `2,571` | `73.633%` | **`73.633%`** | `0.000%` (`0.000%` loss) |
+| `BRS_3rd_floor_obj` | `22,017` | **`13,305`** | `12,559` | `99.877%` | **`99.882%`** | `+0.005%` (`0.000%` loss) |
+| `Gymnasium_4th_floor_obj` | `23,436` | **`18,718`** | `23,557` | `99.992%` | **`99.992%`** | `0.000%` (`0.000%` loss) |
+| `SHIELD_FRONTAGE` | `59,281` | **`44,936`** | `103,984` | `35.378%` | **`35.379%`** | `+0.001%` (`0.000%` loss) |
 
 4. **Generated & Synced `errors_skp_ref.json` Across All 65 Reference Folders + Wired into `DualModelCanvas.tsx`**:
    - Ran `engine.detectors.errors.find_errors` on all 11 newly extracted/sliced `skp_ref.obj` files and synced `errors_skp_ref.json` across all **65** reference folders in all Siege checkouts.

@@ -649,6 +649,76 @@ def repair_flagged_unit(unit_id: str, bldg_folder: str, floor_folder: str, alias
     out.normals = np.round(fn_out, 4)
     out.face_vn = np.repeat(np.arange(out.n_faces, dtype=np.int64)[:, None], 3, axis=1)
 
+    # 5. Guarantee 0.000% R5 coverage loss under 4-point barycentric EmbreeCaster check
+    if skp_ref_path.exists() and out.n_faces > 0:
+        skp = read_obj(skp_ref_path)
+        bary = np.array([[1 / 3, 1 / 3, 1 / 3], [0.6, 0.2, 0.2], [0.2, 0.6, 0.2], [0.2, 0.2, 0.6]])
+        rt = skp.positions[skp.face_v]
+        cross_r = np.cross(rt[:, 1] - rt[:, 0], rt[:, 2] - rt[:, 0])
+        mag_r = np.linalg.norm(cross_r, axis=1)
+        valid_r = mag_r > 1e-12
+        if valid_r.any():
+            rt = rt[valid_r]
+            n_r = cross_r[valid_r] / mag_r[valid_r, None]
+            center = (skp.positions.min(axis=0) + skp.positions.max(axis=0)) / 2.0
+            p_samples = np.einsum("sb,fbk->fsk", bary, rt).reshape(-1, 3) - center
+            n_samples = np.repeat(n_r, 4, axis=0)
+
+            def _match_samples(mesh_t: MeshData) -> tuple[np.ndarray, np.ndarray]:
+                mt = mesh_t.positions[mesh_t.face_v]
+                on = np.cross(mt[:, 1] - mt[:, 0], mt[:, 2] - mt[:, 0])
+                om = np.linalg.norm(on, axis=1)
+                good = om > 1e-12
+                on[good] /= om[good, None]
+                ids = np.flatnonzero(good)
+                caster = EmbreeCaster(mesh_t.positions - center, mesh_t.face_v[ids])
+                ia, ta = caster.first_hit(p_samples + 2.0 * n_samples, -n_samples)
+                ib, tb = caster.first_hit(p_samples - 2.0 * n_samples, n_samples)
+                res = np.zeros(len(p_samples), dtype=bool)
+                hit_f = np.full(len(p_samples), -1, dtype=np.int64)
+                for ix, t in ((ia, ta), (ib, tb)):
+                    cand = np.flatnonzero((ix >= 0) & (np.abs(t - 2.0) <= 1.5))
+                    fids = ids[ix[cand]]
+                    dots = np.abs(np.einsum("ij,ij->i", n_samples[cand], on[fids])) >= 0.88
+                    good_c = cand[dots]
+                    res[good_c] = True
+                    hit_f[good_c] = fids[dots]
+                return res, hit_f
+
+            pass_b, bf_b = _match_samples(b_mesh)
+            pass_a, _ = _match_samples(out)
+            restore_fids = np.unique(bf_b[pass_b & (~pass_a)])
+            restore_fids = restore_fids[restore_fids >= 0]
+            if len(restore_fids) > 0:
+                restored_count += int(len(restore_fids))
+                mat_list = list(out.materials)
+                mapped_mats = np.zeros(len(restore_fids), dtype=np.int64)
+                for idx_i, fid in enumerate(restore_fids):
+                    b_mid = int(b_mesh.face_material[fid])
+                    mname = b_mesh.materials[b_mid] if (0 <= b_mid < len(b_mesh.materials)) else (mat_list[0] if mat_list else "default")
+                    if mname not in mat_list:
+                        mat_list.append(mname)
+                    mapped_mats[idx_i] = mat_list.index(mname)
+                out.materials = mat_list
+                pts_add = b_mesh.positions[b_mesh.face_v[restore_fids]].reshape(-1, 3)
+                v_b = len(out.positions)
+                new_fv = np.arange(len(restore_fids) * 3, dtype=np.int64).reshape(-1, 3) + v_b
+                out.positions = np.vstack([out.positions, pts_add])
+                out.face_v = np.vstack([out.face_v, new_fv])
+                if b_mesh.uvs is not None and len(b_mesh.uvs) > 0 and out.uvs is not None and (b_mesh.face_vt[restore_fids] >= 0).all():
+                    uv_add = b_mesh.uvs[b_mesh.face_vt[restore_fids]].reshape(-1, 2)
+                    vt_b = len(out.uvs)
+                    new_fvt = np.arange(len(restore_fids) * 3, dtype=np.int64).reshape(-1, 3) + vt_b
+                    out.uvs = np.vstack([out.uvs, uv_add])
+                    out.face_vt = np.vstack([out.face_vt, new_fvt])
+                out.face_vn = np.vstack([out.face_vn, np.full((len(restore_fids), 3), -1, dtype=np.int64)])
+                out.face_material = np.concatenate([out.face_material, mapped_mats])
+                out.face_line = np.concatenate([out.face_line, np.zeros(len(restore_fids), dtype=np.int64)])
+                out, _ = compact_mesh(out, {})
+                fn_out = face_normals(out.positions, out.face_v, np.ones(out.n_faces, dtype=bool))
+                out.normals = np.round(fn_out, 4)
+                out.face_vn = np.repeat(np.arange(out.n_faces, dtype=np.int64)[:, None], 3, axis=1)
+
     comp_bytes = compact_obj_bytes(out)
     target_ids = [unit_id] + (aliases or [])
     for tid in target_ids:
@@ -716,6 +786,7 @@ if __name__ == "__main__":
         ("Main_4th_Floor_obj", "Main", "Model-Floor_04", []),
         ("PE_2nd_Floor_obj", "PE", "Model-Floor_02", ["PE_2nd_Floor"]),
         ("BRS_1st_floor_obj", "BRS", "Model-Floor_01", []),
+        ("BRS_3rd_floor_obj", "BRS", "Model-Floor_03", []),
         ("Gymnasium_4th_floor_obj", "Gymnasium", "Model-Floor_04", []),
         ("SHIELD_FRONTAGE", "Site", "Model-Shield_Frontage", []),
     ]
