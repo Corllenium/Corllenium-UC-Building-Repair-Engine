@@ -136,13 +136,13 @@ def _append_before_faces(dst: MeshData, src: MeshData, fids: np.ndarray) -> Mesh
     return dst
 
 
-def repair_and_validate_unit(bcode: str, uid: str) -> dict | None:
+def repair_and_validate_unit(bcode: str, uid: str, before_name: str = "before.obj") -> dict | None:
     # Skip fresh Main Infrastructure metre-scale floors (1F..7F), which have their own fresh source pipeline
     if bcode == "MAIN_INFRA" and uid != "SHIELD_FRONTAGE":
         return None
 
     u_dir = WT_MODELS / uid
-    bp = u_dir / "before.obj"
+    bp = u_dir / before_name
     ap = u_dir / "after.obj"
     rp = u_dir / "skp_ref.obj"
     if not bp.exists() or not ap.exists():

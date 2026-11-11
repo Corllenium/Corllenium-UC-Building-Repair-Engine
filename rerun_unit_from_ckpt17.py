@@ -242,24 +242,32 @@ def floor_guard(b: MeshData, a: MeshData) -> tuple[MeshData, int]:
     return a, int(len(missing))
 
 
-def main(uid: str, bldg: str, floor: str) -> None:
+def main(uid: str, bldg: str, floor: str, source: str = "ckpt17") -> None:
     src_dir = SRC_ROOT / bldg / floor
-    obj_p, mtl_p = src_dir / f"{uid}.obj", src_dir / f"{uid}.mtl"
-    print(f"=== Rerun {uid} from CHECKPOINT-17: {obj_p}", flush=True)
-
-    ckpt = read_obj(obj_p)
-    ckpt.positions = np.round(convert_unity_to_ckpt17_coords(ckpt.positions), 4)
-    before = read_obj(WT_MODELS / uid / "before.obj")
+    if source == "r5":
+        # Owner 2026-11-11: the SketchUp R5 clean import (capms r5.skp slice) has the floors and parts
+        # that the CHECKPOINT-17 export lacks. Repair that instead; it is also the guard reference.
+        obj_p, mtl_p = WT_MODELS / uid / "skp_ref.obj", WT_MODELS / uid / "materials.mtl"
+        before_name = "skp_ref.obj"
+        print(f"=== Rerun {uid} from SKETCHUP R5 clean import: {obj_p}", flush=True)
+        ckpt = read_obj(obj_p)
+    else:
+        obj_p, mtl_p = src_dir / f"{uid}.obj", src_dir / f"{uid}.mtl"
+        before_name = "before.obj"
+        print(f"=== Rerun {uid} from CHECKPOINT-17: {obj_p}", flush=True)
+        ckpt = read_obj(obj_p)
+        ckpt.positions = np.round(convert_unity_to_ckpt17_coords(ckpt.positions), 4)
+    before = read_obj(WT_MODELS / uid / before_name)
     if before.n_faces != ckpt.n_faces:
-        print(f"  [WARN] dashboard before.obj ({before.n_faces}) != CKPT17 ({ckpt.n_faces})", flush=True)
+        print(f"  [WARN] dashboard {before_name} ({before.n_faces}) != source ({ckpt.n_faces})", flush=True)
 
-    # 1. Full engine pipeline on the CKPT17 source
+    # 1. Full engine pipeline on the source
     repaired, _rings, stats = repair_building_floor_mesh(ckpt, mtl_p)
     repaired, _ = compact_mesh(repaired, {})
     print(f"  engine: {ckpt.n_faces:,} -> {repaired.n_faces:,} tris | {json.dumps({k: v for k, v in stats.items() if k != 'merge_report'})}", flush=True)
 
-    # Materials must match the dashboard before.obj names for _append_before_faces
-    # 2. Orientation fix + hole guard against the dashboard before.obj (same CKPT17 frame)
+    # Materials must match the source names for _append_before_faces
+    # 2. Orientation fix + hole guard against the source (same CKPT17 frame)
     repaired, n_flip0 = orient_horizontals(before, repaired)
     repaired, n_floor = floor_guard(before, repaired)
     print(f"  floor guard: re-oriented {n_flip0:,} upside-down floor/ceiling faces, restored {n_floor:,} missing -> {repaired.n_faces:,} tris", flush=True)
@@ -270,7 +278,7 @@ def main(uid: str, bldg: str, floor: str) -> None:
     sync_after_to_all_siege(uid, compact_obj_bytes(repaired))
 
     # 3. Strict validator (13-pt phantom bridges, 7-pt small parts, R5 zero-loss) on the new after.obj
-    res = repair_and_validate_unit(bldg.upper(), uid)
+    res = repair_and_validate_unit(bldg.upper(), uid, before_name=before_name)
     print(f"  strict validator: {res}", flush=True)
 
     # 4. Final orientation + hole pass, then measurements
@@ -290,9 +298,10 @@ def main(uid: str, bldg: str, floor: str) -> None:
 
     bu, bd, bt = horiz_area(before)
     au, ad, at = horiz_area(after)
-    print(f"  CKPT17 : floor_up={bu:9.1f} sqft  ceiling_down={bd:9.1f} sqft  total={bt:9.1f} sqft  tris={before.n_faces:,}", flush=True)
+    src_lbl = "R5" if source == "r5" else "CKPT17"
+    print(f"  {src_lbl:6s} : floor_up={bu:9.1f} sqft  ceiling_down={bd:9.1f} sqft  total={bt:9.1f} sqft  tris={before.n_faces:,}", flush=True)
     print(f"  REPAIR : floor_up={au:9.1f} sqft  ceiling_down={ad:9.1f} sqft  total={at:9.1f} sqft  tris={after.n_faces:,}", flush=True)
-    print(f"  CKPT17 floor area missing/upside-down: {miss_up:.1f} sqft | ceiling area missing/upside-down: {miss_dn:.1f} sqft | uncovered visible horizontals: {n_left}", flush=True)
+    print(f"  {src_lbl} floor area missing/upside-down: {miss_up:.1f} sqft | ceiling area missing/upside-down: {miss_dn:.1f} sqft | uncovered visible horizontals: {n_left}", flush=True)
 
     out_bytes = (WT_MODELS / uid / "after.obj").read_bytes()
     exp = EXP_ROOT / bldg / floor
@@ -301,7 +310,8 @@ def main(uid: str, bldg: str, floor: str) -> None:
         rp = exp / f"{uid}.report.json"
         rep = json.loads(rp.read_text(encoding="utf-8")) if rp.exists() else {}
         rep.update({
-            "unit": uid, "source": str(obj_p), "rerun_from_ckpt17": True,
+            "unit": uid, "source": str(obj_p), "source_kind": "sketchup_r5_clean_import" if source == "r5" else "checkpoint17_export",
+            "rerun_from_ckpt17": source != "r5",
             "tris_before": int(before.n_faces), "tris_after": int(after.n_faces),
             "floor_up_sqft_before": round(bu, 1), "floor_up_sqft_after": round(au, 1),
             "ceiling_down_sqft_before": round(bd, 1), "ceiling_down_sqft_after": round(ad, 1),
@@ -319,4 +329,4 @@ def main(uid: str, bldg: str, floor: str) -> None:
 
 
 if __name__ == "__main__":
-    main(*(sys.argv[1:4] if len(sys.argv) >= 4 else ("Main_2nd_Floor_obj", "Main", "Model-Floor_02")))
+    main(*(sys.argv[1:5] if len(sys.argv) >= 4 else ("Main_2nd_Floor_obj", "Main", "Model-Floor_02")))
