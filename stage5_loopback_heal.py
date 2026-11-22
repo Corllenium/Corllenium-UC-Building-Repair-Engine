@@ -103,11 +103,39 @@ def main() -> None:
         f"after_errors={pre_diff['counts']['remaining_after_errors']}",
         flush=True,
     )
-    # Restore ONLY the missing outer-facade faces (preserves 99.98%+ exterior skin & closes the 37 tears!)
-    work, n_healed = restore_destroyed_facade_faces(before, work, pre_diff, include_interior=False)
+    # Restore BOTH missing outer-facade AND missing interior/railing/baluster/wall faces (D16, D03b, D12!)
+    # Our conflict-safe restore clears buried duplicates first so flicker convergence won't delete railings or walls!
+    work, n_healed = restore_destroyed_facade_faces(before, work, pre_diff, include_interior=True)
     if n_healed > 0:
         work, _ = compact_mesh(work, {})
-        print(f"Outer-facade self-heal restored +{n_healed:,} faces -> {work.n_faces:,} tris", flush=True)
+        print(f"Full facade + railing + interior self-heal restored +{n_healed:,} faces -> {work.n_faces:,} tris", flush=True)
+
+    # Also explicitly rescue ANY thin railing/baluster/handrail face from `before` that lost >= 1/7 samples
+    # (catches narrow 1-4in railing bars & balusters that were shredded by the old sliver purge — D16!)
+    pts_b_all = before.positions[before.face_v]
+    e0_b = np.linalg.norm(pts_b_all[:, 1] - pts_b_all[:, 0], axis=1)
+    e1_b = np.linalg.norm(pts_b_all[:, 2] - pts_b_all[:, 1], axis=1)
+    e2_b = np.linalg.norm(pts_b_all[:, 0] - pts_b_all[:, 2], axis=1)
+    max_eb = np.maximum(np.maximum(e0_b, e1_b), e2_b)
+    min_alt_b = np.where(max_eb > 1e-9, (2.0 * areas_b) / np.maximum(max_eb, 1e-9), 0.0)
+    aspect_b = np.where(min_alt_b > 1e-6, max_eb / np.maximum(min_alt_b, 1e-6), 0.0)
+    # Thin architectural bars/railings/balusters that are exterior or room-visible
+    from engine.validate.facade_integrity import _coverage_7pt
+    fw_b0, bw_b0 = compute_side_exposure(before.positions - center, before.face_v, ok_b, n_dirs=64)
+    vis_rail_b = (
+        ok_b & (~excl) & (areas_b >= 0.5)
+        & ((fw_b0 + bw_b0) > 0.01)
+        & (min_alt_b >= 0.35) & (min_alt_b <= 6.0) & (aspect_b >= 4.0)
+    )
+    rail_ids = np.flatnonzero(vis_rail_b)
+    if len(rail_ids) > 0:
+        ca_rail = EmbreeCaster(work.positions - center, work.face_v)
+        _, miss_rail = _coverage_7pt(before, ca_rail, center, fn_b, rail_ids, tol=0.12)
+        if len(miss_rail) > 0:
+            rail_diff = {"before_faces": {"missing_outer_facade": [int(x) for x in miss_rail], "missing_interior_visible": []}}
+            work, n_rail_rest = restore_destroyed_facade_faces(before, work, rail_diff, include_interior=False)
+            work, _ = compact_mesh(work, {})
+            print(f"D16 Railing/Baluster/Trim rescue restored +{n_rail_rest:,} faces -> {work.n_faces:,} tris", flush=True)
 
     # Seal open rectangular wall/floor cap notches (e.g. dark rectangular slots at wall-floor junctions)
     n_notches_total = 0

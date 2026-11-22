@@ -147,10 +147,10 @@ def detect_piercing_needle_slivers(
         topo.ok
         & has_open
         & (~has_coplanar_neighbor)
-        & (aspect >= aspect_min)
-        & (min_alt <= max_altitude_in)
-        & (areas <= max_area_sqin)
-        & (max_e >= 2.0)  # ignore microscopic sub-2in noise
+        & (
+            ((aspect >= aspect_min) & (min_alt <= max_altitude_in) & (areas <= max_area_sqin) & (max_e >= 2.0))
+            | ((areas <= 6.0) & (min_alt <= 1.5) & (aspect >= 3.0))  # D02b isolated wall-poking shard (0 coplanar neighbors)
+        )
     )
     fids = np.flatnonzero(sliver_mask)
     spots: list[dict] = []
