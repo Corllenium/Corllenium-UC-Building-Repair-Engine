@@ -110,11 +110,15 @@ def detect_new_mesh_holes(
     cand_arr = np.asarray(cand_idx, dtype=np.int64)
     fn_a = face_normals(after_mesh.positions, after_mesh.face_v, np.ones(after_mesh.n_faces, dtype=bool))
     pts_a = after_mesh.positions[after_mesh.face_v]
-    center = 0.5 * (after_mesh.positions.min(axis=0) + after_mesh.positions.max(axis=0))
+    center = 0.5 * (before_mesh.positions.min(axis=0) + before_mesh.positions.max(axis=0))
     caster_a = EmbreeCaster(after_mesh.positions - center, after_mesh.face_v)
+    caster_b = EmbreeCaster(before_mesh.positions - center, before_mesh.face_v)
 
     # For each candidate new open edge, step `probe_step_in` OUTWARD from its host triangle in the host plane
-    # and ray-test along +/- normal to see if another solid face closes the gap or if it leaks into void!
+    # and ray-test along +/- normal against BOTH `after` and `before`:
+    #   - If covered in `after` -> benign T-junction seam (ignore)
+    #   - If NOT covered in `before` either -> clean wall-to-floor/column corner junction where a buried cap was removed (NOT a hole!)
+    #   - If solidly covered in `before` AND missing in `after` -> 100% CONFIRMED DESTROYED-MESH HOLE (any shape/size)!
     probe_pts: list[np.ndarray] = []
     probe_ns: list[np.ndarray] = []
     valid_cands: list[int] = []
@@ -158,10 +162,15 @@ def detect_new_mesh_holes(
     p_arr = np.asarray(probe_pts, dtype=np.float64)
     n_arr = np.asarray(probe_ns, dtype=np.float64)
     half = plane_hit_tol_in * 0.5
-    hp, dp = caster_a.first_hit(p_arr - half * n_arr, n_arr)
-    hm, dm = caster_a.first_hit(p_arr + half * n_arr, -n_arr)
-    covered = ((hp >= 0) & (dp <= plane_hit_tol_in)) | ((hm >= 0) & (dm <= plane_hit_tol_in))
-    leak_cands = [valid_cands[k] for k in range(len(valid_cands)) if not covered[k]]
+    hp_a, dp_a = caster_a.first_hit(p_arr - half * n_arr, n_arr)
+    hm_a, dm_a = caster_a.first_hit(p_arr + half * n_arr, -n_arr)
+    covered_after = ((hp_a >= 0) & (dp_a <= plane_hit_tol_in)) | ((hm_a >= 0) & (dm_a <= plane_hit_tol_in))
+
+    hp_b, dp_b = caster_b.first_hit(p_arr - half * n_arr, n_arr)
+    hm_b, dm_b = caster_b.first_hit(p_arr + half * n_arr, -n_arr)
+    existed_before = ((hp_b >= 0) & (dp_b <= plane_hit_tol_in)) | ((hm_b >= 0) & (dm_b <= plane_hit_tol_in))
+
+    leak_cands = [valid_cands[k] for k in range(len(valid_cands)) if (not covered_after[k]) and existed_before[k]]
 
     if not leak_cands:
         return {
