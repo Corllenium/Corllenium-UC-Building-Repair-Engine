@@ -94,16 +94,17 @@ def propagate_coplanar_patch_reachability(
 
 def detect_piercing_needle_slivers(
     mesh: MeshData,
-    aspect_min: float = 16.0,
-    max_altitude_in: float = 2.5,
-    max_area_sqin: float = 25.0,
+    aspect_min: float = 50.0,
+    max_altitude_in: float = 0.35,
+    max_area_sqin: float = 12.0,
 ) -> tuple[np.ndarray, list[dict]]:
-    """Detect acute razor-thin needle triangles carrying at least one open edge (D02/D03).
+    """Detect acute razor-thin degenerate needle triangles carrying at least one open edge (D02/D03).
 
-    A legitimate narrow trim strip (e.g. a window frame or stair lip) is bounded on all edges
-    by neighboring faces or has moderate aspect ratio. A piercing needle sliver has extreme
-    aspect ratio (`max_edge / min_altitude >= 16`), tiny width (`< 2.5 in`), small area
-    (`< 25 sq in`), AND at least one open boundary edge (`EDGE_OPEN`).
+    Thin architectural elements — railings, balusters, handrails, window mullions, louver slats,
+    and trim strips (D16) — are typically 1.0–4.0 in wide with aspect ratios 15–45. By requiring
+    strict sub-9mm width (`min_altitude <= 0.35 in`) AND extreme aspect (`>= 50`) AND small area
+    (`<= 12 sq in`) plus an open boundary edge (`EDGE_OPEN`), only true degenerate E5/merge
+    hairline needles are flagged while real railings & trim are 100% preserved.
     """
     topo = analyse_topology(mesh, frozenset())
     areas, max_e, min_alt = _tri_geometry_stats(mesh.positions, mesh.face_v)
@@ -119,9 +120,33 @@ def detect_piercing_needle_slivers(
                 if 0 <= f < mesh.n_faces:
                     has_open[f] = True
 
+    # ZERO-HOLE SAFETY LAW (D03 / D16):
+    # A thin triangle that shares an edge with a coplanar same-material neighbor (dot >= 0.98)
+    # is part of a real flat wall, column, railing bar, or baluster — deleting it rips open a
+    # diagonal wall slit (D03b) or shreds a railing (D16). Only floating/protruding spikes with
+    # ZERO coplanar neighbors (or zero-area degenerates) may be flagged as piercing needle slivers!
+    fn = face_normals(mesh.positions, mesh.face_v, topo.ok)
+    has_coplanar_neighbor = np.zeros(mesh.n_faces, dtype=bool)
+    ef_all = edge_face_lists(topo.table)
+    for fl in ef_all:
+        if len(fl) < 2:
+            continue
+        for i in range(len(fl)):
+            f1 = int(fl[i])
+            if not (0 <= f1 < mesh.n_faces and topo.ok[f1]):
+                continue
+            for j in range(i + 1, len(fl)):
+                f2 = int(fl[j])
+                if not (0 <= f2 < mesh.n_faces and topo.ok[f2]):
+                    continue
+                if mesh.face_material[f1] == mesh.face_material[f2] and float(np.dot(fn[f1], fn[f2])) >= 0.98:
+                    has_coplanar_neighbor[f1] = True
+                    has_coplanar_neighbor[f2] = True
+
     sliver_mask = (
         topo.ok
         & has_open
+        & (~has_coplanar_neighbor)
         & (aspect >= aspect_min)
         & (min_alt <= max_altitude_in)
         & (areas <= max_area_sqin)
@@ -147,12 +172,12 @@ def detect_piercing_needle_slivers(
 
 def purge_piercing_needle_slivers(
     mesh: MeshData,
-    aspect_min: float = 18.0,
-    max_altitude_in: float = 2.5,
-    max_area_sqin: float = 25.0,
+    aspect_min: float = 50.0,
+    max_altitude_in: float = 0.35,
+    max_area_sqin: float = 12.0,
     protect_mask: np.ndarray | None = None,
-    degenerate_alt_in: float = 0.5,
-    degenerate_aspect_min: float = 80.0,
+    degenerate_alt_in: float = 0.15,
+    degenerate_aspect_min: float = 120.0,
 ) -> tuple[MeshData, int]:
     """Safely remove degenerate piercing needle slivers (D02) without touching real outer facades.
 

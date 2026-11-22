@@ -165,3 +165,35 @@ def test_detect_new_mesh_holes_catches_triangle_hole_and_passes_watertight() -> 
     assert res["holeCount"] == 1
     assert res["voidLeakEdgeCount"] >= 1
     assert len(res["holeFaceIds"]) > 0
+
+
+def test_railing_bar_and_coplanar_wall_strip_never_shredded_by_sliver_purge() -> None:
+    """D16 / D03b regression test: a thin 3in x 120in railing bar (2 coplanar tris) must NEVER be shredded."""
+    verts = np.array(
+        [
+            [0.0, 0.0, 0.0],
+            [120.0, 0.0, 0.0],
+            [120.0, 0.0, 3.0],
+            [0.0, 0.0, 3.0],
+        ],
+        dtype=np.float64,
+    )
+    faces = np.array([[0, 1, 2], [0, 2, 3]], dtype=np.int64)
+    railing = MeshData(
+        name="railing_bar",
+        mtllib="test.mtl",
+        materials=["minecraft_black_concrete"],
+        positions=verts,
+        face_v=faces,
+        uvs=np.zeros((0, 2), dtype=np.float64),
+        face_vt=np.full((2, 3), -1, dtype=np.int64),
+        normals=np.zeros((0, 3), dtype=np.float64),
+        face_vn=np.full((2, 3), -1, dtype=np.int64),
+        face_material=np.array([0, 0], dtype=np.int64),
+        face_line=np.arange(2, dtype=np.int64),
+        coord_decimals=4,
+        sig_digits=7,
+    )
+    out, n_drop = purge_piercing_needle_slivers(railing)
+    assert n_drop == 0
+    assert out.n_faces == 2

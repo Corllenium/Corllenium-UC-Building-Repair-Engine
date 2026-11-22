@@ -137,12 +137,12 @@ def main() -> None:
     stair_w = rebuilt_stair_excl(work)
     work, n_sliv = purge_piercing_needle_slivers(
         work,
-        aspect_min=16.0,
-        max_altitude_in=2.5,
-        max_area_sqin=25.0,
+        aspect_min=50.0,
+        max_altitude_in=0.35,
+        max_area_sqin=12.0,
         protect_mask=(outer_w | stair_w),
-        degenerate_alt_in=0.12,
-        degenerate_aspect_min=200.0,
+        degenerate_alt_in=0.15,
+        degenerate_aspect_min=120.0,
     )
     print(f"Protected needle sliver purge: -{n_sliv} slivers -> {work.n_faces:,} tris", flush=True)
 
