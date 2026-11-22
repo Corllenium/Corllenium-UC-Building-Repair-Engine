@@ -38,6 +38,7 @@ REPAIR_STAGE_ORDER: tuple[str, ...] = (
     "cavity_liners",
     "pre_dedup",
     "hidden",
+    "protect_coplanar_patches",
     "flip",
     "solidify",
     "holes",
@@ -45,6 +46,8 @@ REPAIR_STAGE_ORDER: tuple[str, ...] = (
     "unify_normals",
     "merge",
     "restore_visible_surfaces",
+    "purge_needle_slivers",
+    "facade_integrity_gate",
 )
 
 
@@ -451,6 +454,7 @@ def _triangulate_clipped_face(
     rem_geom,
     next_v_idx: int,
     next_vt_idx: int,
+    min_part_area: float = 2.0,
 ) -> tuple[list[np.ndarray], list[np.ndarray], list[list[int]], list[list[int]], list[int], int, int]:
     """Triangulate a 2D clipped polygon `rem_geom` inside triangle `pts_f` with exact barycentric 3D/UV interpolation."""
     new_pos: list[np.ndarray] = []
@@ -460,12 +464,13 @@ def _triangulate_clipped_face(
     new_fmat: list[int] = []
 
     try:
-        simp_geom = rem_geom.simplify(0.02, preserve_topology=True).buffer(0)
-        if not simp_geom.is_empty and float(simp_geom.area) >= 15.0:
-            rem_geom = simp_geom
+        if min_part_area >= 2.0:
+            simp_geom = rem_geom.simplify(0.02, preserve_topology=True).buffer(0)
+            if not simp_geom.is_empty and float(simp_geom.area) >= 15.0:
+                rem_geom = simp_geom
         cdt = shapely.constrained_delaunay_triangles(rem_geom)
         parts = list(cdt.geoms) if hasattr(cdt, "geoms") else [cdt]
-        valid_parts = [p for p in parts if isinstance(p, Polygon) and p.is_valid and float(p.area) >= 2.0]
+        valid_parts = [p for p in parts if isinstance(p, Polygon) and p.is_valid and float(p.area) >= min_part_area]
         if not valid_parts:
             return new_pos, new_uv, new_fv, new_fvt, new_fmat, next_v_idx, next_vt_idx
     except Exception:
@@ -546,12 +551,21 @@ def remove_coplanar_overlaps(
     overlap_ratio: float = 0.20,
     drop_only: bool = False,
     dist_tol: float = 0.03,
+    rebuild: bool = False,
+    visible: np.ndarray | None = None,
+    report: dict | None = None,
 ) -> tuple[MeshData, int]:
     """Remove coplanar overlapping duplicate/end-cap triangles and optionally clip partial overlaps.
 
     Uses strict true-plane `dist_tol=0.03` inches and signed-normal separation when `drop_only=True`
     so thin object parts (railings, balusters, planter bases, window frames) never have parallel faces
     collapsed across a gap or partially-covered corner triangles dropped.
+
+    `rebuild=True` (owner 2026-11-11, "use one texture"): every plane is rebuilt so each spot is covered by
+    exactly ONE face, hidden or not, front or back. Faces in the same plane (within `dist_tol`, either
+    facing) are ranked (up-facing first on floors, then the look that covers most of the plane, then face
+    size); each lower-ranked face is cut along the winners' border (E5) and keeps only its uncovered part.
+    Unity draws both sides, so the single face shows on both sides with one texture and cannot flicker.
     """
     pts = mesh.positions[mesh.face_v]
     fn = face_normals(mesh.positions, mesh.face_v, np.ones(mesh.n_faces, dtype=bool))
@@ -561,10 +575,11 @@ def remove_coplanar_overlaps(
         fn,
         np.ones(mesh.n_faces, dtype=bool),
         normal_dot_tol=0.999,
-        dist_tol=dist_tol if drop_only else 0.75,
+        dist_tol=dist_tol if (drop_only or rebuild) else 0.75,
     )
 
     drop_mask = np.zeros(mesh.n_faces, dtype=bool)
+    owner_review: set[int] = set()
     new_pos_list: list[np.ndarray] = []
     new_uv_list: list[np.ndarray] = []
     new_fv_list: list[list[int]] = []
@@ -602,20 +617,67 @@ def remove_coplanar_overlaps(
                     m_id = int(mesh.face_material[f])
                     mat_area[m_id] = mat_area.get(m_id, 0.0) + float(poly.area)
             is_hs = abs(float(cn[2])) > 0.5
-            fids_sorted = sorted(
-                [f for f in g_fids if f in poly_p],
-                key=lambda f: (
-                    (1 if float(fn[f, 2]) > 0.0 else 0) if is_hs else 1,
-                    round(mat_area.get(int(mesh.face_material[f]), 0.0), 1),
+            if rebuild and visible is not None:
+                # Owner 2026-11-11: never change a texture someone can see. Where two faces with DIFFERENT
+                # looks face opposite ways and BOTH have open air in front (a zero-thickness slab seen from
+                # above and below), keeping one would change a visible texture: leave both, list for the owner.
+                cand = [f for f in g_fids if f in poly_p]
+                vis_pos = [f for f in cand if visible[f] and float(np.dot(fn[f], cn)) >= 0.0]
+                vis_neg = [f for f in cand if visible[f] and float(np.dot(fn[f], cn)) < 0.0]
+                if vis_pos and vis_neg:
+                    for fa in vis_pos:
+                        for fb in vis_neg:
+                            if int(mesh.face_material[fa]) != int(mesh.face_material[fb]) and \
+                                    float(poly_p[fa].intersection(poly_p[fb]).area) > 0.01:
+                                owner_review.update((fa, fb))
+                rank_key = lambda f: (  # noqa: E731
+                    1 if visible[f] else 0,                                   # the face someone sees wins
+                    round(mat_area.get(int(mesh.face_material[f]), 0.0), 1),  # then the plane's main look
                     float(poly_p[f].area),
-                ),
-                reverse=True,
-            )
+                )
+                fids_sorted = sorted([f for f in g_fids if f in poly_p and f not in owner_review], key=rank_key, reverse=True)
+            else:
+                fids_sorted = sorted(
+                    [f for f in g_fids if f in poly_p],
+                    key=lambda f: (
+                        (1 if float(fn[f, 2]) > 0.0 else 0) if is_hs else 1,
+                        round(mat_area.get(int(mesh.face_material[f]), 0.0), 1),
+                        float(poly_p[f].area),
+                    ),
+                    reverse=True,
+                )
             cov_u = Polygon()
             for f in fids_sorted:
                 pl = poly_p[f]
                 area_f = float(pl.area)
                 ovl = float(pl.intersection(cov_u).area) if not cov_u.is_empty else 0.0
+                if rebuild:
+                    if ovl <= 0.01:
+                        cov_u = cov_u.union(pl) if not cov_u.is_empty else pl
+                        continue
+                    drop_mask[f] = True
+                    if report is not None:
+                        key = "visible_faces_cut" if (visible is not None and visible[f]) else "hidden_faces_cut"
+                        report[key] = report.get(key, 0) + 1
+                        report[key + "_sqin"] = report.get(key + "_sqin", 0.0) + ovl
+                    if area_f - ovl > 0.01:
+                        rem_geom = pl.difference(cov_u).buffer(0)
+                        if rem_geom.geom_type == "GeometryCollection":
+                            rem_geom = unary_union([g for g in rem_geom.geoms if g.geom_type in ("Polygon", "MultiPolygon")])
+                        if not rem_geom.is_empty and float(rem_geom.area) > 0.01:
+                            orig_fvt = mesh.face_vt[f] if has_uvs else np.array([-1, -1, -1], dtype=np.int64)
+                            uvs_f = mesh.uvs[orig_fvt] if (has_uvs and (orig_fvt >= 0).all()) else None
+                            npos, nuv, nfv, nfvt, nfmat, next_v_idx, next_vt_idx = _triangulate_clipped_face(
+                                pts[f], p2_map[f], mesh.face_v[f], orig_fvt, uvs_f, fn[f], int(mesh.face_material[f]),
+                                rem_geom, next_v_idx, next_vt_idx, min_part_area=0.005,
+                            )
+                            new_pos_list.extend(npos)
+                            new_uv_list.extend(nuv)
+                            new_fv_list.extend(nfv)
+                            new_fvt_list.extend(nfvt)
+                            new_fmat_list.extend(nfmat)
+                    cov_u = cov_u.union(pl)
+                    continue
                 if drop_only:
                     # Strictly drop ONLY if >= 99.5% of the triangle is covered AND uncovered area <= 0.02 sq in
                     rem_area = area_f - ovl
@@ -651,6 +713,8 @@ def remove_coplanar_overlaps(
 
                 cov_u = cov_u.union(pl) if not cov_u.is_empty else pl
 
+    if report is not None:
+        report["owner_review_faces"] = sorted(int(f) for f in owner_review)
     if not drop_mask.any() and not new_fv_list:
         return mesh, 0
     out, _ = remove_faces(mesh, drop_mask)
@@ -943,6 +1007,7 @@ def repair_building_floor_mesh(
             in_mesh_filled.face_vn = np.vstack([in_mesh_filled.face_vn, np.full((len(soffit_fids), 3), -1, dtype=np.int64)])
             in_mesh_filled.face_line = np.concatenate([in_mesh_filled.face_line, np.zeros(len(soffit_fids), dtype=np.int64)])
 
+    n_coplanar_protected = 0
     state = start_fix(in_mesh_filled, flatness, FixProfile(solidify=False, guard_size=(256, 256)))
     for st_name, st_fn in FIX_STAGES:
         if st_name == "merge":
@@ -1054,6 +1119,15 @@ def repair_building_floor_mesh(
 
             state.removed_hidden_full = (state.removed_hidden_full & (~rescue_mask)) | drop_endcap_mask
             state.removed_pass1 = (state.removed_pass1 & (~rescue_mask)) | drop_endcap_mask
+            n_coplanar_protected = 0
+            if "protect_coplanar_patches" in active_stages:
+                from engine.fixes.patch_protect import propagate_coplanar_patch_reachability
+                kept_after_prop, n_coplanar_protected = propagate_coplanar_patch_reachability(
+                    ref_m, ~state.removed_hidden_full, max_hops=3
+                )
+                if n_coplanar_protected > 0:
+                    state.removed_hidden_full = ~kept_after_prop
+                    state.removed_pass1 = state.removed_pass1 & state.removed_hidden_full
             state.n_removed_hidden = int(state.removed_hidden_full.sum())
 
     repaired = state.mesh_overlapped if state.mesh_overlapped is not None else state.mesh
@@ -1113,7 +1187,23 @@ def repair_building_floor_mesh(
             mesh_orig_vis, repaired, vis_surface_mask, min_missing_area=20.0
         )
 
-    if (n_dropped_fin > 0 or n_restored_walls > 0) and "merge" in active_stages:
+    n_needle_slivers_purged = 0
+    if "purge_needle_slivers" in active_stages and repaired.n_faces > 0:
+        from engine.fixes.patch_protect import purge_piercing_needle_slivers
+        from engine.vis.exposure import EXP_OUTSIDE, classify_exposure, compute_side_exposure
+        topo_sliv = analyse_topology(repaired, frozenset())
+        fn_sliv = face_normals(topo_sliv.positions_w, topo_sliv.face_w, topo_sliv.ok)
+        center_sliv = 0.5 * (topo_sliv.positions_w.min(axis=0) + topo_sliv.positions_w.max(axis=0))
+        caster_sliv = EmbreeCaster(topo_sliv.positions_w - center_sliv, topo_sliv.face_w[topo_sliv.ok])
+        exp_f, exp_b = compute_side_exposure(
+            caster_sliv, topo_sliv.positions_w - center_sliv, topo_sliv.face_w, fn_sliv, topo_sliv.ok
+        )
+        outer_protect = classify_exposure(exp_f, exp_b, topo_sliv.ok) == EXP_OUTSIDE
+        repaired, n_needle_slivers_purged = purge_piercing_needle_slivers(
+            repaired, protect_mask=outer_protect
+        )
+
+    if (n_dropped_fin > 0 or n_restored_walls > 0 or n_needle_slivers_purged > 0) and "merge" in active_stages:
         flat_mats = flat_material_indices(repaired, flatness)
         topo_fin = analyse_topology(repaired, flat_mats)
         m_res_fin = merge_regions(repaired, topo_fin, flat_mats)
@@ -1123,12 +1213,20 @@ def repair_building_floor_mesh(
 
     repaired, res_rings = compact_mesh(repaired, res_rings)
 
+    facade_integrity_report: dict | None = None
+    if "facade_integrity_gate" in active_stages and repaired.n_faces > 0:
+        from engine.validate.facade_integrity import verify_facade_and_mesh_integrity
+        facade_integrity_report = verify_facade_and_mesh_integrity(mesh_orig_vis, repaired)
+
     stats = {
         "n_removed_hidden": int(state.n_removed_hidden + n_liners_dropped + n_pre_ovl_dropped),
+        "n_coplanar_protected": int(n_coplanar_protected),
+        "n_needle_slivers_purged": int(n_needle_slivers_purged),
         "n_solidified": len(soffit_fids),
         "n_holes_filled": int(n_notches_before + total_post_notches),
         "n_flipped": int(getattr(state, "n_flipped", 0)),
         "merge_report": merge_report,
         "enabled_stages": [s for s in REPAIR_STAGE_ORDER if s in active_stages],
+        "facade_integrity": facade_integrity_report,
     }
     return repaired, res_rings, stats

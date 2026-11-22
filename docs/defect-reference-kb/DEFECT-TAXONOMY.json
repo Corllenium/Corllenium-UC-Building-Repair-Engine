@@ -1,0 +1,227 @@
+{
+  "version": 1,
+  "datasetName": "UC Post-Fix 3D Building Mesh Defect Reference Dataset",
+  "totalClasses": 15,
+  "totalImages": 24,
+  "classes": [
+    {
+      "id": "D01",
+      "name": "Wall-Stair Material Patch / Shade Cutout",
+      "category": "surface_quality",
+      "severity": "medium",
+      "blocksStage5": true,
+      "primaryImage": "D01_wall_stair_patch.jpg",
+      "images": [
+        "D01_wall_stair_patch.jpg"
+      ],
+      "visualSignature": "Isolated darker rectangular concrete patch embedded in a uniform light-grey concrete wall right at a stair tread junction.",
+      "geometricDetector": "original_texture_fidelity (coplanar wall minority-material island < 1.5 m2)",
+      "loopbackTarget": "Stage 3 (material_sync) / Stage 4"
+    },
+    {
+      "id": "D02",
+      "name": "Hairline Needle Sliver / Piercing Triangle",
+      "category": "surface_quality",
+      "severity": "high",
+      "blocksStage5": true,
+      "primaryImage": "D02_needle_sliver_pierce.jpg",
+      "images": [
+        "D02_needle_sliver_pierce.jpg"
+      ],
+      "visualSignature": "Razor-thin acute triangle jutting horizontally out of a vertical wall face beside stairs (degenerate E5/merge needle sliver).",
+      "geometricDetector": "zero_piercing_needle_slivers (aspect > 15, altitude < 3.0 in, open edge protruding from planar wall)",
+      "loopbackTarget": "Stage 3 (purge_piercing_needle_slivers)"
+    },
+    {
+      "id": "D03",
+      "name": "Diagonal Wall Crackline Tear & Column Crease",
+      "category": "outer_facade",
+      "severity": "critical",
+      "blocksStage5": true,
+      "primaryImage": "D03_wall_crackline_tear.jpg",
+      "images": [
+        "D03_wall_crackline_tear.jpg"
+      ],
+      "visualSignature": "Long diagonal hairline crackline strip cutting across a flat concrete wall plus a vertical misaligned crease strip along a column edge.",
+      "geometricDetector": "outer_facade_zero_cracklines (newly torn EDGE_OPEN seams > 1.0 in on visible walls/facade)",
+      "loopbackTarget": "Stage 3 (plane_union_e5 + restore_visible_surfaces)"
+    },
+    {
+      "id": "D04",
+      "name": "Diagonal Missing Half-Quad at Wall-Stair Corner",
+      "category": "outer_facade",
+      "severity": "critical",
+      "blocksStage5": true,
+      "primaryImage": "D04_missing_half_quad_wall.jpg",
+      "images": [
+        "D04_missing_half_quad_wall.jpg"
+      ],
+      "visualSignature": "45-degree diagonal half-triangle missing from a concrete wall next to stairs revealing dark void behind, plus diagonal split on stair side.",
+      "geometricDetector": "outer_facade_completeness + interior_visible_retention (7-pt Embree coverage drop + atomic patch integrity)",
+      "loopbackTarget": "Stage 3 (protect_coplanar_patches + restore_visible_surfaces)"
+    },
+    {
+      "id": "D05",
+      "name": "Floor-to-Wall Corner Triangular Void Gap",
+      "category": "interior_mesh",
+      "severity": "high",
+      "blocksStage5": true,
+      "primaryImage": "D05_floor_wall_corner_gap.jpg",
+      "images": [
+        "D05_floor_wall_corner_gap.jpg"
+      ],
+      "visualSignature": "Dark triangular void gap tucked directly between a stair side, concrete column corner, and beige quartz floor tile.",
+      "geometricDetector": "stair_and_floor_continuity (walkable floor boundary gap / void raycast)",
+      "loopbackTarget": "Stage 4 (Blender Mesh-Build / Landing Seal)"
+    },
+    {
+      "id": "D06",
+      "name": "Missing Vertical Wall Half-Triangle Exposing Backing",
+      "category": "outer_facade",
+      "severity": "critical",
+      "blocksStage5": true,
+      "primaryImage": "D06_missing_wall_exposing_backing.jpg",
+      "images": [
+        "D06_missing_wall_exposing_backing.jpg"
+      ],
+      "visualSignature": "Large diagonal half of a vertical concrete wall missing next to stairs, exposing stone-mosaic stair backing behind it.",
+      "geometricDetector": "outer_facade_completeness + interior_visible_retention (7-pt Embree coverage + look-key mismatch)",
+      "loopbackTarget": "Stage 3 (protect_coplanar_patches + restore_visible_surfaces)"
+    },
+    {
+      "id": "D07",
+      "name": "Pillar Base Diagonal Cutout & Back-Wall Strip",
+      "category": "interior_mesh",
+      "severity": "critical",
+      "blocksStage5": true,
+      "primaryImage": "D07_pillar_base_cutout.jpg",
+      "images": [
+        "D07_pillar_base_cutout.jpg"
+      ],
+      "visualSignature": "Diagonal triangular cutout missing at the base corner of a concrete pillar exposing interior stone/void, plus mismatched vertical strip on far wall.",
+      "geometricDetector": "interior_visible_retention (column/baseboard 7-pt Embree coverage >= 99.0%)",
+      "loopbackTarget": "Stage 3 (protect_coplanar_patches + restore_visible_surfaces)"
+    },
+    {
+      "id": "D08",
+      "name": "Zebra Diagonal Coplanar Texture Swap",
+      "category": "surface_quality",
+      "severity": "high",
+      "blocksStage5": true,
+      "primaryImage": "D08_zebra_louver_swap.jpg",
+      "images": [
+        "D08_zebra_louver_swap.jpg"
+      ],
+      "visualSignature": "Diagonal alternating white littletiles and dark-green concrete stripes on a single planar louver/corridor wall caused by Embree BVH tie-breaking.",
+      "geometricDetector": "original_texture_fidelity (littletiles -> concrete_white_-147 swaps <= 1.0%)",
+      "loopbackTarget": "Stage 3 (coplanar_reachability_propagation + _finish_tier)"
+    },
+    {
+      "id": "D09",
+      "name": "Exposed Concrete Floor Island Patch",
+      "category": "surface_quality",
+      "severity": "medium",
+      "blocksStage5": true,
+      "primaryImage": "D09_concrete_floor_island.jpg",
+      "images": [
+        "D09_concrete_floor_island.jpg"
+      ],
+      "visualSignature": "Small grey concrete wall-cap patch interrupting a continuous beige quartz_block_top walkable floor.",
+      "geometricDetector": "original_texture_fidelity (upward concrete island bordered by quartz_block_top at same Z)",
+      "loopbackTarget": "Stage 3 (floor_material_sync with affine UV)"
+    },
+    {
+      "id": "D10",
+      "name": "Sawtooth Stair-Sidewall Cracks & Shredded Stair Edges",
+      "category": "interior_mesh",
+      "severity": "critical",
+      "blocksStage5": true,
+      "primaryImage": "D10_shredded_stair_sides.png",
+      "images": [
+        "D10_shredded_stair_sides.png",
+        "D10b_stair_sidewall_notches.jpg",
+        "D10c_stair_underside_spikes.jpg"
+      ],
+      "visualSignature": "Missing step corners, tilted/broken mosaic risers, sawtooth notches along stair sidewalls, and jagged spikes along stair undersides.",
+      "geometricDetector": "stair_and_floor_continuity (stair tread/riser retention >= 99.5% + wall-to-wall seam continuity)",
+      "loopbackTarget": "Stage 4 (Blender Stair Rebuild & Sidewall Smooth)"
+    },
+    {
+      "id": "D11",
+      "name": "Trapped Hollow-Wall Internal Shelf Fins & Shards",
+      "category": "interior_mesh",
+      "severity": "medium",
+      "blocksStage5": false,
+      "primaryImage": "D11_hollow_wall_shelf_fin.jpg",
+      "images": [
+        "D11_hollow_wall_shelf_fin.jpg",
+        "D11b_hollow_wall_shards.jpg",
+        "D11c_hollow_wall_strips.jpg"
+      ],
+      "visualSignature": "Stray horizontal concrete fins or jagged triangular slabs trapped inside sealed ~40 cm double-skin hollow wall cavities.",
+      "geometricDetector": "navigable_floodfill_reachability (strict room_hits==0, ext_exp==0, 6-axis enclosed structural concrete)",
+      "loopbackTarget": "Stage 3 (cavity_fin_purge pre-guard)"
+    },
+    {
+      "id": "D12",
+      "name": "Missing Baseboard / Stair-Stringer / Column Return Cutout",
+      "category": "interior_mesh",
+      "severity": "critical",
+      "blocksStage5": true,
+      "primaryImage": "D12_missing_stringer_baseboard.png",
+      "images": [
+        "D12_missing_stringer_baseboard.png",
+        "D12b_missing_column_strip_stringer.jpg",
+        "D12c_missing_baseboard_triangle.jpg",
+        "D12d_missing_stair_stringer_wedge.png"
+      ],
+      "visualSignature": "Missing triangular cutouts on dark-green baseboards, stair stringers, and narrow column returns caused by over-aggressive cavity pruning.",
+      "geometricDetector": "interior_visible_retention (strict room_hits>0 7-pt Embree coverage >= 99.0%)",
+      "loopbackTarget": "Stage 3 (protect_coplanar_patches + restore_visible_surfaces)"
+    },
+    {
+      "id": "D13",
+      "name": "Dead Under-Floor / Floor-Slab Sandwich / Under-Stair Void Trash",
+      "category": "interior_mesh",
+      "severity": "medium",
+      "blocksStage5": false,
+      "primaryImage": "D13_dead_foundation_void_trash.jpg",
+      "images": [
+        "D13_dead_foundation_void_trash.jpg",
+        "D13b_understair_floating_shards.jpg",
+        "D13c_floor_slab_sandwich_plenum.png"
+      ],
+      "visualSignature": "Floating shredded stair undersides, stone-wall stubs, and triangles trapped inside 1 m hollow floor-slab sandwiches or sealed under-floor/under-stair voids.",
+      "geometricDetector": "navigable_floodfill_reachability (0 probes in non-navigable dead plenums)",
+      "loopbackTarget": "Stage 3 (navigable_floodfill_reachability)"
+    },
+    {
+      "id": "D14",
+      "name": "Mid-Wall / Baseboard See-Through Punch-Through Hole",
+      "category": "outer_facade",
+      "severity": "critical",
+      "blocksStage5": true,
+      "primaryImage": "D14_baseboard_punchthrough_hole.jpg",
+      "images": [
+        "D14_baseboard_punchthrough_hole.jpg"
+      ],
+      "visualSignature": "Sharp triangular or trapezoidal see-through holes punched straight through the bottom or middle of an otherwise solid flat wall or baseboard.",
+      "geometricDetector": "outer_facade_zero_cracklines + interior_visible_retention (solid planar wall interior hole / missing triangle check)",
+      "loopbackTarget": "Stage 3 (protect_coplanar_patches + heal_planar_wall_punchthrough_holes)"
+    },
+    {
+      "id": "D15",
+      "name": "Buried Internal Wall / Cap Sawtooth Poke-Through",
+      "category": "interior_mesh",
+      "severity": "high",
+      "blocksStage5": true,
+      "primaryImage": "D15_buried_internal_wall_pokethrough.png",
+      "images": [
+        "D15_buried_internal_wall_pokethrough.png"
+      ],
+      "visualSignature": "Internal wall block or reversed/hidden face inside a wall or floor cavity grazing/poking through the walkable floor or wall surface with sawtooth z-bleed teeth.",
+      "geometricDetector": "zero_flicker_convergence + original_texture_fidelity + buried_wall_cap_purge (non-navigable cavity + near-coplanar <= 0.5in cap clip)",
+      "loopbackTarget": "Stage 3 (navigable_floodfill_reachability + cavity_fin_purge + coplanar_overlaps)"
+    }
+  ]
+}
