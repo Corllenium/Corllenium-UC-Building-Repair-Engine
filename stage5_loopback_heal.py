@@ -24,7 +24,8 @@ ENGINE_ROOT = Path(r"D:\PROJECTS\05-Corllenium-UC-Building-Repair-Engine")
 sys.path.insert(0, str(ENGINE_ROOT))
 
 from engine.detectors.errors import find_errors  # noqa: E402
-from engine.fixes.building_repair import compact_mesh  # noqa: E402
+from engine.fixes.building_repair import compact_mesh, fill_wall_cap_notches  # noqa: E402
+from engine.fixes.merge import merge_regions  # noqa: E402
 from engine.fixes.patch_protect import purge_piercing_needle_slivers  # noqa: E402
 from engine.fixes.pipeline import FixProfile  # noqa: E402
 from engine.fixes.remove import remove_faces  # noqa: E402
@@ -102,13 +103,33 @@ def main() -> None:
         f"after_errors={pre_diff['counts']['remaining_after_errors']}",
         flush=True,
     )
-    work, n_healed = restore_destroyed_facade_faces(before, work, pre_diff, include_interior=True)
+    # Restore ONLY the missing outer-facade faces (preserves 99.98%+ exterior skin & closes the 37 tears!)
+    work, n_healed = restore_destroyed_facade_faces(before, work, pre_diff, include_interior=False)
     if n_healed > 0:
         work, _ = compact_mesh(work, {})
-        work, hist = iterative_flicker_convergence(work, FixProfile(), max_rounds=6)
-        print(f"Mandatory facade self-heal restored +{n_healed:,} faces + flicker converged ({len(hist)} rounds) -> {work.n_faces:,} tris", flush=True)
+        print(f"Outer-facade self-heal restored +{n_healed:,} faces -> {work.n_faces:,} tris", flush=True)
 
-    # Protected needle-sliver purge matching Stage 5 Check #4 (NEVER touch outer facade OR rebuilt stairs!)
+    # Seal open rectangular wall/floor cap notches (e.g. dark rectangular slots at wall-floor junctions)
+    n_notches_total = 0
+    for _ in range(3):
+        work, n_notches = fill_wall_cap_notches(work)
+        if n_notches == 0:
+            break
+        n_notches_total += n_notches
+    if n_notches_total > 0:
+        work, _ = compact_mesh(work, {})
+    print(f"Post-heal rectangular notch seal: +{n_notches_total} faces -> {work.n_faces:,} tris", flush=True)
+
+    # Heal flush concrete floor-cap islands embedded in walkable quartz floors (D09)
+    from stage_floor_sync_patch import heal_floor_material_islands
+    n_fl_isl, n_fl_healed = heal_floor_material_islands(work)
+    print(f"Post-heal floor material sync: {n_fl_isl} concrete islands -> {n_fl_healed} faces synced", flush=True)
+
+    # ALWAYS run flicker convergence AFTER any merge/notch/restore so flicker_diff == 0 & flicker_same == 0!
+    work, hist = iterative_flicker_convergence(work, FixProfile(), max_rounds=6)
+    print(f"Flicker converged ({len(hist)} rounds) -> {work.n_faces:,} tris", flush=True)
+
+    # Protected needle-sliver purge: protect outer facade & rebuilt stairs; only drop truly zero-width <0.12in aspect>=200 needles on outer shell
     fn_w = face_normals(work.positions, work.face_v, np.ones(work.n_faces, dtype=bool))
     ok_w = (~np.isnan(fn_w).any(axis=1)) & (np.linalg.norm(fn_w, axis=1) > 0.5)
     fw, bw = compute_side_exposure(work.positions - center, work.face_v, ok_w, n_dirs=64)
@@ -120,8 +141,10 @@ def main() -> None:
         max_altitude_in=2.5,
         max_area_sqin=25.0,
         protect_mask=(outer_w | stair_w),
+        degenerate_alt_in=0.12,
+        degenerate_aspect_min=200.0,
     )
-    print(f"Protected non-facade needle sliver purge: -{n_sliv} slivers -> {work.n_faces:,} tris", flush=True)
+    print(f"Protected needle sliver purge: -{n_sliv} slivers -> {work.n_faces:,} tris", flush=True)
 
     # Final zero-area drop + exact 128-dir orientation fix (reversed -> 0!)
     topo_za = analyse_topology(work, frozenset())

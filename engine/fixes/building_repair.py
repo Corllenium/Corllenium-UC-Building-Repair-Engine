@@ -35,6 +35,7 @@ from engine.vis.exposure import BARY, EPS_IN
 
 REPAIR_STAGE_ORDER: tuple[str, ...] = (
     "prepare_materials",
+    "pre_merge_coplanar",
     "cavity_liners",
     "pre_dedup",
     "hidden",
@@ -961,6 +962,12 @@ def repair_building_floor_mesh(
             if tp.is_file():
                 flatness[name] = min(texture_flatness(tp), 6.0)
 
+    if "pre_merge_coplanar" in active_stages and mesh_prep.n_faces > 0:
+        # Pre-merge flat same-material floor & wall tiles BEFORE cavity/hidden/flicker passes
+        flat_mats_pre = flat_material_indices(mesh_prep, flatness)
+        topo_pre = analyse_topology(mesh_prep, flat_mats_pre)
+        mesh_prep = merge_regions(mesh_prep, topo_pre, flat_mats_pre).mesh
+
     if "cavity_liners" in active_stages:
         mesh_prep, n_liners_dropped = remove_cavity_liner_backfaces(mesh_prep)
     else:
@@ -1231,6 +1238,20 @@ def repair_building_floor_mesh(
             )
             if n_mandatory_facade_healed > 0:
                 repaired, _ = remove_coplanar_overlaps(repaired, overlap_ratio=0.05, drop_only=True)
+                if "holes" in active_stages:
+                    for _ in range(3):
+                        repaired, n_h = fill_wall_cap_notches(repaired)
+                        if n_h == 0:
+                            break
+                if "merge" in active_stages:
+                    flat_mats_h = flat_material_indices(repaired, flatness)
+                    topo_h = analyse_topology(repaired, flat_mats_h)
+                    m_res_h = merge_regions(repaired, topo_h, flat_mats_h)
+                    repaired = m_res_h.mesh
+                    res_rings = m_res_h.rings
+                    merge_report = m_res_h.report
+                    # Always clear any coplanar overlaps re-introduced by merge_regions re-triangulation
+                    repaired, _ = remove_coplanar_overlaps(repaired, overlap_ratio=0.05, drop_only=True)
                 repaired, res_rings = compact_mesh(repaired, res_rings)
                 diff_overlay_report = compute_before_after_diff_overlay(mesh_orig_vis, repaired)
         facade_integrity_report = verify_facade_and_mesh_integrity(mesh_orig_vis, repaired)

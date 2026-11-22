@@ -148,11 +148,19 @@ def detect_piercing_needle_slivers(
 def purge_piercing_needle_slivers(
     mesh: MeshData,
     aspect_min: float = 18.0,
-    max_altitude_in: float = 1.8,
-    max_area_sqin: float = 16.0,
+    max_altitude_in: float = 2.5,
+    max_area_sqin: float = 25.0,
     protect_mask: np.ndarray | None = None,
+    degenerate_alt_in: float = 0.5,
+    degenerate_aspect_min: float = 80.0,
 ) -> tuple[MeshData, int]:
-    """Safely remove degenerate piercing needle slivers (D02) without touching outer facades or protected surfaces."""
+    """Safely remove degenerate piercing needle slivers (D02) without touching real outer facades.
+
+    `protect_mask` shields legitimate outer-facade walls/trim from removal, EXCEPT extreme
+    degenerate E5-trim hairline needles (`min_altitude < degenerate_alt_in` AND
+    `aspect >= degenerate_aspect_min`, e.g. 0.08 in wide x 200 in long), which are never
+    valid architectural geometry and always break Stage 5 Check #4.
+    """
     sliver_mask, _ = detect_piercing_needle_slivers(
         mesh,
         aspect_min=aspect_min,
@@ -160,7 +168,11 @@ def purge_piercing_needle_slivers(
         max_area_sqin=max_area_sqin,
     )
     if protect_mask is not None:
-        sliver_mask = sliver_mask & (~np.asarray(protect_mask, dtype=bool))
+        _, max_e, min_alt = _tri_geometry_stats(mesh.positions, mesh.face_v)
+        aspect = np.where(min_alt > 1e-6, max_e / np.maximum(min_alt, 1e-6), 1e6)
+        degenerate_hairline = (min_alt < degenerate_alt_in) & (aspect >= degenerate_aspect_min)
+        effective_protect = np.asarray(protect_mask, dtype=bool) & (~degenerate_hairline)
+        sliver_mask = sliver_mask & (~effective_protect)
     n_drop = int(sliver_mask.sum())
     if n_drop == 0:
         return mesh, 0

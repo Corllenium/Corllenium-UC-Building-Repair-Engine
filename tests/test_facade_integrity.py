@@ -145,3 +145,24 @@ def test_diff_overlay_detects_and_mandatorily_heals_destroyed_outer_facade() -> 
     assert n_restored == 1
     diff_after_heal = compute_before_after_diff_overlay(before, healed, n_probe_dirs=32, n_ext_dirs=32)
     assert diff_after_heal["counts"]["missing_outer_facade"] == 0
+
+
+def test_detect_new_mesh_holes_catches_triangle_hole_and_passes_watertight() -> None:
+    from engine.fixes.remove import remove_faces
+    from engine.validate.hole_detector import detect_new_mesh_holes
+
+    before = _make_closed_box(200.0)
+    # Watertight identical mesh -> 0 new holes
+    clean = detect_new_mesh_holes(before, before)
+    assert clean["holeCount"] == 0
+    assert clean["voidLeakEdgeCount"] == 0
+
+    # Punch a single triangular hole out of a wall -> caught as 1 triangle_hole (3 void-leak edges!)
+    drop = np.zeros(before.n_faces, dtype=bool)
+    drop[4] = True
+    holed, _ = remove_faces(before, drop)
+    res = detect_new_mesh_holes(before, holed)
+    assert res["holeCount"] == 1
+    assert res["voidLeakEdgeCount"] == 3
+    assert res["byShape"]["triangle_hole"] == 1
+    assert len(res["holeFaceIds"]) > 0

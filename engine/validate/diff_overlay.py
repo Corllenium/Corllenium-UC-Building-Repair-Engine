@@ -30,6 +30,7 @@ from engine.rays.caster import EmbreeCaster
 from engine.topo.planes import face_normals
 from engine.validate import sampling, viewpoints, visibility
 from engine.validate.facade_integrity import BARY7, _coverage_7pt
+from engine.validate.hole_detector import detect_new_mesh_holes
 from engine.vis.exposure import EXP_OUTSIDE, classify_exposure, compute_side_exposure
 
 
@@ -127,10 +128,16 @@ def compute_before_after_diff_overlay(
     sliver_mask, sliver_spots = detect_piercing_needle_slivers(after_mesh)
     for fid in np.flatnonzero(sliver_mask):
         after_err_set.add(int(fid))
+
+    # 4. Detect ANY-shape new void-leaking mesh holes (triangles, edge slits, notches, irregular polygons)
+    hole_report = detect_new_mesh_holes(before_mesh, after_mesh)
+    for fid in hole_report["holeFaceIds"]:
+        if 0 <= int(fid) < after_mesh.n_faces:
+            after_err_set.add(int(fid))
     remaining_after_ids = np.array(sorted(after_err_set), dtype=np.int64)
 
     return {
-        "version": "1.0",
+        "version": "1.1",
         "generatedAt": datetime.now(timezone.utc).isoformat(),
         "beforeFacesTotal": int(before_mesh.n_faces),
         "afterFacesTotal": int(after_mesh.n_faces),
@@ -139,6 +146,13 @@ def compute_before_after_diff_overlay(
             "missing_interior_visible": int(len(missing_interior_ids)),
             "cleaned_hidden_trash": int(len(cleaned_trash_ids)),
             "remaining_after_errors": int(len(remaining_after_ids)),
+            "new_mesh_holes": int(hole_report["holeCount"]),
+            "new_hole_void_edges": int(hole_report["voidLeakEdgeCount"]),
+        },
+        "newMeshHoles": {
+            "holeCount": hole_report["holeCount"],
+            "voidLeakEdgeCount": hole_report["voidLeakEdgeCount"],
+            "byShape": hole_report["byShape"],
         },
         "before_faces": {
             "missing_outer_facade": [int(x) for x in missing_outer_ids],
@@ -147,11 +161,13 @@ def compute_before_after_diff_overlay(
         },
         "after_faces": {
             "remaining_after_errors": [int(x) for x in remaining_after_ids],
+            "new_hole_boundary_faces": hole_report["holeFaceIds"],
         },
         "spots": {
             "missing_outer_facade": _top_spots(before_mesh, missing_outer_ids, "Missing outer facade"),
             "missing_interior_visible": _top_spots(before_mesh, missing_interior_ids, "Missing visible interior"),
             "remaining_after_errors": sliver_spots[:16],
+            "new_mesh_holes": hole_report["spots"],
         },
     }
 
@@ -229,6 +245,59 @@ def restore_destroyed_facade_faces(
 
     import copy
     out = copy.deepcopy(after_mesh)
+
+    # Clear any buried/conflicting coplanar faces in `out` that lie on the exact same plane & overlap
+    # a restored visible BEFORE face, so subsequent flicker convergence NEVER re-deletes the visible facade!
+    if out.n_faces > 0:
+        from shapely.geometry import Polygon
+        from engine.topo.planes import plane_basis
+
+        fn_b = face_normals(before_mesh.positions, before_mesh.face_v, np.ones(before_mesh.n_faces, dtype=bool))
+        fn_a = face_normals(out.positions, out.face_v, np.ones(out.n_faces, dtype=bool))
+        pts_b_sel = before_mesh.positions[before_mesh.face_v[sel]]
+        pts_a = out.positions[out.face_v]
+        # Bounding-box + plane prefilter for fast conflict detection
+        bmin_a = pts_a.min(axis=1)
+        bmax_a = pts_a.max(axis=1)
+        drop_conflict = np.zeros(out.n_faces, dtype=bool)
+        for idx_k, bf_id in enumerate(sel):
+            nb = fn_b[bf_id]
+            if np.isnan(nb).any() or np.linalg.norm(nb) < 0.5:
+                continue
+            tb = pts_b_sel[idx_k]
+            bb_min = tb.min(axis=0) - 0.15
+            bb_max = tb.max(axis=0) + 0.15
+            cand = np.flatnonzero(
+                (~drop_conflict)
+                & (bmax_a[:, 0] >= bb_min[0]) & (bmin_a[:, 0] <= bb_max[0])
+                & (bmax_a[:, 1] >= bb_min[1]) & (bmin_a[:, 1] <= bb_max[1])
+                & (bmax_a[:, 2] >= bb_min[2]) & (bmin_a[:, 2] <= bb_max[2])
+            )
+            if len(cand) == 0:
+                continue
+            dots = np.abs(fn_a[cand] @ nb)
+            cand = cand[dots >= 0.995]
+            if len(cand) == 0:
+                continue
+            d_plane = float(tb[0] @ nb)
+            c_pts = pts_a[cand].mean(axis=1)
+            cand = cand[np.abs((c_pts @ nb) - d_plane) <= 0.12]
+            if len(cand) == 0:
+                continue
+            u_ax, v_ax = plane_basis(nb)
+            pb = Polygon(np.stack([tb @ u_ax, tb @ v_ax], axis=-1))
+            if not pb.is_valid or pb.area <= 0.05:
+                continue
+            for af in cand:
+                pa = Polygon(np.stack([pts_a[af] @ u_ax, pts_a[af] @ v_ax], axis=-1))
+                if pa.is_valid and pa.area > 0.05:
+                    ovl = float(pa.intersection(pb).area)
+                    if ovl >= 0.70 * float(pa.area):
+                        drop_conflict[af] = True
+        if drop_conflict.any():
+            from engine.fixes.remove import remove_faces
+            out, _ = remove_faces(out, drop_conflict)
+
     mat_map: dict[str, int] = {m: i for i, m in enumerate(out.materials)}
     for m in before_mesh.materials:
         if m not in mat_map:
