@@ -34,6 +34,11 @@ from engine.pipeline import analyse_topology  # noqa: E402
 from engine.rays.caster import EmbreeCaster  # noqa: E402
 from engine.topo.edges import EDGE_REMOVABLE  # noqa: E402
 from engine.topo.planes import face_normals  # noqa: E402
+from engine.validate.diff_overlay import (  # noqa: E402
+    compute_before_after_diff_overlay,
+    restore_destroyed_facade_faces,
+    write_diff_overlay_obj,
+)
 from engine.validate.facade_integrity import BARY7, verify_facade_and_mesh_integrity  # noqa: E402
 from engine.vis.exposure import EXP_OUTSIDE, classify_exposure, compute_side_exposure  # noqa: E402
 from run_architecture_whole_r5_v2 import (  # noqa: E402
@@ -86,33 +91,36 @@ def main() -> None:
     excl = rebuilt_stair_excl(before)
     roof_b = pts_b[:, :, 2].min(axis=1) > ROOF_PROTECT_Z_IN
 
-    # Compute strictly visible faces (outer facade + multi-height interior room probes)
-    reachable, _, _ = compute_reachability(before, n_probe_dirs=256, n_ext_dirs=128)
-    prot_ids = np.flatnonzero((reachable | roof_b) & ok_b & (areas_b >= 0.05) & (~excl))
-
-    # Find EVERY protected visible face with < 6/7 barycentric coverage in current `work`
-    bt_p = pts_b[prot_ids] - center
-    samp = np.einsum("sb,fbk->fsk", BARY7, bt_p).reshape(-1, 3)
-    nb = np.repeat(fn_b[prot_ids], len(BARY7), axis=0)
-    ca = EmbreeCaster(work.positions - center, work.face_v)
-    hp, dp = ca.first_hit(samp - 0.06 * nb, nb)
-    hm, dm = ca.first_hit(samp + 0.06 * nb, -nb)
-    hit_ok = (((hp >= 0) & (dp <= 0.12)) | ((hm >= 0) & (dm <= 0.12))).reshape(len(prot_ids), len(BARY7))
-    miss_ids = prot_ids[hit_ok.sum(axis=1) < 6]
-    print(f"Found {len(miss_ids):,} missing visible faces (< 6/7 cov) out of {len(prot_ids):,}. Restoring...", flush=True)
-
-    if len(miss_ids) > 0:
-        work = append_mesh(work, before, miss_ids)
+    # Mandatory in-run missing-facade self-heal (pulls back any destroyed outer OR room-visible interior faces!)
+    pre_diff = compute_before_after_diff_overlay(
+        before, work, rebuild_exclusion_mask_fn=rebuilt_stair_excl, n_probe_dirs=256, n_ext_dirs=128
+    )
+    print(
+        f"Pre-heal diff: missing_outer={pre_diff['counts']['missing_outer_facade']}, "
+        f"missing_interior={pre_diff['counts']['missing_interior_visible']}, "
+        f"cleaned_trash={pre_diff['counts']['cleaned_hidden_trash']}, "
+        f"after_errors={pre_diff['counts']['remaining_after_errors']}",
+        flush=True,
+    )
+    work, n_healed = restore_destroyed_facade_faces(before, work, pre_diff, include_interior=True)
+    if n_healed > 0:
         work, _ = compact_mesh(work, {})
         work, hist = iterative_flicker_convergence(work, FixProfile(), max_rounds=6)
-        print(f"Restored + flicker converged ({len(hist)} rounds) -> {work.n_faces:,} tris", flush=True)
+        print(f"Mandatory facade self-heal restored +{n_healed:,} faces + flicker converged ({len(hist)} rounds) -> {work.n_faces:,} tris", flush=True)
 
-    # Protected needle-sliver purge: NEVER delete an outer-facade face!
+    # Protected needle-sliver purge matching Stage 5 Check #4 (NEVER touch outer facade OR rebuilt stairs!)
     fn_w = face_normals(work.positions, work.face_v, np.ones(work.n_faces, dtype=bool))
     ok_w = (~np.isnan(fn_w).any(axis=1)) & (np.linalg.norm(fn_w, axis=1) > 0.5)
     fw, bw = compute_side_exposure(work.positions - center, work.face_v, ok_w, n_dirs=64)
     outer_w = ok_w & (classify_exposure(fw + bw, ok_w) == EXP_OUTSIDE)
-    work, n_sliv = purge_piercing_needle_slivers(work, aspect_min=20.0, max_altitude_in=1.5, max_area_sqin=12.0, protect_mask=outer_w)
+    stair_w = rebuilt_stair_excl(work)
+    work, n_sliv = purge_piercing_needle_slivers(
+        work,
+        aspect_min=16.0,
+        max_altitude_in=2.5,
+        max_area_sqin=25.0,
+        protect_mask=(outer_w | stair_w),
+    )
     print(f"Protected non-facade needle sliver purge: -{n_sliv} slivers -> {work.n_faces:,} tris", flush=True)
 
     # Final zero-area drop + exact 128-dir orientation fix (reversed -> 0!)
@@ -145,6 +153,24 @@ def main() -> None:
     )
     (AFTER_DIR / "facade_integrity.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
 
+    diff_doc = compute_before_after_diff_overlay(
+        before,
+        after_mesh,
+        after_errs,
+        rebuild_exclusion_mask_fn=rebuilt_stair_excl,
+        n_probe_dirs=256,
+        n_ext_dirs=128,
+    )
+    (AFTER_DIR / "diff_overlay.json").write_text(json.dumps(diff_doc), encoding="utf-8")
+    write_diff_overlay_obj(before, after_mesh, diff_doc, AFTER_DIR / "diff_overlay.obj")
+    print(
+        f"Diff overlay written: missing_outer={diff_doc['counts']['missing_outer_facade']}, "
+        f"missing_interior={diff_doc['counts']['missing_interior_visible']}, "
+        f"cleaned_trash={diff_doc['counts']['cleaned_hidden_trash']}, "
+        f"after_errors={diff_doc['counts']['remaining_after_errors']}",
+        flush=True,
+    )
+
     # Sync TypeScript integrity module for Siege Dashboard
     out_ts = Path(r"D:\PROJECTS\02-Corllenium-Siege\.worktrees\arch-whole-r5-20261122\dashboard\lib\buildings\architectureWholeR5Integrity.ts")
     out_ts.write_text(
@@ -169,7 +195,12 @@ def main() -> None:
     for c in report["checks"]:
         print(f"  [{c['status'].upper():7s}] #{c['order']:2d} {c['id']:30s} | measured={c['measured']} | threshold={c['threshold']}", flush=True)
 
-    upload_after_files([after_obj, AFTER_DIR / "errors_after.json", AFTER_DIR / "facade_integrity.json"])
+    upload_after_files([
+        after_obj,
+        AFTER_DIR / "errors_after.json",
+        AFTER_DIR / "facade_integrity.json",
+        AFTER_DIR / "diff_overlay.json",
+    ])
     eb = summ["errors_before"]
     ea = after_errs["counts"]
     live_res = {

@@ -122,3 +122,26 @@ def test_atomic_coplanar_patch_propagation_rescues_twin_half_quad() -> None:
     out, added = propagate_coplanar_patch_reachability(m, reach, max_hops=2)
     assert added == 1
     assert out[4] and out[5]
+
+
+def test_diff_overlay_detects_and_mandatorily_heals_destroyed_outer_facade() -> None:
+    from engine.fixes.remove import remove_faces
+    from engine.validate.diff_overlay import (
+        compute_before_after_diff_overlay,
+        restore_destroyed_facade_faces,
+    )
+
+    before = _make_closed_box(200.0)
+    # Destroy 1 outer facade triangle (simulating D04/D06 half-quad destruction)
+    drop = np.zeros(before.n_faces, dtype=bool)
+    drop[4] = True
+    broken, _ = remove_faces(before, drop)
+
+    diff_before_heal = compute_before_after_diff_overlay(before, broken, n_probe_dirs=32, n_ext_dirs=32)
+    assert diff_before_heal["counts"]["missing_outer_facade"] == 1
+    assert diff_before_heal["before_faces"]["missing_outer_facade"] == [4]
+
+    healed, n_restored = restore_destroyed_facade_faces(before, broken, diff_before_heal)
+    assert n_restored == 1
+    diff_after_heal = compute_before_after_diff_overlay(before, healed, n_probe_dirs=32, n_ext_dirs=32)
+    assert diff_after_heal["counts"]["missing_outer_facade"] == 0

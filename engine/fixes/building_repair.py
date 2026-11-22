@@ -1191,14 +1191,11 @@ def repair_building_floor_mesh(
     if "purge_needle_slivers" in active_stages and repaired.n_faces > 0:
         from engine.fixes.patch_protect import purge_piercing_needle_slivers
         from engine.vis.exposure import EXP_OUTSIDE, classify_exposure, compute_side_exposure
-        topo_sliv = analyse_topology(repaired, frozenset())
-        fn_sliv = face_normals(topo_sliv.positions_w, topo_sliv.face_w, topo_sliv.ok)
-        center_sliv = 0.5 * (topo_sliv.positions_w.min(axis=0) + topo_sliv.positions_w.max(axis=0))
-        caster_sliv = EmbreeCaster(topo_sliv.positions_w - center_sliv, topo_sliv.face_w[topo_sliv.ok])
-        exp_f, exp_b = compute_side_exposure(
-            caster_sliv, topo_sliv.positions_w - center_sliv, topo_sliv.face_w, fn_sliv, topo_sliv.ok
-        )
-        outer_protect = classify_exposure(exp_f, exp_b, topo_sliv.ok) == EXP_OUTSIDE
+        fn_sliv = face_normals(repaired.positions, repaired.face_v, np.ones(repaired.n_faces, dtype=bool))
+        ok_sliv = (~np.isnan(fn_sliv).any(axis=1)) & (np.linalg.norm(fn_sliv, axis=1) > 0.5)
+        center_sliv = 0.5 * (repaired.positions.min(axis=0) + repaired.positions.max(axis=0))
+        exp_f, exp_b = compute_side_exposure(repaired.positions - center_sliv, repaired.face_v, ok_sliv, n_dirs=64)
+        outer_protect = ok_sliv & (classify_exposure(exp_f + exp_b, ok_sliv) == EXP_OUTSIDE)
         repaired, n_needle_slivers_purged = purge_piercing_needle_slivers(
             repaired, protect_mask=outer_protect
         )
@@ -1214,19 +1211,41 @@ def repair_building_floor_mesh(
     repaired, res_rings = compact_mesh(repaired, res_rings)
 
     facade_integrity_report: dict | None = None
+    diff_overlay_report: dict | None = None
+    n_mandatory_facade_healed = 0
     if "facade_integrity_gate" in active_stages and repaired.n_faces > 0:
+        from engine.validate.diff_overlay import (
+            compute_before_after_diff_overlay,
+            restore_destroyed_facade_faces,
+        )
         from engine.validate.facade_integrity import verify_facade_and_mesh_integrity
+        diff_overlay_report = compute_before_after_diff_overlay(mesh_orig_vis, repaired)
+        # Mandatory in-run self-heal: never let the engine finish with destroyed outer/interior facade faces
+        destroyed_count = (
+            diff_overlay_report["counts"]["missing_outer_facade"]
+            + diff_overlay_report["counts"]["missing_interior_visible"]
+        )
+        if destroyed_count > 0:
+            repaired, n_mandatory_facade_healed = restore_destroyed_facade_faces(
+                mesh_orig_vis, repaired, diff_overlay_report, include_interior=True
+            )
+            if n_mandatory_facade_healed > 0:
+                repaired, _ = remove_coplanar_overlaps(repaired, overlap_ratio=0.05, drop_only=True)
+                repaired, res_rings = compact_mesh(repaired, res_rings)
+                diff_overlay_report = compute_before_after_diff_overlay(mesh_orig_vis, repaired)
         facade_integrity_report = verify_facade_and_mesh_integrity(mesh_orig_vis, repaired)
 
     stats = {
         "n_removed_hidden": int(state.n_removed_hidden + n_liners_dropped + n_pre_ovl_dropped),
         "n_coplanar_protected": int(n_coplanar_protected),
         "n_needle_slivers_purged": int(n_needle_slivers_purged),
+        "n_mandatory_facade_healed": int(n_mandatory_facade_healed),
         "n_solidified": len(soffit_fids),
         "n_holes_filled": int(n_notches_before + total_post_notches),
         "n_flipped": int(getattr(state, "n_flipped", 0)),
         "merge_report": merge_report,
         "enabled_stages": [s for s in REPAIR_STAGE_ORDER if s in active_stages],
         "facade_integrity": facade_integrity_report,
+        "diff_overlay": diff_overlay_report,
     }
     return repaired, res_rings, stats
