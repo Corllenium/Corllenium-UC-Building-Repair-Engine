@@ -65,8 +65,15 @@ def detect_new_mesh_holes(
     probe_step_in: float = 0.6,
     plane_hit_tol_in: float = 0.20,
     max_spots: int = 24,
+    visible_only: bool = True,
+    visible_host_mask: np.ndarray | None = None,
 ) -> dict:
-    """Detect newly created void-leaking mesh holes of any shape/size on `after_mesh` vs `before_mesh`."""
+    """Detect newly created void-leaking mesh holes of any shape/size on `after_mesh` vs `before_mesh`.
+
+    When `visible_only=True` (default), restricts reported holes to faces visible from outside
+    (`EXP_OUTSIDE`) or interior rooms so cleaned hollow-wall internal cavity seams (`G01`)
+    do not pollute visible hole alerts.
+    """
     _, mids_b, _, _ = _open_edge_records(before_mesh)
     segs_a, mids_a, lens_a, hosts_a = _open_edge_records(after_mesh)
 
@@ -78,6 +85,40 @@ def detect_new_mesh_holes(
             "holeFaceIds": [],
             "spots": [],
         }
+
+    # Optional visibility filter (outer facade + room-visible interior faces only)
+    vis_mask: np.ndarray | None = None
+    if visible_host_mask is not None:
+        vis_mask = np.asarray(visible_host_mask, dtype=bool)
+    elif visible_only and after_mesh.n_faces > 0:
+        from engine.validate import sampling, viewpoints, visibility
+        from engine.vis.exposure import EXP_OUTSIDE, classify_exposure, compute_side_exposure
+
+        fn_v = face_normals(after_mesh.positions, after_mesh.face_v, np.ones(after_mesh.n_faces, dtype=bool))
+        ok_v = (~np.isnan(fn_v).any(axis=1)) & (np.linalg.norm(fn_v, axis=1) > 0.5)
+        cen_v = 0.5 * (after_mesh.positions.min(axis=0) + after_mesh.positions.max(axis=0))
+        ef_v, eb_v = compute_side_exposure(after_mesh.positions - cen_v, after_mesh.face_v, ok_v, n_dirs=64)
+        vis_mask = ok_v & (classify_exposure(ef_v + eb_v, ok_v) == EXP_OUTSIDE)
+
+        m_r, _ = sampling.recentred(after_mesh)
+        caster_v = visibility.build_caster(m_r)
+        probes_eye = viewpoints.interior_probes(m_r, eye=63.0, headroom=80.0, grid=39.37, caster=caster_v)
+        if len(probes_eye) > 0:
+            probes_all = np.vstack([
+                probes_eye,
+                probes_eye + np.array([0.0, 0.0, -36.0]),
+                probes_eye + np.array([0.0, 0.0, +30.0]),
+            ])
+            dirs_p = viewpoints.outside_directions(64)
+            ca_r = EmbreeCaster(m_r.positions, m_r.face_v)
+            for i in range(0, len(probes_all), 1500):
+                pb = probes_all[i : i + 1500]
+                orig = np.repeat(pb, len(dirs_p), axis=0)
+                d_rep = np.tile(dirs_p, (len(pb), 1))
+                hit_f, _ = ca_r.first_hit(orig, d_rep)
+                valid_h = hit_f[hit_f >= 0]
+                if len(valid_h):
+                    vis_mask[valid_h] = True
 
     # Build 3D spatial bucket set of BEFORE open-edge midpoints (real doors/windows/perimeters)
     cell = max(before_match_tol_in, 0.5)
@@ -91,7 +132,10 @@ def detect_new_mesh_holes(
 
     cand_idx: list[int] = []
     for i in range(len(segs_a)):
-        if lens_a[i] < min_edge_len_in or hosts_a[i] < 0 or hosts_a[i] >= after_mesh.n_faces:
+        hf = int(hosts_a[i])
+        if lens_a[i] < min_edge_len_in or hf < 0 or hf >= after_mesh.n_faces:
+            continue
+        if vis_mask is not None and not vis_mask[hf]:
             continue
         p = mids_a[i]
         key = (int(round(p[0] / cell)), int(round(p[1] / cell)), int(round(p[2] / cell)))

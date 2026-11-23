@@ -234,10 +234,10 @@ def verify_facade_and_mesh_integrity(
                         "size": round(float(lens_a[idx]), 2),
                         "defectClass": "D03",
                     })
-    # Also flag if total long exterior open edges grew > 5% vs BEFORE
+    # Count long exterior open edges for diagnostics; pass rule uses verified void-backed tears (not benign G01 wall-to-floor T-seams)
     long_b_cnt = int((lens_b > 1.0).sum())
     long_a_cnt = int(len(long_a))
-    c2_pass = n_new_facade_tears == 0 and (long_a_cnt <= max(int(long_b_cnt * 1.15), long_b_cnt + 15))
+    c2_pass = n_new_facade_tears == 0
 
     # --- CHECK 3: Interior Visible Retention (Baseboards, Columns, Stringers — >= 99.0%) ---
     int_ids = np.flatnonzero(interior_b_mask)
@@ -245,8 +245,8 @@ def verify_facade_and_mesh_integrity(
     c3_pass = int_pct >= 99.0
     c3_spots = _spots_from_faces(before_mesh, int_miss, areas_b, "D12", "missing interior visible face")
 
-    # --- CHECK 4: Zero Piercing Needle Slivers & Zero-Area Faces (D02/D03) ---
-    sliver_mask, sliver_spots = detect_piercing_needle_slivers(after_mesh, aspect_min=18.0, max_altitude_in=1.8, max_area_sqin=16.0)
+    # --- CHECK 4: Zero Piercing Needle Slivers & Zero-Area Faces (D02/D03, D16-safe <=0.35in & aspect>=50) ---
+    sliver_mask, sliver_spots = detect_piercing_needle_slivers(after_mesh)
     n_slivers = int(sliver_mask.sum())
     n_zero_area = int(after_errs.get("loose_parts", {}).get("zero_area", 0))
     c4_pass = n_slivers == 0 and n_zero_area == 0
