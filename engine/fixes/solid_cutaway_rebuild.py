@@ -235,21 +235,31 @@ def load_raw_floor_obj(
     ceil_y = max(ceil_cands, key=lambda kv: kv[1])[0] if ceil_cands else max(y_hi, floor_y + 3.75)
 
     # Detect genuine raised floor platforms (area >= 2.0 m^2 in [floor_y + 0.05, floor_y + 0.45])
+    # Exclude bottom stair treads overlapped by >= 20% of higher stair treads right above them.
     raised_levels: list[tuple[float, Any]] = []
+    stair_top_mask = up_mask & np.array([materials[m].category in ("floor_tile", "stair_mat") for m in fmats])
     for y_plat, a_plat in sorted(up_hist.items()):
         if floor_y + 0.05 <= y_plat <= floor_y + 0.45 and a_plat >= 2.0:
             pmask = up_mask & (np.abs(yc - y_plat) < 0.025)
             polys = []
             for f in fa[pmask]:
-                mat_cat = materials[fmats[0]].category if False else None  # noqa: SIM222
                 poly = Polygon(pos_m[f][:, [0, 2]]).buffer(0)
                 if poly.area > 1e-4:
                     polys.append(poly)
             if polys:
+                above_mask = stair_top_mask & (yc >= y_plat + 0.15) & (yc <= y_plat + 0.65)
+                above_polys = [Polygon(pos_m[f][:, [0, 2]]).buffer(0) for f in fa[above_mask]]
+                above_valid = [q for q in above_polys if q.area > 1e-4]
+                above_stair_u = unary_union(above_valid) if above_valid else Polygon()
                 u = _clean_shapely(unary_union(polys), 0.01)
                 big_comps = [
                     p for p in _iter_polygons(u)
-                    if p.area >= 2.2 and min(p.bounds[2] - p.bounds[0], p.bounds[3] - p.bounds[1]) >= 1.2
+                    if p.area >= 2.2
+                    and min(p.bounds[2] - p.bounds[0], p.bounds[3] - p.bounds[1]) >= 1.2
+                    and (
+                        above_stair_u.is_empty
+                        or p.intersection(above_stair_u).area / max(p.area, 1e-6) < 0.20
+                    )
                 ]
                 if big_comps:
                     raised_levels.append((y_plat, unary_union(big_comps)))
@@ -832,13 +842,18 @@ def _extract_slanted_stair_parapets(
                 slab_xz = shapely_box(a, ou0, b, ou1) if axis == "x" else shapely_box(ou0, a, ou1, b)
                 if not parapet_roi.intersects(slab_xz):
                     continue
-                # Never overwrite full-height standing walls already in S_base
-                if slab_xz.intersection(S_base).area / max(slab_xz.area, 1e-6) > 0.72:
-                    continue
                 emitted_items.append(op)
             if emitted_items:
                 emitted_slabs.add(dedup_key)
                 for op in emitted_items:
+                    ou0, _, ou1, _ = op.bounds
+                    rbox = (
+                        shapely_box(a - 0.02, ou0 - 0.02, b + 0.02, ou1 + 0.02)
+                        if axis == "x"
+                        else shapely_box(ou0 - 0.02, a - 0.02, ou1 + 0.02, b + 0.02)
+                    )
+                    if not rbox.is_empty:
+                        spine_footprints.append(rbox)
                     _emit_slab_piece(op, a, b, axis, mkey)
 
     # --- Phase B: Emit Pre-Identified Slanted Structural Concrete Spines ---
@@ -895,6 +910,16 @@ def _extract_exterior_facade_meshes(
     lt_fa = fa[lt_mask]
     lt_tm = trimesh.Trimesh(vertices=pos, faces=lt_fa, process=False)
     side_wedges = _build_exterior_side_wedges(S_base, floor_fp)
+    wall_env = _clean_shapely(unary_union([floor_fp, S_base]), 0.01).buffer(0.25, join_style=2)
+
+    def _keep_facade_poly(poly: Polygon) -> bool:
+        bx0, bz0, bx1, bz1 = poly.bounds
+        if poly.area > 4.0 and min(bx1 - bx0, bz1 - bz0) > 1.2:
+            return False
+        if not wall_env.is_empty:
+            if poly.intersection(wall_env).area / max(poly.area, 1e-6) < 0.70:
+                return False
+        return True
 
     # Try progressive Y/XZ snap levels so complex stacked LittleTiles louvers stay watertight with min_alt >= 1.0 mm
     for min_y_gap, snap_m in ((0.03, 0.01), (0.045, 0.02), (0.06, 0.03)):
@@ -945,6 +970,8 @@ def _extract_exterior_facade_meshes(
                     continue
                 p_s = _regularize_polygon(p, snap_m).simplify(snap_m, preserve_topology=True)
                 if p_s.is_empty or p_s.area < 0.003 or p_s.buffer(-0.008, join_style=2).is_empty:
+                    continue
+                if not _keep_facade_poly(p_s):
                     continue
                 # Assign to side wedge(s)
                 c_pt = p_s.centroid
@@ -1020,6 +1047,8 @@ def _extract_exterior_facade_meshes(
         for p in _iter_polygons(u_band):
             p_s = _regularize_polygon(p, 0.015).simplify(0.015, preserve_topology=True)
             if p_s.is_empty or p_s.area < 0.003 or p_s.buffer(-0.008, join_style=2).is_empty:
+                continue
+            if not _keep_facade_poly(p_s):
                 continue
             m = geom_to_manifold(p_s, y0 + 0.0005, y1 - 0.0005)
             if m is None:
@@ -1140,6 +1169,68 @@ def _extract_solid_slice(
     return _clean_shapely(unary_union(solids), 0.005)
 
 
+def _count_non_ortho_edges(poly: Polygon, tol: float = 0.02) -> int:
+    coords = list(poly.exterior.coords)
+    return sum(
+        1
+        for k in range(len(coords) - 1)
+        if abs(coords[k + 1][0] - coords[k][0]) > tol and abs(coords[k + 1][1] - coords[k][1]) > tol
+    )
+
+
+def _axis_aligned_length_ratio(poly: Polygon, tol: float = 0.02) -> float:
+    coords = list(poly.exterior.coords)
+    ortho_len = 0.0
+    for k in range(len(coords) - 1):
+        dx = abs(coords[k + 1][0] - coords[k][0])
+        dz = abs(coords[k + 1][1] - coords[k][1])
+        if dx <= tol or dz <= tol:
+            ortho_len += math.hypot(dx, dz)
+    return ortho_len / max(float(poly.exterior.length), 1e-9)
+
+
+def _repair_notched_stair_treads(
+    accepted: list[tuple[float, Polygon]],
+    excl_low: Any,
+    excl_high: Any,
+    floor_y: float,
+) -> list[tuple[float, Polygon]]:
+    """Restore missing rectangular corners on single-step axis-aligned treads damaged by raw Embree culling."""
+    repaired: list[tuple[float, Polygon]] = []
+    for yr, kp in sorted(accepted, key=lambda item: -item[0]):
+        minx, minz, maxx, maxz = kp.bounds
+        dx, dz = maxx - minx, maxz - minz
+        bbox_area = max(dx * dz, 1e-9)
+        if (
+            min(dx, dz) <= 1.25
+            and kp.area <= 4.5
+            and _count_non_ortho_edges(kp) > 0
+            and _axis_aligned_length_ratio(kp) >= 0.55
+            and 0.55 <= (kp.area / bbox_area) < 0.995
+        ):
+            rect = shapely_box(minx, minz, maxx, maxz)
+            excl = excl_high if yr >= floor_y + 1.15 else excl_low
+            blockers = [excl] + [
+                p_hi.buffer(0.004, join_style=2)
+                for y_hi, p_hi in repaired
+                if abs(y_hi - yr) < 0.04 or 0.05 <= (y_hi - yr) <= 1.35
+            ]
+            cand = _clean_shapely(rect.difference(unary_union(blockers)), 0.004)
+            cands = _iter_polygons(cand)
+            if cands:
+                cp = max(cands, key=lambda p: p.intersection(kp).area)
+                if (
+                    cp.intersection(kp).area >= 0.95 * kp.area
+                    and cp.area <= bbox_area + 1e-3
+                    and _count_non_ortho_edges(cp) < _count_non_ortho_edges(kp)
+                ):
+                    kp_new = _regularize_polygon(cp, 0.01)
+                    if not kp_new.is_empty:
+                        kp = kp_new
+        repaired.append((yr, kp))
+    return repaired
+
+
 def _extract_floor_and_stairs(
     raw: RawFloorMesh,
     standing_walls_low: Any,
@@ -1223,8 +1314,72 @@ def _extract_floor_and_stairs(
             if kp.area >= 0.30 and not kp.buffer(-0.10, join_style=2).is_empty:
                 accepted.append((yr, kp))
 
+    # Pass 2: Recover horizontal stair treads whose top face had a flipped normal (ny < -0.98)
+    # and directly bridge an accepted lower tread (or floor_y) to an accepted higher tread (~0.25m risers).
+    flip_mask = (
+        keep_stair
+        & (unit_n[:, 1] < -0.98)
+        & (
+            ((yc >= raw.floor_y + 0.08) & (yc <= raw.ceil_y - 0.12))
+            | ((yc >= raw.slab_bottom_y + 0.10) & (yc <= raw.floor_y - 0.05))
+        )
+    )
+    if flip_mask.any():
+        flips_by_y: dict[float, list[Polygon]] = defaultdict(list)
+        for f, yy in zip(fa[flip_mask], yc[flip_mask]):
+            yr = round(round(float(yy) / 0.05) * 0.05, 3)
+            p = Polygon(pos[f][:, [0, 2]]).buffer(0)
+            if p.area < 1e-4:
+                continue
+            excl = excl_high if yr >= raw.floor_y + 1.15 else excl_low
+            diff = p.difference(excl)
+            for dp in _iter_polygons(diff):
+                if dp.area >= 0.04 and (support_env.is_empty or support_env.buffer(1.8).intersects(dp)):
+                    flips_by_y[yr].append(dp)
+        flip_levels: list[tuple[float, Polygon]] = []
+        for yr, plist in sorted(flips_by_y.items()):
+            u = _clean_shapely(unary_union(plist), 0.01)
+            for p in _iter_polygons(u):
+                p_open = _clean_shapely(p.buffer(-0.14, join_style=2).buffer(0.14, join_style=2), 0.005)
+                for op in _iter_polygons(p_open):
+                    rp = _regularize_polygon(op, 0.01)
+                    if not rp.is_empty and 0.30 <= rp.area <= 12.0:
+                        flip_levels.append((yr, rp))
+        recovered_flips: list[tuple[float, Polygon]] = []
+        for yr, rp in sorted(flip_levels, key=lambda item: -item[0]):
+            highers = [
+                p_hi.buffer(0.004, join_style=2)
+                for y_hi, p_hi in accepted
+                if abs(y_hi - yr) < 0.04 or 0.05 <= (y_hi - yr) <= 1.35
+            ]
+            rp_eff = _clean_shapely(rp.difference(unary_union(highers)), 0.005) if highers else rp
+            for kp in _iter_polygons(rp_eff):
+                if kp.area >= 0.30 and not kp.buffer(-0.10, join_style=2).is_empty:
+                    kp_buf = kp.buffer(0.22, join_style=2)
+                    has_low = any(
+                        0.15 <= (yr - y_lo) <= 0.35 and kp_buf.intersects(p_lo)
+                        for y_lo, p_lo in accepted
+                    ) or (0.15 <= (yr - raw.floor_y) <= 0.35 and kp_buf.intersects(floor_fp))
+                    has_high = any(
+                        0.15 <= (y_hi - yr) <= 0.35 and kp_buf.intersects(p_hi)
+                        for y_hi, p_hi in accepted
+                    )
+                    if has_low and has_high:
+                        recovered_flips.append((yr, kp))
+        if recovered_flips:
+            re_accepted: list[tuple[float, Polygon]] = []
+            for yr, rp in sorted(accepted + recovered_flips, key=lambda item: -item[0]):
+                highers = [p_hi.buffer(0.004, join_style=2) for y_hi, p_hi in re_accepted if 0.05 <= (y_hi - yr) <= 1.35]
+                rp_eff = _clean_shapely(rp.difference(unary_union(highers)), 0.005) if highers else rp
+                for kp in _iter_polygons(rp_eff):
+                    if kp.area >= 0.30 and not kp.buffer(-0.10, join_style=2).is_empty:
+                        re_accepted.append((yr, kp))
+            accepted = re_accepted
+
     if not accepted:
         return floor_fp, bot_fp, []
+
+    accepted = _repair_notched_stair_treads(accepted, excl_low, excl_high, raw.floor_y)
 
     all_tread_union = _clean_shapely(unary_union([p for _, p in accepted]), 0.35)
     raw_clusters: list[tuple[Polygon, list[tuple[float, float, Any]]]] = []
@@ -1247,6 +1402,7 @@ def _extract_floor_and_stairs(
     stair_clusters = [(idx, comp, csteps) for idx, (comp, csteps) in enumerate(raw_clusters, start=1)]
 
     # Open Floor_Slab across descending stairwell pits and strip razor-thin pit-edge floor slivers
+    below_u = Polygon()
     if all_below_steps:
         below_u = unary_union(all_below_steps).buffer(0.025, join_style=2).buffer(-0.02, join_style=2)
         floor_fp = _clean_shapely(floor_fp.difference(below_u), 0.008)
@@ -1261,6 +1417,21 @@ def _extract_floor_and_stairs(
         ]
         if drop_slivers:
             floor_fp = _clean_shapely(floor_fp.difference(unary_union(drop_slivers).buffer(0.005, join_style=2)), 0.008)
+
+    # Fill any non-stairwell interior holes in floor_fp where bot_fp proves the underside slab is solid
+    if not bot_fp.is_empty and not floor_fp.is_empty:
+        fill_holes: list[Polygon] = []
+        for fp_p in _iter_polygons(floor_fp):
+            for h in fp_p.interiors:
+                hp = Polygon(h)
+                if hp.area < 0.02:
+                    continue
+                if not below_u.is_empty and below_u.intersects(hp):
+                    continue
+                if bot_fp.intersection(hp).area / max(hp.area, 1e-6) >= 0.85:
+                    fill_holes.append(hp.buffer(0.005, join_style=2))
+        if fill_holes:
+            floor_fp = _clean_shapely(unary_union([floor_fp] + fill_holes), 0.005)
 
     return floor_fp, bot_fp, stair_clusters
 
@@ -1822,17 +1993,24 @@ def run_solid_rebuild(
     ]
     any_cap = _clean_shapely(unary_union([p for p in up_caps if p.area > 1e-5]), 0.005)
 
-    # 3 architectural elevation cross-sections (slice below 0.75m low-sill stairwell windows!)
-    S_40 = _extract_solid_slice(wall_tm, raw.floor_y + 0.40, any_cap)
+    # 3 architectural elevation cross-sections using 2-of-3 majority consensus
+    # so both full-height columns (missing 1 low face) & low-sill stairwell walls stay solid
+    S_30 = _extract_solid_slice(wall_tm, raw.floor_y + 0.30, any_cap)
     S_60 = _extract_solid_slice(wall_tm, raw.floor_y + 0.60, any_cap)
-    S_base = _clean_shapely(S_40.intersection(S_60), 0.004)
+    h_mid = min(raw.ceil_y - raw.floor_y - 0.35, max(1.50, (raw.sill_y - raw.floor_y) + 0.25))
+    S_mid_raw = _extract_solid_slice(wall_tm, raw.floor_y + h_mid, any_cap)
+    S_base = _clean_shapely(
+        unary_union([
+            S_30.intersection(S_60),
+            S_60.intersection(S_mid_raw),
+            S_30.intersection(S_mid_raw),
+        ]),
+        0.004,
+    )
     if S_base.is_empty:
         S_base = S_60
-
-    h_mid = min(raw.ceil_y - raw.floor_y - 0.35, max(1.50, (raw.sill_y - raw.floor_y) + 0.25))
-    S_mid = _extract_solid_slice(wall_tm, raw.floor_y + h_mid, any_cap)
     # Clip S_mid inside S_base envelope so zero upper overhangs leak into walls
-    S_mid = _clean_shapely(S_mid.intersection(S_base.buffer(0.02, join_style=2)), 0.004)
+    S_mid = _clean_shapely(S_mid_raw.intersection(S_base.buffer(0.02, join_style=2)), 0.004)
 
     # Weld sub-9cm raw wall micro-slits & fill tiny <0.35m2 pinholes while keeping doorways (>=0.70m) intact
     S_base = _fill_small_holes(_clean_shapely(S_base, 0.045), 0.35)
@@ -1931,20 +2109,29 @@ def run_solid_rebuild(
             if (tm_hi_st := _fuse_stair_tier(hi_by_span)) is not None:
                 stair_nodes_list.append((f"Stairs_Upper_{ci:02d}", "stairs_upper", tm_hi_st))
 
+        # Extract parapets from largest stair cluster down so tiny auxiliary flights don't fracture continuous U-parapets
+        parapet_by_ci: list[tuple[int, str, str, trimesh.Trimesh]] = []
+        for ci, comp_poly, _ in sorted(stair_clusters, key=lambda it: -it[1].area):
+            roi_poly = unary_union(
+                [comp_poly] + [cp for oci, cp, _ in stair_clusters if oci != ci and comp_poly.distance(cp) <= 1.2]
+            )
             tm_lo_p, tm_hi_p, sp_boxes = _extract_slanted_stair_parapets(
-                raw, comp_poly, S_base, y_stair_split, emitted_slabs=emitted_slabs
+                raw, roi_poly, S_base, y_stair_split, emitted_slabs=emitted_slabs
             )
             spine_claim_boxes.extend(sp_boxes)
             if tm_lo_p is not None:
-                parapet_nodes.append((f"Stairs_Parapet_{ci:02d}__Lower", "parapet", tm_lo_p))
+                parapet_by_ci.append((ci, f"Stairs_Parapet_{ci:02d}__Lower", "parapet", tm_lo_p))
             if tm_hi_p is not None:
-                parapet_nodes.append((f"Stairs_Parapet_{ci:02d}__Upper", "parapet", tm_hi_p))
+                parapet_by_ci.append((ci, f"Stairs_Parapet_{ci:02d}__Upper", "parapet", tm_hi_p))
+        parapet_by_ci.sort(key=lambda item: (item[0], item[1]))
+        parapet_nodes.extend((nm, kd, tm_p) for _, nm, kd, tm_p in parapet_by_ci)
 
     if spine_claim_boxes:
         claim_u = _clean_shapely(unary_union(spine_claim_boxes), 0.004)
         S_base = _clean_shapely(S_base.difference(claim_u), 0.004)
         S_mid = _clean_shapely(S_mid.difference(claim_u), 0.004)
         S_high_wall = _clean_shapely(S_high_wall.difference(claim_u), 0.004)
+        lintel_kept = _clean_shapely(lintel_kept.difference(claim_u), 0.004)
 
     columns, wall_groups = _separate_columns_and_split_walls(
         S_base, S_mid, floor_fp, column_min_width_m=column_min_width_m

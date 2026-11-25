@@ -285,9 +285,11 @@ def test_solid_rebuild_preserves_littletiles_facade_and_low_sill_walls(tmp_path:
         ("minecraft_concrete_white_-1", 0.0, 0.0, 0.0, 10.0, 3.6, 0.5),
         ("minecraft_concrete_white_-1", 0.0, 0.0, 0.5, 0.5, 3.6, 9.5),
         ("minecraft_concrete_white_-1", 9.5, 0.0, 0.5, 10.0, 3.6, 9.5),
-        # Exterior LittleTiles canopy & louver trim along North exterior (z=[10.0..12.0])
-        ("littletiles_ltcolored0_-1", 2.0, 2.2, 10.0, 8.0, 2.35, 12.0),
-        ("littletiles_ltcolored6_-1", 2.5, 2.4, 10.5, 7.5, 2.55, 11.5),
+        # Wall-embedded LittleTiles window mullion/grille trim along North window (z=[9.60..9.95])
+        ("littletiles_ltcolored0_-1", 2.0, 0.75, 9.60, 8.0, 1.55, 9.95),
+        ("littletiles_ltcolored6_-1", 4.8, 0.75, 9.60, 5.2, 1.55, 9.95),
+        # Protruding exterior white roof overhang beyond the building envelope (z=[10.5..14.0]) -> must be excluded
+        ("littletiles_ltcolored0_-1", 2.0, 2.2, 10.5, 8.0, 2.40, 14.0),
     ]
     _write_box_obj(boxes, obj, mtl)
     rep = run_solid_rebuild(obj, out_dir, mtl_path=mtl, low_cut_m=1.25, plinth_m=0.04)
@@ -299,6 +301,15 @@ def test_solid_rebuild_preserves_littletiles_facade_and_low_sill_walls(tmp_path:
     assert "Facade_Ext_N" in nodes
     assert nodes["Facade_Ext_N"]["passed"] is True
     assert nodes["Facade_Ext_N"]["min_altitude_mm"] >= 1.0
+    assert rep.glb_path is not None
+
+    import trimesh
+
+    sc = trimesh.load(rep.glb_path, force="scene")
+    facade_n = [g for n, g in sc.geometry.items() if n.startswith("Facade_Ext_N")]
+    assert facade_n
+    max_z = max(float(g.bounds[1][2]) for g in facade_n)
+    assert max_z <= 10.45, f"Overhanging exterior canopy leaked into Facade_Ext_N: max_z={max_z}"
     # Low stairwell wall under y=0.75 window must remain in S_base / Wall_Ext_N
     assert any(k.startswith("Wall_Ext_N_") and k.endswith("__Lower") for k in nodes)
 
@@ -336,3 +347,136 @@ def test_solid_rebuild_slanted_railing_no_concrete_bleed(tmp_path: Path) -> None
     balustrade_nodes = [n for n in sc.geometry if "Parapet" in n and "15574983" in n]
     assert iron_nodes, f"Missing iron handrail in parapet: {list(sc.geometry)}"
     assert balustrade_nodes, f"Missing dark-green balustrade in parapet: {list(sc.geometry)}"
+
+
+def test_solid_rebuild_preserves_column_with_missing_low_face_and_claims_green_parapet(tmp_path: Path) -> None:
+    obj = tmp_path / "col_consensus_and_parapet.obj"
+    mtl = tmp_path / "col_consensus_and_parapet.mtl"
+    out_dir = tmp_path / "out"
+
+    boxes = [
+        ("minecraft_quartz_block_top_-1", 0.0, -1.0, 0.0, 12.0, 0.0, 12.0),
+        # Full-height column missing its bottom [0.0..0.45] chunk (only solid at y=[0.45..3.6])
+        ("minecraft_concrete_white_-1", 2.0, 0.45, 2.0, 3.5, 3.6, 3.5),
+        # Stairs + concrete_green parapet (must NOT duplicate into Wall_Int_* or OverheadBeams)
+        ("minecraft_quartz_block_side_-1", 5.0, 0.0, 4.0, 6.0, 0.50, 7.0),
+        ("minecraft_quartz_block_top_-1", 6.0, 0.50, 4.0, 7.0, 1.80, 7.0),
+        ("minecraft_concrete_green_-1", 5.0, 0.0, 7.0, 7.0, 2.60, 7.25),
+        # Perimeter walls
+        ("minecraft_concrete_white_-1", 0.0, 0.0, 0.0, 12.0, 3.6, 0.5),
+        ("minecraft_concrete_white_-1", 0.0, 0.0, 11.5, 12.0, 3.6, 12.0),
+        ("minecraft_concrete_white_-1", 0.0, 0.0, 0.5, 0.5, 3.6, 11.5),
+        ("minecraft_concrete_white_-1", 11.5, 0.0, 0.5, 12.0, 3.6, 11.5),
+    ]
+    _write_box_obj(boxes, obj, mtl)
+    rep = run_solid_rebuild(obj, out_dir, mtl_path=mtl, low_cut_m=1.25, plinth_m=0.04)
+    assert rep.passed is True
+    assert rep.manifest["counts"]["columns"] >= 1
+
+    import trimesh
+
+    sc = trimesh.load(rep.glb_path, force="scene")
+    col_geoms = [g for n, g in sc.geometry.items() if n.startswith("Column_")]
+    assert any(g.bounds[0][0] <= 2.2 and g.bounds[1][0] >= 3.3 and g.bounds[0][2] <= 2.2 and g.bounds[1][2] >= 3.3 for g in col_geoms), (
+        f"Column missing from {[g.bounds.tolist() for g in col_geoms]}"
+    )
+    # Green parapet footprint [5..7, 7..7.25] must NOT also emit Wall_Int_* or OverheadBeams_And_Lintels
+    for n, g in sc.geometry.items():
+        if n.startswith("Wall_Int_") or n.startswith("OverheadBeams_"):
+            fc = g.vertices[g.faces].mean(axis=1)
+            overlap = (fc[:, 0] > 5.05) & (fc[:, 0] < 6.95) & (fc[:, 2] > 7.02) & (fc[:, 2] < 7.23)
+            assert not overlap.any(), f"{n} Z-fights with green parapet!"
+
+
+def test_solid_rebuild_recovers_flipped_stair_tread_repairs_notch_and_skips_stair_raised_level(tmp_path: Path) -> None:
+    from engine.fixes.solid_cutaway_rebuild import load_raw_floor_obj
+
+    obj = tmp_path / "stair_repairs.obj"
+    mtl = tmp_path / "stair_repairs.mtl"
+    out_dir = tmp_path / "out"
+
+    boxes = [
+        ("minecraft_quartz_block_top_-1", 0.0, -0.5, 0.0, 12.0, 0.0, 12.0),
+        # Step 1 at y=0.25 with large bottom shell (4.5 m2) overlapped 50% by Step 2 -> must NOT become Floor_Raised
+        ("minecraft_quartz_block_top_-1", 3.0, 0.0, 2.0, 6.0, 0.25, 3.5),
+        ("minecraft_quartz_block_top_-1", 3.0, 0.0, 2.75, 6.0, 0.50, 4.25),
+        # Step 3 at y=0.75 is omitted from boxes and appended manually with flipped top normal (ny = -1)
+        # Step 4 at y=1.00 is emitted as an L/notched polygon (missing one corner) and appended manually
+        ("minecraft_concrete_white_-1", 0.0, 0.0, 0.0, 12.0, 3.6, 0.5),
+        ("minecraft_concrete_white_-1", 0.0, 0.0, 11.5, 12.0, 3.6, 12.0),
+        ("minecraft_concrete_white_-1", 0.0, 0.0, 0.5, 0.5, 3.6, 11.5),
+        ("minecraft_concrete_white_-1", 11.5, 0.0, 0.5, 12.0, 3.6, 11.5),
+    ]
+    _write_box_obj(boxes, obj, mtl)
+
+    # Append flipped-normal Step 3 (y=0.75, x=[3.0..6.0], z=[4.25..5.0]) and notched Step 4 (y=1.00, x=[3.0..6.0], z=[5.0..5.75])
+    extra_v = [
+        # Step 3 flipped quad at y=0.75 (CW from +Y -> outward normal ny = -1)
+        (3.0, 0.75, 4.25),
+        (6.0, 0.75, 4.25),
+        (6.0, 0.75, 5.00),
+        (3.0, 0.75, 5.00),
+        # Step 4 notched 5-vertex polygon at y=1.00 (corner (6.0, 5.75) beveled back to (5.2, 5.75) and (6.0, 5.0))
+        (3.0, 1.00, 5.00),
+        (3.0, 1.00, 5.75),
+        (5.2, 1.00, 5.75),
+        (6.0, 1.00, 5.00),
+        # Step 5 landing at y=1.25 to anchor upper end
+        (3.0, 1.25, 5.75),
+        (3.0, 1.25, 7.25),
+        (6.0, 1.25, 7.25),
+        (6.0, 1.25, 5.75),
+    ]
+    base_lines = obj.read_text(encoding="utf-8").splitlines()
+    v_count = sum(1 for ln in base_lines if ln.startswith("v "))
+    add_v_lines = [f"v {x:.5f} {y:.5f} {z:.5f}" for x, y, z in extra_v]
+    s3 = v_count + 1
+    s4 = v_count + 5
+    s5 = v_count + 9
+    add_f_lines = [
+        "usemtl minecraft_quartz_block_top_-1",
+        # Step 3 downward normal (-Y) in Y-up: (0,1,2) with x increasing then z increasing -> normal (0, -1, 0)
+        f"f {s3} {s3 + 1} {s3 + 2}",
+        f"f {s3} {s3 + 2} {s3 + 3}",
+        # Step 4 upward normal (+Y) notched pentagon
+        f"f {s4} {s4 + 1} {s4 + 2}",
+        f"f {s4} {s4 + 2} {s4 + 3}",
+        # Step 5 upward normal (+Y) landing
+        f"f {s5} {s5 + 1} {s5 + 2}",
+        f"f {s5} {s5 + 2} {s5 + 3}",
+    ]
+    v_lines = [ln for ln in base_lines if ln.startswith("mtllib ") or ln.startswith("v ")]
+    f_lines = [ln for ln in base_lines if not (ln.startswith("mtllib ") or ln.startswith("v "))]
+    obj.write_text("\n".join(v_lines + add_v_lines + f_lines + add_f_lines) + "\n", encoding="utf-8")
+
+    raw = load_raw_floor_obj(obj, mtl_path=mtl)
+    assert raw.raised_levels == [], f"Stair bottom shell misclassified as raised floor: {raw.raised_levels}"
+
+    rep = run_solid_rebuild(obj, out_dir, mtl_path=mtl, low_cut_m=1.25, plinth_m=0.04)
+    assert rep.passed is True
+    assert rep.audit["all_watertight"] is True
+    assert rep.audit["total_open_edges"] == 0
+    assert rep.glb_path is not None
+
+    import trimesh
+
+    sc = trimesh.load(rep.glb_path, force="scene")
+    stair_geoms = [g for n, g in sc.geometry.items() if n.startswith("Stairs_")]
+    assert stair_geoms
+    st = trimesh.util.concatenate(stair_geoms) if len(stair_geoms) > 1 else stair_geoms[0]
+    fc = st.vertices[st.faces].mean(axis=1)
+    fn = st.face_normals
+    # Step 1 (0.25), Step 2 (0.50), flipped Step 3 (0.75), and repaired corner on Step 4 (1.00 near (5.8, 5.6)) must all exist
+    assert ((fn[:, 1] > 0.8) & (np.abs(fc[:, 1] - 0.25) < 0.04)).any(), "Bottom step y=0.25 missing!"
+    assert ((fn[:, 1] > 0.8) & (np.abs(fc[:, 1] - 0.50) < 0.04)).any(), "Step 2 y=0.50 missing!"
+    assert ((fn[:, 1] > 0.8) & (np.abs(fc[:, 1] - 0.75) < 0.04)).any(), "Flipped-normal Step 3 y=0.75 was not recovered!"
+    up_100 = (fn[:, 1] > 0.8) & (np.abs(fc[:, 1] - 1.00) < 0.04)
+    assert up_100.any(), "Step 4 y=1.00 missing!"
+    area_100 = float(st.area_faces[up_100].sum())
+    assert area_100 >= 2.20, f"Diagonal notch at Step 4 y=1.00 was not repaired (area={area_100:.3f} < 2.25)!"
+    has_corner_v = (
+        (st.vertices[:, 0] > 5.95)
+        & (np.abs(st.vertices[:, 1] - 1.00) < 0.04)
+        & (st.vertices[:, 2] > 5.70)
+    )
+    assert has_corner_v.any(), "Repaired rectangular corner vertex (6.0, 1.0, 5.75) missing!"
