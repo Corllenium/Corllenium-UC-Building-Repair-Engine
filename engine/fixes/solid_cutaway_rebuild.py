@@ -436,30 +436,42 @@ def _extrude_polygon_earcut_yup(poly: Polygon, y_min: float, y_max: float) -> tr
 def _polygon_to_manifold(poly: Polygon, y_min: float, y_max: float) -> m3d.Manifold | None:
     if y_max - y_min <= 1e-4 or poly.is_empty or poly.area < 1e-4:
         return None
-    poly = poly.simplify(0.004, preserve_topology=True)
+    poly_s = poly.simplify(0.012, preserve_topology=True)
+    if isinstance(poly_s, Polygon) and not poly_s.is_empty and poly_s.area >= 0.99 * poly.area:
+        poly = poly_s
+    else:
+        poly = poly.simplify(0.004, preserve_topology=True)
     if poly.is_empty or poly.area < 1e-4:
         return None
-    op = shapely_orient(poly, 1.0)
-    ext_pts = _dedup_ring(list(op.exterior.coords), min_dist=0.008)
-    if len(ext_pts) < 3:
+
+    def _extrude_op(src_poly: Polygon) -> m3d.Manifold | None:
+        op = shapely_orient(src_poly, 1.0)
+        ext_pts = _dedup_ring(list(op.exterior.coords), min_dist=0.008)
+        if len(ext_pts) < 3:
+            return None
+        rings = [np.asarray(ext_pts, dtype=np.float64)]
+        for hole in op.interiors:
+            if Polygon(hole).area >= 1e-4:
+                h_pts = _dedup_ring(list(hole.coords), min_dist=0.008)
+                if len(h_pts) >= 3:
+                    rings.append(np.asarray(h_pts, dtype=np.float64))
+        cs = m3d.CrossSection(rings).simplify(0.015)
+        if cs.is_empty():
+            return None
+        m_out = m3d.Manifold.extrude(cs, float(y_max - y_min))
+        if m_out.is_empty() or m_out.num_tri() == 0:
+            return None
+        return m_out
+
+    man = _extrude_op(poly)
+    if man is None:
         return None
-    rings = [np.asarray(ext_pts, dtype=np.float64)]
-    for hole in op.interiors:
-        if Polygon(hole).area >= 1e-4:
-            h_pts = _dedup_ring(list(hole.coords), min_dist=0.008)
-            if len(h_pts) >= 3:
-                rings.append(np.asarray(h_pts, dtype=np.float64))
-    cs = m3d.CrossSection(rings).simplify(0.015)
-    if cs.is_empty():
-        return None
-    man = m3d.Manifold.extrude(cs, float(y_max - y_min))
-    if man.is_empty() or man.num_tri() == 0:
-        return None
-    tm_chk = manifold_to_trimesh(man)
-    if _trimesh_min_altitude_mm(tm_chk) < 0.5:
-        man_s = man.simplify(0.004)
-        if not man_s.is_empty() and man_s.num_tri() > 0:
-            man = man_s
+    if _trimesh_min_altitude_mm(_raw_manifold_to_trimesh(man)) < 1.0:
+        op2 = poly.simplify(0.04, preserve_topology=True)
+        if isinstance(op2, Polygon) and not op2.is_empty and op2.area >= 0.985 * poly.area:
+            man2 = _extrude_op(op2)
+            if man2 is not None and _trimesh_min_altitude_mm(_raw_manifold_to_trimesh(man2)) >= 1.0:
+                man = man2
     # Rotate from Manifold Z-up (x, z_2d, y_ext) to Unity Y-up (x, y_ext + y_min, z_2d).
     # Note: 3D axis swap (x, y, z) -> (x, z, y) reverses handedness; manifold_to_trimesh handles orientation cleanly.
     return man.translate((0.0, 0.0, float(y_min)))
@@ -478,8 +490,7 @@ def geom_to_manifold(geom: Any, y_min: float, y_max: float) -> m3d.Manifold | No
     return m3d.Manifold.batch_boolean(parts, m3d.OpType.Add)
 
 
-def manifold_to_trimesh(man: m3d.Manifold) -> trimesh.Trimesh:
-    """Convert Z-up Manifold (where Z = height, Y = Z_world) to Unity Y-up Trimesh with positive volume."""
+def _raw_manifold_to_trimesh(man: m3d.Manifold) -> trimesh.Trimesh:
     mesh = man.to_mesh()
     vp = np.asarray(mesh.vert_properties, dtype=np.float64)[:, :3]
     fa = np.asarray(mesh.tri_verts, dtype=np.int64)
@@ -487,8 +498,52 @@ def manifold_to_trimesh(man: m3d.Manifold) -> trimesh.Trimesh:
     verts_yup = np.column_stack([vp[:, 0], vp[:, 2], vp[:, 1]])
     faces_yup = fa[:, [0, 2, 1]]
     tm = trimesh.Trimesh(vertices=verts_yup, faces=faces_yup, process=False)
-    if tm.volume < 0:
+    if len(tm.faces) > 0 and tm.volume < 0:
         tm.faces = tm.faces[:, [0, 2, 1]]
+    return tm
+
+
+def manifold_to_trimesh(man: m3d.Manifold) -> trimesh.Trimesh:
+    """Convert Z-up Manifold (where Z = height, Y = Z_world) to Unity Y-up Trimesh with positive volume and no sub-mm slivers."""
+    tm = _raw_manifold_to_trimesh(man)
+    if len(tm.faces) > 0 and _trimesh_min_altitude_mm(tm) < 1.0:
+        for tol in (0.004, 0.008, 0.015, 0.025):
+            man_s = man.simplify(tol)
+            if man_s.is_empty() or man_s.num_tri() == 0:
+                continue
+            tm_s = _raw_manifold_to_trimesh(man_s)
+            if tm_s.is_watertight and tm_s.volume > 1e-6 and _trimesh_min_altitude_mm(tm_s) >= 1.0:
+                return tm_s
+    return tm
+
+
+def _clean_trimesh_slivers(tm: trimesh.Trimesh) -> trimesh.Trimesh:
+    """Collapse sub-mm boolean/concatenation slivers in an already-watertight Trimesh via Manifold simplify."""
+    if len(tm.faces) == 0 or _trimesh_min_altitude_mm(tm) >= 1.0:
+        return tm
+    try:
+        mgl = m3d.Mesh(
+            vert_properties=np.ascontiguousarray(tm.vertices, dtype=np.float32),
+            tri_verts=np.ascontiguousarray(tm.faces, dtype=np.uint32),
+        )
+        mgl.merge()
+        man = m3d.Manifold(mgl)
+        for tol in (0.002, 0.005, 0.01, 0.02, 0.04):
+            man_s = man.simplify(tol)
+            if man_s.is_empty() or man_s.num_tri() == 0:
+                continue
+            m2 = man_s.to_mesh()
+            tm_s = trimesh.Trimesh(
+                vertices=np.asarray(m2.vert_properties, dtype=np.float64)[:, :3],
+                faces=np.asarray(m2.tri_verts, dtype=np.int64),
+                process=False,
+            )
+            if len(tm_s.faces) > 0 and tm_s.volume < 0:
+                tm_s.faces = tm_s.faces[:, [0, 2, 1]]
+            if tm_s.is_watertight and tm_s.volume > 1e-6 and _trimesh_min_altitude_mm(tm_s) >= 1.0:
+                return tm_s
+    except Exception:
+        pass
     return tm
 
 
@@ -1189,24 +1244,140 @@ def _axis_aligned_length_ratio(poly: Polygon, tol: float = 0.02) -> float:
     return ortho_len / max(float(poly.exterior.length), 1e-9)
 
 
+def _is_clean_angled_tread(poly: Polygon, min_edge: float = 0.12) -> bool:
+    """Return True only for genuine architectural 3-gon winder triangles or 4-gon parallelograms."""
+    if poly.is_empty or len(poly.interiors) > 0 or poly.area < 0.20:
+        return False
+    pts = list(poly.exterior.coords)[:-1]
+    n = len(pts)
+    if n == 3:
+        for k in range(3):
+            dx = pts[(k + 1) % 3][0] - pts[k][0]
+            dz = pts[(k + 1) % 3][1] - pts[k][1]
+            if math.hypot(dx, dz) < min_edge:
+                return False
+        return True
+    if n == 4:
+        vecs = [
+            (pts[(k + 1) % 4][0] - pts[k][0], pts[(k + 1) % 4][1] - pts[k][1])
+            for k in range(4)
+        ]
+        lens = [math.hypot(vx, vz) for vx, vz in vecs]
+        if any(ln < min_edge for ln in lens):
+            return False
+        for i, j in ((0, 2), (1, 3)):
+            if abs(lens[i] - lens[j]) > 0.04:
+                return False
+            dot_u = (vecs[i][0] * vecs[j][0] + vecs[i][1] * vecs[j][1]) / (lens[i] * lens[j])
+            if dot_u > -0.995:
+                return False
+        return True
+    return False
+
+
+def _heal_short_corner_bevels(kp: Polygon, blockers_union: Any, rect_box: Polygon, tol: float = 0.02) -> Polygon:
+    """Snap isolated short diagonal corner bevels on orthogonal steps to exact axis-aligned corners."""
+    cur = kp
+    for _ in range(4):
+        if _count_non_ortho_edges(cur, tol) == 0:
+            break
+        pts = list(cur.exterior.coords)[:-1]
+        n = len(pts)
+        improved = False
+        for k in range(n):
+            p0 = pts[k]
+            p1 = pts[(k + 1) % n]
+            dx = abs(p1[0] - p0[0])
+            dz = abs(p1[1] - p0[1])
+            if not (tol < dx < 0.40 and tol < dz < 0.40):
+                continue
+            cur_no = _count_non_ortho_edges(cur, tol)
+            best_cand: Polygon | None = None
+            for corner in ((p0[0], p1[1]), (p1[0], p0[1])):
+                new_pts = list(pts)
+                new_pts.insert((k + 1) % n if (k + 1) % n > 0 else n, corner)
+                cand_raw = _clean_shapely(Polygon(new_pts), 0.004)
+                cands = _iter_polygons(cand_raw)
+                if len(cands) != 1:
+                    continue
+                cand = _regularize_polygon(cands[0], 0.01)
+                if (
+                    cand.is_empty
+                    or len(cand.interiors) > 0
+                    or _count_non_ortho_edges(cand, tol) >= cur_no
+                    or not cand.within(rect_box)
+                    or not (0.95 * cur.area <= cand.area <= 1.25 * cur.area)
+                    or cand.difference(blockers_union).area < 0.98 * cand.area
+                ):
+                    continue
+                if best_cand is None or _count_non_ortho_edges(cand, tol) < _count_non_ortho_edges(best_cand, tol):
+                    best_cand = cand
+            if best_cand is not None:
+                cur = best_cand
+                improved = True
+                break
+        if not improved:
+            break
+    return cur
+
+
 def _repair_notched_stair_treads(
     accepted: list[tuple[float, Polygon]],
     excl_low: Any,
     excl_high: Any,
     floor_y: float,
 ) -> list[tuple[float, Polygon]]:
-    """Restore missing rectangular corners on single-step axis-aligned treads damaged by raw Embree culling."""
+    """Restore missing rectangular corners & micro-kinks on stair treads damaged by Embree culling."""
     repaired: list[tuple[float, Polygon]] = []
     for yr, kp in sorted(accepted, key=lambda item: -item[0]):
+        if _is_clean_angled_tread(kp):
+            repaired.append((yr, kp))
+            continue
+
+        # Heal Embree V-notches / narrow slits on angled ramp treads back to their clean convex hull when unobstructed
+        if _count_non_ortho_edges(kp) > 0:
+            hull = kp.convex_hull
+            if (
+                isinstance(hull, Polygon)
+                and _is_clean_angled_tread(hull)
+                and 0.80 <= (kp.area / max(float(hull.area), 1e-9)) < 0.999
+            ):
+                excl = excl_high if yr >= floor_y + 1.15 else excl_low
+                hull_blockers = unary_union([excl] + [
+                    p_hi.buffer(0.004, join_style=2)
+                    for y_hi, p_hi in repaired
+                    if abs(y_hi - yr) < 0.04 or 0.05 <= (y_hi - yr) <= 1.35
+                ])
+                hcands = _iter_polygons(_clean_shapely(hull.difference(hull_blockers), 0.004))
+                if hcands:
+                    hcp = max(hcands, key=lambda p: p.intersection(kp).area)
+                    if hcp.intersection(kp).area >= 0.95 * kp.area and _is_clean_angled_tread(hcp):
+                        repaired.append((yr, hcp))
+                        continue
+
+        # Heal tiny micro-kinks (e.g. 6mm bevel on 4-sided ramp treads) into clean low-vertex faces
+        kp_s = kp.simplify(0.015, preserve_topology=True)
+        if (
+            isinstance(kp_s, Polygon)
+            and not kp_s.is_empty
+            and len(kp_s.exterior.coords) < len(kp.exterior.coords)
+            and kp_s.area >= 0.96 * kp.area
+        ):
+            kp = kp_s
+            if _is_clean_angled_tread(kp):
+                repaired.append((yr, kp))
+                continue
+
         minx, minz, maxx, maxz = kp.bounds
         dx, dz = maxx - minx, maxz - minz
         bbox_area = max(dx * dz, 1e-9)
         if (
             min(dx, dz) <= 1.25
             and kp.area <= 4.5
+            and len(kp.exterior.coords) - 1 >= 4
             and _count_non_ortho_edges(kp) > 0
             and _axis_aligned_length_ratio(kp) >= 0.55
-            and 0.55 <= (kp.area / bbox_area) < 0.995
+            and 0.40 <= (kp.area / bbox_area) < 0.995
         ):
             rect = shapely_box(minx, minz, maxx, maxz)
             excl = excl_high if yr >= floor_y + 1.15 else excl_low
@@ -1215,7 +1386,8 @@ def _repair_notched_stair_treads(
                 for y_hi, p_hi in repaired
                 if abs(y_hi - yr) < 0.04 or 0.05 <= (y_hi - yr) <= 1.35
             ]
-            cand = _clean_shapely(rect.difference(unary_union(blockers)), 0.004)
+            blockers_union = unary_union(blockers)
+            cand = _clean_shapely(rect.difference(blockers_union), 0.004)
             cands = _iter_polygons(cand)
             if cands:
                 cp = max(cands, key=lambda p: p.intersection(kp).area)
@@ -1227,6 +1399,12 @@ def _repair_notched_stair_treads(
                     kp_new = _regularize_polygon(cp, 0.01)
                     if not kp_new.is_empty:
                         kp = kp_new
+            if _count_non_ortho_edges(kp) > 0:
+                kp = _heal_short_corner_bevels(
+                    kp,
+                    blockers_union,
+                    shapely_box(minx - 0.01, minz - 0.01, maxx + 0.01, maxz + 0.01),
+                )
         repaired.append((yr, kp))
     return repaired
 
@@ -2259,7 +2437,9 @@ def run_solid_rebuild(
     # ------------------------------------------------- Hard Watertight Audit BEFORE Export
     audit_nodes: list[dict[str, Any]] = []
     passed = True
-    for nname, nkind, tm in solid_nodes:
+    for idx, (nname, nkind, tm) in enumerate(solid_nodes):
+        tm = _clean_trimesh_slivers(tm)
+        solid_nodes[idx] = (nname, nkind, tm)
         edges = tm.edges_sorted
         unique_e, counts_e = np.unique(edges, axis=0, return_counts=True)
         open_e = int((counts_e == 1).sum())

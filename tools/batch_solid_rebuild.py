@@ -21,6 +21,7 @@ if str(_REPO_ROOT) not in sys.path:
 from engine.fixes.solid_cutaway_rebuild import (  # noqa: E402
     _clean_shapely,
     _count_non_ortho_edges,
+    _is_clean_angled_tread,
     _iter_polygons,
     load_raw_floor_obj,
     run_solid_rebuild,
@@ -84,7 +85,7 @@ def audit_rebuilt_glb(
             for g in _iter_polygons(_clean_shapely(unary_union(plist), 0.004)):
                 min_dim = min(g.bounds[2] - g.bounds[0], g.bounds[3] - g.bounds[1])
                 if g.area <= 4.5 and min_dim <= 1.25:
-                    no = _count_non_ortho_edges(g)
+                    no = 0 if _is_clean_angled_tread(g) else _count_non_ortho_edges(g)
                     if no > 0:
                         non_ortho_steps.append({"y": yr, "non_ortho_edges": no})
 

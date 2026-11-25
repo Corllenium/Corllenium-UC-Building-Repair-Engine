@@ -9,6 +9,10 @@ from shapely.geometry import Polygon, box as shapely_box
 from shapely.ops import unary_union
 
 from engine.fixes.solid_cutaway_rebuild import (
+    _count_non_ortho_edges,
+    _is_clean_angled_tread,
+    _repair_notched_stair_treads,
+    _trimesh_min_altitude_mm,
     geom_to_manifold,
     manifold_to_trimesh,
     run_solid_rebuild,
@@ -534,3 +538,74 @@ def test_solid_rebuild_standing_column_never_chops_at_lintel_when_top_slice_miss
     hdr_hits = trimesh.intersections.mesh_plane(sm, [0.0, 1.0, 0.0], [0.0, 3.0, 0.0])
     hdr_cross = [s for s in hdr_hits if s[:, 0].mean() > 2.5 and s[:, 0].mean() < 7.5]
     assert hdr_cross, "South window header at y=3.0 is missing!"
+
+
+def test_manifold_to_trimesh_eliminates_sub_mm_sliver() -> None:
+    # Polygon with a tiny ~0.2mm dent that creates a sub-1mm sliver triangle before simplify
+    poly = Polygon([
+        (0.0, 0.0),
+        (2.0, 0.0),
+        (2.0, 1.0),
+        (1.0, 1.0),
+        (1.0, 1.0002),
+        (0.998, 1.0),
+        (0.0, 1.0),
+    ])
+    man = m3d.Manifold.extrude(m3d.CrossSection([np.asarray(poly.exterior.coords[:-1], dtype=np.float64)]), 1.0)
+    tm = manifold_to_trimesh(man)
+    assert tm.is_watertight
+    assert tm.volume > 1.9
+    assert _trimesh_min_altitude_mm(tm) >= 1.0
+
+
+def test_repair_notched_stair_treads_heals_half_tri_and_l_corner_but_keeps_winders() -> None:
+    half_quad = Polygon([(0.0, 0.0), (0.71, 0.0), (0.71, 1.91), (0.67, 1.92)])
+    l_bevel = Polygon([(0.0, 0.0), (1.38, 0.0), (1.38, -0.38), (-0.11, -0.38), (-0.11, 0.58), (0.0, 0.37)])
+    winder_tri = Polygon([(0.0, 0.0), (0.74, 0.0), (0.0, 0.98)])
+    ramp_para = Polygon([(0.0, 0.0), (0.0, 1.0), (0.97, 0.51), (0.97, -0.49)])
+    slit_para = Polygon([
+        (-50.02, 584.3),
+        (-50.4814, 584.0181),
+        (-50.4783, 584.0125),
+        (-49.91, 584.3),
+        (-49.91, 583.31),
+        (-50.88, 583.81),
+        (-50.88, 584.8),
+    ])
+
+    assert _is_clean_angled_tread(winder_tri) is True
+    assert _is_clean_angled_tread(ramp_para) is True
+    assert _is_clean_angled_tread(half_quad) is False
+    assert _is_clean_angled_tread(l_bevel) is False
+    assert _is_clean_angled_tread(slit_para) is False
+
+    out = _repair_notched_stair_treads(
+        [(3.0, half_quad), (2.5, l_bevel), (2.0, winder_tri), (1.5, ramp_para), (1.0, slit_para)],
+        excl_low=Polygon(),
+        excl_high=Polygon(),
+        floor_y=0.0,
+    )
+    by_y = dict(out)
+    assert _count_non_ortho_edges(by_y[3.0]) == 0, f"half_quad failed: {list(by_y[3.0].exterior.coords)}"
+    assert _count_non_ortho_edges(by_y[2.5]) == 0, f"l_bevel failed: {list(by_y[2.5].exterior.coords)}"
+    assert _is_clean_angled_tread(by_y[2.0]) is True
+    assert _is_clean_angled_tread(by_y[1.5]) is True
+    assert _is_clean_angled_tread(by_y[1.0]) is True
+
+
+def test_polygon_to_manifold_strips_collinear_sliver_vertices() -> None:
+    poly = Polygon([
+        (-35.5, 609.8),
+        (-34.93, 609.8),
+        (-34.89, 609.8),
+        (-32.89, 609.8),
+        (-32.86, 609.8),
+        (-26.14, 609.93),
+        (-26.14, 600.0),
+        (-35.5, 600.0),
+    ])
+    man = geom_to_manifold(poly, 89.08, 89.198)
+    assert man is not None
+    tm = manifold_to_trimesh(man)
+    assert tm.is_watertight
+    assert _trimesh_min_altitude_mm(tm) >= 1.0
