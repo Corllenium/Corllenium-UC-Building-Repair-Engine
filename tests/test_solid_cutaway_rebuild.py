@@ -216,3 +216,32 @@ def test_solid_rebuild_real_stairs_no_overhead_stair_lintels(tmp_path: Path) -> 
         ov = sc.geometry["OverheadBeams_And_Lintels"]
         ov_fc_z = ov.vertices[ov.faces].mean(axis=1)[:, 2]
         assert not ((ov_fc_z > 1.2) & (ov_fc_z < 3.3)).any(), "Upper stairs leaked into OverheadBeams_And_Lintels!"
+
+
+def test_solid_rebuild_raised_floor_keeps_same_y_stair_and_dedups_ghost(tmp_path: Path) -> None:
+    obj = tmp_path / "raised_and_ghost.obj"
+    mtl = tmp_path / "raised_and_ghost.mtl"
+    out_dir = tmp_path / "out"
+
+    boxes = [
+        ("minecraft_quartz_block_top_-1", 0.0, -0.5, 0.0, 12.0, 0.0, 10.0),
+        # Raised platform in opposite corner (+0.25m, area 2.5m2 >= 2.0m2)
+        ("minecraft_quartz_block_top_-1", 8.0, 0.0, 7.0, 10.5, 0.25, 8.0),
+        ("minecraft_quartz_block_top_-1", 8.0, 0.0, 8.0, 10.5, 0.25, 9.0),
+        # Step 1 at SAME +0.25m height as raised floor, plus Step 2 (+0.50m)
+        ("minecraft_quartz_block_side_-1", 1.5, 0.0, 1.5, 2.8, 0.25, 3.0),
+        ("minecraft_quartz_block_side_-1", 2.8, 0.0, 1.5, 4.1, 0.50, 3.0),
+        # Impossible +0.75m headroom ghost slab directly above Step 1
+        ("minecraft_quartz_block_top_-1", 1.5, 0.90, 1.5, 2.8, 1.00, 3.0),
+        # Real switchback upper flight >= 2.0m headroom above Step 1
+        ("minecraft_quartz_block_top_-1", 1.5, 2.25, 1.5, 2.8, 2.50, 3.0),
+        ("minecraft_concrete_white_-1", 0.0, 0.0, 0.0, 12.0, 3.6, 0.5),
+        ("minecraft_concrete_white_-1", 0.0, 0.0, 9.5, 12.0, 3.6, 10.0),
+        ("minecraft_concrete_white_-1", 0.0, 0.0, 0.5, 0.5, 3.6, 9.5),
+        ("minecraft_concrete_white_-1", 11.5, 0.0, 0.5, 12.0, 3.6, 9.5),
+    ]
+    _write_box_obj(boxes, obj, mtl)
+    rep = run_solid_rebuild(obj, out_dir, mtl_path=mtl, low_cut_m=1.25, plinth_m=0.04)
+    assert rep.passed is True
+    # Step 1 (+0.25m), Step 2 (+0.50m), and real upper switchback (+2.50m) preserved; +1.00m ghost stripped
+    assert rep.manifest["counts"]["stair_steps"] == 3, rep.manifest["counts"]

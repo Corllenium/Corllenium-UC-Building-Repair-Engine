@@ -247,8 +247,12 @@ def load_raw_floor_obj(
                     polys.append(poly)
             if polys:
                 u = _clean_shapely(unary_union(polys), 0.01)
-                if not u.is_empty and u.area >= 2.0:
-                    raised_levels.append((y_plat, u))
+                big_comps = [
+                    p for p in _iter_polygons(u)
+                    if p.area >= 2.2 and min(p.bounds[2] - p.bounds[0], p.bounds[3] - p.bounds[1]) >= 1.2
+                ]
+                if big_comps:
+                    raised_levels.append((y_plat, unary_union(big_comps)))
 
     # Baseboard height (prismarine_dark top, else 0.50m)
     bb_mask = np.array([materials[m].category == "baseboard" for m in fmats]) & (np.abs(unit_n[:, 1]) < 0.3)
@@ -577,7 +581,8 @@ def _extract_solid_slice(
 
 def _extract_floor_and_stairs(
     raw: RawFloorMesh,
-    standing_walls: Any,
+    standing_walls_low: Any,
+    standing_walls_mid: Any | None = None,
 ) -> tuple[Any, list[tuple[float, float, Any]]]:
     """Build solid Floor_Slab footprint and quantized watertight Stair steps."""
     pos, fa, mats, fmats = raw.positions, raw.faces, raw.materials, raw.face_mats
@@ -600,10 +605,13 @@ def _extract_floor_and_stairs(
     reg_floors = [_regularize_polygon(p, 0.01) for p in _iter_polygons(floor_fp)]
     floor_fp = _clean_shapely(unary_union([p for p in reg_floors if not p.is_empty]), 0.005)
 
-    # Subtract standing wall buffer and raised floor platforms to isolate real stair treads
-    raised_heights = {round(ry, 3) for ry, _ in raw.raised_levels}
+    # Height-aware wall exclusion (low walls exclude < floor_y+1.15m; mid walls allow upper landings above storage walls)
     raised_union = unary_union([rp for _, rp in raw.raised_levels]) if raw.raised_levels else Polygon()
-    excl_buf = unary_union([standing_walls.buffer(0.015, join_style=2), raised_union.buffer(0.015, join_style=2)])
+    excl_low = unary_union([standing_walls_low.buffer(0.015, join_style=2), raised_union.buffer(0.015, join_style=2)])
+    if standing_walls_mid is not None and not standing_walls_mid.is_empty:
+        excl_high = standing_walls_mid.buffer(0.015, join_style=2)
+    else:
+        excl_high = standing_walls_low.buffer(0.015, join_style=2)
 
     # Isolate real quartz/stair tread surfaces across descending & ascending flights (strip concrete/green walls)
     keep_stair = np.array([mats[m].category in ("floor_tile", "stair_mat") for m in fmats])
@@ -618,18 +626,17 @@ def _extract_floor_and_stairs(
     treads_by_y: dict[float, list[Polygon]] = defaultdict(list)
     for f, yy in zip(fa[step_mask], yc[step_mask]):
         yr = round(round(float(yy) / 0.05) * 0.05, 3)
-        if yr in raised_heights:
-            continue
         p = Polygon(pos[f][:, [0, 2]]).buffer(0)
         if p.area < 1e-4:
             continue
-        diff = p.difference(excl_buf)
+        excl = excl_high if yr >= raw.floor_y + 1.15 else excl_low
+        diff = p.difference(excl)
         for dp in _iter_polygons(diff):
             # Stair treads sit over or adjacent to the slab (avoid distant exterior awnings)
             if dp.area >= 0.04 and (floor_fp.is_empty or floor_fp.buffer(1.8).intersects(dp)):
                 treads_by_y[yr].append(dp)
 
-    # Strip < 28 cm handrail/baluster curbs cleanly while keeping >= 35 cm stair treads & landings intact
+    # Strip < 28 cm handrail/baluster curbs cleanly while keeping >= 35 cm stair treads & landings up to 24m2 intact
     tread_levels: list[tuple[float, Any]] = []
     for yr, plist in sorted(treads_by_y.items()):
         u = _clean_shapely(unary_union(plist), 0.01)
@@ -637,16 +644,28 @@ def _extract_floor_and_stairs(
             p_open = _clean_shapely(p.buffer(-0.14, join_style=2).buffer(0.14, join_style=2), 0.005)
             for op in _iter_polygons(p_open):
                 rp = _regularize_polygon(op, 0.01)
-                if not rp.is_empty and 0.35 <= rp.area <= 14.0:
+                if not rp.is_empty and 0.35 <= rp.area <= 24.0:
                     tread_levels.append((yr, rp))
 
     if not tread_levels:
         return floor_fp, []
 
-    all_tread_union = _clean_shapely(unary_union([p for _, p in tread_levels]), 0.05)
+    # Physical headroom deduplication: strip impossible +0.30..+1.35m duplicate inner voxel layers, keep >=1.8m switchbacks
+    accepted: list[tuple[float, Polygon]] = []
+    for yr, rp in sorted(tread_levels, key=lambda item: item[0]):
+        lowers = [p_prev.buffer(0.02, join_style=2) for y_prev, p_prev in accepted if 0.30 <= (yr - y_prev) <= 1.35]
+        rp_eff = _clean_shapely(rp.difference(unary_union(lowers)), 0.005) if lowers else rp
+        for kp in _iter_polygons(rp_eff):
+            if kp.area >= 0.35 and not kp.buffer(-0.12, join_style=2).is_empty:
+                accepted.append((yr, kp))
+
+    if not accepted:
+        return floor_fp, []
+
+    all_tread_union = _clean_shapely(unary_union([p for _, p in accepted]), 0.35)
     valid_stair_steps: list[tuple[float, float, Any]] = []
     for comp in _iter_polygons(all_tread_union):
-        comp_steps = [(yr, p) for yr, p in tread_levels if comp.intersects(p)]
+        comp_steps = [(yr, p) for yr, p in accepted if comp.intersects(p)]
         distinct_y = sorted({round(yr, 2) for yr, _ in comp_steps})
         if len(distinct_y) >= 2:
             # Close stairwell base underneath descending steps so black background never shows through
@@ -1133,25 +1152,27 @@ def run_solid_rebuild(
     unit_n = cr / np.maximum(lens[:, None], 1e-12)
     yc = pos[fa].mean(axis=1)[:, 1]
     keep_struct = np.array([mats[m].category not in ("littletiles_trim", "glass") for m in fmats])
-    struct_tm = trimesh.Trimesh(vertices=pos, faces=fa[keep_struct], process=False)
+    # Wall/column cross-sections ONLY slice real wall materials (never swallow stairs/floors into phantom walls!)
+    keep_wall = np.array([mats[m].category in ("structural", "baseboard", "exterior_accent") for m in fmats])
+    wall_tm = trimesh.Trimesh(vertices=pos, faces=fa[keep_wall], process=False)
 
-    # Cap footprint >= floor_y + 0.45m captures real 0.5-1.0m sill/parapet walls (incl. angled sills) while excluding floor
+    # Cap footprint >= floor_y + 0.45m captures real 0.5-1.0m sill/parapet walls while excluding floor/stairs
     up_caps = [
         Polygon(pos[f][:, [0, 2]]).buffer(0)
-        for f, ok in zip(fa, keep_struct & (unit_n[:, 1] > 0.85) & (yc >= raw.floor_y + 0.45))
+        for f, ok in zip(fa, keep_wall & (unit_n[:, 1] > 0.85) & (yc >= raw.floor_y + 0.45))
         if ok
     ]
     any_cap = _clean_shapely(unary_union([p for p in up_caps if p.area > 1e-5]), 0.005)
 
     # 3 architectural elevation cross-sections
-    S_40 = _extract_solid_slice(struct_tm, raw.floor_y + 0.40, any_cap)
-    S_85 = _extract_solid_slice(struct_tm, raw.floor_y + 0.85, any_cap)
+    S_40 = _extract_solid_slice(wall_tm, raw.floor_y + 0.40, any_cap)
+    S_85 = _extract_solid_slice(wall_tm, raw.floor_y + 0.85, any_cap)
     S_base = _clean_shapely(S_40.intersection(S_85), 0.004)
     if S_base.is_empty:
         S_base = S_85
 
     h_mid = min(raw.ceil_y - raw.floor_y - 0.35, max(1.50, (raw.sill_y - raw.floor_y) + 0.25))
-    S_mid = _extract_solid_slice(struct_tm, raw.floor_y + h_mid, any_cap)
+    S_mid = _extract_solid_slice(wall_tm, raw.floor_y + h_mid, any_cap)
     # Clip S_mid inside S_base envelope so zero upper overhangs leak into walls
     S_mid = _clean_shapely(S_mid.intersection(S_base.buffer(0.02, join_style=2)), 0.004)
 
@@ -1160,7 +1181,7 @@ def run_solid_rebuild(
     S_mid = _fill_small_holes(_clean_shapely(S_mid, 0.045).intersection(S_base), 0.35)
     S_base, S_mid = _apply_overrides_2d(S_base, S_mid, overrides_path)
 
-    floor_fp, stair_steps = _extract_floor_and_stairs(raw, S_base)
+    floor_fp, stair_steps = _extract_floor_and_stairs(raw, S_base, S_mid)
     stair_zone = (
         _clean_shapely(unary_union([p for _, _, p in stair_steps]), 0.05)
         if stair_steps
@@ -1168,7 +1189,7 @@ def run_solid_rebuild(
     )
 
     # High band clipped closely to S_base + doorway/window lintel bridges (exclude walls AND stair zones)
-    S_high_raw = _extract_solid_slice(struct_tm, min(raw.ceil_y - 0.30, raw.lintel_y + 0.35), any_cap)
+    S_high_raw = _extract_solid_slice(wall_tm, min(raw.ceil_y - 0.30, raw.lintel_y + 0.35), any_cap)
     # Keep header bridges inside narrow wall corridor envelope (exclude roofs > 1.8m from walls)
     S_high = _clean_shapely(S_high_raw.intersection(S_base.buffer(1.45, join_style=2)), 0.005)
     # Subtract standing walls AND stairwells so upper stair treads never turn into floating ceiling beams
@@ -1246,7 +1267,7 @@ def run_solid_rebuild(
                 if y_top <= raw.floor_y + 1.05 and (desc_union.is_empty or not desc_union.intersects(sp_r)):
                     y_bot = round(float(raw.floor_y), 3)
                 else:
-                    y_bot = round(max(float(raw.floor_y) if y_top > raw.floor_y + 0.08 else float(raw.slab_bottom_y), y_top - 0.32), 3)
+                    y_bot = round(max(float(raw.floor_y) if y_top > raw.floor_y + 0.08 else float(raw.slab_bottom_y), y_top - 0.28), 3)
                 if y_top <= y_stair_split:
                     lo_by_span[(y_bot, y_top)].append(sp_r)
                 else:
