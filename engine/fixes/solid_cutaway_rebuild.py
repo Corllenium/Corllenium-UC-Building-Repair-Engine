@@ -455,7 +455,7 @@ def _polygon_to_manifold(poly: Polygon, y_min: float, y_max: float) -> m3d.Manif
                 h_pts = _dedup_ring(list(hole.coords), min_dist=0.008)
                 if len(h_pts) >= 3:
                     rings.append(np.asarray(h_pts, dtype=np.float64))
-        cs = m3d.CrossSection(rings).simplify(0.015)
+        cs = m3d.CrossSection(rings).simplify(0.004)
         if cs.is_empty():
             return None
         m_out = m3d.Manifold.extrude(cs, float(y_max - y_min))
@@ -1194,8 +1194,14 @@ def _extract_solid_slice(
     y_plane: float,
     any_cap: Any,
     max_room_area: float = 24.0,
+    caps_above_y: Any | None = None,
 ) -> Any:
-    """Slice ``struct_tm`` at ``y_plane``, polygonize, and filter empty air vs solid structure."""
+    """Slice ``struct_tm`` at ``y_plane``, polygonize, and filter empty air vs solid structure.
+
+    When raw SketchUp/Minecraft meshes have missing vertical seams (open polyline loops at
+    ``y_plane``), ``caps_above_y`` guides recovery of genuine narrow walls/columns (<= 2.6m wide)
+    only where supported by vertical slice segments at ``y_plane``, leaving doorways and windows open.
+    """
     segs = trimesh.intersections.mesh_plane(struct_tm, [0.0, 1.0, 0.0], [0.0, y_plane, 0.0])
     if len(segs) == 0:
         return Polygon()
@@ -1219,9 +1225,39 @@ def _extract_solid_slice(
             rp = _regularize_polygon(p)
             if not rp.is_empty:
                 solids.append(rp)
-    if not solids:
-        return Polygon()
-    return _clean_shapely(unary_union(solids), 0.005)
+    base_solid = _clean_shapely(unary_union(solids), 0.005) if solids else Polygon()
+
+    if caps_above_y is not None and not caps_above_y.is_empty:
+        # Exclude wide horizontal slabs (> 2.6m wide) so ceilings/parking decks never become walls
+        wide_core = caps_above_y.buffer(-1.30, join_style=2)
+        narrow_caps = (
+            caps_above_y.difference(wide_core.buffer(1.40, join_style=2))
+            if not wide_core.is_empty
+            else caps_above_y
+        )
+        missing_caps = _clean_shapely(
+            narrow_caps.difference(base_solid.buffer(0.02, join_style=2)), 0.008
+        )
+        if not missing_caps.is_empty:
+            cap_lines: list[Any] = []
+            for cp in _iter_polygons(missing_caps):
+                cap_lines.append(cp.exterior)
+                cap_lines.extend(list(cp.interiors))
+            noded_combo = unary_union(lines + cap_lines)
+            seg_buf = noded.buffer(0.08, join_style=2)
+            recovered: list[Polygon] = []
+            for p in polygonize(noded_combo):
+                if p.area < 0.015 or p.area > max_room_area:
+                    continue
+                if p.intersection(missing_caps).area / max(p.area, 1e-9) < 0.70:
+                    continue
+                if p.boundary.intersection(seg_buf).length / max(p.boundary.length, 1e-9) >= 0.42:
+                    rp = _regularize_polygon(p)
+                    if not rp.is_empty:
+                        recovered.append(rp)
+            if recovered:
+                base_solid = _clean_shapely(unary_union([base_solid] + recovered), 0.005)
+    return base_solid
 
 
 def _count_non_ortho_edges(poly: Polygon, tol: float = 0.02) -> int:
@@ -1289,7 +1325,7 @@ def _heal_short_corner_bevels(kp: Polygon, blockers_union: Any, rect_box: Polygo
             p1 = pts[(k + 1) % n]
             dx = abs(p1[0] - p0[0])
             dz = abs(p1[1] - p0[1])
-            if not (tol < dx < 0.40 and tol < dz < 0.40):
+            if not (tol - 1e-4 <= dx < 0.40 and tol - 1e-4 <= dz < 0.40):
                 continue
             cur_no = _count_non_ortho_edges(cur, tol)
             best_cand: Polygon | None = None
@@ -1376,8 +1412,8 @@ def _repair_notched_stair_treads(
             and kp.area <= 4.5
             and len(kp.exterior.coords) - 1 >= 4
             and _count_non_ortho_edges(kp) > 0
-            and _axis_aligned_length_ratio(kp) >= 0.55
-            and 0.40 <= (kp.area / bbox_area) < 0.995
+            and _axis_aligned_length_ratio(kp) >= 0.50
+            and 0.40 <= (kp.area / bbox_area) <= 1.001
         ):
             rect = shapely_box(minx, minz, maxx, maxz)
             excl = excl_high if yr >= floor_y + 1.15 else excl_low
@@ -1405,6 +1441,23 @@ def _repair_notched_stair_treads(
                     blockers_union,
                     shapely_box(minx - 0.01, minz - 0.01, maxx + 0.01, maxz + 0.01),
                 )
+        elif (
+            min(dx, dz) <= 1.25
+            and kp.area <= 4.5
+            and len(kp.exterior.coords) - 1 > 4
+            and _count_non_ortho_edges(kp) == 0
+            and 0.985 <= (kp.area / bbox_area) < 0.9999
+        ):
+            rect = shapely_box(minx, minz, maxx, maxz)
+            excl = excl_high if yr >= floor_y + 1.15 else excl_low
+            blockers_union = unary_union([excl] + [
+                p_hi.buffer(0.004, join_style=2)
+                for y_hi, p_hi in repaired
+                if abs(y_hi - yr) < 0.04 or 0.05 <= (y_hi - yr) <= 1.35
+            ])
+            added = rect.difference(kp)
+            if not added.is_empty and added.intersection(blockers_union).area <= 0.015 * bbox_area:
+                kp = rect
         repaired.append((yr, kp))
     return repaired
 
@@ -2163,20 +2216,31 @@ def run_solid_rebuild(
     keep_wall = np.array([mats[m].category in ("structural", "baseboard", "exterior_accent") for m in fmats])
     wall_tm = trimesh.Trimesh(vertices=pos, faces=fa[keep_wall], process=False)
 
+    def _caps_ge(ymin: float) -> Any:
+        polys: list[Polygon] = []
+        for f, ok in zip(fa, keep_wall & (unit_n[:, 1] > 0.85) & (yc >= ymin)):
+            if not ok:
+                continue
+            p = Polygon(pos[f][:, [0, 2]]).buffer(0)
+            if p.area > 1e-5:
+                polys.append(p)
+        return _clean_shapely(unary_union(polys), 0.005) if polys else Polygon()
+
     # Cap footprint >= floor_y + 0.45m captures real 0.5-1.0m sill/parapet walls while excluding floor/stairs
-    up_caps = [
-        Polygon(pos[f][:, [0, 2]]).buffer(0)
-        for f, ok in zip(fa, keep_wall & (unit_n[:, 1] > 0.85) & (yc >= raw.floor_y + 0.45))
-        if ok
-    ]
-    any_cap = _clean_shapely(unary_union([p for p in up_caps if p.area > 1e-5]), 0.005)
+    any_cap = _caps_ge(raw.floor_y + 0.45)
 
     # 3 architectural elevation cross-sections using 2-of-3 majority consensus
     # so both full-height columns (missing 1 low face) & low-sill stairwell walls stay solid
-    S_30 = _extract_solid_slice(wall_tm, raw.floor_y + 0.30, any_cap)
-    S_60 = _extract_solid_slice(wall_tm, raw.floor_y + 0.60, any_cap)
+    S_30 = _extract_solid_slice(
+        wall_tm, raw.floor_y + 0.30, any_cap, caps_above_y=_caps_ge(raw.floor_y + 0.28)
+    )
+    S_60 = _extract_solid_slice(
+        wall_tm, raw.floor_y + 0.60, any_cap, caps_above_y=_caps_ge(raw.floor_y + 0.58)
+    )
     h_mid = min(raw.ceil_y - raw.floor_y - 0.35, max(1.50, (raw.sill_y - raw.floor_y) + 0.25))
-    S_mid_raw = _extract_solid_slice(wall_tm, raw.floor_y + h_mid, any_cap)
+    S_mid_raw = _extract_solid_slice(
+        wall_tm, raw.floor_y + h_mid, any_cap, caps_above_y=_caps_ge(raw.floor_y + h_mid - 0.02)
+    )
     S_base = _clean_shapely(
         unary_union([
             S_30.intersection(S_60),
@@ -2207,9 +2271,18 @@ def run_solid_rebuild(
     y_hi_low = min(raw.ceil_y - 0.15, max(raw.lintel_y + 0.25, raw.ceil_y - 0.85))
     S_high_raw = _clean_shapely(
         unary_union([
-            _extract_solid_slice(wall_tm, raw.ceil_y - 0.25, any_cap, max_room_area=120.0),
-            _extract_solid_slice(wall_tm, raw.ceil_y - 0.50, any_cap, max_room_area=120.0),
-            _extract_solid_slice(wall_tm, y_hi_low, any_cap, max_room_area=120.0),
+            _extract_solid_slice(
+                wall_tm, raw.ceil_y - 0.25, any_cap, max_room_area=120.0,
+                caps_above_y=_caps_ge(raw.ceil_y - 0.27),
+            ),
+            _extract_solid_slice(
+                wall_tm, raw.ceil_y - 0.50, any_cap, max_room_area=120.0,
+                caps_above_y=_caps_ge(raw.ceil_y - 0.52),
+            ),
+            _extract_solid_slice(
+                wall_tm, y_hi_low, any_cap, max_room_area=120.0,
+                caps_above_y=_caps_ge(y_hi_low - 0.02),
+            ),
         ]),
         0.005,
     )

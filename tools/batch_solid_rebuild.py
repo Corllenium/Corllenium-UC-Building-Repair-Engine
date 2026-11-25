@@ -159,6 +159,68 @@ def audit_rebuilt_glb(
     }
 
 
+def _floor_elevation_key(floor_name: str, floor_y: float) -> tuple[int, float, str]:
+    """Order basements separately from upper floors using suffix (B vs F/M) and floor_y."""
+    up = floor_name.strip().upper()
+    band = 0 if up.endswith("B") else 1
+    return (band, float(floor_y), floor_name)
+
+
+def audit_stacked_continuity(floor_glbs: list[tuple[str, float, Path]]) -> dict[str, Any]:
+    """Cross-check stacked floors in XZ so missing middle-floor walls or columns are flagged."""
+    fps: dict[str, Any] = {}
+    ordered: list[tuple[int, float, str]] = []
+    for floor_name, floor_y, glb_path in floor_glbs:
+        sc = trimesh.load(glb_path, force="scene")
+        wc_polys: list[Polygon] = []
+        for n, g in sc.geometry.items():
+            if (n.startswith("Wall_") or n.startswith("Column_")) and "__Lower" in n:
+                fn = g.face_normals
+                for f_idx in g.faces[fn[:, 1] > 0.9]:
+                    p = Polygon(g.vertices[f_idx][:, [0, 2]]).buffer(0)
+                    if p.area > 1e-4:
+                        wc_polys.append(p)
+        fps[floor_name] = _clean_shapely(unary_union(wc_polys), 0.01) if wc_polys else Polygon()
+        ordered.append(_floor_elevation_key(floor_name, floor_y))
+
+    by_band: dict[int, list[str]] = {0: [], 1: []}
+    for band, _, fname in sorted(ordered):
+        by_band[band].append(fname)
+
+    flagged: list[dict[str, Any]] = []
+    per_floor: dict[str, dict[str, Any]] = {}
+    for band_list in by_band.values():
+        for idx, fl in enumerate(band_list):
+            if idx == 0 or idx == len(band_list) - 1:
+                per_floor[fl] = {"missing_m2": 0.0, "clusters": []}
+                continue
+            prev_fl, next_fl = band_list[idx - 1], band_list[idx + 1]
+            both_adj = _clean_shapely(fps[prev_fl].intersection(fps[next_fl]), 0.02)
+            miss = _clean_shapely(both_adj.difference(fps[fl].buffer(0.15, join_style=2)), 0.02)
+            clusters = [
+                {
+                    "area_m2": round(float(p.area), 2),
+                    "bounds": [round(float(v), 2) for v in p.bounds],
+                }
+                for p in _iter_polygons(miss)
+                if p.area >= 0.50
+            ]
+            miss_area = round(sum(c["area_m2"] for c in clusters), 2)
+            per_floor[fl] = {
+                "compared_between": [prev_fl, next_fl],
+                "missing_m2": miss_area,
+                "clusters": clusters,
+            }
+            if miss_area > 0.0:
+                flagged.append({"floor": fl, **per_floor[fl]})
+
+    return {
+        "has_large_gaps": len(flagged) > 0,
+        "flagged_floors": flagged,
+        "per_floor": per_floor,
+    }
+
+
 def _stage_to_dashboard(src_obj: Path, out_dir: Path, glb_path: Path | None, obj_path: Path | None, dash_dir: Path) -> None:
     dash_dir.mkdir(parents=True, exist_ok=True)
     base = src_obj.name[:-len(".fixed.obj")] if src_obj.name.endswith(".fixed.obj") else src_obj.stem
@@ -206,6 +268,7 @@ def run_batch_rebuild(
         b_out = out_root / bname
         b_out.mkdir(parents=True, exist_ok=True)
         floor_results: list[dict[str, Any]] = []
+        floor_glbs: list[tuple[str, float, Path]] = []
         b_passed = True
 
         for src_obj in fixed_objs:
@@ -218,6 +281,7 @@ def run_batch_rebuild(
                 b_passed = False
             if stage_dashboard_dir is not None:
                 _stage_to_dashboard(src_obj, floor_out, rep.glb_path, rep.obj_path, stage_dashboard_dir / bname)
+            floor_glbs.append((floor_name, float(qa["metrics"]["floor_y"]), rep.glb_path))
             floor_results.append({
                 "floor": floor_name,
                 "source_obj": str(src_obj),
@@ -225,10 +289,12 @@ def run_batch_rebuild(
                 **qa,
             })
 
+        stacked_continuity = audit_stacked_continuity(floor_glbs)
         b_report = {
             "building": bname,
             "all_passed": b_passed,
             "floor_count": len(floor_results),
+            "stacked_continuity": stacked_continuity,
             "floors": floor_results,
         }
         (b_out / "batch_qa_report.json").write_text(json.dumps(b_report, indent=2) + "\n", encoding="utf-8")
@@ -257,11 +323,15 @@ def main(argv: list[str] | None = None) -> int:
     )
     for bname, brep in summary["buildings"].items():
         print(f"[{bname}] all_passed={brep['all_passed']} floors={brep['floor_count']}")
+        cont = brep.get("stacked_continuity", {})
+        per_fl = cont.get("per_floor", {})
         for fl in brep["floors"]:
+            miss_m2 = per_fl.get(fl["floor"], {}).get("missing_m2", 0.0)
             print(
                 f"  - {fl['floor']}: passed={fl['all_passed']} gates={fl['gates']} "
                 f"open={fl['metrics']['open_edges']} stepped={len(fl['metrics']['stepped_upper'])} "
-                f"non_ortho={len(fl['metrics']['non_ortho_steps'])} zfight={fl['metrics']['parapet_zfight']}"
+                f"non_ortho={len(fl['metrics']['non_ortho_steps'])} zfight={fl['metrics']['parapet_zfight']} "
+                f"stacked_gap_m2={miss_m2}"
             )
     return 0 if summary["all_passed"] else 1
 

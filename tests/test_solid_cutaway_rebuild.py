@@ -10,6 +10,7 @@ from shapely.ops import unary_union
 
 from engine.fixes.solid_cutaway_rebuild import (
     _count_non_ortho_edges,
+    _extract_solid_slice,
     _is_clean_angled_tread,
     _repair_notched_stair_treads,
     _trimesh_min_altitude_mm,
@@ -572,6 +573,11 @@ def test_repair_notched_stair_treads_heals_half_tri_and_l_corner_but_keeps_winde
         (-50.88, 583.81),
         (-50.88, 584.8),
     ])
+    micro_bevel = Polygon([(-64.88, 601.55), (-64.88, 601.93), (-63.39, 601.93), (-63.39, 601.57), (-63.41, 601.55)])
+    clipped_bay = Polygon([(-39.91, 580.78), (-39.91, 579.8), (-40.32, 579.8), (-40.42, 580.1)])
+    ortho_nibble = Polygon([
+        (-63.39, 601.93), (-63.39, 601.57), (-63.41, 601.57), (-63.41, 601.55), (-64.88, 601.55), (-64.88, 601.93)
+    ])
 
     assert _is_clean_angled_tread(winder_tri) is True
     assert _is_clean_angled_tread(ramp_para) is True
@@ -580,7 +586,16 @@ def test_repair_notched_stair_treads_heals_half_tri_and_l_corner_but_keeps_winde
     assert _is_clean_angled_tread(slit_para) is False
 
     out = _repair_notched_stair_treads(
-        [(3.0, half_quad), (2.5, l_bevel), (2.0, winder_tri), (1.5, ramp_para), (1.0, slit_para)],
+        [
+            (3.0, half_quad),
+            (2.5, l_bevel),
+            (2.0, winder_tri),
+            (1.5, ramp_para),
+            (1.0, slit_para),
+            (0.75, ortho_nibble),
+            (0.5, micro_bevel),
+            (0.25, clipped_bay),
+        ],
         excl_low=Polygon(),
         excl_high=Polygon(),
         floor_y=0.0,
@@ -588,6 +603,21 @@ def test_repair_notched_stair_treads_heals_half_tri_and_l_corner_but_keeps_winde
     by_y = dict(out)
     assert _count_non_ortho_edges(by_y[3.0]) == 0, f"half_quad failed: {list(by_y[3.0].exterior.coords)}"
     assert _count_non_ortho_edges(by_y[2.5]) == 0, f"l_bevel failed: {list(by_y[2.5].exterior.coords)}"
+    assert _count_non_ortho_edges(by_y[0.5]) == 0, f"micro_bevel failed: {list(by_y[0.5].exterior.coords)}"
+    assert _count_non_ortho_edges(by_y[0.25]) == 0, f"clipped_bay failed: {list(by_y[0.25].exterior.coords)}"
+    nibble_tm = manifold_to_trimesh(geom_to_manifold(by_y[0.75], 38.90, 39.20))
+    nibble_top = unary_union([
+        Polygon(nibble_tm.vertices[f][:, [0, 2]]).buffer(0)
+        for f in nibble_tm.faces[nibble_tm.face_normals[:, 1] > 0.95]
+    ])
+    assert _count_non_ortho_edges(nibble_top) == 0, f"ortho_nibble extruded chamfer: {list(nibble_top.exterior.coords)}"
+    direct_tm = manifold_to_trimesh(geom_to_manifold(ortho_nibble, 38.90, 39.20))
+    assert _trimesh_min_altitude_mm(direct_tm) >= 1.0
+    direct_top = unary_union([
+        Polygon(direct_tm.vertices[f][:, [0, 2]]).buffer(0)
+        for f in direct_tm.faces[direct_tm.face_normals[:, 1] > 0.95]
+    ])
+    assert _count_non_ortho_edges(direct_top) == 0, f"direct CrossSection simplify created chamfer: {list(direct_top.exterior.coords)}"
     assert _is_clean_angled_tread(by_y[2.0]) is True
     assert _is_clean_angled_tread(by_y[1.5]) is True
     assert _is_clean_angled_tread(by_y[1.0]) is True
@@ -609,3 +639,28 @@ def test_polygon_to_manifold_strips_collinear_sliver_vertices() -> None:
     tm = manifold_to_trimesh(man)
     assert tm.is_watertight
     assert _trimesh_min_altitude_mm(tm) >= 1.0
+
+
+def test_extract_solid_slice_recovers_open_shell_wall_while_keeping_doorway_open() -> None:
+    import trimesh
+
+    # Solid wall wing [0..4, 0..0.5] + lintel span above doorway [4..6, 0..0.5] at y=[2.2..3.6],
+    # plus a wall wing [6..10, 0..0.5], where the outer face z=0 on [0..4] is MISSING (open shell).
+    wall_a = manifold_to_trimesh(geom_to_manifold(shapely_box(0.0, 0.0, 4.0, 0.5), 0.0, 3.6))
+    # Delete south-facing triangles (z ~ 0) on wall_a so horizontal slice at y=0.6 is an open U-loop
+    fc_a = wall_a.vertices[wall_a.faces].mean(axis=1)
+    fn_a = wall_a.face_normals
+    keep_a = ~((fn_a[:, 2] < -0.9) & (fc_a[:, 2] < 0.05))
+    open_wall_a = trimesh.Trimesh(vertices=wall_a.vertices, faces=wall_a.faces[keep_a], process=False)
+
+    wall_b = manifold_to_trimesh(geom_to_manifold(shapely_box(6.0, 0.0, 10.0, 0.5), 0.0, 3.6))
+    lintel = manifold_to_trimesh(geom_to_manifold(shapely_box(4.0, 0.0, 6.0, 0.5), 2.2, 3.6))
+    wall_tm = trimesh.util.concatenate([open_wall_a, wall_b, lintel])
+
+    up_caps = unary_union([shapely_box(0.0, 0.0, 10.0, 0.5)])
+    recovered = _extract_solid_slice(wall_tm, 0.60, up_caps, caps_above_y=up_caps)
+
+    # Open-shell wall [0..4] & closed wall [6..10] are solid; doorway [4..6] at y=0.60 stays open!
+    assert recovered.intersection(shapely_box(0.2, 0.1, 3.8, 0.4)).area > 0.95
+    assert recovered.intersection(shapely_box(6.2, 0.1, 9.8, 0.4)).area > 0.95
+    assert recovered.intersection(shapely_box(4.2, 0.1, 5.8, 0.4)).area < 0.05

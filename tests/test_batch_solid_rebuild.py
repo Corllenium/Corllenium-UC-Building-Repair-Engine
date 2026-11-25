@@ -4,7 +4,11 @@ import json
 from pathlib import Path
 
 from tests.test_solid_cutaway_rebuild import _write_box_obj
-from tools.batch_solid_rebuild import _is_non_interior_folder, run_batch_rebuild
+from tools.batch_solid_rebuild import (
+    _is_non_interior_folder,
+    audit_stacked_continuity,
+    run_batch_rebuild,
+)
 
 
 def test_is_non_interior_folder_skips_rooftops_and_sidewalks() -> None:
@@ -45,3 +49,42 @@ def test_batch_solid_rebuild_writes_report_and_passes_six_gates(tmp_path: Path) 
     assert fl["metrics"]["non_ortho_steps"] == []
     assert fl["metrics"]["parapet_zfight"] == 0
     assert (out_root / "DEMO" / "Floor_1F" / "DEMO_1st_floor.fixed.solid_rebuild.unity.obj").is_file()
+
+
+def test_audit_stacked_continuity_detects_missing_middle_wall(tmp_path: Path) -> None:
+    import trimesh
+    from shapely.geometry import box as sbox
+    from engine.fixes.solid_cutaway_rebuild import geom_to_manifold, manifold_to_trimesh
+
+    def _make_floor_glb(name: str, include_south: bool, y0: float) -> Path:
+        sc = trimesh.Scene()
+        walls = [
+            ("Wall_Ext_N_00__Lower", sbox(0.0, 9.5, 10.0, 10.0)),
+            ("Wall_Ext_W_00__Lower", sbox(0.0, 0.5, 0.5, 9.5)),
+            ("Wall_Ext_E_00__Lower", sbox(9.5, 0.5, 10.0, 9.5)),
+        ]
+        if include_south:
+            walls.append(("Wall_Ext_S_00__Lower", sbox(0.0, 0.0, 10.0, 0.5)))
+        for node, poly in walls:
+            man = geom_to_manifold(poly, y0, y0 + 1.25)
+            assert man is not None
+            sc.add_geometry(manifold_to_trimesh(man), node_name=node, geom_name=node)
+        p = tmp_path / f"{name}.glb"
+        p.write_bytes(sc.export(file_type="glb"))
+        return p
+
+    ok = audit_stacked_continuity([
+        ("Floor_4F", 0.0, _make_floor_glb("4f", True, 0.0)),
+        ("Floor_5F", 4.0, _make_floor_glb("5f", True, 4.0)),
+        ("Floor_6F", 8.0, _make_floor_glb("6f", True, 8.0)),
+    ])
+    assert ok["has_large_gaps"] is False
+
+    bad = audit_stacked_continuity([
+        ("Floor_4F", 0.0, _make_floor_glb("4f_b", True, 0.0)),
+        ("Floor_5F", 4.0, _make_floor_glb("5f_b", False, 4.0)),
+        ("Floor_6F", 8.0, _make_floor_glb("6f_b", True, 8.0)),
+    ])
+    assert bad["has_large_gaps"] is True
+    assert bad["flagged_floors"][0]["floor"] == "Floor_5F"
+    assert bad["flagged_floors"][0]["missing_m2"] >= 4.5
