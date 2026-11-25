@@ -430,21 +430,26 @@ def _polygon_to_manifold(poly: Polygon, y_min: float, y_max: float) -> m3d.Manif
     if poly.is_empty or poly.area < 1e-4:
         return None
     op = shapely_orient(poly, 1.0)
-    ext_pts = _dedup_ring(list(op.exterior.coords))
+    ext_pts = _dedup_ring(list(op.exterior.coords), min_dist=0.008)
     if len(ext_pts) < 3:
         return None
     rings = [np.asarray(ext_pts, dtype=np.float64)]
     for hole in op.interiors:
         if Polygon(hole).area >= 1e-4:
-            h_pts = _dedup_ring(list(hole.coords))
+            h_pts = _dedup_ring(list(hole.coords), min_dist=0.008)
             if len(h_pts) >= 3:
                 rings.append(np.asarray(h_pts, dtype=np.float64))
-    cs = m3d.CrossSection(rings).simplify(0.005)
+    cs = m3d.CrossSection(rings).simplify(0.015)
     if cs.is_empty():
         return None
     man = m3d.Manifold.extrude(cs, float(y_max - y_min))
     if man.is_empty() or man.num_tri() == 0:
         return None
+    tm_chk = manifold_to_trimesh(man)
+    if _trimesh_min_altitude_mm(tm_chk) < 0.5:
+        man_s = man.simplify(0.004)
+        if not man_s.is_empty() and man_s.num_tri() > 0:
+            man = man_s
     # Rotate from Manifold Z-up (x, z_2d, y_ext) to Unity Y-up (x, y_ext + y_min, z_2d).
     # Note: 3D axis swap (x, y, z) -> (x, z, y) reverses handedness; manifold_to_trimesh handles orientation cleanly.
     return man.translate((0.0, 0.0, float(y_min)))
@@ -475,6 +480,562 @@ def manifold_to_trimesh(man: m3d.Manifold) -> trimesh.Trimesh:
     if tm.volume < 0:
         tm.faces = tm.faces[:, [0, 2, 1]]
     return tm
+
+
+def _extrude_vertical_slab_to_manifold(
+    poly_2d: Polygon,
+    t0: float,
+    t1: float,
+    axis: str,
+) -> m3d.Manifold | None:
+    """Extrude a 2D elevation profile (Z,Y along X or X,Y along Z) into a watertight Manifold in Z-up space."""
+    if t1 - t0 < 0.05 or poly_2d.is_empty or poly_2d.area < 0.04:
+        return None
+    poly_s = poly_2d.simplify(0.015, preserve_topology=True)
+    if poly_s.is_empty or poly_s.area < 0.04:
+        return None
+    op = shapely_orient(poly_s, 1.0)
+    ext = _dedup_ring(list(op.exterior.coords))
+    if len(ext) < 3:
+        return None
+    rings = [np.asarray(ext, dtype=np.float64)]
+    for h in op.interiors:
+        if Polygon(h).area >= 0.04:
+            hp = _dedup_ring(list(h.coords))
+            if len(hp) >= 3:
+                rings.append(np.asarray(hp, dtype=np.float64))
+    cs = m3d.CrossSection(rings).simplify(0.012)
+    if cs.is_empty():
+        return None
+    man = m3d.Manifold.extrude(cs, float(t1 - t0))
+    if man.is_empty() or man.num_tri() == 0:
+        return None
+    if axis == "x":
+        m_xform = np.array([[0.0, 0.0, 1.0, float(t0)], [1.0, 0.0, 0.0, 0.0], [0.0, 1.0, 0.0, 0.0]], dtype=np.float64)
+    else:
+        m_xform = np.array([[1.0, 0.0, 0.0, 0.0], [0.0, 0.0, 1.0, float(t0)], [0.0, 1.0, 0.0, 0.0]], dtype=np.float64)
+    return man.transform(m_xform)
+
+
+def _trimesh_min_altitude_mm(tm: trimesh.Trimesh) -> float:
+    if len(tm.faces) == 0:
+        return 0.0
+    p = tm.vertices[tm.faces]
+    el = np.stack([
+        np.linalg.norm(p[:, 1] - p[:, 0], axis=1),
+        np.linalg.norm(p[:, 2] - p[:, 1], axis=1),
+        np.linalg.norm(p[:, 0] - p[:, 2], axis=1),
+    ], axis=1)
+    ar = 0.5 * np.linalg.norm(np.cross(p[:, 1] - p[:, 0], p[:, 2] - p[:, 0]), axis=1)
+    return float((2.0 * ar / np.maximum(el.max(axis=1), 1e-9)).min() * 1000.0)
+
+
+def _canon_raw_mat_key(mname: str, minfo: MtlInfo) -> str:
+    tex_base = Path(minfo.map_kd).name if minfo.map_kd else ""
+    if minfo.category == "glass":
+        return "glass"
+    if tex_base:
+        return "tex_" + re.sub(r"[^a-zA-Z0-9_]+", "_", Path(tex_base).stem).strip("_")
+    return f"mat_raw_{re.sub(r'[^a-zA-Z0-9_]+', '_', mname).strip('_')}"
+
+
+def _split_manifold_at_y(
+    man: m3d.Manifold,
+    y_split: float,
+    offsets: Sequence[float] = (0.0, 0.013, 0.032, -0.017, 0.051),
+) -> tuple[m3d.Manifold | None, m3d.Manifold | None]:
+    """Split Z-up Manifold cleanly across ``y_split`` without producing sub-mm sliver triangles."""
+    best: tuple[m3d.Manifold | None, m3d.Manifold | None] = (None, None)
+    for dy in offsets:
+        yp = float(y_split + dy)
+        m_hi, m_lo = man.split_by_plane((0.0, 0.0, 1.0), yp)
+        ok = True
+        lo_res: m3d.Manifold | None = None
+        hi_res: m3d.Manifold | None = None
+        for is_hi, mm in ((False, m_lo), (True, m_hi)):
+            if mm.is_empty() or mm.num_tri() == 0:
+                continue
+            tm_chk = manifold_to_trimesh(mm)
+            if tm_chk.volume <= 1e-4 or (tm_chk.vertices[:, 1].max() - tm_chk.vertices[:, 1].min()) < 0.04:
+                continue
+            if _trimesh_min_altitude_mm(tm_chk) < 1.0:
+                ok = False
+                break
+            if is_hi:
+                hi_res = mm
+            else:
+                lo_res = mm
+        if ok and (lo_res is not None or hi_res is not None):
+            return lo_res, hi_res
+        best = (lo_res or best[0], hi_res or best[1])
+    return best
+
+
+def _extract_slanted_stair_parapets(
+    raw: RawFloorMesh,
+    comp_poly: Polygon,
+    S_base: Any,
+    y_stair_split: float,
+    emitted_slabs: set[tuple[str, float, float, str]] | None = None,
+) -> tuple[trimesh.Trimesh | None, trimesh.Trimesh | None, list[Polygon]]:
+    """Reconstruct true slanted railings/handrails (separated by material) and slanted concrete spines."""
+    pos, fa, mats, fmats = raw.positions, raw.faces, raw.materials, raw.face_mats
+    p0, p1, p2 = pos[fa[:, 0]], pos[fa[:, 1]], pos[fa[:, 2]]
+    cr = np.cross(p1 - p0, p2 - p0)
+    lens = np.linalg.norm(cr, axis=1)
+    unit_n = cr / np.maximum(lens[:, None], 1e-12)
+    fc = pos[fa].mean(axis=1)
+
+    parapet_roi = comp_poly.buffer(0.55, join_style=2)
+    rx0, rz0, rx1, rz1 = parapet_roi.bounds
+    keep_p = np.array([mats[m].category not in ("glass", "littletiles_trim") for m in fmats])
+    roi_mask = (
+        keep_p
+        & (fc[:, 0] >= rx0)
+        & (fc[:, 0] <= rx1)
+        & (fc[:, 2] >= rz0)
+        & (fc[:, 2] <= rz1)
+        & (fc[:, 1] >= raw.slab_bottom_y)
+    )
+    if not roi_mask.any():
+        return None, None, []
+
+    if emitted_slabs is None:
+        emitted_slabs = set()
+
+    # Precompute vertical & top/slanted categories per face
+    face_rail_grp: list[str | None] = [None] * len(fmats)
+    face_mkey: list[str] = [""] * len(fmats)
+    grp_to_mkey: dict[str, str] = {}
+    grp_top_mkeys: dict[str, list[str]] = defaultdict(list)
+
+    for fi in np.where(roi_mask)[0]:
+        mi = mats[fmats[fi]]
+        mk = _canon_raw_mat_key(fmats[fi], mi)
+        face_mkey[fi] = mk
+        tex_low = (mi.map_kd or fmats[fi]).lower()
+        rg: str | None = None
+        if mi.category == "exterior_accent":
+            rg = "concrete_green"
+        elif "iron_block" in tex_low:
+            rg = "iron_block"
+        elif "-15574983" in tex_low:
+            rg = "quartz_15574983"
+        if rg is not None:
+            face_rail_grp[fi] = rg
+            if rg == "quartz_15574983":
+                if "quartz_block_side" in tex_low:
+                    grp_to_mkey[rg] = mk
+                else:
+                    grp_to_mkey.setdefault(rg, mk)
+                    grp_top_mkeys[rg].append(mk)
+            else:
+                grp_to_mkey.setdefault(rg, mk)
+
+    lo_tms: list[trimesh.Trimesh] = []
+    hi_tms: list[trimesh.Trimesh] = []
+    lo_forced: list[str | None] = []
+    hi_forced: list[str | None] = []
+    spine_footprints: list[Polygon] = []
+
+    y_bb_cut = raw.floor_y + raw.baseboard_h
+
+    def _emit_slab_piece(
+        op: Polygon,
+        a: float,
+        b: float,
+        axis: str,
+        forced_key: str | None,
+    ) -> None:
+        ms = _extrude_vertical_slab_to_manifold(op, a, b, axis)
+        if ms is None:
+            return
+        m_lo, m_hi = _split_manifold_at_y(ms, y_stair_split)
+        for is_lo, dest_tms, dest_fk, mm in ((True, lo_tms, lo_forced, m_lo), (False, hi_tms, hi_forced, m_hi)):
+            if mm is None or mm.is_empty() or mm.num_tri() == 0:
+                continue
+            tm_s = manifold_to_trimesh(mm)
+            if (
+                tm_s.is_watertight
+                and tm_s.volume > 1e-4
+                and (tm_s.vertices[:, 1].max() - tm_s.vertices[:, 1].min()) >= 0.04
+                and _trimesh_min_altitude_mm(tm_s) >= 1.0
+            ):
+                if is_lo and forced_key is None:
+                    tm_s = _slice_trimesh_at_y(tm_s, y_bb_cut)
+                dest_tms.append(tm_s)
+                dest_fk.extend([forced_key] * len(tm_s.faces))
+
+    # --- Pre-identify Slanted Structural Concrete Spine Spans so occluded railings never extrude INTO a wall ---
+    is_struct_spine = np.array([mats[m].category in ("structural", "baseboard") for m in fmats])
+    slant_conc_mask = (
+        roi_mask
+        & np.array([mats[m].category == "structural" for m in fmats])
+        & (unit_n[:, 1] > 0.15)
+        & (unit_n[:, 1] < 0.96)
+    )
+    slant_polys_xz = [Polygon(pos[f][:, [0, 2]]).buffer(0) for f in fa[slant_conc_mask]]
+    slant_env_xz = _clean_shapely(unary_union([p for p in slant_polys_xz if p.area > 0.01]), 0.005)
+    spine_candidates: list[tuple[str, float, float, Any]] = []
+    spine_span_keys: set[tuple[str, float, float]] = set()
+
+    if not slant_env_xz.is_empty and slant_env_xz.area >= 0.20:
+        for axis, ax_i, u_i, v_i in (("x", 0, 2, 1), ("z", 2, 0, 1)):
+            neg_d_sp: dict[float, list[Polygon]] = defaultdict(list)
+            pos_d_sp: dict[float, list[Polygon]] = defaultdict(list)
+            for idx in np.where(roi_mask & is_struct_spine & (np.abs(unit_n[:, ax_i]) > 0.85))[0]:
+                kr = round(round(float(fc[idx, ax_i]) / 0.01) * 0.01, 3)
+                poly = Polygon(pos[fa[idx]][:, [u_i, v_i]]).buffer(0)
+                if poly.area > 1e-4:
+                    (pos_d_sp if unit_n[idx, ax_i] > 0.0 else neg_d_sp)[kr].append(poly)
+
+            neg_u_sp = {k: _clean_shapely(unary_union(v), 0.005) for k, v in neg_d_sp.items()}
+            pos_u_sp = {k: _clean_shapely(unary_union(v), 0.005) for k, v in pos_d_sp.items()}
+            sp_pairs = []
+            for a in neg_u_sp:
+                for b in pos_u_sp:
+                    th = b - a
+                    if 0.18 <= th <= 0.32:
+                        sp_pairs.append((round(th, 3), a, b))
+            sp_pairs.sort(key=lambda it: (abs(it[0] - 0.25), it[1]))
+
+            used_a: set[float] = set()
+            used_b: set[float] = set()
+            for th, a, b in sp_pairs:
+                if a in used_a or b in used_b:
+                    continue
+                pa, pb = neg_u_sp[a], pos_u_sp[b]
+                ov_check = pa.intersection(pb)
+                if ov_check.is_empty or ov_check.area < 0.50:
+                    continue
+                pu0, _, pu1, _ = ov_check.bounds
+                slab_xz = shapely_box(a, pu0, b, pu1) if axis == "x" else shapely_box(pu0, a, pu1, b)
+                if not parapet_roi.intersects(slab_xz) or slab_xz.intersection(slant_env_xz).area < 0.15:
+                    continue
+                used_a.add(a)
+                used_b.add(b)
+                spine_span_keys.add((axis, round(a, 2), round(b, 2)))
+                comb = _clean_shapely(unary_union([pa, pb]).intersection(shapely_box(pu0, raw.floor_y, pu1, raw.ceil_y + 2.0)), 0.005)
+                comb = _fill_small_holes(comb, 0.35)
+                spine_candidates.append((axis, a, b, comb))
+
+    # --- Phase A: Dedicated Railing / Handrail Materials (NEVER mixed with concrete walls!) ---
+    for axis, ax_i, u_i, v_i in (("x", 0, 2, 1), ("z", 2, 0, 1)):
+        # Build unioned 2D (U, Y) profiles per (rail_group, sign, plane_1cm)
+        rg_faces: dict[str, tuple[dict[float, list[Polygon]], dict[float, list[Polygon]]]] = defaultdict(
+            lambda: (defaultdict(list), defaultdict(list))
+        )
+        rg_caps_pts: dict[str, list[np.ndarray]] = defaultdict(list)
+
+        ax_idxs = np.where(roi_mask & (np.abs(unit_n[:, ax_i]) > 0.85))[0]
+        for idx in ax_idxs:
+            rg = face_rail_grp[idx]
+            if rg is None:
+                continue
+            kr = round(round(float(fc[idx, ax_i]) / 0.01) * 0.01, 3)
+            poly = Polygon(pos[fa[idx]][:, [u_i, v_i]]).buffer(0)
+            if poly.area > 1e-4:
+                neg_d, pos_d = rg_faces[rg]
+                (pos_d if unit_n[idx, ax_i] > 0.0 else neg_d)[kr].append(poly)
+
+        cap_idxs = np.where(roi_mask & (unit_n[:, 1] > 0.15))[0]
+        for idx in cap_idxs:
+            rg = face_rail_grp[idx]
+            if rg is not None:
+                rg_caps_pts[rg].append(pos[fa[idx]])
+
+        # Precompute combined 2D iron silhouette per slab key so balustrade subtracts iron cleanly (0 overlap)
+        slab_profiles: list[tuple[str, float, float, Any]] = []  # (rg, a, b, 2d_poly)
+        iron_slabs_by_span: dict[tuple[float, float], list[Any]] = defaultdict(list)
+
+        # Emit iron_block first, then quartz_15574983, then concrete_green
+        for rg in sorted(rg_faces.keys(), key=lambda k: (0 if k == "iron_block" else 1, k)):
+            neg_d, pos_d = rg_faces[rg]
+            neg_u = {k: _clean_shapely(unary_union(v), 0.005) for k, v in neg_d.items()}
+            pos_u = {k: _clean_shapely(unary_union(v), 0.005) for k, v in pos_d.items()}
+
+            matched_neg: set[float] = set()
+            matched_pos: set[float] = set()
+            cands: list[tuple[float, float, float, Any]] = []
+
+            # 1. Exact opposing pairs of the SAME railing material within single-slab thickness [0.14 .. 0.32 m]
+            pairs: list[tuple[float, float, float]] = []
+            for a in neg_u:
+                for b in pos_u:
+                    th = b - a
+                    if 0.14 <= th <= 0.32:
+                        pairs.append((round(th, 3), a, b))
+            pairs.sort(key=lambda it: (abs(it[0] - 0.25), it[1]))
+            for th, a, b in pairs:
+                if a in matched_neg or b in matched_pos:
+                    continue
+                pa, pb = neg_u[a], pos_u[b]
+                # Require real overlap in (U, Y) span (envelope or buffered intersection)
+                if not pa.buffer(0.05, join_style=2).intersects(pb):
+                    continue
+                # Union preserves outer crisp silhouette even when inner staircase faces are partially covered!
+                comb = _clean_shapely(unary_union([pa, pb]), 0.005)
+                if comb.area >= 0.08:
+                    matched_neg.add(a)
+                    matched_pos.add(b)
+                    cands.append((a, b, th, comb))
+
+            # 2. Occluded-back railings (outer face exposed against backing concrete wall, inner face hidden)
+            caps_all = np.vstack(rg_caps_pts[rg]) if rg_caps_pts.get(rg) else np.zeros((0, 3), dtype=np.float64)
+            for sign, umap, matched in ((-1, neg_u, matched_neg), (1, pos_u, matched_pos)):
+                for plane_a, pa in sorted(umap.items()):
+                    if plane_a in matched or pa.area < 0.08:
+                        continue
+                    pu0, py0, pu1, py1 = pa.bounds
+                    # Measure thickness from upward railing cap triangles touching plane_a
+                    th_est = 0.25
+                    if len(caps_all) > 0:
+                        in_u = (caps_all[:, u_i] >= pu0 - 0.15) & (caps_all[:, u_i] <= pu1 + 0.15)
+                        near_a = np.abs(caps_all[:, ax_i] - plane_a) <= 0.29
+                        in_y = (caps_all[:, 1] >= py0 - 0.15) & (caps_all[:, 1] <= py1 + 0.15)
+                        sub = caps_all[in_u & near_a & in_y, ax_i]
+                        if len(sub) >= 3:
+                            span_th = float(sub.max() - sub.min())
+                            if 0.18 <= span_th <= 0.30:
+                                th_est = round(span_th, 2)
+                    a = round(plane_a, 3) if sign < 0 else round(plane_a - th_est, 3)
+                    b = round(plane_a + th_est, 3) if sign < 0 else round(plane_a, 3)
+                    # Never let a small inner railing patch extrude into a structural concrete spine/wall
+                    if (axis, round(a, 2), round(b, 2)) in spine_span_keys:
+                        continue
+                    cands.append((a, b, th_est, pa))
+
+            for a, b, _th, comb in cands:
+                # Check if iron_block or quartz sits on same [a, b] and avoid concrete overlap
+                if rg == "iron_block":
+                    iron_slabs_by_span[(round(a, 2), round(b, 2))].append(comb)
+                elif rg == "quartz_15574983":
+                    ov_iron = iron_slabs_by_span.get((round(a, 2), round(b, 2)))
+                    if ov_iron:
+                        comb = _clean_shapely(comb.difference(unary_union(ov_iron).buffer(0.002, join_style=2)), 0.004)
+                slab_profiles.append((rg, a, b, comb))
+
+        for rg, a, b, prof in slab_profiles:
+            mkey = grp_to_mkey.get(rg)
+            if not mkey or prof.is_empty:
+                continue
+            dedup_key = (axis, round(a, 2), round(b, 2), rg)
+            if dedup_key in emitted_slabs:
+                continue
+            emitted_items: list[Polygon] = []
+            for op in _iter_polygons(prof):
+                if op.area < 0.08 or op.buffer(-0.04, join_style=2).is_empty:
+                    continue
+                ou0, oy0, ou1, oy1 = op.bounds
+                if (oy1 - oy0) <= 0.26 and (ou1 - ou0) >= 1.5 and rg == "concrete_green":
+                    continue
+                slab_xz = shapely_box(a, ou0, b, ou1) if axis == "x" else shapely_box(ou0, a, ou1, b)
+                if not parapet_roi.intersects(slab_xz):
+                    continue
+                # Never overwrite full-height standing walls already in S_base
+                if slab_xz.intersection(S_base).area / max(slab_xz.area, 1e-6) > 0.72:
+                    continue
+                emitted_items.append(op)
+            if emitted_items:
+                emitted_slabs.add(dedup_key)
+                for op in emitted_items:
+                    _emit_slab_piece(op, a, b, axis, mkey)
+
+    # --- Phase B: Emit Pre-Identified Slanted Structural Concrete Spines ---
+    for axis, a, b, comb in spine_candidates:
+        dedup_key = (axis, round(a, 2), round(b, 2), "spine")
+        if dedup_key in emitted_slabs:
+            continue
+        emitted_slabs.add(dedup_key)
+        for op in _iter_polygons(comb):
+            if op.area < 0.25 or op.buffer(-0.05, join_style=2).is_empty:
+                continue
+            ou0, _, ou1, _ = op.bounds
+            sbox = shapely_box(a - 0.02, ou0 + 0.01, b + 0.02, ou1 - 0.01) if axis == "x" else shapely_box(ou0 + 0.01, a - 0.02, ou1 - 0.01, b + 0.02)
+            if not sbox.is_empty:
+                spine_footprints.append(sbox)
+            _emit_slab_piece(op, a, b, axis, None)
+
+    comb_lo = trimesh.util.concatenate(lo_tms) if len(lo_tms) > 1 else (lo_tms[0] if lo_tms else None)
+    if comb_lo is not None:
+        comb_lo.metadata["forced_face_keys"] = lo_forced
+    comb_hi = trimesh.util.concatenate(hi_tms) if len(hi_tms) > 1 else (hi_tms[0] if hi_tms else None)
+    if comb_hi is not None:
+        comb_hi.metadata["forced_face_keys"] = hi_forced
+    return comb_lo, comb_hi, spine_footprints
+
+
+def _build_exterior_side_wedges(S_base: Any, floor_fp: Any) -> dict[str, Polygon]:
+    """Build the 4 Voronoi exterior directional wedges (W, E, N, S) around building center."""
+    outer_src = floor_fp if not floor_fp.is_empty else S_base
+    if isinstance(outer_src, MultiPolygon):
+        outer_src = max(outer_src.geoms, key=lambda g: g.area)
+    bx0, bz0, bx1, bz1 = (S_base if not S_base.is_empty else outer_src).bounds
+    cx, cz = 0.5 * (bx0 + bx1), 0.5 * (bz0 + bz1)
+    M = max(max(bx1 - bx0, 1.0), max(bz1 - bz0, 1.0)) * 2.0 + 10.0
+    return {
+        "W": Polygon([(bx0 - M, bz0 - M), (bx0 - M, bz1 + M), (cx, cz)]),
+        "E": Polygon([(bx1 + M, bz0 - M), (cx, cz), (bx1 + M, bz1 + M)]),
+        "N": Polygon([(bx0 - M, bz1 + M), (bx1 + M, bz1 + M), (cx, cz)]),
+        "S": Polygon([(bx0 - M, bz0 - M), (cx, cz), (bx1 + M, bz0 - M)]),
+    }
+
+
+def _extract_exterior_facade_meshes(
+    raw: RawFloorMesh,
+    S_base: Any,
+    floor_fp: Any,
+) -> list[tuple[str, str, trimesh.Trimesh]]:
+    """Reconstruct watertight exterior architectural facades, louvers, and window grilles (littletiles_trim)."""
+    pos, fa, mats, fmats = raw.positions, raw.faces, raw.materials, raw.face_mats
+    lt_mask = np.array([mats[m].category == "littletiles_trim" for m in fmats])
+    if not lt_mask.any():
+        return []
+
+    lt_fa = fa[lt_mask]
+    lt_tm = trimesh.Trimesh(vertices=pos, faces=lt_fa, process=False)
+    side_wedges = _build_exterior_side_wedges(S_base, floor_fp)
+
+    # Try progressive Y/XZ snap levels so complex stacked LittleTiles louvers stay watertight with min_alt >= 1.0 mm
+    for min_y_gap, snap_m in ((0.03, 0.01), (0.045, 0.02), (0.06, 0.03)):
+        raw_ys = sorted({round(round(float(y) / snap_m) * snap_m, 3) for y in pos[lt_fa].reshape(-1, 3)[:, 1]})
+        y_lvls: list[float] = []
+        for y in raw_ys:
+            if not y_lvls or (y - y_lvls[-1]) >= min_y_gap:
+                y_lvls.append(y)
+        if len(y_lvls) < 2:
+            continue
+
+        parts_by_side: dict[str, list[m3d.Manifold]] = defaultdict(list)
+        for j in range(len(y_lvls) - 1):
+            y0, y1 = y_lvls[j], y_lvls[j + 1]
+            if y1 - y0 < 0.02:
+                continue
+            ym = 0.5 * (y0 + y1)
+            segs = trimesh.intersections.mesh_plane(lt_tm, [0.0, 1.0, 0.0], [0.0, ym, 0.0])
+            if len(segs) == 0:
+                continue
+
+            lines: list[LineString] = []
+            for s in segs:
+                a = (round(round(float(s[0, 0]) / snap_m) * snap_m, 3), round(round(float(s[0, 2]) / snap_m) * snap_m, 3))
+                b = (round(round(float(s[1, 0]) / snap_m) * snap_m, 3), round(round(float(s[1, 2]) / snap_m) * snap_m, 3))
+                if a != b:
+                    lines.append(LineString([a, b]))
+            if not lines:
+                continue
+
+            noded = unary_union(lines)
+            polys = [p for p in polygonize(noded) if p.area >= 0.002]
+            poly_u = unary_union(polys).buffer(0.02, join_style=2) if polys else Polygon()
+            rem = noded.difference(poly_u) if not poly_u.is_empty else noded
+
+            band_geoms = list(polys)
+            if not rem.is_empty and rem.length >= 0.08:
+                blades = rem.buffer(0.025, cap_style=2, join_style=2)
+                for bp in _iter_polygons(blades):
+                    if bp.area >= 0.002:
+                        band_geoms.append(bp)
+            if not band_geoms:
+                continue
+
+            u_band = _clean_shapely(unary_union(band_geoms), 0.003)
+            for p in _iter_polygons(u_band):
+                if p.area < 0.003:
+                    continue
+                p_s = _regularize_polygon(p, snap_m).simplify(snap_m, preserve_topology=True)
+                if p_s.is_empty or p_s.area < 0.003 or p_s.buffer(-0.008, join_style=2).is_empty:
+                    continue
+                # Assign to side wedge(s)
+                c_pt = p_s.centroid
+                assigned = False
+                for side, wedge in side_wedges.items():
+                    if wedge.covers(c_pt):
+                        m = geom_to_manifold(p_s, y0, y1)
+                        if m is not None:
+                            parts_by_side[side].append(m)
+                        assigned = True
+                        break
+                if not assigned:
+                    m = geom_to_manifold(p_s, y0, y1)
+                    if m is not None:
+                        parts_by_side["N" if c_pt.y >= 0 else "S"].append(m)
+
+        if not parts_by_side:
+            return []
+
+        results: list[tuple[str, str, trimesh.Trimesh]] = []
+        all_ok = True
+        for side in sorted(parts_by_side.keys()):
+            plist = parts_by_side[side]
+            # Fuse parts cleanly, filtering any boolean combination that degrades min altitude < 1.0 mm
+            fused = plist[0]
+            for pm in plist[1:]:
+                cand = fused + pm
+                tm_chk = manifold_to_trimesh(cand)
+                if _trimesh_min_altitude_mm(tm_chk) >= 1.0:
+                    fused = cand
+                else:
+                    # Keep slight 0.001 m safety or snap check at coarser pass
+                    all_ok = False
+                    break
+            if not all_ok:
+                break
+            tm_side = manifold_to_trimesh(fused)
+            if tm_side.is_watertight and tm_side.volume > 1e-4 and _trimesh_min_altitude_mm(tm_side) >= 1.0:
+                results.append((f"Facade_Ext_{side}", f"facade_ext_{side}", tm_side))
+            else:
+                all_ok = False
+                break
+        if all_ok and results:
+            return results
+
+    # Fallback: concatenate per-band non-merged watertight prisms if boolean fusion created sub-mm steps
+    raw_ys = sorted({round(round(float(y) / 0.02) * 0.02, 3) for y in pos[lt_fa].reshape(-1, 3)[:, 1]})
+    y_lvls = []
+    for y in raw_ys:
+        if not y_lvls or (y - y_lvls[-1]) >= 0.04:
+            y_lvls.append(y)
+    tms_by_side: dict[str, list[trimesh.Trimesh]] = defaultdict(list)
+    for j in range(len(y_lvls) - 1):
+        y0, y1 = y_lvls[j], y_lvls[j + 1]
+        if y1 - y0 < 0.03:
+            continue
+        segs = trimesh.intersections.mesh_plane(lt_tm, [0.0, 1.0, 0.0], [0.0, 0.5 * (y0 + y1), 0.0])
+        if len(segs) == 0:
+            continue
+        lines = [
+            LineString([(round(float(s[0, 0]), 2), round(float(s[0, 2]), 2)), (round(float(s[1, 0]), 2), round(float(s[1, 2]), 2))])
+            for s in segs
+            if (round(float(s[0, 0]), 2), round(float(s[0, 2]), 2)) != (round(float(s[1, 0]), 2), round(float(s[1, 2]), 2))
+        ]
+        if not lines:
+            continue
+        noded = unary_union(lines)
+        polys = [p for p in polygonize(noded) if p.area >= 0.003]
+        poly_u = unary_union(polys).buffer(0.02, join_style=2) if polys else Polygon()
+        rem = noded.difference(poly_u) if not poly_u.is_empty else noded
+        geoms = list(polys) + ([bp for bp in _iter_polygons(rem.buffer(0.025, cap_style=2, join_style=2)) if bp.area >= 0.003] if not rem.is_empty else [])
+        u_band = _clean_shapely(unary_union(geoms), 0.004)
+        for p in _iter_polygons(u_band):
+            p_s = _regularize_polygon(p, 0.015).simplify(0.015, preserve_topology=True)
+            if p_s.is_empty or p_s.area < 0.003 or p_s.buffer(-0.008, join_style=2).is_empty:
+                continue
+            m = geom_to_manifold(p_s, y0 + 0.0005, y1 - 0.0005)
+            if m is None:
+                continue
+            tm_p = manifold_to_trimesh(m)
+            if not tm_p.is_watertight or tm_p.volume <= 1e-4 or _trimesh_min_altitude_mm(tm_p) < 1.0:
+                continue
+            c_pt = p_s.centroid
+            side_hit = next((sd for sd, wd in side_wedges.items() if wd.covers(c_pt)), "N")
+            tms_by_side[side_hit].append(tm_p)
+
+    return [
+        (f"Facade_Ext_{sd}", f"facade_ext_{sd}", trimesh.util.concatenate(tl) if len(tl) > 1 else tl[0])
+        for sd, tl in sorted(tms_by_side.items())
+        if tl
+    ]
 
 
 def _slice_trimesh_at_y(tm: trimesh.Trimesh, y_cut: float) -> trimesh.Trimesh:
@@ -583,8 +1144,8 @@ def _extract_floor_and_stairs(
     raw: RawFloorMesh,
     standing_walls_low: Any,
     standing_walls_mid: Any | None = None,
-) -> tuple[Any, list[tuple[float, float, Any]]]:
-    """Build solid Floor_Slab footprint and quantized watertight Stair steps."""
+) -> tuple[Any, Any, list[tuple[int, Polygon, list[tuple[float, float, Any]]]]]:
+    """Build solid Floor_Slab footprint, underside pit footprint, and per-cluster quantized Stair steps."""
     pos, fa, mats, fmats = raw.positions, raw.faces, raw.materials, raw.face_mats
     p0, p1, p2 = pos[fa[:, 0]], pos[fa[:, 1]], pos[fa[:, 2]]
     cr = np.cross(p1 - p0, p2 - p0)
@@ -593,17 +1154,19 @@ def _extract_floor_and_stairs(
     yc = pos[fa].mean(axis=1)[:, 1]
     keep = np.array([mats[m].category not in ("littletiles_trim", "glass") for m in fmats])
 
-    # Floor slab bottom covers the whole structural underside; floor top covers walkable interior
+    # Build top walkable slab separately from underside pit footprint so descending stairwells stay open up to floor_y
     bot_mask = keep & (unit_n[:, 1] < -0.85) & (np.abs(yc - raw.slab_bottom_y) < 0.05)
     top_mask = keep & (unit_n[:, 1] > 0.85) & (np.abs(yc - raw.floor_y) < 0.04)
-    slab_polys = []
-    for f in fa[bot_mask | top_mask]:
-        poly = Polygon(pos[f][:, [0, 2]]).buffer(0)
-        if poly.area > 1e-4:
-            slab_polys.append(poly)
-    floor_fp = _clean_shapely(unary_union(slab_polys), 0.015)
-    reg_floors = [_regularize_polygon(p, 0.01) for p in _iter_polygons(floor_fp)]
+
+    bot_polys = [Polygon(pos[f][:, [0, 2]]).buffer(0) for f in fa[bot_mask]]
+    bot_fp = _clean_shapely(unary_union([p for p in bot_polys if p.area > 1e-4]), 0.015)
+
+    top_polys = [Polygon(pos[f][:, [0, 2]]).buffer(0) for f in fa[top_mask]]
+    top_fp = _clean_shapely(unary_union([p for p in top_polys if p.area > 1e-4]), 0.015)
+    floor_seed = unary_union([top_fp, standing_walls_low]) if not top_fp.is_empty else unary_union([bot_fp, standing_walls_low])
+    reg_floors = [_regularize_polygon(p, 0.01) for p in _iter_polygons(_clean_shapely(floor_seed, 0.015))]
     floor_fp = _clean_shapely(unary_union([p for p in reg_floors if not p.is_empty]), 0.005)
+    support_env = _clean_shapely(unary_union([floor_fp, bot_fp]), 0.015)
 
     # Height-aware wall exclusion (low walls exclude < floor_y+1.15m; mid walls allow upper landings above storage walls)
     raised_union = unary_union([rp for _, rp in raw.raised_levels]) if raw.raised_levels else Polygon()
@@ -633,10 +1196,11 @@ def _extract_floor_and_stairs(
         diff = p.difference(excl)
         for dp in _iter_polygons(diff):
             # Stair treads sit over or adjacent to the slab (avoid distant exterior awnings)
-            if dp.area >= 0.04 and (floor_fp.is_empty or floor_fp.buffer(1.8).intersects(dp)):
+            if dp.area >= 0.04 and (support_env.is_empty or support_env.buffer(1.8).intersects(dp)):
                 treads_by_y[yr].append(dp)
 
-    # Strip < 28 cm handrail/baluster curbs cleanly while keeping >= 35 cm stair treads & landings up to 24m2 intact
+    # Strip < 28 cm handrail/baluster curbs cleanly while keeping >= 30 cm stair treads & large landings intact
+    max_stair_area = max(60.0, float(support_env.area) * 0.25 if not support_env.is_empty else 60.0)
     tread_levels: list[tuple[float, Any]] = []
     for yr, plist in sorted(treads_by_y.items()):
         u = _clean_shapely(unary_union(plist), 0.01)
@@ -644,39 +1208,61 @@ def _extract_floor_and_stairs(
             p_open = _clean_shapely(p.buffer(-0.14, join_style=2).buffer(0.14, join_style=2), 0.005)
             for op in _iter_polygons(p_open):
                 rp = _regularize_polygon(op, 0.01)
-                if not rp.is_empty and 0.35 <= rp.area <= 24.0:
+                if not rp.is_empty and 0.30 <= rp.area <= max_stair_area:
                     tread_levels.append((yr, rp))
 
     if not tread_levels:
-        return floor_fp, []
+        return floor_fp, bot_fp, []
 
-    # Physical headroom deduplication: strip impossible +0.30..+1.35m duplicate inner voxel layers, keep >=1.8m switchbacks
+    # Top-down headroom deduplication: higher unobstructed treads/landings beat lower inner-shell shelves within 0.05..1.35 m
     accepted: list[tuple[float, Polygon]] = []
-    for yr, rp in sorted(tread_levels, key=lambda item: item[0]):
-        lowers = [p_prev.buffer(0.02, join_style=2) for y_prev, p_prev in accepted if 0.30 <= (yr - y_prev) <= 1.35]
-        rp_eff = _clean_shapely(rp.difference(unary_union(lowers)), 0.005) if lowers else rp
+    for yr, rp in sorted(tread_levels, key=lambda item: -item[0]):
+        highers = [p_hi.buffer(0.004, join_style=2) for y_hi, p_hi in accepted if 0.05 <= (y_hi - yr) <= 1.35]
+        rp_eff = _clean_shapely(rp.difference(unary_union(highers)), 0.005) if highers else rp
         for kp in _iter_polygons(rp_eff):
-            if kp.area >= 0.35 and not kp.buffer(-0.12, join_style=2).is_empty:
+            if kp.area >= 0.30 and not kp.buffer(-0.10, join_style=2).is_empty:
                 accepted.append((yr, kp))
 
     if not accepted:
-        return floor_fp, []
+        return floor_fp, bot_fp, []
 
     all_tread_union = _clean_shapely(unary_union([p for _, p in accepted]), 0.35)
-    valid_stair_steps: list[tuple[float, float, Any]] = []
+    raw_clusters: list[tuple[Polygon, list[tuple[float, float, Any]]]] = []
+    all_below_steps: list[Any] = []
     for comp in _iter_polygons(all_tread_union):
         comp_steps = [(yr, p) for yr, p in accepted if comp.intersects(p)]
         distinct_y = sorted({round(yr, 2) for yr, _ in comp_steps})
         if len(distinct_y) >= 2:
-            # Close stairwell base underneath descending steps so black background never shows through
-            below_steps = [p for yr, p in comp_steps if yr < raw.floor_y - 0.04]
-            if below_steps:
-                floor_fp = _clean_shapely(unary_union([floor_fp] + below_steps), 0.01)
+            csteps: list[tuple[float, float, Any]] = []
             for yr, p in comp_steps:
-                y0 = raw.slab_bottom_y if yr < raw.floor_y - 0.04 else raw.floor_y
-                valid_stair_steps.append((y0, yr, p))
+                if yr < raw.floor_y - 0.04:
+                    all_below_steps.append(p)
+                    y0 = raw.slab_bottom_y
+                else:
+                    y0 = raw.floor_y
+                csteps.append((y0, yr, p))
+            raw_clusters.append((comp, csteps))
 
-    return floor_fp, valid_stair_steps
+    raw_clusters.sort(key=lambda item: (round(item[0].centroid.x, 1), round(item[0].centroid.y, 1)))
+    stair_clusters = [(idx, comp, csteps) for idx, (comp, csteps) in enumerate(raw_clusters, start=1)]
+
+    # Open Floor_Slab across descending stairwell pits and strip razor-thin pit-edge floor slivers
+    if all_below_steps:
+        below_u = unary_union(all_below_steps).buffer(0.025, join_style=2).buffer(-0.02, join_style=2)
+        floor_fp = _clean_shapely(floor_fp.difference(below_u), 0.008)
+        opened_fp = _clean_shapely(floor_fp.buffer(-0.14, join_style=2).buffer(0.14, join_style=2), 0.005)
+        slivers = _clean_shapely(floor_fp.difference(opened_fp), 0.004)
+        wall_env = standing_walls_low.buffer(0.03, join_style=2)
+        pit_env = below_u.buffer(0.55, join_style=2)
+        drop_slivers = [
+            sp
+            for sp in _iter_polygons(slivers)
+            if pit_env.intersects(sp) and sp.difference(wall_env).area > 0.002
+        ]
+        if drop_slivers:
+            floor_fp = _clean_shapely(floor_fp.difference(unary_union(drop_slivers).buffer(0.005, join_style=2)), 0.008)
+
+    return floor_fp, bot_fp, stair_clusters
 
 
 def _align_mid_to_base(p_base: Any, raw_mid: Any) -> Any:
@@ -814,8 +1400,6 @@ def _build_raw_pbr_palette(
     tex_cache: dict[str, Image.Image | None] = {}
 
     for rname, minfo in raw.materials.items():
-        if minfo.category == "littletiles_trim":
-            continue
         tex_base = Path(minfo.map_kd).name if minfo.map_kd else ""
         if minfo.category == "glass":
             mkey = "glass"
@@ -840,33 +1424,44 @@ def _build_raw_pbr_palette(
                 if tex_base not in tex_cache:
                     tex_cache[tex_base] = _load_texture_image(textures_dir, tex_base)
                 timg = tex_cache[tex_base]
+                is_lt = minfo.category == "littletiles_trim"
+                cf_rgb = (
+                    ([192, 196, 192, 255] if "ltcolored6" in tex_base.lower() else [232, 234, 230, 255])
+                    if is_lt
+                    else (
+                        [242, 242, 240, 255]
+                        if timg is not None
+                        else [
+                            int(round(max(0.0, min(1.0, minfo.kd[0])) * 255)),
+                            int(round(max(0.0, min(1.0, minfo.kd[1])) * 255)),
+                            int(round(max(0.0, min(1.0, minfo.kd[2])) * 255)),
+                            255,
+                        ]
+                    )
+                )
                 mat_defs[mkey] = trimesh.visual.material.PBRMaterial(
                     name=mkey,
-                    baseColorFactor=[242, 242, 240, 255] if timg is not None else [
+                    baseColorFactor=cf_rgb,
+                    baseColorTexture=timg,
+                    metallicFactor=0.08 if is_lt else 0.04,
+                    roughnessFactor=0.82 if is_lt else 0.86,
+                    doubleSided=False,
+                )
+        else:
+            mkey = _canon_raw_mat_key(rname, minfo)
+            if mkey not in mat_defs:
+                mat_defs[mkey] = trimesh.visual.material.PBRMaterial(
+                    name=rname,
+                    baseColorFactor=[
                         int(round(max(0.0, min(1.0, minfo.kd[0])) * 255)),
                         int(round(max(0.0, min(1.0, minfo.kd[1])) * 255)),
                         int(round(max(0.0, min(1.0, minfo.kd[2])) * 255)),
                         255,
                     ],
-                    baseColorTexture=timg,
                     metallicFactor=0.04,
                     roughnessFactor=0.86,
                     doubleSided=False,
                 )
-        else:
-            mkey = f"mat_{len(mat_defs)}"
-            mat_defs[mkey] = trimesh.visual.material.PBRMaterial(
-                name=rname,
-                baseColorFactor=[
-                    int(round(max(0.0, min(1.0, minfo.kd[0])) * 255)),
-                    int(round(max(0.0, min(1.0, minfo.kd[1])) * 255)),
-                    int(round(max(0.0, min(1.0, minfo.kd[2])) * 255)),
-                    255,
-                ],
-                metallicFactor=0.04,
-                roughnessFactor=0.86,
-                doubleSided=False,
-            )
         raw_to_key[rname] = mkey
         if mkey not in key_to_cat or minfo.category != "structural":
             key_to_cat[mkey] = minfo.category
@@ -931,11 +1526,32 @@ def _assign_clean_raw_materials(
     is_plinth: bool,
     is_lower: bool,
     tier_top: float,
+    raw_slanted_up_pts: np.ndarray | None = None,
+    raw_slanted_up_keys: list[str] | None = None,
+    raw_slanted_up_areas: np.ndarray | None = None,
+    raw_lt_pts: np.ndarray | None = None,
+    raw_lt_keys: list[str] | None = None,
+    raw_lt_areas: np.ndarray | None = None,
+    dom_lt_key: str = "fallback_wall",
+    forced_face_keys: Sequence[str | None] | None = None,
 ) -> list[str]:
     """Semantic + normal-aligned + planar-face texture assignment (0 bleed across floor/wall bands)."""
     n = len(fc)
     if kind == "glass":
         return ["glass"] * n
+    if kind.startswith("facade_ext_"):
+        if raw_lt_pts is None or len(raw_lt_pts) == 0 or not raw_lt_keys or raw_lt_areas is None:
+            return [dom_lt_key] * n
+        out_lt = [dom_lt_key] * n
+        for gi in range(n):
+            dists = np.linalg.norm(raw_lt_pts - fc[gi], axis=1)
+            for tol in (0.25, 0.75, 2.0):
+                hit = dists <= tol
+                if hit.any():
+                    out_lt[gi] = _area_vote_key(raw_lt_keys, raw_lt_areas, hit, dom_lt_key)
+                    break
+        return out_lt
+
     out = [""] * n
     up_mask = fn[:, 1] > 0.70
     dn_mask = fn[:, 1] < -0.70
@@ -964,23 +1580,65 @@ def _assign_clean_raw_materials(
             out[gi] = dom_floor_top_key if up_mask[gi] else dom_floor_side_key
         return out
 
-    # 3. Walls, Columns, Overhead: cutaway top caps + single material per planar wall face + uniform baseboard band
-    if is_plinth or is_lower:
+    # 3. Walls, Columns, Parapets, Overhead: cutaway caps + planar side voting + slanted handrail voting
+    is_parapet = kind == "parapet"
+    if is_parapet and is_lower:
+        cap_mask = (fn[:, 1] > 0.95) & (fc[:, 1] >= tier_top - 0.015)
+        for gi in np.where(cap_mask)[0]:
+            out[int(gi)] = "cut_cap"
+    elif is_plinth or is_lower:
         cap_mask = (fn[:, 1] > 0.85) & (fc[:, 1] >= tier_top - 0.015)
         for gi in np.where(cap_mask)[0]:
             out[int(gi)] = "cut_cap"
     else:
         cap_mask = np.zeros(n, dtype=bool)
 
-    for gi in np.where(horiz_mask & (~cap_mask))[0]:
-        out[int(gi)] = dom_wall_key
+    if forced_face_keys is not None and len(forced_face_keys) == n:
+        su_pts = raw_slanted_up_pts if raw_slanted_up_pts is not None else np.zeros((0, 3), dtype=np.float64)
+        su_keys = raw_slanted_up_keys or []
+        su_areas = raw_slanted_up_areas if raw_slanted_up_areas is not None else np.zeros(0, dtype=np.float64)
+        for gi, fk in enumerate(forced_face_keys):
+            if fk is None or out[gi]:
+                continue
+            if fn[gi, 1] > 0.15 and "15574983" in fk and len(su_pts) > 0:
+                dists = np.linalg.norm(su_pts - fc[gi], axis=1)
+                hit = dists <= 0.25
+                if hit.any():
+                    cand = _area_vote_key(su_keys, su_areas, hit, fk)
+                    if "iron_block" in cand.lower() or "15574983" in cand.lower():
+                        out[gi] = cand
+                        continue
+            out[gi] = fk
 
-    need_vert = np.where(~horiz_mask)[0]
+    slant_up = (fn[:, 1] > 0.15) & (~cap_mask) if is_parapet else np.zeros(n, dtype=bool)
+    if slant_up.any():
+        su_pts = raw_slanted_up_pts if raw_slanted_up_pts is not None else np.zeros((0, 3), dtype=np.float64)
+        su_keys = raw_slanted_up_keys or []
+        su_areas = raw_slanted_up_areas if raw_slanted_up_areas is not None else np.zeros(0, dtype=np.float64)
+        for gi in np.where(slant_up)[0]:
+            if out[int(gi)]:
+                continue
+            mkey = dom_wall_key
+            if len(su_pts) > 0:
+                dists = np.linalg.norm(su_pts - fc[gi], axis=1)
+                for tol in (0.18, 0.45):
+                    hit = dists <= tol
+                    if hit.any():
+                        mkey = _area_vote_key(su_keys, su_areas, hit, dom_wall_key)
+                        break
+            out[int(gi)] = mkey
+
+    for gi in np.where((horiz_mask & (~cap_mask) & (~slant_up)))[0]:
+        if not out[int(gi)]:
+            out[int(gi)] = dom_wall_key
+
+    need_vert = np.array([gi for gi in np.where((~horiz_mask) & (~slant_up))[0] if not out[int(gi)]], dtype=np.int64)
     if len(need_vert) == 0:
         return out
 
+    exclude_cats = ("baseboard", "floor_tile", "glass", "littletiles_trim") if is_parapet else ("baseboard", "floor_tile", "stair_mat", "glass", "littletiles_trim")
     body_raw_mask = (
-        ~np.isin(raw_vert_cats, ("baseboard", "floor_tile", "glass", "littletiles_trim"))
+        ~np.isin(raw_vert_cats, exclude_cats)
         & (raw_vert_pts[:, 1] > y_bb_cut + 0.05)
     ) if len(raw_vert_pts) > 0 else np.zeros(0, dtype=bool)
 
@@ -991,7 +1649,7 @@ def _assign_clean_raw_materials(
         if nlen > 1e-8:
             nx, nz = nx / nlen, nz / nlen
         plane_d = float(fc[gi, 0]) * nx + float(fc[gi, 2]) * nz
-        pkey = (round(nx, 1), round(nz, 1), round(plane_d, 1))
+        pkey = (round(nx, 1), round(nz, 1), round(plane_d, 2))
         plane_buckets[pkey].append(int(gi))
 
     for idxs in plane_buckets.values():
@@ -1014,13 +1672,13 @@ def _assign_clean_raw_materials(
             if aligned.any():
                 raw_d = raw_xz @ face_n
                 raw_t = raw_xz @ face_t
-                for tol in (0.35, 0.75):
+                for tol in (0.08, 0.22, 0.55):
                     hit = aligned & (np.abs(raw_d - d_mid) <= tol) & (raw_t >= t_min - 0.25) & (raw_t <= t_max + 0.25)
                     if hit.any():
                         body_key = _area_vote_key(raw_vert_keys, raw_vert_areas, hit, dom_wall_key)
                         break
 
-        keep_accent = key_to_cat.get(body_key) == "exterior_accent"
+        keep_accent = key_to_cat.get(body_key) in (("exterior_accent", "stair_mat") if is_parapet else ("exterior_accent",))
         for gi in idxs:
             if float(fc[gi, 1]) <= y_bb_cut + 0.002 and not keep_accent and dom_baseboard_key is not None:
                 out[gi] = dom_baseboard_key
@@ -1164,12 +1822,12 @@ def run_solid_rebuild(
     ]
     any_cap = _clean_shapely(unary_union([p for p in up_caps if p.area > 1e-5]), 0.005)
 
-    # 3 architectural elevation cross-sections
+    # 3 architectural elevation cross-sections (slice below 0.75m low-sill stairwell windows!)
     S_40 = _extract_solid_slice(wall_tm, raw.floor_y + 0.40, any_cap)
-    S_85 = _extract_solid_slice(wall_tm, raw.floor_y + 0.85, any_cap)
-    S_base = _clean_shapely(S_40.intersection(S_85), 0.004)
+    S_60 = _extract_solid_slice(wall_tm, raw.floor_y + 0.60, any_cap)
+    S_base = _clean_shapely(S_40.intersection(S_60), 0.004)
     if S_base.is_empty:
-        S_base = S_85
+        S_base = S_60
 
     h_mid = min(raw.ceil_y - raw.floor_y - 0.35, max(1.50, (raw.sill_y - raw.floor_y) + 0.25))
     S_mid = _extract_solid_slice(wall_tm, raw.floor_y + h_mid, any_cap)
@@ -1181,97 +1839,44 @@ def run_solid_rebuild(
     S_mid = _fill_small_holes(_clean_shapely(S_mid, 0.045).intersection(S_base), 0.35)
     S_base, S_mid = _apply_overrides_2d(S_base, S_mid, overrides_path)
 
-    floor_fp, stair_steps = _extract_floor_and_stairs(raw, S_base, S_mid)
+    floor_fp, bot_fp, stair_clusters = _extract_floor_and_stairs(raw, S_base, S_mid)
+    stair_steps = [step for _, _, csteps in stair_clusters for step in csteps]
     stair_zone = (
         _clean_shapely(unary_union([p for _, _, p in stair_steps]), 0.05)
         if stair_steps
         else Polygon()
     )
 
-    # High band clipped closely to S_base + doorway/window lintel bridges (exclude walls AND stair zones)
-    S_high_raw = _extract_solid_slice(wall_tm, min(raw.ceil_y - 0.30, raw.lintel_y + 0.35), any_cap)
+    # High band above upper window openings clipped closely to S_base + doorway/window lintel bridges
+    S_high_raw = _clean_shapely(
+        unary_union([
+            _extract_solid_slice(wall_tm, raw.ceil_y - 0.25, any_cap),
+            _extract_solid_slice(wall_tm, raw.ceil_y - 0.50, any_cap),
+        ]),
+        0.005,
+    )
     # Keep header bridges inside narrow wall corridor envelope (exclude roofs > 1.8m from walls)
     S_high = _clean_shapely(S_high_raw.intersection(S_base.buffer(1.45, join_style=2)), 0.005)
-    # Subtract standing walls AND stairwells so upper stair treads never turn into floating ceiling beams
+    # Subtract standing walls AND direct stair treads so doorway headers adjacent to stairs stay intact
     lintel_excl = S_base.buffer(0.02, join_style=2)
     if not stair_zone.is_empty:
-        lintel_excl = unary_union([lintel_excl, stair_zone.buffer(0.95, join_style=2)])
+        lintel_excl = unary_union([lintel_excl, stair_zone.buffer(0.05, join_style=2)])
     lintel_only = _clean_shapely(S_high.difference(lintel_excl), 0.005)
     lintel_kept = unary_union(
         [p for p in _iter_polygons(lintel_only) if p.area <= 8.0 and min(p.bounds[2] - p.bounds[0], p.bounds[3] - p.bounds[1]) <= 2.2]
     )
     S_high_wall = _clean_shapely(unary_union([S_base.intersection(S_high_raw), lintel_kept]), 0.004)
-    columns, wall_groups = _separate_columns_and_split_walls(
-        S_base, S_mid, floor_fp, column_min_width_m=column_min_width_m
-    )
-
-    # ------------------------------------------------- Watertight Manifold Assembly
-    solid_nodes: list[tuple[str, str, trimesh.Trimesh]] = []  # (node_name, semantic_kind, watertight_trimesh)
-
-    # 1. Floor_Slab (+ raised steps extruded via mapbox_earcut cleanly with 0 zero-area tris)
-    floor_fp_s = _clean_shapely(
-        unary_union([p.simplify(0.015, preserve_topology=True) for p in _iter_polygons(floor_fp) if not p.is_empty]),
-        0.005,
-    )
-    floor_fp_s = _clean_shapely(
-        floor_fp_s.buffer(0.015, join_style=2).buffer(-0.012, join_style=2),
-        0.0,
-    )
-    slab_tms: list[trimesh.Trimesh] = []
-    for fp_poly in _iter_polygons(floor_fp_s):
-        st = _extrude_polygon_earcut_yup(fp_poly, raw.slab_bottom_y, raw.floor_y)
-        if st is not None:
-            slab_tms.append(st)
-        # Seal stairwell shaft bottom pits so zero empty canvas void shows beneath descending stairs
-        for h in fp_poly.interiors:
-            hole_poly = Polygon(h).buffer(-0.002, join_style=2)
-            for hp in _iter_polygons(hole_poly):
-                if hp.area >= 0.15:
-                    pit = _extrude_polygon_earcut_yup(hp, raw.slab_bottom_y - 0.12, raw.slab_bottom_y - 0.002)
-                    if pit is not None:
-                        slab_tms.append(pit)
-    for ry, rp in raw.raised_levels:
-        rp_clean = _clean_shapely(
-            unary_union([_regularize_polygon(p, 0.01).simplify(0.015, preserve_topology=True) for p in _iter_polygons(rp) if not p.is_empty]).intersection(
-                floor_fp_s.buffer(-0.005, join_style=2)
-            ),
-            0.005,
-        )
-        for rp_poly in _iter_polygons(rp_clean):
-            rt = _extrude_polygon_earcut_yup(rp_poly, raw.floor_y, ry)
-            if rt is not None:
-                slab_tms.append(rt)
-    if slab_tms:
-        comb_slab = trimesh.util.concatenate(slab_tms) if len(slab_tms) > 1 else slab_tms[0]
-        solid_nodes.append(("Floor_Slab", "floor", comb_slab))
-
     # Align cutaway cleanly to sill_y (above baseboard) so __Lower stays flat without sill pockets
     y_cut = min(raw.floor_y + low_cut_m, max(raw.floor_y + 0.95, raw.sill_y))
 
-    # 2. Stairs: 100% watertight true-3D manifold stepped slabs (switchback-safe, 0 open edges, 0 spikes)
-    if stair_steps:
+    # Extract Stairwell Railings + Slanted Concrete Spines BEFORE wall splitting so spines aren't duplicated as boxy pillars
+    parapet_nodes: list[tuple[str, str, trimesh.Trimesh]] = []
+    spine_claim_boxes: list[Polygon] = []
+    stair_nodes_list: list[tuple[str, str, trimesh.Trimesh]] = []
+    if stair_clusters:
         y_stair_split = y_cut + 0.25
         desc_union = unary_union([sp for _, yr, sp in stair_steps if yr < raw.floor_y - 0.04])
-        lo_by_span: dict[tuple[float, float], list[Any]] = defaultdict(list)
-        hi_by_span: dict[tuple[float, float], list[Any]] = defaultdict(list)
-
-        for _, yr, sp in stair_steps:
-            sp_r = _clean_shapely(_regularize_polygon(sp, 0.01), 0.008)
-            if sp_r.is_empty:
-                continue
-            y_top = round(float(yr), 3)
-            if y_top < raw.floor_y - 0.04:
-                y_bot = round(float(raw.slab_bottom_y), 3)
-                lo_by_span[(y_bot, y_top)].append(sp_r)
-            else:
-                if y_top <= raw.floor_y + 1.05 and (desc_union.is_empty or not desc_union.intersects(sp_r)):
-                    y_bot = round(float(raw.floor_y), 3)
-                else:
-                    y_bot = round(max(float(raw.floor_y) if y_top > raw.floor_y + 0.08 else float(raw.slab_bottom_y), y_top - 0.28), 3)
-                if y_top <= y_stair_split:
-                    lo_by_span[(y_bot, y_top)].append(sp_r)
-                else:
-                    hi_by_span[(y_bot, y_top)].append(sp_r)
+        emitted_slabs: set[tuple[str, float, float, str]] = set()
 
         def _fuse_stair_tier(span_map: dict[tuple[float, float], list[Any]]) -> trimesh.Trimesh | None:
             parts: list[m3d.Manifold] = []
@@ -1288,10 +1893,114 @@ def run_solid_rebuild(
             fused = m3d.Manifold.batch_boolean(parts, m3d.OpType.Add) if len(parts) > 1 else parts[0]
             return manifold_to_trimesh(fused)
 
-        if (tm_lo_st := _fuse_stair_tier(lo_by_span)) is not None:
-            solid_nodes.append(("Stairs", "stairs", tm_lo_st))
-        if (tm_hi_st := _fuse_stair_tier(hi_by_span)) is not None:
-            solid_nodes.append(("Stairs_Upper", "stairs_upper", tm_hi_st))
+        for ci, comp_poly, csteps in stair_clusters:
+            norm_steps: list[tuple[float, Any]] = []
+            for _, yr, sp in csteps:
+                sp_r = _clean_shapely(_regularize_polygon(sp, 0.01), 0.008)
+                if not sp_r.is_empty:
+                    norm_steps.append((round(float(yr), 3), sp_r))
+            lo_by_span: dict[tuple[float, float], list[Any]] = defaultdict(list)
+            hi_by_span: dict[tuple[float, float], list[Any]] = defaultdict(list)
+
+            for y_top, sp_r in norm_steps:
+                if y_top < raw.floor_y - 0.04:
+                    y_bot = round(float(raw.slab_bottom_y), 3)
+                    lo_by_span[(y_bot, y_top)].append(sp_r)
+                else:
+                    if y_top <= raw.floor_y + 1.05 and (desc_union.is_empty or not desc_union.intersects(sp_r)):
+                        y_bot = round(float(raw.floor_y), 3)
+                    else:
+                        y_bot = round(
+                            max(float(raw.floor_y) if y_top > raw.floor_y + 0.08 else float(raw.slab_bottom_y), y_top - 0.30),
+                            3,
+                        )
+                        sp_buf = sp_r.buffer(0.15, join_style=2)
+                        adj_lowers = [
+                            yo for yo, so in norm_steps
+                            if (y_top - 0.55) <= yo <= (y_top - 0.28) and sp_buf.intersects(so)
+                        ]
+                        if adj_lowers:
+                            y_bot = round(max(float(raw.floor_y), min(y_bot, max(adj_lowers) - 0.02)), 3)
+                    if y_top <= y_stair_split:
+                        lo_by_span[(y_bot, y_top)].append(sp_r)
+                    else:
+                        hi_by_span[(y_bot, y_top)].append(sp_r)
+
+            if (tm_lo_st := _fuse_stair_tier(lo_by_span)) is not None:
+                stair_nodes_list.append((f"Stairs_{ci:02d}", "stairs", tm_lo_st))
+            if (tm_hi_st := _fuse_stair_tier(hi_by_span)) is not None:
+                stair_nodes_list.append((f"Stairs_Upper_{ci:02d}", "stairs_upper", tm_hi_st))
+
+            tm_lo_p, tm_hi_p, sp_boxes = _extract_slanted_stair_parapets(
+                raw, comp_poly, S_base, y_stair_split, emitted_slabs=emitted_slabs
+            )
+            spine_claim_boxes.extend(sp_boxes)
+            if tm_lo_p is not None:
+                parapet_nodes.append((f"Stairs_Parapet_{ci:02d}__Lower", "parapet", tm_lo_p))
+            if tm_hi_p is not None:
+                parapet_nodes.append((f"Stairs_Parapet_{ci:02d}__Upper", "parapet", tm_hi_p))
+
+    if spine_claim_boxes:
+        claim_u = _clean_shapely(unary_union(spine_claim_boxes), 0.004)
+        S_base = _clean_shapely(S_base.difference(claim_u), 0.004)
+        S_mid = _clean_shapely(S_mid.difference(claim_u), 0.004)
+        S_high_wall = _clean_shapely(S_high_wall.difference(claim_u), 0.004)
+
+    columns, wall_groups = _separate_columns_and_split_walls(
+        S_base, S_mid, floor_fp, column_min_width_m=column_min_width_m
+    )
+
+    # ------------------------------------------------- Watertight Manifold Assembly
+    solid_nodes: list[tuple[str, str, trimesh.Trimesh]] = []  # (node_name, semantic_kind, watertight_trimesh)
+
+    # 1. Floor_Slab (+ raised steps extruded cleanly via manifold3d)
+    floor_fp_s = _clean_shapely(
+        floor_fp.buffer(0.04, join_style=2).buffer(-0.08, join_style=2).buffer(0.04, join_style=2),
+        0.0,
+    )
+    floor_fp_s = _clean_shapely(
+        unary_union([_regularize_polygon(p, 0.05).simplify(0.04, preserve_topology=True) for p in _iter_polygons(floor_fp_s) if not p.is_empty]),
+        0.0,
+    )
+    slab_tms: list[trimesh.Trimesh] = []
+    pit_polys: list[Any] = []
+    for fp_poly in _iter_polygons(floor_fp_s):
+        if (m_fp := geom_to_manifold(fp_poly, raw.slab_bottom_y, raw.floor_y)) is not None:
+            slab_tms.append(manifold_to_trimesh(m_fp))
+        for h in fp_poly.interiors:
+            hole_poly = Polygon(h).buffer(-0.002, join_style=2)
+            for hp in _iter_polygons(hole_poly):
+                if hp.area >= 0.15:
+                    pit_polys.append(hp)
+    if not bot_fp.is_empty:
+        bot_open = _clean_shapely(bot_fp.difference(floor_fp_s.buffer(0.005, join_style=2)), 0.008)
+        for bp in _iter_polygons(bot_open):
+            if bp.area >= 0.25 and not bp.buffer(-0.10, join_style=2).is_empty:
+                pit_polys.append(bp)
+    if pit_polys:
+        pit_cover = _clean_shapely(unary_union(pit_polys), 0.012)
+        for hp in _iter_polygons(pit_cover):
+            hp_r = _regularize_polygon(hp, 0.01).simplify(0.015, preserve_topology=True)
+            if not hp_r.is_empty and hp_r.area >= 0.25 and not hp_r.buffer(-0.08, join_style=2).is_empty:
+                if (m_pit := geom_to_manifold(hp_r, raw.slab_bottom_y - 0.12, raw.slab_bottom_y - 0.002)) is not None:
+                    slab_tms.append(manifold_to_trimesh(m_pit))
+    for ry, rp in raw.raised_levels:
+        rp_clean = _clean_shapely(
+            unary_union([_regularize_polygon(p, 0.01).simplify(0.015, preserve_topology=True) for p in _iter_polygons(rp) if not p.is_empty]).intersection(
+                floor_fp_s.buffer(-0.005, join_style=2)
+            ),
+            0.005,
+        )
+        for rp_poly in _iter_polygons(rp_clean):
+            if (m_rt := geom_to_manifold(rp_poly, raw.floor_y, ry)) is not None:
+                slab_tms.append(manifold_to_trimesh(m_rt))
+    if slab_tms:
+        comb_slab = trimesh.util.concatenate(slab_tms) if len(slab_tms) > 1 else slab_tms[0]
+        solid_nodes.append(("Floor_Slab", "floor", comb_slab))
+
+    # 2. Per-cluster Stairs + Real Stairwell Parapets/Balustrades
+    solid_nodes.extend(stair_nodes_list)
+    solid_nodes.extend(parapet_nodes)
 
     # 3. Tiered Solid Prisms (__Plinth, __Lower, __Upper) for every Column & Wall
     y_plinth_top = raw.floor_y + plinth_m
@@ -1354,6 +2063,9 @@ def run_solid_rebuild(
         if ov_man is not None:
             solid_nodes.append(("OverheadBeams_And_Lintels", "overhead", manifold_to_trimesh(ov_man)))
 
+    # 6. Facade_Ext_{W,E,N,S}: preserved exterior meshed facade, canopy louvers, and window grilles (littletiles_trim)
+    solid_nodes.extend(_extract_exterior_facade_meshes(raw, S_base, floor_fp))
+
     # ------------------------------------------------- Hard Watertight Audit BEFORE Export
     audit_nodes: list[dict[str, Any]] = []
     passed = True
@@ -1409,12 +2121,23 @@ def run_solid_rebuild(
     raw_areas = 0.5 * lens
     valid_raw_idx = np.where(keep_struct & np.array([m in raw_to_key for m in fmats]))[0]
     raw_up_idx = valid_raw_idx[unit_n[valid_raw_idx, 1] > 0.70]
+    raw_slanted_up_idx = valid_raw_idx[unit_n[valid_raw_idx, 1] > 0.15]
     raw_vert_idx = valid_raw_idx[np.abs(unit_n[valid_raw_idx, 1]) <= 0.70]
 
     raw_up_pts = raw_fc[raw_up_idx]
     raw_up_keys = [raw_to_key[fmats[i]] for i in raw_up_idx]
     raw_up_cats = np.asarray([key_to_cat[k] for k in raw_up_keys], dtype=object)
     raw_up_areas = raw_areas[raw_up_idx]
+
+    raw_slanted_up_pts = raw_fc[raw_slanted_up_idx]
+    raw_slanted_up_keys = [raw_to_key[fmats[i]] for i in raw_slanted_up_idx]
+    raw_slanted_up_areas = raw_areas[raw_slanted_up_idx]
+
+    lt_raw_idx = np.where(np.array([mats[m].category == "littletiles_trim" and m in raw_to_key for m in fmats]))[0]
+    raw_lt_pts = raw_fc[lt_raw_idx]
+    raw_lt_keys = [raw_to_key[fmats[i]] for i in lt_raw_idx]
+    raw_lt_areas = raw_areas[lt_raw_idx]
+    dom_lt_key = _area_vote_key(raw_lt_keys, raw_lt_areas, np.ones(len(lt_raw_idx), dtype=bool), "fallback_wall") if len(lt_raw_idx) > 0 else "fallback_wall"
 
     raw_vert_pts = raw_fc[raw_vert_idx]
     rn_xz = unit_n[raw_vert_idx][:, [0, 2]] if len(raw_vert_idx) > 0 else np.zeros((0, 2), dtype=np.float64)
@@ -1462,8 +2185,10 @@ def run_solid_rebuild(
     )
 
     scene = trimesh.Scene()
-    obj_lines = [f"# Solid Architectural Rebuild ({raw.source_frame})", f"mtllib materials.mtl"]
+    obj_lines = [f"# Solid Architectural Rebuild ({raw.source_frame})", "mtllib materials.mtl"]
     v_offset = 1
+    vt_offset = 1
+    used_mkeys: set[str] = set()
     group_list: list[dict[str, Any]] = []
 
     for nname, kind, tm in solid_nodes:
@@ -1500,11 +2225,21 @@ def run_solid_rebuild(
             is_plinth,
             is_lower,
             tier_top,
+            raw_slanted_up_pts=raw_slanted_up_pts,
+            raw_slanted_up_keys=raw_slanted_up_keys,
+            raw_slanted_up_areas=raw_slanted_up_areas,
+            raw_lt_pts=raw_lt_pts,
+            raw_lt_keys=raw_lt_keys,
+            raw_lt_areas=raw_lt_areas,
+            dom_lt_key=dom_lt_key,
+            forced_face_keys=tm.metadata.get("forced_face_keys"),
         )
 
         prims = _split_mesh_by_material_and_flat_uvs(tm, face_keys, mat_defs)
         single = len(prims) == 1
+        obj_lines.append(f"g {nname}")
         for mkey, sub_tm in prims:
+            used_mkeys.add(mkey)
             geom_name = nname if single else f"{nname}__{mkey}"
             if single:
                 scene.add_geometry(sub_tm, node_name=nname, geom_name=geom_name)
@@ -1513,14 +2248,47 @@ def run_solid_rebuild(
                     scene.graph.update(frame_to=nname, frame_from=scene.graph.base_frame)
                 scene.add_geometry(sub_tm, node_name=geom_name, geom_name=geom_name, parent_node_name=nname)
 
-        # Append watertight mesh to combined grouped Unity OBJ
-        obj_lines.append(f"g {nname}")
-        for vx, vy, vz in tm.vertices:
-            obj_lines.append(f"v {vx:.6f} {vy:.6f} {vz:.6f}")
-        for i0, i1, i2 in tm.faces:
-            obj_lines.append(f"f {v_offset + i0} {v_offset + i1} {v_offset + i2}")
-        v_offset += len(tm.vertices)
+            # Export textured vertices, UVs, and material assignment to Unity OBJ
+            obj_lines.append(f"usemtl {mkey}")
+            for vx, vy, vz in sub_tm.vertices:
+                obj_lines.append(f"v {vx:.6f} {vy:.6f} {vz:.6f}")
+            uvs = getattr(sub_tm.visual, "uv", None)
+            if uvs is not None and len(uvs) == len(sub_tm.vertices):
+                for uvx, uvy in uvs:
+                    obj_lines.append(f"vt {float(uvx):.6f} {float(uvy):.6f}")
+            else:
+                for _ in range(len(sub_tm.vertices)):
+                    obj_lines.append("vt 0.000000 0.000000")
+            for i0, i1, i2 in sub_tm.faces:
+                a, b, c = int(i0), int(i1), int(i2)
+                obj_lines.append(
+                    f"f {v_offset + a}/{vt_offset + a} {v_offset + b}/{vt_offset + b} {v_offset + c}/{vt_offset + c}"
+                )
+            v_offset += len(sub_tm.vertices)
+            vt_offset += len(sub_tm.vertices)
+
         group_list.append({"node": nname, "kind": kind, "tris": int(len(tm.faces))})
+
+    mtl_lines = ["# Solid Architectural Rebuild Materials"]
+    tex_out_dir = out_dir / "textures"
+    for mkey in sorted(used_mkeys):
+        pbr = mat_defs[mkey]
+        cf = getattr(pbr, "baseColorFactor", None)
+        if cf is None:
+            r, g, b, a = 0.85, 0.85, 0.82, 1.0
+        else:
+            r, g, b, a = (float(cf[0]) / 255.0, float(cf[1]) / 255.0, float(cf[2]) / 255.0, float(cf[3]) / 255.0)
+        mtl_lines.append(f"newmtl {mkey}")
+        mtl_lines.append(f"Kd {r:.4f} {g:.4f} {b:.4f}")
+        mtl_lines.append(f"d {a:.4f}")
+        mtl_lines.append("illum 2")
+        btex = getattr(pbr, "baseColorTexture", None)
+        if btex is not None:
+            tex_out_dir.mkdir(parents=True, exist_ok=True)
+            tex_file = tex_out_dir / f"{mkey}.png"
+            btex.save(tex_file)
+            mtl_lines.append(f"map_Kd textures/{mkey}.png")
+    (out_dir / "materials.mtl").write_text("\n".join(mtl_lines) + "\n", encoding="utf-8")
 
     stem = obj_path.stem
     out_obj = out_dir / f"{stem}.solid_rebuild.unity.obj"

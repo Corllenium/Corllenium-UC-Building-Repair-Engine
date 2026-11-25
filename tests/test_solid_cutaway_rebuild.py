@@ -78,7 +78,7 @@ def test_solid_rebuild_synthetic_room_column_door_window_and_stairs(tmp_path: Pa
 
     node_names = {n["node"] for n in rep.audit["nodes"]}
     assert "Floor_Slab" in node_names
-    assert "Stairs" in node_names
+    assert any(n.startswith("Stairs_") and not n.startswith("Stairs_Upper_") for n in node_names)
     assert "Column_01__Plinth" in node_names
     assert "Column_01__Lower" in node_names
     assert "Column_01__Upper" in node_names
@@ -204,10 +204,12 @@ def test_solid_rebuild_real_stairs_no_overhead_stair_lintels(tmp_path: Path) -> 
     assert rep.glb_path is not None
 
     nodes_by_name = {n["node"]: n for n in rep.audit["nodes"]}
-    assert "Stairs" in nodes_by_name
-    assert "Stairs_Upper" in nodes_by_name
-    assert nodes_by_name["Stairs"]["zero_area"] == 0
-    assert nodes_by_name["Stairs_Upper"]["zero_area"] == 0
+    st_nodes = [n for n in nodes_by_name if n.startswith("Stairs_") and not n.startswith("Stairs_Upper_") and "Parapet" not in n]
+    st_up_nodes = [n for n in nodes_by_name if n.startswith("Stairs_Upper_")]
+    assert st_nodes
+    assert st_up_nodes
+    assert nodes_by_name[st_nodes[0]]["zero_area"] == 0
+    assert nodes_by_name[st_up_nodes[0]]["zero_area"] == 0
 
     import trimesh
 
@@ -218,23 +220,25 @@ def test_solid_rebuild_real_stairs_no_overhead_stair_lintels(tmp_path: Path) -> 
         assert not ((ov_fc_z > 1.2) & (ov_fc_z < 3.3)).any(), "Upper stairs leaked into OverheadBeams_And_Lintels!"
 
 
-def test_solid_rebuild_raised_floor_keeps_same_y_stair_and_dedups_ghost(tmp_path: Path) -> None:
+def test_solid_rebuild_raised_floor_keeps_same_y_stair_and_topdown_dedup(tmp_path: Path) -> None:
     obj = tmp_path / "raised_and_ghost.obj"
     mtl = tmp_path / "raised_and_ghost.mtl"
     out_dir = tmp_path / "out"
 
     boxes = [
-        ("minecraft_quartz_block_top_-1", 0.0, -0.5, 0.0, 12.0, 0.0, 10.0),
+        ("minecraft_quartz_block_top_-1", 0.0, -1.0, 0.0, 12.0, 0.0, 10.0),
         # Raised platform in opposite corner (+0.25m, area 2.5m2 >= 2.0m2)
         ("minecraft_quartz_block_top_-1", 8.0, 0.0, 7.0, 10.5, 0.25, 8.0),
         ("minecraft_quartz_block_top_-1", 8.0, 0.0, 8.0, 10.5, 0.25, 9.0),
+        # Descending stair steps into open pit (-0.60m, -0.25m)
+        ("minecraft_quartz_block_side_-1", 6.0, -1.0, 1.5, 7.2, -0.25, 3.0),
+        ("minecraft_quartz_block_side_-1", 4.8, -1.0, 1.5, 6.0, -0.60, 3.0),
         # Step 1 at SAME +0.25m height as raised floor, plus Step 2 (+0.50m)
         ("minecraft_quartz_block_side_-1", 1.5, 0.0, 1.5, 2.8, 0.25, 3.0),
         ("minecraft_quartz_block_side_-1", 2.8, 0.0, 1.5, 4.1, 0.50, 3.0),
-        # Impossible +0.75m headroom ghost slab directly above Step 1
+        # Inner shell under upper tread (+1.00m directly beneath +1.75m walkable tread): top-down keeps +1.75m!
         ("minecraft_quartz_block_top_-1", 1.5, 0.90, 1.5, 2.8, 1.00, 3.0),
-        # Real switchback upper flight >= 2.0m headroom above Step 1
-        ("minecraft_quartz_block_top_-1", 1.5, 2.25, 1.5, 2.8, 2.50, 3.0),
+        ("minecraft_quartz_block_top_-1", 1.5, 1.50, 1.5, 2.8, 1.75, 3.0),
         ("minecraft_concrete_white_-1", 0.0, 0.0, 0.0, 12.0, 3.6, 0.5),
         ("minecraft_concrete_white_-1", 0.0, 0.0, 9.5, 12.0, 3.6, 10.0),
         ("minecraft_concrete_white_-1", 0.0, 0.0, 0.5, 0.5, 3.6, 9.5),
@@ -243,5 +247,92 @@ def test_solid_rebuild_raised_floor_keeps_same_y_stair_and_dedups_ghost(tmp_path
     _write_box_obj(boxes, obj, mtl)
     rep = run_solid_rebuild(obj, out_dir, mtl_path=mtl, low_cut_m=1.25, plinth_m=0.04)
     assert rep.passed is True
-    # Step 1 (+0.25m), Step 2 (+0.50m), and real upper switchback (+2.50m) preserved; +1.00m ghost stripped
-    assert rep.manifest["counts"]["stair_steps"] == 3, rep.manifest["counts"]
+    # Note: +0.25m is 0.75m below +1.00m? No: top-down keeps +1.75m, strips +1.00m (1.75-1.00=0.75 <= 1.35),
+    # and keeps +0.25m (1.75-0.25=1.50 > 1.35)! Plus Step 2 (+0.50m) and 2 descending steps = 5.
+    assert rep.manifest["counts"]["stair_steps"] == 5, rep.manifest["counts"]
+
+    # Verify exported OBJ + MTL contain material assignments & UVs, and Floor_Slab is open above descending pit
+    obj_txt = rep.obj_path.read_text(encoding="utf-8")
+    mtl_file = out_dir / "materials.mtl"
+    assert mtl_file.is_file()
+    assert "newmtl " in mtl_file.read_text(encoding="utf-8")
+    assert "usemtl " in obj_txt
+    assert "\nvt " in obj_txt
+
+    import trimesh
+
+    sc = trimesh.load(rep.glb_path, force="scene")
+    floor_geoms = [g for n, g in sc.geometry.items() if n.startswith("Floor_Slab")]
+    assert floor_geoms
+    floor_m = trimesh.util.concatenate(floor_geoms) if len(floor_geoms) > 1 else floor_geoms[0]
+    fc = floor_m.vertices[floor_m.faces].mean(axis=1)
+    fn = floor_m.face_normals
+    # Descending step footprint (x in [5.0, 7.0], z in [1.7, 2.8]) must NOT have Floor_Slab top cap at y=0
+    pit_top_cap = (fn[:, 1] > 0.8) & (np.abs(fc[:, 1]) < 0.05) & (fc[:, 0] > 5.0) & (fc[:, 0] < 7.0) & (fc[:, 2] > 1.7) & (fc[:, 2] < 2.8)
+    assert not pit_top_cap.any(), "Floor_Slab buried descending steps!"
+
+
+def test_solid_rebuild_preserves_littletiles_facade_and_low_sill_walls(tmp_path: Path) -> None:
+    obj = tmp_path / "facade_and_low_win.obj"
+    mtl = tmp_path / "facade_and_low_win.mtl"
+    out_dir = tmp_path / "out"
+
+    boxes = [
+        ("minecraft_quartz_block_top_-1", 0.0, -1.0, 0.0, 10.0, 0.0, 10.0),
+        # Low stairwell window on North wall (y=[0.75..1.55] open, below 0.75 solid)
+        ("minecraft_concrete_white_-1", 0.0, 0.0, 9.5, 10.0, 0.75, 10.0),
+        ("minecraft_concrete_white_-1", 0.0, 1.55, 9.5, 10.0, 3.6, 10.0),
+        ("minecraft_concrete_white_-1", 0.0, 0.0, 0.0, 10.0, 3.6, 0.5),
+        ("minecraft_concrete_white_-1", 0.0, 0.0, 0.5, 0.5, 3.6, 9.5),
+        ("minecraft_concrete_white_-1", 9.5, 0.0, 0.5, 10.0, 3.6, 9.5),
+        # Exterior LittleTiles canopy & louver trim along North exterior (z=[10.0..12.0])
+        ("littletiles_ltcolored0_-1", 2.0, 2.2, 10.0, 8.0, 2.35, 12.0),
+        ("littletiles_ltcolored6_-1", 2.5, 2.4, 10.5, 7.5, 2.55, 11.5),
+    ]
+    _write_box_obj(boxes, obj, mtl)
+    rep = run_solid_rebuild(obj, out_dir, mtl_path=mtl, low_cut_m=1.25, plinth_m=0.04)
+    assert rep.passed is True
+    assert rep.audit["all_watertight"] is True
+    assert rep.audit["total_open_edges"] == 0
+    assert rep.audit["total_nonmanifold_edges"] == 0
+    nodes = {n["node"]: n for n in rep.audit["nodes"]}
+    assert "Facade_Ext_N" in nodes
+    assert nodes["Facade_Ext_N"]["passed"] is True
+    assert nodes["Facade_Ext_N"]["min_altitude_mm"] >= 1.0
+    # Low stairwell wall under y=0.75 window must remain in S_base / Wall_Ext_N
+    assert any(k.startswith("Wall_Ext_N_") and k.endswith("__Lower") for k in nodes)
+
+
+def test_solid_rebuild_slanted_railing_no_concrete_bleed(tmp_path: Path) -> None:
+    obj = tmp_path / "slanted_rail.obj"
+    mtl = tmp_path / "slanted_rail.mtl"
+    out_dir = tmp_path / "out"
+
+    boxes = [
+        ("minecraft_quartz_block_top_-1", 0.0, -0.5, 0.0, 10.0, 0.0, 10.0),
+        # Ascend stair treads +X along x=[2.0..5.0], z=[3.0..5.0]
+        ("minecraft_quartz_block_side_-1", 2.0, 0.0, 3.0, 3.0, 0.45, 5.0),
+        ("minecraft_quartz_block_top_-1", 3.0, 0.45, 3.0, 4.0, 1.00, 5.0),
+        ("minecraft_quartz_block_top_-1", 4.0, 1.00, 3.0, 5.0, 1.80, 5.0),
+        # Flush 0.25m balustrade (z=[5.00..5.25]) + 0.25m iron top rail right against 0.25m white concrete spine (z=[5.25..5.50])
+        ("minecraft_quartz_block_side_-15574983", 2.0, 0.0, 5.00, 5.0, 1.50, 5.25),
+        ("minecraft_iron_block_-1", 2.0, 1.50, 5.00, 5.0, 1.75, 5.25),
+        ("minecraft_concrete_white_-1", 2.0, 0.0, 5.25, 5.0, 2.80, 5.50),
+        # Perimeter walls
+        ("minecraft_concrete_white_-1", 0.0, 0.0, 0.0, 10.0, 3.6, 0.5),
+        ("minecraft_concrete_white_-1", 0.0, 0.0, 9.5, 10.0, 3.6, 10.0),
+        ("minecraft_concrete_white_-1", 0.0, 0.0, 0.5, 0.5, 3.6, 9.5),
+        ("minecraft_concrete_white_-1", 9.5, 0.0, 0.5, 10.0, 3.6, 9.5),
+    ]
+    _write_box_obj(boxes, obj, mtl)
+    rep = run_solid_rebuild(obj, out_dir, mtl_path=mtl, low_cut_m=1.25, plinth_m=0.04)
+    assert rep.passed is True
+    assert rep.glb_path is not None
+
+    import trimesh
+
+    sc = trimesh.load(rep.glb_path, force="scene")
+    iron_nodes = [n for n in sc.geometry if "Parapet" in n and "iron_block" in n]
+    balustrade_nodes = [n for n in sc.geometry if "Parapet" in n and "15574983" in n]
+    assert iron_nodes, f"Missing iron handrail in parapet: {list(sc.geometry)}"
+    assert balustrade_nodes, f"Missing dark-green balustrade in parapet: {list(sc.geometry)}"
