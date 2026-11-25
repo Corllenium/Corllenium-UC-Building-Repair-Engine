@@ -120,7 +120,7 @@ def _purge_trapped_cavity_faces(
     cavity_dist_in: float = 33.5,
     max_passes: int = 3,
 ) -> tuple[MeshData, int]:
-    """Remove vertical/internal cavity ribs trapped on BOTH sides within `cavity_dist_in` (D11/D15 -> G01)."""
+    """Remove BOTH vertical internal cavity ribs AND horizontal trapped wall-cavity shelf fins (D11/D15 -> G01)."""
     cur = mesh
     total_purged = 0
     for _ in range(max_passes):
@@ -128,32 +128,65 @@ def _purge_trapped_cavity_faces(
             break
         fn = face_normals(cur.positions, cur.face_v, np.ones(cur.n_faces, dtype=bool))
         ok = (~np.isnan(fn).any(axis=1)) & (np.linalg.norm(fn, axis=1) > 0.5)
-        vert = ok & (np.abs(fn[:, 2]) < 0.25)
-        v_ids = np.flatnonzero(vert)
-        if len(v_ids) == 0:
+        if not ok.any():
             break
 
         center = 0.5 * (cur.positions.min(axis=0) + cur.positions.max(axis=0))
         pos_c = cur.positions - center
         pts_c = pos_c[cur.face_v]
+        pts_w = cur.positions[cur.face_v]
+        lo_z, hi_z = float(cur.positions[:, 2].min()), float(cur.positions[:, 2].max())
 
         # Protect exterior-exposed faces (EXP_OUTSIDE) unconditionally
         ef, eb = compute_side_exposure(pos_c, cur.face_v, ok, n_dirs=64)
         outside = ok & (classify_exposure(ef + eb, ok) == EXP_OUTSIDE)
 
         caster = EmbreeCaster(pos_c, cur.face_v[ok])
-        v_cent = pts_c[v_ids].mean(axis=1)
-        v_n = fn[v_ids]
-        eps = 0.35  # inches
-        _, tf = caster.first_hit(v_cent + eps * v_n, v_n)
-        _, tb = caster.first_hit(v_cent - eps * v_n, -v_n)
-        trapped = (tf < cavity_dist_in) & (tb < cavity_dist_in)
-
         drop = np.zeros(cur.n_faces, dtype=bool)
-        for local_i in np.flatnonzero(trapped):
-            fid = int(v_ids[local_i])
-            if not outside[fid]:
-                drop[fid] = True
+        eps = 0.35  # inches
+
+        # 1. Vertical internal cavity ribs trapped on BOTH normal sides within cavity_dist_in
+        vert = ok & (np.abs(fn[:, 2]) < 0.25)
+        v_ids = np.flatnonzero(vert)
+        if len(v_ids) > 0:
+            v_cent = pts_c[v_ids].mean(axis=1)
+            v_n = fn[v_ids]
+            _, tf = caster.first_hit(v_cent + eps * v_n, v_n)
+            _, tb = caster.first_hit(v_cent - eps * v_n, -v_n)
+            trapped_v = (tf < cavity_dist_in) & (tb < cavity_dist_in)
+            for local_i in np.flatnonzero(trapped_v):
+                fid = int(v_ids[local_i])
+                if not outside[fid]:
+                    drop[fid] = True
+
+        # 2. Horizontal trapped hollow-wall shelf fins (D11/D15) buried inside wall cavities
+        z_mid = pts_w[:, :, 2].mean(axis=1)
+        horiz_mid = ok & (np.abs(fn[:, 2]) > 0.75) & (~outside) & (z_mid > lo_z + 44.0) & (z_mid < hi_z - 8.0)
+        h_ids = np.flatnonzero(horiz_mid)
+        if len(h_ids) > 0:
+            h_cent = pts_c[h_ids].mean(axis=1)
+            m_h = len(h_ids)
+            up_d = np.broadcast_to(np.array([[0.0, 0.0, 1.0]]), (m_h, 3)).copy()
+            dn_d = np.broadcast_to(np.array([[0.0, 0.0, -1.0]]), (m_h, 3)).copy()
+            px_d = np.broadcast_to(np.array([[1.0, 0.0, 0.0]]), (m_h, 3)).copy()
+            nx_d = np.broadcast_to(np.array([[-1.0, 0.0, 0.0]]), (m_h, 3)).copy()
+            py_d = np.broadcast_to(np.array([[0.0, 1.0, 0.0]]), (m_h, 3)).copy()
+            ny_d = np.broadcast_to(np.array([[0.0, -1.0, 0.0]]), (m_h, 3)).copy()
+
+            _, t_up = caster.first_hit(h_cent + eps * up_d, up_d)
+            _, t_dn = caster.first_hit(h_cent + eps * dn_d, dn_d)
+            _, t_px = caster.first_hit(h_cent + eps * up_d, px_d)
+            _, t_nx = caster.first_hit(h_cent + eps * up_d, nx_d)
+            _, t_py = caster.first_hit(h_cent + eps * up_d, py_d)
+            _, t_ny = caster.first_hit(h_cent + eps * up_d, ny_d)
+
+            trapped_lat = ((t_px < cavity_dist_in) & (t_nx < cavity_dist_in)) | (
+                (t_py < cavity_dist_in) & (t_ny < cavity_dist_in)
+            )
+            trapped_vert = (t_up < 150.0) & (t_dn < 150.0)
+            low_exp = (ef[h_ids] + eb[h_ids]) < 0.03
+            for local_i in np.flatnonzero(trapped_lat & trapped_vert & low_exp):
+                drop[int(h_ids[local_i])] = True
 
         if not drop.any():
             break
@@ -1165,6 +1198,225 @@ def _classify_and_group_faces(
     }
 
 
+def _triangulate_cap_geom_to_trimesh(
+    geom,
+    y_level: float,
+    mat_name: str,
+) -> trimesh.Trimesh | None:
+    """Triangulate a 2D Shapely (X, Z) polygon/multipolygon into an upward (+Y) Unity Y-up solid cap Trimesh."""
+    if geom is None or geom.is_empty:
+        return None
+    polys = list(geom.geoms) if hasattr(geom, "geoms") else [geom]
+    verts_list: list[list[float]] = []
+    for poly in polys:
+        if not isinstance(poly, Polygon) or poly.is_empty or float(poly.area) < 0.015:
+            continue
+        try:
+            cdt = shapely.constrained_delaunay_triangles(poly)
+            tris = list(cdt.geoms) if hasattr(cdt, "geoms") else [cdt]
+        except Exception:
+            continue
+        for t in tris:
+            if not isinstance(t, Polygon) or t.is_empty or float(t.area) < 1e-4:
+                continue
+            if not poly.contains(t.representative_point()):
+                continue
+            coords = list(t.exterior.coords)[:3]
+            if len(coords) < 3:
+                continue
+            p0 = np.array([float(coords[0][0]), y_level, float(coords[0][1])], dtype=np.float64)
+            p1 = np.array([float(coords[1][0]), y_level, float(coords[1][1])], dtype=np.float64)
+            p2 = np.array([float(coords[2][0]), y_level, float(coords[2][1])], dtype=np.float64)
+            # Ensure upward +Y normal: cross(p1 - p0, p2 - p0).y > 0
+            cr = np.cross(p1 - p0, p2 - p0)
+            if abs(float(cr[1])) < 1e-7:
+                continue
+            if float(cr[1]) < 0.0:
+                p1, p2 = p2, p1
+            verts_list.extend([p0.tolist(), p1.tolist(), p2.tolist()])
+
+    if not verts_list:
+        return None
+    verts = np.asarray(verts_list, dtype=np.float64)
+    faces = np.arange(len(verts), dtype=np.int64).reshape(-1, 3)
+    uv = np.zeros((len(verts), 2), dtype=np.float64)
+    pbr = trimesh.visual.material.PBRMaterial(
+        name=mat_name,
+        baseColorFactor=[152, 156, 152, 255],
+        metallicFactor=0.04,
+        roughnessFactor=0.90,
+        alphaMode="OPAQUE",
+        doubleSided=True,
+    )
+    return trimesh.Trimesh(
+        vertices=verts,
+        faces=faces,
+        visual=trimesh.visual.TextureVisuals(uv=uv, material=pbr),
+        process=False,
+    )
+
+
+def _build_solid_cut_cap_meshes(
+    mesh_unity: MeshData,
+    face_groups: Sequence[str],
+) -> dict[str, trimesh.Trimesh]:
+    """Build exact 100%-solid flat horizontal cross-section cap meshes (`CutCap_Ext_N/S/E/W` & `CutCap_Interior`)
+    so lowered walls & columns are NEVER hollow and Floor mode shows a crisp solid wall-trace indicator."""
+    from shapely.geometry import LineString
+    from shapely.ops import polygonize
+
+    if mesh_unity.n_faces == 0:
+        return {}
+
+    pts = mesh_unity.positions[mesh_unity.face_v]  # (F, 3, 3) Unity Y-up metres
+    v01 = pts[:, 1] - pts[:, 0]
+    v02 = pts[:, 2] - pts[:, 0]
+    cr = np.cross(v01, v02)
+    lens = np.linalg.norm(cr, axis=1)
+    ok = lens > 1e-8
+    fn = np.zeros_like(cr)
+    fn[ok] = cr[ok] / lens[ok, None]
+    areas = 0.5 * lens
+
+    # Determine dominant walkable Floor_Slab top elevation Y (metres)
+    floor_up_ids = [
+        fi for fi, g in enumerate(face_groups)
+        if g == "Floor_Slab" and ok[fi] and float(fn[fi, 1]) > 0.75 and float(areas[fi]) > 0.05
+    ]
+    if floor_up_ids:
+        y_vals = pts[floor_up_ids, :, 1].mean(axis=1)
+        y_bins: dict[float, float] = defaultdict(float)
+        for yv, av in zip(np.round(y_vals, 2).tolist(), areas[floor_up_ids].tolist()):
+            y_bins[yv] += av
+        y_floor_top = max(y_bins, key=lambda k: y_bins[k])
+    else:
+        y_floor_top = float(mesh_unity.bbox()[0][1])
+
+    wc_ids = [fi for fi, g in enumerate(face_groups) if g.startswith(("Wall_", "Column_")) and ok[fi]]
+    if len(wc_ids) < 4:
+        return {}
+
+    wc_arr = np.asarray(wc_ids, dtype=np.int64)
+    wc_pts = pts[wc_arr]
+    wc_fn = fn[wc_arr]
+    y_max_all = float(wc_pts[:, :, 1].max())
+    wall_h = y_max_all - y_floor_top
+    if wall_h < 0.8:
+        return {}
+
+    # 1. Exact 2D wall/column top-cap footprint (`wall_top_union`)
+    top_thresh = y_floor_top + max(1.2, wall_h * 0.65)
+    top_polys = []
+    for k in range(len(wc_arr)):
+        if float(wc_fn[k, 1]) > 0.75 and float(wc_pts[k, :, 1].mean()) >= top_thresh:
+            p = Polygon([
+                (float(wc_pts[k, 0, 0]), float(wc_pts[k, 0, 2])),
+                (float(wc_pts[k, 1, 0]), float(wc_pts[k, 1, 2])),
+                (float(wc_pts[k, 2, 0]), float(wc_pts[k, 2, 2])),
+            ])
+            if p.is_valid and float(p.area) > 0.001:
+                top_polys.append(p)
+    if not top_polys:
+        return {}
+    wall_top_raw = unary_union(top_polys).buffer(0.015)
+    # Strip wide stairwell roof / overhang slabs (>1.80m x 1.80m) so CutCap_* covers ONLY true walls & columns!
+    wide_roofs = wall_top_raw.buffer(-0.90, join_style=2).buffer(0.95, join_style=2)
+    wall_top_union = wall_top_raw.difference(wide_roofs).buffer(0) if not wide_roofs.is_empty else wall_top_raw
+    if wall_top_union.is_empty:
+        wall_top_union = wall_top_raw
+
+    # 2. Slice vertical wall/column faces at y_slice (0.75m above floor top, above raised rooms & below window sills)
+    y_slice = y_floor_top + min(0.75, wall_h * 0.35)
+    segs_2d: list[LineString] = []
+    inward_quads: list[Polygon] = []
+    for k in range(len(wc_arr)):
+        if abs(float(wc_fn[k, 1])) >= 0.30:
+            continue
+        tri = wc_pts[k]
+        ymin_t, ymax_t = float(tri[:, 1].min()), float(tri[:, 1].max())
+        if not (ymin_t < y_slice - 0.015 and ymax_t > y_slice + 0.015):
+            continue
+        n2 = np.array([float(wc_fn[k, 0]), float(wc_fn[k, 2])], dtype=np.float64)
+        nl = float(np.linalg.norm(n2))
+        if nl < 0.5:
+            continue
+        n2 /= nl
+        hits = []
+        for a, b in ((0, 1), (1, 2), (2, 0)):
+            ya, yb = float(tri[a, 1]), float(tri[b, 1])
+            if (ya <= y_slice < yb) or (yb <= y_slice < ya):
+                t = (y_slice - ya) / (yb - ya)
+                p = tri[a] + t * (tri[b] - tri[a])
+                hits.append((float(p[0]), float(p[2])))
+        if len(hits) != 2:
+            continue
+        (x0s, z0s), (x1s, z1s) = hits
+        if float(np.hypot(x1s - x0s, z1s - z0s)) <= 0.01:
+            continue
+        p0_r = (round(x0s, 2), round(z0s, 2))
+        p1_r = (round(x1s, 2), round(z1s, 2))
+        if p0_r != p1_r:
+            segs_2d.append(LineString([p0_r, p1_r]))
+        # Extrude inward along -outward_normal (clipped strictly to wall_top_union so doorways stay 100% open!)
+        d_in = 0.85
+        q = Polygon([
+            (x0s, z0s),
+            (x1s, z1s),
+            (x1s - n2[0] * d_in, z1s - n2[1] * d_in),
+            (x0s - n2[0] * d_in, z0s - n2[1] * d_in),
+        ])
+        if q.is_valid and float(q.area) > 0.002:
+            inward_quads.append(q)
+
+    closed_polys = []
+    if segs_2d:
+        for p in polygonize(unary_union(segs_2d)):
+            if float(p.area) >= 0.01 and (float(p.intersection(wall_top_union).area) / max(float(p.area), 1e-6)) > 0.45:
+                closed_polys.append(p)
+
+    inward_u = unary_union(inward_quads).buffer(0).intersection(wall_top_union) if inward_quads else Polygon()
+    cap_all = unary_union(closed_polys + ([inward_u] if not inward_u.is_empty else []))
+    if cap_all.is_empty:
+        return {}
+    cap_all = cap_all.buffer(0.015, join_style=2).buffer(-0.015, join_style=2)
+    cap_parts = list(cap_all.geoms) if hasattr(cap_all, "geoms") else [cap_all]
+    cap_all = unary_union([p for p in cap_parts if isinstance(p, Polygon) and float(p.area) >= 0.02])
+    if cap_all.is_empty:
+        return {}
+
+    # 3. Partition solid cap polygon cleanly into CutCap_Ext_W/E/S/N and CutCap_Interior
+    # Note: In Unity GLB (+Z), Z is mirrored vs Three.js (-Z), so map by exact Wall_Ext_<side>_* face footprints!
+    side_polys: dict[str, list[Polygon]] = {s: [] for s in ("W", "E", "S", "N")}
+    for k, fi in enumerate(wc_arr.tolist()):
+        g = face_groups[fi]
+        if g.startswith("Wall_Ext_"):
+            parts_g = g.split("_")
+            if len(parts_g) >= 3 and parts_g[2] in side_polys:
+                x0f, x1f = float(wc_pts[k, :, 0].min()), float(wc_pts[k, :, 0].max())
+                z0f, z1f = float(wc_pts[k, :, 2].min()), float(wc_pts[k, :, 2].max())
+                side_polys[parts_g[2]].append(shapely_box(x0f - 0.12, z0f - 0.12, x1f + 0.12, z1f + 0.12))
+
+    out_caps: dict[str, trimesh.Trimesh] = {}
+    remaining = cap_all
+    for side in ("W", "E", "S", "N"):
+        if not side_polys[side] or remaining.is_empty:
+            continue
+        side_fp = unary_union(side_polys[side]).buffer(0)
+        piece = remaining.intersection(side_fp).buffer(0)
+        if not piece.is_empty and float(piece.area) >= 0.02:
+            tm = _triangulate_cap_geom_to_trimesh(piece, y_floor_top, f"mat_cutcap_ext_{side.lower()}")
+            if tm is not None:
+                out_caps[f"CutCap_Ext_{side}"] = tm
+            remaining = remaining.difference(piece).buffer(0)
+
+    if not remaining.is_empty and float(remaining.area) >= 0.02:
+        tm = _triangulate_cap_geom_to_trimesh(remaining, y_floor_top, "mat_cutcap_interior")
+        if tm is not None:
+            out_caps["CutCap_Interior"] = tm
+
+    return out_caps
+
+
 def export_grouped_glb(
     mesh_unity: MeshData,
     face_groups: Sequence[str],
@@ -1262,6 +1514,10 @@ def export_grouped_glb(
                 if gname not in scene.graph.nodes:
                     scene.graph.update(frame_to=gname, frame_from=scene.graph.base_frame)
                 scene.add_geometry(tm, node_name=geom_name, geom_name=geom_name, parent_node_name=gname)
+
+    # Embed solid flat cutaway section caps (`CutCap_Ext_W/E/S/N`, `CutCap_Interior`) for zero-hollow cutaway & Floor trace
+    for cap_name, cap_tm in _build_solid_cut_cap_meshes(mesh_unity, face_groups).items():
+        scene.add_geometry(cap_tm, node_name=cap_name, geom_name=cap_name)
 
     out_glb_path.parent.mkdir(parents=True, exist_ok=True)
     out_glb_path.write_bytes(scene.export(file_type="glb"))
