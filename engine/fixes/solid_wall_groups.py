@@ -1319,8 +1319,8 @@ def _build_solid_cut_cap_meshes(
     if not top_polys:
         return {}
     wall_top_raw = unary_union(top_polys).buffer(0.015)
-    # Strip wide stairwell roof / overhang slabs (>1.80m x 1.80m) so CutCap_* covers ONLY true walls & columns!
-    wide_roofs = wall_top_raw.buffer(-0.90, join_style=2).buffer(0.95, join_style=2)
+    # Strip only wide stairwell roof / overhang slabs (>2.30m x 2.30m) so thick 1.6m structural columns stay 100% solid!
+    wide_roofs = wall_top_raw.buffer(-1.15, join_style=2).buffer(1.20, join_style=2)
     wall_top_union = wall_top_raw.difference(wide_roofs).buffer(0) if not wide_roofs.is_empty else wall_top_raw
     if wall_top_union.is_empty:
         wall_top_union = wall_top_raw
@@ -1380,7 +1380,13 @@ def _build_solid_cut_cap_meshes(
         return {}
     cap_all = cap_all.buffer(0.015, join_style=2).buffer(-0.015, join_style=2)
     cap_parts = list(cap_all.geoms) if hasattr(cap_all, "geoms") else [cap_all]
-    cap_all = unary_union([p for p in cap_parts if isinstance(p, Polygon) and float(p.area) >= 0.02])
+    # Fill small enclosed hollow column/pier cores (<= 2.5 m^2) while keeping real rooms & elevator shaft (>5 m^2) open!
+    filled_caps = []
+    for p in cap_parts:
+        if isinstance(p, Polygon) and float(p.area) >= 0.02:
+            kept_holes = [ring for ring in p.interiors if float(Polygon(ring).area) > 2.5]
+            filled_caps.append(Polygon(p.exterior, kept_holes))
+    cap_all = unary_union(filled_caps) if filled_caps else Polygon()
     if cap_all.is_empty:
         return {}
 
