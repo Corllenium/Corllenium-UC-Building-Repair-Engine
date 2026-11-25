@@ -480,3 +480,57 @@ def test_solid_rebuild_recovers_flipped_stair_tread_repairs_notch_and_skips_stai
         & (st.vertices[:, 2] > 5.70)
     )
     assert has_corner_v.any(), "Repaired rectangular corner vertex (6.0, 1.0, 5.75) missing!"
+
+
+def test_solid_rebuild_standing_column_never_chops_at_lintel_when_top_slice_missing(tmp_path: Path) -> None:
+    obj = tmp_path / "stepped_col.obj"
+    mtl = tmp_path / "stepped_col.mtl"
+    out_dir = tmp_path / "out"
+
+    boxes = [
+        ("minecraft_quartz_block_top_-1", 0.0, -0.5, 0.0, 12.0, 0.0, 12.0),
+        # Standing 2.0m x 2.0m column [4..6, 4..6] solid up to y=3.0 (above mid-height & lintel),
+        # with top [3.0..3.6] missing 75% of its footprint (leaving only [4.0..4.5, 4.0..4.5]).
+        ("minecraft_concrete_white_-1", 4.0, 0.0, 4.0, 6.0, 3.0, 6.0),
+        ("minecraft_concrete_white_-1", 4.0, 3.0, 4.0, 4.5, 3.6, 4.5),
+        # Perimeter walls: South wall has real window opening [1.1..2.4] at x=[2..8] with solid header [2.4..3.6]
+        ("minecraft_concrete_white_-1", 0.0, 0.0, 0.0, 12.0, 1.1, 0.5),
+        ("minecraft_concrete_white_-1", 0.0, 1.1, 0.0, 2.0, 2.4, 0.5),
+        ("minecraft_concrete_white_-1", 8.0, 1.1, 0.0, 12.0, 2.4, 0.5),
+        ("minecraft_concrete_white_-1", 0.0, 2.4, 0.0, 12.0, 3.6, 0.5),
+        ("minecraft_glass_white_-1", 2.0, 1.1, 0.2, 8.0, 2.4, 0.3),
+        ("minecraft_concrete_white_-1", 0.0, 0.0, 11.5, 12.0, 3.6, 12.0),
+        ("minecraft_concrete_white_-1", 0.0, 0.0, 0.5, 0.5, 3.6, 11.5),
+        ("minecraft_concrete_white_-1", 11.5, 0.0, 0.5, 12.0, 3.6, 11.5),
+    ]
+    _write_box_obj(boxes, obj, mtl)
+    rep = run_solid_rebuild(obj, out_dir, mtl_path=mtl, low_cut_m=1.25, plinth_m=0.04)
+    assert rep.passed is True
+    assert rep.audit["all_watertight"] is True
+    assert rep.audit["total_open_edges"] == 0
+    assert rep.glb_path is not None
+
+    import trimesh
+
+    sc = trimesh.load(rep.glb_path, force="scene")
+    col_ups = [g for n, g in sc.geometry.items() if n.startswith("Column_") and "__Upper" in n]
+    assert col_ups, f"Missing Column__Upper: {list(sc.geometry)}"
+    cm = trimesh.util.concatenate(col_ups)
+    up = cm.face_normals[:, 1] > 0.9
+    fc_y = cm.vertices[cm.faces].mean(axis=1)[:, 1]
+    a_mid = float(cm.area_faces[up & (fc_y < 3.4)].sum())
+    a_top = float(cm.area_faces[up & (fc_y >= 3.55)].sum())
+    assert a_mid < 0.05, f"Column__Upper still chopped at mid-height (a_mid={a_mid:.3f})!"
+    assert a_top >= 3.8, f"Column__Upper top area shrunk below full 2x2 footprint (a_top={a_top:.3f})!"
+
+    # Window opening in South exterior wall must stay open at mid-height (y~1.8) and solid at top (y=3.6)
+    south_ups = [g for n, g in sc.geometry.items() if n.startswith("Wall_Ext_S_") and "__Upper" in n]
+    assert south_ups
+    sm = trimesh.util.concatenate(south_ups)
+    win_hits = trimesh.intersections.mesh_plane(sm, [0.0, 1.0, 0.0], [0.0, 1.8, 0.0])
+    # Segments at y=1.8 should NOT cross x=[2.5..7.5]
+    win_mid_cross = [s for s in win_hits if s[:, 0].mean() > 2.5 and s[:, 0].mean() < 7.5]
+    assert not win_mid_cross, "South window opening was closed!"
+    hdr_hits = trimesh.intersections.mesh_plane(sm, [0.0, 1.0, 0.0], [0.0, 3.0, 0.0])
+    hdr_cross = [s for s in hdr_hits if s[:, 0].mean() > 2.5 and s[:, 0].mean() < 7.5]
+    assert hdr_cross, "South window header at y=3.0 is missing!"

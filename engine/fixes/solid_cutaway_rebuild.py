@@ -2026,10 +2026,12 @@ def run_solid_rebuild(
     )
 
     # High band above upper window openings clipped closely to S_base + doorway/window lintel bridges
+    y_hi_low = min(raw.ceil_y - 0.15, max(raw.lintel_y + 0.25, raw.ceil_y - 0.85))
     S_high_raw = _clean_shapely(
         unary_union([
-            _extract_solid_slice(wall_tm, raw.ceil_y - 0.25, any_cap),
-            _extract_solid_slice(wall_tm, raw.ceil_y - 0.50, any_cap),
+            _extract_solid_slice(wall_tm, raw.ceil_y - 0.25, any_cap, max_room_area=120.0),
+            _extract_solid_slice(wall_tm, raw.ceil_y - 0.50, any_cap, max_room_area=120.0),
+            _extract_solid_slice(wall_tm, y_hi_low, any_cap, max_room_area=120.0),
         ]),
         0.005,
     )
@@ -2203,9 +2205,10 @@ def run_solid_rebuild(
         if (m_lo := geom_to_manifold(p_base, y_plinth_top, y_cut)) is not None:
             solid_nodes.append((f"{gname}__Lower", kind, _slice_trimesh_at_y(manifold_to_trimesh(m_lo), y_bb_cut)))
 
-        # __Upper: [y_cut .. ceil_y] respecting window openings & wall headers
+        # __Upper: [y_cut .. ceil_y] respecting window openings & wall headers; standing mid-height walls never chop at lintel_y
         m_hi1 = geom_to_manifold(p_mid, y_cut, min(raw.lintel_y, raw.ceil_y))
-        up_top = _clean_shapely(unary_union([p_base, p_mid]).intersection(S_high_wall.buffer(0.02, join_style=2)), 0.002)
+        hi_hdr = _clean_shapely(p_base.intersection(S_high_wall.buffer(0.02, join_style=2)), 0.002)
+        up_top = _clean_shapely(unary_union([p_mid, hi_hdr]), 0.002)
         up_top_eff = up_top if not up_top.is_empty else p_base
         if p_mid.is_empty is False and p_mid.symmetric_difference(up_top_eff).area < 1e-3:
             if (m_hi := geom_to_manifold(p_mid, y_cut, raw.ceil_y)) is not None:
