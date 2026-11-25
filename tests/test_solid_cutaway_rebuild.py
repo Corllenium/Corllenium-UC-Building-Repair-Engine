@@ -664,3 +664,41 @@ def test_extract_solid_slice_recovers_open_shell_wall_while_keeping_doorway_open
     assert recovered.intersection(shapely_box(0.2, 0.1, 3.8, 0.4)).area > 0.95
     assert recovered.intersection(shapely_box(6.2, 0.1, 9.8, 0.4)).area > 0.95
     assert recovered.intersection(shapely_box(4.2, 0.1, 5.8, 0.4)).area < 0.05
+
+
+def test_solid_rebuild_clips_parapet_ceiling_belly_and_protrusion(tmp_path: Path) -> None:
+    obj = tmp_path / "parapet_wedge.obj"
+    mtl = tmp_path / "parapet_wedge.mtl"
+    out_dir = tmp_path / "out"
+
+    # Build a stairwell with lower & upper flights spanning x=[2.0..7.0], z=[3.0..5.0],
+    # plus a genuine handrail + balustrade on z=[5.00..5.25], AND an inverted ceiling-hung
+    # quartz_15574983 soffit wedge + protrusion extending to x=8.2 on y=[1.6..3.6]!
+    boxes = [
+        ("minecraft_quartz_block_top_-1", 0.0, -0.5, 0.0, 12.0, 0.0, 10.0),
+        ("minecraft_quartz_block_side_-1", 2.0, 0.0, 3.0, 3.5, 0.45, 5.0),
+        ("minecraft_quartz_block_top_-1", 3.5, 0.45, 3.0, 5.0, 1.00, 5.0),
+        ("minecraft_quartz_block_top_-1", 5.0, 1.00, 3.0, 7.0, 1.80, 5.0),
+        # Genuine iron handrail + balustrade below it on x=[2.0..7.0]
+        ("minecraft_quartz_block_side_-15574983", 2.0, 0.0, 5.00, 7.0, 1.50, 5.25),
+        ("minecraft_iron_block_-1", 2.0, 1.50, 5.00, 7.0, 1.75, 5.25),
+        # Anomalous ceiling-hung soffit belly (y=[1.85..3.60]) + protrusion past stairwell (x=[5.0..8.2])
+        ("minecraft_quartz_block_side_-15574983", 5.0, 1.85, 5.00, 8.2, 3.60, 5.25),
+        ("minecraft_concrete_white_-1", 0.0, 0.0, 0.0, 12.0, 3.6, 0.5),
+        ("minecraft_concrete_white_-1", 0.0, 0.0, 9.5, 12.0, 3.6, 10.0),
+        ("minecraft_concrete_white_-1", 0.0, 0.0, 0.5, 0.5, 3.6, 9.5),
+        ("minecraft_concrete_white_-1", 11.5, 0.0, 0.5, 12.0, 3.6, 9.5),
+    ]
+    _write_box_obj(boxes, obj, mtl)
+    rep = run_solid_rebuild(obj, out_dir, mtl_path=mtl, low_cut_m=1.25, plinth_m=0.04)
+    assert rep.passed is True
+    assert rep.glb_path is not None
+
+    import trimesh
+
+    sc = trimesh.load(rep.glb_path, force="scene")
+    q_parapets = [g for n, g in sc.geometry.items() if "Parapet" in n and "15574983" in n and "cut_cap" not in n]
+    assert q_parapets, "Expected balustrade mesh to survive"
+    for g in q_parapets:
+        assert float(g.bounds[1][0]) <= 7.20, f"Parapet protruded past stairwell x=7.0: {g.bounds}"
+        assert float(g.bounds[1][1]) <= 1.85, f"Ceiling-hung soffit belly survived: {g.bounds}"

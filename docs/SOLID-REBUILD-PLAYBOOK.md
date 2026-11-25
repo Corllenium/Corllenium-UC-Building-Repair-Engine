@@ -10,7 +10,7 @@ Authoritative engineering checklist distilled from the **CHTM 4F & 5F** pilot re
    - `Exports/Repaired-Buildings-20261015/ByBuilding/<Building>/<Floor>/*.fixed.obj` (+ `.mtl` / textures)
    - Never modify `01_ORIGINAL_BACKUPS/`, `CHECKPOINT-17`, or `building_repair.py` / `engine/guard/**`.
 2. **Engine v2 Solid Rebuild (`05-Corllenium-UC-Building-Repair-Engine`):**
-   - Run `python tools/batch_solid_rebuild.py --building <Building>` (which calls `run_solid_rebuild(...)` and enforces all 6 automated QA gates).
+   - Run `python tools/batch_solid_rebuild.py --building <Building>` (which calls `run_solid_rebuild(...)` and enforces all **7 automated QA gates**, excluding rooftops `Floor_RF`, `Sidewalk_*`, and basements `Floor_*B` by default; pass `--include-basements` only when rebuilding parking decks).
 3. **Staged Output Packages (`04-Corllenium-Building-Model-Repair`):**
    - `02_STAGING_DEVELOPMENT/SolidRebuild/<Building>/<Floor>/`
      - `*.solid_rebuild.unity.obj` + `materials.mtl` + `textures/` — direct Unity 6 URP import package (metres Y-up)
@@ -33,7 +33,7 @@ Every fix discovered during CHTM 4F & 5F QA is encoded as a **general, determini
 - [ ] **Solid Floor Slab & Open Pits:** Fill non-stairwell interior `Floor_Slab` holes where `bot_fp` proves `>= 85%` underside coverage, while keeping real descending stairwell pits (`below_u`) and elevator shafts open.
 - [ ] **Preserve Exterior Facades, Reject Protruding Canopies:** Keep wall-embedded `littletiles_trim` window grilles/mullions inside `wall_env = unary_union([floor_fp, S_base]).buffer(0.25)` (`Facade_Ext_{W,E,N,S}`), and drop detached white roof slabs (`area > 4.0 and min(dx, dz) > 1.2`).
 - [ ] **Material Isolation:** Restrict `prismarine_dark` baseboards strictly below `y_bb_cut` (`floor_y + baseboard_h`), never let `stair_mat` bleed onto interior walls, and slice slanted concrete spines cleanly at `y_bb_cut`.
-- [ ] **Slanted Railings & Green U-Parapets (0 Z-Fighting):** Extract parapets largest-cluster-first with merged adjacent cluster ROIs (`<= 1.2 m`), separate dedicated railing materials (`iron_block`, `quartz_15574983`, `concrete_green`), and subtract claimed XZ footprints (`spine_claim_boxes`) from `S_base`, `S_mid`, `S_high_wall`, and `lintel_kept` (`same-dir Z-fight overlaps == 0`).
+- [ ] **Slanted Railings & Green U-Parapets (0 Z-Fighting, 0 Ceiling Wedges):** Extract parapets largest-cluster-first with merged adjacent cluster ROIs (`<= 1.2 m`), separate dedicated railing materials (`iron_block`, `quartz_15574983`, `concrete_green`), clip `U` spans strictly to the stairwell envelope `[cu0 - 0.15, cu1 + 0.15]`, clamp `quartz_15574983` balustrades to the `1.32 m` downward sweep beneath matched `iron_block` handrails (rejecting ceiling-hung inverted soffit triangles), and subtract claimed XZ footprints (`spine_claim_boxes`) from `S_base`, `S_mid`, `S_high_wall`, and `lintel_kept` (`same-dir Z-fight overlaps == 0`, Gate 7 `parapet_bounds_clean == True`).
 - [ ] **Stair Continuity, Flipped Normals & Embree Notches:**
   - Reject stair shells overlapped `>= 20%` by treads `0.15..0.65 m` above them from `raw.raised_levels` (never emit `Floor_Raised` on bottom stair treads).
   - Recover horizontal flipped-normal treads (`ny < -0.98`) in Pass 2 only when bridging lower & higher treads (`0.15..0.35 m` risers), then re-run top-down headroom dedup (`0.05..1.35 m`) to trim inner shells underneath.
@@ -43,7 +43,7 @@ Every fix discovered during CHTM 4F & 5F QA is encoded as a **general, determini
 
 ## 3. Interior Mask, Grid Line & Furniture Studio Rules (`02-Corllenium-Siege`)
 
-- [ ] **Exclude All Non-Interior Zones from Grids & Placement:** Exclude rooftops (`Floor_RF` / `*Roof*`), exterior sidewalks (`Sidewalk_*`), and `service` kinds (`elev.`, `elevator`, `shaft`, `stairs`) plus `main lobby`, `corridor`, `hallway`, `bridge`, `balcony`, `terrace`, `ramp`, `void`, `outside`, AND generic unlabeled `"Room"` / `"Room 2"` `circulation` catch-alls (CHTM 4F diagonal stepped balcony `id=18`). Audit `*-interior-mask.png` pixels against enclosing wall boundaries (`open_bnd`) on every new floor.
+- [ ] **Exclude All Non-Interior Zones from Grids & Placement:** Exclude rooftops (`Floor_RF` / `*Roof*`), exterior sidewalks (`Sidewalk_*`), **basements (`1B..4B` / `Floor_*B`)**, and `service` kinds (`elev.`, `elevator`, `shaft`, `stairs`) plus `main lobby`, `corridor`, `hallway`, `bridge`, `balcony`, `terrace`, `ramp`, `void`, `outside`, AND generic unlabeled `"Room"` / `"Room 2"` `circulation` catch-alls (CHTM 4F diagonal stepped balcony `id=18`). Audit `*-interior-mask.png` pixels against enclosing wall boundaries (`open_bnd`) on every new floor.
 - [ ] **Cutaway Filter & Toggle Parity (`InteriorStudioCanvas.tsx`):**
   - Keep `Facade_Ext_*` synced with `Wall_Ext_*__Upper` and active-room occlusion.
   - Keep `__Plinth` wall/column traces **always visible** even when `Stairs` is toggled OFF (`entry.tier === "plinth"` separated from `isLowerStair`).
@@ -60,3 +60,18 @@ Every fix discovered during CHTM 4F & 5F QA is encoded as a **general, determini
 
 - **Loading Directly in Unity (`03-Corllenium-UC-Game`):** Unity does NOT need to re-run geometry repair or rebuild inside C#. Import each floor's pre-verified `*.solid_rebuild.unity.obj` + `materials.mtl` + `textures/` directly into URP prefabs with mesh colliders on `Floor_Slab`, `Wall_*`, `Column_*`, and `Stairs_*`.
 - **Optional Three.js Draft Sync:** If you also want drafted furniture layouts from the Siege Interior Studio imported into Unity, export `FloorRestorationBlueprint` JSON and convert Three.js floor-local coordinates `(x, y, z)` back to Unity world space via `(x + originX, y + originY, -(z + originZ))` with mirrored yaw (`-yaw`).
+
+---
+
+## 5. Mandatory Per-Floor Development & Sign-Off Checklist (10-Point Gate)
+
+1. **Source & Asset Stack Lock:** Confirm `*.fixed.obj`, `output_4_3d_color_coded.png`, `*-polished.png` grid, As-Built PDF room schedule, and `*-rooms-color.json` / `*-colour-sheet.json` match the target floor.
+2. **Zone Exclusion Check:** Exclude rooftops (`RF`), sidewalks (`Sidewalk_*`), basements (`1B..4B`), corridors/hallways, stairs, elevator shafts, and balconies.
+3. **Engine v2 Watertight + 7-Gate Rebuild:** Pass `watertight`, `stepped_upper`, `non_ortho_steps`, `parapet_zfight`, `overhead_bounds`, `unity_outputs`, and `parapet_bounds_clean` (`max_h <= 1.65 m`, zero ceiling-hung wedges or stairwell wall protrusions).
+4. **Stacked Multi-Floor Wall & Column Continuity:** Pass `audit_stacked_continuity` across `(fl-1, fl, fl+1)` with `missing_m2 == 0`.
+5. **Wall & Lintel Room Mask Tracing:** Trace `*-interior-mask.png` from `Floor_Slab - (Wall__Lower | Column__Lower | OverheadBeams | Stairs_Low)` + straight doorway closings + orthogonal column-grid splits (`0` curved watershed bleed).
+6. **QA Mask Overlay Inspection:** Visually inspect `mask-qa-<LVL>.png` against `*-rooms-color.png` and `*-polished.png` to verify every designable room ID and wall-snapped border.
+7. **Measured Elevation Sync:** Record exact `floorY`, `ceilY`, `ceilingHeight` from `rebuild_manifest.json` in `floor-elevations.json` and sync `.solid_rebuild.glb`.
+8. **Single Clean Header & Filter Parity:** Verify `InteriorStudioApp.tsx` exposes only the clean `<select>` floor dropdown with strictly upper interior floors.
+9. **Cutaway & Placement Parity Check:** Test `Auto`, `Low`, `Floor`, `Full`, `Stairs`, `Labels`, `Grid`, wall paint, and furniture snap on the floor.
+10. **Live Browser Visual Walkthrough:** Capture and inspect live Three.js screenshots per floor (zooming into stairwells and exterior facades) with `0` console errors before sign-off.

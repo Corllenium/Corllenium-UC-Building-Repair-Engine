@@ -31,7 +31,7 @@ from typing import Any, Sequence
 import manifold3d as m3d
 import numpy as np
 from PIL import Image
-from shapely.affinity import scale as shapely_scale
+from shapely.affinity import scale as shapely_scale, translate as shapely_translate
 from shapely.geometry import (
     GeometryCollection,
     LineString,
@@ -653,6 +653,7 @@ def _extract_slanted_stair_parapets(
 
     parapet_roi = comp_poly.buffer(0.55, join_style=2)
     rx0, rz0, rx1, rz1 = parapet_roi.bounds
+    cx0, cz0, cx1, cz1 = comp_poly.bounds
     keep_p = np.array([mats[m].category not in ("glass", "littletiles_trim") for m in fmats])
     roi_mask = (
         keep_p
@@ -870,15 +871,50 @@ def _extract_slanted_stair_parapets(
                         continue
                     cands.append((a, b, th_est, pa))
 
+            cu0, cu1 = (cz0, cz1) if axis == "x" else (cx0, cx1)
+            u_clip_box = shapely_box(cu0 - 0.15, raw.slab_bottom_y, cu1 + 0.15, raw.ceil_y + 0.05)
+
             for a, b, _th, comb in cands:
-                # Check if iron_block or quartz sits on same [a, b] and avoid concrete overlap
+                comb = _clean_shapely(comb.intersection(u_clip_box), 0.004)
+                if comb.is_empty:
+                    continue
+                # Check if iron_block or quartz sits on same [a, b] and avoid concrete overlap / ceiling belly soffits
                 if rg == "iron_block":
                     iron_slabs_by_span[(round(a, 2), round(b, 2))].append(comb)
                 elif rg == "quartz_15574983":
                     ov_iron = iron_slabs_by_span.get((round(a, 2), round(b, 2)))
                     if ov_iron:
                         comb = _clean_shapely(comb.difference(unary_union(ov_iron).buffer(0.002, join_style=2)), 0.004)
-                slab_profiles.append((rg, a, b, comb))
+                        band_pieces: list[Any] = []
+                        for iron_p in ov_iron:
+                            for iron_u in _iter_polygons(iron_p):
+                                if iron_u.area < 0.40:
+                                    continue
+                                min_band_y = (
+                                    raw.floor_y - 0.25
+                                    if iron_u.bounds[1] >= raw.floor_y
+                                    else max(raw.slab_bottom_y, iron_u.bounds[1] - 0.85)
+                                )
+                                swept = unary_union(
+                                    [shapely_translate(iron_u, yoff=-dy) for dy in (0.0, 0.22, 0.44, 0.66, 0.88, 1.10, 1.32)]
+                                ).buffer(0.03, join_style=2)
+                                iu0, _, iu1, iy1 = iron_u.bounds
+                                band_pieces.append(
+                                    swept.intersection(
+                                        shapely_box(iu0 - 0.05, min_band_y, iu1 + 0.05, iy1 + 0.03)
+                                    )
+                                )
+                        comb = _clean_shapely(comb.intersection(unary_union(band_pieces)), 0.004) if band_pieces else Polygon()
+                    else:
+                        kept_polys = []
+                        for qp in _iter_polygons(comb):
+                            _, qy0, _, qy1 = qp.bounds
+                            if qy1 >= raw.ceil_y - 0.08 and qy0 >= raw.floor_y + 0.50 and (qy1 - qy0) > 1.50:
+                                continue
+                            kept_polys.append(qp)
+                        comb = _clean_shapely(unary_union(kept_polys), 0.004) if kept_polys else Polygon()
+                if not comb.is_empty:
+                    slab_profiles.append((rg, a, b, comb))
 
         for rg, a, b, prof in slab_profiles:
             mkey = grp_to_mkey.get(rg)
@@ -892,6 +928,8 @@ def _extract_slanted_stair_parapets(
                 if op.area < 0.08 or op.buffer(-0.04, join_style=2).is_empty:
                     continue
                 ou0, oy0, ou1, oy1 = op.bounds
+                if (ou1 - ou0) < 0.45:
+                    continue
                 if (oy1 - oy0) <= 0.26 and (ou1 - ou0) >= 1.5 and rg == "concrete_green":
                     continue
                 slab_xz = shapely_box(a, ou0, b, ou1) if axis == "x" else shapely_box(ou0, a, ou1, b)

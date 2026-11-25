@@ -5,12 +5,13 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
+import re
 import shutil
 import sys
 from typing import Any
 
 import numpy as np
-from shapely.geometry import Polygon
+from shapely.geometry import LineString, Polygon
 from shapely.ops import unary_union
 import trimesh
 
@@ -31,10 +32,14 @@ DEFAULT_SRC_ROOT = Path(r"D:\PROJECTS\04-Corllenium-Building-Model-Repair\Export
 DEFAULT_OUT_ROOT = Path(r"D:\PROJECTS\04-Corllenium-Building-Model-Repair\02_STAGING_DEVELOPMENT\SolidRebuild")
 
 
-def _is_non_interior_folder(name: str) -> bool:
-    """Return True for rooftops (Floor_RF/*Roof*) and exterior Sidewalk_* folders excluded from interior design."""
+def _is_non_interior_folder(name: str, include_basements: bool = False) -> bool:
+    """Return True for rooftops (Floor_RF/*Roof*), Sidewalk_*, and basements (Floor_*B unless opted in)."""
     low = name.strip().lower()
-    return low == "floor_rf" or low.endswith("_rf") or low.startswith("roof") or low.startswith("sidewalk")
+    if low == "floor_rf" or low.endswith("_rf") or low.startswith("roof") or low.startswith("sidewalk"):
+        return True
+    if not include_basements and re.match(r"^(floor_)?\d+b$", low):
+        return True
+    return False
 
 
 def audit_rebuilt_glb(
@@ -132,6 +137,69 @@ def audit_rebuilt_glb(
     ]
     unity_outputs_ok = all(p.is_file() and p.stat().st_size > 0 for p in req_files)
 
+    # Gate 7: Slanted stair quartz_15574983 balustrades must stay bounded (zero ceiling soffit wedges / protrusions)
+    parapet_anomalies: list[dict[str, Any]] = []
+    stair_all_geoms = [
+        g for n, g in sc.geometry.items()
+        if (n.startswith("Stairs_") or n.startswith("Stairs_Upper_")) and "Parapet" not in n
+    ]
+    if stair_all_geoms:
+        st_bounds = trimesh.util.concatenate(stair_all_geoms).bounds if len(stair_all_geoms) > 1 else stair_all_geoms[0].bounds
+        sx0, sz0 = float(st_bounds[0][0]), float(st_bounds[0][2])
+        sx1, sz1 = float(st_bounds[1][0]), float(st_bounds[1][2])
+    else:
+        sx0 = sz0 = sx1 = sz1 = 0.0
+
+    for n, g in sorted(sc.geometry.items()):
+        if "Parapet" not in n or "cut_cap" in n or "15574983" not in n:
+            continue
+        b = g.bounds
+        ext = b[1] - b[0]
+        if stair_all_geoms:
+            if float(b[0][0]) < sx0 - 0.50 or float(b[1][0]) > sx1 + 0.50 or float(b[0][2]) < sz0 - 0.50 or float(b[1][2]) > sz1 + 0.50:
+                parapet_anomalies.append({
+                    "node": n,
+                    "reason": "protrudes_beyond_stairs",
+                    "bounds": [round(float(v), 2) for v in (*b[0], *b[1])],
+                })
+                continue
+        ax_i, u_i = (0, 2) if ext[0] < ext[2] else (2, 0)
+        fn = g.face_normals
+        fc_m = g.vertices[g.faces].mean(axis=1)
+        ax_mask = np.abs(fn[:, ax_i]) > 0.85
+        if not ax_mask.any():
+            continue
+        # Evaluate each 0.25m parallel slab separately so two opposing flight balustrades don't flatten together
+        slab_bins: dict[float, list[Polygon]] = {}
+        for f, center_ax in zip(g.faces[ax_mask], fc_m[ax_mask, ax_i]):
+            p = Polygon(g.vertices[f][:, [u_i, 1]]).buffer(0)
+            if p.area > 1e-4:
+                kr = round(float(center_ax) * 2.0) / 2.0
+                slab_bins.setdefault(kr, []).append(p)
+        for kr, polys in slab_bins.items():
+            u_poly = _clean_shapely(unary_union(polys), 0.005)
+            u0, y0, u1, y1 = u_poly.bounds
+            max_h = 0.0
+            ceil_hang_span = 0.0
+            for u in np.arange(u0 + 0.12, u1, 0.25):
+                inter = u_poly.intersection(LineString([(u, y0 - 1.0), (u, y1 + 1.0)]))
+                if inter.is_empty:
+                    continue
+                ib = inter.bounds
+                h = float(ib[3] - ib[1])
+                if h > max_h:
+                    max_h = h
+                if ib[3] >= float(raw.ceil_y) - 0.08 and ib[1] >= float(raw.floor_y) + 0.50:
+                    ceil_hang_span += 0.25
+            if max_h > 1.75 or ceil_hang_span >= 1.50:
+                parapet_anomalies.append({
+                    "node": n,
+                    "slab_bin": kr,
+                    "reason": "excess_vertical_depth_or_ceil_hang",
+                    "max_h": round(max_h, 2),
+                    "ceil_hang_span": round(ceil_hang_span, 2),
+                })
+
     gates = {
         "watertight": watertight_ok,
         "stepped_upper": len(stepped_upper) == 0,
@@ -139,6 +207,7 @@ def audit_rebuilt_glb(
         "parapet_zfight": parapet_zfight == 0,
         "overhead_bounds": overhead_ok,
         "unity_outputs": unity_outputs_ok,
+        "parapet_bounds_clean": len(parapet_anomalies) == 0,
     }
     return {
         "all_passed": all(gates.values()),
@@ -153,6 +222,7 @@ def audit_rebuilt_glb(
             "stepped_upper": stepped_upper,
             "non_ortho_steps": non_ortho_steps,
             "parapet_zfight": parapet_zfight,
+            "parapet_anomalies": parapet_anomalies,
             "overhead_top_area": overhead_top_area,
             "floor_raised_nodes": [n for n in sc.geometry if "Raised" in n],
         },
@@ -247,6 +317,7 @@ def run_batch_rebuild(
     building: str,
     floors: list[str] | None = None,
     stage_dashboard_dir: Path | None = None,
+    include_basements: bool = False,
 ) -> dict[str, Any]:
     """Rebuild and QA-audit every selected building/floor package."""
     buildings = sorted(p.name for p in src_root.iterdir() if p.is_dir()) if building.upper() == "ALL" else [building]
@@ -261,7 +332,10 @@ def run_batch_rebuild(
             want = set(floors)
             fixed_objs = [p for p in fixed_objs if p.parent.name in want]
         else:
-            fixed_objs = [p for p in fixed_objs if not _is_non_interior_folder(p.parent.name)]
+            fixed_objs = [
+                p for p in fixed_objs
+                if not _is_non_interior_folder(p.parent.name, include_basements=include_basements)
+            ]
         if not fixed_objs:
             raise FileNotFoundError(f"No *.fixed.obj files found under {b_src} for floors={floors}")
 
@@ -306,9 +380,10 @@ def run_batch_rebuild(
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Batch Engine v2 solid rebuild & 6-gate QA harness")
+    parser = argparse.ArgumentParser(description="Batch Engine v2 solid rebuild & 7-gate QA harness")
     parser.add_argument("--building", required=True, help="Building folder name (e.g. CHTM) or ALL")
     parser.add_argument("--floors", nargs="*", default=None, help="Optional floor subfolder names (e.g. Floor_4F Floor_5F)")
+    parser.add_argument("--include-basements", action="store_true", help="Include basement Floor_*B folders (excluded by default for Interior Studio)")
     parser.add_argument("--src-root", type=Path, default=DEFAULT_SRC_ROOT)
     parser.add_argument("--out-root", type=Path, default=DEFAULT_OUT_ROOT)
     parser.add_argument("--stage-dashboard-dir", type=Path, default=None)
@@ -320,6 +395,7 @@ def main(argv: list[str] | None = None) -> int:
         building=args.building,
         floors=args.floors,
         stage_dashboard_dir=args.stage_dashboard_dir,
+        include_basements=args.include_basements,
     )
     for bname, brep in summary["buildings"].items():
         print(f"[{bname}] all_passed={brep['all_passed']} floors={brep['floor_count']}")
