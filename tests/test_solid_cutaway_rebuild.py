@@ -143,3 +143,76 @@ def test_solid_rebuild_no_baseboard_floor_bleed_or_wall_checkerboard(tmp_path: P
     assert all("prismarine_dark" not in m and "concrete_green" not in m for m in floor_mats), floor_mats
     assert all(len(mats) == 1 for mats in upper_planes.values()), upper_planes
     assert all("concrete_green" not in m for m in inward_north_mats), inward_north_mats
+
+
+def test_solid_rebuild_stairs_uniform_side_and_flat_lower_cap(tmp_path: Path) -> None:
+    obj = tmp_path / "stairs_lower.obj"
+    mtl = tmp_path / "stairs_lower.mtl"
+    out_dir = tmp_path / "out"
+
+    boxes = [
+        ("minecraft_quartz_block_top_-1", 0.0, -0.5, 0.0, 10.0, 0.0, 8.0),
+        ("minecraft_quartz_block_side_-1", 1.5, 0.0, 1.5, 2.8, 0.30, 3.0),
+        ("minecraft_quartz_block_side_-1", 2.8, 0.0, 1.5, 4.1, 0.60, 3.0),
+        ("minecraft_concrete_white_-1", 0.0, 0.0, 0.0, 10.0, 0.85, 0.5),   # South sill
+        ("minecraft_concrete_white_-1", 0.0, 0.85, 0.0, 4.0, 3.6, 0.5),
+        ("minecraft_concrete_white_-1", 6.0, 0.85, 0.0, 10.0, 3.6, 0.5),
+        ("minecraft_concrete_white_-1", 4.0, 2.2, 0.0, 6.0, 3.6, 0.5),
+        ("minecraft_concrete_white_-1", 0.0, 0.0, 7.5, 10.0, 3.6, 8.0),
+        ("minecraft_concrete_white_-1", 0.0, 0.0, 0.5, 0.5, 3.6, 7.5),
+        ("minecraft_concrete_white_-1", 9.5, 0.0, 0.5, 10.0, 3.6, 7.5),
+    ]
+    _write_box_obj(boxes, obj, mtl)
+    rep = run_solid_rebuild(obj, out_dir, mtl_path=mtl, low_cut_m=1.25, plinth_m=0.04)
+    assert rep.passed is True
+    assert rep.glb_path is not None
+
+    import trimesh
+
+    sc = trimesh.load(rep.glb_path, force="scene")
+    stair_side_mats: set[str] = set()
+    for geom_name, geom in sc.geometry.items():
+        if geom_name.startswith("Stairs") and "quartz_block_top" not in str(getattr(geom.visual.material, "name", "")).lower():
+            stair_side_mats.add(str(getattr(geom.visual.material, "name", "")))
+        if "__Lower__cut_cap" in geom_name:
+            ys = geom.vertices[:, 1]
+            assert ys.max() - ys.min() < 1e-4, f"{geom_name} __Lower cut_cap not flat: {ys.min()}..{ys.max()}"
+    assert len(stair_side_mats) <= 1, stair_side_mats
+
+
+def test_solid_rebuild_real_stairs_no_overhead_stair_lintels(tmp_path: Path) -> None:
+    obj = tmp_path / "upper_stairs.obj"
+    mtl = tmp_path / "upper_stairs.mtl"
+    out_dir = tmp_path / "out"
+
+    boxes = [
+        ("minecraft_quartz_block_top_-1", 0.0, -0.5, 0.0, 10.0, 0.0, 8.0),
+        ("minecraft_quartz_block_side_-1", 1.5, 0.0, 1.5, 2.8, 0.45, 3.0),   # Lower tread
+        ("minecraft_quartz_block_top_-1", 2.8, 0.45, 1.5, 4.1, 1.45, 3.0),   # Mid tread
+        ("minecraft_quartz_block_top_-1", 4.1, 1.45, 1.5, 5.4, 2.75, 3.0),   # Upper flight > lintel_y
+        ("minecraft_concrete_white_-1", 0.0, 0.0, 0.0, 10.0, 0.85, 0.5),
+        ("minecraft_concrete_white_-1", 0.0, 0.85, 0.0, 4.0, 3.6, 0.5),
+        ("minecraft_concrete_white_-1", 6.0, 0.85, 0.0, 10.0, 3.6, 0.5),
+        ("minecraft_concrete_white_-1", 4.0, 2.2, 0.0, 6.0, 3.6, 0.5),
+        ("minecraft_concrete_white_-1", 0.0, 0.0, 7.5, 10.0, 3.6, 8.0),
+        ("minecraft_concrete_white_-1", 0.0, 0.0, 0.5, 0.5, 3.6, 7.5),
+        ("minecraft_concrete_white_-1", 9.5, 0.0, 0.5, 10.0, 3.6, 7.5),
+    ]
+    _write_box_obj(boxes, obj, mtl)
+    rep = run_solid_rebuild(obj, out_dir, mtl_path=mtl, low_cut_m=1.25, plinth_m=0.04)
+    assert rep.passed is True
+    assert rep.glb_path is not None
+
+    nodes_by_name = {n["node"]: n for n in rep.audit["nodes"]}
+    assert "Stairs" in nodes_by_name
+    assert "Stairs_Upper" in nodes_by_name
+    assert nodes_by_name["Stairs"]["zero_area"] == 0
+    assert nodes_by_name["Stairs_Upper"]["zero_area"] == 0
+
+    import trimesh
+
+    sc = trimesh.load(rep.glb_path, force="scene")
+    if "OverheadBeams_And_Lintels" in sc.geometry:
+        ov = sc.geometry["OverheadBeams_And_Lintels"]
+        ov_fc_z = ov.vertices[ov.faces].mean(axis=1)[:, 2]
+        assert not ((ov_fc_z > 1.2) & (ov_fc_z < 3.3)).any(), "Upper stairs leaked into OverheadBeams_And_Lintels!"

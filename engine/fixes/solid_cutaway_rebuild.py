@@ -603,20 +603,21 @@ def _extract_floor_and_stairs(
     # Subtract standing wall buffer and raised floor platforms to isolate real stair treads
     raised_heights = {round(ry, 3) for ry, _ in raw.raised_levels}
     raised_union = unary_union([rp for _, rp in raw.raised_levels]) if raw.raised_levels else Polygon()
-    excl_buf = unary_union([standing_walls.buffer(0.02, join_style=2), raised_union.buffer(0.02, join_style=2)])
+    excl_buf = unary_union([standing_walls.buffer(0.015, join_style=2), raised_union.buffer(0.015, join_style=2)])
 
-    # Include BOTH ascending treads (> floor_y + 0.08) AND descending stairwell treads ([slab_bottom + 0.10 .. floor_y - 0.05])
+    # Isolate real quartz/stair tread surfaces across descending & ascending flights (strip concrete/green walls)
+    keep_stair = np.array([mats[m].category in ("floor_tile", "stair_mat") for m in fmats])
     step_mask = (
-        keep
+        keep_stair
         & (unit_n[:, 1] > 0.85)
         & (
-            ((yc >= raw.floor_y + 0.08) & (yc <= raw.lintel_y + 0.05))
+            ((yc >= raw.floor_y + 0.08) & (yc <= raw.ceil_y - 0.12))
             | ((yc >= raw.slab_bottom_y + 0.10) & (yc <= raw.floor_y - 0.05))
         )
     )
     treads_by_y: dict[float, list[Polygon]] = defaultdict(list)
     for f, yy in zip(fa[step_mask], yc[step_mask]):
-        yr = round(float(yy), 3)
+        yr = round(round(float(yy) / 0.05) * 0.05, 3)
         if yr in raised_heights:
             continue
         p = Polygon(pos[f][:, [0, 2]]).buffer(0)
@@ -628,15 +629,16 @@ def _extract_floor_and_stairs(
             if dp.area >= 0.04 and (floor_fp.is_empty or floor_fp.buffer(1.8).intersects(dp)):
                 treads_by_y[yr].append(dp)
 
-    # Group contiguous 2D stair regions and keep only clusters with >= 2 distinct tread elevations
+    # Strip < 28 cm handrail/baluster curbs cleanly while keeping >= 35 cm stair treads & landings intact
     tread_levels: list[tuple[float, Any]] = []
     for yr, plist in sorted(treads_by_y.items()):
         u = _clean_shapely(unary_union(plist), 0.01)
         for p in _iter_polygons(u):
-            rp = _regularize_polygon(p, 0.01)
-            # Reject sprawling thin balcony trims (> 14m2 at single height)
-            if not rp.is_empty and rp.area <= 14.0:
-                tread_levels.append((yr, rp))
+            p_open = _clean_shapely(p.buffer(-0.14, join_style=2).buffer(0.14, join_style=2), 0.005)
+            for op in _iter_polygons(p_open):
+                rp = _regularize_polygon(op, 0.01)
+                if not rp.is_empty and 0.35 <= rp.area <= 14.0:
+                    tread_levels.append((yr, rp))
 
     if not tread_levels:
         return floor_fp, []
@@ -937,59 +939,10 @@ def _assign_clean_raw_materials(
                 out[gi] = mkey
         return out
 
-    # 2. Stairs / Stairs_Upper: match tread/riser levels using ONLY floor_tile/stair_mat/structural (never baseboard)
+    # 2. Stairs / Stairs_Upper: uniform architectural quartz top/side materials (zero diagonal side splits)
     if kind in ("stairs", "stairs_upper"):
-        for gi in np.where(dn_mask)[0]:
-            out[int(gi)] = dom_floor_side_key
-        up_by_y: dict[float, list[int]] = defaultdict(list)
-        for gi in np.where(up_mask)[0]:
-            up_by_y[round(float(fc[int(gi), 1]), 2)].append(int(gi))
-        for y_lvl, idxs in up_by_y.items():
-            if len(raw_up_pts) == 0:
-                mkey = dom_floor_top_key
-            else:
-                ymask = np.isin(raw_up_cats, ("floor_tile", "stair_mat")) & (np.abs(raw_up_pts[:, 1] - y_lvl) <= 0.20)
-                cand_idx = np.where(ymask)[0]
-                if len(cand_idx) > 0:
-                    qxz = fc[idxs][:, [0, 2]]
-                    rxz = raw_up_pts[cand_idx][:, [0, 2]]
-                    d2 = np.sum((qxz[:, None, :] - rxz[None, :, :]) ** 2, axis=2)
-                    near = cand_idx[d2.min(axis=0) <= 1.44]
-                    if len(near) > 0:
-                        sel = np.zeros(len(raw_up_pts), dtype=bool)
-                        sel[near] = True
-                        mkey = _area_vote_key(raw_up_keys, raw_up_areas, sel, dom_floor_top_key)
-                    else:
-                        mkey = _area_vote_key(raw_up_keys, raw_up_areas, ymask, dom_floor_top_key)
-                else:
-                    mkey = dom_floor_top_key
-            for gi in idxs:
-                out[gi] = mkey
-
-        vert_by_y: dict[float, list[int]] = defaultdict(list)
-        for gi in np.where(~horiz_mask)[0]:
-            vert_by_y[round(float(fc[int(gi), 1]), 2)].append(int(gi))
-        for y_lvl, idxs in vert_by_y.items():
-            if len(raw_vert_pts) == 0:
-                mkey = dom_floor_side_key
-            else:
-                vmask = np.isin(raw_vert_cats, ("stair_mat", "structural")) & (np.abs(raw_vert_pts[:, 1] - y_lvl) <= 0.45)
-                cand_idx = np.where(vmask)[0]
-                if len(cand_idx) > 0:
-                    qxz = fc[idxs][:, [0, 2]]
-                    rxz = raw_vert_pts[cand_idx][:, [0, 2]]
-                    d2 = np.sum((qxz[:, None, :] - rxz[None, :, :]) ** 2, axis=2)
-                    near = cand_idx[d2.min(axis=0) <= 1.00]
-                    if len(near) > 0:
-                        sel = np.zeros(len(raw_vert_pts), dtype=bool)
-                        sel[near] = True
-                        mkey = _area_vote_key(raw_vert_keys, raw_vert_areas, sel, dom_floor_side_key)
-                    else:
-                        mkey = _area_vote_key(raw_vert_keys, raw_vert_areas, vmask, dom_floor_side_key)
-                else:
-                    mkey = dom_floor_side_key
-            for gi in idxs:
-                out[gi] = mkey
+        for gi in range(n):
+            out[gi] = dom_floor_top_key if up_mask[gi] else dom_floor_side_key
         return out
 
     # 3. Walls, Columns, Overhead: cutaway top caps + single material per planar wall face + uniform baseboard band
@@ -1207,18 +1160,26 @@ def run_solid_rebuild(
     S_mid = _fill_small_holes(_clean_shapely(S_mid, 0.045).intersection(S_base), 0.35)
     S_base, S_mid = _apply_overrides_2d(S_base, S_mid, overrides_path)
 
-    # High band clipped closely to S_base + doorway/window lintel bridges (max gap span <= 3.6m)
+    floor_fp, stair_steps = _extract_floor_and_stairs(raw, S_base)
+    stair_zone = (
+        _clean_shapely(unary_union([p for _, _, p in stair_steps]), 0.05)
+        if stair_steps
+        else Polygon()
+    )
+
+    # High band clipped closely to S_base + doorway/window lintel bridges (exclude walls AND stair zones)
     S_high_raw = _extract_solid_slice(struct_tm, min(raw.ceil_y - 0.30, raw.lintel_y + 0.35), any_cap)
     # Keep header bridges inside narrow wall corridor envelope (exclude roofs > 1.8m from walls)
     S_high = _clean_shapely(S_high_raw.intersection(S_base.buffer(1.45, join_style=2)), 0.005)
-    # Remove giant polygons from S_high overhangs
-    lintel_only = _clean_shapely(S_high.difference(S_base.buffer(0.02, join_style=2)), 0.005)
+    # Subtract standing walls AND stairwells so upper stair treads never turn into floating ceiling beams
+    lintel_excl = S_base.buffer(0.02, join_style=2)
+    if not stair_zone.is_empty:
+        lintel_excl = unary_union([lintel_excl, stair_zone.buffer(0.95, join_style=2)])
+    lintel_only = _clean_shapely(S_high.difference(lintel_excl), 0.005)
     lintel_kept = unary_union(
         [p for p in _iter_polygons(lintel_only) if p.area <= 8.0 and min(p.bounds[2] - p.bounds[0], p.bounds[3] - p.bounds[1]) <= 2.2]
     )
     S_high_wall = _clean_shapely(unary_union([S_base.intersection(S_high_raw), lintel_kept]), 0.004)
-
-    floor_fp, stair_steps = _extract_floor_and_stairs(raw, S_base)
     columns, wall_groups = _separate_columns_and_split_walls(
         S_base, S_mid, floor_fp, column_min_width_m=column_min_width_m
     )
@@ -1240,6 +1201,14 @@ def run_solid_rebuild(
         st = _extrude_polygon_earcut_yup(fp_poly, raw.slab_bottom_y, raw.floor_y)
         if st is not None:
             slab_tms.append(st)
+        # Seal stairwell shaft bottom pits so zero empty canvas void shows beneath descending stairs
+        for h in fp_poly.interiors:
+            hole_poly = Polygon(h).buffer(-0.002, join_style=2)
+            for hp in _iter_polygons(hole_poly):
+                if hp.area >= 0.15:
+                    pit = _extrude_polygon_earcut_yup(hp, raw.slab_bottom_y - 0.12, raw.slab_bottom_y - 0.002)
+                    if pit is not None:
+                        slab_tms.append(pit)
     for ry, rp in raw.raised_levels:
         rp_clean = _clean_shapely(
             unary_union([_regularize_polygon(p, 0.01).simplify(0.015, preserve_topology=True) for p in _iter_polygons(rp) if not p.is_empty]).intersection(
@@ -1255,65 +1224,56 @@ def run_solid_rebuild(
         comb_slab = trimesh.util.concatenate(slab_tms) if len(slab_tms) > 1 else slab_tms[0]
         solid_nodes.append(("Floor_Slab", "floor", comb_slab))
 
-    # 2. Stairs (union same-height landings BEFORE subtracting covered so zero cracks or z-fighting occur)
+    # Align cutaway cleanly to sill_y (above baseboard) so __Lower stays flat without sill pockets
+    y_cut = min(raw.floor_y + low_cut_m, max(raw.floor_y + 0.95, raw.sill_y))
+
+    # 2. Stairs: 100% watertight true-3D manifold stepped slabs (switchback-safe, 0 open edges, 0 spikes)
     if stair_steps:
-        stair_lo_tms: list[trimesh.Trimesh] = []
-        stair_hi_tms: list[trimesh.Trimesh] = []
-        cut_y_stair = raw.floor_y + low_cut_m - 0.025
+        y_stair_split = y_cut + 0.25
+        desc_union = unary_union([sp for _, yr, sp in stair_steps if yr < raw.floor_y - 0.04])
+        lo_by_span: dict[tuple[float, float], list[Any]] = defaultdict(list)
+        hi_by_span: dict[tuple[float, float], list[Any]] = defaultdict(list)
 
-        # Group by clamped lower elevation y_eff & base y0 so adjacent landings merge seamlessly into 1 solid
-        lo_by_y: dict[tuple[float, float], list[Any]] = defaultdict(list)
-        hi_steps: list[tuple[float, Any]] = []
-        for y0, y1, sp in stair_steps:
-            y_eff = round(min(float(y1), cut_y_stair), 3)
-            lo_by_y[(round(float(y0), 3), y_eff)].append(_fill_small_holes(sp, 0.35))
-            if float(y1) > cut_y_stair + 0.03:
-                hi_steps.append((float(y1), _fill_small_holes(sp, 0.35)))
+        for _, yr, sp in stair_steps:
+            sp_r = _clean_shapely(_regularize_polygon(sp, 0.01), 0.008)
+            if sp_r.is_empty:
+                continue
+            y_top = round(float(yr), 3)
+            if y_top < raw.floor_y - 0.04:
+                y_bot = round(float(raw.slab_bottom_y), 3)
+                lo_by_span[(y_bot, y_top)].append(sp_r)
+            else:
+                if y_top <= raw.floor_y + 1.05 and (desc_union.is_empty or not desc_union.intersects(sp_r)):
+                    y_bot = round(float(raw.floor_y), 3)
+                else:
+                    y_bot = round(max(float(raw.floor_y) if y_top > raw.floor_y + 0.08 else float(raw.slab_bottom_y), y_top - 0.32), 3)
+                if y_top <= y_stair_split:
+                    lo_by_span[(y_bot, y_top)].append(sp_r)
+                else:
+                    hi_by_span[(y_bot, y_top)].append(sp_r)
 
-        covered = Polygon()
-        for y0_base, y_eff in sorted(lo_by_y.keys(), key=lambda k: -k[1]):
-            merged_sp = _fill_small_holes(_clean_shapely(unary_union(lo_by_y[(y0_base, y_eff)]), 0.008), 0.35)
-            sp_disjoint = _clean_shapely(
-                merged_sp.difference(covered).simplify(0.012, preserve_topology=True),
-                0.005,
-            )
-            kept_polys = [
-                p for p in _iter_polygons(sp_disjoint)
-                if p.area >= 0.06 and not p.buffer(-0.025, join_style=2).is_empty
-            ]
-            if kept_polys:
-                sp_final = _fill_small_holes(unary_union(kept_polys), 0.35)
-                # Tiny 0.4mm inset only where adjacent to an already-covered higher step avoids non-manifold touching edges
-                sp_extrude = _clean_shapely(sp_final.difference(covered.buffer(0.0004, join_style=2)), 0.002)
-                for sp_p in _iter_polygons(sp_extrude):
-                    m = geom_to_manifold(sp_p, y0_base, y_eff)
-                    if m is not None:
-                        stair_lo_tms.append(manifold_to_trimesh(m))
-                covered = unary_union([covered, sp_final]).buffer(0)
+        def _fuse_stair_tier(span_map: dict[tuple[float, float], list[Any]]) -> trimesh.Trimesh | None:
+            parts: list[m3d.Manifold] = []
+            for (yb, yt), plist in sorted(span_map.items()):
+                if yt - yb < 0.02:
+                    continue
+                u = _clean_shapely(unary_union(plist), 0.008)
+                for p_s in _iter_polygons(u):
+                    m_st = geom_to_manifold(p_s, yb, yt)
+                    if m_st is not None:
+                        parts.append(m_st)
+            if not parts:
+                return None
+            fused = m3d.Manifold.batch_boolean(parts, m3d.OpType.Add) if len(parts) > 1 else parts[0]
+            return manifold_to_trimesh(fused)
 
-        covered_hi = Polygon()
-        for y1, sp_hi_raw in sorted(hi_steps, key=lambda x: -x[0]):
-            sp_d = _clean_shapely(sp_hi_raw.difference(covered_hi).simplify(0.012, preserve_topology=True), 0.005)
-            kept_hi = [p for p in _iter_polygons(sp_d) if p.area >= 0.16 and not p.buffer(-0.025, join_style=2).is_empty]
-            if kept_hi:
-                sp_h = _fill_small_holes(unary_union(kept_hi), 0.35)
-                sp_ext = _clean_shapely(sp_h.difference(covered_hi.buffer(0.0004, join_style=2)), 0.002)
-                for sp_p in _iter_polygons(sp_ext):
-                    m_hi = geom_to_manifold(sp_p, cut_y_stair, y1)
-                    if m_hi is not None:
-                        stair_hi_tms.append(manifold_to_trimesh(m_hi))
-                covered_hi = unary_union([covered_hi, sp_h]).buffer(0)
-
-        if stair_lo_tms:
-            comb = trimesh.util.concatenate(stair_lo_tms)
-            solid_nodes.append(("Stairs", "stairs", comb))
-        if stair_hi_tms:
-            comb_hi = trimesh.util.concatenate(stair_hi_tms)
-            solid_nodes.append(("Stairs_Upper", "stairs_upper", comb_hi))
+        if (tm_lo_st := _fuse_stair_tier(lo_by_span)) is not None:
+            solid_nodes.append(("Stairs", "stairs", tm_lo_st))
+        if (tm_hi_st := _fuse_stair_tier(hi_by_span)) is not None:
+            solid_nodes.append(("Stairs_Upper", "stairs_upper", tm_hi_st))
 
     # 3. Tiered Solid Prisms (__Plinth, __Lower, __Upper) for every Column & Wall
     y_plinth_top = raw.floor_y + plinth_m
-    y_cut = raw.floor_y + low_cut_m
 
     y_bb_cut = raw.floor_y + raw.baseboard_h
 
@@ -1322,18 +1282,9 @@ def run_solid_rebuild(
         if (m_plinth := geom_to_manifold(p_base, raw.floor_y, y_plinth_top)) is not None:
             solid_nodes.append((f"{gname}__Plinth", kind, manifold_to_trimesh(m_plinth)))
 
-        # __Lower: [y_plinth_top .. y_cut] respecting window sill + razor-straight horizontal baseboard seam
-        same_mid = p_mid.is_empty is False and p_base.symmetric_difference(p_mid).area < 1e-3
-        if not same_mid and raw.sill_y < y_cut - 0.02 and not p_mid.is_empty:
-            m_lo1 = geom_to_manifold(p_base, y_plinth_top, raw.sill_y)
-            m_lo2 = geom_to_manifold(p_mid, raw.sill_y, y_cut)
-            parts = [m for m in (m_lo1, m_lo2) if m is not None]
-            if parts:
-                m_lo = m3d.Manifold.batch_boolean(parts, m3d.OpType.Add) if len(parts) > 1 else parts[0]
-                solid_nodes.append((f"{gname}__Lower", kind, _slice_trimesh_at_y(manifold_to_trimesh(m_lo), y_bb_cut)))
-        else:
-            if (m_lo := geom_to_manifold(p_base, y_plinth_top, y_cut)) is not None:
-                solid_nodes.append((f"{gname}__Lower", kind, _slice_trimesh_at_y(manifold_to_trimesh(m_lo), y_bb_cut)))
+        # __Lower: [y_plinth_top .. y_cut] uniform solid wall base (zero recessed railing/sill pockets)
+        if (m_lo := geom_to_manifold(p_base, y_plinth_top, y_cut)) is not None:
+            solid_nodes.append((f"{gname}__Lower", kind, _slice_trimesh_at_y(manifold_to_trimesh(m_lo), y_bb_cut)))
 
         # __Upper: [y_cut .. ceil_y] respecting window openings & wall headers
         m_hi1 = geom_to_manifold(p_mid, y_cut, min(raw.lintel_y, raw.ceil_y))
@@ -1369,7 +1320,7 @@ def run_solid_rebuild(
                 # Slim down to 0.05m center pane along thin axis
                 thin_pane = gp.buffer(-min(0.10, max(0.02, gp.area / max(gp.length, 0.5) * 0.45)), join_style=2)
                 pane_2d = thin_pane if not thin_pane.is_empty else gp
-                gm = geom_to_manifold(pane_2d, raw.sill_y, min(raw.lintel_y, raw.ceil_y - 0.1))
+                gm = geom_to_manifold(pane_2d, max(raw.sill_y, y_cut), min(raw.lintel_y, raw.ceil_y - 0.1))
                 if gm is not None:
                     glass_parts.append(gm)
         if glass_parts:
@@ -1385,7 +1336,7 @@ def run_solid_rebuild(
     # ------------------------------------------------- Hard Watertight Audit BEFORE Export
     audit_nodes: list[dict[str, Any]] = []
     passed = True
-    for nname, _kind, tm in solid_nodes:
+    for nname, nkind, tm in solid_nodes:
         edges = tm.edges_sorted
         unique_e, counts_e = np.unique(edges, axis=0, return_counts=True)
         open_e = int((counts_e == 1).sum())
@@ -1406,6 +1357,7 @@ def run_solid_rebuild(
             passed = False
         audit_nodes.append({
             "node": nname,
+            "kind": nkind,
             "tris": int(len(tm.faces)),
             "open_edges": open_e,
             "nonmanifold_edges": nonman_e,
