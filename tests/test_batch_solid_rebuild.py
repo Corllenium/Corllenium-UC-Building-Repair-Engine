@@ -4,7 +4,16 @@ import json
 from pathlib import Path
 
 from tests.test_solid_cutaway_rebuild import _write_box_obj
-from tools.batch_solid_rebuild import run_batch_rebuild
+from tools.batch_solid_rebuild import _is_non_interior_folder, run_batch_rebuild
+
+
+def test_is_non_interior_folder_skips_rooftops_and_sidewalks() -> None:
+    assert _is_non_interior_folder("Floor_RF") is True
+    assert _is_non_interior_folder("Sidewalk_2F") is True
+    assert _is_non_interior_folder("Roof_Deck") is True
+    assert _is_non_interior_folder("Floor_4F") is False
+    assert _is_non_interior_folder("Floor_9M") is False
+    assert _is_non_interior_folder("Floor_4B") is False
 
 
 def test_batch_solid_rebuild_writes_report_and_passes_six_gates(tmp_path: Path) -> None:

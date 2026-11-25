@@ -31,6 +31,12 @@ DEFAULT_SRC_ROOT = Path(r"D:\PROJECTS\04-Corllenium-Building-Model-Repair\Export
 DEFAULT_OUT_ROOT = Path(r"D:\PROJECTS\04-Corllenium-Building-Model-Repair\02_STAGING_DEVELOPMENT\SolidRebuild")
 
 
+def _is_non_interior_folder(name: str) -> bool:
+    """Return True for rooftops (Floor_RF/*Roof*) and exterior Sidewalk_* folders excluded from interior design."""
+    low = name.strip().lower()
+    return low == "floor_rf" or low.endswith("_rf") or low.startswith("roof") or low.startswith("sidewalk")
+
+
 def audit_rebuilt_glb(
     glb_path: Path,
     src_obj: Path,
@@ -192,6 +198,8 @@ def run_batch_rebuild(
         if floors:
             want = set(floors)
             fixed_objs = [p for p in fixed_objs if p.parent.name in want]
+        else:
+            fixed_objs = [p for p in fixed_objs if not _is_non_interior_folder(p.parent.name)]
         if not fixed_objs:
             raise FileNotFoundError(f"No *.fixed.obj files found under {b_src} for floors={floors}")
 

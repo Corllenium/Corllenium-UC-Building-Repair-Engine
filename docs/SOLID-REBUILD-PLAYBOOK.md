@@ -43,7 +43,7 @@ Every fix discovered during CHTM 4F & 5F QA is encoded as a **general, determini
 
 ## 3. Interior Mask, Grid Line & Furniture Studio Rules (`02-Corllenium-Siege`)
 
-- [ ] **Exclude All Non-Interior Zones from Grids & Placement:** Exclude `service` kinds (`elev.`, `elevator`, `shaft`, `stairs`) plus `main lobby`, `corridor`, `hallway`, `bridge`, `balcony`, `terrace`, `ramp`, `void`, `outside`, AND generic unlabeled `"Room"` / `"Room 2"` `circulation` catch-alls (CHTM 4F diagonal stepped balcony `id=18`). Audit `*-interior-mask.png` pixels against enclosing wall boundaries (`open_bnd`) on every new floor.
+- [ ] **Exclude All Non-Interior Zones from Grids & Placement:** Exclude rooftops (`Floor_RF` / `*Roof*`), exterior sidewalks (`Sidewalk_*`), and `service` kinds (`elev.`, `elevator`, `shaft`, `stairs`) plus `main lobby`, `corridor`, `hallway`, `bridge`, `balcony`, `terrace`, `ramp`, `void`, `outside`, AND generic unlabeled `"Room"` / `"Room 2"` `circulation` catch-alls (CHTM 4F diagonal stepped balcony `id=18`). Audit `*-interior-mask.png` pixels against enclosing wall boundaries (`open_bnd`) on every new floor.
 - [ ] **Cutaway Filter & Toggle Parity (`InteriorStudioCanvas.tsx`):**
   - Keep `Facade_Ext_*` synced with `Wall_Ext_*__Upper` and active-room occlusion.
   - Keep `__Plinth` wall/column traces **always visible** even when `Stairs` is toggled OFF (`entry.tier === "plinth"` separated from `isLowerStair`).
