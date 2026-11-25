@@ -1213,6 +1213,18 @@ def build_parser() -> argparse.ArgumentParser:
     swg_p.add_argument("--export-glb", action="store_true", help="also write multi-node textured .glb via trimesh")
     swg_p.add_argument("--render-qa", action="store_true", help="render 2x2 Before/After/Cutaway/Columns QA PNG")
 
+    srb_p = sub.add_parser("solid-rebuild",
+                           help="Engine v2: deterministic Manifold solid architectural rebuild from raw floor OBJ")
+    srb_p.add_argument("--input", type=Path, required=True, help="raw floor .obj file (Unity metres or CKPT-17 inches)")
+    srb_p.add_argument("--mtl", type=Path, default=None, help="optional explicit .mtl file")
+    srb_p.add_argument("--textures-dir", type=Path, default=None, help="optional textures directory")
+    srb_p.add_argument("--overrides-json", type=Path, default=None, help="optional 2D wall/box overrides JSON")
+    srb_p.add_argument("--out-dir", type=Path, required=True, help="output directory for rebuilt .glb/.obj/audits")
+    srb_p.add_argument("--low-cut-m", type=float, default=1.25, help="lower tier cutaway height above floor_y")
+    srb_p.add_argument("--plinth-m", type=float, default=0.04, help="flush Floor-mode wall-trace plinth height")
+    srb_p.add_argument("--column-min-width-m", type=float, default=0.56, help="minimum column pier width in metres")
+    srb_p.add_argument("--no-glb", dest="export_glb", action="store_false", help="skip GLB export")
+
     return parser
 
 
@@ -1223,7 +1235,8 @@ _OUTPUT_ARGS = {"fix": ("out", "skp_dir"), "preview-data": ("out",), "errors": (
                 "census": ("out", "md", "errors_dir"), "campus-freeze": ("out", "snapshots"),
                 "campus-index": ("out",), "campus-materials": ("out",), "campus-inventory": ("out", "md"),
                 "decide-pilot": ("out",), "campus-unit-before": ("out",),
-                "wall-column-audit": ("out",), "unity-preflight": ("out",), "solid-wall-groups": ("out",)}
+                "wall-column-audit": ("out",), "unity-preflight": ("out",),
+                "solid-wall-groups": ("out",), "solid-rebuild": ("out_dir",)}
 
 
 def _refuse_protected_outputs(args) -> str | None:
@@ -1520,6 +1533,25 @@ def main(argv: list[str] | None = None) -> int:
               f"nonman_wall={ca['nonmanifold_wall_edges']}, open_wall={ca['open_wall_edges']}, "
               f"reversed={ca['reversed_total']}, unity_preflight={res.preflight_unity['passed']} -> {out_dir}")
         return 0
+    elif args.command == "solid-rebuild":
+        from engine.fixes.solid_cutaway_rebuild import run_solid_rebuild
+        rep = run_solid_rebuild(
+            Path(args.input),
+            Path(args.out_dir),
+            mtl_path=args.mtl,
+            textures_dir=args.textures_dir,
+            overrides_path=args.overrides_json,
+            low_cut_m=args.low_cut_m,
+            plinth_m=args.plinth_m,
+            column_min_width_m=args.column_min_width_m,
+            export_glb=args.export_glb,
+        )
+        c = rep.manifest["counts"]
+        print(f"solid-rebuild {Path(args.input).stem}: passed={rep.passed}, nodes={c['total_nodes']} "
+              f"(cols={c['columns']}, walls={c['wall_groups']}, stairs={c['stair_steps']}), "
+              f"tris={c['total_tris']}, open={rep.audit['total_open_edges']}, "
+              f"nonman={rep.audit['total_nonmanifold_edges']} -> {rep.out_dir}")
+        return 0 if rep.passed else 2
     return 1
 
 
