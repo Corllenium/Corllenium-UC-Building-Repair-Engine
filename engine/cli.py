@@ -1191,6 +1191,28 @@ def build_parser() -> argparse.ArgumentParser:
                             "(default: the repo-root .env; only that one line is read)")
     imp_p.add_argument("--dry-run", action="store_true", help="print the counts and send nothing")
 
+    wca_p = sub.add_parser("wall-column-audit",
+                           help="audit wall/column cutaway health, trapped cavities (D11/D15), and group watertightness")
+    wca_p.add_argument("input_path", type=Path, help="snapshot directory or .obj file")
+    wca_p.add_argument("--out", type=Path, required=True, help="write audit JSON here")
+
+    upf_p = sub.add_parser("unity-preflight",
+                           help="run Unity 6 URP near-coplanar Z-fighting & Export Pre-Flight Gate")
+    upf_p.add_argument("input_obj", type=Path, help="candidate .obj file")
+    upf_p.add_argument("--units", choices=("metres", "inches"), default="metres")
+    upf_p.add_argument("--min-alt-mm", type=float, default=2.0)
+    upf_p.add_argument("--out", type=Path, required=True, help="write preflight JSON here")
+
+    swg_p = sub.add_parser("solid-wall-groups",
+                           help="run hardened solid wall & column repair + semantic grouping on a floor snapshot")
+    swg_p.add_argument("snapshot_dir", type=Path, help="frozen snapshot directory (<name>.obj + materials.mtl + tex/)")
+    swg_p.add_argument("--out", type=Path, required=True, help="output directory for grouped .obj/.glb/reports")
+    swg_p.add_argument("--cut-height-m", type=float, default=1.10, help="clean horizontal wall cut ring (0 to disable)")
+    swg_p.add_argument("--coarse-groups", action="store_true", help="use coarse category groups instead of per-segment")
+    swg_p.add_argument("--export-unity-yup", action="store_true", help="also write Unity Y-up metres grouped .obj")
+    swg_p.add_argument("--export-glb", action="store_true", help="also write multi-node textured .glb via trimesh")
+    swg_p.add_argument("--render-qa", action="store_true", help="render 2x2 Before/After/Cutaway/Columns QA PNG")
+
     return parser
 
 
@@ -1200,7 +1222,8 @@ _OUTPUT_ARGS = {"fix": ("out", "skp_dir"), "preview-data": ("out",), "errors": (
                 "campus-skp-check": ("out", "summary"), "validate": ("out",),
                 "census": ("out", "md", "errors_dir"), "campus-freeze": ("out", "snapshots"),
                 "campus-index": ("out",), "campus-materials": ("out",), "campus-inventory": ("out", "md"),
-                "decide-pilot": ("out",), "campus-unit-before": ("out",)}
+                "decide-pilot": ("out",), "campus-unit-before": ("out",),
+                "wall-column-audit": ("out",), "unity-preflight": ("out",), "solid-wall-groups": ("out",)}
 
 
 def _refuse_protected_outputs(args) -> str | None:
@@ -1425,6 +1448,77 @@ def main(argv: list[str] | None = None) -> int:
             return 2
         print(f"imported: added {total['added']}, skipped {total['skipped']}, invalid {total['invalid']}, "
               f"unreproducible {n['unreproducible']}")
+        return 0
+    elif args.command == "wall-column-audit":
+        from engine.detectors.wall_column_audit import audit_wall_column_health
+        inp = Path(args.input_path)
+        if inp.is_dir():
+            _, mesh, _, _ = _load_snapshot(inp)
+        else:
+            mesh = read_obj(inp)
+        rep = audit_wall_column_health(mesh)
+        args.out.parent.mkdir(parents=True, exist_ok=True)
+        args.out.write_text(json.dumps(rep, indent=2), encoding="utf-8")
+        c = rep["counts"]
+        print(f"wall-column-audit ({rep['frame']}): faces={c['faces']}, trapped_cavity={c['trapped_cavity_faces']}, "
+              f"nonman_wall={c['nonmanifold_wall_edges']}, open_wall={c['open_wall_edges']}, "
+              f"reversed={c['reversed_total']}, zfight={c['near_coplanar_zfight_pairs']} -> {args.out}")
+        return 0
+    elif args.command == "unity-preflight":
+        from engine.validate.unity_preflight import run_unity_preflight_gate
+        mesh = read_obj(Path(args.input_obj))
+        mesh.units = args.units
+        rep = run_unity_preflight_gate(mesh, expected_units=args.units, min_alt_mm=args.min_alt_mm)
+        args.out.parent.mkdir(parents=True, exist_ok=True)
+        args.out.write_text(json.dumps(rep, indent=2), encoding="utf-8")
+        print(f"unity-preflight: passed={rep['passed']} counts={rep['counts']} -> {args.out}")
+        return 0 if rep["passed"] else 2
+    elif args.command == "solid-wall-groups":
+        from engine.fixes.solid_wall_groups import (
+            build_solid_wall_column_groups,
+            export_grouped_glb,
+            render_cutaway_qa_sheet,
+        )
+        snap_dir = Path(args.snapshot_dir)
+        obj_path, mesh, _, _ = _load_snapshot(snap_dir)
+        mtl_path = snap_dir / "materials.mtl"
+        out_dir = Path(args.out)
+        out_dir.mkdir(parents=True, exist_ok=True)
+        _copy_assets(snap_dir, out_dir)
+
+        res = build_solid_wall_column_groups(
+            mesh,
+            mtl_path,
+            cut_height_m=args.cut_height_m,
+            per_segment=not args.coarse_groups,
+        )
+        stem = obj_path.stem
+        res.mesh_ckpt17.mtllib = "materials.mtl"
+        res.mesh_unity.mtllib = "materials.mtl"
+        ckpt_out = out_dir / f"{stem}.solid_grouped.ckpt17.obj"
+        write_obj(res.mesh_ckpt17, ckpt_out, face_groups=res.face_groups)
+
+        if args.export_unity_yup:
+            unity_out = out_dir / f"{stem}.solid_grouped.unity.obj"
+            write_obj(res.mesh_unity, unity_out, face_groups=res.face_groups)
+        if args.export_glb:
+            glb_out = out_dir / f"{stem}.solid_grouped.glb"
+            export_grouped_glb(res.mesh_unity, res.face_groups, out_dir / "materials.mtl", glb_out)
+        if args.render_qa:
+            qa_out = out_dir / "qa_cutaway_comparison.png"
+            render_cutaway_qa_sheet(mesh, res.mesh_ckpt17, res.face_groups, qa_out, cut_height_m=args.cut_height_m)
+
+        (out_dir / "groups_manifest.json").write_text(json.dumps(res.manifest, indent=2), encoding="utf-8")
+        (out_dir / "wall_column_audit_before.json").write_text(json.dumps(res.audit_before, indent=2), encoding="utf-8")
+        (out_dir / "wall_column_audit_after.json").write_text(json.dumps(res.audit_after, indent=2), encoding="utf-8")
+        (out_dir / "unity_preflight.json").write_text(json.dumps(res.preflight_unity, indent=2), encoding="utf-8")
+        (out_dir / "stage_stats.json").write_text(json.dumps(res.stage_stats, indent=2, default=str), encoding="utf-8")
+
+        ca = res.audit_after["counts"]
+        print(f"solid-wall-groups {stem}: {mesh.n_faces} -> {res.mesh_ckpt17.n_faces} tris, "
+              f"groups={res.manifest['group_count']}, trapped_cavity={ca['trapped_cavity_faces']}, "
+              f"nonman_wall={ca['nonmanifold_wall_edges']}, open_wall={ca['open_wall_edges']}, "
+              f"reversed={ca['reversed_total']}, unity_preflight={res.preflight_unity['passed']} -> {out_dir}")
         return 0
     return 1
 

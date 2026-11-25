@@ -33,8 +33,8 @@ from engine.topo.edges import EDGE_OPEN
 from engine.topo.planes import face_normals
 
 
-def _open_edge_records(mesh: MeshData) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-    """Return (segs (E,2,3), mids (E,3), lens (E,), host_face (E,)) for all EDGE_OPEN edges."""
+def _open_edge_records(mesh: MeshData) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """Return (segs (E,2,3), mids (E,3), lens (E,), host_face (E,), orig_edges (E,2)) for all EDGE_OPEN edges."""
     topo = analyse_topology(mesh, frozenset())
     open_rows = np.flatnonzero(np.asarray(topo.edge_class) == EDGE_OPEN)
     if len(open_rows) == 0:
@@ -43,17 +43,77 @@ def _open_edge_records(mesh: MeshData) -> tuple[np.ndarray, np.ndarray, np.ndarr
             np.zeros((0, 3), dtype=np.float64),
             np.zeros((0,), dtype=np.float64),
             np.zeros((0,), dtype=np.int64),
+            np.zeros((0, 2), dtype=np.int64),
         )
     ef = edge_face_lists(topo.table)
-    segs = topo.positions_w[topo.table.edges[open_rows]]  # (E, 2, 3)
+    w_edges = topo.table.edges[open_rows]  # (E, 2) welded vertex indices
+    segs = topo.positions_w[w_edges]  # (E, 2, 3)
     mids = segs.mean(axis=1)
     lens = np.linalg.norm(segs[:, 1] - segs[:, 0], axis=1)
     hosts = np.full(len(open_rows), -1, dtype=np.int64)
+    orig_edges = np.full((len(open_rows), 2), -1, dtype=np.int64)
     for idx, er in enumerate(open_rows):
         fl = ef[er]
         if len(fl) > 0:
-            hosts[idx] = int(fl[0])
-    return segs, mids, lens, hosts
+            hf = int(fl[0])
+            hosts[idx] = hf
+            wu, wv = int(w_edges[idx, 0]), int(w_edges[idx, 1])
+            fw = topo.face_w[hf]
+            fv = mesh.face_v[hf]
+            ou = next((int(fv[k]) for k in range(3) if int(fw[k]) == wu), -1)
+            ov = next((int(fv[k]) for k in range(3) if int(fw[k]) == wv), -1)
+            orig_edges[idx] = (ou, ov)
+    return segs, mids, lens, hosts, orig_edges
+
+
+def _order_closed_loop(
+    comp: list[int],
+    edge_vkeys: dict[int, tuple[tuple[int, int, int], tuple[int, int, int]]],
+    orig_edges: np.ndarray,
+) -> tuple[bool, list[int]]:
+    """Order a closed simple cycle of void-leak edges into an ordered vertex loop."""
+    adj: dict[tuple[int, int, int], list[tuple[tuple[int, int, int], int]]] = defaultdict(list)
+    vkey_to_orig: dict[tuple[int, int, int], int] = {}
+    for ci in comp:
+        k0, k1 = edge_vkeys[ci]
+        if k0 == k1:
+            return False, []
+        ou, ov = int(orig_edges[ci, 0]), int(orig_edges[ci, 1])
+        if ou < 0 or ov < 0:
+            return False, []
+        vkey_to_orig.setdefault(k0, ou)
+        vkey_to_orig.setdefault(k1, ov)
+        adj[k0].append((k1, ci))
+        adj[k1].append((k0, ci))
+
+    if len(adj) < 3 or any(len(nbs) != 2 for nbs in adj.values()):
+        return False, []
+
+    start = next(iter(adj))
+    ordered_keys = [start]
+    prev = None
+    cur = start
+    used_edges: set[int] = set()
+    for _ in range(len(comp)):
+        nxt = None
+        for nb_k, e_id in adj[cur]:
+            if e_id not in used_edges:
+                used_edges.add(e_id)
+                nxt = nb_k
+                break
+        if nxt is None:
+            return False, []
+        if nxt == start:
+            break
+        if nxt in ordered_keys:
+            return False, []
+        ordered_keys.append(nxt)
+        prev = cur
+        cur = nxt
+
+    if len(ordered_keys) != len(adj) or len(used_edges) != len(comp):
+        return False, []
+    return True, [vkey_to_orig[k] for k in ordered_keys]
 
 
 def detect_new_mesh_holes(
@@ -74,8 +134,8 @@ def detect_new_mesh_holes(
     (`EXP_OUTSIDE`) or interior rooms so cleaned hollow-wall internal cavity seams (`G01`)
     do not pollute visible hole alerts.
     """
-    _, mids_b, _, _ = _open_edge_records(before_mesh)
-    segs_a, mids_a, lens_a, hosts_a = _open_edge_records(after_mesh)
+    _, mids_b, _, _, _ = _open_edge_records(before_mesh)
+    segs_a, mids_a, lens_a, hosts_a, orig_edges_a = _open_edge_records(after_mesh)
 
     if len(segs_a) == 0:
         return {
@@ -84,6 +144,7 @@ def detect_new_mesh_holes(
             "byShape": {"edge_slit": 0, "triangle_hole": 0, "quad_notch": 0, "polygon_hole": 0},
             "holeFaceIds": [],
             "spots": [],
+            "loops": [],
         }
 
     # Optional visibility filter (outer facade + room-visible interior faces only)
@@ -149,6 +210,7 @@ def detect_new_mesh_holes(
             "byShape": {"edge_slit": 0, "triangle_hole": 0, "quad_notch": 0, "polygon_hole": 0},
             "holeFaceIds": [],
             "spots": [],
+            "loops": [],
         }
 
     cand_arr = np.asarray(cand_idx, dtype=np.int64)
@@ -201,6 +263,7 @@ def detect_new_mesh_holes(
             "byShape": {"edge_slit": 0, "triangle_hole": 0, "quad_notch": 0, "polygon_hole": 0},
             "holeFaceIds": [],
             "spots": [],
+            "loops": [],
         }
 
     p_arr = np.asarray(probe_pts, dtype=np.float64)
@@ -223,6 +286,7 @@ def detect_new_mesh_holes(
             "byShape": {"edge_slit": 0, "triangle_hole": 0, "quad_notch": 0, "polygon_hole": 0},
             "holeFaceIds": [],
             "spots": [],
+            "loops": [],
         }
 
     # Group connected void-leak edges into hole loops / slits via quantized endpoint vertices (0.20 in)
@@ -258,6 +322,7 @@ def detect_new_mesh_holes(
     by_shape = {"edge_slit": 0, "triangle_hole": 0, "quad_notch": 0, "polygon_hole": 0}
     hole_faces: set[int] = set()
     spot_rows: list[tuple[float, dict]] = []
+    loops: list[dict] = []
 
     for comp in components:
         n_e = len(comp)
@@ -274,8 +339,19 @@ def detect_new_mesh_holes(
         comp_mids = mids_a[comp]
         perim = float(lens_a[comp].sum())
         cen = comp_mids.mean(axis=0)
-        for ci in comp:
-            hole_faces.add(int(hosts_a[ci]))
+        comp_hosts = sorted({int(hosts_a[ci]) for ci in comp if int(hosts_a[ci]) >= 0})
+        for hf in comp_hosts:
+            hole_faces.add(hf)
+        closed, ordered_vs = _order_closed_loop(comp, edge_vkeys, orig_edges_a)
+        loops.append(
+            {
+                "shape": shape,
+                "closed": closed,
+                "edge_vertices": [[int(orig_edges_a[ci, 0]), int(orig_edges_a[ci, 1])] for ci in comp],
+                "ordered_vertices": ordered_vs,
+                "host_faces": comp_hosts,
+            }
+        )
         spot_rows.append(
             (
                 perim,
@@ -297,4 +373,5 @@ def detect_new_mesh_holes(
         "byShape": by_shape,
         "holeFaceIds": sorted(hole_faces),
         "spots": [s for _, s in spot_rows[:max_spots]],
+        "loops": loops,
     }

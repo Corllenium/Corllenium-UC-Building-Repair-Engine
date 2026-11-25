@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from pathlib import Path
 
 import numpy as np
@@ -10,7 +11,9 @@ def _num(x: float, decimals: int) -> str:
     return "0" if s in ("-0", "") else s
 
 
-def write_obj(mesh: MeshData, path: Path) -> None:
+def write_obj(mesh: MeshData, path: Path, *, face_groups: Sequence[str] | None = None) -> None:
+    if face_groups is not None and len(face_groups) != mesh.n_faces:
+        raise ValueError(f"face_groups length {len(face_groups)} != mesh.n_faces {mesh.n_faces}")
     d = max(mesh.coord_decimals, 1)
     out = [f"# {mesh.name}"]
     if mesh.mtllib:
@@ -19,8 +22,25 @@ def write_obj(mesh: MeshData, path: Path) -> None:
     out += ["v " + " ".join(_num(c, d) for c in p) for p in mesh.positions]
     out += ["vt " + " ".join(_num(c, 6) for c in t) for t in mesh.uvs]
     out += ["vn " + " ".join(_num(c, 6) for c in n) for n in mesh.normals]
+
+    if face_groups is None:
+        face_order = range(mesh.n_faces)
+    else:
+        # Group faces stably by group name then material so each `g <name>` is emitted as one clean block
+        face_order = sorted(
+            range(mesh.n_faces),
+            key=lambda f: (str(face_groups[f]), int(mesh.face_material[f]), f),
+        )
+
+    current_group = None
     current = None
-    for f in range(mesh.n_faces):
+    for f in face_order:
+        if face_groups is not None:
+            grp = str(face_groups[f])
+            if grp != current_group:
+                out.append(f"g {grp}")
+                current_group = grp
+                current = None  # re-emit usemtl inside each new group block for strict OBJ importers
         mat = int(mesh.face_material[f])
         if mat != current and mat >= 0:
             out.append(f"usemtl {mesh.materials[mat]}")
