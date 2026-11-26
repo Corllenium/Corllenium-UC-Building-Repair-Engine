@@ -13,6 +13,10 @@ from engine.fixes.solid_cutaway_rebuild import (
     _extract_solid_slice,
     _is_clean_angled_tread,
     _repair_notched_stair_treads,
+    _polygon_to_manifold,
+    _raw_manifold_to_trimesh,
+    _separate_columns_and_split_walls,
+    _split_mesh_by_material_and_flat_uvs,
     _trimesh_min_altitude_mm,
     geom_to_manifold,
     manifold_to_trimesh,
@@ -776,3 +780,84 @@ def test_solid_rebuild_clips_floating_lower_parapet_tail_and_blocks_floor_iron(t
         assert float(g.bounds[0][2]) >= 1.60, f"Floating lower parapet tail leaked into empty pit: {g.bounds}"
     hi_parapets = [g for n, g in sc.geometry.items() if "Parapet" in n and "__Upper" in n]
     assert hi_parapets and any(float(g.bounds[0][2]) <= 0.70 for g in hi_parapets), "Upper parapet should retain full span"
+
+
+def test_separate_columns_and_split_walls_empty_s_base_no_crash() -> None:
+    cols, walls = _separate_columns_and_split_walls(Polygon(), Polygon(), shapely_box(0.0, 0.0, 5.0, 5.0))
+    assert cols == []
+    assert walls == []
+
+
+def test_10cm_column_wall_micro_slit_sealed_while_doorway_stays_open(tmp_path: Path) -> None:
+    obj = tmp_path / "slit_and_door.obj"
+    mtl = tmp_path / "slit_and_door.mtl"
+    out_dir = tmp_path / "out"
+
+    boxes = [
+        ("minecraft_quartz_block_top_-1", 0.0, -0.5, 0.0, 10.0, 0.0, 10.0),
+        ("minecraft_concrete_white_-1", 0.0, 0.0, 0.0, 10.0, 3.6, 0.5),
+        ("minecraft_concrete_white_-1", 0.0, 0.0, 9.5, 10.0, 3.6, 10.0),
+        ("minecraft_concrete_white_-1", 0.0, 0.0, 0.5, 0.5, 3.6, 9.5),
+        ("minecraft_concrete_white_-1", 9.5, 0.0, 0.5, 10.0, 3.6, 9.5),
+        ("minecraft_concrete_white_-1", 3.0, 0.0, 4.5, 3.6, 3.6, 5.1),
+        ("minecraft_concrete_white_-1", 3.7, 0.0, 4.6, 5.5, 3.6, 5.0),
+        ("minecraft_concrete_white_-1", 6.4, 0.0, 4.6, 9.5, 3.6, 5.0),
+        ("minecraft_concrete_white_-1", 5.5, 2.2, 4.6, 6.4, 3.6, 5.0),
+    ]
+    _write_box_obj(boxes, obj, mtl)
+    rep = run_solid_rebuild(obj, out_dir, mtl_path=mtl, low_cut_m=1.25, plinth_m=0.04)
+    assert rep.passed is True
+    assert rep.audit["narrow_wall_gaps"] == 0, rep.audit["narrow_wall_gap_pairs"]
+
+    import trimesh
+    sc = trimesh.load(rep.glb_path, force="scene")
+    door_hits = [
+        n for n, g in sc.geometry.items()
+        if "__Lower" in n and (n.startswith("Wall_") or n.startswith("Column_"))
+        and float(g.bounds[0][0]) < 6.2 and float(g.bounds[1][0]) > 5.7
+        and float(g.bounds[0][2]) < 5.0 and float(g.bounds[1][2]) > 4.6
+    ]
+    assert door_hits == [], f"0.90m doorway unexpectedly filled: {door_hits}"
+def test_pinched_diagonal_junction_polygon_avoids_sub_mm_sliver() -> None:
+    pts = [
+        (91.83451, 566.2735),
+        (88.9905, 567.2215),
+        (89.07, 567.46002),
+        (91.915, 566.51001),
+        (91.83814, 566.27393),
+        (92.30838, 566.11556),
+        (92.47, 566.59003),
+        (92.665, 566.78497),
+        (92.905, 566.70502),
+        (92.30991, 566.11505),
+        (92.785, 565.95502),
+        (92.47, 565.01001),
+        (91.52, 565.32501),
+        (91.83451, 566.2735),
+    ]
+    man = _polygon_to_manifold(Polygon(pts), 0.0, 0.04)
+    assert man is not None
+    min_alt = _trimesh_min_altitude_mm(_raw_manifold_to_trimesh(man))
+    assert min_alt >= 1.0, f"Expected min_altitude_mm >= 1.0, got {min_alt:.4f}"
+
+
+def test_split_mesh_by_material_preserves_distinct_3um_vertices_and_no_repeated_indices() -> None:
+    import trimesh
+
+    verts = np.array(
+        [
+            [0.0, 0.0, 0.0],
+            [1.0, 0.0, 0.0],
+            [1.0 + 3e-6, 0.0, 1.0],
+            [1.0, 0.0, 1.0 + 3e-6],
+        ],
+        dtype=np.float64,
+    )
+    faces = np.array([[0, 1, 2], [0, 2, 3]], dtype=np.int64)
+    tm = trimesh.Trimesh(vertices=verts, faces=faces, process=False)
+    mat = trimesh.visual.material.PBRMaterial(name="test_mat")
+    prims = _split_mesh_by_material_and_flat_uvs(tm, ["m0", "m0"], {"m0": mat})
+    assert len(prims) == 1
+    _, sub_tm = prims[0]
+    for f in sub_tm.faces:
+        assert f[0] != f[1] and f[1] != f[2] and f[2] != f[0], f"Degenerate face emitted: {f}"

@@ -31,6 +31,7 @@ from typing import Any, Sequence
 import manifold3d as m3d
 import numpy as np
 from PIL import Image
+from shapely import set_precision
 from shapely.affinity import scale as shapely_scale, translate as shapely_translate
 from shapely.geometry import (
     GeometryCollection,
@@ -463,15 +464,40 @@ def _polygon_to_manifold(poly: Polygon, y_min: float, y_max: float) -> m3d.Manif
             return None
         return m_out
 
+    def _extrude_geom_cand(cand_geom: Any) -> m3d.Manifold | None:
+        parts = []
+        for pg in _iter_polygons(cand_geom):
+            mp = _extrude_op(pg)
+            if mp is not None:
+                parts.append(mp)
+        if not parts:
+            return None
+        return m3d.Manifold.batch_boolean(parts, m3d.OpType.Add) if len(parts) > 1 else parts[0]
+
     man = _extrude_op(poly)
     if man is None:
         return None
-    if _trimesh_min_altitude_mm(_raw_manifold_to_trimesh(man)) < 1.0:
-        op2 = poly.simplify(0.04, preserve_topology=True)
-        if isinstance(op2, Polygon) and not op2.is_empty and op2.area >= 0.985 * poly.area:
-            man2 = _extrude_op(op2)
-            if man2 is not None and _trimesh_min_altitude_mm(_raw_manifold_to_trimesh(man2)) >= 1.0:
-                man = man2
+    cur_alt = _trimesh_min_altitude_mm(_raw_manifold_to_trimesh(man))
+    if cur_alt < 1.0:
+        op_open = _clean_shapely(poly.buffer(-0.015, join_style=2).buffer(0.015, join_style=2), 0.006)
+        op_close = _clean_shapely(poly.buffer(0.015, join_style=2).buffer(-0.015, join_style=2), 0.006)
+        best_man, best_alt = man, cur_alt
+        for op_cand in (
+            poly.simplify(0.04, preserve_topology=True),
+            set_precision(poly, 0.01),
+            set_precision(poly, 0.005),
+            op_open.simplify(0.015, preserve_topology=True) if not op_open.is_empty else Polygon(),
+            op_close.simplify(0.015, preserve_topology=True) if not op_close.is_empty else Polygon(),
+        ):
+            if not op_cand.is_empty and 0.90 * poly.area <= op_cand.area <= 1.05 * poly.area:
+                man2 = _extrude_geom_cand(op_cand)
+                if man2 is not None:
+                    alt2 = _trimesh_min_altitude_mm(_raw_manifold_to_trimesh(man2))
+                    if alt2 > best_alt:
+                        best_man, best_alt = man2, alt2
+                    if best_alt >= 1.0:
+                        break
+        man = best_man
     # Rotate from Manifold Z-up (x, z_2d, y_ext) to Unity Y-up (x, y_ext + y_min, z_2d).
     # Note: 3D axis swap (x, y, z) -> (x, z, y) reverses handedness; manifold_to_trimesh handles orientation cleanly.
     return man.translate((0.0, 0.0, float(y_min)))
@@ -506,45 +532,62 @@ def _raw_manifold_to_trimesh(man: m3d.Manifold) -> trimesh.Trimesh:
 def manifold_to_trimesh(man: m3d.Manifold) -> trimesh.Trimesh:
     """Convert Z-up Manifold (where Z = height, Y = Z_world) to Unity Y-up Trimesh with positive volume and no sub-mm slivers."""
     tm = _raw_manifold_to_trimesh(man)
-    if len(tm.faces) > 0 and _trimesh_min_altitude_mm(tm) < 1.0:
-        for tol in (0.004, 0.008, 0.015, 0.025):
+    cur_alt = _trimesh_min_altitude_mm(tm) if len(tm.faces) > 0 else 1e9
+    if len(tm.faces) > 0 and cur_alt < 1.0:
+        min_vol = 0.95 * max(float(tm.volume), 1e-6)
+        best_tm, best_alt = tm, cur_alt
+        for tol in (0.004, 0.008, 0.015, 0.025, 0.05, 0.08):
             man_s = man.simplify(tol)
             if man_s.is_empty() or man_s.num_tri() == 0:
                 continue
             tm_s = _raw_manifold_to_trimesh(man_s)
-            if tm_s.is_watertight and tm_s.volume > 1e-6 and _trimesh_min_altitude_mm(tm_s) >= 1.0:
-                return tm_s
+            if tm_s.is_watertight and float(tm_s.volume) >= min_vol:
+                alt_s = _trimesh_min_altitude_mm(tm_s)
+                if alt_s > best_alt:
+                    best_tm, best_alt = tm_s, alt_s
+                if alt_s >= 1.0:
+                    return tm_s
+        return best_tm
     return tm
 
 
 def _clean_trimesh_slivers(tm: trimesh.Trimesh) -> trimesh.Trimesh:
     """Collapse sub-mm boolean/concatenation slivers in an already-watertight Trimesh via Manifold simplify."""
-    if len(tm.faces) == 0 or _trimesh_min_altitude_mm(tm) >= 1.0:
+    cur_alt = _trimesh_min_altitude_mm(tm)
+    if len(tm.faces) == 0 or cur_alt >= 1.0:
         return tm
+    best_tm, best_alt = tm, cur_alt
     try:
+        center = tm.vertices.mean(axis=0)
+        local_v = np.ascontiguousarray(tm.vertices - center, dtype=np.float32)
         mgl = m3d.Mesh(
-            vert_properties=np.ascontiguousarray(tm.vertices, dtype=np.float32),
+            vert_properties=local_v,
             tri_verts=np.ascontiguousarray(tm.faces, dtype=np.uint32),
         )
         mgl.merge()
         man = m3d.Manifold(mgl)
-        for tol in (0.002, 0.005, 0.01, 0.02, 0.04):
+        min_vol = 0.95 * max(float(tm.volume), 1e-6)
+        for tol in (0.002, 0.005, 0.01, 0.02, 0.04, 0.06, 0.08):
             man_s = man.simplify(tol)
             if man_s.is_empty() or man_s.num_tri() == 0:
                 continue
             m2 = man_s.to_mesh()
             tm_s = trimesh.Trimesh(
-                vertices=np.asarray(m2.vert_properties, dtype=np.float64)[:, :3],
+                vertices=np.asarray(m2.vert_properties, dtype=np.float64)[:, :3] + center,
                 faces=np.asarray(m2.tri_verts, dtype=np.int64),
                 process=False,
             )
             if len(tm_s.faces) > 0 and tm_s.volume < 0:
                 tm_s.faces = tm_s.faces[:, [0, 2, 1]]
-            if tm_s.is_watertight and tm_s.volume > 1e-6 and _trimesh_min_altitude_mm(tm_s) >= 1.0:
-                return tm_s
+            if tm_s.is_watertight and float(tm_s.volume) >= min_vol:
+                alt_s = _trimesh_min_altitude_mm(tm_s)
+                if alt_s > best_alt:
+                    best_tm, best_alt = tm_s, alt_s
+                if alt_s >= 1.0:
+                    return tm_s
     except Exception:
         pass
-    return tm
+    return best_tm
 
 
 def _extrude_vertical_slab_to_manifold(
@@ -1762,6 +1805,8 @@ def _separate_columns_and_split_walls(
     column_min_width_m: float = 0.56,
 ) -> tuple[list[tuple[str, Polygon]], list[tuple[str, str, Polygon, Polygon]]]:
     """Isolate compact columns vs thick/thin walls; tag Ext_W/E/N/S vs Int cleanly."""
+    if S_base is None or S_base.is_empty:
+        return [], []
     r = max(0.20, column_min_width_m * 0.5)
     opened = S_base.buffer(-r, join_style=2).buffer(r, join_style=2).intersection(S_base)
     columns: list[tuple[str, Polygon]] = []
@@ -1780,7 +1825,9 @@ def _separate_columns_and_split_walls(
 
     col_union = unary_union(col_geoms) if col_geoms else Polygon()
     walls_base = _clean_shapely(S_base.difference(col_union), 0.0)
-    walls_mid = _clean_shapely(S_mid.difference(col_union), 0.0)
+    walls_mid = _clean_shapely(S_mid.difference(col_union), 0.0) if (S_mid is not None and not S_mid.is_empty) else Polygon()
+    if walls_base.is_empty:
+        return columns, []
 
     # True perimeter band (from actual building footprint exterior, not convex hull, so recessed walls stay exact)
     outer_src = floor_fp if not floor_fp.is_empty else S_base
@@ -2207,7 +2254,7 @@ def _split_mesh_by_material_and_flat_uvs(
             for k in range(3):
                 pt = tri_pts[k]
                 uv = tri_uvs[k]
-                key = (round(float(pt[0]), 5), round(float(pt[1]), 5), round(float(pt[2]), 5), nkey)
+                key = (round(float(pt[0]), 6), round(float(pt[1]), 6), round(float(pt[2]), 6), nkey)
                 vid = vert_map.get(key)
                 if vid is None:
                     vid = len(new_verts)
@@ -2215,8 +2262,11 @@ def _split_mesh_by_material_and_flat_uvs(
                     new_uvs.append(uv)
                     vert_map[key] = vid
                 out_tri.append(vid)
-            new_faces.append((out_tri[0], out_tri[1], out_tri[2]))
+            if out_tri[0] != out_tri[1] and out_tri[1] != out_tri[2] and out_tri[2] != out_tri[0]:
+                new_faces.append((out_tri[0], out_tri[1], out_tri[2]))
 
+        if not new_faces:
+            continue
         pbr = mat_defs[mkey]
         vis = trimesh.visual.TextureVisuals(uv=np.asarray(new_uvs, dtype=np.float64), material=pbr)
         sub_tm = trimesh.Trimesh(
@@ -2329,9 +2379,9 @@ def run_solid_rebuild(
     # Clip S_mid inside S_base envelope so zero upper overhangs leak into walls
     S_mid = _clean_shapely(S_mid_raw.intersection(S_base.buffer(0.02, join_style=2)), 0.004)
 
-    # Weld sub-9cm raw wall micro-slits & fill tiny <0.35m2 pinholes while keeping doorways (>=0.70m) intact
-    S_base = _fill_small_holes(_clean_shapely(S_base, 0.045), 0.35)
-    S_mid = _fill_small_holes(_clean_shapely(S_mid, 0.045).intersection(S_base), 0.35)
+    # Weld sub-12.4cm raw wall micro-slits & fill tiny <0.35m2 pinholes while keeping doorways (>=0.70m) intact
+    S_base = _fill_small_holes(_clean_shapely(S_base, 0.062), 0.35)
+    S_mid = _fill_small_holes(_clean_shapely(S_mid, 0.062).intersection(S_base), 0.35)
     S_base, S_mid = _apply_overrides_2d(S_base, S_mid, overrides_path)
 
     floor_fp, bot_fp, stair_clusters = _extract_floor_and_stairs(raw, S_base, S_mid)

@@ -34,9 +34,18 @@ DEFAULT_OUT_ROOT = Path(r"D:\PROJECTS\04-Corllenium-Building-Model-Repair\02_STA
 
 
 def _is_non_interior_folder(name: str, include_basements: bool = False) -> bool:
-    """Return True for rooftops (Floor_RF/*Roof*), Sidewalk_*, and basements (Floor_*B unless opted in)."""
+    """Return True for rooftops, sidewalks, shared shells, debug subdirs, and basements."""
     low = name.strip().lower()
-    if low == "floor_rf" or low.endswith("_rf") or low.startswith("roof") or low.startswith("sidewalk"):
+    if (
+        low == "floor_rf"
+        or low.endswith("_rf")
+        or (low.endswith("-roof") and "and-roof" not in low)
+        or low.startswith("roof")
+        or low.startswith("sidewalk")
+        or low.startswith("shared-")
+        or "redwing_stack" in low
+        or re.search(r"-e[35]-\d+", low) is not None
+    ):
         return True
     if not include_basements and re.match(r"^(floor_)?\d+b$", low):
         return True
@@ -322,6 +331,29 @@ def audit_rebuilt_glb(
                             "bounds": [round(float(v), 2) for v in p.bounds],
                         })
 
+    # Gate 9: Zero inverted-volume structural nodes or acute sliver triangles
+    neg_volume_nodes: list[str] = []
+    sliver_tris = 0
+    min_structural_alt_mm = 9999.0
+    for n, g in sorted(sc.geometry.items()):
+        if not (n.startswith("Wall_") or n.startswith("Column_") or n.startswith("Floor_Slab")):
+            continue
+        if g.is_watertight and float(g.volume) < -1e-6:
+            neg_volume_nodes.append(n)
+        if len(g.faces) == 0:
+            continue
+        verts = g.vertices[g.faces]
+        e0 = np.linalg.norm(verts[:, 1] - verts[:, 0], axis=1)
+        e1 = np.linalg.norm(verts[:, 2] - verts[:, 1], axis=1)
+        e2 = np.linalg.norm(verts[:, 0] - verts[:, 2], axis=1)
+        longest = np.maximum(np.maximum(e0, e1), e2)
+        alt_mm = (2.0 * g.area_faces / np.maximum(longest, 1e-12)) * 1000.0
+        aspect = longest / np.maximum(alt_mm / 1000.0, 1e-12)
+        min_structural_alt_mm = min(min_structural_alt_mm, float(alt_mm.min()))
+        sliver_tris += int(((alt_mm < 0.5) & (aspect > 80.0)).sum())
+    if min_structural_alt_mm == 9999.0:
+        min_structural_alt_mm = 0.0
+
     gates = {
         "watertight": watertight_ok,
         "stepped_upper": len(stepped_upper) == 0,
@@ -331,6 +363,7 @@ def audit_rebuilt_glb(
         "unity_outputs": unity_outputs_ok,
         "parapet_bounds_clean": len(parapet_anomalies) == 0,
         "doorways_unblocked": len(blocked_doorways) == 0,
+        "no_sliver_artifacts": len(neg_volume_nodes) == 0 and sliver_tris == 0,
     }
     return {
         "all_passed": all(gates.values()),
@@ -347,6 +380,9 @@ def audit_rebuilt_glb(
             "parapet_zfight": parapet_zfight,
             "parapet_anomalies": parapet_anomalies,
             "blocked_doorways": blocked_doorways,
+            "neg_volume_nodes": neg_volume_nodes,
+            "sliver_tris": sliver_tris,
+            "min_structural_alt_mm": round(min_structural_alt_mm, 3),
             "overhead_top_area": overhead_top_area,
             "floor_raised_nodes": [n for n in sc.geometry if "Raised" in n],
         },
@@ -462,6 +498,20 @@ def run_batch_rebuild(
             ]
         if not fixed_objs:
             raise FileNotFoundError(f"No *.fixed.obj files found under {b_src} for floors={floors}")
+        by_dir: dict[Path, list[Path]] = {}
+        for p in fixed_objs:
+            by_dir.setdefault(p.parent, []).append(p)
+        fixed_objs = [
+            max(
+                cands,
+                key=lambda p: (
+                    0 if p.name.lower().endswith("1.fixed.obj") else 1,
+                    p.stat().st_size if p.is_file() else 0,
+                    p.name,
+                ),
+            )
+            for _, cands in sorted(by_dir.items())
+        ]
 
         b_out = out_root / bname
         b_out.mkdir(parents=True, exist_ok=True)

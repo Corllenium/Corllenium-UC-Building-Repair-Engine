@@ -15,9 +15,15 @@ def test_is_non_interior_folder_skips_rooftops_sidewalks_and_basements_by_defaul
     assert _is_non_interior_folder("Floor_RF") is True
     assert _is_non_interior_folder("Sidewalk_2F") is True
     assert _is_non_interior_folder("Roof_Deck") is True
+    assert _is_non_interior_folder("Model-Floor_07-Roof") is True
+    assert _is_non_interior_folder("Shared-Building-Shell") is True
+    assert _is_non_interior_folder("Shared-Stairs") is True
+    assert _is_non_interior_folder("Model-Floor_01-e5-10482") is True
+    assert _is_non_interior_folder("Model-Floor_07_RedWing_Stack") is True
     assert _is_non_interior_folder("Floor_1B") is True
     assert _is_non_interior_folder("Floor_4B") is True
     assert _is_non_interior_folder("Floor_4B", include_basements=True) is False
+    assert _is_non_interior_folder("Model-Floor_05_and-Roof") is False
     assert _is_non_interior_folder("Floor_4F") is False
     assert _is_non_interior_folder("Floor_9M") is False
 
@@ -122,3 +128,39 @@ def test_audit_rebuilt_glb_flags_floating_lower_parapet_and_floor_iron(tmp_path:
     reasons = {a["reason"] for a in qa["metrics"]["parapet_anomalies"]}
     assert "floating_lower_parapet_tail" in reasons
     assert "floor_slab_iron_bleed" in reasons
+
+
+def test_audit_rebuilt_glb_flags_sliver_and_negative_volume(tmp_path: Path) -> None:
+    import trimesh
+    from shapely.geometry import box as sbox
+    from engine.fixes.solid_cutaway_rebuild import geom_to_manifold, manifold_to_trimesh
+    from tools.batch_solid_rebuild import audit_rebuilt_glb
+
+    obj = tmp_path / "sliver_audit.obj"
+    mtl = tmp_path / "sliver_audit.mtl"
+    out_dir = tmp_path / "out"
+    out_dir.mkdir()
+    _write_box_obj([
+        ("minecraft_quartz_block_top_-1", 0.0, -0.5, 0.0, 10.0, 0.0, 10.0),
+        ("minecraft_concrete_white_-1", 0.0, 0.0, 0.0, 0.5, 3.6, 10.0),
+    ], obj, mtl)
+    for req in ("sliver_audit.solid_rebuild.unity.obj", "materials.mtl", "rebuild_manifest.json", "watertight_audit.json"):
+        (out_dir / req).write_text("ok", encoding="utf-8")
+
+    sc = trimesh.Scene()
+    inv = manifold_to_trimesh(geom_to_manifold(sbox(0.0, 0.0, 1.0, 1.0), 0.0, 1.0))
+    inv.invert()
+    sc.add_geometry(inv, node_name="Wall_Int_01__Lower__white__1", geom_name="Wall_Int_01__Lower__white__1")
+    sliver = trimesh.Trimesh(
+        vertices=[[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.5, 0.0002, 0.0]],
+        faces=[[0, 1, 2]],
+        process=False,
+    )
+    sc.add_geometry(sliver, node_name="Column_01__Lower__white__1", geom_name="Column_01__Lower__white__1")
+    glb = tmp_path / "sliver.glb"
+    glb.write_bytes(sc.export(file_type="glb"))
+
+    qa = audit_rebuilt_glb(glb, obj, out_dir, {"all_watertight": True, "total_open_edges": 0, "total_nonmanifold_edges": 0, "narrow_wall_gaps": 0}, True)
+    assert qa["gates"]["no_sliver_artifacts"] is False
+    assert qa["metrics"]["sliver_tris"] >= 1
+    assert "Wall_Int_01__Lower__white__1" in qa["metrics"]["neg_volume_nodes"]
