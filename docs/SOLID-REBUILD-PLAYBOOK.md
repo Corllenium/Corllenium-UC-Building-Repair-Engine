@@ -10,7 +10,7 @@ Authoritative engineering checklist distilled from the **CHTM 4F & 5F** pilot re
    - `Exports/Repaired-Buildings-20261015/ByBuilding/<Building>/<Floor>/*.fixed.obj` (+ `.mtl` / textures)
    - Never modify `01_ORIGINAL_BACKUPS/`, `CHECKPOINT-17`, or `building_repair.py` / `engine/guard/**`.
 2. **Engine v2 Solid Rebuild (`05-Corllenium-UC-Building-Repair-Engine`):**
-   - Run `python tools/batch_solid_rebuild.py --building <Building>` (which calls `run_solid_rebuild(...)` and enforces all **7 automated QA gates**, excluding rooftops `Floor_RF`, `Sidewalk_*`, and basements `Floor_*B` by default; pass `--include-basements` only when rebuilding parking decks).
+   - Run `python tools/batch_solid_rebuild.py --building <Building>` (which calls `run_solid_rebuild(...)` and enforces all **8 automated QA gates**, excluding rooftops `Floor_RF`, `Sidewalk_*`, and basements `Floor_*B` by default; pass `--include-basements` only when rebuilding parking decks).
 3. **Staged Output Packages (`04-Corllenium-Building-Model-Repair`):**
    - `02_STAGING_DEVELOPMENT/SolidRebuild/<Building>/<Floor>/`
      - `*.solid_rebuild.unity.obj` + `materials.mtl` + `textures/` — direct Unity 6 URP import package (metres Y-up)
@@ -67,7 +67,7 @@ Every fix discovered during CHTM 4F & 5F QA is encoded as a **general, determini
 
 1. **Source & Asset Stack Lock:** Confirm `*.fixed.obj`, `output_4_3d_color_coded.png`, `*-polished.png` grid, As-Built PDF room schedule, and `*-rooms-color.json` / `*-colour-sheet.json` match the target floor.
 2. **Zone Exclusion Check:** Exclude rooftops (`RF`), sidewalks (`Sidewalk_*`), basements (`1B..4B`), corridors/hallways, stairs, elevator shafts, and balconies.
-3. **Engine v2 Watertight + 7-Gate Rebuild:** Pass `watertight`, `stepped_upper`, `non_ortho_steps`, `parapet_zfight`, `overhead_bounds`, `unity_outputs`, and `parapet_bounds_clean` (`max_h <= 1.65 m`, zero ceiling-hung wedges or stairwell wall protrusions).
+3. **Engine v2 Watertight + 8-Gate Rebuild:** Pass `watertight`, `stepped_upper`, `non_ortho_steps`, `parapet_zfight`, `overhead_bounds`, `unity_outputs`, `parapet_bounds_clean` (`max_h <= 1.75 m`, zero ceiling-hung wedges or stairwell wall protrusions), and `doorways_unblocked` (cap-guided recovery requires `fresh_noded` support `>= 0.30` so narrow doorways under lintels never brick shut).
 4. **Stacked Multi-Floor Wall & Column Continuity:** Pass `audit_stacked_continuity` across `(fl-1, fl, fl+1)` with `missing_m2 == 0`.
 5. **Wall & Lintel Room Mask Tracing:** Trace `*-interior-mask.png` from `Floor_Slab - (Wall__Lower | Column__Lower | OverheadBeams | Stairs_Low)` + straight doorway closings + orthogonal column-grid splits (`0` curved watershed bleed).
 6. **QA Mask Overlay Inspection:** Visually inspect `mask-qa-<LVL>.png` against `*-rooms-color.png` and `*-polished.png` to verify every designable room ID and wall-snapped border.

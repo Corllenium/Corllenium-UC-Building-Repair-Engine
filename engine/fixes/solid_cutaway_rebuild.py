@@ -1283,13 +1283,18 @@ def _extract_solid_slice(
                 cap_lines.extend(list(cp.interiors))
             noded_combo = unary_union(lines + cap_lines)
             seg_buf = noded.buffer(0.08, join_style=2)
+            fresh_noded = noded.difference(base_solid.buffer(0.06, join_style=2)) if not base_solid.is_empty else noded
+            fresh_buf = fresh_noded.buffer(0.08, join_style=2) if not fresh_noded.is_empty else Polygon()
             recovered: list[Polygon] = []
             for p in polygonize(noded_combo):
                 if p.area < 0.015 or p.area > max_room_area:
                     continue
                 if p.intersection(missing_caps).area / max(p.area, 1e-9) < 0.70:
                     continue
-                if p.boundary.intersection(seg_buf).length / max(p.boundary.length, 1e-9) >= 0.42:
+                perim = max(p.boundary.length, 1e-9)
+                has_total_support = p.boundary.intersection(seg_buf).length / perim >= 0.42
+                has_fresh_walls = (not fresh_buf.is_empty) and (p.boundary.intersection(fresh_buf).length / perim >= 0.30)
+                if has_total_support and has_fresh_walls:
                     rp = _regularize_polygon(p)
                     if not rp.is_empty:
                         recovered.append(rp)

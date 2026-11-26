@@ -12,7 +12,7 @@ from typing import Any
 
 import numpy as np
 from shapely.geometry import LineString, Polygon
-from shapely.ops import unary_union
+from shapely.ops import polygonize, unary_union
 import trimesh
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -22,6 +22,7 @@ if str(_REPO_ROOT) not in sys.path:
 from engine.fixes.solid_cutaway_rebuild import (  # noqa: E402
     _clean_shapely,
     _count_non_ortho_edges,
+    _extract_solid_slice,
     _is_clean_angled_tread,
     _iter_polygons,
     load_raw_floor_obj,
@@ -200,6 +201,82 @@ def audit_rebuilt_glb(
                     "ceil_hang_span": round(ceil_hang_span, 2),
                 })
 
+    # Gate 8: Genuine raw doorway pockets beneath lintels must remain unblocked in Wall_*__Lower
+    blocked_doorways: list[dict[str, Any]] = []
+    wc_lo_polys = [
+        Polygon(g.vertices[f][:, [0, 2]]).buffer(0)
+        for n, g in sc.geometry.items()
+        if (n.startswith("Wall_") or n.startswith("Column_")) and "__Lower" in n
+        for f in g.faces[g.face_normals[:, 1] > 0.9]
+    ]
+    wc_lo_polys = [p for p in wc_lo_polys if p.area > 1e-4]
+    if wc_lo_polys:
+        wc_lo = _clean_shapely(unary_union(wc_lo_polys), 0.005)
+        pos_r, fa_r, mats_r, fmats_r = raw.positions, raw.faces, raw.materials, raw.face_mats
+        keep_w = np.array([mats_r[m].category in ("structural", "baseboard", "exterior_accent") for m in fmats_r])
+        wall_tm_r = trimesh.Trimesh(vertices=pos_r, faces=fa_r[keep_w], process=False)
+        p0_r, p1_r, p2_r = pos_r[fa_r[:, 0]], pos_r[fa_r[:, 1]], pos_r[fa_r[:, 2]]
+        cr_r = np.cross(p1_r - p0_r, p2_r - p0_r)
+        un_r = cr_r / np.maximum(np.linalg.norm(cr_r, axis=1)[:, None], 1e-12)
+        yc_r = pos_r[fa_r].mean(axis=1)[:, 1]
+        y_chk = float(raw.floor_y) + 0.60
+
+        def _raw_caps(ymin: float) -> Any:
+            ps = [
+                Polygon(pos_r[f][:, [0, 2]]).buffer(0)
+                for f, ok in zip(fa_r, keep_w & (un_r[:, 1] > 0.85) & (yc_r >= ymin))
+                if ok
+            ]
+            ps = [p for p in ps if p.area > 1e-5]
+            return _clean_shapely(unary_union(ps), 0.005) if ps else Polygon()
+
+        any_cap_r = _raw_caps(float(raw.floor_y) + 0.45)
+        caps_hi_r = _raw_caps(y_chk - 0.02)
+        base_no_cap = _extract_solid_slice(wall_tm_r, y_chk, any_cap_r, caps_above_y=None)
+        segs_r = trimesh.intersections.mesh_plane(wall_tm_r, [0.0, 1.0, 0.0], [0.0, y_chk, 0.0])
+        if len(segs_r) > 0 and not caps_hi_r.is_empty:
+            lines_r = [
+                LineString([(round(float(s[0, 0]), 3), round(float(s[0, 2]), 3)), (round(float(s[1, 0]), 3), round(float(s[1, 2]), 3))])
+                for s in segs_r
+                if (round(float(s[0, 0]), 3), round(float(s[0, 2]), 3)) != (round(float(s[1, 0]), 3), round(float(s[1, 2]), 3))
+            ]
+            noded_r = unary_union(lines_r)
+            wide_c = caps_hi_r.buffer(-1.30, join_style=2)
+            narrow_c = caps_hi_r.difference(wide_c.buffer(1.40, join_style=2)) if not wide_c.is_empty else caps_hi_r
+            miss_c = _clean_shapely(narrow_c.difference(base_no_cap.buffer(0.02, join_style=2)), 0.008)
+            if not miss_c.is_empty:
+                cap_lr = [g.exterior for g in _iter_polygons(miss_c)]
+                for g in _iter_polygons(miss_c):
+                    cap_lr.extend(list(g.interiors))
+                fresh_r_noded = noded_r.difference(base_no_cap.buffer(0.06, join_style=2)) if not base_no_cap.is_empty else noded_r
+                fresh_r_buf = fresh_r_noded.buffer(0.08, join_style=2) if not fresh_r_noded.is_empty else Polygon()
+                st_xz = (
+                    unary_union([
+                        Polygon(g.vertices[f][:, [0, 2]]).buffer(0)
+                        for g in stair_all_geoms
+                        for f in g.faces[g.face_normals[:, 1] > 0.85]
+                    ]).buffer(0.10)
+                    if stair_all_geoms
+                    else Polygon()
+                )
+                for p in polygonize(unary_union(lines_r + cap_lr)):
+                    if not (0.25 <= p.area <= 2.50):
+                        continue
+                    if not st_xz.is_empty and p.intersects(st_xz):
+                        continue
+                    if p.intersection(miss_c).area / max(p.area, 1e-9) < 0.70:
+                        continue
+                    fresh_ratio = (
+                        p.boundary.intersection(fresh_r_buf).length / max(p.boundary.length, 1e-9)
+                        if not fresh_r_buf.is_empty
+                        else 0.0
+                    )
+                    if fresh_ratio < 0.15 and p.intersection(wc_lo).area / max(p.area, 1e-9) >= 0.70:
+                        blocked_doorways.append({
+                            "area": round(float(p.area), 2),
+                            "bounds": [round(float(v), 2) for v in p.bounds],
+                        })
+
     gates = {
         "watertight": watertight_ok,
         "stepped_upper": len(stepped_upper) == 0,
@@ -208,6 +285,7 @@ def audit_rebuilt_glb(
         "overhead_bounds": overhead_ok,
         "unity_outputs": unity_outputs_ok,
         "parapet_bounds_clean": len(parapet_anomalies) == 0,
+        "doorways_unblocked": len(blocked_doorways) == 0,
     }
     return {
         "all_passed": all(gates.values()),
@@ -223,6 +301,7 @@ def audit_rebuilt_glb(
             "non_ortho_steps": non_ortho_steps,
             "parapet_zfight": parapet_zfight,
             "parapet_anomalies": parapet_anomalies,
+            "blocked_doorways": blocked_doorways,
             "overhead_top_area": overhead_top_area,
             "floor_raised_nodes": [n for n in sc.geometry if "Raised" in n],
         },

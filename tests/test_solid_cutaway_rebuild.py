@@ -702,3 +702,28 @@ def test_solid_rebuild_clips_parapet_ceiling_belly_and_protrusion(tmp_path: Path
     for g in q_parapets:
         assert float(g.bounds[1][0]) <= 7.20, f"Parapet protruded past stairwell x=7.0: {g.bounds}"
         assert float(g.bounds[1][1]) <= 1.85, f"Ceiling-hung soffit belly survived: {g.bounds}"
+
+
+def test_extract_solid_slice_never_bricks_narrow_doorway_under_lintel() -> None:
+    import trimesh
+
+    # Narrow 0.96m x 0.50m doorway [4.0..4.96, 0..0.5] under a lintel [4.0..4.96, 0..0.5] at y=[2.2..3.6],
+    # flanked by closed walls [0..4] and [4.96..10] plus an open-shell wing [10..13] missing south face.
+    wall_a = manifold_to_trimesh(geom_to_manifold(shapely_box(0.0, 0.0, 4.0, 0.5), 0.0, 3.6))
+    wall_b = manifold_to_trimesh(geom_to_manifold(shapely_box(4.96, 0.0, 10.0, 0.5), 0.0, 3.6))
+    lintel = manifold_to_trimesh(geom_to_manifold(shapely_box(4.0, 0.0, 4.96, 0.5), 2.2, 3.6))
+
+    open_full = manifold_to_trimesh(geom_to_manifold(shapely_box(10.0, 0.0, 13.0, 0.5), 0.0, 3.6))
+    fc_o = open_full.vertices[open_full.faces].mean(axis=1)
+    fn_o = open_full.face_normals
+    keep_o = ~((fn_o[:, 2] < -0.9) & (fc_o[:, 2] < 0.05))
+    open_wing = trimesh.Trimesh(vertices=open_full.vertices, faces=open_full.faces[keep_o], process=False)
+
+    wall_tm = trimesh.util.concatenate([wall_a, wall_b, lintel, open_wing])
+    up_caps = unary_union([shapely_box(0.0, 0.0, 13.0, 0.5)])
+    recovered = _extract_solid_slice(wall_tm, 0.60, up_caps, caps_above_y=up_caps)
+
+    assert recovered.intersection(shapely_box(0.2, 0.1, 3.8, 0.4)).area > 0.95
+    assert recovered.intersection(shapely_box(5.1, 0.1, 9.8, 0.4)).area > 0.95
+    assert recovered.intersection(shapely_box(10.2, 0.1, 12.8, 0.4)).area > 0.70
+    assert recovered.intersection(shapely_box(4.05, 0.05, 4.91, 0.45)).area < 0.05
