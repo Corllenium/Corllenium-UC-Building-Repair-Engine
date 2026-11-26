@@ -119,6 +119,13 @@ def push_live_status(
     print(f"[Stage {stage_no} | {pct:3d}% | {elapsed:6.1f}s] {message}", flush=True)
     base_status_path = WORK_ROOT / "status_base.json"
     payload = json.loads(base_status_path.read_text(encoding="utf-8")) if base_status_path.is_file() else {}
+    # Always preserve Main Infrastructure fresh 1F-7F status sections so Main Infra tab never goes blank!
+    siege_status_path = Path(r"D:\PROJECTS\02-Corllenium-Siege\dashboard\public\building-repair-status.json")
+    if siege_status_path.is_file():
+        siege_status = json.loads(siege_status_path.read_text(encoding="utf-8"))
+        for k in ("freshMainInfra", "freshMainInfraUpper"):
+            if k not in payload and k in siege_status:
+                payload[k] = siege_status[k]
     payload.update({
         "updatedAt": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "state": state,
@@ -146,7 +153,7 @@ def push_live_status(
                 "-o", "StrictHostKeyChecking=yes",
                 "-o", f"UserKnownHostsFile={KNOWN_HOSTS}",
                 "-p", "27015", "devenvir@dev-environment.site",
-                "cat > ~/corllenium/app/public/building-repair-status.json && cp -f ~/corllenium/app/public/building-repair-status.json ~/corllenium/web/building-repair-status.json",
+                "cat > ~/corllenium/app/public/building-repair-status.json.tmp && mv -f ~/corllenium/app/public/building-repair-status.json.tmp ~/corllenium/app/public/building-repair-status.json && cp -f ~/corllenium/app/public/building-repair-status.json ~/corllenium/web/building-repair-status.json",
             ],
             input=raw,
             capture_output=True,
