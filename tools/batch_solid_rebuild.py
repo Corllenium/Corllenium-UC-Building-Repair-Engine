@@ -201,6 +201,51 @@ def audit_rebuilt_glb(
                     "ceil_hang_span": round(ceil_hang_span, 2),
                 })
 
+    # Gate 7b: Lower cutaway parapets must rest over Floor_Slab or lower Stairs_* (zero floating tails over empty pits)
+    # and Floor_Slab upward faces must never receive iron_block/metal_block railings
+    lower_sup_polys: list[Polygon] = []
+    floor_slab_iron_nodes = [
+        n for n in sc.geometry
+        if n.startswith("Floor_Slab") and ("iron_block" in n.lower() or "metal_block" in n.lower())
+    ]
+    for n, g in sc.geometry.items():
+        if n.startswith("Floor_Slab"):
+            fn = g.face_normals
+            fc_y = g.vertices[g.faces].mean(axis=1)[:, 1]
+            m = (fn[:, 1] > 0.85) & (fc_y >= float(raw.floor_y) - 0.15)
+            for f in g.faces[m]:
+                p = Polygon(g.vertices[f][:, [0, 2]]).buffer(0)
+                if p.area > 1e-4:
+                    lower_sup_polys.append(p)
+        elif n.startswith("Stairs_") and "Upper" not in n and "Parapet" not in n:
+            fn = g.face_normals
+            for f in g.faces[fn[:, 1] > 0.85]:
+                p = Polygon(g.vertices[f][:, [0, 2]]).buffer(0)
+                if p.area > 1e-4:
+                    lower_sup_polys.append(p)
+    lower_support_xz = (
+        _clean_shapely(unary_union(lower_sup_polys).buffer(0.45, join_style=2), 0.005)
+        if lower_sup_polys
+        else Polygon()
+    )
+    if not lower_support_xz.is_empty:
+        for n, g in sorted(sc.geometry.items()):
+            if "Parapet" not in n or "__Lower" not in n or "cut_cap" in n:
+                continue
+            face_xz = [Polygon(g.vertices[f][:, [0, 2]]).buffer(0) for f in g.faces]
+            parapet_xz = _clean_shapely(unary_union([p for p in face_xz if p.area > 1e-5]), 0.005)
+            overhang = float(parapet_xz.difference(lower_support_xz).area) if not parapet_xz.is_empty else 0.0
+            if overhang > 0.05:
+                b = g.bounds
+                parapet_anomalies.append({
+                    "node": n,
+                    "reason": "floating_lower_parapet_tail",
+                    "overhang_m2": round(overhang, 3),
+                    "bounds": [round(float(v), 2) for v in (*b[0], *b[1])],
+                })
+    for fn_iron in floor_slab_iron_nodes:
+        parapet_anomalies.append({"node": fn_iron, "reason": "floor_slab_iron_bleed"})
+
     # Gate 8: Genuine raw doorway pockets beneath lintels must remain unblocked in Wall_*__Lower
     blocked_doorways: list[dict[str, Any]] = []
     wc_lo_polys = [

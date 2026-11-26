@@ -90,3 +90,35 @@ def test_audit_stacked_continuity_detects_missing_middle_wall(tmp_path: Path) ->
     assert bad["has_large_gaps"] is True
     assert bad["flagged_floors"][0]["floor"] == "Floor_5F"
     assert bad["flagged_floors"][0]["missing_m2"] >= 4.5
+
+
+def test_audit_rebuilt_glb_flags_floating_lower_parapet_and_floor_iron(tmp_path: Path) -> None:
+    import trimesh
+    from shapely.geometry import box as sbox
+    from engine.fixes.solid_cutaway_rebuild import geom_to_manifold, load_raw_floor_obj, manifold_to_trimesh
+    from tools.batch_solid_rebuild import audit_rebuilt_glb
+
+    obj = tmp_path / "pit_audit.obj"
+    mtl = tmp_path / "pit_audit.mtl"
+    out_dir = tmp_path / "out"
+    out_dir.mkdir()
+    _write_box_obj([
+        ("minecraft_quartz_block_top_-1", 0.0, -0.5, 4.0, 10.0, 0.0, 10.0),
+        ("minecraft_concrete_white_-1", 0.0, 0.0, 4.0, 0.5, 3.6, 10.0),
+    ], obj, mtl)
+    for req in ("pit_audit.solid_rebuild.unity.obj", "materials.mtl", "rebuild_manifest.json", "watertight_audit.json"):
+        (out_dir / req).write_text("ok", encoding="utf-8")
+
+    sc = trimesh.Scene()
+    slab = manifold_to_trimesh(geom_to_manifold(sbox(0.0, 4.0, 10.0, 10.0), -0.5, 0.0))
+    sc.add_geometry(slab, node_name="Floor_Slab__tex_texture_0047_minecraft_iron_block__1", geom_name="Floor_Slab__tex_texture_0047_minecraft_iron_block__1")
+    tail = manifold_to_trimesh(geom_to_manifold(sbox(5.0, 0.5, 5.25, 4.0), -0.5, 1.2))
+    sc.add_geometry(tail, node_name="Stairs_Parapet_01__Lower__tex_texture_0047_minecraft_iron_block__1", geom_name="Stairs_Parapet_01__Lower__tex_texture_0047_minecraft_iron_block__1")
+    glb = tmp_path / "bad.glb"
+    glb.write_bytes(sc.export(file_type="glb"))
+
+    qa = audit_rebuilt_glb(glb, obj, out_dir, {"all_watertight": True, "total_open_edges": 0, "total_nonmanifold_edges": 0, "narrow_wall_gaps": 0}, True)
+    assert qa["gates"]["parapet_bounds_clean"] is False
+    reasons = {a["reason"] for a in qa["metrics"]["parapet_anomalies"]}
+    assert "floating_lower_parapet_tail" in reasons
+    assert "floor_slab_iron_bleed" in reasons

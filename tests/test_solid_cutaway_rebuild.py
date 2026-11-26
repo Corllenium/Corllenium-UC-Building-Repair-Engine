@@ -727,3 +727,52 @@ def test_extract_solid_slice_never_bricks_narrow_doorway_under_lintel() -> None:
     assert recovered.intersection(shapely_box(5.1, 0.1, 9.8, 0.4)).area > 0.95
     assert recovered.intersection(shapely_box(10.2, 0.1, 12.8, 0.4)).area > 0.70
     assert recovered.intersection(shapely_box(4.05, 0.05, 4.91, 0.45)).area < 0.05
+
+
+def test_solid_rebuild_clips_floating_lower_parapet_tail_and_blocks_floor_iron(tmp_path: Path) -> None:
+    obj = tmp_path / "stair_pit.obj"
+    mtl = tmp_path / "stair_pit.mtl"
+    out_dir = tmp_path / "out"
+
+    # Floor slab covers z=[0..10] EXCEPT an open stairwell pit x=[2..6], z=[0.5..3.5]
+    # Lower stairs only occupy x=[2.0..5.0], z=[2.0..3.5]; upper railing extends southward to z=0.6
+    boxes = [
+        ("minecraft_quartz_block_top_-1", 0.0, -1.0, 3.5, 10.0, 0.0, 10.0),
+        ("minecraft_quartz_block_top_-1", 0.0, -1.0, 0.0, 2.0, 0.0, 3.5),
+        ("minecraft_quartz_block_top_-1", 6.0, -1.0, 0.0, 10.0, 0.0, 3.5),
+        ("minecraft_quartz_block_top_-1", 2.0, -1.0, 0.0, 6.0, 0.0, 0.5),
+        # Pit-bottom metal strip that previously polluted recessed Floor_Slab pit cover
+        ("minecraft_iron_block_-1", 2.0, -1.02, 0.5, 5.2, -1.00, 0.75),
+        # Lower stairs on z=[2.0..3.5] + upper stair flight spanning z=[0.6..2.0]
+        ("minecraft_quartz_block_side_-1", 2.0, 0.0, 2.0, 5.0, 0.50, 3.5),
+        ("minecraft_quartz_block_top_-1", 2.0, 0.50, 2.0, 5.0, 1.00, 2.75),
+        ("minecraft_quartz_block_top_-1", 2.0, 1.40, 0.6, 5.0, 2.40, 2.0),
+        # Continuous balustrade + iron handrail along x=[5.00..5.25], z=[0.6..3.5]
+        ("minecraft_quartz_block_side_-15574983", 5.00, 0.0, 2.0, 5.25, 1.20, 3.5),
+        ("minecraft_quartz_block_side_-15574983", 5.00, 1.25, 0.6, 5.25, 2.80, 2.0),
+        ("minecraft_iron_block_-1", 5.00, 0.0, 0.6, 5.25, 1.50, 3.5),
+        ("minecraft_iron_block_-1", 5.00, 1.50, 0.6, 5.25, 3.10, 2.0),
+        # Perimeter walls
+        ("minecraft_concrete_white_-1", 0.0, 0.0, 0.0, 10.0, 3.6, 0.5),
+        ("minecraft_concrete_white_-1", 0.0, 0.0, 9.5, 10.0, 3.6, 10.0),
+        ("minecraft_concrete_white_-1", 0.0, 0.0, 0.5, 0.5, 3.6, 9.5),
+        ("minecraft_concrete_white_-1", 9.5, 0.0, 0.5, 10.0, 3.6, 9.5),
+    ]
+    _write_box_obj(boxes, obj, mtl)
+    rep = run_solid_rebuild(obj, out_dir, mtl_path=mtl, low_cut_m=1.25, plinth_m=0.04)
+    assert rep.passed is True
+    assert rep.glb_path is not None
+
+    import trimesh
+
+    sc = trimesh.load(rep.glb_path, force="scene")
+    assert not any(
+        n.startswith("Floor_Slab") and ("iron_block" in n.lower() or "metal_block" in n.lower())
+        for n in sc.geometry
+    ), f"Floor_Slab received iron/metal material: {list(sc.geometry)}"
+    lo_parapets = [g for n, g in sc.geometry.items() if "Parapet" in n and "__Lower" in n and "cut_cap" not in n]
+    assert lo_parapets, "Expected lower parapet above stairs"
+    for g in lo_parapets:
+        assert float(g.bounds[0][2]) >= 1.60, f"Floating lower parapet tail leaked into empty pit: {g.bounds}"
+    hi_parapets = [g for n, g in sc.geometry.items() if "Parapet" in n and "__Upper" in n]
+    assert hi_parapets and any(float(g.bounds[0][2]) <= 0.70 for g in hi_parapets), "Upper parapet should retain full span"

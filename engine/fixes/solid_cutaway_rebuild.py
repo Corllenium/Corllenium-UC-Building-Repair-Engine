@@ -642,6 +642,7 @@ def _extract_slanted_stair_parapets(
     S_base: Any,
     y_stair_split: float,
     emitted_slabs: set[tuple[str, float, float, str]] | None = None,
+    lower_support_xz: Any = None,
 ) -> tuple[trimesh.Trimesh | None, trimesh.Trimesh | None, list[Polygon]]:
     """Reconstruct true slanted railings/handrails (separated by material) and slanted concrete spines."""
     pos, fa, mats, fmats = raw.positions, raw.faces, raw.materials, raw.face_mats
@@ -716,7 +717,37 @@ def _extract_slanted_stair_parapets(
         ms = _extrude_vertical_slab_to_manifold(op, a, b, axis)
         if ms is None:
             return
-        m_lo, m_hi = _split_manifold_at_y(ms, y_stair_split)
+        _, m_hi = _split_manifold_at_y(ms, y_stair_split)
+        m_lo: m3d.Manifold | None = None
+        if lower_support_xz is not None and not lower_support_xz.is_empty:
+            ou0, _, ou1, _ = op.bounds
+            slab_xz = shapely_box(a, ou0, b, ou1) if axis == "x" else shapely_box(ou0, a, ou1, b)
+            sup_xz = slab_xz.intersection(lower_support_xz)
+            u_boxes: list[Polygon] = []
+            for gp in _iter_polygons(sup_xz):
+                su0, su1 = (gp.bounds[1], gp.bounds[3]) if axis == "x" else (gp.bounds[0], gp.bounds[2])
+                if su1 - su0 >= 0.25:
+                    u_boxes.append(shapely_box(su0 - 0.02, raw.slab_bottom_y - 0.5, su1 + 0.02, y_stair_split + 0.5))
+            if u_boxes:
+                op_lo = _clean_shapely(op.intersection(unary_union(u_boxes)), 0.004)
+                lo_parts = [
+                    gp for gp in _iter_polygons(op_lo)
+                    if gp.area >= 0.04 and (gp.bounds[2] - gp.bounds[0]) >= 0.35
+                ]
+                if lo_parts:
+                    ms_lo_parts = [
+                        mm for gp in lo_parts
+                        if (mm := _extrude_vertical_slab_to_manifold(gp, a, b, axis)) is not None
+                    ]
+                    if ms_lo_parts:
+                        ms_lo = (
+                            m3d.Manifold.batch_boolean(ms_lo_parts, m3d.OpType.Add)
+                            if len(ms_lo_parts) > 1
+                            else ms_lo_parts[0]
+                        )
+                        m_lo, _ = _split_manifold_at_y(ms_lo, y_stair_split)
+        else:
+            m_lo, _ = _split_manifold_at_y(ms, y_stair_split)
         for is_lo, dest_tms, dest_fk, mm in ((True, lo_tms, lo_forced, m_lo), (False, hi_tms, hi_forced, m_hi)):
             if mm is None or mm.is_empty() or mm.num_tri() == 0:
                 continue
@@ -2010,10 +2041,11 @@ def _assign_clean_raw_materials(
         for gi in np.where(up_mask)[0]:
             up_by_y[round(float(fc[int(gi), 1]), 2)].append(int(gi))
         for y_lvl, idxs in up_by_y.items():
-            if abs(y_lvl - floor_y) <= 0.06 or len(raw_up_pts) == 0:
+            if abs(y_lvl - floor_y) <= 0.06 or y_lvl < floor_y - 0.06 or len(raw_up_pts) == 0:
                 mkey = dom_floor_top_key
             else:
-                cmask = np.isin(raw_up_cats, ("floor_tile", "stair_mat")) & (np.abs(raw_up_pts[:, 1] - y_lvl) <= 0.15)
+                no_metal = np.array([("iron_block" not in k.lower() and "metal_block" not in k.lower()) for k in raw_up_keys])
+                cmask = np.isin(raw_up_cats, ("floor_tile", "stair_mat")) & no_metal & (np.abs(raw_up_pts[:, 1] - y_lvl) <= 0.15)
                 mkey = _area_vote_key(raw_up_keys, raw_up_areas, cmask, dom_floor_top_key)
             for gi in idxs:
                 out[gi] = mkey
@@ -2405,6 +2437,15 @@ def run_solid_rebuild(
             if (tm_hi_st := _fuse_stair_tier(hi_by_span)) is not None:
                 stair_nodes_list.append((f"Stairs_Upper_{ci:02d}", "stairs_upper", tm_hi_st))
 
+        # Build lower solid support footprint so cutaway lower parapets never hang floating over empty stairwell pits
+        lower_stair_polys: list[Polygon] = [
+            Polygon(tm_st.vertices[f][:, [0, 2]]).buffer(0)
+            for nm_st, kd_st, tm_st in stair_nodes_list
+            if kd_st == "stairs"
+            for f in tm_st.faces[tm_st.face_normals[:, 1] > 0.85]
+        ]
+        lower_support_xz = _clean_shapely(unary_union([floor_fp] + [p for p in lower_stair_polys if p.area > 1e-4]).buffer(0.32, join_style=2), 0.005)
+
         # Extract parapets from largest stair cluster down so tiny auxiliary flights don't fracture continuous U-parapets
         parapet_by_ci: list[tuple[int, str, str, trimesh.Trimesh]] = []
         for ci, comp_poly, _ in sorted(stair_clusters, key=lambda it: -it[1].area):
@@ -2412,7 +2453,7 @@ def run_solid_rebuild(
                 [comp_poly] + [cp for oci, cp, _ in stair_clusters if oci != ci and comp_poly.distance(cp) <= 1.2]
             )
             tm_lo_p, tm_hi_p, sp_boxes = _extract_slanted_stair_parapets(
-                raw, roi_poly, S_base, y_stair_split, emitted_slabs=emitted_slabs
+                raw, roi_poly, S_base, y_stair_split, emitted_slabs=emitted_slabs, lower_support_xz=lower_support_xz
             )
             spine_claim_boxes.extend(sp_boxes)
             if tm_lo_p is not None:
@@ -2650,7 +2691,18 @@ def run_solid_rebuild(
     slab_edge_band = (
         (raw_vert_pts[:, 1] >= raw.slab_bottom_y - 0.10) & (raw_vert_pts[:, 1] <= raw.floor_y + 0.10)
     ) if len(raw_vert_pts) > 0 else np.zeros(0, dtype=bool)
-    slab_side_pref = np.array([("quartz_block_side" in k.lower()) or (key_to_cat[k] == "stair_mat") for k in raw_vert_keys], dtype=bool)
+    slab_side_pref = np.array(
+        [
+            ("quartz_block_side" in k.lower())
+            or (
+                key_to_cat[k] == "stair_mat"
+                and "iron_block" not in k.lower()
+                and "metal_block" not in k.lower()
+            )
+            for k in raw_vert_keys
+        ],
+        dtype=bool,
+    )
     dom_floor_side_key = _area_vote_key(
         raw_vert_keys,
         raw_vert_areas,
