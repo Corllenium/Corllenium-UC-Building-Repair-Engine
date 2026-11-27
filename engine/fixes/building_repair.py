@@ -555,6 +555,8 @@ def remove_coplanar_overlaps(
     rebuild: bool = False,
     visible: np.ndarray | None = None,
     report: dict | None = None,
+    outer_priority: np.ndarray | None = None,
+    allow_same_plane_back_to_back: bool = True,
 ) -> tuple[MeshData, int]:
     """Remove coplanar overlapping duplicate/end-cap triangles and optionally clip partial overlaps.
 
@@ -618,22 +620,24 @@ def remove_coplanar_overlaps(
                     m_id = int(mesh.face_material[f])
                     mat_area[m_id] = mat_area.get(m_id, 0.0) + float(poly.area)
             is_hs = abs(float(cn[2])) > 0.5
-            if rebuild and visible is not None:
-                # Owner 2026-11-11: never change a texture someone can see. Where two faces with DIFFERENT
-                # looks face opposite ways and BOTH have open air in front (a zero-thickness slab seen from
-                # above and below), keeping one would change a visible texture: leave both, list for the owner.
-                cand = [f for f in g_fids if f in poly_p]
-                vis_pos = [f for f in cand if visible[f] and float(np.dot(fn[f], cn)) >= 0.0]
-                vis_neg = [f for f in cand if visible[f] and float(np.dot(fn[f], cn)) < 0.0]
-                if vis_pos and vis_neg:
-                    for fa in vis_pos:
-                        for fb in vis_neg:
-                            if int(mesh.face_material[fa]) != int(mesh.face_material[fb]) and \
-                                    float(poly_p[fa].intersection(poly_p[fb]).area) > 0.01:
-                                owner_review.update((fa, fb))
+            if rebuild and (visible is not None or outer_priority is not None):
+                # Owner 2026-11-11: never change a texture someone can see unless single-layer E5
+                # enforcement is explicitly requested (`allow_same_plane_back_to_back=False`).
+                if allow_same_plane_back_to_back and visible is not None:
+                    cand = [f for f in g_fids if f in poly_p]
+                    vis_pos = [f for f in cand if visible[f] and float(np.dot(fn[f], cn)) >= 0.0]
+                    vis_neg = [f for f in cand if visible[f] and float(np.dot(fn[f], cn)) < 0.0]
+                    if vis_pos and vis_neg:
+                        for fa in vis_pos:
+                            for fb in vis_neg:
+                                if int(mesh.face_material[fa]) != int(mesh.face_material[fb]) and \
+                                        float(poly_p[fa].intersection(poly_p[fb]).area) > 0.01:
+                                    owner_review.update((fa, fb))
                 rank_key = lambda f: (  # noqa: E731
-                    1 if visible[f] else 0,                                   # the face someone sees wins
-                    round(mat_area.get(int(mesh.face_material[f]), 0.0), 1),  # then the plane's main look
+                    1 if (outer_priority is not None and bool(outer_priority[f])) else 0,  # exterior facade always wins
+                    1 if (visible is not None and bool(visible[f])) else 0,               # then interior visible
+                    (1 if float(fn[f, 2]) > 0.0 else 0) if is_hs else 1,                  # up-facing floors win undersides
+                    round(mat_area.get(int(mesh.face_material[f]), 0.0), 1),              # then the plane's main look
                     float(poly_p[f].area),
                 )
                 fids_sorted = sorted([f for f in g_fids if f in poly_p and f not in owner_review], key=rank_key, reverse=True)
