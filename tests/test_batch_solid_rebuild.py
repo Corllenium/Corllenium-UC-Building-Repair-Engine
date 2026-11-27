@@ -164,3 +164,112 @@ def test_audit_rebuilt_glb_flags_sliver_and_negative_volume(tmp_path: Path) -> N
     assert qa["gates"]["no_sliver_artifacts"] is False
     assert qa["metrics"]["sliver_tris"] >= 1
     assert "Wall_Int_01__Lower__white__1" in qa["metrics"]["neg_volume_nodes"]
+
+
+def test_batch_solid_rebuild_source_mode_raw_selects_raw_obj(tmp_path: Path) -> None:
+    src_root = tmp_path / "src"
+    out_root = tmp_path / "out"
+    floor_dir = src_root / "DEMO" / "Floor_1F"
+    floor_dir.mkdir(parents=True)
+
+    raw_obj = floor_dir / "DEMO_1st_floor.obj"
+    raw_mtl = floor_dir / "DEMO_1st_floor.mtl"
+    v1_obj = floor_dir / "DEMO_1st_floor.fixed.obj"
+    v1_mtl = floor_dir / "DEMO_1st_floor.fixed.mtl"
+    boxes = [
+        ("minecraft_quartz_block_top_-1", 0.0, -0.5, 0.0, 10.0, 0.0, 10.0),
+        ("minecraft_concrete_white_-1", 0.0, 0.0, 0.0, 10.0, 3.6, 0.5),
+        ("minecraft_concrete_white_-1", 0.0, 0.0, 9.5, 10.0, 3.6, 10.0),
+        ("minecraft_concrete_white_-1", 0.0, 0.0, 0.5, 0.5, 3.6, 9.5),
+        ("minecraft_concrete_white_-1", 9.5, 0.0, 0.5, 10.0, 3.6, 9.5),
+    ]
+    _write_box_obj(boxes, raw_obj, raw_mtl)
+    _write_box_obj(boxes, v1_obj, v1_mtl)
+
+    summary = run_batch_rebuild(
+        src_root=src_root,
+        out_root=out_root,
+        building="DEMO",
+        floors=["Floor_1F"],
+        source_mode="raw",
+    )
+    assert summary["all_passed"] is True
+    assert summary["source_mode"] == "raw"
+    fl = summary["buildings"]["DEMO"]["floors"][0]
+    assert fl["source_mode"] == "raw"
+    assert fl["source_obj_name"] == "DEMO_1st_floor.obj"
+    assert (out_root / "DEMO" / "Floor_1F" / "DEMO_1st_floor.solid_rebuild.glb").is_file()
+
+
+def test_audit_rebuilt_glb_raw_completeness_flags_missing_facade(tmp_path: Path) -> None:
+    import trimesh
+    from shapely.geometry import box as sbox
+    from engine.fixes.solid_cutaway_rebuild import geom_to_manifold, manifold_to_trimesh
+    from tools.batch_solid_rebuild import audit_rebuilt_glb
+
+    raw_obj = tmp_path / "raw_with_canopy.obj"
+    raw_mtl = tmp_path / "raw_with_canopy.mtl"
+    out_dir = tmp_path / "out"
+    out_dir.mkdir()
+    _write_box_obj([
+        ("minecraft_quartz_block_top_-1", 0.0, -0.5, 0.0, 10.0, 0.0, 10.0),
+        ("minecraft_concrete_white_-1", 0.0, 0.0, 0.0, 10.0, 3.6, 0.5),
+        ("littletiles_ltcolored0_-1", 2.0, 2.6, 9.8, 8.0, 2.9, 12.2),
+    ], raw_obj, raw_mtl)
+    for req in ("raw_with_canopy.solid_rebuild.unity.obj", "materials.mtl", "rebuild_manifest.json", "watertight_audit.json"):
+        (out_dir / req).write_text("ok", encoding="utf-8")
+
+    sc = trimesh.Scene()
+    slab = manifold_to_trimesh(geom_to_manifold(sbox(0.0, 0.0, 10.0, 10.0), -0.5, 0.0))
+    wall = manifold_to_trimesh(geom_to_manifold(sbox(0.0, 0.0, 10.0, 0.5), 0.04, 1.25))
+    sc.add_geometry(slab, node_name="Floor_Slab", geom_name="Floor_Slab")
+    sc.add_geometry(wall, node_name="Wall_Ext_S_01__Lower", geom_name="Wall_Ext_S_01__Lower")
+    glb = tmp_path / "missing_facade.glb"
+    glb.write_bytes(sc.export(file_type="glb"))
+
+    qa = audit_rebuilt_glb(
+        glb, raw_obj, out_dir,
+        {"all_watertight": True, "total_open_edges": 0, "total_nonmanifold_edges": 0, "narrow_wall_gaps": 0},
+        True,
+        raw_ref_obj=raw_obj,
+    )
+    assert qa["gates"]["raw_completeness"] is False
+    assert qa["metrics"]["raw_completeness"]["facade_coverage_ok"] is False
+
+
+def test_parapet_bounds_clean_bins_025m_stepped_slabs_separately(tmp_path: Path) -> None:
+    import trimesh
+    from shapely.geometry import box as sbox
+    from engine.fixes.solid_cutaway_rebuild import geom_to_manifold, manifold_to_trimesh
+    from tools.batch_solid_rebuild import audit_rebuilt_glb
+
+    raw_obj = tmp_path / "stepped_parapet.obj"
+    raw_mtl = tmp_path / "stepped_parapet.mtl"
+    out_dir = tmp_path / "out_p"
+    out_dir.mkdir()
+    _write_box_obj([
+        ("minecraft_quartz_block_top_-1", 0.0, -0.5, 0.0, 10.0, 0.0, 10.0),
+        ("minecraft_quartz_block_top_-1", 1.0, 0.0, 2.0, 3.0, 0.5, 6.0),
+    ], raw_obj, raw_mtl)
+    for req in ("stepped_parapet.solid_rebuild.unity.obj", "materials.mtl", "rebuild_manifest.json", "watertight_audit.json"):
+        (out_dir / req).write_text("ok", encoding="utf-8")
+
+    sc = trimesh.Scene()
+    slab = manifold_to_trimesh(geom_to_manifold(sbox(0.0, 0.0, 10.0, 10.0), -0.5, 0.0))
+    stair = manifold_to_trimesh(geom_to_manifold(sbox(1.0, 2.0, 3.0, 6.0), 0.0, 1.25))
+    # Two adjacent 0.25m-thick stepped quartz_15574983 parapets: x=[1.35..1.60] y=[0..1.3] & x=[1.60..1.85] y=[0.6..1.9]
+    p1 = manifold_to_trimesh(geom_to_manifold(sbox(1.35, 2.5, 1.60, 5.5), 0.0, 1.30))
+    p2 = manifold_to_trimesh(geom_to_manifold(sbox(1.60, 2.5, 1.85, 5.5), 0.60, 1.90))
+    sc.add_geometry(slab, node_name="Floor_Slab", geom_name="Floor_Slab")
+    sc.add_geometry(stair, node_name="Stairs_01", geom_name="Stairs_01")
+    sc.add_geometry(p1, node_name="Stairs_Parapet_01__Lower__tex_texture_0070_minecraft_quartz_block_side__15574983", geom_name="p1")
+    sc.add_geometry(p2, node_name="Stairs_Parapet_01__Upper__tex_texture_0070_minecraft_quartz_block_side__15574983", geom_name="p2")
+    glb = tmp_path / "stepped.glb"
+    glb.write_bytes(sc.export(file_type="glb"))
+
+    qa = audit_rebuilt_glb(
+        glb, raw_obj, out_dir,
+        {"all_watertight": True, "total_open_edges": 0, "total_nonmanifold_edges": 0, "narrow_wall_gaps": 0},
+        True,
+    )
+    assert qa["gates"]["parapet_bounds_clean"] is True

@@ -33,6 +33,7 @@ import numpy as np
 from PIL import Image
 from shapely import set_precision
 from shapely.affinity import scale as shapely_scale, translate as shapely_translate
+from shapely.errors import GEOSException
 from shapely.geometry import (
     GeometryCollection,
     LineString,
@@ -191,10 +192,29 @@ def load_raw_floor_obj(
 
     pos = np.asarray(verts, dtype=np.float64)
     fa = np.asarray(faces, dtype=np.int64)
-    if mtl_path is None and discovered_mtl:
-        cand = obj_path.parent / discovered_mtl
-        if cand.is_file():
-            mtl_path = cand
+    if mtl_path is None:
+        base_stem = obj_path.name[:-len(".fixed.obj")] if obj_path.name.lower().endswith(".fixed.obj") else obj_path.stem
+        mtl_cands: list[Path] = []
+        if discovered_mtl:
+            mtl_cands.append(obj_path.parent / discovered_mtl)
+        mtl_cands.append(obj_path.parent / f"{base_stem}.mtl")
+        mtl_cands.append(obj_path.parent / f"{obj_path.stem}.mtl")
+        for cand in mtl_cands:
+            if cand.is_file():
+                mtl_path = cand
+                break
+        if mtl_path is None:
+            sib_mtls = sorted(
+                obj_path.parent.glob("*.mtl"),
+                key=lambda p: (
+                    0 if p.stem.lower() == base_stem.lower() else 1,
+                    0 if p.stem.lower().startswith(base_stem.lower()) else 1,
+                    0 if not p.stem.endswith("1") else 1,
+                    p.name,
+                ),
+            )
+            if sib_mtls:
+                mtl_path = sib_mtls[0]
     materials = parse_mtl_file(mtl_path)
     for m in set(fmats):
         if m not in materials:
@@ -310,6 +330,19 @@ def load_raw_floor_obj(
 # --------------------------------------------------------------------------- Shapely & Manifold helpers
 
 
+def _safe_unary_union(geoms: Sequence[Any]) -> Any:
+    """Robust unary_union with grid-precision fallback on GEOS TopologyException."""
+    valid = [g.buffer(0) for g in geoms if g is not None and not g.is_empty]
+    if not valid:
+        return Polygon()
+    try:
+        return unary_union(valid)
+    except GEOSException:
+        snapped = [set_precision(g, 0.001).buffer(0) for g in valid]
+        snapped = [g for g in snapped if g is not None and not g.is_empty]
+        return unary_union(snapped) if snapped else Polygon()
+
+
 def _iter_polygons(geom: Any) -> list[Polygon]:
     if geom is None or geom.is_empty:
         return []
@@ -343,7 +376,7 @@ def _clean_shapely(geom: Any, eps: float = 0.008) -> Any:
     polys = [p for p in _iter_polygons(g) if p.area >= _MIN_POLY_AREA * 0.5]
     if not polys:
         return Polygon()
-    return unary_union(polys).buffer(0)
+    return _safe_unary_union(polys).buffer(0)
 
 
 def _bridge_narrow_wall_gaps(
@@ -592,14 +625,16 @@ def _raw_manifold_to_trimesh(man: m3d.Manifold) -> trimesh.Trimesh:
     return tm
 
 
-def manifold_to_trimesh(man: m3d.Manifold) -> trimesh.Trimesh:
+def manifold_to_trimesh(man: m3d.Manifold, max_simplify_tol: float = 0.08) -> trimesh.Trimesh:
     """Convert Z-up Manifold (where Z = height, Y = Z_world) to Unity Y-up Trimesh with positive volume and no sub-mm slivers."""
     tm = _raw_manifold_to_trimesh(man)
     cur_alt = _trimesh_min_altitude_mm(tm) if len(tm.faces) > 0 else 1e9
     if len(tm.faces) > 0 and cur_alt < 1.0:
         min_vol = 0.95 * max(float(tm.volume), 1e-6)
         best_tm, best_alt = tm, cur_alt
-        for tol in (0.004, 0.008, 0.015, 0.025, 0.05, 0.08):
+        for tol in (0.002, 0.004, 0.008, 0.015, 0.025, 0.05, 0.08):
+            if tol > max_simplify_tol and best_alt >= 0.65:
+                break
             man_s = man.simplify(tol)
             if man_s.is_empty() or man_s.num_tri() == 0:
                 continue
@@ -614,7 +649,7 @@ def manifold_to_trimesh(man: m3d.Manifold) -> trimesh.Trimesh:
     return tm
 
 
-def _clean_trimesh_slivers(tm: trimesh.Trimesh) -> trimesh.Trimesh:
+def _clean_trimesh_slivers(tm: trimesh.Trimesh, max_simplify_tol: float = 0.12) -> trimesh.Trimesh:
     """Collapse sub-mm boolean/concatenation slivers in an already-watertight Trimesh via Manifold simplify."""
     cur_alt = _trimesh_min_altitude_mm(tm)
     if len(tm.faces) == 0 or cur_alt >= 1.0:
@@ -631,6 +666,8 @@ def _clean_trimesh_slivers(tm: trimesh.Trimesh) -> trimesh.Trimesh:
         man = m3d.Manifold(mgl)
         min_vol = 0.92 * max(float(tm.volume), 1e-6)
         for tol in (0.002, 0.005, 0.01, 0.02, 0.04, 0.06, 0.08, 0.10, 0.12):
+            if tol > max_simplify_tol and best_alt >= 0.65:
+                break
             man_s = man.simplify(tol)
             if man_s.is_empty() or man_s.num_tri() == 0:
                 continue
@@ -1043,13 +1080,49 @@ def _extract_slanted_stair_parapets(
                                 )
                         comb = _clean_shapely(comb.intersection(unary_union(band_pieces)), 0.004) if band_pieces else Polygon()
                     else:
-                        kept_polys = []
+                        kept_raw_q: list[Any] = []
                         for qp in _iter_polygons(comb):
                             _, qy0, _, qy1 = qp.bounds
                             if qy1 >= raw.ceil_y - 0.08 and qy0 >= raw.floor_y + 0.50 and (qy1 - qy0) > 1.50:
                                 continue
-                            kept_polys.append(qp)
-                        comb = _clean_shapely(unary_union(kept_polys), 0.004) if kept_polys else Polygon()
+                            kept_raw_q.append(qp)
+                        comb = _clean_shapely(unary_union(kept_raw_q), 0.004) if kept_raw_q else Polygon()
+
+                    # Unified sanitization for ALL quartz_15574983 parapets: strip ceiling soffit hangs & cap per-column height <= 1.38m
+                    if not comb.is_empty:
+                        sanitized_q: list[Any] = []
+                        for qp in _iter_polygons(comb):
+                            qu0, qy0, qu1, qy1 = qp.bounds
+                            cols: list[tuple[float, float, float, float, Any]] = []
+                            u_cur = qu0
+                            ceil_touch_span = 0.0
+                            while u_cur < qu1 - 1e-4:
+                                u_nxt = min(qu1, u_cur + 0.25)
+                                c_slice = _clean_shapely(qp.intersection(shapely_box(u_cur, qy0 - 0.05, u_nxt, qy1 + 0.05)), 0.002)
+                                for cp in _iter_polygons(c_slice):
+                                    cu_a, cy0, cu_b, cy1 = cp.bounds
+                                    if cy1 >= raw.ceil_y - 0.08 and cy0 >= raw.floor_y + 0.50:
+                                        ceil_touch_span += (cu_b - cu_a)
+                                    cols.append((cu_a, cy0, cu_b, cy1, cp))
+                                u_cur = u_nxt
+                            strip_kept: list[Any] = []
+                            for cu_a, cy0, cu_b, cy1, cp in cols:
+                                if ceil_touch_span >= 1.00 and cy1 >= raw.ceil_y - 0.08 and cy0 >= raw.floor_y + 0.50:
+                                    if cy0 >= raw.ceil_y - 1.60:
+                                        continue
+                                    cp = _clean_shapely(cp.intersection(shapely_box(cu_a, cy0, cu_b, raw.ceil_y - 0.12)), 0.002)
+                                    if cp.is_empty:
+                                        continue
+                                    cu_a, cy0, cu_b, cy1 = cp.bounds
+                                if (cy1 - cy0) > 1.38:
+                                    y_clip_lo = cy0 if cy1 >= raw.ceil_y - 0.12 else max(cy0, cy1 - 1.35)
+                                    y_clip_hi = min(cy1, cy0 + 1.35) if cy1 >= raw.ceil_y - 0.12 else cy1
+                                    cp = _clean_shapely(cp.intersection(shapely_box(cu_a, y_clip_lo, cu_b, y_clip_hi)), 0.002)
+                                if not cp.is_empty and cp.area >= 0.004:
+                                    strip_kept.append(cp)
+                            if strip_kept:
+                                sanitized_q.extend(_iter_polygons(_clean_shapely(unary_union(strip_kept), 0.004)))
+                        comb = _clean_shapely(unary_union(sanitized_q), 0.004) if sanitized_q else Polygon()
                 if not comb.is_empty:
                     slab_profiles.append((rg, a, b, comb))
 
@@ -1096,7 +1169,7 @@ def _extract_slanted_stair_parapets(
             if op.area < 0.25 or op.buffer(-0.05, join_style=2).is_empty:
                 continue
             ou0, _, ou1, _ = op.bounds
-            sbox = shapely_box(a - 0.03, ou0 - 0.03, b + 0.03, ou1 + 0.03) if axis == "x" else shapely_box(ou0 - 0.03, a - 0.03, ou1 + 0.03, b + 0.03)
+            sbox = shapely_box(a - 0.05, ou0 - 0.05, b + 0.05, ou1 + 0.05) if axis == "x" else shapely_box(ou0 - 0.05, a - 0.05, ou1 + 0.05, b + 0.05)
             if not sbox.is_empty:
                 spine_footprints.append(sbox)
             _emit_slab_piece(op, a, b, axis, None)
@@ -1150,6 +1223,10 @@ def _extract_exterior_facade_meshes(
             if poly.intersection(wall_env).area / max(poly.area, 1e-6) < 0.70:
                 return False
         return True
+
+    canopy_meshes = _extract_exterior_canopy_meshes(
+        raw, lt_tm, pos, lt_fa, S_base, floor_fp, side_wedges, wall_env, _keep_facade_poly
+    )
 
     # Try progressive Y/XZ snap levels so complex stacked LittleTiles louvers stay watertight with min_alt >= 1.0 mm
     for min_y_gap, snap_m in ((0.03, 0.01), (0.045, 0.02), (0.06, 0.03)):
@@ -1219,7 +1296,7 @@ def _extract_exterior_facade_meshes(
                         parts_by_side["N" if c_pt.y >= 0 else "S"].append(m)
 
         if not parts_by_side:
-            return []
+            return canopy_meshes
 
         results: list[tuple[str, str, trimesh.Trimesh]] = []
         all_ok = True
@@ -1245,7 +1322,7 @@ def _extract_exterior_facade_meshes(
                 all_ok = False
                 break
         if all_ok and results:
-            return results
+            return results + canopy_meshes
 
     # Fallback: concatenate per-band non-merged watertight prisms if boolean fusion created sub-mm steps
     raw_ys = sorted({round(round(float(y) / 0.02) * 0.02, 3) for y in pos[lt_fa].reshape(-1, 3)[:, 1]})
@@ -1292,6 +1369,105 @@ def _extract_exterior_facade_meshes(
 
     return [
         (f"Facade_Ext_{sd}", f"facade_ext_{sd}", trimesh.util.concatenate(tl) if len(tl) > 1 else tl[0])
+        for sd, tl in sorted(tms_by_side.items())
+        if tl
+    ] + canopy_meshes
+
+
+def _extract_exterior_canopy_meshes(
+    raw: RawFloorMesh,
+    lt_tm: trimesh.Trimesh,
+    pos: np.ndarray,
+    lt_fa: np.ndarray,
+    S_base: Any,
+    floor_fp: Any,
+    side_wedges: dict[str, Polygon],
+    wall_env: Any,
+    keep_facade_poly: Any,
+) -> list[tuple[str, str, trimesh.Trimesh]]:
+    """Reconstruct attached exterior LittleTiles canopies/veranda overhangs without leaking interior roofs."""
+    snap_m = 0.02
+    raw_ys = sorted({round(round(float(y) / snap_m) * snap_m, 3) for y in pos[lt_fa].reshape(-1, 3)[:, 1]})
+    y_lvls: list[float] = []
+    for y in raw_ys:
+        if not y_lvls or (y - y_lvls[-1]) >= 0.05:
+            y_lvls.append(y)
+    if len(y_lvls) < 2:
+        return []
+
+    floor_buf = _clean_shapely(floor_fp, 0.01).buffer(0.25, join_style=2) if not floor_fp.is_empty else Polygon()
+    min_canopy_y = raw.floor_y + 0.80
+    canopy_cands: list[tuple[float, float, Polygon]] = []
+
+    for j in range(len(y_lvls) - 1):
+        y0, y1 = y_lvls[j], y_lvls[j + 1]
+        if y0 < min_canopy_y or (y1 - y0) < 0.03:
+            continue
+        segs = trimesh.intersections.mesh_plane(lt_tm, [0.0, 1.0, 0.0], [0.0, 0.5 * (y0 + y1), 0.0])
+        if len(segs) == 0:
+            continue
+        lines = [
+            LineString([
+                (round(round(float(s[0, 0]) / snap_m) * snap_m, 3), round(round(float(s[0, 2]) / snap_m) * snap_m, 3)),
+                (round(round(float(s[1, 0]) / snap_m) * snap_m, 3), round(round(float(s[1, 2]) / snap_m) * snap_m, 3)),
+            ])
+            for s in segs
+            if (round(round(float(s[0, 0]) / snap_m) * snap_m, 3), round(round(float(s[0, 2]) / snap_m) * snap_m, 3))
+            != (round(round(float(s[1, 0]) / snap_m) * snap_m, 3), round(round(float(s[1, 2]) / snap_m) * snap_m, 3))
+        ]
+        if not lines:
+            continue
+        noded = unary_union(lines)
+        polys = [p for p in polygonize(noded) if p.area >= 0.02]
+        poly_u = unary_union(polys).buffer(0.02, join_style=2) if polys else Polygon()
+        rem = noded.difference(poly_u) if not poly_u.is_empty else noded
+        geoms = list(polys) + (
+            [bp for bp in _iter_polygons(rem.buffer(0.025, cap_style=2, join_style=2)) if bp.area >= 0.02]
+            if not rem.is_empty
+            else []
+        )
+        u_band = _clean_shapely(unary_union(geoms), 0.006)
+        for p in _iter_polygons(u_band):
+            p_s = _regularize_polygon(p, snap_m).simplify(snap_m, preserve_topology=True)
+            if p_s.is_empty or p_s.area < 0.08 or p_s.area > 350.0 or p_s.buffer(-0.015, join_style=2).is_empty:
+                continue
+            if keep_facade_poly(p_s):
+                continue
+            if not floor_buf.is_empty:
+                ext_ratio = p_s.difference(floor_buf).area / max(p_s.area, 1e-6)
+                if ext_ratio < 0.45:
+                    continue
+            canopy_cands.append((y0, y1, p_s))
+
+    if not canopy_cands:
+        return []
+
+    comp_union = _clean_shapely(unary_union([p for _, _, p in canopy_cands]).buffer(0.15, join_style=2), 0.01)
+    anchor_env = wall_env.buffer(0.35, join_style=2) if not wall_env.is_empty else Polygon()
+    attached_comps = [
+        cp for cp in _iter_polygons(comp_union)
+        if anchor_env.is_empty or cp.intersects(anchor_env)
+    ]
+    if not attached_comps:
+        return []
+    attached_u = unary_union(attached_comps)
+
+    tms_by_side: dict[str, list[trimesh.Trimesh]] = defaultdict(list)
+    for y0, y1, p_s in canopy_cands:
+        if not attached_u.intersects(p_s):
+            continue
+        m = geom_to_manifold(p_s, y0 + 0.0005, y1 - 0.0005)
+        if m is None:
+            continue
+        tm_p = manifold_to_trimesh(m)
+        if not tm_p.is_watertight or tm_p.volume <= 1e-4 or _trimesh_min_altitude_mm(tm_p) < 1.0:
+            continue
+        c_pt = p_s.centroid
+        side_hit = next((sd for sd, wd in side_wedges.items() if wd.covers(c_pt)), "N" if c_pt.y >= 0 else "S")
+        tms_by_side[side_hit].append(tm_p)
+
+    return [
+        (f"Facade_Canopy_{sd}", f"facade_canopy_{sd}", trimesh.util.concatenate(tl) if len(tl) > 1 else tl[0])
         for sd, tl in sorted(tms_by_side.items())
         if tl
     ]
@@ -1436,7 +1612,7 @@ def _extract_solid_slice(
                     if not rp.is_empty:
                         recovered.append(rp)
             if recovered:
-                base_solid = _clean_shapely(unary_union([base_solid] + recovered), 0.005)
+                base_solid = _clean_shapely(_safe_unary_union([base_solid] + recovered), 0.005)
     return base_solid
 
 
@@ -1542,6 +1718,57 @@ def _is_clean_angled_tread(poly: Polygon, min_edge: float = 0.12) -> bool:
     return False
 
 
+def _snap_near_ortho_tread_edges(poly: Polygon, max_drift: float = 0.035, check_tol: float = 0.012) -> Polygon:
+    """Snap near-axis-aligned stair tread segments (<= max_drift off axis) cleanly to orthogonal."""
+    cur = poly
+    for _ in range(3):
+        cur_no = _count_non_ortho_edges(cur, check_tol)
+        if cur_no == 0 or _is_clean_angled_tread(cur):
+            break
+        pts = list(cur.exterior.coords)[:-1]
+        n = len(pts)
+        best_cand: Polygon | None = None
+        best_no = cur_no
+        for k in range(n):
+            p0 = pts[k]
+            p1 = pts[(k + 1) % n]
+            dx = abs(p1[0] - p0[0])
+            dz = abs(p1[1] - p0[1])
+            snap_candidates: list[tuple[int, float]] = []
+            if 0.005 < dx <= max_drift and dz >= 0.12:
+                mid_x = round(0.5 * (p0[0] + p1[0]), 4)
+                snap_candidates = [(0, p0[0]), (0, p1[0]), (0, mid_x)]
+            elif 0.005 < dz <= max_drift and dx >= 0.12:
+                mid_z = round(0.5 * (p0[1] + p1[1]), 4)
+                snap_candidates = [(1, p0[1]), (1, p1[1]), (1, mid_z)]
+            else:
+                continue
+            for coord_idx, target_val in snap_candidates:
+                new_pts = list(pts)
+                if coord_idx == 0:
+                    new_pts[k] = (target_val, p0[1])
+                    new_pts[(k + 1) % n] = (target_val, p1[1])
+                else:
+                    new_pts[k] = (p0[0], target_val)
+                    new_pts[(k + 1) % n] = (p1[0], target_val)
+                cand_raw = _clean_shapely(Polygon(new_pts), 0.004)
+                cands = _iter_polygons(cand_raw)
+                if len(cands) != 1:
+                    continue
+                cand = cands[0]
+                if cand.is_empty or len(cand.interiors) > 0 or cand.area < 0.90 * cur.area:
+                    continue
+                c_no = _count_non_ortho_edges(cand, check_tol)
+                if c_no < best_no:
+                    best_cand = cand
+                    best_no = c_no
+        if best_cand is not None:
+            cur = best_cand
+        else:
+            break
+    return cur
+
+
 def _heal_short_corner_bevels(kp: Polygon, blockers_union: Any, rect_box: Polygon, tol: float = 0.02) -> Polygon:
     """Snap isolated short diagonal corner bevels on orthogonal steps to exact axis-aligned corners."""
     cur = kp
@@ -1604,10 +1831,18 @@ def _repair_notched_stair_treads(
         # Heal Embree V-notches / narrow slits on angled ramp treads back to their clean convex hull when unobstructed
         if _count_non_ortho_edges(kp) > 0:
             hull = kp.convex_hull
+            hs = hull.simplify(0.035, preserve_topology=True) if isinstance(hull, Polygon) else None
+            use_hs = (
+                isinstance(hs, Polygon)
+                and not hs.is_empty
+                and (len(hs.exterior.coords) - 1) == 3
+                and _is_clean_angled_tread(hs)
+                and float(hs.area) <= 1.05 * float(hull.area)
+            )
+            target_hull = hs if use_hs else (hull if isinstance(hull, Polygon) and _is_clean_angled_tread(hull) else None)
             if (
-                isinstance(hull, Polygon)
-                and _is_clean_angled_tread(hull)
-                and 0.80 <= (kp.area / max(float(hull.area), 1e-9)) < 0.999
+                target_hull is not None
+                and 0.80 <= (kp.area / max(float(target_hull.area), 1e-9)) < (1.02 if use_hs else 0.999)
             ):
                 excl = excl_high if yr >= floor_y + 1.15 else excl_low
                 hull_blockers = unary_union([excl] + [
@@ -1615,9 +1850,19 @@ def _repair_notched_stair_treads(
                     for y_hi, p_hi in repaired
                     if abs(y_hi - yr) < 0.04 or 0.05 <= (y_hi - yr) <= 1.35
                 ])
-                hcands = _iter_polygons(_clean_shapely(hull.difference(hull_blockers), 0.004))
+                hcands = _iter_polygons(_clean_shapely(target_hull.difference(hull_blockers), 0.004))
                 if hcands:
                     hcp = max(hcands, key=lambda p: p.intersection(kp).area)
+                    if not _is_clean_angled_tread(hcp):
+                        hcp_s = hcp.simplify(0.035, preserve_topology=True)
+                        if (
+                            isinstance(hcp_s, Polygon)
+                            and not hcp_s.is_empty
+                            and (len(hcp_s.exterior.coords) - 1) == 3
+                            and _is_clean_angled_tread(hcp_s)
+                            and hcp_s.intersection(hull_blockers).area < 1e-4
+                        ):
+                            hcp = hcp_s
                     if hcp.intersection(kp).area >= 0.95 * kp.area and _is_clean_angled_tread(hcp):
                         repaired.append((yr, hcp))
                         continue
@@ -1635,6 +1880,37 @@ def _repair_notched_stair_treads(
                 kp = kp_s
                 if _is_clean_angled_tread(kp) or _count_non_ortho_edges(kp, tol=0.012) == 0:
                     break
+
+        # Collapse isolated short corner bevel or near-collinear midpoint on 4..6-gon treads regardless of ring start
+        if 4 <= len(kp.exterior.coords) - 1 <= 6 and not _is_clean_angled_tread(kp):
+            excl = excl_high if yr >= floor_y + 1.15 else excl_low
+            blk_u_bev = unary_union([excl] + [
+                p_hi.buffer(0.004, join_style=2)
+                for y_hi, p_hi in repaired
+                if abs(y_hi - yr) < 0.04 or 0.05 <= (y_hi - yr) <= 1.35
+            ])
+            pts_bev = list(kp.exterior.coords)[:-1]
+            n_bev = len(pts_bev)
+            healed_bev: Polygon | None = None
+            best_sym = float("inf")
+            for drop_idx in range(n_bev):
+                rem = [pts_bev[j] for j in range(n_bev) if j != drop_idx]
+                if len(rem) < 3:
+                    continue
+                cand_raw = Polygon(rem).buffer(0)
+                if not (isinstance(cand_raw, Polygon) and not cand_raw.is_empty and _is_clean_angled_tread(cand_raw)):
+                    continue
+                if not (0.95 * kp.area <= cand_raw.area <= 1.03 * kp.area):
+                    continue
+                sym_diff = float(cand_raw.symmetric_difference(kp).area)
+                if sym_diff <= 0.04 * kp.area and cand_raw.difference(kp).intersection(blk_u_bev).area < 1e-4:
+                    if sym_diff < best_sym:
+                        best_sym = sym_diff
+                        healed_bev = cand_raw
+            if healed_bev is not None:
+                repaired.append((yr, healed_bev))
+                continue
+
         if _is_clean_angled_tread(kp):
             repaired.append((yr, kp))
             continue
@@ -1703,6 +1979,10 @@ def _repair_notched_stair_treads(
                     blockers_union,
                     shapely_box(minx - 0.01, minz - 0.01, maxx + 0.01, maxz + 0.01),
                 )
+            if _count_non_ortho_edges(kp) > 0:
+                snapped = _snap_near_ortho_tread_edges(kp)
+                if snapped.difference(blockers_union).area >= 0.98 * snapped.area:
+                    kp = snapped
         elif (
             min(dx, dz) <= 1.25
             and kp.area <= 4.5
@@ -1715,7 +1995,43 @@ def _repair_notched_stair_treads(
             added = rect.difference(kp)
             if not added.is_empty and added.intersection(blockers_union).area <= 0.015 * bbox_area:
                 kp = rect
+        if min(dx, dz) <= 1.25 and kp.area <= 4.5 and not _is_clean_angled_tread(kp) and _count_non_ortho_edges(kp, tol=0.012) > 0:
+            blockers_union = unary_union(blockers_base)
+            snapped = _snap_near_ortho_tread_edges(kp)
+            if snapped.difference(blockers_union).area >= 0.98 * snapped.area:
+                kp = snapped
         repaired.append((yr, kp))
+
+    # Maintain >= 10mm separation between distinct same-elevation 3-gon winder treads so 4mm union closing never bridges tips
+    for idx_a in range(len(repaired)):
+        ya, pa = repaired[idx_a]
+        if not (isinstance(pa, Polygon) and _is_clean_angled_tread(pa) and len(pa.exterior.coords) - 1 == 3):
+            continue
+        for idx_b in range(len(repaired)):
+            if idx_a == idx_b:
+                continue
+            yb, pb = repaired[idx_b]
+            if abs(ya - yb) >= 0.04 or pa.distance(pb) >= 0.010:
+                continue
+            pts_a = list(pa.exterior.coords)[:-1]
+            from shapely.geometry import Point as _ShPt
+            v_idx = min(range(3), key=lambda k: pb.distance(_ShPt(pts_a[k])))
+            if pb.distance(_ShPt(pts_a[v_idx])) >= 0.010:
+                continue
+            for dx_s, dz_s in ((0.0, 0.012), (0.0, -0.012), (0.012, 0.0), (-0.012, 0.0)):
+                cand_pts = list(pts_a)
+                cand_pts[v_idx] = (pts_a[v_idx][0] + dx_s, pts_a[v_idx][1] + dz_s)
+                cand = Polygon(cand_pts)
+                if (
+                    cand.is_valid
+                    and _is_clean_angled_tread(cand)
+                    and cand.intersection(pa).area >= 0.96 * pa.area
+                    and cand.area <= pa.area + 1e-5
+                    and cand.distance(pb) >= 0.010
+                ):
+                    pa = cand
+                    repaired[idx_a] = (ya, pa)
+                    break
     return repaired
 
 
@@ -2131,9 +2447,27 @@ def _load_texture_image(tex_dir: Path | None, filename_substr: str) -> Image.Ima
     return None
 
 
+def _find_textures_dir(obj_path: Path, raw_ref_obj: Path | None = None) -> Path | None:
+    search_bases = [obj_path]
+    if raw_ref_obj is not None:
+        search_bases.append(raw_ref_obj)
+    for base in search_bases:
+        for cand in [
+            base.parent / "tex",
+            base.parent / "textures",
+            base.parent.parent / "textures",
+            base.parent.parent.parent / "textures",
+            base.parent.parent.parent.parent / "textures",
+        ]:
+            if cand.is_dir():
+                return cand
+    return None
+
+
 def _build_raw_pbr_palette(
     raw: RawFloorMesh,
     textures_dir: Path | None,
+    extra_materials: dict[str, MtlInfo] | None = None,
 ) -> tuple[dict[str, trimesh.visual.material.PBRMaterial], dict[str, str], dict[str, str]]:
     """Build real PBR materials matching EVERY original raw MTL texture + alias/category maps."""
     mat_defs: dict[str, trimesh.visual.material.PBRMaterial] = {
@@ -2149,7 +2483,12 @@ def _build_raw_pbr_palette(
     key_to_cat: dict[str, str] = {"cut_cap": "cut_cap"}
     tex_cache: dict[str, Image.Image | None] = {}
 
-    for rname, minfo in raw.materials.items():
+    merged_materials = dict(raw.materials)
+    if extra_materials:
+        for ek, ev in extra_materials.items():
+            merged_materials.setdefault(ek, ev)
+
+    for rname, minfo in merged_materials.items():
         tex_base = Path(minfo.map_kd).name if minfo.map_kd else ""
         if minfo.category == "glass":
             mkey = "glass"
@@ -2289,7 +2628,7 @@ def _assign_clean_raw_materials(
     n = len(fc)
     if kind == "glass":
         return ["glass"] * n
-    if kind.startswith("facade_ext_"):
+    if kind.startswith("facade_ext_") or kind.startswith("facade_canopy_"):
         if raw_lt_pts is None or len(raw_lt_pts) == 0 or not raw_lt_keys or raw_lt_areas is None:
             return [dom_lt_key] * n
         out_lt = [dom_lt_key] * n
@@ -2529,34 +2868,8 @@ def _apply_overrides_2d(
     return _clean_shapely(S_base, 0.004), _clean_shapely(S_mid, 0.004)
 
 
-def run_solid_rebuild(
-    obj_path: Path,
-    out_dir: Path,
-    *,
-    mtl_path: Path | None = None,
-    textures_dir: Path | None = None,
-    overrides_path: Path | None = None,
-    low_cut_m: float = 1.25,
-    plinth_m: float = 0.04,
-    column_min_width_m: float = 0.56,
-    export_glb: bool = True,
-) -> RebuildReport:
-    out_dir.mkdir(parents=True, exist_ok=True)
-    raw = load_raw_floor_obj(obj_path, mtl_path=mtl_path)
-
-    # Locate texture folder automatically if omitted
-    if textures_dir is None:
-        for cand in [
-            obj_path.parent / "tex",
-            obj_path.parent / "textures",
-            obj_path.parent.parent / "textures",
-            obj_path.parent.parent.parent / "textures",
-            obj_path.parent.parent.parent.parent / "textures",
-        ]:
-            if cand.is_dir():
-                textures_dir = cand
-                break
-
+def _extract_structural_slices(raw: RawFloorMesh) -> dict[str, Any]:
+    """Extract clean wall, lintel, floor, and stair slices from a loaded RawFloorMesh."""
     pos, fa, mats, fmats = raw.positions, raw.faces, raw.materials, raw.face_mats
     p0, p1, p2 = pos[fa[:, 0]], pos[fa[:, 1]], pos[fa[:, 2]]
     cr = np.cross(p1 - p0, p2 - p0)
@@ -2614,13 +2927,11 @@ def run_solid_rebuild(
     )
     if S_base.is_empty:
         S_base = S_60
-    # Clip S_mid inside S_base envelope so zero upper overhangs leak into walls
     S_mid = _clean_shapely(S_mid_raw.intersection(S_base.buffer(0.02, join_style=2)), 0.004)
 
     # Weld sub-12.4cm raw wall micro-slits, fill <0.35m2 pinholes, and seal <12cm corner/column seams
     S_base = _bridge_narrow_wall_gaps(_fill_small_holes(_clean_shapely(S_base, 0.062), 0.35))
     S_mid = _fill_small_holes(_clean_shapely(S_mid, 0.062).intersection(S_base), 0.35)
-    S_base, S_mid = _apply_overrides_2d(S_base, S_mid, overrides_path)
 
     floor_fp, bot_fp, stair_clusters = _extract_floor_and_stairs(raw, S_base, S_mid)
     stair_steps = [step for _, _, csteps in stair_clusters for step in csteps]
@@ -2630,7 +2941,6 @@ def run_solid_rebuild(
         else Polygon()
     )
 
-    # High band above upper window openings clipped closely to S_base + doorway/window lintel bridges
     y_hi_low = min(raw.ceil_y - 0.15, max(raw.lintel_y + 0.25, raw.ceil_y - 0.85))
     S_high_raw = _clean_shapely(
         unary_union([
@@ -2649,9 +2959,7 @@ def run_solid_rebuild(
         ]),
         0.005,
     )
-    # Keep header bridges inside narrow wall corridor envelope (exclude roofs > 1.8m from walls)
     S_high = _clean_shapely(S_high_raw.intersection(S_base.buffer(1.45, join_style=2)), 0.005)
-    # Subtract standing walls AND direct stair treads so doorway headers adjacent to stairs stay intact
     lintel_excl = S_base.buffer(0.02, join_style=2)
     if not stair_zone.is_empty:
         lintel_excl = unary_union([lintel_excl, stair_zone.buffer(0.05, join_style=2)])
@@ -2660,6 +2968,181 @@ def run_solid_rebuild(
         [p for p in _iter_polygons(lintel_only) if p.area <= 8.0 and min(p.bounds[2] - p.bounds[0], p.bounds[3] - p.bounds[1]) <= 2.2]
     )
     S_high_wall = _clean_shapely(unary_union([S_base.intersection(S_high_raw), lintel_kept]), 0.004)
+    return {
+        "pos": pos,
+        "fa": fa,
+        "mats": mats,
+        "fmats": fmats,
+        "unit_n": unit_n,
+        "lens": lens,
+        "yc": yc,
+        "keep_struct": keep_struct,
+        "keep_wall": keep_wall,
+        "S_base": S_base,
+        "S_mid": S_mid,
+        "S_high_raw": S_high_raw,
+        "lintel_kept": lintel_kept,
+        "S_high_wall": S_high_wall,
+        "floor_fp": floor_fp,
+        "bot_fp": bot_fp,
+        "stair_clusters": stair_clusters,
+        "stair_steps": stair_steps,
+        "stair_zone": stair_zone,
+    }
+
+
+def _extract_glass_mesh(raw: RawFloorMesh, S_base: Any, S_mid: Any, y_cut: float) -> trimesh.Trimesh | None:
+    """Build solid glazed panes inside window openings backed by raw glass triangles."""
+    gl_mask = np.array([raw.materials[m].category == "glass" for m in raw.face_mats])
+    if not gl_mask.any():
+        return None
+    gl_pts_xz = raw.positions[raw.faces[gl_mask]].mean(axis=1)[:, [0, 2]]
+    win_gaps = _clean_shapely(S_base.difference(S_mid), 0.002)
+    glass_parts: list[m3d.Manifold] = []
+    for gp in _iter_polygons(win_gaps):
+        if gp.area < 0.05:
+            continue
+        dists = np.linalg.norm(gl_pts_xz - np.array([gp.centroid.x, gp.centroid.y]), axis=1)
+        if float(dists.min()) <= 0.85:
+            thin_pane = gp.buffer(-min(0.10, max(0.02, gp.area / max(gp.length, 0.5) * 0.45)), join_style=2)
+            pane_2d = thin_pane if not thin_pane.is_empty else gp
+            gm = geom_to_manifold(pane_2d, max(raw.sill_y, y_cut), min(raw.lintel_y, raw.ceil_y - 0.1))
+            if gm is not None:
+                glass_parts.append(gm)
+    if not glass_parts:
+        return None
+    g_man = m3d.Manifold.batch_boolean(glass_parts, m3d.OpType.Add) if len(glass_parts) > 1 else glass_parts[0]
+    return manifold_to_trimesh(g_man)
+
+
+def run_solid_rebuild(
+    obj_path: Path,
+    out_dir: Path,
+    *,
+    mtl_path: Path | None = None,
+    textures_dir: Path | None = None,
+    overrides_path: Path | None = None,
+    raw_ref_obj: Path | None = None,
+    raw_ref_cache: dict[str, Any] | None = None,
+    low_cut_m: float = 1.25,
+    plinth_m: float = 0.04,
+    column_min_width_m: float = 0.56,
+    export_glb: bool = True,
+) -> RebuildReport:
+    out_dir.mkdir(parents=True, exist_ok=True)
+    raw = load_raw_floor_obj(obj_path, mtl_path=mtl_path)
+
+    if textures_dir is None:
+        textures_dir = _find_textures_dir(obj_path, raw_ref_obj)
+
+    sl = _extract_structural_slices(raw)
+    S_base = sl["S_base"]
+    S_mid = sl["S_mid"]
+    floor_fp = sl["floor_fp"]
+    bot_fp = sl["bot_fp"]
+    stair_clusters = sl["stair_clusters"]
+    stair_steps = sl["stair_steps"]
+    lintel_kept = sl["lintel_kept"]
+    S_high_wall = sl["S_high_wall"]
+
+    # Optional Hybrid v1 + RAW completeness recovery: rescue severe v1 corruption or missing walls/floor/stairs/facades
+    ref_raw: RawFloorMesh | None = None
+    stair_raw_source = raw
+    raw_recovery: dict[str, Any] = {
+        "enabled": False,
+        "used_raw_structural_fallback": False,
+        "recovered_wall_m2": 0.0,
+        "recovered_floor_m2": 0.0,
+        "recovered_stairs": False,
+        "facade_nodes_from_raw": [],
+        "recovered_glass_from_raw": False,
+    }
+    if raw_ref_obj is not None and raw_ref_obj.is_file() and raw_ref_obj.resolve() != obj_path.resolve():
+        cache_entry = raw_ref_cache.get(str(raw_ref_obj)) if raw_ref_cache is not None else None
+        if cache_entry is None:
+            cand_ref = load_raw_floor_obj(raw_ref_obj)
+            cand_sl = _extract_structural_slices(cand_ref)
+            cache_entry = {"ref_raw": cand_ref, "ref_sl": cand_sl}
+            if raw_ref_cache is not None:
+                raw_ref_cache[str(raw_ref_obj)] = cache_entry
+        cand_ref = cache_entry["ref_raw"]
+        src_c = 0.5 * (raw.positions.min(axis=0) + raw.positions.max(axis=0))
+        ref_c = 0.5 * (cand_ref.positions.min(axis=0) + cand_ref.positions.max(axis=0))
+        if float(np.linalg.norm(src_c - ref_c)) <= 25.0 or len(raw.faces) < 100:
+            ref_raw = cand_ref
+            raw_recovery["enabled"] = True
+            ref_sl = cache_entry["ref_sl"]
+            v1_fl_a = float(floor_fp.area) if not floor_fp.is_empty else 0.0
+            ref_fl_a = float(ref_sl["floor_fp"].area) if not ref_sl["floor_fp"].is_empty else 0.0
+            v1_w_a = float(S_base.area) if not S_base.is_empty else 0.0
+            ref_w_a = float(ref_sl["S_base"].area) if not ref_sl["S_base"].is_empty else 0.0
+            v1_missing_floor = ref_fl_a >= 20.0 and v1_fl_a < 0.70 * ref_fl_a
+            v1_missing_walls = ref_w_a >= 5.0 and v1_w_a < 0.60 * ref_w_a
+            v1_floor_y_degraded = abs(raw.floor_y - ref_raw.floor_y) > 0.25 and (
+                (ref_fl_a >= 20.0 and v1_fl_a < 0.85 * ref_fl_a)
+                or (ref_w_a >= 5.0 and v1_w_a < 0.80 * ref_w_a)
+            )
+            if v1_missing_floor or v1_missing_walls or v1_floor_y_degraded:
+                raw = ref_raw
+                stair_raw_source = ref_raw
+                sl = ref_sl
+                S_base = sl["S_base"]
+                S_mid = sl["S_mid"]
+                floor_fp = sl["floor_fp"]
+                bot_fp = sl["bot_fp"]
+                stair_clusters = sl["stair_clusters"]
+                stair_steps = sl["stair_steps"]
+                lintel_kept = sl["lintel_kept"]
+                S_high_wall = sl["S_high_wall"]
+                raw_recovery["used_raw_structural_fallback"] = True
+            else:
+                # Targeted recovery of missing walls, floor slabs, headers, and stairs culled by v1
+                missing_w = _clean_shapely(ref_sl["S_base"].difference(S_base.buffer(0.05, join_style=2)), 0.005)
+                kept_missing_w = [
+                    p for p in _iter_polygons(missing_w)
+                    if p.area >= 0.40 and not p.buffer(-0.10, join_style=2).is_empty
+                ]
+                mw_u_cand = unary_union(kept_missing_w) if kept_missing_w else Polygon()
+                if not mw_u_cand.is_empty and float(mw_u_cand.area) >= 0.80:
+                    mw_u = mw_u_cand
+                    raw_recovery["recovered_wall_m2"] = round(float(mw_u.area), 2)
+                    S_base = _bridge_narrow_wall_gaps(
+                        _fill_small_holes(_clean_shapely(_safe_unary_union([S_base, mw_u]), 0.062), 0.35)
+                    )
+                    mw_mid = _clean_shapely(ref_sl["S_mid"].intersection(mw_u.buffer(0.08, join_style=2)), 0.004)
+                    if not mw_mid.is_empty:
+                        S_mid = _fill_small_holes(_clean_shapely(unary_union([S_mid, mw_mid]), 0.005).intersection(S_base), 0.35)
+                    mw_hi = _clean_shapely(ref_sl["S_high_wall"].intersection(mw_u.buffer(0.15, join_style=2)), 0.004)
+                    if not mw_hi.is_empty:
+                        S_high_wall = _clean_shapely(unary_union([S_high_wall, mw_hi]), 0.004)
+                    mw_lin = _clean_shapely(ref_sl["lintel_kept"].intersection(mw_u.buffer(1.45, join_style=2)), 0.004)
+                    if not mw_lin.is_empty:
+                        lintel_kept = _clean_shapely(unary_union([lintel_kept, mw_lin]), 0.004)
+
+                missing_fl = _clean_shapely(ref_sl["floor_fp"].difference(floor_fp.buffer(0.05, join_style=2)), 0.005)
+                desc_u = (
+                    unary_union([p for _, yr, p in stair_steps if yr < raw.floor_y - 0.04]).buffer(0.05, join_style=2)
+                    if stair_steps
+                    else Polygon()
+                )
+                if not desc_u.is_empty and not missing_fl.is_empty:
+                    missing_fl = _clean_shapely(missing_fl.difference(desc_u), 0.005)
+                kept_missing_fl = [p for p in _iter_polygons(missing_fl) if p.area >= 0.25]
+                if kept_missing_fl:
+                    mf_u = unary_union(kept_missing_fl)
+                    raw_recovery["recovered_floor_m2"] = round(float(mf_u.area), 2)
+                    floor_fp = _clean_shapely(unary_union([floor_fp, mf_u]), 0.008)
+
+                if not stair_clusters and ref_sl["stair_clusters"]:
+                    stair_clusters = ref_sl["stair_clusters"]
+                    stair_steps = ref_sl["stair_steps"]
+                    stair_raw_source = ref_raw
+                    raw_recovery["recovered_stairs"] = True
+
+    S_base, S_mid = _apply_overrides_2d(S_base, S_mid, overrides_path)
+    pos, fa, mats, fmats = sl["pos"], sl["fa"], sl["mats"], sl["fmats"]
+    unit_n, lens, keep_struct = sl["unit_n"], sl["lens"], sl["keep_struct"]
+
     # Align cutaway cleanly to sill_y (above baseboard) so __Lower stays flat without sill pockets
     y_cut = min(raw.floor_y + low_cut_m, max(raw.floor_y + 0.95, raw.sill_y))
 
@@ -2685,12 +3168,15 @@ def run_solid_rebuild(
             if not parts:
                 return None
             fused = m3d.Manifold.batch_boolean(parts, m3d.OpType.Add) if len(parts) > 1 else parts[0]
-            return manifold_to_trimesh(fused)
+            return manifold_to_trimesh(fused, max_simplify_tol=0.008)
 
         for ci, comp_poly, csteps in stair_clusters:
             norm_steps: list[tuple[float, Any]] = []
             for _, yr, sp in csteps:
-                sp_r = _clean_shapely(_regularize_polygon(sp, 0.01), 0.008)
+                if _is_clean_angled_tread(sp) and _count_non_ortho_edges(sp) > 0:
+                    sp_r = sp
+                else:
+                    sp_r = _clean_shapely(_regularize_polygon(sp, 0.01), 0.008)
                 if not sp_r.is_empty:
                     norm_steps.append((round(float(yr), 3), sp_r))
             lo_by_span: dict[tuple[float, float], list[Any]] = defaultdict(list)
@@ -2741,7 +3227,7 @@ def run_solid_rebuild(
                 [comp_poly] + [cp for oci, cp, _ in stair_clusters if oci != ci and comp_poly.distance(cp) <= 1.2]
             )
             tm_lo_p, tm_hi_p, sp_boxes = _extract_slanted_stair_parapets(
-                raw, roi_poly, S_base, y_stair_split, emitted_slabs=emitted_slabs, lower_support_xz=lower_support_xz
+                stair_raw_source, roi_poly, S_base, y_stair_split, emitted_slabs=emitted_slabs, lower_support_xz=lower_support_xz
             )
             spine_claim_boxes.extend(sp_boxes)
             if tm_lo_p is not None:
@@ -2901,26 +3387,15 @@ def run_solid_rebuild(
     for wname, wkind, w_base, w_mid in wall_groups:
         _add_tiered_solid(wname, wkind, w_base, w_mid)
 
-    # 4. Glass_Openings: thin solid panes inside real window openings verified by raw glass triangles
-    gl_mask = np.array([mats[m].category == "glass" for m in fmats])
-    if gl_mask.any():
-        gl_pts_xz = pos[fa[gl_mask]].mean(axis=1)[:, [0, 2]]
-        win_gaps = _clean_shapely(S_base.difference(S_mid), 0.002)
-        glass_parts: list[m3d.Manifold] = []
-        for gp in _iter_polygons(win_gaps):
-            if gp.area < 0.05:
-                continue
-            dists = np.linalg.norm(gl_pts_xz - np.array([gp.centroid.x, gp.centroid.y]), axis=1)
-            if float(dists.min()) <= 0.85:
-                # Slim down to 0.05m center pane along thin axis
-                thin_pane = gp.buffer(-min(0.10, max(0.02, gp.area / max(gp.length, 0.5) * 0.45)), join_style=2)
-                pane_2d = thin_pane if not thin_pane.is_empty else gp
-                gm = geom_to_manifold(pane_2d, max(raw.sill_y, y_cut), min(raw.lintel_y, raw.ceil_y - 0.1))
-                if gm is not None:
-                    glass_parts.append(gm)
-        if glass_parts:
-            g_man = m3d.Manifold.batch_boolean(glass_parts, m3d.OpType.Add) if len(glass_parts) > 1 else glass_parts[0]
-            solid_nodes.append(("Glass_Openings", "glass", manifold_to_trimesh(g_man)))
+    # 4. Glass_Openings: thin solid panes inside real window openings verified by raw glass triangles (with RAW fallback)
+    glass_tm = _extract_glass_mesh(raw, S_base, S_mid, y_cut)
+    if ref_raw is not None:
+        ref_glass_tm = _extract_glass_mesh(ref_raw, S_base, S_mid, y_cut)
+        if ref_glass_tm is not None and (glass_tm is None or float(ref_glass_tm.area) > float(glass_tm.area) * 1.35):
+            glass_tm = ref_glass_tm
+            raw_recovery["recovered_glass_from_raw"] = True
+    if glass_tm is not None:
+        solid_nodes.append(("Glass_Openings", "glass", glass_tm))
 
     # 5. OverheadBeams_And_Lintels: solid header lintels above doors/windows
     if not lintel_kept.is_empty:
@@ -2928,14 +3403,33 @@ def run_solid_rebuild(
         if ov_man is not None:
             solid_nodes.append(("OverheadBeams_And_Lintels", "overhead", manifold_to_trimesh(ov_man)))
 
-    # 6. Facade_Ext_{W,E,N,S}: preserved exterior meshed facade, canopy louvers, and window grilles (littletiles_trim)
-    solid_nodes.extend(_extract_exterior_facade_meshes(raw, S_base, floor_fp))
+    # 6. Facade_Ext_{W,E,N,S} & Facade_Canopy_{W,E,N,S}: complete exterior facade & canopies (v1 + RAW guard)
+    v1_fac_map = {nname: (nkind, tm) for nname, nkind, tm in _extract_exterior_facade_meshes(raw, S_base, floor_fp)}
+    ref_facade_nodes: set[str] = set()
+    if ref_raw is not None:
+        ref_fac_map = {nname: (nkind, tm) for nname, nkind, tm in _extract_exterior_facade_meshes(ref_raw, S_base, floor_fp)}
+        for nname in sorted(set(v1_fac_map) | set(ref_fac_map)):
+            v1_entry = v1_fac_map.get(nname)
+            ref_entry = ref_fac_map.get(nname)
+            if ref_entry is not None and (v1_entry is None or float(ref_entry[1].area) > float(v1_entry[1].area) * 1.05):
+                solid_nodes.append((nname, ref_entry[0], ref_entry[1]))
+                ref_facade_nodes.add(nname)
+            elif v1_entry is not None:
+                solid_nodes.append((nname, v1_entry[0], v1_entry[1]))
+    else:
+        for nname in sorted(v1_fac_map):
+            nkind, tm = v1_fac_map[nname]
+            solid_nodes.append((nname, nkind, tm))
+    raw_recovery["facade_nodes_from_raw"] = sorted(ref_facade_nodes)
 
     # ------------------------------------------------- Hard Watertight Audit BEFORE Export
     audit_nodes: list[dict[str, Any]] = []
     passed = True
     for idx, (nname, nkind, tm) in enumerate(solid_nodes):
-        tm = _clean_trimesh_slivers(tm)
+        if nkind in ("stairs", "stairs_upper"):
+            tm = _clean_trimesh_slivers(tm, max_simplify_tol=0.008)
+        else:
+            tm = _clean_trimesh_slivers(tm)
         solid_nodes[idx] = (nname, nkind, tm)
         edges = tm.edges_sorted
         unique_e, counts_e = np.unique(edges, axis=0, return_counts=True)
@@ -2983,7 +3477,9 @@ def run_solid_rebuild(
     if narrow_gap_pairs:
         passed = False
     # ------------------------------------------------- Material Setup & GLB/OBJ Export
-    mat_defs, raw_to_key, key_to_cat = _build_raw_pbr_palette(raw, textures_dir)
+    mat_defs, raw_to_key, key_to_cat = _build_raw_pbr_palette(
+        raw, textures_dir, extra_materials=(ref_raw.materials if ref_raw is not None else None)
+    )
     raw_fc = pos[fa].mean(axis=1)
     raw_areas = 0.5 * lens
     valid_raw_idx = np.where(keep_struct & np.array([m in raw_to_key for m in fmats]))[0]
@@ -3005,6 +3501,18 @@ def run_solid_rebuild(
     raw_lt_keys = [raw_to_key[fmats[i]] for i in lt_raw_idx]
     raw_lt_areas = raw_areas[lt_raw_idx]
     dom_lt_key = _area_vote_key(raw_lt_keys, raw_lt_areas, np.ones(len(lt_raw_idx), dtype=bool), "fallback_wall") if len(lt_raw_idx) > 0 else "fallback_wall"
+
+    ref_lt_pts, ref_lt_keys, ref_lt_areas, ref_dom_lt_key = raw_lt_pts, raw_lt_keys, raw_lt_areas, dom_lt_key
+    if ref_raw is not None and ref_facade_nodes:
+        rp0, rp1, rp2 = ref_raw.positions[ref_raw.faces[:, 0]], ref_raw.positions[ref_raw.faces[:, 1]], ref_raw.positions[ref_raw.faces[:, 2]]
+        ref_areas = 0.5 * np.linalg.norm(np.cross(rp1 - rp0, rp2 - rp0), axis=1)
+        ref_fc = ref_raw.positions[ref_raw.faces].mean(axis=1)
+        rlt_idx = np.where(np.array([ref_raw.materials[m].category == "littletiles_trim" and m in raw_to_key for m in ref_raw.face_mats]))[0]
+        if len(rlt_idx) > 0:
+            ref_lt_pts = ref_fc[rlt_idx]
+            ref_lt_keys = [raw_to_key[ref_raw.face_mats[i]] for i in rlt_idx]
+            ref_lt_areas = ref_areas[rlt_idx]
+            ref_dom_lt_key = _area_vote_key(ref_lt_keys, ref_lt_areas, np.ones(len(rlt_idx), dtype=bool), dom_lt_key)
 
     raw_vert_pts = raw_fc[raw_vert_idx]
     rn_xz = unit_n[raw_vert_idx][:, [0, 2]] if len(raw_vert_idx) > 0 else np.zeros((0, 2), dtype=np.float64)
@@ -3079,6 +3587,7 @@ def run_solid_rebuild(
         t_cr = np.cross(tp1 - tp0, tp2 - tp0)
         t_fn = t_cr / np.maximum(np.linalg.norm(t_cr, axis=1, keepdims=True), 1e-12)
         t_fc = (tp0 + tp1 + tp2) / 3.0
+        use_ref_lt = nname in ref_facade_nodes
         face_keys = _assign_clean_raw_materials(
             t_verts,
             t_faces,
@@ -3107,10 +3616,10 @@ def run_solid_rebuild(
             raw_slanted_up_pts=raw_slanted_up_pts,
             raw_slanted_up_keys=raw_slanted_up_keys,
             raw_slanted_up_areas=raw_slanted_up_areas,
-            raw_lt_pts=raw_lt_pts,
-            raw_lt_keys=raw_lt_keys,
-            raw_lt_areas=raw_lt_areas,
-            dom_lt_key=dom_lt_key,
+            raw_lt_pts=(ref_lt_pts if use_ref_lt else raw_lt_pts),
+            raw_lt_keys=(ref_lt_keys if use_ref_lt else raw_lt_keys),
+            raw_lt_areas=(ref_lt_areas if use_ref_lt else raw_lt_areas),
+            dom_lt_key=(ref_dom_lt_key if use_ref_lt else dom_lt_key),
             forced_face_keys=tm.metadata.get("forced_face_keys"),
         )
 
@@ -3181,6 +3690,8 @@ def run_solid_rebuild(
     manifest = {
         "schema": "uc_solid_rebuild_v2",
         "source_obj": str(obj_path),
+        "raw_ref_obj": str(raw_ref_obj) if raw_ref_obj is not None else None,
+        "raw_recovery": raw_recovery,
         "source_frame": raw.source_frame,
         "elevations_m": {
             "slab_bottom_y": raw.slab_bottom_y,

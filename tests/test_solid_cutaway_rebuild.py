@@ -1003,3 +1003,186 @@ def test_tiered_upper_solid_never_steps_at_lintel_y(tmp_path: Path) -> None:
             mid_m = up & (fc[:, 1] < max_y - 0.3)
             if mid_m.any():
                 assert float(g.area_faces[mid_m].sum()) <= 0.25, f"Stepped upper on {n}"
+
+
+def test_solid_rebuild_preserves_attached_exterior_canopy_and_rejects_interior_roof(tmp_path: Path) -> None:
+    obj = tmp_path / "canopy_and_roof.obj"
+    mtl = tmp_path / "canopy_and_roof.mtl"
+    out_dir = tmp_path / "out"
+
+    boxes = [
+        ("minecraft_quartz_block_top_-1", 0.0, -0.5, 0.0, 10.0, 0.0, 10.0),
+        ("minecraft_concrete_white_-1", 0.0, 0.0, 0.0, 10.0, 3.6, 0.5),
+        ("minecraft_concrete_white_-1", 0.0, 0.0, 9.5, 10.0, 3.6, 10.0),
+        ("minecraft_concrete_white_-1", 0.0, 0.0, 0.5, 0.5, 3.6, 9.5),
+        ("minecraft_concrete_white_-1", 9.5, 0.0, 0.5, 10.0, 3.6, 9.5),
+        # Exterior projecting veranda canopy (z=9.8..12.5, x=2.0..8.0, y=2.6..2.9) -> MUST be preserved as Facade_Canopy_*
+        ("littletiles_ltcolored0_-1", 2.0, 2.6, 9.8, 8.0, 2.9, 12.5),
+        # Interior ceiling slab inside floor footprint (x=1.0..9.0, z=1.0..9.0, y=3.4..3.6) -> MUST stay rejected
+        ("littletiles_ltcolored0_-1", 1.0, 3.4, 1.0, 9.0, 3.6, 9.0),
+    ]
+    _write_box_obj(boxes, obj, mtl)
+    rep = run_solid_rebuild(obj, out_dir, mtl_path=mtl, low_cut_m=1.25, plinth_m=0.04)
+    assert rep.passed is True
+    assert rep.audit["all_watertight"] is True
+    import trimesh
+
+    sc = trimesh.load(rep.glb_path, force="scene")
+    canopy_nodes = [(n, g) for n, g in sc.geometry.items() if n.startswith("Facade_Canopy_")]
+    assert canopy_nodes, f"Missing Facade_Canopy_* node: {list(sc.geometry)}"
+    cm = trimesh.util.concatenate([g for _, g in canopy_nodes])
+    assert cm.bounds[1][2] >= 12.3, f"Exterior canopy overhang truncated: max_z={cm.bounds[1][2]:.2f}"
+    # Interior ceiling slab inside z=[1.5..8.5] must NOT leak into Facade_* nodes
+    facade_geoms = [g for n, g in sc.geometry.items() if n.startswith("Facade_")]
+    fm = trimesh.util.concatenate(facade_geoms) if len(facade_geoms) > 1 else facade_geoms[0]
+    assert fm.bounds[0][2] >= 9.0, f"Interior roof slab leaked into Facade_*: min_z={fm.bounds[0][2]:.2f}"
+
+
+def test_snap_near_ortho_tread_edges_heals_2cm_skew_but_keeps_angled_treads() -> None:
+    from engine.fixes.solid_cutaway_rebuild import (
+        _count_non_ortho_edges,
+        _is_clean_angled_tread,
+        _snap_near_ortho_tread_edges,
+    )
+
+    # Exact CHTM 4F RAW-style tread with 2cm transverse drift
+    wobble = Polygon([
+        (-41.38, 586.30), (-38.16, 586.30), (-38.16, 585.82),
+        (-38.39, 585.80), (-38.39, 585.57), (-41.38, 585.55), (-41.38, 586.30),
+    ])
+    healed = _snap_near_ortho_tread_edges(wobble)
+    assert _count_non_ortho_edges(healed) == 0, f"Expected 0 non-ortho edges, got {list(healed.exterior.coords)}"
+
+    # Genuine 45-degree angled tread must remain untouched
+    angled = Polygon([(0.0, 0.0), (1.0, 1.0), (0.5, 1.5), (-0.5, 0.5), (0.0, 0.0)])
+    assert _is_clean_angled_tread(angled) is True
+    assert _snap_near_ortho_tread_edges(angled).equals(angled)
+
+
+def test_load_raw_floor_obj_resolves_sibling_mtl_when_mtllib_broken(tmp_path: Path) -> None:
+    from engine.fixes.solid_cutaway_rebuild import load_raw_floor_obj
+
+    obj = tmp_path / "DEMO_3rd_Floor.fixed.obj"
+    sib_mtl = tmp_path / "DEMO_3rd_Floor.mtl"
+    sib_mtl.write_text(
+        "newmtl trim_mat\nKd 0.9 0.9 0.9\nmap_Kd textures/littletiles_ltcolored0_-1.png\n",
+        encoding="utf-8",
+    )
+    obj.write_text(
+        "mtllib materials.mtl\n"
+        "usemtl trim_mat\n"
+        "v 0 0 0\nv 1 0 0\nv 1 1 0\nv 0 0 3\n"
+        "f 1 2 3\n",
+        encoding="utf-8",
+    )
+    raw = load_raw_floor_obj(obj)
+    assert "trim_mat" in raw.materials
+    assert raw.materials["trim_mat"].category == "littletiles_trim"
+
+
+def test_hybrid_v1_plus_raw_recovers_missing_wall_and_canopy(tmp_path: Path) -> None:
+    raw_obj = tmp_path / "floor_raw.obj"
+    raw_mtl = tmp_path / "floor_raw.mtl"
+    v1_obj = tmp_path / "floor.fixed.obj"
+    v1_mtl = tmp_path / "floor.mtl"
+    out_dir = tmp_path / "out"
+
+    raw_boxes = [
+        ("minecraft_quartz_block_top_-1", 0.0, -0.5, 0.0, 10.0, 0.0, 10.0),
+        ("minecraft_concrete_white_-1", 0.0, 0.0, 0.0, 10.0, 3.6, 0.5),
+        ("minecraft_concrete_white_-1", 0.0, 0.0, 9.5, 10.0, 3.6, 10.0),
+        ("minecraft_concrete_white_-1", 0.0, 0.0, 0.5, 0.5, 3.6, 9.5),
+        ("minecraft_concrete_white_-1", 9.5, 0.0, 0.5, 10.0, 3.6, 9.5),
+        # Interior wall + exterior canopy present in RAW, culled from v1
+        ("minecraft_concrete_white_-1", 4.5, 0.0, 2.0, 5.0, 3.6, 8.0),
+        ("littletiles_ltcolored0_-1", 2.0, 2.6, 9.8, 8.0, 2.9, 12.2),
+    ]
+    v1_boxes = raw_boxes[:5]
+    _write_box_obj(raw_boxes, raw_obj, raw_mtl)
+    _write_box_obj(v1_boxes, v1_obj, v1_mtl)
+
+    rep = run_solid_rebuild(v1_obj, out_dir, raw_ref_obj=raw_obj, low_cut_m=1.25, plinth_m=0.04)
+    assert rep.passed is True
+    assert rep.manifest["raw_recovery"]["recovered_wall_m2"] > 2.0
+    assert any(n.startswith("Facade_Canopy_") for n in rep.manifest["raw_recovery"]["facade_nodes_from_raw"])
+
+    import trimesh
+    from tools.batch_solid_rebuild import audit_rebuilt_glb
+
+    sc = trimesh.load(rep.glb_path, force="scene")
+    assert any(n.startswith("Facade_Canopy_") for n in sc.geometry)
+    assert any(n.startswith("Wall_Int_") for n in sc.geometry)
+    qa = audit_rebuilt_glb(rep.glb_path, v1_obj, out_dir, rep.audit, rep.passed, raw_ref_obj=raw_obj)
+    assert qa["gates"]["raw_completeness"] is True
+    assert qa["all_passed"] is True
+
+
+def test_parapet_extraction_strips_ceiling_hanging_quartz_soffit(tmp_path: Path) -> None:
+    from engine.fixes.solid_cutaway_rebuild import _extract_slanted_stair_parapets, load_raw_floor_obj
+
+    obj = tmp_path / "ceil_parapet.obj"
+    mtl = tmp_path / "ceil_parapet.mtl"
+    # Build floor [0..8, 0..8], sloped quartz stair steps rising 0..1.5, plus a 3m-long quartz_15574983
+    # ceiling soffit slab hanging at y=[2.5..3.6] (ceil_y=3.6) that previously tripped Gate 7 ceil_hang_span.
+    boxes = [
+        ("minecraft_quartz_block_top_-1", 0.0, -0.5, 0.0, 8.0, 0.0, 8.0),
+        ("minecraft_concrete_white_-1", 0.0, 0.0, 0.0, 8.0, 3.6, 0.4),
+        ("minecraft_quartz_block_top_-1", 2.0, 0.0, 2.0, 4.0, 0.25, 2.6),
+        ("minecraft_quartz_block_top_-1", 2.0, 0.25, 2.6, 4.0, 0.50, 3.2),
+        ("minecraft_quartz_block_side_-15574983", 1.75, 2.50, 2.0, 2.00, 3.60, 5.2),
+    ]
+    _write_box_obj(boxes, obj, mtl)
+    raw = load_raw_floor_obj(obj, mtl_path=mtl)
+    roi = shapely_box(1.5, 1.5, 4.5, 5.5)
+    lo_tm, hi_tm, _ = _extract_slanted_stair_parapets(raw, roi, Polygon(), y_stair_split=1.5)
+    assert hi_tm is None or float(hi_tm.area) < 0.1, f"Ceiling soffit hang should be stripped, got bounds={hi_tm.bounds if hi_tm else None}"
+
+
+def test_repair_notched_stair_treads_collapses_short_winder_bevel_regardless_of_start() -> None:
+    from engine.fixes.solid_cutaway_rebuild import _is_clean_angled_tread, _repair_notched_stair_treads
+
+    # Ring starts at (-20.89, 585.8), leaving a 1cm corner bevel at (-20.90, 586.79)
+    q_bevel = Polygon([(-20.89, 585.8), (-21.88, 585.8), (-20.90, 586.79), (-20.89, 586.79)])
+    res = _repair_notched_stair_treads([(55.55, q_bevel)], Polygon(), Polygon(), 55.2)
+    assert len(res) == 1
+    _, healed = res[0]
+    assert _is_clean_angled_tread(healed) is True
+    assert len(healed.exterior.coords) - 1 == 3
+
+    # 4-gon with near-collinear midpoint on hypotenuse (1.8mm offset, all edges >= 0.6m)
+    q_col = Polygon([(-20.89, 586.8), (-20.89, 585.804), (-21.8804, 585.804), (-21.3328, 586.3572)])
+    res_col = _repair_notched_stair_treads([(55.55, q_col)], Polygon(), Polygon(), 55.2)
+    assert len(res_col) == 1
+    _, healed_col = res_col[0]
+    assert _is_clean_angled_tread(healed_col) is True
+    assert len(healed_col.exterior.coords) - 1 == 3
+
+
+def test_safe_unary_union_and_v1_floor_y_shift_preserves_complete_v1(tmp_path: Path) -> None:
+    from engine.fixes.solid_cutaway_rebuild import _safe_unary_union, run_solid_rebuild
+
+    u = _safe_unary_union([shapely_box(0, 0, 2, 2), shapely_box(1, 1, 3, 3)])
+    assert abs(u.area - 7.0) < 1e-6
+
+    raw_obj = tmp_path / "raw_complete.obj"
+    raw_mtl = tmp_path / "raw_complete.mtl"
+    v1_obj = tmp_path / "v1_complete.fixed.obj"
+    v1_mtl = tmp_path / "v1_complete.fixed.mtl"
+    out_dir = tmp_path / "out_keep_v1"
+
+    raw_boxes = [
+        ("minecraft_quartz_block_top_-1", 0.0, 0.0, 0.0, 8.0, 1.0, 8.0),
+        ("minecraft_concrete_white_-1", 0.0, 1.0, 0.0, 8.0, 4.0, 0.5),
+        ("minecraft_concrete_white_-1", 0.0, 1.0, 7.5, 8.0, 4.0, 8.0),
+        ("minecraft_concrete_white_-1", 0.0, 1.0, 0.5, 0.5, 4.0, 7.5),
+        ("minecraft_concrete_white_-1", 7.5, 1.0, 0.5, 8.0, 4.0, 7.5),
+    ]
+    # Simulated healthy v1 shifted down by 1.0m (same floor/wall footprint, only slab floor_y shifted)
+    v1_boxes = [(m, x0, y0 - 1.0, z0, x1, y1 - 1.0, z1) for m, x0, y0, z0, x1, y1, z1 in raw_boxes]
+    _write_box_obj(raw_boxes, raw_obj, raw_mtl)
+    _write_box_obj(v1_boxes, v1_obj, v1_mtl)
+
+    rep = run_solid_rebuild(v1_obj, out_dir, raw_ref_obj=raw_obj, low_cut_m=1.25, plinth_m=0.04)
+    assert rep.passed is True
+    assert rep.manifest["raw_recovery"]["used_raw_structural_fallback"] is False
+    assert abs(rep.manifest["elevations_m"]["floor_y"] - 0.0) < 0.05
