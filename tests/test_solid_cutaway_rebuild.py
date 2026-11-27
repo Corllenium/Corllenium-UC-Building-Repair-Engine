@@ -861,3 +861,145 @@ def test_split_mesh_by_material_preserves_distinct_3um_vertices_and_no_repeated_
     _, sub_tm = prims[0]
     for f in sub_tm.faces:
         assert f[0] != f[1] and f[1] != f[2] and f[2] != f[0], f"Degenerate face emitted: {f}"
+
+
+def test_bridge_narrow_wall_gaps_closes_sub12cm_seams_and_preserves_doorways() -> None:
+    from engine.fixes.solid_cutaway_rebuild import _bridge_narrow_wall_gaps, _iter_polygons
+
+    # Column + wall 0.10m apart, two diagonal-stepped walls 0.004m apart, plus a real 0.85m doorway
+    w1 = shapely_box(0.0, 0.0, 2.0, 0.5)
+    col = shapely_box(2.10, 0.0, 2.8, 0.5)
+    w2 = Polygon([(2.804, 0.0), (4.5, 0.0), (4.5, 0.5), (2.804, 0.5)])
+    w3 = shapely_box(5.35, 0.0, 7.0, 0.5)  # 0.85m doorway from x=4.5..5.35
+    u = unary_union([w1, col, w2, w3])
+    bridged = _bridge_narrow_wall_gaps(u, min_gap_m=0.0005, max_gap_m=0.12)
+    polys = sorted(_iter_polygons(bridged), key=lambda p: p.bounds[0])
+    assert len(polys) == 2, f"Expected 2 walls separated only by 0.85m doorway, got {len(polys)}"
+    door_gap = polys[0].distance(polys[1])
+    assert door_gap >= 0.80, f"Doorway gap narrowed unexpectedly: {door_gap:.4f}m"
+
+
+def test_polygon_to_manifold_rotated_micro_kink_has_min_alt_ge_1mm() -> None:
+    # Rotated wall with a 0.2mm stepped kink along one edge (similar to Architecture 03/05/06)
+    pts = [
+        (0.0, 0.0),
+        (3.0, 1.0),
+        (3.0002, 1.0001),
+        (2.85, 1.45),
+        (-0.15, 0.45),
+        (0.0, 0.0),
+    ]
+    man = _polygon_to_manifold(Polygon(pts), 0.0, 2.5)
+    assert man is not None
+    tm = manifold_to_trimesh(man)
+    assert tm.is_watertight and tm.volume > 0.0
+    min_alt = _trimesh_min_altitude_mm(tm)
+    assert min_alt >= 1.0, f"Expected min_altitude_mm >= 1.0, got {min_alt:.4f}"
+
+
+def test_doorway_open_at_60cm_not_bricked_by_s30_smid_consensus(tmp_path: Path) -> None:
+    obj = tmp_path / "door_60cm_open.obj"
+    mtl = tmp_path / "door_60cm_open.mtl"
+    out_dir = tmp_path / "out"
+
+    # Room with a 0.90m doorway open at y=[0.35..1.50], low 0.30m threshold sill, and 1.50..3.60 lintel
+    boxes = [
+        ("minecraft_quartz_block_top_-1", 0.0, -0.5, 0.0, 10.0, 0.0, 10.0),
+        ("minecraft_concrete_white_-1", 0.0, 0.0, 0.0, 10.0, 3.6, 0.5),
+        ("minecraft_concrete_white_-1", 0.0, 0.0, 9.5, 10.0, 3.6, 10.0),
+        ("minecraft_concrete_white_-1", 0.0, 0.0, 0.5, 0.5, 3.6, 9.5),
+        ("minecraft_concrete_white_-1", 9.5, 0.0, 0.5, 10.0, 3.6, 9.5),
+        # Interior wall with 0.90m doorway at x=[4.5..5.4], z=[4.6..5.0]
+        ("minecraft_concrete_white_-1", 0.5, 0.0, 4.6, 4.5, 3.6, 5.0),
+        ("minecraft_concrete_white_-1", 5.4, 0.0, 4.6, 9.5, 3.6, 5.0),
+        # Low threshold block only in [0.0..0.35] so S_30 sees solid, S_60 is open
+        ("minecraft_concrete_white_-1", 4.5, 0.0, 4.6, 5.4, 0.35, 5.0),
+        # Doorway lintel spanning [1.45..3.6] so S_mid at y=1.50 sees solid
+        ("minecraft_concrete_white_-1", 4.5, 1.45, 4.6, 5.4, 3.6, 5.0),
+    ]
+    _write_box_obj(boxes, obj, mtl)
+    rep = run_solid_rebuild(obj, out_dir, mtl_path=mtl, low_cut_m=1.25, plinth_m=0.04)
+    assert rep.passed is True
+    import trimesh
+
+    sc = trimesh.load(rep.glb_path, force="scene")
+    door_hits = [
+        n for n, g in sc.geometry.items()
+        if "__Lower" in n and (n.startswith("Wall_") or n.startswith("Column_"))
+        and float(g.bounds[0][0]) < 5.2 and float(g.bounds[1][0]) > 4.7
+        and float(g.bounds[0][2]) < 5.0 and float(g.bounds[1][2]) > 4.6
+    ]
+    assert door_hits == [], f"Doorway open at y=0.60 was bricked by S_30 & S_mid consensus: {door_hits}"
+
+
+def test_floor_slab_dom_top_excludes_iron_and_metal_block() -> None:
+    from engine.fixes.solid_cutaway_rebuild import _is_non_floor_metal_key
+
+    assert _is_non_floor_metal_key("tex_texture_0058_minecraft_iron_block__30") is True
+    assert _is_non_floor_metal_key("mat_minecraft_metal_block") is True
+    assert _is_non_floor_metal_key("tex_quartz_block_top__1") is False
+
+
+def test_repair_notched_stair_treads_heals_2cm_edge_bump_and_rotated_tread() -> None:
+    # Case A: MI/02-style 2cm x 0.26m Embree edge bump on long axis-aligned landing
+    mi_poly = Polygon([
+        (14.5, 43.75), (14.5, 35.76), (14.02, 35.76), (14.02, 36.02),
+        (14.0, 36.02), (14.0, 42.34), (14.02, 42.37), (14.02, 42.63),
+        (14.0, 42.66), (14.0, 43.75), (14.5, 43.75),
+    ])
+    # Case B: SciA/05-style rotated 4-gon tread with unequal opposite edges (0.20m vs 0.16m chord noise)
+    scia_poly = Polygon([
+        (59.36, 546.35), (58.89, 546.51), (59.61, 548.67), (60.04, 548.40), (59.36, 546.35),
+    ])
+    rep = _repair_notched_stair_treads([(2.0, mi_poly), (2.5, scia_poly)], Polygon(), Polygon(), floor_y=0.0)
+    by_y = dict(rep)
+    assert _count_non_ortho_edges(by_y[2.0]) == 0, f"MI bump still non-ortho: {list(by_y[2.0].exterior.coords)}"
+    assert _is_clean_angled_tread(by_y[2.5]) is True, f"Rotated tread not healed: {list(by_y[2.5].exterior.coords)}"
+
+
+def test_repair_notched_stair_treads_strips_exact_2cm_edge_bump_with_wall_blocker() -> None:
+    mi_poly = Polygon([
+        (14.0, 43.75), (14.5, 43.75), (14.5, 35.76), (14.02, 35.76),
+        (14.02, 36.02), (14.0, 36.02), (14.0, 42.34), (14.02, 42.37),
+        (14.02, 42.63), (14.0, 42.66), (14.0, 43.75),
+    ])
+    wall_blocker = shapely_box(13.5, 35.5, 14.0, 44.0)
+    rep = _repair_notched_stair_treads([(2.0, mi_poly)], wall_blocker, wall_blocker, floor_y=0.0)
+    by_y = dict(rep)
+    assert _count_non_ortho_edges(by_y[2.0]) == 0, f"Blocked 2cm bump still non-ortho: {list(by_y[2.0].exterior.coords)}"
+
+
+def test_tiered_upper_solid_never_steps_at_lintel_y(tmp_path: Path) -> None:
+    obj = tmp_path / "stepped_upper.obj"
+    mtl = tmp_path / "stepped_upper.mtl"
+    out_dir = tmp_path / "out"
+
+    # Exterior wall with a recessed window band at lintel_y..ceil_y that previously triggered
+    # stepped_upper when p_mid was split into [y_cut..lintel_y] + [lintel_y..ceil_y]
+    boxes = [
+        ("minecraft_quartz_block_top_-1", 0.0, -0.5, 0.0, 12.0, 0.0, 8.0),
+        ("minecraft_concrete_white_-1", 0.0, 0.0, 0.0, 12.0, 5.0, 0.6),
+        ("minecraft_concrete_white_-1", 0.0, 0.0, 7.4, 12.0, 5.0, 8.0),
+        ("minecraft_concrete_white_-1", 0.0, 0.0, 0.6, 0.6, 5.0, 7.4),
+        ("minecraft_concrete_white_-1", 11.4, 0.0, 0.6, 12.0, 5.0, 7.4),
+        # Upper sill/header corbel near ceiling along south wall that widens p_mid slightly below ceil_y
+        ("minecraft_concrete_white_-1", 1.0, 0.0, 0.2, 5.0, 2.0, 0.6),
+        ("minecraft_concrete_white_-1", 5.0, 2.0, 0.0, 8.0, 5.0, 0.6),
+    ]
+    _write_box_obj(boxes, obj, mtl)
+    rep = run_solid_rebuild(obj, out_dir, mtl_path=mtl, low_cut_m=1.25, plinth_m=0.04)
+    assert rep.passed is True
+    import trimesh
+
+    sc = trimesh.load(rep.glb_path, force="scene")
+    for n, g in sc.geometry.items():
+        if not ((n.startswith("Wall_") or n.startswith("Column_")) and "__Upper" in n):
+            continue
+        fn = g.face_normals
+        fc = g.vertices[g.faces].mean(axis=1)
+        up = fn[:, 1] > 0.9
+        if up.any():
+            max_y = float(g.bounds[1][1])
+            mid_m = up & (fc[:, 1] < max_y - 0.3)
+            if mid_m.any():
+                assert float(g.area_faces[mid_m].sum()) <= 0.25, f"Stepped upper on {n}"

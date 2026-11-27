@@ -41,7 +41,7 @@ from shapely.geometry import (
     box as shapely_box,
 )
 from shapely.geometry.polygon import orient as shapely_orient
-from shapely.ops import polygonize, unary_union
+from shapely.ops import nearest_points, polygonize, unary_union
 import trimesh
 
 
@@ -85,6 +85,12 @@ class RebuildReport:
 
 
 # --------------------------------------------------------------------------- OBJ + MTL I/O
+
+
+def _is_non_floor_metal_key(mkey: str) -> bool:
+    """Return True for stair/railing iron/metal textures that must never bleed onto Floor_Slab."""
+    low = mkey.lower()
+    return "iron_block" in low or "metal_block" in low
 
 
 def _classify_material_category(name: str, tex_rel: str | None) -> str:
@@ -340,6 +346,54 @@ def _clean_shapely(geom: Any, eps: float = 0.008) -> Any:
     return unary_union(polys).buffer(0)
 
 
+def _bridge_narrow_wall_gaps(
+    geom: Any,
+    min_gap_m: float = 0.0005,
+    max_gap_m: float = 0.12,
+) -> Any:
+    """Seal unintentional <12cm structural wall/column seams while preserving real doorways."""
+    cur = geom
+    for _ in range(4):
+        polys = [p for p in _iter_polygons(cur) if not p.is_empty and p.area >= 1e-4]
+        if len(polys) < 2:
+            break
+        bridges: list[Any] = []
+        for i in range(len(polys)):
+            pa = polys[i]
+            ax0, az0, ax1, az1 = pa.bounds
+            for j in range(i + 1, len(polys)):
+                pb = polys[j]
+                bx0, bz0, bx1, bz1 = pb.bounds
+                if (
+                    ax1 + max_gap_m < bx0
+                    or bx1 + max_gap_m < ax0
+                    or az1 + max_gap_m < bz0
+                    or bz1 + max_gap_m < az0
+                ):
+                    continue
+                d = float(pa.distance(pb))
+                if not (min_gap_m < d < max_gap_m):
+                    continue
+                pt_a, pt_b = nearest_points(pa, pb)
+                half_w = min(0.11, max(0.04, 0.5 * d + 0.035))
+                seg = LineString([(float(pt_a.x), float(pt_a.y)), (float(pt_b.x), float(pt_b.y))]).buffer(
+                    half_w, cap_style=3, join_style=2
+                )
+                hull = unary_union([pa, pb]).convex_hull.buffer(0.015, join_style=2)
+                cand = seg.intersection(hull)
+                if cand.is_empty or cand.area < 1e-5:
+                    ov_buf = pa.buffer(0.5 * d + 0.03, join_style=2).intersection(
+                        pb.buffer(0.5 * d + 0.03, join_style=2)
+                    )
+                    cand = ov_buf if not ov_buf.is_empty else seg
+                if not cand.is_empty:
+                    bridges.append(cand)
+        if not bridges:
+            break
+        cur = _clean_shapely(unary_union(polys + bridges), 0.0)
+    return cur
+
+
 def _regularize_polygon(poly: Polygon, snap_m: float = 0.005) -> Polygon:
     """Snap near-orthogonal coordinates cleanly without losing genuine angled walls."""
     def _ring(coords: Sequence[tuple[float, float]]) -> list[tuple[float, float]]:
@@ -445,7 +499,7 @@ def _polygon_to_manifold(poly: Polygon, y_min: float, y_max: float) -> m3d.Manif
     if poly.is_empty or poly.area < 1e-4:
         return None
 
-    def _extrude_op(src_poly: Polygon) -> m3d.Manifold | None:
+    def _extrude_op(src_poly: Polygon, cs_tol: float = 0.004) -> m3d.Manifold | None:
         op = shapely_orient(src_poly, 1.0)
         ext_pts = _dedup_ring(list(op.exterior.coords), min_dist=0.008)
         if len(ext_pts) < 3:
@@ -456,7 +510,7 @@ def _polygon_to_manifold(poly: Polygon, y_min: float, y_max: float) -> m3d.Manif
                 h_pts = _dedup_ring(list(hole.coords), min_dist=0.008)
                 if len(h_pts) >= 3:
                     rings.append(np.asarray(h_pts, dtype=np.float64))
-        cs = m3d.CrossSection(rings).simplify(0.004)
+        cs = m3d.CrossSection(rings).simplify(cs_tol)
         if cs.is_empty():
             return None
         m_out = m3d.Manifold.extrude(cs, float(y_max - y_min))
@@ -464,10 +518,10 @@ def _polygon_to_manifold(poly: Polygon, y_min: float, y_max: float) -> m3d.Manif
             return None
         return m_out
 
-    def _extrude_geom_cand(cand_geom: Any) -> m3d.Manifold | None:
+    def _extrude_geom_cand(cand_geom: Any, cs_tol: float = 0.004) -> m3d.Manifold | None:
         parts = []
         for pg in _iter_polygons(cand_geom):
-            mp = _extrude_op(pg)
+            mp = _extrude_op(pg, cs_tol=cs_tol)
             if mp is not None:
                 parts.append(mp)
         if not parts:
@@ -480,17 +534,26 @@ def _polygon_to_manifold(poly: Polygon, y_min: float, y_max: float) -> m3d.Manif
     cur_alt = _trimesh_min_altitude_mm(_raw_manifold_to_trimesh(man))
     if cur_alt < 1.0:
         op_open = _clean_shapely(poly.buffer(-0.015, join_style=2).buffer(0.015, join_style=2), 0.006)
+        op_open2 = _clean_shapely(poly.buffer(-0.025, join_style=2).buffer(0.025, join_style=2), 0.008)
         op_close = _clean_shapely(poly.buffer(0.015, join_style=2).buffer(-0.015, join_style=2), 0.006)
         best_man, best_alt = man, cur_alt
-        for op_cand in (
-            poly.simplify(0.04, preserve_topology=True),
-            set_precision(poly, 0.01),
-            set_precision(poly, 0.005),
-            op_open.simplify(0.015, preserve_topology=True) if not op_open.is_empty else Polygon(),
-            op_close.simplify(0.015, preserve_topology=True) if not op_close.is_empty else Polygon(),
-        ):
-            if not op_cand.is_empty and 0.90 * poly.area <= op_cand.area <= 1.05 * poly.area:
-                man2 = _extrude_geom_cand(op_cand)
+        cands_with_tol: list[tuple[Any, float]] = [
+            (poly, 0.008),
+            (poly, 0.015),
+            (poly, 0.025),
+            (poly.simplify(0.02, preserve_topology=True), 0.008),
+            (poly.simplify(0.04, preserve_topology=True), 0.008),
+            (poly.simplify(0.06, preserve_topology=True), 0.012),
+            (set_precision(poly, 0.01), 0.008),
+            (set_precision(poly, 0.02), 0.012),
+            (set_precision(poly, 0.005), 0.008),
+            (op_open.simplify(0.015, preserve_topology=True) if not op_open.is_empty else Polygon(), 0.008),
+            (op_open2.simplify(0.02, preserve_topology=True) if not op_open2.is_empty else Polygon(), 0.012),
+            (op_close.simplify(0.015, preserve_topology=True) if not op_close.is_empty else Polygon(), 0.008),
+        ]
+        for op_cand, cs_tol in cands_with_tol:
+            if not op_cand.is_empty and 0.88 * poly.area <= op_cand.area <= 1.08 * poly.area:
+                man2 = _extrude_geom_cand(op_cand, cs_tol=cs_tol)
                 if man2 is not None:
                     alt2 = _trimesh_min_altitude_mm(_raw_manifold_to_trimesh(man2))
                     if alt2 > best_alt:
@@ -566,8 +629,8 @@ def _clean_trimesh_slivers(tm: trimesh.Trimesh) -> trimesh.Trimesh:
         )
         mgl.merge()
         man = m3d.Manifold(mgl)
-        min_vol = 0.95 * max(float(tm.volume), 1e-6)
-        for tol in (0.002, 0.005, 0.01, 0.02, 0.04, 0.06, 0.08):
+        min_vol = 0.92 * max(float(tm.volume), 1e-6)
+        for tol in (0.002, 0.005, 0.01, 0.02, 0.04, 0.06, 0.08, 0.10, 0.12):
             man_s = man.simplify(tol)
             if man_s.is_empty() or man_s.num_tri() == 0:
                 continue
@@ -770,7 +833,7 @@ def _extract_slanted_stair_parapets(
             for gp in _iter_polygons(sup_xz):
                 su0, su1 = (gp.bounds[1], gp.bounds[3]) if axis == "x" else (gp.bounds[0], gp.bounds[2])
                 if su1 - su0 >= 0.25:
-                    u_boxes.append(shapely_box(su0 - 0.02, raw.slab_bottom_y - 0.5, su1 + 0.02, y_stair_split + 0.5))
+                    u_boxes.append(shapely_box(su0, raw.slab_bottom_y - 0.5, su1, y_stair_split + 0.5))
             if u_boxes:
                 op_lo = _clean_shapely(op.intersection(unary_union(u_boxes)), 0.004)
                 lo_parts = [
@@ -1033,7 +1096,7 @@ def _extract_slanted_stair_parapets(
             if op.area < 0.25 or op.buffer(-0.05, join_style=2).is_empty:
                 continue
             ou0, _, ou1, _ = op.bounds
-            sbox = shapely_box(a - 0.02, ou0 + 0.01, b + 0.02, ou1 - 0.01) if axis == "x" else shapely_box(ou0 + 0.01, a - 0.02, ou1 - 0.01, b + 0.02)
+            sbox = shapely_box(a - 0.03, ou0 - 0.03, b + 0.03, ou1 + 0.03) if axis == "x" else shapely_box(ou0 - 0.03, a - 0.03, ou1 + 0.03, b + 0.03)
             if not sbox.is_empty:
                 spine_footprints.append(sbox)
             _emit_slab_piece(op, a, b, axis, None)
@@ -1377,6 +1440,57 @@ def _extract_solid_slice(
     return base_solid
 
 
+def _detect_open_doorway_pockets_at_y(
+    wall_tm: trimesh.Trimesh,
+    y_chk: float,
+    caps_hi: Any,
+    base_no_cap: Any,
+) -> Any:
+    """Return XZ pockets under lintels that are open doorways (fresh_ratio < 0.15) at y_chk."""
+    if caps_hi is None or caps_hi.is_empty:
+        return Polygon()
+    segs_r = trimesh.intersections.mesh_plane(wall_tm, [0.0, 1.0, 0.0], [0.0, y_chk, 0.0])
+    if len(segs_r) == 0:
+        return Polygon()
+    lines_r = [
+        LineString([
+            (round(float(s[0, 0]), 3), round(float(s[0, 2]), 3)),
+            (round(float(s[1, 0]), 3), round(float(s[1, 2]), 3)),
+        ])
+        for s in segs_r
+        if (round(float(s[0, 0]), 3), round(float(s[0, 2]), 3))
+        != (round(float(s[1, 0]), 3), round(float(s[1, 2]), 3))
+    ]
+    if not lines_r:
+        return Polygon()
+    noded_r = unary_union(lines_r)
+    wide_c = caps_hi.buffer(-1.30, join_style=2)
+    narrow_c = caps_hi.difference(wide_c.buffer(1.40, join_style=2)) if not wide_c.is_empty else caps_hi
+    miss_c = _clean_shapely(narrow_c.difference(base_no_cap.buffer(0.02, join_style=2)), 0.008)
+    if miss_c.is_empty:
+        return Polygon()
+    cap_lr: list[Any] = []
+    for g in _iter_polygons(miss_c):
+        cap_lr.append(g.exterior)
+        cap_lr.extend(list(g.interiors))
+    fresh_r_noded = noded_r.difference(base_no_cap.buffer(0.06, join_style=2)) if not base_no_cap.is_empty else noded_r
+    fresh_r_buf = fresh_r_noded.buffer(0.08, join_style=2) if not fresh_r_noded.is_empty else Polygon()
+    open_pockets: list[Polygon] = []
+    for p in polygonize(unary_union(lines_r + cap_lr)):
+        if not (0.25 <= p.area <= 2.50):
+            continue
+        if p.intersection(miss_c).area / max(p.area, 1e-9) < 0.70:
+            continue
+        fresh_ratio = (
+            p.boundary.intersection(fresh_r_buf).length / max(p.boundary.length, 1e-9)
+            if not fresh_r_buf.is_empty
+            else 0.0
+        )
+        if fresh_ratio < 0.15:
+            open_pockets.append(p)
+    return _clean_shapely(unary_union(open_pockets), 0.004) if open_pockets else Polygon()
+
+
 def _count_non_ortho_edges(poly: Polygon, tol: float = 0.02) -> int:
     coords = list(poly.exterior.coords)
     return sum(
@@ -1508,38 +1622,69 @@ def _repair_notched_stair_treads(
                         repaired.append((yr, hcp))
                         continue
 
-        # Heal tiny micro-kinks (e.g. 6mm bevel on 4-sided ramp treads) into clean low-vertex faces
-        kp_s = kp.simplify(0.015, preserve_topology=True)
-        if (
-            isinstance(kp_s, Polygon)
-            and not kp_s.is_empty
-            and len(kp_s.exterior.coords) < len(kp.exterior.coords)
-            and kp_s.area >= 0.96 * kp.area
-        ):
-            kp = kp_s
-            if _is_clean_angled_tread(kp):
-                repaired.append((yr, kp))
-                continue
+        # Heal tiny micro-kinks (e.g. 6mm bevels & 2cm wall-edge steps) into clean low-vertex faces
+        for simp_tol in (0.015, 0.035):
+            kp_s = kp.simplify(simp_tol, preserve_topology=True)
+            if (
+                isinstance(kp_s, Polygon)
+                and not kp_s.is_empty
+                and len(kp_s.exterior.coords) < len(kp.exterior.coords)
+                and kp_s.area >= 0.97 * kp.area
+                and _count_non_ortho_edges(kp_s, tol=0.012) <= _count_non_ortho_edges(kp, tol=0.012)
+            ):
+                kp = kp_s
+                if _is_clean_angled_tread(kp) or _count_non_ortho_edges(kp, tol=0.012) == 0:
+                    break
+        if _is_clean_angled_tread(kp):
+            repaired.append((yr, kp))
+            continue
 
         minx, minz, maxx, maxz = kp.bounds
         dx, dz = maxx - minx, maxz - minz
         bbox_area = max(dx * dz, 1e-9)
+        excl = excl_high if yr >= floor_y + 1.15 else excl_low
+        blockers_base = [excl] + [
+            p_hi.buffer(0.004, join_style=2)
+            for y_hi, p_hi in repaired
+            if abs(y_hi - yr) < 0.04 or 0.05 <= (y_hi - yr) <= 1.35
+        ]
         if (
             min(dx, dz) <= 1.25
             and kp.area <= 4.5
             and len(kp.exterior.coords) - 1 >= 4
             and _count_non_ortho_edges(kp) > 0
-            and _axis_aligned_length_ratio(kp) >= 0.50
-            and 0.40 <= (kp.area / bbox_area) <= 1.001
+            and _axis_aligned_length_ratio(kp) < 0.40
+        ):
+            mrr = kp.minimum_rotated_rectangle
+            if isinstance(mrr, Polygon) and mrr.area > 0.20:
+                blk_u = unary_union(blockers_base)
+                spill_area = float(mrr.difference(kp).intersection(blk_u).area)
+                if spill_area <= 0.04 * float(mrr.area) and _is_clean_angled_tread(mrr):
+                    kp = mrr
+                    repaired.append((yr, kp))
+                    continue
+                cand_m = _clean_shapely(mrr.difference(blk_u), 0.004)
+                mcands = _iter_polygons(cand_m)
+                if mcands:
+                    cp = max(mcands, key=lambda p: p.intersection(kp).area)
+                    if (
+                        cp.intersection(kp).area >= 0.90 * kp.area
+                        and (kp.area / max(float(cp.area), 1e-9)) >= 0.75
+                        and _is_clean_angled_tread(cp)
+                    ):
+                        kp = cp
+                        repaired.append((yr, kp))
+                        continue
+        if (
+            min(dx, dz) <= 1.25
+            and kp.area <= 4.5
+            and len(kp.exterior.coords) - 1 >= 4
+            and _count_non_ortho_edges(kp) > 0
+            and _axis_aligned_length_ratio(kp) >= 0.45
+            and 0.30 <= (kp.area / bbox_area) <= 1.001
         ):
             rect = shapely_box(minx, minz, maxx, maxz)
-            excl = excl_high if yr >= floor_y + 1.15 else excl_low
-            blockers = [excl] + [
-                p_hi.buffer(0.004, join_style=2)
-                for y_hi, p_hi in repaired
-                if abs(y_hi - yr) < 0.04 or 0.05 <= (y_hi - yr) <= 1.35
-            ]
-            blockers_union = unary_union(blockers)
+            blockers_union = unary_union(blockers_base)
             cand = _clean_shapely(rect.difference(blockers_union), 0.004)
             cands = _iter_polygons(cand)
             if cands:
@@ -1566,12 +1711,7 @@ def _repair_notched_stair_treads(
             and 0.985 <= (kp.area / bbox_area) < 0.9999
         ):
             rect = shapely_box(minx, minz, maxx, maxz)
-            excl = excl_high if yr >= floor_y + 1.15 else excl_low
-            blockers_union = unary_union([excl] + [
-                p_hi.buffer(0.004, join_style=2)
-                for y_hi, p_hi in repaired
-                if abs(y_hi - yr) < 0.04 or 0.05 <= (y_hi - yr) <= 1.35
-            ])
+            blockers_union = unary_union(blockers_base)
             added = rect.difference(kp)
             if not added.is_empty and added.intersection(blockers_union).area <= 0.015 * bbox_area:
                 kp = rect
@@ -1853,18 +1993,23 @@ def _separate_columns_and_split_walls(
     wall_groups: list[tuple[str, str, Polygon, Polygon]] = []
     ext_idx = {"W": 0, "E": 0, "N": 0, "S": 0}
     int_idx = 0
+    dropped_frags: list[Polygon] = []
 
     for wp in sorted(_iter_polygons(walls_base), key=lambda p: (round(p.centroid.x, 2), round(p.centroid.y, 2))):
         ext_part = _clean_shapely(wp.intersection(outer_band), 0.0)
         int_part = _clean_shapely(wp.difference(outer_band), 0.0)
 
         for sp_ext in _iter_polygons(ext_part):
-            if sp_ext.area < 0.04:
+            if sp_ext.area < 0.04 or sp_ext.buffer(-0.02, join_style=2).is_empty:
+                if sp_ext.area >= 1e-4:
+                    dropped_frags.append(sp_ext)
                 continue
             for side, wedge in side_wedges.items():
                 sub_b = _clean_shapely(sp_ext.intersection(wedge), 0.0)
                 for sp in _iter_polygons(sub_b):
                     if sp.area < 0.04 or sp.buffer(-0.02, join_style=2).is_empty:
+                        if sp.area >= 1e-4:
+                            dropped_frags.append(sp)
                         continue
                     ext_idx[side] += 1
                     gname = f"Wall_Ext_{side}_{ext_idx[side]:02d}"
@@ -1873,11 +2018,93 @@ def _separate_columns_and_split_walls(
 
         for sp_int in _iter_polygons(int_part):
             if sp_int.area < 0.04 or sp_int.buffer(-0.02, join_style=2).is_empty:
+                if sp_int.area >= 1e-4:
+                    dropped_frags.append(sp_int)
                 continue
             int_idx += 1
             gname = f"Wall_Int_{int_idx:02d}"
             sm = _align_mid_to_base(sp_int, walls_mid)
             wall_groups.append((gname, "interior", sp_int, sm))
+
+    # Re-absorb tiny split slivers back into adjacent wall/column pieces so splitting never opens <12cm seams
+    for frag in dropped_frags:
+        best_col_i = max(
+            (i for i, (_, cg) in enumerate(columns) if cg.distance(frag) < 0.02),
+            key=lambda i: columns[i][1].area,
+            default=None,
+        )
+        if best_col_i is not None:
+            cn, cg = columns[best_col_i]
+            columns[best_col_i] = (cn, _clean_shapely(unary_union([cg, frag]), 0.0))
+            continue
+        best_wg_i = max(
+            (i for i, (_, _, wp_b, _) in enumerate(wall_groups) if wp_b.distance(frag) < 0.02),
+            key=lambda i: wall_groups[i][2].area,
+            default=None,
+        )
+        if best_wg_i is not None:
+            gn, gk, wb, wm = wall_groups[best_wg_i]
+            wb_new = _clean_shapely(unary_union([wb, frag]), 0.0)
+            wall_groups[best_wg_i] = (gn, gk, wb_new, _align_mid_to_base(wb_new, walls_mid))
+
+    # Final topological seam closure: ensure splitting by outer_band / col_union / side_wedges never
+    # leaves an accidental (0.5mm .. 12cm) gap between two adjacent column/wall groups
+    for _ in range(3):
+        pcs: list[tuple[str, int, Any]] = (
+            [("col", i, cg) for i, (_, cg) in enumerate(columns)]
+            + [("wall", i, wb) for i, (_, _, wb, _) in enumerate(wall_groups)]
+        )
+        changed = False
+        for i in range(len(pcs)):
+            ka, ia, pa = pcs[i]
+            ax0, az0, ax1, az1 = pa.bounds
+            for j in range(i + 1, len(pcs)):
+                kb, ib, pb = pcs[j]
+                if (
+                    ax1 + 0.12 < pb.bounds[0]
+                    or pb.bounds[2] + 0.12 < ax0
+                    or az1 + 0.12 < pb.bounds[1]
+                    or pb.bounds[3] + 0.12 < az0
+                ):
+                    continue
+                d = float(pa.distance(pb))
+                if not (0.0005 < d < 0.12):
+                    continue
+                pt_a, pt_b = nearest_points(pa, pb)
+                half_w = min(0.11, max(0.04, 0.5 * d + 0.035))
+                seg = LineString([(float(pt_a.x), float(pt_a.y)), (float(pt_b.x), float(pt_b.y))]).buffer(
+                    half_w, cap_style=3, join_style=2
+                )
+                cand = seg.intersection(unary_union([pa, pb]).convex_hull.buffer(0.015, join_style=2))
+                if cand.is_empty or cand.area < 1e-5:
+                    ov_buf = pa.buffer(0.5 * d + 0.03, join_style=2).intersection(
+                        pb.buffer(0.5 * d + 0.03, join_style=2)
+                    )
+                    cand = ov_buf if not ov_buf.is_empty else seg
+                if cand.is_empty:
+                    continue
+                # Attach seam connector to wall piece (prefer wall over column)
+                if kb == "wall":
+                    gn, gk, wb, _ = wall_groups[ib]
+                    wb_new = _clean_shapely(unary_union([wb, cand]).buffer(0), 0.002)
+                    if wb_new.is_empty:
+                        wb_new = _clean_shapely(unary_union([wb, cand]), 0.0)
+                    wall_groups[ib] = (gn, gk, wb_new, _align_mid_to_base(wb_new, walls_mid))
+                elif ka == "wall":
+                    gn, gk, wb, _ = wall_groups[ia]
+                    wb_new = _clean_shapely(unary_union([wb, cand]).buffer(0), 0.002)
+                    if wb_new.is_empty:
+                        wb_new = _clean_shapely(unary_union([wb, cand]), 0.0)
+                    wall_groups[ia] = (gn, gk, wb_new, _align_mid_to_base(wb_new, walls_mid))
+                else:
+                    cn, cg = columns[ia]
+                    columns[ia] = (cn, _clean_shapely(unary_union([cg, cand]).buffer(0), 0.002))
+                changed = True
+                break
+            if changed:
+                break
+        if not changed:
+            break
 
     return columns, wall_groups
 
@@ -2366,11 +2593,22 @@ def run_solid_rebuild(
     S_mid_raw = _extract_solid_slice(
         wall_tm, raw.floor_y + h_mid, any_cap, caps_above_y=_caps_ge(raw.floor_y + h_mid - 0.02)
     )
+    # Subtract open doorway pockets at y = floor_y + 0.60 from (S_30 & S_mid_raw)
+    # so lintels + low doorway thresholds never brick open doorways while columns missing 1 low face stay solid
+    caps_hi_60 = _caps_ge(raw.floor_y + 0.58)
+    s30_smid = _clean_shapely(S_30.intersection(S_mid_raw), 0.004)
+    base_no_cap_60 = _extract_solid_slice(wall_tm, raw.floor_y + 0.60, any_cap, caps_above_y=None)
+    open_door_60 = _detect_open_doorway_pockets_at_y(wall_tm, raw.floor_y + 0.60, caps_hi_60, base_no_cap_60)
+    if not open_door_60.is_empty:
+        door_cut_60 = _clean_shapely(open_door_60.buffer(0.02, join_style=2).difference(S_60), 0.004)
+        if not door_cut_60.is_empty:
+            s30_smid = _clean_shapely(s30_smid.difference(door_cut_60), 0.004)
+
     S_base = _clean_shapely(
         unary_union([
             S_30.intersection(S_60),
             S_60.intersection(S_mid_raw),
-            S_30.intersection(S_mid_raw),
+            s30_smid,
         ]),
         0.004,
     )
@@ -2379,8 +2617,8 @@ def run_solid_rebuild(
     # Clip S_mid inside S_base envelope so zero upper overhangs leak into walls
     S_mid = _clean_shapely(S_mid_raw.intersection(S_base.buffer(0.02, join_style=2)), 0.004)
 
-    # Weld sub-12.4cm raw wall micro-slits & fill tiny <0.35m2 pinholes while keeping doorways (>=0.70m) intact
-    S_base = _fill_small_holes(_clean_shapely(S_base, 0.062), 0.35)
+    # Weld sub-12.4cm raw wall micro-slits, fill <0.35m2 pinholes, and seal <12cm corner/column seams
+    S_base = _bridge_narrow_wall_gaps(_fill_small_holes(_clean_shapely(S_base, 0.062), 0.35))
     S_mid = _fill_small_holes(_clean_shapely(S_mid, 0.062).intersection(S_base), 0.35)
     S_base, S_mid = _apply_overrides_2d(S_base, S_mid, overrides_path)
 
@@ -2494,7 +2732,7 @@ def run_solid_rebuild(
             if kd_st == "stairs"
             for f in tm_st.faces[tm_st.face_normals[:, 1] > 0.85]
         ]
-        lower_support_xz = _clean_shapely(unary_union([floor_fp] + [p for p in lower_stair_polys if p.area > 1e-4]).buffer(0.32, join_style=2), 0.005)
+        lower_support_xz = _clean_shapely(unary_union([floor_fp] + [p for p in lower_stair_polys if p.area > 1e-4]).buffer(0.22, join_style=2), 0.005)
 
         # Extract parapets from largest stair cluster down so tiny auxiliary flights don't fracture continuous U-parapets
         parapet_by_ci: list[tuple[int, str, str, trimesh.Trimesh]] = []
@@ -2515,7 +2753,7 @@ def run_solid_rebuild(
 
     if spine_claim_boxes:
         claim_u = _clean_shapely(unary_union(spine_claim_boxes), 0.004)
-        S_base = _clean_shapely(S_base.difference(claim_u), 0.004)
+        S_base = _bridge_narrow_wall_gaps(_clean_shapely(S_base.difference(claim_u), 0.004))
         S_mid = _clean_shapely(S_mid.difference(claim_u), 0.004)
         S_high_wall = _clean_shapely(S_high_wall.difference(claim_u), 0.004)
         lintel_kept = _clean_shapely(lintel_kept.difference(claim_u), 0.004)
@@ -2591,19 +2829,71 @@ def run_solid_rebuild(
             solid_nodes.append((f"{gname}__Lower", kind, _slice_trimesh_at_y(manifold_to_trimesh(m_lo), y_bb_cut)))
 
         # __Upper: [y_cut .. ceil_y] respecting window openings & wall headers; standing mid-height walls never chop at lintel_y
-        m_hi1 = geom_to_manifold(p_mid, y_cut, min(raw.lintel_y, raw.ceil_y))
         hi_hdr = _clean_shapely(p_base.intersection(S_high_wall.buffer(0.02, join_style=2)), 0.002)
         up_top = _clean_shapely(unary_union([p_mid, hi_hdr]), 0.002)
         up_top_eff = up_top if not up_top.is_empty else p_base
-        if p_mid.is_empty is False and p_mid.symmetric_difference(up_top_eff).area < 1e-3:
-            if (m_hi := geom_to_manifold(p_mid, y_cut, raw.ceil_y)) is not None:
-                solid_nodes.append((f"{gname}__Upper", kind, manifold_to_trimesh(m_hi)))
-        else:
-            m_hi2 = geom_to_manifold(up_top_eff, raw.lintel_y, raw.ceil_y)
-            parts_hi = [m for m in (m_hi1, m_hi2) if m is not None]
-            if parts_hi:
-                m_hi = m3d.Manifold.batch_boolean(parts_hi, m3d.OpType.Add) if len(parts_hi) > 1 else parts_hi[0]
-                solid_nodes.append((f"{gname}__Upper", kind, manifold_to_trimesh(m_hi)))
+        m_hi1 = geom_to_manifold(p_mid, y_cut, raw.ceil_y)
+        hdr_extra = (
+            _clean_shapely(up_top_eff.difference(p_mid), 0.006)
+            if not p_mid.is_empty
+            else up_top_eff
+        )
+        # Overlap hdr_extra cleanly 1.5cm into up_top_eff so boolean union avoids sub-mm corner boundary slivers
+        hdr_solid = (
+            _clean_shapely(hdr_extra.buffer(0.015, join_style=2).intersection(up_top_eff), 0.004)
+            if (not hdr_extra.is_empty and hdr_extra.area >= 0.008)
+            else Polygon()
+        )
+        m_hi2 = (
+            geom_to_manifold(hdr_solid if not hdr_solid.is_empty else hdr_extra, raw.lintel_y, raw.ceil_y)
+            if (not hdr_extra.is_empty and hdr_extra.area >= 0.008 and raw.lintel_y < raw.ceil_y - 0.02)
+            else None
+        )
+        parts_hi = [m for m in (m_hi1, m_hi2) if m is not None]
+        if parts_hi:
+            m_hi = m3d.Manifold.batch_boolean(parts_hi, m3d.OpType.Add) if len(parts_hi) > 1 else parts_hi[0]
+            tm_hi = _clean_trimesh_slivers(manifold_to_trimesh(m_hi))
+            if len(parts_hi) > 1 and _trimesh_min_altitude_mm(tm_hi) < 1.0:
+                best_tm, best_alt = tm_hi, _trimesh_min_altitude_mm(tm_hi)
+                for grid_m, simp_m in ((0.01, 0.01), (0.01, 0.02), (0.02, 0.02), (0.02, 0.04)):
+                    p_mid_c = (
+                        _clean_shapely(set_precision(p_mid.simplify(simp_m, preserve_topology=True), grid_m), 0.004)
+                        if not p_mid.is_empty
+                        else Polygon()
+                    )
+                    hi_hdr_c = (
+                        _clean_shapely(set_precision(hi_hdr.simplify(simp_m, preserve_topology=True), grid_m), 0.004)
+                        if not hi_hdr.is_empty
+                        else Polygon()
+                    )
+                    up_top_c = _clean_shapely(set_precision(unary_union([p_mid_c, hi_hdr_c]), grid_m), 0.004)
+                    if up_top_c.is_empty:
+                        up_top_c = _clean_shapely(set_precision(p_base.simplify(simp_m, preserve_topology=True), grid_m), 0.004)
+                    cands_m: list[m3d.Manifold] = []
+                    ma = geom_to_manifold(p_mid_c, y_cut, min(raw.lintel_y, raw.ceil_y))
+                    mb = geom_to_manifold(up_top_c, raw.lintel_y, raw.ceil_y) if raw.lintel_y < raw.ceil_y - 0.02 else None
+                    if ma is not None and mb is not None:
+                        cands_m.append(m3d.Manifold.batch_boolean([ma, mb], m3d.OpType.Add))
+                    elif ma is not None:
+                        cands_m.append(ma)
+                    elif mb is not None:
+                        cands_m.append(mb)
+                    mc1 = geom_to_manifold(p_mid_c, y_cut, raw.ceil_y)
+                    mc2 = geom_to_manifold(up_top_c, raw.lintel_y, raw.ceil_y) if raw.lintel_y < raw.ceil_y - 0.02 else None
+                    if mc1 is not None and mc2 is not None:
+                        cands_m.append(m3d.Manifold.batch_boolean([mc1, mc2], m3d.OpType.Add))
+                    for m_cand in cands_m:
+                        tm_cand = _clean_trimesh_slivers(manifold_to_trimesh(m_cand))
+                        if tm_cand.is_watertight and float(tm_cand.volume) > 0.0:
+                            alt_c = _trimesh_min_altitude_mm(tm_cand)
+                            if alt_c > best_alt:
+                                best_tm, best_alt = tm_cand, alt_c
+                            if best_alt >= 1.0:
+                                break
+                    if best_alt >= 1.0:
+                        break
+                tm_hi = best_tm
+            solid_nodes.append((f"{gname}__Upper", kind, tm_hi))
 
     for cname, cpoly in columns:
         _add_tiered_solid(cname, "column", cpoly, _align_mid_to_base(cpoly, S_mid))
@@ -2726,14 +3016,15 @@ def run_solid_rebuild(
 
     # Compute area-weighted per-floor dominant category keys
     up_floor_band = np.abs(raw_up_pts[:, 1] - raw.floor_y) <= 0.15 if len(raw_up_pts) > 0 else np.zeros(0, dtype=bool)
+    up_no_metal = np.array([not _is_non_floor_metal_key(k) for k in raw_up_keys], dtype=bool) if len(raw_up_keys) > 0 else np.zeros(0, dtype=bool)
     dom_floor_top_key = _area_vote_key(
         raw_up_keys,
         raw_up_areas,
-        up_floor_band & (raw_up_cats == "floor_tile"),
+        up_floor_band & (raw_up_cats == "floor_tile") & up_no_metal,
         _area_vote_key(
             raw_up_keys,
             raw_up_areas,
-            up_floor_band & ~np.isin(raw_up_cats, ("baseboard", "glass")),
+            up_floor_band & ~np.isin(raw_up_cats, ("baseboard", "glass")) & up_no_metal,
             "fallback_floor",
         ),
     )
