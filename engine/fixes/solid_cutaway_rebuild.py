@@ -220,14 +220,18 @@ def load_raw_floor_obj(
         if m not in materials:
             materials[m] = MtlInfo(name=m, category=_classify_material_category(m, None))
 
-    # Detect inches Z-up (CKPT-17) vs metres Y-up (Unity export)
+    # Detect inches Z-up (CKPT-17), Engine v2 metres Z-up, vs metres Y-up (Unity export)
     span = pos.max(axis=0) - pos.min(axis=0)
-    if span[2] < span[1] * 0.45 and np.abs(pos).max() > 800.0:
+    if span[2] < span[1] * 0.45 and np.abs(pos).max() > 800.0 and max(span[0], span[1]) > 200.0:
         # CKPT-17 inches Z-up -> Unity metres Y-up: (-X*0.0254, Z*0.0254, Y*0.0254)
         INCH_TO_M = 0.0254
         pos_m = np.column_stack([-pos[:, 0] * INCH_TO_M, pos[:, 2] * INCH_TO_M, pos[:, 1] * INCH_TO_M])
         fa = fa[:, [0, 2, 1]]  # maintain outward winding across single axis negation
         source_frame = "ckpt17_inches_zup"
+    elif span[2] < span[1] * 0.45 and span[2] < span[0] * 0.45:
+        # Engine v2 Blender Z-up metres -> Y-up metres: (X, Z, -Y), det=+1 preserves winding
+        pos_m = np.column_stack([pos[:, 0], pos[:, 2], -pos[:, 1]])
+        source_frame = "engine_v2_metres_zup"
     else:
         pos_m = pos
         source_frame = "unity_metres_yup"
@@ -1395,13 +1399,18 @@ def _extract_exterior_canopy_meshes(
     if len(y_lvls) < 2:
         return []
 
-    floor_buf = _clean_shapely(floor_fp, 0.01).buffer(0.25, join_style=2) if not floor_fp.is_empty else Polygon()
-    min_canopy_y = raw.floor_y + 0.80
-    canopy_cands: list[tuple[float, float, Polygon]] = []
+    floor_raw = _clean_shapely(floor_fp, 0.01) if not floor_fp.is_empty else Polygon()
+    floor_buf = floor_raw.buffer(0.25, join_style=2) if not floor_raw.is_empty else Polygon()
+    min_canopy_y = raw.slab_bottom_y - 0.05
+    low_deck_cutoff_y = raw.floor_y + 0.55
+    canopy_cands: list[tuple[float, float, Polygon, bool]] = []
 
     for j in range(len(y_lvls) - 1):
         y0, y1 = y_lvls[j], y_lvls[j + 1]
         if y0 < min_canopy_y or (y1 - y0) < 0.03:
+            continue
+        is_low_deck = y1 <= low_deck_cutoff_y
+        if not is_low_deck and y0 < raw.floor_y + 0.80:
             continue
         segs = trimesh.intersections.mesh_plane(lt_tm, [0.0, 1.0, 0.0], [0.0, 0.5 * (y0 + y1), 0.0])
         if len(segs) == 0:
@@ -1429,20 +1438,29 @@ def _extract_exterior_canopy_meshes(
         u_band = _clean_shapely(unary_union(geoms), 0.006)
         for p in _iter_polygons(u_band):
             p_s = _regularize_polygon(p, snap_m).simplify(snap_m, preserve_topology=True)
-            if p_s.is_empty or p_s.area < 0.08 or p_s.area > 350.0 or p_s.buffer(-0.015, join_style=2).is_empty:
-                continue
-            if keep_facade_poly(p_s):
-                continue
-            if not floor_buf.is_empty:
-                ext_ratio = p_s.difference(floor_buf).area / max(p_s.area, 1e-6)
-                if ext_ratio < 0.45:
+            if is_low_deck and not floor_raw.is_empty:
+                p_s = _clean_shapely(p_s.difference(floor_raw.buffer(0.01, join_style=2)), 0.004)
+            for p_part in _iter_polygons(p_s):
+                if p_part.is_empty or p_part.area > 350.0:
                     continue
-            canopy_cands.append((y0, y1, p_s))
+                if is_low_deck:
+                    if p_part.area < 0.50 or p_part.buffer(-0.20, join_style=2).is_empty:
+                        continue
+                else:
+                    if p_part.area < 0.08 or p_part.buffer(-0.015, join_style=2).is_empty:
+                        continue
+                if keep_facade_poly(p_part):
+                    continue
+                if not floor_buf.is_empty and not is_low_deck:
+                    ext_ratio = p_part.difference(floor_buf).area / max(p_part.area, 1e-6)
+                    if ext_ratio < 0.20:
+                        continue
+                canopy_cands.append((y0, y1, p_part, is_low_deck))
 
     if not canopy_cands:
         return []
 
-    comp_union = _clean_shapely(unary_union([p for _, _, p in canopy_cands]).buffer(0.15, join_style=2), 0.01)
+    comp_union = _clean_shapely(unary_union([p for _, _, p, _ in canopy_cands]).buffer(0.15, join_style=2), 0.01)
     anchor_env = wall_env.buffer(0.35, join_style=2) if not wall_env.is_empty else Polygon()
     attached_comps = [
         cp for cp in _iter_polygons(comp_union)
@@ -1452,8 +1470,9 @@ def _extract_exterior_canopy_meshes(
         return []
     attached_u = unary_union(attached_comps)
 
-    tms_by_side: dict[str, list[trimesh.Trimesh]] = defaultdict(list)
-    for y0, y1, p_s in canopy_cands:
+    deck_by_side: dict[str, list[m3d.Manifold]] = defaultdict(list)
+    canopy_by_side: dict[str, list[m3d.Manifold]] = defaultdict(list)
+    for y0, y1, p_s, is_low_deck in canopy_cands:
         if not attached_u.intersects(p_s):
             continue
         m = geom_to_manifold(p_s, y0 + 0.0005, y1 - 0.0005)
@@ -1464,13 +1483,19 @@ def _extract_exterior_canopy_meshes(
             continue
         c_pt = p_s.centroid
         side_hit = next((sd for sd, wd in side_wedges.items() if wd.covers(c_pt)), "N" if c_pt.y >= 0 else "S")
-        tms_by_side[side_hit].append(tm_p)
+        if is_low_deck:
+            deck_by_side[side_hit].append(m)
+        else:
+            canopy_by_side[side_hit].append(m)
 
-    return [
-        (f"Facade_Canopy_{sd}", f"facade_canopy_{sd}", trimesh.util.concatenate(tl) if len(tl) > 1 else tl[0])
-        for sd, tl in sorted(tms_by_side.items())
-        if tl
-    ]
+    out_meshes: list[tuple[str, str, trimesh.Trimesh]] = []
+    for sd, ml in sorted(canopy_by_side.items()):
+        if ml:
+            out_meshes.extend(_fuse_manifold_list(f"Facade_Canopy_{sd}", f"facade_canopy_{sd}", ml))
+    for sd, ml in sorted(deck_by_side.items()):
+        if ml:
+            out_meshes.extend(_fuse_manifold_list(f"Facade_Deck_{sd}", f"facade_deck_{sd}", ml))
+    return out_meshes
 
 
 def _slice_trimesh_at_y(tm: trimesh.Trimesh, y_cut: float) -> trimesh.Trimesh:
@@ -2628,7 +2653,7 @@ def _assign_clean_raw_materials(
     n = len(fc)
     if kind == "glass":
         return ["glass"] * n
-    if kind.startswith("facade_ext_") or kind.startswith("facade_canopy_"):
+    if kind.startswith("facade_ext_") or kind.startswith("facade_canopy_") or kind.startswith("facade_deck_"):
         if raw_lt_pts is None or len(raw_lt_pts) == 0 or not raw_lt_keys or raw_lt_areas is None:
             return [dom_lt_key] * n
         out_lt = [dom_lt_key] * n
@@ -2646,8 +2671,24 @@ def _assign_clean_raw_materials(
     dn_mask = fn[:, 1] < -0.70
     horiz_mask = up_mask | dn_mask
 
-    # 1. Floor_Slab: uniform category-filtered upward flooring + clean slab edge
-    if kind == "floor":
+    # 1. Floor_Slab / Floor_Deck_Supp: uniform category-filtered upward flooring + clean slab edge
+    if kind in ("floor", "floor_deck"):
+        if kind == "floor_deck":
+            for gi in range(n):
+                if len(raw_up_pts) > 0 and up_mask[gi]:
+                    dists = np.linalg.norm(raw_up_pts - fc[gi], axis=1)
+                    hit = dists <= 0.45
+                    if hit.any():
+                        out[gi] = _area_vote_key(raw_up_keys, raw_up_areas, hit, dom_floor_top_key)
+                        continue
+                if len(raw_vert_pts) > 0 and not horiz_mask[gi]:
+                    dists = np.linalg.norm(raw_vert_pts - fc[gi], axis=1)
+                    hit = dists <= 0.45
+                    if hit.any():
+                        out[gi] = _area_vote_key(raw_vert_keys, raw_vert_areas, hit, dom_floor_side_key)
+                        continue
+                out[gi] = dom_floor_top_key if up_mask[gi] else dom_floor_side_key
+            return out
         for gi in np.where(dn_mask | (~horiz_mask))[0]:
             out[int(gi)] = dom_floor_side_key
         up_by_y: dict[float, list[int]] = defaultdict(list)
@@ -3013,6 +3054,126 @@ def _extract_glass_mesh(raw: RawFloorMesh, S_base: Any, S_mid: Any, y_cut: float
         return None
     g_man = m3d.Manifold.batch_boolean(glass_parts, m3d.OpType.Add) if len(glass_parts) > 1 else glass_parts[0]
     return manifold_to_trimesh(g_man)
+
+
+def _fuse_manifold_list(
+    prefix: str,
+    kind: str,
+    mans: list[m3d.Manifold],
+) -> list[tuple[str, str, trimesh.Trimesh]]:
+    """Convert/fuse Manifold Z-up parts into watertight Y-up Trimesh nodes with zero open/nonmanifold edges."""
+    clean_pairs: list[tuple[m3d.Manifold, trimesh.Trimesh]] = []
+    for m in mans:
+        if m is None or m.is_empty() or m.num_tri() == 0:
+            continue
+        tm_c = _clean_trimesh_slivers(manifold_to_trimesh(m))
+        if not tm_c.is_watertight or float(tm_c.volume) <= 1e-4 or _trimesh_min_altitude_mm(tm_c) < 1.0:
+            continue
+        edges = tm_c.edges_sorted
+        _, counts_e = np.unique(edges, axis=0, return_counts=True)
+        if int((counts_e == 1).sum()) == 0 and int((counts_e > 2).sum()) == 0:
+            clean_pairs.append((m, tm_c))
+    if not clean_pairs:
+        return []
+    if len(clean_pairs) == 1:
+        return [(prefix, kind, clean_pairs[0][1])]
+    try:
+        fused_m = m3d.Manifold.batch_boolean([p[0] for p in clean_pairs], m3d.OpType.Add)
+        fused_tm = _clean_trimesh_slivers(manifold_to_trimesh(fused_m))
+        if fused_tm.is_watertight and float(fused_tm.volume) > 1e-4 and _trimesh_min_altitude_mm(fused_tm) >= 1.0:
+            _, counts_f = np.unique(fused_tm.edges_sorted, axis=0, return_counts=True)
+            if int((counts_f == 1).sum()) == 0 and int((counts_f > 2).sum()) == 0:
+                return [(prefix, kind, fused_tm)]
+    except Exception:
+        pass
+    out: list[tuple[str, str, trimesh.Trimesh]] = []
+    for idx, (_, part) in enumerate(clean_pairs, start=1):
+        name = prefix if idx == 1 and "__" not in prefix else (f"{prefix}_{idx:02d}" if "__" not in prefix else f"{prefix.split('__')[0]}_{idx:02d}__{prefix.split('__', 1)[1]}")
+        out.append((name, kind, part))
+    return out
+
+
+def _recover_uncovered_v2_solid_blocks(
+    raw: RawFloorMesh,
+    solid_nodes: list[tuple[str, str, trimesh.Trimesh]],
+    floor_fp: Any,
+    S_base: Any,
+    y_cut: float,
+    stair_zone: Any | None = None,
+) -> list[tuple[str, str, trimesh.Trimesh]]:
+    """Recover wide uncovered V2 horizontal exterior balconies/terraces as watertight Floor_Deck_Supp solids."""
+    pos, fa, mats, fmats = raw.positions, raw.faces, raw.materials, raw.face_mats
+    p0, p1, p2 = pos[fa[:, 0]], pos[fa[:, 1]], pos[fa[:, 2]]
+    cr = np.cross(p1 - p0, p2 - p0)
+    lens = np.linalg.norm(cr, axis=1)
+    unit_n = cr / np.maximum(lens[:, None], 1e-12)
+    yc = pos[fa].mean(axis=1)[:, 1]
+    keep_non_glass = np.array([mats[m].category != "glass" for m in fmats])
+
+    cov_h_polys: list[Polygon] = []
+    for _, nkind, tm in solid_nodes:
+        if len(tm.faces) == 0 or nkind == "glass":
+            continue
+        fn = tm.face_normals
+        hm = np.abs(fn[:, 1]) > 0.70
+        if np.any(hm):
+            for t in tm.vertices[tm.faces[hm]]:
+                q = Polygon([(float(t[0, 0]), float(t[0, 2])), (float(t[1, 0]), float(t[1, 2])), (float(t[2, 0]), float(t[2, 2]))]).buffer(0)
+                if isinstance(q, Polygon) and q.area > 1e-4:
+                    cov_h_polys.append(q)
+
+    excl_parts: list[Any] = []
+    if cov_h_polys:
+        excl_parts.append(_clean_shapely(unary_union(cov_h_polys), 0.01).buffer(0.03, join_style=2))
+    if S_base is not None and not S_base.is_empty:
+        excl_parts.append(S_base.buffer(0.02, join_style=2))
+    if stair_zone is not None and not stair_zone.is_empty:
+        excl_parts.append(stair_zone.buffer(0.50, join_style=2))
+    cov_horiz = _clean_shapely(unary_union(excl_parts), 0.0) if excl_parts else Polygon()
+
+    floor_supp_mans: list[m3d.Manifold] = []
+    max_deck_y = raw.floor_y + 0.55
+
+    # Recover ONLY wide, solid walkable exterior balconies & terraces (no thin strips or vertical triangle buffering)
+    h_idx = np.where(keep_non_glass & (np.abs(unit_n[:, 1]) > 0.85))[0]
+    by_ytop: dict[float, list[Polygon]] = defaultdict(list)
+    for fi in h_idx:
+        yt = round(round((float(yc[fi]) if unit_n[fi, 1] > 0 else float(yc[fi]) + 0.25) / 0.05) * 0.05, 3)
+        if yt < raw.slab_bottom_y + 0.15 or yt > max_deck_y:
+            continue
+        f = fa[fi]
+        p = Polygon([(float(pos[f[0], 0]), float(pos[f[0], 2])), (float(pos[f[1], 0]), float(pos[f[1], 2])), (float(pos[f[2], 0]), float(pos[f[2], 2]))]).buffer(0)
+        if not isinstance(p, Polygon) or p.area < 0.01:
+            continue
+        diff = p if cov_horiz.is_empty else p.difference(cov_horiz)
+        for dp in _iter_polygons(diff):
+            if dp.area >= 0.02:
+                by_ytop[yt].append(dp)
+
+    for y_top in sorted(by_ytop.keys(), reverse=True):
+        u = _clean_shapely(unary_union(by_ytop[y_top]), 0.01)
+        if not cov_horiz.is_empty:
+            u = _clean_shapely(u.difference(cov_horiz), 0.004)
+        for p in _iter_polygons(u):
+            p_s = _regularize_polygon(p, 0.01).simplify(0.01, preserve_topology=True)
+            if p_s.is_empty or p_s.area < 0.80 or p_s.buffer(-0.20, join_style=2).is_empty:
+                continue
+            if y_top <= raw.floor_y + 0.06:
+                y_bot = min(float(raw.slab_bottom_y), y_top - 0.15)
+            else:
+                y_bot = min(float(raw.floor_y), y_top - 0.15)
+            m = geom_to_manifold(p_s, y_bot, y_top)
+            if m is None:
+                continue
+            tm = manifold_to_trimesh(m)
+            if not tm.is_watertight or float(tm.volume) <= 1e-4 or _trimesh_min_altitude_mm(tm) < 1.0:
+                continue
+            cov_horiz = _clean_shapely(unary_union([cov_horiz, p_s.buffer(0.04, join_style=2)]), 0.0)
+            floor_supp_mans.append(m)
+
+    if not floor_supp_mans:
+        return []
+    return _fuse_manifold_list("Floor_Deck_Supp", "floor_deck", floor_supp_mans)
 
 
 def run_solid_rebuild(
@@ -3421,6 +3582,14 @@ def run_solid_rebuild(
             nkind, tm = v1_fac_map[nname]
             solid_nodes.append((nname, nkind, tm))
     raw_recovery["facade_nodes_from_raw"] = sorted(ref_facade_nodes)
+
+    # 7. Recover any remaining uncovered V2 wide horizontal balconies/terraces
+    if raw.source_frame == "engine_v2_metres_zup":
+        extra_v2_nodes = _recover_uncovered_v2_solid_blocks(
+            raw, solid_nodes, floor_fp, S_base, y_cut, stair_zone=sl.get("stair_zone")
+        )
+        solid_nodes.extend(extra_v2_nodes)
+        raw_recovery["recovered_v2_extra_nodes"] = [n[0] for n in extra_v2_nodes]
 
     # ------------------------------------------------- Hard Watertight Audit BEFORE Export
     audit_nodes: list[dict[str, Any]] = []

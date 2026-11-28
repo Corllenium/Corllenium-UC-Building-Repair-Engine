@@ -197,13 +197,17 @@ def sync_chtm_models(staging_chtm: Path = STAGING_CHTM, dash_v2: Path = DEFAULT_
                 f"Unity Mesh Baker 3.40.2 Ready: {uopt.get('unique_materials', 0)} materials -> {uopt.get('projected_mesh_baker_draw_calls', 1)} draw calls ({uopt.get('opaque_materials', 0)} opaque + {uopt.get('transparent_materials', 0)} glass), {uopt.get('uv_faces_normalized', 0):,} UV tile faces normalized.",
                 *(
                     [
-                        f"Studio 4-Mode Cutaway QA (S1-S6): {'PASS' if studio_qa_passed else 'FAIL'} "
+                        f"Studio 4-Mode Cutaway QA (S1-S9): {'PASS' if studio_qa_passed else 'FAIL'} "
                         f"(S1 leak={studio_qa_gates.get('S1_corridor_cutcap_leak_m2', 0)}m2, "
                         f"S2 overhang={studio_qa_gates.get('S2_max_zone_overhang_m', 0)}m, "
                         f"S3 mismatch={studio_qa_gates.get('S3_quadrant_mismatch', 0)}, "
                         f"S4 piers={studio_qa_gates.get('S4_capped_piers_solid_pct', 0)}%, "
                         f"S5 overhead={studio_qa_gates.get('S5_overhead_top_area_m2', 0)}m2, "
-                        f"S6 cracks={studio_qa_gates.get('S6_walkable_floor_cracks', 0)})."
+                        f"S6 cracks={studio_qa_gates.get('S6_walkable_floor_cracks', 0)}, "
+                        f"S7 open={studio_qa_gates.get('S7_open_edges', 0)}, "
+                        f"S8 manifold3d={studio_qa_gates.get('S8_manifold3d_verified', True)}, "
+                        f"S9 h_cov={studio_qa_gates.get('S9_v2_footprint_coverage_pct', 100)}%, "
+                        f"v_cov={studio_qa_gates.get('S9_v2_vertical_coverage_pct', 100)}%)."
                     ]
                     if studio_manifest is not None
                     else []

@@ -1186,3 +1186,43 @@ def test_safe_unary_union_and_v1_floor_y_shift_preserves_complete_v1(tmp_path: P
     assert rep.passed is True
     assert rep.manifest["raw_recovery"]["used_raw_structural_fallback"] is False
     assert abs(rep.manifest["elevations_m"]["floor_y"] - 0.0) < 0.05
+
+
+def test_load_raw_floor_obj_detects_engine_v2_metres_zup_and_preserves_decks(tmp_path: Path) -> None:
+    from engine.fixes.solid_cutaway_rebuild import load_raw_floor_obj, run_solid_rebuild
+
+    obj = tmp_path / "v2_zup.obj"
+    mtl = tmp_path / "v2_zup.mtl"
+    out_dir = tmp_path / "out_v2_zup"
+    # Build Y-up boxes first in a helper OBJ, then rotate coordinates to Blender Z-up metres (X, -Z, Y)
+    yup_obj = tmp_path / "tmp_yup.obj"
+    boxes = [
+        ("minecraft_quartz_block_top_-1", 0.0, -0.5, 0.0, 10.0, 0.0, 10.0),
+        ("minecraft_concrete_white_-1", 0.0, 0.0, 0.0, 10.0, 3.6, 0.5),
+        ("minecraft_concrete_white_-1", 0.0, 0.0, 9.5, 10.0, 3.6, 10.0),
+        ("minecraft_concrete_white_-1", 0.0, 0.0, 0.5, 0.5, 3.6, 9.5),
+        ("minecraft_concrete_white_-1", 9.5, 0.0, 0.5, 10.0, 3.6, 9.5),
+        # Attached low exterior balcony deck on South side (y=-0.25..0.05, z=-1.5..0.0)
+        ("littletiles_ltcolored0_-1", 2.0, -0.25, -1.5, 8.0, 0.05, 0.0),
+    ]
+    _write_box_obj(boxes, yup_obj, mtl)
+    zup_lines: list[str] = []
+    for line in yup_obj.read_text(encoding="utf-8").splitlines():
+        if line.startswith("v "):
+            _, xs, ys, zs = line.split()
+            x, y, z = float(xs), float(ys), float(zs)
+            zup_lines.append(f"v {x:.6f} {-z:.6f} {y:.6f}")
+        else:
+            zup_lines.append(line)
+    obj.write_text("\n".join(zup_lines) + "\n", encoding="utf-8")
+
+    raw = load_raw_floor_obj(obj, mtl_path=mtl)
+    assert raw.source_frame == "engine_v2_metres_zup"
+    assert abs(raw.floor_y - 0.0) < 0.05
+
+    rep = run_solid_rebuild(obj, out_dir, mtl_path=mtl, low_cut_m=1.25, plinth_m=0.04)
+    assert rep.passed is True
+    assert rep.audit["total_open_edges"] == 0
+    assert rep.audit["total_nonmanifold_edges"] == 0
+    node_names = {n["node"] for n in rep.audit["nodes"]}
+    assert any(n.startswith("Facade_Deck_") or n.startswith("Floor_Deck_Supp") for n in node_names)

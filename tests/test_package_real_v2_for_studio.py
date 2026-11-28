@@ -494,3 +494,61 @@ def test_2m_thick_exterior_wall_stays_solid_in_auto_with_sealed_vertical_cut_end
     up_caps = [g for k, g in reloaded.geometry.items() if k.endswith("__Upper__cut_cap")]
     assert len(up_caps) == 4
 
+
+def test_verify_watertight_manifold3d_passes_closed_box_and_flags_open_shell(tmp_path: Path) -> None:
+    from tools.package_real_v2_for_studio import _verify_watertight_manifold3d
+
+    mat = PBRMaterial(name="mat_solid_test", baseColorFactor=[0.8, 0.8, 0.8, 1.0], doubleSided=True)
+    closed_box = trimesh.creation.box(extents=[2.0, 2.5, 0.4])
+    closed_box.visual = TextureVisuals(uv=np.zeros((len(closed_box.vertices), 2)), material=mat)
+    sc_ok = trimesh.Scene()
+    sc_ok.add_geometry(closed_box, node_name="Wall_Ext_W_01__Lower__tex_a", geom_name="Wall_Ext_W_01__Lower__tex_a")
+    ok_glb = tmp_path / "closed.glb"
+    sc_ok.export(ok_glb, file_type="glb")
+    res_ok = _verify_watertight_manifold3d(ok_glb)
+    assert res_ok["manifold3d_verified"] is True
+    assert res_ok["total_open_edges"] == 0
+    assert res_ok["total_nonmanifold_edges"] == 0
+
+    open_shell = closed_box.copy()
+    open_shell.faces = open_shell.faces[:-2]  # remove one end face so the shell is hollow/open
+    open_shell.visual = TextureVisuals(uv=np.zeros((len(open_shell.vertices), 2)), material=mat)
+    sc_bad = trimesh.Scene()
+    sc_bad.add_geometry(open_shell, node_name="Wall_Ext_W_01__Lower__tex_a", geom_name="Wall_Ext_W_01__Lower__tex_a")
+    bad_glb = tmp_path / "open.glb"
+    sc_bad.export(bad_glb, file_type="glb")
+    res_bad = _verify_watertight_manifold3d(bad_glb)
+    assert res_bad["manifold3d_verified"] is False
+    assert res_bad["total_open_edges"] > 0
+
+
+def test_measure_v2_coverage_gate_detects_missing_balcony_vs_full_cover(tmp_path: Path) -> None:
+    from tools.package_real_v2_for_studio import _measure_v2_coverage
+
+    mat = PBRMaterial(name="mat_cov_test", baseColorFactor=[0.8, 0.8, 0.8, 1.0], doubleSided=True)
+    main_slab = trimesh.creation.box(extents=[10.0, 0.4, 10.0])
+    main_slab.apply_translation([5.0, -0.2, 5.0])
+    balcony = trimesh.creation.box(extents=[6.0, 0.25, 2.0])
+    balcony.apply_translation([5.0, -0.125, -1.0])
+
+    ref_mesh = trimesh.util.concatenate([main_slab, balcony])
+    ref_mesh.visual = TextureVisuals(uv=np.zeros((len(ref_mesh.vertices), 2)), material=mat)
+    ref_glb = tmp_path / "ref.glb"
+    ref_sc = trimesh.Scene()
+    ref_sc.add_geometry(ref_mesh, node_name="Floor_Slab", geom_name="Floor_Slab")
+    ref_sc.export(ref_glb, file_type="glb")
+
+    main_only = main_slab.copy()
+    main_only.visual = TextureVisuals(uv=np.zeros((len(main_only.vertices), 2)), material=mat)
+    partial_glb = tmp_path / "partial.glb"
+    p_sc = trimesh.Scene()
+    p_sc.add_geometry(main_only, node_name="Floor_Slab", geom_name="Floor_Slab")
+    p_sc.export(partial_glb, file_type="glb")
+
+    h_partial, _ = _measure_v2_coverage(ref_glb, partial_glb)
+    assert h_partial < 92.0
+
+    h_full, v_full = _measure_v2_coverage(ref_glb, ref_glb)
+    assert h_full >= 99.5
+    assert v_full >= 99.5
+

@@ -31,11 +31,11 @@ Every room and structural assembly must satisfy **every row below across all 4 S
 | **Internal Face & Debris Purge** | Stripped buried cube internals (`stage_hidden`) & tiny disconnected scraps (`stage_loose`). | Adds `detect_internal_voxel_stack_plates` + `purge_internal_voxel_stack_plates` (`39.37 in` internal filler plates) + 13-pt Embree `drop_phantom_bridges`. | Stripped internal bloat (45–60% tris reduction) with **`0` visible deletions**. |
 | **Coplanar Overlap & Normal Fix** | Flagged `double_layers`, `reversed`, `open_edges`. | E5 `remove_coplanar_overlaps(rebuild=True, outer_priority=EXP_OUTSIDE)` + non-transitive `resolve_residual_double_layers` + 128-dir one-sided normal orientation. | `flicker_diff == 0`, `flicker_same == 0`, `reversed == 0`. |
 | **Facade, Sliver & Crack Repair** | Could accidentally clip outer cladding/railings or leave torn seams (`D03`, `D04`). | Strict 100% Outer Facade Lock, 256-dir Interior Visible Retention, `purge_piercing_needle_slivers`, and `heal_walkable_floor_slab_cracks`. | `outer == 100.00%`, `torn_seams == 0`, `slivers == 0`, `floor_cracks == 0`. |
-| **Studio 4-Mode Cutaway Packaging** | N/A (early `solid_cutaway_rebuild.py` replaced real mesh). | Real-mesh 5-zone solid-volume slicing + solid `Plinth__cut_cap`, `Lower__cut_cap`, and vertical `Upper__cut_cap` sealing across `Full`/`Auto`/`Low`/`Floor`. | `S1`–`S6` all green; real textured facade preserved verbatim. |
+| **Studio 4-Mode Cutaway Packaging** | N/A (early `solid_cutaway_rebuild.py` lacked V2 frame detection & deck recovery). | Runs `solid_cutaway_rebuild.py` directly on Engine v2 `.v2.obj` (`engine_v2_metres_zup`) using `manifold3d` (`S7`/`S8`), wide horizontal-only deck/balcony recovery (`Floor_Deck_Supp` / `Facade_Deck_*`), shared-pivot rigid transitions (`InteriorStudioCanvas.tsx`), and V2 footprint parity (`S9`). | `S1`–`S9` all green (`S7=0`, `S8=True`, `S9_H>=98%`, `S9_V>=85%`); `0` vertical fin artifacts. |
 
 ---
 
-## 3. Hard Automated Gates (11 Engine v2 + 6 Studio Cutaway)
+## 3. Hard Automated Gates (11 Engine v2 + 9 Studio Cutaway)
 
 ### A. Engine v2 11 Automated & Signoff Gates (`engine/validate/facade_integrity.py`)
 1. `outer_facade_completeness` (`>= 99.8%`; CHTM promotion requires **`100.00%`**)
@@ -50,13 +50,21 @@ Every room and structural assembly must satisfy **every row below across all 4 S
 10. `ai_visual_defect_inspector` (`0` blocking visual defects `D01`–`D10`, `D12`, `D14`)
 11. `zero_walkable_floor_cracks` (**`0` narrow walkable floor cracks/slivers/notches**)
 
-### B. Studio 4-Mode Cutaway 6 Hard QA Gates (`tools/package_real_v2_for_studio.py`)
+### B. Studio 4-Mode Cutaway 9 Hard QA Gates (`tools/package_real_v2_for_studio.py`)
 - **`S1_corridor_cutcap_leak_m2`** `<= 0.35 m^2` (CutCap geometry must never bleed into open walkable corridors)
 - **`S2_max_zone_overhang_m`** `<= 0.08 m` (zone-sliced walls/caps must never overhang across channel boundaries)
 - **`S3_quadrant_mismatch`** `== 0` (all `Wall_Ext_{W,E,N,S}_01` centroids align 100% with Three.js quadrant sign)
 - **`S4_capped_piers_solid_pct`** `>= 98.0%` (solid columns/piers stay capped across `Low`, `Auto`, and `Floor`)
 - **`S5_overhead_top_area_m2`** `<= 65.0 m^2` (wide ceilings stripped before overhead classification)
 - **`S6_walkable_floor_cracks`** `== 0` (zero walkable slab cracks/notches in final Studio GLB)
+- **`S7_open_edges`** `== 0` (`manifold3d` weld check on every `(group, tier)` parent block including `__cut_cap`)
+- **`S8_manifold3d_verified`** `== True` (`manifold3d.Manifold` `Error.NoError` on every solid block)
+- **`S9_v2_footprint_coverage_pct` / `S9_v2_vertical_coverage_pct`** (`>= 98.0%` horizontal / `>= 85.0%` vertical vs Engine v2 `CHTM_Floor_<LVL>.glb`, keeping ONLY wide `>= 0.50-0.80 m^2`, `>= 0.40 m` wide horizontal decks — never buffer vertical stair/wall triangles)
+
+### C. Three.js Rigid-Block Transition Contract (`InteriorStudioCanvas.tsx`)
+- `Floor_Slab`, `Floor_Deck_Supp*`, and `Facade_Deck_*` stay permanently visible across `Full`, `Auto`, `Low`, and `Floor`.
+- `Facade_Ext_*`, `Facade_Canopy_*`, `Stairs_Upper*`, `OverheadBeams_And_Lintels`, and `Glass_Openings` show ONLY in `Full` (`0.0` in `Auto`, `Low`, `Floor`) to eliminate floating slats/ribbons in cutaway views.
+- Shared `pivotY` per tier (`sharedLowerPivotY` / `sharedUpperPivotY`) + explicit semantic `sideDirX`/`sideDirZ` per directional channel (`W: -1,0`, `E: +1,0`, `N: 0,-1`, `S: 0,+1`) keep every material submesh and cap locked as one rigid solid block during exponential-decay transitions.
 
 ---
 
