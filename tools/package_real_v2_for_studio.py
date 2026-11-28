@@ -36,6 +36,7 @@ SOLID_REBUILD_ROOT = REPO_04 / "02_STAGING_DEVELOPMENT" / "SolidRebuild"
 PLINTH_HEIGHT_M = 0.06
 LOW_CUT_HEIGHT_M = 1.25
 EDGE_BAND_M = 1.35
+EXT_SOLID_DEPTH_M = 2.55
 
 
 def _extract_uv(geom: trimesh.Trimesh) -> np.ndarray | None:
@@ -256,37 +257,50 @@ def _detect_elevations(
 def _detect_stair_zone_2d(sc: trimesh.Scene, floor_y: float, ceil_y: float) -> Any:
     """Detect stairwell XZ footprint strictly around real multi-step stair tread ladders.
 
-    Builds horizontal multi-step clusters first (>= 4 distinct step heights) and only
-    attaches nearby sloped strings/railings intersecting those clusters so slanted exterior
-    walls or angled window sills are never misclassified as Stairs_Upper_01.
+    Builds horizontal multi-step clusters first (>= 4 consecutive riser steps with narrow
+    tread width <= 1.1m) and tightly attaches intersecting sloped stringers so slanted
+    exterior bay facades or angled window sills are never misclassified as Stairs_01/Upper.
     """
-    step_polys: list[tuple[float, Polygon]] = []
+    step_polys: list[tuple[float, Polygon, float]] = []
     for g in sc.geometry.values():
         fn = g.face_normals
         fc = g.vertices[g.faces].mean(axis=1)
-        up = (fn[:, 1] > 0.90) & (fc[:, 1] >= floor_y + 0.14) & (fc[:, 1] <= ceil_y - 0.30)
+        up = (fn[:, 1] > 0.95) & (fc[:, 1] >= floor_y + 0.14) & (fc[:, 1] <= ceil_y - 0.30)
         for f, yc in zip(g.faces[up], fc[up, 1]):
             pts = [(float(g.vertices[v, 0]), float(g.vertices[v, 2])) for v in f]
             p = Polygon(pts).buffer(0)
-            if 0.04 <= p.area <= 4.0:
-                step_polys.append((round(float(yc), 2), p))
+            if isinstance(p, Polygon) and 0.03 <= p.area <= 4.0:
+                mrr = p.minimum_rotated_rectangle
+                coords = list(mrr.exterior.coords)
+                e1 = float(np.hypot(coords[1][0] - coords[0][0], coords[1][1] - coords[0][1]))
+                e2 = float(np.hypot(coords[2][0] - coords[1][0], coords[2][1] - coords[1][1]))
+                step_polys.append((round(float(yc), 2), p, min(e1, e2)))
 
     step_comps: list[Any] = []
-    if step_polys:
-        step_u = unary_union([p.buffer(0.16, join_style=2) for _, p in step_polys]).buffer(0)
+    tread_seeds = [p.buffer(0.04, join_style=2) for _, p, short_side in step_polys if short_side <= 1.1]
+    if tread_seeds:
+        step_u = unary_union(tread_seeds).buffer(0)
         comps = list(step_u.geoms) if hasattr(step_u, "geoms") else [step_u]
         for comp in comps:
-            if comp.is_empty or comp.area > 40.0:
+            if comp.is_empty or comp.area > 80.0:
                 continue
-            ys_in = {y for y, p in step_polys if comp.intersects(p)}
-            if len(ys_in) >= 4:
-                step_comps.append(comp.buffer(0.15, join_style=2))
+            ys_in = sorted({y for y, p, _ in step_polys if comp.intersects(p)})
+            best_run = 1
+            run = 1
+            for a_y, b_y in zip(ys_in[:-1], ys_in[1:]):
+                if 0.12 <= (b_y - a_y) <= 0.35:
+                    run += 1
+                    best_run = max(best_run, run)
+                else:
+                    run = 1
+            if best_run >= 4:
+                step_comps.append(comp.buffer(0.06, join_style=2))
 
     if not step_comps:
         return Polygon()
 
     step_base = unary_union(step_comps).buffer(0)
-    slope_anchor = step_base.buffer(1.2, join_style=2)
+    slope_anchor = step_base.buffer(0.35, join_style=2)
     polys: list[Any] = [step_base]
     for g in sc.geometry.values():
         fn = g.face_normals
@@ -296,7 +310,7 @@ def _detect_stair_zone_2d(sc: trimesh.Scene, floor_y: float, ceil_y: float) -> A
             pts = [(float(g.vertices[v, 0]), float(g.vertices[v, 2])) for v in f]
             p = Polygon(pts).buffer(0)
             if p.area > 0.01 and p.intersects(slope_anchor):
-                polys.append(p.buffer(0.20, join_style=2))
+                polys.append(p.buffer(0.08, join_style=2))
 
     return unary_union(polys).buffer(0)
 
@@ -434,13 +448,14 @@ def _extract_wall_footprint_2d(
         for p in polygonize(noded):
             if not isinstance(p, Polygon) or p.is_empty or p.area < 0.005 or p.area > 40.0:
                 continue
-            is_narrow_wall = (p.area <= 16.0) and p.buffer(-0.75, join_style=2).is_empty
-            is_capped_solid_pier = False
-            if not is_narrow_wall and has_top_cap:
-                top_cov = float(p.intersection(wall_top_cap_2d).area / p.area)
-                walk_cov = float(p.intersection(walkable_floor_2d).area / p.area) if has_walk else 0.0
-                is_capped_solid_pier = (top_cov >= 0.70) and (walk_cov < 0.25)
-            if not (is_narrow_wall or is_capped_solid_pier):
+            top_cov = float(p.intersection(wall_top_cap_2d).area / p.area) if has_top_cap else 0.0
+            walk_cov = float(p.intersection(walkable_floor_2d).area / p.area) if has_walk else 0.0
+            is_thin_wall = (p.area <= 16.0) and p.buffer(-0.55, join_style=2).is_empty
+            is_med_wall = (not is_thin_wall) and (p.area <= 16.0) and p.buffer(-0.75, join_style=2).is_empty
+            if is_med_wall and has_top_cap:
+                is_med_wall = (top_cov >= 0.45) or (walk_cov < 0.35)
+            is_capped_solid_pier = (not (is_thin_wall or is_med_wall)) and has_top_cap and (top_cov >= 0.70) and (walk_cov < 0.25)
+            if not (is_thin_wall or is_med_wall or is_capped_solid_pier):
                 continue
             filled_cores.append(p.buffer(0.02, join_style=2))
 
@@ -449,6 +464,10 @@ def _extract_wall_footprint_2d(
 
     parts = [skin_u, closed, *filled_cores]
     u = unary_union([g for g in parts if g is not None and not g.is_empty]).buffer(0)
+    if has_walk and has_top_cap:
+        open_walkable_2d = walkable_floor_2d.difference(wall_top_cap_2d.buffer(0.12, join_style=2)).buffer(-0.08, join_style=2)
+        if open_walkable_2d is not None and not open_walkable_2d.is_empty:
+            u = u.difference(open_walkable_2d).buffer(0)
     if clip_box is not None:
         u = u.intersection(clip_box).buffer(0)
     return u
@@ -612,7 +631,7 @@ def package_real_v2_floor(
         top_key = group_key.split("__")[0]
         group_tri_counts[top_key] = group_tri_counts.get(top_key, 0) + len(mesh.faces)
 
-    # Build true exterior perimeter ring(s) from floor + standing walls so slanted exterior walls stay unified
+    # Build true exterior perimeter ring(s) + solid 2.55m 5-zone Auto cutaway partition
     building_fp_parts = [g for g in (walkable_floor_2d, wall_support_2d) if g is not None and not g.is_empty]
     ext_rings: list[Any] = []
     if building_fp_parts:
@@ -625,191 +644,295 @@ def package_real_v2_floor(
             if outer_poly.exterior.length > 1.0:
                 ext_rings.append(outer_poly.exterior)
 
-    def _classify_mesh_wall_channels(
+    mid_x = 0.5 * (float(in_min[0]) + float(in_max[0]))
+    mid_z = 0.5 * (float(in_min[2]) + float(in_max[2]))
+    half_w = max(0.5 * (float(in_max[0]) - float(in_min[0])), 1.0)
+    half_d = max(0.5 * (float(in_max[2]) - float(in_min[2])), 1.0)
+    R_quad = 6.0
+    quad_W = Polygon([(mid_x, mid_z), (mid_x - R_quad * half_w, mid_z - R_quad * half_d), (mid_x - R_quad * half_w, mid_z + R_quad * half_d)])
+    quad_E = Polygon([(mid_x, mid_z), (mid_x + R_quad * half_w, mid_z + R_quad * half_d), (mid_x + R_quad * half_w, mid_z - R_quad * half_d)])
+    quad_N = Polygon([(mid_x, mid_z), (mid_x - R_quad * half_w, mid_z + R_quad * half_d), (mid_x + R_quad * half_w, mid_z + R_quad * half_d)])
+    quad_S = Polygon([(mid_x, mid_z), (mid_x + R_quad * half_w, mid_z - R_quad * half_d), (mid_x - R_quad * half_w, mid_z - R_quad * half_d)])
+    quad_polys = (quad_W, quad_E, quad_N, quad_S)
+
+    full_box = sbox(float(in_min[0]) - 5.0, float(in_min[2]) - 5.0, float(in_max[0]) + 5.0, float(in_max[2]) + 5.0)
+    if ext_rings:
+        ext_band_2d = unary_union([r.buffer(EXT_SOLID_DEPTH_M, join_style=2) for r in ext_rings]).buffer(0)
+        ch_ring_segs: dict[int, list[LineString]] = {0: [], 1: [], 2: [], 3: []}
+        for r in ext_rings:
+            coords = list(r.coords)
+            for p_a, p_b in zip(coords[:-1], coords[1:]):
+                dx = float(p_b[0]) - float(p_a[0])
+                dz = float(p_b[1]) - float(p_a[1])
+                slen = math.hypot(dx, dz)
+                if slen < 1e-4:
+                    continue
+                mx = 0.5 * (float(p_a[0]) + float(p_b[0]))
+                mz = 0.5 * (float(p_a[1]) + float(p_b[1]))
+                ox = dz / slen
+                oz = -dx / slen
+                nx_q = (mx - mid_x) / half_w
+                nz_q = (mz - mid_z) / half_d
+                ch_e = (1 if ox >= 0.0 else 0) if abs(ox) >= abs(oz) else (2 if oz >= 0.0 else 3)
+                if (
+                    (ch_e == 0 and nx_q > 0.05)
+                    or (ch_e == 1 and nx_q < -0.05)
+                    or (ch_e == 2 and nz_q < -0.05)
+                    or (ch_e == 3 and nz_q > 0.05)
+                ):
+                    ch_e = (1 if nx_q >= 0.0 else 0) if abs(nx_q) >= abs(nz_q) else (2 if nz_q >= 0.0 else 3)
+                ch_ring_segs[ch_e].append(LineString([p_a, p_b]))
+
+        raw_ch = [
+            unary_union([s.buffer(EXT_SOLID_DEPTH_M, cap_style=2, join_style=2) for s in ch_ring_segs[k]]).intersection(ext_band_2d).buffer(0)
+            if ch_ring_segs[k]
+            else Polygon()
+            for k in range(4)
+        ]
+        # Partition ext_band_2d cleanly across 0..3 using edge-channel buffers (keeping slanted walls 100% intact)
+        rem_ext = ext_band_2d
+        zone_ext: list[Any] = [Polygon(), Polygon(), Polygon(), Polygon()]
+        for k in (1, 0, 2, 3):
+            if not rem_ext.is_empty and not raw_ch[k].is_empty:
+                piece = rem_ext.intersection(raw_ch[k]).buffer(0)
+                zone_ext[k] = piece
+                rem_ext = rem_ext.difference(piece).buffer(0)
+        if not rem_ext.is_empty:
+            for k in range(4):
+                if not quad_polys[k].is_empty:
+                    zone_ext[k] = unary_union([zone_ext[k], rem_ext.intersection(quad_polys[k])]).buffer(0)
+        zone_polys = zone_ext
+    else:
+        inner_core = sbox(float(in_min[0]), float(in_min[2]), float(in_max[0]), float(in_max[2])).buffer(-EXT_SOLID_DEPTH_M, join_style=2)
+        ext_band_2d = full_box.difference(inner_core).buffer(0) if not inner_core.is_empty else full_box
+        zone_polys = [ext_band_2d.intersection(qp).buffer(0) for qp in quad_polys]
+    zone_polys.append(full_box.difference(ext_band_2d).buffer(0))
+    zone_polys_cov = [zp.buffer(1e-4, join_style=2) if not zp.is_empty else zp for zp in zone_polys]
+    outer_skin_band = unary_union([r.buffer(0.60, join_style=2) for r in ext_rings]).buffer(0) if ext_rings else Polygon()
+
+    def _clip_tri3d_halfplane(
+        poly_pts: list[np.ndarray],
+        poly_uvs: list[np.ndarray] | None,
+        vals: list[float],
+        cutoff: float,
+        keep_ge: bool,
+    ) -> tuple[list[np.ndarray], list[np.ndarray] | None]:
+        out_p: list[np.ndarray] = []
+        out_u: list[np.ndarray] | None = [] if poly_uvs is not None else None
+        m = len(poly_pts)
+        if m == 0:
+            return out_p, out_u
+
+        def _inside(v: float) -> bool:
+            return (v >= cutoff - 1e-7) if keep_ge else (v <= cutoff + 1e-7)
+
+        for i in range(m):
+            j = (i + 1) % m
+            va, vb = vals[i], vals[j]
+            ina, inb = _inside(va), _inside(vb)
+            if ina:
+                out_p.append(poly_pts[i])
+                if out_u is not None and poly_uvs is not None:
+                    out_u.append(poly_uvs[i])
+            if ina != inb:
+                denom = vb - va
+                alpha = 0.5 if abs(denom) < 1e-12 else max(0.0, min(1.0, (cutoff - va) / denom))
+                out_p.append(poly_pts[i] + alpha * (poly_pts[j] - poly_pts[i]))
+                if out_u is not None and poly_uvs is not None:
+                    out_u.append(poly_uvs[i] + alpha * (poly_uvs[j] - poly_uvs[i]))
+        return out_p, out_u
+
+    def _slice_mesh_by_zones(
         verts: np.ndarray,
         faces: np.ndarray,
-        edge_band: float = EDGE_BAND_M,
-    ) -> np.ndarray:
-        """Assign wall channels atomically per coplanar connected wall panel (zero Auto-cutaway spikes).
+        uvs: np.ndarray | None,
+        zone_list: list[Any],
+        zone_cov_list: list[Any],
+    ) -> dict[int, tuple[np.ndarray, np.ndarray, np.ndarray | None]]:
+        """Slice triangles cleanly along exact 2D zone boundaries (keeping Auto walls 100% thick & spike-free)."""
+        n_zones = len(zone_list)
+        if len(faces) == 0:
+            return {}
+        per_v: dict[int, list[np.ndarray]] = {zi: [] for zi in range(n_zones)}
+        per_uv: dict[int, list[np.ndarray]] = {zi: [] for zi in range(n_zones)}
+        per_f: dict[int, list[list[int]]] = {zi: [] for zi in range(n_zones)}
+        per_cnt: dict[int, int] = {zi: 0 for zi in range(n_zones)}
 
-        Vertical wall triangles that share edges (up to 1mm vertex quantization) and have
-        coplanar normals (dot > 0.995) stay in ONE single channel. Exterior channels are
-        quadrant-consistent with InteriorStudioCanvas.tsx L560-573 sideDirX/Z signs.
-        """
-        n_faces = len(faces)
-        out = np.full(n_faces, 4, dtype=np.int32)
-        if n_faces == 0:
-            return out
+        def _emit_tri(zi: int, p0: np.ndarray, p1: np.ndarray, p2: np.ndarray, uv3: list[np.ndarray] | None) -> None:
+            pts = np.asarray([p0, p1, p2], dtype=np.float64)
+            if float(np.linalg.norm(np.cross(pts[1] - pts[0], pts[2] - pts[0]))) < 1e-10:
+                return
+            base = per_cnt[zi]
+            per_v[zi].append(pts)
+            if uvs is not None and uv3 is not None:
+                per_uv[zi].append(np.asarray(uv3, dtype=np.float64))
+            per_f[zi].append([base, base + 1, base + 2])
+            per_cnt[zi] = base + 3
 
-        v0 = verts[faces[:, 0]]
-        v1 = verts[faces[:, 1]]
-        v2 = verts[faces[:, 2]]
-        e_cross = np.cross(v1 - v0, v2 - v0)
-        dbl_area = np.linalg.norm(e_cross, axis=1)
-        fn = np.divide(e_cross, np.maximum(dbl_area[:, None], 1e-12))
-        face_areas = 0.5 * dbl_area
-        fc = (v0 + v1 + v2) / 3.0
+        v0_all = verts[faces[:, 0]]
+        v1_all = verts[faces[:, 1]]
+        v2_all = verts[faces[:, 2]]
+        e_cross = np.cross(v1_all - v0_all, v2_all - v0_all)
+        dbl = np.linalg.norm(e_cross, axis=1)
+        fn_all = np.divide(e_cross, np.maximum(dbl[:, None], 1e-12))
 
-        mid_x = 0.5 * (float(in_min[0]) + float(in_max[0]))
-        mid_z = 0.5 * (float(in_min[2]) + float(in_max[2]))
-        half_w = max(0.5 * (float(in_max[0]) - float(in_min[0])), 1.0)
-        half_d = max(0.5 * (float(in_max[2]) - float(in_min[2])), 1.0)
+        for fi in range(len(faces)):
+            idx3 = faces[fi]
+            pts3 = verts[idx3]
+            uv3 = [uvs[int(k)] for k in idx3] if uvs is not None else None
+            ny = float(fn_all[fi, 1])
 
-        def _point_quadrant_channel(px: float, pz: float, ox: float, oz: float) -> int:
-            nx = (px - mid_x) / half_w
-            nz = (pz - mid_z) / half_d
-            if abs(ox) >= abs(oz):
-                cand = 1 if ox >= 0.0 else 0
-            else:
-                cand = 2 if oz >= 0.0 else 3
-            if (
-                (cand == 0 and nx > 0.05)
-                or (cand == 1 and nx < -0.05)
-                or (cand == 2 and nz < -0.05)
-                or (cand == 3 and nz > 0.05)
-            ):
-                if abs(nx) >= abs(nz):
-                    return 1 if nx >= 0.0 else 0
-                return 2 if nz >= 0.0 else 3
-            return cand
-
-        def _ring_dist_and_outward(px: float, pz: float) -> tuple[float, float, float]:
-            if ext_rings:
-                pt = Point(px, pz)
-                best_ring = None
-                best_d = 1e9
-                for r in ext_rings:
-                    d = float(pt.distance(r))
-                    if d < best_d:
-                        best_d = d
-                        best_ring = r
-                if best_ring is None:
-                    return 1e9, 0.0, 0.0
-                L = float(best_ring.length)
-                s = float(best_ring.project(pt))
-                pa = best_ring.interpolate((s - 0.45) % L)
-                pb = best_ring.interpolate((s + 0.45) % L)
-                ox = float(pb.y - pa.y)
-                oz = -float(pb.x - pa.x)
-                norm = math.hypot(ox, oz)
-                if norm > 1e-9:
-                    ox /= norm
-                    oz /= norm
-                return best_d, ox, oz
-            dists = (
-                (abs(px - env_min_x), -1.0, 0.0),
-                (abs(env_max_x - px), 1.0, 0.0),
-                (abs(env_max_z - pz), 0.0, 1.0),
-                (abs(pz - env_min_z), 0.0, -1.0),
-            )
-            return min(dists, key=lambda item: item[0])
-
-        # Cache per-XZ-coordinate queries within this mesh (rounded to 1cm)
-        xz_cache: dict[tuple[float, float], tuple[float, float, float]] = {}
-
-        def _cached_ring(px: float, pz: float) -> tuple[float, float, float]:
-            key = (round(px, 2), round(pz, 2))
-            hit = xz_cache.get(key)
-            if hit is None:
-                hit = _ring_dist_and_outward(px, pz)
-                xz_cache[key] = hit
-            return hit
-
-        # Quantize 3D vertices to 1mm so duplicated-vertex quads merge cleanly across edges
-        qkey_to_id: dict[tuple[int, int, int], int] = {}
-        v_canon = np.empty(len(verts), dtype=np.int64)
-        for vi, (vx, vy, vz) in enumerate(verts):
-            qk = (int(round(float(vx) * 1000.0)), int(round(float(vy) * 1000.0)), int(round(float(vz) * 1000.0)))
-            cid = qkey_to_id.get(qk)
-            if cid is None:
-                cid = len(qkey_to_id)
-                qkey_to_id[qk] = cid
-            v_canon[vi] = cid
-
-        cf = v_canon[faces]
-        edge_to_faces: dict[tuple[int, int], list[int]] = {}
-        for fi in range(n_faces):
-            a, b, c = int(cf[fi, 0]), int(cf[fi, 1]), int(cf[fi, 2])
-            for u_v, w_v in ((a, b), (b, c), (c, a)):
-                ek = (u_v, w_v) if u_v < w_v else (w_v, u_v)
-                edge_to_faces.setdefault(ek, []).append(fi)
-
-        adj: list[list[int]] = [[] for _ in range(n_faces)]
-        for f_list in edge_to_faces.values():
-            if len(f_list) < 2:
+            xz = [(float(pts3[k, 0]), float(pts3[k, 2])) for k in range(3)]
+            e_lens = [math.hypot(xz[(k + 1) % 3][0] - xz[k][0], xz[(k + 1) % 3][1] - xz[k][1]) for k in range(3)]
+            max_e = max(e_lens)
+            if max_e < 1e-7:
                 continue
-            for idx_a in range(len(f_list)):
-                fa = f_list[idx_a]
-                na = fn[fa]
-                for idx_b in range(idx_a + 1, len(f_list)):
-                    fb = f_list[idx_b]
-                    if float(np.dot(na, fn[fb])) > 0.995:
-                        adj[fa].append(fb)
-                        adj[fb].append(fa)
+            area2d = 0.5 * abs((xz[1][0] - xz[0][0]) * (xz[2][1] - xz[0][1]) - (xz[1][1] - xz[0][1]) * (xz[2][0] - xz[0][0]))
+            alt2d = 2.0 * area2d / max_e
 
-        visited = np.zeros(n_faces, dtype=bool)
-        for start in range(n_faces):
-            if visited[start]:
-                continue
-            comp: list[int] = [start]
-            visited[start] = True
-            stack = [start]
-            while stack:
-                cur = stack.pop()
-                for nb in adj[cur]:
-                    if not visited[nb]:
-                        visited[nb] = True
-                        stack.append(nb)
-                        comp.append(nb)
+            if abs(ny) < 0.55 and alt2d <= 1e-3:
+                # Coplanar-in-XZ vertical triangle: clip 1D XZ segment across zones + Sutherland-Hodgman 3D plane clip
+                best_pair = (0, 1)
+                best_d2 = -1.0
+                for ia in range(3):
+                    for ib in range(ia + 1, 3):
+                        d2 = (xz[ia][0] - xz[ib][0]) ** 2 + (xz[ia][1] - xz[ib][1]) ** 2
+                        if d2 > best_d2:
+                            best_d2 = d2
+                            best_pair = (ia, ib)
+                p_a = np.array(xz[best_pair[0]], dtype=np.float64)
+                p_b = np.array(xz[best_pair[1]], dtype=np.float64)
+                span = float(math.hypot(p_b[0] - p_a[0], p_b[1] - p_a[1]))
+                if span < 1e-7:
+                    cen_pt = Point(float(pts3[:, 0].mean()), float(pts3[:, 2].mean()))
+                    best_zi = n_zones - 1
+                    best_d = 1e9
+                    for zi, zp in enumerate(zone_list):
+                        if not zp.is_empty:
+                            d = float(cen_pt.distance(zp))
+                            if d < best_d:
+                                best_d = d
+                                best_zi = zi
+                    _emit_tri(best_zi, pts3[0], pts3[1], pts3[2], uv3)
+                    continue
 
-            comp_arr = np.asarray(comp, dtype=np.int64)
-            weights = np.maximum(face_areas[comp_arr], 1e-6)
-            mean_ny = float(np.average(fn[comp_arr, 1], weights=weights))
+                dir_xz = (p_b - p_a) / span
+                t_verts = [float((xz[k][0] - p_a[0]) * dir_xz[0] + (xz[k][1] - p_a[1]) * dir_xz[1]) for k in range(3)]
+                t_min, t_max = min(t_verts), max(t_verts)
+                start_pt = p_a + t_min * dir_xz
+                end_pt = p_a + t_max * dir_xz
+                seg_ls = LineString([(float(start_pt[0]), float(start_pt[1])), (float(end_pt[0]), float(end_pt[1]))])
 
-            if abs(mean_ny) < 0.55:
-                sample_pts: set[tuple[float, float]] = set()
-                for fi in comp:
-                    a, b, c = int(faces[fi, 0]), int(faces[fi, 1]), int(faces[fi, 2])
-                    ax, az = float(verts[a, 0]), float(verts[a, 2])
-                    bx, bz = float(verts[b, 0]), float(verts[b, 2])
-                    cx_, cz_ = float(verts[c, 0]), float(verts[c, 2])
-                    for sx, sz in (
-                        (ax, az),
-                        (bx, bz),
-                        (cx_, cz_),
-                        (0.5 * (ax + bx), 0.5 * (az + bz)),
-                        (0.5 * (bx + cx_), 0.5 * (bz + cz_)),
-                        (0.5 * (cx_ + ax), 0.5 * (cz_ + az)),
-                    ):
-                        sample_pts.add((round(sx, 2), round(sz, 2)))
-                ext_hits = sum(1 for sx, sz in sample_pts if _cached_ring(sx, sz)[0] <= edge_band)
-                frac_ext = ext_hits / max(len(sample_pts), 1)
-                if frac_ext < 0.85:
-                    out[comp_arr] = 4
-                else:
-                    sum_ox = 0.0
-                    sum_oz = 0.0
-                    for fi, wt in zip(comp, weights):
-                        _, ox, oz = _cached_ring(float(fc[fi, 0]), float(fc[fi, 2]))
-                        sum_ox += float(wt) * ox
-                        sum_oz += float(wt) * oz
-                    cx_avg = float(np.average(fc[comp_arr, 0], weights=weights))
-                    cz_avg = float(np.average(fc[comp_arr, 2], weights=weights))
-                    out[comp_arr] = _point_quadrant_channel(cx_avg, cz_avg, sum_ox, sum_oz)
+                matched_any = False
+                for zi, zp in enumerate(zone_list):
+                    if zp.is_empty:
+                        continue
+                    cov = zone_cov_list[zi]
+                    if cov.covers(seg_ls):
+                        _emit_tri(zi, pts3[0], pts3[1], pts3[2], uv3)
+                        matched_any = True
+                        break
+                    inter = seg_ls.intersection(zp)
+                    if inter.is_empty:
+                        continue
+                    line_geoms: list[LineString] = []
+                    stack_g = [inter]
+                    while stack_g:
+                        cg = stack_g.pop()
+                        if isinstance(cg, LineString) and cg.length > 1e-4:
+                            line_geoms.append(cg)
+                        elif hasattr(cg, "geoms"):
+                            stack_g.extend(cg.geoms)
+                    for lg in line_geoms:
+                        c0, c1 = lg.coords[0], lg.coords[-1]
+                        t0 = (float(c0[0]) - float(p_a[0])) * float(dir_xz[0]) + (float(c0[1]) - float(p_a[1])) * float(dir_xz[1])
+                        t1 = (float(c1[0]) - float(p_a[0])) * float(dir_xz[0]) + (float(c1[1]) - float(p_a[1])) * float(dir_xz[1])
+                        ta, tb = min(t0, t1), max(t0, t1)
+                        if tb - ta < 1e-4:
+                            continue
+                        poly_p = [pts3[0].copy(), pts3[1].copy(), pts3[2].copy()]
+                        poly_u = [uv3[0].copy(), uv3[1].copy(), uv3[2].copy()] if uv3 is not None else None
+                        poly_p, poly_u = _clip_tri3d_halfplane(poly_p, poly_u, t_verts, ta, keep_ge=True)
+                        t_mid = [float((pp[0] - p_a[0]) * dir_xz[0] + (pp[2] - p_a[1]) * dir_xz[1]) for pp in poly_p]
+                        poly_p, poly_u = _clip_tri3d_halfplane(poly_p, poly_u, t_mid, tb, keep_ge=False)
+                        if len(poly_p) >= 3:
+                            matched_any = True
+                            for ti in range(1, len(poly_p) - 1):
+                                sub_uv = [poly_u[0], poly_u[ti], poly_u[ti + 1]] if poly_u is not None else None
+                                _emit_tri(zi, poly_p[0], poly_p[ti], poly_p[ti + 1], sub_uv)
+                if not matched_any:
+                    _emit_tri(n_zones - 1, pts3[0], pts3[1], pts3[2], uv3)
             else:
-                for fi in comp:
-                    all_verts_ext = True
-                    for vk in faces[fi]:
-                        if _cached_ring(float(verts[vk, 0]), float(verts[vk, 2]))[0] > edge_band:
-                            all_verts_ext = False
-                            break
-                    if not all_verts_ext:
-                        out[fi] = 4
-                    else:
-                        fx, fz = float(fc[fi, 0]), float(fc[fi, 2])
-                        _, ox, oz = _cached_ring(fx, fz)
-                        out[fi] = _point_quadrant_channel(fx, fz, ox, oz)
+                # Horizontal or non-degenerate-XZ sloped triangle: 2D polygon intersection + barycentric Y & UV
+                tri2d = Polygon(xz)
+                if not tri2d.is_valid or tri2d.area < 1e-8:
+                    continue
+                x0, z0 = xz[0]
+                x1, z1 = xz[1]
+                x2, z2 = xz[2]
+                detT = (x1 - x0) * (z2 - z0) - (x2 - x0) * (z1 - z0)
+                if abs(detT) < 1e-12:
+                    continue
+                matched_any = False
+                for zi, zp in enumerate(zone_list):
+                    if zp.is_empty:
+                        continue
+                    cov = zone_cov_list[zi]
+                    if cov.covers(tri2d):
+                        _emit_tri(zi, pts3[0], pts3[1], pts3[2], uv3)
+                        matched_any = True
+                        break
+                    inter = tri2d.intersection(zp).buffer(0)
+                    if inter.is_empty or inter.area < 1e-7:
+                        continue
+                    polys: list[Polygon] = []
+                    stack_p = [inter]
+                    while stack_p:
+                        cg = stack_p.pop()
+                        if isinstance(cg, Polygon) and cg.area >= 1e-7:
+                            polys.append(cg)
+                        elif hasattr(cg, "geoms"):
+                            stack_p.extend(cg.geoms)
+                    for subp in polys:
+                        try:
+                            v2d, f2d = trimesh.creation.triangulate_polygon(subp, engine="earcut")
+                        except Exception:
+                            try:
+                                v2d, f2d = trimesh.creation.triangulate_polygon(subp)
+                            except Exception:
+                                continue
+                        if len(f2d) == 0:
+                            continue
+                        matched_any = True
+                        pts_sub = np.empty((len(v2d), 3), dtype=np.float64)
+                        uvs_sub = np.empty((len(v2d), 2), dtype=np.float64) if uv3 is not None else None
+                        for vi, (px, pz) in enumerate(v2d):
+                            w1 = ((px - x0) * (z2 - z0) - (x2 - x0) * (pz - z0)) / detT
+                            w2 = ((x1 - x0) * (pz - z0) - (px - x0) * (z1 - z0)) / detT
+                            w0 = 1.0 - w1 - w2
+                            pts_sub[vi] = w0 * pts3[0] + w1 * pts3[1] + w2 * pts3[2]
+                            if uvs_sub is not None and uv3 is not None:
+                                uvs_sub[vi] = w0 * uv3[0] + w1 * uv3[1] + w2 * uv3[2]
+                        for s_tri in f2d:
+                            p_a, p_b, p_c = pts_sub[s_tri[0]], pts_sub[s_tri[1]], pts_sub[s_tri[2]]
+                            s_ny = float(np.cross(p_b - p_a, p_c - p_a)[1])
+                            if (ny >= 0 and s_ny < 0) or (ny < 0 and s_ny > 0):
+                                s_idx = [int(s_tri[0]), int(s_tri[2]), int(s_tri[1])]
+                            else:
+                                s_idx = [int(s_tri[0]), int(s_tri[1]), int(s_tri[2])]
+                            sub_uv = [uvs_sub[s_idx[0]], uvs_sub[s_idx[1]], uvs_sub[s_idx[2]]] if uvs_sub is not None else None
+                            _emit_tri(zi, pts_sub[s_idx[0]], pts_sub[s_idx[1]], pts_sub[s_idx[2]], sub_uv)
+                if not matched_any:
+                    _emit_tri(n_zones - 1, pts3[0], pts3[1], pts3[2], uv3)
 
+        out: dict[int, tuple[np.ndarray, np.ndarray, np.ndarray | None]] = {}
+        for zi in range(n_zones):
+            if not per_f[zi]:
+                continue
+            vv = np.concatenate(per_v[zi], axis=0)
+            ff = np.asarray(per_f[zi], dtype=np.int64)
+            uu = np.concatenate(per_uv[zi], axis=0) if uvs is not None else None
+            out[zi] = (vv, ff, uu)
         return out
 
     ch_names = ("Wall_Ext_W_01", "Wall_Ext_E_01", "Wall_Ext_N_01", "Wall_Ext_S_01", "Wall_Interior_01")
@@ -892,13 +1015,13 @@ def package_real_v2_floor(
             else:
                 is_wide_ceil = np.zeros(len(above_lintel_f), dtype=bool)
 
-            # Upper stairs inside stair_zone (never contaminate OverheadBeams_And_Lintels)
-            a_ch = _classify_mesh_wall_channels(above_lintel_v, above_lintel_f)
+            # Upper stairs inside stair_zone (never contaminate OverheadBeams_And_Lintels; keep outer skin wall outside)
             if has_stairs:
                 is_hi_stair = np.array(
                     [
-                        (not wc) and (ch == 4) and stair_zone.contains(Point(float(xc), float(zc)))
-                        for wc, ch, xc, zc in zip(is_wide_ceil, a_ch, ac[:, 0], ac[:, 2])
+                        (not wc) and stair_zone.contains(Point(float(xc), float(zc)))
+                        and (outer_skin_band.is_empty or not outer_skin_band.contains(Point(float(xc), float(zc))))
+                        for wc, xc, zc in zip(is_wide_ceil, ac[:, 0], ac[:, 2])
                     ],
                     dtype=bool,
                 )
@@ -920,16 +1043,15 @@ def package_real_v2_floor(
                 | (ac[:, 2] > env_max_z + 0.45)
             )
             facade_names = ("Facade_Ext_W", "Facade_Ext_E", "Facade_Ext_N", "Facade_Ext_S")
-            is_ext_canopy = (~is_wide_ceil) & (~is_hi_stair) & out_of_env & (a_ch < 4)
+            is_ext_canopy = (~is_wide_ceil) & (~is_hi_stair) & out_of_env
             if np.any(is_ext_canopy):
+                ext_parts = _slice_mesh_by_zones(
+                    above_lintel_v, above_lintel_f[is_ext_canopy], above_lintel_u, list(quad_polys), list(quad_polys)
+                )
                 for ci in range(4):
-                    sel = is_ext_canopy & (a_ch == ci)
-                    if np.any(sel):
-                        _add_group_mesh(
-                            facade_names[ci],
-                            mat_slug,
-                            _make_mesh(above_lintel_v, above_lintel_f[sel], above_lintel_u, mat),
-                        )
+                    if ci in ext_parts:
+                        sv, sf, su = ext_parts[ci]
+                        _add_group_mesh(facade_names[ci], mat_slug, _make_mesh(sv, sf, su, mat))
 
             # Horizontal wall top-caps over standing walls stay on Wall_*__Upper;
             # only unsupported narrow beams/lintels over doorways go to OverheadBeams_And_Lintels!
@@ -953,12 +1075,11 @@ def package_real_v2_floor(
 
             rem_mask = (~is_wide_ceil) & (~is_hi_stair) & (~is_ext_canopy) & (~is_overhead)
             if np.any(rem_mask):
-                rem_f = above_lintel_f[rem_mask]
-                rem_ch = a_ch[rem_mask]
+                u_parts = _slice_mesh_by_zones(above_lintel_v, above_lintel_f[rem_mask], above_lintel_u, zone_polys, zone_polys_cov)
                 for ci, cname in enumerate(ch_names):
-                    sel = rem_ch == ci
-                    if np.any(sel):
-                        _add_group_mesh(f"{cname}__Upper", mat_slug, _make_mesh(above_lintel_v, rem_f[sel], above_lintel_u, mat))
+                    if ci in u_parts:
+                        sv, sf, su = u_parts[ci]
+                        _add_group_mesh(f"{cname}__Upper", mat_slug, _make_mesh(sv, sf, su, mat))
 
         if len(below_lintel_f) == 0:
             continue
@@ -974,20 +1095,25 @@ def package_real_v2_floor(
             from shapely.geometry import Point
 
             if has_stairs:
-                h_stair = np.array([stair_zone.contains(Point(float(xc), float(zc))) for xc, zc in zip(hc[:, 0], hc[:, 2])], dtype=bool)
-                # Keep exterior perimeter walls in Wall_Ext_* even near stairwells
-                h_ch = _classify_mesh_wall_channels(hi_band_v, hi_band_f)
-                h_stair &= h_ch == 4
+                h_stair = np.array(
+                    [
+                        stair_zone.contains(Point(float(xc), float(zc)))
+                        and (outer_skin_band.is_empty or not outer_skin_band.contains(Point(float(xc), float(zc))))
+                        for xc, zc in zip(hc[:, 0], hc[:, 2])
+                    ],
+                    dtype=bool,
+                )
             else:
                 h_stair = np.zeros(len(hi_band_f), dtype=bool)
-                h_ch = _classify_mesh_wall_channels(hi_band_v, hi_band_f)
 
             if np.any(h_stair):
                 _add_group_mesh("Stairs_Upper_01", mat_slug, _make_mesh(hi_band_v, hi_band_f[h_stair], hi_band_u, mat))
-            for ci, cname in enumerate(ch_names):
-                sel = (~h_stair) & (h_ch == ci)
-                if np.any(sel):
-                    _add_group_mesh(f"{cname}__Upper", mat_slug, _make_mesh(hi_band_v, hi_band_f[sel], hi_band_u, mat))
+            if np.any(~h_stair):
+                hi_parts = _slice_mesh_by_zones(hi_band_v, hi_band_f[~h_stair], hi_band_u, zone_polys, zone_polys_cov)
+                for ci, cname in enumerate(ch_names):
+                    if ci in hi_parts:
+                        sv, sf, su = hi_parts[ci]
+                        _add_group_mesh(f"{cname}__Upper", mat_slug, _make_mesh(sv, sf, su, mat))
 
         if len(lo_band_f) == 0:
             continue
@@ -996,10 +1122,15 @@ def package_real_v2_floor(
         from shapely.geometry import Point
 
         lc = lo_band_v[lo_band_f].mean(axis=1)
-        l_ch = _classify_mesh_wall_channels(lo_band_v, lo_band_f)
         if has_stairs:
-            l_stair = np.array([stair_zone.contains(Point(float(xc), float(zc))) for xc, zc in zip(lc[:, 0], lc[:, 2])], dtype=bool)
-            l_stair &= l_ch == 4
+            l_stair = np.array(
+                [
+                    stair_zone.contains(Point(float(xc), float(zc)))
+                    and (outer_skin_band.is_empty or not outer_skin_band.contains(Point(float(xc), float(zc))))
+                    for xc, zc in zip(lc[:, 0], lc[:, 2])
+                ],
+                dtype=bool,
+            )
         else:
             l_stair = np.zeros(len(lo_band_f), dtype=bool)
 
@@ -1015,21 +1146,21 @@ def package_real_v2_floor(
         )
 
         if len(plinth_f) > 0:
-            p_ch = _classify_mesh_wall_channels(plinth_v, plinth_f)
+            pl_parts_slice = _slice_mesh_by_zones(plinth_v, plinth_f, plinth_u, zone_polys, zone_polys_cov)
             for ci, cname in enumerate(ch_names):
-                sel = p_ch == ci
-                if np.any(sel):
-                    m_pl = _make_mesh(plinth_v, plinth_f[sel], plinth_u, mat)
+                if ci in pl_parts_slice:
+                    sv, sf, su = pl_parts_slice[ci]
+                    m_pl = _make_mesh(sv, sf, su, mat)
                     if m_pl is not None:
                         _add_group_mesh(f"{cname}__Plinth", mat_slug, m_pl)
                         channel_plinth_meshes[cname].append(m_pl)
 
         if len(lower_f) > 0:
-            lw_ch = _classify_mesh_wall_channels(lower_v, lower_f)
+            lo_parts_slice = _slice_mesh_by_zones(lower_v, lower_f, lower_u, zone_polys, zone_polys_cov)
             for ci, cname in enumerate(ch_names):
-                sel = lw_ch == ci
-                if np.any(sel):
-                    m_lo = _make_mesh(lower_v, lower_f[sel], lower_u, mat)
+                if ci in lo_parts_slice:
+                    sv, sf, su = lo_parts_slice[ci]
+                    m_lo = _make_mesh(sv, sf, su, mat)
                     if m_lo is not None:
                         _add_group_mesh(f"{cname}__Lower", mat_slug, m_lo)
                         channel_lower_meshes[cname].append(m_lo)
@@ -1069,17 +1200,11 @@ def package_real_v2_floor(
         ch_segs = _extract_wall_section_segments(channel_lower_meshes[cname], fy + 0.20, cut_y, cut_y)
         ch_zones[cname] = unary_union([s.buffer(0.45, join_style=2) for s in ch_segs]).buffer(0) if ch_segs else Polygon()
 
-    remaining_fp = unified_fp_2d
-    ext_order = ("Wall_Ext_W_01", "Wall_Ext_E_01", "Wall_Ext_N_01", "Wall_Ext_S_01")
+    # Partition solid CutCap and Plinth_CutCap cleanly along exact zone_polys so horizontal seams match Upper wall seams 1:1
     partitioned_fps: dict[str, Any] = {}
-    for cname in ext_order:
-        if remaining_fp.is_empty or ch_zones[cname].is_empty:
-            partitioned_fps[cname] = Polygon()
-            continue
-        piece = remaining_fp.intersection(ch_zones[cname]).buffer(0)
-        partitioned_fps[cname] = piece
-        remaining_fp = remaining_fp.difference(piece).buffer(0)
-    partitioned_fps["Wall_Interior_01"] = remaining_fp
+    for ci, cname in enumerate(ch_names):
+        zp = zone_polys[ci]
+        partitioned_fps[cname] = unified_fp_2d.intersection(zp).buffer(0) if (not unified_fp_2d.is_empty and not zp.is_empty) else Polygon()
 
     for cname, cap_name in cap_channel_map.items():
         fp_2d = partitioned_fps.get(cname, Polygon())
@@ -1105,42 +1230,172 @@ def package_real_v2_floor(
         walkable_floor_2d=walkable_floor_2d,
         wall_top_cap_2d=wall_top_cap_2d,
     )
-    if not plinth_fp_2d.is_empty:
-        plinth_ch_zones: dict[str, Any] = {}
-        for cname in cap_channel_map:
-            ch_meshes = channel_lower_meshes[cname] + channel_plinth_meshes[cname]
-            ch_segs = _extract_wall_section_segments(ch_meshes, fy + 0.04, plinth_slice_y, plinth_slice_y)
-            plinth_ch_zones[cname] = (
-                unary_union([s.buffer(0.45, join_style=2) for s in ch_segs]).buffer(0) if ch_segs else ch_zones[cname]
+    if not unified_fp_2d.is_empty and not wall_top_cap_2d.is_empty:
+        non_walk_pier_zone = (
+            wall_top_cap_2d.difference(walkable_floor_2d).buffer(0.05, join_style=2)
+            if not walkable_floor_2d.is_empty
+            else wall_top_cap_2d
+        )
+        pier_fill = unified_fp_2d.intersection(non_walk_pier_zone).buffer(0)
+        if not pier_fill.is_empty:
+            plinth_fp_2d = (
+                unary_union([g for g in (plinth_fp_2d, pier_fill) if g is not None and not g.is_empty])
+                .intersection(clip_env)
+                .buffer(0)
             )
-        rem_pl = plinth_fp_2d
-        pl_parts: dict[str, Any] = {}
-        for cname in ext_order:
-            if rem_pl.is_empty or plinth_ch_zones[cname].is_empty:
-                pl_parts[cname] = Polygon()
-                continue
-            piece = rem_pl.intersection(plinth_ch_zones[cname]).buffer(0)
-            pl_parts[cname] = piece
-            rem_pl = rem_pl.difference(piece).buffer(0)
-        pl_parts["Wall_Interior_01"] = rem_pl
-        for cname in cap_channel_map:
-            pl_mesh = _build_cutcap_mesh(pl_parts.get(cname, Polygon()), plinth_y + 0.002, cap_mat)
+    pl_parts: dict[str, Any] = {}
+    if not plinth_fp_2d.is_empty:
+        for ci, cname in enumerate(ch_names):
+            zp = zone_polys[ci]
+            pl_fp = plinth_fp_2d.intersection(zp).buffer(0) if not zp.is_empty else Polygon()
+            pl_parts[cname] = pl_fp
+            pl_mesh = _build_cutcap_mesh(pl_fp, plinth_y + 0.002, cap_mat)
             if pl_mesh is not None and len(pl_mesh.faces) > 0:
                 pl_cap_name = f"{cname}__Plinth__cut_cap"
                 out_scene.add_geometry(pl_mesh, node_name=pl_cap_name, geom_name=pl_cap_name)
                 group_tri_counts["Plinth_CutCap"] = group_tri_counts.get("Plinth_CutCap", 0) + len(pl_mesh.faces)
 
-    # 6. Export GLB & run mandatory QA assertions
+    # Seal vertical Auto cutaway seams (`Wall_Ext_{W,E,N,S}_01__Upper__cut_cap`) so cut corners & T-junctions look 100% solid!
+    if not unified_fp_2d.is_empty:
+        for ci in range(4):
+            cname = ch_names[ci]
+            zp = zone_polys[ci]
+            if zp.is_empty:
+                continue
+            others_u = unary_union([zone_polys[oi] for oi in range(5) if oi != ci and not zone_polys[oi].is_empty]).buffer(0.015, join_style=2)
+            cut_geom = zp.boundary.intersection(others_u).intersection(unified_fp_2d)
+            if cut_geom.is_empty:
+                continue
+            cut_segs: list[LineString] = []
+            stack_l = [cut_geom]
+            while stack_l:
+                cg = stack_l.pop()
+                if isinstance(cg, LineString) and cg.length >= 0.05:
+                    coords = list(cg.coords)
+                    for a_c, b_c in zip(coords[:-1], coords[1:]):
+                        seg_i = LineString([a_c, b_c])
+                        if seg_i.length >= 0.05:
+                            cut_segs.append(seg_i)
+                elif hasattr(cg, "geoms"):
+                    stack_l.extend(cg.geoms)
+            if not cut_segs:
+                continue
+            # Collect upper triangles belonging to this exterior channel
+            up_meshes = [
+                g for gn, g in out_scene.geometry.items()
+                if gn.startswith(f"{cname}__Upper__") and len(g.faces) > 0
+            ]
+            if not up_meshes:
+                continue
+            up_bounds_max_y: list[tuple[float, float, float, float, float]] = []
+            for gm in up_meshes:
+                tv = gm.vertices[gm.faces]
+                tx0 = tv[:, :, 0].min(axis=1)
+                tx1 = tv[:, :, 0].max(axis=1)
+                tz0 = tv[:, :, 2].min(axis=1)
+                tz1 = tv[:, :, 2].max(axis=1)
+                ty1 = tv[:, :, 1].max(axis=1)
+                for a0, a1, b0, b1, ymax_t in zip(tx0, tx1, tz0, tz1, ty1):
+                    up_bounds_max_y.append((float(a0), float(a1), float(b0), float(b1), float(ymax_t)))
+            cap_v: list[list[float]] = []
+            cap_f: list[list[int]] = []
+            for seg_i in cut_segs:
+                (ax, az), (bx, bz) = seg_i.coords[0], seg_i.coords[-1]
+                mx, mz = 0.5 * (ax + bx), 0.5 * (az + bz)
+                near_y = [
+                    ymax_t for a0, a1, b0, b1, ymax_t in up_bounds_max_y
+                    if (mx >= a0 - 0.25) and (mx <= a1 + 0.25) and (mz >= b0 - 0.25) and (mz <= b1 + 0.25)
+                ]
+                if not near_y:
+                    continue
+                y_top = min(cy, max(near_y))
+                if y_top <= cut_y + 0.10:
+                    continue
+                vi0 = len(cap_v)
+                cap_v.extend([
+                    [float(ax), float(cut_y), float(az)],
+                    [float(bx), float(cut_y), float(bz)],
+                    [float(bx), float(y_top), float(bz)],
+                    [float(ax), float(y_top), float(az)],
+                ])
+                cap_f.extend([[vi0, vi0 + 1, vi0 + 2], [vi0, vi0 + 2, vi0 + 3]])
+            if cap_f:
+                vc_arr = np.asarray(cap_v, dtype=np.float64)
+                fc_arr = np.asarray(cap_f, dtype=np.int64)
+                uvc = np.column_stack([vc_arr[:, 0] * 0.25 + vc_arr[:, 2] * 0.25, vc_arr[:, 1] * 0.25])
+                vcap_mesh = trimesh.Trimesh(vertices=vc_arr, faces=fc_arr, visual=TextureVisuals(uv=uvc, material=cap_mat), process=False)
+                vcap_name = f"{cname}__Upper__cut_cap"
+                out_scene.add_geometry(vcap_mesh, node_name=vcap_name, geom_name=vcap_name)
+                group_tri_counts["Upper_CutCap"] = group_tri_counts.get("Upper_CutCap", 0) + len(vcap_mesh.faces)
+
+    # 6. Export GLB & run 6 Hard Studio QA Gates (S1-S6)
     output_glb.parent.mkdir(parents=True, exist_ok=True)
     out_scene.export(output_glb, file_type="glb")
 
-    # Verify reload parity & Gate 5 (overhead_top_area <= 65 m^2)
     reloaded = trimesh.load(output_glb, force="scene")
     out_tris = sum(len(g.faces) for g in reloaded.geometry.values())
     out_min = np.min([g.vertices.min(axis=0) for g in reloaded.geometry.values() if len(g.vertices) > 0], axis=0)
     out_max = np.max([g.vertices.max(axis=0) for g in reloaded.geometry.values() if len(g.vertices) > 0], axis=0)
     max_bbox_delta = float(max(np.max(np.abs(out_min - in_min)), np.max(np.abs(out_max - in_max))))
 
+    # S1: Corridor/room CutCap leak area (<= 0.35 m^2)
+    open_walk_2d = (
+        walkable_floor_2d.difference(wall_top_cap_2d.buffer(0.12, join_style=2)).buffer(-0.08, join_style=2)
+        if (not walkable_floor_2d.is_empty and not wall_top_cap_2d.is_empty)
+        else Polygon()
+    )
+    cap_union_2d = unary_union([g for g in (*partitioned_fps.values(), *pl_parts.values()) if g is not None and not g.is_empty]).buffer(0)
+    s1_leak_m2 = round(float(cap_union_2d.intersection(open_walk_2d).area), 4) if (not open_walk_2d.is_empty and not cap_union_2d.is_empty) else 0.0
+
+    # S2 & S3: Zone overhang (<= 0.08m) and quadrant mismatch (== 0) on Wall_Ext_*__Upper
+    s2_max_overhang_m = 0.0
+    s3_mismatch = 0
+    for k, g in reloaded.geometry.items():
+        if "__Upper__" not in k or not k.startswith("Wall_Ext_") or len(g.vertices) == 0:
+            continue
+        ci_m = 0 if k.startswith("Wall_Ext_W_") else (1 if k.startswith("Wall_Ext_E_") else (2 if k.startswith("Wall_Ext_N_") else 3))
+        zp_m = zone_polys[ci_m]
+        if not zp_m.is_empty:
+            for vx, vz in g.vertices[:, [0, 2]]:
+                d_out = float(Point(float(vx), float(vz)).distance(zp_m))
+                if d_out > s2_max_overhang_m:
+                    s2_max_overhang_m = d_out
+        c = g.vertices.mean(axis=0)
+        nx = (float(c[0]) - mid_x) / half_w
+        nz = (float(c[2]) - mid_z) / half_d
+        if (ci_m == 0 and nx > 0.05) or (ci_m == 1 and nx < -0.05) or (ci_m == 2 and nz < -0.05) or (ci_m == 3 and nz > 0.05):
+            s3_mismatch += 1
+    s2_max_overhang_m = round(float(s2_max_overhang_m), 4)
+
+    # S4: Capped solid piers solid coverage (>= 98.0%) across Lower + Plinth cut caps
+    lo_cap_2d = unary_union([g for g in partitioned_fps.values() if g is not None and not g.is_empty]).buffer(0)
+    pl_cap_2d = unary_union([g for g in pl_parts.values() if g is not None and not g.is_empty]).buffer(0)
+    pier_segs = _extract_wall_section_segments(all_lower_meshes, fy + 0.20, cut_y, cut_y)
+    capped_piers: list[Polygon] = []
+    if pier_segs and not wall_top_cap_2d.is_empty:
+        p_snapped = []
+        for s in pier_segs:
+            c = list(s.coords)
+            p0_s = (round(c[0][0], 2), round(c[0][1], 2))
+            p1_s = (round(c[-1][0], 2), round(c[-1][1], 2))
+            if p0_s != p1_s:
+                p_snapped.append(LineString([p0_s, p1_s]))
+        if p_snapped:
+            for p_cand in polygonize(unary_union(p_snapped)):
+                if isinstance(p_cand, Polygon) and 0.005 <= p_cand.area <= 40.0:
+                    up_c = float(p_cand.intersection(wall_top_cap_2d).area / p_cand.area)
+                    wk_c = float(p_cand.intersection(walkable_floor_2d).area / p_cand.area) if not walkable_floor_2d.is_empty else 0.0
+                    if up_c >= 0.70 and wk_c < 0.25:
+                        capped_piers.append(p_cand)
+    if capped_piers:
+        pier_u = unary_union(capped_piers).buffer(0)
+        lo_cov = float(pier_u.intersection(lo_cap_2d).area / pier_u.area) if not lo_cap_2d.is_empty else 0.0
+        pl_cov = float(pier_u.intersection(pl_cap_2d).area / pier_u.area) if not pl_cap_2d.is_empty else 0.0
+        s4_piers_pct = round(100.0 * min(lo_cov, pl_cov), 2)
+    else:
+        s4_piers_pct = 100.0
+
+    # S5: Gate 5 overhead top area (<= 65.0 m^2)
     overhead_top_area_m2 = 0.0
     for gname, g in reloaded.geometry.items():
         if gname.startswith("OverheadBeams_"):
@@ -1148,12 +1403,112 @@ def package_real_v2_floor(
             if np.any(up):
                 overhead_top_area_m2 += float(g.area_faces[up].sum())
 
+    # S6: Walkable floor cracks (== 0) on major Y-up Floor_Slab clusters (>= 25.0 m^2)
+    slab_tris: list[tuple[float, Polygon, float, int]] = []
+    floor_mode_cover_tris: list[tuple[float, tuple[float, float, float, float], Polygon, int]] = []
+    tri_seq = 0
+    for gname, g in reloaded.geometry.items():
+        is_slab = gname.startswith("Floor_Slab")
+        is_floor_cover = is_slab or gname.startswith("Stairs_01") or ("__Plinth__cut_cap" in gname)
+        if not is_floor_cover or len(g.faces) == 0:
+            continue
+        v_g, f_g = g.vertices, g.faces
+        fn_g = g.face_normals
+        fc_g = v_g[f_g].mean(axis=1)
+        m_horiz = np.abs(fn_g[:, 1]) > 0.85
+        for f_row, ny, ym, am in zip(f_g[m_horiz], fn_g[m_horiz, 1], fc_g[m_horiz, 1], g.area_faces[m_horiz]):
+            q = Polygon([(float(v_g[f_row[0], 0]), float(v_g[f_row[0], 2])), (float(v_g[f_row[1], 0]), float(v_g[f_row[1], 2])), (float(v_g[f_row[2], 0]), float(v_g[f_row[2], 2]))])
+            if not (q.is_valid and q.area > 1e-6):
+                continue
+            tid = tri_seq
+            tri_seq += 1
+            floor_mode_cover_tris.append((float(ym), q.bounds, q, tid))
+            if is_slab and ny > 0.85:
+                slab_tris.append((float(ym), q, float(am), tid))
+
+    def _expand_s6_parts(geom) -> list[Polygon]:
+        if geom.is_empty:
+            return []
+        if isinstance(geom, Polygon):
+            return [geom]
+        parts: list[Polygon] = []
+        for sub in getattr(geom, "geoms", ()):
+            parts.extend(_expand_s6_parts(sub))
+        return parts
+
+    s6_floor_cracks = 0
+    if slab_tris:
+        slab_tris.sort(key=lambda t: t[0])
+        y_clusters: list[list[tuple[Polygon, float, int]]] = []
+        y_means: list[float] = []
+        for ym, qp, am, tid in slab_tris:
+            if not y_clusters or abs(ym - y_means[-1]) > 0.08:
+                y_clusters.append([(qp, am, tid)])
+                y_means.append(ym)
+            else:
+                n_prev = len(y_clusters[-1])
+                y_clusters[-1].append((qp, am, tid))
+                y_means[-1] = (y_means[-1] * n_prev + ym) / (n_prev + 1)
+        for cl_y_m, cl in zip(y_means, y_clusters):
+            if sum(a for _, a, _ in cl) < 25.0:
+                continue
+            cl_tids = {tid for _, _, tid in cl}
+            near_covers = [
+                (bounds, cq) for c_ym, bounds, cq, tid in floor_mode_cover_tris
+                if tid not in cl_tids and abs(c_ym - cl_y_m) <= 0.20
+            ]
+            cl_u = unary_union([qp for qp, _, _ in cl])
+            if not cl_u.is_valid:
+                cl_u = cl_u.buffer(0)
+            gs = list(cl_u.geoms) if hasattr(cl_u, "geoms") else [cl_u]
+            for gp in gs:
+                if not isinstance(gp, Polygon):
+                    continue
+                for ring in gp.interiors:
+                    hp = Polygon(ring)
+                    if not hp.is_valid:
+                        hp = hp.buffer(0)
+                    if not (isinstance(hp, Polygon) and 0.0002 < float(hp.area) < 0.50 and hp.buffer(-0.22, join_style=2).is_empty):
+                        continue
+                    hx0, hy0, hx1, hy1 = hp.bounds
+                    hit_cov = [
+                        cq for (ox0, oy0, ox1, oy1), cq in near_covers
+                        if ox1 >= hx0 and ox0 <= hx1 and oy1 >= hy0 and oy0 <= hy1
+                    ]
+                    uncovered = hp.difference(unary_union(hit_cov)) if hit_cov else hp
+                    if not uncovered.is_valid:
+                        uncovered = uncovered.buffer(0)
+                    for part in _expand_s6_parts(uncovered):
+                        if 0.0002 < float(part.area) < 0.50 and part.buffer(-0.22, join_style=2).is_empty:
+                            s6_floor_cracks += 1
+
     required_groups = ["Floor_Slab"]
     if group_tri_counts.get("Wall_Interior_01", 0) > 0:
         required_groups.append("CutCap_Interior")
     missing_groups = [k for k in required_groups if group_tri_counts.get(k, 0) == 0]
     if sum(cap_counts.values()) == 0:
         missing_groups.append("CutCap_Any")
+
+    studio_qa_gates = {
+        "S1_corridor_cutcap_leak_m2": s1_leak_m2,
+        "S2_max_zone_overhang_m": s2_max_overhang_m,
+        "S3_quadrant_mismatch": s3_mismatch,
+        "S4_capped_piers_solid_pct": s4_piers_pct,
+        "S5_overhead_top_area_m2": round(overhead_top_area_m2, 2),
+        "S6_walkable_floor_cracks": s6_floor_cracks,
+    }
+    qa_passed = (
+        out_tris >= int(in_tris * 0.70)
+        and max_bbox_delta <= 0.05
+        and s1_leak_m2 <= 0.35
+        and s2_max_overhang_m <= 0.08
+        and s3_mismatch == 0
+        and s4_piers_pct >= 98.0
+        and overhead_top_area_m2 <= 65.0
+        and s6_floor_cracks == 0
+        and len(missing_groups) == 0
+        and len(preserved_mats) >= 1
+    )
 
     manifest = {
         "building": building,
@@ -1173,15 +1528,10 @@ def package_real_v2_floor(
         "bounds_out_max": [round(float(x), 4) for x in out_max],
         "max_bbox_delta_m": round(max_bbox_delta, 5),
         "overhead_top_area_m2": round(overhead_top_area_m2, 2),
+        "studio_qa_gates": studio_qa_gates,
         "group_triangles": group_tri_counts,
         "cutcap_triangles": cap_counts,
-        "qa_passed": (
-            out_tris >= int(in_tris * 0.70)
-            and max_bbox_delta <= 0.05
-            and overhead_top_area_m2 <= 65.0
-            and len(missing_groups) == 0
-            and len(preserved_mats) >= 1
-        ),
+        "qa_passed": qa_passed,
         "missing_groups": missing_groups,
     }
 

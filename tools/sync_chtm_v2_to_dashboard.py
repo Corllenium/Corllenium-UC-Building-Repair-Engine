@@ -73,6 +73,20 @@ def sync_chtm_models(staging_chtm: Path = STAGING_CHTM, dash_v2: Path = DEFAULT_
         outer_pct = float((checks.get("outer_facade_completeness") or {}).get("numericValue") or 100.0)
         int_pct = float((checks.get("interior_visible_retention") or {}).get("numericValue") or 100.0)
         torn_seams = int(round(float((checks.get("outer_facade_zero_cracklines") or {}).get("numericValue") or 0)))
+        walkable_cracks = int(round(float((checks.get("zero_walkable_floor_cracks") or {}).get("numericValue") or 0)))
+
+        # Optional Studio 4-mode Cutaway QA manifest (floors 4F-9M) for Jev Repair Gate validation
+        studio_manifest_path = fl_dir / f"CHTM_{floor}.real_v2.studio.studio_manifest.json"
+        if not studio_manifest_path.is_file():
+            studio_manifest_path = staging_chtm / "StudioCutaway" / f"CHTM_{floor}.real_v2.studio.studio_manifest.json"
+        studio_manifest: dict[str, Any] | None = None
+        studio_qa_gates: dict[str, Any] = {}
+        studio_qa_passed: bool | None = None
+        if studio_manifest_path.is_file():
+            studio_manifest = json.loads(studio_manifest_path.read_text(encoding="utf-8"))
+            studio_qa_gates = dict(studio_manifest.get("studio_qa_gates") or studio_manifest.get("qa_gates") or {})
+            studio_qa_passed = bool(studio_manifest.get("qa_passed", False))
+
         is_clean = (
             fl_err["flicker_diff"] == 0
             and fl_err["flicker_same"] == 0
@@ -80,11 +94,17 @@ def sync_chtm_models(staging_chtm: Path = STAGING_CHTM, dash_v2: Path = DEFAULT_
             and fixes.get("phantom_tris_remaining", 0) == 0
             and outer_pct >= 100.0
             and torn_seams == 0
+            and walkable_cracks == 0
             and int_pct >= 99.0
             and bool(bt.get("valid", True))
+            and (studio_qa_passed if studio_manifest is not None else True)
         )
         if not is_clean:
-            raise RuntimeError(f"CHTM/{floor} failed strict clean gate: {fl_err}, phantoms={fixes.get('phantom_tris_remaining')}, outer={outer_pct}, seams={torn_seams}, bt={bt.get('valid')}")
+            raise RuntimeError(
+                f"CHTM/{floor} failed strict clean gate: {fl_err}, phantoms={fixes.get('phantom_tris_remaining')}, "
+                f"outer={outer_pct}, seams={torn_seams}, floor_cracks={walkable_cracks}, "
+                f"bt={bt.get('valid')}, studio_qa={studio_qa_passed}"
+            )
         passed_floors += 1
 
         dst_dir = dash_v2 / "CHTM" / floor
@@ -124,7 +144,7 @@ def sync_chtm_models(staging_chtm: Path = STAGING_CHTM, dash_v2: Path = DEFAULT_
             "texturesPacked": int(bt.get("packed_images") or rep.get("textures_copied_count") or 0),
             "blenderMeshValid": bool(bt.get("valid", True)),
             "nodeCount": 1,
-            "allPassed": True,
+            "allPassed": bool(is_clean),
             "passedGatesCount": passes_count,
             "totalGatesCount": total_checks,
             "gates": {
@@ -138,6 +158,7 @@ def sync_chtm_models(staging_chtm: Path = STAGING_CHTM, dash_v2: Path = DEFAULT_
                 "doorways_unblocked": True,
                 "no_sliver_artifacts": int((checks.get("zero_piercing_needle_slivers") or {}).get("numericValue") or 0) == 0,
                 "raw_completeness": outer_pct >= 99.0,
+                "zero_walkable_floor_cracks": walkable_cracks == 0,
             },
             "openEdges": open_edge_cnt,
             "nonmanifoldEdges": 0,
@@ -163,12 +184,30 @@ def sync_chtm_models(staging_chtm: Path = STAGING_CHTM, dash_v2: Path = DEFAULT_
             "v2Errors": v2_err_counts,
             "v2Checks": checks,
             "v2Fixes": fixes,
+            "floorCracksHealed": int(fixes.get("floor_cracks_healed", 0)),
+            "studioQaPassed": studio_qa_passed,
+            "studioQaGates": studio_qa_gates,
+            "jevValidationRequired": True,
+            "jevValidationChecklistRef": "05/docs/ENGINE-V2-MASTER-VALIDATION-CHECKLIST.md",
             "unityOptimization": uopt,
             "fixedSummary": [
                 f"Real-Model Engine v2 (from CHTM_{floor}.blend): {raw_tris:,} -> {v2_tris:,} tris (-{uopt.get('tris_reduction_pct', 0)}%), {bt.get('packed_images', 0)} packed textures, Blender 5.1 mesh.validate() PASS.",
-                f"Zero Z-fighting flicker (0/0), 0 reversed normals, 0 phantom bridges ({fixes.get('phantom_tris_dropped', 0)} dropped).",
+                f"Zero Z-fighting flicker (0/0), 0 reversed normals, 0 phantom bridges ({fixes.get('phantom_tris_dropped', 0)} dropped), 0 walkable floor cracks ({fixes.get('floor_cracks_healed', 0)} healed).",
                 f"Outer Facade {checks.get('outer_facade_completeness', {}).get('measured', f'{outer_pct:.2f}%')} · Interior Visible {checks.get('interior_visible_retention', {}).get('measured', f'{int_pct:.2f}%')}.",
                 f"Unity Mesh Baker 3.40.2 Ready: {uopt.get('unique_materials', 0)} materials -> {uopt.get('projected_mesh_baker_draw_calls', 1)} draw calls ({uopt.get('opaque_materials', 0)} opaque + {uopt.get('transparent_materials', 0)} glass), {uopt.get('uv_faces_normalized', 0):,} UV tile faces normalized.",
+                *(
+                    [
+                        f"Studio 4-Mode Cutaway QA (S1-S6): {'PASS' if studio_qa_passed else 'FAIL'} "
+                        f"(S1 leak={studio_qa_gates.get('S1_corridor_cutcap_leak_m2', 0)}m2, "
+                        f"S2 overhang={studio_qa_gates.get('S2_max_zone_overhang_m', 0)}m, "
+                        f"S3 mismatch={studio_qa_gates.get('S3_quadrant_mismatch', 0)}, "
+                        f"S4 piers={studio_qa_gates.get('S4_capped_piers_solid_pct', 0)}%, "
+                        f"S5 overhead={studio_qa_gates.get('S5_overhead_top_area_m2', 0)}m2, "
+                        f"S6 cracks={studio_qa_gates.get('S6_walkable_floor_cracks', 0)})."
+                    ]
+                    if studio_manifest is not None
+                    else []
+                ),
             ],
             "remainingIssues": [
                 f"{cid}: {checks[cid]['measured']}"
@@ -218,7 +257,7 @@ def sync_chtm_models(staging_chtm: Path = STAGING_CHTM, dash_v2: Path = DEFAULT_
         chtm_entry = {"building": "CHTM"}
         buildings.insert(0, chtm_entry)
     chtm_entry.update({
-        "allPassed": True,
+        "allPassed": passed_floors == len(FLOOR_CANONICAL),
         "passedFloors": passed_floors,
         "totalFloors": len(FLOOR_CANONICAL),
         "openEdges": 0,
@@ -227,6 +266,8 @@ def sync_chtm_models(staging_chtm: Path = STAGING_CHTM, dash_v2: Path = DEFAULT_
         "negVolumeNodes": 0,
         "minStructuralAltMm": 1.1,
         "masterBlendPath": "06-Environment-Authoring/BLENDER/BUILDINGS/CHTM_EngineV2.blend",
+        "jevValidationRequired": True,
+        "jevValidationChecklistRef": "05/docs/ENGINE-V2-MASTER-VALIDATION-CHECKLIST.md",
         **({"allFloorsGlbUrl": all_floors_url} if all_floors_url else {}),
         **({"manifestUrl": manifest_url} if manifest_url else {}),
     })

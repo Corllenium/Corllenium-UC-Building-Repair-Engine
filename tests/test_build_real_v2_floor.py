@@ -459,4 +459,89 @@ def test_detect_piercing_needle_slivers_protects_coplanar_tjunction_wedge() -> N
     assert bool(mask[3])
 
 
+def test_heal_walkable_floor_slab_cracks_seals_needle_crack_and_notch_preserving_uvs() -> None:
+    from shapely.geometry import Polygon as SPoly
+    import trimesh
+    from engine.validate.facade_integrity import count_walkable_floor_cracks
+    from tools.build_real_v2_floor import INCH_TO_METRE, heal_walkable_floor_slab_cracks
+
+    # Walkable floor [0..8] x [0..6] m (48m2 >= 25m2) with:
+    # 1) 6m needle crack (0.006 m2): [0.5..6.5] x [1.0..1.001]
+    # 2) 0.0625 m2 notch: [1.0..1.25] x [2.5..2.75]
+    # 3) 2m x 2m column cutout (should remain open): [5.0..7.0] x [3.0..5.0]
+    poly_m = SPoly(
+        [(0.0, 0.0), (8.0, 0.0), (8.0, 6.0), (0.0, 6.0)],
+        holes=[
+            [(0.5, 1.0), (6.5, 1.0), (6.5, 1.001), (0.5, 1.001)],
+            [(1.0, 2.5), (1.25, 2.5), (1.25, 2.75), (1.0, 2.75)],
+            [(5.0, 3.0), (7.0, 3.0), (7.0, 5.0), (5.0, 5.0)],
+        ],
+    )
+    v2d_m, f2d = trimesh.creation.triangulate_polygon(poly_m, engine="earcut")
+    pos_in = np.column_stack([v2d_m[:, 0] / INCH_TO_METRE, v2d_m[:, 1] / INCH_TO_METRE, np.zeros(len(v2d_m))])
+    uvs = np.column_stack([v2d_m[:, 0] * 0.5, v2d_m[:, 1] * 0.5])
+    mesh = _make_mesh(pos_in, f2d.astype(np.int64), ["floor_tile"], np.zeros(len(f2d), dtype=np.int64))
+    mesh.uvs = uvs
+    mesh.face_vt = f2d.astype(np.int64)
+    n_before, _ = count_walkable_floor_cracks(mesh)
+    assert n_before == 2
+
+    healed, n_healed = heal_walkable_floor_slab_cracks(mesh)
+    assert n_healed == 2
+    n_after, _ = count_walkable_floor_cracks(healed)
+    assert n_after == 0
+
+    # Verify newly added vertices have exact UVs (x_m * 0.5, y_m * 0.5) and column cutout [5..7]x[3..5] remains un-filled
+    fn_h = face_normals(healed.positions, healed.face_v, np.ones(healed.n_faces, dtype=bool))
+    assert np.all(fn_h[:, 2] > 0.99)
+    fc_m = healed.positions[healed.face_v].mean(axis=1) * INCH_TO_METRE
+    in_col = (fc_m[:, 0] > 5.1) & (fc_m[:, 0] < 6.9) & (fc_m[:, 1] > 3.1) & (fc_m[:, 1] < 4.9)
+    assert not np.any(in_col)
+    for fi in range(healed.n_faces):
+        pts_m_f = healed.positions[healed.face_v[fi]] * INCH_TO_METRE
+        uv_f = healed.uvs[healed.face_vt[fi]]
+        assert np.allclose(uv_f, pts_m_f[:, :2] * 0.5, atol=1e-4)
+
+
+def test_heal_walkable_floor_slab_cracks_skips_hole_covered_by_nearby_threshold() -> None:
+    from shapely.geometry import Polygon as SPoly
+    import trimesh
+    from engine.validate.facade_integrity import count_walkable_floor_cracks
+    from tools.build_real_v2_floor import INCH_TO_METRE, heal_walkable_floor_slab_cracks
+
+    # Walkable floor [0..8] x [0..6] m at z=0 with an interior slit [1.0..5.0] x [2.0..2.1]
+    # already covered by a doorway threshold quad at z = -0.05m (different material).
+    poly_m = SPoly(
+        [(0.0, 0.0), (8.0, 0.0), (8.0, 6.0), (0.0, 6.0)],
+        holes=[[(1.0, 2.0), (5.0, 2.0), (5.0, 2.1), (1.0, 2.1)]],
+    )
+    v2d_m, f2d = trimesh.creation.triangulate_polygon(poly_m, engine="earcut")
+    pos_fl = np.column_stack([v2d_m[:, 0] / INCH_TO_METRE, v2d_m[:, 1] / INCH_TO_METRE, np.zeros(len(v2d_m))])
+    z_thr = -0.05 / INCH_TO_METRE
+    pos_thr = np.array(
+        [
+            [0.95 / INCH_TO_METRE, 1.95 / INCH_TO_METRE, z_thr],
+            [5.05 / INCH_TO_METRE, 1.95 / INCH_TO_METRE, z_thr],
+            [5.05 / INCH_TO_METRE, 2.15 / INCH_TO_METRE, z_thr],
+            [0.95 / INCH_TO_METRE, 2.15 / INCH_TO_METRE, z_thr],
+        ],
+        dtype=np.float64,
+    )
+    nv_fl = len(pos_fl)
+    pos_all = np.vstack([pos_fl, pos_thr])
+    fv_all = np.vstack([
+        f2d.astype(np.int64),
+        np.array([[nv_fl, nv_fl + 1, nv_fl + 2], [nv_fl, nv_fl + 2, nv_fl + 3]], dtype=np.int64),
+    ])
+    fmat_all = np.concatenate([np.zeros(len(f2d), dtype=np.int64), np.ones(2, dtype=np.int64)])
+    mesh = _make_mesh(pos_all, fv_all, ["floor_tile", "threshold"], fmat_all)
+
+    n_cracks, _ = count_walkable_floor_cracks(mesh)
+    assert n_cracks == 0
+    healed, n_healed = heal_walkable_floor_slab_cracks(mesh)
+    assert n_healed == 0
+    assert healed.n_faces == mesh.n_faces
+
+
+
 

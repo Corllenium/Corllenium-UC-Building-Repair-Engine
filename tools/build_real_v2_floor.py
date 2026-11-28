@@ -29,6 +29,7 @@ if str(_REPO_ROOT) not in sys.path:
 
 from shapely.geometry import Polygon  # noqa: E402
 from shapely.ops import unary_union  # noqa: E402
+import trimesh  # noqa: E402
 
 from engine.detectors.errors import find_errors  # noqa: E402
 from engine.fixes.building_repair import (  # noqa: E402
@@ -162,6 +163,197 @@ def orient_horizontals(b: MeshData, a: MeshData) -> tuple[MeshData, int]:
                 a.face_vt[f] = a.face_vt[f, [0, 2, 1]]
             n_flip += 1
     return a, n_flip
+
+
+def heal_walkable_floor_slab_cracks(mesh: MeshData) -> tuple[MeshData, int]:
+    """Seal narrow cracks/slivers/notches inside major walkable Z-up floor slabs (>= 25 m^2), preserving UVs."""
+    if mesh.n_faces == 0:
+        return mesh, 0
+    fn = face_normals(mesh.positions, mesh.face_v, np.ones(mesh.n_faces, dtype=bool))
+    pts_m = mesh.positions * INCH_TO_METRE
+    tri_m = pts_m[mesh.face_v]
+    z_mean_m = tri_m[:, :, 2].mean(axis=1)
+    areas_m2 = 0.5 * np.linalg.norm(
+        np.cross(tri_m[:, 1] - tri_m[:, 0], tri_m[:, 2] - tri_m[:, 0]), axis=1
+    )
+    up_mask = (~np.isnan(fn).any(axis=1)) & (fn[:, 2] > 0.85) & (areas_m2 > 1e-6)
+    if not np.any(up_mask):
+        return mesh, 0
+    horiz_mask = (~np.isnan(fn).any(axis=1)) & (np.abs(fn[:, 2]) > 0.85) & (areas_m2 > 1e-6)
+
+    up_ids = np.flatnonzero(up_mask)
+    order = up_ids[np.argsort(z_mean_m[up_ids])]
+    clusters: list[tuple[float, list[int]]] = []
+    for fid in order:
+        zm = float(z_mean_m[fid])
+        if not clusters or abs(zm - clusters[-1][0]) > 0.08:
+            clusters.append((zm, [int(fid)]))
+        else:
+            prev_z, prev_fids = clusters[-1]
+            n_prev = len(prev_fids)
+            prev_fids.append(int(fid))
+            clusters[-1] = ((prev_z * n_prev + zm) / (n_prev + 1), prev_fids)
+
+    def _expand_poly_parts(geom) -> list[Polygon]:
+        if geom.is_empty:
+            return []
+        if isinstance(geom, Polygon):
+            return [geom]
+        parts: list[Polygon] = []
+        for sub in getattr(geom, "geoms", ()):
+            parts.extend(_expand_poly_parts(sub))
+        return parts
+
+    has_uvs = mesh.uvs is not None and len(mesh.uvs) > 0 and mesh.face_vt is not None
+    out = copy.deepcopy(mesh)
+    new_pos_list: list[np.ndarray] = []
+    new_uv_list: list[np.ndarray] = []
+    new_fv_list: list[list[int]] = []
+    new_fvt_list: list[list[int]] = []
+    new_fmat_list: list[int] = []
+    next_v = len(out.positions)
+    next_vt = len(out.uvs) if has_uvs else 0
+    healed_holes = 0
+
+    for cl_z_m, fids in clusters:
+        fid_arr = np.asarray(fids, dtype=np.int64)
+        if float(areas_m2[fid_arr].sum()) < 25.0:
+            continue
+        cl_mask = np.zeros(mesh.n_faces, dtype=bool)
+        cl_mask[fid_arr] = True
+        other_ids = np.flatnonzero(horiz_mask & (~cl_mask) & (np.abs(z_mean_m - cl_z_m) <= 0.20))
+        other_items: list[tuple[tuple[float, float, float, float], Polygon]] = []
+        for oid in other_ids:
+            ofv = mesh.face_v[oid]
+            oq = Polygon([
+                (float(pts_m[ofv[0], 0]), float(pts_m[ofv[0], 1])),
+                (float(pts_m[ofv[1], 0]), float(pts_m[ofv[1], 1])),
+                (float(pts_m[ofv[2], 0]), float(pts_m[ofv[2], 1])),
+            ])
+            if oq.is_valid and oq.area > 1e-6:
+                other_items.append((oq.bounds, oq))
+
+        fid_polys: list[tuple[int, Polygon]] = []
+        for fid in fid_arr:
+            fv = mesh.face_v[fid]
+            q = Polygon([
+                (float(pts_m[fv[0], 0]), float(pts_m[fv[0], 1])),
+                (float(pts_m[fv[1], 0]), float(pts_m[fv[1], 1])),
+                (float(pts_m[fv[2], 0]), float(pts_m[fv[2], 1])),
+            ])
+            if q.is_valid and q.area > 1e-6:
+                fid_polys.append((int(fid), q))
+        if not fid_polys:
+            continue
+        floor_u = unary_union([q for _, q in fid_polys])
+        if not floor_u.is_valid:
+            floor_u = floor_u.buffer(0)
+        geoms = list(floor_u.geoms) if hasattr(floor_u, "geoms") else [floor_u]
+        for gp in geoms:
+            if not isinstance(gp, Polygon):
+                continue
+            for ring in gp.interiors:
+                hp_raw = Polygon(ring)
+                if not hp_raw.is_valid:
+                    hp_raw = hp_raw.buffer(0)
+                if not (isinstance(hp_raw, Polygon) and 0.0002 < float(hp_raw.area) < 0.50 and hp_raw.buffer(-0.22, join_style=2).is_empty):
+                    continue
+                hx0, hy0, hx1, hy1 = hp_raw.bounds
+                near_other = [
+                    oq for (ox0, oy0, ox1, oy1), oq in other_items
+                    if ox1 >= hx0 and ox0 <= hx1 and oy1 >= hy0 and oy0 <= hy1
+                ]
+                uncovered = hp_raw.difference(unary_union(near_other)) if near_other else hp_raw
+                if not uncovered.is_valid:
+                    uncovered = uncovered.buffer(0)
+                for hp in _expand_poly_parts(uncovered):
+                    if not (0.0002 < float(hp.area) < 0.50 and hp.buffer(-0.22, join_style=2).is_empty):
+                        continue
+                    hp_buf = hp.buffer(0.03, join_style=2)
+                    best_fid = fid_polys[0][0]
+                    best_ov = -1.0
+                    for cand_fid, cand_q in fid_polys:
+                        if not cand_q.intersects(hp_buf):
+                            continue
+                        ov = float(cand_q.boundary.intersection(hp_buf).length)
+                        if ov > best_ov:
+                            best_ov = ov
+                            best_fid = cand_fid
+
+                    try:
+                        v2d, f2d = trimesh.creation.triangulate_polygon(hp, engine="earcut")
+                    except Exception:
+                        try:
+                            v2d, f2d = trimesh.creation.triangulate_polygon(hp)
+                        except Exception:
+                            continue
+                    if len(f2d) == 0 or len(v2d) == 0:
+                        continue
+
+                    adj_fv = mesh.face_v[best_fid]
+                    adj_pts_m = pts_m[adj_fv]
+                    z_fl_in = float(np.median(mesh.positions[adj_fv, 2]))
+                    v3d_in = np.column_stack([
+                        v2d[:, 0] / INCH_TO_METRE,
+                        v2d[:, 1] / INCH_TO_METRE,
+                        np.full(len(v2d), z_fl_in, dtype=np.float64),
+                    ])
+                    # Ensure upward +Z winding
+                    p0 = v3d_in[f2d[:, 0]]
+                    p1 = v3d_in[f2d[:, 1]]
+                    p2 = v3d_in[f2d[:, 2]]
+                    cz = (p1[:, 0] - p0[:, 0]) * (p2[:, 1] - p0[:, 1]) - (p1[:, 1] - p0[:, 1]) * (p2[:, 0] - p0[:, 0])
+                    f_fixed = f2d.copy()
+                    flip = cz < 0
+                    if np.any(flip):
+                        f_fixed[flip] = f_fixed[flip][:, [0, 2, 1]]
+
+                    # Compute exact 2D->UV affine transform from adjacent floor triangle
+                    uv_affine: np.ndarray | None = None
+                    if has_uvs and (mesh.face_vt[best_fid] >= 0).all():
+                        mat_xy = np.column_stack([adj_pts_m[:, 0], adj_pts_m[:, 1], np.ones(3, dtype=np.float64)])
+                        if abs(float(np.linalg.det(mat_xy))) > 1e-8:
+                            try:
+                                uv_affine = np.linalg.solve(mat_xy, mesh.uvs[mesh.face_vt[best_fid]])
+                            except np.linalg.LinAlgError:
+                                uv_affine = None
+                    if uv_affine is not None:
+                        v2_uv = np.column_stack([v2d[:, 0], v2d[:, 1], np.ones(len(v2d), dtype=np.float64)]) @ uv_affine
+                    else:
+                        v2_uv = np.column_stack([v2d[:, 0] * 0.25, v2d[:, 1] * 0.25])
+
+                    new_pos_list.append(v3d_in)
+                    if has_uvs:
+                        new_uv_list.append(v2_uv)
+                    fmat = int(mesh.face_material[best_fid])
+                    for tri in f_fixed:
+                        new_fv_list.append([next_v + int(tri[0]), next_v + int(tri[1]), next_v + int(tri[2])])
+                        if has_uvs:
+                            new_fvt_list.append([next_vt + int(tri[0]), next_vt + int(tri[1]), next_vt + int(tri[2])])
+                        else:
+                            new_fvt_list.append([-1, -1, -1])
+                        new_fmat_list.append(fmat)
+                    next_v += len(v3d_in)
+                    if has_uvs:
+                        next_vt += len(v2_uv)
+                    healed_holes += 1
+
+    if healed_holes == 0:
+        return mesh, 0
+    out.positions = np.vstack([out.positions, *new_pos_list])
+    if has_uvs and new_uv_list:
+        out.uvs = np.vstack([out.uvs, *new_uv_list])
+    new_fv_arr = np.asarray(new_fv_list, dtype=np.int64)
+    out.face_v = np.vstack([out.face_v, new_fv_arr])
+    if out.face_vt is not None:
+        out.face_vt = np.vstack([out.face_vt, np.asarray(new_fvt_list, dtype=np.int64)])
+    if out.face_vn is not None:
+        out.face_vn = np.vstack([out.face_vn, np.full((len(new_fv_arr), 3), -1, dtype=np.int64)])
+    out.face_material = np.concatenate([out.face_material, np.asarray(new_fmat_list, dtype=np.int64)])
+    if out.face_line is not None:
+        out.face_line = np.concatenate([out.face_line, np.zeros(len(new_fv_arr), dtype=np.int64)])
+    out, _ = compact_mesh(out, {})
+    return out, healed_holes
 
 
 def _drop_degenerate_faces(mesh: MeshData, min_area_sqin: float = 1e-6) -> tuple[MeshData, int]:
@@ -1161,8 +1353,19 @@ def build_real_v2_floor(
                             repaired = flip_faces(repaired, flip_sl)
                             n_post_oriented += int(flip_sl.sum())
     repaired, uv_faces_normalized, uv_max_abs_after = normalize_uv_tile_offsets(repaired)
-    gc.collect()
     phantom_tris_remaining = int(count_phantom_bridges(ckpt_raw, repaired).sum())
+    repaired, n_floor_cracks_healed = heal_walkable_floor_slab_cracks(repaired)
+    if n_floor_cracks_healed > 0:
+        for _ in range(3):
+            outer_mask_fc, vis_mask_fc = _exposure_masks(repaired, n_dirs=128)
+            repaired, n_dl_fc = resolve_residual_double_layers(repaired, outer_mask_fc, vis_mask_fc)
+            n_post_coplanar += n_dl_fc
+            if n_dl_fc == 0:
+                break
+        repaired, n_degen_fc = _drop_degenerate_faces(repaired)
+        n_degen_dropped += n_degen_fc
+        repaired, _ = compact_mesh(repaired, {})
+    gc.collect()
 
     # Compute Unity + Mesh Baker 3.40.2 optimization telemetry
     used_mat_ids = sorted({int(m) for m in np.asarray(repaired.face_material, dtype=np.int64).tolist() if 0 <= int(m) < len(repaired.materials)})
@@ -1290,6 +1493,7 @@ def build_real_v2_floor(
             "phantom_tris_dropped": int(n_phantom_dropped),
             "phantom_tris_remaining": int(phantom_tris_remaining),
             "internal_stack_plates_purged": int(n_stack_plates_purged),
+            "floor_cracks_healed": int(n_floor_cracks_healed),
             "uv_faces_normalized": int(uv_faces_normalized),
         },
         "audits": audits,

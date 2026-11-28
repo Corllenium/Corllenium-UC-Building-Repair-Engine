@@ -371,3 +371,126 @@ def test_coplanar_slanted_wall_and_t_junction_never_split_channels(tmp_path: Pat
     # Every Interior Upper triangle must lie strictly on z ~= 0 (the T-junction wall), never on the slanted exterior wall
     int_u = trimesh.util.concatenate(upper_int)
     assert np.all(np.abs(int_u.vertices[int_u.faces, 2]) < 1e-4)
+
+
+def test_walkable_corridor_never_gets_filled_by_plinth_or_lower_cutcap(tmp_path: Path) -> None:
+    from shapely.geometry import Polygon as SPoly
+    from shapely.ops import unary_union
+
+    mat_wall = PBRMaterial(name="mat_wall_corr", baseColorFactor=[0.85, 0.85, 0.82, 1.0], doubleSided=True)
+    mat_floor = PBRMaterial(name="mat_floor_corr", baseColorFactor=[0.70, 0.72, 0.70, 1.0], doubleSided=True)
+
+    # Closed walkable floor [0..10] x [0..10]
+    fp = SPoly([(0.0, 0.0), (10.0, 0.0), (10.0, 10.0), (0.0, 10.0)])
+    fv2d, ff2d = trimesh.creation.triangulate_polygon(fp, engine="earcut")
+    slab = trimesh.Trimesh(
+        vertices=np.column_stack([fv2d[:, 0], np.zeros(len(fv2d)), fv2d[:, 1]]),
+        faces=ff2d[:, ::-1],
+        process=False,
+    )
+    slab.visual = TextureVisuals(uv=np.zeros((len(slab.vertices), 2)), material=mat_floor)
+
+    # Two parallel interior walls (0.4m thick) enclosing a 1.4m-wide open walkable corridor [4.3..5.7] x [1..9]
+    w1 = trimesh.creation.box(extents=[0.4, 3.75, 8.0])
+    w1.apply_translation([4.1, 1.875, 5.0])
+    w2 = trimesh.creation.box(extents=[0.4, 3.75, 8.0])
+    w2.apply_translation([5.9, 1.875, 5.0])
+    # Cross walls at ends leaving narrow pinch openings (< 0.4m -> polygonize sees a narrow 1.4m-wide corridor loop!)
+    w3 = trimesh.creation.box(extents=[2.2, 3.75, 0.4])
+    w3.apply_translation([5.0, 1.875, 1.0])
+    w4 = trimesh.creation.box(extents=[2.2, 3.75, 0.4])
+    w4.apply_translation([5.0, 1.875, 9.0])
+    walls = trimesh.util.concatenate([w1, w2, w3, w4])
+    walls.visual = TextureVisuals(uv=np.zeros((len(walls.vertices), 2)), material=mat_wall)
+
+    sc = trimesh.Scene()
+    sc.add_geometry(slab, node_name="floor", geom_name="floor")
+    sc.add_geometry(walls, node_name="walls", geom_name="walls")
+
+    in_glb = tmp_path / "CORR_6F.glb"
+    out_glb = tmp_path / "CORR_6F.real_v2.studio.glb"
+    sc.export(in_glb, file_type="glb")
+
+    mf = package_real_v2_floor(
+        input_glb=in_glb,
+        output_glb=out_glb,
+        building="CORR",
+        floor="Floor_6F",
+        floor_y=0.0,
+        lintel_y=2.5,
+        ceil_y=3.75,
+    )
+    assert mf["qa_passed"] is True
+    assert mf["studio_qa_gates"]["S1_corridor_cutcap_leak_m2"] <= 0.05
+
+    reloaded = trimesh.load(out_glb, force="scene")
+    corridor_zone = SPoly([(4.4, 1.4), (5.6, 1.4), (5.6, 8.6), (4.4, 8.6)])
+    for suffix in ("CutCap_", "__Plinth__cut_cap"):
+        caps = [g for k, g in reloaded.geometry.items() if (suffix in k and "__Lower__" not in k)]
+        if caps:
+            cu = trimesh.util.concatenate(caps)
+            cu_2d = unary_union([
+                SPoly([(float(cu.vertices[v, 0]), float(cu.vertices[v, 2])) for v in f]).buffer(0)
+                for f in cu.faces
+            ]).buffer(0)
+            assert cu_2d.intersection(corridor_zone).area < 0.05
+
+
+def test_2m_thick_exterior_wall_stays_solid_in_auto_with_sealed_vertical_cut_end(tmp_path: Path) -> None:
+    from shapely.geometry import Polygon as SPoly
+
+    mat_wall = PBRMaterial(name="mat_wall_thick", baseColorFactor=[0.85, 0.85, 0.82, 1.0], doubleSided=True)
+    mat_floor = PBRMaterial(name="mat_floor_thick", baseColorFactor=[0.70, 0.72, 0.70, 1.0], doubleSided=True)
+
+    # 12m x 12m floor with 2.0m-thick exterior walls around West (x=0..2), East (x=10..12), North (z=10..12), South (z=0..2)
+    fp = SPoly([(0.0, 0.0), (12.0, 0.0), (12.0, 12.0), (0.0, 12.0)])
+    fv2d, ff2d = trimesh.creation.triangulate_polygon(fp, engine="earcut")
+    slab = trimesh.Trimesh(
+        vertices=np.column_stack([fv2d[:, 0], np.zeros(len(fv2d)), fv2d[:, 1]]),
+        faces=ff2d[:, ::-1],
+        process=False,
+    )
+    slab.visual = TextureVisuals(uv=np.zeros((len(slab.vertices), 2)), material=mat_floor)
+
+    ext_s = trimesh.creation.box(extents=[12.0, 3.75, 2.0])
+    ext_s.apply_translation([6.0, 1.875, 1.0])
+    ext_n = trimesh.creation.box(extents=[12.0, 3.75, 2.0])
+    ext_n.apply_translation([6.0, 1.875, 11.0])
+    ext_w = trimesh.creation.box(extents=[2.0, 3.75, 8.0])
+    ext_w.apply_translation([1.0, 1.875, 6.0])
+    ext_e = trimesh.creation.box(extents=[2.0, 3.75, 8.0])
+    ext_e.apply_translation([11.0, 1.875, 6.0])
+    walls = trimesh.util.concatenate([ext_s, ext_n, ext_w, ext_e])
+    walls.visual = TextureVisuals(uv=np.zeros((len(walls.vertices), 2)), material=mat_wall)
+
+    sc = trimesh.Scene()
+    sc.add_geometry(slab, node_name="floor", geom_name="floor")
+    sc.add_geometry(walls, node_name="walls", geom_name="walls")
+
+    in_glb = tmp_path / "THICK_4F.glb"
+    out_glb = tmp_path / "THICK_4F.real_v2.studio.glb"
+    sc.export(in_glb, file_type="glb")
+
+    mf = package_real_v2_floor(
+        input_glb=in_glb,
+        output_glb=out_glb,
+        building="THICK",
+        floor="Floor_4F",
+        floor_y=0.0,
+        lintel_y=2.5,
+        ceil_y=3.75,
+    )
+    assert mf["qa_passed"] is True
+    assert mf["studio_qa_gates"]["S2_max_zone_overhang_m"] <= 0.08
+    assert mf["studio_qa_gates"]["S3_quadrant_mismatch"] == 0
+
+    reloaded = trimesh.load(out_glb, force="scene")
+    # Inner face of 2m-thick South wall (z=2.0, y in [1.25, 3.75], x in [4..8]) must belong to Wall_Ext_S_01__Upper, NOT Wall_Interior_01!
+    int_up = [g for k, g in reloaded.geometry.items() if k.startswith("Wall_Interior_01__Upper__")]
+    if int_up:
+        iu = trimesh.util.concatenate(int_up)
+        assert not np.any((iu.vertices[iu.faces, 0].mean(axis=1) > 4.0) & (iu.vertices[iu.faces, 0].mean(axis=1) < 8.0) & (np.abs(iu.vertices[iu.faces, 2].mean(axis=1) - 2.0) < 0.2))
+    # Vertical cut end-caps must exist on Wall_Ext_*__Upper__cut_cap to seal the diagonal 45-deg corner seams
+    up_caps = [g for k, g in reloaded.geometry.items() if k.endswith("__Upper__cut_cap")]
+    assert len(up_caps) == 4
+

@@ -26,6 +26,7 @@ import numpy as np
 
 from engine.detectors.errors import find_errors
 from engine.fixes.patch_protect import detect_piercing_needle_slivers
+from engine.fixes.solid_wall_groups import INCH_TO_METRE
 from engine.model import MeshData
 from engine.pipeline import analyse_topology
 from engine.rays.caster import EmbreeCaster
@@ -117,6 +118,126 @@ def _spots_from_faces(
             "faceId": int(f),
         })
     return spots
+
+
+def count_walkable_floor_cracks(mesh: MeshData) -> tuple[int, list[dict]]:
+    """Detect narrow cracks/slivers/notches inside major walkable Z-up floor planes (>= 25 m^2)."""
+    from shapely.geometry import Polygon
+    from shapely.ops import unary_union
+
+    if mesh.n_faces == 0:
+        return 0, []
+    fn = face_normals(mesh.positions, mesh.face_v, np.ones(mesh.n_faces, dtype=bool))
+    pts_m = mesh.positions * INCH_TO_METRE
+    tri_m = pts_m[mesh.face_v]
+    z_mean_m = tri_m[:, :, 2].mean(axis=1)
+    areas_m2 = 0.5 * np.linalg.norm(
+        np.cross(tri_m[:, 1] - tri_m[:, 0], tri_m[:, 2] - tri_m[:, 0]), axis=1
+    )
+    up_mask = (~np.isnan(fn).any(axis=1)) & (fn[:, 2] > 0.85) & (areas_m2 > 1e-6)
+    if not np.any(up_mask):
+        return 0, []
+    horiz_mask = (~np.isnan(fn).any(axis=1)) & (np.abs(fn[:, 2]) > 0.85) & (areas_m2 > 1e-6)
+
+    # Group upward faces into Z elevation clusters within 0.08m
+    up_ids = np.flatnonzero(up_mask)
+    order = up_ids[np.argsort(z_mean_m[up_ids])]
+    clusters: list[tuple[float, list[int]]] = []
+    for fid in order:
+        zm = float(z_mean_m[fid])
+        if not clusters or abs(zm - clusters[-1][0]) > 0.08:
+            clusters.append((zm, [int(fid)]))
+        else:
+            prev_z, prev_fids = clusters[-1]
+            n_prev = len(prev_fids)
+            prev_fids.append(int(fid))
+            clusters[-1] = ((prev_z * n_prev + zm) / (n_prev + 1), prev_fids)
+
+    def _expand_poly_parts(geom) -> list[Polygon]:
+        if geom.is_empty:
+            return []
+        if isinstance(geom, Polygon):
+            return [geom]
+        parts: list[Polygon] = []
+        for sub in getattr(geom, "geoms", ()):
+            parts.extend(_expand_poly_parts(sub))
+        return parts
+
+    cracks: list[tuple[float, float, Polygon]] = []
+    for cl_z_m, fids in clusters:
+        fid_arr = np.asarray(fids, dtype=np.int64)
+        if float(areas_m2[fid_arr].sum()) < 25.0:
+            continue
+        cl_mask = np.zeros(mesh.n_faces, dtype=bool)
+        cl_mask[fid_arr] = True
+        other_ids = np.flatnonzero(horiz_mask & (~cl_mask) & (np.abs(z_mean_m - cl_z_m) <= 0.20))
+        other_items: list[tuple[tuple[float, float, float, float], Polygon]] = []
+        for oid in other_ids:
+            ofv = mesh.face_v[oid]
+            oq = Polygon([
+                (float(pts_m[ofv[0], 0]), float(pts_m[ofv[0], 1])),
+                (float(pts_m[ofv[1], 0]), float(pts_m[ofv[1], 1])),
+                (float(pts_m[ofv[2], 0]), float(pts_m[ofv[2], 1])),
+            ])
+            if oq.is_valid and oq.area > 1e-6:
+                other_items.append((oq.bounds, oq))
+
+        polys = []
+        for fid in fid_arr:
+            fv = mesh.face_v[fid]
+            q = Polygon([
+                (float(pts_m[fv[0], 0]), float(pts_m[fv[0], 1])),
+                (float(pts_m[fv[1], 0]), float(pts_m[fv[1], 1])),
+                (float(pts_m[fv[2], 0]), float(pts_m[fv[2], 1])),
+            ])
+            if q.is_valid and q.area > 1e-6:
+                polys.append(q)
+        if not polys:
+            continue
+        floor_u = unary_union(polys)
+        if not floor_u.is_valid:
+            floor_u = floor_u.buffer(0)
+        geoms = list(floor_u.geoms) if hasattr(floor_u, "geoms") else [floor_u]
+        for gp in geoms:
+            if not isinstance(gp, Polygon):
+                continue
+            for ring in gp.interiors:
+                hp = Polygon(ring)
+                if not hp.is_valid:
+                    hp = hp.buffer(0)
+                if not isinstance(hp, Polygon) or hp.is_empty or float(hp.area) <= 0.0002 or float(hp.area) >= 0.50:
+                    continue
+                if not hp.buffer(-0.22, join_style=2).is_empty:
+                    continue
+                hx0, hy0, hx1, hy1 = hp.bounds
+                near_other = [
+                    oq for (ox0, oy0, ox1, oy1), oq in other_items
+                    if ox1 >= hx0 and ox0 <= hx1 and oy1 >= hy0 and oy0 <= hy1
+                ]
+                uncovered = hp.difference(unary_union(near_other)) if near_other else hp
+                if not uncovered.is_valid:
+                    uncovered = uncovered.buffer(0)
+                for part in _expand_poly_parts(uncovered):
+                    if 0.0002 < float(part.area) < 0.50 and part.buffer(-0.22, join_style=2).is_empty:
+                        cracks.append((cl_z_m, float(part.area), part))
+
+    spots: list[dict] = []
+    for cl_z_m, area_m2, hp in sorted(cracks, key=lambda item: -item[1])[:15]:
+        bx0, by0, bx1, by1 = hp.bounds
+        cen_in = [
+            round(float(0.5 * (bx0 + bx1) / INCH_TO_METRE), 2),
+            round(float(0.5 * (by0 + by1) / INCH_TO_METRE), 2),
+            round(float(cl_z_m / INCH_TO_METRE), 2),
+        ]
+        diag_in = round(float(np.hypot(bx1 - bx0, by1 - by0) / INCH_TO_METRE), 2)
+        spots.append({
+            "label": f"D10 walkable floor crack (area={area_m2:.4f} m^2)",
+            "centre": cen_in,
+            "size": max(diag_in, 12.0),
+            "defectClass": "D10",
+            "faceId": -1,
+        })
+    return len(cracks), spots
 
 
 def verify_facade_and_mesh_integrity(
@@ -329,6 +450,10 @@ def verify_facade_and_mesh_integrity(
         c10_measured = ai_visual_verdict.get("summary", "Verified against D01-D14")
         c10_spots = ai_visual_verdict.get("spots", [])
 
+    # --- CHECK 11: Zero Walkable Floor Cracks / Slivers / Notches ---
+    n_floor_cracks, c11_spots = count_walkable_floor_cracks(after_mesh)
+    c11_pass = n_floor_cracks == 0
+
     checks = [
         {
             "id": "outer_facade_completeness",
@@ -448,9 +573,21 @@ def verify_facade_and_mesh_integrity(
             "threshold": "0 blocking visual defects",
             "spots": c10_spots,
         },
+        {
+            "id": "zero_walkable_floor_cracks",
+            "order": 11,
+            "category": "surface_quality",
+            "defectClasses": ["D02", "D10"],
+            "label": "Zero Walkable Floor Slab Cracks / Slivers / Notches",
+            "status": "pass" if c11_pass else "fail",
+            "measured": f"{n_floor_cracks} narrow floor cracks",
+            "threshold": "0 floor cracks",
+            "numericValue": n_floor_cracks,
+            "spots": c11_spots,
+        },
     ]
 
-    automated_passed = all(c["status"] == "pass" for c in checks[:8])
+    automated_passed = all(c["status"] == "pass" for c in checks if c["category"] != "visual_signoff")
     visual_passed = c9_status == "pass" and c10_status == "pass"
     overall_passed = automated_passed and (c9_status != "fail") and (c10_status != "fail")
 
