@@ -4,8 +4,16 @@ from __future__ import annotations
 import numpy as np
 from pathlib import Path
 
-from engine.fixes.building_repair import remove_coplanar_overlaps
+from engine.fixes.building_repair import (
+    _triangulate_clipped_face,
+    detect_internal_voxel_stack_plates,
+    remove_coplanar_overlaps,
+)
+from engine.fixes.patch_protect import detect_piercing_needle_slivers
 from engine.model import MeshData
+from engine.rays.caster import EmbreeCaster
+from engine.topo.planes import face_normals
+from engine.validate.facade_integrity import _coverage_7pt
 from tools.build_real_v2_floor import (
     _build_error_overlay_payload,
     _drop_degenerate_faces,
@@ -15,6 +23,7 @@ from tools.build_real_v2_floor import (
     ckpt17_to_gltf_yup_metres,
     drop_phantom_bridges,
     normalize_uv_tile_offsets,
+    purge_internal_voxel_stack_plates,
     resolve_and_copy_textures,
     resolve_residual_double_layers,
 )
@@ -213,3 +222,241 @@ def test_normalize_uv_tile_offsets_preserves_fractional_tiling() -> None:
     assert max_abs <= 2.0
     tri_uv = out.uvs[out.face_vt[0]]
     assert np.allclose(tri_uv, [[0.25, 0.5], [1.75, 0.5], [1.75, 2.0]], atol=1e-6)
+
+
+def _box_tris(x0: float, x1: float, y0: float, y1: float, z0: float, z1: float) -> list[list[list[float]]]:
+    p = [
+        [x0, y0, z0], [x1, y0, z0], [x1, y1, z0], [x0, y1, z0],
+        [x0, y0, z1], [x1, y0, z1], [x1, y1, z1], [x0, y1, z1],
+    ]
+    quads = [
+        (0, 3, 2, 1),  # bottom (-z)
+        (4, 5, 6, 7),  # top (+z)
+        (0, 1, 5, 4),  # front (-y)
+        (2, 3, 7, 6),  # back (+y)
+        (1, 2, 6, 5),  # right (+x)
+        (3, 0, 4, 7),  # left (-x)
+    ]
+    tris = []
+    for a, b, c, d in quads:
+        tris.append([p[a], p[b], p[c]])
+        tris.append([p[a], p[c], p[d]])
+    return tris
+
+
+def _quad_tris(x0: float, x1: float, y0: float, y1: float, z: float) -> list[list[list[float]]]:
+    return [
+        [[x0, y0, z], [x1, y0, z], [x1, y1, z]],
+        [[x0, y0, z], [x1, y1, z], [x0, y1, z]],
+    ]
+
+
+def test_detect_and_purge_internal_voxel_stack_plates() -> None:
+    # Sealed 100x100x118.11 in box (3 Minecraft blocks tall) with 2 internal 1-block plates at 39.37 & 78.74
+    tris: list[list[list[float]]] = []
+    mats: list[int] = []
+    # 0..11: closed outer box walls/top/bottom (mat=0)
+    box = _box_tris(0.0, 100.0, 0.0, 100.0, 0.0, 118.11)
+    tris.extend(box)
+    mats.extend([0] * len(box))
+    # 12..15: internal 1-block horizontal plates inside closed box (mat=1)
+    for pz in (39.37, 78.74):
+        qt = _quad_tris(5.0, 95.0, 5.0, 95.0, pz)
+        tris.extend(qt)
+        mats.extend([1] * len(qt))
+    # 16..17: exterior open canopy (EXP_OUTSIDE, mat=2) - must stay
+    canopy = _quad_tris(110.0, 160.0, 10.0, 50.0, 60.0)
+    tris.extend(canopy)
+    mats.extend([2] * len(canopy))
+    # 18..19: thin doorway louver 6 in below box ceiling inside closed box (t_up=5.5 < 28, mat=2) - must stay
+    louver = _quad_tris(10.0, 90.0, 10.0, 90.0, 112.11)
+    tris.extend(louver)
+    mats.extend([2] * len(louver))
+
+    pos = np.asarray(tris, dtype=np.float64).reshape(-1, 3)
+    fv = np.arange(len(pos), dtype=np.int64).reshape(-1, 3)
+    mesh = _make_mesh(pos, fv, ["wall", "clay_plate", "facade"], np.asarray(mats, dtype=np.int64))
+
+    mask = detect_internal_voxel_stack_plates(mesh)
+    assert int(mask.sum()) == 4
+    assert mask[12:16].all()
+    assert not mask[:12].any()
+    assert not mask[16:].any()
+
+    purged, n_drop = purge_internal_voxel_stack_plates(mesh, mesh, mask)
+    assert n_drop == 4
+    assert purged.n_faces == mesh.n_faces - 4
+    assert "clay_plate" not in purged.materials or not (
+        purged.face_material == purged.materials.index("clay_plate")
+    ).any()
+
+
+def test_resolve_residual_double_layers_blocks_transitive_hole() -> None:
+    # A (largest) overlaps B (medium), which overlaps C (outermost extension): A>B>C
+    # Pass 1 must drop/clip B WITHOUT letting B delete C in the same pass (zero hole).
+    pos = np.array(
+        [
+            [0.0, 0.0, 0.0], [100.0, 0.0, 0.0], [100.0, 40.0, 0.0],   # A (area 2000)
+            [0.0, 0.0, 0.0], [120.0, 0.0, 0.0], [100.0, 20.0, 0.0],   # B (area 1200)
+            [80.0, 0.0, 0.0], [120.0, 0.0, 0.0], [100.0, 20.0, 0.0],  # C (area 400, outside A's main overlap)
+        ],
+        dtype=np.float64,
+    )
+    fv = np.array([[0, 1, 2], [3, 4, 5], [6, 7, 8]], dtype=np.int64)
+    mesh = _make_mesh(pos, fv, ["a", "b", "c"], np.array([0, 1, 2], dtype=np.int64))
+    out, n_drop = resolve_residual_double_layers(
+        mesh,
+        outer_mask=np.array([True, True, True], dtype=bool),
+        vis_mask=np.array([True, True, True], dtype=bool),
+    )
+    assert n_drop >= 1
+    assert "c" in out.materials and (out.face_material == out.materials.index("c")).any()
+
+
+def test_resolve_residual_double_layers_ignores_angled_wall() -> None:
+    # Two nearby faces whose normals differ by ~26.6 degrees must never clip/delete each other.
+    pos = np.array(
+        [
+            [0.0, 0.0, 0.0], [50.0, 0.0, 0.0], [50.0, 0.0, 50.0],
+            [10.0, 0.05, 0.0], [40.0, -14.95, 0.0], [40.0, -14.95, 50.0],
+        ],
+        dtype=np.float64,
+    )
+    fv = np.array([[0, 1, 2], [3, 4, 5]], dtype=np.int64)
+    mesh = _make_mesh(pos, fv, ["ortho", "angled"], np.array([0, 1], dtype=np.int64))
+    out, n_drop = resolve_residual_double_layers(
+        mesh,
+        outer_mask=np.array([True, True], dtype=bool),
+        vis_mask=np.array([True, True], dtype=bool),
+    )
+    assert n_drop == 0
+    assert out.n_faces == 2
+
+
+def test_drop_phantom_bridges_keeps_real_face_near_angled_wall() -> None:
+    # Real face on Y=0 with an angled wall sitting 0.02 in in front/behind one side
+    # must stay 13/13 backed via the 0.005 in close-range probe.
+    pos = np.array(
+        [
+            [0.0, 0.0, 0.0], [20.0, 0.0, 0.0], [0.0, 0.0, 20.0],
+            [-2.0, -0.02, -2.0], [18.0, 10.0, -2.0], [18.0, 10.0, 22.0],
+            [-2.0, 0.02, -2.0], [18.0, -10.0, -2.0], [18.0, -10.0, 22.0],
+        ],
+        dtype=np.float64,
+    )
+    fv = np.array([[0, 1, 2], [3, 4, 5], [6, 7, 8]], dtype=np.int64)
+    raw = _make_mesh(pos, fv, ["real", "angled1", "angled2"], np.array([0, 1, 2], dtype=np.int64))
+    cleaned, n_dropped = drop_phantom_bridges(raw, raw)
+    assert n_dropped == 0
+    assert cleaned.n_faces == 3
+
+
+def test_clipped_diagonal_seam_keeps_4dec_plane_and_100pct_bary7() -> None:
+    # Half-overlapping coplanar triangles on x=999.794 (matching Floor_3B #4817 / #4972)
+    # must stay at 4-decimal plane precision and achieve 100% 7-point Embree coverage.
+    pos = np.array(
+        [
+            [999.794, 22708.7992, 1661.4201],
+            [999.794, 22708.7992, 1700.7900],
+            [999.794, 22748.1992, 1661.4201],
+            [999.794, 22748.1992, 1700.7900],
+        ],
+        dtype=np.float64,
+    )
+    fv = np.array([[0, 1, 2], [0, 3, 2]], dtype=np.int64)
+    mesh = _make_mesh(pos, fv, ["wall_a", "wall_b"], np.array([0, 1], dtype=np.int64))
+    clipped, n_changed = remove_coplanar_overlaps(
+        mesh,
+        dist_tol=0.04,
+        rebuild=True,
+        allow_same_plane_back_to_back=False,
+    )
+    assert n_changed >= 1
+    assert float(np.max(np.abs(clipped.positions[:, 0] - 999.794))) <= 1e-4
+
+    center = 0.5 * (mesh.positions.min(axis=0) + mesh.positions.max(axis=0))
+    fn_b = face_normals(mesh.positions, mesh.face_v, np.ones(mesh.n_faces, dtype=bool))
+    caster = EmbreeCaster(clipped.positions - center, clipped.face_v)
+    pct, missing = _coverage_7pt(mesh, caster, center, fn_b, np.array([0, 1], dtype=np.int64), tol=0.12)
+    assert pct == 100.0
+    assert len(missing) == 0
+
+
+def test_triangulate_clipped_face_rejects_hairline_ribbon() -> None:
+    from shapely.geometry import Polygon
+
+    pts_f = np.array([[0.0, 0.0, 0.0], [20.0, 0.0, 0.0], [0.0, 10.0, 0.0]], dtype=np.float64)
+    p2_f = pts_f[:, :2].copy()
+    orig_fv = np.array([0, 1, 2], dtype=np.int64)
+    orig_fvt = np.array([0, 1, 2], dtype=np.int64)
+    f_normal = np.array([0.0, 0.0, 1.0], dtype=np.float64)
+    ribbon = Polygon([(0.0, 0.0), (15.0, 0.0), (15.0, 0.003), (0.0, 0.003)])
+    _, _, nfv, _, _, _, _ = _triangulate_clipped_face(
+        pts_f, p2_f, orig_fv, orig_fvt, None, f_normal, 0, ribbon, 3, 0, min_part_area=0.005
+    )
+    assert len(nfv) == 0
+
+    real_tri = Polygon([(0.0, 0.0), (10.0, 0.0), (0.0, 5.0)])
+    _, _, nfv_real, _, _, _, _ = _triangulate_clipped_face(
+        pts_f, p2_f, orig_fv, orig_fvt, None, f_normal, 0, real_tri, 3, 0, min_part_area=0.005
+    )
+    assert len(nfv_real) >= 1
+
+
+def test_purge_internal_voxel_stack_plates_preserves_non_stack_raw_interior() -> None:
+    # A horizontal face at z=40 in with an opposite-normal horizontal face 39.37 in below
+    # looks like a stack plate on the candidate mesh if side walls were trimmed away,
+    # but when RAW marked it non-stack (`raw_stack_mask == False`), it must be preserved.
+    pos = np.array(
+        [
+            [0.0, 0.0, 0.63], [40.0, 0.0, 0.63], [40.0, 40.0, 0.63], [0.0, 40.0, 0.63],
+            [0.0, 0.0, 40.0], [40.0, 0.0, 40.0], [40.0, 40.0, 40.0], [0.0, 40.0, 40.0],
+        ],
+        dtype=np.float64,
+    )
+    fv = np.array(
+        [
+            [0, 2, 1], [0, 3, 2],  # bottom (-Z)
+            [4, 5, 6], [4, 6, 7],  # top (+Z)
+        ],
+        dtype=np.int64,
+    )
+    cand = _make_mesh(pos, fv, ["slab"], np.zeros(4, dtype=np.int64))
+    raw_stack_false = np.zeros(4, dtype=bool)
+    kept, n_dropped_false = purge_internal_voxel_stack_plates(cand, cand, raw_stack_false)
+    assert n_dropped_false == 0
+    assert kept.n_faces == 4
+
+    raw_stack_true = np.ones(4, dtype=bool)
+    purged, n_dropped_true = purge_internal_voxel_stack_plates(cand, cand, raw_stack_true)
+    assert n_dropped_true == 4
+    assert purged.n_faces == 0
+
+
+def test_detect_piercing_needle_slivers_protects_coplanar_tjunction_wedge() -> None:
+    # A 0.25 in x 25 in triangle sharing an unwelded coplanar T-junction edge with a
+    # same-material wall quad must NOT be flagged as a piercing needle, whereas an
+    # isolated protruding 0.25 in x 25 in needle with zero coplanar neighbors IS flagged.
+    pos = np.array(
+        [
+            [0.0, 0.0, 0.0], [40.0, 0.0, 0.0], [40.0, 0.0, 40.0], [0.0, 0.0, 40.0],
+            [5.0, 0.0, 0.0], [5.0, 0.0, -0.25], [30.0, 0.0, 0.0],
+            [100.0, 0.0, 0.0], [100.0, 0.0, 0.25], [125.0, 0.0, 0.0],
+        ],
+        dtype=np.float64,
+    )
+    fv = np.array(
+        [
+            [0, 1, 2], [0, 2, 3],  # wall quad
+            [4, 5, 6],             # coplanar T-junction wedge abutting y=0 wall
+            [7, 8, 9],             # isolated protruding needle
+        ],
+        dtype=np.int64,
+    )
+    mesh = _make_mesh(pos, fv, ["wall", "wall", "wall", "wall"], np.zeros(4, dtype=np.int64))
+    mask, _ = detect_piercing_needle_slivers(mesh)
+    assert not bool(mask[2])
+    assert bool(mask[3])
+
+
+

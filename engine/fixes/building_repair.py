@@ -31,7 +31,7 @@ from engine.model import MeshData
 from engine.pipeline import analyse_topology, flat_material_indices
 from engine.rays.caster import EmbreeCaster
 from engine.topo.planes import face_normals, plane_basis
-from engine.vis.exposure import BARY, EPS_IN
+from engine.vis.exposure import BARY, EPS_IN, compute_side_exposure
 
 REPAIR_STAGE_ORDER: tuple[str, ...] = (
     "prepare_materials",
@@ -63,6 +63,56 @@ def normalize_enabled_stages(enabled_stages: Iterable[str] | None = None) -> fro
             f"Unknown building repair stage(s): {sorted(unknown)}. Valid stages: {list(REPAIR_STAGE_ORDER)}"
         )
     return chosen
+
+
+def detect_internal_voxel_stack_plates(
+    mesh: MeshData,
+    *,
+    min_gap_in: float = 28.0,
+    max_gap_in: float = 48.0,
+    max_ext_exposure: float = 0.005,
+    n_dirs: int = 128,
+) -> np.ndarray:
+    """Detect horizontal 1-block (39.37 in) internal Minecraft stack-layer plates trapped inside solids."""
+    mask = np.zeros(mesh.n_faces, dtype=bool)
+    if mesh.n_faces == 0:
+        return mask
+    fn = face_normals(mesh.positions, mesh.face_v, np.ones(mesh.n_faces, dtype=bool))
+    ok = (~np.isnan(fn).any(axis=1)) & (np.linalg.norm(fn, axis=1) > 0.5)
+    if not ok.any():
+        return mask
+    pts = mesh.positions[mesh.face_v]
+    z_min = float(pts[ok, :, 2].min())
+    z_max = float(pts[ok, :, 2].max())
+    z_mean = pts[:, :, 2].mean(axis=1)
+    center = 0.5 * (mesh.positions.min(axis=0) + mesh.positions.max(axis=0))
+    ef, eb = compute_side_exposure(mesh.positions - center, mesh.face_v, ok, n_dirs=n_dirs)
+    cand = np.flatnonzero(
+        ok
+        & (np.abs(fn[:, 2]) > 0.95)
+        & ((ef + eb) <= max_ext_exposure)
+        & (z_mean > z_min + 5.0)
+        & (z_mean < z_max - 5.0)
+    )
+    if len(cand) == 0:
+        return mask
+    cb = EmbreeCaster(mesh.positions - center, mesh.face_v[ok])
+    tri_c = pts[cand] - center
+    p4 = np.einsum("sb,fbk->fsk", BARY, tri_c).reshape(-1, 3)
+    up_dirs = np.tile(np.array([0.0, 0.0, 1.0], dtype=np.float64), (len(p4), 1))
+    dn_dirs = np.tile(np.array([0.0, 0.0, -1.0], dtype=np.float64), (len(p4), 1))
+    _, tu = cb.first_hit(p4 + np.array([0.0, 0.0, 0.5]), up_dirs)
+    _, td = cb.first_hit(p4 + np.array([0.0, 0.0, -0.5]), dn_dirs)
+    tu_med = np.median(tu.reshape(len(cand), len(BARY)), axis=1)
+    td_med = np.median(td.reshape(len(cand), len(BARY)), axis=1)
+    hit = (
+        (tu_med >= min_gap_in)
+        & (tu_med <= max_gap_in)
+        & (td_med >= min_gap_in)
+        & (td_med <= max_gap_in)
+    )
+    mask[cand[hit]] = True
+    return mask
 
 
 def cluster_coplanar_faces(
@@ -503,12 +553,12 @@ def _triangulate_clipped_face(
             q_pt = np.array([qx, qy], dtype=np.float64)
             d_orig = np.linalg.norm(p2_f - q_pt[None, :], axis=1)
             k_min = int(np.argmin(d_orig))
-            if float(d_orig[k_min]) <= 0.05 and int(orig_fv[k_min]) >= 0:
+            if float(d_orig[k_min]) <= 0.005 and int(orig_fv[k_min]) >= 0:
                 vi = int(orig_fv[k_min])
                 vti = int(orig_fvt[k_min])
                 p3d = pts_f[k_min]
             else:
-                key = (round(float(qx), 3), round(float(qy), 3))
+                key = (round(float(qx), 4), round(float(qy), 4))
                 if key in vert_cache:
                     vi, vti, p3d = vert_cache[key]
                 else:
@@ -516,7 +566,7 @@ def _triangulate_clipped_face(
                     l1 = float(v2_2d[0] * v1_2d[1] - v2_2d[1] * v1_2d[0]) / det
                     l2 = float(v0_2d[0] * v2_2d[1] - v0_2d[1] * v2_2d[0]) / det
                     l0 = 1.0 - l1 - l2
-                    p3d = np.round(l0 * P0 + l1 * P1 + l2 * P2, 2)
+                    p3d = np.round(l0 * P0 + l1 * P1 + l2 * P2, 4)
                     vi = next_v_idx
                     next_v_idx += 1
                     new_pos.append(p3d)
@@ -535,7 +585,16 @@ def _triangulate_clipped_face(
         if len({tri_v[0], tri_v[1], tri_v[2]}) < 3:
             continue
         cr = np.cross(tri_p3d[1] - tri_p3d[0], tri_p3d[2] - tri_p3d[0])
-        if float(np.linalg.norm(cr)) < 1e-3:
+        cr_norm = float(np.linalg.norm(cr))
+        if cr_norm < 1e-3:
+            continue
+        e_max = max(
+            float(np.linalg.norm(tri_p3d[1] - tri_p3d[0])),
+            float(np.linalg.norm(tri_p3d[2] - tri_p3d[1])),
+            float(np.linalg.norm(tri_p3d[0] - tri_p3d[2])),
+        )
+        min_alt = cr_norm / max(e_max, 1e-9)
+        if min_alt < 0.02 and (e_max / max(min_alt, 1e-9)) >= 50.0:
             continue
         if float(np.dot(cr, f_normal)) < 0.0:
             tri_v = [tri_v[0], tri_v[2], tri_v[1]]
@@ -666,7 +725,10 @@ def remove_coplanar_overlaps(
                         report[key] = report.get(key, 0) + 1
                         report[key + "_sqin"] = report.get(key + "_sqin", 0.0) + ovl
                     if area_f - ovl > 0.01:
-                        rem_geom = pl.difference(cov_u).buffer(0)
+                        clip_cut = cov_u.buffer(-0.0005)
+                        if clip_cut.is_empty:
+                            clip_cut = cov_u
+                        rem_geom = pl.difference(clip_cut).buffer(0)
                         if rem_geom.geom_type == "GeometryCollection":
                             rem_geom = unary_union([g for g in rem_geom.geoms if g.geom_type in ("Polygon", "MultiPolygon")])
                         if not rem_geom.is_empty and float(rem_geom.area) > 0.01:
@@ -676,11 +738,14 @@ def remove_coplanar_overlaps(
                                 pts[f], p2_map[f], mesh.face_v[f], orig_fvt, uvs_f, fn[f], int(mesh.face_material[f]),
                                 rem_geom, next_v_idx, next_vt_idx, min_part_area=0.005,
                             )
-                            new_pos_list.extend(npos)
-                            new_uv_list.extend(nuv)
-                            new_fv_list.extend(nfv)
-                            new_fvt_list.extend(nfvt)
-                            new_fmat_list.extend(nfmat)
+                            if not nfv and (area_f - ovl) > 0.25:
+                                drop_mask[f] = False
+                            else:
+                                new_pos_list.extend(npos)
+                                new_uv_list.extend(nuv)
+                                new_fv_list.extend(nfv)
+                                new_fvt_list.extend(nfvt)
+                                new_fmat_list.extend(nfmat)
                     cov_u = cov_u.union(pl)
                     continue
                 if drop_only:
@@ -1050,7 +1115,7 @@ def repair_building_floor_mesh(
             t_up = np.where(fn_ref[:, 2] >= 0.0, tf_med, tb_med)
 
             is_vert_wall = (np.abs(fn_ref[:, 2]) < 0.95) & (z_min >= z_floor - 0.5)
-            is_elev_cap = (np.abs(fn_ref[:, 2]) >= 0.95) & (z_mean > z_floor + 5.0) & (t_up > 18.0)
+            is_elev_cap = (np.abs(fn_ref[:, 2]) >= 0.95) & (z_mean > z_floor + 5.0) & (t_up > 60.0)
             is_wall_or_cap = is_vert_wall | is_elev_cap
 
             kept_now = ~state.removed_hidden_full
@@ -1230,7 +1295,11 @@ def repair_building_floor_mesh(
             restore_destroyed_facade_faces,
         )
         from engine.validate.facade_integrity import verify_facade_and_mesh_integrity
-        diff_overlay_report = compute_before_after_diff_overlay(mesh_orig_vis, repaired)
+        diff_overlay_report = compute_before_after_diff_overlay(
+            mesh_orig_vis,
+            repaired,
+            rebuild_exclusion_mask_fn=detect_internal_voxel_stack_plates,
+        )
         # Mandatory in-run self-heal: never let the engine finish with destroyed outer/interior facade faces
         destroyed_count = (
             diff_overlay_report["counts"]["missing_outer_facade"]
@@ -1257,8 +1326,16 @@ def repair_building_floor_mesh(
                     # Always clear any coplanar overlaps re-introduced by merge_regions re-triangulation
                     repaired, _ = remove_coplanar_overlaps(repaired, overlap_ratio=0.05, drop_only=True)
                 repaired, res_rings = compact_mesh(repaired, res_rings)
-                diff_overlay_report = compute_before_after_diff_overlay(mesh_orig_vis, repaired)
-        facade_integrity_report = verify_facade_and_mesh_integrity(mesh_orig_vis, repaired)
+                diff_overlay_report = compute_before_after_diff_overlay(
+                    mesh_orig_vis,
+                    repaired,
+                    rebuild_exclusion_mask_fn=detect_internal_voxel_stack_plates,
+                )
+        facade_integrity_report = verify_facade_and_mesh_integrity(
+            mesh_orig_vis,
+            repaired,
+            rebuild_exclusion_mask_fn=detect_internal_voxel_stack_plates,
+        )
 
     stats = {
         "n_removed_hidden": int(state.n_removed_hidden + n_liners_dropped + n_pre_ovl_dropped),

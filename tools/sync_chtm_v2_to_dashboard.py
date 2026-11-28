@@ -72,16 +72,19 @@ def sync_chtm_models(staging_chtm: Path = STAGING_CHTM, dash_v2: Path = DEFAULT_
         fl_err = v2["errors"]
         outer_pct = float((checks.get("outer_facade_completeness") or {}).get("numericValue") or 100.0)
         int_pct = float((checks.get("interior_visible_retention") or {}).get("numericValue") or 100.0)
+        torn_seams = int(round(float((checks.get("outer_facade_zero_cracklines") or {}).get("numericValue") or 0)))
         is_clean = (
             fl_err["flicker_diff"] == 0
             and fl_err["flicker_same"] == 0
             and fl_err["reversed"] == 0
             and fixes.get("phantom_tris_remaining", 0) == 0
-            and outer_pct >= 99.0
+            and outer_pct >= 100.0
+            and torn_seams == 0
+            and int_pct >= 99.0
             and bool(bt.get("valid", True))
         )
         if not is_clean:
-            raise RuntimeError(f"CHTM/{floor} failed strict clean gate: {fl_err}, phantoms={fixes.get('phantom_tris_remaining')}, outer={outer_pct}, bt={bt.get('valid')}")
+            raise RuntimeError(f"CHTM/{floor} failed strict clean gate: {fl_err}, phantoms={fixes.get('phantom_tris_remaining')}, outer={outer_pct}, seams={torn_seams}, bt={bt.get('valid')}")
         passed_floors += 1
 
         dst_dir = dash_v2 / "CHTM" / floor
@@ -194,6 +197,20 @@ def sync_chtm_models(staging_chtm: Path = STAGING_CHTM, dash_v2: Path = DEFAULT_
             "drawCallsMB": uopt.get("projected_mesh_baker_draw_calls"),
         })
 
+    # Copy combined building AllFloors.glb + Master.manifest.json if present
+    all_floors_src = staging_chtm / "CHTM_EngineV2_AllFloors.glb"
+    manifest_src = staging_chtm / "CHTM_EngineV2_Master.manifest.json"
+    all_floors_url = None
+    manifest_url = None
+    if all_floors_src.is_file():
+        (dash_v2 / "CHTM").mkdir(parents=True, exist_ok=True)
+        shutil.copy2(all_floors_src, dash_v2 / "CHTM" / "CHTM_EngineV2_AllFloors.glb")
+        all_floors_url = "/models/engine-v2/CHTM/CHTM_EngineV2_AllFloors.glb"
+    if manifest_src.is_file():
+        (dash_v2 / "CHTM").mkdir(parents=True, exist_ok=True)
+        shutil.copy2(manifest_src, dash_v2 / "CHTM" / "CHTM_EngineV2_Master.manifest.json")
+        manifest_url = "/models/engine-v2/CHTM/CHTM_EngineV2_Master.manifest.json"
+
     # Update CHTM building summary in index["buildings"]
     buildings = idx.setdefault("buildings", [])
     chtm_entry = next((b for b in buildings if b.get("building") == "CHTM"), None)
@@ -209,6 +226,9 @@ def sync_chtm_models(staging_chtm: Path = STAGING_CHTM, dash_v2: Path = DEFAULT_
         "sliverTris": 0,
         "negVolumeNodes": 0,
         "minStructuralAltMm": 1.1,
+        "masterBlendPath": "06-Environment-Authoring/BLENDER/BUILDINGS/CHTM_EngineV2.blend",
+        **({"allFloorsGlbUrl": all_floors_url} if all_floors_url else {}),
+        **({"manifestUrl": manifest_url} if manifest_url else {}),
     })
 
     # Recount totals cleanly across all buildings

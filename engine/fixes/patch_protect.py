@@ -13,13 +13,14 @@ from __future__ import annotations
 
 from collections import defaultdict, deque
 import numpy as np
+from shapely.geometry import Polygon
 
 from engine.fixes.remove import remove_faces
 from engine.model import MeshData
 from engine.pipeline import analyse_topology
 from engine.topo.adjacency import edge_face_lists
 from engine.topo.edges import EDGE_OPEN
-from engine.topo.planes import face_normals
+from engine.topo.planes import face_normals, plane_basis
 
 
 def _tri_geometry_stats(positions: np.ndarray, face_v: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
@@ -143,7 +144,7 @@ def detect_piercing_needle_slivers(
                     has_coplanar_neighbor[f1] = True
                     has_coplanar_neighbor[f2] = True
 
-    sliver_mask = (
+    raw_sliver = (
         topo.ok
         & has_open
         & (~has_coplanar_neighbor)
@@ -152,6 +153,46 @@ def detect_piercing_needle_slivers(
         & (areas <= max_area_sqin)
         & (max_e >= 2.0)  # ignore microscopic sub-2in noise
     )
+    raw_fids = np.flatnonzero(raw_sliver)
+    if len(raw_fids) > 0:
+        pts_all = mesh.positions[mesh.face_v]
+        cent_all = pts_all.mean(axis=1)
+        bmin_all = pts_all.min(axis=1)
+        bmax_all = pts_all.max(axis=1)
+        for f in raw_fids:
+            if float(min_alt[f]) < 0.01:
+                continue
+            nf = fn[f]
+            if np.isnan(nf).any() or float(np.linalg.norm(nf)) < 0.5:
+                continue
+            mf = int(mesh.face_material[f])
+            lo = bmin_all[f] - 0.10
+            hi = bmax_all[f] + 0.10
+            d_n = np.abs(np.einsum("ij,j->i", cent_all - cent_all[f], nf))
+            dot = np.abs(fn @ nf)
+            cands = np.flatnonzero(
+                topo.ok
+                & (mesh.face_material == mf)
+                & (dot >= 0.98)
+                & (d_n <= 0.05)
+                & (bmax_all[:, 0] >= lo[0]) & (bmin_all[:, 0] <= hi[0])
+                & (bmax_all[:, 1] >= lo[1]) & (bmin_all[:, 1] <= hi[1])
+                & (bmax_all[:, 2] >= lo[2]) & (bmin_all[:, 2] <= hi[2])
+            )
+            cands = [int(c) for c in cands if int(c) != int(f)]
+            if not cands:
+                continue
+            u_ax, v_ax = plane_basis(nf)
+            pf_2d = np.stack([pts_all[f] @ u_ax, pts_all[f] @ v_ax], axis=-1)
+            poly_f = Polygon(pf_2d).buffer(0.05)
+            for c in cands:
+                pc_2d = np.stack([pts_all[c] @ u_ax, pts_all[c] @ v_ax], axis=-1)
+                poly_c = Polygon(pc_2d).buffer(0.05)
+                if float(poly_f.intersection(poly_c).area) > 0.05:
+                    has_coplanar_neighbor[f] = True
+                    break
+
+    sliver_mask = raw_sliver & (~has_coplanar_neighbor)
     fids = np.flatnonzero(sliver_mask)
     spots: list[dict] = []
     if len(fids) > 0:

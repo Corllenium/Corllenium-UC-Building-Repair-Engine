@@ -35,12 +35,13 @@ from engine.fixes.building_repair import (  # noqa: E402
     REPAIR_STAGE_ORDER,
     _triangulate_clipped_face,
     compact_mesh,
+    detect_internal_voxel_stack_plates,
     remove_coplanar_overlaps,
     repair_building_floor_mesh,
 )
 from engine.fixes.orient import ORIENT_FLIP, classify_orientation, flip_faces  # noqa: E402
 from engine.fixes.overlap import double_layers  # noqa: E402
-from engine.fixes.patch_protect import purge_piercing_needle_slivers  # noqa: E402
+from engine.fixes.patch_protect import detect_piercing_needle_slivers, purge_piercing_needle_slivers  # noqa: E402
 from engine.fixes.pipeline import FixProfile, guard_depth_tol  # noqa: E402
 from engine.fixes.remove import remove_faces  # noqa: E402
 from engine.fixes.solid_wall_groups import (  # noqa: E402
@@ -65,7 +66,7 @@ from engine.validate.facade_integrity import (  # noqa: E402
     verify_facade_and_mesh_integrity,
 )
 from engine.validate.unity_preflight import resolve_near_coplanar_zfight  # noqa: E402
-from engine.vis.exposure import EXP_OUTSIDE, classify_exposure, compute_side_exposure  # noqa: E402
+from engine.vis.exposure import BARY, EXP_OUTSIDE, classify_exposure, compute_side_exposure  # noqa: E402
 
 BARY13 = np.array(
     [
@@ -200,12 +201,13 @@ def count_phantom_bridges(raw_ckpt: MeshData, candidate: MeshData) -> np.ndarray
     s13 = np.einsum("sb,fbk->fsk", BARY13, ct).reshape(-1, 3)
     n13 = np.repeat(fn_c[ok_c], 13, axis=0)
     hit = np.zeros(len(s13), dtype=bool)
-    for sign in (1.0, -1.0):
-        ih, th = cr.first_hit(s13 + sign * 0.06 * n13, -sign * n13)
-        c = np.flatnonzero((ih >= 0) & (np.abs(th - 0.06) <= 0.055))
-        fh = ok_r[ih[c]]
-        dots = np.abs(np.einsum("ij,ij->i", n13[c], fn_r[fh])) >= 0.98
-        hit[c[dots]] = True
+    for off, tol in ((0.005, 0.0045), (0.06, 0.055)):
+        for sign in (1.0, -1.0):
+            ih, th = cr.first_hit(s13 + sign * off * n13, -sign * n13)
+            c = np.flatnonzero((ih >= 0) & (np.abs(th - off) <= tol))
+            fh = ok_r[ih[c]]
+            dots = np.abs(np.einsum("ij,ij->i", n13[c], fn_r[fh])) >= 0.98
+            hit[c[dots]] = True
     backed = hit.reshape(len(ok_c), 13).all(axis=1)
     phantom[ok_c[~backed]] = True
     return phantom
@@ -436,6 +438,7 @@ def apply_strict_outer_facade_lock(
     repaired_ckpt: MeshData,
     *,
     min_area_sqin: float = 0.01,
+    exclude_mask: np.ndarray | None = None,
 ) -> tuple[MeshData, int]:
     """Ensure 100% of exterior-exposed real model faces (railings, windows, louvers, fascia) survive."""
     if before_ckpt.n_faces == 0:
@@ -444,10 +447,13 @@ def apply_strict_outer_facade_lock(
     pts_b = before_ckpt.positions[before_ckpt.face_v]
     fn_b = face_normals(before_ckpt.positions, before_ckpt.face_v, np.ones(before_ckpt.n_faces, dtype=bool))
     areas_b = 0.5 * np.linalg.norm(np.cross(pts_b[:, 1] - pts_b[:, 0], pts_b[:, 2] - pts_b[:, 0]), axis=1)
-    ok_b = (~np.isnan(fn_b).any(axis=1)) & (np.linalg.norm(fn_b, axis=1) > 0.5) & (areas_b >= min_area_sqin)
+    ok_b = (~np.isnan(fn_b).any(axis=1)) & (np.linalg.norm(fn_b, axis=1) > 0.5)
+    valid_b = ok_b & (areas_b >= min_area_sqin)
+    if exclude_mask is not None and len(exclude_mask) == before_ckpt.n_faces:
+        valid_b = valid_b & (~np.asarray(exclude_mask, dtype=bool))
 
     ef_b, eb_b = compute_side_exposure(before_ckpt.positions - center, before_ckpt.face_v, ok_b, n_dirs=128)
-    outer_b = ok_b & (classify_exposure(ef_b + eb_b, ok_b) == EXP_OUTSIDE)
+    outer_b = valid_b & (classify_exposure(ef_b + eb_b, ok_b) == EXP_OUTSIDE)
     outer_ids = np.flatnonzero(outer_b)
     if len(outer_ids) == 0:
         return repaired_ckpt, 0
@@ -462,14 +468,97 @@ def apply_strict_outer_facade_lock(
     return locked, int(len(miss_outer))
 
 
+def purge_internal_voxel_stack_plates(
+    raw_ckpt: MeshData,
+    candidate: MeshData,
+    raw_stack_mask: np.ndarray,
+) -> tuple[MeshData, int]:
+    """Purge internal 1-block (39.37 in) horizontal voxel-stack plates trapped inside walls/cores."""
+    if candidate.n_faces == 0:
+        return candidate, 0
+    fn_c = face_normals(candidate.positions, candidate.face_v, np.ones(candidate.n_faces, dtype=bool))
+    ok_c = (~np.isnan(fn_c).any(axis=1)) & (np.linalg.norm(fn_c, axis=1) > 0.5)
+    h_idx = np.flatnonzero(ok_c & (np.abs(fn_c[:, 2]) > 0.95))
+    if len(h_idx) == 0:
+        return candidate, 0
+
+    cand_stack_mask = detect_internal_voxel_stack_plates(candidate)
+    matched_raw_stack = np.zeros(candidate.n_faces, dtype=bool)
+    protected_by_non_stack_outer = np.zeros(candidate.n_faces, dtype=bool)
+    protected_by_non_stack_raw = np.zeros(candidate.n_faces, dtype=bool)
+
+    if raw_ckpt.n_faces > 0:
+        center = 0.5 * (raw_ckpt.positions.min(axis=0) + raw_ckpt.positions.max(axis=0))
+        fn_r = face_normals(raw_ckpt.positions, raw_ckpt.face_v, np.ones(raw_ckpt.n_faces, dtype=bool))
+        ok_r = (~np.isnan(fn_r).any(axis=1)) & (np.linalg.norm(fn_r, axis=1) > 0.5)
+        raw_stack = np.asarray(raw_stack_mask, dtype=bool)
+        if len(raw_stack) != raw_ckpt.n_faces:
+            raw_stack = detect_internal_voxel_stack_plates(raw_ckpt)
+        stack_idx = np.flatnonzero(ok_r & raw_stack)
+        non_stack_idx = np.flatnonzero(ok_r & (~raw_stack))
+
+        tri_h = candidate.positions[candidate.face_v[h_idx]] - center
+        s4 = np.einsum("sb,fbk->fsk", BARY, tri_h).reshape(-1, 3)
+        n4 = np.repeat(fn_c[h_idx], len(BARY), axis=0)
+
+        def _coplanar_hit_counts(caster_faces: np.ndarray) -> np.ndarray:
+            if len(caster_faces) == 0:
+                return np.zeros(len(h_idx), dtype=np.int64)
+            caster = EmbreeCaster(raw_ckpt.positions - center, raw_ckpt.face_v[caster_faces])
+            hit = np.zeros(len(s4), dtype=bool)
+            for sign in (1.0, -1.0):
+                ih, th = caster.first_hit(s4 + sign * 0.12 * n4, -sign * n4)
+                c = np.flatnonzero((ih >= 0) & (th <= 0.24))
+                if len(c):
+                    fh = caster_faces[ih[c]]
+                    dots = np.abs(np.einsum("ij,ij->i", n4[c], fn_r[fh])) >= 0.98
+                    hit[c[dots]] = True
+            return hit.reshape(len(h_idx), len(BARY)).sum(axis=1)
+
+        non_stack_hits = _coplanar_hit_counts(non_stack_idx)
+        protected_by_non_stack_raw[h_idx[non_stack_hits >= 2]] = True
+        if len(stack_idx) > 0:
+            stack_hits = _coplanar_hit_counts(stack_idx)
+            matched_raw_stack[h_idx[(stack_hits >= 3) & (non_stack_hits < 2)]] = True
+
+        ef_r, eb_r = compute_side_exposure(raw_ckpt.positions - center, raw_ckpt.face_v, ok_r, n_dirs=128)
+        outer_r = ok_r & (classify_exposure(ef_r + eb_r, ok_r) == EXP_OUTSIDE)
+        non_stack_outer_idx = np.flatnonzero(outer_r & (~raw_stack))
+        if len(non_stack_outer_idx) > 0:
+            outer_hits = _coplanar_hit_counts(non_stack_outer_idx)
+            protected_by_non_stack_outer[h_idx[outer_hits >= 2]] = True
+
+    drop_mask = matched_raw_stack | (cand_stack_mask & (~protected_by_non_stack_outer) & (~protected_by_non_stack_raw))
+    n_drop = int(drop_mask.sum())
+    if n_drop == 0:
+        return candidate, 0
+    out, _ = remove_faces(candidate, drop_mask)
+    out, _ = compact_mesh(out, {})
+    return out, n_drop
+
+
 def _summarize_audit_full(
     name: str,
     before_ckpt: MeshData,
     candidate_ckpt: MeshData,
+    *,
+    rebuild_exclusion_mask_fn: Any = None,
 ) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any], dict[str, Any]]:
     errs = find_errors(candidate_ckpt)
-    fi = verify_facade_and_mesh_integrity(before_ckpt, candidate_ckpt, errs)
-    diff = compute_before_after_diff_overlay(before_ckpt, candidate_ckpt, errs, n_probe_dirs=256, n_ext_dirs=128)
+    fi = verify_facade_and_mesh_integrity(
+        before_ckpt,
+        candidate_ckpt,
+        errs,
+        rebuild_exclusion_mask_fn=rebuild_exclusion_mask_fn,
+    )
+    diff = compute_before_after_diff_overlay(
+        before_ckpt,
+        candidate_ckpt,
+        errs,
+        rebuild_exclusion_mask_fn=rebuild_exclusion_mask_fn,
+        n_probe_dirs=256,
+        n_ext_dirs=128,
+    )
     checks = {c["id"]: c for c in fi["checks"]}
     summary = {
         "name": name,
@@ -491,8 +580,19 @@ def _summarize_audit_full(
     return summary, errs, diff, fi
 
 
-def _summarize_audit(name: str, before_ckpt: MeshData, candidate_ckpt: MeshData) -> dict[str, Any]:
-    summary, _, _, _ = _summarize_audit_full(name, before_ckpt, candidate_ckpt)
+def _summarize_audit(
+    name: str,
+    before_ckpt: MeshData,
+    candidate_ckpt: MeshData,
+    *,
+    rebuild_exclusion_mask_fn: Any = None,
+) -> dict[str, Any]:
+    summary, _, _, _ = _summarize_audit_full(
+        name,
+        before_ckpt,
+        candidate_ckpt,
+        rebuild_exclusion_mask_fn=rebuild_exclusion_mask_fn,
+    )
     return summary
 
 
@@ -753,6 +853,21 @@ def resolve_residual_double_layers(
         winner, loser = (i, j) if _score(i) >= _score(j) else (j, i)
         win_by_loser.setdefault(loser, []).append(winner)
 
+    # Non-transitive guard: a face being dropped/clipped in this pass must NEVER clip another face
+    active_losers = set(win_by_loser.keys())
+    filtered_pairs: list[tuple[int, list[int]]] = []
+    for loser, winners in win_by_loser.items():
+        non_loser_winners = [w for w in winners if w not in active_losers]
+        if non_loser_winners:
+            filtered_pairs.append((loser, non_loser_winners))
+    if not filtered_pairs and active_losers:
+        keeper = max(active_losers, key=_score)
+        active_losers.remove(keeper)
+        for loser in active_losers:
+            non_loser_winners = [w for w in win_by_loser[loser] if w not in active_losers]
+            if non_loser_winners:
+                filtered_pairs.append((loser, non_loser_winners))
+
     new_pos_list: list[np.ndarray] = []
     new_uv_list: list[np.ndarray] = []
     new_fv_list: list[list[int]] = []
@@ -762,7 +877,7 @@ def resolve_residual_double_layers(
     next_v_idx = len(mesh.positions)
     next_vt_idx = len(mesh.uvs) if has_uvs else 0
 
-    for loser, winners in win_by_loser.items():
+    for loser, winners in filtered_pairs:
         if drop_mask[loser]:
             continue
         nl = fn[loser]
@@ -775,8 +890,17 @@ def resolve_residual_double_layers(
         if not poly_l.is_valid or float(poly_l.area) <= 1e-4:
             drop_mask[loser] = True
             continue
+        p_l_mean = pts[loser].mean(axis=0)
         win_polys = []
         for w in winners:
+            nw = fn[w]
+            if np.isnan(nw).any() or float(np.linalg.norm(nw)) < 0.5:
+                continue
+            # Strict coplanarity guard: never let an angled/distant wall erase an orthogonal wall
+            if abs(float(np.dot(nw, nl))) < 0.98:
+                continue
+            if abs(float(np.dot(pts[w].mean(axis=0) - p_l_mean, nl))) > 0.15:
+                continue
             pw = Polygon(np.stack([pts[w] @ u_ax, pts[w] @ v_ax], axis=-1))
             if pw.is_valid and float(pw.area) > 1e-4:
                 win_polys.append(pw)
@@ -786,24 +910,29 @@ def resolve_residual_double_layers(
         ovl_area = float(poly_l.intersection(w_union).area)
         if ovl_area <= 0.01:
             continue
-        drop_mask[loser] = True
         rem_area = float(poly_l.area) - ovl_area
-        if rem_area > 0.05:
-            rem_geom = poly_l.difference(w_union.buffer(0.08)).buffer(0)
+        if rem_area > 0.01:
+            clip_cut = w_union.buffer(-0.001)
+            if clip_cut.is_empty:
+                clip_cut = w_union
+            rem_geom = poly_l.difference(clip_cut).buffer(0)
             if rem_geom.geom_type == "GeometryCollection":
                 rem_geom = unary_union([g for g in rem_geom.geoms if g.geom_type in ("Polygon", "MultiPolygon")])
-            if not rem_geom.is_empty and float(rem_geom.area) > 0.05:
+            if not rem_geom.is_empty and float(rem_geom.area) > 0.01:
                 orig_fvt = mesh.face_vt[loser] if has_uvs else np.array([-1, -1, -1], dtype=np.int64)
                 uvs_f = mesh.uvs[orig_fvt] if (has_uvs and (orig_fvt >= 0).all()) else None
                 npos, nuv, nfv, nfvt, nfmat, next_v_idx, next_vt_idx = _triangulate_clipped_face(
                     pts[loser], p2_l, mesh.face_v[loser], orig_fvt, uvs_f, nl, int(mesh.face_material[loser]),
                     rem_geom, next_v_idx, next_vt_idx, min_part_area=0.01,
                 )
+                if not nfv and rem_area > 0.25:
+                    continue
                 new_pos_list.extend(npos)
                 new_uv_list.extend(nuv)
                 new_fv_list.extend(nfv)
                 new_fvt_list.extend(nfvt)
                 new_fmat_list.extend(nfmat)
+        drop_mask[loser] = True
 
     if not drop_mask.any():
         return mesh, 0
@@ -872,6 +1001,8 @@ def build_real_v2_floor(
     if _is_yup_metres(ckpt_raw):
         ckpt_raw.positions = np.round(convert_unity_to_ckpt17_coords(ckpt_raw.positions), 4)
     ckpt_raw.units = "inches"
+    raw_stack_mask = detect_internal_voxel_stack_plates(ckpt_raw)
+    _excl_stack_fn = lambda m, mask=raw_stack_mask: mask if m.n_faces == len(mask) else detect_internal_voxel_stack_plates(m)
 
     # 1. Core real-mesh Engine v2 repair (excluding hanging `solidify` soffits) + 13-pt phantom purge
     real_v2_stages = [s for s in REPAIR_STAGE_ORDER if s != "solidify"]
@@ -883,9 +1014,17 @@ def build_real_v2_floor(
     repaired, n_horiz_flipped = orient_horizontals(ckpt_raw, repaired)
 
     # 3. Visible-interior (256-dir matching integrity gate) + Strict 100% Outer Facade Lock
-    diff_post = compute_before_after_diff_overlay(ckpt_raw, repaired, n_probe_dirs=256, n_ext_dirs=128)
+    diff_post = compute_before_after_diff_overlay(
+        ckpt_raw,
+        repaired,
+        rebuild_exclusion_mask_fn=_excl_stack_fn,
+        n_probe_dirs=256,
+        n_ext_dirs=128,
+    )
     repaired, n_diff_healed = restore_destroyed_facade_faces(ckpt_raw, repaired, diff_post, include_interior=True)
-    repaired, n_outer_locked = apply_strict_outer_facade_lock(ckpt_raw, repaired, min_area_sqin=0.01)
+    repaired, n_outer_locked = apply_strict_outer_facade_lock(
+        ckpt_raw, repaired, min_area_sqin=0.05, exclude_mask=raw_stack_mask
+    )
 
     # 4. E5 single-layer zero-flicker convergence (`EXP_OUTSIDE` always wins) + phantom/z-fight/degen cleanup
     outer_mask, vis_mask = _exposure_masks(repaired, n_dirs=128)
@@ -905,7 +1044,9 @@ def build_real_v2_floor(
     repaired, n_dedup = _dedup_exact_same_normal(repaired)
     repaired, n_degen_dropped = _drop_degenerate_faces(repaired)
 
-    repaired, n_outer_safety = apply_strict_outer_facade_lock(ckpt_raw, repaired, min_area_sqin=0.01)
+    repaired, n_outer_safety = apply_strict_outer_facade_lock(
+        ckpt_raw, repaired, min_area_sqin=0.05, exclude_mask=raw_stack_mask
+    )
     n_phantom_safety = 0
     if n_outer_safety > 0:
         outer_mask, vis_mask = _exposure_masks(repaired, n_dirs=128)
@@ -932,6 +1073,7 @@ def build_real_v2_floor(
             break
     repaired, n_degen_dl = _drop_degenerate_faces(repaired)
     n_degen_dropped += n_degen_dl
+    repaired, n_stack_plates_purged = purge_internal_voxel_stack_plates(ckpt_raw, repaired, raw_stack_mask)
 
     n_outer_locked += n_outer_safety
     n_phantom_dropped = n_phantom_pre + n_phantom_mid + n_phantom_safety
@@ -949,41 +1091,75 @@ def build_real_v2_floor(
             repaired = flip_faces(repaired, flip_mask)
             n_post_oriented = int(flip_mask.sum())
 
-    # 6. Final piercing needle-sliver + outer facade lock + post-lock residual flicker, phantom & normal convergence
+    # 6. Final piercing needle-sliver + strict 100.00% outer facade lock & convergence loop
     n_post_slivers = 0
     if repaired.n_faces > 0:
         outer_prot, _ = _exposure_masks(repaired, n_dirs=128)
         repaired, n_post_slivers = purge_piercing_needle_slivers(repaired, protect_mask=outer_prot)
-        prev_n = repaired.n_faces
-        repaired, n_outer_post_sliv = apply_strict_outer_facade_lock(ckpt_raw, repaired, min_area_sqin=0.05)
-        if n_outer_post_sliv > 0:
-            n_outer_locked += n_outer_post_sliv
-        # Always run final post-sliver/post-orient double-layer, phantom, orientation & degenerate sweep
-        for dl_iter in range(4):
-            outer_ps, vis_ps = _exposure_masks(repaired, n_dirs=128)
-            if dl_iter == 0 and n_outer_post_sliv > 0 and repaired.n_faces > prev_n:
-                outer_ps[prev_n:] = True
-            repaired, n_dl_ps = resolve_residual_double_layers(repaired, outer_ps, vis_ps)
-            n_post_coplanar += n_dl_ps
-            if n_dl_ps == 0:
+        for conv_round in range(4):
+            prev_n = repaired.n_faces
+            repaired, n_restored_round = apply_strict_outer_facade_lock(
+                ckpt_raw,
+                repaired,
+                min_area_sqin=0.05,
+                exclude_mask=raw_stack_mask,
+            )
+            if n_restored_round > 0:
+                n_outer_locked += n_restored_round
+            if conv_round > 0 and n_restored_round == 0:
                 break
-        repaired, n_post_dedup = _dedup_exact_same_normal(repaired)
-        n_lock_dedup += n_post_dedup
-        repaired, n_phantom_fin = drop_phantom_bridges(ckpt_raw, repaired)
-        n_phantom_dropped += n_phantom_fin
+            for dl_iter in range(5):
+                outer_ps, vis_ps = _exposure_masks(repaired, n_dirs=128)
+                if dl_iter == 0 and n_restored_round > 0 and repaired.n_faces > prev_n:
+                    outer_ps[prev_n:] = True
+                repaired, n_dl_ps = resolve_residual_double_layers(repaired, outer_ps, vis_ps)
+                n_post_coplanar += n_dl_ps
+                if n_dl_ps == 0:
+                    break
+            repaired, n_post_dedup = _dedup_exact_same_normal(repaired)
+            n_lock_dedup += n_post_dedup
+            repaired, n_phantom_fin = drop_phantom_bridges(ckpt_raw, repaired)
+            n_phantom_dropped += n_phantom_fin
+            if repaired.n_faces > 0:
+                center_fin = 0.5 * (repaired.positions.min(axis=0) + repaired.positions.max(axis=0))
+                fn_fin = face_normals(repaired.positions, repaired.face_v, np.ones(repaired.n_faces, dtype=bool))
+                ok_fin = (~np.isnan(fn_fin).any(axis=1)) & (np.linalg.norm(fn_fin, axis=1) > 0.5)
+                ef_fin, eb_fin = compute_side_exposure(repaired.positions - center_fin, repaired.face_v, ok_fin, n_dirs=128)
+                verdict_fin = classify_orientation(ef_fin, eb_fin, ok_fin)
+                flip_fin = ok_fin & (verdict_fin == ORIENT_FLIP)
+                if flip_fin.any():
+                    repaired = flip_faces(repaired, flip_fin)
+                    n_post_oriented += int(flip_fin.sum())
+            repaired, n_degen_fin = _drop_degenerate_faces(repaired)
+            n_degen_dropped += n_degen_fin
+            repaired, _ = compact_mesh(repaired, {})
         if repaired.n_faces > 0:
-            center_fin = 0.5 * (repaired.positions.min(axis=0) + repaired.positions.max(axis=0))
-            fn_fin = face_normals(repaired.positions, repaired.face_v, np.ones(repaired.n_faces, dtype=bool))
-            ok_fin = (~np.isnan(fn_fin).any(axis=1)) & (np.linalg.norm(fn_fin, axis=1) > 0.5)
-            ef_fin, eb_fin = compute_side_exposure(repaired.positions - center_fin, repaired.face_v, ok_fin, n_dirs=128)
-            verdict_fin = classify_orientation(ef_fin, eb_fin, ok_fin)
-            flip_fin = ok_fin & (verdict_fin == ORIENT_FLIP)
-            if flip_fin.any():
-                repaired = flip_faces(repaired, flip_fin)
-                n_post_oriented += int(flip_fin.sum())
-        repaired, n_degen_fin = _drop_degenerate_faces(repaired)
-        n_degen_dropped += n_degen_fin
-        repaired, _ = compact_mesh(repaired, {})
+            sliv_fin, _ = detect_piercing_needle_slivers(repaired)
+            if sliv_fin.any():
+                safe_drop = np.zeros(repaired.n_faces, dtype=bool)
+                for fid in np.flatnonzero(sliv_fin):
+                    trial_drop = safe_drop.copy()
+                    trial_drop[fid] = True
+                    cand_nosliv, _ = remove_faces(repaired, trial_drop)
+                    cand_nosliv, _ = compact_mesh(cand_nosliv, {})
+                    _, miss_nosliv = apply_strict_outer_facade_lock(
+                        ckpt_raw, cand_nosliv, min_area_sqin=0.05, exclude_mask=raw_stack_mask
+                    )
+                    if (len(miss_nosliv) == 0 if hasattr(miss_nosliv, "__len__") else miss_nosliv == 0):
+                        safe_drop[fid] = True
+                if safe_drop.any():
+                    repaired, _ = remove_faces(repaired, safe_drop)
+                    repaired, _ = compact_mesh(repaired, {})
+                    n_post_slivers += int(safe_drop.sum())
+                    if repaired.n_faces > 0:
+                        center_sl = 0.5 * (repaired.positions.min(axis=0) + repaired.positions.max(axis=0))
+                        fn_sl = face_normals(repaired.positions, repaired.face_v, np.ones(repaired.n_faces, dtype=bool))
+                        ok_sl = (~np.isnan(fn_sl).any(axis=1)) & (np.linalg.norm(fn_sl, axis=1) > 0.5)
+                        ef_sl, eb_sl = compute_side_exposure(repaired.positions - center_sl, repaired.face_v, ok_sl, n_dirs=128)
+                        flip_sl = ok_sl & (classify_orientation(ef_sl, eb_sl, ok_sl) == ORIENT_FLIP)
+                        if flip_sl.any():
+                            repaired = flip_faces(repaired, flip_sl)
+                            n_post_oriented += int(flip_sl.sum())
     repaired, uv_faces_normalized, uv_max_abs_after = normalize_uv_tile_offsets(repaired)
     gc.collect()
     phantom_tris_remaining = int(count_phantom_bridges(ckpt_raw, repaired).sum())
@@ -1010,7 +1186,12 @@ def build_real_v2_floor(
 
     # 8. Evaluate RAW vs v1 vs Real-Model Engine v2 + write 3D error overlay JSON
     raw_errs = find_errors(ckpt_raw)
-    v2_tuple = _summarize_audit_full("REAL_ENGINE_V2", ckpt_raw, repaired)
+    v2_tuple = _summarize_audit_full(
+        "REAL_ENGINE_V2",
+        ckpt_raw,
+        repaired,
+        rebuild_exclusion_mask_fn=_excl_stack_fn,
+    )
     audits: dict[str, Any] = {
         "raw": {
             "name": "RAW_CKPT17",
@@ -1027,14 +1208,24 @@ def build_real_v2_floor(
         v1_mesh = read_obj(v1_obj)
         if _is_yup_metres(v1_mesh):
             v1_mesh.positions = np.round(convert_unity_to_ckpt17_coords(v1_mesh.positions), 4)
-        v1_tuple = _summarize_audit_full("V1_EXPORT_FIXED_OBJ", ckpt_raw, v1_mesh)
+        v1_tuple = _summarize_audit_full(
+            "V1_EXPORT_FIXED_OBJ",
+            ckpt_raw,
+            v1_mesh,
+            rebuild_exclusion_mask_fn=_excl_stack_fn,
+        )
         audits["v1_export"] = v1_tuple[0]
 
     if include_dashboard_v1_audit and dash_dir is not None and (dash_dir / "after.obj").is_file():
         dash_v1 = read_obj(dash_dir / "after.obj")
         if _is_yup_metres(dash_v1):
             dash_v1.positions = np.round(convert_unity_to_ckpt17_coords(dash_v1.positions), 4)
-        audits["v1_dashboard"] = _summarize_audit("V1_DASHBOARD_AFTER_OBJ", ckpt_raw, dash_v1)
+        audits["v1_dashboard"] = _summarize_audit(
+            "V1_DASHBOARD_AFTER_OBJ",
+            ckpt_raw,
+            dash_v1,
+            rebuild_exclusion_mask_fn=_excl_stack_fn,
+        )
 
     overlay_payload = _build_error_overlay_payload(
         building,
@@ -1098,6 +1289,7 @@ def build_real_v2_floor(
             "post_needle_slivers_purged": int(n_post_slivers),
             "phantom_tris_dropped": int(n_phantom_dropped),
             "phantom_tris_remaining": int(phantom_tris_remaining),
+            "internal_stack_plates_purged": int(n_stack_plates_purged),
             "uv_faces_normalized": int(uv_faces_normalized),
         },
         "audits": audits,
