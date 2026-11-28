@@ -789,7 +789,7 @@ def resolve_residual_double_layers(
         drop_mask[loser] = True
         rem_area = float(poly_l.area) - ovl_area
         if rem_area > 0.05:
-            rem_geom = poly_l.difference(w_union).buffer(0)
+            rem_geom = poly_l.difference(w_union.buffer(0.08)).buffer(0)
             if rem_geom.geom_type == "GeometryCollection":
                 rem_geom = unary_union([g for g in rem_geom.geoms if g.geom_type in ("Polygon", "MultiPolygon")])
             if not rem_geom.is_empty and float(rem_geom.area) > 0.05:
@@ -923,8 +923,8 @@ def build_real_v2_floor(
         n_degen_dropped += n_degen_s
     repaired, n_lock_dedup = _dedup_exact_same_normal(repaired)
 
-    # Clear any residual `double_layers` flicker pairs missed by bucketing (up to 2 passes)
-    for _ in range(2):
+    # Clear any residual `double_layers` flicker pairs missed by bucketing (up to 5 passes)
+    for _ in range(5):
         outer_mask_dl, vis_mask_dl = _exposure_masks(repaired, n_dirs=128)
         repaired, n_res_dl = resolve_residual_double_layers(repaired, outer_mask_dl, vis_mask_dl)
         n_post_coplanar += n_res_dl
@@ -949,7 +949,7 @@ def build_real_v2_floor(
             repaired = flip_faces(repaired, flip_mask)
             n_post_oriented = int(flip_mask.sum())
 
-    # 6. Final piercing needle-sliver + degenerate purge outside 128-dir protected exterior faces
+    # 6. Final piercing needle-sliver + outer facade lock + post-lock residual flicker, phantom & normal convergence
     n_post_slivers = 0
     if repaired.n_faces > 0:
         outer_prot, _ = _exposure_masks(repaired, n_dirs=128)
@@ -958,16 +958,29 @@ def build_real_v2_floor(
         repaired, n_outer_post_sliv = apply_strict_outer_facade_lock(ckpt_raw, repaired, min_area_sqin=0.05)
         if n_outer_post_sliv > 0:
             n_outer_locked += n_outer_post_sliv
-            for dl_iter in range(3):
-                outer_ps, vis_ps = _exposure_masks(repaired, n_dirs=128)
-                if dl_iter == 0 and repaired.n_faces > prev_n:
-                    outer_ps[prev_n:] = True
-                repaired, n_dl_ps = resolve_residual_double_layers(repaired, outer_ps, vis_ps)
-                n_post_coplanar += n_dl_ps
-                if n_dl_ps == 0:
-                    break
-            repaired, n_post_dedup = _dedup_exact_same_normal(repaired)
-            n_lock_dedup += n_post_dedup
+        # Always run final post-sliver/post-orient double-layer, phantom, orientation & degenerate sweep
+        for dl_iter in range(4):
+            outer_ps, vis_ps = _exposure_masks(repaired, n_dirs=128)
+            if dl_iter == 0 and n_outer_post_sliv > 0 and repaired.n_faces > prev_n:
+                outer_ps[prev_n:] = True
+            repaired, n_dl_ps = resolve_residual_double_layers(repaired, outer_ps, vis_ps)
+            n_post_coplanar += n_dl_ps
+            if n_dl_ps == 0:
+                break
+        repaired, n_post_dedup = _dedup_exact_same_normal(repaired)
+        n_lock_dedup += n_post_dedup
+        repaired, n_phantom_fin = drop_phantom_bridges(ckpt_raw, repaired)
+        n_phantom_dropped += n_phantom_fin
+        if repaired.n_faces > 0:
+            center_fin = 0.5 * (repaired.positions.min(axis=0) + repaired.positions.max(axis=0))
+            fn_fin = face_normals(repaired.positions, repaired.face_v, np.ones(repaired.n_faces, dtype=bool))
+            ok_fin = (~np.isnan(fn_fin).any(axis=1)) & (np.linalg.norm(fn_fin, axis=1) > 0.5)
+            ef_fin, eb_fin = compute_side_exposure(repaired.positions - center_fin, repaired.face_v, ok_fin, n_dirs=128)
+            verdict_fin = classify_orientation(ef_fin, eb_fin, ok_fin)
+            flip_fin = ok_fin & (verdict_fin == ORIENT_FLIP)
+            if flip_fin.any():
+                repaired = flip_faces(repaired, flip_fin)
+                n_post_oriented += int(flip_fin.sum())
         repaired, n_degen_fin = _drop_degenerate_faces(repaired)
         n_degen_dropped += n_degen_fin
         repaired, _ = compact_mesh(repaired, {})
